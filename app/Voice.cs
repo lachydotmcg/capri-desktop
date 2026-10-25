@@ -14,25 +14,25 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class VoiceEntry
     {
-        [DataMember(Name = "voice_id")] public string Id;
-        [DataMember(Name = "name")] public string Name;
-        [DataMember(Name = "category")] public string Category;
+        [DataMember(Name = "voice_id")] public string Id { get; set; }
+        [DataMember(Name = "name")] public string Name { get; set; }
+        [DataMember(Name = "category")] public string Category { get; set; }
     }
 
     [DataContract]
     internal sealed class VoicePage
     {
-        [DataMember(Name = "voices")] public List<VoiceEntry> Voices;
-        [DataMember(Name = "has_more")] public bool More;
-        [DataMember(Name = "next_page_token")] public string Next;
+        [DataMember(Name = "voices")] public List<VoiceEntry> Voices { get; set; }
+        [DataMember(Name = "has_more")] public bool More { get; set; }
+        [DataMember(Name = "next_page_token")] public string Next { get; set; }
     }
 
     [DataContract]
     internal sealed class VoiceModel
     {
-        [DataMember(Name = "model_id")] public string Id;
-        [DataMember(Name = "name")] public string Name;
-        [DataMember(Name = "can_do_text_to_speech")] public bool Speaks;
+        [DataMember(Name = "model_id")] public string Id { get; set; }
+        [DataMember(Name = "name")] public string Name { get; set; }
+        [DataMember(Name = "can_do_text_to_speech")] public bool Speaks { get; set; }
     }
 
     internal sealed class VoiceException : Exception

@@ -67,6 +67,16 @@ namespace CapriDesktop
             return bounds.Width > 0 && bounds.Height > 0;
         }
 
+        internal static bool Fullscreen(ICollection<IntPtr> skip)
+        {
+            IntPtr active = Native.GetForegroundWindow();
+            Rectangle bounds;
+            if (active == IntPtr.Zero || skip.Contains(active) || !Showing(active, out bounds)) return false;
+            Rectangle monitor = Screen.FromHandle(active).Bounds;
+            return MotionPhysics.Covers(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom,
+                monitor.Left, monitor.Top, monitor.Right, monitor.Bottom);
+        }
+
         internal static bool Alive(IntPtr window) { return IsWindow(window); }
 
         private static bool Solid(IntPtr window, Rectangle bounds)

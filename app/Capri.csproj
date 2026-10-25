@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>Capri</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../assets/chip.ico</ApplicationIcon>
+    <LangVersion>5</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Setup.cs" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="UIAutomationClient" />
+    <Reference Include="UIAutomationTypes" />
+    <Reference Include="WindowsBase" />
+    <EmbeddedResource Include="../assets/sprites/*.png"><LogicalName>Capri.Sprite.%(Filename)%(Extension)</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="../assets/chip.ico"><LogicalName>Capri.Chip.ico</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="../assets/fonts/ShareTechMono-Regular.ttf"><LogicalName>Capri.Font.Mono.ttf</LogicalName></EmbeddedResource>
+  </ItemGroup>
+</Project>

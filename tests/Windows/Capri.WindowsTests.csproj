@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net48</TargetFramework><OutputType>Exe</OutputType><AssemblyName>Capri.WindowsTests</AssemblyName><LangVersion>5</LangVersion></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../app/Capri.csproj" /><Reference Include="System.Windows.Forms" /><Reference Include="System.Drawing" /></ItemGroup>
+</Project>

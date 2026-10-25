@@ -11,54 +11,54 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class AgentMade
     {
-        [DataMember(Name = "agent_id")] public string Id;
+        [DataMember(Name = "agent_id")] public string Id { get; set; }
     }
 
     [DataContract]
     internal sealed class AgentAddress
     {
-        [DataMember(Name = "signed_url")] public string Url;
+        [DataMember(Name = "signed_url")] public string Url { get; set; }
     }
 
     [DataContract]
     internal sealed class AgentEvent
     {
-        [DataMember(Name = "type")] public string Type;
-        [DataMember(Name = "conversation_initiation_metadata_event")] public AgentStart Start;
-        [DataMember(Name = "audio_event")] public AgentAudio Audio;
-        [DataMember(Name = "agent_response_event")] public AgentReply Reply;
-        [DataMember(Name = "user_transcription_event")] public AgentHeard Heard;
-        [DataMember(Name = "ping_event")] public AgentPing Ping;
+        [DataMember(Name = "type")] public string Type { get; set; }
+        [DataMember(Name = "conversation_initiation_metadata_event")] public AgentStart Start { get; set; }
+        [DataMember(Name = "audio_event")] public AgentAudio Audio { get; set; }
+        [DataMember(Name = "agent_response_event")] public AgentReply Reply { get; set; }
+        [DataMember(Name = "user_transcription_event")] public AgentHeard Heard { get; set; }
+        [DataMember(Name = "ping_event")] public AgentPing Ping { get; set; }
     }
 
     [DataContract]
     internal sealed class AgentStart
     {
-        [DataMember(Name = "agent_output_audio_format")] public string Output;
+        [DataMember(Name = "agent_output_audio_format")] public string Output { get; set; }
     }
 
     [DataContract]
     internal sealed class AgentAudio
     {
-        [DataMember(Name = "audio_base_64")] public string Data;
+        [DataMember(Name = "audio_base_64")] public string Data { get; set; }
     }
 
     [DataContract]
     internal sealed class AgentReply
     {
-        [DataMember(Name = "agent_response")] public string Text;
+        [DataMember(Name = "agent_response")] public string Text { get; set; }
     }
 
     [DataContract]
     internal sealed class AgentHeard
     {
-        [DataMember(Name = "user_transcript")] public string Text;
+        [DataMember(Name = "user_transcript")] public string Text { get; set; }
     }
 
     [DataContract]
     internal sealed class AgentPing
     {
-        [DataMember(Name = "event_id")] public long Id;
+        [DataMember(Name = "event_id")] public long Id { get; set; }
     }
 
     internal sealed class Agent : IDisposable

@@ -265,6 +265,15 @@ namespace CapriDesktop
 
         internal string Status { get { return brainName.Text + " | " + brainNote.Text; } }
 
+        internal void ShowBuiltIn()
+        {
+            brainName.Text = "Built-in dialogue";
+            brainNote.Text = "English / Russian · no model server";
+            models.Visible = false; hint.Visible = false;
+            Arrange(false);
+            refresh.Text = "Chat";
+        }
+
         internal void Searching()
         {
             brainName.Text = "Looking for a brain...";

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net8.0</TargetFramework><OutputType>Exe</OutputType><EnableDefaultCompileItems>false</EnableDefaultCompileItems></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="PolicyTests.cs" />
+    <Compile Include="ChatTests.cs" />
+    <Compile Include="StabilityTests.cs" />
+    <Compile Include="PackageChecks.cs" />
+    <Compile Include="../app/Preferences.cs" />
+    <Compile Include="../app/RuntimePolicy.cs" />
+    <Compile Include="../app/AssetCatalog.cs" />
+    <Compile Include="../app/LocalChat.cs" />
+    <Compile Include="../app/ChatStorage.cs" />
+    <Compile Include="../app/AnimationState.cs" />
+    <Compile Include="../app/MotionPhysics.cs" />
+    <Compile Include="../app/DesktopBehavior.cs" />
+    <Compile Include="../app/CompanionServices.cs" />
+  </ItemGroup>
+</Project>

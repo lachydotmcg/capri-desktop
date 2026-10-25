@@ -12,8 +12,8 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class ChatMessage
     {
-        [DataMember(Name = "role")] public string Role;
-        [DataMember(Name = "content")] public string Content;
+        [DataMember(Name = "role")] public string Role { get; set; }
+        [DataMember(Name = "content")] public string Content { get; set; }
         internal ChatMessage(string role, string content) { Role = role; Content = content; }
     }
 
@@ -28,69 +28,69 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class ChatRequest
     {
-        [DataMember(Name = "model")] public string Model;
-        [DataMember(Name = "messages")] public ChatMessage[] Messages;
-        [DataMember(Name = "stream")] public bool Stream;
-        [DataMember(Name = "think", EmitDefaultValue = false)] public bool? Think;
+        [DataMember(Name = "model")] public string Model { get; set; }
+        [DataMember(Name = "messages")] public ChatMessage[] Messages { get; set; }
+        [DataMember(Name = "stream")] public bool Stream { get; set; }
+        [DataMember(Name = "think", EmitDefaultValue = false)] public bool? Think { get; set; }
         [DataMember(Name = "keep_alive")] public string KeepAlive = "15m";
-        [DataMember(Name = "options", EmitDefaultValue = false)] public ChatOptions Options;
+        [DataMember(Name = "options", EmitDefaultValue = false)] public ChatOptions Options { get; set; }
     }
 
     [DataContract]
     internal sealed class ChatReply
     {
-        [DataMember(Name = "message")] public ChatMessage Message;
-        [DataMember(Name = "error")] public string Error;
+        [DataMember(Name = "message")] public ChatMessage Message { get; set; }
+        [DataMember(Name = "error")] public string Error { get; set; }
     }
 
     [DataContract]
     internal sealed class ModelList
     {
-        [DataMember(Name = "models")] public ModelInfo[] Models;
+        [DataMember(Name = "models")] public ModelInfo[] Models { get; set; }
     }
 
     [DataContract]
     internal sealed class ModelInfo
     {
-        [DataMember(Name = "name")] public string Name;
+        [DataMember(Name = "name")] public string Name { get; set; }
     }
 
     [DataContract]
     internal sealed class CompletionRequest
     {
         [DataMember(Name = "model")] public string Model = "capri";
-        [DataMember(Name = "messages")] public ChatMessage[] Messages;
+        [DataMember(Name = "messages")] public ChatMessage[] Messages { get; set; }
         [DataMember(Name = "max_tokens")] public int Limit = 90;
         [DataMember(Name = "temperature")] public double Temperature = 0.85;
-        [DataMember(Name = "stream")] public bool Stream;
+        [DataMember(Name = "stream")] public bool Stream { get; set; }
     }
 
     [DataContract]
     internal sealed class CompletionReply
     {
-        [DataMember(Name = "choices")] public CompletionChoice[] Choices;
+        [DataMember(Name = "choices")] public CompletionChoice[] Choices { get; set; }
     }
 
     [DataContract]
     internal sealed class CompletionChoice
     {
-        [DataMember(Name = "message")] public ChatMessage Message;
+        [DataMember(Name = "message")] public ChatMessage Message { get; set; }
     }
 
     [DataContract]
     internal sealed class PullRequest
     {
-        [DataMember(Name = "model")] public string Model;
+        [DataMember(Name = "model")] public string Model { get; set; }
         [DataMember(Name = "stream")] public bool Stream = true;
     }
 
     [DataContract]
     internal sealed class PullLine
     {
-        [DataMember(Name = "status")] public string Status;
-        [DataMember(Name = "total")] public long Total;
-        [DataMember(Name = "completed")] public long Completed;
-        [DataMember(Name = "error")] public string Error;
+        [DataMember(Name = "status")] public string Status { get; set; }
+        [DataMember(Name = "total")] public long Total { get; set; }
+        [DataMember(Name = "completed")] public long Completed { get; set; }
+        [DataMember(Name = "error")] public string Error { get; set; }
     }
 
     internal sealed class BrainException : Exception

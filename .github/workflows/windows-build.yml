@@ -1,0 +1,82 @@
+name: Windows development build
+on:
+  push:
+    branches: [feature/capri-enhanced]
+    tags: ['v*-dev.*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: capri-windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    if: github.repository == 'Shaken89/capri-desktop'
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Build, portable tests, Windows regressions and native smoke suite
+        shell: pwsh
+        run: |
+          try { ./scripts/build.ps1 }
+          catch {
+            $details = ($_ | Out-String)
+            Get-ChildItem -Path 'out/*.stderr.log', 'out/smoke-*/failure.txt' -ErrorAction SilentlyContinue | ForEach-Object {
+              $details += "`n" + $_.Name + "`n" + (Get-Content $_.FullName -Raw)
+            }
+            if ($details.Length -gt 12000) { $details = $details.Substring(0, 12000) }
+            $encoded = $details.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Host "::error title=Windows validation failed::$encoded"
+            exit 1
+          }
+      - name: Upload test logs (no release publication)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capri-test-logs-${{ github.sha }}
+          path: |
+            out/*.log
+            out/smoke-*/smoke-test.txt
+            out/smoke-*/failure.txt
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload development ZIP for laptop testing
+        if: success() && (github.ref == 'refs/heads/feature/capri-enhanced' || startsWith(github.ref, 'refs/tags/v')) && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: capri-windows-dev-${{ github.sha }}
+          path: |
+            out/artifacts/*.zip
+            out/artifacts/*.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  prerelease:
+    needs: build
+    if: github.repository == 'Shaken89/capri-desktop' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: capri-windows-dev-${{ github.sha }}
+          path: package
+      - name: Publish explicitly requested development prerelease after Windows checks
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assets = @(Get-ChildItem package -File | Where-Object { $_.Name -like '*.zip' -or $_.Name -like '*.sha256' } | ForEach-Object FullName)
+          if ($assets.Count -ne 2) { throw 'Expected exactly one tested ZIP and its SHA-256 checksum' }
+          gh release create $env:GITHUB_REF_NAME @assets --verify-tag --prerelease --latest=false --title "Capri Enhanced $env:GITHUB_REF_NAME" --notes-file docs/RELEASE-NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw 'GitHub prerelease publication failed' }
