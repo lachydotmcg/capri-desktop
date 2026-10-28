@@ -147,7 +147,8 @@ namespace CapriDesktop
             panelOnScreen = new PixelRect(left + (int)(panel.X * scale), y + (int)(panel.Y * scale), (int)(panel.Width * scale), (int)(panel.Height * scale));
             PixelPoint at = new PixelPoint(left, y);
             if (Position != at) Position = at;
-            if (!IsVisible) Show();
+            if (!IsVisible) Show(); 
+            Topmost = false;    Topmost = true;
             Sheet.InvalidateVisual();
         }
     }
@@ -231,6 +232,7 @@ namespace CapriDesktop
             Position = new PixelPoint(left, top);
             if (above.Width > 0) Follow(above, area, scale);
             Show();
+            Topmost = false;    Topmost = true;
             Activate();
             input.Focus();
             input.CaretIndex = (input.Text ?? "").Length;
@@ -352,6 +354,7 @@ namespace CapriDesktop
             PixelPoint at = new PixelPoint(topCentre.X - (int)Math.Round(Wide * scale / 2), topCentre.Y);
             if (Position != at) Position = at;
             if (!IsVisible) Show();
+            Topmost = false;    Topmost = true;
         }
 
         internal void Press(int part)
