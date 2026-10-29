@@ -196,7 +196,7 @@ namespace CapriDesktop
         internal const string Rejected = "ElevenLabs rejected the key. Press Forget, paste a new one.";
         internal const string RejectedNew = "ElevenLabs rejected that key. Copy it again from ElevenLabs and paste it.";
 
-        internal const string Restricted = "ElevenLabs has restricted your account, so her voice can't connect. Sign in at elevenlabs.io to see why, or pick FREE VOICE in the Mainframe.";
+        internal const string Restricted = "ElevenLabs has restricted your account, so her voice can't connect. Sign in at elevenlabs.io to see why, or pick PREBUILT LOCAL in the Mainframe.";
 
         internal static string Unsaved(string problem) { return problem == Rejected ? RejectedNew : problem; }
 
@@ -209,7 +209,7 @@ namespace CapriDesktop
         internal static string Explain(int status, string detail)
         {
             detail = detail ?? "";
-            if (detail.Contains("quota_exceeded")) return "Out of ElevenLabs credits. Pick FREE VOICE in the Mainframe.";
+            if (detail.Contains("quota_exceeded")) return "Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe.";
             if (detail.Contains("account_restricted")) return Restricted;
             if (detail.Contains("missing_permissions")) return "Key is missing permissions. Make a new ElevenLabs key with Restrict key turned off.";
             if (detail.Contains("voice_not_found")) return "Voice not found. Add it to your ElevenLabs voices.";
@@ -2216,27 +2216,35 @@ namespace CapriDesktop
         }
     }
 
-    // Her opt-in HD voice: Qwen3-TTS 1.7B on the graphics card, served by its own llama-server so her brain keeps its engine.
+    // Her opt-in HD voice: Qwen3-TTS 1.7B on the graphics card, served by qwentts.cpp's tts-server so her brain keeps its engine.
+    // Her built-in clip goes in with its words, so it copies how she talks as well as how she sounds.
     internal sealed class QwenVoice : IDisposable
     {
         internal const string Style = "HD";
-        internal const string Build = "b11781";
-        internal static string EngineUrl = "https://github.com/ggml-org/llama.cpp/releases/download/" + Build + "/llama-" + Build + "-bin-win-vulkan-x64.zip";
-        internal static string EngineSha = "543198c366542b9259ac0bf1dfdc9bcd45843059b144f3771773d5f2f1d5cbf5";
-        internal static long EngineSize = 36803725;
-        private const string Weights = "https://huggingface.co/ggml-org/Qwen3-TTS-12Hz-1.7B-Base-GGUF/resolve/ca27d74bc954b73dadab5b71ca265d87fc861a7c/";
-        internal const string ModelFile = "Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf";
-        internal static string ModelUrl = Weights + ModelFile;
-        internal static string ModelSha = "8d18c94acb2addd042f97da63c98be144eafa76d0d9495177eab65130cf85129";
-        internal static long ModelSize = 1035965280;
-        internal const string CodecFile = "mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf";
-        internal static string CodecUrl = Weights + CodecFile;
-        internal static string CodecSha = "6fd65188839bcd6ecc91b277ad471e22a0edfada4699a0fe82f1165c18cfcce2";
-        internal static long CodecSize = 446422912;
+        internal const string Build = "qwentts-5916bf7-ctx";
+        // Placeholder links: the engine (qwentts.cpp 5916bf7 with Capri's --ctx-size patch) and the talker (the 1.7B Base cut to Q5_K_M) aren't hosted yet.
+        private const string Hosted = "https://github.com/lachydotmcg/capri-desktop/releases/download/hd-voice-1/";
+        internal static string EngineUrl = Hosted + Build + "-win-vulkan-x64.zip";
+        internal static string EngineSha = "6d9042bc6af4b8c8e9bc31e85166a81c0baea8c83ff9e647f452ce61f7134a22";
+        internal static long EngineSize = 16547183;
+        internal const string ModelFile = "qwen-talker-1.7b-base-Q5_K_M.gguf";
+        internal static string ModelUrl = Hosted + ModelFile;
+        internal static string ModelSha = "4257253743e61e13882de0c355357446724231188fcf7a96d38bad838b5097c3";
+        internal static long ModelSize = 1411265728;
+        internal const string CodecFile = "qwen-tokenizer-12hz-Q8_0.gguf";
+        internal static string CodecUrl = "https://huggingface.co/Serveurperso/Qwen3-TTS-GGUF/resolve/b7ee2e8c7459c3bea99da23e3d178125a7d1713c/" + CodecFile;
+        internal static string CodecSha = "1883beeed99348fc35e23dd225e9082f93f6f8c109330a33d935baa8acdbfd94";
+        internal static long CodecSize = 291150624;
+        // 0.7.4 and 0.7.5 ran her HD voice on llama.cpp b11781: 1.5 GB that nothing uses now.
+        internal const string OldEngine = "engine-b11781";
+        internal static readonly string[] OldFiles = { "Qwen3-TTS-12Hz-1.7B-Base-Q4_K_M.gguf", "mmproj-Qwen3-TTS-12Hz-1.7B-Base-Q8_0.gguf" };
         internal const long CardNeeded = 6L << 30;
         internal const long RoomNeeded = 5L << 29;
         internal const int PieceLength = 300;
         private static readonly string[] Tongues = { "zh", "en", "de", "it", "pt", "es", "ja", "ko", "fr", "ru" };
+        private static readonly string[] Languages = { "chinese", "english", "german", "italian", "portuguese", "spanish", "japanese", "korean", "french", "russian" };
+        // What she says in her built-in clip, word for word. A new clip needs its words here too.
+        private const string Words = "Oh, there you are! I was starting to think you'd forgotten me. Relax, choom. Your favorite little glitch isn't going anywhere. So, what are we getting into tonight?";
         internal static Func<ProcessStartInfo, Process> Spawn = Process.Start;
         private readonly string folder;
         private readonly string engine;
@@ -2246,6 +2254,8 @@ namespace CapriDesktop
         private int port;
         private bool awake;
         private byte[] clip;
+        private byte[] voiced;
+        private int voicedOn;
         internal volatile bool Cancel;
 
         internal QwenVoice(string data)
@@ -2259,7 +2269,7 @@ namespace CapriDesktop
 
         internal string Folder { get { return folder; } }
 
-        private string Server { get { return Path.Combine(engine, "llama-server.exe"); } }
+        private string Server { get { return Path.Combine(engine, "tts-server.exe"); } }
 
         internal bool Installed { get { return File.Exists(Server) && File.Exists(Path.Combine(folder, ModelFile)) && File.Exists(Path.Combine(folder, CodecFile)); } }
 
@@ -2282,7 +2292,7 @@ namespace CapriDesktop
                 string staging = engine + ".new";
                 if (Directory.Exists(staging)) Directory.Delete(staging, true);
                 ZipFile.ExtractToDirectory(zip, staging);
-                if (!File.Exists(Path.Combine(staging, "llama-server.exe"))) throw new IOException("The HD voice download is missing llama-server.exe.");
+                if (!File.Exists(Path.Combine(staging, "tts-server.exe"))) throw new IOException("The HD voice download is missing tts-server.exe.");
                 lock (gate)
                 {
                     Close();
@@ -2300,10 +2310,24 @@ namespace CapriDesktop
             return delegate(string text, long done, long total) { progress(text, before + done, PackSize); };
         }
 
+        // Clears the old llama.cpp pack, half-finished downloads too. Their clips share its folder and stay.
+        internal void Tidy()
+        {
+            string old = Path.Combine(Path.GetDirectoryName(engine), OldEngine);
+            try
+            {
+                foreach (string staged in new[] { old, old + ".new" }) if (Directory.Exists(staged)) Directory.Delete(staged, true);
+                foreach (string part in new[] { old + ".zip", old + ".zip.part" }) File.Delete(part);
+                foreach (string name in OldFiles) foreach (string part in new[] { name, name + ".part" }) File.Delete(Path.Combine(folder, part));
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        // A 1024-frame cache holds her clip, its words and a 300-character piece, and leaves 670 MB more of the graphics card for her brain than the default.
         internal ProcessStartInfo StartInfo(int number)
         {
-            int threads = Engine.Threads(Environment.ProcessorCount);
-            ProcessStartInfo info = new ProcessStartInfo(Server, "-m \"" + Path.Combine(folder, ModelFile) + "\" --mmproj \"" + Path.Combine(folder, CodecFile) + "\" --host 127.0.0.1 --port " + number + " -c 2048 -np 1 --no-webui --log-disable -t " + threads + " -tb " + threads + " --poll 0 --poll-batch 0");
+            ProcessStartInfo info = new ProcessStartInfo(Server, "--model \"" + Path.Combine(folder, ModelFile) + "\" --codec \"" + Path.Combine(folder, CodecFile) + "\" --host 127.0.0.1 --port " + number + " --ctx-size 1024 --codec-chunk-dur 6");
             info.UseShellExecute = false;
             info.CreateNoWindow = true;
             info.WorkingDirectory = engine;
@@ -2337,7 +2361,7 @@ namespace CapriDesktop
                         if (server != running) throw new OperationCanceledException();
                         if (running.HasExited)
                         {
-                            Brain.Log("HD voice", waited.ElapsedMilliseconds, "llama-server stopped while loading with exit code 0x" + ((uint)Engine.ExitCode(running)).ToString("X8"));
+                            Brain.Log("HD voice", waited.ElapsedMilliseconds, "tts-server stopped while loading with exit code 0x" + ((uint)Engine.ExitCode(running)).ToString("X8"));
                             Close();
                             throw new VoiceException("Her HD voice crashed loading. Close games, then try again.");
                         }
@@ -2387,12 +2411,13 @@ namespace CapriDesktop
 
         private byte[] Say(int number, string text)
         {
-            string code = Brain.LanguageCode(Brain.Language);
-            string rest = ",\"lang\":\"" + (Array.IndexOf(Tongues, code) >= 0 ? code : "en") + "\",\"seed\":7,\"response_format\":\"pcm\",\"speaker_ref_b64\":\"" + Convert.ToBase64String(Clip()) + "\"}";
+            Voiced(number);
+            int tongue = Array.IndexOf(Tongues, Brain.LanguageCode(Brain.Language));
+            string rest = ",\"voice\":\"capri\",\"language\":\"" + (tongue >= 0 ? Languages[tongue] : "english") + "\",\"seed\":7,\"max_new_tokens\":512,\"response_format\":\"wav\"}";
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.HdRobot, glitch = VoiceFx.HdGlitch;
             List<short> said = new List<short>();
             int hertz = 24000;
-            foreach (string piece in Pieces(Voice.Sayable(text))) said.AddRange(Ask(number, "{\"input\":" + Voice.Quote(piece) + rest, out hertz));
+            foreach (string piece in Pieces(Voice.Sayable(text))) said.AddRange(Voice.Samples(Ask(number, "/v1/audio/speech", "{\"input\":" + Voice.Quote(piece) + rest), out hertz));
             short[] samples = said.ToArray();
             if (pitch != 0 || speed != 100 || robot > 0 || glitch > 0) samples = VoiceFx.Restyled(samples, hertz, pitch, speed, robot, glitch, VoiceFx.Seed(text));
             byte[] wav = Voice.Wave(samples, hertz);
@@ -2400,7 +2425,30 @@ namespace CapriDesktop
             return wav;
         }
 
-        // Each /tts call stops at 512 frames (about 41 s), so long replies go a few sentences at a time.
+        // The server holds one voice, capri: her clip with its words, or their clip, which comes without words and gives the sound alone.
+        // A different clip goes in before the next line.
+        private void Voiced(int number)
+        {
+            bool hers;
+            byte[] wav = Clip(out hers);
+            lock (gate) if (voicedOn == number && Same(voiced, wav)) return;
+            Ask(number, "/v1/audio/voices", "{\"name\":\"capri\"" + (hers ? ",\"ref_text\":" + Voice.Quote(Words) : "") + ",\"wav_b64\":\"" + Convert.ToBase64String(wav) + "\"}");
+            lock (gate)
+            {
+                voiced = wav;
+                voicedOn = number;
+            }
+        }
+
+        private static bool Same(byte[] one, byte[] other)
+        {
+            if (one == other) return true;
+            if (one == null || one.Length != other.Length) return false;
+            for (int i = 0; i < one.Length; i++) if (one[i] != other[i]) return false;
+            return true;
+        }
+
+        // Each line stops at 512 frames (about 41 s), so long replies go a few sentences at a time.
         internal static List<string> Pieces(string text)
         {
             List<string> pieces = new List<string>();
@@ -2415,10 +2463,10 @@ namespace CapriDesktop
             return pieces;
         }
 
-        private static short[] Ask(int number, string json, out int hertz)
+        private static byte[] Ask(int number, string path, string json)
         {
             byte[] payload = Encoding.UTF8.GetBytes(json);
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + number + "/tts");
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + number + path);
             request.Method = "POST";
             request.Proxy = null;
             request.ContentType = "application/json";
@@ -2433,7 +2481,7 @@ namespace CapriDesktop
                 using (MemoryStream copy = new MemoryStream())
                 {
                     stream.CopyTo(copy);
-                    return Decode(copy.ToArray(), response.ContentType, out hertz);
+                    return copy.ToArray();
                 }
             }
             catch (WebException error)
@@ -2468,22 +2516,15 @@ namespace CapriDesktop
             };
         }
 
-        private static short[] Decode(byte[] pcm, string type, out int hertz)
-        {
-            Match rate = Regex.Match(type ?? "", @"rate=(\d+)");
-            hertz = rate.Success ? int.Parse(rate.Groups[1].Value) : 24000;
-            short[] samples = new short[pcm.Length / 4];
-            for (int i = 0; i < samples.Length; i++) samples[i] = (short)Math.Max(-32767, Math.Min(32767, Math.Round(BitConverter.ToSingle(pcm, i * 4) * 32767)));
-            return samples;
-        }
-
         // reference.wav in her HD voice folder replaces the clip she's built with, so a new reference can be tried without a rebuild.
-        private byte[] Clip()
+        private byte[] Clip(out bool hers)
         {
             string own = Path.Combine(folder, YourVoice.Using);
+            hers = false;
             // A clip being swapped this instant gives her own clip for one line rather than an error.
             try { if (File.Exists(own)) return File.ReadAllBytes(own); }
             catch (IOException) { }
+            hers = true;
             lock (gate)
             {
                 if (clip != null) return clip;
@@ -2541,6 +2582,7 @@ namespace CapriDesktop
         private void Close()
         {
             awake = false;
+            voiced = null;
             if (server == null) return;
             try { if (!server.HasExited) { server.Kill(); server.WaitForExit(3000); } } catch (InvalidOperationException) { } catch (System.ComponentModel.Win32Exception) { }
             server.Dispose();
@@ -2566,6 +2608,7 @@ namespace CapriDesktop
         internal const string Files = "file";
         internal const string FishCloud = "https://api.fish.audio";
         internal const string FishFree = "s2.1-pro-free";
+        internal const string OpenAiCloud = "https://api.openai.com/v1";
         internal const string Theirs = "Your voice server";
         // How long a server has to start answering a line, in milliseconds, before her free voice says it.
         internal static int Patience = 20000;
@@ -2591,7 +2634,7 @@ namespace CapriDesktop
                 "Fish Speech running on your PC with tools/api_server.py. Voice is a reference ID you added to it, or blank."),
             new Service("Kokoro · on your PC", OpenAi, Address, "kokoro", "af_heart", "Optional", "Optional",
                 "Kokoro-FastAPI running on your PC, with voices like af_heart, af_bella and am_adam."),
-            new Service("OpenAI · cloud", OpenAi, "https://api.openai.com/v1", "gpt-4o-mini-tts", "marin", "Optional", "Paste your OpenAI key",
+            new Service("OpenAI · cloud", OpenAi, OpenAiCloud, "gpt-4o-mini-tts", "marin", "Optional", "Paste your OpenAI key",
                 "OpenAI's voices with your OpenAI key: marin, cedar, coral, alloy and more."),
             new Service("Any OpenAI-style server", OpenAi, null, null, null, "Optional", "Optional",
                 "Any speech model you run whose server speaks OpenAI's speech API, like Qwen3-TTS through vLLM-Omni, AllTalk or LocalAI.")
@@ -2599,6 +2642,15 @@ namespace CapriDesktop
 
         // The APIs she knows; anything else is OpenAI's.
         internal static string Known(string api) { return api == Fish || api == Files ? api : OpenAi; }
+
+        // Fish Audio's and OpenAI's own servers go under CLOUD VOICE. A model file and any server they run go under CUSTOM LOCAL.
+        internal static bool InCloud(string url, string api)
+        {
+            api = Known(api);
+            return api == Fish ? Same(url, Fish, FishCloud, Fish) : api == OpenAi && Same(url, OpenAi, OpenAiCloud, OpenAi);
+        }
+
+        internal static string CloudName(string api) { return Known(api) == Fish ? "Fish Audio" : "OpenAI"; }
 
         internal sealed class Service
         {
@@ -2935,7 +2987,7 @@ namespace CapriDesktop
                 if (status == 404 && name == "Fish Audio") throw new VoiceException("Fish Audio can't find that voice (HTTP 404). Check its ID or link on fish.audio.");
                 if (status == 404) throw new VoiceException(name + " has no " + endpoint.AbsolutePath + " (HTTP 404). Check its address.");
                 if (status == 429) throw new VoiceException(name + " is busy (HTTP 429). Try again in a moment.");
-                if (status == 401 || status == 403) throw new VoiceException(string.IsNullOrEmpty(key) ? name + " wants a key (HTTP " + status + "). Add it under " + Menu + "." : name + " turned down its key (HTTP " + status + ").");
+                if (status == 401 || status == 403) throw new VoiceException(string.IsNullOrEmpty(key) ? name + " wants a key (HTTP " + status + "). Add it under " + (theirs ? "CUSTOM LOCAL > Set up" : "CLOUD VOICE") + "." : name + " turned down its key (HTTP " + status + ").");
                 // Fish Audio's paid models answer 402 on an account with no credit. Its free tier is a model of its own.
                 if (status == 402 && name == "Fish Audio" && model != FishFree) throw new VoiceException("Fish Audio wants credit for " + (string.IsNullOrEmpty(model) ? "its usual model" : model) + " (HTTP 402). For its free tier, set Model to " + FishFree + ".");
                 throw new VoiceException(name + " said HTTP " + status + (detail.Length > 0 ? ": " + Voice.Short(detail) : "."));
