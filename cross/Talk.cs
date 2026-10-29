@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 
 namespace CapriDesktop
 {
@@ -261,61 +263,442 @@ namespace CapriDesktop
         }
     }
 
+    // The pencil and wave under her when you hover her, the same as on Windows: black plates with cut corners and a
+    // pink-to-cyan neon edge, TYPE and TALK in her mono font, the wave as bars of square segments, and a few frames of her
+    // glitch when it shows. It draws in whole screen pixels at her scale, so it stays crisp at 100%, 150% and 200%. Voice
+    // chat is Windows-only, so the mic button, the mic level and MUTED only show in the smoke test's checks here.
     internal sealed class PillFace : Control
     {
+        // Frames of the glitch it shows with, 45 ms each.
+        internal const int TearFrames = 4;
+        // Segments in each of the wave's five bars when it's full: the wave's shape, and the top of the mic level.
+        internal static readonly int[] Bars = { 2, 4, 5, 3, 2 };
+        internal static readonly Color Fill = Color.FromArgb(246, 9, 11, 15);
+        internal static readonly Color Unlit = Color.FromRgb(46, 52, 64);
+        internal static readonly Color Caption = Color.FromRgb(168, 174, 184);
+        private const byte WashAlpha = 40;
         internal int Hover;
+        internal bool Chatting;
+        internal bool Muted;
+        internal int Level;
+        internal int Tear;
+        internal int Seed;
+        // A scale to draw at, in pixels, for the smoke test's pictures; 0 follows her window's scale.
+        internal double Scale;
+
+        // Its letters in plain greyscale like Windows, without coloured subpixel edges.
+        internal PillFace() { RenderOptions.SetTextRenderingMode(this, TextRenderingMode.Antialias); }
 
         public override void Render(DrawingContext context)
         {
-            double margin = 3;
-            Rect pill = new Rect(margin, margin, Bounds.Width - margin * 2, Bounds.Height - margin * 2);
-            context.DrawRectangle(new SolidColorBrush(Look.Pill), new Pen(new SolidColorBrush(Look.Edge), 1.2), pill, pill.Height / 2, pill.Height / 2);
-            double middle = pill.X + pill.Width / 2;
-            context.DrawLine(new Pen(new SolidColorBrush(Look.Edge), 1.2), new Point(middle, pill.Y + pill.Height * 0.27), new Point(middle, pill.Bottom - pill.Height * 0.27));
-            Point pencil = new Point(pill.X + pill.Width * 0.26, pill.Y + pill.Height / 2);
-            Point wave = new Point(pill.X + pill.Width * 0.74, pill.Y + pill.Height / 2);
-            if (Hover == 1 || Hover == 2)
-            {
-                Point lit = Hover == 1 ? pencil : wave;
-                double radius = pill.Height * 0.4;
-                context.DrawEllipse(new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)), null, lit, radius, radius);
-            }
-            Pencil(context, pencil, Hover == 1 ? Look.Cyan : Look.Ink);
-            Wave(context, wave, Hover == 2 ? Look.Cyan : Look.Ink);
+            TopLevel top = TopLevel.GetTopLevel(this);
+            double s = Scale > 0 ? Scale : top != null ? top.RenderScaling : 1;
+            double shrink = Scale > 0 ? 1 : 1 / s;
+            using (context.PushTransform(Matrix.CreateScale(shrink, shrink))) Draw(context, s, Hover, Chatting, Muted, Level, Tear, Seed);
         }
 
-        private static void Pencil(DrawingContext context, Point centre, Color colour)
+        // One state as a control of its own at scale s, sized in pixels, for the smoke test.
+        private static PillFace State(double s, int hover, bool chatting, bool muted, int level, int tear)
+        {
+            PillFace face = new PillFace { Hover = hover, Chatting = chatting, Muted = muted, Level = level, Tear = tear, Seed = 424242, Scale = s };
+            Size size = new Size(Across(s, chatting), Measure(s).Height);
+            face.Measure(size);
+            face.Arrange(new Rect(size));
+            return face;
+        }
+
+        // Its size in screen pixels at that scale, like TalkPill.Measure on Windows.
+        internal static Size Measure(double s) { return new Size(Math.Round(Pill.Wide * s), Math.Round(Pill.Tall * s)); }
+
+        internal static double Across(double s, bool chatting) { Size size = Measure(s); return chatting ? size.Width + Math.Round(4 * s) + size.Height : size.Width; }
+
+        internal static Rect Body(double s)
+        {
+            Size size = Measure(s);
+            double margin = Math.Round(3 * s);
+            return new Rect(margin, margin, size.Width - margin * 2, size.Height - margin * 2);
+        }
+
+        internal static Rect MicBody(double s)
+        {
+            Size size = Measure(s);
+            double margin = Math.Round(3 * s);
+            return new Rect(size.Width + Math.Round(4 * s) + margin, margin, size.Height - margin * 2, size.Height - margin * 2);
+        }
+
+        internal static double Cut(double s) { return Math.Max(3, Math.Round(6 * s)); }
+
+        internal static double EdgeWidth(double s) { return Math.Max(1, Math.Round(1.5 * s)); }
+
+        internal static string Label(int part, bool chatting, bool muted) { return part == 1 ? "TYPE" : chatting && muted ? "MUTED" : "TALK"; }
+
+        internal static int Lit(int bar, int level)
+        {
+            if (level <= 0) return 0;
+            return Math.Max(1, (int)Math.Round(Bars[bar] * Math.Min(6, level) / 6.0, MidpointRounding.AwayFromZero));
+        }
+
+        private static double Square(double s) { return Math.Max(2, Math.Round(2 * s)); }
+
+        private static double Pitch(double s) { return Math.Max(3, Math.Round(3 * s, MidpointRounding.AwayFromZero)); }
+
+        internal static Rect Segment(Rect meter, double s, int bar, int row)
+        {
+            double square = Square(s);
+            return new Rect(meter.Left + bar * Pitch(s), meter.Bottom - square - row * Pitch(s), square, square);
+        }
+
+        private static FormattedText Words(string label, double s, Color colour) { return Look.Text(label, Look.Regular, 8.5 * s, colour); }
+
+        // Where a label's letters land, from where it's drawn, in whole pixels.
+        private static Rect Ink(FormattedText text)
+        {
+            Geometry shape = text.BuildGeometry(new Point(0, 0));
+            Rect ink = shape != null && shape.Bounds.Width > 0 ? shape.Bounds : new Rect(0, text.Baseline - text.Height * 0.55, text.Width, text.Height * 0.55);
+            return new Rect(new Point(Math.Floor(ink.Left), Math.Floor(ink.Top)), new Point(Math.Ceiling(ink.Right), Math.Ceiling(ink.Bottom)));
+        }
+
+        // The icon's box and the label's letters in one half, 1 the pencil's and 2 the wave's, the pair in the middle of it.
+        internal static Rect[] Layout(double s, int part, string label)
+        {
+            Rect ink = Ink(Words(label, s, Look.Ink));
+            Rect body = Body(s);
+            double mid = Math.Floor(Measure(s).Width / 2);
+            double edge = EdgeWidth(s);
+            double left = part == 1 ? body.Left + edge : mid;
+            double right = part == 1 ? mid : body.Right - edge;
+            double wide = part == 1 ? Math.Round(12.5 * s) : Pitch(s) * 4 + Square(s);
+            double gap = Math.Round(4 * s);
+            double start = left + Math.Floor((right - left - wide - gap - ink.Width + 1) / 2);
+            double middle = body.Top + Math.Floor(body.Height / 2);
+            return new[] { new Rect(start, middle - Math.Floor(wide / 2), wide, wide), new Rect(start + wide + gap, middle - Math.Floor(ink.Height / 2), ink.Width, ink.Height) };
+        }
+
+        // Draws it in screen pixels at scale s. A glitch frame draws it in rows, a few of them slipped sideways and tinted.
+        internal static void Draw(DrawingContext context, double s, int hover, bool chatting, bool muted, int level, int tear, int seed)
+        {
+            if (tear <= 0) { Clean(context, s, hover, chatting, muted, level); return; }
+            double width = Across(s, chatting);
+            int height = (int)Measure(s).Height;
+            double amount = Math.Min(1, (double)tear / TearFrames);
+            Random roll = new Random(seed + tear);
+            int bands = 2 + (int)Math.Round(2 * amount);
+            int[] tops = new int[bands], tall = new int[bands], shifts = new int[bands];
+            bool[] torn = new bool[height];
+            for (int i = 0; i < bands; i++)
+            {
+                tall[i] = Math.Max(2, (int)Math.Round((2 + roll.Next(6)) * s));
+                tops[i] = roll.Next(Math.Max(1, height - tall[i]));
+                shifts[i] = (roll.Next(2) == 0 ? -1 : 1) * Math.Max(1, (int)Math.Round((2 + roll.Next(6)) * s * amount));
+                for (int y = tops[i]; y < Math.Min(height, tops[i] + tall[i]); y++) torn[y] = true;
+            }
+            for (int y = 0; y < height;)
+            {
+                if (torn[y]) { y++; continue; }
+                int end = y;
+                while (end < height && !torn[end]) end++;
+                using (context.PushClip(new Rect(0, y, width, end - y))) Clean(context, s, hover, chatting, muted, level);
+                y = end;
+            }
+            for (int i = 0; i < bands; i++)
+            {
+                Rect strip = new Rect(0, tops[i], width, tall[i]);
+                using (context.PushClip(strip))
+                using (context.PushTransform(Matrix.CreateTranslation(shifts[i], 0))) Clean(context, s, hover, chatting, muted, level);
+                Color tint = i % 2 == 0 ? Look.Pink : Look.Cyan;
+                IBrush wash = new SolidColorBrush(Color.FromArgb((byte)(96 * amount), tint.R, tint.G, tint.B));
+                foreach (Rect plate in chatting ? new[] { Body(s), MicBody(s) } : new[] { Body(s) })
+                {
+                    Rect both = plate.Intersect(strip);
+                    if (both.Width > 0 && both.Height > 0) context.FillRectangle(wash, both);
+                }
+            }
+        }
+
+        private static void Clean(DrawingContext context, double s, int hover, bool chatting, bool muted, int level)
+        {
+            Rect body = Body(s);
+            double mid = Math.Floor(Measure(s).Width / 2);
+            Rect lit = hover == 1 ? new Rect(body.Left, body.Top, mid - body.Left, body.Height) : hover == 2 ? new Rect(mid, body.Top, body.Right - mid, body.Height) : new Rect();
+            Plate(context, body, s, lit, Look.Pink, Look.Cyan);
+            // A slanted seam where the two halves' hit areas meet.
+            context.DrawLine(new Pen(new SolidColorBrush(Color.FromRgb(66, 72, 86)), Math.Max(1, Math.Round(s))), new Point(mid + 1.5 * s, body.Top + 10 * s), new Point(mid - 1.5 * s, body.Bottom - 10 * s));
+            // Her glitch, like her mini player on Windows: slivers of the edge torn loose, cyan at the top right and pink at the bottom left.
+            double sliver = Math.Max(1, Math.Round(s));
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, Look.Cyan.R, Look.Cyan.G, Look.Cyan.B)), new Rect(body.Right - Math.Round(32 * s), body.Top - Math.Round(2 * s), Math.Round(15 * s), sliver));
+            context.FillRectangle(new SolidColorBrush(Color.FromArgb(220, Look.Pink.R, Look.Pink.G, Look.Pink.B)), new Rect(body.Left + Math.Round(12 * s), body.Bottom + Math.Round(2 * s) - sliver, Math.Round(11 * s), sliver));
+            Color wash = Mix(Fill, Look.Cyan, WashAlpha);
+            string talk = Label(2, chatting, muted);
+            Rect[] pencil = Layout(s, 1, "TYPE"), wave = Layout(s, 2, talk);
+            Pencil(context, pencil[0].Center, 0.9 * s, hover == 1 ? Look.Cyan : Look.Ink, hover == 1 ? wash : Fill);
+            Words(context, "TYPE", s, pencil[1], hover == 1 ? Look.Cyan : Caption);
+            Meter(context, wave[0], s, chatting, muted, level, hover == 2 || chatting ? Look.Cyan : Look.Ink);
+            Words(context, talk, s, wave[1], chatting && muted ? Look.Red : hover == 2 || chatting ? Look.Cyan : Caption);
+            if (!chatting) return;
+            Rect mic = MicBody(s);
+            Color edge = muted ? Look.Red : Look.Cyan;
+            Plate(context, mic, s, hover == 3 ? mic : new Rect(), edge, edge);
+            Mic(context, mic.Center, s, hover == 3 ? Look.Cyan : muted ? Look.Dim : Look.Ink, muted, hover == 3 ? wash : Fill);
+        }
+
+        // A plate with cut corners: a soft glow, the black fill with faint scan lines, a cyan wash where it's hovered, and a neon
+        // edge from one colour to the other, inside the box so its straight edges land on whole pixels.
+        private static void Plate(DrawingContext context, Rect box, double s, Rect lit, Color from, Color to)
+        {
+            double cut = Cut(s), edge = EdgeWidth(s), margin = Math.Round(3 * s), middle = box.Top + box.Height / 2;
+            double x0 = box.Left - margin - 1, x1 = box.Right + margin + 1;
+            Geometry outline = Look.Plate(box, cut, -1, middle, 0, true);
+            context.DrawGeometry(null, new Pen(Gradient(x0, x1, from, to, 34), margin * 2), outline);
+            context.DrawGeometry(null, new Pen(Gradient(x0, x1, from, to, 70), margin), outline);
+            context.DrawGeometry(new SolidColorBrush(Fill), null, outline);
+            using (context.PushGeometryClip(outline))
+            {
+                double line = Math.Max(1, Math.Round(s));
+                Pen scan = new Pen(new SolidColorBrush(Color.FromArgb(9, 255, 255, 255)), line);
+                for (double row = box.Top; row < box.Bottom; row += Math.Max(3, Math.Round(3 * s))) context.DrawLine(scan, new Point(box.Left, row + line / 2), new Point(box.Right, row + line / 2));
+                if (lit.Width > 0) context.FillRectangle(new SolidColorBrush(Color.FromArgb(WashAlpha, Look.Cyan.R, Look.Cyan.G, Look.Cyan.B)), lit);
+            }
+            double inset = edge / 2;
+            Geometry rim = Look.Plate(new Rect(box.Left + inset, box.Top + inset, box.Width - edge, box.Height - edge), cut - inset * 0.586, -1, middle, 0, true);
+            context.DrawGeometry(null, new Pen(Gradient(x0, x1, from, to, 255), edge), rim);
+        }
+
+        private static IBrush Gradient(double x0, double x1, Color from, Color to, byte alpha)
+        {
+            LinearGradientBrush brush = new LinearGradientBrush { StartPoint = new RelativePoint(x0, 0, RelativeUnit.Absolute), EndPoint = new RelativePoint(x1, 0, RelativeUnit.Absolute) };
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(alpha, from.R, from.G, from.B), 0));
+            brush.GradientStops.Add(new GradientStop(Color.FromArgb(alpha, to.R, to.G, to.B), 1));
+            return brush;
+        }
+
+        private static Color Mix(Color under, Color over, int alpha)
+        {
+            return Color.FromRgb((byte)(under.R + (over.R - under.R) * alpha / 255), (byte)(under.G + (over.G - under.G) * alpha / 255), (byte)(under.B + (over.B - under.B) * alpha / 255));
+        }
+
+        private static void Words(DrawingContext context, string label, double s, Rect box, Color colour)
+        {
+            FormattedText text = Words(label, s, colour);
+            Rect ink = Ink(text);
+            context.DrawText(text, new Point(box.Left - ink.Left, box.Top - ink.Top));
+        }
+
+        // The wave as five bars of square segments. Out of voice chat it's the whole wave; in voice chat the segments light up to
+        // your mic level and the rest stay dark, all of them while the mic is muted.
+        private static void Meter(DrawingContext context, Rect meter, double s, bool chatting, bool muted, int level, Color colour)
+        {
+            IBrush lit = new SolidColorBrush(colour), dark = new SolidColorBrush(Unlit);
+            for (int bar = 0; bar < Bars.Length; bar++)
+            {
+                int on = !chatting ? Bars[bar] : muted ? 0 : Lit(bar, level);
+                for (int row = 0; row < Bars[bar]; row++) context.FillRectangle(row < on ? lit : dark, Segment(meter, s, bar, row));
+            }
+        }
+
+        private static void Mic(DrawingContext context, Point centre, double s, Color colour, bool muted, Color back)
+        {
+            double x = centre.X, y = centre.Y + 0.5 * s;
+            IBrush ink = new SolidColorBrush(colour);
+            context.DrawRectangle(ink, null, new Rect(x - 3.2 * s, y - 9 * s, 6.4 * s, 11 * s), 3.2 * s, 3.2 * s);
+            Pen line = new Pen(ink, 1.8 * s, null, PenLineCap.Round);
+            StreamGeometry cup = new StreamGeometry();
+            using (StreamGeometryContext shape = cup.Open())
+            {
+                shape.BeginFigure(new Point(x + 6 * s, y - 2 * s), false);
+                shape.ArcTo(new Point(x - 6 * s, y - 2 * s), new Size(6 * s, 6 * s), 0, false, SweepDirection.Clockwise);
+                shape.EndFigure(false);
+            }
+            context.DrawGeometry(null, line, cup);
+            context.DrawLine(line, new Point(x, y + 4 * s), new Point(x, y + 7 * s));
+            context.DrawLine(line, new Point(x - 3.5 * s, y + 7 * s), new Point(x + 3.5 * s, y + 7 * s));
+            if (!muted) return;
+            context.DrawLine(new Pen(new SolidColorBrush(back), 4.2 * s), new Point(x - 7.5 * s, y - 9.5 * s), new Point(x + 7.5 * s, y + 7.5 * s));
+            context.DrawLine(new Pen(new SolidColorBrush(Look.Red), 2 * s, null, PenLineCap.Round), new Point(x - 7.5 * s, y - 9.5 * s), new Point(x + 7.5 * s, y + 7.5 * s));
+        }
+
+        // A square-cut pencil at 45 degrees, centred on where its outline's middle falls.
+        private static void Pencil(DrawingContext context, Point centre, double k, Color colour, Color back)
         {
             IBrush ink = new SolidColorBrush(colour);
-            using (context.PushTransform(Matrix.CreateRotation(-Math.PI / 4) * Matrix.CreateTranslation(centre.X, centre.Y)))
+            using (context.PushTransform(Matrix.CreateRotation(-Math.PI / 4) * Matrix.CreateTranslation(centre.X + 0.5 * k, centre.Y - 0.5 * k)))
             {
-                context.DrawRectangle(ink, null, new Rect(-8, -2.5, 12, 5), 1.2, 1.2);
+                context.FillRectangle(ink, new Rect(-8 * k, -2.5 * k, 12.6 * k, 5 * k));
                 StreamGeometry tip = new StreamGeometry();
                 using (StreamGeometryContext shape = tip.Open())
                 {
-                    shape.BeginFigure(new Point(4.6, -2.5), true);
-                    shape.LineTo(new Point(9, 0));
-                    shape.LineTo(new Point(4.6, 2.5));
+                    shape.BeginFigure(new Point(4.6 * k, -2.5 * k), true);
+                    shape.LineTo(new Point(9 * k, 0));
+                    shape.LineTo(new Point(4.6 * k, 2.5 * k));
                     shape.EndFigure(true);
                 }
                 context.DrawGeometry(ink, null, tip);
-                Pen gap = new Pen(new SolidColorBrush(Color.FromRgb(20, 21, 25)), 1.1);
-                context.DrawLine(gap, new Point(-4.8, -3), new Point(-4.8, 3));
-                context.DrawLine(gap, new Point(4, -3), new Point(4, 3));
+                Pen gap = new Pen(new SolidColorBrush(back), 1.1 * k);
+                context.DrawLine(gap, new Point(-4.8 * k, -3 * k), new Point(-4.8 * k, 3 * k));
+                context.DrawLine(gap, new Point(4 * k, -3 * k), new Point(4 * k, 3 * k));
             }
         }
 
-        private static void Wave(DrawingContext context, Point centre, Color colour)
+        // One state drawn into a bitmap at scale s and read back, for the checks.
+        private sealed class Shot
         {
-            double[] heights = { 5, 10, 14, 9, 4 };
-            Pen bar = new Pen(new SolidColorBrush(colour), 2.3, null, PenLineCap.Round);
-            for (int i = 0; i < heights.Length; i++)
+            internal readonly int Width;
+            internal readonly int Height;
+            private readonly byte[] pixels;
+            private readonly bool rgba;
+
+            internal Shot(double s, int hover, bool chatting, bool muted, int level, bool rgba)
             {
-                double x = centre.X + (i - 2) * 3.6;
-                double half = Math.Max(1.5, heights[i]) / 2;
-                context.DrawLine(bar, new Point(x, centre.Y - half), new Point(x, centre.Y + half));
+                Width = (int)Across(s, chatting);
+                Height = (int)Measure(s).Height;
+                this.rgba = rgba;
+                pixels = Read(Width, Height, State(s, hover, chatting, muted, level, 0));
+            }
+
+            internal Color At(int x, int y)
+            {
+                int i = (y * Width + x) * 4;
+                int a = pixels[i + 3];
+                if (a == 0) return Color.FromArgb(0, 0, 0, 0);
+                int r = rgba ? pixels[i] : pixels[i + 2], g = pixels[i + 1], b = rgba ? pixels[i + 2] : pixels[i];
+                return Color.FromArgb((byte)a, (byte)Math.Min(255, r * 255 / a), (byte)Math.Min(255, g * 255 / a), (byte)Math.Min(255, b * 255 / a));
+            }
+
+            internal int Count(Rect box, Func<Color, bool> test)
+            {
+                int count = 0;
+                for (int y = Math.Max(0, (int)box.Top); y < Math.Min(Height, (int)box.Bottom); y++)
+                    for (int x = Math.Max(0, (int)box.Left); x < Math.Min(Width, (int)box.Right); x++)
+                        if (test(At(x, y))) count++;
+                return count;
             }
         }
+
+        private static byte[] Read(int width, int height, Action<DrawingContext> paint)
+        {
+            byte[] pixels = new byte[width * height * 4];
+            using (RenderTargetBitmap target = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96)))
+            {
+                using (DrawingContext context = target.CreateDrawingContext()) paint(context);
+                GCHandle pin = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+                try { target.CopyPixels(new PixelRect(0, 0, width, height), pin.AddrOfPinnedObject(), pixels.Length, width * 4); }
+                finally { pin.Free(); }
+            }
+            return pixels;
+        }
+
+        private static byte[] Read(int width, int height, Control face)
+        {
+            byte[] pixels = new byte[width * height * 4];
+            using (RenderTargetBitmap target = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96)))
+            {
+                target.Render(face);
+                GCHandle pin = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+                try { target.CopyPixels(new PixelRect(0, 0, width, height), pin.AddrOfPinnedObject(), pixels.Length, width * 4); }
+                finally { pin.Free(); }
+            }
+            return pixels;
+        }
+
+        // The smoke test's checks of its look at 100%, 150% and 200%, the same as on Windows: null when they pass, or what's
+        // wrong. It saves the states it checked, at 100% and 200%, as one picture.
+        internal static string Check(string picture)
+        {
+            byte[] probe = Read(1, 1, delegate(DrawingContext context) { context.FillRectangle(new SolidColorBrush(Color.FromRgb(255, 0, 0)), new Rect(0, 0, 1, 1)); });
+            bool rgba = probe[0] > 200;
+            if (picture != null) Sheet(picture);
+            if (Pill.Wide != 100 || Pill.Tall != 40) return "Its size changed: " + Pill.Wide + " x " + Pill.Tall;
+            if (Pill.PartAt(0, false) != 1 || Pill.PartAt(49.5, false) != 1 || Pill.PartAt(50, false) != 2 || Pill.PartAt(99.5, true) != 2 || Pill.PartAt(100, true) != 3 || Pill.PartAt(143.5, true) != 3 || Pill.PartAt(102, false) != 2) return "Its hit areas moved";
+            foreach (double s in new[] { 1.0, 1.5, 2.0 })
+            {
+                string at = " at " + (int)Math.Round(s * 100) + "%";
+                Size size = Measure(s);
+                Rect body = Body(s), mic = MicBody(s);
+                double cut = Cut(s), edge = EdgeWidth(s);
+                Shot idle = new Shot(s, 0, false, false, 0, rgba), typing = new Shot(s, 1, false, false, 0, rgba), talking = new Shot(s, 2, false, false, 0, rgba);
+                Shot live0 = new Shot(s, 0, true, false, 0, rgba), live3 = new Shot(s, 0, true, false, 3, rgba), live6 = new Shot(s, 0, true, false, 6, rgba);
+                Shot hushed = new Shot(s, 0, true, true, 0, rgba), micLit = new Shot(s, 3, true, false, 0, rgba);
+                if (idle.Width != (int)Math.Round(100 * s) || idle.Height != (int)Math.Round(40 * s) || live0.Width != (int)(size.Width + Math.Round(4 * s) + size.Height)) return "Its size changed" + at;
+                foreach (Rect plate in new[] { body, mic })
+                {
+                    Shot shot = plate == body ? idle : live0;
+                    int l = (int)plate.Left, t = (int)plate.Top, r = (int)plate.Right - 1, b = (int)plate.Bottom - 1, c = (int)cut;
+                    if (shot.At(l, t).A > 140 || shot.At(r, b).A > 140 || shot.At(r, t).A > 140 || shot.At(l, t + c + 1).A < 250 || shot.At(r, b - c - 1).A < 250 || shot.At(l + c + 1, t).A < 250 || shot.At(r - c - 1, b).A < 250)
+                        return "Its corners aren't cut" + at;
+                }
+                int x0 = (int)(body.Left + cut + 2), top = (int)(body.Top + edge), half = (int)(body.Top + Math.Floor(body.Height / 2)), side = (int)(body.Left + edge);
+                if (Brightest(idle.At(x0, top - 1)) < 150 || Brightest(idle.At(x0, top)) > 60 || Brightest(idle.At(side - 1, half)) < 150 || Brightest(idle.At(side, half)) > 60) return "Its neon edge isn't crisp" + at;
+                if (!Red(hushed.At((int)mic.Left, (int)(mic.Top + cut + 1))) || Red(live0.At((int)mic.Left, (int)(mic.Top + cut + 1)))) return "The mic button's edge didn't go red only while muted" + at;
+                Rect[] pencil = Layout(s, 1, "TYPE"), wave = Layout(s, 2, "TALK"), hush = Layout(s, 2, "MUTED");
+                int letters = (int)(6 * s * s);
+                if (idle.Count(pencil[1], Grey) < letters || idle.Count(wave[1], Grey) < letters) return "Its TYPE and TALK labels are missing" + at;
+                if (typing.Count(pencil[1], Cyan) < letters || typing.Count(wave[1], Cyan) > 0 || talking.Count(wave[1], Cyan) < letters || talking.Count(pencil[1], Cyan) > 0) return "Hovering didn't light just its part cyan" + at + ": " + typing.Count(pencil[1], Cyan) + " " + typing.Count(wave[1], Cyan) + " " + talking.Count(wave[1], Cyan) + " " + talking.Count(pencil[1], Cyan) + " of " + letters + " in " + pencil[1] + " and " + wave[1];
+                Point tip = pencil[0].Center;
+                if (!Grey(idle.At((int)tip.X, (int)tip.Y)) || !Cyan(typing.At((int)tip.X, (int)tip.Y))) return "The pencil didn't light cyan on hover" + at;
+                if (hushed.Count(hush[1], Red) < letters || live0.Count(hush[1], Red) > 0 || idle.Count(hush[1], Red) > 0) return "MUTED didn't show in red, or showed unmuted" + at;
+                Rect core = mic.Inflate(-cut - edge);
+                if (micLit.Count(core, Cyan) < letters || live0.Count(core, Cyan) > 0) return "Hovering the mic didn't light it cyan" + at;
+                for (int bar = 0; bar < Bars.Length; bar++)
+                    for (int row = 0; row < Bars[bar]; row++)
+                    {
+                        Rect cell = Segment(wave[0], s, bar, row), quiet = Segment(hush[0], s, bar, row);
+                        int x = (int)(cell.X + Math.Floor(cell.Width / 2)), y = (int)(cell.Y + Math.Floor(cell.Height / 2));
+                        if (!Grey(idle.At(x, y)) || !Cyan(talking.At(x, y))) return "The wave's segments didn't show" + at;
+                        if (Cyan(live0.At(x, y)) || Cyan(live3.At(x, y)) != row < Lit(bar, 3) || !Cyan(live6.At(x, y))) return "The mic level lit the wrong segments" + at + ": bar " + bar + ", row " + row;
+                        if (Brightest(hushed.At((int)(quiet.X + Math.Floor(quiet.Width / 2)), (int)(quiet.Y + Math.Floor(quiet.Height / 2)))) > 90) return "The mic level lit while muted" + at;
+                        if (Brightest(live6.At((int)cell.Right, y)) > 60 || Brightest(live6.At(x, (int)cell.Top - 1)) > 60 || !Cyan(live6.At((int)cell.Left, (int)cell.Top)) || !Cyan(live6.At((int)cell.Right - 1, (int)cell.Bottom - 1))) return "The level's segments aren't crisp and apart" + at;
+                    }
+            }
+            return null;
+        }
+
+        // The states side by side at 100% and 200%, on a dark and a light desktop, like Windows' pill.png.
+        private static void Sheet(string path)
+        {
+            object[][] states =
+            {
+                new object[] { 0, false, false, 0, 0 }, new object[] { 1, false, false, 0, 0 }, new object[] { 2, false, false, 0, 0 },
+                new object[] { 0, true, false, 0, 0 }, new object[] { 0, true, false, 3, 0 }, new object[] { 0, true, false, 6, 0 },
+                new object[] { 3, true, false, 2, 0 }, new object[] { 0, true, true, 0, 0 }, new object[] { 3, true, true, 0, 0 },
+                new object[] { 0, false, false, 0, 4 }, new object[] { 0, false, false, 0, 2 }
+            };
+            double[] scales = { 1, 2 };
+            int gap = 18, row = 98, width = gap;
+            foreach (double s in scales) width += 2 * ((int)Across(s, true) + gap);
+            List<RenderTargetBitmap> shots = new List<RenderTargetBitmap>();
+            using (RenderTargetBitmap sheet = new RenderTargetBitmap(new PixelSize(width, 20 + states.Length * row), new Vector(96, 96)))
+            {
+                using (DrawingContext context = sheet.CreateDrawingContext())
+                {
+                    context.FillRectangle(new SolidColorBrush(Color.FromRgb(24, 26, 32)), new Rect(0, 0, width, 20 + states.Length * row));
+                    double x = gap;
+                    foreach (double s in scales)
+                        foreach (bool light in new[] { false, true })
+                        {
+                            double across = Across(s, true);
+                            context.FillRectangle(new SolidColorBrush(light ? Color.FromRgb(214, 220, 228) : Color.FromRgb(44, 48, 58)), new Rect(x - 6, 10, across + 12, states.Length * row));
+                            for (int i = 0; i < states.Length; i++)
+                            {
+                                PillFace face = State(s, (int)states[i][0], (bool)states[i][1], (bool)states[i][2], (int)states[i][3], (int)states[i][4]);
+                                RenderTargetBitmap shot = new RenderTargetBitmap(new PixelSize((int)face.Bounds.Width, (int)face.Bounds.Height), new Vector(96, 96));
+                                shot.Render(face);
+                                shots.Add(shot);
+                                context.DrawImage(shot, new Rect(x, 20 + i * row, face.Bounds.Width, face.Bounds.Height));
+                            }
+                            x += across + gap;
+                        }
+                }
+                sheet.Save(path);
+            }
+            foreach (RenderTargetBitmap shot in shots) shot.Dispose();
+        }
+
+        private static int Brightest(Color c) { return Math.Max(c.R, Math.Max(c.G, c.B)); }
+
+        private static bool Grey(Color c) { return c.A > 200 && Math.Min(c.R, Math.Min(c.G, c.B)) > 80 && Brightest(c) - Math.Min(c.R, Math.Min(c.G, c.B)) < 40; }
+
+        private static bool Cyan(Color c) { return c.A > 200 && c.G > 140 && c.B > 150 && c.R < 130; }
+
+        private static bool Red(Color c) { return c.A > 200 && c.R > 150 && c.G < 90 && c.B < 120; }
     }
 
     internal sealed class Pill : Window
@@ -324,7 +707,9 @@ namespace CapriDesktop
         internal const double Tall = 40;
         internal event Action Typing;
         internal event Action Voice;
+        private static readonly Random random = new Random();
         private readonly PillFace face = new PillFace();
+        private double shown = -1;
 
         internal Pill()
         {
@@ -339,7 +724,18 @@ namespace CapriDesktop
 
         internal bool Over { get { return face.IsPointerOver; } }
 
-        private int Part(double x) { return x < Wide / 2 ? 1 : 2; }
+        // True for the few frames it glitches in.
+        internal bool Tearing { get { return face.Tear > 0; } }
+
+        // Which part is under x, in her window's units: 1 the pencil, 2 the wave, 3 the mic button right of it in voice chat
+        // (Windows-only for now), like Windows.
+        internal static int PartAt(double x, bool chatting)
+        {
+            if (chatting && x >= Wide) return 3;
+            return x < Wide / 2 ? 1 : 2;
+        }
+
+        private int Part(double x) { return PartAt(x, false); }
 
         private void Hover(int part)
         {
@@ -348,11 +744,41 @@ namespace CapriDesktop
             face.InvalidateVisual();
         }
 
-        internal void Place(PixelPoint topCentre, double scale)
+        // Only showing it glitches: a hover or her walking draws it clean.
+        internal void Place(PixelPoint topCentre, double scale, double now)
         {
             PixelPoint at = new PixelPoint(topCentre.X - (int)Math.Round(Wide * scale / 2), topCentre.Y);
             if (Position != at) Position = at;
-            if (!IsVisible) { Show(); Look.OnTopAgain(this); }
+            if (!IsVisible)
+            {
+                shown = now;
+                face.Seed = random.Next(1, int.MaxValue);
+                face.Tear = PillFace.TearFrames;
+                face.InvalidateVisual();
+                Show();
+                Look.OnTopAgain(this);
+            }
+            int tear = shown < 0 ? 0 : Math.Max(0, PillFace.TearFrames - (int)((now - shown) / 0.045));
+            if (tear == 0) shown = -1;
+            if (tear != face.Tear) { face.Tear = tear; face.InvalidateVisual(); }
+        }
+
+        // For the smoke test: it glitches in when it shows, settles after its frames, and a hover doesn't glitch it again.
+        internal bool GlitchesIn(double now)
+        {
+            double scale = DesktopScaling;
+            PixelPoint topCentre = new PixelPoint(Position.X + (int)Math.Round(Wide * scale / 2), Position.Y);
+            Hide();
+            Place(topCentre, scale, now);
+            bool torn = IsVisible && face.Tear == PillFace.TearFrames;
+            Place(topCentre, scale, now + 0.1);
+            bool fading = face.Tear > 0 && face.Tear < PillFace.TearFrames;
+            Place(topCentre, scale, now + 0.5);
+            bool calm = face.Tear == 0;
+            Hover(1);
+            Hover(0);
+            Place(topCentre, scale, now + 0.6);
+            return torn && fading && calm && face.Tear == 0;
         }
 
         internal void Press(int part)
@@ -531,7 +957,7 @@ namespace CapriDesktop
             double scale = pet.DesktopScaling;
             PixelPoint feet = pet.FeetPoint;
             int top = Math.Min(feet.Y + (int)(2 * scale), pet.Area.Bottom - (int)Math.Ceiling(Pill.Tall * scale) - 2);
-            Pill.Place(new PixelPoint(feet.X - (int)(4 * scale), top), scale);
+            Pill.Place(new PixelPoint(feet.X - (int)(4 * scale), top), scale, now);
         }
 
         internal int MouthCell(double now)

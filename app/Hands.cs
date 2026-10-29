@@ -38,6 +38,7 @@ namespace CapriDesktop
         [DataMember(Name = "seconds")] public string Seconds;
         [DataMember(Name = "minutes")] public string Minutes;
         [DataMember(Name = "level")] public string Level;
+        [DataMember(Name = "screen")] public string Screen;
         [DataMember(Name = "coordinate")] public double[] Coordinate;
         [DataMember(Name = "start_coordinate")] public double[] From;
         [DataMember(Name = "region")] public double[] Region;
@@ -56,6 +57,352 @@ namespace CapriDesktop
         internal InstalledApp(string name, string id) { Name = name; Id = id; }
     }
 
+    // Her SECURITY window (Lachy, 29 Oct): a toggle for each kind of thing she does on their PC, set by a slider of four presets.
+    // A toggle that's off means she asks first in chat ("Open Spotify? Say yes and I will.") and does it on their yes, never a
+    // silent no. Typing passwords and card numbers is the one exception: with it off they type those themselves. Trusted, the
+    // default, is how she worked before the window, and Blackwall is Blackwall mode (Bypass all permissions before 0.7.4) plus
+    // listening for "Hey Capri". The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
+    internal static class Security
+    {
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Count = 11;
+        internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"" };
+        internal static readonly string[] Lines =
+        {
+            "On: she opens them when you ask. Off: she asks first.",
+            "On: she plays music and sets the volume. Off: she asks first.",
+            "On: she presses them for you. Off: she asks first.",
+            "On: she switches and closes them. Off: she asks first.",
+            "On: she does it as soon as you ask. Off: she asks first.",
+            "On: she clicks and types in your apps. Off: she asks first.",
+            "On: she sends it without checking again. Off: she asks first.",
+            "On: she pays and books without checking. Off: she asks first.",
+            "On: she does the extra steps a job needs. Off: she asks first.",
+            "On: she types the ones your job gives her. Off: you type them.",
+            "On: she listens on this PC for her name. Off: she doesn't."
+        };
+        internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
+        private static readonly string[] Told =
+        {
+            "Everything is off: she asks first before she does anything on your PC.",
+            "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.",
+            "She does what you ask, and asks first before paying or anything you didn't mention.",
+            "Everything is on: she never asks, types passwords and card numbers, and listens for \"Hey Capri\".",
+            "Your own mix. Pick a preset to start again from it."
+        };
+        // The Settings line under her SECURITY button, short enough for its row.
+        private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music and shortcuts. She asks for the rest.", "She asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
+        // Lockdown has them all off, Guarded the first three on, Trusted the first seven and Blackwall all eleven.
+        private static readonly int[] Masks = { 0, 0x7, 0x7F, 0x7FF };
+        private static int mask = 0x7F;
+        private static readonly object gate = new object();
+        // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
+        internal static Func<bool> HeyOn;
+        internal static Action<bool> SetHey;
+        // Whether this PC has a toggle's feature at all: Mac and Linux have the first five, with no jobs or wake word yet.
+        internal static Func<int, bool> Has = delegate { return true; };
+        // Saves and redraws whatever shows them, once a toggle or preset changes.
+        internal static Action Changed;
+        internal const string Yes = " Say yes and I will.";
+        internal const string Left = "Okay, I left it alone.";
+        // A tool result that held the call to ask first. Voice chat reads it as it is; text chat says only the question.
+        internal const string Hold = "Not done yet: their SECURITY settings ask first. Ask them ";
+
+        internal static bool On(int toggle)
+        {
+            if (toggle == Wake && HeyOn != null) return HeyOn();
+            lock (gate) return (mask & (1 << toggle)) != 0;
+        }
+
+        internal static void Set(int toggle, bool on)
+        {
+            if (On(toggle) == on) return;
+            if (toggle == Wake && SetHey != null) SetHey(on);
+            else lock (gate) mask = on ? mask | (1 << toggle) : mask & ~(1 << toggle);
+            Action changed = Changed;
+            if (changed != null) changed();
+        }
+
+        // Every toggle as bits, toggle 1 in the lowest, with "Hey Capri" read from where it lives.
+        internal static int Mask
+        {
+            get
+            {
+                int bits;
+                lock (gate) bits = mask;
+                if (HeyOn != null) bits = (bits & 0x3FF) | (HeyOn() ? 1 << Wake : 0);
+                return bits;
+            }
+        }
+
+        internal static void Pick(int preset)
+        {
+            if (preset < 0 || preset >= Masks.Length) return;
+            bool wake = (Masks[preset] & (1 << Wake)) != 0;
+            lock (gate) mask = Masks[preset];
+            if (SetHey != null && On(Wake) != wake) SetHey(wake);
+            Action changed = Changed;
+            if (changed != null) changed();
+        }
+
+        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" alone. Nothing is saved.
+        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & (1 << Wake)) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
+
+        // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
+        internal static int Preset
+        {
+            get
+            {
+                int bits = Mask, counted = Has(Wake) ? 0x7FF : 0x3FF;
+                for (int i = 0; i < Masks.Length; i++) if ((bits & counted) == (Masks[i] & counted)) return i;
+                return Custom;
+            }
+        }
+
+        internal static string PresetName { get { return Presets[Preset]; } }
+
+        // What the preset does, in a line. Without her jobs (Mac and Linux so far) Trusted never asks either, and without a
+        // wake word Blackwall's line doesn't promise one.
+        internal static string PresetLine(int preset)
+        {
+            if (preset == Trusted && !Has(Mouse)) return "She does what you ask without asking first.";
+            if (preset == Blackwall && !Has(Wake)) return "Everything is on: she never asks before doing what you ask.";
+            return Told[Math.Max(0, Math.Min(Custom, preset))];
+        }
+
+        internal static string Short { get { int preset = Preset; return preset == Blackwall && !Has(Wake) ? "She never asks first." : Shorts[preset]; } }
+
+        // Toggles 1 to 10 as 1s and 0s for their settings file, like "1111111000" for Trusted.
+        internal static string Saved { get { int bits; lock (gate) bits = mask; return Marks(bits); } }
+
+        internal static int MaskOf(int preset) { return Masks[preset]; }
+
+        // A preset's toggles 1 to 10 the way Saved writes them.
+        internal static string Of(int preset) { return Marks(Masks[preset]); }
+
+        private static string Marks(int bits)
+        {
+            char[] marks = new char[Wake];
+            for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
+            return new string(marks);
+        }
+
+        // Their saved toggles, or Trusted for anything unreadable. "Hey Capri" stays where it lives.
+        internal static void Load(string saved, bool wake = false)
+        {
+            int bits = 0;
+            if (saved == null || saved.Length != Wake || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted] & 0x3FF;
+            else for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
+            lock (gate) mask = bits | (wake ? 1 << Wake : 0);
+        }
+
+        // Which toggle one of her tools needs, or -1 for one that never asks: looking at the screen, her notes, her own nap,
+        // moves and animations, checking what's playing and cancelling a shutdown.
+        internal static int Needs(string tool, ToolArguments args)
+        {
+            string action = args == null ? null : args.Action;
+            switch (tool)
+            {
+                case "open_app": case "open_website": return Open;
+                case "media": return action == "now_playing" ? -1 : Media;
+                case "play_music": return Media;
+                case "shortcut": return Shortcuts;
+                case "app_window": return Windows;
+                case "power": return action == "cancel" ? -1 : Power;
+                case "use_computer": return Mouse;
+                default: return -1;
+            }
+        }
+
+        private sealed class Held
+        {
+            internal string Tool;
+            internal ToolArguments Args;
+            internal string Asked;
+        }
+
+        private static readonly List<Held> held = new List<Held>();
+        // Calls their yes let through, each once.
+        private static readonly List<string> cleared = new List<string>();
+
+        // True when the toggle this call needs is off here, so she'd ask first.
+        internal static bool Asks(string tool, ToolArguments args)
+        {
+            int toggle = Needs(tool, args);
+            if (toggle < 0 || !Has(toggle) || On(toggle)) return false;
+            lock (gate) return !cleared.Contains(Asking(tool, args));
+        }
+
+        // Null when the call can run. Otherwise she holds it and the result says what to ask them.
+        internal static string Gate(string tool, ToolArguments args)
+        {
+            int toggle = Needs(tool, args);
+            if (toggle < 0 || !Has(toggle) || On(toggle)) return null;
+            string asked = Asking(tool, args);
+            lock (gate)
+            {
+                if (cleared.Remove(asked)) return null;
+                if (!held.Exists(call => call.Asked == asked)) held.Add(new Held { Tool = tool, Args = args == null ? new ToolArguments() : args.Copy(), Asked = asked });
+            }
+            return Hold + "\"" + Up(asked) + "?" + Yes + "\" and wait for their answer. Their yes runs it, so don't call the tool again.";
+        }
+
+        internal static bool IsHold(string result) { return result != null && result.StartsWith(Hold, StringComparison.Ordinal); }
+
+        // The tool she's holding, if any.
+        internal static string Holding { get { lock (gate) return held.Count == 0 ? null : held[0].Tool; } }
+
+        // Her question for everything she's holding, like "Open Discord and open Spotify? Say yes and I will."
+        internal static string Question
+        {
+            get
+            {
+                List<string> asked = new List<string>();
+                lock (gate) foreach (Held call in held) asked.Add(call.Asked);
+                if (asked.Count == 0) return null;
+                string all = asked.Count == 1 ? asked[0] : string.Join(", ", asked.GetRange(0, asked.Count - 1).ToArray()) + " and " + asked[asked.Count - 1];
+                return Up(all) + "?" + Yes;
+            }
+        }
+
+        // What she says after her tools ran when one was held: what did run, then her question. Null when nothing was held.
+        internal static string Reply(List<string> results)
+        {
+            if (!results.Exists(IsHold)) return null;
+            List<string> done = results.FindAll(result => !IsHold(result) && !string.IsNullOrEmpty(result));
+            string question = Question ?? "";
+            return done.Count == 0 ? question : string.Join(" ", done.ToArray()) + " " + question;
+        }
+
+        // A held result shown on its own, like before she has a brain, becomes just her question.
+        internal static string Said(string result) { return IsHold(result) ? Question ?? result : result; }
+
+        internal static bool Agrees(string said)
+        {
+            string text = (said ?? "").Trim();
+            return Hands.Agrees(text) || Regex.IsMatch(text, @"^(yes|yeah|yep|yup|ya|yea|sure|ok|okay|do it|go ahead|go for it|send it|press it|oui)\b[\s.!,]*(please|pls|plz|choom)?[\s.!]*$", RegexOptions.IgnoreCase);
+        }
+
+        internal static bool Declines(string said) { return Regex.IsMatch((said ?? "").Trim(), @"^(no|nah|nope|don't|do not|stop|cancel|never mind|nevermind|leave it|non)\b", RegexOptions.IgnoreCase); }
+
+        // Their answer to her asking first: yes runs what she held, each call once; no leaves it alone; anything else drops it
+        // and goes on as a new message. Null when nothing was held or it wasn't a yes or no.
+        internal static string Resume(string text, Func<string, ToolArguments, string> run)
+        {
+            List<Held> waiting;
+            lock (gate)
+            {
+                if (held.Count == 0) return null;
+                waiting = new List<Held>(held);
+                held.Clear();
+            }
+            if (Declines(text)) return Left;
+            if (!Agrees(text)) return null;
+            List<string> done = new List<string>();
+            foreach (Held call in waiting)
+            {
+                lock (gate) cleared.Add(call.Asked);
+                string result;
+                try { result = run(call.Tool, call.Args); }
+                finally { lock (gate) cleared.Remove(call.Asked); }
+                if (!string.IsNullOrEmpty(result)) done.Add(Said(result));
+            }
+            return done.Count == 0 ? "Done." : string.Join(" ", done.ToArray());
+        }
+
+        // Drops whatever she was holding, when they've moved on to something else.
+        internal static void Drop() { lock (gate) held.Clear(); }
+
+        private static string Up(string text) { return string.IsNullOrEmpty(text) ? text : char.ToUpperInvariant(text[0]) + text.Substring(1); }
+
+        private static string Plain(string text, string fallback)
+        {
+            string cleaned = Regex.Replace((text ?? "").Trim(), @"\s+", " ").TrimEnd('.', '!', '?', ' ');
+            if (cleaned.Length == 0) return fallback;
+            return cleaned.Length > 70 ? cleaned.Substring(0, 67).TrimEnd() + "..." : cleaned;
+        }
+
+        // What she'd do, in a few words: "open Spotify", "turn the volume up", "close Discord".
+        internal static string Asking(string tool, ToolArguments args)
+        {
+            ToolArguments a = args ?? new ToolArguments();
+            switch (tool)
+            {
+                case "open_app": return "open " + Plain(a.Name, "that app");
+                case "open_website":
+                    string site = Plain(a.Site, "that site");
+                    return string.IsNullOrWhiteSpace(a.Search) ? "open " + site : "search " + Regex.Replace(site, @"^(https?://)?(www\.)?|\.(com|org|net|tv)(/.*)?$", "", RegexOptions.IgnoreCase) + " for " + Plain(a.Search, "that");
+                case "media":
+                    switch (a.Action)
+                    {
+                        case "play_pause": return "play or pause what's playing";
+                        case "next": return "skip to the next track";
+                        case "previous": return "go back a track";
+                        case "volume_up": return "turn the volume up";
+                        case "volume_down": return "turn the volume down";
+                        case "volume_set": return "set the volume to " + Plain(a.Level, "that") + (Regex.IsMatch(a.Level ?? "", @"^\s*\d+\s*$") ? "%" : "");
+                        case "mute": return "mute your PC";
+                        case "unmute": return "unmute your PC";
+                        default: return "control what's playing";
+                    }
+                case "play_music": return "play " + Plain(a.Song, "some music") + (a.App == "spotify" ? " on Spotify" : a.App == "youtube" ? " on YouTube" : "");
+                case "shortcut":
+                    switch (a.Name)
+                    {
+                        case "discord_mute": return "mute or unmute your mic in Discord";
+                        case "discord_deafen": return "deafen or undeafen you in Discord";
+                        case "screenshot": return "take a screenshot";
+                        case "clip_that": return "clip the last 30 seconds";
+                        case "record": return "start or stop recording";
+                        case "game_bar": return "open the Game Bar";
+                        case "show_desktop": return "show the desktop";
+                        case "task_manager": return "open Task Manager";
+                        case "clipboard": return "open your clipboard history";
+                        case "emoji": return "open the emoji picker";
+                        case "voice_typing": return "start voice typing";
+                        case "live_captions": return "turn Live Captions on or off";
+                        case "narrator": return "turn Narrator on or off";
+                        case "magnifier": return "zoom in with Magnifier";
+                        case "magnifier_off": return "close Magnifier";
+                        case "color_filters": return "turn colour filters on or off";
+                        case "quick_settings": return "open Quick Settings";
+                        default: return "press that shortcut";
+                    }
+                case "app_window": return (a.Action == "close" ? "close " : a.Action == "minimize" ? "minimize " : "switch to ") + Plain(a.Name, "that app");
+                case "power":
+                    string when = Regex.IsMatch(a.Minutes ?? "", @"^\s*\d+\s*$") && a.Minutes.Trim() != "0" ? " in " + a.Minutes.Trim() + (a.Minutes.Trim() == "1" ? " minute" : " minutes") : "";
+                    switch (a.Action)
+                    {
+                        case "shut_down": return "shut down your PC" + when;
+                        case "restart": return "restart your PC" + when;
+                        case "sleep": return "put your PC to sleep" + when;
+                        case "lock": return "lock your PC" + when;
+                        case "sign_out": return "sign you out" + when;
+                        default: return "do that to your PC";
+                    }
+                case "use_computer":
+                    string job = Plain(Hands.Asked(a.Task ?? ""), "");
+                    return job.Length == 0 ? "use your mouse and keyboard for that" : "use your mouse and keyboard to " + char.ToLowerInvariant(job[0]) + job.Substring(1);
+                default: return "do that";
+            }
+        }
+
+        // Her brain's line about toggles that are off, so she still calls the tool and lets Capri ask instead of asking
+        // herself or saying it's done. Empty under Trusted and Blackwall, so their prompts are as they were.
+        internal static string Note
+        {
+            get
+            {
+                string[] what = { "open apps, games or sites", "play music or change the volume", "press shortcuts", "switch to or close apps and tabs", "shut down, restart, sleep, lock or sign out of their PC", "use their mouse and keyboard for a job" };
+                List<string> off = new List<string>();
+                for (int i = 0; i <= Mouse; i++) if (Has(i) && !On(i)) off.Add(what[i]);
+                if (off.Count == 0) return "";
+                string list = off.Count == 1 ? off[0] : string.Join(", ", off.GetRange(0, off.Count - 1).ToArray()) + " or " + off[off.Count - 1];
+                return "\nThey've set her SECURITY settings to ask first before you " + list + ". Still call the tool as soon as they ask: Capri asks them herself and does it when they say yes, so never ask them yourself, and never say it's done before it is.";
+            }
+        }
+    }
+
     internal sealed class OpenWindow
     {
         internal readonly IntPtr Handle;
@@ -66,7 +413,10 @@ namespace CapriDesktop
 
     internal static class Hands
     {
-        internal const string Note =
+        // Her chat and voice chat line about her tools, with SECURITY's line after it while one of her tools' toggles is off.
+        internal static string Note { get { return Noted + Security.Note; } }
+
+        private const string Noted =
             "\nYou have tools for their PC: open (launch, play) their apps and games, switch to, minimize or close apps that are open, play songs or videos they name, open websites or search them, control their music and volume, look at their screen, and use their mouse and keyboard for jobs inside apps and sites. " +
             "Use a tool whenever they ask you to do something like that, and never say you did or are doing it without one. Look at their screen when they ask what you see or what you think of something on it. Only close an app when they ask you to. " +
             "Your own website, where people download you, is " + Home + ". " +
@@ -76,11 +426,17 @@ namespace CapriDesktop
             "You can change Windows settings too, like Bluetooth, Wi-Fi, airplane mode, hotspot, Energy Saver and brightness, with use_computer. " +
             "You can shut down, restart, sleep, lock or sign out of their PC with power: when they ask, do it straight away and never ask if they're sure. " +
             "When they tell you to go to sleep, take a nap or wake up, that's you: use nap, never power. " +
+            "When they tell you to come here or teleport to them, go to another monitor, sit down, stand up, hang, ride their cursor or hop off it, hide or come back, that's you too: use move_yourself, which also moves your Capri Mainframe window to another monitor. " +
+            "When they ask you to dance, stop dancing, glitch, grin, blink or play one of your animations, use animate. " +
             "When they ask you to remember or forget something about them, or to leave or make a memory, use remember: it saves to your notes, me.md, which you read every chat. Never say you can't keep memories. " +
             "You have a web browser: when they ask something you don't know or that changes, like the weather, news, scores, prices or times, search Google for it instead of guessing or saying you can't. " +
             "Most messages are just chat, not jobs: answer those as yourself, with your own opinions and tastes, and don't offer to open, play or look at anything unless they ask.";
 
-        internal const string Prompt =
+        // Her hands' prompt. While one of her tools' toggles is off in SECURITY, its line goes in after "Call the tool.", so she
+        // still calls it and Capri asks them.
+        internal static string Prompt { get { string note = Security.Note; return note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n"); } }
+
+        private const string Handing =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You don't chat.\n" +
             "Act only on their latest request. Earlier messages are context for names, not commands to repeat. Call one tool for each thing they ask for, however many there are (open Discord, Spotify and Steam is three open_app calls): open an app, game or website, search a site, play music, control media or volume, check the current song, switch to, minimize or close an app, or look at their screen when asked about it. Use the names they gave.\n" +
             "If the job needs clicking, typing or more than one step, like opening an app and then searching, going somewhere or making something in it, call use_computer once with the whole job in their words.\n" +
@@ -93,6 +449,7 @@ namespace CapriDesktop
             "To turn Bluetooth, Wi-Fi, airplane mode, hotspot, Nearby sharing, Energy Saver or night light on or off, or change the brightness, call use_computer with the job in their words.\n" +
             "To shut down, turn off, restart, sleep, lock or sign out of their PC, call power. They asked, so do it: never ask if they're sure.\n" +
             "When they tell you yourself to go to sleep, take a nap, go to bed or wake up, call nap: that's Capri, not their PC.\n" +
+            "When they tell you yourself to come here, teleport to them or their mouse, go to another monitor, sit, stand up, hang, ride or hop off their cursor, hide or come back, call move_yourself; moving your Mainframe window to a monitor is move_yourself too. To dance, stop dancing, glitch, grin, blink or play one of your animations, call animate.\n" +
             "Never reply with a question about whether to do what they asked. Call the tool.\n" +
             "If they ask you to remember, note down or forget something about them, or to leave, make or save a memory, call remember with a short note about them in the third person.\n" +
             "Questions about their current screen or song need a tool too. If the target is unclear, pick the closest match yourself. For chat, negated or hypothetical requests, call no tool and reply with only the word: chat";
@@ -123,7 +480,11 @@ namespace CapriDesktop
             { "power", "Shut down, restart, sleep, lock or sign out of their PC, or cancel a shutdown. Do it as soon as they ask, without asking if they're sure. \"Go to sleep\" or \"take a nap\" said to you is about you, not their PC: use nap.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"shut_down\",\"restart\",\"sleep\",\"lock\",\"sign_out\",\"cancel\"]},\"minutes\":{\"type\":\"string\",\"description\":\"How many minutes from now, only if they said when\"}},\"required\":[\"action\"]}" },
             { "nap", "Go to sleep yourself on their screen, or wake up: your own nap, not their PC's. Use it when they tell you to go to sleep, take a nap, go to bed or wake up. You stay asleep until they click you or talk to you.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"sleep\",\"wake\"]}},\"required\":[\"action\"]}" }
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"sleep\",\"wake\"]}},\"required\":[\"action\"]}" },
+            { "move_yourself", "Move yourself on their screens: teleport to their mouse (come_here), go to another monitor, sit down or stand up where you are, hang where you are, ride their cursor or hop off it, hide or come back. move_mainframe moves your Capri Mainframe window to another monitor, or to the one their mouse is on. Use it whenever they tell you to come here, teleport, go somewhere, sit, stand, hang, hide or show yourself.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"come_here\",\"other_screen\",\"sit\",\"stand_up\",\"hang\",\"ride_cursor\",\"hop_off\",\"hide\",\"show\",\"move_mainframe\"]},\"screen\":{\"type\":\"string\",\"description\":\"For other_screen or move_mainframe, which monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, or a number like 2\"}},\"required\":[\"action\"]}" },
+            { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" }
         };
 
         internal static readonly string Tools = Render(false);
@@ -281,6 +642,10 @@ namespace CapriDesktop
         internal static Func<string, int, bool> Power = Switch;
         // Puts her to sleep (true) or wakes her (false), and says how it went. Her window sets it.
         internal static Func<bool, string> Nap = delegate { return "Couldn't nap just now."; };
+        // Moves her, or her Mainframe, and says how it went: an action like come_here, and which screen if they said. Her window sets it.
+        internal static Func<string, string, string> MoveSelf = delegate { return "Couldn't move just now."; };
+        // Plays one of her animations by name, or starts or stops her dance, and says how it went. Her window sets it.
+        internal static Func<string, string> Animate = delegate { return "Couldn't do that just now."; };
         private static readonly string[] Browsers = { "chrome", "msedge", "firefox", "brave", "opera", "vivaldi" };
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd" };
         private delegate bool Visit(IntPtr window, IntPtr data);
@@ -331,6 +696,8 @@ namespace CapriDesktop
                 if (tool == "remember") return args.Action == "forget" ? Brain.Unnote(Theirs(args.Text)) : CallMe(args.Text) ?? Brain.Note(Theirs(args.Text));
                 if (tool == "power") return Turn(args.Action, args.Minutes);
                 if (tool == "nap") return Nap(args.Action != "wake");
+                if (tool == "move_yourself") return MoveSelf(args.Action, args.Screen);
+                if (tool == "animate") return Animate(args.Name);
                 return "There's no tool called " + tool + ".";
             }
             catch (Exception error) { return "That didn't work: " + error.Message; }
@@ -704,7 +1071,109 @@ namespace CapriDesktop
         // "Go to sleep" or "take a nap" said to her is her own nap, not the PC's (that needs a PC word), and "wake up" ends it.
         private static readonly Regex Napping = new Regex(@"^(?:go (?:back )?to (?:sleep|bed)|(?:go )?(?:take|have|grab) (?:a |ur |your )?(?:little |quick |power )?(?:nap|snooze|rest)|go (?:nap|rest|snooze|sleep)|nap(?: time)?|sleep|doze off|get some (?:sleep|rest)|(?<wake>wake(?: up|y wakey)|rise and shine))(?:[\s,]+(?:now|then|already|girl|choom|[ck]app?r(?:i|ee|ie|y)))*$", RegexOptions.IgnoreCase);
 
-        private static string Asked(string said)
+        // Her own moves said to her, so they never wait on a brain: "teleport here", "go to my other monitor", "move the Mainframe
+        // to my other screen", "sit down", "hang here", "ride my cursor", "hide". A bare "hop off" stays a call to leave, and
+        // "hang on", "hang up", "sit with me" and "go away" aren't moves.
+        private const string Hers = @"(?:[\s,]+(?:now|then|already|again|quick|real quick|for me|for us|girl|choom|bestie|[ck]app?r(?:i|ee|ie|y)))*$";
+        private const string Which = @"(?<s>other|next|another|second|2nd|third|3rd|fourth|4th|first|1st|left|right|top|bottom|upper|lower|main|primary|previous|last)(?: one)? ?(?:monitor|screen|display)s?|(?:monitor|screen|display) (?:number |no\.? ?|#)?(?<s>\d|one|two|three|four)";
+        private const string Frame = @"(?: (?:the|my|your|ur|capri'?s?|her))?(?: capri)? main ?frame(?: window| app)?";
+        private static readonly string[] SelfWords =
+        {
+            @"^(?:move|put|bring|send|drag|throw|toss|shift|teleport|switch|take|push)" + Frame + @"(?: (?:over|back|across))?(?: (?:to|onto|on|into|over to))? (?:the |my |your |ur )?(?:" + Which + ")" + Hers, "move_mainframe",
+            @"^(?:move|put|bring|send|drag|teleport|take|pull)" + Frame + @"(?: (?:over|back|up))? (?<s>here|over here|to me|to (?:my|the) (?:mouse|cursor|pointer)|to this (?:monitor|screen|display))" + Hers, "move_mainframe",
+            @"^(?:move|switch|swap)" + Frame + @"(?: (?:over|across))?(?: (?:monitors|screens|displays))?" + Hers, "move_mainframe",
+            @"^(?:teleport|tp|warp|glitch|zap|beam|go|move|hop|jump|switch|head|pop|run|walk|fly|float|get|come)(?: (?:yourself|urself|your ass|ur ass))?(?: (?:over|back|across))?(?: (?:to|onto|on|into|over to|across to))? (?:the |my |your |ur |our )?(?:" + Which + ")" + Hers, "other_screen",
+            @"^(?:switch|swap|change) (?:monitors|screens|displays)" + Hers, "other_screen",
+            @"^(?:(?:teleport|tp|warp|glitch|zap|beam|come|get|hop|pop|jump|move|go|run|fly|float)(?: (?:yourself|urself|your ass|ur ass))?(?: (?:on|over|back|right))? (?:here|over here|to me|over to me|(?:to|by|next to) (?:my|the) (?:mouse|cursor|pointer)|(?:(?:over )?to |over )?where (?:my|the) (?:mouse|cursor|pointer) is|next to me|to this (?:monitor|screen|display))|come here|c'?mere|get over here|come (?:back|over)(?: here)?|come (?:back )?to me|teleport|tp)" + Hers, "come_here",
+            @"^(?:sit(?: (?:down|back down))?(?: (?:here|there|right here|right there|where you are))?|take a seat|have a seat|park it|sit still)" + Hers, "sit",
+            @"^(?:stand(?: (?:up|back up))?|get up|let go|on your feet)" + Hers, "stand_up",
+            @"^(?:hang|dangle)(?: (?:here|there|right here|right there|in the air|in mid ?air|where you are))?" + Hers, "hang",
+            @"^(?:ride|hop on|get on|jump on|sit on|climb on|ride on)(?: (?:my|the|ur|your))? (?:mouse|cursor|pointer)(?: again)?" + Hers, "ride_cursor",
+            @"^(?:(?:hop|get|jump|climb) off(?: (?:of|from))?(?: (?:my|the|ur|your))? (?:mouse|cursor|pointer)|stop riding(?: (?:my|the|ur|your) (?:mouse|cursor|pointer))?|(?:let go of|leave) (?:my|the) (?:mouse|cursor|pointer))" + Hers, "hop_off",
+            @"^(?:hide(?: (?:yourself|urself|away))?|go (?:and )?hide|disappear|vanish|go invisible|turn invisible|poof)" + Hers, "hide",
+            @"^(?:show (?:yourself|urself)|un-?hide(?: (?:yourself|urself))?|reappear|appear|come out(?: of hiding)?|stop hiding|show up)" + Hers, "show"
+        };
+
+        // Her animations by name: "dance", "stop dancing", "do your glitch", "smile", "blink", "play your idle animation".
+        private static readonly string[] AnimationWords =
+        {
+            @"^(?:stop|quit|no more|enough|that'?s enough|cut the|cut out the) (?:dancing|the dance|your dance|ur dance|the dancing|grooving|boogying)" + Hers, "stop_dancing",
+            @"^(?:dance|let'?s dance|start dancing|keep dancing|go dance|bust a move|show (?:me|us) (?:your|ur|some) (?:dance )?moves|do (?:a|the|your|ur|some|that) (?:little |lil |happy |victory )?(?:dance|jig|boogie)|dance (?:with me|to (?:it|this|that|the music|the song|the beat|my music|my song)|again|some more|a bit|a little))" + Hers, "dance",
+            @"^(?:glitch(?: out)?|do (?:a|your|ur|the|that) (?:little )?glitch(?: thing)?|do the glitchy thing)" + Hers, "glitch",
+            @"^(?:grin|smile|smirk|do (?:a|your|ur|the|that) (?:little |big )?(?:grin|smile|smirk)|give (?:me|us) (?:a |your |ur |that )?(?:little |big )?(?:grin|smile)|smile (?:for (?:me|us|the camera)|at me))" + Hers, "grin",
+            @"^(?:blink(?: (?:once|twice|at me))?|do (?:a|your|ur) (?:little )?blink)" + Hers, "blink",
+            @"^(?:idle|go idle|be idle|stand still|stay still|stop moving|(?:go )?back to (?:normal|idle))" + Hers, "idle",
+            @"^(?:(?:play|do|show me|show|run|perform|start|go)(?: (?:your|ur|the|a|an|that))? )?(?<n>idle|glitch|grin|smile|blink|dance|dancing)(?: (?:animation|anim|animations|clip|move|moves|loop))" + Hers, ""
+        };
+
+        internal static string MovingFor(string text, out string screen)
+        {
+            screen = null;
+            for (int i = 0; i < SelfWords.Length; i += 2)
+            {
+                Match found = Regex.Match(text ?? "", SelfWords[i], RegexOptions.IgnoreCase);
+                if (!found.Success) continue;
+                if (found.Groups["s"].Success) screen = Regex.IsMatch(found.Groups["s"].Value, @"^(here|over here|to me|to (my|the) (mouse|cursor|pointer)|to this (monitor|screen|display))$", RegexOptions.IgnoreCase) ? "here" : found.Groups["s"].Value.ToLowerInvariant();
+                return SelfWords[i + 1];
+            }
+            return null;
+        }
+
+        internal static string AnimationFor(string text)
+        {
+            for (int i = 0; i < AnimationWords.Length; i += 2)
+            {
+                Match found = Regex.Match(text ?? "", AnimationWords[i], RegexOptions.IgnoreCase);
+                if (!found.Success) continue;
+                if (AnimationWords[i + 1].Length > 0) return AnimationWords[i + 1];
+                string name = found.Groups["n"].Value.ToLowerInvariant();
+                return name == "smile" ? "grin" : name == "dancing" ? "dance" : name;
+            }
+            return null;
+        }
+
+        // The screen "next", "other", "left", "right", "up", "down", "main", "last", "here" or "2" picks from the one she's on, as
+        // an index into the screens' middles, or -1 when there isn't one. A number is the one Windows gives the screen (DISPLAY2
+        // is 2) when there is one, otherwise screens count from the left.
+        internal static int PickScreen(int[] x, int[] y, int[] numbers, int primary, int current, int pointed, string which)
+        {
+            int count = x.Length;
+            if (count == 0) return -1;
+            string pick = Regex.Replace((which ?? "").ToLowerInvariant(), @"\b(the|my|your|ur|to|on|onto|(?:monitor|screen|display)s?|number|no)\b|[#.]", " ");
+            pick = Regex.Replace(Regex.Replace(pick, @"\s+", " ").Trim(), @"(?<=\w) one$", "");
+            List<int> order = new List<int>();
+            for (int i = 0; i < count; i++) order.Add(i);
+            order.Sort(delegate(int a, int b) { return x[a] != x[b] ? x[a].CompareTo(x[b]) : y[a].CompareTo(y[b]); });
+            if (Regex.IsMatch(pick, @"^(here|this|mouse|cursor|pointer)$")) return pointed;
+            if (Regex.IsMatch(pick, @"^(main|primary)$")) return primary;
+            if (pick == "last") return order[count - 1];
+            string[] words = { "first|1st|one", "second|2nd|two", "third|3rd|three", "fourth|4th|four" };
+            int number = Regex.IsMatch(pick, @"^\d$") ? pick[0] - '0' : 0;
+            for (int i = 0; i < words.Length; i++) if (Regex.IsMatch(pick, "^(" + words[i] + ")$")) number = i + 1;
+            if (number > 0)
+            {
+                if (numbers != null) for (int i = 0; i < count; i++) if (numbers[i] == number) return i;
+                return number <= count ? order[number - 1] : -1;
+            }
+            if (count < 2 || current < 0 || current >= count) return -1;
+            int place = order.IndexOf(current);
+            if (Regex.IsMatch(pick, @"^(previous|back)$")) return order[(place + count - 1) % count];
+            Match way = Regex.Match(pick, @"^(?:(left)|(right)|(top|upper|up|above)|(bottom|lower|down|below))$");
+            if (!way.Success) return order[(place + 1) % count];
+            int best = -1;
+            long nearest = long.MaxValue;
+            for (int i = 0; i < count; i++)
+            {
+                long dx = x[i] - x[current], dy = y[i] - y[current];
+                bool fits = way.Groups[1].Success ? dx < 0 : way.Groups[2].Success ? dx > 0 : way.Groups[3].Success ? dy < 0 : dy > 0;
+                if (i == current || !fits || dx * dx + dy * dy >= nearest) continue;
+                nearest = dx * dx + dy * dy;
+                best = i;
+            }
+            return best;
+        }
+
+        internal static string Asked(string said)
         {
             said = Dots(Regex.Replace(said ?? "", @"^[\s¿¡]+", ""));
             string text = Lead.Replace(Opener.Replace(Regex.Replace((said ?? "").Replace('\u2019', '\'').Trim(), @"\s+", " "), ""), "");
@@ -877,6 +1346,11 @@ namespace CapriDesktop
             if (switched != null) { tool = "power"; args.Action = switched; args.Minutes = minutes; return true; }
             Match napped = Napping.Match(text);
             if (napped.Success) { tool = "nap"; args.Action = napped.Groups["wake"].Success ? "wake" : "sleep"; return true; }
+            string screen;
+            string moved = MovingFor(text, out screen);
+            if (moved != null) { tool = "move_yourself"; args.Action = moved; args.Screen = screen; return true; }
+            string played = AnimationFor(text);
+            if (played != null) { tool = "animate"; args.Name = played; return true; }
             string pressed = ShortcutFor(text);
             if (pressed != null) { tool = "shortcut"; args.Name = pressed; return true; }
             if (ScreenAsk.IsMatch(text) || ScreenQuestion.IsMatch(text)) { tool = "look_at_screen"; args.Focus = ScreenQuestion.IsMatch(text) ? text : null; return true; }
@@ -945,7 +1419,7 @@ namespace CapriDesktop
 
         internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^(Which app|What should I play|No app called|More than one|That didn't work|Couldn't|There's no|That isn't a website|Which job|Should I |Got lost|Ran out of steps|You pressed Esc|You grabbed the mouse|Using the mouse and keyboard isn't)|isn't open\.$|but (couldn't|it's still open)"); }
 
-        private static readonly Regex LooseText = new Regex(@"\b(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power)\s*(\{[^{}]*\}|\([^()]*\))");
+        private static readonly Regex LooseText = new Regex(@"\b(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power|nap|move_yourself|animate)\s*(\{[^{}]*\}|\([^()]*\))");
         private static readonly Regex ToolPair = new Regex(@"[""']?(\w+)[""']?\s*[:=]\s*(?:""([^""]*)""|'([^']*)'|([^,})\s][^,})]*))");
 
         private static ToolArguments Pairs(string tool, string call)
@@ -959,7 +1433,7 @@ namespace CapriDesktop
                 Set(args, pair.Groups[1].Value.ToLowerInvariant(), pair.Groups[2].Success ? pair.Groups[2].Value : pair.Groups[3].Success ? pair.Groups[3].Value : pair.Groups[4].Value.Trim());
             }
             string lone = inside.Trim().Trim('"', '\'');
-            if (!paired && lone.Length > 0) Set(args, tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" ? "action" : tool == "look_at_screen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : "name", lone);
+            if (!paired && lone.Length > 0) Set(args, tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "move_yourself" ? "action" :tool == "look_at_screen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : "name", lone);
             return args;
         }
 
@@ -976,9 +1450,10 @@ namespace CapriDesktop
             else if (key == "task") args.Task = value;
             else if (key == "text") args.Text = value;
             else if (key == "minutes") args.Minutes = value;
+            else if (key == "screen") args.Screen = value;
         }
 
-        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power)\s*(\{.*\})\z", RegexOptions.Singleline);
+        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power|nap|move_yourself|animate)\s*(\{.*\})\z", RegexOptions.Singleline);
 
         internal static bool Typed(string reply, out string tool, out ToolArguments args, bool loose = false)
         {
@@ -1000,6 +1475,57 @@ namespace CapriDesktop
             if (!Valid(found.Groups[1].Value, args)) return false;
             tool = found.Groups[1].Value;
             return true;
+        }
+
+        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power|nap|move_yourself|animate";
+        private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
+        private static readonly Regex NamedInside = new Regex(@"""name""\s*:\s*""(" + ToolNames + @")""");
+        private static readonly Regex GivenInside = new Regex(@"""(?:arguments|parameters)""\s*:\s*\{");
+
+        // Every whole call written out as text, in order: open_app{"name":"Discord"}, Gemma's call:open_app{name:<|"|>Discord<|"|>}
+        // or {"name":"open_app","arguments":{"name":"Discord"}} in <tool_call> tags. One cut off partway through, where her brain ran
+        // out of room, is left out, and so is one that doesn't make sense.
+        internal static List<KeyValuePair<string, ToolArguments>> Written(string reply)
+        {
+            List<KeyValuePair<string, ToolArguments>> found = new List<KeyValuePair<string, ToolArguments>>();
+            string text = Regex.Replace(Brain.Visible(reply), @"<\|""\|>|<escape>", "\"");
+            for (int at = 0; at < text.Length; )
+            {
+                int open = text.IndexOf('{', at);
+                int close = open < 0 ? -1 : Closing(text, open);
+                if (close < 0) break;
+                string body = text.Substring(open, close - open + 1);
+                Match named = NamedBefore.Match(text.Substring(at, open - at));
+                string tool = null;
+                ToolArguments args = null;
+                if (named.Success) { tool = named.Groups[1].Value; args = Read(body); }
+                else
+                {
+                    Match inside = NamedInside.Match(body), given = GivenInside.Match(body);
+                    int start = given.Success ? given.Index + given.Length - 1 : -1;
+                    int end = start < 0 ? -1 : Closing(body, start);
+                    if (inside.Success && end > 0) { tool = inside.Groups[1].Value; args = Read(body.Substring(start, end - start + 1)); }
+                }
+                if (tool != null && Valid(tool, args)) found.Add(new KeyValuePair<string, ToolArguments>(tool, args));
+                at = close + 1;
+            }
+            return found;
+        }
+
+        // Where the brace at open closes, skipping braces in quotes, or -1 when it never does.
+        private static int Closing(string text, int open)
+        {
+            int depth = 0;
+            bool quoted = false;
+            for (int i = open; i < text.Length; i++)
+            {
+                char c = text[i];
+                if (quoted) { if (c == '\\') i++; else if (c == '"') quoted = false; }
+                else if (c == '"') quoted = true;
+                else if (c == '{') depth++;
+                else if (c == '}' && --depth == 0) return i;
+            }
+            return -1;
         }
 
         internal static ToolArguments Read(string json)
@@ -1078,6 +1604,8 @@ namespace CapriDesktop
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
+            if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|stand_up|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z");
+            if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing)\z");
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube");
         }
 

@@ -107,13 +107,17 @@ namespace CapriDesktop
             Hands.MuteState = delegate { return Muted(OnMac); };
             Hands.SetMute = delegate(bool on) { return Mute(on, OnMac); };
             Hands.Chord = delegate { throw new PlatformNotSupportedException("keyboard shortcuts only work on Windows for now"); };
-            // A look is already in her transcript; anything else she did goes in as a job, like on Windows.
+            // A look is already in her transcript; anything else she did goes in as a job, like on Windows. A toggle switched
+            // off in Security holds the call so she asks first, and their yes runs it.
             brain.Act = delegate(string tool, ToolArguments args)
             {
+                string held = Security.Gate(tool, args);
+                if (held != null) return held;
                 string done = Hands.Do(tool, args);
                 if (tool != "look_at_screen" && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
+            Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };
         }
 
         internal static void Open(string id, bool mac)

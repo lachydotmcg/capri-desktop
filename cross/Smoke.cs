@@ -45,6 +45,10 @@ namespace CapriDesktop
         private bool blinked;
         private bool slept;
         private int napStage;
+        private int moveStage;
+        private PixelPoint moveTo;
+        private Screen moveFrom;
+        private readonly List<string> moveLines = new List<string>();
         private double noticedBefore = -1;
         private bool poppedAgain;
         private bool hushGlance;
@@ -257,6 +261,34 @@ namespace CapriDesktop
                 bool stylePlain = pet.StyleShown == "Normal | Normal | Off | Off" && VoiceFx.Styled(toneWav, "Hey choom.") == toneWav;
                 if (!stylePlainBefore || !styleChanged || !stylePlain) throw new Exception("Voice style went wrong: plain before " + stylePlainBefore + ", set " + styleSet + " changed " + styleChanged + ", plain after " + stylePlain);
                 checks.Add("PASS voice style: Settings > Voice style sets her pitch, speed, robot and glitch like Windows, her ElevenLabs replies get them, and at Normal and Off her voice is untouched");
+                // Her voice layers, like Windows: the shared checks of the sound, then Voice style's Layers menus, her ElevenLabs
+                // replies getting them and the settings saving and loading.
+                string layersFound, layersWrong = VoiceFx.LayersCheck(out layersFound);
+                VoiceFx.Layering layersWas = VoiceFx.Layers;
+                string layersNew = pet.LayersShown;
+                bool layersPlain = VoiceFx.Styled(toneWav, "Hey choom.") == toneWav;
+                pet.SetLayers(VoiceFx.Layers.Turned(true));
+                string layersOn = pet.LayersShown;
+                int layersRate;
+                short[] layersSaid = Voice.Samples(VoiceFx.Styled(toneWav, "Hey choom."), out layersRate);
+                pet.SetLayers(VoiceFx.Layers.With(1, 3, 40).With(2, -4, 100));
+                string layersSet = pet.LayersShown;
+                System.Runtime.Serialization.Json.DataContractJsonSerializer layersJson = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings));
+                Settings layersLoaded;
+                using (MemoryStream layersStream = new MemoryStream())
+                {
+                    layersJson.WriteObject(layersStream, pet.Saved);
+                    layersStream.Position = 0;
+                    layersLoaded = (Settings)layersJson.ReadObject(layersStream);
+                }
+                Settings layersOld = (Settings)layersJson.ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Pitch\":2,\"Glitch\":10}")));
+                pet.SetLayers(layersWas);
+                string layersBack = pet.LayersShown;
+                const string layersPlainShown = "Off | +1.5, 25 ms | -2.5, 25 ms";
+                if (layersWrong != null || layersNew != layersPlainShown || !layersPlain || layersOn != "On | +1.5, 25 ms | -2.5, 25 ms" || layersRate != 24000 || layersSaid.Length != tonePcm.Length + 600
+                    || layersSet != "On | +3, 40 ms | -4, 100 ms" || Pet.LayersOf(layersLoaded).Shown != "On | +3, 40 ms | -4, 100 ms" || Pet.LayersOf(layersOld).Shown != layersPlainShown || Pet.LayersOf(new Settings()).Shown != layersPlainShown || layersBack != layersPlainShown || VoiceFx.Styled(toneWav, "Hey choom.") != toneWav)
+                    throw new Exception("Voice layers went wrong: " + layersWrong + " / new " + layersNew + ", on " + layersOn + " (" + layersSaid.Length + " samples from " + tonePcm.Length + "), set " + layersSet + ", loaded " + Pet.LayersOf(layersLoaded).Shown + ", older " + Pet.LayersOf(layersOld).Shown + ", back " + layersBack);
+                checks.Add("PASS voice layers: Settings > Voice style > Layers turns on two copies of her under her, like Windows, with Layer 1 and Layer 2's pitch and delay in their own menus; " + layersFound + "; her ElevenLabs replies get them and come back 25 ms longer for their tails; off out of the box and in settings from before them, and off her voice is byte for byte as it was; the layers save and load as set");
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
@@ -507,6 +539,7 @@ namespace CapriDesktop
                     Hands.Forget();
                 }
                 checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, and key-press shortcuts say they're Windows-only");
+                SecurityChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
                 pet.Brain.Remember("what's up?", "Not much, choom.");
@@ -642,6 +675,32 @@ namespace CapriDesktop
                 string notesPath = pet.OpenNotes();
                 if (saved != "Saved to my notes: They love Hollow Knight." || kept != "- They love Hollow Knight" || forgot != "Forgot my note about hollow knight." || Brain.Notes() != "" || notesPath == null || !File.ReadAllText(notesPath).StartsWith("# What Capri remembers", StringComparison.Ordinal)) throw new Exception("Her notes didn't work: " + saved + " / " + kept + " / " + forgot);
                 checks.Add("PASS notes: remember and forget save to me.md here too, and Open her notes makes the file");
+                pet.GetToKnow();
+                bool meetAsked = pet.GettingToKnow && pet.Talk.Typing && pet.Talk.Reply == Meeting.AskName;
+                pet.Talk.Submit("hey");
+                bool meetNudged = pet.Talk.Typing && pet.Talk.Reply == Meeting.AskCalled;
+                pet.Talk.Submit("call me Lachy!!");
+                bool meetNamed = Brain.Nickname == "Lachy" && pet.Saved.Nickname == "Lachy" && pet.Talk.Typing && pet.Talk.Reply == "Nice to meet you, Lachy. " + Meeting.AskPronouns;
+                pet.Talk.Submit("she");
+                bool meetPronouns = pet.Talk.Typing && pet.Talk.Reply == "Got it. " + Meeting.AskInto;
+                pet.Talk.Submit("I'm into Cyberpunk, Roblox and drawing");
+                string meetNotes = Brain.Notes();
+                bool meetKept = !pet.GettingToKnow && meetNotes == "- Name: Lachy\n- Pronouns: she/her\n- Into: Cyberpunk, Roblox and drawing" && pet.Talk.Reply == "Love that, Lachy. It's all in my notes now, me.md. " + Meeting.Again && Brain.Remembered().IndexOf("match words like girl, boy or choom", StringComparison.Ordinal) >= 0;
+                pet.GetToKnow();
+                pet.Talk.Submit("skip");
+                bool meetSkipped = pet.Talk.Reply == Meeting.AskPronouns;
+                pet.Talk.Submit("they/them");
+                pet.Talk.Submit("stop");
+                bool meetStopped = !pet.GettingToKnow && Brain.Notes() == "- Name: Lachy\n- Pronouns: they/them\n- Into: Cyberpunk, Roblox and drawing" && Brain.Nickname == "Lachy" && pet.Talk.Reply == "No worries. What you told me is in my notes, me.md. " + Meeting.Again;
+                pet.GetToKnow();
+                pet.Talk.Submit("remember I'm learning guitar");
+                bool meetHandedOn = !pet.GettingToKnow && pet.Talk.Reply == "Saved to my notes: They're learning guitar.";
+                Brain.Unnote("everything");
+                pet.SetNickname("choom");
+                pet.Talk.Dismiss();
+                if (!meetAsked || !meetNudged || !meetNamed || !meetPronouns || !meetKept || !meetSkipped || !meetStopped || !meetHandedOn)
+                    throw new Exception("Getting to know them went wrong: asked " + meetAsked + ", nudged " + meetNudged + ", named " + meetNamed + ", pronouns " + meetPronouns + ", kept " + meetKept + " (" + meetNotes.Replace("\n", " | ") + "), skipped " + meetSkipped + ", stopped " + meetStopped + ", handed on " + meetHandedOn);
+                checks.Add("PASS getting to know you: Settings > Get to know me asks what to call them, their pronouns and what they're into in her typing box, writes them to me.md and calls them by their name; skip, stop and asking again work, and something for her to do ends it and is heard as usual");
                 string today = Path.Combine(Brain.TranscriptPath, DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md");
                 Brain.Transcribe("You", "we finally beat the smoke boss");
                 bool transcribed = File.Exists(today) && File.ReadAllText(today).Contains("You:** we finally beat the smoke boss");
@@ -652,9 +711,14 @@ namespace CapriDesktop
                 pet.SetRemembering(true);
                 string memoriesPath = pet.OpenMemories();
                 string recalledBoss = Brain.Recalled("remember when we beat the smoke boss?");
-                if (!transcribed || !rememberedOn || !stoppedWriting || !pet.Remembers || !Brain.Keeping || memoriesPath != Path.Combine(folder, "memories.md") || !File.Exists(memoriesPath) || !Directory.Exists(Brain.TranscriptPath) || recalledBoss.IndexOf("You: we finally beat the smoke boss", StringComparison.Ordinal) < 0)
-                    throw new Exception("Remember our chats went wrong: " + transcribed + " | " + rememberedOn + " | " + stoppedWriting + " | " + recalledBoss);
-                checks.Add("PASS remember our chats: on by default here too, a chat line goes in today's transcript, \"remember when\" finds it, off writes nothing, and Open her memories makes memories.md");
+                // Talking about it again digs it up unasked, unless it's already in her chat; small talk digs up nothing.
+                string dugBoss = Brain.Recalled("the smoke boss is back for a rematch");
+                string dugShown = Brain.Recalled("the smoke boss is back for a rematch", new[] { "we finally beat the smoke boss" });
+                string dugSmall = Brain.Recalled("how's it going?");
+                if (!transcribed || !rememberedOn || !stoppedWriting || !pet.Remembers || !Brain.Keeping || memoriesPath != Path.Combine(folder, "memories.md") || !File.Exists(memoriesPath) || !Directory.Exists(Brain.TranscriptPath) || recalledBoss.IndexOf("You: we finally beat the smoke boss", StringComparison.Ordinal) < 0
+                    || dugBoss.IndexOf("earlier moments that may connect", StringComparison.Ordinal) < 0 || dugBoss.IndexOf("You: we finally beat the smoke boss", StringComparison.Ordinal) < 0 || dugShown.IndexOf("we finally beat the smoke boss", StringComparison.Ordinal) >= 0 || dugSmall != "")
+                    throw new Exception("Remember our chats went wrong: " + transcribed + " | " + rememberedOn + " | " + stoppedWriting + " | " + recalledBoss + " | " + dugBoss + " | " + dugShown + " | " + dugSmall);
+                checks.Add("PASS remember our chats: on by default here too, a chat line goes in today's transcript, \"remember when\" finds it, talking about it again digs it up unasked unless it's already in her chat, small talk digs up nothing, off writes nothing, and Open her memories makes memories.md");
                 bool personalityMade = Brain.PersonalityPath == Path.Combine(folder, "personality.md") && File.ReadAllText(Brain.PersonalityPath) == Brain.PersonalityFile && Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Machinery;
                 File.Delete(Brain.PersonalityPath);
                 string personalityPath = pet.OpenPersonality();
@@ -693,6 +757,14 @@ namespace CapriDesktop
                 if (pet.Talk.Reply != Pet.Offline) throw new Exception("No brain didn't explain how to get one: " + pet.Talk.Reply);
                 checks.Add("PASS no brain: she says to install Ollama and pull a model");
                 pet.Talk.Dismiss();
+                pet.Hear("dance for me");
+                bool brainlessDance = pet.Dancing && pet.Talk.Reply == "Dancing. Tell me to stop when you've had enough.";
+                pet.Talk.Dismiss();
+                pet.Hear("stop dancing");
+                bool brainlessStop = !pet.Dancing && pet.Talk.Reply == "Stopped dancing.";
+                pet.Talk.Dismiss();
+                if (!brainlessDance || !brainlessStop) throw new Exception("Her dance needed a brain: " + brainlessDance + ", " + brainlessStop + ", " + pet.Talk.Reply);
+                checks.Add("PASS her own moves without a brain: \"dance for me\" and \"stop dancing\" work with no brain set up, like her nap and \"teleport here\"");
                 pet.Think = delegate(string words) { return words == "hey" ? "Just vibing, choom." : "wrong words"; };
                 pet.Talk.Pill.Press(1);
                 if (!pet.Talk.Typing) throw new Exception("The pencil didn't open the typing box.");
@@ -712,6 +784,10 @@ namespace CapriDesktop
                 Snap(pet.Talk.Typer.Content as Control, "typer.png");
                 Snap(pet.Talk.Pill.Content as Control, "pill.png");
                 Scene("desktop.png", new Window[] { pet, bubble, pet.Talk.Pill }, new PixelRect[0]);
+                string pillLook = PillFace.Check(Path.Combine(folder, "pill-states.png"));
+                if (pillLook != null) throw new Exception(pillLook);
+                if (!pet.Talk.Pill.GlitchesIn(now)) throw new Exception("The pill didn't glitch in when it showed, or a hover glitched it again.");
+                checks.Add("PASS hover pill: black cut-corner plates with a pink-to-cyan neon edge, TYPE and TALK and a segmented wave like Windows, the mic level and a red MUTED drawn the same, crisp at 100%, 150% and 200% with the same size and hit areas, and a glitch only when it shows");
                 checks.Add("PASS chat: the typing box sends a line to her brain, the reply types out in a bubble above her head");
                 // Chinese takes two columns a character and wraps without spaces, a long link breaks across lines, and every
                 // letter still shows once she's done typing.
@@ -833,6 +909,7 @@ namespace CapriDesktop
                     slept = true;
                 }
                 if (!Napped()) return false;
+                if (!Moved()) return false;
                 if (!cover.HasExited) return false;
                 shelfSpot = Near(new PixelRect(shelfAsked.X + dx, shelfAsked.Y + dy, shelfAsked.Width, shelfAsked.Height), true);
                 if (shelfSpot == null) return false;
@@ -1186,6 +1263,151 @@ namespace CapriDesktop
             return false;
         }
 
+        // Security on Mac and Linux, like Windows' SECURITY window: each preset ticks its toggles, a flip makes it Custom and is
+        // saved, settings from before it get Trusted, and a toggle that's off holds her tool call so she asks first and does it
+        // on their yes. Mac and Linux have the first five toggles; her mouse and keyboard jobs and "Hey Capri" are Windows-only.
+        private void SecurityChecks()
+        {
+            Func<string> bits = delegate { StringBuilder all = new StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
+            Func<int, int, string> menu = delegate(int preset, int mask)
+            {
+                List<string> want = new List<string> { "Security: " + Security.Presets[preset] };
+                for (int i = 0; i <= Security.Custom; i++) want.Add((i == preset ? "*" : "") + Security.Presets[i] + (i == Security.Custom ? " (off)" : ""));
+                want.Add("-");
+                for (int i = 0; i <= Security.Power; i++) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
+                return string.Join(" | ", want);
+            };
+            string[] presetBits = { "00000000000", "11100000000", "11111110000", "11111111111" };
+            List<string> wrong = new List<string>();
+            string first = pet.SecurityShown;
+            bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, 0x7F);
+            for (int preset = Security.Lockdown; preset <= Security.Blackwall; preset++)
+            {
+                pet.ClickSecurity(preset, -1);
+                string shown = pet.SecurityShown;
+                if (bits() != presetBits[preset] || Security.Preset != preset || pet.Saved.Permissions != presetBits[preset].Substring(0, 10) || shown != menu(preset, Security.MaskOf(preset)))
+                    wrong.Add(Security.Presets[preset] + " " + bits() + " saved " + pet.Saved.Permissions + " shows " + shown);
+            }
+            pet.ClickSecurity(Security.Trusted, -1);
+            pet.ClickSecurity(-1, Security.Open);
+            string customShown = pet.SecurityShown;
+            bool custom = Security.Preset == Security.Custom && pet.Saved.Permissions == "0111111000" && customShown == menu(Security.Custom, 0x7E);
+            // The smoke test never writes cross.json, so this is what Save would write.
+            MemoryStream savedJson = new MemoryStream();
+            new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).WriteObject(savedJson, pet.Saved);
+            bool written = Encoding.UTF8.GetString(savedJson.ToArray()).Contains("\"Permissions\":\"0111111000\"");
+            Security.Load(pet.Saved.Permissions);
+            bool reloaded = Security.Preset == Security.Custom && !Security.On(Security.Open) && Security.On(Security.Media);
+            pet.ClickSecurity(-1, Security.Open);
+            bool back = Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000" && pet.SecurityShown == menu(Security.Trusted, 0x7F);
+            bool windowsOnly = customShown.IndexOf("mouse and keyboard", StringComparison.Ordinal) < 0 && customShown.IndexOf("Hey Capri", StringComparison.Ordinal) < 0 && customShown.IndexOf("passwords", StringComparison.Ordinal) < 0 && customShown.IndexOf("Pay, buy", StringComparison.Ordinal) < 0;
+            bool lines = Security.PresetLine(Security.Trusted) == "She does what you ask without asking first." && Security.PresetLine(Security.Blackwall) == "Everything is on: she never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
+            Settings older = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Model\":\"qwen3:8b\",\"Watch\":true}")));
+            Security.Load(older.Permissions);
+            bool olderTrusted = older.Permissions == null && Security.Preset == Security.Trusted;
+            Security.Load("not toggles");
+            bool unreadable = Security.Preset == Security.Trusted;
+            Security.Load(pet.Saved.Permissions);
+            if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !unreadable)
+                throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + unreadable);
+            checks.Add("PASS Security menu: Settings > Security starts on Trusted; Lockdown, Guarded, Trusted and Blackwall tick the toggles under them (the five Mac and Linux have, each with its plain line), a toggle click makes it Custom and is saved for next time, ticking it again is Trusted, and settings from before it, or unreadable ones, get Trusted");
+
+            // A toggle that's off holds the call and she asks first; a yes runs it once, a no leaves it and anything else drops it.
+            List<string> did = new List<string>();
+            Action<string> runWas = Hands.Run;
+            Action<byte> pressWas = Hands.Press;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<OpenWindow, string, bool> steerWas = Hands.Steer;
+            Func<string, int, bool> powerWas = Hands.Power;
+            Func<string, string> insteadWas = Hands.Instead;
+            string[] tools = { "open_app", "media", "shortcut", "app_window", "power" };
+            ToolArguments[] calls = { new ToolArguments { Name = "spotify" }, new ToolArguments { Action = "volume_up" }, new ToolArguments { Name = "screenshot" }, new ToolArguments { Name = "discord", Action = "switch_to" }, new ToolArguments { Action = "lock" } };
+            string[] questions = { "Open spotify? Say yes and I will.", "Turn the volume up? Say yes and I will.", "Take a screenshot? Say yes and I will.", "Switch to discord? Say yes and I will.", "Lock your PC? Say yes and I will." };
+            string[] ran = { "run exec:spotify", "key AF", "instead screenshot", "steer switch_to discord", "power lock" };
+            List<string> gates = new List<string>();
+            string declined, dropped, mixedAsk, mixedRan, mouseFree, lockdownNote, trustedPrompt, openPrompt, textChat;
+            try
+            {
+                Hands.Run = delegate(string id) { did.Add("run " + id); };
+                Hands.Press = delegate(byte key) { did.Add("key " + key.ToString("X2")); };
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Spotify", "exec:spotify") }; };
+                Hands.Forget();
+                OpenWindow discord = new OpenWindow(new IntPtr(9), "#general | Discord", "discord");
+                Hands.Windows = delegate { return new List<OpenWindow> { discord }; };
+                Hands.Steer = delegate(OpenWindow window, string action) { did.Add("steer " + action + " " + window.Program); return true; };
+                Hands.Power = delegate(string action, int seconds) { did.Add("power " + action); return true; };
+                Hands.Instead = delegate(string name) { did.Add("instead " + name); return "Opened the screenshot picker."; };
+                for (int i = 0; i <= Security.Power; i++)
+                {
+                    Security.Pick(Security.Trusted);
+                    Security.Set(i, false);
+                    did.Clear();
+                    string held = pet.Brain.Act(tools[i], calls[i]);
+                    string early = string.Join(",", did), question = Security.Question;
+                    string yes = Hands.Resume("yes");
+                    string after = string.Join(",", did);
+                    if (!Security.IsHold(held) || early.Length > 0 || question != questions[i] || yes == null || Security.IsHold(yes) || after.IndexOf(ran[i], StringComparison.Ordinal) < 0 || Security.Holding != null)
+                        gates.Add(Security.Names[i] + ": " + held + " / ran early " + early + " / asked " + question + " / yes " + yes + " / ran " + after);
+                }
+                Security.Pick(Security.Trusted);
+                Security.Set(Security.Open, false);
+                did.Clear();
+                pet.Brain.Act("open_app", calls[0]);
+                declined = Hands.Resume("nah") + " [" + string.Join(",", did) + "]";
+                pet.Brain.Act("open_app", calls[0]);
+                dropped = (Hands.Resume("what's the weather like?") ?? "null") + " / " + (Security.Holding ?? "nothing held") + " [" + string.Join(",", did) + "]";
+                // Two held and one that ran: what ran, then one question for both, and one yes runs both.
+                Security.Pick(Security.Trusted);
+                Security.Set(Security.Media, false);
+                Security.Set(Security.Power, false);
+                did.Clear();
+                List<string> results = new List<string> { pet.Brain.Act("open_app", calls[0]), pet.Brain.Act("media", calls[1]), pet.Brain.Act("power", calls[4]) };
+                mixedAsk = Security.Reply(results);
+                mixedRan = Hands.Resume("yeah") + " [" + string.Join(",", did) + "]";
+                // Text chat: her question goes out word for word with no second brain call, and their next message's yes does it.
+                Security.Pick(Security.Trusted);
+                Security.Set(Security.Media, false);
+                did.Clear();
+                Brain talker = new Brain();
+                talker.Model = "smoke-test-model";
+                talker.Act = pet.Brain.Act;
+                string talkAsked = talker.Ask("turn the volume up"), talkEarly = string.Join(",", did);
+                textChat = talkAsked + " / " + talkEarly + " / " + talker.Ask("yes") + " [" + string.Join(",", did) + "]";
+                // Mac and Linux don't have her mouse and keyboard jobs yet, so even Lockdown never holds one, what's playing never
+                // asks, and her prompt names only the toggles this computer has.
+                Security.Pick(Security.Lockdown);
+                ToolArguments job = new ToolArguments { Task = "message Sam hi on Discord" };
+                mouseFree = (Security.Gate("use_computer", job) ?? "free") + " / " + Security.Asks("use_computer", job) + " / " + (Security.Gate("media", new ToolArguments { Action = "now_playing" }) ?? "free");
+                lockdownNote = Security.Note;
+                Security.Pick(Security.Trusted);
+                trustedPrompt = Hands.Prompt;
+                Security.Set(Security.Open, false);
+                openPrompt = Hands.Prompt;
+            }
+            finally
+            {
+                Hands.Run = runWas;
+                Hands.Press = pressWas;
+                Hands.Catalog = catalogWas;
+                Hands.Forget();
+                Hands.Windows = windowsWas;
+                Hands.Steer = steerWas;
+                Hands.Power = powerWas;
+                Hands.Instead = insteadWas;
+                Security.Drop();
+                Security.Pick(Security.Trusted);
+            }
+            if (gates.Count > 0) throw new Exception("A Security toggle didn't ask first or run on a yes: " + string.Join(" // ", gates));
+            if (declined != Security.Left + " []" || dropped != "null / nothing held []") throw new Exception("A no or a new message after her Security question went wrong: " + declined + " / " + dropped);
+            if (mixedAsk != "Opened Spotify. Turn the volume up and lock your PC? Say yes and I will." || mixedRan.IndexOf("key AF", StringComparison.Ordinal) < 0 || mixedRan.IndexOf("power lock", StringComparison.Ordinal) < 0) throw new Exception("Two held calls weren't one question and one yes: " + mixedAsk + " / " + mixedRan);
+            if (!textChat.StartsWith("Turn the volume up? Say yes and I will. /  / Turned the volume up.", StringComparison.Ordinal) || textChat.IndexOf("key AF", StringComparison.Ordinal) < 0) throw new Exception("Text chat didn't ask first or run on a yes: " + textChat);
+            if (mouseFree != "free / False / free" || lockdownNote.IndexOf("switch to or close apps and tabs or shut down, restart, sleep, lock or sign out of their PC. Still call the tool as soon as they ask", StringComparison.Ordinal) < 0 || lockdownNote.IndexOf("mouse and keyboard", StringComparison.Ordinal) >= 0
+                || trustedPrompt.IndexOf("SECURITY", StringComparison.Ordinal) >= 0 || openPrompt.IndexOf("Call the tool.\nThey've set her SECURITY settings to ask first before you open apps, games or sites. Still call the tool as soon as they ask", StringComparison.Ordinal) < 0)
+                throw new Exception("Security asked about something Mac and Linux don't have, or her prompt didn't follow it: " + mouseFree + " / " + lockdownNote);
+            checks.Add("PASS Security gates: with each of the five toggles off she holds the call and asks (\"Open spotify? Say yes and I will.\", \"Lock your PC? Say yes and I will.\"), nothing runs until a yes, a yes runs it once through her own hands, a no leaves it alone and a new message drops it; two held calls are one question and one yes; in text chat her question goes out word for word and the next message's yes does it; mouse and keyboard jobs, which Mac and Linux don't have yet, never ask; and her brain is told to still call a tool that's off and let her ask");
+        }
+
         private string FakeVoice()
         {
             fakeVoice = new TcpListener(IPAddress.Loopback, 0);
@@ -1310,6 +1532,104 @@ namespace CapriDesktop
             if (!talkWoke) throw new Exception("Talking to her didn't wake her from a nap.");
             checks.Add("PASS nap on demand: \"go to sleep\" waits for her line, then she sleeps through the mouse and keyboard, Asleep on Discord, until a click, her menu's Wake up, \"wake up\" or talking to her");
             napStage = 4;
+            return true;
+        }
+
+        private string Self(string tool, string what, string which = null)
+        {
+            string line = Hands.Do(tool, tool == "animate" ? new ToolArguments { Name = what } : new ToolArguments { Action = what, Screen = which });
+            moveLines.Add(line);
+            return line;
+        }
+
+        // Her own moves and animations, in stages so her glitches can play out: "teleport here" puts her hip on the mouse, she
+        // sits, stands, hangs and lets go where she is, goes to another screen when there is one, a hide waits for her line, and
+        // her animations play by name.
+        private bool Moved()
+        {
+            if (moveStage >= 5) return true;
+            if (moveStage == 0)
+            {
+                if (!pet.Upright) return false;
+                PixelRect work = Work();
+                moveTo = new PixelPoint(work.X + work.Width / 2, work.Y + work.Height / 2);
+                pet.MouseAt = delegate { return moveTo; };
+                if (Self("move_yourself", "come_here") != "Teleporting to your mouse." || !pet.Leaving) throw new Exception("\"Teleport here\" didn't glitch her out.");
+                moveStage = 1;
+                return false;
+            }
+            if (moveStage == 1)
+            {
+                if (pet.Leaving) return false;
+                if (pet.Hip != moveTo || !pet.Arriving) throw new Exception("\"Teleport here\" didn't glitch her in on the mouse: " + pet.Hip + " for " + moveTo);
+                Self("move_yourself", "sit");
+                bool sat = pet.Seat != null && pet.Seat.Free && pet.Hip == moveTo;
+                Self("move_yourself", "sit");
+                Self("move_yourself", "stand_up");
+                bool stood = pet.Seat == null && pet.Playing == "glitch";
+                Self("move_yourself", "hang");
+                bool hung = pet.Hanging && pet.Playing == "dangle" && pet.HangChoice == "Let go";
+                Self("move_yourself", "stand_up");
+                bool letGo = !pet.Hanging;
+                Self("move_yourself", "ride_cursor");
+                Self("move_yourself", "move_mainframe", "other");
+                Self("animate", "glitch");
+                bool glitched = pet.Playing == "glitch";
+                Self("animate", "grin");
+                bool grinned = pet.Playing == "grin";
+                Self("animate", "blink");
+                bool blinked = pet.Playing == "idle" && pet.Blinking;
+                Self("animate", "dance");
+                bool danced = pet.Dancing && pet.Doing != "Dancing to music";
+                Self("animate", "stop_dancing");
+                Self("animate", "stop_dancing");
+                bool stopped = !pet.Dancing;
+                Self("animate", "idle");
+                if (!sat || !stood || !hung || !letGo || !glitched || !grinned || !blinked || !danced || !stopped || pet.Playing != "idle")
+                    throw new Exception("Her moves or animations went wrong: sat " + sat + ", stood " + stood + ", hung " + hung + ", let go " + letGo + ", glitched " + glitched + ", grinned " + grinned + ", blinked " + blinked + ", danced " + danced + ", stopped " + stopped + " / " + string.Join(" / ", moveLines));
+                moveFrom = pet.ScreenHere();
+                string other = Self("move_yourself", "other_screen");
+                if (pet.Screens.All.Count < 2)
+                {
+                    if (other != "There's no other screen to go to.") throw new Exception("With one screen, going to another said: " + other);
+                    moveStage = 3;
+                    return false;
+                }
+                if (!other.StartsWith("Moving to ", StringComparison.Ordinal) || !pet.Leaving) throw new Exception("Going to another screen didn't glitch her out: " + other);
+                moveStage = 2;
+                return false;
+            }
+            if (moveStage == 2)
+            {
+                if (pet.Leaving) return false;
+                if (pet.ScreenHere().Bounds == moveFrom.Bounds) throw new Exception("She didn't land on another screen.");
+                moveStage = 3;
+                return false;
+            }
+            if (moveStage == 3)
+            {
+                Self("move_yourself", "hide");
+                pet.Talk.Answer("(hide)", "Hiding.");
+                pet.CheckHide();
+                bool waited = !pet.Away;
+                pet.Talk.Dismiss();
+                pet.CheckHide();
+                bool hid = pet.Away;
+                Self("move_yourself", "show");
+                bool back = !pet.Away;
+                Self("move_yourself", "show");
+                if (!waited || !hid || !back) throw new Exception("Her hide went wrong: waited " + waited + ", hid " + hid + ", back " + back);
+                moveStage = 4;
+                return false;
+            }
+            if (pet.Leaving || pet.Arriving || pet.Falling) return false;
+            pet.MouseAt = null;
+            string said = string.Join(" / ", moveLines);
+            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / My Mainframe is only on Windows so far. Here my settings are in my right-click menu."
+                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show her in my tray menu to bring me back. / Back. / I'm right here.";
+            if (said != wanted) throw new Exception("Her moves said the wrong things: " + said);
+            checks.Add("PASS she moves herself: \"teleport here\" glitches her hip onto the mouse, she sits, stands, hangs and lets go where she is, goes to another screen " + (pet.Screens.All.Count > 1 ? "and lands there" : "only when there is one (one here)") + ", a hide waits for her line and \"show yourself\" brings her back, riding the cursor and the Mainframe say they're Windows-only so far, and glitch, grin, blink, idle and a dance until \"stop dancing\" play by name");
+            moveStage = 5;
             return true;
         }
 

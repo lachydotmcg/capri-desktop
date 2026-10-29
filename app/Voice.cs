@@ -547,6 +547,12 @@ namespace CapriDesktop
         internal static volatile int Glitch;
         internal static volatile int HdGlitch;
         internal static volatile int ServerGlitch;
+        // Her voice layers (Lachy, 29 Oct): Main is her voice as the sliders above make it, and Layer 1 and Layer 2 are copies of
+        // it, each pitched on its own without changing its length, delayed and mixed back in under her. They're off out of the
+        // box, and off leaves every sample alone. Every voice she has gets them, like her pitch, speed, robot and glitch.
+        internal static volatile Layering Layers = Layering.Off;
+        // How loud each layer mixes in under her: 0.4, 8 dB down, so she's doubled with a shimmer rather than singing a chord.
+        internal const double LayerLevel = 0.4;
 
         internal static double Lift(int semitones) { return Math.Pow(2, semitones / 12.0); }
 
@@ -560,25 +566,42 @@ namespace CapriDesktop
         // Her free voice after Kokoro, which already took care of the speed.
         internal static short[] Kokoro(short[] pcm, int rate, int semitones, int robot, int glitch, int seed)
         {
-            if (semitones == 0 && robot <= 0 && glitch <= 0) return pcm;
-            return new Live(rate, semitones, 100, robot, glitch, seed, false).All(pcm);
+            return Kokoro(pcm, rate, semitones, robot, glitch, seed, Layering.Off);
+        }
+
+        internal static short[] Kokoro(short[] pcm, int rate, int semitones, int robot, int glitch, int seed, Layering layers)
+        {
+            if (Plain(semitones, 100, robot, glitch, layers)) return pcm;
+            return new Live(rate, semitones, 100, robot, glitch, seed, false, layers).All(pcm);
         }
 
         // Her HD and ElevenLabs voices have no pitch of their own, so a time-stretch keeps a pitch change from speeding her up or slowing her down.
         internal static short[] Restyled(short[] pcm, int rate, int semitones, int speed, int robot, int glitch, int seed)
         {
-            if (semitones == 0 && speed == 100 && robot <= 0 && glitch <= 0) return pcm;
-            return new Live(rate, semitones, speed, robot, glitch, seed, true).All(pcm);
+            return Restyled(pcm, rate, semitones, speed, robot, glitch, seed, Layering.Off);
         }
 
-        // A finished WAV, like an ElevenLabs reply, in her current pitch, speed, robot and glitch.
+        internal static short[] Restyled(short[] pcm, int rate, int semitones, int speed, int robot, int glitch, int seed, Layering layers)
+        {
+            if (Plain(semitones, speed, robot, glitch, layers)) return pcm;
+            return new Live(rate, semitones, speed, robot, glitch, seed, true, layers).All(pcm);
+        }
+
+        // Whether her voice needs styling at all: with every slider at its default and the layers off, it's left as it is.
+        internal static bool Plain(int semitones, int speed, int robot, int glitch, Layering layers)
+        {
+            return semitones == 0 && speed == 100 && robot <= 0 && glitch <= 0 && (layers == null || !layers.On);
+        }
+
+        // A finished WAV, like an ElevenLabs reply, in her current pitch, speed, robot, glitch and layers.
         internal static byte[] Styled(byte[] wav, string text)
         {
             int pitch = Pitch, speed = Speed, robot = Robot, glitch = Glitch;
-            if (wav == null || (pitch == 0 && speed == 100 && robot <= 0 && glitch <= 0)) return wav;
+            Layering layers = Layers;
+            if (wav == null || Plain(pitch, speed, robot, glitch, layers)) return wav;
             int rate;
             short[] samples = Voice.Samples(wav, out rate);
-            return samples.Length == 0 ? wav : Voice.Wave(Restyled(samples, rate, pitch, speed, robot, glitch, Seed(text)), rate);
+            return samples.Length == 0 ? wav : Voice.Wave(Restyled(samples, rate, pitch, speed, robot, glitch, Seed(text), layers), rate);
         }
 
         // The same line glitches and hisses the same way every time.
@@ -641,24 +664,31 @@ namespace CapriDesktop
             internal readonly int Speed;
             internal readonly int Robot;
             internal readonly int Glitch;
+            internal readonly Layering Layers;
             private readonly Stretcher stretcher;
             private readonly Resampler resampler;
             private readonly Vocoder vocoder;
             private readonly Glitcher glitcher;
+            private readonly Layerer layerer;
 
             // `timed` is false for Kokoro, which already made the line longer or shorter for the pitch and speed.
-            internal Live(int rate, int semitones, int speed, int robot, int glitch, int seed, bool timed)
+            internal Live(int rate, int semitones, int speed, int robot, int glitch, int seed, bool timed) : this(rate, semitones, speed, robot, glitch, seed, timed, Layering.Off) { }
+
+            // Her layers go on last, on her voice as everything else left it.
+            internal Live(int rate, int semitones, int speed, int robot, int glitch, int seed, bool timed, Layering layers)
             {
                 Rate = rate;
                 Pitch = semitones;
                 Speed = speed;
                 Robot = robot;
                 Glitch = glitch;
-                double lift = Lift(semitones), stretch = timed ? lift * 100 / Math.Max(1, speed) : 1;
+                Layers = layers ?? Layering.Off;
+                double lift = Lift(semitones), stretch = timed ? Stretch(lift, speed) : 1;
                 if (Math.Abs(stretch - 1) > 0.001) stretcher = new Stretcher(rate, stretch);
                 if (semitones != 0) resampler = new Resampler(lift);
                 if (robot > 0) vocoder = new Vocoder(rate, robot / 100.0, seed);
                 if (glitch > 0) glitcher = new Glitcher(rate, glitch / 100.0, seed);
+                if (Layers.On) layerer = new Layerer(rate, Layers);
             }
 
             internal short[] Push(short[] chunk)
@@ -667,20 +697,403 @@ namespace CapriDesktop
                 if (resampler != null) chunk = resampler.Push(chunk);
                 if (vocoder != null) chunk = vocoder.Push(chunk);
                 if (glitcher != null) chunk = glitcher.Push(chunk);
+                if (layerer != null) chunk = layerer.Push(chunk);
                 return chunk;
             }
 
-            // The rest of the line. Afterwards it starts over, ready for the next one.
+            // The rest of the line, her layers' delayed tails included. Afterwards it starts over, ready for the next one.
             internal short[] Flush()
             {
                 short[] tail = stretcher != null ? stretcher.Flush() : new short[0];
                 if (resampler != null) tail = Join(resampler.Push(tail), resampler.Flush());
                 if (vocoder != null) tail = Join(vocoder.Push(tail), vocoder.Flush());
                 if (glitcher != null) tail = Join(glitcher.Push(tail), glitcher.Flush());
+                if (layerer != null) tail = Join(layerer.Push(tail), layerer.Flush());
                 return tail;
             }
 
             internal short[] All(short[] pcm) { return Join(Push(pcm), Flush()); }
+        }
+
+        // How much longer the time-stretch makes her for a pitch's ratio and her speed, so the resample brings her back to time.
+        private static double Stretch(double lift, int speed) { return lift * 100 / Math.Max(1, speed); }
+
+        // Her voice layers' settings: on or off, and each layer's pitch, -12 to +12 semitones from Main in half steps, and its
+        // delay, 0 to 250 ms. A change makes a new one, so a line she's saying keeps the layers it started with. Layer 1 starts
+        // a little higher than her and Layer 2 lower, both just behind her.
+        internal sealed class Layering
+        {
+            internal const double MostPitch = 12;
+            internal const int MostDelay = 250;
+            internal const double HigherPitch = 1.5;
+            internal const double LowerPitch = -2.5;
+            internal const int Behind = 25;
+            internal static readonly Layering Off = new Layering(false, HigherPitch, Behind, LowerPitch, Behind);
+            internal readonly bool On;
+            internal readonly double Pitch1;
+            internal readonly int Delay1;
+            internal readonly double Pitch2;
+            internal readonly int Delay2;
+
+            internal Layering(bool on, double pitch1, int delay1, double pitch2, int delay2)
+            {
+                On = on;
+                Pitch1 = Step(pitch1);
+                Delay1 = Wait(delay1);
+                Pitch2 = Step(pitch2);
+                Delay2 = Wait(delay2);
+            }
+
+            // To the nearest half step inside the range.
+            internal static double Step(double semitones)
+            {
+                if (double.IsNaN(semitones) || double.IsInfinity(semitones)) return 0;
+                return Math.Max(-MostPitch, Math.Min(MostPitch, Math.Round(semitones * 2, MidpointRounding.AwayFromZero) / 2));
+            }
+
+            internal static int Wait(int ms) { return Math.Max(0, Math.Min(MostDelay, ms)); }
+
+            internal Layering Turned(bool on) { return new Layering(on, Pitch1, Delay1, Pitch2, Delay2); }
+
+            // Layer 1 or 2 with a new pitch and delay, the other as it was.
+            internal Layering With(int layer, double pitch, int delay) { return layer == 1 ? new Layering(On, pitch, delay, Pitch2, Delay2) : new Layering(On, Pitch1, Delay1, pitch, delay); }
+
+            internal double PitchOf(int layer) { return layer == 1 ? Pitch1 : Pitch2; }
+
+            internal int DelayOf(int layer) { return layer == 1 ? Delay1 : Delay2; }
+
+            internal bool Same(Layering other) { return other != null && other.On == On && other.Pitch1 == Pitch1 && other.Delay1 == Delay1 && other.Pitch2 == Pitch2 && other.Delay2 == Delay2; }
+
+            // A layer's pitch as Settings shows it: "+1.5", "Same", "-12".
+            internal static string PitchName(double semitones)
+            {
+                if (semitones == 0) return "Same";
+                return (semitones > 0 ? "+" : "-") + Math.Abs(semitones).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            internal static string DelayName(int ms) { return ms + " ms"; }
+
+            // "On | +1.5, 25 ms | -2.5, 25 ms", for the smoke tests.
+            internal string Shown { get { return (On ? "On" : "Off") + " | " + PitchName(Pitch1) + ", " + DelayName(Delay1) + " | " + PitchName(Pitch2) + ", " + DelayName(Delay2); } }
+        }
+
+        // Her two layers under her: each a copy of her finished voice, pitched without changing its length (the time-stretch
+        // and resample her HD voice's pitch uses), delayed and mixed in LayerLevel under her, then kept under full scale by a
+        // limiter. Each copy lines up sample for sample with her, so any chunking mixes the same, and Flush lets the delayed
+        // copies ring out past her last word.
+        private sealed class Layerer
+        {
+            private readonly Copy[] copies;
+            private readonly Limiter limiter;
+            private readonly int longest;
+            private readonly List<short> held = new List<short>();
+            private long first;
+            private long mixed;
+
+            internal Layerer(int rate, Layering layers)
+            {
+                copies = new[] { new Copy(rate, layers.Pitch1, layers.Delay1), new Copy(rate, layers.Pitch2, layers.Delay2) };
+                longest = Math.Max(copies[0].Delay, copies[1].Delay);
+                limiter = new Limiter(rate);
+            }
+
+            private long Received { get { return first + held.Count; } }
+
+            internal short[] Push(short[] chunk)
+            {
+                held.AddRange(chunk);
+                long ready = Received;
+                foreach (Copy copy in copies)
+                {
+                    copy.Push(chunk);
+                    ready = Math.Min(ready, copy.Made + copy.Delay);
+                }
+                return limiter.Push(Mix(ready));
+            }
+
+            internal short[] Flush()
+            {
+                foreach (Copy copy in copies) copy.Finish();
+                short[] tail = Join(limiter.Push(Mix(Received + longest)), limiter.Flush());
+                held.Clear();
+                first = mixed = 0;
+                foreach (Copy copy in copies) copy.Restart();
+                return tail;
+            }
+
+            // Her and both copies, up to the first sample a copy hasn't reached yet, or to the end of their tails at the end.
+            private double[] Mix(long upTo)
+            {
+                double[] output = new double[Math.Max(0, upTo - mixed)];
+                for (int i = 0; i < output.Length; i++, mixed++)
+                {
+                    long j = mixed - first;
+                    double value = j < held.Count ? held[(int)j] : 0;
+                    foreach (Copy copy in copies) value += LayerLevel * copy.At(mixed - copy.Delay);
+                    output[i] = value;
+                }
+                int drop = (int)Math.Max(0, Math.Min(held.Count, mixed - first));
+                held.RemoveRange(0, drop);
+                first += drop;
+                foreach (Copy copy in copies) copy.Drop(mixed - copy.Delay);
+                return output;
+            }
+
+            // One layer: her voice at another pitch and the same length, `Delay` samples behind her.
+            private sealed class Copy
+            {
+                internal readonly int Delay;
+                private readonly Stretcher stretcher;
+                private readonly Resampler resampler;
+                private readonly List<short> made = new List<short>();
+                private long first;
+
+                internal Copy(int rate, double semitones, int ms)
+                {
+                    Delay = (int)Math.Round(ms * (double)rate / 1000);
+                    if (semitones == 0) return;
+                    double lift = Math.Pow(2, semitones / 12.0);
+                    stretcher = new Stretcher(rate, Stretch(lift, 100));
+                    resampler = new Resampler(lift);
+                }
+
+                internal long Made { get { return first + made.Count; } }
+
+                internal void Push(short[] chunk) { made.AddRange(stretcher == null ? chunk : resampler.Push(stretcher.Push(chunk))); }
+
+                internal void Finish()
+                {
+                    if (stretcher == null) return;
+                    made.AddRange(resampler.Push(stretcher.Flush()));
+                    made.AddRange(resampler.Flush());
+                }
+
+                internal double At(long index)
+                {
+                    long j = index - first;
+                    return j >= 0 && j < made.Count ? made[(int)j] : 0;
+                }
+
+                internal void Drop(long before)
+                {
+                    int drop = (int)Math.Max(0, Math.Min(made.Count, before - first));
+                    made.RemoveRange(0, drop);
+                    first += drop;
+                }
+
+                internal void Restart()
+                {
+                    made.Clear();
+                    first = 0;
+                }
+            }
+        }
+
+        // Keeps her layered voice under full scale. A sample's gain is the least any sample up to 2.5 ms ahead needs, eased in
+        // over those 2.5 ms and let back up over about 60 ms, so a peak is turned down smoothly before it arrives. Below full
+        // scale every sample goes through as it is. Each sample waits only for the 2.5 ms after it, so chunking changes nothing.
+        private sealed class Limiter
+        {
+            internal const double Ceiling = 31000;
+            private readonly int ahead;
+            private readonly double letUp;
+            private readonly double[] recent;
+            private readonly List<double> held = new List<double>();
+            private readonly List<double> lows = new List<double>();
+            private readonly List<long> lowAt = new List<long>();
+            private long taken;
+            private double gain;
+            private int under;
+
+            internal Limiter(int rate)
+            {
+                ahead = Math.Max(1, rate / 400);
+                letUp = Math.Exp(-1 / (0.06 * rate));
+                recent = new double[ahead + 1];
+                Restart();
+            }
+
+            // A line starts with `ahead` samples of silence it doesn't let out, so the gain before her first sample is worked
+            // out like any other and the first peak is eased into too.
+            private void Restart()
+            {
+                held.Clear();
+                lows.Clear();
+                lowAt.Clear();
+                taken = 0;
+                gain = 1;
+                under = 0;
+                for (int i = 0; i < recent.Length; i++) recent[i] = 1;
+                for (int i = 0; i < ahead; i++) Take(0, 0, null);
+            }
+
+            internal short[] Push(double[] chunk)
+            {
+                List<short> output = new List<short>(chunk.Length);
+                foreach (double value in chunk) Take(value, long.MaxValue, output);
+                return output.ToArray();
+            }
+
+            internal short[] Flush()
+            {
+                List<short> output = new List<short>();
+                long end = taken;
+                for (int i = 0; i < ahead; i++) Take(0, end, output);
+                Restart();
+                return output.ToArray();
+            }
+
+            private void Take(double value, long end, List<short> output)
+            {
+                double size = Math.Abs(value), need = size > Ceiling ? Ceiling / size : 1;
+                // The lowest need from here to `ahead` samples on: a queue of needs, each lower than the one behind it.
+                while (lows.Count > 0 && lows[lows.Count - 1] >= need)
+                {
+                    lows.RemoveAt(lows.Count - 1);
+                    lowAt.RemoveAt(lowAt.Count - 1);
+                }
+                lows.Add(need);
+                lowAt.Add(taken);
+                held.Add(value);
+                long at = taken++ - ahead;
+                if (at < 0) return;
+                while (lowAt[0] < at)
+                {
+                    lowAt.RemoveAt(0);
+                    lows.RemoveAt(0);
+                }
+                gain = Math.Min(lows[0], 1 - (1 - gain) * letUp);
+                if (gain > 0.99999 && lows[0] >= 1) gain = 1;
+                int slot = (int)(at % recent.Length);
+                if (recent[slot] < 1) under--;
+                recent[slot] = gain;
+                if (gain < 1) under++;
+                // Averaged over the last `ahead` samples, so the gain glides down before a peak instead of jumping.
+                double eased = 1;
+                if (under > 0)
+                {
+                    eased = 0;
+                    foreach (double step in recent) eased += step;
+                    eased /= recent.Length;
+                }
+                double sample = held[0];
+                held.RemoveAt(0);
+                if (at >= ahead && at < end) output.Add(Clip(sample * eased));
+            }
+        }
+
+        // The smoke tests' checks of her layers, the same on Windows, Mac and Linux: null when they all pass, or what went wrong.
+        // `found` says what they measured, for the PASS line.
+        internal static string LayersCheck(out string found)
+        {
+            const int rate = 24000;
+            List<string> wrong = new List<string>();
+            Random hiss = new Random(11);
+            short[] tone = new short[rate], said = Line(rate, 2, hiss);
+            for (int i = 0; i < tone.Length; i++) tone[i] = (short)(6000 * Math.Sin(2 * Math.PI * 200 * i / rate) + 3000 * Math.Sin(2 * Math.PI * 400 * i / rate) + 1500 * Math.Sin(2 * Math.PI * 600 * i / rate));
+            // Off: nothing changes, whatever the layers are set to.
+            Layering off = new Layering(false, 7, 200, -9, 90);
+            if (Layering.Off.On || Kokoro(tone, rate, 0, 0, 0, 1, off) != tone || Restyled(tone, rate, 0, 100, 0, 0, 1, off) != tone || !Plain(0, 100, 0, 0, off) || Plain(0, 100, 0, 0, off.Turned(true))) wrong.Add("off isn't untouched");
+            if (!Same(Restyled(said, rate, 3, 120, 30, 40, 5, off), Restyled(said, rate, 3, 120, 30, 40, 5)) || !Same(Kokoro(said, rate, -2, 20, 10, 5, off), Kokoro(said, rate, -2, 20, 10, 5)) || !Same(new Live(rate, 2, 90, 0, 20, 5, true, off).All(said), new Live(rate, 2, 90, 0, 20, 5, true).All(said)))
+                wrong.Add("off changed a styled voice");
+            // On: her voice plus each copy, pitched by the length-keeping shift and delayed, at LayerLevel, sample for sample.
+            Layering on = new Layering(true, 5, 100, -7, 200);
+            short[] layered = Restyled(said, rate, 0, 100, 0, 0, 5, on), up = Restyled(said, rate, 5, 100, 0, 0, 5), down = Restyled(said, rate, -7, 100, 0, 0, 5);
+            int far = 0, behind1 = rate / 10, behind2 = rate / 5;
+            for (int i = 0; i < layered.Length; i++) far = Math.Max(far, (int)Math.Abs(layered[i] - Math.Round(At(said, i) + LayerLevel * (At(up, i - behind1) + At(down, i - behind2)))));
+            if (layered.Length != said.Length + behind2 || far > 1) wrong.Add("on isn't her voice plus each layer at its delay (" + layered.Length + " samples, " + far + " off)");
+            int[] mouths = Voice.Mouths(Voice.Wave(layered, rate), 12);
+            bool tailMoves = false;
+            for (int i = said.Length / (rate / 12); i < mouths.Length; i++) tailMoves |= mouths[i] >= 0;
+            if (!tailMoves) wrong.Add("her mouth doesn't follow the layers' tail");
+            // Each copy's pitch: a 220 Hz tone comes back with a copy at 220 Hz times each layer's ratio, half steps too, each
+            // LayerLevel under her.
+            short[] steady = new short[rate];
+            for (int i = 0; i < steady.Length; i++) steady[i] = (short)(8000 * Math.Sin(2 * Math.PI * 220 * i / rate));
+            List<string> ratios = new List<string>();
+            foreach (double[] pair in new[] { new[] { 5.0, -7.0 }, new[] { 1.5, -2.5 } })
+            {
+                short[] mixed = Restyled(steady, rate, 0, 100, 0, 0, 5, new Layering(true, pair[0], Layering.Behind, pair[1], Layering.Behind));
+                double strongest, higher, lower;
+                double main = Peak(mixed, rate, 220, out strongest), high = Peak(mixed, rate, 220 * Math.Pow(2, pair[0] / 12), out higher), low = Peak(mixed, rate, 220 * Math.Pow(2, pair[1] / 12), out lower);
+                double upBy = high / main, downBy = low / main;
+                ratios.Add(Layering.PitchName(pair[0]) + " x" + upBy.ToString("0.000") + " at " + (20 * Math.Log10(higher / strongest)).ToString("0.0") + " dB, " + Layering.PitchName(pair[1]) + " x" + downBy.ToString("0.000") + " at " + (20 * Math.Log10(lower / strongest)).ToString("0.0") + " dB");
+                if (Math.Abs(main - 220) > 1 || Math.Abs(upBy / Math.Pow(2, pair[0] / 12) - 1) > 0.005 || Math.Abs(downBy / Math.Pow(2, pair[1] / 12) - 1) > 0.005
+                    || higher / strongest < LayerLevel * 0.6 || higher / strongest > LayerLevel * 1.4 || lower / strongest < LayerLevel * 0.6 || lower / strongest > LayerLevel * 1.4)
+                    wrong.Add("a layer's pitch is off (" + ratios[ratios.Count - 1] + ")");
+            }
+            // Streamed in chunks of any size, a layered voice comes out the same as layered whole, with the other sliders on too,
+            // and the same Live says the next line the same way.
+            Random chunks = new Random(4);
+            bool streams = true;
+            foreach (int[] set in new[] { new[] { 24000, 0, 100, 0, 0 }, new[] { 16000, 4, 120, 10, 50 }, new[] { 22050, -3, 80, 30, 0 }, new[] { 44100, 0, 100, 0, 0 } })
+            {
+                Layering layers = set[1] == 0 ? new Layering(true, Layering.HigherPitch, Layering.Behind, Layering.LowerPitch, Layering.Behind) : new Layering(true, -12, 250, 12, 0);
+                short[] line = Line(set[0], 2, hiss), whole = new Live(set[0], set[1], set[2], set[3], set[4], 77, true, layers).All(line);
+                Live live = new Live(set[0], set[1], set[2], set[3], set[4], 77, true, layers);
+                List<short> pieces = new List<short>();
+                for (int at = 0; at < line.Length; )
+                {
+                    short[] piece = new short[Math.Min(line.Length - at, 1 + chunks.Next(chunks.Next(3) == 0 ? 20 : 4000))];
+                    Array.Copy(line, at, piece, 0, piece.Length);
+                    pieces.AddRange(live.Push(piece));
+                    at += piece.Length;
+                }
+                pieces.AddRange(live.Flush());
+                streams &= Same(pieces.ToArray(), whole) && (set[4] > 0 || Same(live.All(line), whole));
+            }
+            if (!streams) wrong.Add("streamed in chunks, a layered voice came out different");
+            // Too loud: a tone at 95% of full scale with both copies right on it, 1.8 times full scale, is held under it, and so is
+            // one with the copies pitched and delayed against it.
+            short[] loud = new short[rate];
+            for (int i = 0; i < loud.Length; i++) loud[i] = (short)(31100 * Math.Sin(2 * Math.PI * 200 * i / rate));
+            short[] stacked = Restyled(loud, rate, 0, 100, 0, 0, 5, new Layering(true, 0, 0, 0, 0)), spread = Restyled(loud, rate, 0, 100, 0, 0, 5, new Layering(true, 3, 10, -5, 30));
+            int peak = 0;
+            double power = 0;
+            foreach (short sample in stacked) { peak = Math.Max(peak, Math.Abs((int)sample)); power += (double)sample * sample; }
+            foreach (short sample in spread) peak = Math.Max(peak, Math.Abs((int)sample));
+            double level = Math.Sqrt(power / Math.Max(1, stacked.Length));
+            if (stacked.Length != loud.Length || peak > Limiter.Ceiling || level < 20000) wrong.Add("too loud isn't held under full scale (peak " + peak + ", level " + level.ToString("0") + ")");
+            found = "delays of 100 and 200 ms land sample for sample and ring out " + (layered.Length - said.Length) * 1000 / rate + " ms past her; " + string.Join("; ", ratios.ToArray()) + "; a 1.8x full-scale stack peaks at " + peak + " of 32767";
+            return wrong.Count == 0 ? null : string.Join(" / ", wrong.ToArray());
+        }
+
+        // A line of tone bursts with hiss between, like speech.
+        private static short[] Line(int rate, int seconds, Random hiss)
+        {
+            short[] line = new short[rate * seconds];
+            for (int i = 0; i < line.Length; i++) line[i] = i % (rate / 4) < rate / 6 ? (short)(5000 * Math.Sin(2 * Math.PI * 170 * i / rate) + 1500 * Math.Sin(2 * Math.PI * 510 * i / rate)) : (short)(hiss.Next(200) - 100);
+            return line;
+        }
+
+        private static double At(short[] sound, long index) { return index >= 0 && index < sound.Length ? sound[index] : 0; }
+
+        private static bool Same(short[] one, short[] other)
+        {
+            if (one.Length != other.Length) return false;
+            for (int i = 0; i < one.Length; i++) if (one[i] != other[i]) return false;
+            return true;
+        }
+
+        // The strongest frequency within 4% of `near`, to a quarter hertz, over 0.3 to 0.9 s of a sound, by Goertzel with a Hann window.
+        private static double Peak(short[] sound, int rate, double near, out double strength)
+        {
+            int from = rate * 3 / 10, count = rate * 6 / 10;
+            double best = near;
+            strength = 0;
+            for (double hertz = near * 0.96; hertz <= near * 1.04; hertz += 0.25)
+            {
+                double turn = 2 * Math.Cos(2 * Math.PI * hertz / rate), one = 0, two = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    double next = At(sound, from + i) * (0.5 - 0.5 * Math.Cos(2 * Math.PI * i / (count - 1))) + turn * one - two;
+                    two = one;
+                    one = next;
+                }
+                double size = Math.Sqrt(Math.Max(0, one * one + two * two - turn * one * two));
+                if (size > strength) { strength = size; best = hertz; }
+            }
+            return best;
         }
 
         // A windowed sinc, so a higher voice doesn't alias. Output i reads the input around i × factor.
@@ -763,6 +1176,8 @@ namespace CapriDesktop
             private readonly int hop;
             private readonly int tolerance;
             private readonly double[] window;
+            private readonly double[] near;
+            private readonly double[] span;
             private readonly List<short> held = new List<short>();
             private readonly List<double> sum = new List<double>();
             private readonly List<double> weight = new List<double>();
@@ -777,6 +1192,8 @@ namespace CapriDesktop
                 frame = Math.Max(32, rate / 50) & ~1;
                 hop = frame / 2;
                 tolerance = Math.Max(1, rate / 200);
+                near = new double[(frame + 3) / 4];
+                span = new double[2 * tolerance + frame];
                 window = new double[frame];
                 for (int i = 0; i < frame; i++) window[i] = 0.5 - 0.5 * Math.Cos(2 * Math.PI * i / frame);
             }
@@ -818,15 +1235,19 @@ namespace CapriDesktop
                 {
                     long natural = Math.Min(last, previous + hop);
                     double closest = double.MinValue;
+                    // The sound it compares, copied out once per window: the same numbers in the same order, so it lines up
+                    // exactly as before, a few times faster, which her voice layers' two copies need.
+                    for (int j = 0, k = 0; j < frame; j += 4, k++) near[k] = At(natural + j);
+                    for (int k = 0; k < span.Length; k++) span[k] = At(nominal - tolerance + k);
                     for (int shift = -tolerance; shift <= tolerance; shift++)
                     {
                         long candidate = nominal + shift;
                         if (candidate < 0 || candidate > last) continue;
                         double dot = 0, energy = 1;
-                        for (int j = 0; j < frame; j += 4)
+                        for (int j = 0, k = 0, from = shift + tolerance; j < frame; j += 4, k++)
                         {
-                            double ahead = At(candidate + j);
-                            dot += At(natural + j) * ahead;
+                            double ahead = span[from + j];
+                            dot += near[k] * ahead;
                             energy += ahead * ahead;
                         }
                         double score = dot / Math.Sqrt(energy);
@@ -1732,6 +2153,7 @@ namespace CapriDesktop
         {
             FreeStyle style = Style;
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.Robot, glitch = VoiceFx.Glitch, rate;
+            VoiceFx.Layering layers = VoiceFx.Layers;
             short[] pcm;
             lock (gate)
             {
@@ -1755,7 +2177,7 @@ namespace CapriDesktop
                     Marshal.FreeHGlobal(words);
                 }
             }
-            return Voice.Wave(VoiceFx.Kokoro(pcm, rate, pitch, robot, glitch, VoiceFx.Seed(text)), rate);
+            return Voice.Wave(VoiceFx.Kokoro(pcm, rate, pitch, robot, glitch, VoiceFx.Seed(text), layers), rate);
         }
 
         private void Open(bool gb)
@@ -2415,11 +2837,12 @@ namespace CapriDesktop
             int tongue = Array.IndexOf(Tongues, Brain.LanguageCode(Brain.Language));
             string rest = ",\"voice\":\"capri\",\"language\":\"" + (tongue >= 0 ? Languages[tongue] : "english") + "\",\"seed\":7,\"max_new_tokens\":512,\"response_format\":\"wav\"}";
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.HdRobot, glitch = VoiceFx.HdGlitch;
+            VoiceFx.Layering layers = VoiceFx.Layers;
             List<short> said = new List<short>();
             int hertz = 24000;
             foreach (string piece in Pieces(Voice.Sayable(text))) said.AddRange(Voice.Samples(Ask(number, "/v1/audio/speech", "{\"input\":" + Voice.Quote(piece) + rest), out hertz));
             short[] samples = said.ToArray();
-            if (pitch != 0 || speed != 100 || robot > 0 || glitch > 0) samples = VoiceFx.Restyled(samples, hertz, pitch, speed, robot, glitch, VoiceFx.Seed(text));
+            if (!VoiceFx.Plain(pitch, speed, robot, glitch, layers)) samples = VoiceFx.Restyled(samples, hertz, pitch, speed, robot, glitch, VoiceFx.Seed(text), layers);
             byte[] wav = Voice.Wave(samples, hertz);
             if (Voice.Seconds(wav) < 0.2) throw new VoiceException("Her HD voice made no sound.");
             return wav;
@@ -2904,6 +3327,7 @@ namespace CapriDesktop
             bool fish = api == Fish;
             string name = Name(url, api);
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.ServerRobot, glitch = VoiceFx.ServerGlitch;
+            VoiceFx.Layering layers = VoiceFx.Layers;
             List<short> said = new List<short>();
             if (api == Files)
             {
@@ -2936,7 +3360,7 @@ namespace CapriDesktop
             }
             short[] samples = said.ToArray();
             if (samples.Length == 0) throw new VoiceException(name + " sent back no sound.");
-            if (pitch != 0 || speed != 100 || robot > 0 || glitch > 0) samples = VoiceFx.Restyled(samples, YourVoice.Rate, pitch, speed, robot, glitch, VoiceFx.Seed(text));
+            if (!VoiceFx.Plain(pitch, speed, robot, glitch, layers)) samples = VoiceFx.Restyled(samples, YourVoice.Rate, pitch, speed, robot, glitch, VoiceFx.Seed(text), layers);
             return Voice.Wave(samples, YourVoice.Rate);
         }
 
