@@ -485,13 +485,19 @@ namespace CapriDesktop
 
         // The wave as five bars of square segments. Out of voice chat it's the whole wave; in voice chat the segments light up to
         // your mic level and the rest stay dark, all of them while the mic is muted.
+        // Lachy liked the old wave better (29 Oct): five rounded bars that stretch with your mic level in voice chat, and stay low
+        // and grey while the mic is muted, like Windows'.
         private static void Meter(DrawingContext context, Rect meter, double s, bool chatting, bool muted, int level, Color colour)
         {
-            IBrush lit = new SolidColorBrush(colour), dark = new SolidColorBrush(Unlit);
-            for (int bar = 0; bar < Bars.Length; bar++)
+            double[] heights = { 5, 10, 14, 9, 4 };
+            double stretch = !chatting ? 1 : 0.45 + (muted ? 0 : level) * 0.14;
+            Point centre = meter.Center;
+            Pen bar = new Pen(new SolidColorBrush(chatting && muted ? Look.Dim : colour), 2.3 * s) { LineCap = PenLineCap.Round };
+            for (int i = 0; i < heights.Length; i++)
             {
-                int on = !chatting ? Bars[bar] : muted ? 0 : Lit(bar, level);
-                for (int row = 0; row < Bars[bar]; row++) context.FillRectangle(row < on ? lit : dark, Segment(meter, s, bar, row));
+                double x = centre.X + (i - 2) * 3.6 * s;
+                double half = Math.Max(1.5, heights[i] * stretch) * s / 2;
+                context.DrawLine(bar, new Point(x, centre.Y - half), new Point(x, centre.Y + half));
             }
         }
 
@@ -637,16 +643,12 @@ namespace CapriDesktop
                 if (hushed.Count(hush[1], Red) < letters || live0.Count(hush[1], Red) > 0 || idle.Count(hush[1], Red) > 0) return "MUTED didn't show in red, or showed unmuted" + at;
                 Rect core = mic.Inflate(-cut - edge);
                 if (micLit.Count(core, Cyan) < letters || live0.Count(core, Cyan) > 0) return "Hovering the mic didn't light it cyan" + at;
-                for (int bar = 0; bar < Bars.Length; bar++)
-                    for (int row = 0; row < Bars[bar]; row++)
-                    {
-                        Rect cell = Segment(wave[0], s, bar, row), quiet = Segment(hush[0], s, bar, row);
-                        int x = (int)(cell.X + Math.Floor(cell.Width / 2)), y = (int)(cell.Y + Math.Floor(cell.Height / 2));
-                        if (!Grey(idle.At(x, y)) || !Cyan(talking.At(x, y))) return "The wave's segments didn't show" + at;
-                        if (Cyan(live0.At(x, y)) || Cyan(live3.At(x, y)) != row < Lit(bar, 3) || !Cyan(live6.At(x, y))) return "The mic level lit the wrong segments" + at + ": bar " + bar + ", row " + row;
-                        if (Brightest(hushed.At((int)(quiet.X + Math.Floor(quiet.Width / 2)), (int)(quiet.Y + Math.Floor(quiet.Height / 2)))) > 90) return "The mic level lit while muted" + at;
-                        if (Brightest(live6.At((int)cell.Right, y)) > 60 || Brightest(live6.At(x, (int)cell.Top - 1)) > 60 || !Cyan(live6.At((int)cell.Left, (int)cell.Top)) || !Cyan(live6.At((int)cell.Right - 1, (int)cell.Bottom - 1))) return "The level's segments aren't crisp and apart" + at;
-                    }
+                Rect waveBox = wave[0].Inflate(4 * s), hushBox = hush[0].Inflate(4 * s);
+                Point middle = wave[0].Center;
+                if (!Grey(idle.At((int)middle.X, (int)middle.Y)) || !Cyan(talking.At((int)middle.X, (int)middle.Y))) return "The wave didn't show" + at;
+                int quietest = live0.Count(waveBox, Cyan), middling = live3.Count(waveBox, Cyan), loudest = live6.Count(waveBox, Cyan);
+                if (!(quietest < middling && middling < loudest)) return "The wave didn't stretch with the mic level" + at + ": " + quietest + ", " + middling + ", " + loudest;
+                if (hushed.Count(hushBox, Cyan) > 0) return "The wave lit while muted" + at;
             }
             return null;
         }
