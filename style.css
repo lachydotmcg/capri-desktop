@@ -28,6 +28,14 @@ button:focus-visible, a:focus-visible { outline: 2px solid #8ac74b; outline-offs
 .heads-up button:hover { background: #f1f2f0; }
 h1 { text-align: center; font-size: clamp(21px, 2.5vw, 32px); font-weight: 400; line-height: 1.4; letter-spacing: -1px; margin: 32px 0 38px; }
 h1 em { font-weight: 600; }
+/* The 0.7.6 launch countdown under the headline, filled in and shown by countdown.js. */
+.countdown { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 12px; width: fit-content; max-width: 100%; box-sizing: border-box; margin: -16px auto 30px; padding: 10px 20px; border-radius: 6px; background: #202225; color: #fff; font: 13px "Share Tech Mono", Consolas, monospace; }
+.countdown[hidden] { display: none; }
+.countdown-label { color: #a3a7ab; letter-spacing: 1.5px; text-transform: uppercase; }
+.countdown-clock { font-size: 18px; font-weight: 400; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+.countdown-when { color: #a3a7ab; font-size: 12px; }
+.countdown-clock:empty, .countdown-when:empty { display: none; }
+.countdown-now .countdown-label { color: #fff; }
 .demo { position: relative; width: 100%; aspect-ratio: 614 / 350; min-height: 300px; overflow: hidden; border: 1px solid #e7e8e5; border-radius: 8px; background: url("assets/background.png") center / cover no-repeat; user-select: none; isolation: isolate; }
 .demo, .demo * { cursor: none; }
 .demo-capri { position: absolute; left: 60%; top: 31%; width: 220px; height: 220px; border: 0; border-radius: 40%; padding: 0; background: none; overflow: visible; touch-action: none; z-index: 2; }
@@ -148,6 +156,19 @@ h1 em { font-weight: 600; }
 .stuck { grid-template-columns: minmax(0, 15em) 1fr; gap: 14px 22px; line-height: 1.45; }
 .stuck dt { font-weight: 600; }
 .credit { margin: 8px 0 0; padding-top: 22px; border-top: 1px solid #e7e8e5; font-size: 13px; color: #8a8e93; text-align: center; }
+/* The bottom padding lets the Ko-fi links scroll up past the help chat tab in the corner. */
+.support { margin-top: 36px; padding: 24px 0 72px; border-top: 1px solid #e7e8e5; text-align: center; }
+.credit + .support { margin-top: 18px; padding-top: 0; border-top: 0; }
+.support-head { margin: 0 0 12px; color: #8a8e93; font: 12px "Share Tech Mono", Consolas, monospace; letter-spacing: 1.5px; text-transform: uppercase; }
+.support-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0; }
+.support-links a { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 1px solid #d5d8dd; border-radius: 100px; font-size: 13px; }
+/* Each Ko-fi picture tucks into the pill's padding, so the pills stay as tall as with text alone. */
+.support-links img { width: 24px; height: 24px; margin: -4px 0 -4px -7px; border-radius: 50%; object-fit: cover; background: #eceef0; }
+.support-links a:hover { border-color: #202225; background: #f3f4f6; }
+.support-links b { font-weight: 600; }
+.support-links small { color: #6b6f74; font-size: 12px; }
+/* On narrower screens the links wrap into a narrow centred column, so none sits under the help chat's Capri. */
+@media (max-width: 820px) { .support-links { max-width: 380px; margin: 0 auto; } }
 @media (max-width: 600px) {
   .links { gap: 12px; }
   .guide-long { display: none; }
@@ -231,5 +252,10 @@ h1 em { font-weight: 600; }
   .helper-tab { max-width: calc(100vw - 16px); }
   .helper-panel { width: calc(100vw - 16px); height: min(580px, calc(100vh - 24px - var(--s) * .79)); height: min(580px, calc(100dvh - 24px - var(--s) * .79)); }
 }
+@media (max-width: 600px) {
+  .support { padding-bottom: 120px; }
+  .support-links a { padding: 8px 12px; }
+}
+@media (max-width: 360px) { .support { padding-bottom: 165px; } }
 @media print { .helper { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

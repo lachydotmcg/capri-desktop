@@ -7,8 +7,9 @@
   <meta name="description" content="Bring Capri back to life on your desktop! :)">
   <title>Capri</title>
   <link rel="icon" type="image/x-icon" href="assets/chip.ico">
-  <link rel="stylesheet" href="style.css?v=0.7.4">
+  <link rel="stylesheet" href="style.css?v=0.7.4-1">
   <script src="app.js" defer></script>
+  <script src="countdown.js" defer></script>
   <script src="helper.js?v=0.7.4" defer></script>
 </head>
 <body>
@@ -24,6 +25,7 @@
     </header>
     <main>
       <h1>Bring Capri <em>back</em> to life on your desktop! :)</h1>
+      <p id="countdown" class="countdown" data-at="2026-10-29T22:30:00Z" hidden><span class="countdown-label">0.7.6 drops in</span><b class="countdown-clock" role="timer"></b><small class="countdown-when"></small></p>
       <div id="demo" class="demo" tabindex="-1" role="region" aria-label="Interactive browser demonstration of Capri">
         <button id="demo-capri" class="demo-capri" aria-label="Capri. Drag to move, click to react, or use arrow keys and Enter."><span class="sprite"></span></button>
         <div id="taskbar" class="taskbar"><span class="xp-start" aria-hidden="true"></span><button id="demo-restore" class="xp-app" type="button" aria-label="Bring Capri back"><img src="assets/chip.png" alt="" width="16" height="11">Capri</button></div>
@@ -43,6 +45,7 @@
     </main>
     <aside class="kyoko"><p class="bubble">give me my ai back!</p><img src="assets/kyoko.png" alt="Kyoko shouting" width="479" height="640"></aside>
     <aside id="changelog" class="changelog" aria-label="Latest changes" hidden><p class="changelog-head">CHANGELOG</p><div class="changelog-window"><ol class="changelog-track"></ol></div></aside>
+    <footer id="support" class="support"><p class="support-head">Support Capri on Ko-fi</p><p class="support-links"><a href="https://ko-fi.com/lachysdev" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/lachysdev.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>Lachy</b><small>developer</small></a><a href="https://ko-fi.com/xorulance" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/xorulance.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>lance and xoru</b><small>project manager and head tester</small></a><a href="https://ko-fi.com/guh703214" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/guh703214.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>Guh</b></a><a href="https://ko-fi.com/keepitblank" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/keepitblank.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>KeepItBlank</b><small>animator and artist</small></a><a href="https://ko-fi.com/balddcmod" target="_blank" rel="noopener noreferrer"><img src="assets/kofi/balddcmod.webp" alt="" width="24" height="24" loading="lazy" onerror="this.remove()"><b>BaldDcMod</b><small>Discord moderator</small></a></p></footer>
   </div>
   <dialog id="heads-up" class="heads-up" aria-label="Before you install">
     <div>

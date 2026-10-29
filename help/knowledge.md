@@ -26,6 +26,14 @@ A desktop companion. She sits on your windows and taskbar, chats with you, talks
 - ElevenLabs (her best voice): has a free plan with monthly credits. Paid plans give more credits and voice cloning.
 - OpenAI, Claude or DeepSeek keys: these need paid credits on their sites.
 
+### How can I support Capri?
+Capri is free. To support the people who make her, tip them on Ko-fi. The links are also at the bottom of every page of the website.
+- Lachy, developer: https://ko-fi.com/lachysdev
+- lance and xoru, project manager and head tester, who share one tip jar: https://ko-fi.com/xorulance
+- Guh: https://ko-fi.com/guh703214
+- KeepItBlank, animator and artist: https://ko-fi.com/keepitblank
+- BaldDcMod, Discord moderator: https://ko-fi.com/balddcmod
+
 ### Do I need anything else installed?
 No. On Windows the installer has everything. You don't need Claude Code, Python, Ollama or anything else. Ollama is optional.
 
