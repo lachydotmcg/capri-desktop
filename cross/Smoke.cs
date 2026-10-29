@@ -1039,7 +1039,16 @@ namespace CapriDesktop
                 if (pet.Arriving || pet.Falling) return false;
                 pet.CheckNudge(pet.Now);
                 noticedBefore = pet.Noticed;
+                // Stay put: she says hi from where she is.
+                PixelPoint stayed = pet.Hip;
                 pet.PopIn();
+                string hi = pet.Talk.Reply;
+                if (pet.Leaving || pet.Away || pet.Hip != stayed || Array.IndexOf(Pet.PopLines, hi) < 0) throw new Exception("With Stay put she didn't say hi from where she is: " + hi + " | leaving " + pet.Leaving);
+                pet.Talk.Dismiss();
+                checks.Add("PASS pop-ins with Stay put: she says hi from where she is instead of moving");
+                pet.SetWander(1);
+                pet.PopIn();
+                pet.SetWander(0);
                 if (!pet.Leaving || pet.Away) throw new Exception("She didn't glitch out to pop in somewhere else.");
                 return true;
             }
