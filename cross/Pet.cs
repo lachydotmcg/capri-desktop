@@ -1927,7 +1927,7 @@ namespace CapriDesktop
                 foreach (string name in cloudModels)
                 {
                     string model = name;
-                    MenuItem pick = new MenuItem { Header = model, ToggleType = MenuItemToggleType.Radio, GroupName = "cloud", IsChecked = model == remote.Model };
+                    MenuItem pick = new MenuItem { Header = Brain.Shown(remote.Kind, model), ToggleType = MenuItemToggleType.Radio, GroupName = "cloud", IsChecked = model == remote.Model };
                     pick.Click += delegate { PickCloud(model); };
                     brainMenu.Items.Add(pick);
                 }

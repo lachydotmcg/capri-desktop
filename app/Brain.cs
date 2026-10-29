@@ -258,6 +258,9 @@ namespace CapriDesktop
         internal static string DeepSeek = "https://api.deepseek.com";
         internal static string Nvidia = "https://integrate.api.nvidia.com";
         private static readonly string[] NvidiaPicks = { "nvidia/nemotron-3.5-super-vl-120b-a12b", "nvidia/nemotron-3.5-bolt-e4b", "openai/gpt-oss-20b", "meta/llama-3.2-11b-vision-instruct" };
+        // Marked recommended at the top of an NVIDIA key's models: Nemotron Super, which sees screens, and Nemotron's reasoning model.
+        private static readonly string[] NvidiaRecommended = { "nvidia/nemotron-3.5-super-vl-120b-a12b", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning" };
+        internal const string Recommended = " · recommended";
         private static readonly string[] NvidiaDead = { "google/gemma-4-31b-it", "deepseek-ai/deepseek-v4.1-flash", "z-ai/glm-5.3", "z-ai/glm-5.3-flash", "moonshotai/kimi-k2.6", "google/gemma-3-12b-it", "meta/llama-3.2-90b-vision-instruct" };
         internal static string NvidiaDefault { get { return NvidiaPicks[0]; } }
         internal const string Gone = "That model isn't on your key. Pick another one.";
@@ -944,10 +947,19 @@ namespace CapriDesktop
             return found.ConvertAll(model => model.Id);
         }
 
+        // Recommended models first, then the ones she falls back to, then the rest.
         private static int Pick(string id)
         {
-            int at = Array.IndexOf(NvidiaPicks, id);
-            return at < 0 ? NvidiaPicks.Length : at;
+            int at = Array.IndexOf(NvidiaRecommended, id);
+            if (at >= 0) return at;
+            at = Array.IndexOf(NvidiaPicks, id);
+            return NvidiaRecommended.Length + (at < 0 ? NvidiaPicks.Length : at);
+        }
+
+        // A model's name in a model menu, marked when it's recommended.
+        internal static string Shown(string kind, string id)
+        {
+            return kind == "nvidia" && Array.IndexOf(NvidiaRecommended, id) >= 0 ? id + Recommended : id;
         }
 
         private static bool Chats(string kind, string id)
