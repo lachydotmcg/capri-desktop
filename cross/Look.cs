@@ -286,5 +286,15 @@ namespace CapriDesktop
             window.ShowActivated = false;
             window.WindowStartupLocation = WindowStartupLocation.Manual;
         }
+
+        // Linux forgets a window is on top once it hides, and setting Topmost to true again does nothing when it already is,
+        // so a window that's back asks for it afresh (super-cr4SH's fix). Only while it should be: with Always on top off it
+        // stays an ordinary window.
+        internal static void OnTopAgain(Window window)
+        {
+            if (!window.Topmost) return;
+            window.Topmost = false;
+            window.Topmost = true;
+        }
     }
 }
