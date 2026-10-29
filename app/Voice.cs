@@ -3032,7 +3032,7 @@ namespace CapriDesktop
         internal const string FishCloud = "https://api.fish.audio";
         internal const string FishFree = "s2.1-pro-free";
         // Her own voice on Fish Audio (Lachy, 29 Oct: "everybody could just use this voice for fish"), used when the voice box is blank.
-        internal const string FishCapri = "20a4d45fd7864a2fb5387b7b2d94ab83";
+        internal const string FishCapri = "761c5a725152487797841b01fccf471c";
         // What the Voice box shows for it.
         internal const string FishCapriName = "Capri Default";
         internal const string OpenAiCloud = "https://api.openai.com/v1";
