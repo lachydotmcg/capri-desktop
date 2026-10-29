@@ -37,10 +37,22 @@ namespace CapriDesktop
         internal abstract Spot Find(long window);
         internal abstract bool Alive(long window);
         internal virtual string Debug() { return ""; }
+        // Where the mouse is on the whole desktop, in pixels, or null where the desktop won't say (Wayland).
+        internal virtual PixelPoint? Pointer() { return null; }
+
+        // Asks the window manager not to give this window the keyboard when it's shown.
+        internal virtual void Unfocused(long window) { }
 
         protected bool Fills(PixelRect bounds)
         {
             foreach (PixelRect screen in Screens) if (bounds.X <= screen.X && bounds.Y <= screen.Y && bounds.Right >= screen.Right && bounds.Bottom >= screen.Bottom) return true;
+            return false;
+        }
+
+        // A window covering a whole screen, like a full-screen game or video.
+        internal bool Covering(List<Spot> windows)
+        {
+            foreach (Spot spot in windows) if (spot.Solid && Fills(spot.Bounds)) return true;
             return false;
         }
 
@@ -137,6 +149,9 @@ namespace CapriDesktop
         [DllImport(Foundation)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CFNumberGetValue(IntPtr number, long type, out double value);
         [DllImport(Foundation)] [return: MarshalAs(UnmanagedType.I1)] private static extern bool CFBooleanGetValue(IntPtr boolean);
         [DllImport(Foundation)] private static extern void CFRelease(IntPtr value);
+        [StructLayout(LayoutKind.Sequential)] private struct Place { internal double X, Y; }
+        [DllImport(Graphics)] private static extern IntPtr CGEventCreate(IntPtr source);
+        [DllImport(Graphics)] private static extern Place CGEventGetLocation(IntPtr e);
         private readonly IntPtr number;
         private readonly IntPtr layer;
         private readonly IntPtr frame;
@@ -161,6 +176,18 @@ namespace CapriDesktop
         internal override string Name { get { return "macOS"; } }
 
         internal override double Points { get { return CGDisplayBounds(CGMainDisplayID()).Width; } }
+
+        internal override PixelPoint? Pointer()
+        {
+            IntPtr e = CGEventCreate(IntPtr.Zero);
+            if (e == IntPtr.Zero) return null;
+            try
+            {
+                Place at = CGEventGetLocation(e);
+                return new PixelPoint((int)Math.Round(at.X * Scale), (int)Math.Round(at.Y * Scale));
+            }
+            finally { CFRelease(e); }
+        }
 
         internal override List<Spot> Windows(ICollection<long> skip) { return List(OnScreenOnly | ExcludeDesktop, 0, skip, true); }
 
@@ -253,6 +280,9 @@ namespace CapriDesktop
         [DllImport(Library)] private static extern bool XTranslateCoordinates(IntPtr display, IntPtr from, IntPtr to, int x, int y, out int toX, out int toY, out IntPtr child);
         [DllImport(Library)] private static extern IntPtr XSetErrorHandler(IntPtr handler);
         [DllImport(Library)] private static extern int XSync(IntPtr display, bool discard);
+        [DllImport(Library)] private static extern bool XQueryPointer(IntPtr display, IntPtr window, out IntPtr root, out IntPtr child, out int rootX, out int rootY, out int x, out int y, out uint mask);
+        [DllImport(Library)] private static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, int mode, IntPtr[] data, int elements);
+        [DllImport(Library)] private static extern int XFlush(IntPtr display);
         private static Handler handler;
         private static IntPtr previous;
         private static IntPtr ours;
@@ -275,6 +305,25 @@ namespace CapriDesktop
         }
 
         internal override string Name { get { return "X11"; } }
+
+        internal override PixelPoint? Pointer()
+        {
+            IntPtr top;
+            IntPtr child;
+            int x;
+            int y;
+            int inX;
+            int inY;
+            uint mask;
+            return XQueryPointer(display, root, out top, out child, out x, out y, out inX, out inY, out mask) ? new PixelPoint(x, y) : (PixelPoint?)null;
+        }
+
+        // Under EWMH a user time of 0 means "don't focus me when I'm mapped". 6 is XA_CARDINAL; 0 replaces the property.
+        internal override void Unfocused(long window)
+        {
+            XChangeProperty(display, new IntPtr(window), Atom("_NET_WM_USER_TIME"), new IntPtr(6), 32, 0, new[] { IntPtr.Zero }, 1);
+            XFlush(display);
+        }
 
         private IntPtr Atom(string name)
         {

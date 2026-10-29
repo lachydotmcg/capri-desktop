@@ -71,22 +71,38 @@ namespace CapriDesktop
             double x = panel.Left + 24;
             double row2 = panel.Top + 12;
             string you = Prompt + (Heard ?? "");
-            if (you.Length > Columns) you = you.Substring(0, Columns - 3) + "...";
+            if (Look.Cells(you) > Columns) you = Look.Cut(you, Columns - 3) + "...";
             context.DrawText(Look.Text(you, Look.Italic, Type, Look.Dim), new Point(x, row2));
             row2 += Line;
             List<string> lines = Look.Wrap(Speaker + (Reply ?? ""), Columns);
-            int remaining = Speaker.Length + (Thinking ? 0 : Math.Max(0, Revealed));
+            int[] takes = Look.Takes(lines, Speaker + (Reply ?? ""), Speaker.Length + (Thinking ? 0 : Math.Max(0, Revealed)));
             Point caret = new Point(x, row2);
-            for (int i = 0; i < lines.Count && remaining > 0; i++)
+            double right = x + Columns * cw;
+            for (int i = 0; i < lines.Count && takes[i] > 0; i++)
             {
-                int take = Math.Min(lines[i].Length, remaining);
-                string shown = lines[i].Substring(0, take);
-                int name = i == 0 ? Math.Min(take, Speaker.Length - 1) : 0;
+                string shown = lines[i].Substring(0, takes[i]);
+                int name = i == 0 ? Math.Min(takes[i], Speaker.Length - 1) : 0;
                 if (name > 0) context.DrawText(Look.Text(shown.Substring(0, name), Look.Bold, Type, Look.Red), new Point(x, row2));
-                if (shown.Length > name) context.DrawText(Look.Text(shown.Substring(name), Look.Regular, Type, Look.Neon), new Point(x + name * cw, row2 + i * Line));
-                caret = new Point(x + take * cw, row2 + i * Line);
-                remaining -= take + 1;
-                if (remaining >= 0 && i + 1 < lines.Count) caret = new Point(x, row2 + (i + 1) * Line);
+                caret = new Point(x + Look.Cells(shown) * cw, row2 + i * Line);
+                if (shown.Length <= name) continue;
+                // An Arabic, Urdu, Persian or Hebrew line grows leftwards from the right edge as she types it. The whole line
+                // decides, so it doesn't flip sides partway through. Right-to-left marks at both ends keep a full stop or
+                // question mark at the line's own end.
+                if (Look.RightToLeft(lines[i].Substring(name)))
+                {
+                    FormattedText words = Look.Text("‏" + shown.Substring(name) + "‏", Look.Regular, Type, Look.Neon);
+                    double wide = words.WidthIncludingTrailingWhitespace;
+                    context.DrawText(words, new Point(right - wide, row2 + i * Line));
+                    caret = new Point(right - wide - cw - 2, row2 + i * Line);
+                }
+                else
+                {
+                    string ink = shown.Substring(name);
+                    FormattedText words = Look.Text(ink, Look.Regular, Type, Look.Neon);
+                    context.DrawText(words, new Point(x + name * cw, row2 + i * Line));
+                    // Thai and Indian letters don't keep to her columns, so the caret follows what was drawn.
+                    if (Look.Thai(ink) || Look.Indic(ink)) caret = new Point(x + name * cw + words.WidthIncludingTrailingWhitespace, row2 + i * Line);
+                }
             }
             if (CursorOn) context.FillRectangle(new SolidColorBrush(Look.Neon), new Rect(caret.X + 1, caret.Y + 1, cw * 0.85, Line - 5));
         }
@@ -362,6 +378,8 @@ namespace CapriDesktop
         private bool thinking;
         private double pace = LettersPerSecond;
         private Action<string> asked;
+        // Where a key typed in the hidden box goes: her voice key unless something else asked for it.
+        private Action<string> secretTo;
 
         internal Talk(Pet pet)
         {
@@ -372,7 +390,9 @@ namespace CapriDesktop
                 if (!Typer.Secret) { pet.Hear(text); return; }
                 Typer.Secret = false;
                 Typer.Hide();
-                pet.SaveVoiceKey(text);
+                Action<string> keyTo = secretTo ?? pet.SaveVoiceKey;
+                secretTo = null;
+                keyTo(text);
             };
             Pill.Typing += delegate { if (Typer.IsVisible) Typer.Hide(); else Open(); };
             Pill.Voice += delegate { pet.NoVoice(); };
@@ -390,6 +410,7 @@ namespace CapriDesktop
         internal void Open()
         {
             asked = null;
+            secretTo = null;
             if (Typer.Secret) Typer.Secret = false;
             pillUntil = pet.Now + 1.5;
             Typer.Open(pet.Head, pet.FeetPoint, pet.Area, pet.DesktopScaling, Bubble.IsVisible ? Bubble.PanelOnScreen : new PixelRect());
@@ -401,15 +422,19 @@ namespace CapriDesktop
         {
             Answer(heard, ask);
             if (Typer.Secret) Typer.Secret = false;
+            secretTo = null;
             asked = to;
             pillUntil = pet.Now + 1.5;
             Typer.Open(pet.Head, pet.FeetPoint, pet.Area, pet.DesktopScaling, Bubble.IsVisible ? Bubble.PanelOnScreen : new PixelRect());
         }
 
-        internal void AskKey(string ask)
+        internal void AskKey(string ask) { AskKey("(voice key)", ask, null); }
+
+        internal void AskKey(string heard, string ask, Action<string> to)
         {
             asked = null;
-            Answer("(voice key)", ask);
+            secretTo = to;
+            Answer(heard, ask);
             Typer.Secret = true;
             pillUntil = pet.Now + 1.5;
             Typer.Open(pet.Head, pet.FeetPoint, pet.Area, pet.DesktopScaling, Bubble.IsVisible ? Bubble.PanelOnScreen : new PixelRect());
@@ -417,6 +442,7 @@ namespace CapriDesktop
 
         internal void Thinking(string heard)
         {
+            if (pet.Away) return;
             reply = null;
             thinking = true;
             pace = LettersPerSecond;
@@ -424,8 +450,11 @@ namespace CapriDesktop
             Start(heard);
         }
 
+        // Like on Windows, where her bubble is drawn in her own window, nothing new shows while she's hidden or glitching out of
+        // sight: it would float there with nobody under it, and stop her pop-ins until she's shown.
         internal void Answer(string heard, string answer, double seconds = 0)
         {
+            if (pet.Away) return;
             reply = answer;
             thinking = false;
             pace = seconds < 0.2 ? LettersPerSecond : Math.Max(8, answer.Length / seconds);
@@ -455,6 +484,20 @@ namespace CapriDesktop
             Typer.Hide();
         }
 
+        // While she's hidden her bubble and pill stay down too, even one that was still up when her window went.
+        internal void Gone()
+        {
+            reply = null;
+            thinking = false;
+            leaving = -1;
+            if (Bubble.IsVisible) Bubble.Hide();
+            if (Pill.IsVisible) Pill.Hide();
+        }
+
+        // How long a finished reply stays up, like Windows: 4 s plus a bit per letter, up to 14 s, halved for Quick and
+        // doubled for Long.
+        internal static double Hold(int length, int level) { return Math.Min(14, 4 + length * 0.05) * new[] { 0.5, 1, 2 }[Math.Max(0, Math.Min(2, level))]; }
+
         internal void Update(double now)
         {
             UpdatePill(now);
@@ -464,7 +507,7 @@ namespace CapriDesktop
             {
                 sheet.Revealed = Math.Min(reply.Length, (int)((now - replyStart) * pace));
                 if (sheet.Revealed >= reply.Length && replyDone < 0) replyDone = now;
-                if (replyDone >= 0 && leaving < 0 && !Typer.IsVisible && now > replyDone + Math.Min(14, 4 + reply.Length * 0.05)) leaving = now;
+                if (replyDone >= 0 && leaving < 0 && !Typer.IsVisible && now > replyDone + Hold(reply.Length, pet.BubbleTime)) leaving = now;
             }
             double glitch = 0;
             if (opened >= 0 && now - opened < 0.2) glitch = 1 - (now - opened) / 0.2;

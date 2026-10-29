@@ -8,7 +8,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <DefineConstants>$(DefineConstants);CROSS</DefineConstants>
     <NoWarn>$(NoWarn);CS0649;CS0169;CS0414;CA1416;SYSLIB0014</NoWarn>
-    <Version>0.7.4</Version>
+    <Version>0.7.6</Version>
     <Product>Capri</Product>
     <ApplicationIcon>../assets/chip.ico</ApplicationIcon>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
@@ -22,6 +22,7 @@
     <Compile Include="../app/Brain.cs" Link="Shared/Brain.cs" />
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />
     <Compile Include="../app/Hands.cs" Link="Shared/Hands.cs" />
+    <Compile Include="../app/Presence.cs" Link="Shared/Presence.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />
