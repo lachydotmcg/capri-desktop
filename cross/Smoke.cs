@@ -44,6 +44,7 @@ namespace CapriDesktop
 
         private bool blinked;
         private bool slept;
+        private int napStage;
         private double noticedBefore = -1;
         private bool poppedAgain;
         private bool hushGlance;
@@ -831,6 +832,7 @@ namespace CapriDesktop
                     checks.Add("PASS sleep: standing, she dozes off after Fall asleep after without the mouse or keyboard (2 min here), shows Asleep on Discord, wakes with her boot glitch when they're back, and Never keeps her up");
                     slept = true;
                 }
+                if (!Napped()) return false;
                 if (!cover.HasExited) return false;
                 shelfSpot = Near(new PixelRect(shelfAsked.X + dx, shelfAsked.Y + dy, shelfAsked.Width, shelfAsked.Height), true);
                 if (shelfSpot == null) return false;
@@ -1248,6 +1250,58 @@ namespace CapriDesktop
             stream.Write(top, 0, top.Length);
             stream.Write(reply, 0, reply.Length);
             stream.Flush();
+        }
+
+        // A nap they ask for, in stages so she can finish waking between them: she waits out her line, then sleeps through
+        // the mouse and keyboard until a click, her menu's Wake up, "wake up" or talking to her.
+        private bool Napped()
+        {
+            if (napStage >= 4) return true;
+            if (!pet.Upright) return false;
+            if (napStage == 0)
+            {
+                string line = Hands.Do("nap", new ToolArguments { Action = "sleep" });
+                pet.Talk.Answer("(nap)", "Night night.");
+                pet.CheckNap();
+                bool waited = pet.Upright && pet.NapChoice == "Wake up";
+                pet.Talk.Dismiss();
+                pet.CheckNap();
+                bool dozed = pet.Asleep && pet.Napping && pet.Doing == "Asleep";
+                pet.Doze(0.5);
+                bool held = pet.Asleep && pet.Napping;
+                pet.Tap();
+                bool tapped = pet.Waking && !pet.Napping;
+                if (line != "Going to sleep. A click on me wakes me up." || !waited || !dozed || !held || !tapped) throw new Exception("Her nap went wrong: waited " + waited + ", dozed " + dozed + ", held " + held + ", tapped " + tapped + ", said " + line);
+                napStage = 1;
+                return false;
+            }
+            if (napStage == 1)
+            {
+                pet.Nap(true);
+                pet.CheckNap();
+                bool dozed = pet.Asleep && pet.NapChoice == "Wake up";
+                string woke = Hands.Do("nap", new ToolArguments { Action = "wake" });
+                if (!dozed || woke != "Woke up." || !pet.Waking || pet.NapChoice != "Go to sleep") throw new Exception("Her menu's nap or \"wake up\" went wrong: dozed " + dozed + ", said " + woke);
+                napStage = 2;
+                return false;
+            }
+            if (napStage == 2)
+            {
+                string already = Hands.Do("nap", new ToolArguments { Action = "wake" });
+                Hands.Do("nap", new ToolArguments { Action = "sleep" });
+                pet.CheckNap();
+                if (already != "Already awake." || !pet.Asleep) throw new Exception("Waking an awake Capri or her next nap went wrong: " + already);
+                pet.Talk.Answer("(nap)", "Hm?");
+                napStage = 3;
+                return false;
+            }
+            pet.CheckNap();
+            bool talkWoke = !pet.Asleep && !pet.Napping;
+            pet.Talk.Dismiss();
+            if (!talkWoke) throw new Exception("Talking to her didn't wake her from a nap.");
+            checks.Add("PASS nap on demand: \"go to sleep\" waits for her line, then she sleeps through the mouse and keyboard, Asleep on Discord, until a click, her menu's Wake up, \"wake up\" or talking to her");
+            napStage = 4;
+            return true;
         }
 
         private Process Shelf(PixelRect rect)

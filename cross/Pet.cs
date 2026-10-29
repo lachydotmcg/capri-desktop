@@ -337,6 +337,10 @@ namespace CapriDesktop
         internal Action AwayChanged;
         private bool shushed;
         private MenuItem quietItem;
+        // A nap they asked for, like on Windows: asked until she's said her line and stands free to doze off, then napping,
+        // asleep through the mouse and keyboard until a click, a drag, talking to her or "wake up". Quiet meanwhile.
+        private bool napAsked, napping;
+        private MenuItem napItem;
         // Ticks the tray's Quiet item when her own menu changes it.
         internal Action ShushChanged;
         // Settings > Start at login. Off until they tick it; the file is the setting.
@@ -435,6 +439,7 @@ namespace CapriDesktop
             if (Program.Smoke == null) Brain.Load(Path.Combine(folder, "chat.json"));
             Limbs.Attach(Brain);
             Hands.Look = LookAt;
+            Hands.Nap = NapTool;
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
             string brainKey = ReadSecret(BrainKeyFile);
@@ -696,6 +701,7 @@ namespace CapriDesktop
                 CheckSeat(now);
                 CheckWander(now);
                 CheckMusic(now);
+                CheckNap();
                 if (Program.Smoke == null) CheckPopIn(now);
                 if (Program.Smoke == null) CheckHome(now);
                 if (Program.Smoke == null) CheckLag(now);
@@ -869,7 +875,7 @@ namespace CapriDesktop
                 dropAfter = false;
                 if (seat == null && !dragging && !falling) Fall();
             }
-            bool still = !walking && !dragging && !falling && outro == null && Talk.Quiet;
+            bool still = !walking && !dragging && !falling && outro == null && Talk.Quiet && !napAsked && !napping;
             bool grooving = dancing || (musicOn && !Saved.NoDance);
             if (grooving && still && (clip == idle || clip == perch)) { Play(clip == perch ? perchDance : dance); index = 0; }
             if ((!grooving || !still) && (clip == dance || clip == perchDance)) { Play(clip == perchDance ? perch : idle); index = 0; }
@@ -1193,6 +1199,9 @@ namespace CapriDesktop
 
         internal void React()
         {
+            napAsked = false;
+            // A click wakes her the gentle way, from a nap they asked for or her own doze.
+            if (clip == sleep) { napping = false; Wake(); return; }
             Play(seat != null ? perchGlitch : glitch);
         }
 
@@ -1256,6 +1265,8 @@ namespace CapriDesktop
             quietItem.Click += delegate { ToggleShush(); };
             sitItem = new MenuItem { Header = "Sit here" };
             sitItem.Click += delegate { if (seat != null && seat.Free) StandUp(); else SitHere(); };
+            napItem = new MenuItem { Header = "Go to sleep" };
+            napItem.Click += delegate { Nap(!napAsked && clip != sleep); };
             MenuItem move = new MenuItem { Header = "Move" };
             for (int i = 0; i < WanderNames.Length; i++)
             {
@@ -1467,6 +1478,7 @@ namespace CapriDesktop
             menu.Items.Add(talk);
             menu.Items.Add(quietItem);
             menu.Items.Add(sitItem);
+            menu.Items.Add(napItem);
             menu.Items.Add(move);
             menu.Items.Add(sizes);
             menu.Items.Add(brainMenu);
@@ -1504,6 +1516,7 @@ namespace CapriDesktop
             quietItem.IsChecked = shushed;
             for (int i = 0; i < sleepPicks.Count; i++) sleepPicks[i].IsChecked = Sleeps[i] == SleepAfter;
             sitItem.Header = SitChoice;
+            napItem.Header = NapChoice;
             for (int i = 0; i < bubblePicks.Count; i++) bubblePicks[i].IsChecked = i == BubbleTime;
             for (int i = 0; i < volumePicks.Count; i++) volumePicks[i].IsChecked = Volumes[i] == Voice.Loudness;
             for (int i = 0; i < pitchPicks.Count; i++) pitchPicks[i].IsChecked = i - VoiceFx.MostPitch == VoiceFx.Pitch;
@@ -1633,6 +1646,7 @@ namespace CapriDesktop
 
         // Sit here, or Stand up while she sits where she was put, like Windows' Move menu.
         internal string SitChoice { get { return seat != null && seat.Free ? "Stand up" : "Sit here"; } }
+        internal string NapChoice { get { return napAsked || clip == sleep ? "Wake up" : "Go to sleep"; } }
 
         internal int SleepAfter { get { return Saved.SleepAfter ?? 120; } }
 
@@ -1658,6 +1672,7 @@ namespace CapriDesktop
         // off her thread every 5 s awake and every second asleep, and a moved mouse wakes her at once on Mac and X11.
         internal void CheckSleep(double now)
         {
+            if (napping) return;
             if (clip == sleep && sleptAt != null)
             {
                 PixelPoint? mouse = Mouse();
@@ -1684,6 +1699,7 @@ namespace CapriDesktop
             if (idle < 0) return;
             if (clip == sleep)
             {
+                if (napping) return;
                 if (idle < sleepIdle) Wake();
                 else sleepIdle = idle;
                 return;
@@ -1701,10 +1717,50 @@ namespace CapriDesktop
             Play(wake);
         }
 
+        // "Go to sleep" from her menu, her brain or plain words, like on Windows: she gets down off her window, finishes what
+        // she's saying, then sleeps standing. Unlike the doze she falls into by herself, the mouse and keyboard don't wake her.
+        internal string Nap(bool sleeping)
+        {
+            if (!sleeping)
+            {
+                bool resting = napAsked || napping || clip == sleep;
+                napAsked = false;
+                napping = false;
+                if (clip == sleep) Wake();
+                Sync();
+                return resting ? "Woke up." : "Already awake.";
+            }
+            ComeBack();
+            if (seat != null) StandUp();
+            EndWalk();
+            napAsked = true;
+            Sync();
+            return "Going to sleep. A click on me wakes me up.";
+        }
+
+        // Her nap tool, which her brain calls from its own thread.
+        private string NapTool(bool sleeping) { return Dispatcher.UIThread.CheckAccess() ? Nap(sleeping) : Dispatcher.UIThread.Invoke(new Func<string>(delegate { return Nap(sleeping); })); }
+
+        // The nap they asked for starts once her line is done and she stands free, and ends when anything wakes her.
+        internal void CheckNap()
+        {
+            if (napping && clip != sleep) napping = false;
+            if (!napAsked || clip != idle || seat != null || walking || dragging || pressed || falling || outro != null || away || quitting || !Talk.Quiet) return;
+            napAsked = false;
+            napping = true;
+            sleptAt = null;
+            Play(sleep);
+        }
+
+        internal bool Napping { get { return napping; } }
+
         private bool Drowsy { get { return clip == idle && seat == null && !walking && !dragging && !pressed && !falling && outro == null && !away && !quitting && Talk.Quiet && (ContextMenu == null || !ContextMenu.IsOpen); } }
 
         internal bool Shushed { get { return shushed; } }
         internal bool QuietShown { get { return quietItem.IsChecked; } }
+
+        // Quiet or a nap they asked for: no glances, pop-ins, check-ins, cheers or jokes.
+        private bool Hushed { get { return shushed || napAsked || napping; } }
 
         // Quiet, like Windows' quiet key, for when they focus or game: she stops what she's saying and doesn't glance, pop in,
         // check in, cheer or joke until it's turned off, but still answers when they talk to her. Starting her again ends it.
@@ -2142,7 +2198,7 @@ namespace CapriDesktop
         private void CheckWander(double now)
         {
             if (Saved.Wander <= 0) { nextWander = -1; return; }
-            if (dragging || pressed || falling || walking || outro != null || quitting || seat == null || seat.Free || !Talk.Quiet) return;
+            if (dragging || pressed || falling || walking || outro != null || quitting || seat == null || seat.Free || !Talk.Quiet || napAsked) return;
             double pace = WanderPaces[Saved.Wander - 1];
             if (nextWander < 0) nextWander = now + (20 + random.NextDouble() * 40) * pace;
             if (now < nextWander) return;
@@ -2219,7 +2275,7 @@ namespace CapriDesktop
             // and pats are counted, since a quick click is over before this looks.
             if (popOut >= 0 && (asking != popAsked || clicks != popClicks || petTicket != popPets || dragging || pressed || Talk.Typing || (ContextMenu != null && ContextMenu.IsOpen))) popOut = -1;
             if (popOut >= 0 && now >= popOut && Talk.Quiet) { popOut = -1; HideAway(); }
-            if (Saved.NoCheckIns || shushed) { nextPopIn = -1; return; }
+            if (Saved.NoCheckIns || Hushed) { nextPopIn = -1; return; }
             if (nextPopIn < 0) nextPopIn = now + PopGap();
             if (now < nextPopIn || popChecking) return;
             nextPopIn = now + PopGap();
@@ -2232,7 +2288,7 @@ namespace CapriDesktop
                 try { idle = read(); }
                 catch (Exception) { }
                 // Only while someone's at the computer, like on Windows. A desktop that doesn't say counts as someone there.
-                Dispatcher.UIThread.Post(delegate { popChecking = false; if (idle <= 60 && CanPop && !shushed && !Saved.NoCheckIns) PopIn(); });
+                Dispatcher.UIThread.Post(delegate { popChecking = false; if (idle <= 60 && CanPop && !Hushed && !Saved.NoCheckIns) PopIn(); });
             });
         }
 
@@ -2276,7 +2332,7 @@ namespace CapriDesktop
         }
 
         // Free for a line of her own: Check in on me on, showing, and not busy with them.
-        internal bool Free { get { return !Saved.NoCheckIns && !shushed && !away && CanPop; } }
+        internal bool Free { get { return !Saved.NoCheckIns && !Hushed && !away && CanPop; } }
 
         private void CheckHome(double now)
         {
@@ -2377,7 +2433,7 @@ namespace CapriDesktop
                 }
                 return;
             }
-            if (Saved.NoCheckIns || shushed || away || nudgeChecking || now < nudgeLook || now - noticed < nudgeGap || !CanPop || (clip != idle && clip != perch) || (lastGlance >= 0 && now - lastGlance < 300)) return;
+            if (Saved.NoCheckIns || Hushed || away || nudgeChecking || now < nudgeLook || now - noticed < nudgeGap || !CanPop || (clip != idle && clip != perch) || (lastGlance >= 0 && now - lastGlance < 300)) return;
             nudgeChecking = true;
             Func<double> read = Idle;
             ThreadPool.QueueUserWorkItem(delegate
@@ -2511,7 +2567,7 @@ namespace CapriDesktop
 
         private void CheckGlance(double now)
         {
-            if (!Saved.Watch || glancing || shushed) return;
+            if (!Saved.Watch || glancing || Hushed) return;
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
             if (now < nextGlance || Brain.Model == null || away || dragging || pressed || !Talk.Quiet) return;
             nextGlance = now + GlanceGap * (0.8 + random.NextDouble() * 0.4);
@@ -2572,7 +2628,7 @@ namespace CapriDesktop
             if (blind)
             {
                 // Said once each time Watch my screen goes on; she keeps trying quietly in case a tool turns up.
-                if (!watchTold && Talk.Quiet && !away && !shushed) { watchTold = true; Blurt("(watch my screen)", Eyes.Unwatchable); }
+                if (!watchTold && Talk.Quiet && !away && !Hushed) { watchTold = true; Blurt("(watch my screen)", Eyes.Unwatchable); }
                 return;
             }
             if (!looked) return;
@@ -2584,13 +2640,13 @@ namespace CapriDesktop
                 if (problem != glanceFailed) { glanceFailed = problem; Brain.Log("glance", -1, problem); }
                 // A brain that turned out not to see gets said once, like Windows' Mainframe note; other errors go in errors.txt.
                 string unseen = Unseeing();
-                if (unseen != null && !watchTold && Talk.Quiet && !away && !shushed) { watchTold = true; Blurt("(watch my screen)", unseen); }
+                if (unseen != null && !watchTold && Talk.Quiet && !away && !Hushed) { watchTold = true; Blurt("(watch my screen)", unseen); }
                 return;
             }
             glanceFailed = null;
             if (string.IsNullOrEmpty(said)) { Glimpsed(saw); return; }
             // Quiet going on while she looked drops the line too, like on Windows.
-            if (ticket != asking || away || shushed || dragging || !Talk.Quiet) { lastPrint = null; Glimpsed(saw); return; }
+            if (ticket != asking || away || Hushed || dragging || !Talk.Quiet) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(Now), Brain.Nickname)) { Glimpsed(saw); return; }
             glanced.Add(Tuple.Create(Now, said));
