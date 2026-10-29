@@ -1,4 +1,4 @@
-// The 0.7.6 launch countdown under the headline: 9:30 am on 30 Oct 2026 in Sydney (22:30 UTC on the 29th), shown in the visitor's own time.
+// The 0.7.6 launch countdown under the headline: 10:00 am on 30 Oct 2026 in Sydney (23:00 UTC on the 29th), shown in the visitor's own time.
 // It stays hidden without JS. At zero it says 0.7.6 is landing, since this page keeps 0.7.4's downloads until the release deploy.
 (() => {
   const box = document.getElementById("countdown");
