@@ -3053,7 +3053,7 @@ namespace CapriDesktop
         internal static readonly Service[] Services =
         {
             new Service("Fish Audio · cloud", Fish, FishCloud, FishFree, "", "Voice ID or fish.audio link", "Paste your Fish Audio key",
-                "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Never clone a real actor's or person's voice without their OK. " + FishFree + " is its free tier."),
+                "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization." + FishFree + " is its free tier."),
             new Service("Voice model file · on your PC", Files, "", "", "", "Number or clip, optional", "Optional",
                 "A Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx, run with no server. Browse to its .tar.bz2 or .onnx. Pocket TTS copies a voice clip, or her HD voice if blank."),
             new Service("Fish Speech · on your PC", Fish, "http://127.0.0.1:8080", "", "", "Reference ID, optional", "Optional",
