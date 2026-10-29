@@ -154,9 +154,9 @@ namespace CapriDesktop
         internal const double PerchTop = 0.17;
         internal const double PerchRight = 0.69;
         private const int BlinkFrom = 9;
-        // Her perch blinks where KeepItBlank drew it: loop frames 29 to 36 (index 28 on).
+        // Her perch blinks where her artist drew it: loop frames 29 to 36 (index 28 on).
         private const int PerchBlinkFrom = 28;
-        // KeepItBlank's perch: 60 frames at 30 fps in cells cut to her outline, 26 px left of her square's middle and 36 px down it in 384 px art.
+        // her artist's perch: 60 frames at 30 fps in cells cut to her outline, 26 px left of her square's middle and 36 px down it in 384 px art.
         private const double PerchShiftX = -26.0 / 384, PerchShiftY = 36.0 / 384;
         private const double StandX = 0.35;
         private const double StandY = 0.99;
@@ -194,7 +194,7 @@ namespace CapriDesktop
         private readonly Clip glitch = new Clip("glitch", 10, 15, 1.11);
         private readonly Clip dangle = new Clip("dangle", 24, 10, 1.11);
         private readonly Clip perch = new Clip("perch", 60, 30, 1, PerchShiftX, PerchShiftY);
-        // KeepItBlank's own blink, frames 29 to 36 of the blink set, and the same with a glitch around her eye.
+        // her artist's own blink, frames 29 to 36 of the blink set, and the same with a glitch around her eye.
         private readonly Clip perchBlink = new Clip("perch_blink", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchBlinkGlitch = new Clip("perch_blink_glitch", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchGlitch = new Clip("perch_glitch", 10, 15, 1, PerchShiftX, PerchShiftY);
