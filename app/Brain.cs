@@ -2068,7 +2068,7 @@ namespace CapriDesktop
         // The API's advisor tool: Claude's servers run the bigger brain over the whole job. Its max_uses would count every ask in the job's history, so it isn't set.
         private static string Offering(string tools, string model)
         {
-            string advisor = "{\"type\":\"advisor_20260301\",\"name\":\"advisor\",\"model\":" + Voice.Quote(model) + ",\"max_tokens\":4096,\"caching\":{\"type\":\"ephemeral\",\"ttl\":\"5m\"}}";
+            string advisor = "{\"type\":\"advisor_20260301\",\"name\":\"advisor\",\"model\":" + Voice.Quote(model) + ",\"max_tokens\":4096}";
             return tools == "[]" ? "[" + advisor + "]" : tools.Substring(0, tools.LastIndexOf(']')) + "," + advisor + "]";
         }
 
