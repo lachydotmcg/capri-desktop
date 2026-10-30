@@ -206,7 +206,7 @@ namespace CapriDesktop
             layers.Children.Add(new Plate());
             layers.Children.Add(row);
             Content = layers;
-            Deactivated += delegate { if (Program.Smoke == null && DismissOnDeactivation) Hide(); };
+            Deactivated += delegate { if (Program.Smoke == null) DismissAfterDeactivation(); };
         }
 
         internal string Draft { get { return input.Text; } set { input.Text = value; } }
@@ -234,7 +234,7 @@ namespace CapriDesktop
             if (above.Width > 0) Follow(above, area, scale);
             ShowForInput(() => { Show(); Look.OnTopAgain(this); }, () =>
             {
-                Activate();
+                if (!HasNativePlacement) Activate();
                 input.Focus();
                 input.CaretIndex = (input.Text ?? "").Length;
             });

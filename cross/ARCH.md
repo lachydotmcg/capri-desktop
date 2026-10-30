@@ -136,12 +136,24 @@ verified output mapping returns. Bring also unhides and recovers an unmapped pet
 Mainframe and its settings sheets retain the requested viewport when their first
 compositor configure is tiled. Their separate owned-window placement floats,
 resizes and centers the window on the focused output without applying pet rules.
+
 If output names are unavailable, a unique exact rectangle is accepted; otherwise
 viewport fitting uses the observed window-to-DIP size ratio without creating an
 input mapping. The original content zoom and scrolling remain unchanged. Passive
 viewport changes do not activate the window; an explicit Bring does so only after
 the compositor reports the full window inside the visible work area.
 
+Chat placement applies `no_focus` only to this process's exact Bubble/Pill roles,
+reapplying it after remap. Typer opens without an early activation request. After
+observed placement, an explicit Type action may issue one address-scoped native
+focus operation if its original input owner has not changed. This uses normal
+Hyprland focus behavior, including its cursor movement; no global setting is
+changed. Success requires the same visible owned surface, session/layout,
+unlocked desktop, compositor active address and X11 keyboard recipient (including
+Avalonia's child focus proxy). The textbox is focused afterward. Native focus is
+not rejected merely because Avalonia's activation event arrives late. Hide,
+close, a newer open or another selected window cancel that request. Mainframe's
+separate, observed-placement activation path is unchanged.
 `CAPRI_MOTION_TRACE=/absolute/new-file.jsonl` enables a bounded local diagnostic
 trace of pet geometry, capture state and pointer timing. It never logs other
 window titles or desktop pixels and refuses to overwrite an existing file.

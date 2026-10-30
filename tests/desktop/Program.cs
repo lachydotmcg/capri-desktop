@@ -727,6 +727,89 @@ namespace CapriDesktop
             }
         }
 
+        private static async Task OwnedChatFocus()
+        {
+            Fake Fixture()
+            {
+                var fake = new Fake { Active = 0x777 };
+                fake.Windows = new JsonArray(Window(pid: Environment.ProcessId));
+                fake.Windows[0]["title"] = "Type to Capri";
+                return fake;
+            }
+            Fake fake = Fixture();
+            using (HyprlandDesktop service = Service(fake))
+            {
+                int keyboardReads = 0;
+                await service.WaitForOwnedInputFocusAsync("Type to Capri", 0x777, _ => Task.FromResult(++keyboardReads >= 3), default);
+                Equal(3, keyboardReads, "Typer waits for actual X11 keyboard focus after compositor focus");
+                Equal(1, fake.Dispatches.Count, "Explicit Type sends one owned focus request");
+                Check(fake.Dispatches[0].Contains("address:0x123"), "Focus request names the exact observed owned address");
+                fake.Dispatches.Clear();
+                await service.WaitForOwnedInputFocusAsync("Type to Capri", 0x123, _ => Task.FromResult(true), default);
+                Equal(0, fake.Dispatches.Count, "Already focused typer does not replay activation or move the pointer");
+            }
+            fake = Fixture();
+            JsonObject other = Output(id: 1, name: "DP-2", x: 1920);
+            other["activeWorkspace"] = new JsonObject { ["id"] = 2, ["name"] = "2" };
+            fake.Outputs.Add(other);
+            fake.Windows[0]["at"] = new JsonArray(2000, 200);
+            fake.Windows[0]["workspace"] = new JsonObject { ["id"] = 2, ["name"] = "2" };
+            fake.Windows[0]["monitor"] = 1;
+            fake.AfterDispatch = _ => { fake.Outputs[0]["focused"] = false; fake.Outputs[1]["focused"] = true; };
+            using (HyprlandDesktop service = Service(fake))
+            {
+                await service.WaitForOwnedInputFocusAsync("Type to Capri", 0x777, _ => Task.FromResult(true), default);
+                Equal(1, fake.Dispatches.Count, "Explicit Type may focus a fully visible pet output from Mainframe on another monitor");
+            }
+            foreach (string mismatch in new[] { "owner", "locked", "hidden", "workspace", "foreign", "ambiguous", "keyboard", "ack", "address", "session", "changed-after-keyboard", "cancel" })
+            {
+                fake = Fixture();
+                using var cancellation = new CancellationTokenSource();
+                if (mismatch == "owner") fake.Active = 0x999;
+                if (mismatch == "locked") fake.Locked = true;
+                if (mismatch == "hidden") fake.Windows[0]["hidden"] = true;
+                if (mismatch == "workspace") fake.Windows[0]["workspace"] = new JsonObject { ["id"] = 9, ["name"] = "9" };
+                if (mismatch == "foreign") fake.Windows[0]["pid"] = Environment.ProcessId + 1;
+                if (mismatch == "ambiguous") { JsonNode duplicate = fake.Windows[0].DeepClone(); duplicate["address"] = "0x456"; fake.Windows.Add(duplicate); }
+                if (mismatch == "ack") fake.Effect = false;
+                fake.AfterDispatch = _ =>
+                {
+                    if (mismatch == "address") fake.Windows[0]["address"] = "0x999";
+                    if (mismatch == "session") fake.Session = "replacement";
+                    if (mismatch == "cancel") cancellation.Cancel();
+                };
+                using HyprlandDesktop service = Service(fake);
+                try
+                {
+                    await service.WaitForOwnedInputFocusAsync("Type to Capri", 0x777, _ =>
+                    {
+                        if (mismatch == "changed-after-keyboard") fake.Active = 0x999;
+                        return Task.FromResult(mismatch != "keyboard");
+                    }, cancellation.Token);
+                    Check(false, "Focus must reject " + mismatch);
+                }
+                catch (Exception error) when (error is InvalidOperationException || error is OperationCanceledException)
+                { Check(true, "Focus rejects " + mismatch + " without a false success receipt"); }
+                Check(fake.Dispatches.Count <= 1, "Focus never replays an uncertain request for " + mismatch);
+            }
+            fake = Fixture(); fake.Windows[0]["title"] = "Talk to Capri";
+            using (HyprlandDesktop service = Service(fake))
+            {
+                await service.ConfigurePassiveChatAsync("Talk to Capri", default);
+                Check(fake.Dispatches.Single().Contains("no_focus") && !fake.Dispatches[0].Contains("dsp.focus("), "Passive pill policy prevents keyboard focus without dispatching activation");
+                await service.ConfigurePassiveChatAsync("Talk to Capri", default);
+                Equal(1, fake.Dispatches.Count, "Animation placement reuses the scoped passive policy");
+                service.ForgetPassiveChatPolicy("Talk to Capri");
+                await service.ConfigurePassiveChatAsync("Talk to Capri", default);
+                Equal(2, fake.Dispatches.Count, "Remapping reapplies passive focus policy even for a retained XID");
+                foreach (string title in new[] { "Type to Capri", "Capri Mainframe", "Capri" })
+                {
+                    try { await service.ConfigurePassiveChatAsync(title, default); Check(false, "Interactive and pet roles must not receive passive chat policy"); }
+                    catch (ArgumentException) { Check(true, "Passive policy excludes " + title); }
+                }
+            }
+        }
+
         private static async Task<int> Main(string[] args)
         {
             try
@@ -741,7 +824,7 @@ namespace CapriDesktop
                     return 0;
                 }
                 Geometry(); await VisibilityAndLedges(); await WindowActions(); await Revocation(); await PointerAndFailure(); Envelope(); await SocketTransport();
-                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement(); await UnmappedPetRecovery(); await MainframePlacement(); await OwnedPlacementPostconditions();
+                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement(); await UnmappedPetRecovery(); await MainframePlacement(); await OwnedPlacementPostconditions(); await OwnedChatFocus();
                 Console.WriteLine(JsonSerializer.Serialize(new { status = "PASS", checks, scope = "synthetic native desktop fixtures; no live mutation, pixels, audio or input" }));
                 return 0;
             }

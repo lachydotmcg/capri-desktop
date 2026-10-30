@@ -8,6 +8,8 @@ namespace CapriDesktop
         private bool pending, activating, acquired;
         internal int Begin() { pending = true; activating = acquired = false; return ++revision; }
         internal bool Current(int request) => pending && request == revision;
+        internal bool Matches(int request) => request == revision;
+        internal int Revision => revision;
         internal bool DismissOnDeactivation => acquired || !pending;
         internal bool Activate(int request)
         {

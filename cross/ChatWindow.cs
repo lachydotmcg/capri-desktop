@@ -1,5 +1,4 @@
 using System;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -22,7 +21,7 @@ namespace CapriDesktop
         private string focusError;
         internal PixelPoint IntendedPosition { get; private set; }
         internal string PlacementError => focusError ?? (mappingSuspended ? "Chat display mapping is unavailable." : placement?.Error);
-        protected bool DismissOnDeactivation => focusGate.DismissOnDeactivation;
+        protected bool HasNativePlacement => nativeDesktop != null;
 
         protected ChatWindow()
         {
@@ -30,10 +29,11 @@ namespace CapriDesktop
             {
                 if (e.Property != IsVisibleProperty) return;
                 if (!IsVisible) CancelFocus();
+                else nativeDesktop?.ForgetPassiveChatPolicy(Title);
                 placement?.Suspend(!IsVisible);
                 if (IsVisible) QueuePlacement();
             };
-            Activated += (_, _) => focusGate.Activated();
+            Activated += (_, _) => { if (nativeDesktop == null) focusGate.Activated(); };
             Closed += (_, _) => { CancelFocus(); placement?.Dispose(); };
         }
 
@@ -45,8 +45,12 @@ namespace CapriDesktop
             // pill remain non-activating, as in the original overlay contract.
             ShowActivated = false;
             string title = Title;
-            placement = new ChatPlacementQueue((target, cancellation) =>
-                desktop.Desktop.PlaceOwnedWindowAsync(title, target.Origin, target.Workspace, cancellation, requestedSize: target.Size));
+            placement = new ChatPlacementQueue(async (target, cancellation) =>
+            {
+                if (title == "Capri says" || title == "Talk to Capri")
+                    await desktop.Desktop.ConfigurePassiveChatAsync(title, cancellation).ConfigureAwait(false);
+                await desktop.Desktop.PlaceOwnedWindowAsync(title, target.Origin, target.Workspace, cancellation, requestedSize: target.Size).ConfigureAwait(false);
+            });
         }
 
         protected void PlaceAt(PixelPoint origin, Size size, double scale)
@@ -71,6 +75,26 @@ namespace CapriDesktop
         // focus query is pending must never cause a later show or activation.
         public new void Hide() { CancelFocus(); base.Hide(); }
         public new void Close() { CancelFocus(); base.Close(); }
+
+        protected async void DismissAfterDeactivation()
+        {
+            if (!focusGate.DismissOnDeactivation) return;
+            if (nativeDesktop == null) { Hide(); return; }
+            int request = focusGate.Revision;
+            try
+            {
+                using var query = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+                HyprlandOwnedPlacement owned = await nativeDesktop.ObserveOwnedWindowAsync(Title, query.Token);
+                long active = HyprlandJson.Active(await nativeDesktop.QueryAsync("j/activewindow", query.Token));
+                // XWayland can deliver a stale Avalonia deactivation after native
+                // focus has already settled on this exact owned input surface.
+                if (focusGate.Matches(request) && IsVisible && active != owned.Window.Address) Hide();
+            }
+            catch (Exception failure)
+            {
+                if (focusGate.Matches(request) && IsVisible) { focusError = failure.Message; Hide(); }
+            }
+        }
 
         protected async void ShowForInput(Action show, Action focus)
         {
@@ -99,13 +123,15 @@ namespace CapriDesktop
                 if (!focusGate.Current(request) || !IsVisible) return;
                 if (nativeDesktop != null)
                 {
-                    string active = await nativeDesktop.QueryAsync("j/activewindow", job.Token);
-                    using var document = JsonDocument.Parse(active);
-                    JsonElement window = document.RootElement;
-                    bool owned = window.TryGetProperty("pid", out JsonElement pid) && pid.GetInt32() == Environment.ProcessId &&
-                        window.TryGetProperty("title", out JsonElement title) && title.GetString() == Title;
-                    if (!ChatFocusGate.KeepsFocusIntent(previous, HyprlandJson.Active(active), owned))
-                    { if (focusGate.Current(request)) Hide(); return; }
+                    if (!focusGate.Activate(request)) return;
+                    IntPtr xid = TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                    await nativeDesktop.WaitForOwnedInputFocusAsync(Title, previous,
+                        cancellation => HyprlandInputFocus.HasKeyboardFocusAsync(xid, cancellation), job.Token);
+                    job.Token.ThrowIfCancellationRequested();
+                    if (!focusGate.Current(request) || !IsVisible) return;
+                    focusGate.Activated();
+                    focus();
+                    return;
                 }
                 if (!focusGate.Activate(request)) return;
                 focus();
@@ -118,11 +144,11 @@ namespace CapriDesktop
             }
             catch (OperationCanceledException) when (job.IsCancellationRequested)
             {
-                if (focusGate.Current(request)) { focusError = "Opening the typer timed out before placement and focus completed."; Hide(); }
+                if (focusGate.Matches(request)) { focusError = "Opening the typer timed out before placement and focus completed."; Hide(); }
             }
             catch (Exception failure)
             {
-                if (focusGate.Current(request)) { focusError = failure.Message; Hide(); }
+                if (focusGate.Matches(request)) { focusError = failure.Message; Hide(); }
             }
             finally { if (focusJob == job) focusJob = null; job.Dispose(); }
         }

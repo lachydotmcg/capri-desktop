@@ -77,8 +77,10 @@ Check(!focus.DismissOnDeactivation && focus.Current(opening), "transient mapping
 Check(focus.Activate(opening) && !focus.DismissOnDeactivation, "activation request waits for actual focus before normal deactivation dismissal");
 focus.Activated();
 Check(focus.DismissOnDeactivation && !focus.Current(opening), "after acquiring focus the typer again dismisses on deactivation");
+Check(focus.Matches(opening), "native-confirmed focus retains its request identity for deactivation checks");
 opening = focus.Begin(); focus.Cancel();
 Check(!focus.Current(opening) && !focus.Activate(opening), "explicit hide or close invalidates pending activation");
+Check(!focus.Matches(opening), "hiding also invalidates late native deactivation observations");
 opening = focus.Begin(); int replacement = focus.Begin();
 Check(!focus.Activate(opening) && focus.Current(replacement), "a newer Open invalidates the older focus request");
 Check(ChatFocusGate.KeepsFocusIntent(12, 12, false) && ChatFocusGate.KeepsFocusIntent(12, 99, true), "focus may proceed while the original input owner or this typer remains active");
