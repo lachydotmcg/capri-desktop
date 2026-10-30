@@ -15,12 +15,16 @@ namespace CapriDesktop
     internal static partial class Computer
     {
         internal const int GrayWidth = 240, GrayHeight = 135, GrayReach = 40;
+        private const int BandLeft = 24, BandTop = 10, BandWidth = 192, BandHeight = 90, BandReach = 24;
         // The newest screenshot her brain saw, so a spot it names can be found on screen.
         internal static Picture Shown;
         // Pixels a game's view slides per mouse count, measured whenever she looks around in that game.
         private static readonly Dictionary<string, double> viewSpeeds = new Dictionary<string, double>();
         // Games that look down when the mouse goes up.
         private static readonly HashSet<string> upsideDown = new HashSet<string>();
+        // Mouse counts in a full turn of each game's view, -1 once she's found she can't tell.
+        private static readonly Dictionary<string, double> fullTurns = new Dictionary<string, double>();
+        private static readonly Dictionary<string, int> turnTried = new Dictionary<string, int>();
         private static FrameGrab grab;
         private static Rectangle grabbing;
         private static readonly object grabGate = new object();
@@ -291,6 +295,31 @@ namespace CapriDesktop
             return best;
         }
 
+        // Adds the words on screen to what she can read, each as something to click, for windows that show a brain nothing else.
+        internal static void ReadWords(Sight sight)
+        {
+            Picture picture = Shoot(null);
+            if (picture == null || picture.Jpeg == null) return;
+            try
+            {
+                using (System.IO.MemoryStream read = new System.IO.MemoryStream(picture.Jpeg))
+                using (Bitmap loaded = new Bitmap(read))
+                using (Bitmap shot = new Bitmap(loaded))
+                {
+                    int number = 0;
+                    foreach (Target known in sight.Targets) number = Math.Max(number, known.Number);
+                    foreach (ReadWord line in Ocr.Phrases(shot, 1, 1500))
+                    {
+                        if (number >= MostTargets || Regex.Matches(line.Text, @"\p{L}|\p{N}").Count < 2) continue;
+                        Point corner = picture.ToScreen(line.Box.Left, line.Box.Top), across = picture.ToScreen(line.Box.Right, line.Box.Bottom);
+                        sight.Targets.Add(new Target { Number = ++number, Role = "words", Name = line.Text, Value = "", Box = Rectangle.FromLTRB(corner.X, corner.Y, across.X, across.Y) });
+                    }
+                }
+            }
+            catch (ArgumentException) { }
+            catch (ExternalException) { }
+        }
+
         // The picture with a faint numbered grid on it, and the screen's words with where each one is. A picture that can't be read goes as it came.
         internal static byte[] Gridded(Picture picture, out string words, out List<ReadWord> spots)
         {
@@ -361,20 +390,171 @@ namespace CapriDesktop
 
         // Turns toward what's wanted in steps and watches the view slide after each one, so she learns any game's mouse as she goes
         // and lands where she meant to. She always turns: looking at open sky, there's nothing to measure yet and she mustn't get stuck.
-        internal static string TurnView(ToolArguments args, Sight sight)
+        // Pixels the middle of the view slides per radian, for a usual game's field of view.
+        private static double Focal(Rectangle area) { return area.Height * 0.75; }
+
+        // The part of a gray frame with the world in it rather than a game's HUD.
+        private static byte[] Band(byte[] gray)
         {
-            // Level is down as far as the view goes, then a quarter turn back up.
-            if (string.Equals(args.Level, "yes", StringComparison.OrdinalIgnoreCase))
+            int left = BandLeft, top = BandTop, width = BandWidth, height = BandHeight;
+            byte[] band = new byte[width * height];
+            for (int row = 0; row < height; row++) Buffer.BlockCopy(gray, (top + row) * GrayWidth + left, band, row * width, width);
+            return band;
+        }
+
+        // A mouse's slide on screen per count, from a small turn there and back. Zero if the view didn't move or can't be read.
+        private static double Probed(Rectangle area)
+        {
+            double scaleX = (double)area.Width / GrayWidth;
+            for (int counts = 12; counts <= 2000 && !interrupted; counts *= 3)
             {
-                TurnView(new ToolArguments { Up = -130 }, sight);
-                if (interrupted) return Why;
-                string level = TurnView(new ToolArguments { Up = 90 }, sight);
-                return level == "Turned." ? "Looking straight ahead at the horizon." : level;
+                byte[] before = GrayFrame(area);
+                Turn(counts, 0);
+                Thread.Sleep(130);
+                double dx, dy, match;
+                bool read = Motion.Shift(before, GrayFrame(area), GrayWidth, GrayHeight, GrayReach, out dx, out dy, out match) && match >= 0.6;
+                Turn(-counts, 0);
+                Thread.Sleep(60);
+                if (!read) return 0;
+                if (Math.Abs(dx) >= GrayReach - 1) return 0;
+                if (Math.Abs(dx) * scaleX >= 16) return Math.Abs(dx) * scaleX / counts;
             }
+            return 0;
+        }
+
+        // Spins until the start of the view comes round again, which says how many counts make a full turn. A game's field of view
+        // is its own and its players', so slides on screen alone can't say how many degrees a turn was. Returns the counts, or -1.
+        private static double FullTurn(Rectangle area, string game)
+        {
+            double speed = Probed(area);
+            if (speed <= 0 || interrupted) return Remember(game, -1);
+            byte[] start = Band(GrayFrame(area));
+            double least = 2 * Math.PI * 0.3 * area.Height / speed, most = 2 * Math.PI * 1.25 * area.Height / speed;
+            double scaleX = (double)area.Width / GrayWidth, best = 0, bestAt = 0, bestDx = 0;
+            int step = Math.Max(1, (int)Math.Round((2 * BandReach - 8) * scaleX / speed));
+            double sent = 0;
+            while (sent < most && !interrupted)
+            {
+                Turn(step, 0);
+                sent += step;
+                Thread.Sleep(70);
+                if (sent < least) continue;
+                double dx, dy, match;
+                if (Motion.Shift(start, Band(GrayFrame(area)), BandWidth, BandHeight, BandReach, out dx, out dy, out match) && match > best && Math.Abs(dx) < BandReach - 1)
+                {
+                    best = match;
+                    bestAt = sent;
+                    bestDx = dx;
+                }
+                else if (best >= 0.88 && match < best - 0.1) break;
+            }
+            if (best < 0.75)
+            {
+                Turn(-(int)Math.Round(sent), 0);
+                return Remember(game, -1);
+            }
+            double full = bestAt + bestDx * scaleX / speed;
+            Turn((int)Math.Round(full - sent), 0);
+            lock (viewSpeeds) viewSpeeds[game] = speed;
+            return Remember(game, full);
+        }
+
+        private static double Remember(string game, double full)
+        {
+            lock (viewSpeeds)
+            {
+                fullTurns[game] = full;
+                turnTried[game] = Environment.TickCount;
+            }
+            return full;
+        }
+
+        // What she knows of a game's full turn: its counts, zero if it's time to measure, or below zero for a try that just failed.
+        private static double TurnKnown(string game)
+        {
+            lock (viewSpeeds)
+            {
+                double full;
+                if (!fullTurns.TryGetValue(game, out full)) return 0;
+                return full < 0 && Environment.TickCount - turnTried[game] > 20000 ? 0 : full;
+            }
+        }
+
+        // Level is straight down, where the view stops by itself, then a quarter turn back up.
+        private static string Levelled(Sight sight)
+        {
             Rectangle area = GameArea(sight);
             string game = sight == null ? "" : sight.Program ?? "";
-            double focal = area.Width / 2.0, wantX, wantY;
+            bool flipped;
+            double full = TurnKnown(game);
+            lock (viewSpeeds) flipped = upsideDown.Contains(game);
+            if (full == 0) full = FullTurn(area, game);
+            int floor = flipped ? -6000 : 6000;
+            // Open sky shows nothing to measure and straight down only spins, so failing that she looks part of the way up from the floor.
+            if (full <= 0)
+            {
+                Turn(0, floor);
+                Thread.Sleep(90);
+                foreach (int lift in new[] { 300, 600, 1200 })
+                {
+                    if (interrupted) return Why;
+                    Turn(0, flipped ? lift : -lift);
+                    Thread.Sleep(90);
+                    full = FullTurn(area, game);
+                    if (full > 0) break;
+                }
+            }
+            if (interrupted) return Why;
+            Turn(0, floor);
+            Thread.Sleep(90);
+            if (full <= 0) return "Looked down, but couldn't work out how far a turn goes here. Check the next screenshot.";
+            int up = (int)Math.Round(full / 4);
+            Turn(0, flipped ? up : -up);
+            return interrupted ? Why : "Looking straight ahead at the horizon.";
+        }
+
+        // A turn by degrees once she knows how many counts go all the way round, checking the view really moved.
+        private static string TurnedBy(double right, double up, double full, Rectangle area, string game)
+        {
+            bool flipped;
+            lock (viewSpeeds) flipped = upsideDown.Contains(game);
+            int countX = (int)Math.Round(right * full / 360), countY = (int)Math.Round(-up * full / 360);
+            if (countX == 0 && countY == 0) return "Turned.";
+            byte[] before = GrayFrame(area);
+            Turn(countX, flipped ? -countY : countY);
+            if (interrupted) return Why;
+            Thread.Sleep(130);
+            byte[] after = GrayFrame(area);
+            double dx, dy, match;
+            bool read = Motion.Shift(before, after, GrayWidth, GrayHeight, GrayReach, out dx, out dy, out match) && match >= 0.6;
+            // Sliding the other way from what was sent means this game looks the other way up.
+            if (read && Math.Abs(countY) > Math.Abs(countX) && Math.Abs(dy) >= 2 && Math.Abs(dy) < GrayReach - 1 && dy * countY > 0)
+            {
+                flipped = !flipped;
+                lock (viewSpeeds) { if (flipped) upsideDown.Add(game); else upsideDown.Remove(game); }
+                Turn(0, 2 * (flipped ? -countY : countY));
+                return interrupted ? Why : "Turned.";
+            }
+            if (Math.Abs(countX) + Math.Abs(countY) >= 40 && Motion.Changed(before, after) < 0.002) return "The view didn't move: a menu may be open, the game may need a click to take the mouse, or you're already looking as far as it goes.";
+            return "Turned.";
+        }
+
+        internal static string TurnView(ToolArguments args, Sight sight)
+        {
+            if (string.Equals(args.Level, "yes", StringComparison.OrdinalIgnoreCase)) return Levelled(sight);
+            Rectangle area = GameArea(sight);
+            string game = sight == null ? "" : sight.Program ?? "";
+            double focal = Focal(area), wantX, wantY, full;
             bool spot = args.X.HasValue && args.Y.HasValue && Shown != null;
+            full = TurnKnown(game);
+            if (!spot && full == 0) full = FullTurn(area, game);
+            if (interrupted) return Why;
+            if (!spot && full > 0) return TurnedBy(args.Right ?? 0, args.Up ?? 0, full, area, game);
+            lock (viewSpeeds)
+            {
+                double known;
+                if (full > 0 && viewSpeeds.TryGetValue(game, out known)) focal = known * full / (2 * Math.PI);
+            }
             if (spot)
             {
                 Point at = Shown.ToScreen(args.X.Value, args.Y.Value);
@@ -439,9 +619,10 @@ namespace CapriDesktop
                 if (slid >= 6) seen = true;
                 doneX += slidX;
                 doneY += slidY;
-                if (slid >= 16)
+                // A turn cut short by the end of the view's travel says nothing about her mouse speed.
+                double found = slid / sent;
+                if (slid >= 16 && (speed <= 0 || (found > speed * 0.6 && found < speed * 1.6)))
                 {
-                    double found = slid / sent;
                     speed = speed > 0 ? (speed + found) / 2 : found;
                     lock (viewSpeeds) viewSpeeds[game] = speed;
                 }
