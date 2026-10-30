@@ -1,0 +1,14 @@
+name: Publish exe
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File .\ci\build-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Capri-exe
+          path: out/windows/
