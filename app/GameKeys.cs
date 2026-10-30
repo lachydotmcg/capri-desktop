@@ -17,7 +17,7 @@ namespace CapriDesktop
             { "jump", "jump" }, { "crouchToggle", "crouch" }, { "sprintToggle", "sprint" }, { "dodgeDash", "dodge" },
             { "selectChoice", "interact" }, { "reload", "reload" }, { "attack", "shoot" }, { "aim", "aim" },
             { "visionHold", "scanner" }, { "map", "map" }, { "journal", "journal" }, { "inventory", "inventory" },
-            { "callVehicle", "call vehicle" }, { "useConsumable", "heal" }, { "openPhone", "phone" }, { "holsterWeapon", "holster" }, { "quickSave", "quick save" }
+            { "callVehicle", "call vehicle" }, { "vehicleAutodrive", "hold for a second in a car to auto drive to your waypoint" }, { "vehicleHandbrake", "handbrake" }, { "exitVehicle", "get out of a car" }, { "useConsumable", "heal" }, { "openPhone", "phone" }, { "holsterWeapon", "holster" }, { "quickSave", "quick save" }
         };
 
         internal static string Summary(string game)

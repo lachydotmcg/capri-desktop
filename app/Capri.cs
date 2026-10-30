@@ -9117,9 +9117,9 @@ namespace CapriDesktop
                 File.WriteAllText(settings, "{\"version\":2,\"data\":[{\"group_name\":\"/graphics\",\"options\":[{\"name\":\"forward\",\"value\":\"IK_Z\"}]},"
                     + "{\"group_name\":\"/key_bindings/SettingsLocomotion\",\"options\":[{\"name\":\"forward\",\"value\":\"IK_W\"},{\"name\":\"sprintHold\",\"value\":\"IK_RShift\"},{\"name\":\"sprintToggle\",\"value\":\"IK_LShift\"},"
                     + "{\"name\":\"attack\",\"value\":\"IK_LeftMouse\"},{\"name\":\"visionHold\",\"value\":\"IK_Tab\"},{\"name\":\"jump\",\"value\":\"IK_None\"}]},"
-                    + "{\"group_name\":\"/key_bindings/SettingsVehicle\",\"options\":[{\"name\":\"callVehicle\",\"value\":\"IK_V\"}]}]}");
+                    + "{\"group_name\":\"/key_bindings/SettingsVehicle\",\"options\":[{\"name\":\"callVehicle\",\"value\":\"IK_V\"},{\"name\":\"vehicleAutodrive\",\"value\":\"IK_G\"}]}]}");
                 string fromSettings = GameKeys.Summary("Cyberpunk 2077 (C) 2020 by CD Projekt RED", keysRoot, keysRoot);
-                if (fromSettings != "move forward w, sprint left shift, shoot left mouse, scanner tab, call vehicle v") throw new Exception("Cyberpunk's keys read wrong: " + fromSettings);
+                if (fromSettings != "move forward w, sprint left shift, shoot left mouse, scanner tab, call vehicle v, hold for a second in a car to auto drive to your waypoint g") throw new Exception("Cyberpunk's keys read wrong: " + fromSettings);
                 File.WriteAllText(settings, "{\"data\":[{");
                 if (GameKeys.Summary("Cyberpunk 2077", keysRoot, keysRoot) != null || GameKeys.Summary("Minecraft", Path.Combine(keysRoot, "nowhere"), keysRoot) != null || GameKeys.Summary("Hades", keysRoot, keysRoot) != null) throw new Exception("A broken or missing keys file made up keys.");
                 checks.Add("PASS she reads the keys a game is really set to from its own files: Minecraft's options.txt and Cyberpunk's UserSettings.json, in plain words, and nothing from a file that's broken or missing");
