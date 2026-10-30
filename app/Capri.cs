@@ -5524,7 +5524,8 @@ namespace CapriDesktop
             running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing); }) : null;
             // Anything else that can see plays from pictures.
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700); }) : null;
-            running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 220); };
+            running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320); };
+            running.Reader = testing ? null : new Action<Sight>(Computer.ReadWords);
             running.Blind = delegate { blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             running.Seen = delegate(Sight sight)
@@ -9074,7 +9075,7 @@ namespace CapriDesktop
             Action<int, int> nudgeWas = Computer.Nudge;
             double cameraX = 0, cameraY = 0, truth = 0;
             int sent = 0;
-            bool upside = false, fixedView = false, blank = false;
+            bool upside = false, fixedView = false, blank = false, round = false;
             Func<Rectangle, byte[]> seenWorld = delegate(Rectangle part)
             {
                 byte[] gray = new byte[Computer.GrayWidth * Computer.GrayHeight];
@@ -9083,6 +9084,7 @@ namespace CapriDesktop
                     for (int gx = 0; gx < Computer.GrayWidth; gx++)
                     {
                         int sampleX = (int)(cameraX + gx * (double)part.Width / Computer.GrayWidth) + 600;
+                        if (round) sampleX = ((sampleX % worldWidth) + worldWidth) % worldWidth;
                         int sampleY = (int)(cameraY + gy * (double)part.Height / Computer.GrayHeight) + 400;
                         gray[gy * Computer.GrayWidth + gx] = world[Math.Max(0, Math.Min(worldHeight - 1, sampleY)) * worldWidth + Math.Max(0, Math.Min(worldWidth - 1, sampleX))];
                     }
@@ -9094,6 +9096,7 @@ namespace CapriDesktop
                 if (fixedView) return;
                 cameraX += dx * truth;
                 cameraY += (upside ? -dy : dy) * truth;
+                if (round) cameraY = Math.Min(cameraY, 400);
             };
             Sight game = new Sight { Program = "smoke-a", Bounds = area };
             try
@@ -9106,10 +9109,10 @@ namespace CapriDesktop
                     truth = speed;
                     cameraX = cameraY = 0;
                     Computer.TurnView(new ToolArguments { Right = 20 }, game);
-                    double wanted = 640 * 20 * Math.PI / 180;
+                    double wanted = 540 * 20 * Math.PI / 180;
                     if (Math.Abs(cameraX - wanted) > 30 || Math.Abs(cameraY) > 12) throw new Exception("Her camera missed a 20 degree turn at mouse speed " + speed + ": went " + cameraX + ", " + cameraY + ", wanted " + wanted + ".");
                     Computer.TurnView(new ToolArguments { Up = -5 }, game);
-                    if (Math.Abs(cameraY - 640 * 5 * Math.PI / 180) > 30) throw new Exception("Her camera missed looking down at mouse speed " + speed + ": went " + cameraY + ".");
+                    if (Math.Abs(cameraY - 540 * 5 * Math.PI / 180) > 30) throw new Exception("Her camera missed looking down at mouse speed " + speed + ": went " + cameraY + ".");
                 }
                 game.Program = "smoke-upside";
                 truth = 1.7;
@@ -9117,7 +9120,7 @@ namespace CapriDesktop
                 cameraX = cameraY = 0;
                 Computer.TurnView(new ToolArguments { Up = -8 }, game);
                 Computer.TurnView(new ToolArguments { Up = -8 }, game);
-                if (Math.Abs(cameraY - 2 * 640 * 8 * Math.PI / 180) > 40) throw new Exception("Her camera didn't work out a game that looks the other way: went " + cameraY + ".");
+                if (Math.Abs(cameraY - 2 * 540 * 8 * Math.PI / 180) > 40) throw new Exception("Her camera didn't work out a game that looks the other way: went " + cameraY + ".");
                 upside = false;
                 game.Program = "smoke-plain";
                 blank = true;
@@ -9129,7 +9132,20 @@ namespace CapriDesktop
                 game.Program = "smoke-menu";
                 string menu = Computer.TurnView(new ToolArguments { Right = 30 }, game);
                 if (menu.IndexOf("didn't move", StringComparison.Ordinal) < 0) throw new Exception("Her camera didn't notice a view that stayed still: " + menu);
-                checks.Add("PASS her camera learns any game's mouse from slow to fast, lands turns within a few pixels, works out games that look the other way, always turns away from open sky, and says when a view stays still");
+                fixedView = false;
+                round = true;
+                foreach (double roundSpeed in new[] { 0.6, 1.7, 4.0 })
+                {
+                    game.Program = "smoke-round-" + roundSpeed;
+                    truth = roundSpeed;
+                    cameraX = cameraY = 0;
+                    Computer.TurnView(new ToolArguments { Right = 90 }, game);
+                    if (Math.Abs(cameraX - worldWidth / 4.0) > 24) throw new Exception("Her camera missed a quarter turn in a game whose view comes round at mouse speed " + roundSpeed + ": went " + cameraX + ".");
+                    Computer.TurnView(new ToolArguments { Level = "yes" }, game);
+                    if (Math.Abs(cameraY - (400 - worldWidth / 4.0)) > 24) throw new Exception("Her camera didn't level out at mouse speed " + roundSpeed + ": ended at " + cameraY + ".");
+                }
+                round = false;
+                checks.Add("PASS her camera learns any game's mouse from slow to fast, measures a full turn at any field of view, looks level, lands turns within a few pixels, works out games that look the other way, always turns away from open sky, and says when a view stays still");
             }
             finally
             {
@@ -9196,6 +9212,51 @@ namespace CapriDesktop
                 Brain.Ollama = ollamaWas;
                 Computer.GameOpen = openWas;
                 fake.Stop();
+            }
+        }
+
+        // A Claude job that runs for hours folds its older turns into a note and carries on.
+        private static void SmokeLongJob(System.Collections.Generic.List<string> checks)
+        {
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<Target> focusWas = Computer.Focus;
+            Func<Point, Target> underWas = Computer.Under;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<IntPtr> frontWas = Computer.Front;
+            byte[] jpeg = { 1, 2, 3 };
+            try
+            {
+                Computer.Shoot = delegate(Rectangle? region) { return new Picture { Jpeg = jpeg, Size = new Size(1280, 720), Area = new Rectangle(0, 0, 1280, 720) }; };
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(9), Title = "Notepad", Program = "notepad" }; };
+                Computer.Focus = delegate { return null; };
+                Computer.Under = delegate(Point at) { return null; };
+                Computer.Front = delegate { return new IntPtr(9); };
+                Computer.Use = delegate(string name, ToolArguments args, Picture picture) { return "Clicked."; };
+                int turn = 0, longest = 0;
+                string note = null, asked = null;
+                Job job = new Job("sort out a very long list");
+                job.Aside = delegate(string system, string user) { asked = user; return "Done the first half, carry on from line 50."; };
+                job.Drive = delegate(string system, string tools, string messages)
+                {
+                    turn++;
+                    longest = Math.Max(longest, Regex.Matches(messages, "\"role\":\"assistant\"").Count);
+                    if (messages.IndexOf("carry on from line 50", StringComparison.Ordinal) >= 0) note = messages;
+                    if (turn > Computer.LongTalk) return Brain.Parsed("{\"stop_reason\":\"end_turn\",\"content\":[{\"type\":\"text\",\"text\":\"All sorted.\"}]}");
+                    return Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t" + turn + "\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[5,5]}}]}");
+                };
+                string ended = job.Run();
+                if (ended != "All sorted." || note == null || asked == null || asked.IndexOf("sort out a very long list", StringComparison.Ordinal) < 0 || longest > Computer.LongTalk / 2 + 1) throw new Exception("A long job didn't fold: " + ended + " at " + longest + " turns.");
+                checks.Add("PASS a long job folds its older turns into a note to itself and carries on, so she can run for hours");
+            }
+            finally
+            {
+                Computer.Shoot = shootWas;
+                Computer.Glimpse = glimpseWas;
+                Computer.Focus = focusWas;
+                Computer.Under = underWas;
+                Computer.Use = useWas;
+                Computer.Front = frontWas;
             }
         }
 
@@ -9704,6 +9765,7 @@ namespace CapriDesktop
                             SmokeGameAsks(checks);
                             SmokeSighted(checks);
                             SmokeGameNotes(checks);
+                            SmokeLongJob(checks);
                             SmokeFrames(checks);
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;
