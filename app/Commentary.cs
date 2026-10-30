@@ -20,6 +20,14 @@ namespace CapriDesktop
         void Mood(GameMood mood);
     }
 
+    // Her game lines on her HUD, which shows them only while it's up.
+    internal sealed class HudStage : IGameStage
+    {
+        public void Say(string line) { GameHud.Say(line); }
+        public void Hear(string words, bool thinking) { GameHud.Hear(words, thinking); }
+        public void Mood(GameMood mood) { GameHud.Mood((HudMood)mood); }
+    }
+
     internal sealed class NoStage : IGameStage
     {
         public void Say(string line) { }
@@ -393,6 +401,7 @@ namespace CapriDesktop
         private void WireCommentary()
         {
             Commentary.Pace = CommentPace;
+            Commentary.Stage = new HudStage();
             Commentary.Game = GameAhead;
             Commentary.Free = CommentFree;
             Commentary.Sees = delegate { return Unseeing() == null; };

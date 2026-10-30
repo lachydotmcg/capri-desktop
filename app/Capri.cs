@@ -9215,6 +9215,24 @@ namespace CapriDesktop
             }
         }
 
+        // A tool call written a little off from what it asked for still runs, and one that can't be read costs a turn, not the job.
+        private static void SmokeLooseCalls(System.Collections.Generic.List<string> checks)
+        {
+            string[] loose =
+            {
+                "{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"a\",\"name\":\"walk\",\"input\":{\"seconds\":2.5,\"keys\":[\"shift\",\"w\"],\"jump\":true}}]}",
+                "{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"b\",\"name\":\"look\",\"input\":{\"x\":\"640\",\"y\":\"360\"}}]}"
+            };
+            ClaudeReply walked = Brain.Parsed(loose[0]), looked = Brain.Parsed(loose[1]);
+            if (walked.Content[0].Input.Seconds != "2.5" || walked.Content[0].Input.Keys != "shift+w" || walked.Content[0].Input.Jump != "true") throw new Exception("A loose tool call wasn't read: " + walked.Content[0].Input.Keys);
+            if (looked.Content[0].Input.X != 640 || looked.Content[0].Input.Y != 360) throw new Exception("Numbers in quotes weren't read.");
+            ClaudeReply odd = Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"text\",\"text\":\"Going.\"},{\"type\":\"tool_use\",\"id\":\"c\",\"name\":\"walk\",\"input\":{\"keys\":{\"odd\":1}}}]}");
+            ClaudeReply worse = Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"d\",\"name\":\"walk\",\"input\":{\"seconds\":[1,2]}}]}");
+            if (worse.Content[0].Name != "walk" || worse.Raw.IndexOf("\"seconds\":[1,2]", StringComparison.Ordinal) < 0 || odd == null) throw new Exception("A tool call that can't be read cost the job.");
+            if (Brain.Loosened("{\"text\":\"she said \\\"seconds\\\": 6 to me\"}") != "{\"text\":\"she said \\\"seconds\\\": 6 to me\"}") throw new Exception("Words someone said were changed as if they were a tool call.");
+            checks.Add("PASS a tool call written a little off still runs, and one she can't read costs a turn instead of the job");
+        }
+
         // A Claude job that runs for hours folds its older turns into a note and carries on.
         private static void SmokeLongJob(System.Collections.Generic.List<string> checks)
         {
@@ -9766,6 +9784,7 @@ namespace CapriDesktop
                             SmokeSighted(checks);
                             SmokeGameNotes(checks);
                             SmokeLongJob(checks);
+                            SmokeLooseCalls(checks);
                             SmokeFrames(checks);
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;

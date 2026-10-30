@@ -1846,10 +1846,41 @@ namespace CapriDesktop
             return Parsed(text);
         }
 
+        private static readonly Regex BareWords = new Regex("(?<![\\\\])\"(seconds|minutes|times|level|jump|stop|enter|keys|hold|press|button|direction|target|text)\"\\s*:\\s*(true|false|-?\\d+(?:\\.\\d+)?)");
+        private static readonly Regex QuotedNumbers = new Regex("(?<![\\\\])\"(x|y|right|up|scroll_amount|duration|repeat)\"\\s*:\\s*\"(-?\\d+(?:\\.\\d+)?)\"");
+        private static readonly Regex ListedKeys = new Regex("(?<![\\\\])\"(keys|hold|text)\"\\s*:\\s*\\[\\s*\"([^\"\\]]*)\"(?:\\s*,\\s*\"([^\"\\]]*)\")?(?:\\s*,\\s*\"([^\"\\]]*)\")?\\s*\\]");
+        private static readonly Regex ToolInput = new Regex("\"input\"\\s*:\\s*\\{[^{}]*\\}");
+
+        private static ClaudeReply Read(string text)
+        {
+            using (MemoryStream data = new MemoryStream(Encoding.UTF8.GetBytes(text))) return (ClaudeReply)new DataContractJsonSerializer(typeof(ClaudeReply)).ReadObject(data);
+        }
+
+        // Written a little off from what her tools ask for, like a number for a string or keys as a list, a call still means the same.
+        internal static string Loosened(string text)
+        {
+            text = BareWords.Replace(text, "\"$1\":\"$2\"");
+            text = QuotedNumbers.Replace(text, "\"$1\":$2");
+            return ListedKeys.Replace(text, delegate(Match found)
+            {
+                List<string> keys = new List<string> { found.Groups[2].Value };
+                if (found.Groups[3].Success) keys.Add(found.Groups[3].Value);
+                if (found.Groups[4].Success) keys.Add(found.Groups[4].Value);
+                return "\"" + found.Groups[1].Value + "\":\"" + string.Join("+", keys.ToArray()) + "\"";
+            });
+        }
+
         internal static ClaudeReply Parsed(string text)
         {
             ClaudeReply reply;
-            using (MemoryStream data = new MemoryStream(Encoding.UTF8.GetBytes(text))) reply = (ClaudeReply)new DataContractJsonSerializer(typeof(ClaudeReply)).ReadObject(data);
+            try { reply = Read(text); }
+            catch (SerializationException)
+            {
+                // One odd tool call costs a turn, not the job: it runs with what could be read, and the next turn sees how that went.
+                Log("reading a reply", -1, text.Substring(0, Math.Min(text.Length, 1500)));
+                try { reply = Read(Loosened(text)); }
+                catch (SerializationException) { reply = Read(ToolInput.Replace(text, "\"input\":{}")); }
+            }
             reply.Raw = Field(text, "content");
             if (reply.Raw == null) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
             return reply;
