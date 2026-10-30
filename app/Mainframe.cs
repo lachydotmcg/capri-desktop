@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 860;
+        private const int PageTall = 888;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -107,6 +107,8 @@ namespace CapriDesktop
         private readonly Key typeKeys;
         private readonly Key hideKeys;
         private readonly Key quietKeys;
+        private readonly Key gameKeys;
+        private readonly Toggle gamingMode;
         private readonly Key confirmKeys;
         private readonly Key cancelKeys;
         // The keys pressed so far while one of her keys is being picked: -1 until a real key comes, then its modifiers.
@@ -169,9 +171,11 @@ namespace CapriDesktop
         private string typeName = "Ctrl + Alt + T";
         private string hideName = "Ctrl + Alt + H";
         private string quietName = "Ctrl + Alt + P";
+        private string gameName = "Ctrl + Alt + G";
         private bool typeReady = true;
         private bool hideReady = true;
         private bool quietReady = true;
+        private bool gameReady = true;
         private readonly Label muteShortcut;
         private readonly Key mics;
         private readonly ContextMenuStrip micMenu;
@@ -512,6 +516,8 @@ namespace CapriDesktop
             hideKeys.AccessibleName = "Her hide key. Click, press new keys, then Confirm";
             quietKeys = Make("Quiet: Ctrl + Alt + P", 28, 787, 328, 22, delegate { PickKeys(4); });
             quietKeys.AccessibleName = "Her quiet key: she only talks when you talk to her until you press it again. Click, press new keys, then Confirm";
+            gameKeys = Make("Gaming Mode: Ctrl + Alt + G", 28, 815, 328, 22, delegate { PickKeys(5); });
+            gameKeys.AccessibleName = "Her Gaming Mode key: she docks in a small HUD over your game until you close it. Click, press new keys, then Confirm";
             // Only a click ends picking a key, so Enter, Esc and Tab can be her keys too. Confirm and Cancel show in KEYS' band
             // while one is being picked.
             confirmKeys = Make("Confirm", 212, 645, 78, 20, delegate { ConfirmKeys(); });
@@ -521,7 +527,7 @@ namespace CapriDesktop
             cancelKeys = Make("Cancel", 296, 645, 60, 20, delegate { CancelKeys(); });
             cancelKeys.AccessibleName = "Cancel and keep her old keys";
             confirmKeys.Visible = cancelKeys.Visible = false;
-            keysNote = Caption("", 28, 816, small, Faint);
+            keysNote = Caption("", 28, 844, small, Faint);
             keysNote.MaximumSize = new Size(328, 0);
             for (int i = afterVoice; i < Controls.Count; i++) underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             Section("CAPRI >", c, 58);
@@ -586,6 +592,10 @@ namespace CapriDesktop
             perchNote.AutoSize = false;
             perchNote.TextAlign = ContentAlignment.MiddleRight;
             perchNote.Bounds = new Rectangle(28 + c, 756, 328, 18);
+            Section("GAMING >", c, 786);
+            gamingMode = Switch("Gaming Mode", c, 810, delegate { if (!syncing) capri.ToggleGaming(); });
+            gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it";
+            Caption("Her HUD sits top-left over your game until you close it.", 28 + c, 838, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -1181,6 +1191,7 @@ namespace CapriDesktop
             startup.Checked = capri.StartsWithWindows;
             discord.Checked = capri.OnDiscord;
             cursor.Checked = capri.UsesCursor;
+            gamingMode.Checked = capri.GamingOn;
             security.Text = "Security: " + Security.PresetName;
             blackwallNote.Text = Security.Short;
             if (guard != null && !guard.IsDisposed) guard.Sync();
@@ -1990,16 +2001,18 @@ namespace CapriDesktop
             KeyLabels();
         }
 
-        internal void ShowKeys(bool type, bool hide, bool quiet)
+        internal void ShowKeys(bool type, bool hide, bool quiet, bool game = true)
         {
             typeReady = type;
             hideReady = hide;
             quietReady = quiet;
+            gameReady = game;
             KeyLabels();
         }
 
-        internal void Hotkeys(string talk, string mute, string type, string hide, string quiet)
+        internal void Hotkeys(string talk, string mute, string type, string hide, string quiet, string game)
         {
+            gameName = game;
             talkName = talk;
             muteName = mute;
             typeName = type;
@@ -2008,7 +2021,7 @@ namespace CapriDesktop
             KeyLabels();
         }
 
-        // Which of her keys to change: 0 talk, 1 mute mic, 2 type to her, 3 hide or show her, 4 quiet.
+        // Which of her keys to change: 0 talk, 1 mute mic, 2 type to her, 3 hide or show her, 4 quiet, 5 Gaming Mode.
         // Opening another key while one is being picked drops what was pressed, so the old key stays.
         internal void PickKeys(int slot)
         {
@@ -2052,7 +2065,7 @@ namespace CapriDesktop
             capturing = 0;
             pendingMods = -1;
             KeyLabels();
-            KeysNote("Saved. " + (slot == 0 ? talkName + " starts voice chat." : slot == 1 ? muteName + " mutes your mic." : slot == 2 ? typeName + " opens her typing box." : slot == 3 ? hideName + " hides or shows her." : quietName + " keeps her quiet, and lets her talk again.") + (Companion.Swallows(mods, vk) ? " It won't type in other apps while she runs." : Companion.ByMouse(vk) ? " It still does its own job in other apps too." : ""), false);
+            KeysNote("Saved. " + (slot == 0 ? talkName + " starts voice chat." : slot == 1 ? muteName + " mutes your mic." : slot == 2 ? typeName + " opens her typing box." : slot == 3 ? hideName + " hides or shows her." : slot == 5 ? gameName + " turns Gaming Mode on and off." : quietName + " keeps her quiet, and lets her talk again.") + (Companion.Swallows(mods, vk) ? " It won't type in other apps while she runs." : Companion.ByMouse(vk) ? " It still does its own job in other apps too." : ""), false);
         }
 
         internal void CancelKeys()
@@ -2066,7 +2079,7 @@ namespace CapriDesktop
 
         internal bool ConfirmReady { get { return confirmKeys.Visible && confirmKeys.Enabled; } }
 
-        private Control PickedKey { get { return capturing == 1 ? talkKeys : capturing == 2 ? muteKeys : capturing == 3 ? typeKeys : capturing == 4 ? hideKeys : capturing == 5 ? quietKeys : null; } }
+        private Control PickedKey { get { return capturing == 1 ? talkKeys : capturing == 2 ? muteKeys : capturing == 3 ? typeKeys : capturing == 4 ? hideKeys : capturing == 5 ? quietKeys : capturing == 6 ? gameKeys : null; } }
 
         private static bool WinHeld() { return (Native.GetKeyState(0x5B) & 0x8000) != 0 || (Native.GetKeyState(0x5C) & 0x8000) != 0; }
 
@@ -2112,6 +2125,7 @@ namespace CapriDesktop
             typeKeys.Text = capturing == 3 ? PickingText("Type: ") : "Type: " + typeName + (typeReady ? "" : " (taken)");
             hideKeys.Text = capturing == 4 ? PickingText("Hide/show: ") : "Hide/show: " + hideName + (hideReady ? "" : " (taken)");
             quietKeys.Text = capturing == 5 ? PickingText("Quiet: ") : "Quiet: " + quietName + (quietReady ? "" : " (taken)");
+            gameKeys.Text = capturing == 6 ? PickingText("Gaming Mode: ") : "Gaming Mode: " + gameName + (gameReady ? "" : " (taken)");
             confirmKeys.Visible = cancelKeys.Visible = capturing != 0;
             confirmKeys.Enabled = pendingMods >= 0;
             confirmKeys.Invalidate();
@@ -2129,6 +2143,8 @@ namespace CapriDesktop
         internal string KeyStatus { get { return shortcut.Text + " | " + muteShortcut.Text; } }
         internal string KeysShown { get { return talkKeys.Text + " | " + muteKeys.Text + " | " + typeKeys.Text + " | " + hideKeys.Text; } }
         internal string QuietKeyShown { get { return quietKeys.Text; } }
+        internal string GameKeyShown { get { return gameKeys.Text; } }
+        internal bool GamingShown { get { return gamingMode.Checked; } }
 
         internal void ShowMic(string name)
         {
