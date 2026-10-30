@@ -42,6 +42,8 @@ namespace CapriDesktop
         // Her side of it: the game in front, or null; whether she's free to talk; her fastest eyes; her voice; a look at the screen.
         internal static Func<string> Game = delegate { return null; };
         internal static Func<bool> Free = delegate { return false; };
+        // A brain that can't see still gets what a game's log said, but a flash with no picture is nothing to go on.
+        internal static Func<bool> Sees = delegate { return true; };
         internal static Func<string, string, byte[][], string> See;
         internal static Action<string, string, GameMood> Speak;
         internal static Func<byte[]> Shot = delegate { return null; };
@@ -77,6 +79,11 @@ namespace CapriDesktop
         {
             int pace = Pace;
             if (pace == Off || string.IsNullOrEmpty(kind)) return false;
+            if (!Sees())
+            {
+                if (string.IsNullOrEmpty(detail)) return false;
+                frameBefore = frameAfter = null;
+            }
             int now = Clock();
             lock (gate) if (thinking || !Due(kind, pace, now)) return false;
             string game = Game();
@@ -113,7 +120,7 @@ namespace CapriDesktop
                 if (after != null) frames.Add(Shrunk(after));
                 line = Line(See(Brain.Character + Rules, Ask(kind, detail, game, recent, pace, frames.Count), frames.ToArray()), recent);
             }
-            catch (Exception error) { if (!(error is System.Net.WebException)) Brain.Log("comment", -1, error.GetType().Name + ": " + error.Message); }
+            catch (Exception error) { if (!(error is System.Net.WebException) && !(error is BrainException)) Brain.Log("comment", -1, error.GetType().Name + ": " + error.Message); }
             bool keep = line.Length > 0 && took.ElapsedMilliseconds <= Late && Pace != Off && Free();
             lock (gate)
             {
@@ -374,6 +381,7 @@ namespace CapriDesktop
             Commentary.Pace = CommentPace;
             Commentary.Game = GameAhead;
             Commentary.Free = CommentFree;
+            Commentary.Sees = delegate { return Unseeing() == null; };
             Commentary.See = delegate(string system, string ask, byte[][] frames) { return AskHead(system, ask, 120, frames); };
             Commentary.Speak = delegate(string line, string kind, GameMood mood) { Post(delegate { CommentSay(line, kind, mood); }); };
             Commentary.Shot = CommentShot;

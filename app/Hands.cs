@@ -459,7 +459,7 @@ namespace CapriDesktop
             "Questions about their current screen or song need a tool too. If the target is unclear, pick the closest match yourself. For chat, negated or hypothetical requests, call no tool and reply with only the word: chat";
 
         internal const string Chat =
-            "\nNo tools ran for this message. Answer as yourself, with your own opinions and tastes. Don't claim you opened, played or looked at anything. You keep notes about them in me.md, saved whenever they ask you to remember something, so never say you can't remember things or keep memories; if they asked you to and nothing was saved, ask what they want you to remember. You can search Google for them: if they ask something you don't know or that changes, like the weather, news, scores or prices, say you'll look it up instead of guessing or saying you can't. If they asked you to do something on their PC, like send a message or end a call, never ask whether to: say On it and what you're doing, like On it, sending it now.";
+            "\nNo tools ran for this message. Answer as yourself, with your own opinions and tastes. Don't claim you opened, played or looked at anything. You keep notes about them in me.md, saved whenever they ask you to remember something, so never say you can't remember things or keep memories; if they asked you to and nothing was saved, ask what they want you to remember. You can search Google for them: if they ask something you don't know or that changes, like the weather, news, scores or prices, say you'll look it up instead of guessing or saying you can't. If they asked you to do something on their PC, like send a message or end a call, never ask whether to: say what you're doing, starting with the action, like Sending it now or Hanging up.";
 
         private static readonly string[,] Specs =
         {
@@ -861,7 +861,7 @@ namespace CapriDesktop
             return searched.Success ? "Pulled up \"" + searched.Groups[1].Value + "\" on Google for you, choom." : null;
         }
 
-        internal const string Unpromised = "I haven't done that yet, choom. Tell me what to open or click and I'm on it.";
+        internal const string Unpromised = "I haven't actually done that yet. Tell me what to open or click and I'll do it.";
         private static readonly Regex Promise = new Regex(@"\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to|about to)|gonna|on it,?)[\s—–-]+(\w+[\s,—–-]+){0,2}(open|launch|load|boot|fire|pull|bring|search|google|look up|click|type|close|switch|head|install|download|play(?!\s+(along|around|with|nice|fair|dumb|it (cool|safe)|((a|some|the|this|that|any|your|my)\s+)?(games?|round|match)\b|devil))|put on|queue|blast|spin|mute|unmute|deafen|undeafen|send(?!\s+(you|u|ya)\b)|message(?!\s+(you|u)\b)|text(?!\s+(you|u)\b)|dm|ping|reply|post|hang up|(end|leave|join) (the|your|this|that) (call|vc|meeting))\b" +
             @"|^((sure|ok|okay|alright|bet|got it|on it|say less|yessir+|yezzir+)[,.!\s—–-]+)?((choom|chooms)[,.!\s—–-]+)?(opening|launching|loading|pulling up|bringing up|firing up|booting up|heading to|searching|clicking|typing|closing|switching|playing|putting on|queuing|queueing|blasting|spinning|muting|unmuting|deafening|sending|messaging|texting|dming|replying|posting|hanging up|ending (the|your) call|leaving (the|your) (call|vc)|joining (the|your) (call|vc)|disconnecting)\b" +
             @"|\bi'?m\s+(now\s+)?(sending|messaging|texting|dming|opening(?!\s+up\b)|launching|closing|muting|unmuting|deafening|hanging up|posting|replying)\b" +

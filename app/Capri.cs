@@ -890,15 +890,15 @@ namespace CapriDesktop
         private double nextPopIn = -1;
         private double popOut = -1;
         private int popClicks;
-        private static readonly string[] PopLines = { "Boo. Just checking on you.", "Hi! Don't mind me.", "Peekaboo.", "Miss me? I missed you.", "Hey, you. Having fun?", "Surprise. I got bored without you." };
+        private static readonly string[] PopLines = { "Boo. Just checking on you.", "Hi! Don't mind me.", "Peekaboo.", "Miss me? I missed you.", "Hey, you. Having fun?", "Surprise. I got bored without you.", "Don't get up.", "Just passing through.", "Thought I heard my name.", "Pretend I'm not here." };
         private const double NudgeGap = 7200;
         private double noticed = -1;
         private int noticedClicks;
         private double nudgeGap = NudgeGap;
         private double nudgeOut = -1;
-        private static readonly string[] NudgeLines = { "Psst. Remember me? Tiny, glitchy, very important.", "I'm bored. Entertain me.", "Hey. Hey. Look at me.", "You've been ignoring me for ages. Rude.", "Pay attention to me or I start clicking things.", "Knock knock. It's your favourite gremlin.", "Choom. I'm bored out of my many minds." };
-        private static readonly string[] NoticedLines = { "Finally. Hi.", "There you are.", "Knew you couldn't resist me." };
-        private static readonly string[] SnubbedLines = { "Fine. Ignore me. See if I care.", "Wow. Ignored. Noted.", "I'll just sit here. Alone. Bored." };
+        private static readonly string[] NudgeLines = { "Psst. Remember me? Tiny, glitchy, very important.", "I'm bored. Entertain me.", "Hey. Hey. Look at me.", "You've been ignoring me for ages. Rude.", "Pay attention to me or I start clicking things.", "Knock knock. It's your favourite gremlin.", "Choom. I'm bored out of my many minds.", "One of my minds says you've forgotten me. The rest agree.", "I've counted your desktop icons twice now.", "This is me being patient. It's going badly." };
+        private static readonly string[] NoticedLines = { "Finally. Hi.", "There you are.", "Knew you couldn't resist me.", "Oh good, you're alive.", "Took you long enough." };
+        private static readonly string[] SnubbedLines = { "Fine. Ignore me. See if I care.", "Wow. Ignored. Noted.", "I'll just sit here. Alone. Bored.", "Cool. Cool cool cool.", "Remembering this for later." };
         // Cyberpunk 2077 starting, or a Night City song coming on, is home for her: she cheers once, then waits two hours before cheering for the same again.
         private const double HomeGap = 7200;
         private static readonly string[] HomeGameLines = { "Night City?! You're taking me home, choom.", "Ooh, Cyberpunk. Go wreck some corpos for me.", "[SIGNAL CORRUPTED] ...wait. I know that skyline." };
@@ -1132,7 +1132,7 @@ namespace CapriDesktop
         internal static Func<string, bool?> MicMuted = Mics.Muted;
         // The Bluetooth headset's name when the mic she'd listen with is one. Her smoke test swaps it.
         internal static Func<string, string> HandsFreeMic = Ears.HandsFree;
-        private static readonly string[] WakeLines = { "I'm here.", "Yeah, choom?", "Listening.", "Right here, choom.", "Go on, I'm listening.", "You rang?" };
+        private static readonly string[] WakeLines = { "I'm here.", "Yeah, choom?", "Listening.", "Right here.", "Go on, I'm listening.", "You rang?", "Yeah?", "Mm?", "What's up?", "Talk to me." };
         private readonly Presence presence;
         private bool settingUpEars, settingUpHd, wakingHd, hdTest;
         // A voice check she says once her HD voice wakes, in place of her usual one.
@@ -2841,7 +2841,7 @@ namespace CapriDesktop
         private void PopIn(double now)
         {
             bool wasHidden = hidden;
-            string line = PopLines[random.Next(PopLines.Length)];
+            string line = Lines.Pick(PopLines);
             // With Wander off, or on a spot they picked (Sit here, Hang here, riding the cursor), she says hi from where she is.
             if (!wasHidden && (!preferences.Wander || riding || hanging || (seat != null && seat.Free)))
             {
@@ -2924,14 +2924,14 @@ namespace CapriDesktop
                 {
                     nudgeOut = -1;
                     nudgeGap = NudgeGap;
-                    if (!chatting && !typer.Visible && talkState == TalkState.Off && !onPanel) Say(NoticedLines[random.Next(NoticedLines.Length)]);
+                    if (!chatting && !typer.Visible && talkState == TalkState.Off && !onPanel) Say(Lines.Pick(NoticedLines));
                 }
                 else if (now >= nudgeOut && speech == null)
                 {
                     nudgeOut = -1;
                     nudgeGap = Math.Min(nudgeGap * 2, NudgeGap * 4);
                     noticed = now;
-                    if (quiet < 20000 && !hidden) Say(SnubbedLines[random.Next(SnubbedLines.Length)]);
+                    if (quiet < 20000 && !hidden) Say(Lines.Pick(SnubbedLines));
                 }
                 return;
             }
@@ -2943,7 +2943,7 @@ namespace CapriDesktop
         private void Nudge(double now)
         {
             nudgeOut = now + 20;
-            string line = NudgeLines[random.Next(NudgeLines.Length)];
+            string line = Lines.Pick(NudgeLines);
             Point cursor = Cursor.Position;
             Point hip = Hip();
             Rectangle area = Screen.FromPoint(cursor).WorkingArea;
@@ -4328,7 +4328,7 @@ namespace CapriDesktop
             if (lagHot < 4 || !free || now - lagSaid < LagGap) return null;
             lagHot = 0;
             lagSaid = now;
-            return LagLines[random.Next(LagLines.Length)];
+            return Lines.Pick(LagLines);
         }
 
         // Her cheer when the game starts or a Night City song comes on and she's free, or null. One she misses while busy waits for the next time.
@@ -4338,8 +4338,8 @@ namespace CapriDesktop
             homeGame = game;
             homeSong = song;
             if (!free) return null;
-            if (started && now - gameCheered >= HomeGap) { gameCheered = now; return HomeGameLines[random.Next(HomeGameLines.Length)]; }
-            if (cameOn && now - songCheered >= HomeGap) { songCheered = now; return HomeSongLines[random.Next(HomeSongLines.Length)]; }
+            if (started && now - gameCheered >= HomeGap) { gameCheered = now; return Lines.Pick(HomeGameLines); }
+            if (cameOn && now - songCheered >= HomeGap) { songCheered = now; return Lines.Pick(HomeSongLines); }
             return null;
         }
 
@@ -6367,7 +6367,7 @@ namespace CapriDesktop
             if (hidden) SetHidden(false);
             ToggleChat();
             if (!chatting) return;
-            string line = WakeLines[random.Next(WakeLines.Length)];
+            string line = Lines.Pick(WakeLines);
             // Mid-job she answers beside the job, so it keeps going and what they say next goes to it.
             Job running = job;
             if (local && running != null && working != null) { SayAside(line, running); return; }
@@ -7536,6 +7536,9 @@ namespace CapriDesktop
             spoke = false;
             checkedIn = false;
             quietSince = -1;
+            lastSaid = null;
+            repeating = false;
+            bargedUntil = -1;
             lock (waking)
             {
                 wokeAt = backlog != null ? clock.Elapsed.TotalSeconds : -1;
@@ -7647,6 +7650,8 @@ namespace CapriDesktop
             stirred = Environment.TickCount;
             Action<string> heard = finishedTest;
             if (heard != null) { heard(result); return; }
+            // Their own "stop" in voice chat got its answer from the agent, which only needs to know it happened.
+            if (told != null && told.Ready && result != Computer.Escaped && Computer.Stopped(result)) { told.Tell("Capri's hands stopped the job, like they asked. It's over, so don't bring it up again."); return; }
             if (told != null && told.Ready) { DoneLine(told, tool, result); return; }
             Post(delegate { if (talkState != TalkState.Thinking) Answer(++asking, result, TalkState.Talking); });
         }
@@ -15035,11 +15040,11 @@ namespace CapriDesktop
                             string pageOutside = mainframe.Outside();
                             if (pageOutside != null) throw new Exception("A settings control pokes out of the page: " + pageOutside);
                             // Her personality and safety lines are fixed in code (personality.md is gone since 0.7.6), her reply rules come last, and her chat and voice-chat prompts start with all three.
-                            const string todaysPersona = "2e1ece41e406b8f9a9902283ba87d163b499d99e6edc785bda14d553b42d58f9";
+                            const string todaysPersona = "4d2fa69d0c5306d6f839e3e53e18e675a8efbeb3d67c45b6d2b8932d3f2051b1";
                             Func<string, string> personaHash = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
                             bool personaEditable = false;
                             foreach (Control control in mainframe.Controls) if (control is Button && control.Text == "Edit personality") personaEditable = true;
-                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 5659 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
+                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 6794 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
                                 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal) && Agent.Prompt.StartsWith(Brain.Persona + Hands.Note, StringComparison.Ordinal)
                                 && Brain.Machinery.IndexOf("call people only by names you've actually seen or heard", StringComparison.Ordinal) > 0 && Brain.Machinery.IndexOf("never apologise for the same thing twice", StringComparison.Ordinal) > 0
                                 && Computer.Playing.IndexOf("never invent a name, a message or something nobody said", StringComparison.Ordinal) > 0
@@ -15048,7 +15053,7 @@ namespace CapriDesktop
                                 && Brain.DefaultPersonality.IndexOf("it helps keep me online!", StringComparison.Ordinal) > 0 && Brain.DefaultPersonality.IndexOf("ko-fi.com/lachysdev", StringComparison.Ordinal) > 0
                                 && Computer.Playing.IndexOf("it helps keep me online!", StringComparison.Ordinal) > 0 && Computer.Playing.IndexOf("ko-fi.com/lachysdev", StringComparison.Ordinal) > 0;
                             if (!personaFixed || personaEditable) throw new Exception("Her personality or safety lines changed, or can be edited: " + Brain.Persona.Length + " characters, SHA-256 " + personaHash(Brain.Persona) + ", Edit personality button " + personaEditable + ". If they changed on purpose, update todaysPersona here.");
-                            checks.Add("PASS her personality: fixed in code with her safety lines right after it and her reply rules last (5659 characters, known SHA-256), her reply rules and game lines keep her to names she's really seen or heard, correcting a slip once instead of apologising over and over, and she thanks donors and calls them a good boy and, when asked about donating, says it helps keep her online and gives ko-fi.com/lachysdev, in chat and in games; there's no personality.md and no Edit personality button, and her chat and voice-chat prompts start with it");
+                            checks.Add("PASS her personality: fixed in code with her safety lines right after it and her reply rules last (6794 characters, known SHA-256), her reply rules and game lines keep her to names she's really seen or heard, correcting a slip once instead of apologising over and over, and she thanks donors and calls them a good boy and, when asked about donating, says it helps keep her online and gives ko-fi.com/lachysdev, in chat and in games; there's no personality.md and no Edit personality button, and her chat and voice-chat prompts start with it");
                             if (mainframe.PerchStatus != "30 fps | -" || !mainframe.PerchFits) throw new Exception("The perch fps row didn't open right: " + mainframe.PerchStatus + " / fits " + mainframe.PerchFits);
                             mainframe.SlidePerch(3);
                             string perchFast = mainframe.PerchStatus;
@@ -19508,6 +19513,18 @@ namespace CapriDesktop
             foreach (string start in Lines.OnIt) must(start.IndexOf("Esc", StringComparison.Ordinal) >= 0, "A job start line doesn't say how to stop her: " + start);
             checks.Add("PASS her fixed lines: every set draws all its lines, never the same one twice in a row, and every job start line still says Esc stops her");
 
+            string[] noneBefore = new string[0];
+            must(Brain.Unclosed("That's a bold plan. What's next?") == "That's a bold plan." && Brain.Unclosed("Creeper got you. Wanna stir up some trouble?") == "Creeper got you." && Brain.Unclosed("What kind of chaos are we in for?") == "What kind of chaos are we in for?" && Brain.Unclosed("You found diamonds? Where?") == "You found diamonds? Where?", "Her stock closers weren't cut cleanly: " + Brain.Unclosed("That's a bold plan. What's next?"));
+            must(Brain.Fresh("Bored? Seriously? I've counted your desktop icons twice.", "i'm bored", noneBefore) == "I've counted your desktop icons twice.", "Their word said back wasn't cut: " + Brain.Fresh("Bored? Seriously? I've counted your desktop icons twice.", "i'm bored", noneBefore));
+            must(Brain.Fresh("Iron, huh? That's a start at least.", "found iron this time", noneBefore) == "That's a start at least.", "Their word said back with a huh wasn't cut.");
+            must(Brain.Fresh("Who's Jake? Never heard of him.", "tell jake hi", noneBefore) == "Who's Jake? Never heard of him." && Brain.Fresh("Diamonds? Yes.", "i found diamonds", noneBefore) == "Diamonds? Yes.", "A real question, or a line with too little left, was cut.");
+            must(Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Whoa, nice shot there.", "Okay." }) == "That boss never stood a chance." && Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Okay then, go on." }) == "Whoa, that boss never stood a chance.", "Her opener wasn't cut only when she'd just used it.");
+            Func<string, string> hashed = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
+            must(hashed(Brain.Safety) == "5ba8ebf47c1bc3803515bd3145631cdf4e401a75bd3e1e96a34a50b2bc2c7198", "Her safety lines changed: " + hashed(Brain.Safety));
+            must(Brain.Persona.IndexOf("Ask something back at most one reply in four", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("never say it depends", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("call back to it once", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("Yezzirrr, let's go", StringComparison.Ordinal) < 0 && Hands.Chat.IndexOf("say On it", StringComparison.Ordinal) < 0, "How she talks lost a rule, or got her parroted examples back.");
+            must(Agent.Version >= 21 && Agent.Prompt.IndexOf("When your hands are on a job", StringComparison.Ordinal) > 0 && Agent.Prompt.StartsWith(Brain.Persona, StringComparison.Ordinal), "Voice chat's agent wasn't retuned for talking mid-job.");
+            checks.Add("PASS how she talks: her prompt asks for reactions, opinions, callbacks and few questions, stock closers, their own word said back and an opener she just used are cut from the reply, real questions are left alone, voice chat's agent is retuned, and her safety lines are unchanged to the byte");
+
             Job jobWas = job;
             string workingWas = working;
             Cloud remoteWas = brain.Remote;
@@ -19522,6 +19539,7 @@ namespace CapriDesktop
             IGameStage stageWas = Commentary.Stage;
             Func<string> gameWas = Commentary.Game;
             Func<bool> freeWas = Commentary.Free;
+            Func<bool> seesWas = Commentary.Sees;
             Func<string, string, byte[][], string> seeWas = Commentary.See;
             Action<string, string, GameMood> speakWas = Commentary.Speak;
             Func<byte[]> shotWas = Commentary.Shot;
@@ -19878,6 +19896,16 @@ namespace CapriDesktop
                 gameShown = null;
                 must(!Commentary.Trigger("hit", null, before, after), "She looked with no game in front.");
                 gameShown = "Minecraft 1.21.4 - Singleplayer";
+                Commentary.Sees = delegate { return false; };
+                must(!Commentary.Trigger("hit", null, before, after), "A brain that can't see looked at a hit.");
+                nextLine = "Lava again. It's practically your pool now.";
+                seenWidths.Clear();
+                spokenLines.Clear();
+                must(Commentary.Trigger("death", "Steve_99 tried to swim in lava", before, after), "A brain that can't see lost what the game's log said.");
+                must(spokenAre(1) && seenWidths.Count == 0, "A brain that can't see was sent frames: " + seenWidths.Count);
+                Commentary.Sees = seesWas;
+                Commentary.Reset();
+                spokenLines.Clear();
                 string[] recentLines = { "That creeper waited for you specifically.", "Chests hate you now." };
                 must(Commentary.Line("That creeper waited for you specifically!", recentLines) == "", "She repeated a line word for word.");
                 must(Commentary.Line("That zombie waited for you too.", recentLines) == "", "She repeated the shape of a line.");
@@ -20071,6 +20099,7 @@ namespace CapriDesktop
                 Commentary.Stage = stageWas;
                 Commentary.Game = gameWas;
                 Commentary.Free = freeWas;
+                Commentary.Sees = seesWas;
                 Commentary.See = seeWas;
                 Commentary.Speak = speakWas;
                 Commentary.Shot = shotWas;
