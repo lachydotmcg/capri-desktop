@@ -484,7 +484,7 @@ namespace CapriSetup
             LabelAt(removing ? "REMOVE CAPRI" : "INSTALL CAPRI", 24, 14, 420, 32, Neon.Display(15f), Neon.Rose);
             Glyph(1, 680 - 86, delegate { WindowState = FormWindowState.Minimized; });
             Glyph(2, 680 - 54, delegate { Close(); });
-            LabelAt(removing ? "See you around." : "A little company.\nZero noise.", 32, 64, 420, 124, Neon.Display(30f), Neon.White);
+            LabelAt(removing ? "See you around." : "Unofficial\nDesktop Mate!", 32, 64, 420, 124, Neon.Display(30f), Neon.White);
             chip = new PictureBox();
             chip.Bounds = Box(462, 74, 180, 112);
             chip.SizeMode = PictureBoxSizeMode.Zoom;
