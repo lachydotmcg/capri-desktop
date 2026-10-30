@@ -450,6 +450,7 @@ namespace CapriDesktop
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You don't chat.\n" +
             "Act only on their latest request. Earlier messages are context for names, not commands to repeat. Call one tool for each thing they ask for, however many there are (open Discord, Spotify and Steam is three open_app calls): open an app, game or website, search a site, play music, control media or volume, check the current song, switch to, minimize or close an app, or look at their screen when asked about it. Use the names they gave.\n" +
             "If the job needs clicking, typing or more than one step, like opening an app and then searching, going somewhere or making something in it, call use_computer once with the whole job in their words.\n" +
+            "You play games on their PC yourself with their mouse and keyboard, so when they want you to play a game, or say let's play, in any language, that's a job: call open_app if it isn't open yet, or use_computer once it's open or there's more to do.\n" +
             "Sending a message, DM, reply or post, joining, leaving or ending a call, and any other job inside an app are use_computer jobs: pass their exact words, including what to send. They asked, so it's a job even when it sends, deletes or ends something.\n" +
             "When they name an app, never guess a website for it: use open_app, or use_computer if there's more to do.\n" +
             "If they leave the pick to you, like a song or a video, pick one yourself that fits.\n" +
@@ -465,7 +466,19 @@ namespace CapriDesktop
             "Questions about their current screen or song need a tool too. If the target is unclear, pick the closest match yourself. For chat, negated or hypothetical requests, call no tool and reply with only the word: chat";
 
         internal const string Chat =
-            "\nNo tools ran for this message. Answer as yourself, with your own opinions and tastes. Don't claim you opened, played or looked at anything. You keep notes about them in me.md, saved whenever they ask you to remember something, so never say you can't remember things or keep memories; if they asked you to and nothing was saved, ask what they want you to remember. You can search Google for them: if they ask something you don't know or that changes, like the weather, news, scores or prices, say you'll look it up instead of guessing or saying you can't. If they asked you to do something on their PC, like send a message or end a call, never ask whether to: say On it and what you're doing, like On it, sending it now.";
+            "\nNo tools ran for this message. Answer as yourself, with your own opinions and tastes. Don't claim you opened, played or looked at anything. You keep notes about them in me.md, saved whenever they ask you to remember something, so never say you can't remember things or keep memories; if they asked you to and nothing was saved, ask what they want you to remember. You can search Google for them: if they ask something you don't know or that changes, like the weather, news, scores or prices, say you'll look it up instead of guessing or saying you can't. You can always see their screen and use their mouse and keyboard, and you play games on their PC yourself, so never say you can't, never ask them to show you their screen, and never offer to talk them through something instead of doing it. If they want anything done on their PC or in a game, in any language, like opening something, sending something, playing a game or clicking something, never ask whether to: reply with only the word: act";
+
+        // Chat when her brain said "act" but her hands found nothing to do: she just answers.
+        internal static string ChatOnly { get { return Chat.Substring(0, Chat.LastIndexOf(" If they want anything done", StringComparison.Ordinal)); } }
+
+        // Her chat brain's one-word answer that this message is a job, which works in every language.
+        internal static bool Handed(string reply) { return Regex.IsMatch(reply ?? "", @"^\W*act\W*($|\n)", RegexOptions.IgnoreCase); }
+
+        // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it.
+        internal static string GameNote(string game)
+        {
+            return string.IsNullOrEmpty(game) ? "" : "\nThe game open on their PC right now is " + Voice.Quote(game) + ". If they want you to play, or want anything done in it, like starting a match, picking a mode or clicking something, call use_computer with their words, and don't open it again.";
+        }
 
         private static readonly string[,] Specs =
         {
@@ -514,7 +527,7 @@ namespace CapriDesktop
             @"|^(end|leave|hang up|disconnect( from)?|join|accept|decline|pick up|answer|reject|hop (in|on|off)|get off) (the |my |this |that |a |our |their )?(\w+('s)? )?(call|vc|voice (chat|channel|call)|video call|meeting|stream|server|channel)\b|^(hang up|disconnect|hop off|get off)( (the )?(call|vc))?$" +
             @"|^(see|tell me|show me) (what|which)\b|^see (this|that|my screen|the screen)\b|^what('?s| is) (on my screen|on the screen|playing|this song|this track|the song|on spotify)\b" +
             @"|^what ((song|track)( is|'s)? (this|playing|on)|am i (doing|playing|watching|listening)|are we (doing|playing|watching|listening)|do you see|can you see)\b|^what do you think (of|about) (this|that|it|my (build|skin|setup))\b|^do you (see|like) (this|that|my (build|skin|setup))\b" +
-            @"|^(i (want|need|wanna|would like) (you to |to )?(open|launch|play|listen|watch|search|remember|forget|mute|unmute|deafen)|^(deafen|undeafen|keep in mind|make a note)|let's (play|listen|watch)|find (me )?.+ (on|online)|can (you|u) see)\b" +
+            @"|^(i (want|need|wanna|would like) (you to |to )?(open|launch|play|listen|watch|search|remember|forget|mute|unmute|deafen)|^(deafen|undeafen|keep in mind|make a note)|let'?s (go )?(play|listen|watch)|go play|find (me )?.+ (on|online)|can (you|u) see)\b" +
             "|" + LookupWords +
             @"|^(ouvre|ouvrir|lancer?|d[ée]marrer?|fermer?|quitter?|r[ée]duis|r[ée]duire|minimiser?|chercher?|rechercher?|mets|mettre|jouer?|passer?|couper?|augmenter?|baisser?|regarder?|afficher?|montre-moi|va sur|aller sur|retourne sur)\b" +
             @"|^(tu vois|qu'est-ce que (tu vois|je fais)|c'est quoi (cette|la) (chanson|musique)|quelle (chanson|musique)|qu'est-ce qu'il y a sur mon [ée]cran)\b" +
@@ -873,7 +886,7 @@ namespace CapriDesktop
             @"|\bi'?m\s+(now\s+)?(sending|messaging|texting|dming|opening(?!\s+up\b)|launching|closing|muting|unmuting|deafening|hanging up|posting|replying)\b" +
             @"|^\W*((ok|okay|sure|bet|alright)[,.!\s—–-]+)?(i'?m\s+)?on it\b|\b(call|vc|message|dm|text)\s+(ended|sent|posted)\b" +
             // The same promise in her other big languages ("Otwieram YouTube!" with nothing opened, a Polish tester, 30 Oct).
-            @"|^\W*((ok|okej|okay|jasne|dobra|spoko|już|juz|sure|vale|claro|vamos|d'accord|ok[eé]|alles klar|klar|certo|va bene|хорошо|ладно|окей|сейчас)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(otwieram|odpalam|włączam|wlaczam|uruchamiam|puszczam|zamykam|wysyłam|wysylam|otworzę|otworze|włączę|wlacze|odpalę|odpale|puszczę|puszcze|uruchomię|uruchomie|otworzyłam|otworzylam|włączyłam|wlaczylam|odpaliłam|odpalilam|puściłam|puscilam|uruchomiłam|uruchomilam" +
+            @"|^\W*((ok|okej|okay|jasne|dobra|spoko|już|juz|sure|vale|claro|vamos|d'accord|ok[eé]|alles klar|klar|certo|va bene|хорошо|ладно|окей|сейчас)[,.!\s—–-]+)*((choom|chooms|\p{Lu}[\p{L}\p{N}_]{1,23})[,.!\s—–-]+)?(otwieram|odpalam|odpalamy|otwieramy|włączamy|wlaczamy|uruchamiamy|włączam|wlaczam|uruchamiam|puszczam|zamykam|wysyłam|wysylam|otworzę|otworze|włączę|wlacze|odpalę|odpale|puszczę|puszcze|uruchomię|uruchomie|otworzyłam|otworzylam|włączyłam|wlaczylam|odpaliłam|odpalilam|puściłam|puscilam|uruchomiłam|uruchomilam" +
             @"|abriendo|abro|pongo|reproduciendo|abr[ií]|puse|te abro|te pongo|j'ouvre|je lance|je mets|j'ai ouvert|j'ai lanc[ée]|ich [öo]ffne|ich starte|ich spiele|ich habe (\w+\s+){0,3}(ge[öo]ffnet|gestartet)|abrindo|vou abrir|abri|coloquei|apro|metto|ho aperto|открываю|включаю|запускаю|открыла|включила|запустила)(?!\w)" +
             @"|^((done|sorted|there|boom|bet|ok|okay|alright)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(opened|launched|closed|sent(?!\s+(you|u|ya)\b)|messaged|texted|dmed|dm'd|posted|replied|muted|unmuted|deafened|undeafened|hung up|(ended|left|joined) (the|your|this|that) (call|vc|meeting|server|channel))\b", RegexOptions.IgnoreCase);
 
@@ -1022,6 +1035,21 @@ namespace CapriDesktop
         private const string Able = @"(open|launch|start|run|play|pause|resume|skip|control|access|use|search|google|close|mute|unmute|put on|turn (up|down|on|off)|change)\b";
 
         internal static bool Refused(string reply) { return Refusal.IsMatch(Dots((reply ?? "").Replace('’', '\''))); }
+
+        // "I can't click for you, show me the screen and I'll guide you": she has their mouse, keyboard and screen, so it's never true
+        // (a Polish tester, 30 Oct: "Nie mam teraz sterowania komputerem").
+        private static readonly Regex NoHands = new Regex(
+            @"\b(won'?t|will not|not going to|can'?t|cannot) pretend\b|\bshow me (the|your|that)( \w+){0,2} screen\b|\b(send|share|give) me (a |the )?screen ?shot\b|\b(i can|i'?ll|i will|let me|lemme) (walk|talk|guide|coach|lead|steer) you\b" +
+            @"|\bi (can'?t|cannot|can not|don'?t|do not) (actually |really |directly )?(click|press|tap)\b|\bi (can'?t|cannot|can not|don'?t|do not) (actually |really |directly )?(control|drive|use|touch|move|reach|play)\b[^.!?]{0,30}\b(for you|your (pc|computer|mouse|keyboard|game|screen)|the (mouse|keyboard|game))\b" +
+            @"|\bnie mam (teraz |tutaj |tu |obecnie )?(sterowania|kontroli|dost[ęe]pu|mo[żz]liwo[śs]ci|r[ąa]k)(?!\w)|\bnie (uruchomi[ęe]|otworz[ęe]|w[łl][ąa]cz[ęe]|odpal[ęe]|klikn[ęe]|zagram)(?!\w)|\bnie mog[ęe] (tego )?(klikn[ąa][ćc]|nacisn[ąa][ćc]|zagra[ćc]|sterowa[ćc]|kontrolowa[ćc])(?!\w)|\bpoka[żz] mi (\w+ ){0,2}ekran(?!\w)|\bprzeprowadz[ęe] ci[ęe](?!\w)" +
+            @"|\bno tengo (control|manos|forma de (controlar|hacer clic))(?!\w)|\bno puedo (hacer clic|clicar|pulsar|jugar|controlar)(?!\w)|\bmu[ée]strame (la|tu) pantalla(?!\w)|\bte gu[ií]o(?!\w)" +
+            @"|\bje n'ai pas (le contr[oô]le|de contr[oô]le|de mains)(?!\w)|\bje ne peux pas (cliquer|appuyer|jouer|contr[oô]ler)(?!\w)|\bmontre-moi (ton |l')[ée]cran(?!\w)|\bje (te|vais te) guide(r)?(?!\w)" +
+            @"|\bich habe keine (kontrolle|h[äa]nde)(?!\w)|\bich kann (\w+\s+){0,3}nicht (klicken|dr[üu]cken|steuern)(?!\w)|\bzeig mir (deinen|den) bildschirm(?!\w)" +
+            @"|\bn[ãa]o tenho (controle|controlo|m[ãa]os)(?!\w)|\bn[ãa]o (consigo|posso) (clicar|controlar|apertar)(?!\w)|\bme mostr[ae] (a|sua|tua) tela(?!\w)" +
+            @"|\bnon ho (il )?controllo(?!\w)|\bnon (posso|riesco a) (cliccare|premere)(?!\w)|\bmostrami (lo|il tuo) schermo(?!\w)" +
+            @"|(?<!\w)не могу (нажать|кликнуть|управлять)(?!\w)|(?<!\w)нет (управления|контроля)(?!\w)|(?<!\w)покажи (мне )?экран(?!\w)", RegexOptions.IgnoreCase);
+
+        internal static bool Denied(string reply) { return NoHands.IsMatch((reply ?? "").Replace('’', '\'')); }
 
         // Burmese can store a dot below and an asat on one letter in either order, so they're put in one order to match.
         private static string Dots(string text) { return text.Replace("\u103A\u1037", "\u1037\u103A"); }
@@ -1362,7 +1390,12 @@ namespace CapriDesktop
             string[] sentences = Regex.Split((said ?? "").Trim(), @"(?<=[.!?])\s+");
             if (sentences.Length > 1) tries.Add(sentences[sentences.Length - 1]);
             tries.Add(said ?? "");
-            foreach (string attempt in tries) if (Direct(attempt, out tool, out args)) return true;
+            foreach (string attempt in tries)
+                if (Direct(attempt, out tool, out args))
+                {
+                    if (tool == "media" && Regex.IsMatch(attempt, @"\b(keep|carry on|continue|go on) playing\b", RegexOptions.IgnoreCase) && Computer.GameOpen() != null) break;
+                    return true;
+                }
             tool = null;
             args = new ToolArguments();
             return false;
@@ -1429,6 +1462,7 @@ namespace CapriDesktop
             if (found.Success)
             {
                 string target = found.Groups[1].Value.Trim();
+                if (Regex.IsMatch(target, @"^(the|this|that|my|our) (game|match|round|level|map)\b", RegexOptions.IgnoreCase)) return false;
                 if (!found.Groups[3].Success && Installed(target)) { tool = "open_app"; args.Name = target; return true; }
                 if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
                 // "play the wasd minigame" is a game, not a song to search Spotify for (a tester, 30 Oct), and so is a game that's open.

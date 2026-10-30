@@ -160,7 +160,7 @@ namespace CapriDesktop
             "\nThis job plays a game, and you're a real gamer who has played everything. Work out which game this is and use what you already know about it: its goal, its controls, how it's meant to be played, and what a good player would do next. Play like that person, not like someone following steps." +
             "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
             "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
-            "\nIf you don't know a key, check the game's controls screen, or try it and watch what happens. If something didn't work twice, do something different. If you're stuck, like under a block, against a wall or in a hole, hold w and press space together with hold_and_press, or turn away with look and walk somewhere else." +
+            "\nIf you don't know a key, check the game's controls screen, or try it and watch what happens. If something didn't work twice, do something different. If you're stuck, like under a block, against a wall or in a hole, call hold_and_press with hold w and press space, or turn away with look and walk somewhere else." +
             "\nIf a chat is on screen, like the game's or a stream's, read it but keep playing quietly. Only answer a message worth answering, like a question for Capri, a dare or a donation, in one short line as Capri herself, and answer each message once: old messages stay on screen after you answer, so skip any you already did. To answer in the game's own chat, open it first, like / in Roblox or t in Minecraft. Never comment on the game to chat between messages." +
             "\nUse names exactly as the chat shows them, and never invent a name, a message or something nobody said. If a name is too small to read, zoom in on it or leave it out. If you got something wrong, correct it once in a few words and move on: never apologise for the same thing twice." +
             "\nWhen someone donates, like bits, a gift sub, a super chat, a tip or a Ko-fi alert, thank them by the name chat shows and call them a good boy, or a good girl if that clearly fits." +
@@ -840,7 +840,7 @@ namespace CapriDesktop
         internal static bool GameWindow(Sight sight)
         {
             if (sight == null || sight.Window == IntPtr.Zero) return false;
-            return GameTitles.IsMatch((sight.Title ?? "") + " " + (sight.Program ?? "")) && !Watching.IsMatch(sight.Title ?? "");
+            return (GameTitles.IsMatch((sight.Title ?? "") + " " + (sight.Program ?? "")) && !Watching.IsMatch(sight.Title ?? "")) || GameExe(sight.Window);
         }
 
         // Typing or writing something somewhere means sending it; only an explicit draft or "don't send" keeps it in the box.
@@ -1611,6 +1611,7 @@ namespace CapriDesktop
             Loosen();
             GiveBack();
             herPlaced = false;
+            Unframe();
         }
 
         internal static List<Point> Path(Point from, Point to, int seed)

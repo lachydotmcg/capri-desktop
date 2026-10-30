@@ -1159,6 +1159,7 @@ namespace CapriDesktop
             string request = agreed ? recent[0].Content : text;
             bool follows = !agreed && recent.Count == 2 && Hands.Follows(text, recent[0].Content, recent[1].Content);
             bool reached = false;
+            string playing = act != null ? Computer.GameOpen() : null;
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             if (act != null && recent.Count == 2 && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(text.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = text }));
@@ -1169,7 +1170,8 @@ namespace CapriDesktop
                 if (direct == "remember" && directArgs.Action != "forget" && string.IsNullOrEmpty(directArgs.Text) && Hands.Back(request) && before.Length > 0 && !before.StartsWith("(", StringComparison.Ordinal) && !Regex.IsMatch(before, @"\?\s*$")) directArgs.Text = before;
                 calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
             }
-            else if (act != null && (agreed || Hands.Wants(request) || follows))
+            // With a game open, her hands see every message first: "kliknij deathmatch" or "keep going" mean something in it.
+            else if (act != null && (agreed || Hands.Wants(request) || follows || playing != null))
             {
                 reached = true;
                 if (!Hands.Several(request, calls))
@@ -1182,11 +1184,45 @@ namespace CapriDesktop
             if (calls.Count == 0)
             {
                 raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, Budget, ticket);
+                // Her brain says "act" when this is a job, in whatever language they said it. Her hands find what to do, and if they
+                // find nothing she just answers, unless they're in a game or plainly asked.
+                if (act != null && Hands.Handed(Clean(raw)))
+                {
+                    if (!reached)
+                    {
+                        reached = true;
+                        try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket); Hands.Rescue(request, calls); }
+                        catch (BrainException) { calls.Clear(); }
+                    }
+                    if (calls.Count == 0 && (playing != null || Hands.Wants(request))) calls.Add(Hands.Forced(request));
+                    if (calls.Count == 0)
+                    {
+                        messages[0] = new ChatMessage("system", Character + Remembered() + Gap() + Hands.ChatOnly + Now());
+                        raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, Budget, ticket);
+                        if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
+                    }
+                }
+            }
+            if (calls.Count == 0)
+            {
                 ToolArguments lookup = act != null ? Hands.Lookup(text, Clean(raw)) : null;
                 bool hesitant = act != null && Hands.Hesitant(Clean(raw), request);
                 bool refused = act != null && !reached && Hands.Refused(Clean(raw)) && Hands.Requested(request);
+                bool denied = act != null && Hands.Denied(Clean(raw)) && Hands.Requested(request);
+                // "I can't click for you" is never true: her hands get a go, and in a game or on a plain ask they do it whatever those
+                // make of it.
+                if (denied)
+                {
+                    if (!reached)
+                    {
+                        try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket); Hands.Rescue(request, calls); }
+                        catch (BrainException) { calls.Clear(); }
+                    }
+                    if (calls.Count == 0 && (playing != null || Hands.Wants(request))) calls.Add(Hands.Forced(request));
+                    if (calls.Count == 0) raw = Hands.Unpromised;
+                }
                 // "I can't see your screen" is never true: she looks instead.
-                if (act != null && Hands.CantSee(Clean(raw))) calls.Add(new KeyValuePair<string, ToolArguments>("look_at_screen", new ToolArguments { Focus = request }));
+                else if (act != null && Hands.CantSee(Clean(raw))) calls.Add(new KeyValuePair<string, ToolArguments>("look_at_screen", new ToolArguments { Focus = request }));
                 else if (lookup != null && !refused) calls.Add(new KeyValuePair<string, ToolArguments>("open_website", lookup));
                 else if (act != null && (hesitant || Hands.Promised(Clean(raw))))
                 {
@@ -1271,7 +1307,8 @@ namespace CapriDesktop
             string source = remote != null ? remote.Kind + "|" + remote.Model : Local != null ? "local|" + model : Ollama + "|" + model;
             bool native = toolless != source;
             List<ChatMessage> asking = new List<ChatMessage>();
-            asking.Add(new ChatMessage("system", native ? Hands.Prompt : Hands.Prompt + Hands.Listing));
+            string game = Hands.GameNote(Computer.GameOpen());
+            asking.Add(new ChatMessage("system", (native ? Hands.Prompt : Hands.Prompt + Hands.Listing) + game));
             asking.AddRange(recent);
             asking.Add(new ChatMessage("user", text));
             string raw;
@@ -1280,7 +1317,7 @@ namespace CapriDesktop
             {
                 if (!native || !Regex.IsMatch(error.Message, @"does not support tools|tools? (are |is )?(not supported|unsupported)|doesn't support tools", RegexOptions.IgnoreCase)) throw;
                 toolless = source;
-                asking[0] = new ChatMessage("system", Hands.Prompt + Hands.Listing);
+                asking[0] = new ChatMessage("system", Hands.Prompt + Hands.Listing + game);
                 raw = Think(model, asking, false, calls, null, 120, ticket, true);
             }
             string written;

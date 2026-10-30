@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace CapriDesktop
@@ -12,11 +14,16 @@ namespace CapriDesktop
     // real input, so it works the same in any game.
     internal static partial class Computer
     {
-        internal const int GrayWidth = 160, GrayHeight = 90;
+        internal const int GrayWidth = 240, GrayHeight = 135, GrayReach = 40;
         // The newest screenshot her brain saw, so a spot it names can be found on screen.
         internal static Picture Shown;
-        // Pixels a game's view slides per mouse count, measured the first time she looks around in that game.
+        // Pixels a game's view slides per mouse count, measured whenever she looks around in that game.
         private static readonly Dictionary<string, double> viewSpeeds = new Dictionary<string, double>();
+        // Games that look down when the mouse goes up.
+        private static readonly HashSet<string> upsideDown = new HashSet<string>();
+        private static FrameGrab grab;
+        private static Rectangle grabbing;
+        private static readonly object grabGate = new object();
 
         // Moves the mouse the way a real one does. A game's camera reads this, and takes no notice of the cursor being placed.
         internal static Action<int, int> Nudge = delegate(int dx, int dy)
@@ -25,11 +32,39 @@ namespace CapriDesktop
             SendInput(1, inputs, Marshal.SizeOf(typeof(Input)));
         };
 
-        // A small gray copy of that part of the screen, for telling how the view moved.
+        // A small gray copy of that part of the screen, for telling how the view moved. Games show up in the desktop's own frames
+        // where a plain screen copy can get a black window, and that's the fallback when they aren't to be had.
         internal static Func<Rectangle, byte[]> GrayFrame = delegate(Rectangle area)
         {
+            lock (grabGate)
+            {
+                try
+                {
+                    if (grab == null || grabbing != area)
+                    {
+                        if (grab != null) grab.Dispose();
+                        grab = new FrameGrab();
+                        grab.Open(area);
+                        grabbing = area;
+                    }
+                    grab.Next(34);
+                    byte[] gray = grab.Gray(GrayWidth, GrayHeight);
+                    if (gray != null) return gray;
+                }
+                catch (Exception) { Unframe(); }
+            }
             using (Bitmap shot = Copy(area)) return Gray(shot);
         };
+
+        // Lets go of the desktop's frames, once a job's done with them.
+        internal static void Unframe()
+        {
+            lock (grabGate)
+            {
+                if (grab != null) grab.Dispose();
+                grab = null;
+            }
+        }
 
         internal static byte[] Gray(Bitmap shot)
         {
@@ -62,34 +97,13 @@ namespace CapriDesktop
             return (double)different / before.Length;
         }
 
-        // How far the whole view slid between two small frames. False when no slide fits, like after a cut to another scene.
-        internal static bool Slid(byte[] before, byte[] after, out int dx, out int dy)
+        // The middle fifth of a small frame, where the crosshair is.
+        internal static byte[] Middle(byte[] gray)
         {
-            dx = 0;
-            dy = 0;
-            if (before == null || after == null || before.Length != after.Length) return false;
-            const int reachX = 56, reachY = 28, step = 2;
-            long total = 0, bestScore = long.MaxValue;
-            int tried = 0;
-            for (int y = -reachY; y <= reachY; y++)
-                for (int x = -reachX; x <= reachX; x++)
-                {
-                    long score = 0;
-                    int counted = 0;
-                    int fromX = Math.Max(0, -x), toX = Math.Min(GrayWidth, GrayWidth - x);
-                    int fromY = Math.Max(0, -y), toY = Math.Min(GrayHeight, GrayHeight - y);
-                    for (int row = fromY; row < toY; row += step)
-                    {
-                        int a = row * GrayWidth, b = (row + y) * GrayWidth + x;
-                        for (int column = fromX; column < toX; column += step) { score += Math.Abs(before[a + column] - after[b + column]); counted++; }
-                    }
-                    if (counted < 200) continue;
-                    score = score * 1000 / counted;
-                    total += score;
-                    tried++;
-                    if (score < bestScore) { bestScore = score; dx = x; dy = y; }
-                }
-            return tried > 0 && bestScore * 3 < total / tried * 2;
+            int wide = GrayWidth / 5, high = GrayHeight / 5;
+            byte[] middle = new byte[wide * high];
+            for (int row = 0; row < high; row++) Array.Copy(gray, (GrayHeight * 2 / 5 + row) * GrayWidth + GrayWidth * 2 / 5, middle, row * wide, wide);
+            return middle;
         }
 
         private static void Turn(int dx, int dy)
@@ -105,29 +119,6 @@ namespace CapriDesktop
                 sentY = wantY;
                 Thread.Sleep(4);
             }
-        }
-
-        // She turns a little, sees how far the view slid and turns back, so she knows this game's mouse without being told.
-        internal static double ViewSpeed(string game, Rectangle area)
-        {
-            double known;
-            lock (viewSpeeds) if (viewSpeeds.TryGetValue(game ?? "", out known)) return known;
-            foreach (int counts in new[] { 60, 180, 540, 1600 })
-            {
-                if (interrupted) return 0;
-                byte[] before = GrayFrame(area);
-                Turn(counts, 0);
-                Thread.Sleep(160);
-                byte[] after = GrayFrame(area);
-                Turn(-counts, 0);
-                Thread.Sleep(120);
-                int dx, dy;
-                if (!Slid(before, after, out dx, out dy) || Math.Abs(dx) < 6) continue;
-                double speed = Math.Abs(dx) * (double)area.Width / GrayWidth / counts;
-                lock (viewSpeeds) viewSpeeds[game ?? ""] = speed;
-                return speed;
-            }
-            return 0;
         }
 
         internal static string Traced(ToolArguments args)
@@ -149,37 +140,128 @@ namespace CapriDesktop
             return string.Join(" ", parts.ToArray());
         }
 
+        private static readonly Regex GameFolders = new Regex(@"\\(steamapps\\common|epic games\\(?!launcher\\|epic online)|riot games\\(?!riot client\\)|gog games|ea games|ubisoft game launcher\\games|xboxgames\\(?!minecraft launcher)|roblox\\versions|wildgames)\\", RegexOptions.IgnoreCase);
+        private static readonly Regex NotGames = new Regex(@"wallpaper.?engine|steamvr|steamworks|soundpad|aseprite|blender|\\launcher\\|crashreport|anticheat", RegexOptions.IgnoreCase);
+        private static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|arc)$", RegexOptions.IgnoreCase);
+
+        [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
+        [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
+
+        // Whether a window's program lives where games get installed, so any game counts, not just the ones she knows by name.
+        internal static bool GameExe(IntPtr window)
+        {
+            int process;
+            if (window == IntPtr.Zero || GetWindowThreadProcessId(window, out process) == 0 || process == 0) return false;
+            IntPtr handle = OpenProcess(0x1000, false, process);
+            if (handle == IntPtr.Zero) return false;
+            try
+            {
+                StringBuilder path = new StringBuilder(1024);
+                int size = path.Capacity;
+                return QueryFullProcessImageName(handle, 0, path, ref size) && GameFolders.IsMatch(path.ToString()) && !NotGames.IsMatch(path.ToString());
+            }
+            finally { CloseHandle(handle); }
+        }
+
+        // The game open on their PC by its window title, nearest the front first, or null.
+        internal static Func<string> GameOpen = delegate
+        {
+            foreach (OpenWindow window in Hands.Windows())
+            {
+                if (Browsers.IsMatch(window.Program ?? "") || Watching.IsMatch(window.Title ?? "")) continue;
+                if (GameTitles.IsMatch((window.Title ?? "") + " " + (window.Program ?? "")) || GameExe(window.Handle)) return window.Title;
+            }
+            return null;
+        };
+
         private static Rectangle GameArea(Sight sight)
         {
             return sight != null && sight.Bounds.Width > 200 && sight.Bounds.Height > 200 ? sight.Bounds : Display();
         }
 
+        // Turns toward what's wanted in steps and watches the view slide after each one, so she learns any game's mouse as she goes
+        // and lands where she meant to. She always turns: looking at open sky, there's nothing to measure yet and she mustn't get stuck.
         internal static string TurnView(ToolArguments args, Sight sight)
         {
             Rectangle area = GameArea(sight);
-            double speed = ViewSpeed(sight == null ? "" : sight.Program, area);
-            if (interrupted) return Why;
-            if (speed <= 0) return "Couldn't turn the camera: the view didn't move. A menu may be open, or the game may need a click to take the mouse.";
-            // The view's width stands for about 90 degrees, near enough for a first turn; the next look corrects the rest.
-            double focal = area.Width / 2.0;
-            double pushX, pushY;
+            string game = sight == null ? "" : sight.Program ?? "";
+            double focal = area.Width / 2.0, wantX, wantY;
             bool spot = args.X.HasValue && args.Y.HasValue && Shown != null;
             if (spot)
             {
                 Point at = Shown.ToScreen(args.X.Value, args.Y.Value);
-                pushX = focal * Math.Atan((at.X - (area.X + area.Width / 2.0)) / focal);
-                pushY = focal * Math.Atan((at.Y - (area.Y + area.Height / 2.0)) / focal);
+                wantX = focal * Math.Atan((at.X - (area.X + area.Width / 2.0)) / focal);
+                wantY = focal * Math.Atan((at.Y - (area.Y + area.Height / 2.0)) / focal);
             }
             else
             {
-                pushX = focal * (args.Right ?? 0) * Math.PI / 180;
-                pushY = -focal * (args.Up ?? 0) * Math.PI / 180;
+                wantX = focal * (args.Right ?? 0) * Math.PI / 180;
+                wantY = -focal * (args.Up ?? 0) * Math.PI / 180;
             }
-            byte[] before = GrayFrame(area);
-            Turn((int)Math.Round(pushX / speed), (int)Math.Round(pushY / speed));
-            if (interrupted) return Why;
-            Thread.Sleep(120);
-            if (Math.Abs(pushX) + Math.Abs(pushY) > 30 && Changed(before, GrayFrame(area)) < 0.02) return "Couldn't turn the camera: the view didn't move. A menu may be open.";
+            double speed;
+            bool flipped;
+            lock (viewSpeeds)
+            {
+                if (!viewSpeeds.TryGetValue(game, out speed)) speed = 0;
+                flipped = upsideDown.Contains(game);
+            }
+            double scaleX = (double)area.Width / GrayWidth, scaleY = (double)area.Height / GrayHeight;
+            double doneX = 0, doneY = 0, close = Math.Max(8, area.Width / 80.0);
+            int probe = 10;
+            double sentAll = 0, slidAll = 0;
+            bool plain = false, frozen = false, seen = false;
+            for (int pass = 0; pass < 9; pass++)
+            {
+                double leftX = wantX - doneX, leftY = wantY - doneY, left = Math.Sqrt(leftX * leftX + leftY * leftY);
+                if (left < close) break;
+                // Until she's seen this game's view slide she creeps up on it, assuming a usual mouse.
+                double guess = speed > 0 ? speed : focal * 0.0026;
+                double counts = speed > 0 ? left / speed : Math.Min(probe, left / guess);
+                if (speed <= 0) probe *= 3;
+                int countX = (int)Math.Round(counts * leftX / left), countY = (int)Math.Round(counts * leftY / left);
+                if (countX == 0 && countY == 0) break;
+                byte[] before = GrayFrame(area);
+                Turn(countX, flipped ? -countY : countY);
+                if (interrupted) return Why;
+                Thread.Sleep(130);
+                double dx, dy, match;
+                bool read = Motion.Shift(before, GrayFrame(area), GrayWidth, GrayHeight, GrayReach, out dx, out dy, out match) && match >= 0.6;
+                // Past the edge of what she can measure, a slide can't be trusted.
+                if (read && (Math.Abs(dx) >= GrayReach - 1 || Math.Abs(dy) >= GrayReach - 1)) read = false;
+                double sent = Math.Sqrt((double)countX * countX + (double)countY * countY);
+                double hoped = sent * guess;
+                sentAll += sent;
+                if (!read)
+                {
+                    doneX += countX * guess;
+                    doneY += countY * guess;
+                    if (speed > 0 && hoped > (GrayReach - 4) * scaleX) seen = true;
+                    else plain = true;
+                    continue;
+                }
+                double slidX = -dx * scaleX, slidY = -dy * scaleY, slid = Math.Sqrt(slidX * slidX + slidY * slidY);
+                slidAll += slid;
+                // A clear view that didn't move at all: it's at the end of its travel, or there's no camera to turn.
+                if (slid < 6 && hoped >= 40 && (speed > 0 || sentAll >= 300)) { frozen = true; break; }
+                if (Math.Abs(countY) > Math.Abs(countX) && Math.Abs(slidY) >= 12 && slidY * countY < 0)
+                {
+                    flipped = !flipped;
+                    lock (viewSpeeds) { if (flipped) upsideDown.Add(game); else upsideDown.Remove(game); }
+                }
+                if (slid >= 6) seen = true;
+                doneX += slidX;
+                doneY += slidY;
+                if (slid >= 16)
+                {
+                    double found = slid / sent;
+                    speed = speed > 0 ? (speed + found) / 2 : found;
+                    lock (viewSpeeds) viewSpeeds[game] = speed;
+                }
+            }
+            if ((frozen && !seen) || (!plain && !seen && slidAll < 6)) return "The view didn't move: a menu may be open, the game may need a click to take the mouse, or you're already looking as far as it goes.";
+            if (frozen) return "Turned as far as the view would go.";
+            if (plain && !seen) return "Turned, but the view is too plain to tell how far. Check the next screenshot.";
             return spot ? "Turned so that spot is at the middle of the view." : "Turned.";
         }
 
@@ -245,10 +327,9 @@ namespace CapriDesktop
             if (wanted <= 0) wanted = 1;
             bool watching = string.Equals(stop, "yes", StringComparison.OrdinalIgnoreCase);
             Rectangle area = GameArea(sight);
-            Rectangle middle = new Rectangle(area.X + area.Width * 2 / 5, area.Y + area.Height * 2 / 5, area.Width / 5, area.Height / 5);
             Stopwatch clock = Stopwatch.StartNew();
             bool changed = false;
-            byte[] first = watching ? GrayFrame(middle) : null;
+            byte[] first = watching ? Middle(GrayFrame(area)) : null;
             try
             {
                 Hold(codes, true);
@@ -256,7 +337,7 @@ namespace CapriDesktop
                 while (clock.Elapsed.TotalSeconds < wanted && !interrupted)
                 {
                     Thread.Sleep(watching ? 70 : 30);
-                    if (!watching || Changed(first, GrayFrame(middle)) < 0.45) continue;
+                    if (!watching || Changed(first, Middle(GrayFrame(area))) < 0.45) continue;
                     changed = true;
                     break;
                 }

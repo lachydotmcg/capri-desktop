@@ -8969,6 +8969,147 @@ namespace CapriDesktop
             }
         }
 
+        // A made-up game: a view into a big patterned world that slides as the mouse moves, to prove her camera finds any game's mouse.
+        private static void SmokeCamera(System.Collections.Generic.List<string> checks)
+        {
+            const int worldWidth = 2400, worldHeight = 1600;
+            byte[] world = new byte[worldWidth * worldHeight];
+            Random speckle = new Random(77);
+            byte[] coarse = new byte[(worldWidth / 16 + 2) * (worldHeight / 16 + 2)];
+            speckle.NextBytes(coarse);
+            for (int wy = 0; wy < worldHeight; wy++)
+                for (int wx = 0; wx < worldWidth; wx++)
+                    world[wy * worldWidth + wx] = coarse[(wy / 16) * (worldWidth / 16 + 2) + wx / 16];
+            Rectangle area = new Rectangle(0, 0, 1280, 720);
+            Func<Rectangle, byte[]> frameWas = Computer.GrayFrame;
+            Action<int, int> nudgeWas = Computer.Nudge;
+            double cameraX = 0, cameraY = 0, truth = 0;
+            int sent = 0;
+            bool upside = false, fixedView = false, blank = false;
+            Func<Rectangle, byte[]> seenWorld = delegate(Rectangle part)
+            {
+                byte[] gray = new byte[Computer.GrayWidth * Computer.GrayHeight];
+                if (blank) { for (int fill = 0; fill < gray.Length; fill++) gray[fill] = 200; return gray; }
+                for (int gy = 0; gy < Computer.GrayHeight; gy++)
+                    for (int gx = 0; gx < Computer.GrayWidth; gx++)
+                    {
+                        int sampleX = (int)(cameraX + gx * (double)part.Width / Computer.GrayWidth) + 600;
+                        int sampleY = (int)(cameraY + gy * (double)part.Height / Computer.GrayHeight) + 400;
+                        gray[gy * Computer.GrayWidth + gx] = world[Math.Max(0, Math.Min(worldHeight - 1, sampleY)) * worldWidth + Math.Max(0, Math.Min(worldWidth - 1, sampleX))];
+                    }
+                return gray;
+            };
+            Action<int, int> mouse = delegate(int dx, int dy)
+            {
+                sent += Math.Abs(dx) + Math.Abs(dy);
+                if (fixedView) return;
+                cameraX += dx * truth;
+                cameraY += (upside ? -dy : dy) * truth;
+            };
+            Sight game = new Sight { Program = "smoke-a", Bounds = area };
+            try
+            {
+                Computer.GrayFrame = seenWorld;
+                Computer.Nudge = mouse;
+                foreach (double speed in new[] { 0.3, 1.7, 7.0 })
+                {
+                    game.Program = "smoke-" + speed;
+                    truth = speed;
+                    cameraX = cameraY = 0;
+                    Computer.TurnView(new ToolArguments { Right = 20 }, game);
+                    double wanted = 640 * 20 * Math.PI / 180;
+                    if (Math.Abs(cameraX - wanted) > 30 || Math.Abs(cameraY) > 12) throw new Exception("Her camera missed a 20 degree turn at mouse speed " + speed + ": went " + cameraX + ", " + cameraY + ", wanted " + wanted + ".");
+                    Computer.TurnView(new ToolArguments { Up = -5 }, game);
+                    if (Math.Abs(cameraY - 640 * 5 * Math.PI / 180) > 30) throw new Exception("Her camera missed looking down at mouse speed " + speed + ": went " + cameraY + ".");
+                }
+                game.Program = "smoke-upside";
+                truth = 1.7;
+                upside = true;
+                cameraX = cameraY = 0;
+                Computer.TurnView(new ToolArguments { Up = -8 }, game);
+                Computer.TurnView(new ToolArguments { Up = -8 }, game);
+                if (Math.Abs(cameraY - 2 * 640 * 8 * Math.PI / 180) > 40) throw new Exception("Her camera didn't work out a game that looks the other way: went " + cameraY + ".");
+                upside = false;
+                game.Program = "smoke-plain";
+                blank = true;
+                sent = 0;
+                string plain = Computer.TurnView(new ToolArguments { Up = -60 }, game);
+                if (sent < 100 || plain.IndexOf("didn't move", StringComparison.Ordinal) >= 0) throw new Exception("Her camera refused to turn away from open sky: " + plain);
+                blank = false;
+                fixedView = true;
+                game.Program = "smoke-menu";
+                string menu = Computer.TurnView(new ToolArguments { Right = 30 }, game);
+                if (menu.IndexOf("didn't move", StringComparison.Ordinal) < 0) throw new Exception("Her camera didn't notice a view that stayed still: " + menu);
+                checks.Add("PASS her camera learns any game's mouse from slow to fast, lands turns within a few pixels, works out games that look the other way, always turns away from open sky, and says when a view stays still");
+            }
+            finally
+            {
+                Computer.GrayFrame = frameWas;
+                Computer.Nudge = nudgeWas;
+            }
+        }
+
+        // Asks to play or use a game reach her hands in any language, whatever her brain's chat reply says.
+        private static void SmokeGameAsks(System.Collections.Generic.List<string> checks)
+        {
+            string[] nope = { "Już, SoChi — odpalamy CS2 i gramy. Nie mam teraz sterowania komputerem, więc nie uruchomię go za ciebie; pokaż mi ekran po włączeniu, a przeprowadzę cię do meczu.", "This time I won't pretend I've already clicked anything — show me the game screen, and I'll guide you straight into a match.", "I can't actually click for you, but I can walk you through it.", "No tengo control de tu PC.", "Je ne peux pas cliquer pour toi.", "Ich kann das nicht klicken.", "Não consigo clicar nisso.", "Non posso cliccare.", "Не могу нажать на это." };
+            foreach (string line in nope) if (!Hands.Denied(line)) throw new Exception("Her saying she has no hands wasn't caught: " + line);
+            foreach (string line in new[] { "I can't believe you clicked that.", "You can't press that button yet, the round hasn't started.", "Nice shot, choom.", "Nie mam pojęcia, co to za gra.", "I can't play favourites." }) if (Hands.Denied(line)) throw new Exception("Plain chat counted as her having no hands: " + line);
+            if (!Hands.Handed("act") || !Hands.Handed(" Act.") || !Hands.Handed("ACT\nOn it") || Hands.Handed("Act natural, choom.") || Hands.Handed("I love this act.")) throw new Exception("Her one-word job answer was misread.");
+            string playTool;
+            ToolArguments playArgs;
+            if (Hands.Direct("play the game", out playTool, out playArgs) || Hands.Direct("play this match", out playTool, out playArgs)) throw new Exception("\"Play the game\" went to " + playTool + " instead of her hands.");
+            if (!Hands.Wants("lets play cs") || !Hands.Wants("lets go play some valorant") || !Hands.Wants("go play minecraft")) throw new Exception("\"Lets play\" without its apostrophe missed her hands.");
+            if (!Hands.Promised("Już, SoChi — odpalamy CS2.") || !Hands.Promised("Odpalamy!")) throw new Exception("A Polish promise with their name in it was missed.");
+            if (Hands.GameNote(null) != "" || Hands.GameNote("Counter-Strike 2").IndexOf("Counter-Strike 2", StringComparison.Ordinal) < 0 || Hands.GameNote("Counter-Strike 2").IndexOf("use_computer", StringComparison.Ordinal) < 0) throw new Exception("Her hands weren't told about the open game.");
+            if (Hands.Chat.IndexOf("only the word: act", StringComparison.Ordinal) < 0 || Hands.ChatOnly.IndexOf(": act", StringComparison.Ordinal) >= 0 || Hands.ChatOnly.IndexOf("never say you can't", StringComparison.Ordinal) < 0) throw new Exception("Her chat prompt lost its job word.");
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake;
+            string ollamaWas = Brain.Ollama;
+            Func<string> openWas = Computer.GameOpen;
+            Func<string, string> says = delegate(string text) { return "{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "},\"done_reason\":\"stop\"}"; };
+            Func<string, string, string> calls = delegate(string name, string json) { return "{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"" + name + "\",\"arguments\":" + json + "}}]},\"done_reason\":\"stop\"}"; };
+            Brain.Ollama = FakeServer(new string[]
+            {
+                says("act"), calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), says("Otworzyłam CS2."),
+                says("chat"), says(nope[1]), says("Już gram."),
+                calls("use_computer", "{\"task\":\"kliknij deathmatch\"}"), says("Kliknęłam."),
+                says("chat"), says("Clean shot, choom."),
+                says("act"), says("chat"), says("Hah, you wish."),
+                says(nope[0]), says("chat"), says("chat")
+            }, asked, out fake);
+            try
+            {
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Brain playing = new Brain();
+                playing.Model = "play-test";
+                playing.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + (args.Name ?? args.Task)); return "Done."; };
+                Computer.GameOpen = delegate { return null; };
+                playing.Ask("dobra odpalaj csa i gramy");
+                if (did.Count != 1 || did[0] != "open_app:Counter-Strike 2") throw new Exception("Her job word didn't reach her hands: " + string.Join(",", did.ToArray()));
+                playing.Ask("Let's play CS");
+                if (did.Count != 2 || did[1] != "use_computer:Let's play CS") throw new Exception("\"I won't pretend\" stopped a job: " + string.Join(",", did.ToArray()));
+                Computer.GameOpen = delegate { return "Counter-Strike 2"; };
+                playing.Ask("kliknij deathmatch");
+                if (did.Count != 3 || did[2] != "use_computer:kliknij deathmatch") throw new Exception("A job in the open game didn't reach her hands: " + string.Join(",", did.ToArray()));
+                bool told = false;
+                foreach (string body in asked) if (body.IndexOf("The game open on their PC right now is", StringComparison.Ordinal) >= 0) told = true;
+                if (!told) throw new Exception("Her hands weren't told which game is open.");
+                string banter = playing.Ask("nice shot");
+                if (did.Count != 3 || banter != "Clean shot, choom.") throw new Exception("Chat in a game turned into a job: " + banter);
+                Computer.GameOpen = delegate { return null; };
+                string talkAgain = playing.Ask("wanna hear a secret");
+                if (did.Count != 3 || talkAgain != "Hah, you wish.") throw new Exception("Her job word leaked or ran with nothing to do: " + talkAgain);
+                checks.Add("PASS asks to play reach her hands in any language: her brain's job word, \"I can't click\" and \"show me the screen\" in nine languages, Polish promises with their name, the open game's name for her hands, and chat in a game stays chat");
+            }
+            finally
+            {
+                Brain.Ollama = ollamaWas;
+                Computer.GameOpen = openWas;
+                fake.Stop();
+            }
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
@@ -8980,6 +9121,7 @@ namespace CapriDesktop
             Application.AddMessageFilter(smokeInput);
             FormClosed += delegate { Application.RemoveMessageFilter(smokeInput); };
             Hands.PleaseRoll = delegate { return 1; };
+            Computer.GameOpen = delegate { return null; };
             Shown += delegate
             {
                 System.Threading.Tasks.Task<System.Collections.Generic.List<string>> ocrCheck = System.Threading.Tasks.Task.Run(delegate
@@ -9070,6 +9212,8 @@ namespace CapriDesktop
                         }
                         if (step == 0)
                         {
+                            SmokeCamera(checks);
+                            SmokeGameAsks(checks);
                             SmokeFrames(checks);
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;
