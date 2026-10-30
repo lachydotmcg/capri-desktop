@@ -136,8 +136,17 @@ namespace CapriDesktop
                 if (after != null) frames.Add(Shrunk(after));
                 line = Line(See(Brain.Character + Rules, Ask(kind, detail, game, recent, pace, frames.Count, died), frames.ToArray()), recent);
             }
-            catch (Exception error) { if (!(error is System.Net.WebException) && !(error is BrainException)) Brain.Log("comment", -1, error.GetType().Name + ": " + error.Message); }
+            catch (Exception error)
+            {
+                if (!(error is System.Net.WebException) && !(error is BrainException)) Brain.Log("comment", -1, error.GetType().Name + ": " + error.Message);
+                line = error.GetType().Name + ": " + error.Message;
+                Action<string> failed = Trace;
+                if (failed != null) failed("comment failed: " + line);
+                line = "";
+            }
             bool keep = line.Length > 0 && took.ElapsedMilliseconds <= Late && Pace != Off && Free();
+            Action<string> trace = Trace;
+            if (trace != null) trace("comment " + kind + " " + took.ElapsedMilliseconds + " ms " + (keep ? "said" : "dropped") + ": " + line);
             lock (gate)
             {
                 thinking = false;
@@ -242,6 +251,8 @@ namespace CapriDesktop
             }
             catch (ArgumentException) { return jpeg; }
         }
+
+        internal static Action<string> Trace;
 
         internal static void Start()
         {
@@ -431,7 +442,7 @@ namespace CapriDesktop
         private bool CommentFree()
         {
             double now = clock.Elapsed.TotalSeconds;
-            if (Hushed || hidden || quitting || pushing || transcribing || typer.Visible || PlayingGame) return false;
+            if (Hushed || (hidden && !docked) || quitting || pushing || transcribing || typer.Visible || PlayingGame) return false;
             if (speaker.Busy || now < voiceUntil) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);

@@ -5665,6 +5665,7 @@ namespace CapriDesktop
             string traced = Path.Combine(data, "bench.txt");
             Job.TraceFolder = data;
             Job.Trace = delegate(string line) { lock (asked) File.AppendAllText(traced, DateTime.Now.ToString("HH:mm:ss.fff") + " " + line + Environment.NewLine); };
+            Commentary.Trace = Job.Trace;
             System.Windows.Forms.Timer polling = new System.Windows.Forms.Timer { Interval = 400 };
             polling.Tick += delegate
             {
