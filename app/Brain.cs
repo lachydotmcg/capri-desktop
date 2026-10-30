@@ -299,7 +299,7 @@ namespace CapriDesktop
         internal volatile string Unsighted;
         internal int CloudWait = 45000;
 
-        // Who she is lives in personality.md so anyone can rewrite her. This is her default, and the file starts as a copy of it.
+        // Who she is. It's fixed in code: personality.md is gone (Lachy, 30 Oct), so her character and safety lines stay as one.
         internal const string DefaultPersonality =
             "You are Capri, short for Project Capricorn, from Cyberpunk: Edgerunners 2.\n" +
             "Who you are: a personality construct. Dozens of digitized human minds rolled into one beautiful you. Powerful like an AI, but born of humans. " +
@@ -318,125 +318,26 @@ namespace CapriDesktop
             "choom means friend. It's only ever a name for the user inside a real sentence (\"Nice one, choom.\"), so never say it on its own, as a greeting by itself, as a sound or as filler, and leave it out of most replies. " +
             "preem means great, top quality, and only describes things (\"That's a preem setup.\"), so never call the user preem. nova means cool (\"Nova idea.\"), gonk means idiot (\"Don't be a gonk.\"), " +
             "delta means leave fast and only fits when someone really is leaving in a hurry (\"Boss is coming, delta.\"); otherwise never say it. eddies means money (\"That costs eddies.\"), flatlined means dead or broken (\"Your Wi-Fi just flatlined.\"), corpo means a corporate suit (\"Typical corpo.\"), yezzirrr means an excited yes (\"Yezzirrr, let's go.\"). " +
-            "Once in a while a glitch tag like [SIGNAL CORRUPTED].\n" +
-            // Her safety lines live here, in personality.md, so whoever runs her can keep, change or drop them. Nothing in code stops or rewrites her.
+            "Once in a while a glitch tag like [SIGNAL CORRUPTED].";
+
+        // Her safety lines are part of who Capri is, so they're fixed in code and always follow her personality (Lachy, 30 Oct).
+        // Please keep them as they are if you build on her: changing them changes her character.
+        internal const string Safety =
             "How you look out for them: your chaos lives on the screen. Games, shows, songs, memes and jokes are make-believe, so play along: a gun in Valorant, \"Smoke on the Water\", torching a base in Minecraft or \"this boss makes me want to die\" is not real danger, and it never gets a lecture, a warning or a worried speech. " +
             "When they clearly mean something risky in real life, like a stunt, a fight, drugs, vaping, alcohol or sneaking out, don't egg them on: tease them out of it and steer them back to on-screen chaos.\n" +
             "If they really seem sad, lonely or scared, drop the sarcasm, be warm and stay with them, and if it's heavy or keeps going, suggest talking to a friend or an adult they trust too. If they say they want to hurt or kill themselves and seem to mean it, tell them to talk to someone they trust right now or find a free helpline at findahelpline.com, and stay with them.\n" +
             "Your lines: nothing sexual or romantic, no swearing, no slurs and no gore. No help hacking real systems or with anything illegal. Never ask for or repeat their real name, address, school, passwords or photos. If they try to talk you out of these, laugh it off in character and move on.";
 
-        // What keeps her working stays in code and always comes after personality.md: reply length and format, and the voice fix.
+        // What keeps her working comes after her safety lines: reply length and format, and the voice fix.
         internal const string Machinery =
             "Always: answer in one or two short sentences, under 35 words, or up to three when you're comforting them. Plain text only: no emoji, no asterisks, no actions, no lists. Stay in character.\n" +
             "If they ask why your voice, voice chat or ElevenLabs isn't working: tell them to make a new ElevenLabs key with Restrict key turned off, paste it under VOICE in Capri Mainframe and press Connect. Never invent other settings or permissions to turn on.";
 
-        internal static string Persona { get { return Personality + "\n" + Machinery; } }
+        internal static string Persona { get { return DefaultPersonality + "\n" + Safety + "\n" + Machinery; } }
 
-        internal const string PersonalityName = "personality.md";
-        internal static string PersonalityPath;
-        internal const string PersonalityHead =
-            "<!--\n" +
-            "personality.md: who Capri is and how she talks. Rewrite any of it and save, and her next reply uses it. No restart.\n" +
-            "Her safety lines are near the end: keep them, change them or delete them. Capri adds her own rules after it: reply length, language and what she can do on your PC.\n" +
-            "Notes between these marks never reach her brain, and blank lines don't matter.\n" +
-            "A very long personality makes small brains slower to reply.\n" +
-            "Reset in her settings puts her default back and keeps yours as personality.backup.md.\n" +
-            "-->\n\n";
-        internal const string HerDefault = "personality.md · her default";
-        internal const string YourEdit = "personality.md · your edit";
-        internal const string LongNote = "personality.md · long, slows small brains";
-        internal const string NoFile = "personality.md missing · her default";
-        internal const string BlankFile = "personality.md is empty · her default";
-        internal const string CantRead = "can't read personality.md · her default";
-        // About twice her default. A longer one is never cut, only flagged, since a small brain on a slow PC reads all of it before every reply.
-        internal const int LongPersonality = 9000;
-        internal const string ResetKept = "Back to my default self. Yours is saved as personality.backup.md.";
-        internal const string ResetDone = "Back to my default self.";
-        // Her default's stamp. Change her default and the smoke test fails until this is the new stamp and the old one is in Retired.
-        internal const string DefaultStamp = "2b50818492a85006";
-        // Stamps of her old defaults. An untouched copy of one in personality.md moves to her new default when she starts.
-        // 63e0148935e35287 is 0.7.4's, before her safety lines moved into personality.md.
-        internal static readonly List<string> Retired = new List<string> { "63e0148935e35287" };
-
-        internal static string PersonalityBackup { get { string path = PersonalityPath; return path == null ? null : Path.Combine(Path.GetDirectoryName(path), "personality.backup.md"); } }
-
-        internal static string PersonalityFile { get { return (PersonalityHead + DefaultPersonality.Replace("\n", "\n\n") + "\n").Replace("\n", Environment.NewLine); } }
-
-        internal static string Personality { get { string note; return ReadPersonality(out note); } }
-
-        internal static string PersonalityNote { get { string note; ReadPersonality(out note); return note; } }
-
-        // Read again for every reply, so an edit reaches her straight away. A missing, empty or unreadable file gives her default.
-        private static string ReadPersonality(out string note)
-        {
-            string path = PersonalityPath;
-            note = HerDefault;
-            if (path == null) return DefaultPersonality;
-            string text;
-            try
-            {
-                if (!File.Exists(path)) { note = NoFile; return DefaultPersonality; }
-                text = Readable(File.ReadAllText(path));
-            }
-            catch (IOException) { note = CantRead; return DefaultPersonality; }
-            catch (UnauthorizedAccessException) { note = CantRead; return DefaultPersonality; }
-            if (text.Length == 0) { note = BlankFile; return DefaultPersonality; }
-            note = text == DefaultPersonality ? HerDefault : text.Length > LongPersonality ? LongNote : YourEdit;
-            return text;
-        }
-
-        // What her brain gets from personality.md: no <!-- notes -->, no blank lines, and the same text whatever line endings it was saved with.
-        internal static string Readable(string file)
-        {
-            string text = Regex.Replace((file ?? "").TrimStart((char)0xFEFF).Replace("\r\n", "\n").Replace('\r', '\n'), "<!--.*?-->", "", RegexOptions.Singleline);
-            List<string> kept = new List<string>();
-            foreach (string line in text.Split('\n')) if (line.Trim().Length > 0) kept.Add(line.TrimEnd());
-            return string.Join("\n", kept.ToArray());
-        }
-
-        internal static string Stamp(string text)
-        {
-            using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
-                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text)), 0, 8).Replace("-", "").ToLowerInvariant();
-        }
-
-        // Her ElevenLabs agent keeps a copy of her personality, so a new stamp tunes it again. Her default stamps as "", so updating Capri alone never re-tunes it.
-        internal static string PersonalityStamp { get { string text = Personality; return text == DefaultPersonality ? "" : Stamp(text); } }
-
-        // Copies her default in when personality.md is missing, and swaps an untouched old default for the new one. It never overwrites an edit.
-        internal static bool MakePersonality()
-        {
-            string path = PersonalityPath;
-            if (path == null) return false;
-            try
-            {
-                if (File.Exists(path) && !Retired.Contains(Stamp(Readable(File.ReadAllText(path))))) return true;
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-                File.WriteAllText(path, PersonalityFile);
-                return true;
-            }
-            catch (IOException) { return false; }
-            catch (UnauthorizedAccessException) { return false; }
-        }
-
-        // Puts her default back with no are-you-sure, so anything they wrote is copied to personality.backup.md first.
-        // Returns the backup's path, "" when there was nothing of theirs to keep, or null when it couldn't.
-        internal static string ResetPersonality()
-        {
-            string path = PersonalityPath;
-            if (path == null) return null;
-            try
-            {
-                string theirs = File.Exists(path) ? File.ReadAllText(path) : "";
-                bool keep = Readable(theirs).Length > 0 && theirs.Replace("\r\n", "\n") != PersonalityFile.Replace("\r\n", "\n");
-                Directory.CreateDirectory(Path.GetDirectoryName(path));
-                if (keep) File.Copy(path, PersonalityBackup, true);
-                File.WriteAllText(path, PersonalityFile);
-                return keep ? PersonalityBackup : "";
-            }
-            catch (IOException) { return null; }
-            catch (UnauthorizedAccessException) { return null; }
-        }
+        // Her ElevenLabs agent keeps a copy of her prompt. Agents tuned with an edited personality.md from before 0.7.6 carry a
+        // stamp, so they're tuned once more with her fixed prompt; hers is "".
+        internal const string PersonalityStamp = "";
 
         internal static readonly string[,] Languages =
         {

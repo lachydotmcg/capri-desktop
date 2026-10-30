@@ -2489,23 +2489,12 @@ namespace CapriDesktop
             }
             if (clipSound == null || clipFrom != from)
             {
-                if (path.Length == 0)
-                {
-                    using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Voice.reference.wav"))
-                    using (MemoryStream copy = new MemoryStream())
-                    {
-                        if (source == null) throw new VoiceException("Capri is missing her HD voice's clip. Pick a clip under Voice.");
-                        source.CopyTo(copy);
-                        clipSound = YourVoice.Wav(copy.ToArray(), out clipRate);
-                    }
-                }
-                else
-                {
-                    short[] pcm = YourVoice.Read(path);
-                    clipSound = new float[pcm.Length];
-                    for (int i = 0; i < pcm.Length; i++) clipSound[i] = pcm[i] / 32768f;
-                    clipRate = YourVoice.Rate;
-                }
+                // Capri ships no voice clip, so Pocket TTS copies only one they pick.
+                if (path.Length == 0) throw new VoiceException("Pocket TTS copies a voice clip. Capri ships none, so pick a clip of a voice you have the rights to use.");
+                short[] pcm = YourVoice.Read(path);
+                clipSound = new float[pcm.Length];
+                for (int i = 0; i < pcm.Length; i++) clipSound[i] = pcm[i] / 32768f;
+                clipRate = YourVoice.Rate;
                 clipFrom = from;
             }
             GCHandle pinned = GCHandle.Alloc(clipSound, GCHandleType.Pinned);
@@ -2639,7 +2628,7 @@ namespace CapriDesktop
     }
 
     // Her opt-in HD voice: Qwen3-TTS 1.7B on the graphics card, served by qwentts.cpp's tts-server so her brain keeps its engine.
-    // Her built-in clip goes in with its words, so it copies how she talks as well as how she sounds.
+    // Capri ships no voice clip: it copies only a clip they pick, one they have the rights to use.
     internal sealed class QwenVoice : IDisposable
     {
         internal const string Style = "HD";
@@ -2665,8 +2654,6 @@ namespace CapriDesktop
         internal const int PieceLength = 300;
         private static readonly string[] Tongues = { "zh", "en", "de", "it", "pt", "es", "ja", "ko", "fr", "ru" };
         private static readonly string[] Languages = { "chinese", "english", "german", "italian", "portuguese", "spanish", "japanese", "korean", "french", "russian" };
-        // What she says in her built-in clip, word for word. A new clip needs its words here too.
-        private const string Words = "Oh, there you are! I was starting to think you'd forgotten me. Relax, choom. Your favorite little glitch isn't going anywhere. So, what are we getting into tonight?";
         internal static Func<ProcessStartInfo, Process> Spawn = Process.Start;
         private readonly string folder;
         private readonly string engine;
@@ -2675,7 +2662,6 @@ namespace CapriDesktop
         private Process server;
         private int port;
         private bool awake;
-        private byte[] clip;
         private byte[] voiced;
         private int voicedOn;
         internal volatile bool Cancel;
@@ -2848,14 +2834,13 @@ namespace CapriDesktop
             return wav;
         }
 
-        // The server holds one voice, capri: her clip with its words, or their clip, which comes without words and gives the sound alone.
+        // The server holds one voice, capri: their clip, which comes without words and gives the sound alone.
         // A different clip goes in before the next line.
         private void Voiced(int number)
         {
-            bool hers;
-            byte[] wav = Clip(out hers);
+            byte[] wav = Clip();
             lock (gate) if (voicedOn == number && Same(voiced, wav)) return;
-            Ask(number, "/v1/audio/voices", "{\"name\":\"capri\"" + (hers ? ",\"ref_text\":" + Voice.Quote(Words) : "") + ",\"wav_b64\":\"" + Convert.ToBase64String(wav) + "\"}");
+            Ask(number, "/v1/audio/voices", "{\"name\":\"capri\",\"wav_b64\":\"" + Convert.ToBase64String(wav) + "\"}");
             lock (gate)
             {
                 voiced = wav;
@@ -2939,29 +2924,14 @@ namespace CapriDesktop
             };
         }
 
-        // reference.wav in her HD voice folder replaces the clip she's built with, so a new reference can be tried without a rebuild.
-        private byte[] Clip(out bool hers)
+        // Their clip, reference.wav in her HD voice folder. Capri ships no voice clip (Lachy, 30 Oct), so with none picked
+        // she can't speak in HD and her free voice takes the line.
+        private byte[] Clip()
         {
             string own = Path.Combine(folder, YourVoice.Using);
-            hers = false;
-            // A clip being swapped this instant gives her own clip for one line rather than an error.
             try { if (File.Exists(own)) return File.ReadAllBytes(own); }
             catch (IOException) { }
-            hers = true;
-            lock (gate)
-            {
-                if (clip != null) return clip;
-                using (Stream source = Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Voice.reference.wav"))
-                {
-                    if (source == null) throw new VoiceException("Her HD voice is missing her reference clip.");
-                    using (MemoryStream copy = new MemoryStream())
-                    {
-                        source.CopyTo(copy);
-                        clip = copy.ToArray();
-                    }
-                }
-                return clip;
-            }
+            throw new VoiceException("Her HD voice needs a clip: Capri ships no voice. Pick a clip of a voice you have the rights to use.");
         }
 
         // Free graphics memory on NVIDIA cards, from nvidia-smi; -1 where that can't be read.
@@ -3055,7 +3025,7 @@ namespace CapriDesktop
             new Service("Fish Audio · cloud", Fish, FishCloud, FishFree, "", "Voice ID or fish.audio link", "Paste your Fish Audio key",
                 "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization." + FishFree + " is its free tier."),
             new Service("Voice model file · on your PC", Files, "", "", "", "Number or clip, optional", "Optional",
-                "A Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx, run with no server. Browse to its .tar.bz2 or .onnx. Pocket TTS copies a voice clip, or her HD voice if blank."),
+                "A Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx, run with no server. Browse to its .tar.bz2 or .onnx. Pocket TTS copies a voice clip you pick."),
             new Service("Fish Speech · on your PC", Fish, "http://127.0.0.1:8080", "", "", "Reference ID, optional", "Optional",
                 "Fish Speech running on your PC with tools/api_server.py. Voice is a reference ID you added to it, or blank."),
             new Service("Kokoro · on your PC", OpenAi, Address, "kokoro", "af_heart", "Optional", "Optional",

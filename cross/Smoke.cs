@@ -78,8 +78,6 @@ namespace CapriDesktop
             Directory.CreateDirectory(folder);
             if (File.Exists(Path.Combine(folder, "me.md"))) File.Delete(Path.Combine(folder, "me.md"));
             if (File.Exists(pet.LoginFile)) File.Delete(pet.LoginFile);
-            foreach (string old in new[] { Brain.PersonalityPath, Brain.PersonalityBackup }) if (old != null && File.Exists(old)) File.Delete(old);
-            Brain.MakePersonality();
         }
 
         internal void Tick(double now)
@@ -719,20 +717,9 @@ namespace CapriDesktop
                     || dugBoss.IndexOf("earlier moments that may connect", StringComparison.Ordinal) < 0 || dugBoss.IndexOf("You: we finally beat the smoke boss", StringComparison.Ordinal) < 0 || dugShown.IndexOf("we finally beat the smoke boss", StringComparison.Ordinal) >= 0 || dugSmall != "")
                     throw new Exception("Remember our chats went wrong: " + transcribed + " | " + rememberedOn + " | " + stoppedWriting + " | " + recalledBoss + " | " + dugBoss + " | " + dugShown + " | " + dugSmall);
                 checks.Add("PASS remember our chats: on by default here too, a chat line goes in today's transcript, \"remember when\" finds it, talking about it again digs it up unasked unless it's already in her chat, small talk digs up nothing, off writes nothing, and Open her memories makes memories.md");
-                bool personalityMade = Brain.PersonalityPath == Path.Combine(folder, "personality.md") && File.ReadAllText(Brain.PersonalityPath) == Brain.PersonalityFile && Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Machinery;
-                File.Delete(Brain.PersonalityPath);
-                string personalityPath = pet.OpenPersonality();
-                bool personalityOpened = personalityPath == Brain.PersonalityPath && File.ReadAllText(personalityPath) == Brain.PersonalityFile && Brain.PersonalityNote == Brain.HerDefault;
-                File.WriteAllText(personalityPath, "<!-- mine -->\nYou are Capri, but grumpy.\n");
-                bool personalityEdited = Brain.Persona == "You are Capri, but grumpy.\n" + Brain.Machinery && Brain.Character.StartsWith("You are Capri, but grumpy.\n", StringComparison.Ordinal) && Brain.PersonalityNote == Brain.YourEdit;
-                pet.ResetPersonality();
-                bool personalityReset = pet.Talk.Reply == Brain.ResetKept && Brain.Personality == Brain.DefaultPersonality && File.ReadAllText(Brain.PersonalityBackup) == "<!-- mine -->\nYou are Capri, but grumpy.\n";
-                File.WriteAllText(personalityPath, "");
-                bool personalityEmpty = Brain.Personality == Brain.DefaultPersonality && Brain.PersonalityNote == Brain.BlankFile;
-                File.WriteAllText(personalityPath, Brain.PersonalityFile);
-                File.Delete(Brain.PersonalityBackup);
-                if (!personalityMade || !personalityOpened || !personalityEdited || !personalityReset || !personalityEmpty) throw new Exception("personality.md went wrong: made " + personalityMade + ", opened " + personalityOpened + ", edited " + personalityEdited + ", reset " + personalityReset + ", empty " + personalityEmpty);
-                checks.Add("PASS personality.md: it starts as her default next to me.md, an edit reaches her prompt on her next reply, an empty one falls back to her default, and Reset puts her default back and keeps theirs as personality.backup.md");
+                bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
+                if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
+                checks.Add("PASS her personality: fixed in code with her safety lines right after it and her reply rules last, with no personality.md to edit");
                 List<short[]> typedHeard = new List<short[]>();
                 Sfx.TypeOut = delegate(short[] typed) { typedHeard.Add(typed); };
                 Sfx.Untyped = delegate { };
