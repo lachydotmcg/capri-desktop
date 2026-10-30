@@ -20,6 +20,8 @@ namespace CapriDesktop
         [STAThread]
         private static int Main(string[] args)
         {
+            int setupCode;
+            if (SpeechSetup.TryRun(args, out setupCode)) return setupCode;
             if (args.Length >= 5 && args[0] == "--shelf")
             {
                 Shelf = new[] { int.Parse(args[1]), int.Parse(args[2]), int.Parse(args[3]), int.Parse(args[4]) };

@@ -33,6 +33,13 @@ namespace CapriDesktop
         [DataMember] internal bool NoDance;
         [DataMember] internal int? Sounds;
         [DataMember] internal string VoiceId;
+        [DataMember] internal string FreeStyle;
+        [DataMember] internal string LocalStyle;
+        [DataMember] internal string Mic;
+        [DataMember] internal string VoiceUrl;
+        [DataMember] internal string VoiceApi;
+        [DataMember] internal string VoiceModel;
+        [DataMember] internal string VoiceSpeaker;
         [DataMember] internal bool Silent;
         [DataMember] internal int Typing;
         [DataMember] internal bool NoDiscord;
@@ -146,7 +153,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Pet : Window
+    internal sealed partial class Pet : Window
     {
         internal const double SitX = 0.30;
         internal const double SitY = 0.79;
@@ -440,8 +447,9 @@ namespace CapriDesktop
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
-            // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
-            Security.Has = delegate(int toggle) { return toggle <= Security.Power; };
+            // Capability discovery must not temporarily bypass Security.Gate while its protocol probe is pending.
+            bool nativeJobs = ComputerJobs.Supported;
+            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle >= Security.Mouse && toggle <= Security.Secrets && nativeJobs); };
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
             LoginFile = Program.Smoke != null ? Path.Combine(Program.Smoke, OperatingSystem.IsMacOS() ? "capri.plist" : "capri.desktop") : Limbs.LoginFile();
@@ -487,11 +495,11 @@ namespace CapriDesktop
             }
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
-            if (Program.Smoke == null) { Voice.Playback = Limbs.Speak; Voice.Silence = Limbs.Hush; }
+            InitializeSpeech();
             if (Program.Smoke == null)
             {
-                Sfx.TypeOut = delegate(short[] samples) { Limbs.Speak(Voice.Wave(samples, Sfx.Rate)); };
-                Sfx.Untyped = Limbs.Hush;
+                Sfx.TypeOut = delegate(short[] samples) { if (OperatingSystem.IsLinux()) SpeechAudio.Play(Voice.Wave(samples, Sfx.Rate)); else Limbs.Speak(Voice.Wave(samples, Sfx.Rate)); };
+                Sfx.Untyped = OperatingSystem.IsLinux() ? SpeechAudio.Stop : Limbs.Hush;
             }
             Title = "Capri";
             SystemDecorations = SystemDecorations.None;
@@ -531,6 +539,7 @@ namespace CapriDesktop
                     if (points > 0 && Screens.Primary != null) Desk.Scale = Screens.Primary.Bounds.Width / points;
                 }
                 catch (Exception error) { Lose(error); }
+                Desk.BindScreens(Screens.All);
                 Place();
                 frames.Start();
                 FindBrain();
@@ -579,11 +588,15 @@ namespace CapriDesktop
         internal PixelPoint FeetPoint { get { return new PixelPoint(anchor.X + Px(body.Size * 0.58), Feet); } }
         internal PixelPoint Head { get { return new PixelPoint(anchor.X + Px(body.Size * 0.52), anchor.Y - Px(4)); } }
         internal PixelPoint Middle { get { return new PixelPoint(anchor.X + Px(body.Size / 2), anchor.Y + Px(body.Size / 2)); } }
-        internal PixelRect Area { get { Screen screen = ScreenHere(); return screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.WorkingArea; } }
+        internal PixelRect Area { get { Screen screen = ScreenHere(); return Desk.WorkAt(Hip) ?? (screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.WorkingArea); } }
         internal bool Busy { get { return dragging || pressed || falling; } }
         internal bool Hovered { get { return body.IsPointerOver && Opaque(pointer); } }
-        private double FrameX { get { return body.Size * 0.08 - 8; } }
-        private double FrameY { get { return -body.Size * 0.06 - 8; } }
+        private Rect? nativeEnvelope;
+        private string desktopLayout;
+        private double previousDesktopScale;
+        private double desktopCheck;
+        private double FrameX { get { return nativeEnvelope?.X ?? body.Size * 0.08 - 8; } }
+        private double FrameY { get { return nativeEnvelope?.Y ?? -body.Size * 0.06 - 8; } }
 
         private int Px(double dip) { return (int)Math.Round(dip * DesktopScaling); }
 
@@ -599,9 +612,52 @@ namespace CapriDesktop
 
         private void Fit()
         {
-            Width = Math.Ceiling(body.Size * 0.77 + 16);
-            Height = Math.Ceiling(body.Size * 1.16 + 16);
+            if (Desk is HyprlandDesk)
+            {
+                List<Rect> bounds = new List<Rect>();
+                foreach (Clip shown in Clips)
+                {
+                    double tall = body.Size * shown.Height, wide = tall * shown.Wide / shown.Strip.PixelSize.Height;
+                    bounds.Add(new Rect(body.Size / 2 - wide / 2 + shown.ShiftX * body.Size, body.Size / 2 - tall / 2 + shown.ShiftY * body.Size, wide, tall));
+                }
+                nativeEnvelope = DesktopEnvelope.Bounds(bounds, new Point(body.Size / 2, body.Size / 2), 0.65, 2.2, 8);
+            }
+            Width = nativeEnvelope?.Width ?? Math.Ceiling(body.Size * 0.77 + 16);
+            Height = nativeEnvelope?.Height ?? Math.Ceiling(body.Size * 1.16 + 16);
             body.Centre = new Point(body.Size / 2 - FrameX, body.Size / 2 - FrameY);
+        }
+
+        private void RefreshDesktop(double now)
+        {
+            if (!(Desk is HyprlandDesk) || now < desktopCheck) return;
+            desktopCheck = now + 0.1;
+            Desk.BindScreens(Screens.All);
+            List<string> parts = new List<string>();
+            foreach (Screen screen in Screens.All) parts.Add(screen.DisplayName + ":" + screen.Bounds);
+            string layout = string.Join(";", parts);
+            if (previousDesktopScale > 0 && previousDesktopScale != DesktopScaling)
+            {
+                // The grab offset is a surface-local point; carry it across render-DPI
+                // changes once, instead of multiplying compositor logical coordinates.
+                if (dragging)
+                {
+                    double ratio = DesktopScaling / previousDesktopScale;
+                    grab = new PixelPoint((int)Math.Round(grab.X * ratio), (int)Math.Round(grab.Y * ratio));
+                }
+                Fit();
+                if (seat != null) Move(Seated(Hip.X, seat.Y));
+                else Move(anchor);
+            }
+            previousDesktopScale = DesktopScaling;
+            if (desktopLayout != null && desktopLayout != layout && !dragging && Screens.ScreenFromPoint(Hip) == null)
+            {
+                seat = null;
+                walking = falling = false;
+                PixelRect area = Area;
+                Move(new PixelPoint(area.X + (area.Width - Px(body.Size)) / 2, area.Y + Math.Max(0, (area.Height - Px(body.Size)) / 2)));
+                Reappear();
+            }
+            desktopLayout = layout;
         }
 
         internal Screen ScreenHere()
@@ -620,6 +676,8 @@ namespace CapriDesktop
 
         private PixelRect WorkAt(PixelPoint point)
         {
+            PixelRect? native = Desk.WorkAt(point);
+            if (native != null) return native.Value;
             Screen screen = Screens.ScreenFromPoint(point) ?? ScreenHere();
             return screen == null ? new PixelRect(0, 0, 1920, 1080) : screen.WorkingArea;
         }
@@ -681,10 +739,10 @@ namespace CapriDesktop
         internal void HideAway()
         {
             if (away || quitting) return;
-            // A reply still on its way is dropped and her voice stops, so no bubble turns up with nobody under it to hold up her
-            // pop-ins. A job she's doing carries on.
+            // Hiding revokes native jobs and pending consent as well as her reply and voice.
             ++asking;
-            voice.Stop();
+            ComputerJobs.Stop();
+            StopChat(); StopSpeech();
             SetAway(true);
             Talk.Dismiss();
             GlitchOut(delegate { seat = null; walking = false; Hide(); });
@@ -717,6 +775,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = Now;
+            RefreshDesktop(now);
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
             if (UpdateNews != null && !away && !dragging && Talk.Quiet) { Talk.Answer("(update)", UpdateNews); UpdateNews = null; }
@@ -776,7 +835,7 @@ namespace CapriDesktop
             Cloud remote = Brain.Remote;
             if (Brain.Model == null) return "You can't see their screen: your brain is offline.";
             if (remote != null && remote.Kind == "deepseek") return "You can't see their screen: DeepSeek can't look at pictures. Tell them a free NVIDIA key can (right-click you > Brain > Get a free NVIDIA key).";
-            byte[] shot = Eyes.Jpeg(Eyes.Shoot(), 1280);
+            byte[] shot = Eyes.Jpeg(Eyes.Request(focus), 1280);
             if (shot == null) return Eyes.Missing;
             string seen;
             try
@@ -977,7 +1036,7 @@ namespace CapriDesktop
 
         private Spot Find(long window)
         {
-            try { return Desk.Find(window); }
+            try { return Desk.Find(window, Hip); }
             catch (Exception error) { Lose(error); return null; }
         }
 
@@ -989,6 +1048,7 @@ namespace CapriDesktop
 
         internal List<Ledge> Ledges()
         {
+            Desk.BindScreens(Screens.All);
             List<PixelRect> floors = new List<PixelRect>();
             Desk.Screens.Clear();
             foreach (Screen screen in Screens.All)
@@ -996,7 +1056,7 @@ namespace CapriDesktop
                 floors.Add(screen.WorkingArea);
                 Desk.Screens.Add(screen.Bounds);
             }
-            return Perches.Find(Windows(), floors);
+            return Perches.Find(Windows(), Desk.WorkAreas ?? floors);
         }
 
         internal Ledge Perch(IEnumerable<Ledge> ledges, PixelPoint hip)
@@ -1285,7 +1345,7 @@ namespace CapriDesktop
 
         internal void NoVoice()
         {
-            Talk.Answer("(voice)", "Voice chat isn't on Mac and Linux yet. Type to me for now, choom.");
+            ToggleTalk();
         }
 
         internal void Grab()
@@ -1750,13 +1810,16 @@ namespace CapriDesktop
         {
             if (!Speaks)
             {
-                Talk.Answer("(voice check)", voice.Ready ? "My voice is off, choom. Settings > Voice > Use ElevenLabs turns it back on." : "Add an ElevenLabs key under Settings > Voice to hear that, choom.");
+                Talk.Answer("(voice check)", "Set up a voice under Settings > Voice and turn Speak on, choom.");
                 return;
             }
             int ticket = ++asking;
-            voice.Stop();
-            string id = voice.VoiceId;
-            byte[] said = styleVoice == id ? styleSaid : null;
+            StopSpeech();
+            string id = UsesEleven ? voice.VoiceId : Saved.LocalStyle ?? "Her own";
+            bool eleven = UsesEleven;
+            byte[] said = eleven && styleVoice == id ? styleSaid : null;
+            CancellationToken cancellation = speechJob.Token;
+            makingSpeech = true;
             Talk.Thinking("(voice check)");
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -1764,15 +1827,25 @@ namespace CapriDesktop
                 string problem = null;
                 try
                 {
-                    if (said == null) said = voice.Speak(StyleLine);
-                    wav = VoiceFx.Styled(said, StyleLine);
+                    if (eleven)
+                    {
+                        using (var work = new SpeechWork(cancellation))
+                        {
+                            SpeechWork.Check();
+                            if (said == null) said = voice.Speak(StyleLine);
+                            wav = VoiceFx.Styled(said, StyleLine);
+                            SpeechWork.Check();
+                        }
+                    }
+                    else wav = MakeSpeech(StyleLine, cancellation);
                 }
                 catch (VoiceException error) { problem = Mac(error.Message); }
                 catch (Exception error) { problem = Voice.Short("Voice glitched: " + error.Message); }
                 Dispatcher.UIThread.Post(delegate
                 {
+                    if (ticket != asking || cancellation.IsCancellationRequested) return;
                     if (said != null) { styleSaid = said; styleVoice = id; }
-                    if (ticket != asking) return;
+                    makingSpeech = false;
                     double seconds = wav == null ? 0 : Voice.Seconds(wav);
                     if (seconds < 0.2) { Talk.Answer("(voice check)", problem ?? StyleLine); return; }
                     Talk.Answer("(voice check)", StyleLine, seconds);
@@ -1877,6 +1950,8 @@ namespace CapriDesktop
                 return;
             }
             if (SleepAfter <= 0 || idle < SleepAfter || !Drowsy) return;
+            ComputerJobs.Stop();
+            StopChat(); StopSpeech();
             Play(sleep);
             sleepIdle = idle;
             sleptAt = Mouse();
@@ -1906,6 +1981,8 @@ namespace CapriDesktop
             if (seat != null || hanging) StandUp();
             EndWalk();
             dancing = false;
+            ComputerJobs.Stop();
+            StopChat(); StopSpeech();
             napAsked = true;
             Sync();
             return "Going to sleep. A click on me wakes me up.";
@@ -2133,7 +2210,7 @@ namespace CapriDesktop
             nextPopIn = -1;
             nextGlance = -1;
             ForgetNudges();
-            if (shushed) voice.Stop();
+            if (shushed) { ComputerJobs.Stop(); StopChat(); StopSpeech(); }
             Talk.Answer("(quiet)", shushed ? "Going quiet. Right-click me > Quiet when you want me back." : "I'm back, choom.");
             Sync();
             if (ShushChanged != null) ShushChanged();
@@ -3164,8 +3241,9 @@ namespace CapriDesktop
             if (text.Length > 240) text = text.Substring(0, 240);
             if (meeting.Asking) { Met(text); return; }
             int ticket = ++asking;
+            ComputerJobs.Interrupt();
             Brain.Cancel();
-            voice.Stop();
+            StopSpeech();
             bool askPlease;
             string heard = text;
             text = Hands.Manners(text, out askPlease);
@@ -3235,12 +3313,14 @@ namespace CapriDesktop
             return true;
         }
 
-        internal bool Speaks { get { return voice.Ready && !Saved.Silent; } }
+        internal bool Speaks { get { return !Saved.Silent && (UsesEleven || localVoice.Installed || Saved.LocalStyle == VoiceServer.Style || Saved.LocalStyle == QwenVoice.Style && hdVoice.Installed); } }
 
         private void Reply(int ticket, string heard, string said)
         {
             if (!Speaks || Voice.Spoken(said).Length == 0) { Talk.Answer(heard, said); TypeAlong(said, ticket); return; }
             Talk.Thinking(heard);
+            CancellationToken cancellation = speechJob.Token;
+            makingSpeech = true;
             bool[] shown = { false };
             DispatcherTimer.RunOnce(delegate
             {
@@ -3254,13 +3334,14 @@ namespace CapriDesktop
                 byte[] wav = null;
                 string problem = null;
                 // ElevenLabs hands back a finished WAV, so her pitch, speed, robot and glitch go on here, like on Windows.
-                try { wav = VoiceFx.Styled(voice.Speak(said), said); }
+                try { wav = MakeSpeech(said, cancellation); }
                 catch (VoiceException error) { problem = Mac(error.Message); }
                 catch (Exception error) { problem = Voice.Short("Voice glitched: " + error.Message); }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    voiceProblem = problem;
-                    if (ticket != asking || shown[0]) return;
+                    if (ticket != asking || cancellation.IsCancellationRequested) return;
+                    if (problem != null) voiceProblem = problem;
+                    makingSpeech = false;
                     shown[0] = true;
                     double seconds = wav == null ? 0 : Voice.Seconds(wav);
                     Talk.Answer(heard, said, seconds);
@@ -3396,7 +3477,7 @@ namespace CapriDesktop
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
             int ticket = ++asking;
-            voice.Stop();
+            StopSpeech();
             Talk.Thinking(KeyHeard);
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -3466,7 +3547,7 @@ namespace CapriDesktop
         internal void SetSpeak(bool on)
         {
             Saved.Silent = !on;
-            if (!on) voice.Stop();
+            if (!on) StopSpeech();
             Save();
         }
 
@@ -3474,12 +3555,13 @@ namespace CapriDesktop
         {
             voice.VoiceId = id;
             Saved.VoiceId = id;
+            Saved.LocalStyle = null;
             Save();
         }
 
         internal void ForgetVoice()
         {
-            voice.Stop();
+            StopSpeech();
             voice.Key = null;
             voices = null;
             voiceProblem = null;
@@ -3529,6 +3611,7 @@ namespace CapriDesktop
         {
             if (voiceMenu == null) return;
             voiceMenu.Items.Clear();
+            if (OperatingSystem.IsLinux()) AddLocalVoiceMenu();
             if (voice.Key == null)
             {
                 MenuItem add = new MenuItem { Header = "Add ElevenLabs key..." };
@@ -3536,8 +3619,8 @@ namespace CapriDesktop
                 voiceMenu.Items.Add(add);
                 return;
             }
-            MenuItem speak = new MenuItem { Header = "Use ElevenLabs", ToggleType = MenuItemToggleType.CheckBox, IsChecked = Speaks, IsEnabled = voice.VoiceId != null };
-            speak.Click += delegate { SetSpeak(Saved.Silent); };
+            MenuItem speak = new MenuItem { Header = "Use ElevenLabs", ToggleType = MenuItemToggleType.CheckBox, IsChecked = UsesEleven && Speaks, IsEnabled = voice.VoiceId != null };
+            speak.Click += delegate { bool on = !UsesEleven || !Speaks; Saved.LocalStyle = null; SetSpeak(on); };
             voiceMenu.Items.Add(speak);
             voiceMenu.Items.Add(new Separator());
             if (voices == null)
@@ -3596,21 +3679,27 @@ namespace CapriDesktop
         {
             if (quitting) return;
             quitting = true;
+            ComputerJobs.Stop();
             Brain.Cancel();
-            voice.Stop();
+            DisposeSpeech();
             if (presence != null) presence.Dispose();
             Talk.Dismiss();
             GlitchOut(delegate
             {
                 Save();
                 frames.Stop();
+                Desk.Dispose();
                 desktop.Shutdown(0);
             });
         }
 
         internal void Finish(int code)
         {
+            ComputerJobs.Stop();
+            Brain.Cancel();
+            DisposeSpeech();
             frames.Stop();
+            Desk.Dispose();
             Talk.Dismiss();
             desktop.Shutdown(code);
         }

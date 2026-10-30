@@ -1,0 +1,41 @@
+# Generated from committed source @COMMIT@ by ci/export-arch.py.
+pkgname=capri-desktop
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Capri desktop companion for Linux'
+arch=('x86_64')
+url='https://github.com/lachydotmcg/capri-desktop'
+license=('LicenseRef-PolyForm-Noncommercial-1.0.0')
+depends=('glibc' 'gcc-libs' 'fontconfig' 'freetype2' 'libx11' 'libice' 'libsm'
+         'libxrandr' 'libxext' 'zlib' 'icu' 'openssl' 'wayland' 'libxkbcommon'
+         'glib2' 'libpulse' 'libarchive' 'ttf-font')
+makedepends=('dotnet-sdk' 'make' 'gcc' 'pkgconf' 'python')
+optdepends=('hyprland: native Wayland desktop integration'
+            'grim: native Wayland screenshots'
+            'wmctrl: X11 application window controls'
+            'xdotool: X11 keyboard and window controls'
+            'ollama: local language and vision models'
+            'pipewire-pulse: PulseAudio-compatible audio server'
+            'pulseaudio: alternative PulseAudio-compatible audio server'
+            'ffmpeg: compressed voice references and custom speech responses')
+options=('!strip' '!debug')
+source=('@SOURCE@')
+sha256sums=('@SOURCE_SHA256@')
+
+build() {
+    cd "$srcdir/capri"
+    export DOTNET_CLI_HOME="$srcdir/dotnet-home"
+    export NUGET_PACKAGES="$srcdir/nuget"
+    export DOTNET_CLI_TELEMETRY_OPTOUT=1
+    export DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1
+    bash ci/build-linux.sh "$srcdir/publish"
+}
+
+package() {
+    install -d "$pkgdir/usr/lib/capri" "$pkgdir/usr/bin"
+    cp -a --no-preserve=ownership "$srcdir/publish/." "$pkgdir/usr/lib/capri/"
+    ln -s ../lib/capri/Capri "$pkgdir/usr/bin/capri"
+    install -Dm644 "$srcdir/capri/LICENSE.md" "$pkgdir/usr/share/licenses/$pkgname/LICENSE.md"
+    install -Dm644 "$srcdir/capri/packaging/linux/capri.desktop" "$pkgdir/usr/share/applications/capri.desktop"
+    install -Dm644 "$srcdir/capri/cross/icon.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/capri.png"
+}

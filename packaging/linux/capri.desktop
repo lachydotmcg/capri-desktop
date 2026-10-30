@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Capri
+Comment=Desktop companion
+Exec=capri
+Icon=capri
+Terminal=false
+Categories=Utility;

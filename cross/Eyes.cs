@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Text.Json;
 using SkiaSharp;
 
 namespace CapriDesktop
@@ -11,9 +13,42 @@ namespace CapriDesktop
     internal static class Eyes
     {
         // A whole-screen picture's file bytes, or null when no tool here could take one. The smoke test hands in its own.
-        internal static Func<byte[]> Shoot = delegate { return Screenshot(Tools(OperatingSystem.IsMacOS(), Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))); };
+        private static readonly Func<byte[]> defaultShoot = delegate { return RequestNative(null, false); };
+        internal static Func<byte[]> Shoot = defaultShoot;
         // The same for Watch my screen, with only the tools that don't flash, play a shutter sound or ask first.
-        internal static Func<byte[]> Peek = delegate { return Recordable() ? Screenshot(QuietTools(OperatingSystem.IsMacOS(), Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))) : null; };
+        internal static Func<byte[]> Peek = delegate { return Recordable() ? RequestNative(null, true) : null; };
+        private static readonly object captureGate = new object();
+        private static CancellationTokenSource captures = new CancellationTokenSource();
+
+        internal static byte[] Request(string focus) { return Shoot != defaultShoot ? Shoot() : RequestNative(focus, false); }
+
+        internal static void Stop()
+        {
+            lock (captureGate) { captures.Cancel(); captures.Dispose(); captures = new CancellationTokenSource(); }
+        }
+
+        private static byte[] RequestNative(string focus, bool quiet)
+        {
+            CancellationToken token;
+            lock (captureGate) token = captures.Token;
+            HyprlandDesktop desktop = HyprlandDesktop.Current;
+            if (desktop == null)
+                return Screenshot(quiet ? QuietTools(OperatingSystem.IsMacOS(), Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")) : Tools(OperatingSystem.IsMacOS(), Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP")));
+            string output = null;
+            if (!string.IsNullOrWhiteSpace(focus))
+            {
+                using JsonDocument monitors = JsonDocument.Parse(desktop.Query("j/monitors"));
+                foreach (JsonElement monitor in monitors.RootElement.EnumerateArray())
+                {
+                    string name = monitor.GetProperty("name").GetString();
+                    if (focus.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0) { output = name; break; }
+                }
+            }
+            ArchComputer computer = new ArchComputer(desktop, token, true);
+            ComputerSnapshot source = computer.Snapshot(output);
+            bool crop = output == null && System.Text.RegularExpressions.Regex.IsMatch(focus ?? "", @"(?i)\b(this|current|foreground|active)\s+(window|app)\b");
+            return computer.Capture(source, crop, token).Png;
+        }
 
         internal static string Unwatchable
         {

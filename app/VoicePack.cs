@@ -16,7 +16,16 @@ namespace CapriDesktop
 
         internal static bool Complete(string where)
         {
-            foreach (string name in Needed) if (!File.Exists(Path.Combine(where, name))) return false;
+            foreach (string name in Needed)
+            {
+#if CROSS
+                if (name.EndsWith(".dll")) continue;
+#endif
+                if (!File.Exists(Path.Combine(where, name))) return false;
+            }
+#if CROSS
+            if (!SpeechRuntime.Installed(where)) return false;
+#endif
             return true;
         }
     }

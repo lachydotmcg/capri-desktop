@@ -1,0 +1,40 @@
+name: Arch Linux
+
+on:
+  pull_request:
+  push:
+    branches: [mac-linux, 'testing/arch-upstream-*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare clean Arch toolchain
+        run: docker build -f ci/arch-container.Dockerfile -t capri-arch-build .
+      - name: Export committed source and checksum-bound recipe
+        run: python3 ci/export-arch.py "$RUNNER_TEMP/package-source"
+      - name: Build Arch package
+        run: |
+          mkdir -p "$RUNNER_TEMP/package-output"
+          docker run --rm --user root -v "$RUNNER_TEMP/package-output:/output" capri-arch-build chown 1000:1000 /output
+          docker run --rm -v "$RUNNER_TEMP/package-source:/source:ro" -v "$RUNNER_TEMP/package-output:/output" capri-arch-build bash -euc '
+            cp -r /source package
+            cd package
+            makepkg --noconfirm
+            bash src/capri/ci/check-linux.sh
+            cp ./*.pkg.tar.zst /output/
+            cp /toolchain-packages.txt /output/
+            cp SOURCE.json /output/
+            bash src/capri/ci/smoke-linux.sh "$PWD/src/publish/Capri" /output/smoke
+          '
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: arch-package-and-smoke
+          path: ${{ runner.temp }}/package-output

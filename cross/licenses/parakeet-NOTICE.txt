@@ -1,0 +1,9 @@
+Parakeet TDT 0.6B v2, NVIDIA, English ASR.
+Source: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2
+License: Creative Commons Attribution 4.0 International (CC-BY-4.0).
+https://creativecommons.org/licenses/by/4.0/
+
+The ONNX int8 conversion is distributed by the k2-fsa sherpa-onnx project:
+https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models
+Capri uses the pinned upstream archive without further changes to the model bytes.
+No endorsement by NVIDIA or k2-fsa is implied.

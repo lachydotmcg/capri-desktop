@@ -1283,7 +1283,7 @@ namespace CapriDesktop
             return raw;
         }
 
-        internal string See(byte[] jpeg, string system, string instruction, int limit)
+        internal string See(byte[] jpeg, string system, string instruction, int limit, bool preserveWhitespace = false)
         {
             int ticket;
             lock (gate) ticket = cancelled;
@@ -1306,7 +1306,7 @@ namespace CapriDesktop
                 Unsighted = remote.Model;
                 throw new BrainException(Sightless(remote));
             }
-            return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
+            return preserveWhitespace ? Visible(raw).Trim() : Regex.Replace(Visible(raw), @"\s+", " ").Trim();
         }
 
         internal void Remember(string asked, string said)

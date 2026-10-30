@@ -1,12 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-#if !CROSS
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Media;
 using System.Reflection;
 using System.Threading;
+#if !CROSS
+using System.Media;
 #endif
 using System.Net;
 using System.Runtime.InteropServices;
@@ -150,6 +150,9 @@ namespace CapriDesktop
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Host + path);
+#if CROSS
+            SpeechWork.Track(request);
+#endif
             request.Method = method;
             request.UserAgent = "Capri-Desktop";
             request.Headers["xi-api-key"] = key;
@@ -1897,7 +1900,6 @@ namespace CapriDesktop
         }
     }
 
-#if !CROSS
     // Their own voice for her HD voice: a clip of them talking becomes the reference it clones, reference.wav in its folder.
     // Kokoro's styles and ElevenLabs can't use it: Kokoro's voices are fixed, and ElevenLabs clones voices on its own site.
     internal static class YourVoice
@@ -1998,6 +2000,9 @@ namespace CapriDesktop
         // Any sound Windows' own decoders (Media Foundation) can read, like MP3 or M4A, as a 24 kHz mono 16-bit WAV. Null if they can't.
         internal static byte[] Decode(Stream input)
         {
+#if CROSS
+            return SpeechAudio.Decode(input);
+#else
             using (MemoryStream output = new MemoryStream())
             {
                 Windows.Media.MediaProperties.MediaEncodingProfile profile = Windows.Media.MediaProperties.MediaEncodingProfile.CreateWav(Windows.Media.MediaProperties.AudioEncodingQuality.High);
@@ -2007,6 +2012,7 @@ namespace CapriDesktop
                 prepared.TranscodeAsync().AsTask().Wait();
                 return output.ToArray();
             }
+#endif
         }
 
         // Too quiet, too short or too long says why. Otherwise the clip comes back with its quiet ends cut and its loudest peak near full scale.
@@ -2121,11 +2127,19 @@ namespace CapriDesktop
 
         internal void Install(Action<string, long, long> progress)
         {
-            if (IntPtr.Size != 8) throw new IOException("Her free voice needs 64-bit Windows.");
+#if CROSS
+            SpeechRuntime.RequireLinux();
+#endif
+            if (IntPtr.Size != 8) throw new IOException("Her free voice needs a 64-bit system.");
             string root = Path.GetDirectoryName(folder);
             Directory.CreateDirectory(root);
             long needed = PackSize * 3 + (64L << 20);
+#if CROSS
+            // Unix profiles may be on a separate mount from /. Query the actual destination.
+            string drive = root;
+#else
             string drive = Path.GetPathRoot(root);
+#endif
             if (new DriveInfo(drive).AvailableFreeSpace < needed) throw new IOException("Her free voice needs " + Engine.Amount(needed) + " free on " + drive.TrimEnd('\\') + ".");
             string zip = folder + ".zip";
             Engine.Fetch(PackUrl, zip, PackSize, PackSha, "her free voice", progress, delegate { return Cancel; });
@@ -2133,6 +2147,10 @@ namespace CapriDesktop
             string staging = folder + ".new";
             if (Directory.Exists(staging)) Directory.Delete(staging, true);
             ZipFile.ExtractToDirectory(zip, staging);
+#if CROSS
+            SpeechRuntime.Install(staging, progress, delegate { return Cancel; });
+            foreach (string name in Needed) if (name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)) File.Delete(Path.Combine(staging, name));
+#endif
             if (!Complete(staging)) throw new IOException("The voice download is missing files.");
             lock (gate)
             {
@@ -2162,7 +2180,13 @@ namespace CapriDesktop
                 IntPtr audio = IntPtr.Zero;
                 try
                 {
+                    #if CROSS
+                    SpeechWork.Check();
+                    audio = SherpaOnnxOfflineTtsGenerateWithCallback(tts, words, style.Speaker, VoiceFx.Tempo(style.Speed, pitch, speed), SpeechWork.Progress);
+                    SpeechWork.Check();
+#else
                     audio = SherpaOnnxOfflineTtsGenerate(tts, words, style.Speaker, VoiceFx.Tempo(style.Speed, pitch, speed));
+#endif
                     if (audio == IntPtr.Zero) throw new VoiceException("Her free voice glitched.");
                     Generated made = (Generated)Marshal.PtrToStructure(audio, typeof(Generated));
                     float[] samples = new float[Math.Max(0, made.Count)];
@@ -2183,7 +2207,7 @@ namespace CapriDesktop
         private void Open(bool gb)
         {
             if (tts != IntPtr.Zero && british == gb) return;
-            if (IntPtr.Size != 8) throw new VoiceException("Her free voice needs 64-bit Windows.");
+            if (IntPtr.Size != 8) throw new VoiceException("Her free voice needs a 64-bit system.");
             if (!Installed) throw new VoiceException("Set up her free voice in Capri Mainframe.");
             Load(folder);
             Close();
@@ -2214,8 +2238,12 @@ namespace CapriDesktop
             lock (loading)
             {
                 if (loaded) return;
+#if CROSS
+                SpeechRuntime.Load(where);
+#else
                 foreach (string name in new[] { "onnxruntime.dll", "sherpa-onnx-c-api.dll" })
                     if (LoadLibraryEx(Path.Combine(where, name), IntPtr.Zero, 8) == IntPtr.Zero) throw new VoiceException("Her free voice wouldn't load (error " + Marshal.GetLastWin32Error() + ").");
+#endif
                 loaded = true;
             }
         }
@@ -2239,6 +2267,10 @@ namespace CapriDesktop
             return pointer;
         }
 
+#if CROSS
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate int AudioCallback(IntPtr samples, int count);
+        [DllImport("sherpa-onnx-c-api.dll", CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr SherpaOnnxOfflineTtsGenerateWithCallback(IntPtr tts, IntPtr text, int speaker, float speed, AudioCallback callback);
+#endif
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern IntPtr LoadLibraryEx(string path, IntPtr file, int flags);
         [DllImport("sherpa-onnx-c-api.dll", CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr SherpaOnnxCreateOfflineTts(ref Config config);
         [DllImport("sherpa-onnx-c-api.dll", CallingConvention = CallingConvention.Cdecl)] internal static extern void SherpaOnnxDestroyOfflineTts(IntPtr tts);
@@ -2389,6 +2421,9 @@ namespace CapriDesktop
                 if (archive.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) ZipFile.ExtractToDirectory(archive, staging);
                 else
                 {
+#if CROSS
+                    SpeechRuntime.Unpack(archive, staging);
+#else
                     // Windows' own tar unpacks .tar.bz2, as sherpa-onnx ships its models.
                     ProcessStartInfo start = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe"), "-xf \"" + archive + "\" -C \"" + staging + "\"");
                     start.UseShellExecute = false;
@@ -2403,6 +2438,7 @@ namespace CapriDesktop
                         }
                         if (unpacking.ExitCode != 0) throw new VoiceException("Windows couldn't unpack " + Path.GetFileName(archive) + ".");
                     }
+#endif
                 }
             }
             catch (Exception)
@@ -2451,11 +2487,20 @@ namespace CapriDesktop
                         {
                             int speaker;
                             if (!int.TryParse((voice ?? "").Trim(), out speaker) || speaker < 0 || speaker >= LocalVoice.SherpaOnnxOfflineTtsNumSpeakers(tts)) speaker = 0;
+                            #if CROSS
+                            SpeechWork.Check();
+                            audio = LocalVoice.SherpaOnnxOfflineTtsGenerateWithCallback(tts, words, speaker, 1f, SpeechWork.Progress);
+                            SpeechWork.Check();
+#else
                             audio = LocalVoice.SherpaOnnxOfflineTtsGenerate(tts, words, speaker, 1f);
+#endif
                         }
                     }
                     catch (SEHException) { throw new VoiceException("Your voice model glitched."); }
                     if (audio == IntPtr.Zero) throw new VoiceException("Your voice model glitched.");
+#if CROSS
+                    SpeechWork.Check();
+#endif
                     LocalVoice.Generated made = (LocalVoice.Generated)Marshal.PtrToStructure(audio, typeof(LocalVoice.Generated));
                     float[] samples = new float[Math.Max(0, made.Count)];
                     if (samples.Length > 0) Marshal.Copy(made.Samples, samples, 0, samples.Length);
@@ -2509,7 +2554,15 @@ namespace CapriDesktop
                 asking.ClipLength = clipSound.Length;
                 asking.ClipRate = clipRate;
                 asking.Extra = extra;
+#if CROSS
+                SpeechWork.Check();
+                SpeechWork.ProgressWithArg callback = SpeechWork.ConfigProgress;
+                IntPtr audio = LocalVoice.SherpaOnnxOfflineTtsGenerateWithConfig(tts, words, ref asking, Marshal.GetFunctionPointerForDelegate(callback), IntPtr.Zero);
+                GC.KeepAlive(callback);
+                return audio;
+#else
                 return LocalVoice.SherpaOnnxOfflineTtsGenerateWithConfig(tts, words, ref asking, IntPtr.Zero, IntPtr.Zero);
+#endif
             }
             finally
             {
@@ -2677,7 +2730,13 @@ namespace CapriDesktop
 
         internal string Folder { get { return folder; } }
 
-        private string Server { get { return Path.Combine(engine, "tts-server.exe"); } }
+        private string Server { get { return Path.Combine(engine,
+#if CROSS
+                "tts-server"
+#else
+                "tts-server.exe"
+#endif
+            ); } }
 
         internal bool Installed { get { return File.Exists(Server) && File.Exists(Path.Combine(folder, ModelFile)) && File.Exists(Path.Combine(folder, CodecFile)); } }
 
@@ -2685,6 +2744,9 @@ namespace CapriDesktop
 
         internal void Install(Action<string, long, long> progress)
         {
+#if CROSS
+            throw new VoiceException("The upstream HD engine and talker downloads are not published for Linux yet. Use a local OpenAI-style server or a voice model file.");
+#else
             if (IntPtr.Size != 8) throw new IOException("Her HD voice needs 64-bit Windows.");
             Directory.CreateDirectory(folder);
             string model = Path.Combine(folder, ModelFile), codec = Path.Combine(folder, CodecFile);
@@ -2711,6 +2773,7 @@ namespace CapriDesktop
             }
             if (!File.Exists(codec)) Engine.Fetch(CodecUrl, codec, CodecSize, CodecSha, "her HD voice", Along(progress, EngineSize), stopped);
             if (!File.Exists(model)) Engine.Fetch(ModelUrl, model, ModelSize, ModelSha, "her HD voice", Along(progress, EngineSize + CodecSize), stopped);
+#endif
         }
 
         private static Action<string, long, long> Along(Action<string, long, long> progress, long before)
@@ -2758,11 +2821,16 @@ namespace CapriDesktop
                     try { running = server = Spawn(StartInfo(number)); }
                     catch (System.ComponentModel.Win32Exception error) { throw new VoiceException(Voice.Short("Her HD voice wouldn't start: " + error.Message)); }
                     Engine.Lower(running);
+#if !CROSS
                     Engine.Bind(running);
+#endif
                 }
                 Stopwatch waited = Stopwatch.StartNew();
                 while (waited.Elapsed.TotalSeconds < 120)
                 {
+#if CROSS
+                    SpeechWork.Check();
+#endif
                     // Stop() while she's waking hands back a disposed process, so a stop is a quiet cancel rather than a crash.
                     lock (gate)
                     {
@@ -2778,6 +2846,9 @@ namespace CapriDesktop
                     try
                     {
                         HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + number + "/health");
+#if CROSS
+            SpeechWork.Track(request);
+#endif
                         request.Proxy = null;
                         request.Timeout = 2000;
                         using (HttpWebResponse response = (HttpWebResponse)request.GetResponse()) up = response.StatusCode == HttpStatusCode.OK;
@@ -2875,6 +2946,9 @@ namespace CapriDesktop
         {
             byte[] payload = Encoding.UTF8.GetBytes(json);
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://127.0.0.1:" + number + path);
+#if CROSS
+            SpeechWork.Track(request);
+#endif
             request.Method = "POST";
             request.Proxy = null;
             request.ContentType = "application/json";
@@ -2911,10 +2985,17 @@ namespace CapriDesktop
                 Stopwatch took = Stopwatch.StartNew();
                 try
                 {
+#if CROSS
+                    SpeechWork.Check();
+                    Warm();
+#endif
                     byte[] wav = Speak(words);
                     if (took.Elapsed.TotalSeconds > Math.Max(6, Voice.Seconds(wav) * 1.2)) trouble("Her HD voice is running slowly right now, so she's using her free voice for a bit.");
                     return wav;
                 }
+#if CROSS
+                catch (OperationCanceledException) { Stop(); throw; }
+#endif
                 catch (VoiceException error)
                 {
                     trouble(Voice.Short(error.Message) + " She's using her free voice for a bit.");
@@ -3183,6 +3264,9 @@ namespace CapriDesktop
                 at.Query = "self=true&page_size=100&page_number=" + page;
                 if (tts.Scheme == Uri.UriSchemeHttps) ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(at.Uri);
+#if CROSS
+            SpeechWork.Track(request);
+#endif
                 request.Method = "GET";
                 request.UserAgent = "Capri-Desktop";
                 if (tts.IsLoopback) request.Proxy = null;
@@ -3237,6 +3321,9 @@ namespace CapriDesktop
             byte[] tail = Encoding.UTF8.GetBytes("\r\n--" + boundary + "--\r\n");
             if (tts.Scheme == Uri.UriSchemeHttps) ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(new UriBuilder(tts.Scheme, tts.Host, tts.Port, "/model").Uri);
+#if CROSS
+            SpeechWork.Track(request);
+#endif
             request.Method = "POST";
             request.UserAgent = "Capri-Desktop";
             if (tts.IsLoopback) request.Proxy = null;
@@ -3345,6 +3432,9 @@ namespace CapriDesktop
             byte[] payload = Encoding.UTF8.GetBytes(json);
             if (endpoint.Scheme == Uri.UriSchemeHttps) ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(endpoint);
+#if CROSS
+            SpeechWork.Track(request);
+#endif
             request.Method = "POST";
             // A server on this PC is reached directly, never through a proxy.
             if (endpoint.IsLoopback) request.Proxy = null;
@@ -3461,5 +3551,4 @@ namespace CapriDesktop
             };
         }
     }
-#endif
 }
