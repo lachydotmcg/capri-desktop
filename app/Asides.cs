@@ -442,6 +442,7 @@ namespace CapriDesktop
         private readonly TalkOver wakeOver = new TalkOver();
         private readonly List<short[]> heldBack = new List<short[]>();
         private volatile bool barging;
+        private bool overHeld;
         private double bargedUntil = -1;
         private volatile int micTalked;
 
@@ -469,7 +470,15 @@ namespace CapriDesktop
         {
             double now = clock.Elapsed.TotalSeconds;
             if (level >= WakeLevel) micTalked = Environment.TickCount;
-            if (!local || !earsReady || ears.Muted || transcribing || now >= voiceUntil) { talkOver.Reset(); return false; }
+            if (!local || !earsReady || ears.Muted || transcribing || now >= voiceUntil)
+            {
+                talkOver.Reset();
+                // She finished by herself, so what these chunks hold is her own voice and not the start of their line.
+                if (overHeld) lock (waking) preroll.Clear();
+                overHeld = false;
+                return false;
+            }
+            overHeld = true;
             lock (waking)
             {
                 preroll.Add(chunk);
@@ -477,6 +486,7 @@ namespace CapriDesktop
                 if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake())) return true;
             }
             talkOver.Reset();
+            overHeld = false;
             Post(BargeIn);
             return true;
         }
