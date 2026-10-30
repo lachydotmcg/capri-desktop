@@ -1874,6 +1874,8 @@ namespace CapriDesktop
         private readonly List<string> talk = new List<string>();
         private readonly List<byte[]> pictures = new List<byte[]>();
         private int pictureFloor;
+        private int clickRun;
+        private double clickX, clickY;
         private readonly List<Answered> answers = new List<Answered>();
         private ClaudeBlock[] batch;
         private int next;
@@ -2452,6 +2454,7 @@ namespace CapriDesktop
                         return End("waiting", question);
                     }
                     answer.Text = Step(call.Name, args, member, target);
+                    answer.Text += Again(call.Name, args);
                     Action<string> trace = Trace;
                     if (trace != null) trace("  " + call.Name + " -> " + answer.Text);
                 }
@@ -2559,6 +2562,18 @@ namespace CapriDesktop
         }
 
         // Does one call and shows it in her task panel as it happens.
+        // Clicking one spot over and over means it isn't working, and a screen that keeps moving hides that.
+        private string Again(string name, ToolArguments args)
+        {
+            if (name == "key" || name == "type" || name == "right_click") { clickRun = 0; return ""; }
+            if (name != "left_click" || args.Coordinate == null || args.Coordinate.Length < 2) return "";
+            double x = args.Coordinate[0], y = args.Coordinate[1];
+            clickRun = clickRun > 0 && Math.Abs(x - clickX) <= 40 && Math.Abs(y - clickY) <= 40 ? clickRun + 1 : 1;
+            clickX = x;
+            clickY = y;
+            return clickRun < 3 ? "" : " You've left clicked about here " + clickRun + " times now. If that hasn't done what you wanted, stop: read what's on screen again, then try right click, a key or something else.";
+        }
+
         private string Step(string name, ToolArguments args, bool member, Target target)
         {
             Computer.KeysOk = approved.Contains("keys");
