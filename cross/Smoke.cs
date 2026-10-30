@@ -289,6 +289,8 @@ namespace CapriDesktop
                     throw new Exception("Voice layers went wrong: " + layersWrong + " / new " + layersNew + ", on " + layersOn + " (" + layersSaid.Length + " samples from " + tonePcm.Length + "), set " + layersSet + ", loaded " + Pet.LayersOf(layersLoaded).Shown + ", older " + Pet.LayersOf(layersOld).Shown + ", back " + layersBack);
                 checks.Add("PASS voice layers: Settings > Voice style > Layers turns on two copies of her under her, like Windows, with Layer 1 and Layer 2's pitch and delay in their own menus; " + layersFound + "; her ElevenLabs replies get them and come back 25 ms longer for their tails; off out of the box and in settings from before them, and off her voice is byte for byte as it was; the layers save and load as set");
                 LocalVoiceChecks();
+                BrainServerChecks();
+                ChoresChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
@@ -588,7 +590,7 @@ namespace CapriDesktop
                 bool cloudGone = pet.Brain.Remote == null && pet.Saved.CloudModel == null && !File.Exists(Path.Combine(folder, "brain-key"));
                 pet.Brain.Model = "qwen3:8b";
                 pet.Talk.Dismiss();
-                if (ollamaMenu != "*qwen3:8b | - | Get a free NVIDIA key | " + Pet.KeyChoice) throw new Exception("The Brain menu didn't offer a cloud key: " + ollamaMenu);
+                if (ollamaMenu != "*qwen3:8b | - | Download a model (Ollama or Hugging Face)... | Use my own server (OpenAI API)... | - | Get a free NVIDIA key | " + Pet.KeyChoice) throw new Exception("The Brain menu didn't offer a cloud key: " + ollamaMenu);
                 if (freeKey != Pet.FreeKeySteps || !keyAsked || notKey != Pet.NotAKey || !keyHidden) throw new Exception("The key choices didn't say where to paste, ask in a hidden box or explain a bad key: " + freeKey + " | " + keyAsked + " | " + notKey + " | " + keyHidden);
                 if (cloudMenu != "NVIDIA key ending 1234 (off) | *meta/llama-3.3-70b-instruct | qwen/qwen3-235b-a22b | - | Stay on my model | Forget the key and use Ollama" || !cloudPicked || !cloudGone || !cloudDetails || !hopped || !hopsEnd
                     || nvidiaMenu != "NVIDIA key ending 1234 (off) | *nvidia/nemotron-3.5-super-vl-120b-a12b · recommended | nvidia/nemotron-3.5-bolt-e4b | openai/gpt-oss-20b | - | *Stay on my model | Forget the key and use Ollama")
@@ -1529,6 +1531,177 @@ namespace CapriDesktop
             pet.SetLocalVoice("voice", "");
             if (wrong.Count > 0) throw new Exception("Local voice went wrong: " + string.Join(", ", wrong) + " / " + json + " / " + mp3 + " / " + broken + " / " + missing + " / " + empty + " / " + slow + " (" + waited.ElapsedMilliseconds + " ms) / " + down + " / " + pet.VoiceStatus + " / " + asked);
             checks.Add("PASS local voice: Settings > Voice > Provider picks ElevenLabs, a local server or Off, apart from Use ElevenLabs and Speak replies; settings from before it stay ElevenLabs and the local server's address, model, voice and format save and load; an unset server keeps her quiet; she asks POST /v1/audio/speech with no key, reads its 16-bit, float, stereo, streamed WAV or raw pcm into the 16-bit mono her style and speakers take, and says plainly when it sends words, MP3, nothing, HTTP 404 or 500, takes too long or is down");
+        }
+
+        // Her own brain server, like llama-server, LM Studio or vLLM: its address as typed, its /v1/models, a chat through
+        // /v1/chat/completions with the model they picked, and Ollama or Hugging Face names to download.
+        private void BrainServerChecks()
+        {
+            List<string> wrong = new List<string>();
+            Func<string, bool, string> fail = delegate(string what, bool ok) { if (!ok) wrong.Add(what); return what; };
+            fail("Hugging Face names", Brain.PullName("qwen3:4b") == "qwen3:4b" && Brain.PullName("hf.co/bartowski/Qwen_Qwen3-4B-GGUF:Q4_K_M") == "hf.co/bartowski/Qwen_Qwen3-4B-GGUF:Q4_K_M"
+                && Brain.PullName("https://huggingface.co/unsloth/gemma-3-1b-it-GGUF") == "hf.co/unsloth/gemma-3-1b-it-GGUF" && Brain.PullName("https://huggingface.co/unsloth/gemma-3-1b-it-GGUF/tree/main") == "hf.co/unsloth/gemma-3-1b-it-GGUF"
+                && Brain.PullName("huggingface.co/unsloth/gemma-3-1b-it-GGUF:Q8_0") == "hf.co/unsloth/gemma-3-1b-it-GGUF:Q8_0" && Brain.PullName("rm -rf /") == null && Brain.PullName("") == null);
+            fail("server addresses", Brain.ServerAddress("localhost:8080") == "http://localhost:8080" && Brain.ServerAddress("http://127.0.0.1:1234/v1/") == "http://127.0.0.1:1234"
+                && Brain.ServerAddress("http://box.lan:8000/v1/chat/completions") == "http://box.lan:8000" && Brain.ServerAddress("ftp://x") == null && Brain.ServerAddress(" ") == null);
+            List<string> brainAsked = new List<string>();
+            TcpListener server = new TcpListener(IPAddress.Loopback, 0);
+            server.Start();
+            Thread serve = new Thread(delegate()
+            {
+                while (true)
+                {
+                    TcpClient client;
+                    try { client = server.AcceptTcpClient(); }
+                    catch (Exception) { return; }
+                    try
+                    {
+                        using (client)
+                        {
+                            NetworkStream stream = client.GetStream();
+                            List<byte> read = new List<byte>();
+                            byte[] chunk = new byte[8192];
+                            int end = -1, length = 0;
+                            while (end < 0)
+                            {
+                                int got = stream.Read(chunk, 0, chunk.Length);
+                                if (got <= 0) break;
+                                for (int i = 0; i < got; i++) read.Add(chunk[i]);
+                                for (int i = 3; i < read.Count && end < 0; i++) if (read[i - 3] == 13 && read[i - 2] == 10 && read[i - 1] == 13 && read[i] == 10) end = i + 1;
+                            }
+                            if (end < 0) continue;
+                            string head = Encoding.ASCII.GetString(read.ToArray(), 0, end);
+                            System.Text.RegularExpressions.Match sized = System.Text.RegularExpressions.Regex.Match(head, @"Content-Length:\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (sized.Success) length = int.Parse(sized.Groups[1].Value);
+                            while (read.Count - end < length)
+                            {
+                                int got = stream.Read(chunk, 0, chunk.Length);
+                                if (got <= 0) break;
+                                for (int i = 0; i < got; i++) read.Add(chunk[i]);
+                            }
+                            string path = head.Split(' ')[1];
+                            string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
+                            lock (brainAsked) brainAsked.Add(path + " " + body);
+                            string reply = path == "/v1/models" ? "{\"object\":\"list\",\"data\":[{\"id\":\"qwen-test\"},{\"id\":\"nomic-embed\"},{\"id\":\"llama-test\"}]}"
+                                : path == "/v1/chat/completions" ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Server says hi, choom.\"},\"finish_reason\":\"stop\"}]}" : "{}";
+                            byte[] bytes = Encoding.UTF8.GetBytes(reply);
+                            byte[] top = Encoding.ASCII.GetBytes("HTTP/1.1 " + (reply == "{}" ? "404 Error" : "200 OK") + "\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
+                            stream.Write(top, 0, top.Length);
+                            stream.Write(bytes, 0, bytes.Length);
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            });
+            serve.IsBackground = true;
+            serve.Start();
+            string address = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port;
+            string[] models = Brain.ServerModels(address);
+            fail("its models", models.Length == 2 && models[0] == "qwen-test" && models[1] == "llama-test");
+            Brain thinker = new Brain { Server = address, Model = "llama-test" };
+            string said = null;
+            try { said = thinker.Ask("hi there"); }
+            catch (Exception error) { said = "threw " + error.Message; }
+            string chat;
+            lock (brainAsked) chat = brainAsked.Find(delegate(string line) { return line.StartsWith("/v1/chat/completions ", StringComparison.Ordinal); }) ?? "";
+            fail("a chat through it", said != null && said.IndexOf("Server says hi", StringComparison.Ordinal) >= 0 && chat.IndexOf("\"model\":\"llama-test\"", StringComparison.Ordinal) > 0 && chat.IndexOf("hi there", StringComparison.Ordinal) > 0);
+            server.Stop();
+            bool down = false;
+            try { thinker.Ask("still there?"); }
+            catch (Exception) { down = true; }
+            fail("a server that's down throws for her to explain", down);
+            if (wrong.Count > 0) throw new Exception("Her own brain server went wrong: " + string.Join(", ", wrong) + " / " + said + " / " + chat);
+            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links");
+        }
+
+        // Her mouse and keyboard jobs on Linux: a screenshot to her brain, one JSON step back, done with her own uinput mouse and
+        // keyboard (watched here instead), again until the brain says done or stop; and its replies, keys and secrets read right.
+        private void ChoresChecks()
+        {
+            List<string> wrong = new List<string>();
+            Func<string, bool, string> fail = delegate(string what, bool ok) { if (!ok) wrong.Add(what); return what; };
+            System.Text.Json.JsonElement order;
+            fail("replies wrapped in words", Chores.Read("Sure!\n```json\n{\"do\":\"click\",\"x\":10,\"y\":\"20\"}\n```", out order) && order.GetProperty("do").GetString() == "click"
+                && !Chores.Read("I'd click the {button}", out order) && Chores.Read("{\"why\":\"{x}\"} then {\"do\":\"done\",\"said\":\"a } brace\"}", out order) && order.GetProperty("said").GetString() == "a } brace");
+            fail("keys", Fingers.Code("ctrl") == 29 && Fingers.Code("enter") == 28 && Fingers.Code("a") == 30 && Fingers.Code("z") == 44 && Fingers.Code("m") == 50 && Fingers.Code("q") == 16
+                && Fingers.Code("1") == 2 && Fingers.Code("0") == 11 && Fingers.Code("f5") == 63 && Fingers.Code("F12") == 88 && Fingers.Code("super") == 125 && Fingers.Code("ñ") == -1 && !Fingers.Keys("ctrl+banana"));
+            fail("secrets", Chores.Secret("4111 1111 1111 1111") && Chores.Secret("4111-1111-1111-1111") && !Chores.Secret("call me at 555 1234") && !Chores.Secret("hello"));
+            byte[] picture;
+            using (SkiaSharp.SKBitmap blank = new SkiaSharp.SKBitmap(1920, 1080))
+            using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(blank))
+            using (SkiaSharp.SKData data = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) picture = data.ToArray();
+            int width, height;
+            fail("screenshot size", Chores.Size(Eyes.Jpeg(picture, 1280), out width, out height) && width == 1280 && height == 720);
+            string[] replies = { "{\"do\":\"click\",\"x\":640,\"y\":360}", "Next: {\"do\":\"type\",\"text\":\"hola qué tal\"}", "{\"do\":\"key\",\"keys\":\"enter\"}", "{\"do\":\"fly\"}", "{\"do\":\"done\",\"said\":\"Sent it.\"}" };
+            int replied = 0;
+            List<string> prompts = new List<string>();
+            TcpListener server = new TcpListener(IPAddress.Loopback, 0);
+            server.Start();
+            Thread serve = new Thread(delegate()
+            {
+                while (true)
+                {
+                    TcpClient client;
+                    try { client = server.AcceptTcpClient(); }
+                    catch (Exception) { return; }
+                    try
+                    {
+                        using (client)
+                        {
+                            NetworkStream stream = client.GetStream();
+                            List<byte> read = new List<byte>();
+                            byte[] chunk = new byte[65536];
+                            int end = -1, length = 0;
+                            while (end < 0)
+                            {
+                                int got = stream.Read(chunk, 0, chunk.Length);
+                                if (got <= 0) break;
+                                for (int i = 0; i < got; i++) read.Add(chunk[i]);
+                                for (int i = 3; i < read.Count && end < 0; i++) if (read[i - 3] == 13 && read[i - 2] == 10 && read[i - 1] == 13 && read[i] == 10) end = i + 1;
+                            }
+                            if (end < 0) continue;
+                            string head = Encoding.ASCII.GetString(read.ToArray(), 0, end);
+                            System.Text.RegularExpressions.Match sized = System.Text.RegularExpressions.Regex.Match(head, @"Content-Length:\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (sized.Success) length = int.Parse(sized.Groups[1].Value);
+                            while (read.Count - end < length)
+                            {
+                                int got = stream.Read(chunk, 0, chunk.Length);
+                                if (got <= 0) break;
+                                for (int i = 0; i < got; i++) read.Add(chunk[i]);
+                            }
+                            string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
+                            string said = replies[Math.Min(replied, replies.Length - 1)];
+                            lock (prompts) { prompts.Add(body); replied++; }
+                            byte[] bytes = Encoding.UTF8.GetBytes("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(said) + "},\"finish_reason\":\"stop\"}]}");
+                            byte[] top = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
+                            stream.Write(top, 0, top.Length);
+                            stream.Write(bytes, 0, bytes.Length);
+                        }
+                    }
+                    catch (Exception) { }
+                }
+            });
+            serve.IsBackground = true;
+            serve.Start();
+            List<string> done = new List<string>();
+            Func<byte[]> shootWas = Chores.Shoot;
+            Chores.Shoot = delegate { return picture; };
+            Chores.Doing = delegate(string what, System.Text.Json.JsonElement step) { done.Add(what + (step.TryGetProperty("x", out System.Text.Json.JsonElement x) ? " " + x.GetRawText() + "," + step.GetProperty("y").GetRawText() : step.TryGetProperty("text", out System.Text.Json.JsonElement text) ? " " + text.GetString() : step.TryGetProperty("keys", out System.Text.Json.JsonElement keys) ? " " + keys.GetString() : "")); };
+            string result;
+            try { result = Chores.Run(new Brain { Server = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port, Model = "eyes-test" }, "send hola qué tal to Ana on Discord", "tell Ana hola qué tal"); }
+            finally
+            {
+                Chores.Doing = null;
+                Chores.Shoot = shootWas;
+                server.Stop();
+            }
+            string last;
+            lock (prompts) last = prompts.Count == 0 ? "" : prompts[prompts.Count - 1];
+            fail("a job run", result == "Did it. Sent it." && string.Join(" | ", done.ToArray()) == "click 640,360 | type hola qué tal | key enter | fly" && replied == 5
+                && last.IndexOf("image_url", StringComparison.Ordinal) > 0 && last.IndexOf("1280 x 720", StringComparison.Ordinal) > 0 && last.IndexOf("send hola qu", StringComparison.Ordinal) > 0
+                && last.IndexOf("4. fly", StringComparison.Ordinal) > 0 && last.IndexOf("\\\"model\\\"", StringComparison.Ordinal) < 0 && last.IndexOf("eyes-test", StringComparison.Ordinal) > 0);
+            if (wrong.Count > 0) throw new Exception("Her mouse and keyboard jobs went wrong: " + string.Join(", ", wrong) + " / " + result + " / " + string.Join(" | ", done.ToArray()) + " / " + replied);
+            checks.Add("PASS mouse and keyboard jobs: on Linux use_computer sends her brain the screenshot and the steps so far, takes one JSON step back even wrapped in words, clicks, types and presses keys through her own uinput mouse and keyboard until the brain says done, and never types a card number");
         }
 
         private void ServeSpeech(NetworkStream stream)

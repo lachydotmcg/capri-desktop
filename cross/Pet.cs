@@ -69,6 +69,9 @@ namespace CapriDesktop
         [DataMember] internal string LocalVoiceModel;
         [DataMember] internal string LocalVoiceName;
         [DataMember] internal string LocalVoiceFormat;
+        // A server of their own that thinks for her instead of Ollama (llama-server, LM Studio, vLLM, TGI), and its model.
+        [DataMember] internal string BrainServer;
+        [DataMember] internal string ServerModel;
     }
 
     // The bits of GitHub's latest release she reads to tell them about an update.
@@ -273,6 +276,7 @@ namespace CapriDesktop
         private readonly Presence presence;
         private MenuItem discordItem;
         private MenuItem securityMenu;
+        private bool fingers;
         private readonly List<MenuItem> securityPicks = new List<MenuItem>();
         private readonly List<MenuItem> securityToggles = new List<MenuItem>();
         private MenuItem memoriesItem;
@@ -284,6 +288,7 @@ namespace CapriDesktop
         // What she says about a new version once she's free.
         internal string UpdateNews;
         private bool pulling;
+        private string pullingName = Starter;
         private volatile int pulled = -1;
         private bool dancing;
         private Action outro;
@@ -451,7 +456,9 @@ namespace CapriDesktop
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
-            Security.Has = delegate(int toggle) { return toggle <= Security.Power; };
+            // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
+            fingers = Program.Smoke == null && Fingers.Problem == null;
+            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers); };
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
             LoginFile = Program.Smoke != null ? Path.Combine(Program.Smoke, OperatingSystem.IsMacOS() ? "capri.plist" : "capri.desktop") : Limbs.LoginFile();
@@ -487,6 +494,11 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
+            if (Program.Smoke == null)
+            {
+                Hands.Work = delegate(string job, string asked) { return Chores.Run(Brain, job, asked); };
+                Chores.Mouse = delegate { return Dispatcher.UIThread.Invoke(MouseShare); };
+            }
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
             string brainKey = ReadSecret(BrainKeyFile);
@@ -495,6 +507,8 @@ namespace CapriDesktop
                 Brain.Remote = new Cloud(brainKey, Saved.CloudModel);
                 Brain.Model = Saved.CloudModel;
             }
+            Brain.Server = Brain.ServerAddress(Saved.BrainServer);
+            if (Brain.Remote == null && Brain.Server != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
             elevenLabs = new ElevenLabsSpeaker(voice);
@@ -885,6 +899,32 @@ namespace CapriDesktop
         internal string UpdateChoice { get { return updateItem != null && ContextMenu != null && ContextMenu.Items.Contains(updateItem) ? updateItem.Header as string : null; } }
 
         internal string UpdatePage { get { return updatePage; } }
+
+        internal void CopyFingersSetup()
+        {
+            Avalonia.Input.Platform.IClipboard board = Clipboard;
+            if (board == null) return;
+            try { board.SetTextAsync(Fingers.Setup); }
+            catch (Exception) { return; }
+            Talk.Answer("(mouse setup)", "Copied a command for you. Paste it in a terminal, type your password, then close and open me again so I can use your mouse and keyboard.");
+        }
+
+        // Where the mouse is, 0 to 1 across the bounding box of every screen, which is how her mouse and her screenshots map too.
+        private double[] MouseShare()
+        {
+            PixelPoint? at = Mouse();
+            if (at == null) return null;
+            int left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
+            foreach (Screen screen in Screens.All)
+            {
+                left = Math.Min(left, screen.Bounds.X);
+                top = Math.Min(top, screen.Bounds.Y);
+                right = Math.Max(right, screen.Bounds.Right);
+                bottom = Math.Max(bottom, screen.Bounds.Bottom);
+            }
+            if (right <= left || bottom <= top) return null;
+            return new[] { (at.Value.X - left) / (double)(right - left - 1), (at.Value.Y - top) / (double)(bottom - top - 1) };
+        }
 
         internal void CopyErrors()
         {
@@ -1574,7 +1614,7 @@ namespace CapriDesktop
             settings.Items.Add(discordItem);
             // Security, like Windows' SECURITY window (Lachy, 29 Oct): Lockdown, Guarded, Trusted and Blackwall set the toggles
             // under them, and flipping one makes it Custom. Each toggle has its plain line. Off means she asks first and does it
-            // on your yes. Mac and Linux have the first five; her mouse and keyboard jobs and "Hey Capri" are Windows-only so far.
+            // on your yes. Mac and Linux have the first five, and Linux her mouse and keyboard jobs once uinput is set up; "Hey Capri" is Windows-only so far.
             securityMenu = new MenuItem { Header = "Security: " + Security.PresetName };
             for (int i = 0; i <= Security.Custom; i++)
             {
@@ -1597,6 +1637,14 @@ namespace CapriDesktop
                 item.Click += delegate { Security.Set(toggle, !Security.On(toggle)); };
                 securityToggles.Add(item);
                 securityMenu.Items.Add(item);
+            }
+            if (Program.Smoke == null && !fingers && OperatingSystem.IsLinux())
+            {
+                securityMenu.Items.Add(new Separator());
+                MenuItem setup = new MenuItem { Header = "Set up mouse and keyboard..." };
+                ToolTip.SetTip(setup, "Copies the one command that lets her make her own mouse and keyboard through /dev/uinput.");
+                setup.Click += delegate { CopyFingersSetup(); };
+                securityMenu.Items.Add(setup);
             }
             settings.Items.Add(securityMenu);
             settings.Items.Add(notes);
@@ -2353,9 +2401,17 @@ namespace CapriDesktop
         private void RefreshBrains()
         {
             if (Brain.Remote != null) { ShowCloud(); ListCloud(); return; }
+            string server = Brain.Server;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
+                if (server != null)
+                {
+                    try { found = Brain.ServerModels(server); }
+                    catch (Exception) { }
+                    Dispatcher.UIThread.Post(delegate { ShowServer(found); });
+                    return;
+                }
                 try { found = Brain.InstalledModels(); }
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate { ShowBrains(found); });
@@ -2369,7 +2425,7 @@ namespace CapriDesktop
             if (found == null) brainMenu.Items.Add(new MenuItem { Header = NoOllama, IsEnabled = false });
             else if (found.Length == 0)
             {
-                MenuItem fetch = new MenuItem { Header = pulling ? "Downloading " + Starter + (pulled >= 0 ? ": " + pulled + "%" : "...") : PullChoice, IsEnabled = !pulling };
+                MenuItem fetch = new MenuItem { Header = pulling ? Pulling : PullChoice, IsEnabled = !pulling };
                 fetch.Click += delegate { PullBrain(); };
                 brainMenu.Items.Add(fetch);
             }
@@ -2381,6 +2437,16 @@ namespace CapriDesktop
                     pick.Click += delegate { PickBrain(model); };
                     brainMenu.Items.Add(pick);
                 }
+            brainMenu.Items.Add(new Separator());
+            if (found != null)
+            {
+                MenuItem more = new MenuItem { Header = pulling ? Pulling : "Download a model (Ollama or Hugging Face)...", IsEnabled = !pulling };
+                more.Click += delegate { AskPull(); };
+                brainMenu.Items.Add(more);
+            }
+            MenuItem own = new MenuItem { Header = "Use my own server (OpenAI API)..." };
+            own.Click += delegate { AskServer(); };
+            brainMenu.Items.Add(own);
             // A cloud key thinks for her instead, for PCs that can't run Ollama's models well. NVIDIA's is free.
             brainMenu.Items.Add(new Separator());
             MenuItem free = new MenuItem { Header = "Get a free NVIDIA key" };
@@ -2389,6 +2455,100 @@ namespace CapriDesktop
             paste.Click += delegate { AskBrainKey(); };
             brainMenu.Items.Add(free);
             brainMenu.Items.Add(paste);
+        }
+
+        private string Pulling { get { return "Downloading " + pullingName + (pulled >= 0 ? ": " + pulled + "%" : "..."); } }
+
+        // On their own server the Brain menu lists its models, and can change its address or go back to Ollama.
+        internal void ShowServer(string[] found)
+        {
+            string server = Brain.Server;
+            if (Brain.Remote != null || server == null) return;
+            brainMenu.Items.Clear();
+            brainMenu.Items.Add(new MenuItem { Header = "My server at " + server, IsEnabled = false });
+            if (found == null) brainMenu.Items.Add(new MenuItem { Header = "Can't reach it. Is it running?", IsEnabled = false });
+            else if (found.Length == 0) brainMenu.Items.Add(new MenuItem { Header = "It lists no models", IsEnabled = false });
+            else
+                foreach (string name in found)
+                {
+                    string model = name;
+                    MenuItem pick = new MenuItem { Header = model, ToggleType = MenuItemToggleType.Radio, GroupName = "server", IsChecked = model == Brain.Model };
+                    pick.Click += delegate { PickServerModel(model); };
+                    brainMenu.Items.Add(pick);
+                }
+            brainMenu.Items.Add(new Separator());
+            MenuItem change = new MenuItem { Header = "Change server address..." };
+            change.Click += delegate { AskServer(); };
+            MenuItem back = new MenuItem { Header = "Stop using my server and use Ollama" };
+            back.Click += delegate { LeaveServer(); };
+            brainMenu.Items.Add(change);
+            brainMenu.Items.Add(back);
+        }
+
+        internal void AskPull()
+        {
+            ComeBack();
+            Talk.AskFor(BrainHeard, "Type a model and press Enter: an Ollama one like qwen3:4b, or a Hugging Face GGUF like hf.co/bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF:Q4_K_M or its huggingface.co link.", delegate(string typed)
+            {
+                string name = Brain.PullName(typed);
+                if (name == null) { Talk.Answer(BrainHeard, "That isn't a model name I can download. Try qwen3:4b or hf.co/user/repo."); return; }
+                PullBrain(name);
+            });
+        }
+
+        internal void AskServer()
+        {
+            ComeBack();
+            Talk.AskFor("(brain server)", "Type your server's address, like http://localhost:8080 for llama-server or http://localhost:1234 for LM Studio, and press Enter.", UseServer);
+        }
+
+        internal void UseServer(string typed)
+        {
+            string server = Brain.ServerAddress(typed);
+            if (server == null) { Talk.Answer("(brain server)", "That address doesn't work. Try http://localhost:8080."); return; }
+            int ticket = ++asking;
+            Talk.Thinking("(brain server)");
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string[] found = null;
+                try { found = Brain.ServerModels(server); }
+                catch (Exception) { }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (found == null || found.Length == 0)
+                    {
+                        if (ticket == asking) Talk.Answer("(brain server)", found == null ? "Can't reach a server at " + server + ". Is it running?" : "Your server at " + server + " lists no models. Load one in it first.");
+                        return;
+                    }
+                    Brain.Cancel();
+                    Brain.Server = server;
+                    Saved.BrainServer = server;
+                    string model = Array.IndexOf(found, Saved.ServerModel) >= 0 ? Saved.ServerModel : found[0];
+                    if (Brain.Remote == null) Brain.Model = model;
+                    Saved.ServerModel = model;
+                    Save();
+                    if (ticket == asking) Talk.Answer("(brain server)", "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
+                });
+            });
+        }
+
+        internal void PickServerModel(string model)
+        {
+            if (string.IsNullOrEmpty(model) || model == Brain.Model) return;
+            Brain.Cancel();
+            Brain.Model = model;
+            Saved.ServerModel = model;
+            Save();
+        }
+
+        internal void LeaveServer()
+        {
+            Brain.Cancel();
+            Brain.Server = null;
+            Saved.BrainServer = null;
+            if (Brain.Remote == null) Brain.Model = null;
+            Save();
+            FindBrain();
         }
 
         // On a cloud key the Brain menu lists that key's chat models, and can go back to Ollama.
@@ -2495,16 +2655,19 @@ namespace CapriDesktop
         }
 
         // Ollama has no models yet: she pulls her own brain, shows how far it's got on the Brain menu, then picks it and says so.
-        internal void PullBrain()
+        internal void PullBrain() { PullBrain(Starter); }
+
+        internal void PullBrain(string tag)
         {
             if (pulling) return;
             pulling = true;
             pulled = -1;
-            Talk.Answer(BrainHeard, "Downloading my brain, " + Starter + ". It's a few GB, so give me a while. Right-click me > Brain shows how far it's got.");
+            pullingName = tag;
+            Talk.Answer(BrainHeard, "Downloading my brain, " + tag + ". It can be a few GB, so give me a while. Right-click me > Brain shows how far it's got.");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;
-                try { Brain.Pull(Starter, delegate(string status, long done, long total) { pulled = (int)(done * 100 / Math.Max(1, total)); }, delegate { return false; }); }
+                try { Brain.Pull(tag, delegate(string status, long done, long total) { pulled = (int)(done * 100 / Math.Max(1, total)); }, delegate { return false; }); }
                 catch (Exception error)
                 {
                     System.Net.WebException web = error as System.Net.WebException;
@@ -2515,8 +2678,8 @@ namespace CapriDesktop
                     pulling = false;
                     pulled = -1;
                     if (problem != null) { Talk.Answer(BrainHeard, problem); return; }
-                    Brain.Model = Starter;
-                    Saved.Model = Starter;
+                    Saved.Model = tag;
+                    if (Brain.Remote == null && Brain.Server == null) Brain.Model = tag;
                     Save();
                     Talk.Answer(BrainHeard, "My brain's in. Talk to me, choom.");
                 });
@@ -3159,16 +3322,27 @@ namespace CapriDesktop
         internal void FindBrain()
         {
             string saved = Saved.Model;
+            string server = Brain.Server;
+            string serverSaved = Saved.ServerModel;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string model = null;
-                try { model = Brain.PickModel(Brain.InstalledModels(), saved, null); }
+                try
+                {
+                    if (server == null) model = Brain.PickModel(Brain.InstalledModels(), saved, null);
+                    else
+                    {
+                        string[] listed = Brain.ServerModels(server);
+                        model = Array.IndexOf(listed, serverSaved) >= 0 ? serverSaved : listed.Length > 0 ? listed[0] : null;
+                    }
+                }
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (Brain.Model != null || model == null) return;
+                    if (Brain.Model != null || model == null || Brain.Server != server) return;
                     Brain.Model = model;
-                    Saved.Model = model;
+                    if (server == null) Saved.Model = model;
+                    else Saved.ServerModel = model;
                     Save();
                 });
             });
