@@ -124,7 +124,12 @@ jobs:
         timeout-minutes: 15
         run: |
           sudo apt-get update -q
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends xvfb xauth openbox xcompmgr libice6 libsm6 libfontconfig1
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends xvfb xauth openbox xcompmgr libice6 libsm6 libfontconfig1 make pkg-config libwayland-dev libxkbcommon-dev libxcb1-dev
+      - name: Package native Linux helper
+        run: |
+          make -C cross/native
+          install -Dm755 cross/native/capri-input out/Capri/native/capri-input
+          test -x out/Capri/native/capri-input
       - name: Smoke test
         timeout-minutes: 5
         run: |
