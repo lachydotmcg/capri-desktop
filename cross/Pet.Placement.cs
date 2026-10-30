@@ -12,13 +12,16 @@ namespace CapriDesktop
         private HyprlandDisplayMap lastNativeMap;
         private bool nativePlaced;
         private int nativePlacementRevision;
-        internal string MotionStatus => petSurface?.Error ?? rootPointer?.Error ?? (Desk is HyprlandDesk ? "Native Hyprland placement and dragging" : Desk.Name);
+        private bool nativePlacementWaiting;
+        private double nativeRecoveryAt;
+        private bool NativeMappingMissing => petSurface != null && Desk is HyprlandDesk native && native.ActiveMap == null;
+        internal string MotionStatus => petSurface?.Error ?? (NativeMappingMissing ? "Display mapping is unavailable; dragging is paused while compositor placement retries." : rootPointer?.Error) ?? (Desk is HyprlandDesk ? "Native Hyprland placement and dragging" : Desk.Name);
 
         private bool MoveNative(Point to, HyprlandDisplayMap map = null)
         {
             if (!(Desk is HyprlandDesk native) || petSurface == null) return false;
             map ??= native.MapAt(new PixelPoint((int)Math.Round(to.X + body.Size * SitX * DesktopScaling), (int)Math.Round(to.Y + body.Size * SitY * DesktopScaling))) ?? native.ActiveMap;
-            if (map == null) return false;
+            if (map == null) { nativePlaced = false; PrepareNativePlacement(); return true; }
             anchor = new PixelPoint((int)Math.Round(to.X), (int)Math.Round(to.Y));
             lastNativeMap = map;
             Point origin = map.ToLogical(new Point(to.X + FrameX * DesktopScaling, to.Y + FrameY * DesktopScaling));
@@ -29,15 +32,20 @@ namespace CapriDesktop
 
         private void PrepareNativePlacement()
         {
-            if (!(Desk is HyprlandDesk) || nativePlaced) return;
+            if (!(Desk is HyprlandDesk) || petSurface == null || nativePlaced || nativePlacementWaiting) return;
+            nativePlacementWaiting = true;
             int revision = ++nativePlacementRevision;
             int attempts = 0;
             void PlaceWhenReady()
             {
-                if (quitting || revision != nativePlacementRevision || nativePlaced) return;
+                if (quitting || motionDisposed || away || !IsVisible || revision != nativePlacementRevision || nativePlaced) { nativePlacementWaiting = false; return; }
                 Desk.BindScreens(Screens.All);
-                if (((HyprlandDesk)Desk).ActiveMap != null) { TryPlaceNative(); return; }
-                if (++attempts < 40) DispatcherTimer.RunOnce(PlaceWhenReady, TimeSpan.FromMilliseconds(50));
+                if (((HyprlandDesk)Desk).ActiveMap != null) { nativePlacementWaiting = false; TryPlaceNative(); return; }
+                EndRootDrag(false, false);
+                walking = falling = hanging = false;
+                seat = null;
+                if (Now >= nativeRecoveryAt) { nativeRecoveryAt = Now + 1; petSurface.QueueRecovery(); }
+                DispatcherTimer.RunOnce(PlaceWhenReady, TimeSpan.FromMilliseconds(++attempts < 40 ? 50 : 1000));
             }
             PlaceWhenReady();
         }
@@ -68,7 +76,18 @@ namespace CapriDesktop
             EndRootDrag(false, false);
             Desk.BindScreens(Screens.All);
             HyprlandDisplayMap map = native.ActiveMap;
-            if (map == null) { nativePlaced = false; PrepareNativePlacement(); return true; }
+            if (map == null)
+            {
+                Halt();
+                SetAway(false);
+                if (!IsVisible) { Show(); Look.OnTopAgain(this); }
+                nativePlaced = false;
+                nativeRecoveryAt = Now + 1;
+                petSurface.QueueRecovery(true);
+                PrepareNativePlacement();
+                Raise(Now + 6);
+                return true;
+            }
             Halt();
             SetAway(false);
             if (!IsVisible) { Show(); Look.OnTopAgain(this); }

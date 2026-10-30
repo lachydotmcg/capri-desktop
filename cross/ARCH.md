@@ -126,6 +126,13 @@ full sprite envelope's normalized position in its work area. Bring uses the
 currently focused output; cross-output moves use that output's active workspace
 without switching the user's focus. The pet is not pinned to every workspace.
 
+If Avalonia cannot identify a scaled output, the pet can still recover onto the
+focused output using its actual compositor window size and work area. This
+visibility-only fallback does not invent a display/input mapping: dragging and
+mapped ledges stay unavailable, with the reason shown in motion status. Placement
+retries at most once a second while visible, and normal movement resumes when a
+verified output mapping returns. Bring also unhides and recovers an unmapped pet.
+
 `CAPRI_MOTION_TRACE=/absolute/new-file.jsonl` enables a bounded local diagnostic
 trace of pet geometry, capture state and pointer timing. It never logs other
 window titles or desktop pixels and refuses to overwrite an existing file.

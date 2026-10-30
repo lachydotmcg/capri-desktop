@@ -646,6 +646,8 @@ namespace CapriDesktop
             List<string> parts = new List<string>();
             foreach (Screen screen in Screens.All) parts.Add(screen.DisplayName + ":" + screen.Bounds);
             HyprlandDesk native = (HyprlandDesk)Desk;
+            if (NativeMappingMissing) { nativePlaced = false; PrepareNativePlacement(); return; }
+            if (petSurface != null && !nativePlaced) TryPlaceNative();
             if (native.Desktop.Snapshot == null || native.Maps.Length == 0) return;
             foreach (HyprlandDisplayMap map in native.Maps) parts.Add(map.Output.Name + ":" + map.Output.Logical + ":" + map.Output.Scale + ":" + map.Output.Transform);
             string layout = string.Join(";", parts);
@@ -809,12 +811,12 @@ namespace CapriDesktop
                 if (smoke != null) smoke.Tick(now);
                 return;
             }
-            if (!dragging && !rootDragOwned)
+            if (!dragging && !rootDragOwned && !NativeMappingMissing)
             {
                 if (falling) Tumble(now);
                 else if (seat != null) HoldSeat(now);
             }
-            if (walking && !rootDragOwned) Walk(now);
+            if (walking && !rootDragOwned && !NativeMappingMissing) Walk(now);
             if (now >= nextCheck && !away)
             {
                 nextCheck = now + 0.25;
@@ -1242,6 +1244,7 @@ namespace CapriDesktop
         {
             base.OnPointerMoved(e);
             pointer = e.GetPosition(this);
+            if (NativeMappingMissing) return;
             if (pressed) TraceMotion("move-before", e);
             if (rootDragOwned) return;
             if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }

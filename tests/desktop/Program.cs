@@ -506,6 +506,98 @@ namespace CapriDesktop
 
         }
 
+        private static async Task UnmappedPetRecovery()
+        {
+            Fake fake = new Fake { Effect = false };
+            fake.Outputs = new JsonArray(Output(x: -1280, y: -80, scale: 1.5));
+            fake.Windows = new JsonArray(Window(pid: Environment.ProcessId, workspace: 9), Window("0x456", Environment.ProcessId));
+            fake.Windows[0]["class"] = "Capri";
+            fake.Windows[0]["title"] = "Capri";
+            fake.Windows[0]["floating"] = true;
+            fake.Windows[0]["at"] = new JsonArray(9000, 9000);
+            fake.Windows[0]["size"] = new JsonArray(219, 321);
+            fake.Windows[1]["class"] = "Capri";
+            fake.Windows[1]["title"] = "Capri Mainframe";
+            using HyprlandDesktop service = Service(fake);
+            await service.CaptureSnapshotAsync(default);
+            HyprlandDesk desk = new HyprlandDesk(service);
+            Screen[] screens = { new Screen(1.5, new PixelRect(-1920, -120, 1920, 1080), new PixelRect(-1920, -75, 1920, 1035), true) };
+            desk.BindScreens(screens);
+            Equal(0, desk.Maps.Length, "Nameless scaled screen cannot establish an input mapping from different bounds");
+            Check(desk.ActiveMap == null && desk.Pointer() == null && desk.WorkAt(new PixelPoint(-1000, 20)) == null,
+                "Unmatched output keeps pointer, active mapping and mapped work area unavailable");
+            using HyprlandPetSurface surface = new HyprlandPetSurface(service);
+            fake.Rejected = true;
+            await surface.QueueRecovery();
+            Check(surface.Error != null, "A refused recovery remains a visible error instead of success");
+            fake.Rejected = false;
+            fake.Dispatches.Clear();
+            await surface.QueueRecovery();
+            Check(surface.Error == null, "A later recovery attempt succeeds after a transient compositor failure");
+            Check(fake.Dispatches.All(c => c.Contains("address:0x123") && !c.Contains("0x456")), "Unmapped recovery only mutates this process's pet, never Mainframe");
+            Check(fake.Dispatches.Any(c => c.Contains("workspace=\"1\"") && c.Contains("follow=false")), "Unmapped recovery uses the current visible workspace without following focus");
+            Check(fake.Dispatches.Last().Contains("x=-750,y=134"), "Recovery derives center from actual compositor envelope and scaled reserved work area");
+            HyprlandOutput output = service.Snapshot.Outputs[0];
+            Check(output.WorkingArea.Contains(new Rect(-750, 134, 219, 321)), "Recovered full compositor envelope fits the output work area");
+            desk.BindScreens(screens);
+            Equal(0, desk.Maps.Length, "Successful visibility rescue does not create an input map");
+            Check(desk.Pointer() == null, "Pointer targeting remains unavailable after rescue");
+            fake.Windows[0]["at"] = new JsonArray(-750, 134);
+            fake.Windows[0]["workspace"] = new JsonObject { ["id"] = 1, ["name"] = "1" };
+            fake.Dispatches.Clear();
+            await surface.QueueRecovery();
+            Equal(0, fake.Dispatches.Count, "Repeated recovery leaves a fully visible pet in place");
+            await surface.QueueRecovery(true);
+            Check(fake.Dispatches.Single().Contains("x=-750,y=-50"), "Bring retries at the focused output's top work area even without a map");
+            fake.Dispatches.Clear();
+            fake.Locked = true;
+            await surface.QueueRecovery(true);
+            Check(surface.Error.Contains("locked"), "Recovery reports the current lock state");
+            Equal(0, fake.Dispatches.Count, "A locked desktop receives no recovery move");
+            fake.Locked = false;
+            fake.Outputs.Clear();
+            await surface.QueueRecovery(true);
+            Check(surface.Error.Contains("No visible output"), "No-output recovery remains retryable with an explicit status");
+            fake.Outputs.Add(Output(x: -1280, y: -80, scale: 1.5));
+            int monitorReads = 0;
+            fake.Before = command =>
+            {
+                if (command == "j/monitors" && ++monitorReads == 2) fake.Outputs[0]["reserved"] = new JsonArray(0, 90, 0, 0);
+            };
+            await surface.QueueRecovery(true);
+            Check(surface.Error.Contains("layout or pet size changed"), "A layout change during recovery requires another observation");
+            Equal(0, fake.Dispatches.Count, "Stale recovery geometry is never dispatched");
+            fake.Before = null;
+            await surface.QueueRecovery(true);
+            Check(surface.Error == null && fake.Dispatches.Single().Contains("x=-750,y=10"), "Retry uses the new work area, not stale geometry");
+            fake.Dispatches.Clear();
+            monitorReads = 0;
+            fake.Before = command =>
+            {
+                if (command == "j/monitors" && ++monitorReads == 1) fake.Windows[0]["size"] = new JsonArray(319, 421);
+            };
+            await surface.QueueRecovery(true);
+            Check(surface.Error.Contains("layout or pet size changed") && fake.Dispatches.Count == 0, "A pet size change cannot dispatch a stale envelope");
+            fake.Before = null;
+            await surface.QueueRecovery(true);
+            Check(surface.Error == null && fake.Dispatches.Single().Contains("x=-800,y=10"), "A later attempt uses the actual changed envelope");
+            fake.Dispatches.Clear();
+            surface.Suspend(true);
+            await surface.QueueRecovery(true);
+            Equal(0, fake.Dispatches.Count, "Hiding suspends recovery requests");
+            surface.Suspend(false);
+            fake.Windows[0]["hidden"] = true;
+            await surface.QueueRecovery();
+            Check(surface.Error.Contains("hidden") && fake.Dispatches.Count == 0, "A compositor-hidden pet is reported honestly, not treated as visibly recovered");
+            fake.Windows[0]["hidden"] = false;
+            fake.Outputs[0]["scale"] = 1;
+            fake.Outputs[0]["x"] = -1920;
+            fake.Outputs[0]["y"] = -120;
+            await service.CaptureSnapshotAsync(default);
+            desk.BindScreens(screens);
+            Equal(1, desk.Maps.Length, "A later verified output match restores native mapping after recovery");
+        }
+
         private static async Task<int> Main(string[] args)
         {
             try
@@ -520,7 +612,7 @@ namespace CapriDesktop
                     return 0;
                 }
                 Geometry(); await VisibilityAndLedges(); await WindowActions(); await Revocation(); await PointerAndFailure(); Envelope(); await SocketTransport();
-                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement();
+                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement(); await UnmappedPetRecovery();
                 Console.WriteLine(JsonSerializer.Serialize(new { status = "PASS", checks, scope = "synthetic native desktop fixtures; no live mutation, pixels, audio or input" }));
                 return 0;
             }
