@@ -1553,7 +1553,7 @@ namespace CapriDesktop
             Match watch = Regex.Match(text, @"^(?:tell me (?:when|as soon as)|let me know (?:when|as soon as)|(?:warn|alert) me (?:when|if)|watch for|keep an eye (?:out for|on))\s+(.+)$", RegexOptions.IgnoreCase);
             if (!watch.Success) return null;
             string condition = watch.Groups[1].Value.Trim();
-            if (Regex.IsMatch(condition, @"^(?:you|u|to)\b|^(?:something|anything|this|that|it)$|\b(came out|comes? out|coming out|was released|were released|was born|happened|used to|should)\b|^(?:this|that|it) (?:looks?|seems?|is) (?:good|bad|right|wrong|okay|ok|nice)\b", RegexOptions.IgnoreCase)) return null;
+            if (Regex.IsMatch(condition, @"^(?:you|u|to)\b|^(?:something|anything|this|that|it)$|\b(came out|comes? out|coming out|was released|were released|was born|happened|used to|should|ended|began|started|died|invented|founded|was|were|did)\b|\b(is|are)$|^(?:this|that|it) (?:looks?|seems?|is) (?:good|bad|right|wrong|okay|ok|nice)\b", RegexOptions.IgnoreCase)) return null;
             if (Regex.IsMatch(condition, @"\b\d{1,2}(?::\d{2})?\s*(?:[ap]\.?m\.?|o'?clock)\b|\b\d{1,2}:\d{2}\b|\b(noon|midnight|tomorrow|tonight)\b|\b(?:in|after) (?:\d+|an?|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve) (?:seconds?|minutes?|hours?|days?|weeks?)\b|^(?:it'?s|it is|the time is)\s+(?:\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|half|quarter)\b", RegexOptions.IgnoreCase)) return null;
             bool repeatWatch = Regex.IsMatch(condition, @"[, ]+every time$", RegexOptions.IgnoreCase);
             if (repeatWatch) condition = Regex.Replace(condition, @"[, ]+every time$", "", RegexOptions.IgnoreCase).Trim();

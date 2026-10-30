@@ -1460,7 +1460,7 @@ namespace CapriDesktop
                 else
 #endif
                 if (pulled != null) raw = pulled;
-                else if (stopped || results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !calls.Exists(call => call.Key == "look_at_screen"))) raw = done;
+                else if (stopped || results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !calls.Exists(call => call.Key == "look_at_screen" || call.Key == "listen"))) raw = done;
                 else
                 {
                     messages = new List<ChatMessage>

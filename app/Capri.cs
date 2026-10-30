@@ -7762,7 +7762,7 @@ namespace CapriDesktop
         {
             if (ticket != chatTicket || !local || !chatting) return;
             if (request != asking) { transcribing = false; CheckEars(clock.Elapsed.TotalSeconds); return; }
-            if (ears.Muted || (talkState == TalkState.Thinking && working == null) || clock.Elapsed.TotalSeconds < voiceUntil || !Speech(taken, wake))
+            if (ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil || !Speech(taken, wake))
             {
                 transcribing = false;
                 CheckEars(clock.Elapsed.TotalSeconds);
@@ -8318,7 +8318,7 @@ namespace CapriDesktop
             if (!PcEars.Active) return false;
             string stopTool;
             ToolArguments stopArgs;
-            if (Asides.Plain(text, out stopTool, out stopArgs) != AsideKind.Stop) return false;
+            if (Asides.Plain(text, out stopTool, out stopArgs) != AsideKind.Stop && !Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase)) return false;
             PcEars.Stop();
             return true;
         }
@@ -9190,7 +9190,7 @@ namespace CapriDesktop
             ToolArguments lookoutArgs;
             foreach (string lookoutAsk in new[] { "tell me when my health is low", "tell me as soon as the download finishes", "let me know when the download finishes", "warn me when the boss spawns", "warn me if the boss spawns", "tell me when someone messages me", "watch for the boss", "keep an eye out for a message", "keep an eye on my health", "stop watching", "stop watching for my health", "what are you watching for" })
                 if (!Hands.Wants(lookoutAsk) || !Hands.Heard(lookoutAsk, out lookoutTool, out lookoutArgs) || lookoutTool != "watch_for") throw new Exception("A screen watch missed her hands: " + lookoutAsk);
-            foreach (string lookoutChat in new[] { "tell me when the game came out", "tell me when you're done", "let me know when you've finished", "tell me when it's 5pm", "tell me if you can see this", "tell me if this looks good", "watch this video", "watch this", "tell me when it is five o'clock", "tell me when it's 17:00", "don't watch for the boss", "can you watch for something for me?", "tell me if i should buy this", "let me know if that works", "tell me when to stop", "tell me if this game is any good", "tell me when the next season comes out" })
+            foreach (string lookoutChat in new[] { "tell me when the game came out", "tell me when you're done", "let me know when you've finished", "tell me when it's 5pm", "tell me if you can see this", "tell me if this looks good", "watch this video", "watch this", "tell me when it is five o'clock", "tell me when it's 17:00", "don't watch for the boss", "can you watch for something for me?", "tell me if i should buy this", "let me know if that works", "tell me when to stop", "tell me if this game is any good", "tell me when the next season comes out", "tell me when world war 2 ended", "tell me when christmas is" })
                 if (Hands.Heard(lookoutChat, out lookoutTool, out lookoutArgs) && lookoutTool == "watch_for") throw new Exception("A screen watch took ordinary chat: " + lookoutChat);
             string lookoutCall = "watch_for{\"text\":\"my health is low\",\"often\":\"every_time\"}";
             if (!Hands.Typed(lookoutCall, out lookoutTool, out lookoutArgs) || lookoutTool != "watch_for" || lookoutArgs.Often != "every_time" || Hands.Written(lookoutCall).Count != 1
@@ -9331,6 +9331,38 @@ namespace CapriDesktop
             stoppedWatch.Deliver();
             if (nestedLook || stoppedWatch.Count != 0) throw new Exception("Lookout overlapped a look or revived a stopped watch.");
             checks.Add("PASS lookout never overlaps a slow look and discards a hit for a watch stopped while it was looking");
+            long pairNow = 0;
+            byte[] pairPicture = lookoutStill;
+            string pairReply = "2,1: Ammo's out.";
+            int pairLooks = 0;
+            System.Collections.Generic.List<string> pairLines = new System.Collections.Generic.List<string>();
+            Lookout pair = new Lookout { Automatic = false, Clock = delegate { return pairNow; }, Shot = delegate { return pairPicture; },
+                See = delegate { pairLooks++; return pairReply; }, Speak = delegate(string pairLine) { pairLines.Add(pairLine); } };
+            pair.Run(new ToolArguments { Text = "my health is low", Often = "every_time" });
+            pair.Run(new ToolArguments { Text = "my ammo is out", Often = "every_time" });
+            pair.Tick();
+            pair.Deliver();
+            pairNow = 3000;
+            pairReply = "1,2: Health's low.";
+            pair.Tick();
+            pair.Deliver();
+            if (pairLooks != 2 || pairLines.Count != 2 || pairLines[1] != "Health's low.") throw new Exception("A second watch happening at once waited on a screen that held still: " + pairLooks + " looks, " + pairLines.Count + " lines.");
+            pairNow = 6000;
+            pairPicture = lookoutStep;
+            pairReply = "1: Health's low.";
+            pair.Tick();
+            pair.Deliver();
+            pairNow = 9000;
+            pairPicture = lookoutStill;
+            pairReply = "2,1: Ammo's out.";
+            pair.Tick();
+            pair.Deliver();
+            if (pairLines.Count != 3 || pairLines[2] != "Ammo's out.") throw new Exception("A repeating watch didn't re-arm by itself while another stayed true.");
+            int[] pairNumbers = { 1, 2 };
+            int pairHit;
+            System.Collections.Generic.List<int> pairHappening;
+            if (Lookout.Read("2, 1: Ammo's out.", pairNumbers, out pairHit, out pairHappening) != "Ammo's out." || pairHit != 2 || pairHappening.Count != 2 || Lookout.Read("9,1: Ammo's out.", pairNumbers, out pairHit, out pairHappening) == null || pairHit != 1 || pairHappening.Count != 1) throw new Exception("Her list of what's happening was read wrong.");
+            checks.Add("PASS watches re-arm one by one, and two happening at once both get told even on a screen that holds still");
             SmokeGlance(checks, lookoutStill);
             SmokeLookoutDelivery(checks, lookoutStill);
         }
@@ -10827,6 +10859,7 @@ namespace CapriDesktop
                     throw new Exception("Listening missed a tool format or changed its arguments.");
                 if (Hands.Name(Hands.Count - 1) != "listen" || !Hands.ElevenLabsTool(Hands.Count - 1).Contains("\"response_timeout_secs\":60")
                     || !Hands.Tools.Contains("\"name\":\"listen\"") || !Hands.ClaudeTools.Contains("\"name\":\"listen\"") || !Hands.Listing.Contains("listen")) throw new Exception("Listening was missing from a tool list or voice wait.");
+                if (Asides.Plain("listen to this", out listenTool, out listenArgs) != AsideKind.Tool || listenTool != "listen") throw new Exception("A listen mid-job went into the job.");
                 checks.Add("PASS listening routes clear PC audio asks in chat and voice, leaves conversation and music asks alone, parses tool calls and gives the voice tool a 60 second wait");
                 checks.Add("LIMIT listening used synthetic loopback audio and recognizer results; live PC audio and recognizer accuracy need a manual check");
             }
