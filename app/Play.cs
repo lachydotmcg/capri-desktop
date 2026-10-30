@@ -130,6 +130,7 @@ namespace CapriDesktop
             if (!steered) return;
             foreach (int counts in new[] { 2, -2, 1, -1 })
             {
+                if (interrupted) return;
                 Nudge(counts, 0);
                 Thread.Sleep(30);
             }

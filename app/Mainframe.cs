@@ -1581,7 +1581,7 @@ namespace CapriDesktop
             if (remote != null && !listed.Exists(candidate => candidate.Source == remote.Source)) listed.Add(remote);
             foreach (Cloud server in listed)
             {
-                Cloud pick = new Cloud(server.Port, server.Model);
+                Cloud pick = new Cloud(server.Port, server.Model, server.Host);
                 modelMenu.Items.Add(Choice(pick.Name + " · " + pick.Model, remote != null && remote.Source == pick.Source, delegate { capri.ChooseLocalBrain(pick, pick.Model, null); ShowCloud(pick, null); }));
             }
         }

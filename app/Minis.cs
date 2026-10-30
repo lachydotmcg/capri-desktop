@@ -296,6 +296,7 @@ namespace CapriDesktop
             quietMoves++;
             if (game.Result == 0 && (quietMoves < 2 || waiting.Count > 0 || now - Last < 8 || dice.Next(3) != 0)) return;
             string[] lines = game.Result == 1 ? Losses : game.Result == 2 ? Wins : game.Result == 3 ? Draws : Moves;
+            waiting.Clear();
             waiting.Enqueue(new MiniLine { Board = game.BoardText(), Result = game.Result, Fallback = lines[dice.Next(lines.Length)] });
             quietMoves = 0;
         }
@@ -308,7 +309,8 @@ namespace CapriDesktop
         {
             MiniLine[] previous = waiting.ToArray();
             waiting.Clear();
-            foreach (MiniLine old in previous) if (old.Result != 0) waiting.Enqueue(old);
+            for (int old = previous.Length - 1; old >= 0; old--)
+                if (previous[old].Result != 0) { waiting.Enqueue(previous[old]); break; }
         }
     }
 
@@ -318,7 +320,7 @@ namespace CapriDesktop
         internal readonly MiniGame Game;
         private readonly System.Windows.Forms.Timer ticks = new System.Windows.Forms.Timer();
         private float scale = 1;
-        private bool motion;
+        private bool motion, placing;
         private int selected, held = -1, pulse;
         internal event Action Played;
 
@@ -351,15 +353,51 @@ namespace CapriDesktop
         internal void Open(Rectangle companion)
         {
             Rectangle area = Screen.FromRectangle(companion).WorkingArea;
-            try { scale = Math.Max(1, Native.GetDpiForWindow(Handle) / 96f); } catch (EntryPointNotFoundException) { }
-            scale = Math.Min(scale, Math.Min((float)area.Width / Wide, (float)area.Height / Tall));
+            placing = true;
+            Size = new Size(1, 1);
+            Location = new Point(area.Left + area.Width / 2, area.Top + area.Height / 2);
+            scale = BoardScale(Dpi(), area);
             int width = (int)Math.Round(Wide * scale), height = (int)Math.Round(Tall * scale);
             int left = companion.Right + 12;
             if (left + width > area.Right) left = companion.Left - width - 12;
             Location = new Point(Math.Max(area.Left, Math.Min(left, area.Right - width)), Math.Max(area.Top, Math.Min(companion.Bottom - height, area.Bottom - height)));
             Redraw();
+            placing = false;
             Activate();
             ticks.Enabled = motion;
+        }
+
+        private float Dpi()
+        {
+            try { return Native.GetDpiForWindow(Handle); } catch (EntryPointNotFoundException) { return 96; }
+        }
+
+        internal static float BoardScale(float dpi, Rectangle area) { return Math.Min(Math.Max(1, dpi / 96f), Math.Min((float)area.Width / Wide, (float)area.Height / Tall)); }
+
+        private void Rescale(float dpi)
+        {
+            if (placing || !Visible || IsDisposed) return;
+            placing = true;
+            try
+            {
+                Rectangle area = Screen.FromHandle(Handle).WorkingArea;
+                scale = BoardScale(dpi, area);
+                Location = new Point(Math.Max(area.Left, Math.Min(Left, area.Right - (int)Math.Round(Wide * scale))), Math.Max(area.Top, Math.Min(Top, area.Bottom - (int)Math.Round(Tall * scale))));
+                Redraw();
+            }
+            finally { placing = false; }
+        }
+
+        protected override void OnLocationChanged(EventArgs e)
+        {
+            base.OnLocationChanged(e);
+            if (IsHandleCreated) Rescale(Dpi());
+        }
+
+        protected override void WndProc(ref Message message)
+        {
+            base.WndProc(ref message);
+            if (message.Msg == 0x02E0) Rescale((int)(message.WParam.ToInt64() & 65535));
         }
 
         internal static RectangleF Part(string kind, int pick)
@@ -574,7 +612,12 @@ namespace CapriDesktop
         {
             if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(MiniTool), args);
             if (!Hands.Valid("mini_game", args)) return "Couldn't find that desktop board.";
-            if (args.Action == "close") { CloseMinis(); return "Board's away, choom."; }
+            if (args.Action == "close")
+            {
+                if (MidJob(job) && string.Equals((args.Text ?? "").Trim(), "stop", StringComparison.OrdinalIgnoreCase)) StopJob(Lines.Pick(Lines.Stopped));
+                CloseMinis();
+                return "Board's away, choom.";
+            }
             if (args.Action == "move" && (minis == null || minis.Game.Kind != args.Name)) return "That board isn't open.";
             if (minis == null || minis.Game.Kind != args.Name)
             {
@@ -652,6 +695,7 @@ namespace CapriDesktop
                 if (preferences.Motion) AnimateTool(result == 2 ? "grin" : "glitch");
             }
             miniChat.Observe(minis.Game, clock.Elapsed.TotalSeconds, miniRandom);
+            if (miniChat.Count > 0 && miniLine != null) { miniTicket++; miniLine = null; }
         }
 
         private void MiniTick()

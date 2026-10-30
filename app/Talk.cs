@@ -2535,17 +2535,39 @@ namespace CapriDesktop
         private Point lastHead;
         private Point lastFeet;
         private Rectangle lastArea;
+        private int firstLine, visibleLines, totalLines;
+        private string scrollReply;
+        private RectangleF pages;
         private const int Columns = 34;
         private const string Speaker = "CAPRI: ";
 
         internal SpeechBox() : base("Capri says") { Cursor = Look.Pointer; }
 
         internal Rectangle PanelOnScreen { get { return panelOnScreen; } }
+        internal bool Scrollable { get { return totalLines > visibleLines; } }
+        internal int FirstLine { get { return firstLine; } }
+        internal int VisibleLines { get { return visibleLines; } }
+        internal int TotalLines { get { return totalLines; } }
+
+        internal void ScrollRows(int rows)
+        {
+            firstLine = (int)Math.Max(0, Math.Min((long)Math.Max(0, totalLines - visibleLines), (long)firstLine + rows));
+            clean = false;
+            if (Visible) Update(Math.Max(Opened + 1, 0), lastScale, lastHead, lastFeet, lastArea);
+        }
+
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            if (e.Delta != 0) ScrollRows(e.Delta > 0 ? -3 : 3);
+        }
 
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
-            if (e.Button == MouseButtons.Left && Dismissed != null) Dismissed();
+            if (e.Button != MouseButtons.Left) return;
+            if (Scrollable && pages.Contains(e.Location)) { ScrollRows(e.X < pages.Left + pages.Width / 2 ? -visibleLines : visibleLines); return; }
+            if (Dismissed != null) Dismissed();
         }
 
         internal static int Fit(string text)
@@ -2589,8 +2611,10 @@ namespace CapriDesktop
             lastArea = area;
         }
 
-        private Bitmap Render(float s, Point head, Point feet, Rectangle area, bool cursorOn, out Point at)
+        internal Bitmap Render(float s, Point head, Point feet, Rectangle area, bool cursorOn, out Point at)
         {
+            if (scrollReply != Reply) { firstLine = 0; scrollReply = Reply; }
+            s = Math.Min(s, Math.Min(area.Width / 160f, area.Height / 150f));
             string all = Speaker + (Reply ?? "") + (Heard ?? "");
             using (Font text = Look.Mono(14 * s, FontStyle.Regular, GraphicsUnit.Pixel, all))
             using (Font heard = Look.Mono(14 * s, FontStyle.Italic, GraphicsUnit.Pixel, all))
@@ -2601,21 +2625,26 @@ namespace CapriDesktop
                 float margin = 12 * s;
                 float top = 10 * s;
                 float tail = 16 * s;
-                int columns = Fit(Speaker + (Reply ?? ""));
+                int columns = Math.Max(1, Math.Min(Fit(Speaker + (Reply ?? "")), (int)Math.Floor((area.Width - 62 * s) / cw)));
                 List<string> lines = Look.Wrap(Speaker + (Reply ?? ""), columns);
                 // Her own remarks have no prompt, so nothing sits above her words.
                 int above = string.IsNullOrEmpty(Prompt) ? 0 : 1;
                 float panelWidth = 24 * s + columns * cw + 14 * s;
-                float panelHeight = 13 * s + line * (above + lines.Count) + 10 * s;
+                totalLines = lines.Count;
+                int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above);
+                visibleLines = Math.Min(totalLines, totalLines > room ? Math.Max(1, room - 1) : room);
+                firstLine = Math.Max(0, Math.Min(firstLine, totalLines - visibleLines));
+                float panelHeight = 13 * s + line * (above + visibleLines + (Scrollable ? 1 : 0)) + 10 * s;
                 int width = (int)Math.Ceiling(panelWidth + margin * 2);
                 int height = (int)Math.Ceiling(top + panelHeight + tail + 4 * s);
                 bool below = head.Y - height < area.Top;
                 Point tip = below ? feet : head;
                 int left = Math.Max(area.Left, Math.Min(area.Right - width, (int)(tip.X - margin - panelWidth * 0.7f)));
-                int y = below ? tip.Y : tip.Y - height;
+                int y = Math.Max(area.Top, Math.Min(area.Bottom - height, below ? tip.Y : tip.Y - height));
                 at = new Point(left, y);
                 RectangleF panel = new RectangleF(margin, below ? tail + 4 * s : top, panelWidth, panelHeight);
                 panelOnScreen = new Rectangle(left + (int)panel.X, y + (int)panel.Y, (int)panel.Width, (int)panel.Height);
+                pages = Scrollable ? new RectangleF(panel.Left + 24 * s, panel.Bottom - 10 * s - line, panel.Width - 38 * s, line) : RectangleF.Empty;
                 float tipX = Math.Max(panel.Left + 32 * s, Math.Min(panel.Right - 10 * s, tip.X - left));
                 float tipY = below ? 0 : height - 1;
                 Bitmap image = new Bitmap(width, height, PixelFormat.Format32bppPArgb);
@@ -2648,7 +2677,7 @@ namespace CapriDesktop
                     using (Brush ink = new SolidBrush(Look.Neon))
                     {
                         float right = x + columns * cw;
-                        for (int i = 0; i < lines.Count && takes[i] > 0; i++)
+                        for (int i = firstLine; i < firstLine + visibleLines && takes[i] > 0; i++)
                         {
                             string shown = lines[i].Substring(0, takes[i]);
                             int name = i == 0 ? Math.Min(takes[i], Speaker.Length - 1) : 0;
@@ -2659,16 +2688,21 @@ namespace CapriDesktop
                             // line decides, so it doesn't flip sides partway through.
                             if (Look.RightToLeft(lines[i].Substring(name)))
                             {
-                                graphics.DrawString(words, text, ink, new RectangleF(from, row2 + i * line, right - from, line), Look.Leftward);
-                                caret = new PointF(right - graphics.MeasureString(words, text, PointF.Empty, Look.Leftward).Width - cw - 2 * s, row2 + i * line);
+                                graphics.DrawString(words, text, ink, new RectangleF(from, row2 + (i - firstLine) * line, right - from, line), Look.Leftward);
+                                caret = new PointF(right - graphics.MeasureString(words, text, PointF.Empty, Look.Leftward).Width - cw - 2 * s, row2 + (i - firstLine) * line);
                             }
                             else
                             {
-                                float end = Look.Draw(graphics, words, text, ink, from, row2 + i * line);
-                                caret = new PointF(Look.Burmese(words) ? end : Look.Thai(words) || Look.Indic(words) ? from + graphics.MeasureString(words, text, PointF.Empty, Look.Spaced).Width : x + Look.Cells(shown) * cw, row2 + i * line);
+                                float end = Look.Draw(graphics, words, text, ink, from, row2 + (i - firstLine) * line);
+                                caret = new PointF(Look.Burmese(words) ? end : Look.Thai(words) || Look.Indic(words) ? from + graphics.MeasureString(words, text, PointF.Empty, Look.Spaced).Width : x + Look.Cells(shown) * cw, row2 + (i - firstLine) * line);
                             }
                         }
-                        if (cursorOn) graphics.FillRectangle(ink, caret.X + s, caret.Y + s, cw * 0.85f, line - 5 * s);
+                        if (cursorOn && (firstLine + visibleLines == totalLines || takes[firstLine + visibleLines] == 0)) graphics.FillRectangle(ink, caret.X + s, caret.Y + s, cw * 0.85f, line - 5 * s);
+                    }
+                    if (Scrollable)
+                    {
+                        string paging = "< PREV   " + (firstLine + 1) + "-" + (firstLine + visibleLines) + "/" + totalLines + "   NEXT >";
+                        using (Brush dim = new SolidBrush(Look.Dim)) Look.Draw(graphics, paging, text, dim, pages.Left, pages.Top);
                     }
                 }
                 return image;

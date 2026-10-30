@@ -1111,9 +1111,17 @@ namespace CapriDesktop
                     Thread.Sleep(60);
                     Point pressAt = placed ? at : HerAt;
                     Borrow(pressAt);
-                    Hold(held, true);
-                    try { Tapped(pressAt); Press(name == "right_click" ? "right" : name == "middle_click" ? "middle" : "left", name == "double_click" ? 2 : name == "triple_click" ? 3 : 1); }
-                    finally { Hold(held, false); GiveBack(); }
+                    bool pressingKeys = false;
+                    try
+                    {
+                        if (interrupted) return Why;
+                        pressingKeys = true;
+                        Hold(held, true);
+                        if (interrupted) return Why;
+                        Tapped(pressAt);
+                        Press(name == "right_click" ? "right" : name == "middle_click" ? "middle" : "left", name == "double_click" ? 2 : name == "triple_click" ? 3 : 1);
+                    }
+                    finally { if (pressingKeys) Hold(held, false); GiveBack(); }
                     Pause(600);
                     return interrupted ? Why : "Clicked.";
                 case "left_click_drag":
@@ -1723,13 +1731,13 @@ namespace CapriDesktop
             return points;
         }
 
-        private static void Click(Point at, string button)
+        internal static void Click(Point at, string button)
         {
             Glide(at);
             if (interrupted) return;
             Thread.Sleep(60);
             Borrow(at);
-            try { Tapped(at); Press(button == "right" ? "right" : "left", button == "double" ? 2 : 1); }
+            try { if (interrupted) return; Tapped(at); Press(button == "right" ? "right" : "left", button == "double" ? 2 : 1); }
             finally { GiveBack(); }
         }
 
@@ -1737,7 +1745,7 @@ namespace CapriDesktop
         {
             int down = button == "right" ? 0x0008 : button == "middle" ? 0x0020 : 0x0002;
             int up = button == "right" ? 0x0010 : button == "middle" ? 0x0040 : 0x0004;
-            for (int i = 0; i < times; i++)
+            for (int i = 0; i < times && !interrupted; i++)
             {
                 Sfx.Play(Cue.Click);
                 Mouse(down, 0);
@@ -2640,11 +2648,13 @@ namespace CapriDesktop
 
         // Does one call and shows it in her task panel as it happens.
         // Clicking one spot over and over means it isn't working, and a screen that keeps moving hides that.
-        private string Again(string name, ToolArguments args)
+        internal string Again(string name, ToolArguments args)
         {
             if (name == "right_click") { clickRun = 0; return ""; }
-            if (name != "left_click" || args.Coordinate == null || args.Coordinate.Length < 2) return "";
-            double x = args.Coordinate[0], y = args.Coordinate[1];
+            if (name != "left_click") return "";
+            Point? landing = Computer.Landing(args, shown);
+            if (!landing.HasValue) return "";
+            double x = landing.Value.X, y = landing.Value.Y;
             clickRun = clickRun > 0 && Math.Abs(x - clickX) <= 40 && Math.Abs(y - clickY) <= 40 ? clickRun + 1 : 1;
             clickX = x;
             clickY = y;

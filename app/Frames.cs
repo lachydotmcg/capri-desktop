@@ -53,11 +53,13 @@ namespace CapriDesktop
             CloseDuplication();
             if (fallback != null) { fallback.Dispose(); fallback = null; }
             desktop = Screen.FromRectangle(wanted).Bounds;
-            area = Rectangle.Intersect(wanted, desktop);
-            try { OpenDuplication(); }
+            area = CaptureArea(wanted, SystemInformation.VirtualScreen);
+            try { if (desktop.Contains(area)) OpenDuplication(); }
             catch (Exception) { CloseDuplication(); }
             retryAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 2;
         }
+
+        internal static Rectangle CaptureArea(Rectangle bounds, Rectangle screens) { return Rectangle.Intersect(bounds, screens); }
 
         private void OpenDuplication()
         {
@@ -102,7 +104,7 @@ namespace CapriDesktop
                     }
                     finally { Drop(ref adapter); }
                 }
-                if (chosenOutput == IntPtr.Zero) return;
+                if (chosenOutput == IntPtr.Zero || !outputDesc.Bounds.Contains(area)) return;
                 Guid outputId = new Guid("00cddea8-939b-4b83-a340-a685226666cc");
                 Check(Marshal.QueryInterface(chosenOutput, ref outputId, out output));
                 int feature;

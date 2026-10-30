@@ -252,13 +252,14 @@ namespace CapriDesktop
         internal readonly string Key;
         internal readonly string Kind;
         internal readonly int Port;
+        internal readonly string Host;
         internal volatile string Model;
         internal Cloud(string key, string model) { Key = key; Kind = KindOf(key); Model = model; }
-        internal Cloud(int port, string model) { Brain.LocalHost(port); Port = port; Kind = "local"; Model = model; }
+        internal Cloud(int port, string model, string address = null) { Host = Brain.LocalAddress(address) ?? Brain.LocalHost(port); Port = new Uri(Host).Port; Kind = "local"; Model = model; }
         internal bool Claude { get { return Kind == "anthropic"; } }
         internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "deepseek" ? "DeepSeek" : Kind == "nvidia" ? "NVIDIA" : "ChatGPT"; } }
         internal string Company { get { return Kind == "local" ? Name : Kind == "anthropic" ? "Anthropic" : Kind == "deepseek" ? "DeepSeek" : Kind == "nvidia" ? "NVIDIA" : "OpenAI"; } }
-        internal string Source { get { return Kind + (Kind == "local" ? "|" + Port : "") + "|" + Model; } }
+        internal string Source { get { return Kind + (Kind == "local" ? "|" + Host : "") + "|" + Model; } }
         internal string Sight { get { return Kind == "local" ? Source : Model; } }
 
         internal static string KindOf(string key)
@@ -1062,6 +1063,14 @@ namespace CapriDesktop
             return uri.Port > 0 ? uri.Port : 0;
         }
 
+        internal static string LocalAddress(string address)
+        {
+            int port = LocalPort(address);
+            if (port == 0) return null;
+            int number;
+            return int.TryParse((address ?? "").Trim(), out number) ? LocalHost(port) : new Uri(address.Trim()).GetLeftPart(UriPartial.Authority);
+        }
+
         internal static string ServerName(int port)
         {
             return port == 1234 ? "LM Studio" : port == 1337 ? "Jan" : port == 5001 ? "KoboldCpp" : port == 8080 ? "llama.cpp" : "Local server :" + port;
@@ -1076,7 +1085,7 @@ namespace CapriDesktop
             lock (serverEyes) return remote.Kind != "local" || !serverEyes.TryGetValue(remote.Source, out sees) || sees;
         }
 
-        internal static List<Cloud> ReadLocalModels(int port, string json)
+        internal static List<Cloud> ReadLocalModels(int port, string json, string address = null)
         {
             XmlDocument document = new XmlDocument();
             using (XmlDictionaryReader reader = JsonReaderWriterFactory.CreateJsonReader(Encoding.UTF8.GetBytes(json), XmlDictionaryReaderQuotas.Max)) document.Load(reader);
@@ -1085,7 +1094,7 @@ namespace CapriDesktop
             {
                 XmlNode id = item.SelectSingleNode("id");
                 if (id == null || string.IsNullOrWhiteSpace(id.InnerText) || found.Exists(listedModel => listedModel.Model == id.InnerText)) continue;
-                Cloud model = new Cloud(port, id.InnerText);
+                Cloud model = new Cloud(port, id.InnerText, address);
                 bool? sees = null;
                 XmlNode vision = item.SelectSingleNode("capabilities/vision|capabilities/supports_vision|vision|supports_vision");
                 bool stated;
@@ -1111,15 +1120,15 @@ namespace CapriDesktop
             return found;
         }
 
-        internal static List<Cloud> LocalModels(int port)
+        internal static List<Cloud> LocalModels(int port, string address = null)
         {
-            HttpWebRequest request = Create(LocalHost(port) + "/v1/models", 600);
+            HttpWebRequest request = Create((LocalAddress(address) ?? LocalHost(port)) + "/v1/models", 600);
             System.Threading.Tasks.Task<List<Cloud>> probe = System.Threading.Tasks.Task.Factory.StartNew(delegate
             {
                 try
                 {
                     using (WebResponse response = request.GetResponse())
-                    using (StreamReader reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) return ReadLocalModels(port, reader.ReadToEnd());
+                    using (StreamReader reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) return ReadLocalModels(port, reader.ReadToEnd(), address);
                 }
                 catch (WebException error) { if (error.Response != null) error.Response.Close(); }
                 catch (IOException) { }
@@ -1132,14 +1141,17 @@ namespace CapriDesktop
             return new List<Cloud>();
         }
 
-        internal static List<Cloud> LocalBrains(string address, int chosen)
+        internal static List<Cloud> LocalBrains(string address, int chosen, string selected = null)
         {
-            List<int> ports = new List<int> { 1234, 1337, 5001, 8080 };
-            int custom = LocalPort(address);
-            if (custom > 0 && !ports.Contains(custom)) ports.Add(custom);
-            if (chosen > 0 && chosen <= 65535 && !ports.Contains(chosen)) ports.Add(chosen);
+            List<string> hosts = new List<string> { LocalHost(1234), LocalHost(1337), LocalHost(5001), LocalHost(8080) };
+            foreach (string extra in new[] { chosen > 0 && chosen <= 65535 ? LocalAddress(selected) ?? LocalHost(chosen) : null, LocalAddress(address) })
+            {
+                if (extra == null) continue;
+                int index = hosts.FindIndex(candidate => LocalPort(candidate) == LocalPort(extra));
+                if (index < 0) hosts.Add(extra); else hosts[index] = extra;
+            }
             List<Cloud> found = new List<Cloud>();
-            foreach (int port in ports) found.AddRange(LocalModels(port));
+            foreach (string host in hosts) found.AddRange(LocalModels(LocalPort(host), host));
             return found;
         }
 
@@ -1419,7 +1431,7 @@ namespace CapriDesktop
                     if (call.Key == "media") Hands.Aim(call.Value, request);
                     string result;
 #if !CROSS
-                    if (call.Key == "read_file") result = ReadFile(call.Value.Path);
+                    if (call.Key == "read_file") result = ReadFile(call.Value.Path, call.Value.Page, call.Value.Offset);
                     else
 #endif
                         result = act(call.Key, call.Value);
@@ -1526,7 +1538,7 @@ namespace CapriDesktop
         }
 
 #if !CROSS
-        internal string ReadFile(string path) { return Attachments.Read(path, FileSight); }
+        internal string ReadFile(string path, int? page = null, long? offset = null) { return Attachments.Read(path, FileSight, page, offset); }
 
         private string FileSight(byte[] jpeg)
         {
@@ -1745,7 +1757,7 @@ namespace CapriDesktop
                     Template = brief ? new CloudTemplate() : null,
                     Stream = remote.Kind == "local" && unstreamed != remote.Source
                 };
-                string address = remote.Kind == "local" ? LocalHost(remote.Port) + "/v1/chat/completions" : Address(remote.Kind, "/chat/completions");
+                string address = remote.Kind == "local" ? remote.Host + "/v1/chat/completions" : Address(remote.Kind, "/chat/completions");
                 Action<HttpWebRequest> sign = remote.Kind == "local" ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, remote.Key, false); });
                 int wait = remote.Kind == "local" ? 180000 : CloudWait;
                 CompletionReply reply;
@@ -2349,7 +2361,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null && web.Status == WebExceptionStatus.RequestCanceled) return null;
-            if (web != null && remote != null && remote.Kind == "local") return "Can't reach " + remote.Name + ". Check that your local server is running at " + LocalHost(remote.Port) + ", then try me again.";
+            if (web != null && remote != null && remote.Kind == "local") return "Can't reach " + remote.Name + ". Check that your local server is running at " + remote.Host + ", then try me again.";
             if (web != null && remote != null && web.Status == WebExceptionStatus.Timeout) return remote.Company + " didn't answer in time. Try again or pick another model " + BrainMenu + ".";
             if (web != null && remote != null && web.Response == null) return "Can't reach " + remote.Company + ", choom. Check your internet, then try me again.";
             if (web != null && web.Status == WebExceptionStatus.Timeout) return "Took too long to think, choom. My brain runs on your PC, so open games slow me down. Close one, or " + FreeKeyHow + ".";
@@ -2499,7 +2511,8 @@ namespace CapriDesktop
             text = Regex.Replace(text, @"^(capri|capricorn)\s*(:|>)\s*", "", RegexOptions.IgnoreCase);
             text = Unquoted(text);
             int chosen = ReplySizes[Math.Max(0, Math.Min(ReplySizes.Length - 1, ReplyLength))];
-            int most = chosen > 0 ? chosen * 4 : Caps[Math.Max(0, Math.Min(2, Wordiness))];
+            if (chosen > 0) return text;
+            int most = Caps[Math.Max(0, Math.Min(2, Wordiness))];
             if (text.Length <= most) return text;
             int cut = text.LastIndexOfAny(new[] { '.', '!', '?' }, most - 1);
             if (cut >= 60) return text.Substring(0, cut + 1);

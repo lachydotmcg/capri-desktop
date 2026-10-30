@@ -189,6 +189,7 @@ namespace CapriDesktop
         [DataMember] public string Model;
         [DataMember] public string LocalAddress;
         [DataMember] public int BrainPort;
+        [DataMember] public string BrainAddress;
         [DataMember] public string LocalModel;
         [DataMember] public bool Welcomed;
         // She's asked to get to know them, after setup or from Settings, so setting up a new brain doesn't ask again.
@@ -4499,10 +4500,19 @@ namespace CapriDesktop
             Sfx.Play(Cue.Hop);
         }
 
+        private bool localAddressTyped;
+
         internal string ChooseCustomModel(string name, string[] installed)
         {
             name = (name ?? "").Trim();
             if (name.Length == 0) return "Type a model name first.";
+            string address = Brain.LocalAddress(preferences.LocalAddress);
+            if (preferences.Tier == 0 && address != null && (localAddressTyped || brain.Model == null))
+            {
+                ChooseLocalBrain(new Cloud(Brain.LocalPort(address), name, address), name, null);
+                mainframe.ShowCloud(brain.Remote, null);
+                return "Using " + name + " at " + address + ".";
+            }
             if (brain.Local != null) return "Custom models need Ollama, a local server or an API key.";
             if (brain.Model == null) return "Find her a brain first.";
             Cloud remote = brain.Remote;
@@ -5662,6 +5672,11 @@ namespace CapriDesktop
             pill.Above = preferences.OnTop;
             box.Above = preferences.OnTop;
             typer.TopMost = preferences.OnTop;
+            if (minis != null)
+            {
+                minis.Above = preferences.OnTop;
+                if (minis.IsHandleCreated) Native.SetWindowPos(minis.Handle, new IntPtr(preferences.OnTop ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            }
             foreach (Form above in new Form[] { pill, box, typer })
             {
                 if (above.Owner != this) above.Owner = this;
@@ -5688,11 +5703,12 @@ namespace CapriDesktop
             mainframe.Searching();
             string address = preferences.LocalAddress;
             int port = preferences.BrainPort;
+            string selected = preferences.BrainAddress;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] installed = null;
                 try { installed = Brain.InstalledModels(); } catch (WebException) { } catch (IOException) { } catch (SerializationException) { }
-                System.Collections.Generic.List<Cloud> servers = Brain.LocalBrains(address, port);
+                System.Collections.Generic.List<Cloud> servers = Brain.LocalBrains(address, port, selected);
                 Machine found = Machine.Read();
                 Pick local = engine.Installed();
                 Post(delegate
@@ -5703,7 +5719,7 @@ namespace CapriDesktop
                     if (brain.Remote == null && preferences.Tier == 0 && (installed == null || installed.Length == 0) && local == null && servers.Count > 0)
                     {
                         Cloud first = servers[0];
-                        brain.Remote = new Cloud(first.Port, first.Model);
+                        brain.Remote = new Cloud(first.Port, first.Model, first.Host);
                         Keep(brain.Remote);
                     }
                     UseBrain(installed, found, local);
@@ -5717,7 +5733,8 @@ namespace CapriDesktop
         {
             int port = Brain.LocalPort(address);
             if (!string.IsNullOrWhiteSpace(address) && port == 0) return "Use a loopback address, like http://127.0.0.1:1234.";
-            preferences.LocalAddress = port == 0 ? null : Brain.LocalHost(port);
+            preferences.LocalAddress = Brain.LocalAddress(address);
+            localAddressTyped = port > 0;
             SavePreferences();
             bool local = brain.Remote == null || brain.Remote.Kind == "local";
             if (!testing && local) FindBrain();
@@ -5729,11 +5746,13 @@ namespace CapriDesktop
             brain.Cancel();
             ++asking;
             CloseTalk();
-            brain.Remote = server == null ? null : new Cloud(server.Port, model);
+            brain.Remote = server == null ? null : new Cloud(server.Port, model, server.Host);
+            localAddressTyped = false;
             brain.Local = local == null ? null : engine;
             brain.LocalPick = local;
             brain.Model = model;
             preferences.BrainPort = server == null ? 0 : server.Port;
+            preferences.BrainAddress = server == null ? null : server.Host;
             if (server != null) preferences.LocalModel = model;
             else preferences.Model = model;
             SavePreferences();
@@ -6184,7 +6203,7 @@ namespace CapriDesktop
 
         private Cloud TierCloud()
         {
-            if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel);
+            if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel, preferences.BrainAddress);
             string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
             return key == null ? null : new Cloud(key, preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel);
         }
@@ -6203,7 +6222,7 @@ namespace CapriDesktop
 
         private void Keep(Cloud remote)
         {
-            if (remote.Kind == "local") { preferences.BrainPort = remote.Port; preferences.LocalModel = remote.Model; }
+            if (remote.Kind == "local") { preferences.BrainPort = remote.Port; preferences.BrainAddress = remote.Host; preferences.LocalModel = remote.Model; }
             else if (remote.Kind == "nvidia") preferences.NvidiaModel = remote.Model;
             else preferences.PaidModel = remote.Model;
             Mirror();
@@ -8516,7 +8535,7 @@ namespace CapriDesktop
                 replyDone = now;
                 if (talkState == TalkState.Talking) talkState = TalkState.Online;
             }
-            if (replyDone >= 0 && box.Leaving < 0 && !typer.Visible && !(local && !earsReady && asking == earsNotice) && now > voiceUntil && now > replyDone + BubbleHold(reply.Length)) box.Leaving = now;
+            if (replyDone >= 0 && box.Leaving < 0 && !box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice) && now > voiceUntil && now > replyDone + BubbleHold(reply.Length)) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
@@ -9479,16 +9498,44 @@ namespace CapriDesktop
                 File.WriteAllBytes(localPath, localBytes);
                 if (Files.Open(localPath, null).Text != System.Text.Encoding.Default.GetString(localBytes)) throw new Exception("The system code page was lost.");
                 checks.Add("PASS files read text and code as UTF-8 or the system code page, including unknown text extensions");
+                foreach (System.Text.Encoding bom in new[] { System.Text.Encoding.Unicode, System.Text.Encoding.BigEndianUnicode, System.Text.Encoding.UTF8 })
+                {
+                    string bomPath = Path.Combine(folder, "bom-" + bom.CodePage + ".txt");
+                    string bomWords = "BOM words \u65e5 \u00e9 \U0001f600";
+                    File.WriteAllText(bomPath, bomWords, bom);
+                    ReadFile bomFile = Files.Open(bomPath, null);
+                    if (!bomFile.Readable || bomFile.Text != bomWords) throw new Exception("A BOM file was not decoded: " + bom.CodePage);
+                }
+                checks.Add("PASS files detect UTF-8 and both UTF-16 BOMs before checking for binary NULs");
+                string apostrophePath = Path.Combine(folder, "O'Brien's notes.txt");
+                File.WriteAllText(apostrophePath, "The right file.");
+                File.WriteAllText(Path.Combine(folder, "O"), "The wrong file.");
+                if (Files.PathIn("read '" + apostrophePath + "' please") != apostrophePath || Files.PathIn("'" + apostrophePath + "'") != apostrophePath) throw new Exception("An apostrophe truncated the chosen path.");
+                Files apostropheFiles = new Files();
+                apostropheFiles.Next("Compare '" + apostrophePath + "' with this message.", null);
+                if (!apostropheFiles.Read(apostrophePath, null).Contains("is a text file")) throw new Exception("Quoted paths were parsed differently during attachment selection.");
+                checks.Add("PASS single-quoted paths prefer the longest existing file, including apostrophes and an existing shorter prefix");
 
                 string largePath = Path.Combine(folder, "large.txt");
                 File.WriteAllText(largePath, "START" + new string('m', Files.Excerpt * 3) + "END", new System.Text.UTF8Encoding(false));
                 ReadFile largeFile = Files.Open(largePath, null);
-                if (!largeFile.Readable || !largeFile.Text.StartsWith("START", StringComparison.Ordinal) || !largeFile.Text.EndsWith("END", StringComparison.Ordinal) || !largeFile.Text.Contains("characters left out; showing the start and end.")) throw new Exception("A large file lost its ends or omission note.");
+                if (!largeFile.Readable || !largeFile.Text.StartsWith("START", StringComparison.Ordinal) || largeFile.NextOffset != Files.Excerpt || !largeFile.Line.Contains("offset " + Files.Excerpt)) throw new Exception("A large file lost its continuation.");
+                System.Text.StringBuilder completeFile = new System.Text.StringBuilder(largeFile.Text);
+                ReadFile moreFile = largeFile;
+                while (moreFile.NextOffset.HasValue)
+                {
+                    moreFile = Files.Open(largePath, null, null, moreFile.NextOffset);
+                    if (!moreFile.Readable) throw new Exception("A continuation could not be read.");
+                    completeFile.Append(moreFile.Text);
+                }
+                if (completeFile.ToString() != File.ReadAllText(largePath)) throw new Exception("File continuation skipped or repeated characters.");
+                checks.Add("PASS read_file offsets reach every character of a long file and each result explains how to get the rest");
                 string unicodePath = Path.Combine(folder, "unicode.txt");
-                File.WriteAllText(unicodePath, new string('a', Files.Excerpt / 2 - 1) + "\U0001f600" + new string('m', Files.Excerpt) + "\U0001f600" + new string('z', Files.Excerpt / 2 - 1), new System.Text.UTF8Encoding(false));
+                File.WriteAllText(unicodePath, new string('a', Files.Excerpt - 1) + "\U0001f600" + new string('m', Files.Excerpt) + "\U0001f600" + new string('z', Files.Excerpt / 2 - 1), new System.Text.UTF8Encoding(false));
                 ReadFile unicodeFile = Files.Open(unicodePath, null);
                 if (!unicodeFile.Readable) throw new Exception("Unicode text could not be read.");
                 new System.Text.UTF8Encoding(false, true).GetBytes(unicodeFile.Text);
+                if (unicodeFile.NextOffset != Files.Excerpt - 1 || !Files.Open(unicodePath, null, null, unicodeFile.NextOffset).Text.StartsWith("\U0001f600", StringComparison.Ordinal)) throw new Exception("An excerpt split a surrogate pair.");
                 File.WriteAllText(unicodePath, new string('a', Files.Excerpt) + "\0" + new string('z', Files.Excerpt), new System.Text.UTF8Encoding(false));
                 if (Files.Open(unicodePath, null).Readable) throw new Exception("A NUL in the omitted part of a file was missed.");
                 string binaryPath = Path.Combine(folder, "binary.bin");
@@ -9497,7 +9544,7 @@ namespace CapriDesktop
                 if (binaryFile.Readable || binaryFile.Line != "I can't read that kind of file yet: binary.bin.") throw new Exception("A binary file did not get the plain line.");
                 string missingPath = Path.Combine(folder, "missing.txt");
                 if (Files.Open(missingPath, null).Line != "I couldn't find the file missing.txt.") throw new Exception("A missing file did not get the plain line.");
-                checks.Add("PASS files keep the start and end of big text with an omission note and explain binary and missing files plainly");
+                checks.Add("PASS files keep excerpts on character boundaries, detect binary data beyond the excerpt and explain binary and missing files plainly");
 
                 string docPath = Path.Combine(folder, "tiny.docx");
                 using (System.IO.Compression.ZipArchive docZip = System.IO.Compression.ZipFile.Open(docPath, System.IO.Compression.ZipArchiveMode.Create))
@@ -9521,6 +9568,34 @@ namespace CapriDesktop
                 ReadFile sheetFile = Files.Open(sheetPath, null);
                 if (!sheetFile.Readable || !sheetFile.Text.Contains("Sheet: Accounts") || !sheetFile.Text.Contains("A1: Shared words") || !sheetFile.Text.Contains("B1: Inline words") || !sheetFile.Text.Contains("D1: 42") || sheetFile.Text.Contains("SUM(")) throw new Exception("The XLSX words or cached cell values were lost.");
                 checks.Add("PASS files read words from real DOCX and XLSX packages, with paragraphs, sheet names, shared and inline strings and cached values");
+                using (System.IO.Compression.ZipArchive largeSheet = System.IO.Compression.ZipFile.Open(sheetPath, System.IO.Compression.ZipArchiveMode.Update))
+                {
+                    largeSheet.GetEntry("xl/sharedStrings.xml").Delete();
+                    using (StreamWriter manyStrings = new StreamWriter(largeSheet.CreateEntry("xl/sharedStrings.xml").Open()))
+                    {
+                        manyStrings.Write("<sst><si><r><t>First </t></r><r><t>shared</t></r></si>");
+                        for (int unusedString = 1; unusedString < 10000; unusedString++) manyStrings.Write("<si><t>Unused " + unusedString + new string('x', 128) + "</t></si>");
+                        manyStrings.Write("<si><t>Last shared</t></si></sst>");
+                    }
+                    largeSheet.GetEntry("xl/worksheets/sheet1.xml").Delete();
+                    using (StreamWriter manyRows = new StreamWriter(largeSheet.CreateEntry("xl/worksheets/sheet1.xml").Open()))
+                    {
+                        manyRows.Write("<worksheet><sheetData>");
+                        for (int sheetRow = 1; sheetRow <= 2000; sheetRow++) manyRows.Write("<row><c r=\"A" + sheetRow + "\" t=\"s\"><v>10000</v></c><c r=\"B" + sheetRow + "\" t=\"s\"><v>0</v></c></row>");
+                        manyRows.Write("</sheetData></worksheet>");
+                    }
+                }
+                ReadFile indexedSheet = Files.Open(sheetPath, null);
+                if (!indexedSheet.Readable || !indexedSheet.Text.Contains("A1: Last shared") || !indexedSheet.Text.Contains("B1: First shared") || !indexedSheet.NextOffset.HasValue) throw new Exception("Indexed shared strings lost their values or continuation.");
+                System.Text.StringBuilder allRows = new System.Text.StringBuilder(indexedSheet.Text);
+                while (indexedSheet.NextOffset.HasValue)
+                {
+                    indexedSheet = Files.Open(sheetPath, null, null, indexedSheet.NextOffset);
+                    if (!indexedSheet.Readable) throw new Exception("A spreadsheet continuation could not be read.");
+                    allRows.Append(indexedSheet.Text);
+                }
+                if (!allRows.ToString().Contains("B2000: First shared") || allRows.ToString().Contains("Unused")) throw new Exception("A spreadsheet's final cells were unreachable.");
+                checks.Add("PASS XLSX streams shared strings through a disk index, resolves distant and repeated references and reaches the last row by offset");
                 SmokeFilePictures(checks, folder);
                 SmokeFileChat(checks, folder, docPath);
                 SmokeFileDrop(checks, folder);
@@ -9580,7 +9655,11 @@ namespace CapriDesktop
                 if (!pdfFile.Readable) pictureResults.Add("LIMIT files Windows could not render the PDF fixture on this PC");
                 else
                 {
-                    if (!pdfFile.Text.Contains("Page 2:") || !pdfFile.Text.Contains("Pages 5 to 5 left out")) throw new Exception("The PDF lost its page labels or omission note.");
+                    if (!pdfFile.Text.Contains("Page 2:") || pdfFile.NextPage != 5 || !pdfFile.Line.Contains("page 5")) throw new Exception("The PDF lost its page labels or continuation.");
+                    ReadFile lastPdf = Files.Open(pdfPath, null, 5);
+                    if (!lastPdf.Readable || !lastPdf.Text.Contains("Page 5:") || lastPdf.NextPage.HasValue) throw new Exception("The fifth PDF page could not be reached.");
+                    if (Ocr.Ready && lastPdf.Text.IndexOf("Capri page 5", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("PDF continuation lost page five's words.");
+                    pictureResults.Add("PASS read_file page 5 reaches the fifth PDF page and the result reports when more pages are available");
                     if (!Ocr.Ready) pictureResults.Add("LIMIT files rendered PDF pages but OCR is unavailable on this PC");
                     else
                     {
@@ -9705,6 +9784,11 @@ namespace CapriDesktop
             if (!Hands.Typed(writtenFile, out routeTool, out routeArgs) || routeTool != "read_file" || routeArgs.Path != handedPath || Hands.Written(writtenFile).Count != 1 || !Hands.Listing.Contains("read_file") || !Hands.Tools.Contains("read_file") || !Hands.ClaudeTools.Contains("read_file")) throw new Exception("Written or native file tools were missing.");
             if (Security.Needs("read_file", routeArgs) != -1) throw new Exception("Reading a handed file asked permission.");
             checks.Add("PASS read_file routes explicit and quoted paths through native and written tools without taking read me a story or open this file");
+            string continuedFile = "read_file{\"path\":" + Voice.Quote(handedPath) + ",\"page\":5,\"offset\":24000}";
+            if (!Hands.Typed(continuedFile, out routeTool, out routeArgs) || routeArgs.Page != 5 || routeArgs.Offset != 24000 || !Hands.Valid(routeTool, routeArgs)) throw new Exception("File continuation arguments were lost.");
+            foreach (string fileList in new[] { Hands.Tools, Hands.ClaudeTools, Hands.Listing })
+                if (!fileList.Contains("\"page\"") || !fileList.Contains("\"offset\"") || !fileList.Contains("continue")) throw new Exception("A file tool list omitted its continuation arguments.");
+            checks.Add("PASS native, Claude and written read_file lists describe page and offset, and written calls retain both arguments");
 
             string fileOllama = Brain.Ollama, fileNotes = Brain.MemoryPath, fileMemories = Brain.MemoriesPath, fileTranscripts = Brain.TranscriptPath, fileLog = Brain.LogPath;
             bool fileKeeping = Brain.Keeping;
@@ -10278,6 +10362,64 @@ namespace CapriDesktop
                 if (crowded.Bytes != 0) throw new Exception("Switching clips off kept the buffer.");
             }
             checks.Add("PASS clips expire old frames and sound, drop frames within a fixed memory budget, and release their buffer when switched off");
+            using (ClipBuffer focusClips = new ClipBuffer(120, 8192))
+            {
+                focusClips.Follow(new GameSeen { Window = new IntPtr(71), Process = 17, Name = "Game - menu" });
+                focusClips.Keep(new byte[100], 0, 0, true);
+                focusClips.Keep(new byte[80], 0, 100, false);
+                long focusBytes = focusClips.Bytes;
+                focusClips.Follow(null);
+                focusClips.Follow(new GameSeen { Window = new IntPtr(71), Process = 17, Name = "Game - playing" });
+                if (focusClips.Frames != 1 || focusClips.Bytes != focusBytes) throw new Exception("A focus or title change discarded clip history.");
+                focusClips.Follow(new GameSeen { Window = new IntPtr(72), Process = 18, Name = "Game - playing" });
+                if (focusClips.Frames != 0 || focusClips.Bytes != 0) throw new Exception("A different game inherited clip history.");
+                focusClips.Keep(new byte[100], 1, 1, true);
+                focusClips.Enable(false);
+                if (focusClips.Frames != 0 || focusClips.Bytes != 0) throw new Exception("Clips kept history after being switched off.");
+            }
+            checks.Add("PASS clips retain frames and sound across focus and title changes, and clear them for another game or the off switch");
+            try
+            {
+                using (ManualResetEvent savingStarted = new ManualResetEvent(false))
+                using (ManualResetEvent savingRelease = new ManualResetEvent(false))
+                {
+                    int exports = 0;
+                    long queuedFrames = 0, queuedFirst = -1, queuedLast = -1;
+                    using (ClipBuffer busyClips = new ClipBuffer(120, 8192, delegate(ClipSave export)
+                    {
+                        int exportNumber = Interlocked.Increment(ref exports);
+                        if (exportNumber == 1) { savingStarted.Set(); savingRelease.WaitOne(); }
+                        foreach (ClipPart stored in export.Pictures.Read())
+                            if (exportNumber == 2) { if (queuedFrames++ == 0) queuedFirst = stored.At; queuedLast = stored.At; }
+                        return new ClipResult { Seconds = (export.End - export.Start) / 10000000.0 };
+                    }))
+                    try
+                    {
+                        busyClips.Keep(new byte[500], 0, 0, true);
+                        System.Threading.Tasks.Task<ClipResult> firstExport = busyClips.Save("first.mp4", 30);
+                        if (!savingStarted.WaitOne(3000)) throw new Exception("The clip writer did not start.");
+                        busyClips.Keep(new byte[500], 100000, 100000, true);
+                        System.Threading.Tasks.Task<ClipResult> mergedExport = busyClips.Save("merged.mp4", 30);
+                        for (int requestedClip = 2; requestedClip <= 200; requestedClip++)
+                        {
+                            long frameTime = requestedClip * 100000L;
+                            if (!busyClips.Keep(new byte[500], frameTime, frameTime, true)) throw new Exception("An unfinished save blocked new footage.");
+                            System.Threading.Tasks.Task<ClipResult> repeatedExport = busyClips.Save("another.mp4", 30);
+                            if (!object.ReferenceEquals(mergedExport, repeatedExport) || busyClips.Pending != 1 || busyClips.Bytes > 8192) throw new Exception("Repeated clip requests grew the queue or capture memory.");
+                        }
+                        busyClips.Enable(false);
+                        if (busyClips.Bytes != 0) throw new Exception("Pending exports pinned the rolling buffer.");
+                        savingRelease.Set();
+                        ClipResult firstResult = firstExport.GetAwaiter().GetResult();
+                        ClipResult mergedResult = mergedExport.GetAwaiter().GetResult();
+                        if (firstResult.Problem != null || mergedResult.Problem != null || !mergedResult.Merged || mergedResult.Path != "merged.mp4" || exports != 2 || queuedFrames != 201 || queuedFirst != 0 || queuedLast != 20000000) throw new Exception("Merged clips lost requested frames or their result path.");
+                    }
+                    finally { savingRelease.Set(); }
+                }
+                checks.Add("PASS stalled clip saves leave capture recording within its memory budget; repeated requests share one pending export, retain their frames on disk and report the merged clip path");
+            }
+            catch (UnauthorizedAccessException) { checks.Add("LIMIT clip queue checks: temporary storage is not writable"); }
+            catch (IOException) { checks.Add("LIMIT clip queue checks: temporary storage is unavailable"); }
 
             Func<string> clipGameWas = Computer.GameOpen;
             Func<int, string> clipSaveWas = Hands.SaveClip;
@@ -10424,11 +10566,11 @@ namespace CapriDesktop
                         synthetic.Advance(origin + 22000000);
                         string clipPath = Path.Combine(clipFolder, "synthetic.mp4");
                         System.Threading.Tasks.Task<ClipResult> fullSave = synthetic.Save(clipPath, 30);
+                        ClipResult made = fullSave.GetAwaiter().GetResult();
                         string lastPath = Path.Combine(clipFolder, "last-second.mp4");
                         System.Threading.Tasks.Task<ClipResult> lastSave = synthetic.Save(lastPath, 1);
                         synthetic.Enable(false);
                         if (synthetic.Bytes > ClipBuffer.Memory) throw new Exception("Pending clips exceeded the shared memory budget.");
-                        ClipResult made = fullSave.GetAwaiter().GetResult();
                         ClipResult lastResult = lastSave.GetAwaiter().GetResult();
                         if (synthetic.Bytes != 0) throw new Exception("Finished clips held onto their frames after capture stopped.");
                         if (made.Unavailable) { checks.Add("LIMIT clips: " + made.Problem); return; }
@@ -10493,6 +10635,11 @@ namespace CapriDesktop
 
         private static void SmokeFrames(System.Collections.Generic.List<string> checks)
         {
+            Rectangle twoScreens = new Rectangle(-1920, 0, 3840, 1080);
+            Rectangle acrossScreens = new Rectangle(-200, 100, 600, 700);
+            if (FrameGrab.CaptureArea(acrossScreens, twoScreens) != acrossScreens || FrameGrab.CaptureArea(new Rectangle(-2020, 100, 400, 500), twoScreens) != new Rectangle(-1920, 100, 300, 500)) throw new Exception("A frame crossing monitors was cropped to one monitor.");
+            checks.Add("PASS capture bounds preserve a window across two monitors and crop only at the virtual desktop edge");
+            if (Screen.AllScreens.Length < 2) checks.Add("LIMIT spanning capture: this desktop has only one monitor; the full frame uses the existing screen-copy fallback");
             const int motionWidth = 128;
             const int motionHeight = 96;
             byte[] motionNoise = new byte[motionWidth * motionHeight];
@@ -10976,10 +11123,21 @@ namespace CapriDesktop
             Action<Point> putWas = Computer.PutCursor;
             Func<Point> cursorWas = Computer.CursorAt;
             Func<bool> hiddenWas = Computer.CursorHidden;
+            Func<bool> escapeWas = Computer.Escape;
+            Action haltedWas = Computer.Halted;
+            Action<int, int> mouseWas = Computer.SendMouse;
+            Action<Point> tappedWas = Computer.Tapped, trackedWas = Computer.Track;
+            Action<bool> lendingWas = Computer.Lending;
             Point real = new Point(50, 50), game = new Point(700, 500);
             int moves = 0;
             try
             {
+                Computer.Escape = delegate { return false; };
+                Computer.Halted = delegate { };
+                Computer.Tapped = delegate { };
+                Computer.Track = delegate { };
+                Computer.Lending = delegate { };
+                Computer.Arm();
                 Computer.Nudge = delegate(int dx, int dy) { moves++; game = real; real.Offset(dx, dy); };
                 Computer.PutCursor = delegate(Point to) { real = to; };
                 Computer.CursorAt = delegate { return real; };
@@ -10996,9 +11154,34 @@ namespace CapriDesktop
                 Computer.GiveBack();
                 if (moves != 0) throw new Exception("She rocked the mouse with the real cursor showing.");
                 checks.Add("PASS her clicks reach a game that draws its own cursor, and leave the real cursor where it was");
+                int stoppedPresses = 0;
+                Computer.SendMouse = delegate(int flags, int amount) { if ((flags & 0x002A) != 0) stoppedPresses++; };
+                Computer.CursorHidden = delegate { return true; };
+                Computer.Nudge = delegate { Computer.Interrupt(Computer.Escaped); };
+                Computer.Arm();
+                string stoppedClick = Computer.Member("left_click", new ToolArguments(), null);
+                if (stoppedClick != Computer.Escaped || stoppedPresses != 0 || real != new Point(50, 50)) throw new Exception("Esc during steering still sent a click or kept the cursor.");
+                Computer.Arm();
+                Computer.Click(new Point(90, 90), "double");
+                if (!Computer.Interrupted || stoppedPresses != 0 || real != new Point(50, 50)) throw new Exception("The plain click path ignored Esc during steering.");
+                checks.Add("PASS Esc during cursor steering cancels member and plain clicks and returns the borrowed cursor");
+                Computer.Finish();
+                Job cursorClicks = new Job("synthetic clicks");
+                if (cursorClicks.Again("left_click", new ToolArguments()) != "" || cursorClicks.Again("left_click", new ToolArguments()) != "" || !cursorClicks.Again("left_click", new ToolArguments()).Contains("3 times")) throw new Exception("Coordinate-free clicks were not counted at her pointer.");
+                real = new Point(500, 500);
+                if (cursorClicks.Again("left_click", new ToolArguments()) != "") throw new Exception("Moving her pointer kept the old click run.");
+                checks.Add("PASS repeated left clicks without coordinates count at her cursor and reset when it moves");
             }
             finally
             {
+                Computer.Finish();
+                Computer.Arm();
+                Computer.Escape = escapeWas;
+                Computer.Halted = haltedWas;
+                Computer.SendMouse = mouseWas;
+                Computer.Tapped = tappedWas;
+                Computer.Track = trackedWas;
+                Computer.Lending = lendingWas;
                 Computer.Nudge = nudgeWas;
                 Computer.PutCursor = putWas;
                 Computer.CursorAt = cursorWas;
@@ -11224,11 +11407,12 @@ namespace CapriDesktop
             written.Result = 1; chatter.Observe(written, 1, rolls);
             written.Result = 2; chatter.Observe(written, 2, rolls);
             written.Result = 3; chatter.Observe(written, 3, rolls);
-            must(chatter.Take(7.99) == null && chatter.Count == 3, "An outcome broke the eight-second spacing.");
-            MiniLine lossLine = chatter.Take(8); chatter.Last = 8;
-            MiniLine winLine = chatter.Take(16); chatter.Last = 16;
-            MiniLine drawLine = chatter.Take(24);
-            must(lossLine.Result == 1 && winLine.Result == 2 && drawLine.Result == 3 && lossLine.Fallback.Length > 0 && drawLine.Board.Contains("Draw"), "A queued outcome or offline line was lost.");
+            must(chatter.Take(7.99) == null && chatter.Count == 1, "Outcomes built a backlog or broke the eight-second spacing.");
+            MiniLine drawLine = chatter.Take(8);
+            must(drawLine.Result == 3 && drawLine.Fallback.Length > 0 && drawLine.Board.Contains("Draw") && chatter.Take(16) == null, "The newest outcome or its offline line was lost.");
+            for (int quickRound = 0; quickRound < 100; quickRound++) { written.Result = quickRound % 3 + 1; chatter.Observe(written, 9, rolls); }
+            must(chatter.Count == 1 && chatter.Take(16).Result == written.Result, "Fast rounds queued stale commentary.");
+            checks.Add("PASS fast mini-game rounds keep only the newest waiting result and preserve commentary spacing");
             MiniChat rematchLines = new MiniChat();
             written.Result = 0;
             rematchLines.Observe(written, 0, rolls); rematchLines.Observe(written, 0, rolls);
@@ -11236,7 +11420,7 @@ namespace CapriDesktop
             must(rematchLines.Count == 0, "A rematch kept a comment about the previous board.");
             written.Result = 1; rematchLines.Observe(written, 0, rolls); rematchLines.NewRound();
             must(rematchLines.Count == 1, "A rematch dropped the previous result line.");
-            checks.Add("PASS minis: exact board text, spoken squares and columns, ordinary chat left alone, occasional lines at least eight seconds apart, and every final result queued with an offline line");
+            checks.Add("PASS minis: exact board text, spoken squares and columns, ordinary chat left alone, occasional lines at least eight seconds apart, and the newest final result queued with an offline line");
 
             Func<System.Collections.Generic.List<InstalledApp>> catalogBefore = Hands.Catalog;
             Func<System.Collections.Generic.List<OpenWindow>> windowsBefore = Hands.Windows;
@@ -11275,7 +11459,9 @@ namespace CapriDesktop
                         painted.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "minis-" + paintedKind + "-" + paintedScale.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + ".png"));
                     }
             checks.Add("PASS minis: all three Neon boards draw at 100%, 150% and 200% with transparent clipped corners");
-            if (!Environment.UserInteractive) { checks.Add("LIMIT minis: no interactive desktop for opening, clicking and closing the boards"); return; }
+            must(MiniBoard.BoardScale(144, new Rectangle(0, 0, 1920, 1080)) == 1.5f && MiniBoard.BoardScale(192, new Rectangle(0, 0, 1920, 1080)) == 2f && MiniBoard.BoardScale(192, new Rectangle(0, 0, 372, 486)) == 1f, "Board DPI did not fit its destination monitor.");
+            checks.Add("PASS mini boards calculate scale from the destination monitor DPI and fit its work area");
+            if (!Environment.UserInteractive) { checks.Add("LIMIT minis: no interactive desktop for board stop, DPI, topmost, clicking and closing checks"); return; }
             bool motionBefore = preferences.Motion;
             bool chatBefore = chatting, localBefore = local, dropBefore = dropping;
             int escBefore = escAsk;
@@ -11297,6 +11483,37 @@ namespace CapriDesktop
                 Hear("play tic tac toe");
                 must(minis != null && minis.Visible && miniContext.Contains("TIC-TAC-TOE") && !minis.Ticking, "The board didn't open without her brain, or Motion off still ticked.");
                 MiniBoard firstBoard = minis;
+                bool boardTopWas = preferences.OnTop;
+                try
+                {
+                    ToggleOnTop();
+                    must(minis.Above == preferences.OnTop && ((Native.GetWindowLong(minis.Handle, -20) & 8) != 0) == preferences.OnTop, "The open board ignored Always on top.");
+                    ToggleOnTop();
+                    must(minis.Above == boardTopWas && ((Native.GetWindowLong(minis.Handle, -20) & 8) != 0) == boardTopWas, "The board did not restore its stacking.");
+                }
+                finally { if (preferences.OnTop != boardTopWas) ToggleOnTop(); }
+                checks.Add("PASS an open mini board follows Always on top in both directions");
+                try
+                {
+                    foreach (Screen boardScreen in Screen.AllScreens)
+                    {
+                        Rectangle boardArea = boardScreen.WorkingArea;
+                        firstBoard.Open(new Rectangle(boardArea.Left + boardArea.Width / 2, boardArea.Top + boardArea.Height / 2, 80, 80));
+                        Application.DoEvents();
+                        must(Math.Abs(firstBoard.ScaleShown - MiniBoard.BoardScale(Native.GetDpiForWindow(firstBoard.Handle), boardArea)) < 0.01f && boardArea.Contains(firstBoard.Bounds), "A board read DPI before reaching its monitor.");
+                        foreach (Screen movedScreen in Screen.AllScreens)
+                        {
+                            Rectangle movedArea = movedScreen.WorkingArea;
+                            firstBoard.Location = new Point(movedArea.Left + movedArea.Width / 2, movedArea.Top + movedArea.Height / 2);
+                            Application.DoEvents();
+                            must(Math.Abs(firstBoard.ScaleShown - MiniBoard.BoardScale(Native.GetDpiForWindow(firstBoard.Handle), movedArea)) < 0.01f && movedArea.Contains(firstBoard.Bounds), "A board did not rescale when its monitor changed.");
+                        }
+                    }
+                    firstBoard.Open(Bounds);
+                    checks.Add("PASS mini boards read DPI after opening and rescale when moved across available monitors");
+                    if (Screen.AllScreens.Length < 2) checks.Add("LIMIT mini board monitor-change checks: only one monitor is available");
+                }
+                catch (EntryPointNotFoundException) { checks.Add("LIMIT mini board DPI checks: this Windows has no GetDpiForWindow"); }
                 RectangleF firstCell = MiniBoard.Part("tic_tac_toe", 0);
                 firstBoard.ClickAt(new Point((int)((firstCell.X + 20) * firstBoard.ScaleShown), (int)((firstCell.Y + 20) * firstBoard.ScaleShown)));
                 must(firstBoard.Game.Cells[0] == 1 && Hands.MiniBoard() == firstBoard.Game.BoardText(), "A board click or live brain context was lost.");
@@ -11351,7 +11568,25 @@ namespace CapriDesktop
                 must(minis.Game.Cells[0] == 1 && dropping && talkState == TalkState.Off, "A voice move didn't play locally or added a reply for every move.");
                 ChatHeard("nice one");
                 must(!dropping && talkState == TalkState.Thinking && miniContext.Contains("X"), "Board chat stayed muted after a voice move.");
+                Job boardJobWas = job;
+                string boardWorkWas = working;
+                Action<string> boardStopWas = stopTest;
+                int boardStops = 0;
+                try
+                {
+                    job = new Job("synthetic job", "synthetic job");
+                    working = "Working";
+                    stopTest = delegate { boardStops++; };
+                    Hear("stop");
+                    must(minis == null && boardStops == 1, "Typed stop closed the board without stopping the job.");
+                    MiniTool(new ToolArguments { Name = "rock_paper_scissors" });
+                    ChatHeard("stop");
+                    must(minis == null && boardStops == 2, "Voice stop closed the board without stopping the job.");
+                }
+                finally { job = boardJobWas; working = boardWorkWas; stopTest = boardStopWas; }
+                checks.Add("PASS typed and spoken stop close the mini board and stop a running computer job");
                 chatting = chatBefore; local = localBefore; dropping = dropBefore;
+                MiniTool(new ToolArguments { Name = "tic_tac_toe" });
                 talkState = TalkState.Off;
                 using (ManualResetEvent headStarted = new ManualResetEvent(false))
                 using (ManualResetEvent headRelease = new ManualResetEvent(false))
@@ -12162,7 +12397,15 @@ namespace CapriDesktop
             System.Collections.Generic.List<Cloud> parsed = Brain.ReadLocalModels(1234, models);
             Brain sight = new Brain();
             if (parsed.Count != 3 || parsed[0].Model != "my/model" || !sight.Sighted(parsed[0]) || sight.Sighted(parsed[1]) || !sight.Sighted(parsed[2])) throw new Exception("Local model ids or their stated vision support were lost.");
-            checks.Add("PASS local brains: every port builds only http://127.0.0.1:<port>, addresses stay on loopback, server labels and arbitrary model ids parse, and missing vision metadata stays unknown");
+            checks.Add("PASS local brains: every default port builds http://127.0.0.1:<port>, addresses stay on loopback, server labels and arbitrary model ids parse, and missing vision metadata stays unknown");
+            foreach (string loopbackHost in new[] { "localhost", "127.0.0.2", "[::1]" })
+            {
+                string typedHost = "http://" + loopbackHost + ":1234";
+                Cloud preservedHost = new Cloud(1234, "same-model", typedHost + "/v1/");
+                System.Collections.Generic.List<Cloud> hostModels = Brain.ReadLocalModels(1234, models, typedHost);
+                if (Brain.LocalAddress(typedHost + "/v1/") != typedHost || preservedHost.Host != typedHost || hostModels[0].Host != typedHost || preservedHost.Source == new Cloud(1234, "same-model").Source) throw new Exception("A typed loopback host became 127.0.0.1.");
+            }
+            checks.Add("PASS local discovery and model identity preserve localhost, other loopback IPv4 addresses and IPv6 loopback");
             System.Net.Sockets.TcpListener fake = null;
             try
             {
@@ -12255,11 +12498,13 @@ namespace CapriDesktop
             Pick wasPick = brain.LocalPick;
             string wasModel = brain.Model, wasAddress = preferences.LocalAddress, wasServerModel = preferences.LocalModel, wasOllama = preferences.Model;
             int wasPort = preferences.BrainPort, wasTier = preferences.Tier;
+            string wasBrainAddress = preferences.BrainAddress;
+            bool wasAddressTyped = localAddressTyped;
             try
             {
                 preferences.Tier = 0;
                 mainframe.TypeLocalAddress("http://localhost:43210/v1");
-                if (preferences.LocalAddress != "http://127.0.0.1:43210" || LoadPreferences().LocalAddress != preferences.LocalAddress || mainframe.LocalAddressShown != preferences.LocalAddress) throw new Exception("The local server field did not save and show its address.");
+                if (preferences.LocalAddress != "http://localhost:43210" || LoadPreferences().LocalAddress != preferences.LocalAddress || mainframe.LocalAddressShown != preferences.LocalAddress) throw new Exception("The local server field did not save and show its address.");
                 mainframe.ShowServers(new System.Collections.Generic.List<Cloud> { new Cloud(1234, "same-model"), new Cloud(1337, "same-model") }, new[] { "ollama-test" }, Engine.Picks[0]);
                 mainframe.ShowOllama(new[] { "ollama-test" }, "ollama-test");
                 if (string.Join("|", mainframe.BrainChoices) != "Ollama · ollama-test|Built-in · " + Engine.Picks[0].Name + "|LM Studio · same-model|Jan · same-model") throw new Exception("Local models did not share the Ollama picker.");
@@ -12277,6 +12522,26 @@ namespace CapriDesktop
                 if (brain.Remote != null || brain.Local != null || preferences.BrainPort != 0 || brain.Model != "ollama-test") throw new Exception("The picker did not return to Ollama.");
                 mainframe.PickBrain(1);
                 if (brain.Local != engine || brain.Remote != null) throw new Exception("The picker did not return to the built-in brain.");
+                mainframe.TypeLocalAddress("http://[::1]:1234/v1");
+                brain.Model = null; brain.Remote = null; brain.Local = null;
+                mainframe.TypeCustomModel("manual-v6");
+                Cloud savedV6 = TierCloud();
+                if (brain.Remote == null || brain.Remote.Host != "http://[::1]:1234" || savedV6 == null || savedV6.Host != brain.Remote.Host || LoadPreferences().BrainAddress != brain.Remote.Host || LoadPreferences().LocalAddress != brain.Remote.Host) throw new Exception("Manual IPv6 selection did not preserve its host across saving.");
+                checks.Add("PASS entering an address and model selects a local brain without discovery and keeps its IPv6 host in preferences");
+                System.Net.Sockets.TcpListener manualServer = null;
+                try
+                {
+                    System.Collections.Generic.List<string> manualRequests = new System.Collections.Generic.List<string>();
+                    string manualAddress = FakeServer(new[] { "!404 {}", LocalReply("Manual model answered.") }, manualRequests, out manualServer);
+                    if (Brain.LocalModels(Brain.LocalPort(manualAddress)).Count != 0) throw new Exception("A 404 model list returned models.");
+                    mainframe.TypeLocalAddress(manualAddress);
+                    brain.Model = null; brain.Remote = null; brain.Local = null;
+                    mainframe.TypeCustomModel("manual-model");
+                    if (brain.Remote == null || brain.Model != "manual-model" || brain.Aside("Chat", "hello", 90) != "Manual model answered." || manualRequests.Count != 2 || !manualRequests[1].StartsWith("POST /v1/chat/completions ", StringComparison.Ordinal)) throw new Exception("A server with no model list could not connect by hand.");
+                    checks.Add("PASS a local server with /v1/models returning 404 answers after entering its address and model by hand");
+                }
+                catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT manual local model transport: loopback sockets unavailable"); }
+                finally { if (manualServer != null) manualServer.Stop(); }
                 SmokeBrainLayout(checks);
                 checks.Add("PASS local brain picker: Ollama, built-in, LM Studio and Jan share it, equal model ids keep their server, the address and selection save, and BRAIN shows the selected model's name");
             }
@@ -12284,6 +12549,7 @@ namespace CapriDesktop
             {
                 brain.Remote = wasRemote; brain.Local = wasLocal; brain.LocalPick = wasPick; brain.Model = wasModel;
                 preferences.LocalAddress = wasAddress; preferences.LocalModel = wasServerModel; preferences.Model = wasOllama; preferences.BrainPort = wasPort; preferences.Tier = wasTier;
+                preferences.BrainAddress = wasBrainAddress; localAddressTyped = wasAddressTyped;
                 SavePreferences();
                 mainframe.ShowServers(new System.Collections.Generic.List<Cloud>(), null, null);
                 mainframe.Sync();
@@ -12401,6 +12667,48 @@ namespace CapriDesktop
                 Brain.MemorySize = wasMemory; Brain.ReplyLength = wasReply; Brain.Recall = wasRecall;
                 Brain.Ollama = wasOllama; Brain.OpenAi = wasOpenAi; Brain.Anthropic = wasClaude; Brain.DeepSeek = wasDeep; Brain.Nvidia = wasNvidia;
             }
+        }
+
+        private static void SmokeReplyScroll(System.Collections.Generic.List<string> checks)
+        {
+            int replySizeWas = Brain.ReplyLength;
+            try
+            {
+                foreach (int scrollSize in new[] { 2, 3 })
+                {
+                    Brain.ReplyLength = scrollSize;
+                    string longReply = new string('x', Brain.ReplySizes[scrollSize] * 5) + " END";
+                    if (Brain.Clean(longReply) != longReply) throw new Exception("A chosen reply size cut the returned text.");
+                    foreach (float scrollScale in new[] { 1f, 1.5f, 2f })
+                    using (SpeechBox scrollBox = new SpeechBox())
+                    {
+                        Rectangle scrollArea = new Rectangle(-1280, 80, 1280, 640);
+                        Point scrollHead = new Point(-500, 100), scrollFeet = new Point(-500, 600), scrollAt;
+                        scrollBox.State = TalkState.Online;
+                        scrollBox.Reply = longReply;
+                        scrollBox.Revealed = longReply.Length;
+                        using (Bitmap scrollFirst = scrollBox.Render(scrollScale, scrollHead, scrollFeet, scrollArea, false, out scrollAt))
+                            if (!scrollArea.Contains(new Rectangle(scrollAt, scrollFirst.Size)) || !scrollBox.Scrollable || scrollBox.FirstLine != 0) throw new Exception("A long reply left the screen or could not scroll.");
+                        int scrollRead = scrollBox.VisibleLines;
+                        while (scrollBox.FirstLine + scrollBox.VisibleLines < scrollBox.TotalLines)
+                        {
+                            int scrollPrevious = scrollBox.FirstLine;
+                            scrollBox.ScrollRows(scrollBox.VisibleLines);
+                            using (Bitmap scrollPage = scrollBox.Render(scrollScale, scrollHead, scrollFeet, scrollArea, false, out scrollAt))
+                                if (!scrollArea.Contains(new Rectangle(scrollAt, scrollPage.Size)) || scrollBox.FirstLine <= scrollPrevious || scrollBox.FirstLine > scrollRead) throw new Exception("Paging skipped lines or left the screen.");
+                            scrollRead = scrollBox.FirstLine + scrollBox.VisibleLines;
+                        }
+                        if (scrollRead != scrollBox.TotalLines || scrollBox.Reply != longReply) throw new Exception("The reply's last lines were unreachable.");
+                        scrollBox.ScrollRows(int.MinValue);
+                        if (scrollBox.FirstLine != 0) throw new Exception("Scrolling up lost the reply's first lines.");
+                        scrollBox.Reply = "Short reply.";
+                        using (Bitmap scrollShort = scrollBox.Render(scrollScale, scrollHead, scrollFeet, scrollArea, false, out scrollAt))
+                            if (scrollBox.Scrollable || scrollBox.FirstLine != 0) throw new Exception("A new reply inherited the previous scroll position.");
+                    }
+                }
+                checks.Add("PASS 2K and 8K replies keep all text, fit the screen at 100%, 150% and 200%, page through every line and scroll back to the start");
+            }
+            finally { Brain.ReplyLength = replySizeWas; }
         }
 
         private void SmokeBrainSettings(System.Collections.Generic.List<string> checks)
@@ -19256,6 +19564,7 @@ namespace CapriDesktop
                                 graphics.DrawString("Hey choom, \u00e7a va? Se\u00f1or. Stra\u00dfe.", own, ink, 10, 66, StringFormat.GenericTypographic);
                                 letters.Save(Path.Combine(output, "bubble-letters.png"), ImageFormat.Png);
                             }
+                            SmokeReplyScroll(checks);
                             if (SpeechBox.Fit("Hey choom.") != 34 || SpeechBox.Fit(new string('a', 300)) != 44 || SpeechBox.Fit(new string('a', 800)) != 56) throw new Exception("Long replies did not widen the bubble.");
                             using (SpeechBox longBox = new SpeechBox())
                             {

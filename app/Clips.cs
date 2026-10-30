@@ -15,31 +15,35 @@ namespace CapriDesktop
         internal const int History = 120;
         internal const long Memory = 240L * 1024 * 1024;
         private readonly object gate = new object();
+        private readonly object saving = new object();
         private readonly LinkedList<ClipPart> pictures = new LinkedList<ClipPart>();
         private readonly LinkedList<ClipPart> sounds = new LinkedList<ClipPart>();
-        private readonly Queue<ClipSave> saves = new Queue<ClipSave>();
+        private ClipSave pending;
+        private readonly Func<ClipSave, ClipResult> encode;
         private readonly int history;
         private readonly long memory;
         private readonly AutoResetEvent changed = new AutoResetEvent(false);
         private Thread capture, writer;
         private bool enabled, disposed;
         private long used, through;
-        private string game;
+        private GameSeen game;
         private int dropped;
         private Bitmap shared;
         private long sharedAt;
 
         internal ClipBuffer() : this(History, Memory) { }
 
-        internal ClipBuffer(int seconds, long bytes)
+        internal ClipBuffer(int seconds, long bytes, Func<ClipSave, ClipResult> write = null)
         {
             if (seconds <= 0 || bytes <= 0) throw new ArgumentOutOfRangeException("seconds");
             history = seconds;
             memory = bytes;
+            encode = write ?? ClipMedia.Save;
         }
 
         internal bool Enabled { get { lock (gate) return enabled; } }
         internal long Bytes { get { lock (gate) return used; } }
+        internal int Pending { get { lock (gate) return pending == null ? 0 : 1; } }
         internal int Frames { get { lock (gate) return pictures.Count; } }
         internal int Dropped { get { lock (gate) return dropped; } }
         internal long First { get { lock (gate) return pictures.Count == 0 ? 0 : pictures.First.Value.At; } }
@@ -51,7 +55,7 @@ namespace CapriDesktop
             {
                 if (disposed) return;
                 enabled = on;
-                if (!on) Clear();
+                if (!on) { Clear(); game = null; }
                 if (on && capture == null)
                 {
                     capture = Worker(Pump, "Capri clip buffer");
@@ -94,12 +98,13 @@ namespace CapriDesktop
                         if (tick >= inspectAt)
                         {
                             inspectAt = tick + 2500000;
-                            string open = Enabled ? Computer.GameOpen() : null;
-                            front = open == null ? null : GameFinder.Front();
-                            lock (gate)
+                            front = Enabled ? GameFinder.Front() : null;
+                            lock (gate) Trim(tick);
+                            if (Follow(front))
                             {
-                                Trim(tick);
-                                if (game != open) { Clear(); game = open; }
+                                if (grab != null) { grab.Dispose(); grab = null; }
+                                if (tap != null) { tap.Dispose(); tap = null; }
+                                soundAt = 0;
                             }
                         }
                         if (!Enabled || front == null || Native.GetForegroundWindow() != front.Window)
@@ -121,7 +126,6 @@ namespace CapriDesktop
                             grab.Open(current);
                             bounds = current;
                             interval = 10000000.0 / 30;
-                            lock (gate) Clear();
                         }
                         if (tick >= soundAt)
                         {
@@ -175,6 +179,23 @@ namespace CapriDesktop
                 if (grab != null) grab.Dispose();
                 if (tap != null) tap.Dispose();
                 if (started) ClipMedia.CoUninitialize();
+            }
+        }
+
+        internal static bool SameGame(GameSeen left, GameSeen right)
+        {
+            return left != null && right != null && (left.Process > 0 && right.Process > 0 ? left.Process == right.Process : left.Window == right.Window);
+        }
+
+        internal bool Follow(GameSeen next)
+        {
+            lock (gate)
+            {
+                if (next == null || disposed) return false;
+                bool different = game != null && !SameGame(game, next);
+                if (different) Clear();
+                game = next;
+                return different;
             }
         }
 
@@ -256,7 +277,7 @@ namespace CapriDesktop
                     while (thin != null && used + size > memory)
                     {
                         LinkedListNode<ClipPart> following = thin.Next;
-                        if (!leave && following != null && thin.Value.Uses == 1) { Release(thin.Value); pictures.Remove(thin); dropped++; }
+                        if (!leave && following != null) { Release(thin.Value); pictures.Remove(thin); dropped++; }
                         leave = !leave;
                         thin = following;
                     }
@@ -264,12 +285,20 @@ namespace CapriDesktop
                     while (video && last != null && used + size > memory)
                     {
                         LinkedListNode<ClipPart> before = last.Previous;
-                        if (last.Value.Uses == 1) { Release(last.Value); pictures.Remove(last); dropped++; }
+                        Release(last.Value); pictures.Remove(last); dropped++;
                         last = before;
                     }
                 }
+                while (used + size > memory && (pictures.Count > 0 || sounds.Count > 0))
+                {
+                    bool oldestVideo = sounds.Count == 0 || (pictures.Count > 0 && pictures.First.Value.At <= sounds.First.Value.At);
+                    LinkedList<ClipPart> oldest = oldestVideo ? pictures : sounds;
+                    Release(oldest.First.Value);
+                    oldest.RemoveFirst();
+                    if (oldestVideo) dropped++;
+                }
                 if (used + size > memory) { if (video) dropped++; return false; }
-                ClipPart part = new ClipPart { Data = data, At = at, End = end, Uses = 1 };
+                ClipPart part = new ClipPart { Data = data, At = at, End = end };
                 (video ? pictures : sounds).AddLast(part);
                 used += size;
                 through = Math.Max(through, Math.Max(at, end));
@@ -286,7 +315,7 @@ namespace CapriDesktop
             while (sounds.Count > 0 && sounds.First.Value.End <= cutoff) { Release(sounds.First.Value); sounds.RemoveFirst(); }
         }
 
-        private void Release(ClipPart part) { if (--part.Uses == 0) used -= part.Data.LongLength + 64; }
+        private void Release(ClipPart part) { used -= part.Data.LongLength + 64; }
 
         private void Clear()
         {
@@ -298,29 +327,60 @@ namespace CapriDesktop
             through = 0;
         }
 
+        private static IEnumerable<ClipPart> Since(LinkedListNode<ClipPart> first)
+        {
+            for (LinkedListNode<ClipPart> part = first; part != null; part = part.Next) yield return part.Value;
+        }
+
+        private IEnumerable<ClipPart> Heard(long start, long end)
+        {
+            foreach (ClipPart sound in sounds) if (sound.End > start && sound.At < end) yield return sound;
+        }
+
         internal Task<ClipResult> Save(string path, int seconds)
         {
             if (seconds <= 0) throw new ArgumentOutOfRangeException("seconds");
-            ClipSave save = new ClipSave { Path = path };
-            lock (gate)
+            lock (saving)
             {
-                if (pictures.Count == 0 || disposed)
+                List<ClipPart> frames, audio;
+                long start, end;
+                lock (gate)
                 {
-                    save.Done.SetResult(new ClipResult { Problem = "I haven't buffered any game video yet." });
+                    if (pictures.Count == 0 || disposed) return Task.FromResult(new ClipResult { Problem = "I haven't buffered any game video yet." });
+                    end = Math.Max(through, pictures.Last.Value.At + 1);
+                    long cutoff = end - seconds * 10000000L;
+                    LinkedListNode<ClipPart> first = pictures.First;
+                    while (first.Next != null && first.Next.Value.At <= cutoff) first = first.Next;
+                    start = Math.Max(cutoff, first.Value.At);
+                    frames = new List<ClipPart>(Since(first));
+                    audio = new List<ClipPart>(Heard(start, end));
+                }
+                ClipSave save = pending;
+                try
+                {
+                    if (save == null) save = new ClipSave { Path = path, Start = start, End = end };
+                    else { save.Merged = true; save.Start = Math.Min(save.Start, start); save.End = Math.Max(save.End, end); }
+                    save.Pictures.Merge(frames);
+                    save.Sounds.Merge(audio);
+                    lock (gate)
+                    {
+                        pending = save;
+                        if (writer == null)
+                        {
+                            writer = Worker(Write, "Capri clip writer");
+                            try { writer.Start(); } catch { writer = null; throw; }
+                        }
+                    }
                     return save.Done.Task;
                 }
-                save.End = Math.Max(through, pictures.Last.Value.At + 1);
-                long cutoff = save.End - seconds * 10000000L;
-                LinkedListNode<ClipPart> first = pictures.First;
-                while (first.Next != null && first.Next.Value.At <= cutoff) first = first.Next;
-                for (LinkedListNode<ClipPart> chosen = first; chosen != null; chosen = chosen.Next) { chosen.Value.Uses++; save.Pictures.Add(chosen.Value); }
-                save.Start = Math.Max(cutoff, first.Value.At);
-                foreach (ClipPart sound in sounds)
-                    if (sound.End > save.Start && sound.At < save.End) { sound.Uses++; save.Sounds.Add(sound); }
-                saves.Enqueue(save);
-                if (writer == null) { writer = Worker(Write, "Capri clip writer"); writer.Start(); }
+                catch (Exception error)
+                {
+                    ClipResult failed = new ClipResult { Problem = "Couldn't save that clip: " + error.Message };
+                    lock (gate) pending = null;
+                    if (save != null) { save.Dispose(); save.Done.SetResult(failed); }
+                    return Task.FromResult(failed);
+                }
             }
-            return save.Done.Task;
         }
 
         private void Write()
@@ -328,21 +388,19 @@ namespace CapriDesktop
             while (true)
             {
                 ClipSave save;
+                lock (saving)
                 lock (gate)
                 {
-                    if (saves.Count == 0) { writer = null; return; }
-                    save = saves.Dequeue();
+                    if (pending == null) { writer = null; return; }
+                    save = pending;
+                    pending = null;
                 }
                 ClipResult result;
-                try { result = ClipMedia.Save(save); }
+                try { result = encode(save); }
                 catch (Exception error) { result = new ClipResult { Problem = "Couldn't save that clip: " + error.Message }; }
-                lock (gate)
-                {
-                    foreach (ClipPart picture in save.Pictures) Release(picture);
-                    foreach (ClipPart sound in save.Sounds) Release(sound);
-                    save.Pictures.Clear();
-                    save.Sounds.Clear();
-                }
+                finally { save.Dispose(); }
+                result.Path = save.Path;
+                result.Merged = save.Merged;
                 save.Done.SetResult(result);
             }
         }
@@ -351,8 +409,11 @@ namespace CapriDesktop
         {
             if (!Enabled) return "Turn on Clip my games in Settings > GAMES, then I can clip that.";
             string open = Computer.GameOpen();
-            if (open == null) return "There's no game open to clip.";
-            lock (gate) if (game != open) return "I haven't buffered any game video yet.";
+            lock (gate)
+            {
+                if (game == null) return "I haven't buffered any game video yet.";
+                if (open == null) open = game.Name;
+            }
             string title = open;
             foreach (char bad in Path.GetInvalidFileNameChars()) title = title.Replace(bad, '_');
             title = title.Trim().TrimEnd('.');
@@ -362,12 +423,13 @@ namespace CapriDesktop
             Directory.CreateDirectory(directory);
             string path = Path.Combine(directory, title + " " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss-fff") + " " + Guid.NewGuid().ToString("N").Substring(0, 6) + ".mp4");
             ClipResult result = Save(path, seconds).GetAwaiter().GetResult();
-            return result.Problem ?? "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + open + (result.Sound ? "" : " without sound") + ": " + path;
+            return result.Problem ?? "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + open + (result.Sound ? "" : " without sound") + ": " + result.Path + (result.Merged ? " Merged your clip requests into this clip." : "");
         }
 
         public void Dispose()
         {
             Thread ending, finishing;
+            lock (saving)
             lock (gate)
             {
                 if (disposed) return;
@@ -388,16 +450,98 @@ namespace CapriDesktop
     {
         internal byte[] Data;
         internal long At, End;
-        internal int Uses;
     }
 
-    internal sealed class ClipSave
+    internal sealed class ClipTrack : IDisposable
+    {
+        private FileStream data = Temporary();
+        private long first = long.MaxValue, last = long.MinValue;
+        internal long Count;
+
+        private static FileStream Temporary() { return new FileStream(Path.Combine(Path.GetTempPath(), "Capri-clip-" + Guid.NewGuid().ToString("N")), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read, 65536, FileOptions.DeleteOnClose); }
+
+        private static void Put(Stream stream, ClipPart part)
+        {
+            BinaryWriter output = new BinaryWriter(stream, System.Text.Encoding.UTF8, true);
+            output.Write(part.At);
+            output.Write(part.End);
+            output.Write(part.Data.Length);
+            output.Write(part.Data);
+        }
+
+        internal void Merge(IEnumerable<ClipPart> parts)
+        {
+            if (Count > 0)
+            {
+                FileStream prefix = null;
+                long earliest = first;
+                try
+                {
+                    foreach (ClipPart prior in parts)
+                    {
+                        if (prior.At >= earliest) break;
+                        if (prefix == null) prefix = Temporary();
+                        Put(prefix, prior);
+                        first = Math.Min(first, prior.At);
+                        Count++;
+                    }
+                    if (prefix != null)
+                    {
+                        data.Position = 0;
+                        data.CopyTo(prefix);
+                        data.Dispose();
+                        data = prefix;
+                        prefix = null;
+                    }
+                }
+                finally { if (prefix != null) prefix.Dispose(); }
+            }
+            data.Position = data.Length;
+            foreach (ClipPart newer in parts)
+            {
+                if (newer.At <= last) continue;
+                Put(data, newer);
+                first = Math.Min(first, newer.At);
+                last = newer.At;
+                Count++;
+            }
+            data.Flush();
+        }
+
+        internal IEnumerable<ClipPart> Read()
+        {
+            data.Position = 0;
+            BinaryReader input = new BinaryReader(data, System.Text.Encoding.UTF8, true);
+            while (data.Position < data.Length)
+            {
+                long at = input.ReadInt64(), end = input.ReadInt64();
+                int count = input.ReadInt32();
+                byte[] bytes = input.ReadBytes(count);
+                if (bytes.Length != count) throw new EndOfStreamException();
+                yield return new ClipPart { At = at, End = end, Data = bytes };
+            }
+        }
+
+        public void Dispose() { data.Dispose(); }
+    }
+
+    internal sealed class ClipSave : IDisposable
     {
         internal string Path;
         internal long Start, End;
-        internal readonly List<ClipPart> Pictures = new List<ClipPart>();
-        internal readonly List<ClipPart> Sounds = new List<ClipPart>();
+        internal bool Merged;
+        internal readonly ClipTrack Pictures;
+        internal readonly ClipTrack Sounds;
         internal readonly TaskCompletionSource<ClipResult> Done = new TaskCompletionSource<ClipResult>();
+
+        internal ClipSave()
+        {
+            Pictures = new ClipTrack();
+            try { Sounds = new ClipTrack(); }
+            catch { Pictures.Dispose(); throw; }
+        }
+
+        public void Dispose() { Pictures.Dispose(); Sounds.Dispose(); }
     }
 
     internal static class ClipMedia
@@ -460,11 +604,15 @@ namespace CapriDesktop
             IMFMediaType target = null, input = null, audioTarget = null, audioInput = null;
             IMFAttributes options = null;
             int width, height;
-            using (MemoryStream firstBytes = new MemoryStream(save.Pictures[0].Data, false))
-            using (Bitmap first = new Bitmap(firstBytes))
+            using (IEnumerator<ClipPart> opening = save.Pictures.Read().GetEnumerator())
             {
-                width = (first.Width + 1) & ~1;
-                height = (first.Height + 1) & ~1;
+                if (!opening.MoveNext()) throw new InvalidDataException("The clip has no pictures.");
+                using (MemoryStream firstBytes = new MemoryStream(opening.Current.Data, false))
+                using (Bitmap first = new Bitmap(firstBytes))
+                {
+                    width = (first.Width + 1) & ~1;
+                    height = (first.Height + 1) & ~1;
+                }
             }
             try
             {
@@ -495,15 +643,18 @@ namespace CapriDesktop
                     catch (COMException soundError) { throw new ClipSoundException(soundError); }
                 }
                 Check(sink.BeginWriting());
-                int videoAt = 0;
                 long audioAt = 0;
                 long audioFrames = (save.End - save.Start) * 48000 / 10000000;
-                int soundAt = 0;
                 using (Bitmap canvas = new Bitmap(width, height, PixelFormat.Format32bppRgb))
+                using (IEnumerator<ClipPart> videoParts = save.Pictures.Read().GetEnumerator())
+                using (IEnumerator<ClipPart> soundParts = save.Sounds.Read().GetEnumerator())
                 {
-                    while (videoAt < save.Pictures.Count || (sound && audioAt < audioFrames))
+                    ClipPart picture = videoParts.MoveNext() ? videoParts.Current : null;
+                    ClipPart following = videoParts.MoveNext() ? videoParts.Current : null;
+                    ClipPart heard = sound && soundParts.MoveNext() ? soundParts.Current : null;
+                    while (picture != null || (sound && audioAt < audioFrames))
                     {
-                        long videoTime = videoAt < save.Pictures.Count ? Math.Max(0, save.Pictures[videoAt].At - save.Start) : long.MaxValue;
+                        long videoTime = picture != null ? Math.Max(0, picture.At - save.Start) : long.MaxValue;
                         long audioTime = audioAt * 10000000 / 48000;
                         if (sound && audioAt < audioFrames && audioTime < videoTime)
                         {
@@ -511,15 +662,16 @@ namespace CapriDesktop
                             byte[] pcm = new byte[amount * 4];
                             long packetStart = save.Start + audioTime;
                             long packetEnd = save.Start + (audioAt + amount) * 10000000 / 48000;
-                            while (soundAt < save.Sounds.Count && save.Sounds[soundAt].End <= packetStart) soundAt++;
-                            for (int partAt = soundAt; partAt < save.Sounds.Count && save.Sounds[partAt].At < packetEnd; partAt++)
+                            while (heard != null && heard.End <= packetStart) heard = soundParts.MoveNext() ? soundParts.Current : null;
+                            while (heard != null && heard.At < packetEnd)
                             {
-                                ClipPart part = save.Sounds[partAt];
-                                long offset = (long)Math.Round((part.At - save.Start) * (48000.0 / 10000000)) - audioAt;
+                                long offset = (long)Math.Round((heard.At - save.Start) * (48000.0 / 10000000)) - audioAt;
                                 int source = (int)Math.Max(0, -offset);
                                 int destination = (int)Math.Max(0, offset);
-                                int copied = Math.Min(part.Data.Length / 4 - source, amount - destination);
-                                if (copied > 0) Buffer.BlockCopy(part.Data, source * 4, pcm, destination * 4, copied * 4);
+                                int copied = Math.Min(heard.Data.Length / 4 - source, amount - destination);
+                                if (copied > 0) Buffer.BlockCopy(heard.Data, source * 4, pcm, destination * 4, copied * 4);
+                                if (heard.End > packetEnd) break;
+                                heard = soundParts.MoveNext() ? soundParts.Current : null;
                             }
                             try { WriteSample(sink, audioStream, pcm, audioTime, (audioAt + amount) * 10000000 / 48000 - audioTime); }
                             catch (COMException soundError) { throw new ClipSoundException(soundError); }
@@ -527,8 +679,7 @@ namespace CapriDesktop
                         }
                         else
                         {
-                            ClipPart picture = save.Pictures[videoAt];
-                            long end = videoAt + 1 < save.Pictures.Count ? save.Pictures[videoAt + 1].At : save.End;
+                            long end = following != null ? following.At : save.End;
                             using (MemoryStream bytes = new MemoryStream(picture.Data, false))
                             using (Bitmap decoded = new Bitmap(bytes))
                             using (Graphics drawing = Graphics.FromImage(canvas))
@@ -539,7 +690,8 @@ namespace CapriDesktop
                                 drawing.DrawImage(decoded, new Rectangle((width - across) / 2, (height - down) / 2, across, down));
                             }
                             WriteSample(sink, videoStream, Pixels(canvas), videoTime, Math.Max(1, end - save.Start - videoTime));
-                            videoAt++;
+                            picture = following;
+                            following = videoParts.MoveNext() ? videoParts.Current : null;
                         }
                     }
                 }
@@ -964,8 +1116,8 @@ namespace CapriDesktop
 
     internal sealed class ClipResult
     {
-        internal string Problem;
-        internal bool Sound, Unavailable;
+        internal string Problem, Path;
+        internal bool Sound, Unavailable, Merged;
         internal double Seconds;
     }
 }
