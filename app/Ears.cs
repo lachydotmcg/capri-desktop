@@ -1531,7 +1531,7 @@ namespace CapriDesktop
             }
         }
 
-        internal bool Read(Action<float> push, Onset onset, out long newest)
+        internal bool Read(Action<float> push, Onset onset, out long newest, Action<byte[], long, int> pcm = null)
         {
             newest = 0;
             while (true)
@@ -1543,23 +1543,40 @@ namespace CapriDesktop
                 int frames, flags;
                 long position, time;
                 if (capture.GetBuffer(out data, out frames, out flags, out position, out time) != 0) return false;
-                int count = frames * Channels;
-                bool silent = (flags & 2) != 0 || data == IntPtr.Zero;
-                if (!silent && Float) { if (floats.Length < count) floats = new float[count]; Marshal.Copy(data, floats, 0, count); }
-                else if (!silent && Bits == 16) { if (shorts.Length < count) shorts = new short[count]; Marshal.Copy(data, shorts, 0, count); }
-                else if (!silent) { if (ints.Length < count) ints = new int[count]; Marshal.Copy(data, ints, 0, count); }
-                for (int frame = 0; frame < frames; frame++)
+                try
                 {
-                    double mix = 0;
-                    if (!silent)
-                        for (int i = frame * Channels; i < (frame + 1) * Channels; i++) mix += Float ? floats[i] : Bits == 16 ? shorts[i] / 32768.0 : ints[i] / 2147483648.0;
-                    float strength;
-                    if (onset.Add(mix / Channels, out strength)) push(strength);
+                    int count = frames * Channels;
+                    bool silent = (flags & 2) != 0 || data == IntPtr.Zero;
+                    if (!silent && Float) { if (floats.Length < count) floats = new float[count]; Marshal.Copy(data, floats, 0, count); }
+                    else if (!silent && Bits == 16) { if (shorts.Length < count) shorts = new short[count]; Marshal.Copy(data, shorts, 0, count); }
+                    else if (!silent) { if (ints.Length < count) ints = new int[count]; Marshal.Copy(data, ints, 0, count); }
+                    byte[] packet = pcm == null ? null : new byte[frames * 4];
+                    for (int frame = 0; frame < frames; frame++)
+                    {
+                        double mix = 0;
+                        if (!silent)
+                            for (int i = frame * Channels; i < (frame + 1) * Channels; i++) mix += Sample(i);
+                        float strength;
+                        if (onset != null && onset.Add(mix / Channels, out strength)) push(strength);
+                        if (packet != null && !silent)
+                            for (int side = 0; side < 2; side++)
+                            {
+                                double value = Channels == 2 ? Sample(frame * 2 + side) : mix / Channels;
+                                short sample = (short)(double.IsNaN(value) ? 0 : Math.Max(-32768, Math.Min(32767, value * 32768)));
+                                packet[frame * 4 + side * 2] = (byte)sample;
+                                packet[frame * 4 + side * 2 + 1] = (byte)(sample >> 8);
+                            }
+                    }
+                    long duration = frames * 10000000L / Rate;
+                    if (time <= 0 || (flags & 4) != 0) time = (long)(Stopwatch.GetTimestamp() * (10000000.0 / Stopwatch.Frequency)) - duration;
+                    newest = time + duration;
+                    if (packet != null) pcm(packet, time, Rate);
                 }
-                capture.ReleaseBuffer(frames);
-                if (time > 0) newest = time + (long)(frames * 1e7 / Rate);
+                finally { capture.ReleaseBuffer(frames); }
             }
         }
+
+        private double Sample(int index) { return Float ? floats[index] : Bits == 16 ? shorts[index] / 32768.0 : ints[index] / 2147483648.0; }
 
         public void Dispose()
         {

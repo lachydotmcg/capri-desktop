@@ -223,6 +223,7 @@ namespace CapriDesktop
         [DataMember] public int Recall = 8;
         // Remember our chats is on by default: transcripts and memories.md stay on this PC.
         [DataMember] public bool Remembers = true;
+        [DataMember] public bool ClipGames;
         [DataMember] public int Volume = 100;
         [DataMember] public int Sounds = 60;
         [DataMember] public int SleepAfter = 120;
@@ -1014,6 +1015,7 @@ namespace CapriDesktop
         private readonly bool testing;
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private Preferences preferences;
+        private readonly ClipBuffer clips = new ClipBuffer();
         private Bitmap frame;
         private Point anchor;
         private Point pointerStart;
@@ -1562,6 +1564,8 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
+            Hands.SaveClip = clips.Clip;
+            clips.Enable(!testing && preferences.ClipGames);
             SetUpGaming();
             Hands.Hush = Computer.Mask;
             Computer.Grab = HandsGrab;
@@ -3959,6 +3963,16 @@ namespace CapriDesktop
         }
 
         internal bool Remembers { get { return preferences.Remembers; } }
+
+        internal bool ClipsOn { get { return preferences.ClipGames; } }
+
+        internal void ToggleClips()
+        {
+            preferences.ClipGames = !preferences.ClipGames;
+            clips.Enable(!testing && preferences.ClipGames);
+            SavePreferences();
+            mainframe.Sync();
+        }
 
         internal void ToggleRemembering()
         {
@@ -7992,6 +8006,7 @@ namespace CapriDesktop
             lock (shortcutGate) { if (!answering) { toolAsked = shortcut; heardLast = text; toolDone = null; } }
             if (shortcut)
             {
+                if (tool == "clip") { dropping = true; Hush(); }
                 Agent told = agent;
                 string key = MouseKey(tool, args);
                 bool claimed = key != null && Claim(key);
@@ -8007,7 +8022,12 @@ namespace CapriDesktop
                     stirred = Environment.TickCount;
                     // A quick one lands before her reply to their words; a cursor job ends long after it, so she says how it went then.
                     // A call SECURITY held tells the agent to ask them first, as it is.
-                    if (Security.IsHold(result)) { if (told != null) told.Tell(result); }
+                    if (tool == "clip")
+                    {
+                        lock (shortcutGate) toolDone = result;
+                        Post(delegate { Answer(ticket, result, TalkState.Talking); });
+                    }
+                    else if (Security.IsHold(result)) { if (told != null) told.Tell(result); }
                     else if (unchecked(Environment.TickCount - began) > 8000) Finished(told, tool, result, ticket);
                     else if (told != null) told.Tell("Capri's hands already did what they just asked (" + tool + "): " + result + " Don't call a tool for it again. React to it in one short line.");
                 });
@@ -8214,7 +8234,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (think == null && brain.Model == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "media" || quick == "nap" || quick == "move_yourself" || quick == "animate" || quick == "gaming_mode")) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
+            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || brain.Model == null && (quick == "media" || quick == "nap" || quick == "move_yourself" || quick == "animate" || quick == "gaming_mode"))) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
@@ -8786,6 +8806,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            clips.Dispose();
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplaysChanged;
             StopRide();
             clickDelay.Stop();
@@ -8830,6 +8851,7 @@ namespace CapriDesktop
         {
             if (disposing)
             {
+                clips.Dispose();
                 clickDelay.Dispose();
                 frames.Dispose();
                 chatTail.Dispose();
@@ -9801,6 +9823,241 @@ namespace CapriDesktop
                 SavePreferences();
                 mainframe.Sync();
             }
+        }
+
+        private static void SmokeClips(System.Collections.Generic.List<string> checks)
+        {
+            using (ClipBuffer aged = new ClipBuffer(2, 8192))
+            {
+                for (int age = 0; age <= 4; age++) aged.Keep(new byte[100], age * 10000000L, age * 10000000L, true);
+                if (aged.Frames != 3 || aged.First != 20000000) throw new Exception("Clips kept frames older than their history.");
+                aged.Advance(70000000);
+                if (aged.Frames != 0 || aged.Bytes != 0) throw new Exception("An idle clip buffer kept expired frames.");
+            }
+            using (ClipBuffer crowded = new ClipBuffer(120, 4096))
+            {
+                for (int crowd = 0; crowd < 100; crowd++)
+                {
+                    crowded.Keep(new byte[700], crowd * 333333L, crowd * 333333L, true);
+                    crowded.Keep(new byte[80], crowd * 333333L, crowd * 333333L + 100000, false);
+                    if (crowded.Bytes > 4096) throw new Exception("Clips grew past their memory budget.");
+                }
+                if (crowded.Dropped == 0 || crowded.Frames >= 100) throw new Exception("A full clip buffer didn't drop frames.");
+                crowded.Enable(false);
+                if (crowded.Bytes != 0) throw new Exception("Switching clips off kept the buffer.");
+            }
+            checks.Add("PASS clips expire old frames and sound, drop frames within a fixed memory budget, and release their buffer when switched off");
+
+            Func<string> clipGameWas = Computer.GameOpen;
+            Func<int, string> clipSaveWas = Hands.SaveClip;
+            try
+            {
+                string clipTool;
+                ToolArguments clipArgs;
+                Computer.GameOpen = delegate { return "Synthetic Game"; };
+                string[] clipWords = { "clip that", "clip it", "save that", "save a clip", "clip the last 2 minutes", "clip that capri", "Capri, clip that.", "clip the last two minutes" };
+                foreach (string clipWordsCase in clipWords)
+                {
+                    if (!Hands.Direct(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip" || !Hands.Heard(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip")
+                        throw new Exception("A clip phrase missed her local route: " + clipWordsCase);
+                    if (clipArgs.Seconds != (clipWordsCase.Contains("minutes") ? "120" : "30")) throw new Exception("A clip phrase lost its duration.");
+                }
+                foreach (string ordinary in new[] { "that", "save that file", "save that document", "how do I clip that", "don't clip that" })
+                    if (Hands.Heard(ordinary, out clipTool, out clipArgs) && clipTool == "clip") throw new Exception("Clips took an ordinary request: " + ordinary);
+                using (ClipBuffer off = new ClipBuffer())
+                {
+                    Hands.SaveClip = off.Clip;
+                    string offLine = Hands.Do("clip", new ToolArguments());
+                    if (!offLine.Contains("Settings > GAMES") || off.Enabled || Hands.Pulled(offLine) != offLine) throw new Exception("Clips didn't explain their off switch.");
+                }
+                int savedSeconds = 0;
+                Hands.SaveClip = delegate(int requested) { savedSeconds = requested; return "Saved 120 seconds of Synthetic Game: clip.mp4"; };
+                if (Security.Gate("clip", new ToolArguments()) != null || !Hands.Typed("clip{\"seconds\":\"120\"}", out clipTool, out clipArgs)
+                    || Hands.Do(clipTool, clipArgs) != "Saved 120 seconds of Synthetic Game: clip.mp4" || savedSeconds != 120)
+                    throw new Exception("The clip tool didn't run locally with its duration.");
+                Computer.GameOpen = delegate { return null; };
+                foreach (string noGameWords in clipWords)
+                    if (Hands.Heard(noGameWords, out clipTool, out clipArgs)) throw new Exception("A clip phrase ran a tool with no game open: " + noGameWords);
+                if (Hands.Heard("save that file", out clipTool, out clipArgs) || Hands.Heard("save that", out clipTool, out clipArgs)) throw new Exception("Clips intercepted saving a document.");
+            }
+            finally { Computer.GameOpen = clipGameWas; Hands.SaveClip = clipSaveWas; }
+            checks.Add("PASS clips route chat and voice phrases, keep the requested seconds, explain the off switch, and leave document saves and requests with no game alone");
+
+            Preferences clipPreferences = new Preferences();
+            if (clipPreferences.ClipGames) throw new Exception("Clip my games started on.");
+            using (MemoryStream savedPreferences = new MemoryStream())
+            {
+                clipPreferences.ClipGames = true;
+                DataContractJsonSerializer clipSerializer = new DataContractJsonSerializer(typeof(Preferences));
+                clipSerializer.WriteObject(savedPreferences, clipPreferences);
+                savedPreferences.Position = 0;
+                if (!((Preferences)clipSerializer.ReadObject(savedPreferences)).ClipGames) throw new Exception("Clip my games wasn't saved in preferences.");
+            }
+            checks.Add("PASS Clip my games starts off and its preference survives saving");
+
+            Func<Sight> clipSightWas = Computer.Glimpse;
+            Func<string> clipOpenWas = Computer.GameOpen;
+            try
+            {
+                using (Form clipWindow = new Form())
+                using (ClipBuffer liveClips = new ClipBuffer(2, 1024 * 1024))
+                {
+                    clipWindow.Text = "Capri clip smoke";
+                    clipWindow.StartPosition = FormStartPosition.Manual;
+                    clipWindow.Bounds = new Rectangle(Screen.PrimaryScreen.WorkingArea.Location, new Size(256, 192));
+                    clipWindow.BackColor = Color.Lime;
+                    clipWindow.Show();
+                    clipWindow.Activate();
+                    Application.DoEvents();
+                    Sight clipSight = new Sight { Window = clipWindow.Handle, Title = "Minecraft", Program = "Minecraft", Bounds = clipWindow.Bounds };
+                    Computer.Glimpse = delegate { return clipSight; };
+                    Computer.GameOpen = delegate { return "Minecraft"; };
+                    if (Native.GetForegroundWindow() != clipWindow.Handle) checks.Add("LIMIT clips: the capture test window couldn't take the foreground");
+                    else
+                    {
+                        liveClips.Enable(true);
+                        Stopwatch clipLiveTime = Stopwatch.StartNew();
+                        bool clipFocused = true;
+                        while (clipLiveTime.ElapsedMilliseconds < 3000)
+                        {
+                            Application.DoEvents();
+                            if (Native.GetForegroundWindow() != clipWindow.Handle) { clipFocused = false; break; }
+                            Thread.Sleep(10);
+                        }
+                        if (!clipFocused) checks.Add("LIMIT clips: the capture test window lost the foreground");
+                        else if (liveClips.Frames == 0) checks.Add("LIMIT clips: this desktop didn't provide frames to the capture test");
+                        else
+                        {
+                            if (liveClips.Bytes > 1024 * 1024 || liveClips.First < ClipBuffer.Now - 22500000) throw new Exception("Live clips exceeded their memory or history budget.");
+                            Computer.GameOpen = delegate { return null; };
+                            clipLiveTime.Restart();
+                            while (liveClips.Frames > 0 && clipLiveTime.ElapsedMilliseconds < 1500) { Application.DoEvents(); Thread.Sleep(10); }
+                            if (liveClips.Frames != 0 || liveClips.Bytes != 0) throw new Exception("Clips kept capturing after the game closed.");
+                            checks.Add("PASS clips capture a foreground test window, keep its still frame within the rolling history, and stop and release their buffer when no game is open");
+                        }
+                    }
+                }
+            }
+            finally { Computer.Glimpse = clipSightWas; Computer.GameOpen = clipOpenWas; }
+
+            System.Threading.Tasks.Task.Factory.StartNew(delegate
+            {
+                using (SoundTap clipTap = SoundTap.Open(true))
+                {
+                    if (clipTap == null) checks.Add("LIMIT clips: this PC has no available WASAPI loopback device; clips still save without sound");
+                    else
+                    {
+                        int clipPackets = 0;
+                        bool clipSoundRead = true;
+                        Stopwatch clipSoundTime = Stopwatch.StartNew();
+                        while (clipSoundTime.ElapsedMilliseconds < 150 && clipSoundRead)
+                        {
+                            long clipSoundNewest;
+                            clipSoundRead = clipTap.Read(null, null, out clipSoundNewest, delegate(byte[] clipPcm, long clipAt, int clipRate)
+                            {
+                                if (clipPcm.Length % 4 != 0 || clipRate < 8000 || clipAt <= 0) throw new Exception("Loopback gave clips invalid PCM or a missing clock time.");
+                                clipPackets++;
+                            });
+                            Thread.Sleep(10);
+                        }
+                        checks.Add(clipSoundRead && clipPackets > 0 ? "PASS clips read timestamped stereo PCM from WASAPI loopback" : "LIMIT clips: WASAPI produced no readable sound packets during the smoke check");
+                    }
+                }
+                string clipFolder = Path.Combine(Path.GetTempPath(), "Capri-clips-" + Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(clipFolder);
+                try
+                {
+                    using (ClipBuffer synthetic = new ClipBuffer())
+                    using (Bitmap pattern = new Bitmap(98, 66, System.Drawing.Imaging.PixelFormat.Format32bppRgb))
+                    {
+                        using (Graphics paint = Graphics.FromImage(pattern))
+                        {
+                            paint.Clear(Color.Red);
+                            paint.FillRectangle(Brushes.Blue, 0, 33, 98, 33);
+                            paint.FillRectangle(Brushes.Lime, 72, 4, 22, 22);
+                        }
+                        long origin = 50000000;
+                        long[] expected = { 0, 1000000, 4000000, 10000000, 14000000, 19000000 };
+                        foreach (long stamp in expected) synthetic.AddFrame(pattern, origin + stamp);
+                        byte[] tone = new byte[48000 * 4 * 3];
+                        for (int audioSample = 0; audioSample < tone.Length / 4; audioSample++)
+                        {
+                            short wave = (short)(Math.Sin(audioSample * Math.PI * 880 / 48000) * 6000);
+                            for (int audioSide = 0; audioSide < 2; audioSide++)
+                            {
+                                tone[audioSample * 4 + audioSide * 2] = (byte)wave;
+                                tone[audioSample * 4 + audioSide * 2 + 1] = (byte)(wave >> 8);
+                            }
+                        }
+                        synthetic.Keep(tone, origin - 3000000, origin + 27000000, false);
+                        synthetic.Advance(origin + 22000000);
+                        string clipPath = Path.Combine(clipFolder, "synthetic.mp4");
+                        System.Threading.Tasks.Task<ClipResult> fullSave = synthetic.Save(clipPath, 30);
+                        string lastPath = Path.Combine(clipFolder, "last-second.mp4");
+                        System.Threading.Tasks.Task<ClipResult> lastSave = synthetic.Save(lastPath, 1);
+                        synthetic.Enable(false);
+                        if (synthetic.Bytes > ClipBuffer.Memory) throw new Exception("Pending clips exceeded the shared memory budget.");
+                        ClipResult made = fullSave.GetAwaiter().GetResult();
+                        ClipResult lastResult = lastSave.GetAwaiter().GetResult();
+                        if (synthetic.Bytes != 0) throw new Exception("Finished clips held onto their frames after capture stopped.");
+                        if (made.Unavailable) { checks.Add("LIMIT clips: " + made.Problem); return; }
+                        if (made.Problem != null) throw new Exception(made.Problem);
+                        if (!File.Exists(clipPath) || new FileInfo(clipPath).Length == 0) throw new Exception("Clips saved no MP4.");
+                        double length;
+                        Bitmap decoded;
+                        long[] actual;
+                        bool audio;
+                        double audioLength;
+                        int audioPeak;
+                        ClipMedia.Inspect(clipPath, out length, out decoded, out actual, out audio, out audioLength, out audioPeak);
+                        using (decoded)
+                        {
+                            if (Math.Abs(length - 2.2) > 0.15 || actual.Length != expected.Length) throw new Exception("The clip changed duration or dropped encoded frames: " + length + " seconds, " + actual.Length + " frames.");
+                            for (int at = 0; at < actual.Length; at++)
+                                if (Math.Abs(actual[at] - expected[at]) > 10000) throw new Exception("The clip changed a real frame time: " + actual[at] + " instead of " + expected[at]);
+                            if (decoded == null || decoded.Width != 98 || decoded.Height != 66) throw new Exception("The clip changed frame dimensions.");
+                            Color top = decoded.GetPixel(10, 10), bottom = decoded.GetPixel(10, 55), right = decoded.GetPixel(82, 12);
+                            if (top.R < top.B + 100 || bottom.B < bottom.R + 100 || right.G < right.R + 100)
+                                throw new Exception("The first decoded clip frame was flipped, had the wrong stride, or swapped colours: " + top + ", " + bottom + ", " + right);
+                            if (audio != made.Sound) throw new Exception("The saved clip's audio report was wrong.");
+                            if (audio && (Math.Abs(audioLength - 2.2) > 0.15 || audioPeak < 1000)) throw new Exception("The clip's sound lost its samples or wasn't trimmed to the video: " + audioLength + " seconds, peak " + audioPeak);
+                        }
+                        checks.Add("PASS clips save an H.264 MP4 that Media Foundation reopens at 2.2 seconds with uneven frame times, 98 x 66 pixels and the first frame the right way up");
+                        checks.Add(made.Sound ? "PASS clips decode the matching AAC sound with its samples intact and trimmed to the video's length" : "LIMIT clips: this PC couldn't encode AAC; the video saved without sound");
+                        if (lastResult.Problem != null || Math.Abs(lastResult.Seconds - 1) > 0.001) throw new Exception("The requested last second wasn't saved: " + lastResult.Problem);
+                        ClipMedia.Inspect(lastPath, out length, out decoded, out actual, out audio, out audioLength, out audioPeak);
+                        using (decoded)
+                            if (Math.Abs(length - 1) > 0.15 || actual.Length != 3 || actual[0] != 0 || Math.Abs(actual[1] - 2000000) > 10000 || Math.Abs(actual[2] - 7000000) > 10000)
+                                throw new Exception("A shorter clip lost its first held frame or changed speed.");
+                        checks.Add("PASS queued clips keep their snapshots when capture stops, trim between captured frames, and release their memory after saving");
+                    }
+                    using (ClipBuffer silent = new ClipBuffer())
+                    using (Bitmap quietFrame = new Bitmap(64, 48))
+                    {
+                        silent.AddFrame(quietFrame, 0);
+                        silent.AddFrame(quietFrame, 1000000);
+                        silent.Advance(2000000);
+                        string quietPath = Path.Combine(clipFolder, "silent.mp4");
+                        ClipResult quietResult = silent.Save(quietPath, 30).GetAwaiter().GetResult();
+                        if (quietResult.Problem != null || quietResult.Sound) throw new Exception("A clip without sound couldn't save: " + quietResult.Problem);
+                        double quietLength;
+                        Bitmap quietDecoded;
+                        long[] quietTimes;
+                        bool quietAudio;
+                        double quietSoundLength;
+                        int quietPeak;
+                        ClipMedia.Inspect(quietPath, out quietLength, out quietDecoded, out quietTimes, out quietAudio, out quietSoundLength, out quietPeak);
+                        using (quietDecoded)
+                            if (quietAudio || Math.Abs(quietLength - 0.2) > 0.05) throw new Exception("The silent clip's streams or duration were wrong.");
+                        checks.Add("PASS clips also save and reopen without an audio device");
+                    }
+                }
+                finally
+                {
+                    foreach (string clipTemp in Directory.GetFiles(clipFolder)) File.Delete(clipTemp);
+                    Directory.Delete(clipFolder);
+                }
+            }).GetAwaiter().GetResult();
         }
 
         private static void SmokeFrames(System.Collections.Generic.List<string> checks)
@@ -11038,6 +11295,13 @@ namespace CapriDesktop
                             SmokeGameSense(checks);
                             SmokeSelfKnow(checks);
                             SmokeCare(checks);
+                            SmokeClips(checks);
+                            bool clipsWereOn = preferences.ClipGames;
+                            mainframe.FlipClips();
+                            if (preferences.ClipGames == clipsWereOn || mainframe.ClipsShown != preferences.ClipGames || LoadPreferences().ClipGames != preferences.ClipGames) throw new Exception("Clip my games didn't switch, show and save from HABITS.");
+                            mainframe.FlipClips();
+                            if (preferences.ClipGames != clipsWereOn || mainframe.ClipsShown != clipsWereOn || LoadPreferences().ClipGames != clipsWereOn) throw new Exception("Clip my games didn't switch back from HABITS.");
+                            checks.Add("PASS Clip my games switches and saves from GAMES and shows its saved state");
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
@@ -14055,7 +14319,7 @@ namespace CapriDesktop
                                 if (later.Gap().IndexOf("3 hours ago", StringComparison.Ordinal) < 0 || stale.Gap() != "" || File.ReadAllText(chatFile).IndexOf("\"messages\":[]", StringComparison.Ordinal) < 0) throw new Exception("Old chats were not aged or dropped: " + later.Gap());
                                 File.Delete(chatFile);
                                 checks.Add("PASS me.md notes: remember and forget save to her notes in the third person, refuse personal details, skip chat and questions, pick up favourites and projects on their own, reach her chat prompt, and the chat carries over a restart for a week");
-                                string[,] pressCases = { { "Capri, mute my mic.", "discord_mute" }, { "unmute me on discord", "discord_mute" }, { "turn off my mic", "discord_mute" }, { "can you mute myself in the call please", "discord_mute" }, { "deafen me", "discord_deafen" }, { "take a screenshot", "screenshot" }, { "clip that", "clip_that" }, { "start recording", "record" }, { "show the desktop", "show_desktop" }, { "open the emoji picker", "emoji" },
+                                string[,] pressCases = { { "Capri, mute my mic.", "discord_mute" }, { "unmute me on discord", "discord_mute" }, { "turn off my mic", "discord_mute" }, { "can you mute myself in the call please", "discord_mute" }, { "deafen me", "discord_deafen" }, { "take a screenshot", "screenshot" }, { "start recording", "record" }, { "show the desktop", "show_desktop" }, { "open the emoji picker", "emoji" },
                                     { "turn on live captions", "live_captions" }, { "Capri, start narrator", "narrator" }, { "open magnifier", "magnifier" }, { "close the magnifier", "magnifier_off" }, { "turn on colour filters", "color_filters" }, { "voice typing", "voice_typing" }, { "open quick settings", "quick_settings" } };
                                 for (int i = 0; i < pressCases.GetLength(0); i++)
                                     if (!Hands.Heard(pressCases[i, 0], out shortTool, out shortArgs) || shortTool != "shortcut" || shortArgs.Name != pressCases[i, 1]) throw new Exception("Shortcut was heard wrong: " + pressCases[i, 0] + " -> " + shortTool + " " + shortArgs.Name);

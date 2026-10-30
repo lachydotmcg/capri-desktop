@@ -516,7 +516,11 @@ namespace CapriDesktop
             { "move_yourself", "Move yourself on their screens: teleport to their mouse (come_here), go to another monitor, sit down or stand up where you are, sit on top of a window they name, like their Roblox or Discord window, or the taskbar (sit_on), lie down along the window you sit on or the one they name, or sit back up, walk around, wander off to a random window, hang where you are, ride their cursor or hop off it, hide or come back. move_mainframe moves your Capri Mainframe window to another monitor, or to the one their mouse is on. Use it whenever they tell you to come here, teleport, go somewhere, sit, lie down, walk, stand, hang, hide or show yourself.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"come_here\",\"other_screen\",\"sit\",\"sit_on\",\"lie_down\",\"sit_up\",\"stand_up\",\"walk_around\",\"wander\",\"hang\",\"ride_cursor\",\"hop_off\",\"hide\",\"show\",\"move_mainframe\"]},\"screen\":{\"type\":\"string\",\"description\":\"For other_screen or move_mainframe, which monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, or a number like 2\"},\"window\":{\"type\":\"string\",\"description\":\"For sit_on, and lie_down if they named one, the app or game whose window to sit on, like Roblox, or taskbar\"}},\"required\":[\"action\"]}" },
             { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" }
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" },
+#if !CROSS
+            { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
+              "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}" },
+#endif
         };
 
         internal static readonly string Tools = Render(false);
@@ -686,6 +690,7 @@ namespace CapriDesktop
         internal static Func<string, string> Animate = delegate { return "Couldn't do that just now."; };
         // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
         internal static Func<string, string> GamingMode = delegate { return "Gaming Mode isn't on this PC yet."; };
+        internal static Func<int, string> SaveClip = delegate { return "Turn on Clip my games in Settings > GAMES, then I can clip that."; };
         private static readonly string[] Browsers = { "chrome", "msedge", "firefox", "brave", "opera", "vivaldi" };
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd" };
         private delegate bool Visit(IntPtr window, IntPtr data);
@@ -741,6 +746,12 @@ namespace CapriDesktop
                 if (tool == "move_yourself") return MoveSelf(args.Action, args.Action == "sit_on" || args.Action == "lie_down" ? args.Window : args.Screen);
                 if (tool == "animate") return Animate(args.Name);
                 if (tool == "gaming_mode") return GamingMode(args.Action);
+                if (tool == "clip")
+                {
+                    int clipSeconds = 30;
+                    if (!string.IsNullOrEmpty(args.Seconds) && (!int.TryParse(args.Seconds, out clipSeconds) || clipSeconds <= 0)) return "How many seconds should I clip?";
+                    return SaveClip(clipSeconds);
+                }
                 return "There's no tool called " + tool + ".";
             }
             catch (Exception error) { return "That didn't work: " + error.Message; }
@@ -893,6 +904,7 @@ namespace CapriDesktop
 
         internal static string Pulled(string result)
         {
+            if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
             if (Regex.IsMatch(result ?? "", @"^(Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
@@ -1453,6 +1465,21 @@ namespace CapriDesktop
             return way == "higher" || way == "raise" ? "up" : way == "lower" ? "down" : way == "back" ? "reset" : way;
         }
 
+        internal static int ClipSeconds(string text)
+        {
+            string plain = Regex.Replace(Asked(text), @"[\s,]+capri$", "", RegexOptions.IgnoreCase);
+            if (Regex.IsMatch(plain, @"^(clip (that|it|this)|save that|(save|grab) (a |the )?clip)$", RegexOptions.IgnoreCase)) return 30;
+            Match stretch = Regex.Match(plain, @"^clip the last (\d+|one|two|a) (seconds?|minutes?)$", RegexOptions.IgnoreCase);
+            if (!stretch.Success) return 0;
+            string amount = stretch.Groups[1].Value.ToLowerInvariant();
+            int seconds;
+            if (amount == "one" || amount == "a") seconds = 1;
+            else if (amount == "two") seconds = 2;
+            else if (!int.TryParse(amount, out seconds)) return 0;
+            long duration = (long)seconds * (stretch.Groups[2].Value.StartsWith("minute", StringComparison.OrdinalIgnoreCase) ? 60 : 1);
+            return duration > 0 && duration <= int.MaxValue ? (int)duration : 0;
+        }
+
         internal static bool Direct(string said, out string tool, out ToolArguments args)
         {
             if (Planned(said, out tool, out args)) return true;
@@ -1460,6 +1487,10 @@ namespace CapriDesktop
             args = new ToolArguments();
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
+#if !CROSS
+            int clipSeconds = ClipSeconds(text);
+            if (clipSeconds > 0 && Computer.GameOpen() != null) { tool = "clip"; args.Seconds = clipSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return true; }
+#endif
             string gaming = GamingFor(text);
             if (gaming != null) { tool = "gaming_mode"; args.Action = gaming; return true; }
             if (Chatter.IsMatch(text) || Regex.IsMatch(text, @"\b(if|unless|until|after|before|when) (i|you|we|it|the)\b", RegexOptions.IgnoreCase)) return false;
@@ -1588,10 +1619,11 @@ namespace CapriDesktop
             else if (key == "phrase") args.Phrase = value;
             else if (key == "steps") args.Steps = value;
             else if (key == "minutes") args.Minutes = value;
+            else if (key == "seconds") args.Seconds = value;
             else if (key == "screen") args.Screen = value;
         }
 
-        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate)\s*(\{.*\})\z", RegexOptions.Singleline);
+        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate|clip)\s*(\{.*\})\z", RegexOptions.Singleline);
 
         internal static bool Typed(string reply, out string tool, out ToolArguments args, bool loose = false)
         {
@@ -1615,7 +1647,7 @@ namespace CapriDesktop
             return true;
         }
 
-        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate";
+        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate|clip";
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
         private static readonly Regex NamedInside = new Regex(@"""name""\s*:\s*""(" + ToolNames + @")""");
         private static readonly Regex GivenInside = new Regex(@"""(?:arguments|parameters)""\s*:\s*\{");
@@ -1725,6 +1757,11 @@ namespace CapriDesktop
 
         internal static bool Valid(string tool, ToolArguments args)
         {
+            if (tool == "clip")
+            {
+                int duration;
+                return args != null && (string.IsNullOrEmpty(args.Seconds) || (int.TryParse(args.Seconds, out duration) && duration > 0));
+            }
             if (args == null) return false;
             if (tool == "open_app") return Named(args.Name);
             if (tool == "open_website") return Named(args.Site);
@@ -2147,7 +2184,9 @@ namespace CapriDesktop
             @"^(un)?mute (my |me on |me in |)(mic|microphone|myself|me)( on discord| in discord| in (the )?(call|vc|voice( chat| channel)?))?$|^turn (off |on )?my (mic|microphone)( off| on| back on)?( on discord| in discord)?$|^(un)?mute (me|myself|my mic|my microphone) (on|in) discord$|^discord mute$", "discord_mute",
             @"^(un)?deafen( me| myself)?( on discord| in discord)?$|^discord deafen$", "discord_deafen",
             @"^(take|grab|get) (a |me a )?(screenshot|screen ?shot|screen grab|snip)( of (this|my screen|the screen))?$|^screenshot( this| that| my screen)?$", "screenshot",
+#if CROSS
             @"^clip (that|it|this)$|^(save|grab) (a |the )?clip$|^clip the last 30 seconds$", "clip_that",
+#endif
             @"^(start|stop) (the )?recording( my screen| the screen)?$|^record (my screen|the screen|this)$", "record",
             @"^(open|show|bring up|pull up) (the |my )?(xbox )?game ?bar$", "game_bar",
             @"^show (me )?(the |my )?desktop$|^minimi[sz]e (everything|all( windows)?)$", "show_desktop",

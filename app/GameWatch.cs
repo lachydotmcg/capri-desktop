@@ -70,7 +70,11 @@ namespace CapriDesktop
                                 ears.Start();
                                 listening = owner;
                             }
-                            if (grab == null || front.Bounds != watched)
+                            if (clips.Enabled)
+                            {
+                                if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
+                            }
+                            else if (grab == null || front.Bounds != watched)
                             {
                                 if (grab != null) grab.Dispose();
                                 grab = new FrameGrab();
@@ -91,19 +95,19 @@ namespace CapriDesktop
                         Thread.Sleep(1000);
                         continue;
                     }
-                    if (grab.Next(120))
-                        using (Bitmap frame = grab.Copy(480))
-                            if (frame != null)
+                    Bitmap seen = grab == null ? clips.Glimpse() : grab.Next(120) ? grab.Copy(480) : null;
+                    if (seen != null)
+                        using (Bitmap frame = seen)
+                        {
+                            byte[] pixels = GameSense.Bgra(frame, WatchWidth, WatchHeight);
+                            if (watch.Elapsed.TotalSeconds - kept >= 1)
                             {
-                                byte[] pixels = GameSense.Bgra(frame, WatchWidth, WatchHeight);
-                                if (watch.Elapsed.TotalSeconds - kept >= 1)
-                                {
-                                    kept = watch.Elapsed.TotalSeconds;
-                                    before = after;
-                                    after = Jpeg(frame, 480);
-                                }
-                                if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
+                                kept = watch.Elapsed.TotalSeconds;
+                                before = after;
+                                after = Jpeg(frame, 480);
                             }
+                            if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
+                        }
                     Thread.Sleep(100);
                 }
             }
