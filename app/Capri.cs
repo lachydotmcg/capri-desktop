@@ -19541,6 +19541,10 @@ namespace CapriDesktop
             Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
             int pushVkWas = preferences.PushVk, pushModsWas = preferences.PushMods;
             bool localWas = local, earsWas = earsReady;
+            bool hiddenWas = hidden, napWas = napping, napAskedWas = napAsked, shushWas = shushed, mutedWas = ears.Muted;
+            hidden = napping = napAsked = shushed = false;
+            ears.Muted = false;
+            mainframe.CancelKeys();
             IGameStage stageWas = Commentary.Stage;
             Func<string> gameWas = Commentary.Game;
             Func<bool> freeWas = Commentary.Free;
@@ -20181,7 +20185,11 @@ namespace CapriDesktop
                 local = localWas;
                 earsReady = earsWas;
                 pushing = false;
-                shushed = false;
+                hidden = hiddenWas;
+                napping = napWas;
+                napAsked = napAskedWas;
+                shushed = shushWas;
+                ears.Muted = mutedWas;
                 transcribing = false;
                 voiceUntil = 0;
                 spokenLevels = null;

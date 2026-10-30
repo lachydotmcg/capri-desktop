@@ -52,7 +52,7 @@ namespace CapriDesktop
         // A line that takes longer than this has missed the moment.
         internal static int Late = 6000;
         private const int Longest = 768;
-        private const int Lines = 8;
+        private const int Keeps = 8;
         private const int LookAround = 40000;
         private static readonly object gate = new object();
         private static readonly List<string> said = new List<string>();
@@ -135,7 +135,7 @@ namespace CapriDesktop
                 thinking = false;
                 if (!keep) return;
                 said.Add(line);
-                if (said.Count > Lines) said.RemoveAt(0);
+                if (said.Count > Keeps) said.RemoveAt(0);
                 spoke = true;
                 spokeAt = Clock();
             }
@@ -171,6 +171,7 @@ namespace CapriDesktop
                 case "kill": return "They just took something down.";
                 case "sound": case "noise": return "There was a big burst of sound in the game.";
                 case "flash": return "The screen just flashed.";
+                case "motion": return "Something on screen just moved fast.";
                 case "red": return "The edges of the screen just went red.";
                 case "scene": return "Nothing big just happened, so this is a look at how they're getting on.";
                 default: return "Something just happened in the game.";
