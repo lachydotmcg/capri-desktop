@@ -230,7 +230,7 @@ namespace CapriDesktop
         private static string Account()
         {
             Cloud cloud = brain.Remote;
-            string value = brain.Model + "|" + (brain.Local == null ? "" : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(brain.Local).ToString()) + "|" + Brain.Ollama + "|" + Brain.OpenAi + "|" + Brain.Anthropic + "|" + Brain.Nvidia + "|" + (cloud == null ? "local" : cloud.Kind + "|" + cloud.Model + "|" + cloud.Key);
+            string value = (brain.Provider == null ? "" : brain.Provider.Identity + "|" + brain.Provider.Generation) + "|" + brain.Model + "|" + (brain.Local == null ? "" : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(brain.Local).ToString()) + "|" + Brain.Ollama + "|" + Brain.OpenAi + "|" + Brain.Anthropic + "|" + Brain.Nvidia + "|" + (cloud == null ? "local" : cloud.Kind + "|" + cloud.Model + "|" + cloud.Key);
             return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
         }
 

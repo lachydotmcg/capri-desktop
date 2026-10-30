@@ -28,6 +28,8 @@ namespace CapriDesktop
         [DataMember] internal double? PetDown;
         [DataMember] internal double Size = 240;
         [DataMember] internal string Model;
+        [DataMember] internal string BrainProvider;
+        [DataMember] internal string CodexModel;
         [DataMember] internal string Language;
         [DataMember] internal string Nickname;
         [DataMember] internal int Replies;
@@ -176,7 +178,7 @@ namespace CapriDesktop
         private static readonly int[] Recalls = { 8, 16, 32 };
         private static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
         private static readonly int[] SoundLevels = { 0, 30, 60, 100 };
-        internal const string Offline = "My brain's offline. Install Ollama from ollama.com and open it, then right-click me > Brain > Download " + Starter + ".";
+        internal const string Offline = "My brain's offline. Open Mainframe > Brain to connect Codex / ChatGPT plan, local Ollama, or your optional provider.";
         // The brain she downloads for herself through Ollama when it has none yet, so no terminal is needed.
         internal const string Starter = "gemma4:e4b";
         internal const string PullChoice = "Download " + Starter + ", her brain (a few GB)";
@@ -2444,6 +2446,7 @@ namespace CapriDesktop
 
         private void RefreshBrains()
         {
+            if (BrainProvider == "codex") { ShowCodexBrains(); return; }
             if (Brain.Remote != null) { ShowCloud(); ListCloud(); return; }
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -2617,8 +2620,9 @@ namespace CapriDesktop
 
         internal void PickBrain(string model)
         {
+            if (BrainProvider == "codex") { _ = PickCodexModelAsync(model); return; }
             if (string.IsNullOrEmpty(model) || model == Brain.Model) return;
-            Brain.Cancel();
+            RevokeBrainWork();
             // Her chat carries on with the new model, so changing brains never wipes what she was doing.
             Brain.Model = model;
             Saved.Model = model;
@@ -3250,6 +3254,7 @@ namespace CapriDesktop
 
         internal void FindBrain()
         {
+            if (BrainProvider == "codex") { if (codex == null) _ = ConnectCodexAsync(); return; }
             string saved = Saved.Model;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -3258,7 +3263,7 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (Brain.Model != null || model == null) return;
+                    if (BrainProvider == "codex" || Brain.Model != null || model == null) return;
                     Brain.Model = model;
                     Saved.Model = model;
                     Save();
@@ -3308,7 +3313,7 @@ namespace CapriDesktop
             {
                 string said;
                 bool stuck = false;
-                try { said = think(text); }
+                try { said = Think == null ? Brain.Ask(text, partial => Dispatcher.UIThread.Post(() => { if (ticket == asking && !quitting) Talk.StreamAnswer(text, partial); })) : think(text); }
                 catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer: " + error.Message; stuck = Brain.Stalled(error); }
                 catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; stuck = Brain.Stalled(error); }
                 if (string.IsNullOrWhiteSpace(said)) said = "My brain sent an empty reply. Try again.";
@@ -3350,7 +3355,7 @@ namespace CapriDesktop
         private void Reply(int ticket, string heard, string said)
         {
             if (!Speaks || Voice.Spoken(said).Length == 0) { Talk.Answer(heard, said); TypeAlong(said, ticket); return; }
-            Talk.Thinking(heard);
+            if (Brain.Provider == null) Talk.Thinking(heard);
             CancellationToken cancellation = speechJob.Token;
             makingSpeech = true;
             bool[] shown = { false };
@@ -3466,6 +3471,9 @@ namespace CapriDesktop
 
         internal void UseCloud(string key, string model, List<string> models)
         {
+            if (BrainProvider == "codex") DisconnectCodex();
+            else RevokeBrainWork();
+            Saved.BrainProvider = "cloud";
             Brain.Cancel();
             Brain.Remote = new Cloud(key, model);
             Brain.Model = model;
@@ -3478,7 +3486,7 @@ namespace CapriDesktop
         {
             Cloud remote = Brain.Remote;
             if (remote == null || string.IsNullOrEmpty(model)) return;
-            Brain.Cancel();
+            RevokeBrainWork();
             remote.Model = model;
             Brain.Model = model;
             Saved.CloudModel = model;
@@ -3488,6 +3496,8 @@ namespace CapriDesktop
         // Back to Ollama: the key file goes, and she finds her Ollama model again.
         internal void ForgetBrainKey()
         {
+            if (BrainProvider == "codex") DisconnectCodex();
+            Saved.BrainProvider = "ollama";
             Brain.Cancel();
             Brain.Remote = null;
             Brain.Model = null;
@@ -3716,6 +3726,7 @@ namespace CapriDesktop
             ComputerJobs.Stop();
             Brain.Cancel();
             DisposeSpeech();
+            codex?.Dispose();
             if (presence != null) presence.Dispose();
             Talk.Dismiss();
             GlitchOut(delegate
@@ -3733,6 +3744,7 @@ namespace CapriDesktop
             ComputerJobs.Stop();
             Brain.Cancel();
             DisposeSpeech();
+            codex?.Dispose();
             frames.Stop();
             Desk.Dispose();
             Talk.Dismiss();

@@ -904,6 +904,22 @@ namespace CapriDesktop
             Start(heard);
         }
 
+        internal void StreamAnswer(string heard, string partial)
+        {
+            if (pet.Away || string.IsNullOrEmpty(partial)) return;
+            reply = partial;
+            thinking = false;
+            replyStart = pet.Now - partial.Length / Math.Max(1, pace);
+            replyDone = -1;
+            leaving = -1;
+            Sheet sheet = Bubble.Sheet;
+            sheet.Heard = heard;
+            sheet.Reply = partial;
+            sheet.Thinking = false;
+            sheet.Revealed = partial.Length;
+            Update(pet.Now);
+        }
+
         private void Start(string heard)
         {
             Sheet sheet = Bubble.Sheet;
