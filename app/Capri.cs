@@ -9794,6 +9794,17 @@ namespace CapriDesktop
                 { "where is personality.md?", "personality.md" },
                 { "how do I stop a job?", "Stop a job" },
                 { "how do I set a reminder?", "Reminders" },
+                { "how do I change the memory size?", "Memory size" },
+                { "how do I use LM Studio?", "Local servers" },
+                { "how do I start one of your mini games?", "Mini games" },
+                { "how do I play connect four with you?", "Mini games" },
+                { "how do I give you a file?", "Handing her a file" },
+                { "what kinds of files can you read?", "Handing her a file" },
+                { "where are clips saved?", "Clip my games" },
+                { "how do I move the HUD down?", "Gaming Mode" },
+                { "how do I change the game break setting?", "Game break" },
+                { "how do I edit check-in lines?", "Edit check-in lines" },
+                { "how do I save a routine?", "Routines" },
                 { "how does your wake word work?", "Listen for \"Hey Capri\"" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
@@ -9805,6 +9816,8 @@ namespace CapriDesktop
             string[] selfOrdinary = { null, "", "you", "your", "hey Capri", "what's your favourite song", "how do I bake bread", "how was your day", "what do you think of my drawing", "your voice is lovely", "is your voice pretty", "can you remind me what I said yesterday", "what is on my screen", "what's the Blackwall in Cyberpunk 2077", "what is Blackwall in Night City", "give me a Minecraft tutorial", "how do I use you in a game", "how do I change your voice in Skyrim", "how do I change your voice in a videogame", "what's the Bubble setting in Stardew Valley", "what can you do in Elden Ring", "how do I beat this boss", "give me a tutorial for chess", "how do I use you to play chess", "how do I change my game's settings" };
             foreach (string selfChat in selfOrdinary)
                 if (SelfKnow.Matching(selfChat) != null) throw new Exception("Self knowledge matched ordinary chat or a game: " + selfChat);
+            foreach (string selfGameChat in new[] { "how do I play mini games in Minecraft?", "what is the Game break setting in Cyberpunk 2077?", "why do you laugh when I say hello?" })
+                if (SelfKnow.Matching(selfGameChat) != null) throw new Exception("Self knowledge matched ordinary chat about a new topic: " + selfGameChat);
             foreach (SelfKnow.Topic selfTopic in SelfKnow.Topics)
             {
                 string selfNamed = SelfKnow.Matching("What is the " + selfTopic.Name + " setting in Capri?");
@@ -9821,6 +9834,13 @@ namespace CapriDesktop
             for (int selfStep = 0; selfStep < selfSteps.Length; selfStep++)
                 if (!selfSteps[selfStep].StartsWith((selfStep + 1) + ". ", StringComparison.Ordinal)) throw new Exception("Her tutorial lost its step order.");
             checks.Add("PASS self knowledge: sample asks find the right topic, every named topic is reachable, a tutorial has six steps, only the three best topics fit, and ordinary chat and game questions find nothing");
+
+            string selfMaxReplyHelp = SelfKnow.Matching("What does Max reply Auto do?");
+            string selfClippingHelp = SelfKnow.Matching("How do I clip my games?");
+            if (selfMaxReplyHelp == null || !selfMaxReplyHelp.StartsWith("Max reply:", StringComparison.Ordinal)
+                || selfClippingHelp == null || !selfClippingHelp.StartsWith("Clip my games:", StringComparison.Ordinal))
+                throw new Exception("Self knowledge missed Max reply or Clip my games.");
+            checks.Add("PASS self knowledge: Max reply Auto and Clip my games questions find their own topics");
 
             string selfRoot = null;
             foreach (string selfStart in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
@@ -9860,12 +9880,14 @@ namespace CapriDesktop
                 {
                     foreach (Match selfControl in Regex.Matches(selfSources["Mainframe.cs"], "(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
                         if (!selfLabels.Contains(selfControl.Groups[1].Value)) throw new Exception("Self knowledge is missing a setting: " + selfControl.Groups[1].Value);
+                    foreach (string selfCareName in Care.Names)
+                        if (!selfLabels.Contains(selfCareName)) throw new Exception("Self knowledge is missing a HABITS check-in: " + selfCareName);
                     foreach (string selfPermission in Security.Names)
                         if (!selfLabels.Contains(selfPermission)) throw new Exception("Self knowledge is missing a SECURITY toggle: " + selfPermission);
                     foreach (string selfPreset in Security.Presets)
                         if (SelfKnow.Matching("Explain the Security setting").IndexOf(selfPreset, StringComparison.Ordinal) < 0)
                             throw new Exception("Self knowledge is missing a SECURITY preset: " + selfPreset);
-                    checks.Add("PASS self knowledge names: every available topic label is a checked string in its source, every Mainframe switch and slider and all SECURITY presets and toggles are covered");
+                    checks.Add("PASS self knowledge names: every available topic label is a checked string in its source, every Mainframe switch and slider, HABITS check-in and SECURITY preset and toggle is covered");
                 }
             }
 
