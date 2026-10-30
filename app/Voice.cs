@@ -725,7 +725,7 @@ namespace CapriDesktop
         {
             internal const double MostPitch = 12;
             internal const int MostDelay = 250;
-            internal const double HigherPitch = 1.5;
+            internal const double HigherPitch = 2;
             internal const double LowerPitch = -2.5;
             internal const int Behind = 25;
             internal static readonly Layering Off = new Layering(false, HigherPitch, Behind, LowerPitch, Behind);
@@ -773,7 +773,7 @@ namespace CapriDesktop
 
             internal static string DelayName(int ms) { return ms + " ms"; }
 
-            // "On | +1.5, 25 ms | -2.5, 25 ms", for the smoke tests.
+            // "On | +2, 25 ms | -2.5, 25 ms", for the smoke tests.
             internal string Shown { get { return (On ? "On" : "Off") + " | " + PitchName(Pitch1) + ", " + DelayName(Delay1) + " | " + PitchName(Pitch2) + ", " + DelayName(Delay2); } }
         }
 
@@ -3023,7 +3023,7 @@ namespace CapriDesktop
         internal static readonly Service[] Services =
         {
             new Service("Fish Audio · cloud", Fish, FishCloud, FishFree, "", "Voice ID or fish.audio link", "Paste your Fish Audio key",
-                "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization." + FishFree + " is its free tier."),
+                "Fish Audio's voices. Paste a key from fish.audio, then make your own voice with Fish Audio's Voice Design and paste its link or ID. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization. " + FishFree + " is its free tier."),
             new Service("Voice model file · on your PC", Files, "", "", "", "Number or clip, optional", "Optional",
                 "A Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx, run with no server. Browse to its .tar.bz2 or .onnx. Pocket TTS copies a voice clip you pick."),
             new Service("Fish Speech · on your PC", Fish, "http://127.0.0.1:8080", "", "", "Reference ID, optional", "Optional",

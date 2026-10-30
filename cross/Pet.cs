@@ -1668,7 +1668,7 @@ namespace CapriDesktop
             }
         }
 
-        // What Voice style's Layers menus have ticked, like Windows' VOICE LAYERS window: "On | +1.5, 25 ms | -2.5, 25 ms".
+        // What Voice style's Layers menus have ticked, like Windows' VOICE LAYERS window: "On | +2, 25 ms | -2.5, 25 ms".
         internal string LayersShown
         {
             get

@@ -282,8 +282,8 @@ namespace CapriDesktop
                 Settings layersOld = (Settings)layersJson.ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Pitch\":2,\"Glitch\":10}")));
                 pet.SetLayers(layersWas);
                 string layersBack = pet.LayersShown;
-                const string layersPlainShown = "Off | +1.5, 25 ms | -2.5, 25 ms";
-                if (layersWrong != null || layersNew != layersPlainShown || !layersPlain || layersOn != "On | +1.5, 25 ms | -2.5, 25 ms" || layersRate != 24000 || layersSaid.Length != tonePcm.Length + 600
+                const string layersPlainShown = "Off | +2, 25 ms | -2.5, 25 ms";
+                if (layersWrong != null || layersNew != layersPlainShown || !layersPlain || layersOn != "On | +2, 25 ms | -2.5, 25 ms" || layersRate != 24000 || layersSaid.Length != tonePcm.Length + 600
                     || layersSet != "On | +3, 40 ms | -4, 100 ms" || Pet.LayersOf(layersLoaded).Shown != "On | +3, 40 ms | -4, 100 ms" || Pet.LayersOf(layersOld).Shown != layersPlainShown || Pet.LayersOf(new Settings()).Shown != layersPlainShown || layersBack != layersPlainShown || VoiceFx.Styled(toneWav, "Hey choom.") != toneWav)
                     throw new Exception("Voice layers went wrong: " + layersWrong + " / new " + layersNew + ", on " + layersOn + " (" + layersSaid.Length + " samples from " + tonePcm.Length + "), set " + layersSet + ", loaded " + Pet.LayersOf(layersLoaded).Shown + ", older " + Pet.LayersOf(layersOld).Shown + ", back " + layersBack);
                 checks.Add("PASS voice layers: Settings > Voice style > Layers turns on two copies of her under her, like Windows, with Layer 1 and Layer 2's pitch and delay in their own menus; " + layersFound + "; her ElevenLabs replies get them and come back 25 ms longer for their tails; off out of the box and in settings from before them, and off her voice is byte for byte as it was; the layers save and load as set");

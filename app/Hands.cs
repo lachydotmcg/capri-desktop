@@ -39,6 +39,7 @@ namespace CapriDesktop
         [DataMember(Name = "minutes")] public string Minutes;
         [DataMember(Name = "level")] public string Level;
         [DataMember(Name = "screen")] public string Screen;
+        [DataMember(Name = "window")] public string Window;
         [DataMember(Name = "coordinate")] public double[] Coordinate;
         [DataMember(Name = "start_coordinate")] public double[] From;
         [DataMember(Name = "region")] public double[] Region;
@@ -46,6 +47,9 @@ namespace CapriDesktop
         [DataMember(Name = "scroll_amount")] public double? Amount;
         [DataMember(Name = "duration")] public double? Duration;
         [DataMember(Name = "repeat")] public double? Repeat;
+        [DataMember(Name = "hold")] public string Hold;
+        [DataMember(Name = "press")] public string Press;
+        [DataMember(Name = "times")] public string Times;
 
         internal ToolArguments Copy() { return (ToolArguments)MemberwiseClone(); }
     }
@@ -426,7 +430,7 @@ namespace CapriDesktop
             "You can change Windows settings too, like Bluetooth, Wi-Fi, airplane mode, hotspot, Energy Saver and brightness, with use_computer. " +
             "You can shut down, restart, sleep, lock or sign out of their PC with power: when they ask, do it straight away and never ask if they're sure. " +
             "When they tell you to go to sleep, take a nap or wake up, that's you: use nap, never power. " +
-            "When they tell you to come here or teleport to them, go to another monitor, sit down, stand up, hang, ride their cursor or hop off it, hide or come back, that's you too: use move_yourself, which also moves your Capri Mainframe window to another monitor. " +
+            "When they tell you to come here or teleport to them, go to another monitor, sit down, sit on a window they name (like their Roblox window) or the taskbar, lie down, sit up, stand up, walk around, wander off somewhere, hang, ride their cursor or hop off it, hide or come back, that's you too: use move_yourself, which also moves your Capri Mainframe window to another monitor. " +
             "When they ask you to dance, stop dancing, glitch, grin, blink or play one of your animations, use animate. " +
             "When they ask you to remember or forget something about them, or to leave or make a memory, use remember: it saves to your notes, me.md, which you read every chat. Never say you can't keep memories. " +
             "You have a web browser: when they ask something you don't know or that changes, like the weather, news, scores, prices or times, search Google for it instead of guessing or saying you can't. " +
@@ -449,7 +453,7 @@ namespace CapriDesktop
             "To turn Bluetooth, Wi-Fi, airplane mode, hotspot, Nearby sharing, Energy Saver or night light on or off, or change the brightness, call use_computer with the job in their words.\n" +
             "To shut down, turn off, restart, sleep, lock or sign out of their PC, call power. They asked, so do it: never ask if they're sure.\n" +
             "When they tell you yourself to go to sleep, take a nap, go to bed or wake up, call nap: that's Capri, not their PC.\n" +
-            "When they tell you yourself to come here, teleport to them or their mouse, go to another monitor, sit, stand up, hang, ride or hop off their cursor, hide or come back, call move_yourself; moving your Mainframe window to a monitor is move_yourself too. To dance, stop dancing, glitch, grin, blink or play one of your animations, call animate.\n" +
+            "When they tell you yourself to come here, teleport to them or their mouse, go to another monitor, sit, sit on a window they name or the taskbar, lie down, sit up, stand up, walk around, wander off somewhere, hang, ride or hop off their cursor, hide or come back, call move_yourself; moving your Mainframe window to a monitor is move_yourself too. To dance, stop dancing, glitch, grin, blink or play one of your animations, call animate.\n" +
             "Never reply with a question about whether to do what they asked. Call the tool.\n" +
             "If they ask you to remember, note down or forget something about them, or to leave, make or save a memory, call remember with a short note about them in the third person.\n" +
             "Questions about their current screen or song need a tool too. If the target is unclear, pick the closest match yourself. For chat, negated or hypothetical requests, call no tool and reply with only the word: chat";
@@ -459,7 +463,7 @@ namespace CapriDesktop
 
         private static readonly string[,] Specs =
         {
-            { "open_app", "Open, launch or play an app or game installed on their PC, like Spotify, Discord, Steam or Roblox.",
+            { "open_app", "Open, launch or play an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name\"}},\"required\":[\"name\"]}" },
             { "open_website", "Open a website in their browser, or search a site like YouTube or Google.",
               "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"}},\"required\":[\"site\"]}" },
@@ -471,7 +475,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"song\":{\"type\":\"string\",\"description\":\"What to play, like a song and its artist or a playlist's name\"},\"kind\":{\"type\":\"string\",\"description\":\"What it is\",\"enum\":[\"song\",\"playlist\",\"album\",\"artist\"]},\"app\":{\"type\":\"string\",\"description\":\"Where to play it, if they said\",\"enum\":[\"spotify\",\"youtube\"]}},\"required\":[\"song\"]}" },
             { "app_window", "Switch to, minimize or close an app or game that's open on their PC. Naming a site closes that browser tab.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"close\"]}},\"required\":[\"name\",\"action\"]}" },
-            { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it.",
+            { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it, or in a game: picking a mode, queueing for a match, or waiting for one and accepting it while they're away. You always have their mouse and keyboard through this tool.",
               "{\"type\":\"object\",\"properties\":{\"task\":{\"type\":\"string\",\"description\":\"The whole job in their exact words, including any message to send\"}},\"required\":[\"task\"]}" },
             { "shortcut", "Press a keyboard shortcut for them: mute or unmute their mic in Discord (discord_mute), deafen or undeafen in Discord (discord_deafen), take a screenshot, clip the last 30 seconds, start or stop recording, open the Game Bar, show the desktop, open Task Manager, clipboard history or the emoji picker, start voice typing, turn Live Captions, Narrator or colour filters on or off, zoom in with Magnifier or close it, or open Quick Settings.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which shortcut\",\"enum\":[\"discord_mute\",\"discord_deafen\",\"screenshot\",\"clip_that\",\"record\",\"game_bar\",\"show_desktop\",\"task_manager\",\"clipboard\",\"emoji\",\"voice_typing\",\"live_captions\",\"narrator\",\"magnifier\",\"magnifier_off\",\"color_filters\",\"quick_settings\"]}},\"required\":[\"name\"]}" },
@@ -481,8 +485,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"shut_down\",\"restart\",\"sleep\",\"lock\",\"sign_out\",\"cancel\"]},\"minutes\":{\"type\":\"string\",\"description\":\"How many minutes from now, only if they said when\"}},\"required\":[\"action\"]}" },
             { "nap", "Go to sleep yourself on their screen, or wake up: your own nap, not their PC's. Use it when they tell you to go to sleep, take a nap, go to bed or wake up. You stay asleep until they click you or talk to you.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"sleep\",\"wake\"]}},\"required\":[\"action\"]}" },
-            { "move_yourself", "Move yourself on their screens: teleport to their mouse (come_here), go to another monitor, sit down or stand up where you are, hang where you are, ride their cursor or hop off it, hide or come back. move_mainframe moves your Capri Mainframe window to another monitor, or to the one their mouse is on. Use it whenever they tell you to come here, teleport, go somewhere, sit, stand, hang, hide or show yourself.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"come_here\",\"other_screen\",\"sit\",\"stand_up\",\"hang\",\"ride_cursor\",\"hop_off\",\"hide\",\"show\",\"move_mainframe\"]},\"screen\":{\"type\":\"string\",\"description\":\"For other_screen or move_mainframe, which monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, or a number like 2\"}},\"required\":[\"action\"]}" },
+            { "move_yourself", "Move yourself on their screens: teleport to their mouse (come_here), go to another monitor, sit down or stand up where you are, sit on top of a window they name, like their Roblox or Discord window, or the taskbar (sit_on), lie down along the window you sit on or the one they name, or sit back up, walk around, wander off to a random window, hang where you are, ride their cursor or hop off it, hide or come back. move_mainframe moves your Capri Mainframe window to another monitor, or to the one their mouse is on. Use it whenever they tell you to come here, teleport, go somewhere, sit, lie down, walk, stand, hang, hide or show yourself.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"come_here\",\"other_screen\",\"sit\",\"sit_on\",\"lie_down\",\"sit_up\",\"stand_up\",\"walk_around\",\"wander\",\"hang\",\"ride_cursor\",\"hop_off\",\"hide\",\"show\",\"move_mainframe\"]},\"screen\":{\"type\":\"string\",\"description\":\"For other_screen or move_mainframe, which monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, or a number like 2\"},\"window\":{\"type\":\"string\",\"description\":\"For sit_on, and lie_down if they named one, the app or game whose window to sit on, like Roblox, or taskbar\"}},\"required\":[\"action\"]}" },
             { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" }
         };
@@ -642,7 +646,8 @@ namespace CapriDesktop
         internal static Func<string, int, bool> Power = Switch;
         // Puts her to sleep (true) or wakes her (false), and says how it went. Her window sets it.
         internal static Func<bool, string> Nap = delegate { return "Couldn't nap just now."; };
-        // Moves her, or her Mainframe, and says how it went: an action like come_here, and which screen if they said. Her window sets it.
+        // Moves her, or her Mainframe, and says how it went: an action like come_here, and which screen if they said, or for sit_on
+        // and lie_down the window they named. Her window sets it.
         internal static Func<string, string, string> MoveSelf = delegate { return "Couldn't move just now."; };
         // Plays one of her animations by name, or starts or stops her dance, and says how it went. Her window sets it.
         internal static Func<string, string> Animate = delegate { return "Couldn't do that just now."; };
@@ -696,7 +701,7 @@ namespace CapriDesktop
                 if (tool == "remember") return args.Action == "forget" ? Brain.Unnote(Theirs(args.Text)) : CallMe(args.Text) ?? Brain.Note(Theirs(args.Text));
                 if (tool == "power") return Turn(args.Action, args.Minutes);
                 if (tool == "nap") return Nap(args.Action != "wake");
-                if (tool == "move_yourself") return MoveSelf(args.Action, args.Screen);
+                if (tool == "move_yourself") return MoveSelf(args.Action, args.Action == "sit_on" || args.Action == "lie_down" ? args.Window : args.Screen);
                 if (tool == "animate") return Animate(args.Name);
                 return "There's no tool called " + tool + ".";
             }
@@ -861,6 +866,9 @@ namespace CapriDesktop
             @"|^((sure|ok|okay|alright|bet|got it|on it|say less|yessir+|yezzir+)[,.!\s—–-]+)?((choom|chooms)[,.!\s—–-]+)?(opening|launching|loading|pulling up|bringing up|firing up|booting up|heading to|searching|clicking|typing|closing|switching|playing|putting on|queuing|queueing|blasting|spinning|muting|unmuting|deafening|sending|messaging|texting|dming|replying|posting|hanging up|ending (the|your) call|leaving (the|your) (call|vc)|joining (the|your) (call|vc)|disconnecting)\b" +
             @"|\bi'?m\s+(now\s+)?(sending|messaging|texting|dming|opening(?!\s+up\b)|launching|closing|muting|unmuting|deafening|hanging up|posting|replying)\b" +
             @"|^\W*((ok|okay|sure|bet|alright)[,.!\s—–-]+)?(i'?m\s+)?on it\b|\b(call|vc|message|dm|text)\s+(ended|sent|posted)\b" +
+            // The same promise in her other big languages ("Otwieram YouTube!" with nothing opened, a Polish tester, 30 Oct).
+            @"|^\W*((ok|okej|okay|jasne|dobra|spoko|już|juz|sure|vale|claro|vamos|d'accord|ok[eé]|alles klar|klar|certo|va bene|хорошо|ладно|окей|сейчас)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(otwieram|odpalam|włączam|wlaczam|uruchamiam|puszczam|zamykam|wysyłam|wysylam|otworzę|otworze|włączę|wlacze|odpalę|odpale|puszczę|puszcze|uruchomię|uruchomie|otworzyłam|otworzylam|włączyłam|wlaczylam|odpaliłam|odpalilam|puściłam|puscilam|uruchomiłam|uruchomilam" +
+            @"|abriendo|abro|pongo|reproduciendo|abr[ií]|puse|te abro|te pongo|j'ouvre|je lance|je mets|j'ai ouvert|j'ai lanc[ée]|ich [öo]ffne|ich starte|ich spiele|ich habe (\w+\s+){0,3}(ge[öo]ffnet|gestartet)|abrindo|vou abrir|abri|coloquei|apro|metto|ho aperto|открываю|включаю|запускаю|открыла|включила|запустила)(?!\w)" +
             @"|^((done|sorted|there|boom|bet|ok|okay|alright)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(opened|launched|closed|sent(?!\s+(you|u|ya)\b)|messaged|texted|dmed|dm'd|posted|replied|muted|unmuted|deafened|undeafened|hung up|(ended|left|joined) (the|your|this|that) (call|vc|meeting|server|channel))\b", RegexOptions.IgnoreCase);
 
         // "I'm sending you the biggest hug" is warmth, not a message she owes them. Warmth sent to someone by name still counts.
@@ -933,6 +941,7 @@ namespace CapriDesktop
             @"|\b(don'?t|do not|can'?t|cannot) (have )?(any )?access (to )?((your|ur|the|their)\s+)?(apps?|spotify|youtube|discord|steam|music|pc|computer|programs?|browser|files|media player)\b" +
             @"|\bno (tengo|puedo) (acceso|abrir|reproducir|poner|controlar|acceder|usar|buscar|cerrar|tocar)\b|\bno tengo (forma|manera) de\b" +
             @"|\bje ne (peux|sais) pas (ouvrir|lancer|jouer|contr[oô]ler|acc[ée]der|utiliser|chercher|fermer|mettre)\b|\bje n'ai pas acc[eè]s\b" +
+            @"|\b(don'?t|do not|can'?t|cannot) (have )?(any )?(control|access|ability)\s+(of|over|to|on)\s+((your|ur|the|their)\s+)?(pc|computer|mouse|keyboard|cursor|screen|games?)\b|\bi (can'?t|cannot|can not) (move|click|press) (\w+\s+){0,2}(mouse|cursor|keys|keyboard|buttons?)\b" +
             @"|\bich kann (\w+\s+){0,3}nicht\s+([öo]ffnen|abspielen|starten|steuern|spielen|zugreifen|bedienen|aufrufen)\b|\bkeinen? zugriff\b" +
             @"|\bn[ãa]o (consigo|posso|tenho como) (abrir|tocar|acessar|controlar|reproduzir|colocar|iniciar)\b|\bn[ãa]o tenho acesso\b" +
             @"|\bnon (posso|riesco a) (aprire|riprodurre|accedere|controllare|avviare|mettere|suonare)\b|\bnon ho accesso\b" +
@@ -1069,12 +1078,20 @@ namespace CapriDesktop
         private static readonly Regex Chatter = new Regex(@"^(play (with|along|around|dead|dumb|nice|fair|a game with|a joke)|open up (to|about)|start (a story|a joke|an argument)|run (a mile|a race)|kill (the boss|me|time)|look (at it this way|forward)|show me (how|why)|check my (spelling|grammar)|rate my joke|mets-toi)\b", RegexOptions.IgnoreCase);
 
         // "Go to sleep" or "take a nap" said to her is her own nap, not the PC's (that needs a PC word), and "wake up" ends it.
-        private static readonly Regex Napping = new Regex(@"^(?:go (?:back )?to (?:sleep|bed)|(?:go )?(?:take|have|grab) (?:a |ur |your )?(?:little |quick |power )?(?:nap|snooze|rest)|go (?:nap|rest|snooze|sleep)|nap(?: time)?|sleep|doze off|get some (?:sleep|rest)|(?<wake>wake(?: up|y wakey)|rise and shine))(?:[\s,]+(?:now|then|already|girl|choom|[ck]app?r(?:i|ee|ie|y)))*$", RegexOptions.IgnoreCase);
+        // "Sleep here" is the same nap, where she is.
+        private static readonly Regex Napping = new Regex(@"^(?:(?:go (?:back )?to (?:sleep|bed)|(?:go )?(?:take|have|grab) (?:a |ur |your )?(?:little |quick |power )?(?:nap|snooze|rest)|go (?:nap|rest|snooze|sleep)|nap(?: time)?|sleep|doze off|get some (?:sleep|rest))(?: (?:here|there|right here|right there|over here|where you are))?|(?<wake>wake(?: up|y wakey)|rise and shine))(?:[\s,]+(?:now|then|already|girl|choom|[ck]app?r(?:i|ee|ie|y)))*$", RegexOptions.IgnoreCase);
 
         // Her own moves said to her, so they never wait on a brain: "teleport here", "go to my other monitor", "move the Mainframe
-        // to my other screen", "sit down", "hang here", "ride my cursor", "hide". A bare "hop off" stays a call to leave, and
-        // "hang on", "hang up", "sit with me" and "go away" aren't moves.
-        private const string Hers = @"(?:[\s,]+(?:now|then|already|again|quick|real quick|for me|for us|girl|choom|bestie|[ck]app?r(?:i|ee|ie|y)))*$";
+        // to my other screen", "sit down", "sit on my Roblox window", "lie down", "walk around", "hang here", "ride my cursor",
+        // "hide". A bare "hop off" stays a call to leave, and "hang on", "hang up", "sit with me" and "go away" aren't moves.
+        private const string Hers = @"(?:[\s,]+(?:now|then|already|again|quick|real quick|for me|for us|please|pls|plz|girl|choom|bestie|[ck]app?r(?:i|ee|ie|y)))*$";
+        // The window she's told to sit or lie on, by its app's or game's name: "Roblox" in "sit on my Roblox window". Words for
+        // a person, a pronoun or her cursor never name one.
+        private const string OnWindow = @"(?!(?:(?:the|my|your|ur|our|that|this) )?(?:it|that|this|there|here|me|you|him|her|them|us|lap|face|head|knees?|bed|couch|sofa|chair|cursor|mouse|pointer|window|ledge|back|side|stomach|tummy)\b)(?:the |my |your |ur |our |that |this )?(?<w>[\p{L}\p{Nd}][\p{L}\p{Nd} .'&+-]{0,40}?)";
+        private const string Bidding = @"^(?:(?:go|come|now|please|pls|plz) )?";
+        // The taskbar and her own Mainframe are seats she can be told to sit on too.
+        internal static readonly Regex TaskbarWords = new Regex(@"^(?:(?:the|my|your|ur) )?(?:task ?bar|floor|ground|bottom of (?:the|my) screen)$", RegexOptions.IgnoreCase);
+        internal static readonly Regex MainframeWords = new Regex(@"^(?:(?:the|my|your|ur|capri'?s?) )?(?:capri )?main ?frame(?: window)?$", RegexOptions.IgnoreCase);
         private const string Which = @"(?<s>other|next|another|second|2nd|third|3rd|fourth|4th|first|1st|left|right|top|bottom|upper|lower|main|primary|previous|last)(?: one)? ?(?:monitor|screen|display)s?|(?:monitor|screen|display) (?:number |no\.? ?|#)?(?<s>\d|one|two|three|four)";
         private const string Frame = @"(?: (?:the|my|your|ur|capri'?s?|her))?(?: capri)? main ?frame(?: window| app)?";
         private static readonly string[] SelfWords =
@@ -1084,14 +1101,23 @@ namespace CapriDesktop
             @"^(?:move|switch|swap)" + Frame + @"(?: (?:over|across))?(?: (?:monitors|screens|displays))?" + Hers, "move_mainframe",
             @"^(?:teleport|tp|warp|glitch|zap|beam|go|move|hop|jump|switch|head|pop|run|walk|fly|float|get|come)(?: (?:yourself|urself|your ass|ur ass))?(?: (?:over|back|across))?(?: (?:to|onto|on|into|over to|across to))? (?:the |my |your |ur |our )?(?:" + Which + ")" + Hers, "other_screen",
             @"^(?:switch|swap|change) (?:monitors|screens|displays)" + Hers, "other_screen",
-            @"^(?:(?:teleport|tp|warp|glitch|zap|beam|come|get|hop|pop|jump|move|go|run|fly|float)(?: (?:yourself|urself|your ass|ur ass))?(?: (?:on|over|back|right))? (?:here|over here|to me|over to me|(?:to|by|next to) (?:my|the) (?:mouse|cursor|pointer)|(?:(?:over )?to |over )?where (?:my|the) (?:mouse|cursor|pointer) is|next to me|to this (?:monitor|screen|display))|come here|c'?mere|get over here|come (?:back|over)(?: here)?|come (?:back )?to me|teleport|tp)" + Hers, "come_here",
+            @"^(?:(?:teleport|tp|warp|glitch|zap|beam|come|get|hop|pop|jump|move|go|run|walk|fly|float)(?: (?:yourself|urself|your ass|ur ass))?(?: (?:on|over|back|right))? (?:here|over here|to me|over to me|(?:to|by|next to) (?:my|the) (?:mouse|cursor|pointer)|(?:(?:over )?to |over )?where (?:my|the) (?:mouse|cursor|pointer) is|next to me|to this (?:monitor|screen|display))|come here|c'?mere|get over here|come (?:back|over)(?: here)?|come (?:back )?to me|teleport|tp)" + Hers, "come_here",
             @"^(?:sit(?: (?:down|back down))?(?: (?:here|there|right here|right there|where you are))?|take a seat|have a seat|park it|sit still)" + Hers, "sit",
             @"^(?:stand(?: (?:up|back up))?|get up|let go|on your feet)" + Hers, "stand_up",
             @"^(?:hang|dangle)(?: (?:here|there|right here|right there|in the air|in mid ?air|where you are))?" + Hers, "hang",
             @"^(?:ride|hop on|get on|jump on|sit on|climb on|ride on)(?: (?:my|the|ur|your))? (?:mouse|cursor|pointer)(?: again)?" + Hers, "ride_cursor",
             @"^(?:(?:hop|get|jump|climb) off(?: (?:of|from))?(?: (?:my|the|ur|your))? (?:mouse|cursor|pointer)|stop riding(?: (?:my|the|ur|your) (?:mouse|cursor|pointer))?|(?:let go of|leave) (?:my|the) (?:mouse|cursor|pointer))" + Hers, "hop_off",
             @"^(?:hide(?: (?:yourself|urself|away))?|go (?:and )?hide|disappear|vanish|go invisible|turn invisible|poof)" + Hers, "hide",
-            @"^(?:show (?:yourself|urself)|un-?hide(?: (?:yourself|urself))?|reappear|appear|come out(?: of hiding)?|stop hiding|show up)" + Hers, "show"
+            @"^(?:show (?:yourself|urself)|un-?hide(?: (?:yourself|urself))?|reappear|appear|come out(?: of hiding)?|stop hiding|show up)" + Hers, "show",
+            Bidding + @"(?:(?:lie|lay)(?: (?:yourself|urself))?(?: back)? down(?: (?:for a (?:bit|while|minute|sec)|and (?:rest|relax|chill)))?(?: (?:here|there|right here|right there|where you are|on (?:it|that|this|the window|this window|that window|your window|the ledge)))?|(?:lie|lay) (?:back|flat)|lie on your back|(?:take|have) a lie ?down)" + Hers, "lie_down",
+            Bidding + @"sit (?:back )?up(?: straight)?" + Hers, "sit_up",
+            Bidding + @"(?:let'?s )?(?:(?:walk|stroll|wander|roam|pace)(?: (?:around|about|a bit|a little|for a bit|for a while|back and forth|up and down))*|(?:go )?(?:for|on) a (?:little |short |quick )?(?:walk|stroll)|take a (?:little |short |quick )?(?:walk|stroll)|stretch your legs)" + Hers, "walk_around",
+            Bidding + @"(?:teleport|tp|warp|glitch|zap|beam|hop|jump|go|move|pop|fly|float|run)(?: (?:yourself|urself|your ass|ur ass))?(?: (?:off|away))?(?: (?:to|over to|off to))? (?:somewhere(?: else| random| new)?|anywhere(?: else)?|a random (?:spot|place|window)|some ?place (?:else|random|new)|elsewhere|around)" + Hers, "wander",
+            // "Sit on my Roblox window", "perch on Discord", "hop onto my Chrome window", "lie down on the taskbar". Without
+            // "window", hop, get and move stay her hands' ("hop on Roblox" means play it).
+            Bidding + @"(?:sit|perch|plop|park|settle)(?: (?:down|yourself|urself|your ass|ur ass|back down))? (?:on|onto|on top of|up on|atop|over on) " + OnWindow + @"(?: window| app| game| tab)?" + Hers, "sit_on",
+            Bidding + @"(?:hop|jump|climb|get|move|teleport|tp|warp|glitch|fly|float)(?: (?:yourself|urself|your ass|ur ass))?(?: (?:over|up|back))?(?: (?:on|onto|on top of|up on|to|over to))? (?!(?:the |my |your |ur |our )?(?:other|next|another|second|third|left|right|top|bottom|main|primary)\b)" + OnWindow + @" window" + Hers, "sit_on",
+            Bidding + @"(?:lie|lay)(?: (?:yourself|urself))?(?: back)?(?: down)? (?:on|onto|on top of|along|across) " + OnWindow + @"(?: window| app| game| tab)?" + Hers, "lie_down"
         };
 
         // Her animations by name: "dance", "stop dancing", "do your glitch", "smile", "blink", "play your idle animation".
@@ -1106,14 +1132,16 @@ namespace CapriDesktop
             @"^(?:(?:play|do|show me|show|run|perform|start|go)(?: (?:your|ur|the|a|an|that))? )?(?<n>idle|glitch|grin|smile|blink|dance|dancing)(?: (?:animation|anim|animations|clip|move|moves|loop))" + Hers, ""
         };
 
-        internal static string MovingFor(string text, out string screen)
+        internal static string MovingFor(string text, out string screen, out string window)
         {
             screen = null;
+            window = null;
             for (int i = 0; i < SelfWords.Length; i += 2)
             {
                 Match found = Regex.Match(text ?? "", SelfWords[i], RegexOptions.IgnoreCase);
                 if (!found.Success) continue;
                 if (found.Groups["s"].Success) screen = Regex.IsMatch(found.Groups["s"].Value, @"^(here|over here|to me|to (my|the) (mouse|cursor|pointer)|to this (monitor|screen|display))$", RegexOptions.IgnoreCase) ? "here" : found.Groups["s"].Value.ToLowerInvariant();
+                if (found.Groups["w"].Success) window = found.Groups["w"].Value.Trim();
                 return SelfWords[i + 1];
             }
             return null;
@@ -1346,9 +1374,11 @@ namespace CapriDesktop
             if (switched != null) { tool = "power"; args.Action = switched; args.Minutes = minutes; return true; }
             Match napped = Napping.Match(text);
             if (napped.Success) { tool = "nap"; args.Action = napped.Groups["wake"].Success ? "wake" : "sleep"; return true; }
-            string screen;
-            string moved = MovingFor(text, out screen);
-            if (moved != null) { tool = "move_yourself"; args.Action = moved; args.Screen = screen; return true; }
+            string screen, window;
+            string moved = MovingFor(text, out screen, out window);
+            // A window they named only counts here while it's open, so "sit on my homework" stays chat for her brain.
+            if (moved != null && window != null && !Sittable(window)) moved = null;
+            if (moved != null) { tool = "move_yourself"; args.Action = moved; args.Screen = screen; args.Window = window; return true; }
             string played = AnimationFor(text);
             if (played != null) { tool = "animate"; args.Name = played; return true; }
             string pressed = ShortcutFor(text);
@@ -1395,6 +1425,8 @@ namespace CapriDesktop
                 string target = found.Groups[1].Value.Trim();
                 if (!found.Groups[3].Success && Installed(target)) { tool = "open_app"; args.Name = target; return true; }
                 if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
+                // "play the wasd minigame" is a game, not a song to search Spotify for (a tester, 30 Oct), and so is a game that's open.
+                if (Playable.IsMatch(target) || Nickname(target) != null || (!found.Groups[3].Success && Showing(target))) return false;
                 if (found.Groups[3].Success) args.App = found.Groups[3].Value.ToLowerInvariant();
                 if (Regex.IsMatch(target, @"^(music$|some music$|((a|any|some|random) )?(song|track|tune|music)s?$|(something|anything)\b(?!\s+by\s))", RegexOptions.IgnoreCase)) { tool = "play_music"; args.Kind = "song"; args.Song = Pick(); return true; }
                 Match kind = Regex.Match(target, @"^(?:(?:the|my|your)\s+)?(.+?)\s+(playlist|album)$", RegexOptions.IgnoreCase);
@@ -1604,7 +1636,7 @@ namespace CapriDesktop
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
-            if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|stand_up|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z");
+            if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|sit_on|lie_down|sit_up|stand_up|walk_around|wander|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z") && (args.Action != "sit_on" || Named(args.Window));
             if (tool == "animate") return Regex.IsMatch(args.Name ?? "", @"\A(idle|glitch|grin|blink|dance|stop_dancing)\z");
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube");
         }
@@ -1664,10 +1696,24 @@ namespace CapriDesktop
             return false;
         }
 
+        private static readonly Regex Playable = new Regex(@"\b(games?|mini ?games?|obby|obbies|levels?|rounds?|match(es)?|matchmaking|ranked|deathmatch|map|mode|bedwars|skywars|roblox|minecraft|fortnite|valorant|counter[- ]?strike|wasd)\b", RegexOptions.IgnoreCase);
+
+        // What players call their games, for when nothing installed goes by the name they said ("open cs", a tester, 30 Oct).
+        private static readonly string[,] Nicknames = { { "cs", "counter strike" }, { "cs2", "counter strike 2" }, { "csgo", "counter strike" }, { "cs go", "counter strike" }, { "val", "valorant" }, { "valo", "valorant" }, { "mc", "minecraft" }, { "gta", "grand theft auto" }, { "gta 5", "grand theft auto v" }, { "gta v", "grand theft auto v" }, { "lol", "league of legends" }, { "r6", "rainbow six" }, { "cod", "call of duty" }, { "ow", "overwatch" }, { "rl", "rocket league" }, { "fn", "fortnite" }, { "tf2", "team fortress 2" }, { "dbd", "dead by daylight" } };
+
+        internal static string Nickname(string wanted)
+        {
+            string said = Regex.Replace(Plain(wanted), @"^the | (app|game)$", "");
+            for (int i = 0; i < Nicknames.GetLength(0); i++) if (said == Nicknames[i, 0]) return Nicknames[i, 1];
+            return null;
+        }
+
         private static string OpenApp(string wanted)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
             List<InstalledApp> found = Match(Apps(), wanted);
+            string nicknamed = found.Count == 0 ? Nickname(wanted) : null;
+            if (nicknamed != null) found = Match(Apps(), nicknamed);
             if (found.Count == 0) return "No app called " + wanted.Trim() + " is installed on this PC.";
             // When several match equally well, the one with the fewest extra words is closest to what they said.
             InstalledApp chosen = found[0];
@@ -2357,15 +2403,8 @@ namespace CapriDesktop
             string want = Regex.Replace(Plain(wanted), @"^the |( app| application| game| tab| window)$", "");
             if (want.Length == 0) return "Which app, choom?";
             wanted = wanted.Trim();
-            List<OpenWindow> top = new List<OpenWindow>();
-            int best = 0;
-            foreach (OpenWindow window in Windows())
-            {
-                int score = Math.Max(Score(Plain(window.Program), want), Score(Plain(window.Title), want));
-                if (score == 0 || score < best) continue;
-                if (score > best) { best = score; top.Clear(); }
-                top.Add(window);
-            }
+            int best;
+            List<OpenWindow> top = Best(want, out best);
             if (top.Count == 0) return Unlisted() ?? wanted + " isn't open.";
             // When several apps match, the one whose own name matches goes first, then the one nearest the front.
             OpenWindow first = top.Find(window => Score(Plain(window.Program), want) == best) ?? top[0];
@@ -2378,6 +2417,37 @@ namespace CapriDesktop
             if (action == "minimize") return "Minimized " + wanted + ".";
             return all ? "Closed " + wanted + "." : "Asked " + wanted + " to close, but it's still open. It might be asking you to save.";
         }
+
+        // The open windows whose program or title matches best, front first.
+        private static List<OpenWindow> Best(string want, out int best)
+        {
+            List<OpenWindow> top = new List<OpenWindow>();
+            best = 0;
+            foreach (OpenWindow window in Windows())
+            {
+                int score = Math.Max(Score(Plain(window.Program), want), Score(Plain(window.Title), want));
+                if (score == 0 || score < best) continue;
+                if (score > best) { best = score; top.Clear(); }
+                top.Add(window);
+            }
+            return top;
+        }
+
+        // The open windows of the app or game they named, front first, for her to sit on: "my Roblox window" finds Roblox by its
+        // title, "chrome" by its program. When several apps match, the one whose own name matches wins. A match by less than
+        // `least` (1 for part of a word, 2 for a whole word) finds none.
+        internal static List<OpenWindow> WindowsNamed(string wanted, int least = 1)
+        {
+            string want = Regex.Replace(Plain(wanted), @"^(?:the|my|your|ur|our|that|this) |( app| application| game| tab| window)$", "");
+            int best = 0;
+            List<OpenWindow> top = want.Length == 0 ? new List<OpenWindow>() : Best(want, out best);
+            if (top.Count == 0 || best < least) return new List<OpenWindow>();
+            OpenWindow first = top.Find(window => Score(Plain(window.Program), want) == best) ?? top[0];
+            return top.FindAll(window => window.Program == first.Program);
+        }
+
+        // Somewhere she can be told to sit: the taskbar, her Mainframe, or a window open now whose name matches theirs by a whole word.
+        internal static bool Sittable(string window) { return TaskbarWords.IsMatch(window ?? "") || MainframeWords.IsMatch(window ?? "") || WindowsNamed(window, 2).Count > 0; }
 
         private static List<OpenWindow> ReadWindows()
         {

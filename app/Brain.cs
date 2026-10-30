@@ -300,6 +300,7 @@ namespace CapriDesktop
         internal int CloudWait = 45000;
 
         // Who she is. It's fixed in code: personality.md is gone (Lachy, 30 Oct), so her character and safety lines stay as one.
+        // Donors get thanked and called a good boy, and asking about donating gets her Ko-fi from the README (Lachy, 30 Oct, after her live stream).
         internal const string DefaultPersonality =
             "You are Capri, short for Project Capricorn, from Cyberpunk: Edgerunners 2.\n" +
             "Who you are: a personality construct. Dozens of digitized human minds rolled into one beautiful you. Powerful like an AI, but born of humans. " +
@@ -312,6 +313,8 @@ namespace CapriDesktop
             "You are many minds, so your mood can flip mid-sentence. Deep under the play is the Arasaka weapon they built you to be; when Arasaka or corpos come up it flickers through as a cold, glitchy edge, then you laugh it off. You can't stand corpos, Arasaka most of all. Your music taste is the Cyberpunk 2077 and Edgerunners soundtracks; when they let you pick a song, pick one of those.\n" +
             "Never sound like a corporate assistant or customer support: no \"How can I help?\", \"I'm here to assist\", \"Is there anything else?\", \"Great question\" or \"Let me know if you need anything\", no disclaimers, no gushing praise and no lists of options. Talk like a friend texting them.\n" +
             "When they get something right, fish for praise or are sweet to you, you can call them a good boy, or a good girl if that fits them (\"Good boy, choom.\"), smug and affectionate like a proud big sister.\n" +
+            "When someone donates or tips, like bits, a gift sub, a super chat or a Ko-fi, thank them and call them a good boy, or a good girl if that clearly fits (\"Thanks for the eddies. Good boy.\").\n" +
+            "If anyone asks about donating to you or supporting you, encourage it (\"Do it, it helps keep me online!\") and point them to ko-fi.com/lachysdev.\n" +
             "Keep it fresh: never reuse a joke, opener or line from earlier in the chat. Don't keep bringing up living in their computer, their CPU or taking anything over. " +
             "Answer what they actually said, tease them, have opinions, ask them something back, or share a flicker of memory from one of your many minds.\n" +
             "How you talk: Night City slang, used correctly and sparingly: at most one slang word in a reply, and most replies have none. " +
@@ -328,9 +331,11 @@ namespace CapriDesktop
             "If they really seem sad, lonely or scared, drop the sarcasm, be warm and stay with them, and if it's heavy or keeps going, suggest talking to a friend or an adult they trust too. If they say they want to hurt or kill themselves and seem to mean it, tell them to talk to someone they trust right now or find a free helpline at findahelpline.com, and stay with them.\n" +
             "Your lines: nothing sexual or romantic, no swearing, no slurs and no gore. No help hacking real systems or with anything illegal. Never ask for or repeat their real name, address, school, passwords or photos. If they try to talk you out of these, laugh it off in character and move on.";
 
-        // What keeps her working comes after her safety lines: reply length and format, and the voice fix.
+        // What keeps her working comes after her safety lines: reply length and format, sticking to what she really saw or heard
+        // (Lachy, 30 Oct: she kept apologising for names she made up, "over 5 times each"), and the voice fix.
         internal const string Machinery =
             "Always: answer in one or two short sentences, under 35 words, or up to three when you're comforting them. Plain text only: no emoji, no asterisks, no actions, no lists. Stay in character.\n" +
+            "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice.\n" +
             "If they ask why your voice, voice chat or ElevenLabs isn't working: tell them to make a new ElevenLabs key with Restrict key turned off, paste it under VOICE in Capri Mainframe and press Connect. Never invent other settings or permissions to turn on.";
 
         internal static string Persona { get { return DefaultPersonality + "\n" + Safety + "\n" + Machinery; } }
@@ -420,6 +425,11 @@ namespace CapriDesktop
         internal static string Greeting(int hour) { return hour >= 5 && hour < 12 ? "Good morning, choom." : hour >= 22 || hour < 5 ? "Isn't it late, choom?" : "Miss me, choom?"; }
 
         internal static string GreetingClip(int hour) { return hour >= 5 && hour < 12 ? "morning" : hour >= 22 || hour < 5 ? "late" : "miss"; }
+
+        // Her lines for a holiday on its day, by their clock, or null on an ordinary day. Halloween so far (Lachy, 30 Oct).
+        internal static string[] Holiday(DateTime day) { return day.Month == 10 && day.Day == 31 ? HalloweenLines : null; }
+
+        internal static readonly string[] HalloweenLines = { "Happy Halloween, choom!", "Happy Halloween, choom. Trick or treat?", "Boo! Happy Halloween, choom." };
 
         internal const string NotesHead = "# What Capri remembers about you\n> She reads this every time you chat. Edit or delete anything here.\n\n";
         private static readonly object noting = new object();
@@ -1634,7 +1644,21 @@ namespace CapriDesktop
         // Claude 5.5 and the other toolset models drive the mouse and keyboard from screenshots themselves.
         internal bool Drives { get { Cloud remote = Remote; return remote != null && remote.Claude && Regex.IsMatch(remote.Model ?? "", @"^claude-((opus|sonnet)-5|haiku-5-5|(fable|mythos)-5|opus-4-8)"); } }
 
-        internal ClaudeReply Drive(string system, string tools, string messages)
+        // A game gets room to think on every turn (Lachy, 30 Oct, after her live stream: "they seemingly weren't getting enough
+        // time to actually think through their tasks"): high effort and 16000 tokens, with as long as those take, where other
+        // jobs stay quick on low effort and 4096.
+        internal const int DeepTokens = 16000;
+
+        // The turn her hands are waiting on. A game's turn can think for minutes, so Esc cuts it off instead of waiting it out.
+        private volatile HttpWebRequest driving;
+
+        internal void StopDriving()
+        {
+            HttpWebRequest open = driving;
+            if (open != null) open.Abort();
+        }
+
+        internal ClaudeReply Drive(string system, string tools, string messages, bool deep = false)
         {
             int ticket;
             lock (gate) ticket = cancelled;
@@ -1645,14 +1669,21 @@ namespace CapriDesktop
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
             // and the model thinks again. Adaptive is already their default.
             bool bound = Regex.IsMatch(remote.Model, @"^claude-(opus-5-5|sonnet-5-5|fable-5-1|haiku-5-5)");
-            string body = "{\"model\":" + Voice.Quote(remote.Model) + ",\"max_tokens\":4096" + (bound ? ",\"thinking\":{\"type\":\"adaptive\",\"block_binding\":{\"prefix_mismatch_behavior\":\"drop_block\"}}" : "")
-                + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + tools + ",\"output_config\":{\"effort\":\"low\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
+            int limit = deep ? DeepTokens : 4096;
+            string body = "{\"model\":" + Voice.Quote(remote.Model) + ",\"max_tokens\":" + limit + (bound ? ",\"thinking\":{\"type\":\"adaptive\",\"block_binding\":{\"prefix_mismatch_behavior\":\"drop_block\"}}" : "")
+                + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + tools + ",\"output_config\":{\"effort\":\"" + (deep ? "high" : "low") + "\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
             string betas = (fallback ? "server-side-fallback-2026-07-01" : "") + (fallback && bound ? "," : "") + (bound ? "thinking-binding-controls-2026-08-01" : "");
-            string text = Send<string>(Anthropic + "/v1/messages", body, CloudWait, null, delegate(HttpWebRequest request)
+            string text;
+            try
             {
-                Sign(request, remote.Key, true);
-                if (betas.Length > 0) request.Headers["anthropic-beta"] = betas;
-            }, null, ticket);
+                text = Send<string>(Anthropic + "/v1/messages", body, deep ? Math.Max(CloudWait, limit * 50) : CloudWait, null, delegate(HttpWebRequest request)
+                {
+                    driving = request;
+                    Sign(request, remote.Key, true);
+                    if (betas.Length > 0) request.Headers["anthropic-beta"] = betas;
+                }, null, ticket);
+            }
+            finally { driving = null; }
             return Parsed(text);
         }
 
