@@ -413,9 +413,13 @@ namespace CapriDesktop
 #if CROSS
             if (Playback != null) Playback(wav);
 #else
-            Stop();
-            player = new SoundPlayer(new MemoryStream(wav));
-            player.Play();
+            lock (PcEars.VoiceGate)
+            {
+                if (PcEars.Capturing) return;
+                Stop();
+                player = new SoundPlayer(new MemoryStream(wav));
+                player.Play();
+            }
 #endif
         }
 

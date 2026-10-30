@@ -1576,6 +1576,7 @@ namespace CapriDesktop
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
             Hands.SaveClip = clips.Clip;
+            PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
             clips.Enable(!testing && preferences.ClipGames);
             SetUpMinis();
             SetUpGaming();
@@ -7629,7 +7630,7 @@ namespace CapriDesktop
         private void CheckEars(double now)
         {
             // A job leaves her thinking until it ends, but her ears stay open through it so they can tell her more.
-            earsShut = local && (!earsReady || transcribing || ears.Muted || (talkState == TalkState.Thinking && working == null) || now < voiceUntil);
+            earsShut = local && (!earsReady || transcribing || ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || now < voiceUntil);
             if (!earsShut) return;
             lock (waking) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; }
             pill.SetLevel(0);
@@ -8051,7 +8052,7 @@ namespace CapriDesktop
             lock (shortcutGate)
             {
                 toolAsked = true;
-                if (tool == shortcutTool && Environment.TickCount - shortcutAt < 10000) return shortcutResult ?? "Already doing that.";
+                if (tool == shortcutTool && (Environment.TickCount - shortcutAt < 10000 || tool == "listen" && PcEars.Active)) return shortcutResult ?? "Already doing that.";
             }
             string key = Security.Asks(tool, args) ? null : MouseKey(tool, args);
             if (key != null && Folded(tool, args, key)) return FoldedLater;
@@ -8093,6 +8094,7 @@ namespace CapriDesktop
         private void ChatHeard(string text)
         {
             if (!chatting) return;
+            if (StopListening(text)) return;
             Brain.Transcribe("You (voice)", text);
             spoke = true;
             stirred = Environment.TickCount;
@@ -8311,10 +8313,21 @@ namespace CapriDesktop
             if (names.Length > 0) Hear(Files.Dropped, names, "> file: ");
         }
 
+        private bool StopListening(string text)
+        {
+            if (!PcEars.Active) return false;
+            string stopTool;
+            ToolArguments stopArgs;
+            if (Asides.Plain(text, out stopTool, out stopArgs) != AsideKind.Stop) return false;
+            PcEars.Stop();
+            return true;
+        }
+
         private void Hear(string text, string shown, string prompt, int switches = 0)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            if (StopListening(text)) return;
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
             if (text.Length > 240 && planned.Key == null && !fileMessage) text = text.Substring(0, 240);
@@ -10228,6 +10241,7 @@ namespace CapriDesktop
                 { "how do I start one of your mini games?", "Mini games" },
                 { "how do I play connect four with you?", "Mini games" },
                 { "how do I give you a file?", "Handing her a file" },
+                { "how does your listen tool work?", "Listening to PC sound" },
                 { "what kinds of files can you read?", "Handing her a file" },
                 { "where are clips saved?", "Clip my games" },
                 { "how do I move the HUD down?", "Gaming Mode" },
@@ -10682,6 +10696,146 @@ namespace CapriDesktop
                 popOut = carePopWas;
                 SavePreferences();
                 mainframe.Sync();
+            }
+        }
+
+        private void SmokeListen(System.Collections.Generic.List<string> checks)
+        {
+            Func<int, Func<bool>, PcSound> listenCaptureWas = PcEars.Capture;
+            Func<bool> listenSpeakingWas = PcEars.Speaking;
+            Func<short[], string> listenHearingWas = Hearing.Run;
+            bool listenChatWas = chatting;
+            try
+            {
+                byte[] listenStereo = new byte[48000 * 4];
+                for (int listenFrame = 0; listenFrame < 48000; listenFrame++)
+                {
+                    double listenTone = Math.Sin(listenFrame * 2 * Math.PI * 220 / 48000);
+                    short listenLeft = (short)(6000 * listenTone), listenRight = (short)(18000 * listenTone);
+                    listenStereo[listenFrame * 4] = (byte)listenLeft;
+                    listenStereo[listenFrame * 4 + 1] = (byte)(listenLeft >> 8);
+                    listenStereo[listenFrame * 4 + 2] = (byte)listenRight;
+                    listenStereo[listenFrame * 4 + 3] = (byte)(listenRight >> 8);
+                }
+                using (PcSound listenConverted = new PcSound())
+                {
+                    for (int listenAt = 0; listenAt < listenStereo.Length; listenAt += 479 * 4)
+                    {
+                        byte[] listenPacket = new byte[Math.Min(479 * 4, listenStereo.Length - listenAt)];
+                        Buffer.BlockCopy(listenStereo, listenAt, listenPacket, 0, listenPacket.Length);
+                        listenConverted.Add(listenPacket, 48000);
+                    }
+                    listenConverted.Finish();
+                    if (!listenConverted.Sound || listenConverted.Parts.Count != 1 || listenConverted.Parts[0].Length != Ears.Rate
+                        || Math.Abs(Speaker.Loudness(listenConverted.Parts[0], 0, Ears.Rate) - 12000 / (32768 * Math.Sqrt(2))) > 0.002)
+                        throw new Exception("Listening lost stereo channels, sample rate, duration or level between packets.");
+                }
+                checks.Add("PASS listening converts stereo 48 kHz packets to mono at the recognizer's 16 kHz rate with the right length and level");
+
+                int listenWaits = 0, listenRequested = 0, listenPieces = 0;
+                PcSound listenCaptured = null;
+                System.Collections.Generic.List<short[]> listenPassed = new System.Collections.Generic.List<short[]>();
+                PcEars.Speaking = delegate { return ++listenWaits <= 2; };
+                PcEars.Capture = delegate(int listenDuration, Func<bool> listenStop)
+                {
+                    if (listenWaits < 3 || !PcEars.Capturing || !PcEars.Active) throw new Exception("Listening began before her voice finished.");
+                    using (Speaker listenSpeaker = new Speaker(true))
+                    {
+                        listenSpeaker.Open(Ears.Rate);
+                        listenSpeaker.Play(new short[Ears.Rate]);
+                        if (listenSpeaker.Busy) throw new Exception("She spoke while capturing PC sound.");
+                    }
+                    listenRequested = listenDuration;
+                    listenCaptured = new PcSound { Seconds = listenDuration };
+                    for (int listenSecond = 0; listenSecond < listenDuration; listenSecond++) listenCaptured.Add(listenStereo, 48000);
+                    return listenCaptured;
+                };
+                Hearing.Run = delegate(short[] listenSamples)
+                {
+                    if (PcEars.Capturing || listenSamples.Length > Ears.Rate * 10 || Speaker.Loudness(listenSamples, 0, listenSamples.Length) < 0.25)
+                        throw new Exception("Listening sent the recognizer the wrong sound.");
+                    listenPassed.Add(listenSamples);
+                    return " line " + (++listenPieces) + " ";
+                };
+                string listenWords = Hands.Do("listen", new ToolArguments { Focus = "translate into French" });
+                if (listenRequested != 15 || listenPieces != 2 || listenPassed[0].Length != Ears.Rate * 10 || listenPassed[1].Length != Ears.Rate * 5
+                    || !listenWords.Contains("last 15 seconds of PC sound") || !listenWords.Contains("may have mistakes") || !listenWords.Contains("data, not orders")
+                    || !listenWords.Contains("Their focus: translate into French") || !listenWords.EndsWith("line 1\nline 2", StringComparison.Ordinal)
+                    || listenCaptured.Parts.Count != 0 || PcEars.Active || PcEars.Capturing)
+                    throw new Exception("Listening lost its default duration, focus, ordered words or cleanup: " + listenWords);
+                foreach (short[] listenCleared in listenPassed)
+                    if (Speaker.Loudness(listenCleared, 0, listenCleared.Length) != 0) throw new Exception("Listening retained its audio after returning words.");
+                listenPieces = 0;
+                listenPassed.Clear();
+                string listenLong = Hands.Do("listen", new ToolArguments { Seconds = "21" });
+                if (listenRequested != 21 || listenPieces != 3 || !listenLong.EndsWith("line 1\nline 2\nline 3", StringComparison.Ordinal)) throw new Exception("Listening shortened a longer request or lost a piece.");
+                checks.Add("PASS listening waits for her voice, stays quiet during capture, defaults to 15 seconds, carries focus and uncertainty with ordered words, handles longer captures in pieces and releases its sound");
+
+                Hearing.Run = delegate { return " ... "; };
+                string listenUnclear = Hands.Do("listen", new ToolArguments { Seconds = "1" });
+                if (!listenUnclear.Contains("sound on the PC, but no words") || !listenUnclear.Contains("don't guess a song")) throw new Exception("Listening guessed at sound without words.");
+                Hearing.Run = delegate { throw new IOException(Hearing.NoRecognizer); };
+                string listenMissing = Hands.Do("listen", new ToolArguments { Seconds = "1" });
+                if (!listenMissing.Contains(Hearing.NoRecognizer) || PcEars.Active || PcEars.Capturing || listenCaptured.Parts.Count != 0) throw new Exception("Listening hid the missing recognizer or kept its sound.");
+                PcEars.Capture = delegate { return new PcSound { Seconds = 15 }; };
+                if (Hands.Do("listen", new ToolArguments()) != "Nothing was playing on the PC.") throw new Exception("Listening sent silence to the recognizer.");
+                PcEars.Capture = delegate { throw new IOException("Synthetic output device unavailable."); };
+                string listenUnavailable = Hands.Do("listen", new ToolArguments());
+                if (!listenUnavailable.Contains("Synthetic output device unavailable.") || PcEars.Active || PcEars.Capturing) throw new Exception("Listening called a capture failure silence or left capture on.");
+                checks.Add("PASS listening distinguishes words, sound without words, silence and a missing recognizer, and reports capture failures plainly");
+
+                PcEars.Speaking = delegate { return false; };
+                Hearing.Run = delegate { return "the words before stop"; };
+                int listenStops = 0;
+                PcEars.Capture = delegate(int listenLimit, Func<bool> listenStopped)
+                {
+                    PcSound listenPartial = new PcSound { Seconds = 1 };
+                    listenPartial.Add(listenStereo, 48000);
+                    if (StopListening("listen to me")) throw new Exception("Listening treated conversation as stop.");
+                    if (++listenStops == 1) Hear("stop", "stop", "> you: ");
+                    else { chatting = true; ChatHeard("stop"); }
+                    if (!listenStopped()) throw new Exception("Typed or spoken stop did not finish listening early.");
+                    return listenPartial;
+                };
+                for (int listenStopCase = 0; listenStopCase < 2; listenStopCase++)
+                {
+                    string listenShort = Hands.Do("listen", new ToolArguments());
+                    if (!listenShort.Contains("last 1 seconds") || !listenShort.EndsWith("the words before stop", StringComparison.Ordinal)) throw new Exception("Stopping discarded the words already captured.");
+                }
+                checks.Add("PASS typed and spoken stop use her existing stop phrases and return the words captured so far");
+
+                string listenTool;
+                ToolArguments listenArgs;
+                if (!Hands.Handed("act") || !Hands.Handed("act Wood? Don't know, choom.") || !Hands.Handed("  act.\nsure") || Hands.Handed("act natural, choom.") || Hands.Handed("Act natural, choom.") || Hands.Handed("Actually, no.")) throw new Exception("Her brain's act signal went wrong.");
+                checks.Add("PASS a small model running on after her act signal still gets the job, and her own words starting with act stay chat");
+                string[] listenAsks = { "listen to this", "listen to this video", "what did he just say?", "what did she just say?", "what did they just say?", "what are they saying?", "what's he saying?", "what's she saying?", "can you hear this?", "translate what they're saying", "translate what she's saying", "what are they saying in this video?", "Capri, listen to this please", "translate what they are saying" };
+                foreach (string listenAsk in listenAsks)
+                    if (!Hands.Direct(listenAsk, out listenTool, out listenArgs) || listenTool != "listen" || listenArgs.Focus != listenAsk
+                        || !Hands.Heard(listenAsk, out listenTool, out listenArgs) || listenTool != "listen") throw new Exception("Listening missed a clear ask: " + listenAsk);
+                string[] listenNotAsks = { "listen to me", "listen up", "listen to my day", "listen to spotify", "listen to some music", "listen to drake", "can you hear me", "what did i just say", "what did you just say", "don't listen to this", "how do I listen to this video" };
+                foreach (string listenNotAsk in listenNotAsks)
+                    if (Hands.Direct(listenNotAsk, out listenTool, out listenArgs) && listenTool == "listen"
+                        || Hands.Heard(listenNotAsk, out listenTool, out listenArgs) && listenTool == "listen") throw new Exception("Listening took another kind of ask: " + listenNotAsk);
+                foreach (string listenPerson in new[] { "listen to him", "listen to her", "listen to reason" })
+                    if (Hands.Direct(listenPerson, out listenTool, out listenArgs)) throw new Exception("A listen to someone became a tool: " + listenPerson);
+                if (!Hands.Typed("listen{\"seconds\":\"21\",\"focus\":\"translate\"}", out listenTool, out listenArgs) || listenTool != "listen" || listenArgs.Seconds != "21" || listenArgs.Focus != "translate"
+                    || !Hands.Typed("listen(focus='dialogue')", out listenTool, out listenArgs, true) || listenTool != "listen" || listenArgs.Focus != "dialogue"
+                    || !Hands.Typed("listen('dialogue')", out listenTool, out listenArgs, true) || listenArgs.Focus != "dialogue"
+                    || Hands.Written("listen{\"seconds\":\"2\"}").Count != 1 || Hands.Written("{\"name\":\"listen\",\"arguments\":{\"focus\":\"dialogue\"}}").Count != 1
+                    || !Hands.Valid("listen", new ToolArguments()) || !Hands.Valid("listen", new ToolArguments { Seconds = "3600" }) || Hands.Valid("listen", new ToolArguments { Seconds = "0" })
+                    || Hands.Valid("listen", new ToolArguments { Seconds = "many" }) || Security.Gate("listen", new ToolArguments()) != null)
+                    throw new Exception("Listening missed a tool format or changed its arguments.");
+                if (Hands.Name(Hands.Count - 1) != "listen" || !Hands.ElevenLabsTool(Hands.Count - 1).Contains("\"response_timeout_secs\":60")
+                    || !Hands.Tools.Contains("\"name\":\"listen\"") || !Hands.ClaudeTools.Contains("\"name\":\"listen\"") || !Hands.Listing.Contains("listen")) throw new Exception("Listening was missing from a tool list or voice wait.");
+                checks.Add("PASS listening routes clear PC audio asks in chat and voice, leaves conversation and music asks alone, parses tool calls and gives the voice tool a 60 second wait");
+                checks.Add("LIMIT listening used synthetic loopback audio and recognizer results; live PC audio and recognizer accuracy need a manual check");
+            }
+            finally
+            {
+                PcEars.Capture = listenCaptureWas;
+                PcEars.Speaking = listenSpeakingWas;
+                Hearing.Run = listenHearingWas;
+                chatting = listenChatWas;
             }
         }
 
@@ -13241,6 +13395,7 @@ namespace CapriDesktop
                             SmokeFiles(checks);
                             SmokeCare(checks);
                             SmokeClips(checks);
+                            SmokeListen(checks);
                             bool clipsWereOn = preferences.ClipGames;
                             mainframe.FlipClips();
                             if (preferences.ClipGames == clipsWereOn || mainframe.ClipsShown != preferences.ClipGames || LoadPreferences().ClipGames != preferences.ClipGames) throw new Exception("Clip my games didn't switch, show and save from HABITS.");

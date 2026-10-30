@@ -497,8 +497,9 @@ namespace CapriDesktop
         // Chat when her brain said "act" but her hands found nothing to do: she just answers.
         internal static string ChatOnly { get { return Chat.Substring(0, Chat.LastIndexOf(" If they want anything done", StringComparison.Ordinal)); } }
 
-        // Her chat brain's one-word answer that this message is a job, which works in every language.
-        internal static bool Handed(string reply) { return Regex.IsMatch(reply ?? "", @"^\W*act\W*($|\n)", RegexOptions.IgnoreCase); }
+        // Her chat brain's one-word answer that this message is a job, which works in every language. A small model can run on
+        // after it, like "act Wood? Don't know", so a lowercase act with a capital after it counts too.
+        internal static bool Handed(string reply) { return Regex.IsMatch(reply ?? "", @"^\W*act\W*($|\n)", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"^\W*act\s+\p{Lu}"); }
 
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it.
         internal static string GameNote(string game)
@@ -551,6 +552,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move\"}},\"required\":[\"name\"]}" },
             { "watch_for", "Watch for something that will show on their screen: tell me when, let me know when, warn me if, keep an eye on, or watch for. Stay quiet until it happens. Use remind for anything that goes by the clock. Watches last until she closes; list names them, stop with text stops a matching watch, and stop without text stops them all.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to watch for, in their words, or which watch to stop\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; watch by default\",\"enum\":[\"watch\",\"list\",\"stop\"]},\"often\":{\"type\":\"string\",\"description\":\"Once by default, or every time after the condition clears\",\"enum\":[\"once\",\"every_time\"]}}}" },
+            { "listen", "Capture what's playing on their PC, like a video, a call, a stream or a game's dialogue, and give back the words. Listen from now for 15 seconds by default, after your own voice finishes. Use it when they ask what someone said, to listen to this, or to translate what someone is saying. It cannot replay earlier sound or identify songs by ear.",
+              "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to listen from now; defaults to 15\"},\"focus\":{\"type\":\"string\",\"description\":\"What they want to know or translate, if they said\"}}}" },
 #endif
         };
 
@@ -797,6 +800,14 @@ namespace CapriDesktop
                     return SaveClip(clipSeconds);
                 }
                 if (tool == "mini_game") return Mini(args);
+#if !CROSS
+                if (tool == "listen")
+                {
+                    int listenSeconds = 15;
+                    if (!string.IsNullOrEmpty(args.Seconds) && (!int.TryParse(args.Seconds, out listenSeconds) || listenSeconds <= 0)) return "How many seconds should I listen?";
+                    return PcEars.Text(listenSeconds, args.Focus);
+                }
+#endif
                 return "There's no tool called " + tool + ".";
             }
             catch (Exception error) { return "That didn't work: " + error.Message; }
@@ -839,7 +850,7 @@ namespace CapriDesktop
 
         internal static string Description(int i) { return Specs[i, 1]; }
 
-        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Specs[i, 1]) + ",\"parameters\":" + Specs[i, 2] + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" ? 60 : 20) + "}}"; }
+        internal static string ElevenLabsTool(int i) { return "{\"tool_config\":{\"type\":\"client\",\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Specs[i, 1]) + ",\"parameters\":" + Specs[i, 2] + ",\"expects_response\":true,\"response_timeout_secs\":" + (Specs[i, 0] == "use_computer" || Specs[i, 0] == "listen" ? 60 : 20) + "}}"; }
 
         private static string Render(bool claude)
         {
@@ -928,7 +939,7 @@ namespace CapriDesktop
 #if !CROSS
             if (calls.Exists(watched => watched.Key == "watch_for")) return;
 #endif
-            if (calls.Exists(call => call.Key == "use_computer" || call.Key == "look_at_screen" || call.Key == "media" || call.Key == "play_music")) return;
+            if (calls.Exists(call => call.Key == "use_computer" || call.Key == "look_at_screen" || call.Key == "listen" || call.Key == "media" || call.Key == "play_music")) return;
             if (Wants(said) && ((Errand(said) && !calls.Exists(call => call.Key == "shortcut" || call.Key == "remember")) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
             {
                 calls.Clear();
@@ -1548,6 +1559,11 @@ namespace CapriDesktop
             if (repeatWatch) condition = Regex.Replace(condition, @"[, ]+every time$", "", RegexOptions.IgnoreCase).Trim();
             return new ToolArguments { Action = "watch", Text = condition, Often = repeatWatch ? "every_time" : "once" };
         }
+
+        internal static bool ListenFor(string said)
+        {
+            return Regex.IsMatch(Asked(said), @"^(?:listen to this(?: (?:video|call|stream|game))?|what did (?:he|she|they) just say|what (?:are they|is (?:he|she)) saying|what's (?:he|she) saying|hear this|(?:translate )?what (?:they're|he's|she's|they are|he is|she is) saying)(?: (?:in|on) (?:this|the) (?:video|call|stream|game))?$", RegexOptions.IgnoreCase);
+        }
 #endif
 
         internal static bool Direct(string said, out string tool, out ToolArguments args)
@@ -1571,6 +1587,7 @@ namespace CapriDesktop
             if (gaming != null) { tool = "gaming_mode"; args.Action = gaming; return true; }
             if (Chatter.IsMatch(text) || Regex.IsMatch(text, @"\b(if|unless|until|after|before|when) (i|you|we|it|the)\b", RegexOptions.IgnoreCase)) return false;
 #if !CROSS
+            if (ListenFor(text)) { tool = "listen"; args.Focus = said; return true; }
             string miniName = MiniName(text);
             if (miniName != null) { tool = "mini_game"; args.Name = miniName; args.Action = "open"; return true; }
             string miniWeb = Regex.Replace(text, @"\s+online\b", "", RegexOptions.IgnoreCase);
@@ -1697,7 +1714,7 @@ namespace CapriDesktop
 #if !CROSS
             if (!paired && lone.Length > 0 && tool == "watch_for") { args.Text = lone; return args; }
 #endif
-            if (!paired && lone.Length > 0) Set(args, tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "move_yourself" ? "action" :tool == "look_at_screen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
+            if (!paired && lone.Length > 0) Set(args, tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "move_yourself" ? "action" : tool == "look_at_screen" || tool == "listen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
             return args;
         }
 
@@ -1753,7 +1770,7 @@ namespace CapriDesktop
 
         private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip|mini_game"
 #if !CROSS
-            + "|watch_for"
+            + "|watch_for|listen"
 #endif
             ;
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
@@ -1865,6 +1882,13 @@ namespace CapriDesktop
 
         internal static bool Valid(string tool, ToolArguments args)
         {
+#if !CROSS
+            if (tool == "listen")
+            {
+                int listenDuration;
+                return args != null && (string.IsNullOrEmpty(args.Seconds) || (int.TryParse(args.Seconds, out listenDuration) && listenDuration > 0));
+            }
+#endif
             if (tool == "gaming_mode") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(on|off|up|down|left|right|reset)\z");
             if (tool == "clip")
             {
