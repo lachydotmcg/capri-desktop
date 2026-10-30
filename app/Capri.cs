@@ -23399,10 +23399,10 @@ namespace CapriDesktop
                             Play(idle);
                             if (MouthCell(clock.Elapsed.TotalSeconds, idle) < 0) throw new Exception("Her mouth did not follow the agent's audio.");
                             string agentToolsFirst = "\"tool_ids\":[\"tool_kept\"", agentToolsNext = agentToolsFirst;
-                            for (int agentToolAt = 1; agentToolAt <= Hands.Count; agentToolAt++)
+                            for (int agentToolAt = 1; agentToolAt < Hands.Count; agentToolAt++)
                             {
                                 agentToolsFirst += ",\"tool_" + agentToolAt + "\"";
-                                agentToolsNext += ",\"tool_" + (agentToolAt + Hands.Count) + "\"";
+                                agentToolsNext += ",\"tool_" + (agentToolAt + Hands.Count - 1) + "\"";
                             }
                             agentToolsFirst += "]";
                             agentToolsNext += "]}}}}";
@@ -23417,7 +23417,7 @@ namespace CapriDesktop
                             File.Delete(Brain.MemoriesPath);
                             string voiceDay = File.ReadAllText(Path.Combine(Brain.TranscriptPath, DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
                             if (!memoriesInVoice || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d You \(voice\):\*\* hi\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d Capri \(voice\):\*\* Loud and clear, choom\.\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\d\d:\d\d Job: Opened Spotify\.\*\n")) throw new Exception("Voice chat didn't start with her memories, or its lines and jobs missed her transcript: " + voiceDay);
-                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != Hands.Count * 2) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
+                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != (Hands.Count - 1) * 2) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
                             Hands.Run = handsRun;
                             Hands.Catalog = handsCatalog;
                             Hands.Forget();
