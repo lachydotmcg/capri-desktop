@@ -128,7 +128,7 @@ namespace CapriDesktop
                     await nativeDesktop.WaitForOwnedInputFocusAsync(Title, previous,
                         cancellation => HyprlandInputFocus.HasKeyboardFocusAsync(xid, cancellation), job.Token);
                     job.Token.ThrowIfCancellationRequested();
-                    if (!focusGate.Current(request) || !IsVisible) return;
+                    if (!focusGate.Matches(request) || !IsVisible) return;
                     focusGate.Activated();
                     focus();
                     return;

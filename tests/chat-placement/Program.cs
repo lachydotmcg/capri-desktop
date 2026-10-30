@@ -85,4 +85,18 @@ opening = focus.Begin(); int replacement = focus.Begin();
 Check(!focus.Activate(opening) && focus.Current(replacement), "a newer Open invalidates the older focus request");
 Check(ChatFocusGate.KeepsFocusIntent(12, 12, false) && ChatFocusGate.KeepsFocusIntent(12, 99, true), "focus may proceed while the original input owner or this typer remains active");
 Check(!ChatFocusGate.KeepsFocusIntent(12, 13, false) && !ChatFocusGate.KeepsFocusIntent(12, 0, false), "changing to another window or the desktop cancels pending focus intent");
+opening = focus.Begin();
+focus.Activate(opening);
+var nativeCompletion = Signal();
+bool receivedTextFocus = false;
+async Task CompleteTextFocus()
+{
+    await nativeCompletion.Task;
+    if (focus.Matches(opening)) receivedTextFocus = true;
+}
+Task textFocus = CompleteTextFocus();
+focus.Activated();
+nativeCompletion.SetResult(true);
+await textFocus;
+Check(receivedTextFocus, "activation before native verification completes still permits textbox focus for the same request");
 Console.WriteLine(checks + " chat placement and focus checks passed.");
