@@ -42,7 +42,12 @@ jobs:
         timeout-minutes: 15
         run: |
           sudo apt-get update -q
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends xvfb xauth openbox xcompmgr libice6 libsm6 libfontconfig1
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends xvfb xauth openbox xcompmgr libice6 libsm6 libfontconfig1 libxtst6 ffmpeg
+      - name: Brain protocol and native Mainframe checks
+        run: |
+          dotnet restore tests/brain/BrainChecks.csproj --locked-mode
+          dotnet run --project tests/brain/BrainChecks.csproj -c Release --no-restore
+          bash ci/check-mainframe.sh "$PWD/smoke/mainframe"
       - name: Smoke test
         timeout-minutes: 5
         run: |

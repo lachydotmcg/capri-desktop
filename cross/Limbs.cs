@@ -15,7 +15,6 @@ namespace CapriDesktop
         internal static int Patience = 20;
         internal static int Settle = 1500;
         private static readonly bool OnMac = OperatingSystem.IsMacOS();
-        private static readonly Regex Field = new Regex(@"\s*%[fFuUdDnNickvm]");
         private static readonly string[] MacPlayers = { "Spotify", "Music" };
 
         private static string soundPlayer;
@@ -93,7 +92,9 @@ namespace CapriDesktop
             Hands.Catalog = delegate
             {
                 List<InstalledApp> apps = OnMac ? MacApps(MacFolders()) : LinuxApps(LinuxFolders());
-                return Hands.WithSteam(apps, Hands.SteamApps(SteamRoot(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), OnMac)));
+                if (!OnMac) apps.AddRange(ArchApps.NativeTools());
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                return Hands.WithSteam(apps, OnMac ? Hands.SteamApps(SteamRoot(home, true)) : ArchApps.Games(home));
             };
             Hands.NowPlaying = delegate { return Song(OnMac); };
             Hands.Windows = delegate { return Windows(OnMac); };
@@ -118,11 +119,12 @@ namespace CapriDesktop
                 return done;
             };
             Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };
+            if (!OnMac) ComputerJobs.Attach(brain);
         }
 
         internal static void Open(string id, bool mac)
         {
-            if (id.StartsWith("exec:", StringComparison.Ordinal)) { Launch("/bin/sh", new[] { "-c", id.Substring(5) }); return; }
+            if (ArchApps.Open(id, Launch)) return;
             if (Regex.IsMatch(id, @"^spotify:(track|album|playlist|artist):") && PlaySpotify(id, mac)) return;
             Launch(mac ? "open" : "xdg-open", new[] { id });
         }
@@ -364,6 +366,17 @@ namespace CapriDesktop
         internal static List<OpenWindow> Windows(bool mac)
         {
             List<OpenWindow> found = new List<OpenWindow>();
+            if (!mac && HyprlandDesktop.Current != null)
+            {
+                List<OpenWindow> native = HyprlandDesktop.Current.ListWindows();
+                Blind = HyprlandDesktop.Current.LastError;
+                return native;
+            }
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null)
+            {
+                Blind = "This Wayland compositor does not expose a supported native window-control backend.";
+                return found;
+            }
             if (mac)
             {
                 string apps = Music.Run("osascript", new[] { "-e", "set out to \"\"", "-e", "tell application \"System Events\"", "-e", "repeat with p in (every application process whose background only is false)",
@@ -403,6 +416,9 @@ namespace CapriDesktop
 
         internal static bool Steer(OpenWindow window, string action, bool mac)
         {
+            if (!mac && HyprlandDesktop.Current != null)
+                return action == "close_tab" ? ComputerJobs.CloseTab(window) : HyprlandDesktop.Current.Steer(window, action);
+            if (!mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null) return false;
             if (mac)
             {
                 string name = Quoted(window.Program), bundle;
@@ -445,6 +461,7 @@ namespace CapriDesktop
         // Shortcuts with a tool of their own on Mac and Linux. The rest need key presses, which only Windows has so far.
         internal static string Shortcut(string name, bool mac)
         {
+            if (!mac && HyprlandDesktop.Current != null && (name == "discord_mute" || name == "discord_deafen")) return ComputerJobs.Shortcut(name);
             if (name == "screenshot")
             {
                 if (mac) { Launch("screencapture", new[] { "-i", "-c" }); return "Opened the screenshot picker. Drag over what to grab, and it goes to your clipboard."; }
@@ -472,7 +489,7 @@ namespace CapriDesktop
                     if (Has(monitor)) { Launch(monitor, new string[0]); return "Opened the system monitor."; }
                 return "Couldn't find a system monitor. Install one, like gnome-system-monitor, and ask again.";
             }
-            if (name == "show_desktop" && !mac && Music.Run("wmctrl", new[] { "-k", "on" }) != null) return "Showed the desktop.";
+            if (name == "show_desktop" && !mac && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null && Music.Run("wmctrl", new[] { "-k", "on" }) != null) return "Showed the desktop.";
             return null;
         }
 
@@ -585,58 +602,20 @@ namespace CapriDesktop
 
         internal static List<InstalledApp> LinuxApps(IEnumerable<string> folders)
         {
-            List<InstalledApp> apps = new List<InstalledApp>();
-            HashSet<string> seen = new HashSet<string>();
-            foreach (string folder in folders)
-            {
-                if (!Directory.Exists(folder)) continue;
-                string[] files;
-                try { files = Directory.GetFiles(folder, "*.desktop", SearchOption.AllDirectories); }
-                catch (Exception) { continue; }
-                foreach (string file in files)
-                {
-                    if (!seen.Add(Path.GetFileName(file))) continue;
-                    try
-                    {
-                        InstalledApp app = Desktop(File.ReadAllLines(file));
-                        if (app != null) apps.Add(app);
-                    }
-                    catch (Exception) { }
-                }
-            }
-            return apps;
+            return ArchApps.Catalog(folders);
         }
 
         internal static InstalledApp Desktop(string[] lines)
         {
-            bool entry = false;
-            bool hidden = false;
-            bool application = false;
-            string name = null;
-            string exec = null;
-            foreach (string raw in lines)
-            {
-                string line = raw.Trim();
-                if (line.StartsWith("[", StringComparison.Ordinal)) { entry = line == "[Desktop Entry]"; continue; }
-                if (!entry) continue;
-                if (name == null && line.StartsWith("Name=", StringComparison.Ordinal)) name = line.Substring(5).Trim();
-                else if (exec == null && line.StartsWith("Exec=", StringComparison.Ordinal)) exec = line.Substring(5).Trim();
-                else if (line == "NoDisplay=true" || line == "Hidden=true") hidden = true;
-                else if (line == "Type=Application") application = true;
-            }
-            if (hidden || !application || string.IsNullOrEmpty(name) || string.IsNullOrEmpty(exec)) return null;
-            return new InstalledApp(name, "exec:" + Field.Replace(exec, "").Replace("%%", "%").Trim());
+            return ArchApps.Parse(lines);
         }
 
         private static void StartTool(string file, string[] args)
         {
-            try
-            {
-                ProcessStartInfo start = new ProcessStartInfo(file) { UseShellExecute = false, CreateNoWindow = true };
-                foreach (string arg in args) start.ArgumentList.Add(arg);
-                using (Process.Start(start)) { }
-            }
-            catch (Exception) { }
+            ProcessStartInfo start = new ProcessStartInfo(file) { UseShellExecute = false, CreateNoWindow = true };
+            foreach (string arg in args) start.ArgumentList.Add(arg);
+            using Process process = Process.Start(start) ?? throw new IOException("Couldn't start " + file + ".");
+            if (file == "gio" && (!process.WaitForExit(5000) || process.ExitCode != 0)) throw new IOException("GIO couldn't launch that desktop entry.");
         }
     }
 }

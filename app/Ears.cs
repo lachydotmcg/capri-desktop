@@ -4,8 +4,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+#if !CROSS
 using System.Speech.AudioFormat;
 using System.Speech.Recognition;
+#endif
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -13,6 +15,8 @@ using Microsoft.Win32;
 
 namespace CapriDesktop
 {
+
+#if !CROSS
     [StructLayout(LayoutKind.Sequential)]
     internal struct WaveFormat
     {
@@ -353,6 +357,8 @@ namespace CapriDesktop
         public void Dispose() { Close(); }
     }
 
+
+#endif
     internal static class Hearing
     {
         internal const string NoRecognizer = "Windows has no offline speech recognizer for your language. Turn on Online speech recognition in Settings > Privacy & security > Speech.";
@@ -360,7 +366,9 @@ namespace CapriDesktop
         // Her own Parakeet ears while they suit her language; Windows' offline recognizer otherwise.
         internal static volatile LocalEars Own;
         private static readonly object gate = new object();
+#if !CROSS
         private static SpeechRecognitionEngine engine;
+#endif
 
         internal static string Text(short[] samples) { return Clean(Run(samples)); }
 
@@ -379,6 +387,7 @@ namespace CapriDesktop
             return cultures.Count > 0 ? cultures[0] : null;
         }
 
+#if !CROSS
         private static SpeechRecognitionEngine Open()
         {
             List<RecognizerInfo> installed = new List<RecognizerInfo>(SpeechRecognitionEngine.InstalledRecognizers());
@@ -390,10 +399,15 @@ namespace CapriDesktop
             return made;
         }
 
+
+#endif
         private static string Recognize(short[] samples)
         {
             LocalEars own = Own;
             if (own != null && own.Ready) return own.Hear(samples);
+#if CROSS
+            throw new IOException("Set up her local ears under Settings > Voice.");
+#else
             lock (gate)
             {
                 if (engine == null) engine = Open();
@@ -427,6 +441,7 @@ namespace CapriDesktop
                 }
                 lock (words) return words.ToString();
             }
+#endif
         }
     }
 
@@ -455,7 +470,17 @@ namespace CapriDesktop
         internal bool Installed { get { return Complete(folder); } }
 
         // Ready to hear: the model is in, and so is the free voice that brings sherpa-onnx.
-        internal bool Ready { get { return IntPtr.Size == 8 && Installed && File.Exists(Path.Combine(engine, "sherpa-onnx-c-api.dll")) && File.Exists(Path.Combine(engine, "onnxruntime.dll")); } }
+        internal bool Ready
+        {
+            get
+            {
+#if CROSS
+                return IntPtr.Size == 8 && Installed && SpeechRuntime.Installed(engine);
+#else
+                return IntPtr.Size == 8 && Installed && File.Exists(Path.Combine(engine, "sherpa-onnx-c-api.dll")) && File.Exists(Path.Combine(engine, "onnxruntime.dll"));
+#endif
+            }
+        }
 
         private static bool Complete(string where)
         {
@@ -465,11 +490,16 @@ namespace CapriDesktop
 
         internal void Install(Action<string, long, long> progress)
         {
-            if (IntPtr.Size != 8) throw new IOException("Her ears need 64-bit Windows.");
+            if (IntPtr.Size != 8) throw new IOException("Her ears need a 64-bit system.");
             string root = Path.GetDirectoryName(folder);
             Directory.CreateDirectory(root);
             long needed = PackSize * 3 + (64L << 20);
+#if CROSS
+            // Unix profiles may be on a separate mount from /. Query the actual destination.
+            string drive = root;
+#else
             string drive = Path.GetPathRoot(root);
+#endif
             if (new DriveInfo(drive).AvailableFreeSpace < needed) throw new IOException("Her ears need " + Engine.Amount(needed) + " free on " + drive.TrimEnd('\\') + ".");
             string tarball = folder + ".tar.bz2";
             Engine.Fetch(PackUrl, tarball, PackSize, PackSha, "her ears", progress, delegate { return Cancel; });
@@ -480,6 +510,9 @@ namespace CapriDesktop
             Untar(tarball, staging);
             string unpacked = Path.Combine(staging, Inside);
             if (!Complete(unpacked)) throw new IOException("The ears download is missing files.");
+#if CROSS
+            SpeechRuntime.WriteAsrNotice(unpacked);
+#endif
             lock (gate)
             {
                 Close();
@@ -493,6 +526,9 @@ namespace CapriDesktop
         // Windows 10 and 11 ship bsdtar, which unpacks .tar.bz2. The checksum was already matched, so this is the known archive.
         private static void Untar(string tarball, string into)
         {
+#if CROSS
+            SpeechRuntime.Unpack(tarball, into);
+#else
             string tar = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe");
             if (!File.Exists(tar)) throw new IOException("Windows is missing tar.exe, which unpacks her ears.");
             ProcessStartInfo start = new ProcessStartInfo(tar, "-xjf \"" + tarball + "\" -C \"" + into + "\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };
@@ -502,6 +538,7 @@ namespace CapriDesktop
                 unpacking.WaitForExit();
                 if (unpacking.ExitCode != 0) throw new IOException("Couldn't unpack her ears: " + Voice.Short(problem.Trim()));
             }
+#endif
         }
 
         internal void Warm() { lock (gate) Open(); }
@@ -603,6 +640,7 @@ namespace CapriDesktop
         [DllImport("sherpa-onnx-c-api.dll", CallingConvention = CallingConvention.Cdecl)] private static extern void SherpaOnnxDestroyOfflineRecognizerResult(IntPtr result);
     }
 
+#if !CROSS
     internal static class Tempo
     {
         internal const int Rate = 100;
@@ -1073,4 +1111,5 @@ namespace CapriDesktop
             finally { if (tap != null) tap.Dispose(); }
         }
     }
+#endif
 }

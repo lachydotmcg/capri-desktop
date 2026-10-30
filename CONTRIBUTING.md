@@ -42,6 +42,10 @@ out/cross/Capri --smoke out/cross-smoke
 
 On Windows, use `out\cross\Capri.exe` instead. CI runs all three on every pull request.
 
+For the native Hyprland adapter, Linux checks, portable build and Arch package,
+see [the Arch build guide](cross/ARCH.md). Local speech setup is documented in
+[Local speech on Linux](cross/SPEECH.md).
+
 ## House rules
 
 - **Match the code around you.** No code comments, plain names, and the same layout as the file you're in.

@@ -1,3 +1,8 @@
 out/
 cross/bin/
 cross/obj/
+/cross/native/capri-input
+/tests/**/bin/
+/tests/**/obj/
+/tests/bin/
+/tests/obj/

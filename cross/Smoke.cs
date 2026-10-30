@@ -432,7 +432,7 @@ namespace CapriDesktop
                     File.WriteAllLines(Path.Combine(tempApps, "helper.desktop"), new[] { "[Desktop Entry]", "Type=Application", "Name=Helper", "Exec=helper", "NoDisplay=true" });
                     List<InstalledApp> linuxApps = Limbs.LinuxApps(new[] { tempApps });
                     List<InstalledApp> macApps = Limbs.MacApps(new[] { tempApps });
-                    if (linuxApps.Count != 1 || linuxApps[0].Name != "Spotify" || linuxApps[0].Id != "exec:spotify" || macApps.Count != 1 || macApps[0].Id != Path.Combine(tempApps, "Spotify.app")) throw new Exception("Installed apps were read wrong.");
+                    if (linuxApps.Count != 1 || linuxApps[0].Name != "Spotify" || linuxApps[0].Id != "desktop:" + Path.Combine(tempApps, "spotify.desktop") || macApps.Count != 1 || macApps[0].Id != Path.Combine(tempApps, "Spotify.app")) throw new Exception("Installed apps were read wrong.");
                     // Steam games come from Steam's own library too (here the Flatpak install), without its runtimes.
                     string steamHome = Path.Combine(folder, "home");
                     string steamRoot = Path.Combine(steamHome, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam");
@@ -462,7 +462,7 @@ namespace CapriDesktop
                     string macSong = Limbs.Song(true);
                     string linuxSong = Limbs.Song(false);
                     string log = string.Join(" / ", did);
-                    if (opened != "Opened Spotify." || !log.Contains("launch /bin/sh -c spotify") || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats")) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / " + log);
+                    if (opened != "Opened Spotify." || !log.Contains("launch gio launch " + Path.Combine(tempApps, "spotify.desktop")) || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats")) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / " + log);
                     if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.Contains("only work on Windows")) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
                     if (!log.Contains("osascript -e tell application \"Spotify\" to next track") || !log.Contains("+ 2)") || !log.Contains("pactl set-sink-mute @DEFAULT_SINK@ toggle / amixer -q sset Master toggle")) throw new Exception("Mac or Linux media keys went wrong: " + log);
                     if (!log.Contains("play track \"spotify:track:2iyaHQlYrR8Eyr4wOmOT5D\"") || !log.Contains("OpenUri string:spotify:track:2iyaHQlYrR8Eyr4wOmOT5D") || log.Contains("launch open spotify:") || log.Contains("launch xdg-open spotify:")) throw new Exception("Spotify tracks didn't play directly: " + log);
@@ -1031,7 +1031,7 @@ namespace CapriDesktop
                 string last = asked.Length == 0 ? "" : asked[asked.Length - 1];
                 if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under Settings > Voice." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
                 string voiceMenu = pet.VoiceMenu;
-                if (voiceMenu != "*Use ElevenLabs | - | *Capri Test | Adam | - | New key... | Remove key ending 1234") throw new Exception("The Voice menu listed the wrong things: " + voiceMenu);
+                if ((OperatingSystem.IsLinux() && (!voiceMenu.StartsWith("Free voice |", StringComparison.Ordinal) || !voiceMenu.Contains("Any voice model"))) || !voiceMenu.EndsWith("*Use ElevenLabs | - | *Capri Test | Adam | - | New key... | Remove key ending 1234", StringComparison.Ordinal)) throw new Exception("The Voice menu listed the wrong things: " + voiceMenu);
                 checks.Add("PASS voice key: Settings > Voice asks for the key in a hidden box, explains and drops a rejected key, keeps a good one in a private file and picks their own voice first");
                 if (pet.TypingSound) throw new Exception("Typing sound stayed on while her ElevenLabs voice works.");
                 pet.Think = delegate(string words) { return "Preem question, choom."; };
@@ -1058,7 +1058,7 @@ namespace CapriDesktop
                 lock (spoken) voiced = spoken.Count;
                 if (voiced != 2 || pet.VoiceStatus != "key 1234 | Capri Test | quiet" || !pet.TypingSound) throw new Exception("Speak replies off still spoke, or typing stayed off: " + voiced + " | " + pet.VoiceStatus);
                 pet.ForgetVoice();
-                if (File.Exists(Path.Combine(folder, "voice-key")) || pet.VoiceStatus != "no key | v1 | quiet" || pet.VoiceMenu != "Add ElevenLabs key...") throw new Exception("Remove key didn't remove it: " + pet.VoiceStatus + " | " + pet.VoiceMenu);
+                if (File.Exists(Path.Combine(folder, "voice-key")) || pet.VoiceStatus != "no key | v1 | quiet" || !pet.VoiceMenu.EndsWith("Add ElevenLabs key...", StringComparison.Ordinal)) throw new Exception("Remove key didn't remove it: " + pet.VoiceStatus + " | " + pet.VoiceMenu);
                 checks.Add("PASS voice: replies are spoken through ElevenLabs and type out at the voice's pace, Use ElevenLabs off keeps her quiet, and Remove key deletes the file");
                 fakeVoice.Stop();
                 Send(shelf, "quit");
@@ -1612,10 +1612,11 @@ namespace CapriDesktop
             if (pet.Leaving || pet.Arriving || pet.Falling) return false;
             pet.MouseAt = null;
             string said = string.Join(" / ", moveLines);
-            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / My Mainframe is only on Windows so far. Here my settings are in my right-click menu."
+            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / Opened Mainframe."
                 + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show her in my tray menu to bring me back. / Back. / I'm right here.";
             if (said != wanted) throw new Exception("Her moves said the wrong things: " + said);
-            checks.Add("PASS she moves herself: \"teleport here\" glitches her hip onto the mouse, she sits, stands, hangs and lets go where she is, goes to another screen " + (pet.Screens.All.Count > 1 ? "and lands there" : "only when there is one (one here)") + ", a hide waits for her line and \"show yourself\" brings her back, riding the cursor and the Mainframe say they're Windows-only so far, and glitch, grin, blink, idle and a dance until \"stop dancing\" play by name");
+            pet.CloseMainframe();
+            checks.Add("PASS she moves herself: \"teleport here\" glitches her hip onto the mouse, she sits, stands, hangs and lets go where she is, goes to another screen " + (pet.Screens.All.Count > 1 ? "and lands there" : "only when there is one (one here)") + ", a hide waits for her line and \"show yourself\" brings her back, riding the cursor reports its platform limit and Mainframe opens natively, and glitch, grin, blink, idle and a dance until \"stop dancing\" play by name");
             moveStage = 5;
             return true;
         }

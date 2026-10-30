@@ -2414,7 +2414,7 @@ namespace CapriDesktop
                 return Steer(top[0], "close_tab") ? "Closed the " + wanted + " tab." : "Couldn't reach the " + wanted + " tab to close it.";
             bool all = true;
             foreach (OpenWindow window in top) all &= Steer(window, action);
-            if (action == "minimize") return "Minimized " + wanted + ".";
+            if (action == "minimize") return all ? "Minimized " + wanted + "." : "Couldn't minimize " + wanted + ".";
             return all ? "Closed " + wanted + "." : "Asked " + wanted + " to close, but it's still open. It might be asking you to save.";
         }
 

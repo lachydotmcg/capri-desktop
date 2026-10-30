@@ -20,6 +20,8 @@ namespace CapriDesktop
         [STAThread]
         private static int Main(string[] args)
         {
+            int setupCode;
+            if (SpeechSetup.TryRun(args, out setupCode)) return setupCode;
             if (args.Length >= 5 && args[0] == "--shelf")
             {
                 Shelf = new[] { int.Parse(args[1]), int.Parse(args[2]), int.Parse(args[3]), int.Parse(args[4]) };
@@ -59,6 +61,9 @@ namespace CapriDesktop
                 pet.AwayChanged = delegate { hide.Header = pet.Away ? "Show her" : "Hide her"; };
                 NativeMenuItem bring = new NativeMenuItem("Bring her back");
                 bring.Click += delegate { pet.Bring(); };
+                NativeMenuItem settings = new NativeMenuItem("Settings · Mainframe");
+                settings.Click += delegate { pet.OpenMainframe(); };
+                menu.Items.Add(settings);
                 NativeMenuItem quit = new NativeMenuItem("Quit Capri");
                 quit.Click += delegate { pet.Quit(); };
                 menu.Items.Add(talk);

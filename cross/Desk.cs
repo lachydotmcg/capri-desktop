@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Text;
 using Avalonia;
+using Avalonia.Platform;
 
 namespace CapriDesktop
 {
@@ -14,7 +15,7 @@ namespace CapriDesktop
         internal bool Solid;
     }
 
-    internal abstract class Desk
+    internal abstract class Desk : IDisposable
     {
         internal List<PixelRect> Screens = new List<PixelRect>();
         internal double Scale = 1;
@@ -25,6 +26,7 @@ namespace CapriDesktop
             {
                 if (OperatingSystem.IsWindows()) return new WindowsDesk();
                 if (OperatingSystem.IsMacOS()) return new MacDesk();
+                if (OperatingSystem.IsLinux() && HyprlandDesktop.Current != null) return new HyprlandDesk(HyprlandDesktop.Current);
                 if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null && Environment.GetEnvironmentVariable("DISPLAY") != null) return new X11Desk();
             }
             catch (Exception) { }
@@ -35,8 +37,13 @@ namespace CapriDesktop
         internal virtual double Points { get { return 0; } }
         internal abstract List<Spot> Windows(ICollection<long> skip);
         internal abstract Spot Find(long window);
+        internal virtual Spot Find(long window, PixelPoint near) { return Find(window); }
         internal abstract bool Alive(long window);
         internal virtual string Debug() { return ""; }
+        internal virtual void BindScreens(IReadOnlyList<Screen> screens) { }
+        internal virtual PixelRect? WorkAt(PixelPoint point) { return null; }
+        internal virtual IEnumerable<PixelRect> WorkAreas { get { return null; } }
+        public virtual void Dispose() { }
         // Where the mouse is on the whole desktop, in pixels, or null where the desktop won't say (Wayland).
         internal virtual PixelPoint? Pointer() { return null; }
 

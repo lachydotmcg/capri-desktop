@@ -23,11 +23,15 @@
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />
     <Compile Include="../app/Hands.cs" Link="Shared/Hands.cs" />
     <Compile Include="../app/Presence.cs" Link="Shared/Presence.cs" />
+    <Compile Include="../app/Ears.cs" Link="Shared/Ears.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />
+    <EmbeddedResource Include="licenses/*" LogicalName="Capri.Speech.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/voice/*.wav" LogicalName="Capri.Voice.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../assets/chip.png" LogicalName="Capri.Chip.png" />
     <AvaloniaResource Include="../assets/fonts/ShareTechMono-Regular.ttf" Link="Assets/ShareTechMono-Regular.ttf" />
+    <AvaloniaResource Include="../assets/fonts/Barlow*.ttf" Link="Assets/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../assets/fonts/Barlow-OFL.txt" LogicalName="Capri.Font.Barlow-OFL.txt" />
   </ItemGroup>
 </Project>

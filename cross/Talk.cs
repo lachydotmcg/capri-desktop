@@ -110,7 +110,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Bubble : Window
+    internal sealed class Bubble : ChatWindow
     {
         internal readonly Sheet Sheet = new Sheet();
         internal event Action Dismissed;
@@ -148,7 +148,7 @@ namespace CapriDesktop
             if (Height != height) Height = height;
             panelOnScreen = new PixelRect(left + (int)(panel.X * scale), y + (int)(panel.Y * scale), (int)(panel.Width * scale), (int)(panel.Height * scale));
             PixelPoint at = new PixelPoint(left, y);
-            if (Position != at) Position = at;
+            PlaceAt(at, new Size(width, height), scale);
             if (!IsVisible) { Show(); Look.OnTopAgain(this); }
             Sheet.InvalidateVisual();
         }
@@ -164,7 +164,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Typer : Window
+    internal sealed class Typer : ChatWindow
     {
         internal const double Tall = 44;
         internal event Action<string> Submitted;
@@ -173,7 +173,7 @@ namespace CapriDesktop
 
         internal Typer()
         {
-            Look.Overlay(this, "Talk to Capri");
+            Look.Overlay(this, "Type to Capri");
             ShowActivated = true;
             Width = Math.Ceiling(Sheet.PanelWidth());
             Height = Tall;
@@ -206,7 +206,7 @@ namespace CapriDesktop
             layers.Children.Add(new Plate());
             layers.Children.Add(row);
             Content = layers;
-            Deactivated += delegate { if (Program.Smoke == null) Hide(); };
+            Deactivated += delegate { if (Program.Smoke == null) DismissAfterDeactivation(); };
         }
 
         internal string Draft { get { return input.Text; } set { input.Text = value; } }
@@ -230,13 +230,14 @@ namespace CapriDesktop
             bool below = head.Y - tallPx - 20 * scale < area.Y;
             int left = Math.Max(area.X, Math.Min(area.Right - widePx, (int)(head.X - widePx * 0.7)));
             int top = below ? feet.Y + (int)(8 * scale) : head.Y - tallPx - (int)(18 * scale);
-            Position = new PixelPoint(left, top);
+            PlaceAt(new PixelPoint(left, top), new Size(Math.Ceiling(Sheet.PanelWidth()), Tall), scale);
             if (above.Width > 0) Follow(above, area, scale);
-            Show();
-            Look.OnTopAgain(this);
-            Activate();
-            input.Focus();
-            input.CaretIndex = (input.Text ?? "").Length;
+            ShowForInput(() => { Show(); Look.OnTopAgain(this); }, () =>
+            {
+                if (!HasNativePlacement) Activate();
+                input.Focus();
+                input.CaretIndex = (input.Text ?? "").Length;
+            });
         }
 
         internal void Follow(PixelRect above, PixelRect area, double scale)
@@ -245,7 +246,7 @@ namespace CapriDesktop
             int top = above.Y - tallPx - (int)(16 * scale);
             if (top < area.Y) top = above.Bottom + (int)(8 * scale);
             PixelPoint target = new PixelPoint(above.X, top);
-            if (Position != target) Position = target;
+            PlaceAt(target, new Size(Math.Ceiling(Sheet.PanelWidth()), Tall), scale);
         }
 
         internal void Send(string text)
@@ -703,12 +704,13 @@ namespace CapriDesktop
         private static bool Red(Color c) { return c.A > 200 && c.R > 150 && c.G < 90 && c.B < 120; }
     }
 
-    internal sealed class Pill : Window
+    internal sealed class Pill : ChatWindow
     {
         internal const double Wide = 100;
         internal const double Tall = 40;
         internal event Action Typing;
         internal event Action Voice;
+        internal event Action Mute;
         private static readonly Random random = new Random();
         private readonly PillFace face = new PillFace();
         private double shown = -1;
@@ -737,7 +739,14 @@ namespace CapriDesktop
             return x < Wide / 2 ? 1 : 2;
         }
 
-        private int Part(double x) { return PartAt(x, false); }
+        private int Part(double x) { return PartAt(x, face.Chatting); }
+        internal void SetChat(bool chatting, bool muted)
+        {
+            face.Chatting = chatting; face.Muted = muted; face.Level = 0;
+            Width = chatting ? PillFace.Across(1, true) : Wide;
+            face.InvalidateVisual();
+        }
+        internal void SetLevel(double level) { face.Level = face.Chatting && !face.Muted ? Math.Min(6, (int)(Math.Sqrt(Math.Max(0, level)) * 24)) : 0; face.InvalidateVisual(); }
 
         private void Hover(int part)
         {
@@ -750,7 +759,7 @@ namespace CapriDesktop
         internal void Place(PixelPoint topCentre, double scale, double now)
         {
             PixelPoint at = new PixelPoint(topCentre.X - (int)Math.Round(Wide * scale / 2), topCentre.Y);
-            if (Position != at) Position = at;
+            PlaceAt(at, new Size(face.Chatting ? PillFace.Across(1, true) : Wide, Tall), scale);
             if (!IsVisible)
             {
                 shown = now;
@@ -769,7 +778,7 @@ namespace CapriDesktop
         internal bool GlitchesIn(double now)
         {
             double scale = DesktopScaling;
-            PixelPoint topCentre = new PixelPoint(Position.X + (int)Math.Round(Wide * scale / 2), Position.Y);
+            PixelPoint topCentre = new PixelPoint(IntendedPosition.X + (int)Math.Round(Wide * scale / 2), IntendedPosition.Y);
             Hide();
             Place(topCentre, scale, now);
             bool torn = IsVisible && face.Tear == PillFace.TearFrames;
@@ -786,6 +795,7 @@ namespace CapriDesktop
         internal void Press(int part)
         {
             if (part == 1) { if (Typing != null) Typing(); }
+            else if (part == 3) { if (Mute != null) Mute(); }
             else if (Voice != null) Voice();
         }
     }
@@ -813,6 +823,14 @@ namespace CapriDesktop
         internal Talk(Pet pet)
         {
             this.pet = pet;
+            if (pet.Desk is HyprlandDesk native)
+            {
+                Func<HyprlandDisplayMap> map = () => native.MapAt(pet.Hip);
+                Bubble.BindNativePlacement(native, map);
+                Typer.BindNativePlacement(native, map);
+                Pill.BindNativePlacement(native, map);
+            }
+            pet.Closed += (_, _) => { Bubble.Close(); Typer.Close(); Pill.Close(); };
             Typer.Submitted += delegate(string text)
             {
                 if (asked != null) { Action<string> to = asked; asked = null; Typer.Hide(); to(text); return; }
@@ -824,20 +842,24 @@ namespace CapriDesktop
                 keyTo(text);
             };
             Pill.Typing += delegate { if (Typer.IsVisible) Typer.Hide(); else Open(); };
-            Pill.Voice += delegate { pet.NoVoice(); };
+            Pill.Voice += delegate { pet.ToggleTalk(); };
+            Pill.Mute += delegate { pet.ToggleMicrophone(); };
             Bubble.Dismissed += delegate { if (leaving < 0) leaving = pet.Now; };
         }
 
         internal string Reply { get { return reply; } }
+        internal string PlacementError => Bubble.PlacementError ?? Typer.PlacementError ?? Pill.PlacementError;
         internal double Pace { get { return pace; } }
         internal string Shown { get { return reply == null ? "" : reply.Substring(0, Math.Min(reply.Length, Math.Max(0, Bubble.Sheet.Revealed))); } }
         internal bool Typing { get { return Typer.IsVisible; } }
+        internal bool ThinkingNow { get { return thinking; } }
         internal bool Done { get { return reply != null && replyDone >= 0; } }
         internal bool Quiet { get { return reply == null && !thinking && !Typer.IsVisible; } }
         internal Control Face { get { return Bubble.Sheet; } }
 
         internal void Open()
         {
+            pet.TypedConversation();
             asked = null;
             secretTo = null;
             if (Typer.Secret) Typer.Secret = false;
@@ -890,6 +912,22 @@ namespace CapriDesktop
             replyStart = pet.Now;
             replyDone = -1;
             Start(heard);
+        }
+
+        internal void StreamAnswer(string heard, string partial)
+        {
+            if (pet.Away || string.IsNullOrEmpty(partial)) return;
+            reply = partial;
+            thinking = false;
+            replyStart = pet.Now - partial.Length / Math.Max(1, pace);
+            replyDone = -1;
+            leaving = -1;
+            Sheet sheet = Bubble.Sheet;
+            sheet.Heard = heard;
+            sheet.Reply = partial;
+            sheet.Thinking = false;
+            sheet.Revealed = partial.Length;
+            Update(pet.Now);
         }
 
         private void Start(string heard)
@@ -954,7 +992,7 @@ namespace CapriDesktop
         private void UpdatePill(double now)
         {
             bool allowed = !pet.Busy;
-            if (allowed && (pet.Hovered || (Pill.IsVisible && Pill.Over) || Typer.IsVisible || reply != null || thinking)) pillUntil = Math.Max(pillUntil, now + 1.5);
+            if (allowed && (pet.Hovered || (Pill.IsVisible && Pill.Over) || Typer.IsVisible || pet.VoiceChatting || reply != null || thinking)) pillUntil = Math.Max(pillUntil, now + 1.5);
             if (!allowed || now > pillUntil) { if (Pill.IsVisible) Pill.Hide(); return; }
             double scale = pet.DesktopScaling;
             PixelPoint feet = pet.FeetPoint;
