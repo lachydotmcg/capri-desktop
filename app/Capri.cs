@@ -8959,6 +8959,16 @@ namespace CapriDesktop
             checks.Add("PASS disposing game ears wakes and joins its background thread");
         }
 
+        // Smoke checks call the handlers themselves. Input arriving while they pump messages belongs to whoever is using the PC.
+        private sealed class SmokeInput : IMessageFilter
+        {
+            public bool PreFilterMessage(ref Message message)
+            {
+                return (message.Msg >= 0x0100 && message.Msg <= 0x0109) || (message.Msg >= 0x0200 && message.Msg <= 0x020E)
+                    || (message.Msg >= 0x00A0 && message.Msg <= 0x00AD) || message.Msg == 0x0312;
+            }
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
@@ -8966,6 +8976,9 @@ namespace CapriDesktop
             File.Delete(Path.Combine(output, "smoke-test.txt"));
             Action<string> smokeStep = delegate(string name) { TestStep = name; File.WriteAllText(Path.Combine(output, "smoke-step.txt"), name); };
             smokeStep("startup");
+            SmokeInput smokeInput = new SmokeInput();
+            Application.AddMessageFilter(smokeInput);
+            FormClosed += delegate { Application.RemoveMessageFilter(smokeInput); };
             Hands.PleaseRoll = delegate { return 1; };
             Shown += delegate
             {
@@ -17491,9 +17504,13 @@ namespace CapriDesktop
                                 vsCloned = mainframe.ServerShown;
                                 lock (vsAsked) vsClonedBody = vsAsked.Count > vsAskedBefore ? vsAsked[vsAsked.Count - 1] : "";
                                 vsMode = "wav";
+                                bool vsCloudEscape = Native.PostMessage(vsFresh.Handle, 0x0100, new IntPtr((int)Keys.Escape), IntPtr.Zero);
+                                Application.DoEvents();
+                                if (vsFresh.IsDisposed || !vsFresh.Visible || mainframe.ServerPanel != vsFresh || mainframe.ServerChoices != vsCloudChoices) throw new Exception("Queued input closed or replaced the cloud voice panel: " + mainframe.ServerChoices);
                                 // A key typed for Fish Audio never goes to OpenAI.
                                 mainframe.PickService("OpenAI · cloud");
                                 vsCloudSwitch = mainframe.ServerShown;
+                                checks.Add(vsCloudEscape ? "PASS the cloud voice smoke panel ignores queued Escape, keeps its cloud choices, and still picks OpenAI through its menu handler" : "LIMIT Windows could not queue Escape to the cloud voice smoke panel");
                                 mainframe.PressServer("Cancel");
                                 // CUSTOM LOCAL's Set up opens it with only the choices on their PC, starting on a voice model file, which asks for its
                                 // folder, language and speaker instead, with Browse in place of a key.
@@ -17598,8 +17615,13 @@ namespace CapriDesktop
                                 CloseTalk();
                                 mainframe.SetUpCustom();
                                 vsKept = mainframe.ServerShown + " / " + (Voice.Unprotect(preferences.ServerKey) == "sk-panel-test-9876");
+                                Form vsKeptPanel = mainframe.ServerPanel;
+                                bool vsForgetEscape = Native.PostMessage(vsKeptPanel.Handle, 0x0100, new IntPtr((int)Keys.Escape), IntPtr.Zero);
+                                Application.DoEvents();
+                                if (vsKeptPanel.IsDisposed || !vsKeptPanel.Visible || mainframe.ServerPanel != vsKeptPanel) throw new Exception("Queued input closed or replaced the saved voice server panel.");
                                 mainframe.PressServer("Forget");
                                 vsForgot = mainframe.ServerShown + " / " + (preferences.ServerKey == null && server.Key == null && ServerKeyTail == null);
+                                checks.Add(vsForgetEscape ? "PASS the saved voice server smoke panel ignores queued Escape and still forgets its key through the Forget button handler" : "LIMIT Windows could not queue Escape to the saved voice server smoke panel");
                                 mainframe.PressServer("Cancel");
                                 // Her own styles and HD each take over from it, and it stays saved for next time.
                                 ChooseVoiceStyle("Sly");
@@ -19981,6 +20003,7 @@ namespace CapriDesktop
         [DllImport("user32.dll")] internal static extern bool AllowSetForegroundWindow(int process);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] internal static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, string lParam);
         [DllImport("user32.dll")] internal static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll", SetLastError = true)] internal static extern bool PostMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
         [DllImport("user32.dll")] internal static extern int MsgWaitForMultipleObjectsEx(int count, IntPtr[] handles, int milliseconds, int wake, int flags);
         [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr window);
         [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr window, IntPtr dc);

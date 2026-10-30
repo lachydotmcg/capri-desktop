@@ -2871,7 +2871,7 @@ namespace CapriDesktop
             internal void Choose(string name)
             {
                 foreach (ToolStripItem item in services.Items) if (item.Text == name) { item.PerformClick(); return; }
-                throw new InvalidOperationException("The voice model panel has no " + name + " to pick.");
+                throw new InvalidOperationException("The voice model panel has no " + name + " to pick: disposed " + IsDisposed + ", visible " + Visible + ", choices " + Choices + ".");
             }
 
             // Their own Fish Audio voices, listed with the key they typed or the one saved, to pick from.
@@ -3057,7 +3057,7 @@ namespace CapriDesktop
             {
                 foreach (Control control in Controls)
                     if (control is Key && control.Text == button && control.Visible && control.Enabled) { typeof(Control).GetMethod("OnClick", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).Invoke(control, new object[] { EventArgs.Empty }); return; }
-                throw new InvalidOperationException("The voice server panel has no " + button + " button to press.");
+                throw new InvalidOperationException("The voice server panel has no " + button + " button to press: disposed " + IsDisposed + ", visible " + Visible + ", enabled " + Enabled + ", saved key " + (savedTail != null) + ", choices " + Choices + ".");
             }
 
             protected override void OnShown(EventArgs e)
