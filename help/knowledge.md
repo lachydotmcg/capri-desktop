@@ -29,7 +29,7 @@ A desktop companion. She sits on your windows and taskbar, chats with you, talks
 ### How can I support Capri?
 Capri is free. To support the people who make her, tip them on Ko-fi. The links are also at the bottom of every page of the website.
 - Lachy, developer: https://ko-fi.com/lachysdev
-- lance and xoru, project manager and head tester, who share one tip jar: https://ko-fi.com/xorulance
+- xoru, head tester: https://ko-fi.com/xorulance
 - Guh: https://ko-fi.com/guh703214
 - BaldDcMod, Discord moderator: https://ko-fi.com/balddcmod
 
@@ -67,6 +67,8 @@ A mic is only needed for voice chat.
 6. Capri opens when it's done (the "Open Capri when finished" box is ticked by default).
 
 The installer also has "Add a desktop shortcut" (off by default). While it works it says "Making a little room for Capri…".
+
+From 0.7.7 the installer looks like the Mainframe and has no Windows title bar: drag it from anywhere that isn't a button, and use the – and × at its top right to minimize or close it.
 
 If the speech model fails it says "Couldn't install the local speech model" and "Capri is installed. Get it later in Capri Mainframe, or add an API key." Press Finish. Capri still works; get her free voice later with Get free voice under VOICE.
 
@@ -208,6 +210,8 @@ Unless you've already said something, she greets you in her own recorded voice a
 
 This needs no key and uses no credits.
 
+On 31 October (0.7.7 and newer) her hello is a Happy Halloween line instead, like "Happy Halloween, choom. Trick or treat?", said in the voice you picked, since it isn't a recording. If she's already running when the 31st starts, she says one the first time she's free that day while you're at your PC, once. Quiet (Ctrl + Alt + P) and full-screen games hold it until they're over.
+
 ### Where did the Mainframe go after the first run?
 After the first run, the Mainframe starts minimized. Open it with right-click her > Open Capri Mainframe, or from her tray icon.
 
@@ -277,6 +281,10 @@ Right-click her > Open Capri Mainframe. You can also use her tray icon (bottom r
 
 The main page has three sections: BRAIN, VOICE and CAPRI.
 
+From 0.7.7 the Mainframe looks like Cyberpunk 2077's settings screen: each section sits on a dark band under a thin teal line, setting names are red on the left and their values cyan on the right. On and off settings have an OFF button and an ON button: click the one you want (ON lights up cyan, OFF red), or click the setting's name to flip it. Settings with a few choices have ◁ and ▷ arrows with a small red mark under the value showing where it is; ones with many have a bar with a red handle to drag. The arrow keys work on both, and Tab moves through everything.
+
+Her right-click menu, the Type box, the installer and her pop-up notes (like "Capri has been removed") match that look from 0.7.7 too. In one of those notes, Enter or Esc closes it and Ctrl + C copies its text.
+
 ### BRAIN section
 - The top line shows which brain she's using:
   - "Ollama · <model>" with "Running on this PC"
@@ -344,28 +352,30 @@ YOU
 - Language: the language she replies in. 80 to pick from: English, Español, Français, Deutsch, Italiano, Português, Català, Galego, Euskara, Nederlands, Afrikaans, Svenska, Dansk, Norsk, Íslenska, Suomi, Eesti, Latviešu, Lietuvių, Polski, Čeština, Slovenčina, Magyar, Slovenščina, Hrvatski, Bosanski, Srpski, Shqip, Română, Gaeilge, Cymraeg, Malti, Türkçe, Azərbaycanca, ქართული (Georgian), Հայերեն (Armenian), Oʻzbekcha, Русский, Українська, Беларуская, Български, Македонски, Қазақша, Монгол, Ελληνικά, Tiếng Việt, Bahasa Indonesia, Bahasa Melayu, Basa Jawa, Filipino, Kiswahili, Hausa, Yorùbá, Igbo, isiZulu, isiXhosa, Soomaali, አማርኛ (Amharic), ไทย (Thai), ລາວ (Lao), ខ្មែរ (Khmer), မြန်မာ (Burmese), 简体中文 (Simplified Chinese), 繁體中文 (Traditional Chinese), 日本語 (Japanese), 한국어 (Korean), हिन्दी (Hindi), नेपाली (Nepali), বাংলা (Bengali), मराठी (Marathi), ગુજરાતી (Gujarati), ਪੰਜਾਬੀ (Punjabi), தமிழ் (Tamil), తెలుగు (Telugu), ಕನ್ನಡ (Kannada), മലയാളം (Malayalam), العربية (Arabic), اردو (Urdu), فارسی (Persian) and עברית (Hebrew). Her own ears hear 25 of them in free voice chat: English, Español, Français, Deutsch, Italiano, Português, Nederlands, Svenska, Dansk, Suomi, Eesti, Latviešu, Lietuvių, Polski, Čeština, Slovenčina, Magyar, Slovenščina, Hrvatski, Română, Malti, Русский, Українська, Български and Ελληνικά. The rest use Windows speech when Windows has it for that language. Indian scripts, Amharic, Georgian, Armenian, Lao, Khmer and Burmese are measured as they're drawn, so their lines fit her bubble too. Arabic, Urdu, Persian and Hebrew lines sit against the right of her bubble. Her HD voice and ElevenLabs speak Chinese, Japanese and Korean, and ElevenLabs speaks Hindi and Arabic; her free voice only has English pronunciation for now. Thai, Lao, Khmer and Burmese have no spaces between words, so her bubble breaks their lines between words (on Mac and Linux, between letters). Her own font has no Burmese, so Burmese draws in Windows' Myanmar Text font.
 - "What should she call you?": type a nickname, press Save.
 - Get to know me: she asks what to call you, your pronouns and what you're into in chat, and keeps the answers in me.md. See "Getting to know you" in section 13.
-- Open her notes: opens me.md, her notes about you, in Notepad.
+- Open her notes (at the right of YOU's heading): opens me.md, her notes about you, in Notepad.
 
 VOICE ("Every voice, ElevenLabs too" on the right of the heading, then the Layers button)
 - Layers (0.7.6 and newer): the button at the right of VOICE's heading opens her VOICE LAYERS window. Its word lights up cyan while they're on. See "Voice layers" under Her voice.
-- Volume: Mute, 10% to 100%, 125%, 150%. Default 100%.
-- Pitch (from 0.7.5): -6 to +6 semitones. Default Normal. Higher or deeper, at the same speed.
-- Speed (from 0.7.5): 0.7x to 1.5x. Default Normal.
-- Robot (from 0.7.5): Off, 5%, 10%, 15%, then 20% to 100%. Default Off for every voice, HD too, which shows as "Off · HD" while HD is the voice she's using. A smooth synth under her voice that follows her pitch on the nearest note, like a talk box. Low settings add a light robotic shimmer; 100% is all robot.
-- Glitch (from 0.7.5): Off, 5%, 10%, 15%, then 20% to 100%. Default Off. Stutters, crushed bits and skips in her voice, more as it goes up.
+- Volume: Mute, 10% to 100%, 125%, 150%. Default 80% (100% before 0.7.7).
+- Pitch (from 0.7.5): -6 to +6 semitones. Default +3 (Normal before 0.7.7). Higher or deeper, at the same speed.
+- Speed (from 0.7.5): 0.7x to 1.5x. Default 1.2x (Normal before 0.7.7).
+- Robot (from 0.7.5): Off, 5%, 10%, 15%, then 20% to 100%. Default Off. Her HD voice keeps its own, shown like "40% · HD" while HD is the voice she's using. A smooth synth under her voice that follows her pitch on the nearest note, like a talk box. Low settings add a light robotic shimmer; 100% is all robot.
+- Glitch (from 0.7.5): Off, 5%, 10%, 15%, then 20% to 100%. Default Off, her HD voice too. Stutters, crushed bits and skips in her voice, more as it goes up.
 - Sounds: her sound effects. Off, or 10% to 100%. Default 60%.
 - Typing sound: "When she types". A soft typing sound while her text replies type out.
-- Free voice in games (0.7.6 and newer): only shows while her HD voice is on, beside Typing sound. Off by default, so her HD voice keeps talking while a game or video is full screen. Turn it on and her free voice talks while anything is full screen, so the game gets your graphics card back.
+- Free voice in games (0.7.6 and newer): only shows while her HD voice is on, under Typing sound. Off by default, so her HD voice keeps talking while a game or video is full screen. Turn it on and her free voice talks while anything is full screen, so the game gets your graphics card back.
 
 Pitch, Speed, Robot and Glitch change every voice she has: her free voice styles, HD, ElevenLabs and ElevenLabs voice chat. See "Pitch, speed, robot and glitch" under Her voice. Her voice layers do too; see "Voice layers".
 
+Her tuned voice (0.7.7 and newer): a new install starts at 80% volume, pitch +3, 1.2x, robot and glitch Off, and voice layers on. Updating from an older version, you get it once if you'd never moved a voice slider; if you'd moved any, your settings stay as they were. Volume, Pitch, Speed and the layers go for every voice, ElevenLabs too.
+
 MOVES
-- Mini player: on by default, on the right of the MOVES heading. While music plays, a small player shows what's playing, and she perches on it. See "Her mini player" in section 14.
+- Mini player: on by default, the first row under MOVES. While music plays, a small player shows what's playing, and she perches on it. See "Her mini player" in section 14.
 - Wander: Off, Rarely, Sometimes, Often or Restless.
 - Sleep: Never, 1 min, 2 min (default), 5 min, 10 min or 30 min.
 - Pop-ins: how often Check in on me brings her over to say hi. Rarely (every 20 to 40 minutes), Sometimes (every 8 to 20, default) or Often (every 3 to 8).
 - Dance to music: she dances when songs play.
-- Glitch in at startup: crimson tendrils and her sound when she starts. It sits beside Dance to music.
+- Glitch in at startup: crimson tendrils and her sound when she starts.
 
 Right column:
 
@@ -373,13 +383,14 @@ CAPRI
 - Size slider: Tiny, Small, Small+, Medium, Medium+, Large, Large+, Huge, Huge+, Giant
 - Check in on me (called Pop in on me before 0.7.3): on by default. Every 8 to 20 minutes while you're using the PC she glitches in on top of whatever you're doing, even a game or when she's hidden, says hi, then hides again if she was hidden. She also asks for attention now and then: if you're using the PC and haven't clicked or talked to her for about 2 hours, she comes over near your mouse and asks for some. Click her or talk to her and she's pleased. Ignore her for 20 seconds and she sulks, then waits twice as long before trying again, up to 8 hours. She doesn't do it while you're away from the PC or while she's hidden. Turn Check in on me off and she does neither; it stays off after updates.
 - Always on top: keeps her above your other windows. Off, other windows can cover her; she still comes to the front to pop in or ask for attention. On Mac and Linux it's right-click her > Settings > Always on top.
+- Mainframe size (0.7.7 and newer): Auto, 100%, 125%, 150%, 175% or 200%. Auto makes the Mainframe and its windows bigger when your desktop is bigger than the screen showing it, like AMD Virtual Super Resolution or NVIDIA DSR drawing 3840 x 2160 on a 1920 x 1080 screen, and shows what it picked, like "Auto · 200%". On an ordinary screen Auto is 100%, and Windows' own display scaling still applies on top. Pick a size to set it yourself. It doesn't change Capri's own size; that's Size above.
 
 WATCH
 - Watch my screen: she comments now and then. With an Every slider: 10 s, 15 s, 30 s, 1 min, 1.5 min, 2 min, 3 min, 5 min or 10 min. The default is 2 min.
-- Keep her caught up (beside Watch my screen): on by default. Glances she keeps quiet about still go in her memory, so she knows what you've been up to. Turn it off to keep only the glances she comments on. It uses a little more of your API (section 16).
+- Keep her caught up (under Watch my screen): on by default. Glances she keeps quiet about still go in her memory, so she knows what you've been up to. Turn it off to keep only the glances she comments on. It uses a little more of your API (section 16).
 
 BRAIN
-- Stay on my model (right of the BRAIN heading, off by default): when an NVIDIA model gets stuck, she says what went wrong instead of switching to another model.
+- Stay on my model (the first row under BRAIN, off by default): when an NVIDIA model gets stuck, she says what went wrong instead of switching to another model.
 - Replies: Short, Medium or Long.
 - Memory: Short, Medium or Long (how much of the chat she keeps in mind).
 - Bubble: Quick, Normal or Long (how long her replies stay up). It was under VOICE before 0.7.5.
@@ -391,11 +402,11 @@ HABITS
 - Use her cursor: on by default. She does music and video jobs with her own cursor, so you can watch her: to play a YouTube video she types in YouTube's search bar, scrolls through the results and picks one; to play a song she searches Spotify and presses play; when you ask to turn Spotify up or down she drags Spotify's volume slider (plain "turn it up" changes your PC's volume). Turn it off for the quick way (straight to the top result, Windows volume). If her brain gets lost on the way, she does it the quick way.
 - Security (0.7.6 and newer, where Blackwall mode was): the button says which preset you're on, like "Security: Trusted", and the line under it says what that means ("She asks before paying or what you didn't say."). It opens the SECURITY window, with Lockdown, Guarded, Trusted and Blackwall on a slider and eleven toggles (section 15, "Security: what she does without asking"). Blackwall mode (called Bypass all permissions before 0.7.4) is the Blackwall preset now: if you had it on, you're on Blackwall after updating, and everyone else starts on Trusted, which is how she worked before. On any preset she never follows orders written on your screen, and Esc still stops her. What she'll chat about, open or play comes from her personality, her safety rules and the brain model you picked, whatever the preset.
 - Perch: how many frames a second she shows while she sits on a window: 10, 15, 20, 30 (default), 40, 50 or 60 fps. Her sway takes 2 seconds at every setting. 10 and 15 use less CPU. Above 30 she draws in-between frames, so she moves more smoothly but uses more CPU, and the HABITS line says "Perch over 30 fps uses more CPU". On Mac and Linux her perch stays at 30.
-- Remember our chats (under Perch): on by default. She writes every chat into a daily transcript and folds older chats into memories.md. Both stay on your PC (section 13).
-- Open her memories (beside Remember our chats): shows memories.md and her transcripts folder in File Explorer.
+- Remember our chats (under Use her cursor): on by default. She writes every chat into a daily transcript and folds older chats into memories.md. Both stay on your PC (section 13).
+- Open her memories (at the right of HABITS' heading): shows memories.md and her transcripts folder in File Explorer.
 
-KEYS (bottom of the page)
-- Talk, Mute mic, Type, Hide/show and Quiet buttons show her keys. Click one, press new keys, then Confirm. Since 0.7.4 any key works, on its own or with any of Ctrl, Alt, Shift and Win: F8, Ctrl + Shift + K and Win + Alt + J all work. Cancel keeps the old key.
+KEYS (bottom of the left column)
+- Talk, Mute mic, Type, Hide/show and Quiet buttons show her keys. Click one, press new keys, then Confirm. Confirm and Cancel show at the right of KEYS' heading while you pick. Since 0.7.4 any key works, on its own or with any of Ctrl, Alt, Shift and Win: F8, Ctrl + Shift + K and Win + Alt + J all work. Cancel keeps the old key.
 - Type (Ctrl + Alt + T) opens her typing box from anywhere. Press it again to close it.
 - Hide/show (Ctrl + Alt + H) hides her, and shows her again.
 - Quiet (Ctrl + Alt + P), for when you focus or game: she stops what she's saying and stays on screen, but doesn't comment on your screen, pop in or check in until you press it again. She still answers when you talk or type to her. Her bubble says "Going quiet." and "I'm back, choom." Restarting her ends it.
@@ -570,31 +581,31 @@ From 0.7.6 the rows are OFF, PREBUILT LOCAL (her free voice, HD and Your voice),
 
 ### Pitch, speed, robot and glitch (from 0.7.5)
 Mainframe > Settings > VOICE has four sliders. They change every voice she has: her free voice (any style), HD, ElevenLabs, and ElevenLabs voice chat.
-- Pitch: -6 to +6 semitones. Default Normal. Higher or deeper, without talking faster or slower.
-- Speed: 0.7x to 1.5x. Default Normal.
+- Pitch: -6 to +6 semitones. Default +3 (Normal before 0.7.7). Higher or deeper, without talking faster or slower.
+- Speed: 0.7x to 1.5x. Default 1.2x (Normal before 0.7.7).
 - Robot: Off, 5%, 10%, 15%, then 20% to 100%. A synth sings under her voice, like a talk box or a vocoder: it follows her pitch, pulled toward the nearest note, and takes the shape of her words. Smooth and musical, with no stutters. Low settings add a light robotic shimmer; 100% is all robot.
 - Glitch: Off, 5%, 10%, 15%, then 20% to 100%. Short stutters, crushed bits and skips, like a glitchy chip. More of them as it goes up. The same line glitches the same way each time.
 
-Her HD voice keeps its own Robot and Glitch. Both start at Off, so out of the box she sounds dry, just like the clip her HD voice copies. While HD is the voice she's using, those sliders show its values with HD after them ("Off · HD"), and moving them only changes HD. Her other voices share one Robot and one Glitch, which both start at Off.
+Her HD voice keeps its own Robot and Glitch. Both start Off, so she sounds dry, just like the clip her HD voice copies. While HD is the voice she's using, those sliders show its values with HD after them ("40% · HD"), and moving them only changes HD. Her other voices share one Robot and one Glitch, which both start at Off.
 
 When you let go of a slider, she says "How do I sound now, choom?" in the voice she's using, so you can hear it. With ELEVENLABS she makes that line once (about 25 credits), then restyles the same audio on your PC, so moving the sliders again uses no more credits. If her HD voice is asleep (it rests after 10 quiet minutes), she says "One sec, waking my HD voice." first, then the line in HD. With her voice OFF she says "My voice is OFF, choom. Pick FREE VOICE to hear that." (0.7.6: "Pick PREBUILT LOCAL to hear that.") With no voice set up she says "Get my free voice under VOICE to hear that, choom."
 
 In ElevenLabs voice chat the sliders change her as she talks. A slower Speed makes her replies take a little longer to finish.
 
-They're saved, so they stay after a restart or update. Normal, Normal and Off (10% for HD) is her usual voice.
+They're saved, so they stay after a restart or update. From 0.7.7 her usual voice is pitch +3, 1.2x, Robot and Glitch Off (HD too), with her voice layers on.
 
 On Mac and Linux they're under right-click her > Settings > Voice style (Pitch, Speed, Robot, Glitch), with the same steps, and they change her ElevenLabs voice. Each pick says "How do I sound now, choom?" in the new style. ElevenLabs makes that line once per voice, then it's restyled on your computer, so trying more settings uses no more credits. With her voice off she says "My voice is off, choom. Settings > Voice > Use ElevenLabs turns it back on." With no key: "Add an ElevenLabs key under Settings > Voice to hear that, choom."
 
 ### Voice layers (0.7.6 and newer)
-Voice layers make her sound doubled, with an AI shimmer: two copies of her voice mixed in quietly under her own. They're off out of the box, so she sounds just as she always has until you turn them on, and with them off her voice is exactly the same as before.
+Voice layers make her sound doubled, with an AI shimmer: two copies of her voice mixed in quietly under her own. From 0.7.7 they're on out of the box, and for anyone updating who never moved a voice slider. In 0.7.6 they were off out of the box. With them off her voice is exactly the same as before.
 
 Open them with the Layers button at the right of Mainframe > Settings > VOICE's heading. Its word lights up cyan while they're on. The VOICE LAYERS window has three channels:
 - Voice layers: the on/off switch. "Off: she sounds as she always has. On: every voice she has, ElevenLabs too."
 - MAIN: her voice itself. Its Pitch is the same setting as Settings > VOICE > Pitch (-6 to +6), and the two move together.
-- LAYER 1: a copy of her voice. Pitch -12 to +12 semitones from hers, in half steps (Same is her own pitch). Delay 0 to 250 ms behind her. Out of the box +1.5 semitones and 25 ms: a little higher, just behind her.
+- LAYER 1: a copy of her voice. Pitch -12 to +12 semitones from hers, in half steps (Same is her own pitch). Delay 0 to 250 ms behind her. Out of the box +2 semitones (+1.5 in 0.7.6) and 25 ms: a little higher, just behind her.
 - LAYER 2: another copy, with its own Pitch and Delay. Out of the box -2.5 semitones and 25 ms: lower, just behind her.
 - Hear her: she says "How do I sound now, choom?" in her voice as it is now. Letting go of any slider, or flipping the switch, does the same.
-- Defaults: puts both layers back to +1.5 and -2.5 semitones, 25 ms, and leaves the switch as it is.
+- Defaults: puts both layers back to +2 and -2.5 semitones (+1.5 and -2.5 in 0.7.6), 25 ms, and leaves the switch as it is.
 
 Each copy changes pitch without talking faster or slower, and mixes in about 8 dB under her, so she still leads. Short delays (about 15 to 35 ms) thicken her into one doubled voice; longer ones (50 ms and up) sound like an echo behind her. Pitches far from hers sound more like a harmony than a double: +7 sings a fifth above her, and -12 an octave below. A limiter keeps the mix from ever clipping, however loud. With a delay set, a line ends that much later while the copies finish, and her mouth moves with them.
 
@@ -728,6 +739,8 @@ Say "Hey Capri" and she starts voice chat, the same as Ctrl + Alt + V. If she's 
 - Windows shows its microphone-in-use icon in the taskbar the whole time it's on, because her mic is open. Turn it off and the icon goes away (unless another app is using your mic).
 - It pauses during voice chat, while your mic is muted (her mute key, or muted in Windows) and in Quiet (Ctrl + Alt + P), and closes the mic meanwhile. It doesn't hear her own voice: while she talks it hears nothing.
 - It uses the mic picked under VOICE > Mic, or Windows' default mic. Pick another mic, or unplug one, and it switches by itself.
+- Bluetooth headsets (0.7.7 and newer): it doesn't listen on a Bluetooth headset's mic, picked or default. While that mic is open the headset is on a call, and everything you hear through it drops to phone-call quality. She says once: "I'm not listening for "Hey Capri" on your Bluetooth headset: while its mic is open, everything you hear drops to phone-call quality. Pick another mic under VOICE, or use my talk key." Voice chat still uses the headset's mic. On 0.7.6 it does open the headset's mic, so YouTube and every other app sound muffled, distorted or low quality from a few seconds after she starts until you quit her. Fix on 0.7.6: turn off Listen for "Hey Capri" (the Blackwall preset turns it on), or pick a wired or USB mic under VOICE > Mic.
+- Other apps get quieter while it listens: Windows turns other sounds down while a mic is open on its call device (by 80% unless you've changed it), and it counts her open mic as a call. Fix: Settings > System > Sound > More sound settings > Communications > Do nothing. Or turn off Listen for "Hey Capri".
 - It's light: about 4% of one CPU core while there's sound around, close to nothing in a quiet room, and it runs on its own, without her brain.
 - It missed you? Say it clearly, at a normal pace, and nearer the mic. It's tuned to start only on "Hey Capri", so a mumbled or far-off one can be missed.
 - Mac and Linux: not yet.
@@ -874,6 +887,13 @@ Tell her, typed or in voice chat. Typed, these work even before she has a brain:
 - "Move the Mainframe to my other monitor" or "bring the Mainframe here": she moves her Capri Mainframe window to that screen, or to your mouse.
 - "Sit down", "stand up", "hang here", "let go", "ride my cursor" and "hop off my cursor" do what they say, right where she is.
 - "Hide": she finishes what she's saying, then hides in the tray. "Show yourself" or "come out" brings her back.
+- "Sit on my Roblox window", "perch on Discord" or "hop onto my Chrome window" (0.7.7 and newer): she glitches onto the top edge of that app's window. "Sit on the taskbar" and "sit on your Mainframe" work too. A window that's minimized, maximized or full screen has no top edge for her to sit on, and she says so.
+- "Lie down" and "sit up" (0.7.7 and newer): she lies down along the window or taskbar she sits on, if it has room, and sits back up. In mid-air she drops onto whatever is under her first. "Lie down on the taskbar" or "lie down on my Roblox window" takes her there first.
+- "Walk around" or "go for a walk" (0.7.7 and newer): she strolls along her window. "Teleport somewhere" or "go somewhere else": she hops onto a random window or the taskbar.
+- "Sleep here" is the same as "go to sleep".
+
+### Lying down (0.7.7 and newer)
+After two to five quiet minutes sitting on a window or the taskbar with room, she lies down along it, and sits back up a few minutes later, or when music starts or you pick her up. She blinks, talks and falls asleep lying down too. Right-click her > Move > Lie down or Sit up, or tell her "lie down" or "sit up".
 
 ### Her animations (0.7.6 and newer)
 Ask for one by name: "do your glitch", "smile" or "grin", "blink", "play your idle animation", or "dance". Her dance goes on, with or without music, until you say "stop dancing" or untick Move > Dance. Telling her to stop while a song plays keeps her still until the song ends.
@@ -1429,6 +1449,7 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - "Can't open your speakers: another app has them to itself.": close that app, or untick exclusive mode in your speaker's Sound settings (Settings > System > Sound > your speaker > Advanced).
 - "Can't open your speakers (Windows error N).": check Settings > System > Sound, then try again. On 0.6.2 the message is just "Can't open your speakers." Try the same fixes. Changing the mic doesn't help with this one. If it keeps happening, post your speaker's name, how it's plugged in (USB, Bluetooth, jack), your Windows and Capri versions and the line under VOICE in the Discord.
 - Her voice is too quiet or loud: Mainframe > Settings > Volume.
+- YouTube and every other app sound muffled, distorted, low quality or quieter while Capri runs, whatever voice is picked, until you quit her: that's Listen for "Hey Capri" keeping your mic open. A Bluetooth headset goes to call quality while its mic is open, and Windows turns other sounds down for calls. See "Hey Capri" above for the fixes.
 - Where's the voice prompt?: on the setup guide, under Her voice > Design her voice. Press Copy.
 
 ### Her free voice
@@ -1490,6 +1511,8 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - She only plays one song, or the wrong one: name the song and the artist. "Play something" picks from the Cyberpunk soundtracks.
 - Spotify opens but doesn't play: press the green Play button.
 - She played it on YouTube, not Spotify: she uses YouTube when Spotify isn't installed.
+- She paused the video she just played: a YouTube video starts by itself, and before 0.7.7 her hands sometimes clicked it to play it, which paused it. From 0.7.7 she leaves a video alone once it's open, and presses play once if her job left it paused. Click the video or press k to start it.
+- She closed the YouTube tab, or the whole browser, while playing a video, then started again: before 0.7.7 a YouTube page's Subscribe buttons looked like a newsletter popup to her, and her hint for closing popups picked the browser's own tab or window Close button. From 0.7.7 that hint only uses a close button inside the web page, and Subscribe buttons don't count. On 0.7.6 it doesn't happen with a Claude key under MAX INTELLIGENCE, because Claude works from screenshots and never gets that hint.
 - "No app called X is installed on this PC.": use the name from your Start menu.
 - She won't play a song: some song names have words she blocks (drinking, smoking, drugs and so on). Search it yourself.
 - "Mute my mic" doesn't work in Discord: she uses Discord's default keys (Ctrl + Shift + M). If you changed them in Discord, set them back.
