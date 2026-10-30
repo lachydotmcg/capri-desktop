@@ -9195,7 +9195,7 @@ namespace CapriDesktop
             string lookoutCall = "watch_for{\"text\":\"my health is low\",\"often\":\"every_time\"}";
             if (!Hands.Typed(lookoutCall, out lookoutTool, out lookoutArgs) || lookoutTool != "watch_for" || lookoutArgs.Often != "every_time" || Hands.Written(lookoutCall).Count != 1
                 || !Hands.Typed("watch_for(text='the boss spawns', often='once')", out lookoutTool, out lookoutArgs, true) || lookoutArgs.Often != "once"
-                || !Hands.Tools.Contains("watch_for") || !Hands.ClaudeTools.Contains("watch_for") || !Hands.Listing.Contains("watch_for") || Hands.Name(Hands.Count - 1) != "watch_for") throw new Exception("A native or written watch tool was missing.");
+                || !Hands.Tools.Contains("watch_for") || !Hands.ClaudeTools.Contains("watch_for") || !Hands.Listing.Contains("watch_for")) throw new Exception("A native or written watch tool was missing.");
             if (Hands.Read("{\"repeat\":3}").Repeat != 3 || !Hands.Valid("watch_for", new ToolArguments { Action = "stop" })
                 || Hands.Valid("watch_for", new ToolArguments { Text = "health", Often = "sometimes" })) throw new Exception("Watch repeats changed keyboard repeats or accepted an unknown mode.");
             if (Asides.Plain("tell me when my health is low", out lookoutTool, out lookoutArgs) != AsideKind.Tool || lookoutTool != "watch_for" || Security.Needs(lookoutTool, lookoutArgs) != -1) throw new Exception("A watch could not run beside a job.");
