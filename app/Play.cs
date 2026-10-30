@@ -241,8 +241,8 @@ namespace CapriDesktop
         private static readonly Regex PlainClick = new Regex(@"\b(click|double_click|right_click)\W+(\d{1,3}(?:\.\d+)?)\W+(\d{1,3}(?:\.\d+)?)\b", RegexOptions.IgnoreCase);
 
         // The moves written in a brain's reply, in order.
-        internal const string Hitch = "Don't stop yet: games hitch. Wait 20 seconds, look again and keep playing. If you can only stop, say so again after that.";
-        private static readonly Regex GaveUp = new Regex(@"\b(stuck|frozen|froze|freezing|hung|hanging|stopped responding|not responding|isn'?t responding|unresponsive|can'?t (continue|carry on|go on|keep playing)|cannot (continue|carry on|go on|keep playing))\b", RegexOptions.IgnoreCase);
+        internal const string Hitch = "Don't stop yet. If the game looks frozen, wait 20 seconds and look again. If you're lost or stuck, that's normal: turn around, go back, jump, or try another way, and keep playing.";
+        private static readonly Regex GaveUp = new Regex(@"\b(stuck|wedged|lost|frozen|froze|freezing|hung|hanging|stopped responding|not responding|isn'?t responding|unresponsive|dead end|no way (forward|through|out|past)|nowhere to go|(can'?t|cannot|couldn'?t|could not|haven'?t|didn'?t) (continue|carry on|go on|keep playing|find|found|get past|get through)|i stopped here)\b", RegexOptions.IgnoreCase);
         internal static bool GivingUp(string words) { return GaveUp.IsMatch(words ?? ""); }
 
         internal static List<KeyValuePair<string, ToolArguments>> Moves(string reply)

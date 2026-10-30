@@ -12683,7 +12683,7 @@ namespace CapriDesktop
                 System.Threading.Thread.Sleep(0);
                 if (playLines.Count != 2 || playLines[1] != "Eat dirt.") throw new Exception("A fresh game job couldn't talk.");
                 if (Computer.Moves("say{\"text\": \"Eat dirt.\"}\nclick{\"x\": 50, \"y\": 48}").Count != 2 || Computer.Moves("say{\"text\": \"Eat dirt.\"}")[0].Key != "say") throw new Exception("A written say wasn't read as a move.");
-                if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
+                if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || !Computer.GivingUp("I stopped here because I'm wedged against a wall and I haven't found a single enemy.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
                 checks.Add("PASS she says lines out loud while she plays, one sentence at a time and only in games");
                 if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
                 Func<string, bool> localSeesWas = Brain.LocalSees;
