@@ -12,6 +12,7 @@ namespace CapriDesktop
     {
         internal Func<string, CodexBrain> Codex = path => new CodexBrain(path);
         internal Func<string[]> LocalModels = Brain.InstalledModels;
+        internal Action<string, Action<string, long, long>, Func<bool>> Pull = Brain.Pull;
         internal Func<string, System.Collections.Generic.List<string>> CloudModels = Brain.CloudModels;
     }
 

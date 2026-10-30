@@ -2603,13 +2603,15 @@ namespace CapriDesktop
         internal void PullBrain()
         {
             if (pulling) return;
+            int selection = Volatile.Read(ref brainSelection);
+            string provider = BrainProvider;
             pulling = true;
             pulled = -1;
             Talk.Answer(BrainHeard, "Downloading my brain, " + Starter + ". It's a few GB, so give me a while. Right-click me > Brain shows how far it's got.");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;
-                try { Brain.Pull(Starter, delegate(string status, long done, long total) { pulled = (int)(done * 100 / Math.Max(1, total)); }, delegate { return false; }); }
+                try { brainConnections.Pull(Starter, delegate(string status, long done, long total) { pulled = (int)(done * 100 / Math.Max(1, total)); }, delegate { return false; }); }
                 catch (Exception error)
                 {
                     System.Net.WebException web = error as System.Net.WebException;
@@ -2619,10 +2621,15 @@ namespace CapriDesktop
                 {
                     pulling = false;
                     pulled = -1;
+                    if (!OwnsBrainSelection(selection) || BrainProvider != provider) return;
                     if (problem != null) { Talk.Answer(BrainHeard, problem); return; }
-                    Brain.Model = Starter;
-                    Saved.Model = Starter;
-                    Save();
+                    if (provider != "ollama")
+                    {
+                        Talk.Answer(BrainHeard, Starter + " is downloaded for local Ollama. Your selected brain is unchanged.");
+                        return;
+                    }
+                    PickBrain(Starter);
+                    ProviderChanged();
                     Talk.Answer(BrainHeard, "My brain's in. Talk to me, choom.");
                 });
             });

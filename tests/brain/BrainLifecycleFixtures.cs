@@ -119,6 +119,56 @@ internal sealed class BrainLifecycleFixtures : Application
             finally { provider.Release.TrySetResult(true); Close(pet); }
         }
 
+        foreach (string change in new[] { "current", "codex", "cloud", "provider", "model", "stop", "disconnect", "hide", "roundtrip", "current-error", "provider-error" })
+        {
+            var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            string downloaded = Path.Combine(directory, "download-" + change);
+            var services = new BrainConnections
+            {
+                LocalModels = () => new[] { "latest-local" },
+                Pull = (model, progress, cancelled) =>
+                {
+                    entered.TrySetResult(true); release.Task.GetAwaiter().GetResult();
+                    if (change.EndsWith("error")) throw new IOException("fixture download failure");
+                    File.WriteAllText(downloaded, model); progress("done", 1, 1);
+                }
+            };
+            var pet = MakePet(desktop, services);
+            try
+            {
+                string initial = change == "codex" || change == "cloud" ? change : "ollama";
+                pet.Saved.BrainProvider = initial; pet.Brain.Model = "before"; pet.Saved.Model = "saved-local";
+                if (initial == "cloud") pet.Brain.Remote = new Cloud("sk-fixture", "before");
+                pet.PullBrain(); await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                if (change == "provider" || change == "provider-error" || change == "roundtrip") await pet.SelectBrainProviderAsync("cloud");
+                if (change == "roundtrip") await pet.SelectBrainProviderAsync("ollama");
+                if (change == "model") await pet.SelectBrainModelAsync("latest-local");
+                if (change == "stop") pet.StopTalking();
+                if (change == "disconnect") pet.DisconnectCodex();
+                if (change == "hide") pet.HideAway();
+                string selectedProvider = pet.BrainProvider, selectedModel = pet.Brain.Model, savedModel = pet.Saved.Model, reply = pet.Talk.Reply;
+                release.TrySetResult(true);
+                var deadline = System.Diagnostics.Stopwatch.StartNew();
+                while (Field<bool>(pet, "pulling"))
+                {
+                    if (deadline.Elapsed > TimeSpan.FromSeconds(5)) throw new TimeoutException("Download completion did not reach the UI.");
+                    await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background);
+                }
+                if (change == "current")
+                    BrainChecks.Check(pet.BrainProvider == "ollama" && pet.Brain.Model == Pet.Starter && pet.Saved.Model == Pet.Starter && pet.Talk.Reply.Contains("My brain's in"), "current Ollama download selects Starter through the model-selection boundary");
+                else
+                {
+                    BrainChecks.Check(pet.BrainProvider == selectedProvider && pet.Brain.Model == selectedModel && pet.Saved.Model == savedModel, change + " download completion preserves the current provider and model");
+                    if (change == "codex" || change == "cloud") BrainChecks.Check(pet.Talk.Reply.Contains("downloaded for local Ollama") && !pet.Talk.Reply.Contains("My brain's in"), change + " download reports availability without claiming activation");
+                    else if (change == "current-error") BrainChecks.Check(pet.Talk.Reply.Contains("fixture download failure"), "current download error remains actionable");
+                    else BrainChecks.Check(pet.Talk.Reply == reply, change + " download completion cannot publish stale success or error");
+                }
+                if (!change.EndsWith("error")) BrainChecks.Check(File.ReadAllText(downloaded) == Pet.Starter, change + " completion retains downloaded files");
+            }
+            finally { release.TrySetResult(true); Close(pet); }
+        }
+
         foreach (string change in new[] { "ollama", "disconnect", "hide", "stop" })
         using (var server = await BrainProtocolFixtures.Server.Open())
         {
