@@ -2642,7 +2642,7 @@ namespace CapriDesktop
         // Clicking one spot over and over means it isn't working, and a screen that keeps moving hides that.
         private string Again(string name, ToolArguments args)
         {
-            if (name == "key" || name == "type" || name == "right_click") { clickRun = 0; return ""; }
+            if (name == "right_click") { clickRun = 0; return ""; }
             if (name != "left_click" || args.Coordinate == null || args.Coordinate.Length < 2) return "";
             double x = args.Coordinate[0], y = args.Coordinate[1];
             clickRun = clickRun > 0 && Math.Abs(x - clickX) <= 40 && Math.Abs(y - clickY) <= 40 ? clickRun + 1 : 1;
