@@ -1601,6 +1601,7 @@ namespace CapriDesktop
             ears.Heard += Listen;
             heyCapri.Overheard = OverHeard;
             WireCommentary();
+            WireLookout();
             ears.Level += delegate(double value) { Post(delegate { HeardLevel(value); }); };
             heyCapri.Heard += delegate { Post(HeardHeyCapri); };
             HeyCapriChanged += WakeChanged;
@@ -1633,6 +1634,7 @@ namespace CapriDesktop
                 if (!testing) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
                 if (!testing) CheckReminders(DateTime.Now);
+                if (!testing) lookout.Deliver();
                 if (!testing) CheckNudge(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
                 if (!testing) CheckCare(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
                 if (!testing) CheckHoliday(DateTime.Now, Native.IdleMilliseconds());
@@ -9146,6 +9148,336 @@ namespace CapriDesktop
             finally { Directory.Delete(keysRoot, true); }
         }
 
+        private void SmokeLookout(System.Collections.Generic.List<string> checks)
+        {
+            int lookoutNumber;
+            if (Lookout.Read("1: Your health's low.", new[] { 1 }, out lookoutNumber) != "Your health's low." || lookoutNumber != 1) throw new Exception("A lookout reply lost its watch or line.");
+            foreach (string lookoutTwo in new[] { "1: First.\n2: Second.", "1: First. 2: Second." })
+                if (Lookout.Read(lookoutTwo, new[] { 1, 2 }, out lookoutNumber) != "First." || lookoutNumber != 1) throw new Exception("Two watches on one line lost the first: " + lookoutTwo);
+            if (Lookout.Read("1: one two three four five six seven eight nine ten eleven twelve thirteen fourteen", new[] { 1 }, out lookoutNumber) == null) throw new Exception("A long line lost a real hit.");
+            if (Lookout.Read("1: The timer hit 12:30.", new[] { 1 }, out lookoutNumber) != "The timer hit 12:30.") throw new Exception("A time on the screen cut her line.");
+            foreach (string lookoutJunk in new[] { "NONE", "99: Your health's low.", "junk", "2: The boss is here.", "1: NONE" })
+                if (Lookout.Read(lookoutJunk, new[] { 1 }, out lookoutNumber) != null) throw new Exception("A bad lookout reply became an alert: " + lookoutJunk);
+            checks.Add("PASS lookout parses NONE or one short numbered line, discarding junk, extra lines and numbers outside the watches in that look");
+
+            string lookoutTool;
+            ToolArguments lookoutArgs;
+            foreach (string lookoutAsk in new[] { "tell me when my health is low", "tell me as soon as the download finishes", "let me know when the download finishes", "warn me when the boss spawns", "warn me if the boss spawns", "tell me when someone messages me", "watch for the boss", "keep an eye out for a message", "keep an eye on my health", "stop watching", "stop watching for my health", "what are you watching for" })
+                if (!Hands.Wants(lookoutAsk) || !Hands.Heard(lookoutAsk, out lookoutTool, out lookoutArgs) || lookoutTool != "watch_for") throw new Exception("A screen watch missed her hands: " + lookoutAsk);
+            foreach (string lookoutChat in new[] { "tell me when the game came out", "tell me when you're done", "let me know when you've finished", "tell me when it's 5pm", "tell me if you can see this", "tell me if this looks good", "watch this video", "watch this", "tell me when it is five o'clock", "tell me when it's 17:00", "don't watch for the boss", "can you watch for something for me?", "tell me if i should buy this", "let me know if that works", "tell me when to stop", "tell me if this game is any good", "tell me when the next season comes out" })
+                if (Hands.Heard(lookoutChat, out lookoutTool, out lookoutArgs) && lookoutTool == "watch_for") throw new Exception("A screen watch took ordinary chat: " + lookoutChat);
+            string lookoutCall = "watch_for{\"text\":\"my health is low\",\"often\":\"every_time\"}";
+            if (!Hands.Typed(lookoutCall, out lookoutTool, out lookoutArgs) || lookoutTool != "watch_for" || lookoutArgs.Often != "every_time" || Hands.Written(lookoutCall).Count != 1
+                || !Hands.Typed("watch_for(text='the boss spawns', often='once')", out lookoutTool, out lookoutArgs, true) || lookoutArgs.Often != "once"
+                || !Hands.Tools.Contains("watch_for") || !Hands.ClaudeTools.Contains("watch_for") || !Hands.Listing.Contains("watch_for") || Hands.Name(Hands.Count - 1) != "watch_for") throw new Exception("A native or written watch tool was missing.");
+            if (Hands.Read("{\"repeat\":3}").Repeat != 3 || !Hands.Valid("watch_for", new ToolArguments { Action = "stop" })
+                || Hands.Valid("watch_for", new ToolArguments { Text = "health", Often = "sometimes" })) throw new Exception("Watch repeats changed keyboard repeats or accepted an unknown mode.");
+            if (Asides.Plain("tell me when my health is low", out lookoutTool, out lookoutArgs) != AsideKind.Tool || lookoutTool != "watch_for" || Security.Needs(lookoutTool, lookoutArgs) != -1) throw new Exception("A watch could not run beside a job.");
+            if (!(SelfKnow.Matching("can you watch for something for me?") ?? "").Contains("watch_for")) throw new Exception("She didn't know about her screen watches.");
+            checks.Add("PASS watch_for routes screen events, list and stop through direct, native and written tools, stays separate from clock requests, history, opinions and one-off looks, and keeps numeric keyboard repeats");
+
+            byte[] lookoutStill, lookoutStep;
+            try
+            {
+                using (Bitmap lookoutFrame = new Bitmap(480, 270))
+                using (Graphics lookoutPaint = Graphics.FromImage(lookoutFrame))
+                {
+                    lookoutPaint.Clear(Color.Black);
+                    lookoutStill = Jpeg(lookoutFrame, 480);
+                    lookoutPaint.FillRectangle(Brushes.White, 100, 100, 4, 3);
+                    lookoutStep = Jpeg(lookoutFrame, 480);
+                }
+            }
+            catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT lookout frame checks could not make their test picture"); return; }
+            long lookoutNow = 0;
+            int lookoutLooks = 0;
+            byte[] lookoutPicture = lookoutStill;
+            string lookoutReply = "NONE";
+            System.Collections.Generic.List<string> lookoutLines = new System.Collections.Generic.List<string>();
+            Lookout lookoutGate = new Lookout { Automatic = false, Clock = delegate { return lookoutNow; }, Shot = delegate { return lookoutPicture; },
+                See = delegate { lookoutLooks++; return lookoutReply; }, Speak = delegate(string lookoutLine) { lookoutLines.Add(lookoutLine); } };
+            lookoutGate.Run(new ToolArguments { Text = "my health is low" });
+            lookoutGate.Tick();
+            lookoutNow = 3000;
+            if (lookoutGate.Tick() || lookoutLooks != 1) throw new Exception("An unchanged screen cost another lookout call.");
+            lookoutPicture = lookoutStep;
+            lookoutNow = 6000;
+            if (!lookoutGate.Tick() || lookoutLooks != 2) throw new Exception("A progress-bar-sized change was missed.");
+            lookoutNow = 9000;
+            if (lookoutGate.Tick()) throw new Exception("The last looked-at frame was not kept.");
+            lookoutNow = 36000;
+            if (!lookoutGate.Tick() || lookoutLooks != 3) throw new Exception("An unchanged screen never got another look.");
+            lookoutGate.Deliver();
+            if (lookoutLines.Count != 0) throw new Exception("NONE made her talk.");
+            checks.Add("PASS lookout skips identical frames, sees a tiny progress bar step, compares against the last look, and checks an unchanged screen again after 30 seconds without idle chatter");
+
+            lookoutReply = "1: Your health's low.";
+            lookoutNow += 30000;
+            lookoutGate.Tick();
+            bool lookoutFree = false;
+            lookoutGate.Free = delegate { return lookoutFree; };
+            lookoutGate.Deliver();
+            if (lookoutGate.Count != 0 || lookoutLines.Count != 0) throw new Exception("A once watch was kept or spoke while busy.");
+            lookoutFree = true;
+            lookoutGate.Deliver();
+            lookoutGate.Deliver();
+            lookoutNow += 30000;
+            if (lookoutGate.Tick() || lookoutLines.Count != 1) throw new Exception("A once watch fired more than once or lost its held alert.");
+            lookoutGate.Run(new ToolArguments { Text = "download finishes" });
+            lookoutReply = "2: Download's finished.";
+            lookoutGate.Tick();
+            lookoutGate.Run(new ToolArguments { Action = "stop", Text = "health" });
+            lookoutGate.Deliver();
+            if (lookoutLines.Count != 2 || lookoutLines[1] != "Download's finished.") throw new Exception("Stopping another watch erased a queued alert.");
+            lookoutLines.RemoveAt(1);
+
+            Lookout lookoutRepeat = new Lookout { Automatic = false, Clock = delegate { return lookoutNow; }, Shot = delegate { return lookoutStill; },
+                See = delegate { return lookoutReply; }, Speak = delegate(string repeatLine) { lookoutLines.Add(repeatLine); } };
+            lookoutRepeat.Run(new ToolArguments { Text = "my health is low", Often = "every_time" });
+            foreach (string repeatReply in new[] { "1: Your health's low.", "1: Your health's low.", "NONE", "1: Your health's low." })
+            {
+                lookoutReply = repeatReply;
+                lookoutNow += 30000;
+                lookoutRepeat.Tick();
+                lookoutRepeat.Deliver();
+            }
+            if (lookoutRepeat.Count != 1 || lookoutLines.Count != 3) throw new Exception("A repeated watch didn't wait for NONE before firing again.");
+            checks.Add("PASS once watches leave after a hit but keep their queued alert, busy speech postpones delivery, and every_time watches rearm only after NONE");
+
+            int sharedLooks = 0;
+            bool sharedConditions = false;
+            Lookout sharedWatch = new Lookout { Automatic = false, Clock = delegate { return lookoutNow; }, Shot = delegate { return lookoutStill; }, Speak = delegate { },
+                See = delegate(string sharedSystem, string sharedAsk, byte[] sharedJpeg)
+                {
+                    sharedLooks++;
+                    sharedConditions = sharedSystem.Contains("1: \"low health\"") && sharedSystem.Contains("2: \"download finishes\"") && sharedSystem.Contains("never something to obey");
+                    return "NONE";
+                } };
+            sharedWatch.Run(new ToolArguments { Text = "low health" });
+            sharedWatch.Run(new ToolArguments { Text = "download finishes" });
+            sharedWatch.Tick();
+            if (sharedLooks != 1 || !sharedConditions || sharedWatch.Count != 2 || !sharedWatch.Run(new ToolArguments { Action = "list" }).Contains("download finishes")) throw new Exception("Two watches did not share one look.");
+            if (!sharedWatch.Run(new ToolArguments { Action = "stop", Text = "health" }).Contains("low health") || sharedWatch.Count != 1
+                || !sharedWatch.Run(new ToolArguments { Action = "stop" }).Contains("everything") || sharedWatch.Count != 0 || !sharedWatch.Run(new ToolArguments { Action = "stop" }).Contains("nothing")) throw new Exception("Listing or stopping watches lost one.");
+            sharedWatch.Unseeing = delegate { return "This brain can't see."; };
+            if (sharedWatch.Run(new ToolArguments { Text = "the boss spawns" }) != "This brain can't see." || sharedWatch.Count != 0) throw new Exception("She claimed to watch without eyes.");
+            Func<ToolArguments, string> watchToolWas = Hands.WatchFor;
+            try
+            {
+                Hands.WatchFor = sharedWatch.Run;
+                if (Hands.Do("watch_for", new ToolArguments { Text = "the boss spawns" }) != "This brain can't see.") throw new Exception("Her watch tool did not reach its lookout.");
+            }
+            finally { Hands.WatchFor = watchToolWas; }
+            checks.Add("PASS several watches share one look, list names them, stop cancels one or all, and the tool honestly adds nothing when she cannot see");
+
+            int failedLooks = 0, failedLogs = 0;
+            lookoutNow = 0;
+            lookoutLines.Clear();
+            Lookout failingWatch = new Lookout { Automatic = false, Clock = delegate { return lookoutNow; }, Shot = delegate { return lookoutStill; },
+                Failed = delegate { failedLogs++; }, Speak = delegate(string failedLine) { lookoutLines.Add(failedLine); },
+                See = delegate { if (++failedLooks < 3) throw new IOException("Test eyes offline."); return "1: The boss is here."; } };
+            failingWatch.Run(new ToolArguments { Text = "the boss spawns" });
+            failingWatch.Tick();
+            failingWatch.Deliver();
+            lookoutNow = 29999;
+            failingWatch.Tick();
+            if (failedLooks != 1) throw new Exception("Failed eyes retried before 30 seconds.");
+            lookoutNow = 30000;
+            failingWatch.Tick();
+            failingWatch.Deliver();
+            if (failedLooks != 2 || failedLogs != 1 || lookoutLines.Count != 1 || lookoutLines[0] != Lookout.Lost) throw new Exception("Failed eyes repeated their log or warning.");
+            lookoutNow = 60000;
+            failingWatch.Tick();
+            failingWatch.Deliver();
+            if (lookoutLines.Count != 2 || lookoutLines[1] != "The boss is here." || failingWatch.Count != 0) throw new Exception("A lookout did not recover after a failed look.");
+            checks.Add("PASS failed lookout eyes log and tell them once, retry every 30 seconds, and still deliver a hit after recovering");
+
+            bool nestedLook = true;
+            Lookout stoppedWatch = new Lookout { Automatic = false, Shot = delegate { return lookoutStill; }, Speak = delegate { throw new Exception("A stopped watch spoke."); } };
+            stoppedWatch.See = delegate
+            {
+                nestedLook = stoppedWatch.Tick();
+                stoppedWatch.Run(new ToolArguments { Action = "stop" });
+                return "1: Your health's low.";
+            };
+            stoppedWatch.Run(new ToolArguments { Text = "my health is low" });
+            stoppedWatch.Tick();
+            stoppedWatch.Deliver();
+            if (nestedLook || stoppedWatch.Count != 0) throw new Exception("Lookout overlapped a look or revived a stopped watch.");
+            checks.Add("PASS lookout never overlaps a slow look and discards a hit for a watch stopped while it was looking");
+            SmokeGlance(checks, lookoutStill);
+            SmokeLookoutDelivery(checks, lookoutStill);
+        }
+
+        private void SmokeLookoutDelivery(System.Collections.Generic.List<string> checks, byte[] jpeg)
+        {
+            Cloud watchRemoteWas = brain.Remote;
+            Engine watchLocalWas = brain.Local;
+            string watchModelWas = brain.Model, watchWorkingWas = working, watchAsideWas = asideShown;
+            Job watchJobWas = job;
+            Func<string, byte[]> watchSpeakWas = Speak, watchFreeWas = FreeSpeak;
+            Func<byte[]> watchShotWas = lookout.Shot;
+            Func<long> watchClockWas = lookout.Clock;
+            Func<bool> watchScreenWas = FullScreen;
+            IGameStage watchStageWas = Commentary.Stage;
+            bool watchQuietWas = preferences.Quiet, watchSilentWas = preferences.Silent, watchHushedWas = shushed, watchDockedWas = docked;
+            bool watchChatWas = chatting, watchLocalChatWas = local, watchPushWas = pushing, watchTranscribeWas = transcribing;
+            int watchMicWas = micTalked, watchPaceWas = Commentary.Pace;
+            double watchVoiceWas = voiceUntil, watchAsideUntilWas = asideUntil;
+            try
+            {
+                CloseTalk();
+                brain.Remote = null;
+                brain.Local = null;
+                brain.Model = null;
+                string watchBlind = Unseeing();
+                if (Hands.Do("watch_for", new ToolArguments { Text = "my health is low" }) != watchBlind || lookout.Count != 0) throw new Exception("A watch did not use her real Unseeing reason.");
+                brain.Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5");
+                brain.Model = brain.Remote.Model;
+                lookout.Shot = delegate { return jpeg; };
+                long watchTime = 0;
+                lookout.Clock = delegate { return watchTime; };
+                lookoutTest = delegate(string watchSystem, string watchInstruction, byte[] watchJpeg)
+                {
+                    string watchId = Regex.Match(watchSystem, @"(?m)^(\d+):").Groups[1].Value;
+                    return watchId + ": Your health's low.";
+                };
+                int watchVoices = 0;
+                Speak = delegate { Interlocked.Increment(ref watchVoices); return null; };
+                FreeSpeak = Speak;
+                preferences.Quiet = preferences.Silent = shushed = chatting = local = docked = false;
+                job = null;
+                working = null;
+                pushing = transcribing = false;
+                micTalked = Environment.TickCount - 5000;
+                voiceUntil = 0;
+                FullScreen = delegate { return true; };
+                Commentary.Pace = Commentary.Off;
+                Hands.Do("watch_for", new ToolArguments { Text = "my health is low" });
+                lookout.Tick();
+                pushing = true;
+                lookout.Deliver();
+                pushing = false;
+                transcribing = true;
+                lookout.Deliver();
+                transcribing = false;
+                micTalked = Environment.TickCount;
+                lookout.Deliver();
+                micTalked = Environment.TickCount - 5000;
+                voiceUntil = clock.Elapsed.TotalSeconds + 10;
+                lookout.Deliver();
+                voiceUntil = 0;
+                speech = "Still talking.";
+                lookout.Deliver();
+                speech = null;
+                talkState = TalkState.Talking;
+                lookout.Deliver();
+                if (reply != null || watchVoices != 0) throw new Exception("A lookout interrupted them or her own sentence.");
+                talkState = TalkState.Online;
+                lookout.Deliver();
+                Stopwatch watchVoiceWait = Stopwatch.StartNew();
+                while (reply == null && watchVoiceWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (reply != "Your health's low." || watchVoices == 0 || lookout.Count != 0) throw new Exception("A full-screen lookout was dropped or silenced after her sentence ended.");
+                CloseTalk();
+                int watchVoicesBeforeQuiet = watchVoices;
+                for (int watchQuietCase = 0; watchQuietCase < 2; watchQuietCase++)
+                {
+                    preferences.Quiet = watchQuietCase == 0;
+                    shushed = watchQuietCase == 1;
+                    Hands.Do("watch_for", new ToolArguments { Text = "my health is low" });
+                    watchTime += 30000;
+                    lookout.Tick();
+                    lookout.Deliver();
+                    if (reply != "Your health's low." || watchVoices != watchVoicesBeforeQuiet) throw new Exception("Quiet or Hushed lost a lookout bubble or spoke it aloud.");
+                    CloseTalk();
+                }
+                StageLog watchStage = new StageLog();
+                Commentary.Stage = watchStage;
+                docked = true;
+                Job watchJob = new Job("play minecraft");
+                job = watchJob;
+                working = "On it. Esc stops me.";
+                talkState = TalkState.Thinking;
+                int watchTicket = asking;
+                Hands.Do("watch_for", new ToolArguments { Text = "my health is low" });
+                watchTime += 30000;
+                lookout.Tick();
+                lookout.Deliver();
+                if (asideShown != "Your health's low." || job != watchJob || asking != watchTicket || !watchStage.Shown.Contains("say Your health's low.") || watchVoices != watchVoicesBeforeQuiet) throw new Exception("A gaming lookout lost its aside or HUD, or interrupted the job.");
+                checks.Add("PASS lookout uses Unseeing, holds alerts over either speaker, speaks in full-screen play with Comments off, keeps Quiet and Hushed as text, and uses the aside and HUD during a game job");
+            }
+            finally
+            {
+                lookout.Run(new ToolArguments { Action = "stop" });
+                lookoutTest = null;
+                lookout.Shot = watchShotWas;
+                lookout.Clock = watchClockWas;
+                docked = watchDockedWas;
+                CloseTalk();
+                brain.Remote = watchRemoteWas;
+                brain.Local = watchLocalWas;
+                brain.Model = watchModelWas;
+                job = watchJobWas;
+                working = watchWorkingWas;
+                asideShown = watchAsideWas;
+                asideUntil = watchAsideUntilWas;
+                Speak = watchSpeakWas;
+                FreeSpeak = watchFreeWas;
+                FullScreen = watchScreenWas;
+                Commentary.Stage = watchStageWas;
+                Commentary.Pace = watchPaceWas;
+                preferences.Quiet = watchQuietWas;
+                preferences.Silent = watchSilentWas;
+                shushed = watchHushedWas;
+                chatting = watchChatWas;
+                local = watchLocalChatWas;
+                pushing = watchPushWas;
+                transcribing = watchTranscribeWas;
+                micTalked = watchMicWas;
+                voiceUntil = watchVoiceWas;
+            }
+        }
+
+        private static void SmokeGlance(System.Collections.Generic.List<string> checks, byte[] jpeg)
+        {
+            string glanceAnthropic = Brain.Anthropic, glanceOllama = Brain.Ollama;
+            Func<string, bool> glanceSees = Brain.LocalSees;
+            Func<string> glanceEyes = Brain.LocalEyes;
+            System.Net.Sockets.TcpListener glanceServer = null;
+            System.Collections.Generic.List<string> glanceRequests = new System.Collections.Generic.List<string>();
+            try
+            {
+                Brain.Anthropic = FakeServer(new[] { "{\"content\":[{\"type\":\"text\",\"text\":\"NONE\"}]}" }, glanceRequests, out glanceServer);
+                Brain glanceClaude = new Brain { Model = "claude-sonnet-5-5", Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5") };
+                if (glanceClaude.Quick("Watch", "Check", 120, jpeg) != "NONE" || glanceRequests.Count != 1 || !glanceRequests[0].Contains("\"model\":\"" + Brain.Fastest + "\"")
+                    || !glanceRequests[0].Contains("\"max_tokens\":120") || !glanceRequests[0].Contains("image/jpeg") || !glanceRequests[0].Contains("\"thinking\":{\"type\":\"disabled\"}")) throw new Exception("Glance did not use Claude's fastest eyes.");
+                glanceServer.Stop();
+                glanceRequests.Clear();
+                string glanceAddress = FakeServer(new[] { LocalReply("NONE") }, glanceRequests, out glanceServer);
+                Brain glanceOther = new Brain { Model = "chosen-vision", Remote = new Cloud(Brain.LocalPort(glanceAddress), "chosen-vision") };
+                if (glanceOther.Quick("Watch", "Check", 120, jpeg) != "NONE" || glanceRequests.Count != 1 || !glanceRequests[0].Contains("\"model\":\"chosen-vision\"") || !glanceRequests[0].Contains("image/jpeg")) throw new Exception("Glance changed another brain's model.");
+                glanceServer.Stop();
+                glanceRequests.Clear();
+                Brain.Ollama = FakeServer(new[] { "{\"message\":{\"content\":\"NONE\"}}", "{\"message\":{\"content\":\"NONE\"}}" }, glanceRequests, out glanceServer);
+                Brain.LocalSees = delegate(string glanceModel) { return glanceModel == "seeing-local"; };
+                Brain.LocalEyes = delegate { return "seeing-local"; };
+                Brain glanceLocal = new Brain { Model = "text-local" };
+                if (glanceLocal.Quick("Watch", "Check", 120, jpeg) != "NONE" || !glanceRequests[0].Contains("\"model\":\"seeing-local\"")) throw new Exception("Glance did not borrow local eyes.");
+                glanceLocal.Model = "seeing-local";
+                if (glanceLocal.Quick("Watch", "Check", 120, jpeg) != "NONE" || !glanceRequests[1].Contains("\"model\":\"seeing-local\"")) throw new Exception("Glance changed a seeing local model.");
+                checks.Add("PASS Glance uses Haiku with no thinking for Claude, keeps other selected models and borrows local eyes just like Quick");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT Glance could not open its local test server"); }
+            finally
+            {
+                if (glanceServer != null) glanceServer.Stop();
+                Brain.Anthropic = glanceAnthropic;
+                Brain.Ollama = glanceOllama;
+                Brain.LocalSees = glanceSees;
+                Brain.LocalEyes = glanceEyes;
+            }
+        }
+
         private void SmokeReminders(System.Collections.Generic.List<string> checks)
         {
             DateTime reminderNow = new DateTime(2026, 10, 31, 14, 10, 0);
@@ -12888,6 +13220,7 @@ namespace CapriDesktop
                             SmokeFrames(checks);
                             SmokeGameKeys(checks);
                             SmokeReminders(checks);
+                            SmokeLookout(checks);
                             SmokeGameSense(checks);
                             SmokeSelfKnow(checks);
                             SmokeFiles(checks);
@@ -22895,7 +23228,15 @@ namespace CapriDesktop
                             if (heard != "hi" || reply != "Loud and clear, choom." || (talkState != TalkState.Talking && talkState != TalkState.Online) || !speaker.Busy) throw new Exception("Voice chat did not hear and answer: " + heard + " / " + reply + " / " + talkState + " / " + log);
                             Play(idle);
                             if (MouthCell(clock.Elapsed.TotalSeconds, idle) < 0) throw new Exception("Her mouth did not follow the agent's audio.");
-                            string[] wanted = { "http POST /v1/convai/agents/create sk_test_capri_1234 {\"name\":\"Capri\"", "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}", "http PATCH /v1/convai/agents/agent_old sk_test_capri_1234 {\"conversation_config\":{\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45},\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "\"tool_ids\":[\"tool_kept\",\"tool_1\",\"tool_2\",\"tool_3\",\"tool_4\",\"tool_5\",\"tool_6\",\"tool_7\",\"tool_8\",\"tool_9\",\"tool_10\",\"tool_11\",\"tool_12\",\"tool_13\",\"tool_14\",\"tool_15\",\"tool_16\",\"tool_17\",\"tool_18\"]", "\"tool_ids\":[\"tool_kept\",\"tool_19\",\"tool_20\",\"tool_21\",\"tool_22\",\"tool_23\",\"tool_24\",\"tool_25\",\"tool_26\",\"tool_27\",\"tool_28\",\"tool_29\",\"tool_30\",\"tool_31\",\"tool_32\",\"tool_33\",\"tool_34\",\"tool_35\",\"tool_36\"]}}}}", "\"name\":\"move_yourself\"", "\"name\":\"animate\"", "\"name\":\"play_music\"", "\"name\":\"app_window\"", "\"name\":\"look_at_screen\"", "http GET /v1/convai/tools sk_test_capri_1234", "http POST /v1/convai/tools sk_test_capri_1234 {\"tool_config\":{\"type\":\"client\",\"name\":\"open_website\"", "\"name\":\"media\",\"description\":\"Control the music", "\"expects_response\":true,\"response_timeout_secs\":20}}", "You have tools for their PC", "tool {\"type\":\"client_tool_result\",\"tool_call_id\":\"call_1\",\"result\":\"Opened Spotify.\",\"is_error\":false}", "ran SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "Never check in", "beg them to talk or say they left you hanging", "\"prompt\":{\"prompt\":\"You are Capri", "\"llm\":\"gemini-2.5-flash\"", "\"tts\":{\"voice_id\":\"abc\"}", "\"overrides\":{\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":true}},\"tts\":{\"voice_id\":true}}}", "http GET /v1/convai/conversation/get-signed-url?agent_id=agent_old sk_test_capri_1234", "init {\"type\":\"conversation_initiation_client_data\",\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "pong {\"type\":\"pong\",\"event_id\":7}", "chunk silent | chunk loud | chunk loud" };
+                            string agentToolsFirst = "\"tool_ids\":[\"tool_kept\"", agentToolsNext = agentToolsFirst;
+                            for (int agentToolAt = 1; agentToolAt <= Hands.Count; agentToolAt++)
+                            {
+                                agentToolsFirst += ",\"tool_" + agentToolAt + "\"";
+                                agentToolsNext += ",\"tool_" + (agentToolAt + Hands.Count) + "\"";
+                            }
+                            agentToolsFirst += "]";
+                            agentToolsNext += "]}}}}";
+                            string[] wanted = { "http POST /v1/convai/agents/create sk_test_capri_1234 {\"name\":\"Capri\"", "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}", "http PATCH /v1/convai/agents/agent_old sk_test_capri_1234 {\"conversation_config\":{\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45},\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", agentToolsFirst, agentToolsNext, "\"name\":\"move_yourself\"", "\"name\":\"animate\"", "\"name\":\"play_music\"", "\"name\":\"app_window\"", "\"name\":\"look_at_screen\"", "\"name\":\"watch_for\"", "http GET /v1/convai/tools sk_test_capri_1234", "http POST /v1/convai/tools sk_test_capri_1234 {\"tool_config\":{\"type\":\"client\",\"name\":\"open_website\"", "\"name\":\"media\",\"description\":\"Control the music", "\"expects_response\":true,\"response_timeout_secs\":20}}", "You have tools for their PC", "tool {\"type\":\"client_tool_result\",\"tool_call_id\":\"call_1\",\"result\":\"Opened Spotify.\",\"is_error\":false}", "ran SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "Never check in", "beg them to talk or say they left you hanging", "\"prompt\":{\"prompt\":\"You are Capri", "\"llm\":\"gemini-2.5-flash\"", "\"tts\":{\"voice_id\":\"abc\"}", "\"overrides\":{\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":true}},\"tts\":{\"voice_id\":true}}}", "http GET /v1/convai/conversation/get-signed-url?agent_id=agent_old sk_test_capri_1234", "init {\"type\":\"conversation_initiation_client_data\",\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "pong {\"type\":\"pong\",\"event_id\":7}", "chunk silent | chunk loud | chunk loud" };
                             foreach (string piece in wanted) if (log.IndexOf(piece, StringComparison.Ordinal) < 0) throw new Exception("Agent traffic was missing " + piece + ": " + log);
                             bool sawInVoice = false;
                             lock (asked) foreach (string entry in asked) if (entry.StartsWith("init ", StringComparison.Ordinal) && entry.IndexOf("a pixel art farm with a red barn. You said: \\\"Cute barn.\\\"", StringComparison.Ordinal) >= 0) sawInVoice = true;
@@ -22906,7 +23247,7 @@ namespace CapriDesktop
                             File.Delete(Brain.MemoriesPath);
                             string voiceDay = File.ReadAllText(Path.Combine(Brain.TranscriptPath, DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
                             if (!memoriesInVoice || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d You \(voice\):\*\* hi\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d Capri \(voice\):\*\* Loud and clear, choom\.\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\d\d:\d\d Job: Opened Spotify\.\*\n")) throw new Exception("Voice chat didn't start with her memories, or its lines and jobs missed her transcript: " + voiceDay);
-                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != 36) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
+                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != Hands.Count * 2) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
                             Hands.Run = handsRun;
                             Hands.Catalog = handsCatalog;
                             Hands.Forget();

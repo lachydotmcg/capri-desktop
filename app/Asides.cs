@@ -51,6 +51,7 @@ namespace CapriDesktop
             bool direct = Hands.Heard(said, out tool, out args);
             string text = Hands.Asked(said);
             if (direct && tool == "power") return AsideKind.Tool;
+            if (direct && tool == "watch_for") return AsideKind.Tool;
             if (Stops.IsMatch(text)) return AsideKind.Stop;
             if (direct && tool == "look_at_screen") return AsideKind.Screen;
             if (Looks.IsMatch(text)) { tool = "look_at_screen"; args.Focus = text; return AsideKind.Screen; }
