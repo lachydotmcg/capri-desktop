@@ -1882,7 +1882,7 @@ namespace CapriDesktop
         }
 
         // Their words since the last turn, quoted, or null.
-        private string Heard()
+        internal string Heard()
         {
             lock (heard)
             {
@@ -1894,7 +1894,7 @@ namespace CapriDesktop
         }
 
         // The same for what changes the job, written for its next turn. Empty when nothing did.
-        private string Changed()
+        internal string Changed()
         {
             lock (heard)
             {
@@ -1924,9 +1924,9 @@ namespace CapriDesktop
         }
 
         // The newest picture of the screen her hands took, or null for brains that read buttons instead.
-        internal byte[] Frame { get { return newest; } }
+        internal byte[] Frame { get { return newest; } set { newest = value; } }
 
-        private void Mark(JobStep step)
+        internal void Mark(JobStep step)
         {
             lock (ledger)
             {

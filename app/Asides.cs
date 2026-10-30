@@ -613,6 +613,7 @@ namespace CapriDesktop
         private string doneLast;
         private int doneAt;
         internal int DoneWait = 8000;
+        private Action<string> doneTest;
 
         private void DoneLine(Agent told, string tool, string result)
         {
@@ -627,7 +628,10 @@ namespace CapriDesktop
             {
                 Stopwatch waited = Stopwatch.StartNew();
                 while (waited.ElapsedMilliseconds < DoneWait && (speaker.Busy || unchecked(Environment.TickCount - micTalked) < 900)) Thread.Sleep(100);
-                if (told.Ready) told.Say(line);
+                Action<string> test = doneTest;
+                if (test != null) { test(line); return; }
+                stirred = Environment.TickCount;
+                if (told != null && told.Ready) told.Say(line);
             });
         }
 
