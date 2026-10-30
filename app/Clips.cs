@@ -14,6 +14,8 @@ namespace CapriDesktop
     {
         internal const int History = 120;
         internal const long Memory = 240L * 1024 * 1024;
+        // The newest stretch that stays at full frame rate. A clip is 30 seconds unless they ask for more.
+        internal const int Sharp = 45;
         private readonly object gate = new object();
         private readonly object saving = new object();
         private readonly LinkedList<ClipPart> pictures = new LinkedList<ClipPart>();
@@ -25,7 +27,7 @@ namespace CapriDesktop
         private readonly AutoResetEvent changed = new AutoResetEvent(false);
         private Thread capture, writer;
         private bool enabled, disposed;
-        private long used, through;
+        private long used, through, thinnedTo = long.MinValue;
         private GameSeen game;
         private int dropped;
         private Bitmap shared;
@@ -47,6 +49,15 @@ namespace CapriDesktop
         internal int Frames { get { lock (gate) return pictures.Count; } }
         internal int Dropped { get { lock (gate) return dropped; } }
         internal long First { get { lock (gate) return pictures.Count == 0 ? 0 : pictures.First.Value.At; } }
+        internal int FramesSince(long at)
+        {
+            lock (gate)
+            {
+                int count = 0;
+                for (LinkedListNode<ClipPart> frame = pictures.Last; frame != null && frame.Value.At >= at; frame = frame.Previous) count++;
+                return count;
+            }
+        }
         internal static long Now { get { return (long)(Stopwatch.GetTimestamp() * (10000000.0 / Stopwatch.Frequency)); } }
 
         internal void Enable(bool on)
@@ -84,6 +95,7 @@ namespace CapriDesktop
             Rectangle bounds = Rectangle.Empty;
             long inspectAt = 0, nextAt = 0, soundAt = 0, imageAt = 0;
             double interval = 10000000.0 / 30;
+            int wide = 1920;
             bool started = false;
             try
             {
@@ -126,6 +138,7 @@ namespace CapriDesktop
                             grab.Open(current);
                             bounds = current;
                             interval = 10000000.0 / 30;
+                            wide = 1920;
                         }
                         if (tick >= soundAt)
                         {
@@ -147,7 +160,7 @@ namespace CapriDesktop
                             if (grab.Next(0) || began - imageAt >= 10000000)
                             {
                                 long taken = Now;
-                                using (Bitmap picture = grab.Copy(1920))
+                                using (Bitmap picture = grab.Copy(wide))
                                 {
                                     Share(picture);
                                     if (picture != null && Native.GetForegroundWindow() == front.Window) { AddFrame(picture, taken, true); imageAt = taken; }
@@ -158,7 +171,12 @@ namespace CapriDesktop
                             lock (gate)
                             {
                                 if (pictures.Count > 0)
-                                    interval = Math.Max(interval, (pictures.Last.Value.Data.Length + 64.0) * history * 10000000 / (memory * 0.85));
+                                {
+                                    double room = (pictures.Last.Value.Data.Length + 64.0) * Math.Min(history, Sharp) * 10000000 / (memory * 0.85);
+                                    // A busy picture at full size would be a slideshow, and smooth at 720p makes the better clip.
+                                    if (room > 10000000.0 / 24 && wide > 1280) wide = 1280;
+                                    interval = Math.Max(interval, room);
+                                }
                                 if (enabled) through = Now;
                             }
                             nextAt = Now + (long)Math.Max(1, interval - cost);
@@ -272,15 +290,8 @@ namespace CapriDesktop
                 long size = data.LongLength + 64;
                 if (used + size > memory)
                 {
-                    LinkedListNode<ClipPart> thin = pictures.First;
-                    bool leave = true;
-                    while (thin != null && used + size > memory)
-                    {
-                        LinkedListNode<ClipPart> following = thin.Next;
-                        if (!leave && following != null) { Release(thin.Value); pictures.Remove(thin); dropped++; }
-                        leave = !leave;
-                        thin = following;
-                    }
+                    while (used + size > memory && Thin(at - Sharp * 10000000L)) { }
+                    while (used + size > memory && Thin(long.MaxValue)) { }
                     LinkedListNode<ClipPart> last = pictures.Last;
                     while (video && last != null && used + size > memory)
                     {
@@ -307,6 +318,26 @@ namespace CapriDesktop
         }
 
         internal void Advance(long at) { lock (gate) { Trim(at); through = at; } }
+
+        // Over budget, footage before that time gives up every other frame, a pass at a time, so a long clip gets choppy at its start instead of shorter.
+        private bool Thin(long before)
+        {
+            for (int pass = 0; pass < 2; pass++)
+            {
+                LinkedListNode<ClipPart> kept = pictures.First;
+                while (kept != null && kept.Value.At <= thinnedTo) kept = kept.Next;
+                if (kept != null && kept.Next != null && kept.Next.Next != null && kept.Next.Value.At < before)
+                {
+                    thinnedTo = kept.Value.At;
+                    Release(kept.Next.Value);
+                    pictures.Remove(kept.Next);
+                    dropped++;
+                    return true;
+                }
+                thinnedTo = long.MinValue;
+            }
+            return false;
+        }
 
         private void Trim(long at)
         {

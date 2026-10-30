@@ -191,7 +191,7 @@ namespace CapriDesktop
 
         private static readonly string[,] GameSpecs =
         {
-            { "look", "Turn the camera in a game where moving the mouse turns the view. Ordinary mouse moves and clicks don't turn a game's camera; this does. Give x and y, pixels in the screenshot, to bring that spot to the middle of the view, like something to walk to or a target. Or give right and up in degrees to turn by an amount, negative for left or down, like right 180 to turn around. Use normal clicks, not this, in menus and inventories.",
+            { "look", "Turn the camera in a game where moving the mouse turns the view. Ordinary mouse moves and clicks don't turn a game's camera; this does. Give x and y, pixels in the screenshot, to bring that spot to the middle of the view, like something to walk to or a target. Or give right and up in degrees to turn by an amount, negative for left or down, like right 180 to turn around. Use normal clicks, not this, in menus and inventories. This only turns a camera: it isn't how you see, since every move already brings a fresh screenshot, and a strategy or 2D game has no camera for it to turn.",
               "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\",\"description\":\"Spot to face, across the screenshot\"},\"y\":{\"type\":\"number\",\"description\":\"Spot to face, down the screenshot\"},\"right\":{\"type\":\"number\",\"description\":\"Degrees to turn right, negative for left\"},\"up\":{\"type\":\"number\",\"description\":\"Degrees to look up, negative for down\"},\"level\":{\"type\":\"string\",\"description\":\"yes to look straight ahead at the horizon in a first-person game\",\"enum\":[\"yes\"]}}}" },
             { "walk", "Move around in a game by holding movement keys. It jumps over small things by itself and lets go by itself when you're really stuck, and it tells you how it went.",
               "{\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"string\",\"description\":\"The keys to hold, joined with +, like w, a, shift+w. Default w\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long to keep going. Default 2\"},\"jump\":{\"type\":\"string\",\"description\":\"Jump when something's in the way. Default yes\",\"enum\":[\"yes\",\"no\"]}}}" },
@@ -1912,7 +1912,14 @@ namespace CapriDesktop
         internal Func<string, string, string, ClaudeReply> Drive;
         // Any brain that can see: a picture, what it's told and what to do, and its reply. Null for Claude's own computer tools.
         internal Func<byte[], string, string, string> Seer;
-        internal void Hurt() { if (Playing) Computer.Flinched = true; }
+        private DateTime flinchedAt = DateTime.MinValue;
+        // A hit stops her at most once every 12 seconds: enough to notice a fight, and a game full of flashes can't block every move.
+        internal void Hurt()
+        {
+            if (!Playing || (DateTime.UtcNow - flinchedAt).TotalSeconds < 12) return;
+            flinchedAt = DateTime.UtcNow;
+            Computer.Flinched = true;
+        }
         // Brains that can't see click the words read off the screen when a window gives them nothing else to read.
         internal Action<Sight> Reader;
         private bool sighted, waitingMember;
@@ -2443,7 +2450,7 @@ namespace CapriDesktop
                     if (Computer.Flinched)
                     {
                         Computer.Flinched = false;
-                        results += "\nSomething just hurt you, so your other moves didn't run. Look at the screen first.";
+                        results += "\nIt looked like something hit you, so your other moves didn't run. This new screenshot shows what's happening: if nothing did, carry on.";
                         break;
                     }
                     ToolArguments args = move.Value;
@@ -2510,7 +2517,7 @@ namespace CapriDesktop
                     Computer.Flinched = false;
                     hit = broken = true;
                 }
-                if (broken) { answers.Add(new Answered { Call = call, Text = hit ? "Not executed: something just hurt you, so look first." : "Not executed: an earlier computer action in this turn failed.", Error = true }); continue; }
+                if (broken) { answers.Add(new Answered { Call = call, Text = hit ? "Not run: it looked like something hit you, so here's a fresh screenshot first. If nothing did, carry on." : "Not executed: an earlier computer action in this turn failed.", Error = !hit }); continue; }
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 if (call.Input == null)
                 {

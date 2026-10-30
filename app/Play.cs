@@ -519,6 +519,9 @@ namespace CapriDesktop
             }
         }
 
+        internal const string NoCamera = "This game has no camera to level. Look doesn't show you anything: every move already brings a fresh screenshot, so carry on from that.";
+        internal static readonly Dictionary<string, int> NoLevel = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
         // Level is straight down, where the view stops by itself, then a quarter turn back up.
         private static string Levelled(Sight sight)
         {
@@ -526,7 +529,12 @@ namespace CapriDesktop
             string game = sight == null ? "" : sight.Program ?? "";
             bool flipped;
             double full = TurnKnown(game);
-            lock (viewSpeeds) flipped = upsideDown.Contains(game);
+            lock (viewSpeeds)
+            {
+                flipped = upsideDown.Contains(game);
+                int tried;
+                if (full == 0 && NoLevel.TryGetValue(game, out tried) && tried >= 2) return NoCamera;
+            }
             if (full == 0) full = FullTurn(area, game);
             int floor = flipped ? -6000 : 6000;
             // Open sky shows nothing to measure and straight down only spins, so failing that she looks part of the way up from the floor.
@@ -546,6 +554,12 @@ namespace CapriDesktop
             if (interrupted) return Why;
             Turn(0, floor);
             Thread.Sleep(90);
+            lock (viewSpeeds)
+            {
+                int missed;
+                NoLevel.TryGetValue(game, out missed);
+                NoLevel[game] = full <= 0 ? missed + 1 : 0;
+            }
             if (full <= 0) return "Looked down, but couldn't work out how far a turn goes here. Check the next screenshot.";
             int up = (int)Math.Round(full / 4);
             Turn(0, flipped ? up : -up);
@@ -736,7 +750,7 @@ namespace CapriDesktop
             if (interrupted) return Why;
             if (away || !StillFront(sight)) return "Stopped because the window I started on is no longer in front.";
             string time = clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
-            if (Flinched) return "Stopped after " + time + ": something hurt you.";
+            if (Flinched) return "Stopped after " + time + ": it looked like something hit you.";
             if (cut) return "Stopped after " + time + ": the whole screen changed.";
             if (blocked) return "Stopped after " + time + ": something's in the way" + (jumps > 0 ? ", even after jumping." : ".");
             return "Moved for " + time + (jumps > 0 ? ", jumping " + jumps + (jumps == 1 ? " time." : " times.") : ".");
@@ -788,7 +802,7 @@ namespace CapriDesktop
             if (interrupted) return Why;
             if (away || !StillFront(sight)) return "Let go because the window I started on is no longer in front.";
             string time = clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
-            if (Flinched) return "Let go after " + time + ": something hurt you.";
+            if (Flinched) return "Let go after " + time + ": it looked like something hit you.";
             return changed ? "Let go after " + time + ": what's under the crosshair changed." : "Held for " + time + ".";
         }
     }

@@ -9456,11 +9456,13 @@ namespace CapriDesktop
                 job = watchJob;
                 working = "On it. Esc stops me.";
                 talkState = TalkState.Thinking;
+                speech = "Placing a tower.";
                 int watchTicket = asking;
                 Hands.Do("watch_for", new ToolArguments { Text = "my health is low" });
                 watchTime += 30000;
                 lookout.Tick();
                 lookout.Deliver();
+                speech = null;
                 if (asideShown != "Your health's low." || job != watchJob || asking != watchTicket || !watchStage.Shown.Contains("say Your health's low.") || watchVoices != watchVoicesBeforeQuiet) throw new Exception("A gaming lookout lost its aside or HUD, or interrupted the job.");
                 checks.Add("PASS lookout uses Unseeing, holds alerts over either speaker, speaks in full-screen play with Comments off, keeps Quiet and Hushed as text, and uses the aside and HUD during a game job");
             }
@@ -10893,7 +10895,19 @@ namespace CapriDesktop
                 crowded.Enable(false);
                 if (crowded.Bytes != 0) throw new Exception("Switching clips off kept the buffer.");
             }
+            using (ClipBuffer thinning = new ClipBuffer(120, 300000))
+            {
+                long thinAt = 0;
+                for (int thinFrame = 0; thinFrame < 1200; thinFrame++)
+                {
+                    thinAt = thinFrame * 1000000L;
+                    thinning.Keep(new byte[436], thinAt, thinAt, true);
+                }
+                if (thinning.Bytes > 300000 || thinning.FramesSince(thinAt - ClipBuffer.Sharp * 10000000L + 1000000L) != ClipBuffer.Sharp * 10) throw new Exception("A full clip buffer thinned its newest stretch: " + thinning.FramesSince(thinAt - ClipBuffer.Sharp * 10000000L + 1000000L) + " frames.");
+                if (thinning.First > thinAt - 1000000000L || thinning.FramesSince(thinAt - 1000000000L) < ClipBuffer.Sharp * 10 + 40) throw new Exception("A full clip buffer lost its older footage instead of thinning it.");
+            }
             checks.Add("PASS clips expire old frames and sound, drop frames within a fixed memory budget, and release their buffer when switched off");
+            checks.Add("PASS a full clip buffer keeps its newest stretch at full rate and thins older footage instead of losing it");
             using (ClipBuffer focusClips = new ClipBuffer(120, 8192))
             {
                 focusClips.Follow(new GameSeen { Window = new IntPtr(71), Process = 17, Name = "Game - menu" });
@@ -11397,7 +11411,7 @@ namespace CapriDesktop
                 senseWorld[noiseAt + 2] = (byte)senseRandom.Next(25, 190);
                 senseWorld[noiseAt + 3] = 255;
             }
-            string[] senseClips = { "flash", "hurt", "bar_drop", "cut", "dark", "pan", "red wall", "steady bar", "small drop", "day to night", "sky", "tilt", "vertical bar", "right bar", "empty bar", "same colours", "brief cut", "held light", "cooldown", "cut hold", "idle then pan", "idle then fade", "idle then bar", "slow drain", "drain then drop", "long flash", "light cut" };
+            string[] senseClips = { "flash", "hurt", "bar_drop", "cut", "dark", "pan", "red wall", "steady bar", "small drop", "day to night", "sky", "tilt", "vertical bar", "right bar", "empty bar", "same colours", "brief cut", "held light", "cooldown", "cut hold", "idle then pan", "idle then fade", "idle then bar", "slow drain", "drain then drop", "long flash", "light cut", "tooltip", "crossing", "loading bar" };
             for (int senseCase = 0; senseCase < senseClips.Length + 2; senseCase++)
             {
                 bool uneven = senseCase >= senseClips.Length;
@@ -11417,7 +11431,7 @@ namespace CapriDesktop
                     senseNow = uneven ? senseFrame / 10.0 + (senseFrame % 2 == 0 ? 0 : 0.04) : senseFrame / 5.0;
                     sense.Feed(SenseFrame(senseWorld, clip, (int)Math.Floor(senseNow * 5 + 0.000001)), 240, 135, senseNow);
                 }
-                string expected = senseCase < 5 ? clip : clip == "vertical bar" || clip == "right bar" || clip == "empty bar" || clip == "idle then bar" || clip == "drain then drop" ? "bar_drop" : clip == "same colours" || clip == "cut hold" || clip == "light cut" ? "cut" : clip == "cooldown" || clip == "held light" || clip == "long flash" ? "flash" : null;
+                string expected = senseCase < 5 ? clip : clip == "vertical bar" || clip == "right bar" || clip == "idle then bar" || clip == "drain then drop" ? "bar_drop" : clip == "same colours" || clip == "cut hold" || clip == "light cut" ? "cut" : clip == "cooldown" || clip == "held light" || clip == "long flash" ? "flash" : null;
                 int expectedCount = clip == "cooldown" ? 2 : expected == null ? 0 : 1;
                 if (senseKinds.Count != expectedCount) throw new Exception("Game sense " + clip + " expected " + expectedCount + " events, got " + string.Join(", ", senseKinds) + " at " + string.Join(", ", senseTimes));
                 for (int senseEvent = 0; senseEvent < senseKinds.Count; senseEvent++)
@@ -11426,11 +11440,12 @@ namespace CapriDesktop
                     double earliest = expected == "flash" ? clip == "held light" || clip == "long flash" ? 5.2 : senseEvent == 0 ? 4.4 : 8.4 : expected == "bar_drop" ? clip == "idle then bar" || clip == "drain then drop" ? 8.2 : 4.2 : expected == "cut" ? clip == "light cut" ? 5.2 : 4.6 : expected == "dark" ? 7.0 : 4.0;
                     if (senseKinds[senseEvent] != expected || senseTimes[senseEvent] < earliest - 0.01 || senseTimes[senseEvent] > earliest + 0.6)
                         throw new Exception("Game sense " + clip + " fired " + senseKinds[senseEvent] + " at " + senseTimes[senseEvent] + ", expected " + expected + " near " + earliest + ".");
-                    if (expected == "bar_drop" && Math.Abs(senseStrengths[senseEvent] - (clip == "empty bar" ? 1 : 0.3)) > 0.015) throw new Exception("Game sense lost the size of a bar drop.");
+                    if (expected == "bar_drop" && Math.Abs(senseStrengths[senseEvent] - 0.3) > 0.015) throw new Exception("Game sense lost the size of a bar drop.");
                 }
             }
-            checks.Add("PASS game sense: scrolling colour noise with a fixed HUD notices one flash, red edge hurt, 30% bar loss, persistent cut and dark fade at the right times; strengths stay in range, horizontal, vertical, right-anchored and empty bars keep the lost fraction");
+            checks.Add("PASS game sense: scrolling colour noise with a fixed HUD notices one flash, red edge hurt, 30% bar loss, persistent cut and dark fade at the right times; strengths stay in range, horizontal, vertical and right-anchored bars keep the lost fraction");
             checks.Add("PASS game sense stays quiet through fast panning, a red wall across the middle, steady HUD, 3% bar loss, slow day to night, bright sky, damage tilt and a brief scene change; same-colour cuts persist, cooldowns and cut holds prevent repeats");
+            checks.Add("PASS game sense ignores a bar emptying all at once, a tooltip closing, something crossing a bar and a progress bar starting over");
             checks.Add("PASS game sense ignores an idle strip that pans away or fades, learns a fixed bar when its surroundings move and ignores a 40% drain over three seconds while catching a later sudden 30% drop at regular and uneven feed times");
             checks.Add("PASS game sense calls held near-white light a single flash after the hold expires, including when the picture returns; a bright coloured scene still becomes a cut");
 
@@ -11552,6 +11567,7 @@ namespace CapriDesktop
             int barFill = after && dropping ? clip == "small drop" ? 97 : clip == "empty bar" ? 0 : 70 : 100;
             if (clip == "slow drain" || clip == "drain then drop") barFill = 100 - Math.Min(40, Math.Max(0, number - 20) * 40 / 15) - (clip == "drain then drop" && number >= 40 ? 30 : 0);
             if (clip == "idle then bar" && number >= 40) barFill = 70;
+            if (clip == "loading bar") barFill = number % 20 * 5 + 5;
             bool upright = clip == "vertical bar";
             for (int hudRow = 0; hudRow < (upright ? 104 : 10); hudRow++)
                 for (int hudColumn = 0; hudColumn < (upright ? 10 : 104); hudColumn++)
@@ -11564,6 +11580,20 @@ namespace CapriDesktop
                         && (clip == "right bar" || upright ? barPosition >= 100 - barFill : barPosition < barFill);
                     pixels[hudAt] = filled ? (byte)30 : (byte)16; pixels[hudAt + 1] = filled ? (byte)220 : (byte)16; pixels[hudAt + 2] = filled ? (byte)35 : (byte)16;
                 }
+            if (clip == "tooltip" && !after)
+                for (int tipRow = 118; tipRow < 124; tipRow++)
+                    for (int tipColumn = 60; tipColumn < 170; tipColumn++)
+                    {
+                        int tipAt = (tipRow * width + tipColumn) * 4;
+                        pixels[tipAt] = 216; pixels[tipAt + 1] = 154; pixels[tipAt + 2] = 105;
+                    }
+            if (clip == "crossing" && after && number < 26)
+                for (int crossRow = 5; crossRow < 20; crossRow++)
+                    for (int crossColumn = 50; crossColumn < 70; crossColumn++)
+                    {
+                        int crossAt = (crossRow * width + crossColumn) * 4;
+                        pixels[crossAt] = 90; pixels[crossAt + 1] = 60; pixels[crossAt + 2] = 40;
+                    }
             bool flash = clip == "flash" && number >= 20 && number < 22 || clip == "cooldown" && (number >= 20 && number < 22 || number >= 25 && number < 27 || number >= 40 && number < 42) || clip == "long flash" && number >= 20 && number < 30 || (clip == "held light" || clip == "light cut") && after;
             for (int effectY = 0; effectY < height; effectY++)
                 for (int effectX = 0; effectX < width; effectX++)
@@ -11806,6 +11836,9 @@ namespace CapriDesktop
                     Computer.TurnView(new ToolArguments { Right = 90 }, game);
                     if (Math.Abs((cameraX % worldWidth + worldWidth) % worldWidth - worldWidth / 4.0) > 24) throw new Exception("Her camera missed a quarter turn in a game whose view comes round at mouse speed " + roundSpeed + ": went " + cameraX + ".");
                     Computer.TurnView(new ToolArguments { Level = "yes" }, game);
+                    Computer.NoLevel["smoke-flat"] = 2;
+                    if (Computer.TurnView(new ToolArguments { Level = "yes" }, new Sight { Program = "smoke-flat", Bounds = area }) != Computer.NoCamera) throw new Exception("A game with no camera kept hunting for one.");
+                    Computer.NoLevel.Remove("smoke-flat");
                     if (Math.Abs(cameraY - (400 - worldWidth / 4.0)) > 24) throw new Exception("Her camera didn't level out at mouse speed " + roundSpeed + ": ended at " + cameraY + ".");
                 }
                 round = false;
@@ -12606,8 +12639,12 @@ namespace CapriDesktop
                 flinching.Hurt();
                 bool flinchedInGame = Computer.Flinched;
                 Computer.Flinched = false;
+                flinching.Hurt();
+                bool flinchedAgain = Computer.Flinched;
+                Computer.Flinched = false;
                 new Job("write a line in notepad").Hurt();
                 if (!flinchedInGame || Computer.Flinched) throw new Exception("A hit didn't reach a game job, or it reached one that isn't a game.");
+                if (flinchedAgain) throw new Exception("A second hit straight after the first stopped her again.");
                 if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
                 Func<string, bool> localSeesWas = Brain.LocalSees;
                 Func<string> localEyesWere = Brain.LocalEyes;

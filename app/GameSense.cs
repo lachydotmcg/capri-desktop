@@ -322,7 +322,7 @@ namespace CapriDesktop
             {
                 Bar region = found[foundIndex];
                 int depth = region.Vertical ? width : height;
-                if (region.Thick > Math.Max(2, depth / 12) || region.Length < region.Thick * 5) continue;
+                if (region.Thick > Math.Max(2, depth / 12) || region.Length < region.Thick * 5 || (region.Vertical && region.Thick < 2)) continue;
                 Bar tracked = null;
                 for (int trackIndex = 0; trackIndex < bars.Count; trackIndex++)
                 {
@@ -404,10 +404,36 @@ namespace CapriDesktop
                 else if (seconds - watched.ChangedAt >= 0.2)
                 {
                     double lost = priorFill - fill;
-                    if (lost >= 0.1 - 0.000001) Notice(2, lost, seconds);
+                    // Most of a bar going all at once is a panel closing or a progress bar starting over, not a hit.
+                    if (lost >= 0.1 - 0.000001 && (fill > 0.1 || priorFill < 0.7) && Drained(pixels, width, watched)) Notice(2, lost, seconds);
                 }
                 if (!watched.Seen && seconds - watched.SeenAt > 2) bars.RemoveAt(watchIndex);
             }
+        }
+
+        // A health bar empties from one end into a plain backing. A gap in the middle is something crossing a strip,
+        // and a busy picture where the fill was is a panel gone and the world showing through.
+        private static bool Drained(byte[] pixels, int width, Bar bar)
+        {
+            int middle = bar.Row + bar.Thick / 2, first = -1, last = -1, kept = 0, gone = 0, rough = 0, lastGone = -1;
+            for (int along = bar.Start; along < bar.Start + bar.Length; along++)
+            {
+                int at = (bar.Vertical ? along * width + middle : middle * width + along) * 4;
+                if (ColorNear(bar, pixels[at], pixels[at + 1], pixels[at + 2]))
+                {
+                    if (first < 0) first = along;
+                    last = along;
+                    kept++;
+                    continue;
+                }
+                if (lastGone >= 0) rough += Math.Abs(pixels[at] - pixels[lastGone]) + Math.Abs(pixels[at + 1] - pixels[lastGone + 1]) + Math.Abs(pixels[at + 2] - pixels[lastGone + 2]);
+                lastGone = at;
+                gone++;
+            }
+            int slack = Math.Max(2, bar.Length / 20);
+            bool anchored = kept == 0 || first <= bar.Start + slack || last >= bar.Start + bar.Length - 1 - slack;
+            bool solid = kept == 0 || last - first + 1 <= kept + slack;
+            return anchored && solid && gone > 0 && rough <= gone * 24;
         }
 
         private void FindBars(byte[] pixels, int width, int height, bool vertical)

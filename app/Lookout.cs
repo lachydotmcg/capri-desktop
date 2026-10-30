@@ -143,7 +143,10 @@ namespace CapriDesktop
                 }
                 int hit;
                 List<int> happening;
-                string line = Read(See(system.ToString(), "Check all these watches against the screen now.", jpeg), numbers, out hit, out happening);
+                string reply = See(system.ToString(), "Check all these watches against the screen now.", jpeg);
+                Action<string> trace = Job.Trace;
+                if (trace != null) trace("  watch -> " + reply);
+                string line = Read(reply, numbers, out hit, out happening);
                 lock (gate)
                 {
                     lost = false;
@@ -167,6 +170,8 @@ namespace CapriDesktop
             }
             catch (Exception error)
             {
+                Action<string> broken = Job.Trace;
+                if (broken != null) broken("  watch failed: " + error.Message);
                 lock (gate)
                 {
                     if (watches.Count > 0 && !Done() && !lost)
@@ -269,7 +274,7 @@ namespace CapriDesktop
         {
             double now = clock.Elapsed.TotalSeconds;
             if (quitting || dragging || pressed || typer.Visible || menu.Visible || outro != null || pushing || transcribing) return false;
-            if (speaker.Busy || now < voiceUntil || speech != null || unchecked(Environment.TickCount - micTalked) < 1500) return false;
+            if (speaker.Busy || now < voiceUntil || (speech != null && working == null) || unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);
         }
 
