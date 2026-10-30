@@ -63,7 +63,14 @@
   const cursor = document.querySelector('#player-cursor');
   const status = document.querySelector('#demo-status');
   const motion = !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const clips = { idle: [16, 8], blink: [4, 8], blink_glitch: [4, 8], grin: [16, 8], glitch: [10, 15], dangle: [24, 10], sleep: [16, 6], wake: [13, 15], perch: [16, 8], perch_blink: [4, 8], perch_blink_glitch: [4, 8], perch_glitch: [10, 15], mouth: [5, 12] };
+  // Frames, frames a second, and for her artist's 60-frame perch, how many cells go across before the strip wraps to its next row.
+  const clips = { idle: [16, 8], blink: [4, 8], blink_glitch: [4, 8], grin: [16, 8], glitch: [10, 15], dangle: [24, 10], sleep: [16, 6], wake: [13, 15], perch: [60, 30, 10], perch_blink: [8, 30], perch_blink_glitch: [8, 30], perch_glitch: [10, 15], mouth: [5, 12] };
+  const across = name => clips[name][2] || clips[name][0];
+  const down = name => Math.ceil(clips[name][0] / across(name));
+  const cellAt = (name, cell) => {
+    const columns = across(name), rows = down(name);
+    return (columns > 1 ? cell % columns / (columns - 1) * 100 : 0) + '% ' + (rows > 1 ? Math.floor(cell / columns) / (rows - 1) * 100 : 0) + '%';
+  };
   const loaded = new Set(['idle']);
   let clip = 'idle';
   let clipStart = performance.now();
@@ -79,11 +86,11 @@
     if (layered !== layers.join()) {
       layered = layers.join();
       sprite.style.backgroundImage = layers.map(layer => 'url("assets/sprites/' + layer + '.webp")').join(', ');
-      sprite.style.backgroundSize = layers.map(layer => clips[layer][0] * 100 + '% 100%').join(', ');
+      sprite.style.backgroundSize = layers.map(layer => across(layer) * 100 + '% ' + down(layer) * 100 + '%').join(', ');
     }
     if (shown === name + ':' + cell + ':' + mouth) return;
     shown = name + ':' + cell + ':' + mouth;
-    sprite.style.backgroundPosition = (mouth >= 0 ? mouth / 4 * 100 + '% 0, ' : '') + cell / (clips[name][0] - 1) * 100 + '% 0';
+    sprite.style.backgroundPosition = (mouth >= 0 ? mouth / 4 * 100 + '% 0, ' : '') + cellAt(name, cell);
   };
   const mouthFor = (letter, step) => {
     const lower = letter.toLowerCase();
@@ -112,7 +119,9 @@
     }
     let name = clip;
     let cell = motion ? index % clips[clip][0] : 0;
-    if ((name === 'idle' || name === 'perch') && blinkWith && loaded.has(blinkWith) && cell >= 9 && cell < 13) { name = blinkWith; cell -= 9; }
+    // A blink swaps in at cells 9 to 12 of her idle loop, and at 28 to 35 of the perch's: her artist's own blink, its frames 29 to 36.
+    const blinkFrom = name === 'perch' ? 28 : 9;
+    if ((name === 'idle' || name === 'perch') && blinkWith && loaded.has(blinkWith) && cell >= blinkFrom && cell < blinkFrom + clips[blinkWith][0]) { name = blinkWith; cell -= blinkFrom; }
     capri.classList.toggle('still', clip === 'sleep' || clip === 'dangle');
     let mouth = -1;
     if (talkState === 'talking' && motion && clip === 'idle' && name !== 'blink_glitch' && loaded.has('mouth')) {

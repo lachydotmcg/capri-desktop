@@ -28,20 +28,12 @@ button:focus-visible, a:focus-visible { outline: 2px solid #8ac74b; outline-offs
 .heads-up button:hover { background: #f1f2f0; }
 h1 { text-align: center; font-size: clamp(21px, 2.5vw, 32px); font-weight: 400; line-height: 1.4; letter-spacing: -1px; margin: 32px 0 38px; }
 h1 em { font-weight: 600; }
-/* The 0.7.6 launch countdown under the headline, filled in and shown by countdown.js. */
-.countdown { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 4px 12px; width: fit-content; max-width: 100%; box-sizing: border-box; margin: -16px auto 30px; padding: 10px 20px; border-radius: 6px; background: #202225; color: #fff; font: 13px "Share Tech Mono", Consolas, monospace; }
-.countdown[hidden] { display: none; }
-.countdown-label { color: #a3a7ab; letter-spacing: 1.5px; text-transform: uppercase; }
-.countdown-clock { font-size: 18px; font-weight: 400; letter-spacing: 1px; font-variant-numeric: tabular-nums; }
-.countdown-when { color: #a3a7ab; font-size: 12px; }
-.countdown-clock:empty, .countdown-when:empty { display: none; }
-.countdown-now .countdown-label { color: #fff; }
 .demo { position: relative; width: 100%; aspect-ratio: 614 / 350; min-height: 300px; overflow: hidden; border: 1px solid #e7e8e5; border-radius: 8px; background: url("assets/background.png") center / cover no-repeat; user-select: none; isolation: isolate; }
 .demo, .demo * { cursor: none; }
 .demo-capri { position: absolute; left: 60%; top: 31%; width: 220px; height: 220px; border: 0; border-radius: 40%; padding: 0; background: none; overflow: visible; touch-action: none; z-index: 2; }
 .demo-capri .sprite { position: absolute; left: 15.3%; top: -5.5%; width: 69.4%; height: 111%; background: url("assets/sprites/idle.webp") 0 0 / 1600% 100% no-repeat; pointer-events: none; filter: drop-shadow(0 6px 8px #00000012); animation: idle 4s ease-in-out infinite; }
 .demo-capri.dragging .sprite, .demo-capri.no-motion .sprite, .demo-capri.still .sprite { animation: none; }
-.demo-capri.riding .sprite { left: 0; top: 0; width: 100%; height: 100%; animation: none; transform: translateY(-3px) rotate(-5deg); }
+.demo-capri.riding .sprite { left: 5.73%; top: 9.38%; width: 75%; height: 100%; animation: none; transform: translateY(-3px) rotate(-5deg); transform-origin: 59.03% 40.63%; }
 .demo-capri[hidden] { display: none; }
 .taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; display: flex; align-items: center; gap: 6px; padding-right: 6px; background: linear-gradient(#3f8cf3 0, #2a63d6 12%, #245edb 50%, #1f4fbf 100%); border-top: 1px solid #6aa3ff; z-index: 3; }
 .xp-start { width: 105px; height: 30px; border: 0; padding: 0; background: url("assets/xp-start.png") 0 0 / 100% 100% no-repeat; flex: none; }
@@ -159,6 +151,8 @@ h1 em { font-weight: 600; }
 /* The bottom padding lets the Ko-fi links scroll up past the help chat tab in the corner. */
 .support { margin-top: 36px; padding: 24px 0 72px; border-top: 1px solid #e7e8e5; text-align: center; }
 .credit + .support { margin-top: 18px; padding-top: 0; border-top: 0; }
+.fan-notice { max-width: 560px; margin: 18px auto 0; color: #8a8e93; font-size: 12px; line-height: 1.5; }
+.fan-top { margin: 10px auto 0; text-align: center; }
 .support-head { margin: 0 0 12px; color: #8a8e93; font: 12px "Share Tech Mono", Consolas, monospace; letter-spacing: 1.5px; text-transform: uppercase; }
 .support-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0; }
 .support-links a { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border: 1px solid #d5d8dd; border-radius: 100px; font-size: 13px; }
@@ -194,7 +188,7 @@ h1 em { font-weight: 600; }
 .helper-panel[hidden], .helper-tab[hidden] { display: none; }
 .helper-arrive { animation: helper-arrive .25s ease-out both; }
 .helper-capri { position: absolute; z-index: 3; bottom: calc(100% + 1px - var(--s) * .21); width: var(--s); height: var(--s); pointer-events: none; }
-.helper-sprite { position: absolute; inset: 0; background-repeat: no-repeat; transform: scaleX(-1); }
+.helper-sprite { position: absolute; left: 19.27%; top: 9.38%; width: 75%; height: 100%; background-repeat: no-repeat; transform: scaleX(-1); }
 .helper-hit { position: absolute; left: 32%; top: 4%; width: 47%; height: 75%; pointer-events: auto; cursor: pointer; }
 .helper-tab { display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px); margin-left: auto; padding: 13px calc(var(--s) * .56) 13px 16px; background: #fff; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .helper-tab:hover { background: #fff; box-shadow: 0 14px 40px #00000040; }
