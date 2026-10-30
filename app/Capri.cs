@@ -19666,6 +19666,8 @@ namespace CapriDesktop
                 bool echoed = false;
                 for (int i = 0; i < 60; i++) echoed = over.Heard(0.03 + 0.01 * (i % 3), 0.1, WakeLevel) || echoed;
                 must(!echoed, "Her own voice through the speakers counted as them talking.");
+                for (int i = 0; i < 10; i++) echoed = over.Heard(0.5, 0, WakeLevel) || echoed;
+                must(!echoed, "A noise in the gap between her words counted as them talking.");
                 bool talkedOnce = over.Heard(0.3, 0.1, WakeLevel);
                 bool talkedTwice = over.Heard(0.3, 0.1, WakeLevel);
                 must(!talkedOnce && talkedTwice, "Them talking over her wasn't heard: " + talkedOnce + " " + talkedTwice);
@@ -19971,6 +19973,9 @@ namespace CapriDesktop
                 job = busy;
                 working = "On it. Esc stops me.";
                 must(CommentFree(), "A job's status kept her from commenting.");
+                job = new Job("play bedwars on roblox");
+                must(!CommentFree(), "She commented on a game she's playing herself.");
+                job = busy;
                 talkState = TalkState.Off;
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Roblox", Program = "RobloxPlayerBeta" }; };
                 FullScreen = delegate { return false; };

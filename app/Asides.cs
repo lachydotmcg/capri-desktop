@@ -150,6 +150,7 @@ namespace CapriDesktop
         private const int Held = 2;
         private const double Margin = 2.5;
         private const double Fading = 0.93;
+        private const double Pause = 0.002;
         private double share;
         private int chunks;
         private int over;
@@ -164,10 +165,12 @@ namespace CapriDesktop
         // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for two chunks in a row.
         internal bool Heard(double mic, double mine, double wake)
         {
+            // Her gaps between words say nothing: a game or a fan is all a mic hears then, so only what's over her voice counts.
+            if (mine <= Pause) return false;
             bool learned = chunks >= Learning;
             chunks++;
             bool loud = learned && mic >= wake && mic >= share * mine * Margin;
-            if (mine > 0.002 && !loud) share = Math.Max(share * Fading, mic / mine);
+            if (!loud) share = Math.Max(share * Fading, mic / mine);
             over = loud ? over + 1 : 0;
             return over >= Held;
         }

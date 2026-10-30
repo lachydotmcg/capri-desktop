@@ -416,11 +416,11 @@ namespace CapriDesktop
         }
 
         // Her quiet key or a nap means she only talks when they talk to her, and she never talks over them, over herself, or
-        // over them typing.
+        // over them typing. A game she's playing herself has her game lines instead.
         private bool CommentFree()
         {
             double now = clock.Elapsed.TotalSeconds;
-            if (Hushed || hidden || quitting || pushing || transcribing || typer.Visible) return false;
+            if (Hushed || hidden || quitting || pushing || transcribing || typer.Visible || PlayingGame) return false;
             if (speaker.Busy || now < voiceUntil) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);
