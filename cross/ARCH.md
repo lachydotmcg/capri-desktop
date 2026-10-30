@@ -150,7 +150,10 @@ focus operation if its original input owner has not changed. This uses normal
 Hyprland focus behavior, including its cursor movement; no global setting is
 changed. Success requires the same visible owned surface, session/layout,
 unlocked desktop, compositor active address and X11 keyboard recipient (including
-Avalonia's child focus proxy). The textbox is focused afterward. Native focus is
+Avalonia's child focus proxy). The packaged helper's read-only `--x11-focus` mode
+runs in one disposable child with a 750 ms async deadline and exact-child
+kill/reap on cancellation, so a stalled X server cannot retain runtime workers.
+The textbox is focused afterward. Native focus is
 not rejected merely because Avalonia's activation event arrives late. Hide,
 close, a newer open or another selected window cancel that request. Mainframe's
 separate, observed-placement activation path is unchanged.

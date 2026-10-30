@@ -7,7 +7,7 @@ arch=('x86_64')
 url='https://github.com/lachydotmcg/capri-desktop'
 license=('LicenseRef-PolyForm-Noncommercial-1.0.0')
 depends=('glibc' 'gcc-libs' 'fontconfig' 'freetype2' 'libx11' 'libice' 'libsm'
-         'libxrandr' 'libxext' 'zlib' 'icu' 'openssl' 'wayland' 'libxkbcommon'
+         'libxrandr' 'libxext' 'libxcb' 'zlib' 'icu' 'openssl' 'wayland' 'libxkbcommon'
          'glib2' 'libpulse' 'libarchive' 'ttf-font')
 makedepends=('dotnet-sdk' 'make' 'gcc' 'pkgconf' 'python')
 optdepends=('hyprland: native Wayland desktop integration'

@@ -11,3 +11,5 @@ for project in tests/desktop/Capri.Desktop.Tests.csproj \
 done
 make -C "$root/cross/native"
 python3 "$root/tests/computer/native_input_checks.py" "$root/cross/native/capri-input"
+dotnet build "$root/tests/x11-focus/X11FocusChecks.csproj" -c Release
+python3 "$root/tests/x11-focus/stalled_server_checks.py" "$root/tests/x11-focus/bin/Release/net10.0/X11FocusChecks.dll"

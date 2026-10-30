@@ -6,6 +6,8 @@
  */
 #include <wayland-client.h>
 #include <xkbcommon/xkbcommon.h>
+#include <xcb/xcb.h>
+#include <errno.h>
 #include <linux/input-event-codes.h>
 #include <sys/mman.h>
 #include <stdint.h>
@@ -54,8 +56,36 @@ static uint32_t utf8(const unsigned char *s,size_t n,size_t *used) {
  if(v>0x10ffff||(v>=0xd800&&v<=0xdfff)||(bytes==2&&v<128)||(bytes==3&&v<2048)||(bytes==4&&v<65536))return 0;
  *used=(size_t)bytes;return v;
 }
+/* Read-only X11 keyboard ownership. A separate process keeps a stalled server
+ * outside Capri's UI/runtime; the parent also imposes a cancellable deadline. */
+static int x11_focus(int argc,char **argv) {
+ if(argc!=3||!argv[2][0]||strspn(argv[2],"0123456789")!=strlen(argv[2]))return 2;
+ errno=0;char *end;unsigned long target=strtoul(argv[2],&end,10);
+ if(errno||*end||target<=1||target>UINT32_MAX)return 2;
+ alarm(2);
+ xcb_connection_t *connection=xcb_connect(NULL,NULL);
+ if(!connection)return 3;
+ int result=3,focused=0;
+ if(xcb_connection_has_error(connection))goto done;
+ xcb_generic_error_t *error=NULL;
+ xcb_get_input_focus_reply_t *focus=xcb_get_input_focus_reply(connection,xcb_get_input_focus(connection),&error);
+ if(error||!focus){free(error);free(focus);goto done;}
+ xcb_window_t window=focus->focus;free(focus);
+ for(int depth=0;depth<32&&window>1;depth++) {
+  if(window==target){focused=1;break;}
+  xcb_query_tree_reply_t *tree=xcb_query_tree_reply(connection,xcb_query_tree(connection,window),&error);
+  if(error||!tree){free(error);free(tree);goto done;}
+  xcb_window_t parent=tree->parent;free(tree);
+  if(parent==window)break;
+  window=parent;
+ }
+ puts(focused?"FOCUSED":"UNFOCUSED");result=0;
+done:
+ xcb_disconnect(connection);return result;
+}
 int main(int argc,char **argv) {
  if(argc<2)return 2;
+ if(!strcmp(argv[1],"--x11-focus"))return x11_focus(argc,argv);
  signal(SIGTERM,stop);signal(SIGINT,stop);signal(SIGHUP,stop);
  int validation=!strcmp(argv[1],"--validate-text");
  struct wl_display *d=NULL;

@@ -31,6 +31,11 @@ validate(b"a" * 513, 7, "more than 512 keystrokes is rejected")
 validate("".join(chr(0x1000 + index) for index in range(241)).encode(), 7,
          "more than 240 distinct key symbols is rejected")
 
+for xid in ("", "0", "1", "-1", "4294967296", "12x", " 12"):
+    result = subprocess.run([str(helper), "--x11-focus", xid], capture_output=True, timeout=3)
+    assert result.returncode == 2 and not result.stdout, (xid, result.returncode)
+print("PASS invalid X11 focus identifiers fail before connecting")
+
 with tempfile.TemporaryDirectory(prefix="capri-no-wayland-") as runtime:
     environment = dict(os.environ, XDG_RUNTIME_DIR=runtime,
                        WAYLAND_DISPLAY="absent-test-socket")
