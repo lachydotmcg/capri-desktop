@@ -41,7 +41,8 @@ namespace CapriDesktop
                 if (!first) { Native.AllowSetForegroundWindow(-1); restore.Set(); return 0; }
                 try
                 {
-                    string data = smoke ? Path.GetFullPath(args[1]) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri");
+                    string portableHome = Environment.GetEnvironmentVariable("CAPRI_PORTABLE_HOME");
+                    string data = smoke ? Path.GetFullPath(args[1]) : !string.IsNullOrWhiteSpace(portableHome) ? Path.Combine(Path.GetFullPath(portableHome), "AppData") : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri");
                     Brain.LogPath = Path.Combine(data, "errors.txt");
                     // Whatever ends her, their own cursor comes back, and a crash goes in errors.txt.
                     AppDomain.CurrentDomain.ProcessExit += delegate { HerCursor.Off(); };
