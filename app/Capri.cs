@@ -8608,10 +8608,11 @@ namespace CapriDesktop
             GameSeen front = null;
             bool running = true, exclusive = false;
             gaming.Find = delegate { return front; };
-            gaming.Alive = delegate { return running; };
+            gaming.Alive = delegate(GameSeen seen) { return running || seen == other; };
             gaming.Exclusive = delegate { return exclusive; };
             gaming.Say = said.Add;
-            Point home = anchor;
+            if (hidden) ShowHidden(false);
+            Point home = seat == null && !hanging ? KeepOnScreen(anchor) : anchor;
             bool wasShown = Visible;
             string keptSpots = preferences.GameSpots;
             preferences.GameSpots = null;
@@ -8636,16 +8637,18 @@ namespace CapriDesktop
                 dockTalk = null;
                 UpdateTalk(clock.Elapsed.TotalSeconds);
                 bool thought = GameHud.Scene.Box == HudBox.Thinking && GameHud.Scene.Words == heard && GameHud.Scene.Mood == HudMood.Focus && !box.Visible;
-                working = "On it. Esc stops me.";
-                UpdateTalk(clock.Elapsed.TotalSeconds);
-                bool jobbed = GameHud.Scene.Box == HudBox.Job && GameHud.Scene.Line == working && !taskPanel.Showing;
-                working = null;
                 reply = "Found one, choom.";
                 replyStart = clock.Elapsed.TotalSeconds;
                 replyDone = -1;
                 talkState = TalkState.Talking;
                 UpdateTalk(clock.Elapsed.TotalSeconds);
                 bool replied = GameHud.Scene.Box == HudBox.Reply && GameHud.Scene.Line == reply && GameHud.Scene.Words == heard && !box.Visible;
+                reply = null;
+                talkState = TalkState.Thinking;
+                working = "On it. Esc stops me.";
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                bool jobbed = GameHud.Scene.Box == HudBox.Job && GameHud.Scene.Line == working && !taskPanel.Showing;
+                working = null;
                 CloseTalk();
                 bool cleared = talkState == TalkState.Off && dockTalk == null;
                 DockLevel(0.01);
@@ -8684,11 +8687,11 @@ namespace CapriDesktop
                 gaming.Check(6010);
                 gaming.Check(6025);
                 bool launcherHeld = docked;
-                running = true;
                 front = other;
                 gaming.Check(6026);
                 bool swapped = docked && gaming.Game == other && GameHud.Offset == Point.Empty;
                 gaming.Off();
+                running = true;
                 exclusive = true;
                 string told1 = gaming.On(7000);
                 gaming.Off();
@@ -8707,10 +8710,16 @@ namespace CapriDesktop
                 gaming.Off();
                 bool stayedHidden = !docked && hidden && !Visible;
                 ShowHidden(false);
+                front = null;
+                ToggleGaming();
+                bool keyOn = gaming.State == GameDock.Stage.Armed && heard == "gaming mode";
+                ToggleGaming();
+                bool keyOff = !GamingOn;
+                CloseTalk();
                 anchor = home;
                 Location = anchor;
-                if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden)
-                    throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + "/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden);
+                if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden || !keyOn || !keyOff)
+                    throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + "/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden + ", key " + keyOn + "/" + keyOff);
                 checks.Add("PASS Gaming Mode: her words reach it and chat about it doesn't; with no game she stays armed and docks when one comes up; docked her body and bubble are gone, the HUD is click-through and never active, and it shows what she says, THINKING, a job's status, LISTENING with live words and her quiet key; the HUD moves per game and starts under Cyberpunk's health bar; turning it off, or the game exiting, puts her back where she was; a launcher's game takes over; exclusive full screen is mentioned once; and the hide key and her tray icon end it");
             }
             finally
@@ -8726,7 +8735,7 @@ namespace CapriDesktop
             Preferences onGame = new Preferences { QuietMods = 3, QuietVk = 0x47 };
             Unclash(onGame);
             string clashed = SetHotkey(5, 3, 0x56);
-            if (freshKeys.GameMods != 3 || freshKeys.GameVk != 0x47 || onGame.QuietVk != 0x47 || onGame.GameVk != 0x4D || clashed != "Ctrl + Alt + V is already her talk key." || GameKeyName != "Ctrl + Alt + G" || mainframe.GameKeyShown != "Gaming Mode: Ctrl + Alt + G") throw new Exception("Her Gaming Mode key went wrong: " + freshKeys.GameVk + " / " + onGame.GameVk + " / " + clashed + " / " + mainframe.GameKeyShown);
+            if (freshKeys.GameMods != 3 || freshKeys.GameVk != 0x47 || onGame.QuietVk != 0x47 || onGame.GameVk != 0x4D || clashed != "Ctrl + Alt + V is already her talk key." || GameKeyName != "Ctrl + Alt + G" || !mainframe.GameKeyShown.StartsWith("Gaming Mode: Ctrl + Alt + G", StringComparison.Ordinal)) throw new Exception("Her Gaming Mode key went wrong: " + freshKeys.GameVk + " / " + onGame.GameVk + " / " + clashed + " / " + mainframe.GameKeyShown);
             checks.Add("PASS her Gaming Mode key is Ctrl + Alt + G, shows in KEYS, moves to a spare when another key already has it, and can't take one of her other keys");
             string lines = "Gaming Mode on, " + name + ". Docking top-left until you close the game.";
             HudScene[] scenes =

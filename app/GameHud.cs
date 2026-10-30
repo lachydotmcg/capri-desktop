@@ -1078,7 +1078,7 @@ namespace CapriDesktop
                     GameHud.Say(reply, pace);
                 }
             }
-            if (talkState != TalkState.Thinking) GameHud.Hold(3);
+            if (talkState != TalkState.Thinking || working != null) GameHud.Hold(3);
         }
 
         // Her reply is finished and gone from the box too.
@@ -1333,7 +1333,7 @@ namespace CapriDesktop
             float wide = scene.Wide, narrow = scene.Narrow;
             float open = Math.Max(0, scene.Open) * (1 - 0.40f * narrow) * (1 + 0.14f * wide);
             GraphicsState state = graphics.Save();
-            graphics.SetClip(art);
+            using (GraphicsPath inner = Inner(art)) graphics.SetClip(inner);
             Eye(graphics, new PointF(art.Left + 230 * k, art.Top + 280 * k), 142 * k, 108 * k, -8, true, open, narrow, wide, scene);
             Eye(graphics, new PointF(art.Left + 750 * k, art.Top + 262 * k), 161 * k, 128 * k, -9, false, open, narrow, wide, scene);
             graphics.Restore(state);
@@ -1647,7 +1647,7 @@ namespace CapriDesktop
         {
             Random eyes = new Random(scene.Seed);
             GraphicsState state = graphics.Save();
-            graphics.SetClip(art);
+            using (GraphicsPath inner = Inner(art)) graphics.SetClip(inner);
             for (int i = 0; i < 22; i++)
             {
                 float x = art.Left + (float)eyes.NextDouble() * art.Width, y = art.Top + (float)eyes.NextDouble() * art.Height;
