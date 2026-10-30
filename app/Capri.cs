@@ -231,6 +231,7 @@ namespace CapriDesktop
         [DataMember] public bool Remembers = true;
         [DataMember] public bool ClipGames;
         [DataMember] public bool ClipMoments;
+        [DataMember] public bool SlowHands;
         [DataMember] public int Volume = 100;
         [DataMember] public int Sounds = 60;
         [DataMember] public int SleepAfter = 120;
@@ -3984,6 +3985,15 @@ namespace CapriDesktop
 
         internal bool ClipMomentsOn { get { return preferences.ClipMoments; } }
 
+        internal bool FastHandsOn { get { return !preferences.SlowHands; } }
+
+        internal void ToggleFastHands()
+        {
+            preferences.SlowHands = !preferences.SlowHands;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
         internal void ToggleClips()
         {
             preferences.ClipGames = !preferences.ClipGames;
@@ -5830,12 +5840,13 @@ namespace CapriDesktop
             job = running;
             running.Think = delegate(string system, string user, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls) { return brain.Step(system, user, Computer.Tools, Computer.ClaudeTools, Computer.Listing, calls); };
             Cloud driver = brain.Remote;
-            // A game job thinks harder on every turn.
-            running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing); }) : null;
+            // A game job thinks harder on every turn, on her fast hands unless they've turned those off.
+            running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing, running.Playing && !preferences.SlowHands); }) : null;
             // Anything else that can see plays from pictures.
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
             running.Reader = testing ? null : new Action<Sight>(Computer.ReadWords);
+            running.Says = delegate(string line) { Post(delegate { PlayLine(line, running); }); };
             running.Blind = delegate { blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             running.Seen = delegate(Sight sight)
@@ -5912,6 +5923,18 @@ namespace CapriDesktop
         private void SayJobStart(string start, Job running) { SayAside(start.Replace("Esc", "Escape"), running); }
 
         // A line said beside her job, like her "Got it." when they tell her more mid-job. It leaves her ask's turn alone.
+        // A line she says while she plays. A chat reply or a watch's alert that's still up keeps the bubble.
+        private void PlayLine(string line, Job running)
+        {
+            double now = clock.Elapsed.TotalSeconds;
+            if (job != running || working == null || (asideShown != null && now < asideUntil)) return;
+            if (docked) Commentary.Stage.Say(line);
+            asideShown = line;
+            asideUntil = now + BubbleHold(line.Length);
+            UpdateTalk(now);
+            if (!chatting && !Hushed && !preferences.Quiet) SayAside(line, running);
+        }
+
         private void SayAside(string line, Job running)
         {
             if (testing || preferences.Silent || (chatting && !local)) return;
@@ -10862,6 +10885,7 @@ namespace CapriDesktop
                 if (Hands.Name(Hands.Count - 1) != "listen" || !Hands.ElevenLabsTool(Hands.Count - 1).Contains("\"response_timeout_secs\":60")
                     || !Hands.Tools.Contains("\"name\":\"listen\"") || !Hands.ClaudeTools.Contains("\"name\":\"listen\"") || !Hands.Listing.Contains("listen")) throw new Exception("Listening was missing from a tool list or voice wait.");
                 if (Asides.Plain("listen to this", out listenTool, out listenArgs) != AsideKind.Tool || listenTool != "listen") throw new Exception("A listen mid-job went into the job.");
+                if (Asides.Plain("activate gaming mode", out listenTool, out listenArgs) != AsideKind.Tool || listenTool != "gaming_mode") throw new Exception("Gaming Mode mid-job went into the job.");
                 checks.Add("PASS listening routes clear PC audio asks in chat and voice, leaves conversation and music asks alone, parses tool calls and gives the voice tool a 60 second wait");
                 checks.Add("LIMIT listening used synthetic loopback audio and recognizer results; live PC audio and recognizer accuracy need a manual check");
             }
@@ -11836,10 +11860,13 @@ namespace CapriDesktop
                     Computer.TurnView(new ToolArguments { Right = 90 }, game);
                     if (Math.Abs((cameraX % worldWidth + worldWidth) % worldWidth - worldWidth / 4.0) > 24) throw new Exception("Her camera missed a quarter turn in a game whose view comes round at mouse speed " + roundSpeed + ": went " + cameraX + ".");
                     Computer.TurnView(new ToolArguments { Level = "yes" }, game);
-                    Computer.NoLevel["smoke-flat"] = 2;
-                    if (Computer.TurnView(new ToolArguments { Level = "yes" }, new Sight { Program = "smoke-flat", Bounds = area }) != Computer.NoCamera) throw new Exception("A game with no camera kept hunting for one.");
-                    Computer.NoLevel.Remove("smoke-flat");
                     if (Math.Abs(cameraY - (400 - worldWidth / 4.0)) > 24) throw new Exception("Her camera didn't level out at mouse speed " + roundSpeed + ": ended at " + cameraY + ".");
+                    string flatGame = "smoke-flat-" + roundSpeed;
+                    Computer.NoLevel[flatGame] = DateTime.UtcNow.AddMinutes(2);
+                    if (Computer.TurnView(new ToolArguments { Level = "yes" }, new Sight { Program = flatGame, Bounds = area }) != Computer.NoCamera) throw new Exception("A game with no camera kept hunting for one.");
+                    Computer.NoLevel[flatGame] = DateTime.UtcNow.AddMinutes(-1);
+                    if (Computer.TurnView(new ToolArguments { Level = "yes" }, new Sight { Program = flatGame, Bounds = area }) == Computer.NoCamera) throw new Exception("A game stayed marked as having no camera after that wore off.");
+                    Computer.NoLevel.Remove(flatGame);
                 }
                 round = false;
                 checks.Add("PASS her camera learns any game's mouse from slow to fast, measures a full turn at any field of view, looks level, lands turns within a few pixels, works out games that look the other way, always turns away from open sky, and says when a view stays still");
@@ -12618,7 +12645,7 @@ namespace CapriDesktop
                 blind.Seer = delegate(byte[] picture, string prompt, string user) { throw new BrainException("no images here"); };
                 blind.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { reads++; return "done{\"text\": \"Read the buttons.\"}"; };
                 if (blind.Run() != "Read the buttons." || reads != 1) throw new Exception("A brain that can't see didn't fall back to reading buttons.");
-                foreach (string blindTool in new[] { "look", "walk", "mouse_hold", "learn" })
+                foreach (string blindTool in new[] { "look", "walk", "mouse_hold", "learn", "say" })
                 {
                     string parsedTool;
                     ToolArguments parsedArgs;
@@ -12645,6 +12672,19 @@ namespace CapriDesktop
                 new Job("write a line in notepad").Hurt();
                 if (!flinchedInGame || Computer.Flinched) throw new Exception("A hit didn't reach a game job, or it reached one that isn't a game.");
                 if (flinchedAgain) throw new Exception("A second hit straight after the first stopped her again.");
+                System.Collections.Generic.List<string> playLines = new System.Collections.Generic.List<string>();
+                Job narrating = new Job("play minecraft") { Says = playLines.Add };
+                narrating.Narrate("  Got you.\nAnd a second sentence nobody needs.");
+                narrating.Narrate("Too soon after the last one.");
+                new Job("write a line in notepad") { Says = playLines.Add }.Narrate("Not a game, so she keeps working quietly.");
+                if (playLines.Count != 1 || playLines[0] != "Got you.") throw new Exception("Her lines while she plays came out wrong: " + string.Join(" / ", playLines.ToArray()));
+                narrating = new Job("play minecraft") { Says = playLines.Add };
+                narrating.Narrate("Eat dirt.");
+                System.Threading.Thread.Sleep(0);
+                if (playLines.Count != 2 || playLines[1] != "Eat dirt.") throw new Exception("A fresh game job couldn't talk.");
+                if (Computer.Moves("say{\"text\": \"Eat dirt.\"}\nclick{\"x\": 50, \"y\": 48}").Count != 2 || Computer.Moves("say{\"text\": \"Eat dirt.\"}")[0].Key != "say") throw new Exception("A written say wasn't read as a move.");
+                if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
+                checks.Add("PASS she says lines out loud while she plays, one sentence at a time and only in games");
                 if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
                 Func<string, bool> localSeesWas = Brain.LocalSees;
                 Func<string> localEyesWere = Brain.LocalEyes;
@@ -13226,6 +13266,10 @@ namespace CapriDesktop
                     local.Drive("Tools", "[]", "[]", true);
                     if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != "16000") throw new Exception("A game lost its thinking room.");
                 }
+                local.Drive("Tools", "[]", "[]", true, true);
+                if (!SentBody(asked[asked.Count - 1]).Contains("\"model\":\"" + Brain.Fastest + "\"")) throw new Exception("Fast hands didn't reach her game job.");
+                local.Drive("Tools", "[]", "[]", true);
+                if (!SentBody(asked[asked.Count - 1]).Contains("\"model\":" + Voice.Quote(local.Remote.Model))) throw new Exception("With fast hands off she left the brain they picked.");
                 local.Remote = null;
                 local.Step("Tools", "Next", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
                 if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "8192") throw new Exception("A job ignored a larger reply setting.");

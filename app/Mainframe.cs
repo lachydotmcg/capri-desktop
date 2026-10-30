@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1312;
+        private const int PageTall = 1340;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -128,6 +128,7 @@ namespace CapriDesktop
         private readonly ContextMenuStrip careMenu;
         private readonly Toggle clipGames;
         private readonly Toggle clipMoments;
+        private readonly Toggle fastHands;
         private readonly Label voiceHead;
         // OFF, PREBUILT LOCAL (her own voices), CUSTOM LOCAL (a voice model they set up on their PC) and CLOUD VOICE.
         private readonly Rung[] voiceRungs = new Rung[4];
@@ -659,7 +660,9 @@ namespace CapriDesktop
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory; clips stay in Videos\\Capri Clips on this PC";
             clipMoments = Switch("Save big moments", c, 1232, delegate { if (!syncing) capri.ToggleClipMoments(); });
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
-            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1260, small, Faint);
+            fastHands = Switch("Fast hands in games", c, 1260, delegate { if (!syncing) capri.ToggleFastHands(); });
+            fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less, while chat stays on the brain you picked";
+            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1288, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -1311,6 +1314,7 @@ namespace CapriDesktop
             }
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
+            fastHands.Checked = capri.FastHandsOn;
             frameSize.Value = Math.Max(0, Array.IndexOf(FrameSizes, capri.MainframeSize));
             ShowFrameSize();
             VoiceTier();

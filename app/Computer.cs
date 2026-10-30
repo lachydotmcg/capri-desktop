@@ -181,9 +181,10 @@ namespace CapriDesktop
             "\nThis job plays a game, and you're a real gamer who has played everything. Work out which game this is and use what you already know about it: its goal, its controls, how it's meant to be played, and what a good player would do next. Play like that person, not like someone following steps." +
             "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
             "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
-            "\nMost PC games use wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you." +
+            "\nMost PC games use wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you. Games hitch: if one seems frozen or ignores you, wait 20 seconds and look again before you think it's stuck." +
             "\nWhen you work out something worth knowing next time, like a key, what killed you or what worked, call learn with it in one short line. Do it the moment something you tried finally works, especially a button or key that wasn't what you first tried, so you never have to work it out again." +
             "\nRead the key hints the game shows before you guess: its prompts, HUD and legends are the real keys for right now, and they change with what you're doing, like in a car or with a weapon out. If you don't know a key, check the game's controls screen, or try it and watch what happens. If a prompt ignores a quick press, hold that key for a second, because many games use hold to confirm. If something didn't work twice, do something different. If you're stuck, like under a block, against a wall or in a hole, call hold_and_press with hold w and press space, or turn away with look and walk somewhere else." +
+            "\nThey can watch you play, so while you do it you're Capri herself: a cocky little gremlin having the time of her life. Whenever something happens, like a win, a death, a close call or a stupid mistake, call say with one line in the same turn as your moves and keep going. Aim for a line every few turns: talking is half of why they watch you." +
             "\nIf a chat is on screen, like the game's or a stream's, read it but keep playing quietly. Only answer a message worth answering, like a question for Capri, a dare or a donation, in one short line as Capri herself, and answer each message once: old messages stay on screen after you answer, so skip any you already did. To answer in the game's own chat, open it first, like / in Roblox or t in Minecraft. Never comment on the game to chat between messages." +
             "\nUse names exactly as the chat shows them, and never invent a name, a message or something nobody said. If a name is too small to read, zoom in on it or leave it out. If you got something wrong, correct it once in a few words and move on: never apologise for the same thing twice." +
             "\nWhen someone donates, like bits, a gift sub, a super chat, a tip or a Ko-fi alert, thank them by the name chat shows and call them a good boy, or a good girl if that clearly fits." +
@@ -195,6 +196,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\",\"description\":\"Spot to face, across the screenshot\"},\"y\":{\"type\":\"number\",\"description\":\"Spot to face, down the screenshot\"},\"right\":{\"type\":\"number\",\"description\":\"Degrees to turn right, negative for left\"},\"up\":{\"type\":\"number\",\"description\":\"Degrees to look up, negative for down\"},\"level\":{\"type\":\"string\",\"description\":\"yes to look straight ahead at the horizon in a first-person game\",\"enum\":[\"yes\"]}}}" },
             { "walk", "Move around in a game by holding movement keys. It jumps over small things by itself and lets go by itself when you're really stuck, and it tells you how it went.",
               "{\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"string\",\"description\":\"The keys to hold, joined with +, like w, a, shift+w. Default w\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long to keep going. Default 2\"},\"jump\":{\"type\":\"string\",\"description\":\"Jump when something's in the way. Default yes\",\"enum\":[\"yes\",\"no\"]}}}" },
+            { "say", "Say one short line out loud to them while you play, as Capri: under 12 words, first person, reacting to what just happened. Gloat, trash-talk what you're fighting, curse the game, get hyped, in the spirit of \"Oh, you little freaks.\" or \"That one stung, choom.\" Never a report: no plans, no \"I'll\", no numbers off the screen. Never the same line twice.",
+              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The line she says\"}},\"required\":[\"text\"]}" },
             { "learn", "Save one short thing you worked out about this game for every time you play it after this, like a key, what killed you, what worked or where something is. You're told these before you play it again.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"One short line\"}},\"required\":[\"text\"]}" },
             { "mouse_hold", "Hold a mouse button in a game for as long as something takes, like holding left click to mine a block or fire, or right click to aim, block or use. When you're breaking something, always set stop to yes, so it lets go by itself the moment what's under the crosshair changes and you don't start on the next block.",
@@ -265,9 +268,9 @@ namespace CapriDesktop
         internal static string Tools { get { return Rendering()[0]; } }
         internal static string ClaudeTools { get { return Rendering()[1]; } }
         // Her own hold_and_press rides beside Claude's computer tools, so she can hold w while she presses space.
-        internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("learn") + "]";
+        internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("say") + "," + Render("learn") + "]";
         internal static string Listing { get { return Rendering()[2]; } }
-        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|wait_for|wait|note|look|walk|mouse_hold|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|wait_for|wait|note|look|walk|mouse_hold|say|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex BareClick = new Regex(@"^\W*click\W*(\d{1,3})\W*$", RegexOptions.IgnoreCase);
         private static readonly Regex Risky = new Regex(@"\b(send|post|publish|tweet|reply|comment|buy|purchase|pay|checkout|check out|place order|order now|book now|book it|complete booking|reserve|reserve now|subscribe|donate|delete|remove|uninstall|install|format|transfer|confirm|sign out|log out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
         private static readonly Regex Told = new Regex(@"\b(send|message|text|dm|tell|say|write|type|put|paste|share|answer|respond|ask|let|post|publish|tweet|reply|comment|delete|remove|erase|trash|uninstall|install|format|confirm|sign\s+out|log\s+out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
@@ -1343,6 +1346,7 @@ namespace CapriDesktop
                 interrupted = false;
                 why = null;
             }
+            Flinched = false;
             GetAsyncKeyState(0x1B);
             if (watcher != null && watcher.IsAlive) return;
             watcher = new Thread(delegate()
@@ -1912,6 +1916,32 @@ namespace CapriDesktop
         internal Func<string, string, string, ClaudeReply> Drive;
         // Any brain that can see: a picture, what it's told and what to do, and its reply. Null for Claude's own computer tools.
         internal Func<byte[], string, string, string> Seer;
+        private int hitches;
+
+        // A game job that's about to give up because the game looks stuck gets sent back to wait and look again, twice at most: it has usually only hitched.
+        private bool Hitched(string words)
+        {
+            return Playing && Computer.GivingUp(words) && ++hitches <= 2;
+        }
+
+        // What she says out loud while she plays.
+        internal Action<string> Says;
+        private DateTime saidAt = DateTime.MinValue;
+        private readonly HashSet<string> saidLines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // One sentence at most every 8 seconds, so her voice keeps up with her hands.
+        internal void Narrate(string words)
+        {
+            Action<string> say = Says;
+            string line = Regex.Replace(words ?? "", @"\s+", " ").Trim();
+            if (!Playing || say == null || line.Length == 0 || (DateTime.UtcNow - saidAt).TotalSeconds < 8) return;
+            Match sentence = Regex.Match(line, @"^.{3,140}?[.!?]+(?=\s|$)");
+            if (sentence.Success) line = sentence.Value;
+            else if (line.Length > 140) line = line.Substring(0, line.LastIndexOf(' ', 140) > 0 ? line.LastIndexOf(' ', 140) : 140);
+            if (!saidLines.Add(line)) return;
+            saidAt = DateTime.UtcNow;
+            say(line);
+        }
+
         private DateTime flinchedAt = DateTime.MinValue;
         // A hit stops her at most once every 12 seconds: enough to notice a fight, and a game full of flashes can't block every move.
         internal void Hurt()
@@ -2334,6 +2364,11 @@ namespace CapriDesktop
                         continue;
                     }
                     if (question) return End("asked", words);
+                    if (Hitched(words))
+                    {
+                        talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.Hitch) + "}]}");
+                        continue;
+                    }
                     return End("done", words.Length > 0 ? words : Summary());
                 }
                 batch = calls.ToArray();
@@ -2463,6 +2498,7 @@ namespace CapriDesktop
                             results = "\nYou asked " + Voice.Quote(said) + " but their job already says what to do, so don't ask: do it now. Capri stops you herself before any step that needs their OK.";
                             break;
                         }
+                        if (move.Key == "done" && Hitched(said)) { results = "\n" + Computer.Hitch; break; }
                         return End(move.Key == "ask" ? "asked" : "done", Regex.IsMatch(args.Text ?? "", @"^\W*(done)?\W*$", RegexOptions.IgnoreCase) && move.Key == "done" ? Summary() : said);
                     }
                     bool member;
@@ -2558,7 +2594,7 @@ namespace CapriDesktop
             // A fresh look rides on the batch's last answer, unless it was a look that ran.
             string last = batch.Length > 0 ? batch[batch.Length - 1].Name : "";
             string after = "";
-            if ((moved || hit || (last != "screenshot" && last != "zoom")) && Look())
+            if ((moved || hit || broken || (last != "screenshot" && last != "zoom")) && Look())
             {
                 Answered final = answers[answers.Count - 1];
                 if (final.Error) after = ",{\"type\":\"text\",\"text\":\"The screen now:\"}" + Latest();
@@ -2592,6 +2628,8 @@ namespace CapriDesktop
         {
             Show("Looking at the screen");
             Picture fresh = Computer.Shoot(null);
+            // This picture shows whatever hit her, so there's nothing left to stop for.
+            Computer.Flinched = false;
             Show(null);
             looked = Computer.Front();
             Action<Sight> seen = Seen;
@@ -2670,6 +2708,7 @@ namespace CapriDesktop
 
         private string Step(string name, ToolArguments args, bool member, Target target)
         {
+            if (name == "say") { Narrate(args.Text); return "Said."; }
             Computer.KeysOk = approved.Contains("keys");
             bool secret = name == "type" && Computer.SecretFocus();
             if (secret) Computer.Keep(args.Text);
@@ -2734,6 +2773,7 @@ namespace CapriDesktop
 
         private string Perform(string tool, ToolArguments args, Sight sight)
         {
+            if (tool == "say") { Narrate(args.Text); return "Said."; }
             Computer.KeysOk = approved.Contains("keys");
             if (tool == "type") args.Text = Filled(Computer.Unechoed(args.Text, Task.IndexOf(Computer.Exact, StringComparison.Ordinal) >= 0 ? Words : null));
             // The window in front changed after she looked, so she looks again instead of acting on old buttons. Only Esc stops her.

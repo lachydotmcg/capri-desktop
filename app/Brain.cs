@@ -2063,19 +2063,20 @@ namespace CapriDesktop
             if (open != null) open.Abort();
         }
 
-        internal ClaudeReply Drive(string system, string tools, string messages, bool deep = false)
+        internal ClaudeReply Drive(string system, string tools, string messages, bool deep = false, bool fast = false)
         {
             int ticket;
             lock (gate) ticket = cancelled;
             Cloud remote = Remote;
             if (remote == null || !remote.Claude) throw new BrainException(Offline);
-            bool fallback = Regex.IsMatch(remote.Model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
+            string model = fast && !noFastest ? Fastest : remote.Model;
+            bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
             // Her hands keep only the newest three pictures, which changes earlier turns. These models bind each thinking block to
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
             // and the model thinks again. Adaptive is already their default.
-            bool bound = Regex.IsMatch(remote.Model, @"^claude-(opus-5-5|sonnet-5-5|fable-5-1|haiku-5-5)");
+            bool bound = Regex.IsMatch(model, @"^claude-(opus-5-5|sonnet-5-5|fable-5-1|haiku-5-5)");
             int limit = ReplyLimit(deep ? DeepTokens : 4096, true);
-            string body = "{\"model\":" + Voice.Quote(remote.Model) + ",\"max_tokens\":" + limit + (bound ? ",\"thinking\":{\"type\":\"adaptive\",\"block_binding\":{\"prefix_mismatch_behavior\":\"drop_block\"}}" : "")
+            string body = "{\"model\":" + Voice.Quote(model) + ",\"max_tokens\":" + limit + (bound ? ",\"thinking\":{\"type\":\"adaptive\",\"block_binding\":{\"prefix_mismatch_behavior\":\"drop_block\"}}" : "")
                 + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + tools + ",\"output_config\":{\"effort\":\"" + (deep ? "high" : "low") + "\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
             string betas = (fallback ? "server-side-fallback-2026-07-01" : "") + (fallback && bound ? "," : "") + (bound ? "thinking-binding-controls-2026-08-01" : "");
             string text;
@@ -2087,6 +2088,13 @@ namespace CapriDesktop
                     Sign(request, remote.Key, true);
                     if (betas.Length > 0) request.Headers["anthropic-beta"] = betas;
                 }, null, ticket);
+            }
+            catch (BrainException error)
+            {
+                // Their key doesn't have the fast model, so the game runs on the brain they picked.
+                if (model == remote.Model || error.Message != Gone) throw;
+                noFastest = true;
+                return Drive(system, tools, messages, deep);
             }
             finally { driving = null; }
             return Parsed(text);
