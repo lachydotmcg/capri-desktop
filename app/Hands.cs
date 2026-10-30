@@ -50,6 +50,12 @@ namespace CapriDesktop
         [DataMember(Name = "hold")] public string Hold;
         [DataMember(Name = "press")] public string Press;
         [DataMember(Name = "times")] public string Times;
+        [DataMember(Name = "x")] public double? X;
+        [DataMember(Name = "y")] public double? Y;
+        [DataMember(Name = "right")] public double? Right;
+        [DataMember(Name = "up")] public double? Up;
+        [DataMember(Name = "jump")] public string Jump;
+        [DataMember(Name = "stop")] public string Stop;
 
         internal ToolArguments Copy() { return (ToolArguments)MemberwiseClone(); }
     }

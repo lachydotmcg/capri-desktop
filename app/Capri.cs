@@ -33,15 +33,16 @@ namespace CapriDesktop
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             bool smoke = args.Length == 2 && args[0] == "--smoke-test";
+            bool bench = args.Length == 2 && args[0] == "--bench";
             string identity = WindowsIdentity.GetCurrent().User.Value;
             bool first;
-            using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : ""), out first))
-            using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test" : "")))
+            using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : bench ? ".Bench" : ""), out first))
+            using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
             {
                 if (!first) { Native.AllowSetForegroundWindow(-1); restore.Set(); return 0; }
                 try
                 {
-                    string data = smoke ? Path.GetFullPath(args[1]) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri");
+                    string data = smoke || bench ? Path.GetFullPath(args[1]) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri");
                     Brain.LogPath = Path.Combine(data, "errors.txt");
                     // Whatever ends her, their own cursor comes back, and a crash goes in errors.txt.
                     AppDomain.CurrentDomain.ProcessExit += delegate { HerCursor.Off(); };
@@ -56,6 +57,7 @@ namespace CapriDesktop
                     using (Companion app = new Companion(data, restore, smoke))
                     {
                         if (smoke) app.StartSmokeTest(data);
+                        if (bench) app.StartBench(data);
                         Application.Run(app);
                         HerCursor.Off();
                         return app.TestFailed ? 1 : 0;
@@ -5397,6 +5399,26 @@ namespace CapriDesktop
         private void Post(Action action)
         {
             try { if (!IsDisposed) BeginInvoke(action); } catch (InvalidOperationException) { }
+        }
+
+        // --bench runs her as usual from another folder and takes what lands in its ask.txt as if it was typed, so her hands can be
+        // scored on real games. Each turn of a job goes in bench.txt.
+        internal void StartBench(string data)
+        {
+            string asked = Path.Combine(data, "ask.txt");
+            string traced = Path.Combine(data, "bench.txt");
+            Job.TraceFolder = data;
+            Job.Trace = delegate(string line) { lock (asked) File.AppendAllText(traced, DateTime.Now.ToString("HH:mm:ss.fff") + " " + line + Environment.NewLine); };
+            System.Windows.Forms.Timer polling = new System.Windows.Forms.Timer { Interval = 400 };
+            polling.Tick += delegate
+            {
+                if (!File.Exists(asked)) return;
+                string text;
+                try { text = File.ReadAllText(asked); File.Delete(asked); }
+                catch (IOException) { return; }
+                if (text.Trim().Length > 0) Hear(text.Trim());
+            };
+            polling.Start();
         }
 
         private string RunJob(string task, string asked) { return Work(new Job(task, asked)); }

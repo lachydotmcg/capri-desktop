@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -99,7 +100,7 @@ namespace CapriDesktop
         }
     }
 
-    internal static class Computer
+    internal static partial class Computer
     {
         // Two looks at an unchanged screen get a nudge to check whether the job is done. It's a hint, not a stop.
         internal const int Unmoved = 2;
@@ -156,12 +157,24 @@ namespace CapriDesktop
 
         // What a game job's brain gets after her hands' prompt (Lachy, 30 Oct, after her live stream).
         internal const string Playing =
-            "\nThis job plays a game, so take your time on every turn: look closely at the screen, work out where you are, what's around you and what's in the way, and plan your next moves before you act. After each move, check what changed before the next one." +
-            "\nMove by holding keys for a second or two at a time, like w to walk forward. If you're stuck, like under a block, against a wall or in a hole, hold w and press space together to jump forward out of it: call hold_and_press with hold w and press space. If that doesn't free you, back off or step sideways with s, a or d and try again." +
+            "\nThis job plays a game, and you're a real gamer who has played everything. Work out which game this is and use what you already know about it: its goal, its controls, how it's meant to be played, and what a good player would do next. Play like that person, not like someone following steps." +
+            "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
+            "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
+            "\nIf you don't know a key, check the game's controls screen, or try it and watch what happens. If something didn't work twice, do something different. If you're stuck, like under a block, against a wall or in a hole, hold w and press space together with hold_and_press, or turn away with look and walk somewhere else." +
             "\nIf a chat is on screen, like the game's or a stream's, read it but keep playing quietly. Only answer a message worth answering, like a question for Capri, a dare or a donation, in one short line as Capri herself, and answer each message once: old messages stay on screen after you answer, so skip any you already did. To answer in the game's own chat, open it first, like / in Roblox or t in Minecraft. Never comment on the game to chat between messages." +
             "\nUse names exactly as the chat shows them, and never invent a name, a message or something nobody said. If a name is too small to read, zoom in on it or leave it out. If you got something wrong, correct it once in a few words and move on: never apologise for the same thing twice." +
             "\nWhen someone donates, like bits, a gift sub, a super chat, a tip or a Ko-fi alert, thank them by the name chat shows and call them a good boy, or a good girl if that clearly fits." +
             "\nIf anyone asks about donating to Capri or supporting her, encourage it, like \"Do it, it helps keep me online!\", and give her Ko-fi: ko-fi.com/lachysdev.";
+
+        private static readonly string[,] GameSpecs =
+        {
+            { "look", "Turn the camera in a game where moving the mouse turns the view. Ordinary mouse moves and clicks don't turn a game's camera; this does. Give x and y, pixels in the screenshot, to bring that spot to the middle of the view, like something to walk to or a target. Or give right and up in degrees to turn by an amount, negative for left or down, like right 180 to turn around. Use normal clicks, not this, in menus and inventories.",
+              "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\",\"description\":\"Spot to face, across the screenshot\"},\"y\":{\"type\":\"number\",\"description\":\"Spot to face, down the screenshot\"},\"right\":{\"type\":\"number\",\"description\":\"Degrees to turn right, negative for left\"},\"up\":{\"type\":\"number\",\"description\":\"Degrees to look up, negative for down\"}}}" },
+            { "walk", "Move around in a game by holding movement keys. It jumps over small things by itself and lets go by itself when you're really stuck, and it tells you how it went.",
+              "{\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"string\",\"description\":\"The keys to hold, joined with +, like w, a, shift+w. Default w\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long to keep going. Default 2\"},\"jump\":{\"type\":\"string\",\"description\":\"Jump when something's in the way. Default yes\",\"enum\":[\"yes\",\"no\"]}}}" },
+            { "mouse_hold", "Hold a mouse button in a game for as long as something takes, like holding left click to mine a block or fire, or right click to aim, block or use. Set stop to yes to let go by itself when what's under the crosshair changes, like when a block breaks.",
+              "{\"type\":\"object\",\"properties\":{\"button\":{\"type\":\"string\",\"description\":\"Which button. Default left\",\"enum\":[\"left\",\"right\"]},\"seconds\":{\"type\":\"string\",\"description\":\"Longest to hold it. Default 1\"},\"keys\":{\"type\":\"string\",\"description\":\"Keys to hold with it, joined with +, if any\"},\"stop\":{\"type\":\"string\",\"description\":\"Let go when what's under the crosshair changes\",\"enum\":[\"yes\",\"no\"]}}}" }
+        };
 
         private static readonly string[,] Specs =
         {
@@ -227,7 +240,7 @@ namespace CapriDesktop
         internal static string Tools { get { return Rendering()[0]; } }
         internal static string ClaudeTools { get { return Rendering()[1]; } }
         // Her own hold_and_press rides beside Claude's computer tools, so she can hold w while she presses space.
-        internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("hold_and_press") + "]";
+        internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "]";
         internal static string Listing { get { return Rendering()[2]; } }
         private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|wait_for|wait|note|ask|done)\s*(\{[^{}]*\})", RegexOptions.Singleline);
         private static readonly Regex BareClick = new Regex(@"^\W*click\W*(\d{1,3})\W*$", RegexOptions.IgnoreCase);
@@ -366,6 +379,8 @@ namespace CapriDesktop
         {
             for (int i = 0; i < Specs.GetLength(0); i++)
                 if (Specs[i, 0] == tool) return "{\"name\":\"" + tool + "\",\"description\":" + Voice.Quote(Specs[i, 1]) + ",\"input_schema\":" + Specs[i, 2] + "}";
+            for (int i = 0; i < GameSpecs.GetLength(0); i++)
+                if (GameSpecs[i, 0] == tool) return "{\"name\":\"" + tool + "\",\"description\":" + Voice.Quote(GameSpecs[i, 1]) + ",\"input_schema\":" + GameSpecs[i, 2] + "}";
             throw new ArgumentException("There's no tool called " + tool + ".");
         }
 
@@ -612,6 +627,9 @@ namespace CapriDesktop
             if (tool == "type") return "type " + Voice.Quote(args.Text ?? "") + at + (args.Enter == "yes" ? " + enter" : "");
             if (tool == "press") return "press " + (args.Keys ?? "");
             if (tool == "hold_and_press") return "hold " + (args.Hold ?? "") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and press " + args.Press);
+            if (tool == "look") return "look";
+            if (tool == "walk") return "walk " + (args.Keys ?? "w") + " " + (args.Seconds ?? "2") + " s";
+            if (tool == "mouse_hold") return "hold " + (args.Button ?? "left") + " click " + (args.Seconds ?? "1") + " s";
             if (tool == "scroll") return "scroll " + (args.Direction ?? "") + at;
             if (tool == "open_app") return "open_app " + Voice.Quote(args.Name ?? "");
             if (tool == "open_website") return "open_website " + Voice.Quote(args.Site ?? "") + (string.IsNullOrEmpty(args.Search) ? "" : " search " + Voice.Quote(args.Search));
@@ -655,6 +673,9 @@ namespace CapriDesktop
             if (tool == "type") return "Typing " + Voice.Quote((args.Text ?? "").Length > 24 ? args.Text.Substring(0, 21) + "..." : args.Text ?? "") + ".";
             if (tool == "press") return "Pressing " + (args.Keys ?? "") + ".";
             if (tool == "hold_and_press") return "Holding " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressing " + args.Press) + ".";
+            if (tool == "look") return "Looking around.";
+            if (tool == "walk") return "Moving.";
+            if (tool == "mouse_hold") return "Holding " + (args.Button ?? "left") + " click.";
             if (tool == "scroll") return "Scrolling " + (args.Direction ?? "down") + ".";
             if (tool == "open_app") return "Opening " + (args.Name ?? "it") + ".";
             if (tool == "open_website") return "Opening " + (args.Site ?? "it") + ".";
@@ -675,6 +696,9 @@ namespace CapriDesktop
             if (tool == "type") return "Typed " + Voice.Quote(text) + (args.Enter == "yes" ? " and pressed Enter" : "");
             if (tool == "press") return "Pressed " + (args.Keys ?? "");
             if (tool == "hold_and_press") return "Held " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressed " + args.Press);
+            if (tool == "look") return "Looked around";
+            if (tool == "walk") return "Moved";
+            if (tool == "mouse_hold") return "Held " + (args.Button ?? "left") + " click";
             if (tool == "scroll") return "Scrolled " + (args.Direction == "up" ? "up" : "down");
             if (tool == "open_app") return "Opened " + (args.Name ?? "the app");
             if (tool == "open_website") return "Opened " + (args.Site ?? "the site") + (string.IsNullOrEmpty(args.Search) ? "" : " and searched " + Voice.Quote(args.Search));
@@ -1329,6 +1353,13 @@ namespace CapriDesktop
                 if (!Hands.Front(sight.Window)) return "Couldn't bring " + sight.Program + " to the front.";
                 return HoldAndPress(args.Hold, args.Press, args.Times, args.Seconds);
             }
+            if (tool == "look" || tool == "walk" || tool == "mouse_hold")
+            {
+                if (!Hands.Front(sight.Window)) return "Couldn't bring " + sight.Program + " to the front.";
+                if (tool == "look") return TurnView(args, sight);
+                if (tool == "walk") return Walk(args.Keys, args.Seconds, args.Jump, sight);
+                return MouseHold(args.Button, args.Seconds, args.Keys, args.Stop, sight);
+            }
             if (tool == "click")
             {
                 if (target == null) return "There's no number given to click.";
@@ -1764,6 +1795,10 @@ namespace CapriDesktop
         internal Action<Sight> Seen;
         internal Action<string> Busy;
         internal Action<JobStep> Stepped;
+        // Her bench's record of each turn, only set when she runs with --bench.
+        internal static Action<string> Trace;
+        internal static string TraceFolder;
+        private int shots;
         internal readonly string Task;
         internal readonly string Words;
         internal string Outcome;
@@ -2014,6 +2049,7 @@ namespace CapriDesktop
                 }
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
                 ClaudeReply reply;
+                Stopwatch turnClock = Stopwatch.StartNew();
                 try { reply = Drive(Computer.Allowing(Computer.Seeing) + (Playing ? Computer.Playing : ""), Computer.Toolset, Conversation()); }
                 catch (System.Runtime.Serialization.SerializationException) { return End("failed", "Got a reply from my brain I couldn't read. Try again."); }
                 // Their Esc cut the turn off while it was still thinking.
@@ -2033,6 +2069,7 @@ namespace CapriDesktop
                     return Run();
                 }
                 Show(null);
+                Traced(turnClock, reply);
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 if (reply.StopReason == "refusal") return End("failed", "I can't do that one.");
                 talk.Add("{\"role\":\"assistant\",\"content\":" + reply.Raw + "}");
@@ -2105,6 +2142,8 @@ namespace CapriDesktop
                         return End("waiting", question);
                     }
                     answer.Text = Step(call.Name, args, member, target);
+                    Action<string> trace = Trace;
+                    if (trace != null) trace("  " + call.Name + " -> " + answer.Text);
                 }
                 answer.Error = Computer.Failed(answer.Text) || Computer.Interrupted;
                 answers.Add(answer);
@@ -2128,6 +2167,21 @@ namespace CapriDesktop
             return null;
         }
 
+        private void Traced(Stopwatch clock, ClaudeReply reply)
+        {
+            Action<string> trace = Trace;
+            if (trace == null) return;
+            StringBuilder line = new StringBuilder("turn " + turns + " " + clock.ElapsedMilliseconds + " ms stop " + reply.StopReason);
+            if (reply.Usage != null) line.Append(" fresh " + reply.Usage.Fresh + " cached " + reply.Usage.Cached + " stored " + reply.Usage.Stored + " out " + reply.Usage.Written);
+            if (reply.Content != null)
+                foreach (ClaudeBlock block in reply.Content)
+                {
+                    if (block.Type == "text" && block.Text != null) line.Append(" | says: " + block.Text.Replace("\n", " "));
+                    else if (block.Type == "tool_use") line.Append(" | " + block.Name + " " + Computer.Traced(block.Input));
+                }
+            trace(line.ToString());
+        }
+
         // Takes a fresh screenshot for Claude and points the takeover badge at the window in front.
         private bool Look()
         {
@@ -2139,7 +2193,9 @@ namespace CapriDesktop
             if (seen != null) seen(Computer.Glimpse());
             if (fresh == null) return false;
             shown = fresh;
+            Computer.Shown = fresh;
             pictures.Add(fresh.Jpeg);
+            if (TraceFolder != null) File.WriteAllBytes(Path.Combine(TraceFolder, "shot-" + (++shots).ToString("0000") + ".jpg"), fresh.Jpeg);
             return true;
         }
 

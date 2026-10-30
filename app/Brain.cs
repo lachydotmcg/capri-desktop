@@ -197,7 +197,17 @@ namespace CapriDesktop
     {
         [DataMember(Name = "content")] public ClaudeBlock[] Content;
         [DataMember(Name = "stop_reason")] public string StopReason;
+        [DataMember(Name = "usage")] public ClaudeUsage Usage;
         internal string Raw;
+    }
+
+    [DataContract]
+    internal sealed class ClaudeUsage
+    {
+        [DataMember(Name = "input_tokens")] public long Fresh;
+        [DataMember(Name = "output_tokens")] public long Written;
+        [DataMember(Name = "cache_read_input_tokens")] public long Cached;
+        [DataMember(Name = "cache_creation_input_tokens")] public long Stored;
     }
 
     [DataContract]
