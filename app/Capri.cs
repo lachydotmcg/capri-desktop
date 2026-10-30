@@ -1735,6 +1735,7 @@ namespace CapriDesktop
             base.OnFormClosing(e);
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && e.CloseReason != CloseReason.WindowsShutDown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
+            if (!e.Cancel) { quitting = true; Computer.Close(); }
         }
 
         private void Tick()
@@ -5790,6 +5791,7 @@ namespace CapriDesktop
 
         private string Worked(Job running)
         {
+            if (quitting) return Computer.Why;
             job = running;
             running.Think = delegate(string system, string user, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls) { return brain.Step(system, user, Computer.Tools, Computer.ClaudeTools, Computer.Listing, calls); };
             Cloud driver = brain.Remote;
@@ -11417,6 +11419,150 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeGameWatch(System.Collections.Generic.List<string> checks)
+        {
+            Func<Sight> glimpseBefore = Computer.Glimpse;
+            Job jobBefore = job;
+            bool quittingBefore = quitting;
+            int paceBefore = Commentary.Pace, watchPasses = 0;
+            string logBefore = Brain.LogPath;
+            string watchLog = Path.Combine(Path.GetTempPath(), "capri-watch-" + Guid.NewGuid().ToString("N") + ".log");
+            Thread watchCheck = null;
+            try
+            {
+                job = new Job("play minecraft");
+                Brain.LogPath = watchLog;
+                Computer.Glimpse = delegate
+                {
+                    if (++watchPasses == 1) throw new InvalidOperationException("missing game window");
+                    if (watchPasses >= 5) quitting = true;
+                    return new Sight { Window = new IntPtr(-12345), Title = "Minecraft", Program = "javaw" };
+                };
+                watchCheck = new Thread(GameWatching) { IsBackground = true };
+                watchCheck.Start();
+                if (!watchCheck.Join(5000) || watchPasses < 5) throw new Exception("One failed pass ended the game watcher.");
+                if (!File.Exists(watchLog) || Array.FindAll(File.ReadAllLines(watchLog), watchLine => watchLine.Contains("| game watch |")).Length != 1) throw new Exception("A window without an owner reached game audio.");
+                checks.Add("PASS the game watcher continues after a failed pass and skips windows without an owner");
+            }
+            finally
+            {
+                quitting = true;
+                if (watchCheck != null) watchCheck.Join(1500);
+                Computer.Glimpse = glimpseBefore; job = jobBefore; quitting = quittingBefore; Commentary.Pace = paceBefore; Brain.LogPath = logBefore;
+                if (File.Exists(watchLog)) File.Delete(watchLog);
+            }
+        }
+
+        private static void SmokeGameWindows(System.Collections.Generic.List<string> checks, Func<string> find)
+        {
+            Func<System.Collections.Generic.List<OpenWindow>> windowsWere = Hands.Windows;
+            try
+            {
+                System.Collections.Generic.List<OpenWindow> windows = new System.Collections.Generic.List<OpenWindow>();
+                Hands.Windows = delegate { return windows; };
+                foreach (string editor in new[] { "notepad", "Notepad++", "Code", "WINWORD", "EXCEL", "soffice.bin", "AcroRd32" })
+                {
+                    windows.Clear();
+                    windows.Add(new OpenWindow(IntPtr.Zero, "Minecraft.txt", editor));
+                    if (find() != null || Computer.GameWindow(new Sight { Window = new IntPtr(9), Title = "Minecraft.txt", Program = editor })) throw new Exception("A document was taken for a game.");
+                }
+                windows.Add(new OpenWindow(IntPtr.Zero, "Minecraft 26.3", "javaw"));
+                if (find() != "Minecraft 26.3") throw new Exception("A document hid a real game's title.");
+                checks.Add("PASS game detection skips editor and document windows and still finds a real game behind them");
+            }
+            finally { Hands.Windows = windowsWere; }
+        }
+
+        private static void SmokeGameHolds(System.Collections.Generic.List<string> checks)
+        {
+            Action<short, bool, bool> keyWas = Computer.SendKey;
+            Action<int, int> mouseWas = Computer.SendMouse;
+            Func<Rectangle, byte[]> grayWas = Computer.GrayFrame;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<bool> escapeWas = Computer.Escape;
+            Action haltWas = Computer.Halted;
+            bool flinchedWas = Computer.Flinched;
+            System.Collections.Generic.HashSet<short> down = new System.Collections.Generic.HashSet<short>();
+            int buttons = 0, jumps = 0, frontReads = 0, grayReads = 0;
+            Sight heldSight = new Sight { Window = new IntPtr(7), Bounds = new Rectangle(0, 0, 1280, 720) };
+            try
+            {
+                Computer.Escape = delegate { return false; };
+                Computer.Halted = delegate { };
+                Computer.Flinched = false;
+                Computer.SendKey = delegate(short code, bool up, bool extended) { if (up) down.Remove(code); else { down.Add(code); if (code == 0x20) jumps++; } };
+                Computer.SendMouse = delegate(int flags, int data) { buttons |= flags & 0x2A; buttons &= ~((flags & 0x54) >> 1); };
+                Computer.GrayFrame = delegate(Rectangle area) { return new byte[Computer.GrayWidth * Computer.GrayHeight]; };
+                foreach (bool walkingHold in new[] { false, true })
+                {
+                    Computer.Arm(); frontReads = 0;
+                    Computer.Front = delegate { return ++frontReads < 5 ? new IntPtr(7) : new IntPtr(8); };
+                    string released = walkingHold ? Computer.Walk("w", "30", "yes", heldSight) : Computer.MouseHold("right", "30", "w", "no", heldSight);
+                    if (!released.Contains("no longer in front") || down.Count != 0 || buttons != 0) throw new Exception("A window switch left game input held.");
+                }
+                Computer.Front = delegate { throw new Exception("A windowless sight checked the foreground."); };
+                Sight noWindow = new Sight { Bounds = heldSight.Bounds };
+                if (!Computer.Walk("s", "0.01", "no", noWindow).StartsWith("Moved") || !Computer.MouseHold("left", "0.01", null, "no", noWindow).StartsWith("Held")) throw new Exception("A windowless hold stopped working.");
+                checks.Add("PASS game holds release on a faked window switch and still run with a windowless sight");
+                Computer.Front = delegate { return new IntPtr(7); };
+                foreach (string stopWord in new[] { "yes", "true", "no", "false" })
+                {
+                    grayReads = 0;
+                    Computer.GrayFrame = delegate(Rectangle area) { byte[] gray = new byte[Computer.GrayWidth * Computer.GrayHeight]; if (++grayReads > 1) for (int grayIndex = 0; grayIndex < gray.Length; grayIndex++) gray[grayIndex] = 255; return gray; };
+                    string stoppedHold = Computer.MouseHold("left", "0.15", null, stopWord, heldSight);
+                    if (stoppedHold.Contains("crosshair changed") != (stopWord == "yes" || stopWord == "true")) throw new Exception("A stop boolean changed the hold's meaning.");
+                }
+                Computer.GrayFrame = delegate(Rectangle area) { return new byte[Computer.GrayWidth * Computer.GrayHeight]; };
+                foreach (string jumpWord in new[] { "yes", "true", "no", "false" })
+                {
+                    jumps = 0;
+                    Computer.Walk("w", "0.8", jumpWord, heldSight);
+                    if ((jumps > 0) != (jumpWord == "yes" || jumpWord == "true") || down.Count != 0) throw new Exception("A jump boolean changed the walk's meaning.");
+                }
+                checks.Add("PASS stop and jump accept true and false with the same behaviour as yes and no");
+                using (ManualResetEvent pressedHold = new ManualResetEvent(false))
+                {
+                    Computer.SendMouse = delegate(int flags, int data) { buttons |= flags & 0x2A; buttons &= ~((flags & 0x54) >> 1); if ((flags & 0x2A) != 0) pressedHold.Set(); };
+                    Thread closingHold = new Thread(delegate() { Computer.MouseHold("right", "30", "shift+w", "no", heldSight); });
+                    closingHold.IsBackground = true;
+                    closingHold.Start();
+                    bool startedHold = pressedHold.WaitOne(1000);
+                    Stopwatch closingTime = Stopwatch.StartNew();
+                    Computer.Close();
+                    long closingMs = closingTime.ElapsedMilliseconds;
+                    if (!closingHold.Join(1000) || !startedHold || down.Count != 0 || buttons != 0 || closingMs > 1100) throw new Exception("Closing didn't release held input promptly.");
+                    Computer.Arm();
+                    if (!Computer.Interrupted) throw new Exception("A queued job restarted during close.");
+                }
+                checks.Add("PASS closing interrupts a long hold, waits for its release and prevents a queued job from rearming");
+                typeof(Computer).GetField("closing", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).SetValue(null, false);
+                Computer.Arm();
+                using (ManualResetEvent takingFrame = new ManualResetEvent(false))
+                using (ManualResetEvent finishFrame = new ManualResetEvent(false))
+                {
+                    int slowFrames = 0;
+                    Computer.GrayFrame = delegate(Rectangle slowArea) { if (++slowFrames > 1) { takingFrame.Set(); finishFrame.WaitOne(3000); } return new byte[Computer.GrayWidth * Computer.GrayHeight]; };
+                    Thread slowWalk = new Thread(delegate() { Computer.Walk("w", "30", "no", heldSight); }) { IsBackground = true };
+                    slowWalk.Start();
+                    try
+                    {
+                        if (!takingFrame.WaitOne(1000)) throw new Exception("The fake held walk didn't reach its frame.");
+                        Stopwatch timeoutClose = Stopwatch.StartNew();
+                        Computer.Close();
+                        if (timeoutClose.ElapsedMilliseconds > 1100 || down.Count != 0 || !slowWalk.IsAlive) throw new Exception("Closing waited for a stuck capture or left its key held.");
+                    }
+                    finally { finishFrame.Set(); slowWalk.Join(1000); }
+                }
+                checks.Add("PASS closing waits at most a second and releases input even while a game capture is stuck");
+            }
+            finally
+            {
+                typeof(Computer).GetField("closing", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).SetValue(null, false);
+                Computer.SendKey = keyWas; Computer.SendMouse = mouseWas; Computer.GrayFrame = grayWas; Computer.Front = frontWas;
+                Computer.Halted = haltWas; Computer.Flinched = flinchedWas; Computer.Arm(); Computer.Escape = escapeWas;
+            }
+        }
+
         // A tool call written a little off from what it asked for still runs, and one that can't be read costs a turn, not the job.
         private static void SmokeLooseCalls(System.Collections.Generic.List<string> checks)
         {
@@ -11432,6 +11578,11 @@ namespace CapriDesktop
             ClaudeReply worse = Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"d\",\"name\":\"walk\",\"input\":{\"seconds\":[1,2]}}]}");
             if (worse.Content[0].Name != "walk" || worse.Raw.IndexOf("\"seconds\":[1,2]", StringComparison.Ordinal) < 0 || odd == null) throw new Exception("A tool call that can't be read cost the job.");
             if (Brain.Loosened("{\"text\":\"she said \\\"seconds\\\": 6 to me\"}") != "{\"text\":\"she said \\\"seconds\\\": 6 to me\"}") throw new Exception("Words someone said were changed as if they were a tool call.");
+            ClaudeReply mixedCalls = Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"name\":\"walk\",\"input\":{\"keys\":\"s\",\"seconds\":[1,2]}},{\"type\":\"tool_use\",\"name\":\"mouse_hold\",\"input\":{\"button\":\"right\",\"seconds\":2,\"stop\":true}},{\"type\":\"tool_use\",\"name\":\"type\",\"input\":{\"text\":\"x = {1}\"}}]}");
+            if (mixedCalls.Content[0].Input != null || mixedCalls.Content[1].Input.Button != "right" || mixedCalls.Content[1].Input.Seconds != "2" || mixedCalls.Content[1].Input.Stop != "true" || mixedCalls.Content[2].Input.Text != "x = {1}") throw new Exception("One unreadable call changed its siblings' arguments.");
+            ClaudeReply badInput = Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"name\":\"walk\",\"input\":[1,2]},{\"type\":\"tool_use\",\"name\":\"walk\",\"input\":{\"keys\":\"a\"}}]}");
+            if (badInput.Content[0].Input != null || badInput.Content[1].Input.Keys != "a") throw new Exception("An unreadable input lost a readable sibling.");
+            checks.Add("PASS unreadable arguments stay unreadable while valid and recoverable sibling calls keep theirs");
             checks.Add("PASS a tool call written a little off still runs, and one she can't read costs a turn instead of the job");
         }
 
@@ -11456,11 +11607,14 @@ namespace CapriDesktop
                 int turn = 0, longest = 0;
                 string note = null, asked = null;
                 Job job = new Job("sort out a very long list");
-                job.Aside = delegate(string system, string user) { asked = user; return "Done the first half, carry on from line 50."; };
+                int folded = 0;
+                job.Aside = delegate(string system, string user) { asked = user; return ++folded == 1 ? "Done the first half, carry on from line 50." : ""; };
                 job.Drive = delegate(string system, string tools, string messages)
                 {
                     turn++;
                     longest = Math.Max(longest, Regex.Matches(messages, "\"role\":\"assistant\"").Count);
+                    if (turn == Computer.LongTalk / 2) { job.Change("use the blue column"); job.Tell("keep the headings"); }
+                    if (turn > Computer.LongTalk / 2 && (!messages.Contains("use the blue column") || !messages.Contains("keep the headings"))) throw new Exception("Folding lost their new instructions.");
                     if (messages.IndexOf("carry on from line 50", StringComparison.Ordinal) >= 0) note = messages;
                     if (turn > Computer.LongTalk) return Brain.Parsed("{\"stop_reason\":\"end_turn\",\"content\":[{\"type\":\"text\",\"text\":\"All sorted.\"}]}");
                     return Brain.Parsed("{\"stop_reason\":\"tool_use\",\"content\":[{\"type\":\"tool_use\",\"id\":\"t" + turn + "\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[5,5]}}]}");
@@ -11468,6 +11622,18 @@ namespace CapriDesktop
                 string ended = job.Run();
                 if (ended != "All sorted." || note == null || asked == null || asked.IndexOf("sort out a very long list", StringComparison.Ordinal) < 0 || longest > Computer.LongTalk / 2 + 1) throw new Exception("A long job didn't fold: " + ended + " at " + longest + " turns.");
                 checks.Add("PASS a long job folds its older turns into a note to itself and carries on, so she can run for hours");
+                if (folded < 2 || !asked.Contains("use the blue column") || !asked.Contains("keep the headings")) throw new Exception("The fold's summary missed their new instructions.");
+                checks.Add("PASS corrections and additions survive folding even when its summary is empty");
+                int badTurns = 0;
+                Job badJob = new Job("read this list");
+                badJob.Drive = delegate(string badSystem, string badTools, string badMessages)
+                {
+                    if (++badTurns == 1) return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"bad\",\"name\":\"walk\",\"input\":{\"keys\":\"s\",\"seconds\":[1,2]}}]}");
+                    if (!badMessages.Contains("couldn't read this call's arguments")) throw new Exception("An unreadable call ran with defaults.");
+                    return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Read it.\"}]}");
+                };
+                if (badJob.Run() != "Read it." || badJob.Steps.Count != 0) throw new Exception("An unreadable call performed a step.");
+                checks.Add("PASS an unreadable game call reports its arguments instead of running with defaults");
             }
             finally
             {
@@ -11522,6 +11688,9 @@ namespace CapriDesktop
             if (written.Count != 3 || written[0].Key != "look" || written[0].Value.X != 75 || written[1].Value.Seconds != "1" || written[2].Value.Y != 48) throw new Exception("Written moves weren't read: " + written.Count);
             System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> plainClick = Computer.Moves("click 50 48");
             if (plainClick.Count != 1 || plainClick[0].Key != "click" || plainClick[0].Value.X != 50 || Computer.Moves("I'd click the button").Count != 0) throw new Exception("A plain written click wasn't read.");
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> bracedMoves = Computer.Moves("type{\"text\":\"x = {1}, \\\"two\\\" and \\\\three\"}\npress{\"keys\":\"enter\"}");
+            if (bracedMoves.Count != 2 || bracedMoves[0].Value.Text != "x = {1}, \"two\" and \\three" || bracedMoves[1].Key != "press" || bracedMoves[1].Value.Keys != "enter") throw new Exception("Braces or escapes in typed words swallowed a move.");
+            checks.Add("PASS written moves keep braces and escaped quotes inside strings and leave the next call separate");
             byte[] jpeg;
             using (Bitmap plain = new Bitmap(320, 180))
             {
@@ -11598,11 +11767,48 @@ namespace CapriDesktop
                 if (system.IndexOf("Survival and crafting", StringComparison.Ordinal) < 0 || GameNotes.Brief("Minecraft").IndexOf("- Trees are south of spawn.", StringComparison.Ordinal) < 0 || reflected == null || reflected.IndexOf("something's in the way", StringComparison.Ordinal) < 0) throw new Exception("A game job didn't get its brief, or didn't keep what it learned: " + reflected);
                 if (system.IndexOf("numbers along the top are x", StringComparison.Ordinal) < 0 || system.IndexOf("you're a real gamer", StringComparison.Ordinal) < 0) throw new Exception("A seeing brain wasn't told about the grid or the game.");
                 if (told[1].IndexOf("What your last moves did:", StringComparison.Ordinal) < 0 || told[1].IndexOf("something's in the way", StringComparison.Ordinal) < 0 || told[2].IndexOf("no moves", StringComparison.Ordinal) < 0) throw new Exception("A seeing brain wasn't told how its moves went: " + told[1]);
+                int sightTurns = 0;
+                Job longSight = new Job("play minecraft");
+                Computer.Shoot = delegate(Rectangle? sightPart) { return new Picture { Jpeg = new byte[] { (byte)sightTurns, 2, 3 }, Size = new Size(1280, 720), Area = new Rectangle(0, 0, 1280, 720) }; };
+                longSight.Seer = delegate(byte[] sightPicture, string sightSystem, string sightUser)
+                {
+                    System.Collections.Generic.List<byte[]> keptPictures = (System.Collections.Generic.List<byte[]>)typeof(Job).GetField("pictures", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance).GetValue(longSight);
+                    if (keptPictures.Count != 1 || keptPictures[0] != longSight.Frame || sightPicture != longSight.Frame) throw new Exception("A sighted job kept old screenshots or lost its latest one.");
+                    if (sightTurns == 0) longSight.Change("go to the river instead");
+                    else if (!sightUser.Contains("go to the river instead")) throw new Exception("A sighted job lost their correction.");
+                    return ++sightTurns < 24 ? "wait{\"seconds\":\"0.1\"}" : "done{\"text\":\"At the river.\"}";
+                };
+                if (longSight.Run() != "At the river.") throw new Exception("A long sighted job stopped early.");
+                checks.Add("PASS sighted jobs follow mid-job corrections and retain only the latest screenshot");
+                Job ordered = new Job("read this list");
+                long earlierChange = ordered.Sequence(), laterChange = ordered.Sequence();
+                ordered.Change("use Firefox", laterChange);
+                if (!ordered.Changed().Contains("use Firefox")) throw new Exception("The latest correction was lost.");
+                ordered.Change("use Chrome", earlierChange);
+                if (ordered.Changed() != "") throw new Exception("A late classification reversed their latest correction.");
+                ordered.Change("use Edge");
+                if (!ordered.Changed().Contains("use Edge")) throw new Exception("A later direct correction was lost.");
+                checks.Add("PASS corrections keep their spoken order when classification finishes backwards");
                 Job blind = new Job("play minecraft");
                 int reads = 0;
                 blind.Seer = delegate(byte[] picture, string prompt, string user) { throw new BrainException("no images here"); };
                 blind.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { reads++; return "done{\"text\": \"Read the buttons.\"}"; };
                 if (blind.Run() != "Read the buttons." || reads != 1) throw new Exception("A brain that can't see didn't fall back to reading buttons.");
+                foreach (string blindTool in new[] { "look", "walk", "mouse_hold", "learn" })
+                {
+                    string parsedTool;
+                    ToolArguments parsedArgs;
+                    if (!Computer.Tools.Contains("\"name\":\"" + blindTool + "\"") || !Computer.ClaudeTools.Contains("\"name\":\"" + blindTool + "\"") || !Computer.Listing.Contains(blindTool) || !Computer.Written(blindTool + "{\"text\":\"Crates open with e.\"}", out parsedTool, out parsedArgs) || parsedTool != blindTool) throw new Exception("A blind job missed a game tool.");
+                }
+                int blindTurns = 0;
+                Job blindMoves = new Job("play minecraft");
+                blindMoves.Think = delegate(string blindSystem, string blindUser, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> blindCalls)
+                {
+                    return new[] { "look{\"right\":90}", "walk{\"keys\":\"s\"}", "mouse_hold{\"button\":\"right\"}", "learn{\"text\":\"Crates open with e.\"}", "done{\"text\":\"Moved.\"}" }[blindTurns++];
+                };
+                int beforeBlind = ran.Count;
+                if (blindMoves.Run() != "Moved." || ran.Count != beforeBlind + 3 || !GameNotes.Brief("Minecraft").Contains("Crates open with e.")) throw new Exception("A blind job couldn't run its game tools.");
+                checks.Add("PASS blind jobs have the game tools in both schemas and their text parser, and can act and learn");
                 if (WatchKind("hurt") != "hit" || WatchKind("bar_drop") != "hit" || WatchKind("cut") != "scene" || WatchKind("flash") != "flash") throw new Exception("Her game watcher named a moment wrong.");
                 Job flinching = new Job("play minecraft");
                 Computer.Flinched = false;
@@ -11620,6 +11826,16 @@ namespace CapriDesktop
                     Brain.LocalSees = delegate(string model) { return model == "gemma4:e4b"; };
                     Brain.LocalEyes = delegate { return "gemma4:e4b"; };
                     if (lent.Looker("qwen3:8b") != "gemma4:e4b" || lent.Looker("gemma4:e4b") != "gemma4:e4b") throw new Exception("A blind Ollama brain didn't borrow the eyes of a model that can see.");
+                    string quickOllamaWas = Brain.Ollama;
+                    System.Collections.Generic.List<string> quickAsked = new System.Collections.Generic.List<string>();
+                    System.Net.Sockets.TcpListener quickFake;
+                    Brain.Ollama = FakeServer(new[] { "{\"message\":{\"content\":\"Seen.\"}}", "{\"message\":{\"content\":\"Heard.\"}}" }, quickAsked, out quickFake);
+                    try
+                    {
+                        if (lent.Quick("Look", "This frame", 90, new byte[] { 1, 2, 3 }) != "Seen." || lent.Quick("Chat", "Hello", 90) != "Heard." || !quickAsked[0].Contains("\"model\":\"gemma4:e4b\"") || !quickAsked[0].Contains("AQID") || !quickAsked[1].Contains("\"model\":\"qwen3:8b\"")) throw new Exception("Quick pictures didn't borrow eyes, or text switched models.");
+                        checks.Add("PASS Quick borrows an installed seeing model for images and keeps the selected model for text");
+                    }
+                    finally { Brain.Ollama = quickOllamaWas; quickFake.Stop(); }
                     Brain.LocalEyes = delegate { return null; };
                     if (lent.Looker("qwen3:8b") != "qwen3:8b") throw new Exception("A blind Ollama brain looked for eyes that aren't there.");
                 }
@@ -12212,6 +12428,7 @@ namespace CapriDesktop
             Application.AddMessageFilter(smokeInput);
             FormClosed += delegate { Application.RemoveMessageFilter(smokeInput); };
             Hands.PleaseRoll = delegate { return 1; };
+            Func<string> findGame = Computer.GameOpen;
             Computer.GameOpen = delegate { return null; };
             Brain.LocalSees = delegate { return true; };
             Shown += delegate
@@ -12308,6 +12525,9 @@ namespace CapriDesktop
                             SmokeBrainBodies(checks);
                             SmokeCamera(checks);
                             SmokeSteering(checks);
+                            SmokeGameWatch(checks);
+                            SmokeGameWindows(checks, findGame);
+                            SmokeGameHolds(checks);
                             SmokeGameAsks(checks);
                             SmokeSighted(checks);
                             SmokeGameNotes(checks);

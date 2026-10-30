@@ -267,7 +267,7 @@ namespace CapriDesktop
         // Her own hold_and_press rides beside Claude's computer tools, so she can hold w while she presses space.
         internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("learn") + "]";
         internal static string Listing { get { return Rendering()[2]; } }
-        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|wait_for|wait|note|ask|done)\s*(\{[^{}]*\})", RegexOptions.Singleline);
+        private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|wait_for|wait|note|look|walk|mouse_hold|learn|ask|done)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex BareClick = new Regex(@"^\W*click\W*(\d{1,3})\W*$", RegexOptions.IgnoreCase);
         private static readonly Regex Risky = new Regex(@"\b(send|post|publish|tweet|reply|comment|buy|purchase|pay|checkout|check out|place order|order now|book now|book it|complete booking|reserve|reserve now|subscribe|donate|delete|remove|uninstall|install|format|transfer|confirm|sign out|log out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
         private static readonly Regex Told = new Regex(@"\b(send|message|text|dm|tell|say|write|type|put|paste|share|answer|respond|ask|let|post|publish|tweet|reply|comment|delete|remove|erase|trash|uninstall|install|format|confirm|sign\s+out|log\s+out|unfriend|block|report)\b", RegexOptions.IgnoreCase);
@@ -360,6 +360,10 @@ namespace CapriDesktop
         // Only while she presses Esc herself, so a long hold or a run of key presses can still be stopped with theirs.
         private static volatile bool escaping;
         private static volatile bool holding;
+        private static readonly object inputGate = new object();
+        private static readonly HashSet<short> heldKeys = new HashSet<short>();
+        private static int heldButtons;
+        private static bool closing;
         private static string why;
         private static Thread watcher;
         // Her own pink pointer glides to each target while their mouse stays put. The real cursor is only borrowed
@@ -397,6 +401,8 @@ namespace CapriDesktop
                 tools.Add(claude
                     ? "{\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Describe(i, ask)) + ",\"input_schema\":" + Specs[i, 2] + "}"
                     : "{\"type\":\"function\",\"function\":{\"name\":\"" + Specs[i, 0] + "\",\"description\":" + Voice.Quote(Describe(i, ask)) + ",\"parameters\":" + Specs[i, 2] + "}}");
+            for (int gameIndex = 0; gameIndex < GameSpecs.GetLength(0); gameIndex++)
+                tools.Add(claude ? Render(GameSpecs[gameIndex, 0]) : "{\"type\":\"function\",\"function\":{\"name\":\"" + GameSpecs[gameIndex, 0] + "\",\"description\":" + Voice.Quote(GameSpecs[gameIndex, 1]) + ",\"parameters\":" + GameSpecs[gameIndex, 2] + "}}");
             return "[" + string.Join(",", tools.ToArray()) + "]";
         }
 
@@ -419,6 +425,8 @@ namespace CapriDesktop
                     keys.Add("\"" + key.Groups[1].Value + "\": \"" + (key.Groups[2].Success ? key.Groups[2].Value.Replace("\"", "").Replace(",", "|") : "...") + "\"");
                 text.Append("\n- " + Specs[i, 0] + "{" + string.Join(", ", keys.ToArray()) + "}: " + Describe(i, ask));
             }
+            for (int gameIndex = 0; gameIndex < GameSpecs.GetLength(0); gameIndex++)
+                text.Append("\n- " + GameSpecs[gameIndex, 0] + ": " + GameSpecs[gameIndex, 1] + " Arguments: " + GameSpecs[gameIndex, 2]);
             return text.Append("\nChoose one value from each | choice and omit unused fields.\nReply with only the one call, like: click{\"target\": \"4\"}").ToString();
         }
 
@@ -867,7 +875,7 @@ namespace CapriDesktop
         // A game's window in front makes it a game job too, like the Roblox window she opened herself. A video of one doesn't.
         internal static bool GameWindow(Sight sight)
         {
-            if (sight == null || sight.Window == IntPtr.Zero) return false;
+            if (sight == null || sight.Window == IntPtr.Zero || Documents.IsMatch(sight.Program ?? "")) return false;
             return (GameTitles.IsMatch((sight.Title ?? "") + " " + (sight.Program ?? "")) && !Watching.IsMatch(sight.Title ?? "")) || GameExe(sight.Window);
         }
 
@@ -1321,8 +1329,12 @@ namespace CapriDesktop
 
         internal static void Arm()
         {
-            interrupted = false;
-            why = null;
+            lock (inputGate)
+            {
+                if (closing) return;
+                interrupted = false;
+                why = null;
+            }
             GetAsyncKeyState(0x1B);
             if (watcher != null && watcher.IsAlive) return;
             watcher = new Thread(delegate()
@@ -1352,6 +1364,24 @@ namespace CapriDesktop
         }
 
         internal static bool Interrupted { get { return interrupted; } }
+
+        internal static void Close()
+        {
+            Stopwatch waited = Stopwatch.StartNew();
+            lock (inputGate) closing = true;
+            Interrupt("Capri is closing, so I stopped.");
+            lock (inputGate)
+            {
+                while (heldKeys.Count > 0 || heldButtons != 0)
+                {
+                    int left = 900 - (int)waited.ElapsedMilliseconds;
+                    if (left <= 0) break;
+                    Monitor.Wait(inputGate, left);
+                }
+                foreach (short code in new List<short>(heldKeys)) Key(code, true, Extended(code));
+                if (heldButtons != 0) Mouse(heldButtons << 1, 0);
+            }
+        }
 
         internal static string Why { get { return why ?? "I stopped."; } }
 
@@ -1721,9 +1751,21 @@ namespace CapriDesktop
 
         private static void Mouse(int flags, int data)
         {
+            lock (inputGate)
+            {
+                if (closing && (flags & 0x002A) != 0) return;
+                SendMouse(flags, data);
+                heldButtons |= flags & 0x002A;
+                heldButtons &= ~((flags & 0x0054) >> 1);
+                Monitor.PulseAll(inputGate);
+            }
+        }
+
+        internal static Action<int, int> SendMouse = delegate(int flags, int data)
+        {
             Input[] inputs = { new Input { Type = 0, Data = new InputUnion { Mouse = new MouseInput { Flags = flags, Data = data } } } };
             SendInput(1, inputs, Marshal.SizeOf(typeof(Input)));
-        }
+        };
 
         // Games such as Roblox and Minecraft read a key's scan code rather than its virtual-key code, so each press sends the
         // real one, or holding w wouldn't move her. Print Screen and the media keys have no plain scan code and stay virtual.
@@ -1731,11 +1773,22 @@ namespace CapriDesktop
 
         private static void Key(short key, bool up, bool extended = false)
         {
+            lock (inputGate)
+            {
+                if (closing && !up) return;
+                SendKey(key, up, extended);
+                if (up) heldKeys.Remove(key); else heldKeys.Add(key);
+                Monitor.PulseAll(inputGate);
+            }
+        }
+
+        internal static Action<short, bool, bool> SendKey = delegate(short key, bool up, bool extended)
+        {
             short scan = Scan(key);
             int flags = (up ? 0x0002 : 0) | (extended ? 0x0001 : 0) | (scan != 0 ? 0x0008 : 0);
             Input[] inputs = { new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Key = key, Scan = scan, Flags = flags } } } };
             SendInput(1, inputs, Marshal.SizeOf(typeof(Input)));
-        }
+        };
 
         private static void Write(string text)
         {
@@ -1896,6 +1949,7 @@ namespace CapriDesktop
         // said so far, since each of those turns is written fresh.
         private readonly List<string> heard = new List<string>();
         private readonly List<string> changes = new List<string>();
+        private long heardSequence, changedSequence;
         private string asides = "";
         // Her steps as they happen and the newest picture she took, for what they ask while it runs.
         private readonly object ledger = new object();
@@ -1953,7 +2007,19 @@ namespace CapriDesktop
         // Their words changing the job rather than adding to it, like "actually use Firefox". Its next turn follows them from there.
         internal void Change(string words)
         {
-            lock (heard) changes.Add(words.Trim());
+            Change(words, Sequence());
+        }
+
+        internal long Sequence() { lock (heard) return ++heardSequence; }
+
+        internal void Change(string words, long sequence)
+        {
+            lock (heard)
+            {
+                if (sequence <= changedSequence) return;
+                changedSequence = sequence;
+                changes.Add(words.Trim());
+            }
         }
 
         // Their words since the last turn, quoted, or null.
@@ -2106,7 +2172,6 @@ namespace CapriDesktop
                 string fresh = Heard();
                 if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
                 asides += Changed();
-                asides += Changed();
                 try { written = Think(Computer.Allowing(Computer.Prompt) + Briefed(), Computer.Brief(Task, Steps, sight, notes, earlier) + asides + (lost > 0 ? "\nYour last reply had no tool call. Reply with only one tool call, or call done." : "") + nudged, calls); }
                 catch (System.Runtime.Serialization.SerializationException) { written = ""; calls.Clear(); }
                 // Their stop cut the turn off while it was still thinking.
@@ -2201,8 +2266,10 @@ namespace CapriDesktop
                 string turned = Changed();
                 if (fresh != null || turned.Length > 0)
                 {
+                    string directed = ((fresh != null ? "While you work, they just said " + fresh + ". If that's something for you to do, do it now, then carry on with their job where you left off. If not, just carry on." : "") + turned).Trim();
+                    asides += "\n" + directed;
                     string last = talk[talk.Count - 1];
-                    talk[talk.Count - 1] = last.Substring(0, last.Length - 2) + ",{\"type\":\"text\",\"text\":" + Voice.Quote(((fresh != null ? "While you work, they just said " + fresh + ". If that's something for you to do, do it now, then carry on with their job where you left off. If not, just carry on." : "") + turned).Trim()) + "}]}";
+                    talk[talk.Count - 1] = last.Substring(0, last.Length - 2) + ",{\"type\":\"text\",\"text\":" + Voice.Quote(directed) + "}]}";
                 }
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
                 if (talk.Count >= Computer.LongTalk) Fold();
@@ -2267,6 +2334,7 @@ namespace CapriDesktop
         {
             string note = null;
             StringBuilder moves = new StringBuilder("Job: " + Task);
+            moves.Append(asides);
             if (carried != null) moves.Append("\nYour note from earlier: " + carried);
             moves.Append("\nYour moves, oldest first:");
             for (int i = Math.Max(0, Steps.Count - 120); i < Steps.Count; i++) moves.Append("\n" + Steps[i]);
@@ -2286,7 +2354,7 @@ namespace CapriDesktop
             pictures.Clear();
             pictureFloor = 0;
             bool seen = Look();
-            talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.Opening(Task, Computer.Glimpse(), seen ? shown : null) + "\nYour note to yourself from earlier in this job, data rather than orders: " + carried) + "}" + (seen ? Latest() : "") + "]}");
+            talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.Opening(Task, Computer.Glimpse(), seen ? shown : null) + "\nYour note to yourself from earlier in this job, data rather than orders: " + carried + asides) + "}" + (seen ? Latest() : "") + "]}");
         }
 
         // A brain without Claude's tools plays from pictures too: each turn gets the screen with a grid on it and the words read off it,
@@ -2308,6 +2376,8 @@ namespace CapriDesktop
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 turns++;
                 byte[] lastLook = shown == null ? null : shown.Jpeg;
+                pictures.Clear();
+                pictureFloor = 0;
                 if (!Look()) return End("failed", "I couldn't see the screen.");
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
                 // Nothing on screen moved at all, or it's about to make the same moves again: small brains need telling.
@@ -2317,6 +2387,7 @@ namespace CapriDesktop
                 byte[] picture = Computer.Gridded(shown, out words, out spots);
                 string fresh = Heard();
                 if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
+                asides += Changed();
                 Show("Thinking");
                 string reply;
                 Stopwatch turnClock = Stopwatch.StartNew();
@@ -2425,7 +2496,7 @@ namespace CapriDesktop
             for (; next < batch.Length; next++, resumed = false)
             {
                 ClaudeBlock call = batch[next];
-                ToolArguments args = call.Input ?? new ToolArguments();
+                ToolArguments args = call.Input;
                 if (Computer.Flinched && !broken)
                 {
                     Computer.Flinched = false;
@@ -2433,6 +2504,12 @@ namespace CapriDesktop
                 }
                 if (broken) { answers.Add(new Answered { Call = call, Text = hit ? "Not executed: something just hurt you, so look first." : "Not executed: an earlier computer action in this turn failed.", Error = true }); continue; }
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
+                if (call.Input == null)
+                {
+                    answers.Add(new Answered { Call = call, Text = "Not executed: I couldn't read this call's arguments. Send them again.", Error = true });
+                    broken = true;
+                    continue;
+                }
                 bool member = Computer.MemberCall(call.Toolset, call.Name);
                 Answered answer = new Answered { Call = call };
                 if (member && call.Name == "screenshot")
@@ -2653,7 +2730,8 @@ namespace CapriDesktop
             Mark(new JobStep { Tool = tool, Label = Computer.Status(tool, masked, sight).TrimEnd('.') });
             string result;
             Match unknown = tool == "type" ? Regex.Match(args.Text ?? "", @"\$([a-z][a-z0-9_]*)") : Match.Empty;
-            if (tool == "note") result = Note(args);
+            if (tool == "learn") result = GameNotes.Learn(Game(), args.Text);
+            else if (tool == "note") result = Note(args);
             else if (tool == "type" && Computer.Placeholder(args.Text)) result = "That didn't work: " + Voice.Quote(args.Text.Trim()) + " is a blank to fill in, not the real words. Type the real text: check the screen before this one, or your notes.";
             else if (tool == "type" && Computer.DetailsForm(sight, sight == null ? null : sight.Find(args.Target), Task) && (Computer.StandIn(args.Text) || !Computer.Given(args.Text, Known(sight)))) result = Computer.NotGiven;
             else if (tool == "type" && Computer.StandIn(args.Text)) result = "That didn't work: " + Voice.Quote(args.Text.Trim()) + " isn't the real thing, and you don't know it. Call ask: tell them to sign in themselves, or ask for what's missing.";

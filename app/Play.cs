@@ -173,6 +173,7 @@ namespace CapriDesktop
         private static readonly Regex GameFolders = new Regex(@"\\(steamapps\\common\\|epic games\\(?!launcher\\|epic online)|riot games\\(?!riot client\\)|gog games\\|ea games\\|ubisoft game launcher\\games\\|xboxgames\\(?!minecraft launcher)|roblox\\versions\\|wildgames\\)", RegexOptions.IgnoreCase);
         private static readonly Regex NotGames = new Regex(@"wallpaper.?engine|steamvr|steamworks|soundpad|aseprite|blender|\\launcher\\|crashreport|anticheat", RegexOptions.IgnoreCase);
         private static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|arc)$", RegexOptions.IgnoreCase);
+        private static readonly Regex Documents = new Regex(@"^(notepad|notepad\+\+|wordpad|write|code|code - insiders|devenv|sublime_text|atom|textpad|winword|excel|powerpnt|onenote|soffice|soffice\.bin|acrobat|acrord32|sumatrapdf|wps|wpp)(\.exe)?$", RegexOptions.IgnoreCase);
 
         [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
@@ -201,7 +202,7 @@ namespace CapriDesktop
         {
             foreach (OpenWindow window in Hands.Windows())
             {
-                if (Browsers.IsMatch(window.Program ?? "") || Watching.IsMatch(window.Title ?? "")) continue;
+                if (Browsers.IsMatch(window.Program ?? "") || Documents.IsMatch(window.Program ?? "") || Watching.IsMatch(window.Title ?? "")) continue;
                 if (GameTitles.IsMatch((window.Title ?? "") + " " + (window.Program ?? "")) || GameExe(window.Handle)) return window.Title;
             }
             return null;
@@ -234,7 +235,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first. They already asked, and asking again annoys them. Capri stops you herself before any step that needs their OK.\n" +
             "If a cookie banner or popup covers the page, deal with it first, then carry on. If a move didn't work, try something else rather than the same thing again.";
 
-        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|learn|done|ask)\s*(\{[^{}]*\})", RegexOptions.Singleline);
+        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex PlainClick = new Regex(@"\b(click|double_click|right_click)\W+(\d{1,3}(?:\.\d+)?)\W+(\d{1,3}(?:\.\d+)?)\b", RegexOptions.IgnoreCase);
 
         // The moves written in a brain's reply, in order.
@@ -670,6 +671,19 @@ namespace CapriDesktop
             return spot ? "Turned so that spot is at the middle of the view." : "Turned.";
         }
 
+        private static bool StillFront(Sight sight) { return sight == null || sight.Window == IntPtr.Zero || Front() == sight.Window; }
+
+        private static bool HoldPause(int milliseconds, Sight sight)
+        {
+            Stopwatch waiting = Stopwatch.StartNew();
+            while (waiting.ElapsedMilliseconds < milliseconds && !interrupted && !Flinched)
+            {
+                if (!StillFront(sight)) return false;
+                Thread.Sleep(15);
+            }
+            return StillFront(sight);
+        }
+
         // Holds the keys until the time's up, jumps when something's in the way, and lets go by herself when she's really stuck.
         internal static string Walk(string keys, string seconds, string jump, Sight sight)
         {
@@ -681,20 +695,25 @@ namespace CapriDesktop
             Modifiers("space", out space);
             double wanted = Amount(seconds, 2);
             if (wanted <= 0) wanted = 2;
-            bool hops = !string.Equals(jump, "no", StringComparison.OrdinalIgnoreCase);
+            bool hops = !string.Equals(jump, "no", StringComparison.OrdinalIgnoreCase) && !string.Equals(jump, "false", StringComparison.OrdinalIgnoreCase);
+            if (!StillFront(sight)) return "Stopped because the window I started on is no longer in front.";
             Rectangle area = GameArea(sight);
             Stopwatch clock = Stopwatch.StartNew();
             int jumps = 0;
             long stillSince = -1;
-            bool blocked = false, cut = false;
+            bool blocked = false, cut = false, away = false;
             byte[] last = GrayFrame(area);
+            if (!StillFront(sight)) return "Stopped because the window I started on is no longer in front.";
             try
             {
                 Hold(codes, true);
-                while (clock.Elapsed.TotalSeconds < wanted && !interrupted && !Flinched)
+                away = !StillFront(sight);
+                while (clock.Elapsed.TotalSeconds < wanted && !interrupted && !Flinched && !away)
                 {
-                    Thread.Sleep(90);
+                    if (!HoldPause(90, sight)) { away = true; break; }
+                    if (interrupted || Flinched) break;
                     byte[] now = GrayFrame(area);
+                    if (!StillFront(sight)) { away = true; break; }
                     double moved = Changed(last, now);
                     last = now;
                     if (moved > 0.7 && clock.ElapsedMilliseconds > 400) { cut = true; break; }
@@ -704,15 +723,17 @@ namespace CapriDesktop
                     if (!hops || jumps >= 2) { blocked = true; break; }
                     jumps++;
                     Hold(space, true);
-                    Thread.Sleep(80);
-                    Hold(space, false);
-                    Pause(380);
+                    try { away = !HoldPause(80, sight); }
+                    finally { Hold(space, false); }
+                    if (away || !HoldPause(380, sight)) { away = true; break; }
+                    if (interrupted || Flinched) break;
                     stillSince = -1;
                     last = GrayFrame(area);
                 }
             }
             finally { Hold(codes, false); }
             if (interrupted) return Why;
+            if (away || !StillFront(sight)) return "Stopped because the window I started on is no longer in front.";
             string time = clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
             if (Flinched) return "Stopped after " + time + ": something hurt you.";
             if (cut) return "Stopped after " + time + ": the whole screen changed.";
@@ -734,29 +755,37 @@ namespace CapriDesktop
             if (chord != null) Modifiers(chord, out codes);
             double wanted = Amount(seconds, 1);
             if (wanted <= 0) wanted = 1;
-            bool watching = string.Equals(stop, "yes", StringComparison.OrdinalIgnoreCase);
+            bool watching = string.Equals(stop, "yes", StringComparison.OrdinalIgnoreCase) || string.Equals(stop, "true", StringComparison.OrdinalIgnoreCase);
+            if (!StillFront(sight)) return "Let go because the window I started on is no longer in front.";
             Rectangle area = GameArea(sight);
             Stopwatch clock = Stopwatch.StartNew();
-            bool changed = false;
+            bool changed = false, away = false, pressed = false;
             byte[] first = watching ? Middle(GrayFrame(area)) : null;
+            if (!StillFront(sight)) return "Let go because the window I started on is no longer in front.";
             try
             {
                 Hold(codes, true);
-                Mouse(right ? 0x0008 : 0x0002, 0);
-                while (clock.Elapsed.TotalSeconds < wanted && !interrupted && !Flinched)
+                away = !StillFront(sight);
+                if (!away) { Mouse(right ? 0x0008 : 0x0002, 0); pressed = true; }
+                while (clock.Elapsed.TotalSeconds < wanted && !interrupted && !Flinched && !away)
                 {
-                    Thread.Sleep(watching ? 70 : 30);
-                    if (!watching || Changed(first, Middle(GrayFrame(area))) < 0.45) continue;
+                    if (!HoldPause(watching ? 70 : 30, sight)) { away = true; break; }
+                    if (interrupted || Flinched) break;
+                    if (!watching) continue;
+                    byte[] middle = Middle(GrayFrame(area));
+                    if (!StillFront(sight)) { away = true; break; }
+                    if (Changed(first, middle) < 0.45) continue;
                     changed = true;
                     break;
                 }
             }
             finally
             {
-                Mouse(right ? 0x0010 : 0x0004, 0);
+                if (pressed) Mouse(right ? 0x0010 : 0x0004, 0);
                 Hold(codes, false);
             }
             if (interrupted) return Why;
+            if (away || !StillFront(sight)) return "Let go because the window I started on is no longer in front.";
             string time = clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
             if (Flinched) return "Let go after " + time + ": something hurt you.";
             return changed ? "Let go after " + time + ": what's under the crosshair changed." : "Held for " + time + ".";

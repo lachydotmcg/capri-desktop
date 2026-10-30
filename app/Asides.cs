@@ -314,9 +314,10 @@ namespace CapriDesktop
 
         private void AsideHead(string text, Job running)
         {
+            long sequence = running.Sequence();
             AsideKind guess = Asides.Guess(text);
             // A brain on this PC is busy with the job's own turn, so anything for the job goes in now and only chat waits for it.
-            if (brain.Remote == null && headTest == null && guess != AsideKind.Chat) { Sorted(text, running, guess, null); return; }
+            if (brain.Remote == null && headTest == null && guess != AsideKind.Chat) { Sorted(text, running, guess, null, sequence); return; }
             string system = Brain.Character + Brain.Remembered() + Asides.Head;
             string facts = Asides.Facts(running.Report(), text, brain.History);
             ThreadPool.QueueUserWorkItem(delegate
@@ -325,11 +326,11 @@ namespace CapriDesktop
                 string line = null;
                 try { kind = Asides.Read(AskHead(system, facts, 300), out line); }
                 catch (Exception error) { if (!(error is WebException)) Brain.Log("second head", -1, error.GetType().Name + ": " + error.Message); }
-                Post(delegate { Sorted(text, running, kind, line); });
+                Post(delegate { Sorted(text, running, kind, line, sequence); });
             });
         }
 
-        private void Sorted(string text, Job running, AsideKind kind, string line)
+        private void Sorted(string text, Job running, AsideKind kind, string line, long sequence)
         {
             bool empty = string.IsNullOrEmpty(line);
             // The job ended while she was thinking: more for it is a new ask, and chat still gets its answer.
@@ -340,7 +341,7 @@ namespace CapriDesktop
                 return;
             }
             if (kind == AsideKind.Stop) { Brain.Transcribe(local ? "You (voice)" : "You", text); StopJob(empty ? Lines.Pick(Lines.Stopped) : line); return; }
-            if (kind == AsideKind.Change) { running.Change(text); AsideSay(empty ? Lines.Pick(Lines.Changed) : line, running, text); return; }
+            if (kind == AsideKind.Change) { running.Change(text, sequence); AsideSay(empty ? Lines.Pick(Lines.Changed) : line, running, text); return; }
             if (kind == AsideKind.Add) { running.Tell(text); AsideSay(empty ? Lines.Pick(Lines.GotIt) : line, running, text); return; }
             AsideSay(empty ? Lines.Pick(Lines.Busy) : line, running, text);
         }

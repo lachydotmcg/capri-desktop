@@ -1634,6 +1634,7 @@ namespace CapriDesktop
             if (frames != null) foreach (byte[] jpeg in frames) if (jpeg != null) pictures.Add(Convert.ToBase64String(jpeg));
             if (pictures.Count > 0 && remote != null && remote.Kind == "deepseek") throw new BrainException(Blind);
             if (pictures.Count > 0 && remote != null && !Sighted(remote)) throw new BrainException(Sightless(remote));
+            if (pictures.Count > 0) model = Looker(model);
             string parts = null;
             if (pictures.Count > 0 && remote != null && remote.Claude)
             {
@@ -2075,28 +2076,32 @@ namespace CapriDesktop
         private static readonly Regex BareWords = new Regex("(?<![\\\\])\"(seconds|minutes|times|level|jump|stop|enter|keys|hold|press|button|direction|target|text)\"\\s*:\\s*(true|false|-?\\d+(?:\\.\\d+)?)");
         private static readonly Regex QuotedNumbers = new Regex("(?<![\\\\])\"(x|y|right|up|scroll_amount|duration|repeat)\"\\s*:\\s*\"(-?\\d+(?:\\.\\d+)?)\"");
         private static readonly Regex ListedKeys = new Regex("(?<![\\\\])\"(keys|hold|text)\"\\s*:\\s*\\[\\s*\"([^\"\\]]*)\"(?:\\s*,\\s*\"([^\"\\]]*)\")?(?:\\s*,\\s*\"([^\"\\]]*)\")?\\s*\\]");
-        private static readonly Regex ToolInput = new Regex("(?<![\\\\])\"input\"\\s*:\\s*\\{");
+        private static readonly Regex ToolInput = new Regex("(?<![\\\\])\"input\"\\s*:\\s*");
 
-        // The reply with every tool call's arguments emptied, however deep they go.
-        private static string Inputless(string text)
+        // Keep the calls whose arguments can be read, and leave an unreadable call for her hands to report.
+        private static string ReadableInputs(string text)
         {
             StringBuilder kept = new StringBuilder();
             int at = 0;
             foreach (Match found in ToolInput.Matches(text))
             {
                 if (found.Index < at) continue;
-                kept.Append(text, at, found.Index - at).Append("\"input\":{}");
-                int depth = 0, i = found.Index + found.Length - 1;
+                int start = found.Index + found.Length;
+                int depth = 0, i = start;
                 bool quoted = false;
                 for (; i < text.Length; i++)
                 {
                     char c = text[i];
                     if (quoted) { if (c == '\\') i++; else if (c == '"') quoted = false; }
                     else if (c == '"') quoted = true;
-                    else if (c == '{') depth++;
-                    else if (c == '}' && --depth == 0) break;
+                    else if (c == '{' || c == '[') depth++;
+                    else if (c == '}' || c == ']') { if (depth == 0) break; depth--; }
+                    else if (c == ',' && depth == 0) break;
                 }
-                at = Math.Min(text.Length, i + 1);
+                string input = text.Substring(start, i - start).Trim();
+                ToolArguments args = input.StartsWith("{", StringComparison.Ordinal) ? Hands.Read(Loosened(input)) : null;
+                kept.Append(text, at, found.Index - at).Append("\"input\":").Append(args == null ? "null" : Encoding.UTF8.GetString(Json(args)));
+                at = i;
             }
             return kept.Append(text, at, text.Length - at).ToString();
         }
@@ -2122,15 +2127,7 @@ namespace CapriDesktop
 
         internal static ClaudeReply Parsed(string text)
         {
-            ClaudeReply reply;
-            try { reply = Read(text); }
-            catch (SerializationException)
-            {
-                // One odd tool call costs a turn, not the job: it runs with what could be read, and the next turn sees how that went.
-                Log("reading a reply", -1, text.Substring(0, Math.Min(text.Length, 1500)));
-                try { reply = Read(Loosened(text)); }
-                catch (SerializationException) { reply = Read(Inputless(text)); }
-            }
+            ClaudeReply reply = Read(ReadableInputs(text));
             reply.Raw = Field(text, "content");
             if (reply.Raw == null) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
             return reply;

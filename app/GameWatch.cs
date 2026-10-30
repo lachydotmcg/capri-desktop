@@ -47,71 +47,86 @@ namespace CapriDesktop
                 }
                 Commentary.Trigger(moment, null, before, after);
             };
+            string failedWith = null;
             try
             {
                 while (!quitting)
                 {
-                    if (watch.Elapsed.TotalSeconds - checkedFront >= 1)
+                    try
                     {
-                        checkedFront = watch.Elapsed.TotalSeconds;
-                        // Gaming Mode is them asking her to watch, so she reacts at least when something happens.
-                        Commentary.Pace = Math.Max(CommentPace, docked ? Commentary.Events : Commentary.Off);
-                        Sight front = Commentary.Pace != Commentary.Off || job != null ? (GameAhead() != null ? Computer.Glimpse() : null) : null;
-                        live = front != null && front.Window != IntPtr.Zero;
-                        if (live)
+                        if (watch.Elapsed.TotalSeconds - checkedFront >= 1)
                         {
-                            int owner;
-                            Native.GetWindowThreadProcessId(front.Window, out owner);
-                            if (owner != listening)
+                            checkedFront = watch.Elapsed.TotalSeconds;
+                            // Gaming Mode is them asking her to watch, so she reacts at least when something happens.
+                            Commentary.Pace = Math.Max(CommentPace, docked ? Commentary.Events : Commentary.Off);
+                            Sight front = Commentary.Pace != Commentary.Off || job != null ? (GameAhead() != null ? Computer.Glimpse() : null) : null;
+                            int owner = 0;
+                            if (front != null && front.Window != IntPtr.Zero) Native.GetWindowThreadProcessId(front.Window, out owner);
+                            live = owner > 0;
+                            if (live)
                             {
-                                if (ears != null) ears.Dispose();
-                                ears = new GameEars(owner);
-                                ears.Loud += delegate(double level) { Commentary.Trigger("sound", null, before, after); };
-                                ears.Start();
-                                listening = owner;
+                                if (owner != listening)
+                                {
+                                    if (ears != null) ears.Dispose();
+                                    ears = new GameEars(owner);
+                                    ears.Loud += delegate(double level) { Commentary.Trigger("sound", null, before, after); };
+                                    ears.Start();
+                                    listening = owner;
+                                }
+                                if (clips.Enabled)
+                                {
+                                    if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
+                                }
+                                else if (grab == null || front.Bounds != watched)
+                                {
+                                    if (grab != null) grab.Dispose();
+                                    grab = new FrameGrab();
+                                    grab.Open(front.Bounds);
+                                    watched = front.Bounds;
+                                    sense.Reset();
+                                }
                             }
-                            if (clips.Enabled)
+                            else
                             {
+                                if (ears != null) { ears.Dispose(); ears = null; listening = 0; }
                                 if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
-                            }
-                            else if (grab == null || front.Bounds != watched)
-                            {
-                                if (grab != null) grab.Dispose();
-                                grab = new FrameGrab();
-                                grab.Open(front.Bounds);
-                                watched = front.Bounds;
                                 sense.Reset();
                             }
                         }
-                        else
+                        if (!live)
                         {
-                            if (ears != null) { ears.Dispose(); ears = null; listening = 0; }
-                            if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
-                            sense.Reset();
+                            Thread.Sleep(1000);
+                            continue;
                         }
-                    }
-                    if (!live)
-                    {
-                        Thread.Sleep(1000);
-                        continue;
-                    }
-                    Bitmap seen = grab == null ? clips.Glimpse() : grab.Next(120) ? grab.Copy(480) : null;
-                    if (seen != null)
-                        using (Bitmap frame = seen)
-                        {
-                            byte[] pixels = GameSense.Bgra(frame, WatchWidth, WatchHeight);
-                            if (watch.Elapsed.TotalSeconds - kept >= 1)
+                        Bitmap seen = grab == null ? clips.Glimpse() : grab.Next(120) ? grab.Copy(480) : null;
+                        if (seen != null)
+                            using (Bitmap frame = seen)
                             {
-                                kept = watch.Elapsed.TotalSeconds;
-                                before = after;
-                                after = Jpeg(frame, 480);
+                                byte[] pixels = GameSense.Bgra(frame, WatchWidth, WatchHeight);
+                                if (watch.Elapsed.TotalSeconds - kept >= 1)
+                                {
+                                    kept = watch.Elapsed.TotalSeconds;
+                                    before = after;
+                                    after = Jpeg(frame, 480);
+                                }
+                                if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
                             }
-                            if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
-                        }
-                    Thread.Sleep(100);
+                        Thread.Sleep(100);
+                    }
+                    catch (Exception error)
+                    {
+                        if (error.Message != failedWith) Brain.Log("game watch", -1, error.GetType().Name + ": " + error.Message);
+                        failedWith = error.Message;
+                        live = false;
+                        listening = 0;
+                        watched = Rectangle.Empty;
+                        if (ears != null) { try { ears.Dispose(); } catch (Exception) { } ears = null; }
+                        if (grab != null) { try { grab.Dispose(); } catch (Exception) { } grab = null; }
+                        sense.Reset();
+                        Thread.Sleep(1000);
+                    }
                 }
             }
-            catch (Exception error) { Brain.Log("game watch", -1, error.GetType().Name + ": " + error.Message); }
             finally
             {
                 if (ears != null) ears.Dispose();
