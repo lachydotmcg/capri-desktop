@@ -2538,6 +2538,8 @@ namespace CapriDesktop
         private int firstLine, visibleLines, totalLines;
         private string scrollReply;
         private RectangleF pages;
+        private bool copied;
+        internal Action<string> Copying = delegate(string reply) { Clipboard.SetText(reply); };
         private const int Columns = 34;
         private const string Speaker = "CAPRI: ";
 
@@ -2556,6 +2558,17 @@ namespace CapriDesktop
             if (Visible) Update(Math.Max(Opened + 1, 0), lastScale, lastHead, lastFeet, lastArea);
         }
 
+        // Right click copies all she said, even the pages that aren't showing.
+        internal void CopyReply()
+        {
+            if (string.IsNullOrEmpty(Reply)) return;
+            try { Copying(Reply); }
+            catch (System.Runtime.InteropServices.ExternalException) { return; }
+            copied = true;
+            clean = false;
+            if (Visible) Update(Math.Max(Opened + 1, 0), lastScale, lastHead, lastFeet, lastArea);
+        }
+
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
@@ -2565,6 +2578,7 @@ namespace CapriDesktop
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
+            if (e.Button == MouseButtons.Right) { CopyReply(); return; }
             if (e.Button != MouseButtons.Left) return;
             if (Scrollable && pages.Contains(e.Location)) { ScrollRows(e.X < pages.Left + pages.Width / 2 ? -visibleLines : visibleLines); return; }
             if (Dismissed != null) Dismissed();
@@ -2613,7 +2627,7 @@ namespace CapriDesktop
 
         internal Bitmap Render(float s, Point head, Point feet, Rectangle area, bool cursorOn, out Point at)
         {
-            if (scrollReply != Reply) { firstLine = 0; scrollReply = Reply; }
+            if (scrollReply != Reply) { firstLine = 0; scrollReply = Reply; copied = false; }
             s = Math.Min(s, Math.Min(area.Width / 160f, area.Height / 150f));
             string all = Speaker + (Reply ?? "") + (Heard ?? "");
             using (Font text = Look.Mono(14 * s, FontStyle.Regular, GraphicsUnit.Pixel, all))
@@ -2628,7 +2642,7 @@ namespace CapriDesktop
                 int columns = Math.Max(1, Math.Min(Fit(Speaker + (Reply ?? "")), (int)Math.Floor((area.Width - 62 * s) / cw)));
                 List<string> lines = Look.Wrap(Speaker + (Reply ?? ""), columns);
                 // Her own remarks have no prompt, so nothing sits above her words.
-                int above = string.IsNullOrEmpty(Prompt) ? 0 : 1;
+                int above = string.IsNullOrEmpty(Prompt) && !copied ? 0 : 1;
                 float panelWidth = 24 * s + columns * cw + 14 * s;
                 totalLines = lines.Count;
                 int room = Math.Max(1, (int)Math.Floor((area.Height - 53 * s) / line) - above);
@@ -2666,7 +2680,7 @@ namespace CapriDesktop
                     float row2 = panel.Top + 12 * s;
                     if (above > 0)
                     {
-                        string you = Prompt + (Heard ?? "");
+                        string you = copied ? "> sys: copied" : Prompt + (Heard ?? "");
                         if (Look.Cells(you) > columns) you = Look.Cut(you, columns - 3) + "...";
                         using (Brush dim = new SolidBrush(Look.Dim)) Look.Draw(graphics, you, heard, dim, x, row2);
                         row2 += line;

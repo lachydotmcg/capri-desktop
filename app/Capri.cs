@@ -12704,9 +12704,21 @@ namespace CapriDesktop
                         scrollBox.Reply = "Short reply.";
                         using (Bitmap scrollShort = scrollBox.Render(scrollScale, scrollHead, scrollFeet, scrollArea, false, out scrollAt))
                             if (scrollBox.Scrollable || scrollBox.FirstLine != 0) throw new Exception("A new reply inherited the previous scroll position.");
+                        string copiedReply = null;
+                        int plainHeight;
+                        scrollBox.Prompt = "";
+                        scrollBox.Copying = delegate(string copiedWords) { copiedReply = copiedWords; };
+                        using (Bitmap copyBefore = scrollBox.Render(scrollScale, scrollHead, scrollFeet, scrollArea, false, out scrollAt)) plainHeight = copyBefore.Height;
+                        scrollBox.CopyReply();
+                        using (Bitmap copyAfter = scrollBox.Render(scrollScale, scrollHead, scrollFeet, scrollArea, false, out scrollAt))
+                            if (copiedReply != "Short reply." || copyAfter.Height <= plainHeight) throw new Exception("Right click didn't copy her reply or say so.");
+                        scrollBox.Reply = "Next reply.";
+                        using (Bitmap copyNext = scrollBox.Render(scrollScale, scrollHead, scrollFeet, scrollArea, false, out scrollAt))
+                            if (copyNext.Height != plainHeight) throw new Exception("The copied note stayed on her next reply.");
                     }
                 }
                 checks.Add("PASS 2K and 8K replies keep all text, fit the screen at 100%, 150% and 200%, page through every line and scroll back to the start");
+                checks.Add("PASS right click copies her whole reply, the bubble says so, and her next reply starts clean");
             }
             finally { Brain.ReplyLength = replySizeWas; }
         }
