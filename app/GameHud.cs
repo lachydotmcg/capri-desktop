@@ -1069,7 +1069,8 @@ namespace CapriDesktop
                 if (talkState == TalkState.Thinking)
                 {
                     GameHud.Mood(HudMood.Focus);
-                    if (working != null) GameHud.Job(working);
+                    // A line she's saying stays up until it's been read.
+                    if (working != null) { if (asideShown == null || clock.Elapsed.TotalSeconds >= asideUntil) GameHud.Job(working); }
                     else GameHud.Hear(theirs ? heard : "", true);
                 }
                 else if (reply != null)

@@ -2067,6 +2067,11 @@ namespace CapriDesktop
         {
             int ticket;
             lock (gate) ticket = cancelled;
+            return Drive(system, tools, messages, deep, fast, ticket);
+        }
+
+        private ClaudeReply Drive(string system, string tools, string messages, bool deep, bool fast, int ticket)
+        {
             Cloud remote = Remote;
             if (remote == null || !remote.Claude) throw new BrainException(Offline);
             string model = fast && !noFastest ? Fastest : remote.Model;
@@ -2094,7 +2099,7 @@ namespace CapriDesktop
                 // Their key doesn't have the fast model, so the game runs on the brain they picked.
                 if (model == remote.Model || error.Message != Gone) throw;
                 noFastest = true;
-                return Drive(system, tools, messages, deep);
+                return Drive(system, tools, messages, deep, false, ticket);
             }
             finally { driving = null; }
             return Parsed(text);

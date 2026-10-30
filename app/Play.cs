@@ -242,7 +242,7 @@ namespace CapriDesktop
 
         // The moves written in a brain's reply, in order.
         internal const string Hitch = "Don't stop yet. If the game looks frozen, wait 20 seconds and look again. If you're lost or stuck, that's normal: turn around, go back, jump, or try another way, and keep playing.";
-        private static readonly Regex GaveUp = new Regex(@"\b(stuck|wedged|lost|frozen|froze|freezing|hung|hanging|stopped responding|not responding|isn'?t responding|unresponsive|dead end|no way (forward|through|out|past)|nowhere to go|(can'?t|cannot|couldn'?t|could not|haven'?t|didn'?t) (continue|carry on|go on|keep playing|find|found|get past|get through)|i stopped here)\b", RegexOptions.IgnoreCase);
+        private static readonly Regex GaveUp = new Regex(@"\b(stuck|wedged|i'?m lost|i am lost|got lost|frozen|froze|freezing|hung|hanging|stopped responding|not responding|isn'?t responding|unresponsive|dead end|no way (forward|through|out|past)|nowhere to go|(can'?t|cannot|couldn'?t|could not|didn'?t) (continue|carry on|go on|keep playing|get past|get through)|i stopped here|i (didn'?t|did not|couldn'?t|could not|wasn'?t able to|was unable to|never) (finish|complete|manage|get)|gave up|give up|giving up|out of options|unable to)\b", RegexOptions.IgnoreCase);
         internal static bool GivingUp(string words) { return GaveUp.IsMatch(words ?? ""); }
 
         internal static List<KeyValuePair<string, ToolArguments>> Moves(string reply)

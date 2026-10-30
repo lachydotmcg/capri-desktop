@@ -5847,7 +5847,7 @@ namespace CapriDesktop
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
             running.Reader = testing ? null : new Action<Sight>(Computer.ReadWords);
             running.Says = delegate(string line) { Post(delegate { PlayLine(line, running); }); };
-            running.Blind = delegate { blindModel = driver.Model; };
+            running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             running.Seen = delegate(Sight sight)
             {
@@ -5923,6 +5923,8 @@ namespace CapriDesktop
         private void SayJobStart(string start, Job running) { SayAside(start.Replace("Esc", "Escape"), running); }
 
         // A line said beside her job, like her "Got it." when they tell her more mid-job. It leaves her ask's turn alone.
+        private double playVoiced;
+
         // A line she says while she plays. A chat reply or a watch's alert that's still up keeps the bubble.
         private void PlayLine(string line, Job running)
         {
@@ -5932,7 +5934,10 @@ namespace CapriDesktop
             asideShown = line;
             asideUntil = now + BubbleHold(line.Length);
             UpdateTalk(now);
-            if (!chatting && !Hushed && !preferences.Quiet) SayAside(line, running);
+            // A slow voice would never speak if each new line cancelled the one it's still making, so the next line waits for it.
+            if (chatting || Hushed || preferences.Quiet || now < playVoiced) return;
+            playVoiced = now + 15;
+            SayAside(line, running);
         }
 
         private void SayAside(string line, Job running)
@@ -5955,7 +5960,7 @@ namespace CapriDesktop
                 Action play = null;
                 play = delegate
                 {
-                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local)) return;
+                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local) || preferences.Silent || Hushed) return;
                     double now = clock.Elapsed.TotalSeconds;
                     if (voiceUntil > now)
                     {
@@ -5963,6 +5968,7 @@ namespace CapriDesktop
                         return;
                     }
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
+                    playVoiced = voiceUntil;
                     CheckEars(now);
                     Played(wav);
                     voice.Play(wav);
@@ -12683,7 +12689,7 @@ namespace CapriDesktop
                 System.Threading.Thread.Sleep(0);
                 if (playLines.Count != 2 || playLines[1] != "Eat dirt.") throw new Exception("A fresh game job couldn't talk.");
                 if (Computer.Moves("say{\"text\": \"Eat dirt.\"}\nclick{\"x\": 50, \"y\": 48}").Count != 2 || Computer.Moves("say{\"text\": \"Eat dirt.\"}")[0].Key != "say") throw new Exception("A written say wasn't read as a move.");
-                if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || !Computer.GivingUp("I stopped here because I'm wedged against a wall and I haven't found a single enemy.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
+                if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || !Computer.GivingUp("I didn't finish the job.") || Computer.GivingUp("Lost at round 39 with 3 towers.") || Computer.GivingUp("Couldn't find any more enemies, so the level's clear.") || !Computer.GivingUp("I stopped here because I'm wedged against a wall and I haven't found a single enemy.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
                 checks.Add("PASS she says lines out loud while she plays, one sentence at a time and only in games");
                 if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
                 Func<string, bool> localSeesWas = Brain.LocalSees;

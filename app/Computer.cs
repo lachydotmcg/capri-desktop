@@ -2561,7 +2561,7 @@ namespace CapriDesktop
                     broken = true;
                     continue;
                 }
-                bool member = Computer.MemberCall(call.Toolset, call.Name);
+                bool member = Computer.MemberCall(call.Toolset, call.Name) || call.Name == "screenshot" || call.Name == "zoom";
                 Answered answer = new Answered { Call = call };
                 if (member && call.Name == "screenshot")
                 {
@@ -2773,7 +2773,12 @@ namespace CapriDesktop
 
         private string Perform(string tool, ToolArguments args, Sight sight)
         {
-            if (tool == "say") { Narrate(args.Text); return "Said."; }
+            if (tool == "say")
+            {
+                Narrate(args.Text);
+                Steps.Add("Said " + Voice.Quote(args.Text ?? ""));
+                return "Said.";
+            }
             Computer.KeysOk = approved.Contains("keys");
             if (tool == "type") args.Text = Filled(Computer.Unechoed(args.Text, Task.IndexOf(Computer.Exact, StringComparison.Ordinal) >= 0 ? Words : null));
             // The window in front changed after she looked, so she looks again instead of acting on old buttons. Only Esc stops her.
