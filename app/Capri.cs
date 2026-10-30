@@ -13282,7 +13282,7 @@ namespace CapriDesktop
                 local.Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5");
                 string offered = "{\"type\":\"advisor_20260301\",\"name\":\"advisor\",\"model\":\"claude-sonnet-5-5\",";
                 local.Drive("Tools", "[]", "[]", true, true);
-                if (!local.Advises || Brain.Field(SentBody(asked[asked.Count - 1]), "tools").IndexOf("[" + offered, StringComparison.Ordinal) != 0 || asked[asked.Count - 1].IndexOf("anthropic-beta: thinking-binding-controls-2026-08-01,advisor-tool-2026-03-01\r\n", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("Fast hands didn't offer the advisor: " + asked[asked.Count - 1]);
+                if (!local.Advises || Brain.Field(SentBody(asked[asked.Count - 1]), "tools").IndexOf("[" + offered, StringComparison.Ordinal) != 0 || SentBody(asked[asked.Count - 1]).Contains("max_uses") || asked[asked.Count - 1].IndexOf("anthropic-beta: thinking-binding-controls-2026-08-01,advisor-tool-2026-03-01\r\n", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("Fast hands didn't offer the advisor: " + asked[asked.Count - 1]);
                 local.Drive("Tools", "[{\"name\":\"a\"}]", "[]", true, true);
                 if (Brain.Field(SentBody(asked[asked.Count - 1]), "tools").IndexOf("[{\"name\":\"a\"}," + offered, StringComparison.Ordinal) != 0) throw new Exception("The advisor lost her other tools.");
                 local.Drive("Tools", "[]", "[]", true);

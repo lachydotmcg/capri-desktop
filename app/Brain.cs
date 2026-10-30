@@ -2065,10 +2065,10 @@ namespace CapriDesktop
         // The key and brain that turned the advisor down: another pair may well have it.
         private volatile string noAdvisor;
 
-        // The API's advisor tool: Claude's servers run the bigger brain over the whole job, and one ask a turn keeps the bill down.
+        // The API's advisor tool: Claude's servers run the bigger brain over the whole job. Its max_uses would count every ask in the job's history, so it isn't set.
         private static string Offering(string tools, string model)
         {
-            string advisor = "{\"type\":\"advisor_20260301\",\"name\":\"advisor\",\"model\":" + Voice.Quote(model) + ",\"max_uses\":1,\"max_tokens\":4096,\"caching\":{\"type\":\"ephemeral\",\"ttl\":\"5m\"}}";
+            string advisor = "{\"type\":\"advisor_20260301\",\"name\":\"advisor\",\"model\":" + Voice.Quote(model) + ",\"max_tokens\":4096,\"caching\":{\"type\":\"ephemeral\",\"ttl\":\"5m\"}}";
             return tools == "[]" ? "[" + advisor + "]" : tools.Substring(0, tools.LastIndexOf(']')) + "," + advisor + "]";
         }
 
