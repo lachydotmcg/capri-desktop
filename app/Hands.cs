@@ -1882,7 +1882,48 @@ namespace CapriDesktop
 
         private static void Start(string id)
         {
+            ProcessStartInfo chrome = InChrome(id);
+            if (chrome != null)
+            {
+                try
+                {
+                    using (Process.Start(chrome)) { }
+                    return;
+                }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
             using (Process.Start(Launch(id))) { }
+        }
+
+        internal static ProcessStartInfo InChrome(string page)
+        {
+            if (!Regex.IsMatch(page ?? "", @"^https?://[^\s""]+$", RegexOptions.IgnoreCase)) return null;
+            string chrome = ChromePath();
+            return chrome == null ? null : new ProcessStartInfo(chrome, "\"" + page + "\"") { UseShellExecute = false };
+        }
+
+        private static string ChromePath()
+        {
+            foreach (string variable in new[] { "ProgramFiles", "ProgramW6432", "ProgramFiles(x86)", "LocalAppData" })
+            {
+                string root = Environment.GetEnvironmentVariable(variable);
+                if (string.IsNullOrEmpty(root)) continue;
+                string found = Path.Combine(root, @"Google\Chrome\Application\chrome.exe");
+                if (File.Exists(found)) return found;
+            }
+            try
+            {
+                foreach (Microsoft.Win32.RegistryKey hive in new[] { Microsoft.Win32.Registry.LocalMachine, Microsoft.Win32.Registry.CurrentUser })
+                {
+                    using (Microsoft.Win32.RegistryKey key = hive.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe"))
+                    {
+                        string registered = key == null ? null : key.GetValue(null) as string;
+                        if (!string.IsNullOrEmpty(registered) && File.Exists(registered)) return registered;
+                    }
+                }
+            }
+            catch (Exception) { }
+            return null;
         }
 
         internal static ProcessStartInfo Launch(string id)
