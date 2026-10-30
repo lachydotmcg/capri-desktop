@@ -723,10 +723,10 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out Box box);
 
         private static readonly Regex Stores = new Regex(@"\\steamapps\\common\\|\\Epic Games\\(?!Launcher\\)|\\GOG Games\\|\\GOG Galaxy\\Games\\|\\XboxGames\\|\\Riot Games\\", RegexOptions.IgnoreCase);
-        private static readonly Regex NotGames = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|iexplore|arc|vlc|mpv|mpc-hc(64)?|potplayer(mini)?(64)?|wmplayer|video\.ui|microsoft\.media\.player|netflix|powerpnt|obs(32|64)|discord|spotify|steam|steamwebhelper|epicgameslauncher)$", RegexOptions.IgnoreCase);
+        private static readonly Regex NotGames = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|iexplore|arc|vlc|mpv|mpc-hc(64)?|potplayer(mini)?(64)?|wmplayer|video\.ui|microsoft\.media\.player|netflix|powerpnt|obs(32|64)|discord|spotify|steam|steamwebhelper|epicgameslauncher|code|cursor|devenv|rider64|idea64|notepad(\+\+)?|sublime_text|winword|excel|windowsterminal|cmd|powershell|pwsh)$", RegexOptions.IgnoreCase);
 
         // A game's window: one of her known titles, anything installed by a game store, or a window with no title bar that fills its
-        // monitor and isn't a browser, player or launcher.
+        // monitor. Never a browser, player, launcher or editor, whose titles name games all the time.
         internal static bool IsGame(Sight sight, string path, bool fills)
         {
             if (sight == null || sight.Window == IntPtr.Zero || NotGames.IsMatch(sight.Program ?? "")) return false;
@@ -966,10 +966,10 @@ namespace CapriDesktop
         // Her key and her Mainframe's switch.
         internal void ToggleGaming() { GamingSay(GamingMode(GamingOn ? "off" : "on")); }
 
-        // A line of her own in her usual voice. If she's busy answering them, it only shows.
+        // A line of her own in her usual voice. If she's busy answering them, it only shows, and hidden she keeps it to herself.
         private void GamingSay(string line)
         {
-            if (quitting || IsDisposed) return;
+            if (quitting || IsDisposed || (hidden && !docked)) return;
             if (talkState == TalkState.Thinking || working != null) { Say(line); return; }
             heard = "gaming mode";
             box.Prompt = "";

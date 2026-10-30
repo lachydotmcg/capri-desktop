@@ -8764,6 +8764,49 @@ namespace CapriDesktop
                         }
                     }
             checks.Add("PASS her HUD is drawn for hud-eyes, hud-focus, hud-talk, hud-hit, hud-reply and hud-listen, at 100% and 150%");
+            HudLife moods = new HudLife();
+            Func<double, double, double> run = delegate(double from, double seconds)
+            {
+                for (double step = from; step < from + seconds; step += 0.03) moods.Step(step);
+                return from + seconds;
+            };
+            moods.Start(0);
+            double when = run(0, 1);
+            bool booted = moods.Scene.Boot == 1 && moods.Scene.Portrait == 0 && moods.Scene.Box == HudBox.None;
+            moods.Mood(HudMood.Hit);
+            when = run(when, 0.2);
+            bool struck = moods.Scene.Hit > 0;
+            when = run(when, 1);
+            bool healed = moods.Scene.Hit == 0 && moods.Scene.Mood == HudMood.Idle;
+            moods.Mood(HudMood.Surprise);
+            when = run(when, 0.3);
+            bool startled = moods.Scene.Burst > 0 && moods.Scene.Wide > 0;
+            when = run(when, 2);
+            bool settled = moods.Scene.Burst == 0 && moods.Scene.Wide == 0 && moods.Scene.Mood == HudMood.Idle;
+            moods.Mood(HudMood.Happy);
+            when = run(when, 0.4);
+            bool grinning = moods.Scene.Grin && moods.Scene.Portrait == 1;
+            when = run(when, 3);
+            bool ungrinned = !moods.Scene.Grin && moods.Scene.Portrait == 0;
+            moods.Mood(HudMood.Focus);
+            when = run(when, 0.5);
+            bool narrowed = moods.Scene.Narrow > 0.9f;
+            moods.Mood(HudMood.Idle);
+            when = run(when, 0.5);
+            moods.Say("Flatlined.", 0);
+            when = run(when, 0.2);
+            bool talking = moods.Scene.Portrait == 1 && moods.Scene.Box == HudBox.Reply && moods.Scene.Revealed > 0 && moods.Scene.Mouth >= 0;
+            when = run(when, 8);
+            bool faded = moods.Scene.Box == HudBox.None && moods.Scene.Portrait == 0 && moods.Scene.Mouth < 0;
+            moods.Hear("capri", false);
+            when = run(when, 0.5);
+            bool heardThem = moods.Scene.Box == HudBox.Listening;
+            when = run(when, 4);
+            bool lapsed = moods.Scene.Box == HudBox.None;
+            double blinkedAt = 0;
+            for (double step = when; step < when + 12; step += 0.03) { moods.Step(step); blinkedAt += moods.Scene.Open < 0.5f ? 1 : 0; }
+            if (!booted || !struck || !healed || !startled || !settled || !grinning || !ungrinned || !narrowed || !talking || !faded || !heardThem || !lapsed || blinkedAt == 0) throw new Exception("Her HUD's moods went wrong: boot " + booted + ", hit " + struck + "/" + healed + ", surprise " + startled + "/" + settled + ", happy " + grinning + "/" + ungrinned + ", focus " + narrowed + ", talk " + talking + "/" + faded + ", heard " + heardThem + "/" + lapsed + ", blink " + blinkedAt);
+            checks.Add("PASS her HUD's moods play and end: it boots to her eyes, a hit tears the frame, surprise widens her eyes with a burst of small ones, happy swaps to her grin, focus narrows them, her line swaps to her portrait with her mouth moving and fades back, LISTENING lapses, and she blinks");
             HudLife life = new HudLife();
             int frames = 0;
             double spent = 0, at = 0;
