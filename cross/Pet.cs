@@ -23,6 +23,9 @@ namespace CapriDesktop
         [DataMember] internal int X;
         [DataMember] internal int Y;
         [DataMember] internal bool Placed;
+        [DataMember] internal string PetOutput;
+        [DataMember] internal double? PetAcross;
+        [DataMember] internal double? PetDown;
         [DataMember] internal double Size = 240;
         [DataMember] internal string Model;
         [DataMember] internal string Language;
@@ -444,6 +447,9 @@ namespace CapriDesktop
         internal Pet(IClassicDesktopStyleApplicationLifetime desktop)
         {
             this.desktop = desktop;
+            motionTrace = MotionTrace.Open();
+            InitializeNativeDrag();
+            PositionChanged += delegate { TraceMotion("position"); };
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
@@ -606,6 +612,8 @@ namespace CapriDesktop
 
         internal void Move(PixelPoint to)
         {
+            if (rootDragOwned) return;
+            if (MoveNative(new Point(to.X, to.Y))) return;
             anchor = to;
             Position = new PixelPoint(to.X + Px(FrameX), to.Y + Px(FrameY));
         }
@@ -634,21 +642,26 @@ namespace CapriDesktop
             Desk.BindScreens(Screens.All);
             List<string> parts = new List<string>();
             foreach (Screen screen in Screens.All) parts.Add(screen.DisplayName + ":" + screen.Bounds);
+            HyprlandDesk native = (HyprlandDesk)Desk;
+            if (native.Desktop.Snapshot == null || native.Maps.Length == 0) return;
+            foreach (HyprlandDisplayMap map in native.Maps) parts.Add(map.Output.Name + ":" + map.Output.Logical + ":" + map.Output.Scale + ":" + map.Output.Transform);
             string layout = string.Join(";", parts);
             if (previousDesktopScale > 0 && previousDesktopScale != DesktopScaling)
             {
-                // The grab offset is a surface-local point; carry it across render-DPI
-                // changes once, instead of multiplying compositor logical coordinates.
-                if (dragging)
+                // The Hyprland drag keeps its body-local DIP grab immutable; only the
+                // legacy pixel grab needs rescaling on other manual paths.
+                if (dragging && !rootDragOwned)
                 {
                     double ratio = DesktopScaling / previousDesktopScale;
                     grab = new PixelPoint((int)Math.Round(grab.X * ratio), (int)Math.Round(grab.Y * ratio));
                 }
                 Fit();
-                if (seat != null) Move(Seated(Hip.X, seat.Y));
+                if (rootDragOwned) UpdateRootDrag(true);
+                else if (seat != null) Move(Seated(Hip.X, seat.Y));
                 else Move(anchor);
             }
             previousDesktopScale = DesktopScaling;
+            if (desktopLayout != null && desktopLayout != layout && RecoverNativeLayout()) { desktopLayout = layout; return; }
             if (desktopLayout != null && desktopLayout != layout && !dragging && Screens.ScreenFromPoint(Hip) == null)
             {
                 seat = null;
@@ -684,6 +697,7 @@ namespace CapriDesktop
 
         private void Place()
         {
+            if (TryPlaceNative()) return;
             Screen saved = Saved.Placed ? Screens.ScreenFromPoint(new PixelPoint(Saved.X + Px(body.Size / 2), Saved.Y + Px(body.Size / 2))) : null;
             Screen screen = saved ?? Screens.Primary ?? (Screens.All.Count > 0 ? Screens.All[0] : null);
             if (screen == null) return;
@@ -712,6 +726,7 @@ namespace CapriDesktop
 
         internal void Bring()
         {
+            if (quitting || BringNative()) return;
             Screen screen = Screens.Primary ?? ScreenHere();
             if (screen == null || quitting) return;
             Halt();
@@ -739,6 +754,8 @@ namespace CapriDesktop
         internal void HideAway()
         {
             if (away || quitting) return;
+            EndRootDrag(false, false);
+            petSurface?.Suspend(true);
             // Hiding revokes native jobs and pending consent as well as her reply and voice.
             ++asking;
             ComputerJobs.Stop();
@@ -774,6 +791,7 @@ namespace CapriDesktop
 
         private void Tick()
         {
+            if (pressed || dragging) TraceMotion("tick");
             double now = Now;
             RefreshDesktop(now);
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
@@ -788,12 +806,12 @@ namespace CapriDesktop
                 if (smoke != null) smoke.Tick(now);
                 return;
             }
-            if (!dragging)
+            if (!dragging && !rootDragOwned)
             {
                 if (falling) Tumble(now);
                 else if (seat != null) HoldSeat(now);
             }
-            if (walking) Walk(now);
+            if (walking && !rootDragOwned) Walk(now);
             if (now >= nextCheck && !away)
             {
                 nextCheck = now + 0.25;
@@ -1056,7 +1074,7 @@ namespace CapriDesktop
                 floors.Add(screen.WorkingArea);
                 Desk.Screens.Add(screen.Bounds);
             }
-            return Perches.Find(Windows(), Desk.WorkAreas ?? floors);
+            return Perches.Find(Windows(), NativeFloors(Desk.WorkAreas ?? floors));
         }
 
         internal Ledge Perch(IEnumerable<Ledge> ledges, PixelPoint hip)
@@ -1213,12 +1231,16 @@ namespace CapriDesktop
             downAt = this.PointToScreen(at);
             grab = new PixelPoint(downAt.X - anchor.X, downAt.Y - anchor.Y);
             e.Pointer.Capture(this);
+            TraceMotion("press", e);
+            BeginNativeDrag(e);
         }
 
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
             pointer = e.GetPosition(this);
+            if (pressed) TraceMotion("move-before", e);
+            if (rootDragOwned) return;
             if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
             PixelPoint at = this.PointToScreen(pointer);
             int dx = at.X - downAt.X;
@@ -1226,6 +1248,7 @@ namespace CapriDesktop
             if (!dragging && dx * dx + dy * dy < 25) return;
             if (!dragging) Grab();
             Move(new PixelPoint(at.X - grab.X, at.Y - grab.Y));
+            TraceMotion("move-after", e);
         }
 
         protected override void OnPointerExited(PointerEventArgs e)
@@ -1238,6 +1261,8 @@ namespace CapriDesktop
         {
             base.OnPointerReleased(e);
             if (!pressed || e.InitialPressMouseButton != MouseButton.Left) return;
+            TraceMotion("release", e);
+            if (rootDragOwned) { UpdateRootDrag(true); EndRootDrag((e.KeyModifiers & KeyModifiers.Shift) != 0, true); return; }
             pressed = false;
             e.Pointer.Capture(null);
             if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);
@@ -2035,6 +2060,8 @@ namespace CapriDesktop
             }
             if (action == "other_screen")
             {
+                string nativeMove = MoveNativeOtherScreen(screen);
+                if (nativeMove != null) return nativeMove;
                 IReadOnlyList<Screen> all = Screens.All;
                 Screen from = ScreenHere();
                 int to = PickScreen(all, from, screen);
@@ -2083,7 +2110,12 @@ namespace CapriDesktop
                 hanging = false;
                 PixelPoint spot = Seated(to.X, to.Y);
                 int wide = Px(body.Size);
-                Move(new PixelPoint(Math.Max(area.X, Math.Min(spot.X, area.Right - wide)), Math.Max(area.Y, Math.Min(spot.Y, area.Bottom - wide))));
+                if (Desk is HyprlandDesk)
+                {
+                    Point origin = PetPlacementGeometry.Clamp(area, Width * DesktopScaling, Height * DesktopScaling, new Point(spot.X + FrameX * DesktopScaling, spot.Y + FrameY * DesktopScaling));
+                    Move(new PixelPoint((int)Math.Round(origin.X - FrameX * DesktopScaling), (int)Math.Round(origin.Y - FrameY * DesktopScaling)));
+                }
+                else Move(new PixelPoint(Math.Max(area.X, Math.Min(spot.X, area.Right - wide)), Math.Max(area.Y, Math.Min(spot.Y, area.Bottom - wide))));
                 Arrive();
                 Raise(Now + 6);
             };
@@ -3663,6 +3695,7 @@ namespace CapriDesktop
 
         internal void Save()
         {
+            SaveNativePlacement();
             Saved.X = anchor.X;
             Saved.Y = anchor.Y;
             Saved.Placed = true;
@@ -3679,6 +3712,7 @@ namespace CapriDesktop
         {
             if (quitting) return;
             quitting = true;
+            DisposeNativeMotion();
             ComputerJobs.Stop();
             Brain.Cancel();
             DisposeSpeech();
@@ -3695,6 +3729,7 @@ namespace CapriDesktop
 
         internal void Finish(int code)
         {
+            DisposeNativeMotion();
             ComputerJobs.Stop();
             Brain.Cancel();
             DisposeSpeech();

@@ -444,6 +444,68 @@ namespace CapriDesktop
             }
         }
 
+        private static async Task PetPlacement()
+        {
+            PixelRect area = new PixelRect(-1920, -200, 1920, 1080);
+            Point origin = PetPlacementGeometry.Restore(area, 209, 299, 1, 1);
+            Equal(new Point(-209, 581), origin, "Full FX envelope restores within negative-origin work area");
+            Check(PetPlacementGeometry.Contains(area, origin, 209, 299), "Envelope wholly visible after restore");
+            Equal(new Point(1, 1), PetPlacementGeometry.Fraction(area, 209, 299, origin), "Saved output fractions roundtrip");
+            Point changed = PetPlacementGeometry.Restore(new PixelRect(3840, 30, 1280, 690), 209, 299, 1, 1);
+            Equal(new Point(4911, 421), changed, "Saved fraction follows resized reserved work area");
+            Equal(new Point(-1920, -200), PetPlacementGeometry.Restore(area, 5000, 5000, 1, 1), "Oversized envelope chooses reachable origin");
+            Check(double.IsFinite(PetPlacementGeometry.Restore(area, 209, 299, double.NaN, double.PositiveInfinity).X), "Invalid saved fraction cannot produce invalid native position");
+            Check(!PetPlacementGeometry.Contains(area, new Point(-1, 0), 209, 299), "Center-only placement does not qualify full envelope");
+            Fake fake = new Fake { Effect = false };
+            JsonObject otherOutput = Output(id: 1, name: "DP-2", x: 1920);
+            otherOutput["activeWorkspace"] = new JsonObject { ["id"] = 3, ["name"] = "3" };
+            fake.Outputs.Add(otherOutput);
+            fake.Windows[0]["pid"] = Environment.ProcessId;
+            fake.Windows[0]["class"] = "Capri";
+            fake.Windows[0]["title"] = "Capri";
+            fake.Windows.Add(Window("0x456", Environment.ProcessId));
+            fake.Windows[1]["class"] = "Capri";
+            fake.Windows[1]["title"] = "Mainframe";
+            using HyprlandDesktop service = Service(fake);
+            await service.CaptureSnapshotAsync(default);
+            HyprlandWindow pet = await service.PetSurfaceAsync(default);
+            Equal(0x123L, pet.Address, "Only the own pet role is selected; Mainframe remains focusable");
+            await service.ConfigurePetAsync(pet, default);
+            Check(fake.Dispatches.All(c => c.Contains("address:0x123") && !c.Contains("0x456")), "Policy only touches owned pet surface");
+            Check(fake.Dispatches.Any(c => c.Contains("no_anim") && c.Contains("true")), "Restart policy disables pet position interpolation");
+            Check(fake.Dispatches.Any(c => c.Contains("decorate") && c.Contains("false")), "Restart policy preserves transparent upstream appearance");
+            fake.Dispatches.Clear();
+            using HyprlandDesktop ownOnly = Service(fake);
+            Check(ownOnly.Snapshot == null, "Own placement fixture has no whole-scene action snapshot");
+            await ownOnly.MovePetAsync(pet, new Point(4000.3, 400.7), 3, default);
+            Equal(2, fake.Dispatches.Count, "Cross-output placement assigns destination active workspace before native origin");
+            Check(fake.Dispatches[0].Contains("workspace=\"3\"") && fake.Dispatches[0].Contains("follow=false"), "Placement does not switch user's focus/workspace");
+            Check(fake.Dispatches[1].Contains("x=4000,y=401"), "Only final compositor coordinates are rounded");
+            fake.Windows[0]["pid"] = Environment.ProcessId + 1;
+            fake.Dispatches.Clear();
+            try { await service.MovePetAsync(pet, new Point(1, 2), 3, default); Check(false, "Reused foreign address must fail"); }
+            catch (InvalidOperationException) { Check(true, "Reused foreign address rejected"); }
+            Equal(0, fake.Dispatches.Count, "No mutation reaches another process");
+            Fake visual = new Fake();
+            long now = 1000;
+            using HyprlandDesktop visualService = Service(visual, clock: () => now);
+            await visualService.CaptureSnapshotAsync(default);
+            HyprlandDesk desk = new HyprlandDesk(visualService);
+            Screen[] screens = { new Screen(1, new PixelRect(0, 0, 1920, 1080), new PixelRect(0, 0, 1920, 1080), true) };
+            desk.BindScreens(screens);
+            Equal(1, desk.Maps.Length, "Verified visual output map is bound");
+            now = 3000;
+            Check(visualService.Snapshot == null, "Expired action snapshot stays unavailable");
+            desk.BindScreens(screens);
+            Equal(1, desk.Maps.Length, "Window motion cannot erase last verified visual mapping");
+            visual.Outputs.Clear();
+            visual.Outputs.Add(Output(id: 2, x: 1920));
+            await visualService.CaptureSnapshotAsync(default);
+            desk.BindScreens(screens);
+            Equal(0, desk.Maps.Length, "A verified output removal replaces cached visual geometry");
+
+        }
+
         private static async Task<int> Main(string[] args)
         {
             try
@@ -458,7 +520,7 @@ namespace CapriDesktop
                     return 0;
                 }
                 Geometry(); await VisibilityAndLedges(); await WindowActions(); await Revocation(); await PointerAndFailure(); Envelope(); await SocketTransport();
-                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind();
+                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement();
                 Console.WriteLine(JsonSerializer.Serialize(new { status = "PASS", checks, scope = "synthetic native desktop fixtures; no live mutation, pixels, audio or input" }));
                 return 0;
             }

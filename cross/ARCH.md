@@ -108,3 +108,26 @@ frontend is introduced. The native helper's protocol licenses are in
 `cross/native/LICENSE`; speech attribution and native/model provenance are in
 `SPEECH.md` and the installed model notices. Tests and a build are technical
 evidence, not human visual or voice acceptance.
+
+## Pet movement on Hyprland
+
+The pet uses compositor logical coordinates for its own window movement. A held
+left-button drag reads the compositor pointer asynchronously and keeps one
+body-local grab point; the character's original flail, click, drop and Shift-drop
+animations are unchanged. XWayland is used only for the button mask during this
+native drag, because its root pointer can disagree with the visible pointer while
+the compositor interpolates an application-requested window position.
+
+On each map, only the current process's `Capri` pet surface receives the floating,
+transparent, undecorated, no-position-animation policy. Mainframe and other app
+windows retain their separate focus and presentation behavior. No global
+Hyprland settings are written. Saved placement records the output name and the
+full sprite envelope's normalized position in its work area. Bring uses the
+currently focused output; cross-output moves use that output's active workspace
+without switching the user's focus. The pet is not pinned to every workspace.
+
+`CAPRI_MOTION_TRACE=/absolute/new-file.jsonl` enables a bounded local diagnostic
+trace of pet geometry, capture state and pointer timing. It never logs other
+window titles or desktop pixels and refuses to overwrite an existing file.
+Leave it unset for normal use. Real multi-output motion still requires native
+host review; synthetic geometry tests do not prove mixed-DPI or hotplug behavior.

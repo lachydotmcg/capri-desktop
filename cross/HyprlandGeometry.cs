@@ -145,6 +145,12 @@ namespace CapriDesktop
     // XWayland may have forced zero scaling and a different arrangement from Wayland.
     internal sealed record HyprlandDisplayMap(HyprlandOutput Output, PixelRect AvaloniaBounds)
     {
+        internal Point ToAvaloniaPoint(Point point) => new Point(
+            AvaloniaBounds.X + (point.X - Output.Logical.X) * AvaloniaBounds.Width / Output.Logical.Width,
+            AvaloniaBounds.Y + (point.Y - Output.Logical.Y) * AvaloniaBounds.Height / Output.Logical.Height);
+        internal Point ToLogical(Point point) => new Point(
+            Output.Logical.X + (point.X - AvaloniaBounds.X) * Output.Logical.Width / AvaloniaBounds.Width,
+            Output.Logical.Y + (point.Y - AvaloniaBounds.Y) * Output.Logical.Height / AvaloniaBounds.Height);
         internal PixelPoint ToAvalonia(Point point) => new PixelPoint(
             (int)Math.Round(AvaloniaBounds.X + (point.X - Output.Logical.X) * AvaloniaBounds.Width / Output.Logical.Width),
             (int)Math.Round(AvaloniaBounds.Y + (point.Y - Output.Logical.Y) * AvaloniaBounds.Height / Output.Logical.Height));

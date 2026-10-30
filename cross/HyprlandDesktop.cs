@@ -11,7 +11,7 @@ using Avalonia.Platform;
 
 namespace CapriDesktop
 {
-    internal sealed class HyprlandDesktop : IDisposable
+    internal sealed partial class HyprlandDesktop : IDisposable
     {
         private static readonly Lazy<HyprlandDesktop> current = new Lazy<HyprlandDesktop>(() =>
         {
@@ -400,13 +400,20 @@ namespace CapriDesktop
         private HyprlandDisplayMap[] maps = Array.Empty<HyprlandDisplayMap>();
         private string mappingError;
         internal HyprlandDesk(HyprlandDesktop desktop) { this.desktop = desktop; }
+        internal HyprlandDesktop Desktop => desktop;
+        internal HyprlandDisplayMap[] Maps => maps;
+        internal HyprlandDisplayMap ActiveMap => Array.Find(maps, m => m.Output.Focused) ?? (maps.Length > 0 ? maps[0] : null);
+        internal HyprlandDisplayMap MapAt(PixelPoint point) => Array.Find(maps, m => m.AvaloniaBounds.Contains(point));
         internal override string Name => "Hyprland (native IPC / XWayland surface)";
         internal override string Debug() => desktop.LastError ?? mappingError ?? "Native windows, workspaces and pointer; output-specific XWayland coordinates.";
 
         internal override void BindScreens(IReadOnlyList<Screen> screens)
         {
             HyprlandSnapshot state = desktop.Snapshot;
-            if (state == null) { maps = Array.Empty<HyprlandDisplayMap>(); return; }
+            // Window-motion events can invalidate an action snapshot without changing
+            // output identity. Retain visual geometry until a fresh layout replaces it;
+            // computer actions still require their separate fresh snapshot/target checks.
+            if (state == null) return;
             List<HyprlandDisplayMap> bound = new List<HyprlandDisplayMap>();
             foreach (HyprlandOutput output in state.Outputs)
             {
