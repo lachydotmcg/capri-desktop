@@ -26,7 +26,6 @@ namespace CapriDesktop
                 mainframe.Show();
             }
             else { mainframe.Show(); mainframe.WindowState = Avalonia.Controls.WindowState.Normal; mainframe.BringToActiveOutput(); }
-            mainframe.Activate();
         }
         internal void CloseMainframe() { mainframe?.Close(); }
         internal void NotifySettings()

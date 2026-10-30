@@ -21,14 +21,19 @@ namespace CapriDesktop
         protected readonly StackPanel HeaderActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
         private readonly LayoutTransformControl zoom;
         private readonly ScrollViewer scroll;
+        private readonly HyprlandDesktop compositor;
         private readonly CancellationTokenSource nativeLifetime = new CancellationTokenSource();
         private CancellationTokenSource nativePlacement;
+        private bool nativeActivationPending;
         private bool nativeClosed;
         private Size desiredViewport = new Size(384, 764);
         private double columns = 1, wantedHeight = 760;
         internal event Action<string> PlacementFailed;
-        internal MainframeWindow(string title)
+        internal MainframeWindow(string title) : this(title, HyprlandDesktop.Current) { }
+        internal MainframeWindow(string title, HyprlandDesktop compositor)
         {
+            this.compositor = compositor;
+            ShowActivated = compositor == null;
             Title = "Capri " + title; SystemDecorations = SystemDecorations.None; CanResize = true;
             Background = Brushes.Transparent; TransparencyLevelHint = new[] { WindowTransparencyLevel.Transparent };
             ShowInTaskbar = true; MinWidth = 280; MinHeight = 240;
@@ -53,11 +58,13 @@ namespace CapriDesktop
         internal double CurrentZoom { get; private set; } = 1;
         internal async void BringToActiveOutput(bool activate = true)
         {
-            var compositor = HyprlandDesktop.Current;
-            if (compositor == null || nativeClosed) return;
-            nativePlacement?.Cancel();
+            if (nativeClosed) return;
+            if (compositor == null) { if (activate && IsVisible) Activate(); return; }
+            var previous = nativePlacement;
             using var placement = CancellationTokenSource.CreateLinkedTokenSource(nativeLifetime.Token);
             nativePlacement = placement;
+            nativeActivationPending |= activate;
+            previous?.Cancel();
             CancellationToken token = placement.Token;
             Exception problem = null;
             Vector? measured = null;
@@ -82,7 +89,8 @@ namespace CapriDesktop
                         if (requested == desiredViewport && placed.Window.Address == observed.Window.Address && placed.Output.Id == observed.Output.Id && placed.Visible &&
                             Math.Abs(placed.Window.Logical.Width - viewport.Logical.Width) <= 1 && Math.Abs(placed.Window.Logical.Height - viewport.Logical.Height) <= 1)
                         {
-                            if (activate && IsVisible) Activate();
+                            token.ThrowIfCancellationRequested();
+                            if (nativeActivationPending && IsVisible) Activate();
                             return;
                         }
                         problem = new InvalidOperationException("Mainframe is waiting for its resized window to fit the active work area.");
@@ -93,7 +101,7 @@ namespace CapriDesktop
                 }
                 PlacementFailed?.Invoke("Window placement: " + problem?.Message);
             }
-            finally { if (nativePlacement == placement) nativePlacement = null; }
+            finally { if (nativePlacement == placement) { nativePlacement = null; nativeActivationPending = false; } }
         }
         internal void ResizeFrame(double scale, double columnCount, double height)
         {
@@ -108,7 +116,7 @@ namespace CapriDesktop
             Width = desiredViewport.Width; Height = desiredViewport.Height;
             if (IsVisible)
             {
-                if (HyprlandDesktop.Current != null) { BringToActiveOutput(false); return; }
+                if (compositor != null) { BringToActiveOutput(false); return; }
                 int maxX = area.Right - (int)Math.Ceiling(Width * dpi), maxY = area.Bottom - (int)Math.Ceiling(Height * dpi);
                 Position = new PixelPoint(Math.Clamp(Position.X, area.X, Math.Max(area.X, maxX)), Math.Clamp(Position.Y, area.Y, Math.Max(area.Y, maxY)));
             }
@@ -350,8 +358,8 @@ namespace CapriDesktop
         }
         private MainframeWindow Sheet(string name, double height = 600)
         {
-            Window existing = sheets.FirstOrDefault(w => w.Title == "Capri " + name);
-            if (existing != null) { existing.Activate(); return null; }
+            MainframeWindow existing = sheets.OfType<MainframeWindow>().FirstOrDefault(w => w.Title == "Capri " + name);
+            if (existing != null) { existing.Show(); existing.WindowState = WindowState.Normal; existing.BringToActiveOutput(); return null; }
             var window = new MainframeWindow(name) { WindowStartupLocation = WindowStartupLocation.CenterOwner };
             window.ResizeFrame(CurrentZoom, 1, height); sheets.Add(window);
             var message = Note(window.Body, ""); message.IsVisible = false; message.Foreground = MainframeTheme.Rose; sheetMessages.Add(window, message);

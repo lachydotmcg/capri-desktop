@@ -70,6 +70,19 @@ namespace CapriDesktop
             string x = Math.Round(origin.X).ToString(CultureInfo.InvariantCulture), y = Math.Round(origin.Y).ToString(CultureInfo.InvariantCulture);
             await Dispatch(lua.Value ? "hl.dsp.window.move({window=\"" + window.Selector + "\",x=" + x + ",y=" + y + "})"
                 : "movewindowpixel exact " + x + " " + y + "," + window.Selector, cancellation).ConfigureAwait(false);
+            Point destination = new Point(Math.Round(origin.X), Math.Round(origin.Y));
+            Size dimensions = requestedSize ?? after.Window.Logical.Size;
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                HyprlandOwnedPlacement placed = await ObserveOwnedWindowAsync(title, cancellation).ConfigureAwait(false);
+                if (!SamePlacement(before, placed, focused)) throw new InvalidOperationException("The owned window or active output changed after placement.");
+                Rect bounds = placed.Window.Logical;
+                if (!placed.Window.Hidden && placed.Window.Workspace == workspace &&
+                    Math.Abs(bounds.X - destination.X) <= 1 && Math.Abs(bounds.Y - destination.Y) <= 1 &&
+                    Math.Abs(bounds.Width - Math.Round(dimensions.Width)) <= 1 && Math.Abs(bounds.Height - Math.Round(dimensions.Height)) <= 1) return;
+                if (attempt < 3) await delay(TimeSpan.FromMilliseconds(20), cancellation).ConfigureAwait(false);
+            }
+            throw new InvalidOperationException("The owned window did not reach its requested position, workspace and size.");
         }
 
         private static bool SamePlacement(HyprlandOwnedPlacement a, HyprlandOwnedPlacement b, bool focused) =>

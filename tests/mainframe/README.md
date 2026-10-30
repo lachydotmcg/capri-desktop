@@ -19,6 +19,14 @@ adapter, current Codex account or speech hardware. Captures and `checks.txt` are
 written beneath the requested evidence directory. No model inference or
 microphone capture is initiated by the fixture.
 
+Focus checks inject a fake compositor into actual Avalonia settings windows.
+They verify that pending, locked and unapplied placement never activates a window,
+then that successful placement reaches both observations without an error.
+The actual focus grant is reported separately: Openbox may reject programmatic
+activation, including after the private Shift-key control. That remains
+`UNVERIFIED` until actual host qualification. `CAPRI_PRIVATE_FOCUS_TEST_INPUT=1`
+enables only that Shift-key control when `CAPRI_PRIVATE_UI_TEST` is off.
+
 Set `CAPRI_PRIVATE_CLIPBOARD_TEST=1` to run the separate clipboard check instead
 of keyboard text entry. Private X11 runs currently fail that check because the
 clipboard reads empty after `SetTextAsync`. Preserve that negative evidence;

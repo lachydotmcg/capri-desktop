@@ -648,6 +648,8 @@ namespace CapriDesktop
                 if (command.Contains("window.float")) fake.Windows[1]["floating"] = true;
                 if (command.Contains("window.resize") && command.Contains("x=384,y=804")) fake.Windows[1]["size"] = new JsonArray(384, 804);
                 if (command.Contains("workspace=\"3\"")) fake.Windows[1]["workspace"] = new JsonObject { ["id"] = 3, ["name"] = "3" };
+                if (command.Contains("window.move") && command.Contains("x=-512,y=73")) fake.Windows[1]["at"] = new JsonArray(-512, 73);
+                if (command.Contains("window.move") && command.Contains("x=900,y=50")) fake.Windows[1]["at"] = new JsonArray(900, 50);
             };
             await service.PlaceOwnedWindowAsync("Capri Mainframe", new Point(-512, 73), 1, default, seen, new Size(384, 804));
             int floated = fake.Dispatches.FindIndex(c => c.Contains("window.float"));
@@ -683,6 +685,48 @@ namespace CapriDesktop
             Equal(0, fake.Dispatches.Count, "Foreign window receives no placement mutation");
         }
 
+        private static async Task OwnedPlacementPostconditions()
+        {
+            Fake fake = new Fake { Effect = false };
+            fake.Windows = new JsonArray(Window(pid: Environment.ProcessId));
+            fake.Windows[0]["title"] = "Capri Mainframe";
+            fake.Windows[0]["floating"] = true;
+            fake.Windows[0]["at"] = new JsonArray(0, 0);
+            fake.Windows[0]["size"] = new JsonArray(300, 200);
+            using HyprlandDesktop service = Service(fake);
+            try { await service.PlaceOwnedWindowAsync("Capri Mainframe", new Point(100, 200), 1, default); Check(false, "Acknowledgment alone must not complete placement"); }
+            catch (InvalidOperationException error) { Check(error.Message.Contains("did not reach"), "A successful move acknowledgment without an observed effect fails placement"); }
+            Equal(1, fake.Dispatches.Count, "Postcondition observation never replays a move whose effect is uncertain");
+            int settled = 0; bool dispatched = false;
+            fake.AfterDispatch = _ => dispatched = true;
+            fake.Before = command =>
+            {
+                if (dispatched && command == "j/clients" && ++settled == 2) fake.Windows[0]["at"] = new JsonArray(100, 200);
+            };
+            await service.PlaceOwnedWindowAsync("Capri Mainframe", new Point(100, 200), 1, default);
+            Equal(2, settled, "Placement waits for a bounded later observation of the requested origin");
+            fake.Before = null;
+            foreach (string mismatch in new[] { "workspace", "size", "hidden", "address", "lock" })
+            {
+                fake.Locked = false;
+                fake.Windows[0]["address"] = "0x123";
+                fake.Windows[0]["workspace"] = new JsonObject { ["id"] = 1, ["name"] = "1" };
+                fake.Windows[0]["size"] = new JsonArray(300, 200);
+                fake.Windows[0]["hidden"] = false;
+                fake.AfterDispatch = _ =>
+                {
+                    fake.Windows[0]["at"] = new JsonArray(200, 250);
+                    if (mismatch == "workspace") fake.Windows[0]["workspace"] = new JsonObject { ["id"] = 9, ["name"] = "9" };
+                    if (mismatch == "size") fake.Windows[0]["size"] = new JsonArray(350, 200);
+                    if (mismatch == "hidden") fake.Windows[0]["hidden"] = true;
+                    if (mismatch == "address") fake.Windows[0]["address"] = "0x999";
+                    if (mismatch == "lock") fake.Locked = true;
+                };
+                try { await service.PlaceOwnedWindowAsync("Capri Mainframe", new Point(200, 250), 1, default, requestedSize: new Size(300, 200)); Check(false, "Changed " + mismatch + " must prevent placement success"); }
+                catch (InvalidOperationException) { Check(true, "Post-move " + mismatch + " mismatch prevents a success/focus receipt"); }
+            }
+        }
+
         private static async Task<int> Main(string[] args)
         {
             try
@@ -697,7 +741,7 @@ namespace CapriDesktop
                     return 0;
                 }
                 Geometry(); await VisibilityAndLedges(); await WindowActions(); await Revocation(); await PointerAndFailure(); Envelope(); await SocketTransport();
-                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement(); await UnmappedPetRecovery(); await MainframePlacement();
+                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement(); await UnmappedPetRecovery(); await MainframePlacement(); await OwnedPlacementPostconditions();
                 Console.WriteLine(JsonSerializer.Serialize(new { status = "PASS", checks, scope = "synthetic native desktop fixtures; no live mutation, pixels, audio or input" }));
                 return 0;
             }

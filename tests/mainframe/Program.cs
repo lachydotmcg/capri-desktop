@@ -1,5 +1,8 @@
 using System.Runtime.Serialization.Json;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -47,6 +50,47 @@ internal sealed class Checks : Application
         using var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(window.Bounds.Width * dpi), (int)Math.Ceiling(window.Bounds.Height * dpi)), new Vector(96 * dpi, 96 * dpi));
         bitmap.Render(window); bitmap.Save(Path.Combine(Entry.Output, name + ".png"));
     }
+    private async Task PlacementFocus(Window owner)
+    {
+        Check(owner.ShowActivated, "non-Hyprland Mainframe retains ordinary show activation");
+        bool input = Environment.GetEnvironmentVariable("CAPRI_PRIVATE_UI_TEST") == "1" || Environment.GetEnvironmentVariable("CAPRI_PRIVATE_FOCUS_TEST_INPUT") == "1";
+        foreach (string result in new[] { "locked", "unapplied", "placed" })
+        {
+            owner.Activate(); await Painted();
+            if (input) { await PrivatePointer.Key(0xffe1); await Painted(); }
+            var transport = new FocusCompositor { Locked = result == "locked", ApplyMove = result == "placed" };
+            using var compositor = new HyprlandDesktop(transport, false);
+            var window = new MainframeWindow("Focus fixture", compositor);
+            var failed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var activated = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            window.PlacementFailed += message => failed.TrySetResult(message);
+            window.Activated += (_, _) => activated.TrySetResult(true);
+            try
+            {
+                if (result == "unapplied") window.Show(); else window.Show(owner);
+                await Painted();
+                Check(!window.ShowActivated && !window.IsActive && !activated.Task.IsCompleted,
+                    "native " + result + " window does not activate while placement is pending");
+                transport.Ready.TrySetResult(true);
+                if (result == "placed")
+                {
+                    await transport.Observed.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                    await Painted();
+                    Check(transport.PostMoveObservations >= 2 && !failed.Task.IsCompleted, "native owned sheet completes both placement observations without an error");
+                    if (window.IsActive && activated.Task.IsCompleted) checks.Add("PASS native owned sheet receives focus after observed placement");
+                    else checks.Add("UNVERIFIED private Openbox did not grant activation after observed placement; actual Hyprland focus requires host qualification");
+                }
+                else
+                {
+                    string error = await failed.Task.WaitAsync(TimeSpan.FromSeconds(3));
+                    Check(error.Contains(result == "locked" ? "locked" : "did not reach") && !window.IsActive && !activated.Task.IsCompleted,
+                        "native " + result + " placement never emits an activation");
+                }
+            }
+            finally { window.Close(); }
+        }
+        owner.Activate(); await Painted();
+    }
     private async void Run()
     {
         var desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime;
@@ -61,6 +105,7 @@ internal sealed class Checks : Application
             finally { Environment.SetEnvironmentVariable("DISPLAY", display); }
             var before = Saved(pet.Saved); int permissions = Security.Mask;
             var frame = new Mainframe(pet); frame.Show(); await Painted();
+            await PlacementFocus(frame);
             Check(Saved(pet.Saved) == before && permissions == Security.Mask, "opening Mainframe preserves settings and grants");
             Check(!pet.VoiceChatting, "opening settings does not start microphone capture");
             Capture(frame, "primary-100");
@@ -159,6 +204,54 @@ internal sealed class Checks : Application
             checks.Add("FAIL " + error); File.WriteAllLines(Path.Combine(Entry.Output, "checks.txt"), checks);
             if (pet != null) pet.Finish(1); else desktop.Shutdown(1);
         }
+    }
+}
+
+internal sealed class FocusCompositor : IHyprlandTransport
+{
+    internal readonly TaskCompletionSource<bool> Ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal readonly TaskCompletionSource<bool> Observed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal bool Locked, ApplyMove;
+    internal int PostMoveObservations;
+    private bool moved;
+    private double x = -5000, y = -5000, width = 384, height = 764;
+    public string SessionId => "private-focus-fixture";
+    public async Task<string> RequestAsync(string command, CancellationToken cancellation)
+    {
+        await Ready.Task.WaitAsync(cancellation);
+        if (command == "/eval return type(hl.dsp.focus)") return "ok";
+        if (command.StartsWith("/dispatch "))
+        {
+            Match size = Regex.Match(command, @"x=([-0-9.]+),y=([-0-9.]+)");
+            if (command.Contains("window.resize") && size.Success)
+            {
+                width = double.Parse(size.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                height = double.Parse(size.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+            }
+            if (command.Contains("window.move") && size.Success)
+            {
+                moved = true;
+                if (ApplyMove)
+                {
+                    x = double.Parse(size.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                    y = double.Parse(size.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+                }
+            }
+            return "ok";
+        }
+        if (command == "j/locked") return JsonSerializer.Serialize(new { locked = Locked });
+        if (command == "j/monitors") return JsonSerializer.Serialize(new[] { new { id = 0, name = "PRIVATE-1", x = 0, y = 0, width = 1280, height = 900, scale = 1, transform = 0, focused = true, activeWorkspace = new { id = 1 } } });
+        if (command == "j/clients")
+        {
+            if (moved && ++PostMoveObservations >= 2) Observed.TrySetResult(true);
+            return JsonSerializer.Serialize(new[] { new { address = "0x456", pid = Environment.ProcessId, mapped = true, hidden = false, @class = "Capri", title = "Capri Focus fixture", at = new[] { x, y }, size = new[] { width, height }, monitor = 0, workspace = new { id = 1, name = "1" }, floating = true } });
+        }
+        throw new InvalidOperationException("Unexpected private focus query: " + command);
+    }
+    public async IAsyncEnumerable<string> Events([EnumeratorCancellation] CancellationToken cancellation)
+    {
+        await Task.CompletedTask;
+        yield break;
     }
 }
 
