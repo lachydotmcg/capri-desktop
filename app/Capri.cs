@@ -8676,6 +8676,272 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeFrames(System.Collections.Generic.List<string> checks)
+        {
+            const int motionWidth = 128;
+            const int motionHeight = 96;
+            byte[] motionNoise = new byte[motionWidth * motionHeight];
+            byte[] motionFirst = new byte[motionNoise.Length];
+            Random motionRandom = new Random(714);
+            motionRandom.NextBytes(motionNoise);
+            for (int smoothY = 1; smoothY < motionHeight - 1; smoothY++)
+                for (int smoothX = 1; smoothX < motionWidth - 1; smoothX++)
+                {
+                    int smoothSum = 0;
+                    for (int blurY = -1; blurY <= 1; blurY++)
+                        for (int blurX = -1; blurX <= 1; blurX++) smoothSum += motionNoise[(smoothY + blurY) * motionWidth + smoothX + blurX];
+                    motionFirst[smoothY * motionWidth + smoothX] = (byte)(smoothSum / 9);
+                }
+            double[] motionXs = new double[] { 5, -4.25, 7.4, 0, -10 };
+            double[] motionYs = new double[] { -3, 3.5, -6.3, 0, 10 };
+            for (int motionCase = 0; motionCase < motionXs.Length; motionCase++)
+            {
+                byte[] motionSecond = new byte[motionFirst.Length];
+                for (int shiftedY = 0; shiftedY < motionHeight; shiftedY++)
+                    for (int shiftedX = 0; shiftedX < motionWidth; shiftedX++)
+                    {
+                        double sourceX = shiftedX - motionXs[motionCase];
+                        double sourceY = shiftedY - motionYs[motionCase];
+                        int sourceLeft = (int)Math.Floor(sourceX);
+                        int sourceTop = (int)Math.Floor(sourceY);
+                        if (sourceLeft < 0 || sourceTop < 0 || sourceLeft + 1 >= motionWidth || sourceTop + 1 >= motionHeight) continue;
+                        double fractionX = sourceX - sourceLeft;
+                        double fractionY = sourceY - sourceTop;
+                        int sourceAt = sourceTop * motionWidth + sourceLeft;
+                        motionSecond[shiftedY * motionWidth + shiftedX] = (byte)Math.Round(
+                            (motionFirst[sourceAt] * (1 - fractionX) + motionFirst[sourceAt + 1] * fractionX) * (1 - fractionY)
+                            + (motionFirst[sourceAt + motionWidth] * (1 - fractionX) + motionFirst[sourceAt + motionWidth + 1] * fractionX) * fractionY);
+                    }
+                double motionDx, motionDy, motionMatch;
+                if (!Motion.Shift(motionFirst, motionSecond, motionWidth, motionHeight, 10, out motionDx, out motionDy, out motionMatch)
+                    || Math.Abs(motionDx - motionXs[motionCase]) > 0.5 || Math.Abs(motionDy - motionYs[motionCase]) > 0.5)
+                    throw new Exception("Gray motion missed a known shift: " + motionXs[motionCase] + ", " + motionYs[motionCase] + " became " + motionDx + ", " + motionDy + " with match " + motionMatch);
+            }
+            byte[] motionBlank = new byte[motionFirst.Length];
+            double blankDx, blankDy, blankMatch;
+            if (Motion.Changed(motionBlank, new byte[motionBlank.Length]) != 0 || Motion.Shift(motionBlank, motionBlank, motionWidth, motionHeight, 10, out blankDx, out blankDy, out blankMatch))
+                throw new Exception("Blank gray frames looked changed or had a camera shift.");
+            if (Motion.Shift(motionFirst, motionBlank, motionWidth, motionHeight, 10, out blankDx, out blankDy, out blankMatch)
+                || Motion.Shift(motionFirst, motionNoise, motionWidth, motionHeight, 10, out blankDx, out blankDy, out blankMatch)) throw new Exception("Unmatched gray frames had a camera shift.");
+            if (Motion.Changed(new byte[] { 1, 2, 3, 4 }, new byte[] { 1, 8, 3, 9 }) != 0.5) throw new Exception("Changed gray pixels were not counted.");
+            checks.Add("PASS gray motion finds positive, negative, fractional, still and reach-edge shifts within half a pixel; blank frames stay unchanged and have no false match");
+            SmokeGray(checks);
+
+            Rectangle frameScreen = Screen.PrimaryScreen.Bounds;
+            using (Form frameForm = new Form())
+            using (FrameGrab frameGrab = new FrameGrab())
+            {
+                frameForm.FormBorderStyle = FormBorderStyle.None;
+                frameForm.ShowInTaskbar = false;
+                frameForm.StartPosition = FormStartPosition.Manual;
+                frameForm.Bounds = new Rectangle(frameScreen.Left + 40, frameScreen.Top + 40, 320, 180);
+                frameForm.TopMost = true;
+                frameForm.BackColor = Color.Red;
+                frameForm.Show();
+                frameForm.Refresh();
+                Application.DoEvents();
+                frameGrab.Open(frameForm.RectangleToScreen(frameForm.ClientRectangle));
+                bool frameDuplication = frameGrab.Live == "DXGI Desktop Duplication";
+                byte[] frameRed = SmokeFrameColour(frameGrab, frameForm, Color.Red);
+                byte[] frameBlue = SmokeFrameColour(frameGrab, frameForm, Color.Blue);
+                if (frameRed == null || frameBlue == null)
+                {
+                    if (frameDuplication && frameGrab.Live == "DXGI Desktop Duplication") throw new Exception("Desktop duplication did not see the form change colour.");
+                    checks.Add("LIMIT screen frames could not see the test form on this desktop; " + frameGrab.Live);
+                }
+                else
+                {
+                    if (Motion.Changed(frameRed, frameBlue) < 0.95) throw new Exception("The colour change was lost in the gray frame.");
+                    using (Bitmap frameCopy = frameGrab.Copy(80))
+                        if (frameCopy == null || frameCopy.Width != 80 || frameCopy.Height != 45) throw new Exception("The copied frame did not keep its aspect ratio.");
+                    frameGrab.Open(new Rectangle(frameForm.Left + 31, frameForm.Top + 17, 120, 80));
+                    if (SmokeFrameColour(frameGrab, frameForm, Color.Lime) == null) throw new Exception("Reopening the frame area did not capture its new colour.");
+                    using (Bitmap frameCrop = frameGrab.Copy(200))
+                        if (frameCrop == null || frameCrop.Width != 120 || frameCrop.Height != 80) throw new Exception("The output crop had the wrong size.");
+                    checks.Add("PASS screen frames see a form change red, blue and green, copy at the requested width and reopen a smaller crop; " + frameGrab.Live);
+                    if (!frameDuplication || frameGrab.Live != "DXGI Desktop Duplication") checks.Add("LIMIT DXGI Desktop Duplication is unavailable here; screen capture used Graphics.CopyFromScreen");
+                }
+                frameForm.Close();
+            }
+            using (FrameGrab speedGrab = new FrameGrab())
+            {
+                speedGrab.Open(frameScreen);
+                if (speedGrab.Next(500))
+                {
+                    int speedHeight = Math.Max(1, (int)((long)frameScreen.Height * 480 / frameScreen.Width));
+                    byte[] speedGray = speedGrab.Gray(480, speedHeight);
+                    if (speedGray != null)
+                    {
+                        for (int speedWarm = 0; speedWarm < 5; speedWarm++) speedGrab.Gray(480, speedHeight);
+                        Stopwatch speedWatch = Stopwatch.StartNew();
+                        for (int speedRun = 0; speedRun < 30; speedRun++)
+                            if (speedGrab.Gray(480, speedHeight) == null) throw new Exception("Gray frames disappeared during the timing check.");
+                        double speedMs = speedWatch.Elapsed.TotalMilliseconds / 30;
+                        checks.Add((speedMs < 3 ? "PASS " : "LIMIT ") + "480-wide box gray from " + frameScreen.Width + "x" + frameScreen.Height + " takes " + speedMs.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " ms per copy here; " + speedGrab.Live);
+                    }
+                    else checks.Add("LIMIT gray frame timing lost access to this desktop");
+                }
+                else checks.Add("LIMIT gray frame timing had no desktop frame");
+            }
+        }
+
+        private static void SmokeGray(System.Collections.Generic.List<string> checks)
+        {
+            const int graySourceWidth = 49;
+            const int graySourceHeight = 37;
+            const int grayStride = 208;
+            byte[] grayPixels = new byte[grayStride * graySourceHeight];
+            new Random(331).NextBytes(grayPixels);
+            GCHandle grayPin = GCHandle.Alloc(grayPixels, GCHandleType.Pinned);
+            try
+            {
+                for (int grayRotation = 0; grayRotation < 4; grayRotation++)
+                {
+                    int grayViewWidth = grayRotation % 2 == 0 ? graySourceWidth : graySourceHeight;
+                    int grayViewHeight = grayRotation % 2 == 0 ? graySourceHeight : graySourceWidth;
+                    int grayAcross = grayRotation == 0 ? 4 : grayRotation == 1 ? -grayStride : grayRotation == 2 ? -4 : grayStride;
+                    int grayDown = grayRotation == 0 ? grayStride : grayRotation == 1 ? 4 : grayRotation == 2 ? -grayStride : -4;
+                    int grayOrigin = grayRotation == 0 ? 0 : grayRotation == 1 ? (graySourceHeight - 1) * grayStride : grayRotation == 2 ? (graySourceHeight - 1) * grayStride + (graySourceWidth - 1) * 4 : (graySourceWidth - 1) * 4;
+                    for (int grayCase = 0; grayCase < 3; grayCase++)
+                    {
+                        int grayWidth = grayCase == 0 ? 5 : grayCase == 1 ? 1 : 80;
+                        int grayHeight = grayCase == 0 ? 4 : grayCase == 1 ? 1 : 60;
+                        byte[] grayMade = FrameGrab.Downsample(IntPtr.Add(grayPin.AddrOfPinnedObject(), grayOrigin), grayViewWidth, grayViewHeight, grayAcross, grayDown, grayWidth, grayHeight);
+                        for (int grayTestY = 0; grayTestY < grayHeight; grayTestY++)
+                            for (int grayTestX = 0; grayTestX < grayWidth; grayTestX++)
+                            {
+                                int grayLeft = grayTestX * grayViewWidth / grayWidth;
+                                int grayRight = Math.Max(grayLeft + 1, (grayTestX + 1) * grayViewWidth / grayWidth);
+                                int grayTop = grayTestY * grayViewHeight / grayHeight;
+                                int grayBottom = Math.Max(grayTop + 1, (grayTestY + 1) * grayViewHeight / grayHeight);
+                                long graySum = 0;
+                                for (int grayBoxY = grayTop; grayBoxY < grayBottom; grayBoxY++)
+                                    for (int grayBoxX = grayLeft; grayBoxX < grayRight; grayBoxX++)
+                                    {
+                                        int grayReadX = grayRotation == 0 ? grayBoxX : grayRotation == 1 ? grayBoxY : grayRotation == 2 ? graySourceWidth - 1 - grayBoxX : graySourceWidth - 1 - grayBoxY;
+                                        int grayReadY = grayRotation == 0 ? grayBoxY : grayRotation == 1 ? graySourceHeight - 1 - grayBoxX : grayRotation == 2 ? graySourceHeight - 1 - grayBoxY : grayBoxX;
+                                        int grayReadAt = grayReadY * grayStride + grayReadX * 4;
+                                        graySum += grayPixels[grayReadAt] * 29 + grayPixels[grayReadAt + 1] * 150 + grayPixels[grayReadAt + 2] * 77;
+                                    }
+                                byte grayExpected = (byte)(graySum / (256 * (grayRight - grayLeft) * (grayBottom - grayTop)));
+                                if (grayMade[grayTestY * grayWidth + grayTestX] != grayExpected) throw new Exception("Box gray differs from its pixels at rotation " + grayRotation + ".");
+                            }
+                    }
+                }
+            }
+            finally { grayPin.Free(); }
+            checks.Add("PASS box gray averages every pixel with padded rows, odd boxes, large boxes, all four rotations and enlarged copies");
+            foreach (int grayBenchWidth in new int[] { 1920, 3840 })
+            {
+                int grayBenchHeight = grayBenchWidth * 9 / 16;
+                int grayBox = grayBenchWidth / 480;
+                byte[] grayBench = new byte[grayBenchWidth * grayBenchHeight * 4];
+                new Random(95).NextBytes(grayBench);
+                GCHandle grayBenchPin = GCHandle.Alloc(grayBench, GCHandleType.Pinned);
+                try
+                {
+                    IntPtr grayBenchAt = grayBenchPin.AddrOfPinnedObject();
+                    byte[] grayBenchMade = FrameGrab.Downsample(grayBenchAt, grayBenchWidth, grayBenchHeight, 4, grayBenchWidth * 4, 480, 270);
+                    for (int grayCheckAt = 0; grayCheckAt < grayBenchMade.Length; grayCheckAt += 997)
+                    {
+                        int grayCheckLeft = (grayCheckAt % 480) * grayBox;
+                        int grayCheckTop = (grayCheckAt / 480) * grayBox;
+                        int grayCheckSum = 0;
+                        for (int grayCheckY = 0; grayCheckY < grayBox; grayCheckY++)
+                            for (int grayCheckX = 0; grayCheckX < grayBox; grayCheckX++)
+                            {
+                                int grayPixelAt = ((grayCheckTop + grayCheckY) * grayBenchWidth + grayCheckLeft + grayCheckX) * 4;
+                                grayCheckSum += grayBench[grayPixelAt] * 29 + grayBench[grayPixelAt + 1] * 150 + grayBench[grayPixelAt + 2] * 77;
+                            }
+                        if (grayBenchMade[grayCheckAt] != grayCheckSum / (256 * grayBox * grayBox)) throw new Exception("Fast gray boxes differ from their source pixels.");
+                    }
+                    for (int grayWarm = 0; grayWarm < 8; grayWarm++) FrameGrab.Downsample(grayBenchAt, grayBenchWidth, grayBenchHeight, 4, grayBenchWidth * 4, 480, 270);
+                    Stopwatch grayClock = Stopwatch.StartNew();
+                    for (int grayRun = 0; grayRun < 40; grayRun++) FrameGrab.Downsample(grayBenchAt, grayBenchWidth, grayBenchHeight, 4, grayBenchWidth * 4, 480, 270);
+                    double grayCost = grayClock.Elapsed.TotalMilliseconds / 40;
+                    checks.Add((grayCost < 3 ? "PASS " : "LIMIT ") + grayBenchWidth + "x" + grayBenchHeight + " pixels to 480-wide box gray take " + grayCost.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " ms per copy here, including allocation");
+                }
+                finally { grayBenchPin.Free(); }
+            }
+        }
+
+        private static byte[] SmokeFrameColour(FrameGrab grab, Form form, Color colour)
+        {
+            form.BackColor = colour;
+            form.Refresh();
+            Stopwatch colourWait = Stopwatch.StartNew();
+            while (colourWait.ElapsedMilliseconds < 2500)
+            {
+                Application.DoEvents();
+                if (grab.Next(40))
+                {
+                    using (Bitmap colourCopy = grab.Copy(80))
+                    {
+                        if (colourCopy != null)
+                        {
+                            Color colourSeen = colourCopy.GetPixel(colourCopy.Width / 2, colourCopy.Height / 2);
+                            if (Math.Abs(colourSeen.R - colour.R) < 35 && Math.Abs(colourSeen.G - colour.G) < 35 && Math.Abs(colourSeen.B - colour.B) < 35)
+                                return grab.Gray(64, 36);
+                        }
+                    }
+                }
+                Thread.Sleep(10);
+            }
+            return null;
+        }
+
+        private static void SmokeGameEars(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.Dictionary<int, int> gameParents = new System.Collections.Generic.Dictionary<int, int>();
+            gameParents.Add(103, 102);
+            gameParents.Add(102, 101);
+            gameParents.Add(101, 100);
+            gameParents.Add(201, 200);
+            System.Collections.Generic.HashSet<int> gameFamily = GameEars.Family(100, gameParents);
+            if (gameFamily.Count != 4 || !gameFamily.Contains(100) || !gameFamily.Contains(103) || gameFamily.Contains(201)) throw new Exception("Game audio did not follow only its process family.");
+            using (GameEars gameSpikes = new GameEars(int.MaxValue))
+            {
+                int gameLoud = 0;
+                gameSpikes.Loud += delegate(double ignoredLevel) { throw new Exception("A failing loud subscriber."); };
+                gameSpikes.Loud += delegate(double heardLevel) { if (heardLevel > 0.5) gameLoud++; };
+                for (int quietSample = 0; quietSample < 65; quietSample++) gameSpikes.Hear(0.01, quietSample / 30.0);
+                gameSpikes.Hear(0.8, 3);
+                gameSpikes.Hear(0.7, 3.033);
+                gameSpikes.Hear(0.01, 3.066);
+                gameSpikes.Hear(0.9, 3.1);
+                if (gameLoud != 1) throw new Exception("One game sound fired more than once or its subscriber escaped.");
+                gameSpikes.Hear(0.01, 3.2);
+                gameSpikes.Hear(0.85, 3.3);
+                if (gameLoud != 2 || Math.Abs(gameSpikes.Level - 0.85) > 0.001) throw new Exception("The next game spike or its peak level was lost.");
+                for (int heldSample = 0; heldSample < 90; heldSample++) gameSpikes.Hear(0.85, 3.34 + heldSample / 30.0);
+                if (gameLoud != 2) throw new Exception("A held game sound kept firing loud events.");
+            }
+            checks.Add("PASS game levels follow children and grandchildren, detect spikes over a rolling median, keep one sound to one event and contain failing subscribers");
+            using (GameEars gameSilence = new GameEars(int.MaxValue))
+            {
+                int silentLoud = 0;
+                gameSilence.Loud += delegate(double unexpectedLevel) { Interlocked.Increment(ref silentLoud); };
+                for (int startRound = 0; startRound < 3; startRound++)
+                {
+                    gameSilence.Start();
+                    gameSilence.Start();
+                    Stopwatch silenceWait = Stopwatch.StartNew();
+                    while (gameSilence.Samples < 4 && silenceWait.ElapsedMilliseconds < 4000) Thread.Sleep(10);
+                    if (!gameSilence.Listening || gameSilence.Samples < 4 || gameSilence.Level != 0) throw new Exception("Game ears did not poll quietly with no matching session.");
+                    gameSilence.Stop();
+                    gameSilence.Stop();
+                    if (gameSilence.Listening || gameSilence.Level != 0 || silentLoud != 0) throw new Exception("Game ears did not stop cleanly with no matching session.");
+                }
+                checks.Add("PASS game ears start, poll and stop repeatedly with no matching audio session and no loud event");
+                if (!gameSilence.Available) checks.Add("LIMIT this desktop has no accessible active Core Audio render session manager; game peak meters need a live audio session");
+                gameSilence.Start();
+                gameSilence.Dispose();
+                gameSilence.Dispose();
+                if (gameSilence.Listening) throw new Exception("Disposing game ears left its worker running.");
+            }
+            checks.Add("PASS disposing game ears wakes and joins its background thread");
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
@@ -8747,6 +9013,8 @@ namespace CapriDesktop
                         }
                         if (step == 0)
                         {
+                            SmokeFrames(checks);
+                            SmokeGameEars(checks);
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
                             if (!mainframe.Visible || !mainframe.ShowInTaskbar || mainframe.WindowState != FormWindowState.Minimized) throw new Exception("Mainframe did not start minimized in the taskbar.");
