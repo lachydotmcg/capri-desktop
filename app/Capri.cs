@@ -19381,8 +19381,9 @@ namespace CapriDesktop
                             snap("mainframe-settings-short-top.png");
                             mainframe.Wheel(-1);
                             bool shortRow = mainframe.Scrolled == Math.Min(36, mainframe.ScrollMost) && mainframe.BackTop == backTop - mainframe.Px(mainframe.Scrolled);
-                            mainframe.Wheel(-40);
-                            bool shortBottom = mainframe.Scrolled == mainframe.ScrollMost && mainframe.HideKeyShows && mainframe.BackTop < 0;
+                            bool shortHideKey = false;
+                            for (int shortTurn = 0; shortTurn < 40; shortTurn++) { mainframe.Wheel(-1); if (mainframe.HideKeyShows) shortHideKey = true; }
+                            bool shortBottom = mainframe.Scrolled == mainframe.ScrollMost && shortHideKey && mainframe.BackTop < 0;
                             string shortOverlap = mainframe.Overlap() ?? mainframe.Outside();
                             snap("mainframe-settings-short-bottom.png");
                             mainframe.Wheel(40);
@@ -19398,7 +19399,7 @@ namespace CapriDesktop
                             mainframe.ShortScreen = 0;
                             mainframe.ShowSettings(true);
                             if (!shortOpened || !shortRow || !shortBottom || shortOverlap != null || !shortTop || shortTabs != null || !shortTabbed || shortPerch != "30 fps | -" || !shortLeft || mainframe.Scrolled != 0 || !mainframe.PerchFits) throw new Exception("Settings on a short screen went wrong: opened " + shortOpened + ", row " + shortRow + ", bottom " + shortBottom + ", overlap " + shortOverlap + ", top " + shortTop + ", tab " + shortTabs + "/" + shortTabbed + ", perch " + shortPerch + ", left " + shortLeft + ", now " + mainframe.ScrollStatus + " scrolled " + mainframe.Scrolled);
-                            checks.Add("PASS short screens: Settings shrinks to fit a screen 480 px tall; a turn of the wheel over a slider scrolls the page and its header one row and leaves the slider alone; at the bottom the hide key shows, at the top Back is back where it was; nothing overlaps; leaving Settings puts it all back");
+                            checks.Add("PASS short screens: Settings shrinks to fit a screen 480 px tall; a turn of the wheel over a slider scrolls the page and its header one row and leaves the slider alone; scrolling down brings the hide key into view and reaches the end of the page, at the top Back is back where it was; nothing overlaps; leaving Settings puts it all back");
                             checks.Add(shortTabLimit == null ? "PASS short Settings keyboard walk: Back takes focus, Tab scrolls to every control it lands on including the quiet key, and Back returns to the top" : "LIMIT short Settings keyboard walk: " + shortTabLimit);
                             // Her Mainframe size (Zenni's Virtual Super Resolution ask): 150% grows Settings with nothing overlapping or poking
                             // out and is saved, and Auto puts it back as it was.
