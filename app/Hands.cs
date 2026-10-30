@@ -542,6 +542,8 @@ namespace CapriDesktop
             { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" },
 #if !CROSS
+            { "gaming_mode", "Turn Gaming Mode on or off: your small HUD over their game, where you watch and comment. up, down, left, right and reset move the HUD.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}" },
             { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
               "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}" },
 #endif
@@ -1637,7 +1639,7 @@ namespace CapriDesktop
             return tool != null;
         }
 
-        private static readonly Regex LooseText = new Regex(@"\b(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate)\s*(\{[^{}]*\}|\([^()]*\))");
+        private static readonly Regex LooseText = new Regex(@"\b(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip|mini_game)\s*(\{[^{}]*\}|\([^()]*\))");
 
         internal static string MiniName(string text)
         {
@@ -1684,7 +1686,7 @@ namespace CapriDesktop
             else if (key == "screen") args.Screen = value;
         }
 
-        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|clip|mini_game)\s*(\{.*\})\z", RegexOptions.Singleline);
+        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip|mini_game)\s*(\{.*\})\z", RegexOptions.Singleline);
 
         internal static bool Typed(string reply, out string tool, out ToolArguments args, bool loose = false)
         {
@@ -1708,7 +1710,7 @@ namespace CapriDesktop
             return true;
         }
 
-        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|clip|mini_game";
+        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip|mini_game";
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
         private static readonly Regex NamedInside = new Regex(@"""name""\s*:\s*""(" + ToolNames + @")""");
         private static readonly Regex GivenInside = new Regex(@"""(?:arguments|parameters)""\s*:\s*\{");
@@ -1818,6 +1820,7 @@ namespace CapriDesktop
 
         internal static bool Valid(string tool, ToolArguments args)
         {
+            if (tool == "gaming_mode") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(on|off|up|down|left|right|reset)\z");
             if (tool == "clip")
             {
                 int duration;
