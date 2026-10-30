@@ -588,7 +588,7 @@ namespace CapriDesktop
         internal string PushKeyName { get { return preferences.PushVk == 0 ? "not set" : KeyName(preferences.PushMods, preferences.PushVk); } }
 
         // Her key slots are 0 to 4, and this one comes after them. 0 for the key means it's off.
-        internal const int PushSlot = 5;
+        internal const int PushSlot = 6;
 
         // Any key or mouse button, a modifier on its own too, but never a left or right click or an IME placeholder.
         internal static bool PushBindable(int mods, int vk) { return vk == 0 ? mods == 0 : (mods & ~15) == 0 && vk > 0x02 && vk < 0xFF && vk != 0xE5 && vk != 0xE7; }

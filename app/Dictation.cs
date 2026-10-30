@@ -20,6 +20,8 @@ namespace CapriDesktop
             catch (Exception) { return null; }
         };
         internal Action<string> Heard;
+        // What it thinks they've said so far, while they're still saying it.
+        internal Action<string> Partial;
         internal Action<string> Lost;
         // The language picked in Settings, English included, or null to listen in Windows' own speech language.
         internal string Language;
@@ -129,6 +131,7 @@ namespace CapriDesktop
             if (compiled.Status != SpeechRecognitionResultStatus.Success) throw new IOException("Windows speech recognition couldn't load (" + compiled.Status + ").");
             try { made.ContinuousRecognitionSession.AutoStopSilenceTimeout = TimeSpan.FromMinutes(30); } catch (ArgumentException) { }
             made.ContinuousRecognitionSession.ResultGenerated += Result;
+            made.HypothesisGenerated += Guessed;
             made.ContinuousRecognitionSession.Completed += Ended;
             lock (gate)
             {
@@ -177,6 +180,12 @@ namespace CapriDesktop
                     return;
                 }
             }
+        }
+
+        private void Guessed(SpeechRecognizer sender, SpeechRecognitionHypothesisGeneratedEventArgs args)
+        {
+            Action<string> guessed = Partial;
+            if (guessed != null) guessed(args.Hypothesis.Text);
         }
 
         private void Result(SpeechContinuousRecognitionSession session, SpeechContinuousRecognitionResultGeneratedEventArgs args)

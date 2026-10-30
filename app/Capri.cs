@@ -147,6 +147,7 @@ namespace CapriDesktop
             fresh.TypeMods = old.TypeMods; fresh.TypeVk = old.TypeVk; fresh.HideMods = old.HideMods; fresh.HideVk = old.HideVk;
             fresh.QuietMods = old.QuietMods; fresh.QuietVk = old.QuietVk;
             fresh.PushMods = old.PushMods; fresh.PushVk = old.PushVk;
+            fresh.GameMods = old.GameMods; fresh.GameVk = old.GameVk; fresh.GameSpots = old.GameSpots;
             try { using (FileStream stream = File.Create(settings)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, fresh); }
             catch (Exception) { try { File.Delete(settings); } catch (Exception) { } }
         }
@@ -245,6 +246,10 @@ namespace CapriDesktop
         [DataMember] public int PushVk;
         // How much she says about a game they're playing: 0 off, 1 events only, 2 chatty. Off until they turn it on, since it shows her brain their screen.
         [DataMember] public int CommentPace;
+        // Gaming Mode's key, Ctrl + Alt + G, and where her HUD sits in each game (GameSpots).
+        [DataMember] public int GameMods = 3;
+        [DataMember] public int GameVk = 0x47;
+        [DataMember] public string GameSpots;
         [DataMember] public int WanderPace = 1;
         // How often she pops in while Check in on me is on: 0 rarely, 1 sometimes (every 8 to 20 minutes, as before), 2 often.
         [DataMember] public int PopPace = 1;
@@ -374,6 +379,8 @@ namespace CapriDesktop
             HideVk = 0x48;
             QuietMods = 3;
             QuietVk = 0x50;
+            GameMods = 3;
+            GameVk = 0x47;
             WanderPace = 1;
             PopPace = 1;
             PerchFps = 30;
@@ -1383,7 +1390,7 @@ namespace CapriDesktop
             menu.Items.Add(title);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
-            visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { SetHidden(!hidden); });
+            visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
             menu.Items.Add(visibilityItem);
             ToolStripMenuItem sizes = new ToolStripMenuItem("Size");
             AddSize(sizes, "Small", 170);
@@ -1474,6 +1481,7 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
+            SetUpGaming();
             Hands.Hush = Computer.Mask;
             Computer.Grab = HandsGrab;
             Computer.Halted = brain.StopDriving;
@@ -1525,6 +1533,7 @@ namespace CapriDesktop
                 if (!testing) CheckHome(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckLag(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckLie(clock.Elapsed.TotalSeconds);
+                CheckGame(clock.Elapsed.TotalSeconds);
                 if (!testing) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
                 if (!testing) CheckNudge(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
@@ -1595,12 +1604,13 @@ namespace CapriDesktop
             if (!testing) typeKey = ByMouse(preferences.TypeVk) || Native.RegisterHotKey(Handle, TypeKeyId, preferences.TypeMods | 0x4000, preferences.TypeVk);
             if (!testing) hideKey = ByMouse(preferences.HideVk) || Native.RegisterHotKey(Handle, HideKeyId, preferences.HideMods | 0x4000, preferences.HideVk);
             if (!testing) quietKey = ByMouse(preferences.QuietVk) || Native.RegisterHotKey(Handle, QuietKeyId, preferences.QuietMods | 0x4000, preferences.QuietVk);
+            if (!testing) gameKey = ByMouse(preferences.GameVk) || Native.RegisterHotKey(Handle, GameKeyId, preferences.GameMods | 0x4000, preferences.GameVk);
             mouseKeys.Tick += delegate { WatchMouseKeys(); };
             WatchMouse();
-            mainframe.Hotkeys(TalkKeyName, MuteKeyName, TypeKeyName, HideKeyName, QuietKeyName);
+            mainframe.Hotkeys(TalkKeyName, MuteKeyName, TypeKeyName, HideKeyName, QuietKeyName, GameKeyName);
             mainframe.PushKey(PushKeyName);
             mainframe.ShowShortcut(talkKey, muteFree);
-            mainframe.ShowKeys(typeKey, hideKey, quietKey);
+            mainframe.ShowKeys(typeKey, hideKey, quietKey, gameKey);
             RefreshIcons();
             if (!testing && !hidden) DropSoon();
             if (!testing && Program.StartedFresh)
@@ -1633,6 +1643,7 @@ namespace CapriDesktop
         {
             double now = clock.Elapsed.TotalSeconds;
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
+            if (docked) { DockTick(now); return; }
             if (riding) FollowCursor(); else if (onPanel) HoldPanel(); else if (falling) Tumble(now); else if (seat != null) HoldSeat(now);
             if (walking) Walk(now);
             if (!riding && !dragging && !walking && !falling && outro == null && clip != arrive && clip != leave) Face();
@@ -2029,6 +2040,7 @@ namespace CapriDesktop
         // mouse and keyboard don't wake her.
         internal string Nap(bool sleeping)
         {
+            if (sleeping && GamingOn) gaming.Off();
             if (!sleeping)
             {
                 bool resting = napAsked || napping || Asleep;
@@ -2059,6 +2071,7 @@ namespace CapriDesktop
         // her Mainframe to another screen, or over to their mouse. `screen` is the window they named for sit_on and lie_down.
         internal string MoveSelf(string action, string screen)
         {
+            if (docked && action != "move_mainframe") gaming.Off();
             lieBy = -1;
             if (action == "move_mainframe") return MoveMainframe(screen);
             if (action == "hide")
@@ -2366,6 +2379,7 @@ namespace CapriDesktop
         // until they say stop.
         internal string Animate(string name)
         {
+            if (docked) return DockAnimate(name);
             if (name == "stop_dancing")
             {
                 bool was = danceAsked || clip == dance || clip == perchDance;
@@ -2661,6 +2675,7 @@ namespace CapriDesktop
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == TypeKeyId) { if (hidden) SetHidden(false); OpenTyper(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == HideKeyId) { ToggleHidden(); return; }
             if (message.Msg == 0x0312 && message.WParam.ToInt32() == QuietKeyId) { ToggleShush(); return; }
+            if (message.Msg == 0x0312 && message.WParam.ToInt32() == GameKeyId) { ToggleGaming(); return; }
             if (message.Msg == 0x02E0) { anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); }
             base.WndProc(ref message);
         }
@@ -2854,7 +2869,7 @@ namespace CapriDesktop
             if (nextPopIn < 0) nextPopIn = now + PopGap();
             if (now < nextPopIn) return;
             nextPopIn = now + PopGap();
-            if (quiet > 60000 || quitting || dragging || pressed || chatting || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0) return;
+            if (quiet > 60000 || quitting || dragging || pressed || chatting || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || docked) return;
             PopIn(now);
         }
 
@@ -2930,6 +2945,7 @@ namespace CapriDesktop
             noticed = -1;
             nextGlance = -1;
             if (shushed) voice.Stop();
+            if (docked) GameHud.Status(!preferences.Silent, shushed);
             Say(shushed ? "Going quiet. " + QuietKeyName + " when you want me back." : "I'm back, choom.");
         }
 
@@ -3854,6 +3870,7 @@ namespace CapriDesktop
             {
                 if (job != null) return "On a job";
                 if (chatting) return "Voice chatting";
+                if (docked) return "Gaming";
                 if (hidden) return "Taking a break";
                 if (typer.Visible || speech != null) return "Chatting";
                 if (clip == dance || clip == perchDance) return musicOn ? "Dancing to music" : "Dancing";
@@ -4086,18 +4103,19 @@ namespace CapriDesktop
             if (!Bindable(value.HideMods, value.HideVk)) { value.HideMods = 3; value.HideVk = 0x48; }
             if (!Bindable(value.QuietMods, value.QuietVk)) { value.QuietMods = 3; value.QuietVk = 0x50; }
             if (!PushBindable(value.PushMods, value.PushVk)) { value.PushMods = 0; value.PushVk = 0; }
+            if (!Bindable(value.GameMods, value.GameVk)) { value.GameMods = 3; value.GameVk = 0x47; }
             Unclash(value);
         }
 
-        // Her keys, in the order the Mainframe shows them: talk, mute mic, type to her, hide or show her, quiet.
-        private static readonly string[] KeyJobs = { "talk", "mute", "typing", "hide", "quiet" };
-        private static readonly int[][] SpareKeys = { null, null, new[] { 0x54, 0x59, 0x55, 0x49, 0x4F }, new[] { 0x48, 0x4A, 0x4B, 0x4C, 0x42 }, new[] { 0x50, 0x44, 0x52, 0x4A, 0x4B } };
+        // Her keys, in the order the Mainframe shows them: talk, mute mic, type to her, hide or show her, quiet, Gaming Mode.
+        private static readonly string[] KeyJobs = { "talk", "mute", "typing", "hide", "quiet", "Gaming Mode" };
+        private static readonly int[][] SpareKeys = { null, null, new[] { 0x54, 0x59, 0x55, 0x49, 0x4F }, new[] { 0x48, 0x4A, 0x4B, 0x4C, 0x42 }, new[] { 0x50, 0x44, 0x52, 0x4A, 0x4B }, new[] { 0x47, 0x4D, 0x42, 0x55, 0x59 } };
 
         // Talk and mute were her first keys. A newer type, hide or quiet key that lands on an earlier one, as 0.7.3's new defaults
         // could, moves to the first free Ctrl + Alt spare, so mute on Ctrl + Alt + H stays mute instead of hiding her.
         internal static void Unclash(Preferences value)
         {
-            int[] bound = { value.TalkMods, value.TalkVk, value.MuteMods, value.MuteVk, value.TypeMods, value.TypeVk, value.HideMods, value.HideVk, value.QuietMods, value.QuietVk };
+            int[] bound = { value.TalkMods, value.TalkVk, value.MuteMods, value.MuteVk, value.TypeMods, value.TypeVk, value.HideMods, value.HideVk, value.QuietMods, value.QuietVk, value.GameMods, value.GameVk };
             for (int slot = 2; slot < KeyJobs.Length; slot++)
             {
                 if (!Clashes(bound, slot, bound[slot * 2], bound[slot * 2 + 1], slot)) continue;
@@ -4110,6 +4128,8 @@ namespace CapriDesktop
             value.HideVk = bound[7];
             value.QuietMods = bound[8];
             value.QuietVk = bound[9];
+            value.GameMods = bound[10];
+            value.GameVk = bound[11];
         }
 
         // Whether a key matches one of the other slots before below.
@@ -4126,7 +4146,7 @@ namespace CapriDesktop
             if (slot == PushSlot) return SetPushKey(mods, vk);
             if (!Bindable(mods, vk)) return "Press a key, alone or with Ctrl, Alt, Shift or Win.";
             string name = KeyName(mods, vk);
-            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk };
+            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
             for (int i = 0; i < KeyJobs.Length; i++)
                 if (i != slot && mods == bound[i * 2] && vk == bound[i * 2 + 1]) return name + " is already her " + KeyJobs[i] + " key.";
             if (preferences.PushVk != 0 && mods == preferences.PushMods && vk == preferences.PushVk) return name + " is already her push-to-talk key.";
@@ -4146,11 +4166,11 @@ namespace CapriDesktop
                 }
                 else
                 {
-                    int id = slot == 0 ? TalkKeyId : slot == 2 ? TypeKeyId : slot == 3 ? HideKeyId : QuietKeyId;
-                    if (slot == 0 ? talkKey : slot == 2 ? typeKey : slot == 3 ? hideKey : quietKey) Native.UnregisterHotKey(Handle, id);
+                    int id = slot == 0 ? TalkKeyId : slot == 2 ? TypeKeyId : slot == 3 ? HideKeyId : slot == 4 ? QuietKeyId : GameKeyId;
+                    if (slot == 0 ? talkKey : slot == 2 ? typeKey : slot == 3 ? hideKey : slot == 4 ? quietKey : gameKey) Native.UnregisterHotKey(Handle, id);
                     bool held = ByMouse(vk) || Native.RegisterHotKey(Handle, id, mods | 0x4000, vk);
                     bool kept = held || ByMouse(bound[slot * 2 + 1]) || Native.RegisterHotKey(Handle, id, bound[slot * 2] | 0x4000, bound[slot * 2 + 1]);
-                    if (slot == 0) talkKey = kept; else if (slot == 2) typeKey = kept; else if (slot == 3) hideKey = kept; else quietKey = kept;
+                    if (slot == 0) talkKey = kept; else if (slot == 2) typeKey = kept; else if (slot == 3) hideKey = kept; else if (slot == 4) quietKey = kept; else gameKey = kept;
                     if (!held) return name + " is taken by another app. Try another.";
                 }
             }
@@ -4158,23 +4178,24 @@ namespace CapriDesktop
             else if (slot == 1) { preferences.MuteMods = mods; preferences.MuteVk = vk; }
             else if (slot == 2) { preferences.TypeMods = mods; preferences.TypeVk = vk; }
             else if (slot == 3) { preferences.HideMods = mods; preferences.HideVk = vk; }
-            else { preferences.QuietMods = mods; preferences.QuietVk = vk; }
+            else if (slot == 4) { preferences.QuietMods = mods; preferences.QuietVk = vk; }
+            else { preferences.GameMods = mods; preferences.GameVk = vk; }
             SavePreferences();
             WatchMouse();
-            if (!testing) { mainframe.ShowShortcut(talkKey, true); mainframe.ShowKeys(typeKey, hideKey, quietKey); }
-            mainframe.Hotkeys(TalkKeyName, MuteKeyName, TypeKeyName, HideKeyName, QuietKeyName);
+            if (!testing) { mainframe.ShowShortcut(talkKey, true); mainframe.ShowKeys(typeKey, hideKey, quietKey, gameKey); }
+            mainframe.Hotkeys(TalkKeyName, MuteKeyName, TypeKeyName, HideKeyName, QuietKeyName, GameKeyName);
             return null;
         }
 
         // A bound mouse button is checked about 30 times a second, only while one of her keys is a mouse button.
         private readonly System.Windows.Forms.Timer mouseKeys = new System.Windows.Forms.Timer { Interval = 30 };
-        private readonly bool[] mouseHeld = new bool[5];
+        private readonly bool[] mouseHeld = new bool[6];
         // A mouse button also counts when it went down and back up between two checks (the low bit), so a quick tap isn't missed.
         internal static Func<int, bool> KeyHeld = delegate(int vk) { return (Native.GetAsyncKeyState(vk) & (ByMouse(vk) ? 0x8001 : 0x8000)) != 0; };
 
         private void WatchMouse()
         {
-            if (!testing && (preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk)))
+            if (!testing && (preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk) || ByMouse(preferences.GameVk)))
             {
                 // A click from before she started watching doesn't count.
                 if (!mouseKeys.Enabled) foreach (int vk in new[] { 0x04, 0x05, 0x06 }) Native.GetAsyncKeyState(vk);
@@ -4187,8 +4208,8 @@ namespace CapriDesktop
         // swallowed, so the button still does its own job in the app under it. While a new key is being picked, nothing fires.
         internal void WatchMouseKeys()
         {
-            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk };
-            int[] ids = { TalkKeyId, MuteKeyId, TypeKeyId, HideKeyId, QuietKeyId };
+            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
+            int[] ids = { TalkKeyId, MuteKeyId, TypeKeyId, HideKeyId, QuietKeyId, GameKeyId };
             int mods = (KeyHeld(0x12) ? 1 : 0) | (KeyHeld(0x11) ? 2 : 0) | (KeyHeld(0x10) ? 4 : 0) | (KeyHeld(0x5B) || KeyHeld(0x5C) ? 8 : 0);
             // Each button is read once a check: reading it clears its quick-tap bit, so a second key on the same button would miss the tap.
             System.Collections.Generic.Dictionary<int, bool> buttons = new System.Collections.Generic.Dictionary<int, bool>();
@@ -4320,7 +4341,7 @@ namespace CapriDesktop
                 Post(delegate
                 {
                     homeBusy = false;
-                    bool free = preferences.CheckIns && !Hushed && !hidden && !quitting && !dragging && !pressed && !chatting && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
+                    bool free = preferences.CheckIns && !Hushed && (!hidden || docked) && !quitting && !dragging && !pressed && !chatting && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
                     string line = Cheer(game, song, clock.Elapsed.TotalSeconds, free);
                     if (line != null) Say(line);
                 });
@@ -4807,7 +4828,7 @@ namespace CapriDesktop
 
         private void CheckSeat(double now)
         {
-            if (seat == null || falling || seat.Floor) return;
+            if (seat == null || falling || seat.Floor || docked) return;
             if (!seat.Icon.IsEmpty && now - iconsAt > 2) RefreshIcons();
             if (!Ledges.Covered(seat, Hip().X, Skip())) { coveredSince = -1; return; }
             if (coveredSince < 0) coveredSince = now;
@@ -4858,6 +4879,7 @@ namespace CapriDesktop
 
         private void SetHidden(bool value)
         {
+            if (docked && !value) return;
             if (value && !hidden) { GlitchOut(delegate { ShowHidden(true); }); return; }
             ShowHidden(value);
         }
@@ -4865,6 +4887,7 @@ namespace CapriDesktop
         private void ShowHidden(bool value)
         {
             if (quitting) return;
+            if (docked && !value) { dockHid = true; gaming.Off(); }
             outro = null;
             hidden = value;
             visibilityItem.Text = value ? "Show Capri" : "Hide Capri";
@@ -4886,7 +4909,7 @@ namespace CapriDesktop
             DropSoon();
         }
 
-        internal bool IsHidden { get { return hidden; } }
+        internal bool IsHidden { get { return hidden && !docked; } }
         internal bool Riding { get { return riding; } }
         internal int CharacterSize { get { return preferences.Size; } }
         internal bool CheckIns { get { return preferences.CheckIns; } }
@@ -5094,7 +5117,7 @@ namespace CapriDesktop
         {
             if (!preferences.Watch || glancing || Hushed) return;
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
-            if (now < nextGlance || quiet > 600000 || brain.Model == null || hidden || MicOpen || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
+            if (now < nextGlance || quiet > 600000 || brain.Model == null || (hidden && !docked) || MicOpen || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
             nextGlance = now + GlanceGap * (0.8 + random.NextDouble() * 0.4);
             // In a game with her comments on, what happens in it sets when she talks, not this timer.
             if (Commentary.Pace != Commentary.Off && GameAhead() != null) return;
@@ -5142,7 +5165,7 @@ namespace CapriDesktop
             string unseen = Unseeing();
             if (unseen != null || problem != null) { lastPrint = null; mainframe.ShowProblem(unseen ?? problem); return; }
             if (string.IsNullOrEmpty(said)) { Glimpsed(saw); return; }
-            if (ticket != asking || talkState != TalkState.Off || typer.Visible || MicOpen || PlayingGame || Hushed || hidden || dragging) { lastPrint = null; Glimpsed(saw); return; }
+            if (ticket != asking || talkState != TalkState.Off || typer.Visible || MicOpen || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(clock.Elapsed.TotalSeconds), Brain.Nickname)) { Glimpsed(saw); return; }
             glanced.Add(Tuple.Create(clock.Elapsed.TotalSeconds, said));
@@ -5257,10 +5280,10 @@ namespace CapriDesktop
         private bool PanelUnseen(bool unseen)
         {
             // Her mini player too, so it never hides what she's working on.
-            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen);
+            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen);
             try
             {
-                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen); }));
+                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen); }));
                 return unseen && done.AsyncWaitHandle.WaitOne(1000) && (bool)EndInvoke(done);
             }
             catch (InvalidOperationException) { return false; }
@@ -5385,7 +5408,11 @@ namespace CapriDesktop
         }
 
         internal bool OnTop { get { return preferences.OnTop; } }
-        internal void ToggleHidden() { SetHidden(!hidden); }
+        internal void ToggleHidden()
+        {
+            if (docked) { dockHid = true; gaming.Off(); ShowHidden(true); return; }
+            SetHidden(!hidden);
+        }
         internal void BringHere() { RestoreAtCursor(); }
         internal void TogglePerch() { if (riding) StopRide(); else StartRide(); }
         internal void CheckUpdates() { CheckForUpdates(true); }
@@ -6222,7 +6249,9 @@ namespace CapriDesktop
         private void HeardLevel(double value)
         {
             if (value >= MicAlive) micHeard = true;
-            pill.SetLevel(local && (earsShut || transcribing || noiseHold || !earsReady) ? 0 : value);
+            double level = local && (earsShut || transcribing || noiseHold || !earsReady) ? 0 : value;
+            pill.SetLevel(level);
+            if (docked) DockLevel(level);
         }
 
         private void GetFreeVoice()
@@ -7082,7 +7111,8 @@ namespace CapriDesktop
         {
             if (typer.Visible) { typer.Hide(); return; }
             float s = TalkScale();
-            typer.Open(Head(), new Point(Feet().X, Feet().Y + (int)(44 * s)), Screen.FromPoint(Head()).WorkingArea, s, box.Visible ? box.PanelOnScreen : Rectangle.Empty);
+            if (docked) typer.Open(GameHud.Bounds.Location, GameHud.Bounds.Location, Screen.FromRectangle(GameHud.Bounds).WorkingArea, s, GameHud.Bounds);
+            else typer.Open(Head(), new Point(Feet().X, Feet().Y + (int)(44 * s)), Screen.FromPoint(Head()).WorkingArea, s, box.Visible ? box.PanelOnScreen : Rectangle.Empty);
             pillUntil = clock.Elapsed.TotalSeconds + 1.5;
         }
 
@@ -7171,6 +7201,7 @@ namespace CapriDesktop
             opened.Language = preferences.Language;
             dictation = opened;
             opened.Heard = delegate(string text) { OnUi(delegate { if (dictation == opened) HeardDictation(text); }); };
+            opened.Partial = delegate(string words) { OnUi(delegate { if (dictation == opened) DockWords(words); }); };
             opened.Lost = delegate(string problem) { OnUi(delegate { if (dictation == opened) DictationLost(problem); }); };
             EarsNote(earsLead + "One sec, opening my ears.", false);
             opened.Start(delegate(string problem) { OnUi(delegate { if (dictation == opened) Dictated(problem); }); });
@@ -7526,7 +7557,7 @@ namespace CapriDesktop
                     if (Unprompted()) { dropping = true; checkedIn = true; Hush(); return; }
                     stirred = Environment.TickCount;
                     speaker.Play(ChatVoice(samples));
-                    if (!frames.Enabled && !hidden) frames.Start();
+                    if (!frames.Enabled && (!hidden || docked)) frames.Start();
                 });
             };
             opened.Interrupted += delegate { Post(delegate { if (agent != opened) return; bargedUntil = -1; Hush(); }); };
@@ -7991,7 +8022,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (think == null && brain.Model == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "media" || quick == "nap" || quick == "move_yourself" || quick == "animate")) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
+            if (think == null && brain.Model == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "media" || quick == "nap" || quick == "move_yourself" || quick == "animate" || quick == "gaming_mode")) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
@@ -8163,6 +8194,7 @@ namespace CapriDesktop
             box.Leaving = -1;
             if (box.Visible) box.Hide();
             speech = null;
+            if (docked) DockQuiet();
         }
 
         private void UpdateTalk(double now)
@@ -8176,6 +8208,7 @@ namespace CapriDesktop
             }
             if (replyDone >= 0 && box.Leaving < 0 && !typer.Visible && !(local && !earsReady && asking == earsNotice) && now > voiceUntil && now > replyDone + BubbleHold(reply.Length)) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(); return; }
+            if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
             box.Heard = heard;
@@ -8191,6 +8224,12 @@ namespace CapriDesktop
 
         private void UpdateAnimation()
         {
+            if (docked)
+            {
+                if (speech != null || talkState != TalkState.Off) frames.Start();
+                else frames.Stop();
+                return;
+            }
             if (!preferences.Motion && !riding && seat == null && !falling && clip != glitch && clip != dangle && clip != wake) Play(idle);
             if ((preferences.Motion || riding || seat != null || falling || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
             RenderFrame();
@@ -8293,6 +8332,7 @@ namespace CapriDesktop
             if (speech != null && (clip == sleep || clip == wake || clip == glitch || clip == grin || clip == dance || clip == perchDance)) Play(idle);
             // Lying, she wakes to talk where she lies.
             if (speech != null && clip == laydownSleep) Play(laydown);
+            if (docked && speech != null) GameHud.Say(speech, talkState == TalkState.Off ? LettersPerSecond : pace);
             UpdateAnimation();
         }
 
@@ -8321,17 +8361,17 @@ namespace CapriDesktop
 
         private int MouthCell(double now, Clip shown)
         {
-            if (chatting && speaker.Busy) return clip == idle && shown != blinkGlitch ? speaker.Shape() : -1;
+            if (chatting && speaker.Busy) return docked || (clip == idle && shown != blinkGlitch) ? speaker.Shape() : -1;
             if (speech == null) return -1;
             int step = (int)((now - speechStart) * MouthRate);
             if (mouths != null)
             {
                 if (step >= mouths.Length) { speech = null; mouths = null; return -1; }
-                return clip == idle && shown != blinkGlitch ? mouths[step] : -1;
+                return docked || (clip == idle && shown != blinkGlitch) ? mouths[step] : -1;
             }
             int letter = (int)(step / MouthRate * LettersPerSecond);
             if (letter >= speech.Length) { speech = null; return -1; }
-            return clip == idle && shown != blinkGlitch ? MouthFor(speech[letter], step) : -1;
+            return docked || (clip == idle && shown != blinkGlitch) ? MouthFor(speech[letter], step) : -1;
         }
 
         internal static int MouthFor(char letter, int step)
@@ -8565,7 +8605,9 @@ namespace CapriDesktop
             if (typeKey) Native.UnregisterHotKey(Handle, TypeKeyId);
             if (hideKey) Native.UnregisterHotKey(Handle, HideKeyId);
             if (quietKey) Native.UnregisterHotKey(Handle, QuietKeyId);
-            typeKey = hideKey = quietKey = false;
+            if (gameKey) Native.UnregisterHotKey(Handle, GameKeyId);
+            typeKey = hideKey = quietKey = gameKey = false;
+            GameHud.Close();
             speaker.Close();
             effects.Close();
             typist.Close();
@@ -9296,6 +9338,263 @@ namespace CapriDesktop
                 GameNotes.Folder = notesWere;
                 if (Directory.Exists(notes)) Directory.Delete(notes, true);
             }
+        }
+
+        // Gaming Mode, with a made-up game in place of a real one: it's found, lost and swapped by hand, so no game, key press
+        // or look at the screen is needed. Last, so nothing else sees her docked.
+        internal void GamingChecks(string output, System.Collections.Generic.List<string> checks)
+        {
+            string[,] orders =
+            {
+                { "Capri, activate gaming mode", "on" }, { "activate gaming mode", "on" }, { "game mode on", "on" }, { "Gaming mode.", "on" }, { "turn on game mode", "on" }, { "turn gaming mode on please", "on" }, { "Recovery, activate, game mode.", "on" },
+                { "gaming mode off", "off" }, { "Capri, turn off gaming mode", "off" }, { "exit game mode", "off" }, { "game mode off", "off" }, { "deactivate gaming mode", "off" },
+                { "move the hud down", "down" }, { "hud up a bit", "up" }, { "lower the hud", "down" }, { "raise the hud", "up" }, { "move your hud left", "left" }, { "reset the hud", "reset" }, { "put the hud back", "reset" }
+            };
+            for (int i = 0; i < orders.GetLength(0); i++)
+            {
+                string found;
+                ToolArguments told;
+                if (!Hands.Heard(orders[i, 0], out found, out told) || found != "gaming_mode" || told.Action != orders[i, 1]) throw new Exception("\"" + orders[i, 0] + "\" didn't reach Gaming Mode: " + found + " " + (told == null ? null : told.Action));
+            }
+            foreach (string talk in new[] { "what's gaming mode", "i love gaming mode", "does game mode help my fps", "what game should i play", "the hud in this game is so good", "is gaming mode any good" })
+            {
+                string found;
+                ToolArguments told;
+                if (Hands.Heard(talk, out found, out told) && found == "gaming_mode") throw new Exception("\"" + talk + "\" isn't Gaming Mode.");
+            }
+            if (Hands.Pulled("Gaming Mode's armed. I'll dock as soon as a game's up.") == null || Hands.Pulled("Moved my HUD down.") == null) throw new Exception("Gaming Mode's lines went back through her brain.");
+            string name = gaming.Name();
+            Func<GameSeen> realFind = gaming.Find;
+            Func<GameSeen, bool> realAlive = gaming.Alive, realExclusive = gaming.Exclusive;
+            Action<string> realSay = gaming.Say;
+            System.Collections.Generic.List<string> said = new System.Collections.Generic.List<string>();
+            GameSeen game = new GameSeen { Window = Handle, Process = Process.GetCurrentProcess().Id, Name = "Cyberpunk2077", Bounds = Screen.PrimaryScreen.Bounds };
+            GameSeen other = new GameSeen { Window = Handle, Process = game.Process, Name = "OtherGame", Bounds = game.Bounds };
+            GameSeen front = null;
+            bool running = true, exclusive = false;
+            gaming.Find = delegate { return front; };
+            gaming.Alive = delegate(GameSeen seen) { return running || seen == other; };
+            gaming.Exclusive = delegate { return exclusive; };
+            gaming.Say = said.Add;
+            if (hidden) ShowHidden(false);
+            Point home = seat == null && !hanging ? KeepOnScreen(anchor) : anchor;
+            bool wasShown = Visible;
+            string keptSpots = preferences.GameSpots;
+            preferences.GameSpots = null;
+            try
+            {
+                bool untouched = !GamingOn && !docked && !GameHud.Showing;
+                string armed = GamingMode("on");
+                bool armedRight = armed == "Gaming Mode's armed. I'll dock as soon as a game's up." && GamingOn && !docked && !GameHud.Showing && Visible == wasShown && !hidden && mainframe.GamingShown;
+                gaming.Check(10);
+                bool stillArmed = gaming.State == GameDock.Stage.Armed && said.Count == 0;
+                front = game;
+                gaming.Check(11);
+                bool dockedRight = docked && hidden && !Visible && !IsHidden && GameHud.Showing && GameHud.ClickThrough && GameHud.Offset == new Point(0, 96) && said.Count == 1 && said[0] == "Gaming Mode on, " + name + ". Docking top-left until you close the game." && Doing == "Gaming" && mainframe.GamingShown;
+                SetHidden(false);
+                bool heldDocked = docked && !Visible;
+                Say("hello choom");
+                bool routed = GameHud.Scene.Line == "hello choom" && GameHud.Scene.Box == HudBox.Reply && !box.Visible && MouthCell(clock.Elapsed.TotalSeconds, clip) >= 0;
+                Say(null);
+                talkState = TalkState.Thinking;
+                heard = "find the nearest ripperdoc";
+                box.Prompt = "> you: ";
+                dockTalk = null;
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                bool thought = GameHud.Scene.Box == HudBox.Thinking && GameHud.Scene.Words == heard && GameHud.Scene.Mood == HudMood.Focus && !box.Visible;
+                reply = "Found one, choom.";
+                replyStart = clock.Elapsed.TotalSeconds;
+                replyDone = -1;
+                talkState = TalkState.Talking;
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                bool replied = GameHud.Scene.Box == HudBox.Reply && GameHud.Scene.Line == reply && GameHud.Scene.Words == heard && !box.Visible;
+                reply = null;
+                talkState = TalkState.Thinking;
+                working = "On it. Esc stops me.";
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                bool jobbed = GameHud.Scene.Box == HudBox.Job && GameHud.Scene.Line == working && !taskPanel.Showing;
+                working = null;
+                CloseTalk();
+                bool cleared = talkState == TalkState.Off && dockTalk == null;
+                DockLevel(0.01);
+                bool listening = GameHud.Scene.Box == HudBox.Listening && GameHud.Scene.Level > 0;
+                DockWords("capri find the");
+                bool liveWords = GameHud.Scene.Box == HudBox.Listening && GameHud.Scene.Words == "capri find the";
+                bool quietBefore = GameHud.Scene.Quiet;
+                ToggleShush();
+                bool quieted = GameHud.Scene.Quiet != quietBefore && GameHud.Scene.Line.Length > 0;
+                ToggleShush();
+                Say(null);
+                string down = GamingMode("down");
+                bool moved = down == "Moved my HUD down." && GameHud.Offset == new Point(0, 136) && preferences.GameSpots == "Cyberpunk2077=0,136" && GameSpots.Find(preferences.GameSpots, "cyberpunk2077") == new Point(0, 136);
+                string back = GamingMode("reset");
+                bool reset = back == "Put my HUD back." && GameHud.Offset == new Point(0, 96) && preferences.GameSpots == "";
+                string grinned = Animate("grin");
+                bool mooded = grinned == "Grinning." && GameHud.Scene.Mood == HudMood.Happy && !Visible;
+                GameHud.Clear();
+                string off = GamingMode("off");
+                bool offRight = off == "Gaming Mode off." && !GamingOn && !docked && !GameHud.Showing && !hidden && Visible == wasShown && anchor == home && !mainframe.GamingShown && Doing != "Gaming";
+                string again = GamingMode("off");
+                string landed = GamingMode("on");
+                bool onAtOnce = landed == "Gaming Mode on, " + name + ". Docking top-left until you close the game." && docked && GameHud.Showing;
+                string twice = GamingMode("on");
+                running = false;
+                front = null;
+                gaming.Check(5000);
+                bool waited = docked;
+                gaming.Check(5004);
+                bool ended = !GamingOn && !docked && !GameHud.Showing && !hidden && said[said.Count - 1] == "GG, " + name + ". Gaming Mode off.";
+                running = true;
+                front = game;
+                gaming.On(6000);
+                running = false;
+                front = null;
+                gaming.Check(6010);
+                gaming.Check(6025);
+                bool launcherHeld = docked;
+                front = other;
+                gaming.Check(6026);
+                bool swapped = docked && gaming.Game == other && GameHud.Offset == Point.Empty;
+                gaming.Off();
+                running = true;
+                exclusive = true;
+                string told1 = gaming.On(7000);
+                gaming.Off();
+                string told2 = gaming.On(7100);
+                gaming.Off();
+                exclusive = false;
+                bool warnedOnce = told1.Contains("borderless") && !told2.Contains("borderless");
+                gaming.On(8000);
+                ShowHidden(false);
+                bool restored = !docked && !hidden && !GamingOn && !GameHud.Showing;
+                gaming.On(8100);
+                ToggleHidden();
+                bool hiddenOut = !docked && hidden && !GamingOn && !GameHud.Showing && !Visible;
+                gaming.On(8200);
+                bool hiddenIn = docked && hidden;
+                gaming.Off();
+                bool stayedHidden = !docked && hidden && !Visible;
+                ShowHidden(false);
+                front = null;
+                ToggleGaming();
+                bool keyOn = gaming.State == GameDock.Stage.Armed && heard == "gaming mode";
+                ToggleGaming();
+                bool keyOff = !GamingOn;
+                CloseTalk();
+                anchor = home;
+                Location = anchor;
+                if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden || !keyOn || !keyOff)
+                    throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + "/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden + ", key " + keyOn + "/" + keyOff);
+                checks.Add("PASS Gaming Mode: her words reach it and chat about it doesn't; with no game she stays armed and docks when one comes up; docked her body and bubble are gone, the HUD is click-through and never active, and it shows what she says, THINKING, a job's status, LISTENING with live words and her quiet key; the HUD moves per game and starts under Cyberpunk's health bar; turning it off, or the game exiting, puts her back where she was; a launcher's game takes over; exclusive full screen is mentioned once; and the hide key and her tray icon end it");
+            }
+            finally
+            {
+                gaming.Find = realFind;
+                gaming.Alive = realAlive;
+                gaming.Exclusive = realExclusive;
+                gaming.Say = realSay;
+                preferences.GameSpots = keptSpots;
+                if (GamingOn) gaming.Off();
+            }
+            Preferences freshKeys = new Preferences();
+            Preferences onGame = new Preferences { QuietMods = 3, QuietVk = 0x47 };
+            Unclash(onGame);
+            string clashed = SetHotkey(5, 3, 0x56);
+            if (freshKeys.GameMods != 3 || freshKeys.GameVk != 0x47 || onGame.QuietVk != 0x47 || onGame.GameVk != 0x4D || clashed != "Ctrl + Alt + V is already her talk key." || GameKeyName != "Ctrl + Alt + G" || !mainframe.GameKeyShown.StartsWith("Gaming Mode: Ctrl + Alt + G", StringComparison.Ordinal)) throw new Exception("Her Gaming Mode key went wrong: " + freshKeys.GameVk + " / " + onGame.GameVk + " / " + clashed + " / " + mainframe.GameKeyShown);
+            checks.Add("PASS her Gaming Mode key is Ctrl + Alt + G, shows in KEYS, moves to a spare when another key already has it, and can't take one of her other keys");
+            string lines = "Gaming Mode on, " + name + ". Docking top-left until you close the game.";
+            HudScene[] scenes =
+            {
+                new HudScene { LookX = 0.1f, LookY = 0.1f },
+                new HudScene { Narrow = 1, LookX = 0.15f, Mood = HudMood.Focus },
+                new HudScene { Portrait = 1, Mood = HudMood.Talk, Mouth = 3, LookX = 0.2f },
+                new HudScene { Hit = 0.72f, Seed = 77, LookX = 0.3f, Mood = HudMood.Hit },
+                new HudScene { Portrait = 1, Mood = HudMood.Talk, Mouth = 2, Box = HudBox.Reply, Line = lines, Revealed = 48, Caret = true, Words = "activate gaming mode" },
+                new HudScene { LookX = -0.2f, Box = HudBox.Listening, Words = "capri, find the nearest", Caret = true, Level = 0.66f }
+            };
+            string[] names = { "hud-eyes", "hud-focus", "hud-talk", "hud-hit", "hud-reply", "hud-listen" };
+            foreach (float scale in new[] { 1f, 1.5f })
+                using (HudPaint paint = new HudPaint(scale))
+                using (Bitmap hud = new Bitmap(paint.Canvas.Width, paint.Canvas.Height, PixelFormat.Format32bppPArgb))
+                using (Graphics pen = Graphics.FromImage(hud))
+                    for (int i = 0; i < scenes.Length; i++)
+                    {
+                        Size used = paint.Draw(pen, scenes[i]);
+                        using (Bitmap sheet = new Bitmap(used.Width, used.Height))
+                        using (Graphics plate = Graphics.FromImage(sheet))
+                        {
+                            plate.Clear(Color.FromArgb(44, 47, 56));
+                            plate.DrawImageUnscaled(hud, 0, 0);
+                            sheet.Save(Path.Combine(output, names[i] + (scale == 1f ? "" : "-150") + ".png"), ImageFormat.Png);
+                        }
+                    }
+            checks.Add("PASS her HUD is drawn for hud-eyes, hud-focus, hud-talk, hud-hit, hud-reply and hud-listen, at 100% and 150%");
+            HudLife moods = new HudLife();
+            Func<double, double, double> run = delegate(double from, double seconds)
+            {
+                for (double step = from; step < from + seconds; step += 0.03) moods.Step(step);
+                return from + seconds;
+            };
+            moods.Start(0);
+            double when = run(0, 1);
+            bool booted = moods.Scene.Boot == 1 && moods.Scene.Portrait == 0 && moods.Scene.Box == HudBox.None;
+            moods.Mood(HudMood.Hit);
+            when = run(when, 0.2);
+            bool struck = moods.Scene.Hit > 0;
+            when = run(when, 1);
+            bool healed = moods.Scene.Hit == 0 && moods.Scene.Mood == HudMood.Idle;
+            moods.Mood(HudMood.Surprise);
+            when = run(when, 0.3);
+            bool startled = moods.Scene.Burst > 0 && moods.Scene.Wide > 0;
+            when = run(when, 2);
+            bool settled = moods.Scene.Burst == 0 && moods.Scene.Wide == 0 && moods.Scene.Mood == HudMood.Idle;
+            moods.Mood(HudMood.Happy);
+            when = run(when, 0.4);
+            bool grinning = moods.Scene.Grin && moods.Scene.Portrait == 1;
+            when = run(when, 3);
+            bool ungrinned = !moods.Scene.Grin && moods.Scene.Portrait == 0;
+            moods.Mood(HudMood.Focus);
+            when = run(when, 0.5);
+            bool narrowed = moods.Scene.Narrow > 0.9f;
+            moods.Mood(HudMood.Idle);
+            when = run(when, 0.5);
+            moods.Say("Flatlined.", 0);
+            when = run(when, 0.2);
+            bool talking = moods.Scene.Portrait == 1 && moods.Scene.Box == HudBox.Reply && moods.Scene.Revealed > 0 && moods.Scene.Mouth >= 0;
+            when = run(when, 8);
+            bool faded = moods.Scene.Box == HudBox.None && moods.Scene.Portrait == 0 && moods.Scene.Mouth < 0;
+            moods.Hear("capri", false);
+            when = run(when, 0.5);
+            bool heardThem = moods.Scene.Box == HudBox.Listening;
+            when = run(when, 4);
+            bool lapsed = moods.Scene.Box == HudBox.None;
+            double blinkedAt = 0;
+            for (double step = when; step < when + 12; step += 0.03) { moods.Step(step); blinkedAt += moods.Scene.Open < 0.5f ? 1 : 0; }
+            if (!booted || !struck || !healed || !startled || !settled || !grinning || !ungrinned || !narrowed || !talking || !faded || !heardThem || !lapsed || blinkedAt == 0) throw new Exception("Her HUD's moods went wrong: boot " + booted + ", hit " + struck + "/" + healed + ", surprise " + startled + "/" + settled + ", happy " + grinning + "/" + ungrinned + ", focus " + narrowed + ", talk " + talking + "/" + faded + ", heard " + heardThem + "/" + lapsed + ", blink " + blinkedAt);
+            checks.Add("PASS her HUD's moods play and end: it boots to her eyes, a hit tears the frame, surprise widens her eyes with a burst of small ones, happy swaps to her grin, focus narrows them, her line swaps to her portrait with her mouth moving and fades back, LISTENING lapses, and she blinks");
+            HudLife life = new HudLife();
+            int frames = 0;
+            double spent = 0, at = 0;
+            using (HudPaint paint = new HudPaint(1))
+            using (Bitmap hud = new Bitmap(paint.Canvas.Width, paint.Canvas.Height, PixelFormat.Format32bppPArgb))
+            using (Graphics pen = Graphics.FromImage(hud))
+            {
+                life.Start(0);
+                while (at < 60)
+                {
+                    if (life.Step(at))
+                    {
+                        Stopwatch took = Stopwatch.StartNew();
+                        paint.Draw(pen, life.Scene);
+                        spent += took.Elapsed.TotalSeconds;
+                        frames++;
+                    }
+                    at += Math.Max(0.015, Math.Min(4, life.Next(at)));
+                }
+            }
+            if (frames < 30 || frames > 600 || spent / 60 > 0.02) throw new Exception("Her HUD isn't light enough idle: " + frames + " frames a minute cost " + (spent / 60).ToString("P2") + " of a core.");
+            checks.Add("PASS her idle HUD redraws only when something moves: " + frames + " frames in a minute, " + (spent / 60).ToString("P2") + " of a core to draw them");
+            checks.Add("LIMIT Gaming Mode here uses a made-up game: a real game's window, borderless over a real one, exclusive full screen and mouse-look with the HUD up need a manual check");
         }
 
         internal void StartSmokeTest(string output)
@@ -20256,6 +20555,7 @@ namespace CapriDesktop
                             if (!menuShown || !typerShown || typer.Visible) throw new Exception("Her menu or type box didn't show for their pictures: menu " + menuShown + ", type box " + typerShown);
                             checks.Add("PASS her right-click menu, with Move open, and her type box, with a draft in it, are drawn for her-menu.png and type-box.png");
                             TalkChecks(checks);
+                            GamingChecks(output, checks);
                             checks.Add("LIMIT handler-driven integration test; physical mouse input and tray UI require a manual check");
                             checks.Add("PASS quit menu requested application exit");
                             File.WriteAllLines(Path.Combine(output, "smoke-test.txt"), checks);
@@ -21145,6 +21445,14 @@ namespace CapriDesktop
             if (FakedGaming.HasValue) return FakedGaming.Value;
             int state;
             try { return SHQueryUserNotificationState(out state) == 0 && (state == 2 || state == 3); }
+            catch (EntryPointNotFoundException) { return false; }
+        }
+
+        // A Direct3D game in exclusive full screen, which nothing can draw over.
+        internal static bool Exclusive()
+        {
+            int state;
+            try { return SHQueryUserNotificationState(out state) == 0 && state == 3; }
             catch (EntryPointNotFoundException) { return false; }
         }
 

@@ -670,6 +670,8 @@ namespace CapriDesktop
         internal static Func<string, string, string> MoveSelf = delegate { return "Couldn't move just now."; };
         // Plays one of her animations by name, or starts or stops her dance, and says how it went. Her window sets it.
         internal static Func<string, string> Animate = delegate { return "Couldn't do that just now."; };
+        // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
+        internal static Func<string, string> GamingMode = delegate { return "Gaming Mode isn't on this PC yet."; };
         private static readonly string[] Browsers = { "chrome", "msedge", "firefox", "brave", "opera", "vivaldi" };
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd" };
         private delegate bool Visit(IntPtr window, IntPtr data);
@@ -722,6 +724,7 @@ namespace CapriDesktop
                 if (tool == "nap") return Nap(args.Action != "wake");
                 if (tool == "move_yourself") return MoveSelf(args.Action, args.Action == "sit_on" || args.Action == "lie_down" ? args.Window : args.Screen);
                 if (tool == "animate") return Animate(args.Name);
+                if (tool == "gaming_mode") return GamingMode(args.Action);
                 return "There's no tool called " + tool + ".";
             }
             catch (Exception error) { return "That didn't work: " + error.Message; }
@@ -875,7 +878,7 @@ namespace CapriDesktop
         {
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
-            if (Regex.IsMatch(result ?? "", @"^(Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.)")) return result;
+            if (Regex.IsMatch(result ?? "", @"^(Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
             Match searched = Regex.Match(result ?? "", @"^Searched google\.com for (.+)\.$");
             return searched.Success ? "Pulled up \"" + searched.Groups[1].Value + "\" on Google for you, choom." : null;
         }
@@ -1410,12 +1413,33 @@ namespace CapriDesktop
             return false;
         }
 
+        private const string GameModeWords = @"(?:(?:the|your|ur|my)\s+)?(?:gaming|game)[\s-]?mode";
+        private const string HudWords = @"(?:(?:the|your|ur|my)\s+)?(?:hud|overlay)";
+        private static readonly Regex GamingOff = new Regex(@"^(?:(?:deactivate|turn\s+off|switch\s+off|shut\s+off|disable|stop|exit|leave|end|quit|close|get\s+out\s+of)\s+" + GameModeWords + @"|(?:turn|switch|shut|put)\s+" + GameModeWords + @"\s+off|" + GameModeWords + @"\s+(?:off|deactivated?|disabled?|stop|stopped|end|ended|over|done|finished))$", RegexOptions.IgnoreCase);
+        private static readonly Regex GamingOn = new Regex(@"^(?:(?:activate|turn\s+on|switch\s+on|enable|start|engage|enter|go\s+(?:in|into|to)|get\s+in(?:to)?|switch\s+to)\s+" + GameModeWords + @"|(?:turn|switch|put)\s+" + GameModeWords + @"\s+on|" + GameModeWords + @"(?:\s+(?:on|activated?|enabled?|engaged?|go))?)$", RegexOptions.IgnoreCase);
+        private static readonly Regex HudMove = new Regex(@"^(?:(?:move|put|shift|nudge|slide|bring|push)\s+" + HudWords + @"\s+(?:(?:a\s+(?:bit|little)|further|more)\s+)?(?<way>up|down|left|right|higher|lower)|(?<way>raise|lower)\s+" + HudWords + @"|" + HudWords + @"\s+(?<way>up|down|left|right|higher|lower)|(?<way>reset)\s+" + HudWords + @"(?:\s+position)?|(?:put|move)\s+" + HudWords + @"\s+(?<way>back))(?:\s+(?:a\s+)?(?:bit|little))?$", RegexOptions.IgnoreCase);
+
+        // "Activate gaming mode", "game mode on", "gaming mode off", "move the hud down". Her name gets misheard as any word
+        // ("Recovery, activate, game mode"), so one word before a comma doesn't count, and neither do the commas.
+        internal static string GamingFor(string text)
+        {
+            string plain = Regex.Replace(Regex.Replace(text ?? "", @"^[\w'-]+,\s*(?=\w)", ""), @"[\s,]+", " ").Trim();
+            if (GamingOff.IsMatch(plain)) return "off";
+            if (GamingOn.IsMatch(plain)) return "on";
+            Match moved = HudMove.Match(plain);
+            if (!moved.Success) return null;
+            string way = moved.Groups["way"].Value.ToLowerInvariant();
+            return way == "higher" || way == "raise" ? "up" : way == "lower" ? "down" : way == "back" ? "reset" : way;
+        }
+
         internal static bool Direct(string said, out string tool, out ToolArguments args)
         {
             tool = null;
             args = new ToolArguments();
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
+            string gaming = GamingFor(text);
+            if (gaming != null) { tool = "gaming_mode"; args.Action = gaming; return true; }
             if (Chatter.IsMatch(text) || Regex.IsMatch(text, @"\b(if|unless|until|after|before|when) (i|you|we|it|the)\b", RegexOptions.IgnoreCase)) return false;
             string minutes;
             string switched = PowerFor(text, out minutes);
