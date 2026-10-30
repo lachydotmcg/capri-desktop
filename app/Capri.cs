@@ -10615,6 +10615,43 @@ namespace CapriDesktop
             }
         }
 
+        // A made-up game that hides the real cursor and only looks at where it is when mouse movement comes in, like Cyberpunk 2077.
+        private static void SmokeSteering(System.Collections.Generic.List<string> checks)
+        {
+            Action<int, int> nudgeWas = Computer.Nudge;
+            Action<Point> putWas = Computer.PutCursor;
+            Func<Point> cursorWas = Computer.CursorAt;
+            Func<bool> hiddenWas = Computer.CursorHidden;
+            Point real = new Point(50, 50), game = new Point(700, 500);
+            int moves = 0;
+            try
+            {
+                Computer.Nudge = delegate(int dx, int dy) { moves++; game = real; real.Offset(dx, dy); };
+                Computer.PutCursor = delegate(Point to) { real = to; };
+                Computer.CursorAt = delegate { return real; };
+                Computer.CursorHidden = delegate { return true; };
+                Point goal = new Point(1300, 750);
+                Computer.Borrow(goal);
+                if (Math.Abs(game.X - goal.X) > 2 || game.Y != goal.Y) throw new Exception("Her click didn't reach a game's own cursor: it stayed at " + game + ".");
+                if (real != goal) throw new Exception("Rocking the cursor left it " + (real.X - goal.X) + " away.");
+                Computer.GiveBack();
+                if (real != new Point(50, 50)) throw new Exception("Steering a game's cursor didn't hand the real one back.");
+                moves = 0;
+                Computer.CursorHidden = delegate { return false; };
+                Computer.Borrow(new Point(300, 300));
+                Computer.GiveBack();
+                if (moves != 0) throw new Exception("She rocked the mouse with the real cursor showing.");
+                checks.Add("PASS her clicks reach a game that draws its own cursor, and leave the real cursor where it was");
+            }
+            finally
+            {
+                Computer.Nudge = nudgeWas;
+                Computer.PutCursor = putWas;
+                Computer.CursorAt = cursorWas;
+                Computer.CursorHidden = hiddenWas;
+            }
+        }
+
         // A made-up game: a view into a big patterned world that slides as the mouse moves, to prove her camera finds any game's mouse.
         private static void SmokeCamera(System.Collections.Generic.List<string> checks)
         {
@@ -11940,6 +11977,7 @@ namespace CapriDesktop
                             SmokeLocalBrains(checks);
                             SmokeBrainBodies(checks);
                             SmokeCamera(checks);
+                            SmokeSteering(checks);
                             SmokeGameAsks(checks);
                             SmokeSighted(checks);
                             SmokeGameNotes(checks);
@@ -21949,7 +21987,7 @@ namespace CapriDesktop
                             if (heard != "hi" || reply != "Loud and clear, choom." || (talkState != TalkState.Talking && talkState != TalkState.Online) || !speaker.Busy) throw new Exception("Voice chat did not hear and answer: " + heard + " / " + reply + " / " + talkState + " / " + log);
                             Play(idle);
                             if (MouthCell(clock.Elapsed.TotalSeconds, idle) < 0) throw new Exception("Her mouth did not follow the agent's audio.");
-                            string[] wanted = { "http POST /v1/convai/agents/create sk_test_capri_1234 {\"name\":\"Capri\"", "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}", "http PATCH /v1/convai/agents/agent_old sk_test_capri_1234 {\"conversation_config\":{\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45},\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "\"tool_ids\":[\"tool_kept\",\"tool_1\",\"tool_2\",\"tool_3\",\"tool_4\",\"tool_5\",\"tool_6\",\"tool_7\",\"tool_8\",\"tool_9\",\"tool_10\",\"tool_11\",\"tool_12\",\"tool_13\",\"tool_14\"]", "\"tool_ids\":[\"tool_kept\",\"tool_15\",\"tool_16\",\"tool_17\",\"tool_18\",\"tool_19\",\"tool_20\",\"tool_21\",\"tool_22\",\"tool_23\",\"tool_24\",\"tool_25\",\"tool_26\",\"tool_27\",\"tool_28\"]}}}}", "\"name\":\"move_yourself\"", "\"name\":\"animate\"", "\"name\":\"play_music\"", "\"name\":\"app_window\"", "\"name\":\"look_at_screen\"", "http GET /v1/convai/tools sk_test_capri_1234", "http POST /v1/convai/tools sk_test_capri_1234 {\"tool_config\":{\"type\":\"client\",\"name\":\"open_website\"", "\"name\":\"media\",\"description\":\"Control the music", "\"expects_response\":true,\"response_timeout_secs\":20}}", "You have tools for their PC", "tool {\"type\":\"client_tool_result\",\"tool_call_id\":\"call_1\",\"result\":\"Opened Spotify.\",\"is_error\":false}", "ran SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "Never check in", "beg them to talk or say they left you hanging", "\"prompt\":{\"prompt\":\"You are Capri", "\"llm\":\"gemini-2.5-flash\"", "\"tts\":{\"voice_id\":\"abc\"}", "\"overrides\":{\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":true}},\"tts\":{\"voice_id\":true}}}", "http GET /v1/convai/conversation/get-signed-url?agent_id=agent_old sk_test_capri_1234", "init {\"type\":\"conversation_initiation_client_data\",\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "pong {\"type\":\"pong\",\"event_id\":7}", "chunk silent | chunk loud | chunk loud" };
+                            string[] wanted = { "http POST /v1/convai/agents/create sk_test_capri_1234 {\"name\":\"Capri\"", "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}", "http PATCH /v1/convai/agents/agent_old sk_test_capri_1234 {\"conversation_config\":{\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45},\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "\"tool_ids\":[\"tool_kept\",\"tool_1\",\"tool_2\",\"tool_3\",\"tool_4\",\"tool_5\",\"tool_6\",\"tool_7\",\"tool_8\",\"tool_9\",\"tool_10\",\"tool_11\",\"tool_12\",\"tool_13\",\"tool_14\",\"tool_15\",\"tool_16\"]", "\"tool_ids\":[\"tool_kept\",\"tool_17\",\"tool_18\",\"tool_19\",\"tool_20\",\"tool_21\",\"tool_22\",\"tool_23\",\"tool_24\",\"tool_25\",\"tool_26\",\"tool_27\",\"tool_28\",\"tool_29\",\"tool_30\",\"tool_31\",\"tool_32\"]}}}}", "\"name\":\"move_yourself\"", "\"name\":\"animate\"", "\"name\":\"play_music\"", "\"name\":\"app_window\"", "\"name\":\"look_at_screen\"", "http GET /v1/convai/tools sk_test_capri_1234", "http POST /v1/convai/tools sk_test_capri_1234 {\"tool_config\":{\"type\":\"client\",\"name\":\"open_website\"", "\"name\":\"media\",\"description\":\"Control the music", "\"expects_response\":true,\"response_timeout_secs\":20}}", "You have tools for their PC", "tool {\"type\":\"client_tool_result\",\"tool_call_id\":\"call_1\",\"result\":\"Opened Spotify.\",\"is_error\":false}", "ran SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "Never check in", "beg them to talk or say they left you hanging", "\"prompt\":{\"prompt\":\"You are Capri", "\"llm\":\"gemini-2.5-flash\"", "\"tts\":{\"voice_id\":\"abc\"}", "\"overrides\":{\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":true}},\"tts\":{\"voice_id\":true}}}", "http GET /v1/convai/conversation/get-signed-url?agent_id=agent_old sk_test_capri_1234", "init {\"type\":\"conversation_initiation_client_data\",\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "pong {\"type\":\"pong\",\"event_id\":7}", "chunk silent | chunk loud | chunk loud" };
                             foreach (string piece in wanted) if (log.IndexOf(piece, StringComparison.Ordinal) < 0) throw new Exception("Agent traffic was missing " + piece + ": " + log);
                             bool sawInVoice = false;
                             lock (asked) foreach (string entry in asked) if (entry.StartsWith("init ", StringComparison.Ordinal) && entry.IndexOf("a pixel art farm with a red barn. You said: \\\"Cute barn.\\\"", StringComparison.Ordinal) >= 0) sawInVoice = true;
@@ -21960,7 +21998,7 @@ namespace CapriDesktop
                             File.Delete(Brain.MemoriesPath);
                             string voiceDay = File.ReadAllText(Path.Combine(Brain.TranscriptPath, DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
                             if (!memoriesInVoice || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d You \(voice\):\*\* hi\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d Capri \(voice\):\*\* Loud and clear, choom\.\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\d\d:\d\d Job: Opened Spotify\.\*\n")) throw new Exception("Voice chat didn't start with her memories, or its lines and jobs missed her transcript: " + voiceDay);
-                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != 28) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
+                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != 32) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
                             Hands.Run = handsRun;
                             Hands.Catalog = handsCatalog;
                             Hands.Forget();

@@ -110,6 +110,32 @@ namespace CapriDesktop
             return middle;
         }
 
+        // Some games, like Cyberpunk 2077, hide the real cursor and draw their own, and only look at where the real one is when mouse
+        // movement comes in. Placing it moves nothing they can see, so she rocks it a couple of counts, which cancel out.
+        private static bool steered;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct CursorState { internal int Size, Flags; internal IntPtr Handle; internal Point At; }
+        [DllImport("user32.dll")] private static extern bool GetCursorInfo(ref CursorState state);
+
+        internal static Func<bool> CursorHidden = delegate
+        {
+            CursorState state = new CursorState { Size = Marshal.SizeOf(typeof(CursorState)) };
+            return GetCursorInfo(ref state) && state.Flags == 0;
+        };
+
+        private static void Steer()
+        {
+            steered = CursorHidden();
+            if (!steered) return;
+            foreach (int counts in new[] { 2, -2, 1, -1 })
+            {
+                Nudge(counts, 0);
+                Thread.Sleep(30);
+            }
+            Thread.Sleep(90);
+        }
+
         private static void Turn(int dx, int dy)
         {
             int longest = Math.Max(Math.Abs(dx), Math.Abs(dy));

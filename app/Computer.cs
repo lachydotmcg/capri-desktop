@@ -1612,7 +1612,12 @@ namespace CapriDesktop
                 herAt = next;
                 herPlaced = true;
                 Track(next);
-                if (carry) { PutCursor(next); leftAt = next; }
+                if (carry)
+                {
+                    PutCursor(next);
+                    if (steered) { Nudge(1, 0); Nudge(-1, 0); }
+                    leftAt = next;
+                }
                 Thread.Sleep(StepMs);
             }
         }
@@ -1625,6 +1630,7 @@ namespace CapriDesktop
             if (!lent) Lending(true);
             lent = true;
             PutCursor(at);
+            Steer();
             leftAt = at;
             Thread.Sleep(10);
         }
