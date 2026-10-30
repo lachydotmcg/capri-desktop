@@ -62,6 +62,20 @@ namespace CapriDesktop
         internal bool Failed;
     }
 
+    // What a job has done so far, for her other head while the job runs on its own thread.
+    internal sealed class JobReport
+    {
+        internal string Words;
+        internal string Doing;
+        internal string Last;
+        internal string Trouble;
+        internal int Done;
+        internal int Failed;
+        internal double Seconds;
+        internal bool Playing;
+        internal readonly List<string> Recent = new List<string>();
+    }
+
     internal sealed class Sight
     {
         internal IntPtr Window;
@@ -1334,6 +1348,10 @@ namespace CapriDesktop
         internal static string Why { get { return why ?? "I stopped."; } }
 
         internal const string Escaped = "You pressed Esc, so I stopped.";
+
+        // Whether this is what a job stopped on, by Esc or by their word: either ends the whole ask.
+        internal static bool Stopped(string said) { return said == Escaped || (interrupted && said == why); }
+
         // Whether Esc is down right now. The smoke test presses it without a keyboard.
         internal static Func<bool> Escape = delegate { return (GetAsyncKeyState(0x1B) & 0x8000) != 0; };
 
@@ -1855,7 +1873,15 @@ namespace CapriDesktop
         // What they said to her while it ran, for its next turn, and (for brains without the computer tools) everything they've
         // said so far, since each of those turns is written fresh.
         private readonly List<string> heard = new List<string>();
+        private readonly List<string> changes = new List<string>();
         private string asides = "";
+        // Her steps as they happen and the newest picture she took, for what they ask while it runs.
+        private readonly object ledger = new object();
+        private readonly List<JobStep> ledgered = new List<JobStep>();
+        private readonly System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+        private string underway;
+        private string busied;
+        private volatile byte[] newest;
 
         private sealed class Answered
         {
@@ -1902,8 +1928,14 @@ namespace CapriDesktop
             lock (heard) heard.Add(words.Trim());
         }
 
+        // Their words changing the job rather than adding to it, like "actually use Firefox". Its next turn follows them from there.
+        internal void Change(string words)
+        {
+            lock (heard) changes.Add(words.Trim());
+        }
+
         // Their words since the last turn, quoted, or null.
-        private string Heard()
+        internal string Heard()
         {
             lock (heard)
             {
@@ -1939,6 +1971,50 @@ namespace CapriDesktop
                 try { GameNotes.Reflected(about, aside(GameNotes.Reflecting, asked)); }
                 catch (Exception error) { Brain.Log("reflecting", -1, error.Message); }
             });
+        }
+
+        // The same for what changes the job, written for its next turn. Empty when nothing did.
+        internal string Changed()
+        {
+            lock (heard)
+            {
+                if (changes.Count == 0) return "";
+                string said = string.Join(", then ", changes.ConvertAll(line => Voice.Quote(line)).ToArray());
+                changes.Clear();
+                return "\nThey just changed their job: " + said + ". That wins over anything in their job it contradicts, so follow it from here and don't go back to what it replaced.";
+            }
+        }
+
+        // What it's done so far, safe to read while it runs.
+        internal JobReport Report()
+        {
+            JobReport report = new JobReport { Words = Words, Playing = Playing, Seconds = clock.Elapsed.TotalSeconds };
+            lock (ledger)
+            {
+                report.Doing = underway ?? busied;
+                foreach (JobStep step in ledgered)
+                {
+                    if (step.Failed) { report.Failed++; report.Trouble = step.Label; }
+                    else { report.Done++; report.Trouble = null; }
+                    report.Last = step.Label;
+                }
+                for (int i = Math.Max(0, ledgered.Count - 8); i < ledgered.Count; i++) report.Recent.Add((ledgered[i].Failed ? "Failed: " : "") + ledgered[i].Label);
+            }
+            return report;
+        }
+
+        // The newest picture of the screen her hands took, or null for brains that read buttons instead.
+        internal byte[] Frame { get { return newest; } set { newest = value; } }
+
+        internal void Mark(JobStep step)
+        {
+            lock (ledger)
+            {
+                if (step.Finished) { ledgered.Add(step); underway = null; }
+                else underway = step.Label;
+            }
+            Action<JobStep> stepped = Stepped;
+            if (stepped != null) stepped(step);
         }
 
         // A brain error partway through, like a rate limit mid-drag, still lets go of the mouse and hands it back.
@@ -2005,8 +2081,12 @@ namespace CapriDesktop
                 Show("Thinking");
                 string fresh = Heard();
                 if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
+                asides += Changed();
+                asides += Changed();
                 try { written = Think(Computer.Allowing(Computer.Prompt) + Briefed(), Computer.Brief(Task, Steps, sight, notes, earlier) + asides + (lost > 0 ? "\nYour last reply had no tool call. Reply with only one tool call, or call done." : "") + nudged, calls); }
                 catch (System.Runtime.Serialization.SerializationException) { written = ""; calls.Clear(); }
+                // Their stop cut the turn off while it was still thinking.
+                catch (System.Net.WebException) { if (!Computer.Interrupted) throw; return End("stopped", Computer.Why); }
                 Show(null);
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 string tool;
@@ -2094,10 +2174,11 @@ namespace CapriDesktop
                 Show("Thinking");
                 // What they just said rides on the last turn, after its tool results.
                 string fresh = Heard();
-                if (fresh != null)
+                string turned = Changed();
+                if (fresh != null || turned.Length > 0)
                 {
                     string last = talk[talk.Count - 1];
-                    talk[talk.Count - 1] = last.Substring(0, last.Length - 2) + ",{\"type\":\"text\",\"text\":" + Voice.Quote("While you work, they just said " + fresh + ". If that's something for you to do, do it now, then carry on with their job where you left off. If not, just carry on.") + "}]}";
+                    talk[talk.Count - 1] = last.Substring(0, last.Length - 2) + ",{\"type\":\"text\",\"text\":" + Voice.Quote(((fresh != null ? "While you work, they just said " + fresh + ". If that's something for you to do, do it now, then carry on with their job where you left off. If not, just carry on." : "") + turned).Trim()) + "}]}";
                 }
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
                 ClaudeReply reply;
@@ -2347,6 +2428,7 @@ namespace CapriDesktop
             if (fresh == null) return false;
             shown = fresh;
             Computer.Shown = fresh;
+            newest = fresh.Jpeg;
             pictures.Add(fresh.Jpeg);
             if (TraceFolder != null) File.WriteAllBytes(Path.Combine(TraceFolder, "shot-" + (++shots).ToString("0000") + ".jpg"), fresh.Jpeg);
             return true;
@@ -2410,8 +2492,7 @@ namespace CapriDesktop
             string doing = member ? Computer.Moving(name, masked, target, false) : Computer.Status(name, masked, null).TrimEnd('.');
             Action<string> progress = Progress;
             if (progress != null && doing != null) progress(doing + ".");
-            Action<JobStep> stepped = Stepped;
-            if (stepped != null && doing != null) stepped(new JobStep { Tool = name, Label = doing });
+            if (doing != null) Mark(new JobStep { Tool = name, Label = doing });
             string result;
             try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, Computer.Glimpse()); }
             catch (Exception error) { result = "That didn't work: " + error.Message; }
@@ -2422,7 +2503,7 @@ namespace CapriDesktop
             if (doing != null)
             {
                 Steps.Add(name + ": " + (failed ? result : done + "."));
-                if (stepped != null) stepped(new JobStep { Tool = name, Label = failed ? Clean(result, "That didn't work.").TrimEnd('.') : done, Finished = true, Failed = failed });
+                Mark(new JobStep { Tool = name, Label = failed ? Clean(result, "That didn't work.").TrimEnd('.') : done, Finished = true, Failed = failed });
             }
             if (name == "type" && !failed) typed = Regex.Replace(masked.Text ?? "", @"\s+", " ").Trim();
             return result;
@@ -2458,6 +2539,7 @@ namespace CapriDesktop
 
         private void Show(string busy)
         {
+            lock (ledger) busied = busy;
             Action<string> shown = Busy;
             if (shown != null) shown(busy);
         }
@@ -2474,8 +2556,7 @@ namespace CapriDesktop
             ToolArguments masked = secret ? Computer.Masked(args) : args;
             Action<string> progress = Progress;
             if (progress != null) progress(Computer.Status(tool, masked, sight));
-            Action<JobStep> stepped = Stepped;
-            if (stepped != null) stepped(new JobStep { Tool = tool, Label = Computer.Status(tool, masked, sight).TrimEnd('.') });
+            Mark(new JobStep { Tool = tool, Label = Computer.Status(tool, masked, sight).TrimEnd('.') });
             string result;
             Match unknown = tool == "type" ? Regex.Match(args.Text ?? "", @"\$([a-z][a-z0-9_]*)") : Match.Empty;
             if (tool == "note") result = Note(args);
@@ -2496,7 +2577,7 @@ namespace CapriDesktop
             if (secret) result = Hush(result, args.Text);
             Steps.Add(Computer.Describe(tool, masked, sight) + ": " + result);
             bool failed = Computer.Failed(result) || Computer.Interrupted;
-            if (stepped != null) stepped(new JobStep { Tool = tool, Label = failed ? Clean(result, "That didn't work.").TrimEnd('.') : Computer.Did(tool, masked, sight), Finished = true, Failed = failed });
+            Mark(new JobStep { Tool = tool, Label = failed ? Clean(result, "That didn't work.").TrimEnd('.') : Computer.Did(tool, masked, sight), Finished = true, Failed = failed });
             return result;
         }
 

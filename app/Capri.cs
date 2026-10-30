@@ -146,6 +146,7 @@ namespace CapriDesktop
             fresh.TalkMods = old.TalkMods; fresh.TalkVk = old.TalkVk; fresh.MuteMods = old.MuteMods; fresh.MuteVk = old.MuteVk;
             fresh.TypeMods = old.TypeMods; fresh.TypeVk = old.TypeVk; fresh.HideMods = old.HideMods; fresh.HideVk = old.HideVk;
             fresh.QuietMods = old.QuietMods; fresh.QuietVk = old.QuietVk;
+            fresh.PushMods = old.PushMods; fresh.PushVk = old.PushVk;
             try { using (FileStream stream = File.Create(settings)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, fresh); }
             catch (Exception) { try { File.Delete(settings); } catch (Exception) { } }
         }
@@ -239,6 +240,11 @@ namespace CapriDesktop
         // Her quiet key, Ctrl + Alt + P (Zenni's ask). P, since AltGr + Q types @ on German keyboards and Ctrl + Alt is AltGr.
         [DataMember] public int QuietMods = 3;
         [DataMember] public int QuietVk = 0x50;
+        // Her push-to-talk key: 0 until they pick one. It's read, not taken, so it still does its own job in a game.
+        [DataMember] public int PushMods;
+        [DataMember] public int PushVk;
+        // How much she says about a game they're playing: 0 off, 1 events only, 2 chatty. Off until they turn it on, since it shows her brain their screen.
+        [DataMember] public int CommentPace;
         [DataMember] public int WanderPace = 1;
         // How often she pops in while Check in on me is on: 0 rarely, 1 sometimes (every 8 to 20 minutes, as before), 2 often.
         [DataMember] public int PopPace = 1;
@@ -839,7 +845,7 @@ namespace CapriDesktop
         internal double Seed;
     }
 
-    internal sealed class Companion : Form
+    internal sealed partial class Companion : Form
     {
         private readonly Clip idle = new Clip("idle", 16, 8, 1.11f);
         private readonly Clip blink = new Clip("blink", 4, 8, 1.11f);
@@ -901,15 +907,15 @@ namespace CapriDesktop
         private double nextPopIn = -1;
         private double popOut = -1;
         private int popClicks;
-        private static readonly string[] PopLines = { "Boo. Just checking on you.", "Hi! Don't mind me.", "Peekaboo.", "Miss me? I missed you.", "Hey, you. Having fun?", "Surprise. I got bored without you." };
+        private static readonly string[] PopLines = { "Boo. Just checking on you.", "Hi! Don't mind me.", "Peekaboo.", "Miss me? I missed you.", "Hey, you. Having fun?", "Surprise. I got bored without you.", "Don't get up.", "Just passing through.", "Thought I heard my name.", "Pretend I'm not here." };
         private const double NudgeGap = 7200;
         private double noticed = -1;
         private int noticedClicks;
         private double nudgeGap = NudgeGap;
         private double nudgeOut = -1;
-        private static readonly string[] NudgeLines = { "Psst. Remember me? Tiny, glitchy, very important.", "I'm bored. Entertain me.", "Hey. Hey. Look at me.", "You've been ignoring me for ages. Rude.", "Pay attention to me or I start clicking things.", "Knock knock. It's your favourite gremlin.", "Choom. I'm bored out of my many minds." };
-        private static readonly string[] NoticedLines = { "Finally. Hi.", "There you are.", "Knew you couldn't resist me." };
-        private static readonly string[] SnubbedLines = { "Fine. Ignore me. See if I care.", "Wow. Ignored. Noted.", "I'll just sit here. Alone. Bored." };
+        private static readonly string[] NudgeLines = { "Psst. Remember me? Tiny, glitchy, very important.", "I'm bored. Entertain me.", "Hey. Hey. Look at me.", "You've been ignoring me for ages. Rude.", "Pay attention to me or I start clicking things.", "Knock knock. It's your favourite gremlin.", "Choom. I'm bored out of my many minds.", "One of my minds says you've forgotten me. The rest agree.", "I've counted your desktop icons twice now.", "This is me being patient. It's going badly." };
+        private static readonly string[] NoticedLines = { "Finally. Hi.", "There you are.", "Knew you couldn't resist me.", "Oh good, you're alive.", "Took you long enough." };
+        private static readonly string[] SnubbedLines = { "Fine. Ignore me. See if I care.", "Wow. Ignored. Noted.", "I'll just sit here. Alone. Bored.", "Cool. Cool cool cool.", "Remembering this for later." };
         // Cyberpunk 2077 starting, or a Night City song coming on, is home for her: she cheers once, then waits two hours before cheering for the same again.
         private const double HomeGap = 7200;
         private static readonly string[] HomeGameLines = { "Night City?! You're taking me home, choom.", "Ooh, Cyberpunk. Go wreck some corpos for me.", "[SIGNAL CORRUPTED] ...wait. I know that skyline." };
@@ -1143,7 +1149,7 @@ namespace CapriDesktop
         internal static Func<string, bool?> MicMuted = Mics.Muted;
         // The Bluetooth headset's name when the mic she'd listen with is one. Her smoke test swaps it.
         internal static Func<string, string> HandsFreeMic = Ears.HandsFree;
-        private static readonly string[] WakeLines = { "I'm here.", "Yeah, choom?", "Listening.", "Right here, choom.", "Go on, I'm listening.", "You rang?" };
+        private static readonly string[] WakeLines = { "I'm here.", "Yeah, choom?", "Listening.", "Right here.", "Go on, I'm listening.", "You rang?", "Yeah?", "Mm?", "What's up?", "Talk to me." };
         private readonly Presence presence;
         private bool settingUpEars, settingUpHd, wakingHd, hdTest;
         // A voice check she says once her HD voice wakes, in place of her usual one.
@@ -1489,6 +1495,8 @@ namespace CapriDesktop
             pill.Voice += ToggleChat;
             pill.Mute += ToggleMic;
             ears.Heard += Listen;
+            heyCapri.Overheard = OverHeard;
+            WireCommentary();
             ears.Level += delegate(double value) { Post(delegate { HeardLevel(value); }); };
             heyCapri.Heard += delegate { Post(HeardHeyCapri); };
             HeyCapriChanged += WakeChanged;
@@ -1590,6 +1598,7 @@ namespace CapriDesktop
             mouseKeys.Tick += delegate { WatchMouseKeys(); };
             WatchMouse();
             mainframe.Hotkeys(TalkKeyName, MuteKeyName, TypeKeyName, HideKeyName, QuietKeyName);
+            mainframe.PushKey(PushKeyName);
             mainframe.ShowShortcut(talkKey, muteFree);
             mainframe.ShowKeys(typeKey, hideKey, quietKey);
             RefreshIcons();
@@ -2852,7 +2861,7 @@ namespace CapriDesktop
         private void PopIn(double now)
         {
             bool wasHidden = hidden;
-            string line = PopLines[random.Next(PopLines.Length)];
+            string line = Lines.Pick(PopLines);
             // With Wander off, or on a spot they picked (Sit here, Hang here, riding the cursor), she says hi from where she is.
             if (!wasHidden && (!preferences.Wander || riding || hanging || (seat != null && seat.Free)))
             {
@@ -2935,14 +2944,14 @@ namespace CapriDesktop
                 {
                     nudgeOut = -1;
                     nudgeGap = NudgeGap;
-                    if (!chatting && !typer.Visible && talkState == TalkState.Off && !onPanel) Say(NoticedLines[random.Next(NoticedLines.Length)]);
+                    if (!chatting && !typer.Visible && talkState == TalkState.Off && !onPanel) Say(Lines.Pick(NoticedLines));
                 }
                 else if (now >= nudgeOut && speech == null)
                 {
                     nudgeOut = -1;
                     nudgeGap = Math.Min(nudgeGap * 2, NudgeGap * 4);
                     noticed = now;
-                    if (quiet < 20000 && !hidden) Say(SnubbedLines[random.Next(SnubbedLines.Length)]);
+                    if (quiet < 20000 && !hidden) Say(Lines.Pick(SnubbedLines));
                 }
                 return;
             }
@@ -2954,7 +2963,7 @@ namespace CapriDesktop
         private void Nudge(double now)
         {
             nudgeOut = now + 20;
-            string line = NudgeLines[random.Next(NudgeLines.Length)];
+            string line = Lines.Pick(NudgeLines);
             Point cursor = Cursor.Position;
             Point hip = Hip();
             Rectangle area = Screen.FromPoint(cursor).WorkingArea;
@@ -3545,7 +3554,7 @@ namespace CapriDesktop
                 }
             }
             finally { if (held) Monitor.Exit(mouseGate); }
-            if (done == Computer.Escaped) escAsk = ticket;
+            if (Computer.Stopped(done)) escAsk = ticket;
             // A slider she couldn't reach still gets the volume keys, unless they stopped her.
             bool missed = task != null && (lost || (done != null && (done.Contains(Computer.Bigger) || (tool == "media" && Hands.Failed(done) && !done.StartsWith("You ", StringComparison.Ordinal)))));
             if (missed) done = Hands.Do(tool, args);
@@ -4021,6 +4030,15 @@ namespace CapriDesktop
 
         internal string QuietKeyName { get { return KeyName(preferences.QuietMods, preferences.QuietVk); } }
 
+        internal int CommentPace { get { return Math.Max(0, Math.Min(2, preferences.CommentPace)); } }
+
+        internal void SetCommentPace(int pace)
+        {
+            preferences.CommentPace = Math.Max(0, Math.Min(2, pace));
+            Commentary.Pace = preferences.CommentPace;
+            SavePreferences();
+        }
+
         // Any key alone or with any of Alt (1), Ctrl (2), Shift (4) and Win (8), which are RegisterHotKey's own flags, and middle click
         // or a side mouse button too. A modifier on its own, a left or right click or an IME placeholder never counts.
         internal static bool Bindable(int mods, int vk) { return (mods & ~15) == 0 && vk > 0 && vk < 0xFF && Array.IndexOf(NotKeys, vk) < 0; }
@@ -4039,8 +4057,8 @@ namespace CapriDesktop
 
         internal static string KeyName(int mods, int vk) { return ModNames(mods) + KeyWord(vk); }
 
-        private static readonly int[] WordedKeys = { 0x03, 0x08, 0x09, 0x0C, 0x0D, 0x13, 0x14, 0x1B, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2C, 0x2D, 0x2E, 0x2F, 0x5D, 0x5F, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x90, 0x91, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7 };
-        private static readonly string[] KeyWords = { "Break", "Backspace", "Tab", "Clear", "Enter", "Pause", "Caps Lock", "Esc", "Space", "Page Up", "Page Down", "End", "Home", "Left", "Up", "Right", "Down", "Print Screen", "Insert", "Delete", "Help", "Menu", "Sleep", "Num *", "Num +", "Num Separator", "Num -", "Num .", "Num /", "Num Lock", "Scroll Lock", "Browser Back", "Browser Forward", "Browser Refresh", "Browser Stop", "Browser Search", "Browser Favorites", "Browser Home", "Volume Mute", "Volume Down", "Volume Up", "Next Track", "Previous Track", "Stop Media", "Play/Pause", "Mail", "Media Select", "App 1", "App 2" };
+        private static readonly int[] WordedKeys = { 0x10, 0x11, 0x12, 0x03, 0x08, 0x09, 0x0C, 0x0D, 0x13, 0x14, 0x1B, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2C, 0x2D, 0x2E, 0x2F, 0x5D, 0x5F, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x90, 0x91, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7 };
+        private static readonly string[] KeyWords = { "Shift", "Ctrl", "Alt", "Break", "Backspace", "Tab", "Clear", "Enter", "Pause", "Caps Lock", "Esc", "Space", "Page Up", "Page Down", "End", "Home", "Left", "Up", "Right", "Down", "Print Screen", "Insert", "Delete", "Help", "Menu", "Sleep", "Num *", "Num +", "Num Separator", "Num -", "Num .", "Num /", "Num Lock", "Scroll Lock", "Browser Back", "Browser Forward", "Browser Refresh", "Browser Stop", "Browser Search", "Browser Favorites", "Browser Home", "Volume Mute", "Volume Down", "Volume Up", "Next Track", "Previous Track", "Stop Media", "Play/Pause", "Mail", "Media Select", "App 1", "App 2" };
 
         // The name on the key: letters and digits as they are, F1 to F24, and words for the rest.
         private static string KeyWord(int vk)
@@ -4067,6 +4085,7 @@ namespace CapriDesktop
             if (!Bindable(value.TypeMods, value.TypeVk)) { value.TypeMods = 3; value.TypeVk = 0x54; }
             if (!Bindable(value.HideMods, value.HideVk)) { value.HideMods = 3; value.HideVk = 0x48; }
             if (!Bindable(value.QuietMods, value.QuietVk)) { value.QuietMods = 3; value.QuietVk = 0x50; }
+            if (!PushBindable(value.PushMods, value.PushVk)) { value.PushMods = 0; value.PushVk = 0; }
             Unclash(value);
         }
 
@@ -4104,11 +4123,13 @@ namespace CapriDesktop
 
         internal string SetHotkey(int slot, int mods, int vk)
         {
+            if (slot == PushSlot) return SetPushKey(mods, vk);
             if (!Bindable(mods, vk)) return "Press a key, alone or with Ctrl, Alt, Shift or Win.";
             string name = KeyName(mods, vk);
             int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk };
             for (int i = 0; i < KeyJobs.Length; i++)
                 if (i != slot && mods == bound[i * 2] && vk == bound[i * 2 + 1]) return name + " is already her " + KeyJobs[i] + " key.";
+            if (preferences.PushVk != 0 && mods == preferences.PushMods && vk == preferences.PushVk) return name + " is already her push-to-talk key.";
             if (!testing && IsHandleCreated)
             {
                 if (slot == 1)
@@ -4153,7 +4174,7 @@ namespace CapriDesktop
 
         private void WatchMouse()
         {
-            if (!testing && (ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk)))
+            if (!testing && (preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk)))
             {
                 // A click from before she started watching doesn't count.
                 if (!mouseKeys.Enabled) foreach (int vk in new[] { 0x04, 0x05, 0x06 }) Native.GetAsyncKeyState(vk);
@@ -4182,6 +4203,7 @@ namespace CapriDesktop
                 Message press = Message.Create(Handle, 0x0312, new IntPtr(ids[slot]), IntPtr.Zero);
                 WndProc(ref press);
             }
+            WatchPush();
         }
 
         internal int BubbleTime { get { return Math.Max(0, Math.Min(2, preferences.BubbleTime)); } }
@@ -4326,7 +4348,7 @@ namespace CapriDesktop
             if (lagHot < 4 || !free || now - lagSaid < LagGap) return null;
             lagHot = 0;
             lagSaid = now;
-            return LagLines[random.Next(LagLines.Length)];
+            return Lines.Pick(LagLines);
         }
 
         // Her cheer when the game starts or a Night City song comes on and she's free, or null. One she misses while busy waits for the next time.
@@ -4336,8 +4358,8 @@ namespace CapriDesktop
             homeGame = game;
             homeSong = song;
             if (!free) return null;
-            if (started && now - gameCheered >= HomeGap) { gameCheered = now; return HomeGameLines[random.Next(HomeGameLines.Length)]; }
-            if (cameOn && now - songCheered >= HomeGap) { songCheered = now; return HomeSongLines[random.Next(HomeSongLines.Length)]; }
+            if (started && now - gameCheered >= HomeGap) { gameCheered = now; return Lines.Pick(HomeGameLines); }
+            if (cameOn && now - songCheered >= HomeGap) { songCheered = now; return Lines.Pick(HomeSongLines); }
             return null;
         }
 
@@ -5074,6 +5096,8 @@ namespace CapriDesktop
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
             if (now < nextGlance || quiet > 600000 || brain.Model == null || hidden || MicOpen || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
             nextGlance = now + GlanceGap * (0.8 + random.NextDouble() * 0.4);
+            // In a game with her comments on, what happens in it sets when she talks, not this timer.
+            if (Commentary.Pace != Commentary.Off && GameAhead() != null) return;
             if (Unseeing() != null) return;
             byte[] shot;
             try
@@ -5485,7 +5509,7 @@ namespace CapriDesktop
                 Post(delegate { if (job == running && preferences.Motion && !hidden) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
             };
             running.Busy = delegate(string what) { Post(delegate { taskPanel.Busy(running, what); }); };
-            running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); };
+            running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
             Computer.PlacePointer(PointerHome());
             Post(delegate { JobOn(running); });
             string result = null;
@@ -5527,7 +5551,8 @@ namespace CapriDesktop
 
         private void JobOn(Job running)
         {
-            working = "On it. Esc stops me.";
+            string start = Lines.Pick(Lines.OnIt);
+            working = start;
             if (typer.Visible) typer.Hide();
             pointing = true;
             if (!hidden) taskPanel.Begin(running, running.Words, Screen.FromControl(this).WorkingArea);
@@ -5539,14 +5564,14 @@ namespace CapriDesktop
             // Not on a Bluetooth headset's mic, which would put the job's sound at call quality.
             if (!chatting && !testing && preferences.HeyCapri && FreeChatOn && OwnEars && HandsFreeMic(preferences.Mic) == null) { jobEars = true; StartLocal(); }
             UpdateTalk(clock.Elapsed.TotalSeconds);
-            SayJobStart(running);
+            SayJobStart(start, running);
         }
 
         // She says her job's first line out loud too (Lachy, 29 Oct: "she doesnt verbally say 'on it, esc stops me'"), in the voice
         // her replies use, picked the way Answer picks it (Quiet only turns her cloud voice off). It plays beside the job, after
         // any line she's still saying, and leaves the reply the job ends with alone. Silent keeps it to her bubble, and so does
         // ElevenLabs voice chat, which speaks for itself.
-        private void SayJobStart(Job running) { SayAside("On it. Escape stops me.", running); }
+        private void SayJobStart(string start, Job running) { SayAside(start.Replace("Esc", "Escape"), running); }
 
         // A line said beside her job, like her "Got it." when they tell her more mid-job. It leaves her ask's turn alone.
         private void SayAside(string line, Job running)
@@ -5559,6 +5584,7 @@ namespace CapriDesktop
             if (speak == null && (voice.Key == null || local || voiceBroke || preferences.Quiet)) speak = free;
             if (speak == null) return;
             string words = Voice.Spoken(line);
+            int turn = ++asideVoice;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem;
@@ -5568,7 +5594,7 @@ namespace CapriDesktop
                 Action play = null;
                 play = delegate
                 {
-                    if (job != running || IsDisposed || (chatting && !local)) return;
+                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local)) return;
                     double now = clock.Elapsed.TotalSeconds;
                     if (voiceUntil > now)
                     {
@@ -5577,6 +5603,7 @@ namespace CapriDesktop
                     }
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
                     CheckEars(now);
+                    Played(wav);
                     voice.Play(wav);
                 };
                 Post(play);
@@ -5588,6 +5615,7 @@ namespace CapriDesktop
         private void JobOff(Job running, string outcome, string result)
         {
             working = null;
+            asideShown = null;
             if (jobEars)
             {
                 jobEars = false;
@@ -6383,7 +6411,7 @@ namespace CapriDesktop
             if (hidden) SetHidden(false);
             ToggleChat();
             if (!chatting) return;
-            string line = WakeLines[random.Next(WakeLines.Length)];
+            string line = Lines.Pick(WakeLines);
             // Mid-job she answers beside the job, so it keeps going and what they say next goes to it.
             Job running = job;
             if (local && running != null && working != null) { SayAside(line, running); return; }
@@ -7275,6 +7303,7 @@ namespace CapriDesktop
         private void Gather(short[] chunk)
         {
             double level = VoiceLevel(chunk);
+            if (OverHerLocally(chunk, level)) return;
             lock (waking)
             {
                 if (!local || !earsReady || dictation != null || ears.Muted || earsShut || transcribing) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
@@ -7493,14 +7522,14 @@ namespace CapriDesktop
             {
                 Post(delegate
                 {
-                    if (agent != opened || dropping) return;
+                    if (agent != opened || dropping || repeating || clock.Elapsed.TotalSeconds < bargedUntil) return;
                     if (Unprompted()) { dropping = true; checkedIn = true; Hush(); return; }
                     stirred = Environment.TickCount;
                     speaker.Play(ChatVoice(samples));
                     if (!frames.Enabled && !hidden) frames.Start();
                 });
             };
-            opened.Interrupted += delegate { Post(delegate { if (agent == opened) Hush(); }); };
+            opened.Interrupted += delegate { Post(delegate { if (agent != opened) return; bargedUntil = -1; Hush(); }); };
             opened.Closed += delegate(string problem) { Post(delegate { if (agent != opened) return; if (problem != null) ChatFailed(problem); else Rest(); }); };
             agent = opened;
             opened.Start(url, voiceId);
@@ -7551,6 +7580,9 @@ namespace CapriDesktop
             spoke = false;
             checkedIn = false;
             quietSince = -1;
+            lastSaid = null;
+            repeating = false;
+            bargedUntil = -1;
             lock (waking)
             {
                 wokeAt = backlog != null ? clock.Elapsed.TotalSeconds : -1;
@@ -7657,12 +7689,14 @@ namespace CapriDesktop
         private void Finished(Agent told, string tool, string result, int ticket)
         {
             if (string.IsNullOrEmpty(result)) return;
-            if (result == Computer.Escaped) { if (escTold == ticket) return; escTold = ticket; }
+            if (Computer.Stopped(result)) { if (escTold == ticket) return; escTold = ticket; }
             lock (shortcutGate) { toolAsked = true; toolDone = result; }
             stirred = Environment.TickCount;
             Action<string> heard = finishedTest;
             if (heard != null) { heard(result); return; }
-            if (told != null && told.Ready) { told.Say("(Capri's hands finished the " + tool + " job: " + result + ") Tell them how it went in one short line. Don't call a tool for it again."); return; }
+            // Their own "stop" in voice chat got its answer from the agent, which only needs to know it happened.
+            if (told != null && told.Ready && result != Computer.Escaped && Computer.Stopped(result)) { told.Tell("Capri's hands stopped the job, like they asked. It's over, so don't bring it up again."); return; }
+            if (told != null && told.Ready) { DoneLine(told, tool, result); return; }
             Post(delegate { if (talkState != TalkState.Thinking) Answer(++asking, result, TalkState.Talking); });
         }
 
@@ -7676,6 +7710,7 @@ namespace CapriDesktop
                 if (tool == shortcutTool && Environment.TickCount - shortcutAt < 10000) return shortcutResult ?? "Already doing that.";
             }
             string key = Security.Asks(tool, args) ? null : MouseKey(tool, args);
+            if (key != null && Folded(tool, args, key)) return FoldedLater;
             if (key != null) return Later(opened, tool, args, key);
             string done = DoTool(tool, args);
             if (string.IsNullOrEmpty(done)) done = Computer.Escaped;
@@ -7724,10 +7759,15 @@ namespace CapriDesktop
             box.Prompt = "> you: ";
             Brain.Learn(text);
             dropping = false;
+            repeating = false;
+            bargedUntil = -1;
             string tool = null;
             ToolArguments args = null;
             // Their yes to her asking first (SECURITY) runs what she held, like a shortcut, and their no leaves it.
             bool answering = VoiceAnswer(text, ticket, agent);
+            // Mid-job they can stop it, and the agent gets the job's latest to answer from. Her hands carry on either way.
+            Job midJob = job;
+            if (!answering && MidJob(midJob)) AgentMidJob(text, midJob);
             bool shortcut = !answering && Hands.Heard(text, out tool, out args);
             lock (shortcutGate) { if (!answering) { toolAsked = shortcut; heardLast = text; toolDone = null; } }
             if (shortcut)
@@ -7768,6 +7808,8 @@ namespace CapriDesktop
             if (dropping) return;
             if (checkedIn && Unprompted()) { dropping = true; Hush(); return; }
             string said = Computer.Mask(Voice.Spoken(text));
+            // The agent saying the same line again never gets as far as their ears.
+            if (SaidAgain(said)) return;
             string promised = null;
             lock (shortcutGate) if (!toolAsked && heardLast != null && Hands.Promised(said)) { promised = heardLast; heardLast = null; }
             if (promised != null) { string missed = said; ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(4000); lock (shortcutGate) if (toolAsked) return; Brain.Log("https://api.elevenlabs.io/v1/convai/conversation", -1, "Voice chat said she'd do it but no tool ran. Heard: " + promised + " | Said: " + missed); }); }
@@ -7871,6 +7913,8 @@ namespace CapriDesktop
 
         private void Listen(short[] chunk)
         {
+            // Their push-to-talk key, held: what the mic hears is theirs until they let go.
+            lock (waking) if (pushed != null) { pushed.Add(chunk); return; }
             if (local) { Gather(chunk); return; }
             lock (waking)
             {
@@ -7895,7 +7939,7 @@ namespace CapriDesktop
                 }
             }
             Agent open = agent;
-            if (open != null) open.Send(speaker.Busy ? new short[chunk.Length] : chunk);
+            if (open != null) open.Send(OverHer(chunk, open));
         }
 
         internal void Hear(string text) { Hear(text, text, "> you: "); }
@@ -7907,14 +7951,11 @@ namespace CapriDesktop
             if (text.Length > 240) text = text.Substring(0, 240);
             // Mid-job, what they say goes to the job instead of cancelling it: she says she's got it, does it, then carries on
             // (Lachy, 29 Oct: "she needs to actually listen to me mid way through").
+            // Now it's two heads: the job runs on while her fast brain sorts what they said and answers (Asides.cs).
             Job running = job;
-            if (running != null && working != null && !running.Asking && prompt == "> you: ")
+            if (MidJob(running) && prompt == "> you: ")
             {
-                Brain.Transcribe(local ? "You (voice)" : "You", text);
-                running.Tell(text);
-                working = "Got it. Esc stops me.";
-                UpdateTalk(clock.Elapsed.TotalSeconds);
-                SayAside("Got it.", running);
+                HeardMidJob(text, running);
                 return;
             }
             if (local) { talkState = TalkState.Thinking; CheckEars(clock.Elapsed.TotalSeconds); }
@@ -8103,6 +8144,7 @@ namespace CapriDesktop
             if (seconds < 0.2) return;
             Say(said);
             mouths = Voice.Mouths(wav, MouthRate);
+            Played(wav);
             if (!testing) voice.Play(wav);
         }
 
@@ -8137,7 +8179,7 @@ namespace CapriDesktop
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
             box.Heard = heard;
-            box.Reply = talkState == TalkState.Thinking ? (working ?? (slowWarned ? (brain.Remote != null ? "Still thinking. Waiting for " + brain.Remote.Company + "." : SlowLocal) : null)) : reply;
+            box.Reply = talkState == TalkState.Thinking ? (AsideNow(now) ?? working ?? (slowWarned ? (brain.Remote != null ? "Still thinking. Waiting for " + brain.Remote.Company + "." : SlowLocal) : null)) : reply;
             box.Revealed = revealed;
             float s = TalkScale();
             Point head = Head();
@@ -15782,11 +15824,11 @@ namespace CapriDesktop
                             string pageOutside = mainframe.Outside();
                             if (pageOutside != null) throw new Exception("A settings control pokes out of the page: " + pageOutside);
                             // Her personality and safety lines are fixed in code (personality.md is gone since 0.7.6), her reply rules come last, and her chat and voice-chat prompts start with all three.
-                            const string todaysPersona = "2e1ece41e406b8f9a9902283ba87d163b499d99e6edc785bda14d553b42d58f9";
+                            const string todaysPersona = "4d2fa69d0c5306d6f839e3e53e18e675a8efbeb3d67c45b6d2b8932d3f2051b1";
                             Func<string, string> personaHash = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
                             bool personaEditable = false;
                             foreach (Control control in mainframe.Controls) if (control is Button && control.Text == "Edit personality") personaEditable = true;
-                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 5659 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
+                            bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Persona.Length == 6794 && personaHash(Brain.Persona) == todaysPersona && Brain.PersonalityStamp == ""
                                 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal) && Agent.Prompt.StartsWith(Brain.Persona + Hands.Note, StringComparison.Ordinal)
                                 && Brain.Machinery.IndexOf("call people only by names you've actually seen or heard", StringComparison.Ordinal) > 0 && Brain.Machinery.IndexOf("never apologise for the same thing twice", StringComparison.Ordinal) > 0
                                 && Computer.Playing.IndexOf("never invent a name, a message or something nobody said", StringComparison.Ordinal) > 0
@@ -15795,7 +15837,7 @@ namespace CapriDesktop
                                 && Brain.DefaultPersonality.IndexOf("it helps keep me online!", StringComparison.Ordinal) > 0 && Brain.DefaultPersonality.IndexOf("ko-fi.com/lachysdev", StringComparison.Ordinal) > 0
                                 && Computer.Playing.IndexOf("it helps keep me online!", StringComparison.Ordinal) > 0 && Computer.Playing.IndexOf("ko-fi.com/lachysdev", StringComparison.Ordinal) > 0;
                             if (!personaFixed || personaEditable) throw new Exception("Her personality or safety lines changed, or can be edited: " + Brain.Persona.Length + " characters, SHA-256 " + personaHash(Brain.Persona) + ", Edit personality button " + personaEditable + ". If they changed on purpose, update todaysPersona here.");
-                            checks.Add("PASS her personality: fixed in code with her safety lines right after it and her reply rules last (5659 characters, known SHA-256), her reply rules and game lines keep her to names she's really seen or heard, correcting a slip once instead of apologising over and over, and she thanks donors and calls them a good boy and, when asked about donating, says it helps keep her online and gives ko-fi.com/lachysdev, in chat and in games; there's no personality.md and no Edit personality button, and her chat and voice-chat prompts start with it");
+                            checks.Add("PASS her personality: fixed in code with her safety lines right after it and her reply rules last (6794 characters, known SHA-256), her reply rules and game lines keep her to names she's really seen or heard, correcting a slip once instead of apologising over and over, and she thanks donors and calls them a good boy and, when asked about donating, says it helps keep her online and gives ko-fi.com/lachysdev, in chat and in games; there's no personality.md and no Edit personality button, and her chat and voice-chat prompts start with it");
                             if (mainframe.PerchStatus != "30 fps | -" || !mainframe.PerchFits) throw new Exception("The perch fps row didn't open right: " + mainframe.PerchStatus + " / fits " + mainframe.PerchFits);
                             mainframe.SlidePerch(3);
                             string perchFast = mainframe.PerchStatus;
@@ -20213,6 +20255,7 @@ namespace CapriDesktop
                             typer.Draft = "";
                             if (!menuShown || !typerShown || typer.Visible) throw new Exception("Her menu or type box didn't show for their pictures: menu " + menuShown + ", type box " + typerShown);
                             checks.Add("PASS her right-click menu, with Move open, and her type box, with a draft in it, are drawn for her-menu.png and type-box.png");
+                            TalkChecks(checks);
                             checks.Add("LIMIT handler-driven integration test; physical mouse input and tray UI require a manual check");
                             checks.Add("PASS quit menu requested application exit");
                             File.WriteAllLines(Path.Combine(output, "smoke-test.txt"), checks);
@@ -20240,6 +20283,776 @@ namespace CapriDesktop
                 };
                 test.Start();
             };
+        }
+
+        private sealed class StageLog : IGameStage
+        {
+            internal readonly System.Collections.Generic.List<string> Shown = new System.Collections.Generic.List<string>();
+            public void Say(string line) { Shown.Add("say " + line); }
+            public void Hear(string words, bool thinking) { Shown.Add("hear " + words + " " + thinking); }
+            public void Mood(GameMood mood) { Shown.Add("mood " + mood); }
+        }
+
+        // Talking to her mid-job and her game comments, with fake heads, keys, mics and frames. Nothing here presses a key, moves
+        // the mouse, opens a mic or plays a sound, so it's safe beside anything else on the screen.
+        internal void TalkChecks(System.Collections.Generic.List<string> checks)
+        {
+            Action<bool, string> must = delegate(bool fine, string what) { if (!fine) throw new Exception(what); };
+            Action<Func<bool>> waitFor = delegate(Func<bool> done)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!done() && waited.ElapsedMilliseconds < 4000) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            Action<int> settle = delegate(int milliseconds)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < milliseconds) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            Func<int, int, short[]> wave = delegate(int length, int loudness)
+            {
+                short[] samples = new short[length];
+                for (int i = 0; i < length; i++) samples[i] = (short)(Math.Sin(i * 0.12) * loudness);
+                return samples;
+            };
+            Func<string, AsideKind?> kindOf = delegate(string words)
+            {
+                string tool;
+                ToolArguments toolArgs;
+                return Asides.Plain(words, out tool, out toolArgs);
+            };
+
+            foreach (string stopping in new[] { "stop", "Stop!", "stop it", "wait stop", "no stop", "okay stop now", "cancel that", "never mind", "forget it", "leave it", "that's enough", "para", "stopp" })
+                must(kindOf(stopping) == AsideKind.Stop, "\"" + stopping + "\" didn't stop her job: " + kindOf(stopping));
+            foreach (string question in new[] { "what are you doing", "how's it going?", "how long", "how much longer", "are you done yet", "you stuck?", "what step are you on", "how far along are you", "any progress" })
+                must(kindOf(question) == AsideKind.Status, "\"" + question + "\" wasn't answered from her steps: " + kindOf(question));
+            foreach (string looking in new[] { "what do you see", "what's on the screen" })
+                must(kindOf(looking) == AsideKind.Screen, "\"" + looking + "\" wasn't a screen question: " + kindOf(looking));
+            foreach (string other in new[] { "don't stop the music", "stop by the shop on the way", "tell me a joke", "make it blue", "i love you" })
+                must(kindOf(other) != AsideKind.Stop && kindOf(other) != AsideKind.Status, "\"" + other + "\" was taken for a stop or a status question: " + kindOf(other));
+            must(Asides.Guess("actually use firefox instead") == AsideKind.Change && Asides.Guess("lol that's hilarious") == AsideKind.Chat && Asides.Guess("why is the sky blue?") == AsideKind.Chat && Asides.Guess("attach the pdf as well") == AsideKind.Add,
+                "Her guess with no brain went wrong: " + Asides.Guess("actually use firefox instead") + " " + Asides.Guess("lol that's hilarious") + " " + Asides.Guess("why is the sky blue?") + " " + Asides.Guess("attach the pdf as well"));
+            string headLine;
+            must(Asides.Read("SORT: CHANGE\nSAY: Fine, your way.", out headLine) == AsideKind.Change && headLine == "Fine, your way.", "Her fast head's reply wasn't read: " + headLine);
+            must(Asides.Read("SAY: Adding it.\nSORT: add", out headLine) == AsideKind.Add && headLine == "Adding it.", "Her fast head's reply the other way round wasn't read: " + headLine);
+            must(Asides.Read("**SORT:** STOP **SAY:** Dropped.", out headLine) == AsideKind.Stop && headLine == "Dropped.", "Her fast head's bold reply wasn't read: " + headLine);
+            must(Asides.Read("haha you wish", out headLine) == AsideKind.Chat && headLine == "haha you wish", "A reply with no labels wasn't taken as chat: " + headLine);
+            checks.Add("PASS mid-job sorting: stops, status and screen questions are told apart with no brain, a guess covers a brain that's down, and her fast head's SORT and SAY reply is read in either order");
+
+            foreach (string[] set in new[] { Lines.OnIt, Lines.GotIt, Lines.Changed, Lines.Stopped, Lines.Busy })
+            {
+                string last = null;
+                System.Collections.Generic.HashSet<string> drawn = new System.Collections.Generic.HashSet<string>();
+                for (int draw = 0; draw < 400; draw++)
+                {
+                    string picked = Lines.Pick(set);
+                    must(picked != last, "The same fixed line twice in a row: " + picked);
+                    last = picked;
+                    drawn.Add(picked);
+                }
+                must(drawn.Count == set.Length, "A fixed line never came up: " + drawn.Count + " of " + set.Length);
+            }
+            foreach (string start in Lines.OnIt) must(start.IndexOf("Esc", StringComparison.Ordinal) >= 0, "A job start line doesn't say how to stop her: " + start);
+            checks.Add("PASS her fixed lines: every set draws all its lines, never the same one twice in a row, and every job start line still says Esc stops her");
+
+            string[] noneBefore = new string[0];
+            must(Brain.Unclosed("That's a bold plan. What's next?") == "That's a bold plan." && Brain.Unclosed("Creeper got you. Wanna stir up some trouble?") == "Creeper got you." && Brain.Unclosed("What kind of chaos are we in for?") == "What kind of chaos are we in for?" && Brain.Unclosed("You found diamonds? Where?") == "You found diamonds? Where?", "Her stock closers weren't cut cleanly: " + Brain.Unclosed("That's a bold plan. What's next?"));
+            must(Brain.Fresh("Bored? Seriously? I've counted your desktop icons twice.", "i'm bored", noneBefore) == "I've counted your desktop icons twice.", "Their word said back wasn't cut: " + Brain.Fresh("Bored? Seriously? I've counted your desktop icons twice.", "i'm bored", noneBefore));
+            must(Brain.Fresh("Iron, huh? That's a start at least.", "found iron this time", noneBefore) == "That's a start at least.", "Their word said back with a huh wasn't cut.");
+            must(Brain.Fresh("Who's Jake? Never heard of him.", "tell jake hi", noneBefore) == "Who's Jake? Never heard of him." && Brain.Fresh("Diamonds? Yes.", "i found diamonds", noneBefore) == "Diamonds? Yes.", "A real question, or a line with too little left, was cut.");
+            must(Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Whoa, nice shot there.", "Okay." }) == "That boss never stood a chance." && Brain.Fresh("Whoa, that boss never stood a chance.", "i won", new[] { "Okay then, go on." }) == "Whoa, that boss never stood a chance.", "Her opener wasn't cut only when she'd just used it.");
+            Func<string, string> hashed = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
+            must(hashed(Brain.Safety) == "5ba8ebf47c1bc3803515bd3145631cdf4e401a75bd3e1e96a34a50b2bc2c7198", "Her safety lines changed: " + hashed(Brain.Safety));
+            must(Brain.Persona.IndexOf("Ask something back at most one reply in four", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("never say it depends", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("call back to it once", StringComparison.Ordinal) >= 0 && Brain.Persona.IndexOf("Yezzirrr, let's go", StringComparison.Ordinal) < 0 && Hands.Chat.IndexOf("say On it", StringComparison.Ordinal) < 0, "How she talks lost a rule, or got her parroted examples back.");
+            must(Agent.Version >= 21 && Agent.Prompt.IndexOf("When your hands are on a job", StringComparison.Ordinal) > 0 && Agent.Prompt.StartsWith(Brain.Persona, StringComparison.Ordinal), "Voice chat's agent wasn't retuned for talking mid-job.");
+            checks.Add("PASS how she talks: her prompt asks for reactions, opinions, callbacks and few questions, stock closers, their own word said back and an opener she just used are cut from the reply, real questions are left alone, voice chat's agent is retuned, and her safety lines are unchanged to the byte");
+
+            Job jobWas = job;
+            string workingWas = working;
+            Cloud remoteWas = brain.Remote;
+            string modelWas = brain.Model;
+            int headWaitWas = HeadWait;
+            Func<int, bool> keyHeldWas = KeyHeld;
+            Func<short[], string> hearingWas = Hearing.Run;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<bool> fullWas = FullScreen;
+            Func<Sight> lookWas = Computer.Look;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
+            int pushVkWas = preferences.PushVk, pushModsWas = preferences.PushMods;
+            bool localWas = local, earsWas = earsReady;
+            bool hiddenWas = hidden, napWas = napping, napAskedWas = napAsked, shushWas = shushed, mutedWas = ears.Muted;
+            hidden = napping = napAsked = shushed = false;
+            ears.Muted = false;
+            mainframe.CancelKeys();
+            IGameStage stageWas = Commentary.Stage;
+            Func<string> gameWas = Commentary.Game;
+            Func<bool> freeWas = Commentary.Free;
+            Func<bool> seesWas = Commentary.Sees;
+            Func<string, string, byte[][], string> seeWas = Commentary.See;
+            Action<string, string, GameMood> speakWas = Commentary.Speak;
+            Func<byte[]> shotWas = Commentary.Shot;
+            Func<int> clockWas = Commentary.Clock;
+            int paceWas = Commentary.Pace, lateWas = Commentary.Late;
+            GameLog logWas = Commentary.Log;
+            string anthropicWas = Brain.Anthropic;
+            string logFile = Path.Combine(Path.GetTempPath(), "capri-talk-check-" + Guid.NewGuid().ToString("N") + ".log");
+            System.Net.Sockets.TcpListener fastFake = null;
+            try
+            {
+                System.Collections.Generic.List<string> asides = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<string> stops = new System.Collections.Generic.List<string>();
+                asideTest = delegate(string said) { lock (asides) asides.Add(said); };
+                stopTest = delegate(string said) { lock (stops) stops.Add(said); };
+                Job busy = new Job("send jake the notes");
+                job = busy;
+                working = "On it. Esc stops me.";
+                brain.Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5");
+                brain.Model = "claude-sonnet-5-5";
+
+                // The head is held back until told, so her answering late can't hold anything up.
+                ManualResetEvent headGo = new ManualResetEvent(false);
+                string headSystem = null, headAsked = null;
+                string headSays = "SORT: CHAT\nSAY: Because he never reads them.";
+                Func<string, string, byte[][], string> slowHead = delegate(string system, string ask, byte[][] frames)
+                {
+                    headSystem = system;
+                    headAsked = ask;
+                    headGo.WaitOne(3000);
+                    return headSays;
+                };
+                headTest = slowHead;
+                Stopwatch hearing = Stopwatch.StartNew();
+                Hear("why does jake even need these");
+                long sortedIn = hearing.ElapsedMilliseconds;
+                must(sortedIn < 500 && asides.Count == 0, "What they said mid-job waited for her head: " + sortedIn + " ms, " + asides.Count);
+                headGo.Set();
+                waitFor(delegate { return asides.Count > 0; });
+                must(asides.Count == 1 && asides[0] == "Because he never reads them." && busy.Heard() == null && busy.Changed() == "" && stops.Count == 0 && job == busy, "Chat mid-job touched the job or went unanswered: " + string.Join(" | ", asides.ToArray()));
+                must(headSystem.EndsWith(Asides.Head, StringComparison.Ordinal) && headAsked.IndexOf("send jake the notes", StringComparison.Ordinal) >= 0 && headAsked.IndexOf("why does jake even need these", StringComparison.Ordinal) >= 0, "Her fast head wasn't told about the job: " + headAsked);
+                headSays = "SORT: ADD\nSAY: Yep, pdf too.";
+                asides.Clear();
+                Hear("attach the pdf as well");
+                waitFor(delegate { return asides.Count > 0; });
+                string addedWords = busy.Heard();
+                must(asides.Count == 1 && asides[0] == "Yep, pdf too." && addedWords != null && addedWords.IndexOf("attach the pdf as well", StringComparison.Ordinal) >= 0 && busy.Changed() == "", "More for the job didn't reach it: " + addedWords);
+                headSays = "SORT: CHANGE\nSAY: Firefox it is.";
+                asides.Clear();
+                Hear("no do it in firefox");
+                waitFor(delegate { return asides.Count > 0; });
+                string changedWords = busy.Changed();
+                must(asides.Count == 1 && asides[0] == "Firefox it is." && changedWords.IndexOf("no do it in firefox", StringComparison.Ordinal) >= 0 && changedWords.IndexOf("That wins over", StringComparison.Ordinal) >= 0 && busy.Heard() == null, "A change to the job didn't reach it as a change: " + changedWords);
+                must(busy.Changed() == "", "A change came through twice.");
+                headSays = "SORT: STOP\nSAY: Dropped it.";
+                asides.Clear();
+                Hear("hmm maybe we shouldn't bother with this");
+                waitFor(delegate { return stops.Count > 0; });
+                must(stops.Count == 1 && stops[0] == "Dropped it." && asides.Count == 0, "Her fast head's stop didn't stop the job: " + stops.Count);
+                stops.Clear();
+                headTest = delegate(string system, string ask, byte[][] frames) { throw new InvalidOperationException("this head should stay out of it"); };
+                Hear("stop");
+                must(stops.Count == 1 && Lines.Is(Lines.Stopped, stops[0]), "A plain stop waited for a head: " + stops.Count);
+                stops.Clear();
+                asides.Clear();
+                Hear("attach the budget as well");
+                waitFor(delegate { return asides.Count > 0; });
+                addedWords = busy.Heard();
+                must(asides.Count == 1 && Lines.Is(Lines.GotIt, asides[0]) && addedWords != null && addedWords.IndexOf("attach the budget as well", StringComparison.Ordinal) >= 0, "With her fast head down, more for the job was lost: " + addedWords);
+                headGo.Reset();
+                headSays = "SORT: CHAT\nSAY: Still here.";
+                headTest = slowHead;
+                asides.Clear();
+                Hear("you're so slow lol");
+                job = null;
+                working = null;
+                headGo.Set();
+                waitFor(delegate { return asides.Count > 0; });
+                must(asides.Count == 1 && asides[0] == "Still here.", "Chat was lost when the job ended while she was thinking.");
+                job = busy;
+                working = "On it. Esc stops me.";
+                // A real job on its own thread, held inside its turn while they talk to her. Every hand it has is a fake.
+                Computer.Shoot = delegate(Rectangle? part) { return new Picture { Jpeg = new byte[] { 1, 2, 3 }, Size = new Size(100, 100) }; };
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Installer", Program = "setup" }; };
+                Computer.Look = Computer.Glimpse;
+                Computer.Front = delegate { return new IntPtr(7); };
+                Computer.Use = delegate(string name, ToolArguments used, Picture seen) { return "Took a screenshot."; };
+                Computer.Act = delegate(string name, ToolArguments used, Sight sight) { return "Done."; };
+                const string liveTool = "{\"id\":\"l1\",\"content\":[{\"type\":\"tool_use\",\"id\":\"l1t\",\"name\":\"screenshot\",\"toolset_name\":\"computer\",\"input\":{}}],\"stop_reason\":\"tool_use\"}";
+                const string liveDone = "{\"id\":\"l2\",\"content\":[{\"type\":\"text\",\"text\":\"Installed it.\"}],\"stop_reason\":\"end_turn\"}";
+                System.Collections.Generic.List<string> liveTurns = new System.Collections.Generic.List<string>();
+                ManualResetEvent liveHold = new ManualResetEvent(false);
+                Job live = new Job("install capri");
+                string liveResult = null;
+                live.Drive = delegate(string system, string toolset, string messages)
+                {
+                    lock (liveTurns) liveTurns.Add(messages);
+                    if (liveTurns.Count > 1) return Brain.Parsed(liveDone);
+                    liveHold.WaitOne(4000);
+                    return Brain.Parsed(liveTool);
+                };
+                Thread liveThread = new Thread(delegate() { liveResult = live.Run(); });
+                liveThread.IsBackground = true;
+                job = live;
+                working = "On it. Esc stops me.";
+                liveThread.Start();
+                waitFor(delegate { lock (liveTurns) return liveTurns.Count > 0; });
+                headTest = delegate(string system, string ask, byte[][] frames) { return "SORT: CHANGE\nSAY: Beta it is."; };
+                asides.Clear();
+                Hear("no use the beta instead");
+                waitFor(delegate { return asides.Count > 0; });
+                headTest = delegate(string system, string ask, byte[][] frames) { return "SORT: ADD\nSAY: Docs too, yep."; };
+                Hear("grab the docs as well");
+                waitFor(delegate { return asides.Count > 1; });
+                must(asides.Count == 2 && liveThread.IsAlive && liveTurns.Count == 1, "Her job didn't keep running on its thread while she answered: " + asides.Count + " lines, " + liveTurns.Count + " turns");
+                liveHold.Set();
+                waitFor(delegate { return !liveThread.IsAlive; });
+                must(liveResult == "Installed it." && liveTurns.Count == 2 && liveTurns[0].IndexOf("beta", StringComparison.Ordinal) < 0 && liveTurns[1].IndexOf("no use the beta instead", StringComparison.Ordinal) >= 0 && liveTurns[1].IndexOf("That wins over", StringComparison.Ordinal) >= 0 && liveTurns[1].IndexOf("grab the docs as well", StringComparison.Ordinal) >= 0, "What they said didn't reach the job's next turn: " + liveResult + " / " + liveTurns.Count);
+                liveTurns.Clear();
+                liveHold.Reset();
+                Job dropped = new Job("install capri");
+                string droppedResult = null;
+                dropped.Drive = live.Drive;
+                Thread droppedThread = new Thread(delegate() { droppedResult = dropped.Run(); });
+                droppedThread.IsBackground = true;
+                job = dropped;
+                droppedThread.Start();
+                waitFor(delegate { lock (liveTurns) return liveTurns.Count > 0; });
+                stopTest = null;
+                Hear("stop");
+                liveHold.Set();
+                waitFor(delegate { return !droppedThread.IsAlive; });
+                must(droppedResult != null && Lines.Is(Lines.Stopped, droppedResult) && dropped.Outcome == "stopped" && Computer.Stopped(droppedResult) && liveTurns.Count == 1, "Saying stop didn't end a running job with her own line: " + droppedResult + " / " + dropped.Outcome);
+                stopTest = delegate(string said) { lock (stops) stops.Add(said); };
+                job = busy;
+                working = "On it. Esc stops me.";
+                Computer.Arm();
+                checks.Add("PASS two heads: what they say mid-job comes back at once while her head thinks on its own thread; chat leaves the job alone, add and change reach it the right way, stop ends it, a plain stop needs no head, a dead head still gets more to the job, a job that ends mid-thought doesn't lose the answer, and a real job on its own thread stays in its turn while she answers, gets what they said on its next turn, and ends with her own line when they say stop");
+
+                busy.Mark(new JobStep { Tool = "click", Label = "Opened Outlook", Finished = true });
+                busy.Mark(new JobStep { Tool = "click", Label = "Clicked the To box", Finished = true });
+                busy.Mark(new JobStep { Tool = "type", Label = "Typing the address" });
+                JobReport report = busy.Report();
+                must(report.Done == 2 && report.Failed == 0 && report.Doing == "Typing the address" && report.Last == "Clicked the To box" && report.Recent.Count == 2 && report.Trouble == null && !report.Playing && report.Words == "send jake the notes", "Her job's report is wrong: " + report.Done + " " + report.Doing + " " + report.Last);
+                string plainStatus = Asides.Status(report, "how's it going");
+                must(plainStatus.IndexOf("Typing the address", StringComparison.Ordinal) >= 0, "Her plain status didn't say what she's on: " + plainStatus);
+                string plainTiming = Asides.Status(report, "how long");
+                must(plainTiming.IndexOf("2 steps", StringComparison.Ordinal) >= 0, "Her plain timing didn't count her steps: " + plainTiming);
+                string planFacts = Asides.Facts(report, "how's it going", null);
+                must(planFacts.IndexOf("Doing now: Typing the address", StringComparison.Ordinal) >= 0 && planFacts.IndexOf("Clicked the To box", StringComparison.Ordinal) >= 0 && planFacts.IndexOf("Steps finished: 2", StringComparison.Ordinal) >= 0, "Her head's facts are wrong: " + planFacts);
+                HeadWait = 150;
+                headTest = delegate(string system, string ask, byte[][] frames) { return "Typing the address, two clicks in."; };
+                asides.Clear();
+                Hear("how's it going");
+                waitFor(delegate { return asides.Count > 0; });
+                settle(300);
+                must(asides.Count == 1 && asides[0] == "Typing the address, two clicks in.", "A status question was answered twice or not at all: " + string.Join(" | ", asides.ToArray()));
+                headGo.Reset();
+                headTest = delegate(string system, string ask, byte[][] frames) { headGo.WaitOne(3000); return "Far too late."; };
+                asides.Clear();
+                Stopwatch statusTime = Stopwatch.StartNew();
+                Hear("how's it going");
+                waitFor(delegate { return asides.Count > 0; });
+                long statusIn = statusTime.ElapsedMilliseconds;
+                must(asides.Count == 1 && asides[0].IndexOf("Typing the address", StringComparison.Ordinal) >= 0 && statusIn < 1500, "A slow head held up her status line: " + statusIn + " ms, " + string.Join(" | ", asides.ToArray()));
+                headGo.Set();
+                settle(120);
+                must(asides.Count == 1, "A late head talked over her status line: " + string.Join(" | ", asides.ToArray()));
+                byte[] newestFrame = { 1, 2, 3 };
+                byte[][] headFrames = null;
+                busy.Frame = newestFrame;
+                headTest = delegate(string system, string ask, byte[][] frames) { headSystem = system; headFrames = frames; return "An unread email from Jake."; };
+                asides.Clear();
+                Hear("what do you see");
+                waitFor(delegate { return asides.Count > 0; });
+                must(asides.Count == 1 && asides[0] == "An unread email from Jake." && headFrames != null && headFrames.Length == 1 && headFrames[0] == newestFrame && headSystem.EndsWith(Asides.Seen, StringComparison.Ordinal), "A screen question didn't get the job's newest frame: " + (headFrames == null ? "no frames" : headFrames.Length + " frames"));
+                checks.Add("PASS status mid-job: \"how's it going\" and \"how long\" come straight from the job's own steps, her fast head words it if it's quick, the plain line goes out if it isn't, only one ever lands, and a screen question gets the job's newest frame");
+
+                TalkOver over = new TalkOver();
+                bool echoed = false;
+                for (int i = 0; i < 60; i++) echoed = over.Heard(0.03 + 0.01 * (i % 3), 0.1, WakeLevel) || echoed;
+                must(!echoed, "Her own voice through the speakers counted as them talking.");
+                for (int i = 0; i < 10; i++) echoed = over.Heard(0.5, 0, WakeLevel) || echoed;
+                must(!echoed, "A noise in the gap between her words counted as them talking.");
+                bool talkedOnce = over.Heard(0.3, 0.1, WakeLevel);
+                bool talkedTwice = over.Heard(0.3, 0.1, WakeLevel);
+                must(!talkedOnce && talkedTwice, "Them talking over her wasn't heard: " + talkedOnce + " " + talkedTwice);
+                Agent quietLink = new Agent();
+                speaker.Open(16000);
+                speaker.Play(wave(64000, 9000));
+                must(speaker.Busy && speaker.Level() > 0.1, "Her silent speaker didn't report playing: " + speaker.Level());
+                talkOver.Reset();
+                short[] echoChunk = wave(1600, 1200);
+                short[] voiceChunk = wave(1600, 14000);
+                for (int i = 0; i < 6; i++)
+                {
+                    short[] passed = OverHer(echoChunk, quietLink);
+                    must(passed != echoChunk && Array.TrueForAll(passed, sample => sample == 0), "Voice chat's agent got her own voice back.");
+                }
+                int bargedBefore = bargeIns;
+                bool barged = false;
+                for (int i = 0; i < 4 && !barged; i++) barged = OverHer(voiceChunk, quietLink) == voiceChunk;
+                waitFor(delegate { return bargeIns > bargedBefore; });
+                must(barged && bargeIns == bargedBefore + 1 && job == busy && !Computer.Interrupted, "Talking over her in voice chat didn't stop her, or stopped the job: " + barged + " " + bargeIns);
+                speaker.Clear();
+                local = true;
+                earsReady = true;
+                double talkNow = clock.Elapsed.TotalSeconds;
+                voiceUntil = talkNow + 8;
+                spokenLevels = new double[200];
+                for (int i = 0; i < spokenLevels.Length; i++) spokenLevels[i] = 0.1;
+                spokenAt = talkNow;
+                talkOver.Reset();
+                for (int i = 0; i < 6; i++) must(OverHerLocally(echoChunk, VoiceLevel(echoChunk)), "Free voice chat's ears opened on her own voice.");
+                must(bargeIns == bargedBefore + 1, "Her own voice barged in on free voice chat.");
+                for (int i = 0; i < 4; i++) OverHerLocally(voiceChunk, VoiceLevel(voiceChunk));
+                waitFor(delegate { return bargeIns > bargedBefore + 1; });
+                must(bargeIns == bargedBefore + 2 && voiceUntil == 0 && job == busy && !Computer.Interrupted, "Talking over her in free voice chat didn't stop her: " + bargeIns);
+                must(preroll.Count >= 3, "The start of what they said over her was lost: " + preroll.Count);
+                preroll.Clear();
+                voiceUntil = clock.Elapsed.TotalSeconds + 8;
+                for (int i = 0; i < 3; i++) OverHerLocally(echoChunk, VoiceLevel(echoChunk));
+                voiceUntil = 0;
+                must(!OverHerLocally(echoChunk, VoiceLevel(echoChunk)) && preroll.Count == 0, "Her own voice was kept as the start of what they said: " + preroll.Count);
+                local = localWas;
+                earsReady = earsWas;
+                voiceUntil = clock.Elapsed.TotalSeconds + 8;
+                spokenLevels = new double[200];
+                for (int i = 0; i < spokenLevels.Length; i++) spokenLevels[i] = 0.1;
+                spokenAt = clock.Elapsed.TotalSeconds;
+                wakeOver.Reset();
+                for (int i = 0; i < 6; i++) OverHeard(echoChunk);
+                must(bargeIns == bargedBefore + 2, "Her own voice barged in through Hey Capri's mic.");
+                for (int i = 0; i < 4; i++) OverHeard(voiceChunk);
+                waitFor(delegate { return bargeIns > bargedBefore + 2; });
+                must(bargeIns >= bargedBefore + 3 && job == busy, "Talking over her wasn't heard through Hey Capri's mic: " + bargeIns);
+                voiceUntil = clock.Elapsed.TotalSeconds + 8;
+                headTest = delegate(string system, string ask, byte[][] frames) { return "Typing."; };
+                asides.Clear();
+                Hear("how's it going");
+                must(voiceUntil == 0, "Typing to her didn't stop her talking.");
+                waitFor(delegate { return asides.Count > 0; });
+                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
+
+                StageLog stage = new StageLog();
+                Commentary.Stage = stage;
+                bool keyDown = false;
+                KeyHeld = delegate(int vk) { return keyDown && vk == 0x05; };
+                preferences.PushVk = 0x05;
+                preferences.PushMods = 0;
+                short[] heardSamples = null;
+                Hearing.Run = delegate(short[] spoken) { heardSamples = spoken; return "how's it going"; };
+                headTest = delegate(string system, string ask, byte[][] frames) { return "Typing away."; };
+                asides.Clear();
+                WatchPush();
+                must(!pushing, "Her push-to-talk opened with no key held.");
+                keyDown = true;
+                int pushBarge = bargeIns;
+                WatchPush();
+                must(pushing && bargeIns == pushBarge + 1, "Her push-to-talk key didn't open her mic and stop her: " + pushing);
+                Listen(wave(8000, 9000));
+                Listen(wave(8000, 9000));
+                WatchPush();
+                must(pushing, "Her push-to-talk closed while held.");
+                keyDown = false;
+                WatchPush();
+                must(!pushing, "Her push-to-talk stayed open after the key came up.");
+                waitFor(delegate { return asides.Count > 0; });
+                must(heardSamples != null && heardSamples.Length == 16000 && asides.Count == 1 && asides[0] == "Typing away." && job == busy, "What was said on her push-to-talk key didn't reach her: " + (heardSamples == null ? -1 : heardSamples.Length) + " " + asides.Count);
+                must(stage.Shown.Contains("hear  False") && stage.Shown.Contains("hear how's it going True"), "The game stage wasn't told what she heard: " + string.Join(" | ", stage.Shown.ToArray()));
+                heardSamples = null;
+                keyDown = true;
+                WatchPush();
+                Listen(wave(320, 9000));
+                keyDown = false;
+                WatchPush();
+                settle(100);
+                must(heardSamples == null, "A tap of her push-to-talk key went to her ears.");
+                preferences.PushMods = 2;
+                keyDown = true;
+                WatchPush();
+                must(!pushing, "Her push-to-talk ignored its Ctrl.");
+                keyDown = false;
+                preferences.PushMods = 0;
+                must(PushBindable(0, 0x05) && PushBindable(0, 0x10) && PushBindable(2, 0x41) && PushBindable(0, 0) && !PushBindable(0, 0x01) && !PushBindable(0, 0x02) && !PushBindable(16, 0x41), "Her push-to-talk binds the wrong keys.");
+                string taken = SetPushKey(preferences.TalkMods, preferences.TalkVk);
+                must(taken != null && taken.IndexOf("already", StringComparison.Ordinal) >= 0 && preferences.PushVk == 0x05, "Her push-to-talk took a key she already uses: " + taken);
+                mainframe.PickKeys(PushSlot);
+                mainframe.TakeKeys(Keys.F8);
+                mainframe.ConfirmKeys();
+                must(preferences.PushVk == (int)Keys.F8 && preferences.PushMods == 0 && !mainframe.Picking && mainframe.PushKeyShown == "Push to talk: F8", "Her settings didn't pick a push-to-talk key: " + mainframe.PushKeyShown);
+                string clash = SetHotkey(1, preferences.PushMods, preferences.PushVk);
+                must(clash != null && clash.IndexOf("push-to-talk", StringComparison.Ordinal) >= 0, "Another of her keys took the push-to-talk key: " + clash);
+                mainframe.PickKeys(PushSlot);
+                mainframe.TakeKeys(Keys.ShiftKey | Keys.Shift);
+                mainframe.ConfirmKeys();
+                must(preferences.PushVk == 0x10 && mainframe.PushKeyShown == "Push to talk: Shift", "Shift alone didn't bind for push to talk: " + mainframe.PushKeyShown);
+                must(SetPushKey(0, 0x06) == null && preferences.PushVk == 0x06 && PushKeyName != "not set", "Her push-to-talk didn't take a mouse button: " + PushKeyName);
+                must(SetPushKey(0, 0) == null && preferences.PushVk == 0 && PushKeyName == "not set", "Her push-to-talk didn't turn off.");
+                checks.Add("PASS push to talk: holding her key, any key or mouse button with or without modifiers, stops her and opens her ears, letting go sends what was said to the running job, a tap goes nowhere, her other keys can't be taken, and it reads the key rather than taking it, so it works with a game in front");
+
+                ToolArguments more = new ToolArguments { Task = "attach the pdf as well" };
+                string moreKey = MouseKey("use_computer", more);
+                must(Folded("use_computer", more, moreKey), "Voice chat's call for more wasn't folded into the job.");
+                addedWords = busy.Heard();
+                must(addedWords != null && addedWords.IndexOf("attach the pdf as well", StringComparison.Ordinal) >= 0, "Voice chat's more didn't reach the job: " + addedWords);
+                ToolArguments turned = new ToolArguments { Task = "actually do it in firefox instead" };
+                must(Folded("use_computer", turned, MouseKey("use_computer", turned)) && busy.Changed().IndexOf("firefox", StringComparison.Ordinal) >= 0, "Voice chat's change wasn't folded in as a change.");
+                must(!Folded("open_app", new ToolArguments { Name = "Notepad" }, "open_app"), "Voice chat's quick tool was folded into the job.");
+                lock (mouseJobs) mouseJobs.Add(moreKey);
+                bool sameFolded = Folded("use_computer", more, moreKey);
+                lock (mouseJobs) mouseJobs.Remove(moreKey);
+                must(!sameFolded, "The same job asked again was folded in instead of being told it's already running.");
+                System.Collections.Generic.List<string> doneLines = new System.Collections.Generic.List<string>();
+                doneTest = delegate(string said) { lock (doneLines) doneLines.Add(said); };
+                micTalked = Environment.TickCount - 5000;
+                doneLast = null;
+                DoneLine(null, "use_computer", "Sent it to Jake.");
+                DoneLine(null, "use_computer", "Sent it to Jake.");
+                waitFor(delegate { return doneLines.Count > 0; });
+                settle(200);
+                must(doneLines.Count == 1 && doneLines[0].IndexOf("Sent it to Jake.", StringComparison.Ordinal) >= 0 && doneLines[0].IndexOf("only once", StringComparison.Ordinal) >= 0, "Voice chat's done line came twice or not at all: " + doneLines.Count);
+                doneLines.Clear();
+                micTalked = Environment.TickCount;
+                Stopwatch doneTime = Stopwatch.StartNew();
+                DoneLine(null, "use_computer", "Closed the tab.");
+                waitFor(delegate { return doneLines.Count > 0; });
+                must(doneLines.Count == 1 && doneTime.ElapsedMilliseconds >= 700, "Voice chat's done line talked over them: " + doneTime.ElapsedMilliseconds + " ms");
+                lastSaid = null;
+                repeating = false;
+                bool firstTime = SaidAgain("Sent it to Jake, he'll love it.");
+                bool secondTime = SaidAgain("sent it to jake, he'll love it!");
+                bool wasRepeating = repeating;
+                bool newLine = SaidAgain("Something else now.");
+                must(!firstTime && secondTime && wasRepeating && !newLine && !repeating, "Voice chat's repeat filter is wrong: " + firstTime + " " + secondTime + " " + newLine);
+                checks.Add("PASS voice chat mid-job: a use_computer call while a job runs goes into that job as more or as a change, the same job asked again still gets the old answer, one done line lands once and waits for them to finish talking, and a line said twice is cut");
+
+                Commentary.Pace = Commentary.Events;
+                Commentary.Late = 6000;
+                Commentary.Reset();
+                int fakeNow = 1000000;
+                string gameShown = "Minecraft 1.21.4 - Singleplayer";
+                bool freeNow = true;
+                System.Collections.Generic.List<string> spokenLines = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<string> seenAsks = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<int> seenWidths = new System.Collections.Generic.List<int>();
+                string seenSystem = null;
+                string nextLine = "That creeper waited for you specifically.";
+                ManualResetEvent seeGo = new ManualResetEvent(true);
+                Commentary.Clock = delegate { return fakeNow; };
+                Commentary.Game = delegate { return gameShown; };
+                Commentary.Free = delegate { return freeNow; };
+                Commentary.Speak = delegate(string line, string kind, GameMood mood) { lock (spokenLines) spokenLines.Add(kind + "|" + mood + "|" + line); };
+                Commentary.See = delegate(string system, string ask, byte[][] frames)
+                {
+                    seeGo.WaitOne(3000);
+                    lock (seenAsks)
+                    {
+                        seenSystem = system;
+                        seenAsks.Add(ask);
+                        foreach (byte[] frame in frames)
+                            using (MemoryStream data = new MemoryStream(frame))
+                            using (Bitmap picture = new Bitmap(data)) seenWidths.Add(picture.Width);
+                    }
+                    return nextLine;
+                };
+                byte[] before, after;
+                using (Bitmap wide = new Bitmap(1920, 1080))
+                {
+                    before = Jpeg(wide, 1920);
+                    after = Jpeg(wide, 1920);
+                }
+                Func<int, bool> spokenAre = delegate(int count) { waitFor(delegate { lock (spokenLines) return spokenLines.Count >= count; }); settle(40); return spokenLines.Count == count; };
+                must(Commentary.Trigger("hit", null, before, after), "A hit in a game didn't get her to look.");
+                must(spokenAre(1) && spokenLines[0] == "hit|Hit|That creeper waited for you specifically.", "Her line about a hit is wrong: " + string.Join(" | ", spokenLines.ToArray()));
+                must(seenWidths.Count == 2 && seenWidths[0] <= 768 && seenWidths[1] <= 768, "Her frames weren't shrunk: " + string.Join(",", seenWidths.ConvertAll(width => width.ToString()).ToArray()));
+                must(seenAsks[0].IndexOf("Minecraft 1.21.4 - Singleplayer", StringComparison.Ordinal) >= 0 && seenAsks[0].IndexOf("just before", StringComparison.Ordinal) >= 0 && seenSystem.EndsWith(Commentary.Rules, StringComparison.Ordinal), "She wasn't told the game or the frames: " + seenAsks[0]);
+                must(!Commentary.Trigger("hit", null, before, after) && !Commentary.Trigger("kill", null, before, after), "One moment got a second look.");
+                fakeNow += 8100;
+                nextLine = "That chest had your whole week in it.";
+                must(Commentary.Trigger("hit", null, before, after), "The next hit, after the gap, didn't get a look.");
+                must(spokenAre(2), "Her second line didn't land: " + string.Join(" | ", spokenLines.ToArray()));
+                must(seenAsks[1].IndexOf("That creeper waited for you specifically.", StringComparison.Ordinal) >= 0, "She wasn't shown her last lines: " + seenAsks[1]);
+                fakeNow += 8100;
+                must(!Commentary.Trigger("sound", null, before, after), "Events only looked at a sound too soon.");
+                Commentary.Pace = Commentary.Chatty;
+                must(Commentary.Trigger("sound", null, before, after), "Chatty didn't look at a sound after its gap.");
+                nextLine = "SKIP";
+                waitFor(delegate { return !Commentary.Thinking; });
+                must(spokenAre(3) || spokenLines.Count == 2, "The chatty look went wrong: " + string.Join(" | ", spokenLines.ToArray()));
+                Commentary.Reset();
+                spokenLines.Clear();
+                Commentary.Pace = Commentary.Events;
+                seeGo.Reset();
+                nextLine = "Skeleton archers don't miss twice, apparently.";
+                must(Commentary.Trigger("hit", null, before, after), "The first of two triggers was dropped.");
+                must(!Commentary.Trigger("flash", null, before, after) && !Commentary.Trigger("hit", null, before, after), "Two triggers for one moment both got looks.");
+                seeGo.Set();
+                must(spokenAre(1), "One event didn't give exactly one line: " + spokenLines.Count);
+                Commentary.Reset();
+                spokenLines.Clear();
+                foreach (string skipped in new[] { "SKIP", "skip.", "Nice one!", "Oof.", "That was close.", "Well played, choom.", "You got this!" })
+                {
+                    nextLine = skipped;
+                    fakeNow += 30000;
+                    must(Commentary.Trigger("hit", null, before, after), "A trigger before \"" + skipped + "\" was dropped.");
+                    waitFor(delegate { return !Commentary.Thinking; });
+                    settle(20);
+                    must(spokenLines.Count == 0, "She said a stock line or a SKIP: " + string.Join(" | ", spokenLines.ToArray()));
+                }
+                Commentary.Reset();
+                Commentary.Late = 30;
+                seeGo.Reset();
+                nextLine = "Zombie pigmen hold grudges, you know.";
+                must(Commentary.Trigger("hit", null, before, after), "A trigger before a slow reply was dropped.");
+                settle(80);
+                seeGo.Set();
+                waitFor(delegate { return !Commentary.Thinking; });
+                settle(20);
+                must(spokenLines.Count == 0, "A line that missed the moment still went out.");
+                Commentary.Late = 6000;
+                Commentary.Pace = Commentary.Off;
+                must(!Commentary.Trigger("hit", null, before, after), "Off still looked.");
+                Commentary.Pace = Commentary.Events;
+                freeNow = false;
+                must(!Commentary.Trigger("hit", null, before, after), "She looked while she wasn't free to talk.");
+                freeNow = true;
+                gameShown = null;
+                must(!Commentary.Trigger("hit", null, before, after), "She looked with no game in front.");
+                gameShown = "Minecraft 1.21.4 - Singleplayer";
+                Commentary.Sees = delegate { return false; };
+                must(!Commentary.Trigger("hit", null, before, after), "A brain that can't see looked at a hit.");
+                nextLine = "Lava again. It's practically your pool now.";
+                seenWidths.Clear();
+                spokenLines.Clear();
+                must(Commentary.Trigger("death", "Steve_99 tried to swim in lava", before, after), "A brain that can't see lost what the game's log said.");
+                must(spokenAre(1) && seenWidths.Count == 0, "A brain that can't see was sent frames: " + seenWidths.Count);
+                fakeNow += 30000;
+                nextLine = "Lava's starting to feel like a commute.";
+                must(Commentary.Trigger("death", "Steve_99 tried to swim in lava", before, after), "A second death wasn't looked at.");
+                must(spokenAre(2) && seenAsks[seenAsks.Count - 1].IndexOf("That's 2 deaths since you started watching", StringComparison.Ordinal) >= 0, "Her running count of deaths is wrong: " + seenAsks[seenAsks.Count - 1]);
+                Commentary.Sees = seesWas;
+                Commentary.Reset();
+                spokenLines.Clear();
+                string[] recentLines = { "That creeper waited for you specifically.", "Chests hate you now." };
+                must(Commentary.Line("That creeper waited for you specifically!", recentLines) == "", "She repeated a line word for word.");
+                must(Commentary.Line("That zombie waited for you too.", recentLines) == "", "She repeated the shape of a line.");
+                must(Commentary.Line("Skeleton got you from across the ravine.", recentLines) == "Skeleton got you from across the ravine.", "A fresh line was dropped.");
+                must(Commentary.Line("SAY: Skeleton got you from across the ravine.", recentLines) == "Skeleton got you from across the ravine.", "A labelled line wasn't read.");
+                must(Commentary.Shaped("Hit by a train.", "Hit by a bus.") && !Commentary.Shaped("Clean shot.", "Good aim on that one."), "Her same-shape check is wrong.");
+                string askText = Commentary.Ask("advancement", "They just got the advancement Stone Age", "Minecraft", new string[0], Commentary.Chatty, 1);
+                must(askText.IndexOf("Stone Age", StringComparison.Ordinal) >= 0 && askText.IndexOf("right now", StringComparison.Ordinal) >= 0, "Her ask lost what happened: " + askText);
+                checks.Add("PASS game comments: a trigger gets one look at shrunk before and after frames with the game's name and her last lines, and one line or none; a second trigger for the same moment is dropped, the gaps hold for Events only and Chatty, SKIP, stock lines, repeats and lines that missed the moment stay unsaid, and Off, no game or not being free means no look at all");
+
+                System.Collections.Generic.List<string> delivered = new System.Collections.Generic.List<string>();
+                commentTest = delegate(string line) { delivered.Add(line); };
+                stage.Shown.Clear();
+                job = null;
+                working = null;
+                talkState = TalkState.Off;
+                voiceUntil = 0;
+                speaker.Clear();
+                micTalked = Environment.TickCount - 5000;
+                must(CommentFree(), "She wasn't free to comment with nothing going on.");
+                CommentSay("That lava had your name on it.", "death", GameMood.Hit);
+                must(delivered.Count == 1 && stage.Shown.Contains("say That lava had your name on it.") && stage.Shown.Contains("mood Hit"), "Her comment didn't reach the stage: " + string.Join(" | ", stage.Shown.ToArray()));
+                Action<string> blocked = delegate(string why)
+                {
+                    delivered.Clear();
+                    CommentSay("This shouldn't be said.", "hit", GameMood.Hit);
+                    must(delivered.Count == 0, "She commented " + why + ".");
+                };
+                shushed = true;
+                blocked("while told to hush");
+                shushed = false;
+                pushing = true;
+                blocked("while they held her push-to-talk key");
+                pushing = false;
+                transcribing = true;
+                blocked("while she was hearing them");
+                transcribing = false;
+                micTalked = Environment.TickCount;
+                blocked("over them talking");
+                micTalked = Environment.TickCount - 5000;
+                voiceUntil = clock.Elapsed.TotalSeconds + 8;
+                blocked("over her own voice");
+                voiceUntil = 0;
+                speaker.Play(wave(32000, 9000));
+                blocked("over voice chat's voice");
+                speaker.Clear();
+                talkState = TalkState.Thinking;
+                blocked("while she was thinking of an answer");
+                job = busy;
+                working = "On it. Esc stops me.";
+                must(CommentFree(), "A job's status kept her from commenting.");
+                job = new Job("play bedwars on roblox");
+                must(!CommentFree(), "She commented on a game she's playing herself.");
+                job = busy;
+                talkState = TalkState.Off;
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Roblox", Program = "RobloxPlayerBeta" }; };
+                FullScreen = delegate { return false; };
+                must(GameAhead() == "Roblox", "A game she knows wasn't taken for one: " + GameAhead());
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" }; };
+                must(GameAhead() == null, "Discord was taken for a game: " + GameAhead());
+                FullScreen = delegate { return true; };
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Cyberpunk 2077", Program = "Cyberpunk2077" }; };
+                must(GameAhead() == "Cyberpunk 2077", "A full screen game wasn't taken for one: " + GameAhead());
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Some video - YouTube - Google Chrome", Program = "chrome" }; };
+                must(GameAhead() == null, "A full screen video was taken for a game: " + GameAhead());
+                checks.Add("PASS comment delivery: her line goes to the game stage and out, never while she's hushed, over them talking, over her own voice in any voice path, while they hold her push-to-talk key or while she's answering, and a game is told from Discord or a full screen video");
+
+                string player = null;
+                Func<string, string> parsed = delegate(string line)
+                {
+                    GameEvent happened = GameLog.Parse(line, ref player);
+                    return happened == null ? "-" : happened.Kind + ": " + happened.Detail;
+                };
+                must(parsed("[12:01:05] [Render thread/INFO]: Setting user: Steve_99") == "-" && player == "Steve_99", "She didn't pick up who's playing: " + player);
+                must(parsed("[12:02:11] [Server thread/INFO]: Steve_99 was slain by Zombie") == "death: Steve_99 was slain by Zombie", "A death wasn't read.");
+                must(parsed("[12:02:12] [Render thread/INFO]: [System] [CHAT] Steve_99 drowned") == "death: Steve_99 drowned", "A death in chat wasn't read.");
+                must(parsed("[12:02:13] [Server thread/INFO]: Steve_99 has made the advancement [Stone Age]") == "advancement: They just got the advancement Stone Age", "An advancement wasn't read.");
+                must(parsed("[12:02:14] [Server thread/INFO]: Alex has made the advancement [Stone Age]") == "-", "Someone else's advancement was taken for theirs.");
+                must(parsed("[12:02:15] [Render thread/INFO]: [System] [CHAT] <Alex> nice house") == "chat: Alex said in chat: nice house", "Chat wasn't read.");
+                must(parsed("[12:02:16] [Render thread/INFO]: [System] [CHAT] [Not Secure] <Alex> hi") == "chat: Alex said in chat: hi", "Unsigned chat wasn't read.");
+                must(parsed("[12:02:17] [Server thread/INFO]: [Not Secure] <Steve_99> hello") == "-", "Their own chat was taken for news.");
+                must(parsed("[12:02:18] [Render thread/INFO]: [System] [CHAT] Alex fell from a high place") == "chat: Alex fell from a high place", "Another player's death wasn't read as chat.");
+                must(parsed("[12:02:19] [Worker-Main-3/INFO]: Connection was killed by the host") == "-", "A log line that reads like a death counted as one.");
+                must(parsed("[12:02:20] [main/INFO]: Loaded 7 advancements") == "-" && parsed("not a log line") == "-", "Log noise counted as an event.");
+                must(GameLog.Minecraft.EndsWith(Path.Combine(Path.Combine(".minecraft", "logs"), "latest.log"), StringComparison.OrdinalIgnoreCase), "She's reading the wrong file: " + GameLog.Minecraft);
+                File.WriteAllText(logFile, "[10:00:00] [Render thread/INFO]: Setting user: Steve_99\n[10:00:10] [Server thread/INFO]: Steve_99 fell from a high place\n");
+                GameLog tail = new GameLog(logFile);
+                must(tail.Read().Count == 0, "An old session was replayed.");
+                using (FileStream game = new FileStream(logFile, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+                {
+                    Action<string> logged = delegate(string text)
+                    {
+                        byte[] bytes = System.Text.Encoding.UTF8.GetBytes(text);
+                        game.Write(bytes, 0, bytes.Length);
+                        game.Flush();
+                    };
+                    logged("[10:01:00] [Server thread/INFO]: Steve_99 was slain by Zombie\n[10:01:00] [Render thread/INFO]: [System] [CHAT] Steve_99 was slain by Zombie\n");
+                    System.Collections.Generic.List<GameEvent> found = tail.Read();
+                    must(found.Count == 1 && found[0].Kind == "death", "One death in the log wasn't one event: " + found.Count);
+                    logged("[10:02:00] [Server thread/INFO]: Steve_99 has made the adv");
+                    must(tail.Read().Count == 0, "Half a log line was read.");
+                    logged("ancement [Stone Age]\n");
+                    found = tail.Read();
+                    must(found.Count == 1 && found[0].Kind == "advancement", "A finished log line wasn't read: " + found.Count);
+                    must(tail.Read().Count == 0, "The same log line was read twice.");
+                }
+                File.WriteAllText(logFile, "[11:00:00] [Server thread/INFO]: Steve_99 drowned\n");
+                System.Collections.Generic.List<GameEvent> fresh = tail.Read();
+                must(fresh.Count == 1 && fresh[0].Kind == "death", "A new game session's log wasn't read: " + fresh.Count);
+                Commentary.Reset();
+                spokenLines.Clear();
+                seenAsks.Clear();
+                seeGo.Set();
+                Commentary.Pace = Commentary.Events;
+                Commentary.Shot = delegate { return after; };
+                Commentary.Log = new GameLog(logFile);
+                Commentary.Tick(null);
+                File.AppendAllText(logFile, "[11:01:00] [Server thread/INFO]: Steve_99 tried to swim in lava\n");
+                nextLine = "Swimming in lava. Bold stroke.";
+                Commentary.Tick(null);
+                must(spokenAre(1) && spokenLines[0] == "death|Hit|Swimming in lava. Bold stroke." && seenAsks[0].IndexOf("Steve_99 tried to swim in lava", StringComparison.Ordinal) >= 0, "A death in Minecraft's log didn't become her line: " + string.Join(" | ", spokenLines.ToArray()));
+                Commentary.Pace = Commentary.Chatty;
+                fakeNow += 60000;
+                spokenLines.Clear();
+                nextLine = "Rebuilding already? Respect.";
+                Commentary.Tick(null);
+                must(spokenAre(1) && spokenLines[0].StartsWith("scene|", StringComparison.Ordinal), "Chatty didn't look around when nothing happened: " + string.Join(" | ", spokenLines.ToArray()));
+                spokenLines.Clear();
+                nextLine = "SKIP";
+                fakeNow += 25000;
+                Commentary.Tick(null);
+                settle(40);
+                must(spokenLines.Count == 0 && !Commentary.Thinking, "Chatty looked around again too soon.");
+                Commentary.Pace = Commentary.Events;
+                fakeNow += 120000;
+                int looksBefore = seenAsks.Count;
+                Commentary.Tick(null);
+                settle(40);
+                must(seenAsks.Count == looksBefore, "Events only looked around on a timer.");
+                checks.Add("PASS Minecraft's log: deaths, their advancements and other players' chat are read from logs/latest.log by a tail that shares the file with the game, skips what came before it started, waits for whole lines, reads one death once and follows a new session, and a log event becomes her line; Chatty looks around now and then and Events only never does");
+
+                Commentary.Game = delegate { return "Minecraft"; };
+                Commentary.Free = delegate { return true; };
+                Commentary.See = seeWas;
+                Commentary.Reset();
+                spokenLines.Clear();
+                System.Collections.Generic.List<string> fastAsked = new System.Collections.Generic.List<string>();
+                string fastReply = "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"That skeleton has better aim than your whole squad.\"}],\"stop_reason\":\"end_turn\"}";
+                Brain.Anthropic = FakeServer(new[] { fastReply }, fastAsked, out fastFake);
+                headTest = null;
+                Stopwatch lineTime = Stopwatch.StartNew();
+                must(Commentary.Trigger("hit", null, before, after), "The trigger for her real head was dropped.");
+                must(spokenAre(1) && spokenLines[0].EndsWith("That skeleton has better aim than your whole squad.", StringComparison.Ordinal), "Her fastest eyes didn't give a line: " + string.Join(" | ", spokenLines.ToArray()));
+                long lineIn = lineTime.ElapsedMilliseconds;
+                must(lineIn < 3000, "A line took " + lineIn + " ms with an instant brain.");
+                must(fastAsked.Count == 1 && fastAsked[0].IndexOf("\"model\":\"claude-haiku-5-5\"", StringComparison.Ordinal) >= 0 && fastAsked[0].IndexOf("\"thinking\":{\"type\":\"disabled\"}", StringComparison.Ordinal) >= 0 && fastAsked[0].IndexOf("\"max_tokens\":120", StringComparison.Ordinal) >= 0 && fastAsked[0].IndexOf("image/jpeg", StringComparison.Ordinal) >= 0, "Her comment didn't go to Haiku with no thinking and both frames: " + (fastAsked.Count == 0 ? "nothing asked" : fastAsked[0].Substring(0, Math.Min(600, fastAsked[0].Length))));
+                fastFake.Stop();
+                System.Collections.Generic.List<string> goneAsked = new System.Collections.Generic.List<string>();
+                Brain.Anthropic = FakeServer(new[] { "!404 {\"type\":\"error\",\"error\":{\"type\":\"not_found_error\",\"message\":\"model: claude-haiku-5-5\"}}", fastReply }, goneAsked, out fastFake);
+                Brain quickest = new Brain();
+                quickest.Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5");
+                quickest.Model = "claude-sonnet-5-5";
+                string fellBack = quickest.Quick("be brief", "say hi", 50);
+                must(fellBack.EndsWith("better aim than your whole squad.", StringComparison.Ordinal) && goneAsked.Count == 2 && goneAsked[1].IndexOf("\"model\":\"claude-sonnet-5-5\"", StringComparison.Ordinal) >= 0, "Her fast head didn't fall back to her own model: " + fellBack + " / " + goneAsked.Count);
+                checks.Add("PASS her fastest eyes: on a Claude key her comments go to claude-haiku-5-5 with thinking off, a small token limit and both frames, and a key without it falls back to her own model; an instant brain lands a line in well under 3 seconds (real brain speed isn't checked here)");
+            }
+            finally
+            {
+                asideTest = null;
+                stopTest = null;
+                headTest = null;
+                doneTest = null;
+                commentTest = null;
+                job = jobWas;
+                working = workingWas;
+                brain.Remote = remoteWas;
+                brain.Model = modelWas;
+                HeadWait = headWaitWas;
+                KeyHeld = keyHeldWas;
+                Hearing.Run = hearingWas;
+                Computer.Glimpse = glimpseWas;
+                Computer.Look = lookWas;
+                Computer.Front = frontWas;
+                Computer.Shoot = shootWas;
+                Computer.Use = useWas;
+                Computer.Act = actWas;
+                FullScreen = fullWas;
+                preferences.PushVk = pushVkWas;
+                preferences.PushMods = pushModsWas;
+                local = localWas;
+                earsReady = earsWas;
+                pushing = false;
+                hidden = hiddenWas;
+                napping = napWas;
+                napAsked = napAskedWas;
+                shushed = shushWas;
+                ears.Muted = mutedWas;
+                transcribing = false;
+                voiceUntil = 0;
+                spokenLevels = null;
+                talkState = TalkState.Off;
+                speaker.Clear();
+                Commentary.Stage = stageWas;
+                Commentary.Game = gameWas;
+                Commentary.Free = freeWas;
+                Commentary.Sees = seesWas;
+                Commentary.See = seeWas;
+                Commentary.Speak = speakWas;
+                Commentary.Shot = shotWas;
+                Commentary.Clock = clockWas;
+                Commentary.Pace = paceWas;
+                Commentary.Late = lateWas;
+                Commentary.Log = logWas;
+                Commentary.Reset();
+                Brain.Anthropic = anthropicWas;
+                if (fastFake != null) fastFake.Stop();
+                try { File.Delete(logFile); }
+                catch (IOException) { }
+            }
         }
     }
 

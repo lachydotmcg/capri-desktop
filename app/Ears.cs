@@ -285,6 +285,8 @@ namespace CapriDesktop
         private double loudest = 0.05;
         private long began;
         private long until;
+        // How loud each twelfth of a second of what she's playing is, so her ears know how much of the mic is her.
+        private readonly List<double> levels = new List<double>();
 
         [DllImport("winmm.dll")] private static extern int waveOutOpen(out IntPtr device, int id, ref WaveFormat format, IntPtr callback, IntPtr instance, int flags);
         [DllImport("winmm.dll")] private static extern int waveOutPrepareHeader(IntPtr device, IntPtr header, int size);
@@ -342,7 +344,7 @@ namespace CapriDesktop
             if (rate == 0 || samples.Length == 0) return;
             Sweep();
             long now = Stopwatch.GetTimestamp();
-            if (now >= Interlocked.Read(ref until)) { began = now; shapes.Clear(); leftover.Clear(); Interlocked.Exchange(ref until, now); }
+            if (now >= Interlocked.Read(ref until)) { began = now; shapes.Clear(); leftover.Clear(); lock (levels) levels.Clear(); Interlocked.Exchange(ref until, now); }
             Interlocked.Add(ref until, samples.Length * Stopwatch.Frequency / rate);
             leftover.AddRange(samples);
             int step = Math.Max(1, rate / 12);
@@ -354,6 +356,7 @@ namespace CapriDesktop
                 loudest = Math.Max(loudest * 0.995, level);
                 int index = shapes.Count;
                 shapes.Add(level <= Math.Max(0.004, loudest * 0.08) ? -1 : level < loudest * 0.3 ? (index % 3 == 0 ? 0 : 1) : level < loudest * 0.55 ? (index % 2 == 1 ? 2 : 1) : level < loudest * 0.85 ? 3 : 4);
+                lock (levels) levels.Add(level);
             }
             leftover.RemoveRange(0, at);
             if (silent || (device == IntPtr.Zero && modern == null)) return;
@@ -377,6 +380,17 @@ namespace CapriDesktop
             return index >= 0 && index < shapes.Count ? shapes[index] : -1;
         }
 
+        // How loud she's playing now: the loudest of the last 300 ms, since the mic hears her a moment late.
+        internal double Level()
+        {
+            long now = Stopwatch.GetTimestamp();
+            if (now >= Interlocked.Read(ref until)) return 0;
+            int index = (int)((now - began) * 12 / Stopwatch.Frequency);
+            double most = 0;
+            lock (levels) for (int i = Math.Max(0, index - 3); i <= index && i < levels.Count; i++) most = Math.Max(most, levels[i]);
+            return most;
+        }
+
         internal void Clear()
         {
             if (device != IntPtr.Zero) waveOutReset(device);
@@ -384,6 +398,7 @@ namespace CapriDesktop
             Sweep();
             shapes.Clear();
             leftover.Clear();
+            lock (levels) levels.Clear();
             Interlocked.Exchange(ref until, 0);
         }
 
@@ -1712,8 +1727,10 @@ namespace CapriDesktop
         // The mic is open: Windows shows its mic-in-use icon.
         internal bool Listening { get { return mic.Listening; } }
 
-        // While she talks the mic stays open but nothing is decoded, so her own voice can't wake her.
+        // While she talks the mic stays open but nothing is decoded, so her own voice can't wake her. What it hears then still
+        // goes to Overheard, so she can tell when they talk over her.
         internal bool Held { get { return held; } set { held = value; } }
+        internal Action<short[]> Overheard;
 
         private static bool Complete(string where)
         {
@@ -1790,7 +1807,13 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (spotter == IntPtr.Zero || stream == IntPtr.Zero) return;
-                if (held) { heldWas = true; return; }
+                if (held)
+                {
+                    heldWas = true;
+                    Action<short[]> overheard = Overheard;
+                    if (overheard != null) overheard(chunk);
+                    return;
+                }
                 // What she half-heard before she spoke is dropped, so the end of her line can't finish a keyword.
                 if (heldWas) { heldWas = false; Fresh(); }
                 // A quiet room isn't decoded: only sound over three times the room's own hiss is, from half a second before
