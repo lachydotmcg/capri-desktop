@@ -1917,6 +1917,9 @@ namespace CapriDesktop
         // Any brain that can see: a picture, what it's told and what to do, and its reply. Null for Claude's own computer tools.
         internal Func<byte[], string, string, string> Seer;
         private int hitches;
+        // Her fast hands can call the advisor, and when they last did.
+        internal bool Consults;
+        private int consulted;
 
         // A game job that's about to give up because the game looks stuck, or it is, gets sent back three times at most: games hitch, and players get lost.
         private bool Hitched(string words)
@@ -2090,7 +2093,7 @@ namespace CapriDesktop
         }
 
         // A game job gets her game lines, what kind of game this is and what she's learned about it before.
-        private string Briefed() { return Playing ? Computer.Playing + GameNotes.Brief(Game()) : ""; }
+        private string Briefed() { return Playing ? Computer.Playing + (Consults ? Computer.Consulting : "") + GameNotes.Brief(Game()) : ""; }
 
         // A game job that ran a while thinks over how it went, off to the side, and keeps what it found out for next time.
         private void Reflect(string outcome, string said)
@@ -2350,6 +2353,7 @@ namespace CapriDesktop
                     foreach (ClaudeBlock block in reply.Content)
                     {
                         if (block.Type == "tool_use") calls.Add(block);
+                        else if (block.Type == "server_tool_use") consulted = turns;
                         else if (block.Type == "text" && block.Text != null) said.Append(block.Text).Append(' ');
                     }
                 if (calls.Count == 0)
@@ -2366,7 +2370,7 @@ namespace CapriDesktop
                     if (question) return End("asked", words);
                     if (Hitched(words))
                     {
-                        talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.Hitch) + "}]}");
+                        talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Consults ? Computer.HitchAsk : Computer.Hitch) + "}]}");
                         continue;
                     }
                     return End("done", words.Length > 0 ? words : Summary());
@@ -2600,6 +2604,12 @@ namespace CapriDesktop
                 if (final.Error) after = ",{\"type\":\"text\",\"text\":\"The screen now:\"}" + Latest();
                 else final.Picture = Latest();
             }
+            // Asking is up to her, and a lost brain is the last to notice, so she's reminded every 30 turns.
+            if (Consults && Playing && turns - consulted >= 30)
+            {
+                consulted = turns;
+                after += ",{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.AskAdvisor) + "}";
+            }
             List<string> content = new List<string>();
             foreach (Answered answer in answers)
                 content.Add("{\"type\":\"tool_result\",\"tool_use_id\":" + Voice.Quote(answer.Call.Id ?? "") + (answer.Call.Toolset != null ? ",\"toolset_name\":" + Voice.Quote(answer.Call.Toolset) : "") + (answer.Error ? ",\"is_error\":true" : "") + ",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(answer.Text) + "}" + answer.Picture + "]}");
@@ -2614,12 +2624,18 @@ namespace CapriDesktop
             if (trace == null) return;
             StringBuilder line = new StringBuilder("turn " + turns + " " + clock.ElapsedMilliseconds + " ms stop " + reply.StopReason);
             if (reply.Usage != null) line.Append(" fresh " + reply.Usage.Fresh + " cached " + reply.Usage.Cached + " stored " + reply.Usage.Stored + " out " + reply.Usage.Written);
+            if (reply.Usage != null && reply.Usage.Iterations != null)
+                foreach (ClaudeIteration asked in reply.Usage.Iterations)
+                    if (asked.Type != "message") line.Append(" | " + asked.Type + " " + asked.Model + " read " + asked.Fresh + " reread " + asked.Cached + " kept " + asked.Stored + " wrote " + asked.Written);
             if (reply.Content != null)
                 foreach (ClaudeBlock block in reply.Content)
                 {
                     if (block.Type == "text" && block.Text != null) line.Append(" | says: " + block.Text.Replace("\n", " "));
                     else if (block.Type == "tool_use") line.Append(" | " + block.Name + " " + Computer.Traced(block.Input));
+                    else if (block.Type == "server_tool_use") line.Append(" | asked " + block.Name);
                 }
+            Match refused = Regex.Match(reply.Raw ?? "", "\"error_code\"\\s*:\\s*\"(\\w+)\"");
+            if (refused.Success) line.Append(" | advisor failed: " + refused.Groups[1].Value);
             trace(line.ToString());
         }
 

@@ -661,7 +661,7 @@ namespace CapriDesktop
             clipMoments = Switch("Save big moments", c, 1232, delegate { if (!syncing) capri.ToggleClipMoments(); });
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
             fastHands = Switch("Fast hands in games", c, 1260, delegate { if (!syncing) capri.ToggleFastHands(); });
-            fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less, while chat stays on the brain you picked";
+            fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. She asks the brain you picked when she's stuck, and chat stays on it";
             Caption("Her HUD reacts to your game until you close it.", 28 + c, 1288, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {

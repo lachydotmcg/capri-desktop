@@ -5842,6 +5842,7 @@ namespace CapriDesktop
             Cloud driver = brain.Remote;
             // A game job thinks harder on every turn, on her fast hands unless they've turned those off.
             running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing, running.Playing && !preferences.SlowHands); }) : null;
+            running.Consults = running.Drive != null && !preferences.SlowHands && brain.Advises;
             // Anything else that can see plays from pictures.
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
@@ -12689,7 +12690,7 @@ namespace CapriDesktop
                 System.Threading.Thread.Sleep(0);
                 if (playLines.Count != 2 || playLines[1] != "Eat dirt.") throw new Exception("A fresh game job couldn't talk.");
                 if (Computer.Moves("say{\"text\": \"Eat dirt.\"}\nclick{\"x\": 50, \"y\": 48}").Count != 2 || Computer.Moves("say{\"text\": \"Eat dirt.\"}")[0].Key != "say") throw new Exception("A written say wasn't read as a move.");
-                if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || !Computer.GivingUp("I didn't finish the job.") || Computer.GivingUp("Lost at round 39 with 3 towers.") || Computer.GivingUp("Couldn't find any more enemies, so the level's clear.") || !Computer.GivingUp("I stopped here because I'm wedged against a wall and I haven't found a single enemy.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
+                if (!Computer.GivingUp("I'm stuck: the game has stopped responding.") || !Computer.GivingUp("It froze.") || !Computer.GivingUp("I didn't finish the job.") || !Computer.GivingUp("I stopped before finishing the job: 2 logs and no planks.") || Computer.GivingUp("Lost at round 39 with 3 towers.") || Computer.GivingUp("Couldn't find any more enemies, so the level's clear.") || !Computer.GivingUp("I stopped here because I'm wedged against a wall and I haven't found a single enemy.") || Computer.GivingUp("Won the map with 88 lives left.")) throw new Exception("A game job's giving up was read wrong.");
                 checks.Add("PASS she says lines out loud while she plays, one sentence at a time and only in games");
                 if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
                 Func<string, bool> localSeesWas = Brain.LocalSees;
@@ -13276,6 +13277,29 @@ namespace CapriDesktop
                 if (!SentBody(asked[asked.Count - 1]).Contains("\"model\":\"" + Brain.Fastest + "\"")) throw new Exception("Fast hands didn't reach her game job.");
                 local.Drive("Tools", "[]", "[]", true);
                 if (!SentBody(asked[asked.Count - 1]).Contains("\"model\":" + Voice.Quote(local.Remote.Model))) throw new Exception("With fast hands off she left the brain they picked.");
+                // Her fast hands can ask the brain they picked, and a key without the advisor plays without it.
+                Cloud wasPicked = local.Remote;
+                local.Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5");
+                string offered = "{\"type\":\"advisor_20260301\",\"name\":\"advisor\",\"model\":\"claude-sonnet-5-5\",";
+                local.Drive("Tools", "[]", "[]", true, true);
+                if (!local.Advises || Brain.Field(SentBody(asked[asked.Count - 1]), "tools").IndexOf("[" + offered, StringComparison.Ordinal) != 0 || asked[asked.Count - 1].IndexOf("anthropic-beta: thinking-binding-controls-2026-08-01,advisor-tool-2026-03-01\r\n", StringComparison.OrdinalIgnoreCase) < 0) throw new Exception("Fast hands didn't offer the advisor: " + asked[asked.Count - 1]);
+                local.Drive("Tools", "[{\"name\":\"a\"}]", "[]", true, true);
+                if (Brain.Field(SentBody(asked[asked.Count - 1]), "tools").IndexOf("[{\"name\":\"a\"}," + offered, StringComparison.Ordinal) != 0) throw new Exception("The advisor lost her other tools.");
+                local.Drive("Tools", "[]", "[]", true);
+                if (SentBody(asked[asked.Count - 1]).Contains("advisor_20260301")) throw new Exception("The brain they picked was offered itself.");
+                local.Drive("Tools", "[]", "[{\"type\":\"advisor_tool_result\"}]", true);
+                if (!SentBody(asked[asked.Count - 1]).Contains(offered)) throw new Exception("A job with an advisor's answer stopped offering it, which the API refuses.");
+                local.Remote = new Cloud("sk-ant-test", Brain.Fastest);
+                local.Drive("Tools", "[]", "[]", true, true);
+                if (local.Advises || SentBody(asked[asked.Count - 1]).Contains("advisor_20260301")) throw new Exception("Haiku was offered itself as an advisor.");
+                local.Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5");
+                replies[asked.Count + 1] = "!400 {\"error\":{\"message\":\"advisor-tool-2026-03-01 isn't available here\"}}";
+                local.Drive("Tools", "[]", "[]", true);
+                int beforeRefusal = asked.Count;
+                local.Drive("Tools", "[]", "[]", true, true);
+                if (asked.Count != beforeRefusal + 2 || SentBody(asked[asked.Count - 1]).Contains("advisor_20260301") || local.Advises) throw new Exception("A key without the advisor couldn't play.");
+                local.Remote = wasPicked;
+                checks.Add("PASS advisor: fast hands offer the brain they picked beside her other tools with its beta, not on the brain they picked or on Haiku, keep offering it once it's answered, and play on without it when a key refuses it");
                 local.Remote = null;
                 local.Step("Tools", "Next", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
                 if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "8192") throw new Exception("A job ignored a larger reply setting.");

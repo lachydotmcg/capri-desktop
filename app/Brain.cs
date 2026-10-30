@@ -220,6 +220,19 @@ namespace CapriDesktop
         [DataMember(Name = "output_tokens")] public long Written;
         [DataMember(Name = "cache_read_input_tokens")] public long Cached;
         [DataMember(Name = "cache_creation_input_tokens")] public long Stored;
+        [DataMember(Name = "iterations")] public ClaudeIteration[] Iterations;
+    }
+
+    // What one model did inside a turn, like the advisor she asked.
+    [DataContract]
+    internal sealed class ClaudeIteration
+    {
+        [DataMember(Name = "type")] public string Type;
+        [DataMember(Name = "model")] public string Model;
+        [DataMember(Name = "input_tokens")] public long Fresh;
+        [DataMember(Name = "output_tokens")] public long Written;
+        [DataMember(Name = "cache_read_input_tokens")] public long Cached;
+        [DataMember(Name = "cache_creation_input_tokens")] public long Stored;
     }
 
     [DataContract]
@@ -2047,6 +2060,17 @@ namespace CapriDesktop
         }
 
         // Claude 5.5 and the other toolset models drive the mouse and keyboard from screenshots themselves.
+        // Her fast hands can ask the brain they picked, when that's a bigger one.
+        internal bool Advises { get { Cloud remote = Remote; return remote != null && Drives && !noFastest && !noAdvisor && !remote.Model.StartsWith("claude-haiku", StringComparison.Ordinal); } }
+        private volatile bool noAdvisor;
+
+        // The API's advisor tool: Claude's servers run the bigger brain over the whole job, and one ask a turn keeps the bill down.
+        private static string Offering(string tools, string model)
+        {
+            string advisor = "{\"type\":\"advisor_20260301\",\"name\":\"advisor\",\"model\":" + Voice.Quote(model) + ",\"max_uses\":1,\"max_tokens\":4096,\"caching\":{\"type\":\"ephemeral\",\"ttl\":\"5m\"}}";
+            return tools == "[]" ? "[" + advisor + "]" : tools.Substring(0, tools.LastIndexOf(']')) + "," + advisor + "]";
+        }
+
         internal bool Drives { get { Cloud remote = Remote; return remote != null && remote.Claude && Regex.IsMatch(remote.Model ?? "", @"^claude-((opus|sonnet)-5|haiku-5-5|(fable|mythos)-5|opus-4-8)"); } }
 
         // A game gets room to think on every turn (Lachy, 30 Oct, after her live stream: "they seemingly weren't getting enough
@@ -2075,6 +2099,8 @@ namespace CapriDesktop
             Cloud remote = Remote;
             if (remote == null || !remote.Claude) throw new BrainException(Offline);
             string model = fast && !noFastest ? Fastest : remote.Model;
+            // A job that's had an answer from the advisor has to keep offering it, or the request is refused.
+            bool answered = messages.IndexOf("\"advisor_tool_result\"", StringComparison.Ordinal) >= 0, advising = answered || (model == Fastest && Advises);
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
             // Her hands keep only the newest three pictures, which changes earlier turns. These models bind each thinking block to
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
@@ -2082,8 +2108,9 @@ namespace CapriDesktop
             bool bound = Regex.IsMatch(model, @"^claude-(opus-5-5|sonnet-5-5|fable-5-1|haiku-5-5)");
             int limit = ReplyLimit(deep ? DeepTokens : 4096, true);
             string body = "{\"model\":" + Voice.Quote(model) + ",\"max_tokens\":" + limit + (bound ? ",\"thinking\":{\"type\":\"adaptive\",\"block_binding\":{\"prefix_mismatch_behavior\":\"drop_block\"}}" : "")
-                + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + tools + ",\"output_config\":{\"effort\":\"" + (deep ? "high" : "low") + "\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
+                + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + (advising ? Offering(tools, remote.Model) : tools) + ",\"output_config\":{\"effort\":\"" + (deep ? "high" : "low") + "\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
             string betas = (fallback ? "server-side-fallback-2026-07-01" : "") + (fallback && bound ? "," : "") + (bound ? "thinking-binding-controls-2026-08-01" : "");
+            if (advising) betas += (betas.Length > 0 ? "," : "") + "advisor-tool-2026-03-01";
             string text;
             try
             {
@@ -2096,6 +2123,12 @@ namespace CapriDesktop
             }
             catch (BrainException error)
             {
+                // A key without the advisor plays without it.
+                if (advising && !answered && error.Message.IndexOf("advisor", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    noAdvisor = true;
+                    return Drive(system, tools, messages, deep, fast, ticket);
+                }
                 // Their key doesn't have the fast model, so the game runs on the brain they picked.
                 if (model == remote.Model || error.Message != Gone) throw;
                 noFastest = true;
