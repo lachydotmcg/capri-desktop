@@ -1,6 +1,6 @@
 import os, subprocess, pathlib, signal, time, sys
 root=pathlib.Path(__file__).resolve().parents[2]
-out=pathlib.Path(sys.argv[1]).resolve();out.mkdir(exist_ok=False,mode=0o700)
+out=pathlib.Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=False,mode=0o700)
 env=os.environ.copy()
 for key in ['WAYLAND_DISPLAY','HYPRLAND_INSTANCE_SIGNATURE','DBUS_SESSION_BUS_ADDRESS']:env.pop(key,None)
 for key,name in [('XDG_CONFIG_HOME','config'),('XDG_CACHE_HOME','cache'),('XDG_DATA_HOME','data'),('XDG_STATE_HOME','state'),('XDG_RUNTIME_DIR','runtime')]:

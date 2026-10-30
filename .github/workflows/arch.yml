@@ -28,6 +28,7 @@ jobs:
             cd package
             makepkg --noconfirm
             bash src/capri/ci/check-linux.sh
+            bash src/capri/ci/check-mainframe.sh /output/mainframe
             cp ./*.pkg.tar.zst /output/
             cp /toolchain-packages.txt /output/
             cp SOURCE.json /output/
