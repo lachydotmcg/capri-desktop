@@ -23825,6 +23825,10 @@ namespace CapriDesktop
                 FullScreen = delegate { return true; };
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Cyberpunk 2077", Program = "Cyberpunk2077" }; };
                 must(GameAhead() == "Cyberpunk 2077", "A full screen game wasn't taken for one: " + GameAhead());
+                foreach (string gamePath in new[] { @"D:\Epic Games\Cyberpunk2077\bin\x64\Cyberpunk2077.exe", @"C:\Program Files (x86)\Steam\steamapps\common\Hades\x64\Hades.exe", @"C:\Riot Games\VALORANT\live\VALORANT.exe", @"C:\XboxGames\Forza\Content\forza.exe" })
+                    must(Computer.GamePath(gamePath), "A game's folder wasn't taken for one: " + gamePath);
+                foreach (string notGame in new[] { @"C:\Program Files\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe", @"C:\Riot Games\Riot Client\RiotClientServices.exe", @"C:\Windows\notepad.exe" })
+                    must(!Computer.GamePath(notGame), "A launcher was taken for a game: " + notGame);
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Some video - YouTube - Google Chrome", Program = "chrome" }; };
                 must(GameAhead() == null, "A full screen video was taken for a game: " + GameAhead());
                 checks.Add("PASS comment delivery: her line goes to the game stage and out, never while she's hushed, over them talking, over her own voice in any voice path, while they hold her push-to-talk key or while she's answering, and a game is told from Discord or a full screen video");

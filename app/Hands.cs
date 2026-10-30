@@ -498,7 +498,7 @@ namespace CapriDesktop
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it.
         internal static string GameNote(string game)
         {
-            return string.IsNullOrEmpty(game) ? "" : "\nThe game open on their PC right now is " + Voice.Quote(game) + ". If they want you to play, or want anything done in it, like starting a match, picking a mode or clicking something, call use_computer with their words, and don't open it again.";
+            return string.IsNullOrEmpty(game) ? "" : "\nThe game open on their PC right now is " + Voice.Quote(game) + ". If they want you to play, or want anything done in it, like starting a match, picking a mode, opening or closing its map or menus, or clicking something, call use_computer with their words, and don't open it again.";
         }
 
         private static readonly string[,] Specs =

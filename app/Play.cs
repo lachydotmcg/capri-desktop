@@ -170,7 +170,7 @@ namespace CapriDesktop
             return string.Join(" ", parts.ToArray());
         }
 
-        private static readonly Regex GameFolders = new Regex(@"\\(steamapps\\common|epic games\\(?!launcher\\|epic online)|riot games\\(?!riot client\\)|gog games|ea games|ubisoft game launcher\\games|xboxgames\\(?!minecraft launcher)|roblox\\versions|wildgames)\\", RegexOptions.IgnoreCase);
+        private static readonly Regex GameFolders = new Regex(@"\\(steamapps\\common\\|epic games\\(?!launcher\\|epic online)|riot games\\(?!riot client\\)|gog games\\|ea games\\|ubisoft game launcher\\games\\|xboxgames\\(?!minecraft launcher)|roblox\\versions\\|wildgames\\)", RegexOptions.IgnoreCase);
         private static readonly Regex NotGames = new Regex(@"wallpaper.?engine|steamvr|steamworks|soundpad|aseprite|blender|\\launcher\\|crashreport|anticheat", RegexOptions.IgnoreCase);
         private static readonly Regex Browsers = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|arc)$", RegexOptions.IgnoreCase);
 
@@ -179,6 +179,8 @@ namespace CapriDesktop
         [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
 
         // Whether a window's program lives where games get installed, so any game counts, not just the ones she knows by name.
+        internal static bool GamePath(string path) { return GameFolders.IsMatch(path) && !NotGames.IsMatch(path); }
+
         internal static bool GameExe(IntPtr window)
         {
             int process;
@@ -189,7 +191,7 @@ namespace CapriDesktop
             {
                 StringBuilder path = new StringBuilder(1024);
                 int size = path.Capacity;
-                return QueryFullProcessImageName(handle, 0, path, ref size) && GameFolders.IsMatch(path.ToString()) && !NotGames.IsMatch(path.ToString());
+                return QueryFullProcessImageName(handle, 0, path, ref size) && GamePath(path.ToString());
             }
             finally { CloseHandle(handle); }
         }
