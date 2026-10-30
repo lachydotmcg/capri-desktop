@@ -427,7 +427,16 @@ namespace CapriDesktop
     internal static class Hands
     {
         // Her chat and voice chat line about her tools, with SECURITY's line after it while one of her tools' toggles is off.
-        internal static string Note { get { return Noted + Security.Note; } }
+        internal static string Note { get { return Noted + Security.Note + MiniNote + MiniBoard(); } }
+
+#if CROSS
+        private const string MiniNote = "";
+#else
+        private const string MiniNote = "\nYour own desktop boards are tic-tac-toe, connect four and rock paper scissors. Use mini_game for those exact games, with name tic_tac_toe, connect_four or rock_paper_scissors. A request to play online belongs in their browser. Other games keep using open_app or use_computer. While your board is open, mini_game action move takes their square, column or choice as text; again starts another round and close puts it away. Board chat is ordinary conversation: answer from the position below.";
+#endif
+        internal static Func<string> MiniBoard = delegate { return ""; };
+        internal static Func<string, ToolArguments> MiniInput = delegate { return null; };
+        internal static Func<ToolArguments, string> Mini = delegate { return "Couldn't open the board just now."; };
 
         private const string Noted =
             "\nYou have tools for their PC: open (launch, play) their apps and games, switch to, minimize or close apps that are open, play songs or videos they name, open websites or search them, control their music and volume, look at their screen, and use their mouse and keyboard for jobs inside apps and sites. " +
@@ -448,7 +457,7 @@ namespace CapriDesktop
 
         // Her hands' prompt. While one of her tools' toggles is off in SECURITY, its line goes in after "Call the tool.", so she
         // still calls it and Capri asks them.
-        internal static string Prompt { get { string note = Security.Note; return note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n"); } }
+        internal static string Prompt { get { string note = Security.Note; return (note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote; } }
 
         private const string Handing =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You don't chat.\n" +
@@ -487,6 +496,10 @@ namespace CapriDesktop
 
         private static readonly string[,] Specs =
         {
+#if !CROSS
+            { "mini_game", "Play your own tic-tac-toe, connect four or rock paper scissors board beside you. Only these three games; online play goes to their browser. A move uses their square, column or rock/paper/scissors as text. again starts a new round; close closes your board.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move\"}},\"required\":[\"name\"]}" },
+#endif
             { "open_app", "Open, launch or play an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name\"}},\"required\":[\"name\"]}" },
             { "open_website", "Open a website in their browser, or search a site like YouTube or Google.",
@@ -752,6 +765,7 @@ namespace CapriDesktop
                     if (!string.IsNullOrEmpty(args.Seconds) && (!int.TryParse(args.Seconds, out clipSeconds) || clipSeconds <= 0)) return "How many seconds should I clip?";
                     return SaveClip(clipSeconds);
                 }
+                if (tool == "mini_game") return Mini(args);
                 return "There's no tool called " + tool + ".";
             }
             catch (Exception error) { return "That didn't work: " + error.Message; }
@@ -1494,6 +1508,17 @@ namespace CapriDesktop
             string gaming = GamingFor(text);
             if (gaming != null) { tool = "gaming_mode"; args.Action = gaming; return true; }
             if (Chatter.IsMatch(text) || Regex.IsMatch(text, @"\b(if|unless|until|after|before|when) (i|you|we|it|the)\b", RegexOptions.IgnoreCase)) return false;
+#if !CROSS
+            string miniName = MiniName(text);
+            if (miniName != null) { tool = "mini_game"; args.Name = miniName; args.Action = "open"; return true; }
+            string miniWeb = Regex.Replace(text, @"\s+online\b", "", RegexOptions.IgnoreCase);
+            if (miniWeb != text && MiniName(miniWeb) != null)
+            {
+                tool = "open_website"; args.Site = "google"; args.Search = text; return true;
+            }
+            ToolArguments miniMove = MiniInput(text);
+            if (miniMove != null) { tool = "mini_game"; args = miniMove; return true; }
+#endif
             string minutes;
             string switched = PowerFor(text, out minutes);
             if (switched != null) { tool = "power"; args.Action = switched; args.Minutes = minutes; return true; }
@@ -1586,6 +1611,14 @@ namespace CapriDesktop
         }
 
         private static readonly Regex LooseText = new Regex(@"\b(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate)\s*(\{[^{}]*\}|\([^()]*\))");
+
+        internal static string MiniName(string text)
+        {
+            Match mini = Regex.Match(text ?? "", @"^(?:(?:(?:wanna|want to|let's|lets|shall we|can we)\s+)?play\s+)?(tic[ -]?tac[ -]?toe|connect[ -](four|4)|rock[ ,]+paper[ ,]+scissors)(?:\s+with\s+(me|you))?$", RegexOptions.IgnoreCase);
+            if (!mini.Success) return null;
+            string name = mini.Groups[1].Value.ToLowerInvariant();
+            return name.StartsWith("tic", StringComparison.Ordinal) ? "tic_tac_toe" : name.StartsWith("connect", StringComparison.Ordinal) ? "connect_four" : "rock_paper_scissors";
+        }
         private static readonly Regex ToolPair = new Regex(@"[""']?(\w+)[""']?\s*[:=]\s*(?:""([^""]*)""|'([^']*)'|([^,})\s][^,})]*))");
 
         private static ToolArguments Pairs(string tool, string call)
@@ -1623,7 +1656,7 @@ namespace CapriDesktop
             else if (key == "screen") args.Screen = value;
         }
 
-        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate|clip)\s*(\{.*\})\z", RegexOptions.Singleline);
+        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate|clip|mini_game)\s*(\{.*\})\z", RegexOptions.Singleline);
 
         internal static bool Typed(string reply, out string tool, out ToolArguments args, bool loose = false)
         {
@@ -1647,7 +1680,7 @@ namespace CapriDesktop
             return true;
         }
 
-        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate|clip";
+        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate|clip|mini_game";
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
         private static readonly Regex NamedInside = new Regex(@"""name""\s*:\s*""(" + ToolNames + @")""");
         private static readonly Regex GivenInside = new Regex(@"""(?:arguments|parameters)""\s*:\s*\{");
@@ -1763,6 +1796,7 @@ namespace CapriDesktop
                 return args != null && (string.IsNullOrEmpty(args.Seconds) || (int.TryParse(args.Seconds, out duration) && duration > 0));
             }
             if (args == null) return false;
+            if (tool == "mini_game") return Regex.IsMatch(args.Name ?? "", @"\A(tic_tac_toe|connect_four|rock_paper_scissors)\z") && (string.IsNullOrEmpty(args.Action) || Regex.IsMatch(args.Action, @"\A(open|again|close|move)\z")) && (args.Action != "move" || Named(args.Text));
             if (tool == "open_app") return Named(args.Name);
             if (tool == "open_website") return Named(args.Site);
             if (tool == "look_at_screen") return true;

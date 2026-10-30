@@ -1566,6 +1566,7 @@ namespace CapriDesktop
             Hands.Animate = AnimateTool;
             Hands.SaveClip = clips.Clip;
             clips.Enable(!testing && preferences.ClipGames);
+            SetUpMinis();
             SetUpGaming();
             Hands.Hush = Computer.Mask;
             Computer.Grab = HandsGrab;
@@ -7995,6 +7996,8 @@ namespace CapriDesktop
             dropping = false;
             repeating = false;
             bargedUntil = -1;
+            if (VoiceMini(text)) return;
+            if (agent != null && miniContext.Length > 0) agent.Tell(miniContext);
             string tool = null;
             ToolArguments args = null;
             // Their yes to her asking first (SECURITY) runs what she held, like a shortcut, and their no leaves it.
@@ -8190,6 +8193,7 @@ namespace CapriDesktop
             if (text.Length == 0) return;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
             if (text.Length > 240 && planned.Key == null) text = text.Substring(0, 240);
+            if (prompt == "> you: " && HearMini(text)) return;
             // Mid-job, what they say goes to the job instead of cancelling it: she says she's got it, does it, then carries on
             // (Lachy, 29 Oct: "she needs to actually listen to me mid way through").
             // Now it's two heads: the job runs on while her fast brain sorts what they said and answers (Asides.cs).
@@ -8852,6 +8856,8 @@ namespace CapriDesktop
             if (disposing)
             {
                 clips.Dispose();
+                CloseMinis();
+                miniTicks.Dispose();
                 clickDelay.Dispose();
                 frames.Dispose();
                 chatTail.Dispose();
@@ -10634,6 +10640,285 @@ namespace CapriDesktop
         }
 
         // Asks to play or use a game reach her hands in any language, whatever her brain's chat reply says.
+        private sealed class MiniDice : Random
+        {
+            public override int Next(int maximum) { return 0; }
+        }
+
+        private static int MinisUnbeaten(int[] cells, int turn)
+        {
+            int result = MiniGame.Outcome(cells, false);
+            if (result == 1) throw new Exception("Her perfect tic-tac-toe lost.");
+            if (result != 0) return 1;
+            int games = 0;
+            if (turn == 2)
+            {
+                int move = MiniGame.TicMove(cells, false, null);
+                cells[move] = 2;
+                games = MinisUnbeaten(cells, 1);
+                cells[move] = 0;
+            }
+            else for (int choice = 0; choice < 9; choice++)
+            {
+                if (cells[choice] != 0) continue;
+                cells[choice] = 1;
+                games += MinisUnbeaten(cells, 2);
+                cells[choice] = 0;
+            }
+            return games;
+        }
+
+        private void SmokeMinis(System.Collections.Generic.List<string> checks)
+        {
+            Action<bool, string> must = delegate(bool okay, string why) { if (!okay) throw new Exception(why); };
+            int[,] lines = { { 0, 1, 2 }, { 3, 4, 5 }, { 6, 7, 8 }, { 0, 3, 6 }, { 1, 4, 7 }, { 2, 5, 8 }, { 0, 4, 8 }, { 2, 4, 6 } };
+            for (int owner = 1; owner <= 2; owner++)
+                for (int line = 0; line < 8; line++)
+                {
+                    int[] won = new int[9];
+                    for (int mark = 0; mark < 3; mark++) won[lines[line, mark]] = owner;
+                    must(MiniGame.Outcome(won, false) == owner, "A tic-tac-toe winning line was missed.");
+                }
+            int[] tied = { 1, 2, 1, 1, 2, 2, 2, 1, 1 };
+            must(MiniGame.Outcome(tied, false) == 3 && MiniGame.Outcome(new int[9], false) == 0, "Tic-tac-toe draw or empty board was wrong.");
+            MiniGame tiedGame = new MiniGame("tic_tac_toe", new MiniScore(), new Random(2));
+            Array.Copy(tied, tiedGame.Cells, 9); tiedGame.Cells[8] = 0;
+            must(tiedGame.Move(8) && tiedGame.Result == 3 && tiedGame.Score.Draws == 1, "A drawn game didn't reach the session score.");
+            int endings = MinisUnbeaten(new int[9], 1);
+            int throws = 0;
+            for (int seed = 0; seed < 400; seed++)
+            {
+                MiniGame forgiving = new MiniGame("tic_tac_toe", new MiniScore(), new Random(seed));
+                forgiving.Move(0);
+                if (MiniGame.TicValue(forgiving.Cells, 1) < 0) throws++;
+            }
+            must(throws >= 85 && throws <= 115, "Her wrong move wasn't about one game in four: " + throws);
+            checks.Add("PASS minis: all tic-tac-toe wins and draws; perfect minimax never loses across " + endings + " user continuations; " + throws + " of 400 seeded games give an opening");
+
+            int[,] fourLines = { { 35, 36, 37, 38 }, { 3, 10, 17, 24 }, { 14, 22, 30, 38 }, { 20, 26, 32, 38 } };
+            for (int fourOwner = 1; fourOwner <= 2; fourOwner++)
+                for (int fourLine = 0; fourLine < 4; fourLine++)
+                {
+                    int[] wonFour = new int[42];
+                    for (int fourMark = 0; fourMark < 4; fourMark++) wonFour[fourLines[fourLine, fourMark]] = fourOwner;
+                    must(MiniGame.Outcome(wonFour, true) == fourOwner, "Connect four missed a direction.");
+                }
+            int[] filled = new int[42];
+            for (int disc = 0; disc < 6; disc++)
+            {
+                int landing = MiniGame.Landing(filled, 2);
+                must(landing == (5 - disc) * 7 + 2, "A disc didn't fall to the bottom.");
+                filled[landing] = disc % 2 + 1;
+            }
+            must(MiniGame.Landing(filled, 2) == -1 && MiniGame.Landing(filled, -1) == -1 && MiniGame.Landing(filled, 7) == -1, "A full or missing column accepted a disc.");
+            must(MiniGame.FourMove(filled, new Random(8)) != 2, "She chose a full column.");
+            int[] fourDraw = new int[42];
+            string drawRows = "112211222112211122112221122111221122211221";
+            for (int drawCell = 0; drawCell < 42; drawCell++) fourDraw[drawCell] = drawRows[drawCell] - '0';
+            must(MiniGame.Outcome(fourDraw, true) == 3, "Connect four's full draw was wrong.");
+            int[] tactical = new int[42];
+            tactical[35] = tactical[36] = tactical[37] = 2;
+            must(MiniGame.FourMove(tactical, new Random(9)) == 3, "She missed her fourth disc.");
+            tactical[35] = tactical[36] = tactical[37] = 1;
+            must(MiniGame.FourMove(tactical, new Random(10)) == 3, "She missed the block.");
+            int[] wrapped = new int[42];
+            wrapped[33] = wrapped[34] = wrapped[35] = wrapped[36] = 1;
+            must(MiniGame.Outcome(wrapped, true) == 0, "Connect four wrapped a row into a win.");
+            MiniGame fullGame = new MiniGame("connect_four", new MiniScore(), new Random(11));
+            Array.Copy(filled, fullGame.Cells, 42);
+            must(!fullGame.Move(2) && fullGame.Cells[2] == filled[2], "A full column changed the game.");
+            checks.Add("PASS minis: connect four wins in all directions, draws, gravity, full columns, a depth-five win and block, and no row wrapping");
+
+            for (int yourHand = 0; yourHand < 3; yourHand++)
+                for (int herHand = 0; herHand < 3; herHand++)
+                {
+                    int expected = yourHand == herHand ? 0 : (yourHand == 0 && herHand == 2) || (yourHand == 1 && herHand == 0) || (yourHand == 2 && herHand == 1) ? 1 : 2;
+                    must(MiniGame.HandResult(yourHand, herHand) == expected, "Rock paper scissors got a pair wrong.");
+                }
+            MiniScore rpsScore = new MiniScore();
+            MiniGame rps = new MiniGame("rock_paper_scissors", rpsScore, new MiniDice());
+            rps.Move(0);
+            must(rps.You == 0 && rps.Her == 0 && rps.Result == 0, "Tied hands scored a point.");
+            rps.Move(1); rps.Move(1);
+            must(rps.Result == 0 && rps.You == 2, "Rock paper scissors ended before three.");
+            rps.Move(1);
+            must(rps.Result == 1 && rpsScore.You == 1 && !rps.Move(2), "First to three did not end exactly once.");
+            rps.Again(); rps.Move(2); rps.Move(2); rps.Move(2);
+            must(rps.Result == 2 && rpsScore.Her == 1 && rpsScore.You == 1, "A rematch lost the session score.");
+            checks.Add("PASS minis: all nine hand pairs, ties, first to three, no moves after the result, and session scores across rematches");
+
+            MiniGame written = new MiniGame("tic_tac_toe", new MiniScore(), new Random(13));
+            written.Cells[0] = 1; written.Cells[4] = 2;
+            must(written.BoardText().Contains("X . .\n. O .\n. . .\n") && written.BoardText().Contains("User to move") && written.BoardText().Contains("X = user, O = Capri"), "The board text didn't match its cells and turn.");
+            must(fullGame.BoardText().Contains("1 2 3 4 5 6 7") && rps.BoardText().Contains("Capri points: 3") && rps.BoardText().Contains("user scissors, Capri rock"), "A board's columns or hands were missing from her context.");
+            must(MiniGame.Input("tic_tac_toe", "top left") == 0 && MiniGame.Input("tic_tac_toe", "middle") == 4 && MiniGame.Input("tic_tac_toe", "bottom right") == 8 && MiniGame.Input("connect_four", "column 3") == 2 && MiniGame.Input("connect_four", "column seven") == 6 && MiniGame.Input("rock_paper_scissors", "rock") == 0 && MiniGame.Input("tic_tac_toe", "nice one") == -1, "Board moves stole chat or missed a move.");
+            MiniChat chatter = new MiniChat();
+            MiniDice rolls = new MiniDice();
+            chatter.Observe(written, 0, rolls);
+            must(chatter.Count == 0, "She spoke for every move.");
+            chatter.Observe(written, 0, rolls);
+            must(chatter.Take(0) != null, "An occasional comment was lost.");
+            chatter.Last = 0;
+            written.Result = 1; chatter.Observe(written, 1, rolls);
+            written.Result = 2; chatter.Observe(written, 2, rolls);
+            written.Result = 3; chatter.Observe(written, 3, rolls);
+            must(chatter.Take(7.99) == null && chatter.Count == 3, "An outcome broke the eight-second spacing.");
+            MiniLine lossLine = chatter.Take(8); chatter.Last = 8;
+            MiniLine winLine = chatter.Take(16); chatter.Last = 16;
+            MiniLine drawLine = chatter.Take(24);
+            must(lossLine.Result == 1 && winLine.Result == 2 && drawLine.Result == 3 && lossLine.Fallback.Length > 0 && drawLine.Board.Contains("Draw"), "A queued outcome or offline line was lost.");
+            MiniChat rematchLines = new MiniChat();
+            written.Result = 0;
+            rematchLines.Observe(written, 0, rolls); rematchLines.Observe(written, 0, rolls);
+            rematchLines.NewRound();
+            must(rematchLines.Count == 0, "A rematch kept a comment about the previous board.");
+            written.Result = 1; rematchLines.Observe(written, 0, rolls); rematchLines.NewRound();
+            must(rematchLines.Count == 1, "A rematch dropped the previous result line.");
+            checks.Add("PASS minis: exact board text, spoken squares and columns, ordinary chat left alone, occasional lines at least eight seconds apart, and every final result queued with an offline line");
+
+            Func<System.Collections.Generic.List<InstalledApp>> catalogBefore = Hands.Catalog;
+            Func<System.Collections.Generic.List<OpenWindow>> windowsBefore = Hands.Windows;
+            Func<string> gameBefore = Hands.GameOpen;
+            try
+            {
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Minecraft", "minecraft-smoke") }; };
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow> { new OpenWindow(new IntPtr(15), "Stardew Valley", "Stardew Valley") }; };
+                Hands.GameOpen = delegate { return "Stardew Valley"; };
+                Hands.Forget();
+                string[,] asks = { { "play tic tac toe", "tic_tac_toe" }, { "play tic-tac-toe with me", "tic_tac_toe" }, { "wanna play connect four", "connect_four" }, { "rock paper scissors", "rock_paper_scissors" }, { "play connect 4", "connect_four" } };
+                for (int ask = 0; ask < asks.GetLength(0); ask++)
+                {
+                    string routed; ToolArguments arguments;
+                    must(Hands.Direct(asks[ask, 0], out routed, out arguments) && routed == "mini_game" && arguments.Name == asks[ask, 1], "A desktop game was routed wrong: " + asks[ask, 0]);
+                    must(Hands.Heard("Hey Capri, " + asks[ask, 0] + " please", out routed, out arguments) && routed == "mini_game" && arguments.Name == asks[ask, 1], "A spoken desktop game was routed wrong.");
+                }
+                string named; ToolArguments namedArgs;
+                must(Hands.Direct("play minecraft", out named, out namedArgs) && named == "open_app" && namedArgs.Name == "minecraft", "Minecraft stopped opening its app.");
+                must(!Hands.Direct("play wasd minigame", out named, out namedArgs) && !Hands.Direct("play Stardew Valley", out named, out namedArgs) && !Hands.Heard("keep playing", out named, out namedArgs), "An external game became a board or a song.");
+                must(Hands.Direct("play some music", out named, out namedArgs) && named == "play_music", "Music stopped routing to music.");
+                must(Hands.Heard("play tic tac toe online", out named, out namedArgs) && named == "open_website" && namedArgs.Site == "google", "Online tic-tac-toe did not reach the browser.");
+                foreach (string left in new[] { "don't play tic tac toe", "if we play tic tac toe", "play chess", "play tic tac toe on youtube", "play tic tac toe and open discord", "top left", "middle", "column 3", "rock", "nice one", "you're cheating" })
+                    must(!Hands.Heard(left, out named, out namedArgs) || named != "mini_game", "A board stole these words: " + left);
+                must(Hands.Tools.Contains("mini_game") && Hands.ClaudeTools.Contains("mini_game") && Hands.Listing.Contains("mini_game") && Hands.Valid("mini_game", new ToolArguments { Name = "connect_four" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "chess" }), "The board tool wasn't registered or accepted another game.");
+                must(Hands.Listing.Contains("tic_tac_toe|connect_four|rock_paper_scissors") && Hands.Typed("mini_game{\"name\":\"tic_tac_toe\",\"action\":\"open\"}", out named, out namedArgs) && named == "mini_game" && namedArgs.Name == "tic_tac_toe", "The text-only board tool was missing its arguments or parser.");
+                checks.Add("PASS minis: chat and voice routes, registered tool, and Minecraft, WASD minigame, music, an already open game, online play and ordinary words keep their routes");
+            }
+            finally { Hands.Catalog = catalogBefore; Hands.Windows = windowsBefore; Hands.GameOpen = gameBefore; Hands.Forget(); }
+
+            foreach (string paintedKind in new[] { "tic_tac_toe", "connect_four", "rock_paper_scissors" })
+                foreach (float paintedScale in new[] { 1f, 1.5f, 2f })
+                    using (Bitmap painted = MiniBoard.Render(new MiniGame(paintedKind, new MiniScore(), new Random(14)), paintedScale, 0, 0))
+                    {
+                        must(painted.Width == (int)(MiniBoard.Wide * paintedScale) && painted.Height == (int)(MiniBoard.Tall * paintedScale) && painted.GetPixel(0, 0).A == 0, "A board's DPI or clipped corners were wrong.");
+                        painted.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "minis-" + paintedKind + "-" + paintedScale.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + ".png"));
+                    }
+            checks.Add("PASS minis: all three Neon boards draw at 100%, 150% and 200% with transparent clipped corners");
+            if (!Environment.UserInteractive) { checks.Add("LIMIT minis: no interactive desktop for opening, clicking and closing the boards"); return; }
+            bool motionBefore = preferences.Motion;
+            bool chatBefore = chatting, localBefore = local, dropBefore = dropping;
+            int escBefore = escAsk;
+            Func<string, string> thinkBefore = Think;
+            TalkState talkBefore = talkState;
+            double voiceBefore = voiceUntil;
+            string brainBefore = brain.Model;
+            Func<string, string, byte[][], string> headBefore = headTest;
+            Action<string> asideBefore = asideTest;
+            IGameStage stageBefore = Commentary.Stage;
+            StageLog boardStage = new StageLog();
+            System.Collections.Generic.List<string> linesSaid = new System.Collections.Generic.List<string>();
+            string seenBoard = null;
+            try
+            {
+                preferences.Motion = false;
+                Think = delegate { throw new Exception("Opening a board called her brain."); };
+                escAsk = asking;
+                Hear("play tic tac toe");
+                must(minis != null && minis.Visible && miniContext.Contains("TIC-TAC-TOE") && !minis.Ticking, "The board didn't open without her brain, or Motion off still ticked.");
+                MiniBoard firstBoard = minis;
+                RectangleF firstCell = MiniBoard.Part("tic_tac_toe", 0);
+                firstBoard.ClickAt(new Point((int)((firstCell.X + 20) * firstBoard.ScaleShown), (int)((firstCell.Y + 20) * firstBoard.ScaleShown)));
+                must(firstBoard.Game.Cells[0] == 1 && Hands.MiniBoard() == firstBoard.Game.BoardText(), "A board click or live brain context was lost.");
+                string moveTool; ToolArguments moveArgs;
+                must(Hands.Heard("middle", out moveTool, out moveArgs) && moveTool == "mini_game" && moveArgs.Action == "move" && !Hands.Heard("you're cheating", out moveTool, out moveArgs), "An open board didn't distinguish moves from chat.");
+                firstBoard.Again(); firstBoard.Key(Keys.D5);
+                must(firstBoard.Game.Cells[4] == 1, "The board's keyboard didn't play the middle.");
+                firstBoard.Again();
+                firstBoard.Game.Cells[0] = firstBoard.Game.Cells[1] = 1;
+                firstBoard.Game.Cells[3] = firstBoard.Game.Cells[4] = 2;
+                Commentary.Stage = boardStage;
+                firstBoard.Key(Keys.D3);
+                must(firstBoard.Game.Result == 1 && boardStage.Shown.Contains("mood Hit"), "A user win didn't set her losing mood.");
+                int kept = firstBoard.Game.Score.You;
+                miniChat.Last = clock.Elapsed.TotalSeconds - 8;
+                talkState = TalkState.Off; voiceUntil = 0;
+                asideTest = delegate(string lineSaid) { linesSaid.Add(lineSaid); };
+                brain.Model = "mini-smoke";
+                headTest = delegate(string system, string board, byte[][] pictures) { seenBoard = board; return "You took that whole row, choom."; };
+                MiniTick();
+                Stopwatch waited = Stopwatch.StartNew();
+                while (miniLine != null && miniLine.Said == null && waited.ElapsedMilliseconds < 2000) { Application.DoEvents(); Thread.Sleep(5); }
+                must(seenBoard != null && seenBoard.Contains("X X X") && seenBoard.Contains("User wins"), "Her quick head didn't see the actual finished board.");
+                MiniTick();
+                must(linesSaid.Count == 1 && linesSaid[0] == "You took that whole row, choom.", "Her quick line didn't reach her aside.");
+                brain.Model = null;
+                miniChat.Last = clock.Elapsed.TotalSeconds - 8;
+                firstBoard.Game.Result = 2;
+                MiniPlayed();
+                must(boardStage.Shown.Contains("mood Happy"), "Her own win didn't set her happy mood.");
+                MiniTick(); MiniTick();
+                must(linesSaid.Count == 2, "An offline result lost its fallback line.");
+                firstBoard.Key(Keys.Escape);
+                must(firstBoard.IsDisposed && !firstBoard.IsHandleCreated && firstBoard.Image == null && !firstBoard.Ticking && minis == null && miniContext.Length == 0 && !miniTicks.Enabled && miniLine == null && miniChat.Count == 0, "Closing the board left a window, bitmap, timer, line or context behind.");
+                MiniTool(new ToolArguments { Name = "tic_tac_toe" });
+                must(minis.Game.Score.You == kept, "Closing the window lost the session score.");
+                RectangleF closeBox = MiniBoard.Part("tic_tac_toe", 9);
+                MiniBoard reopened = minis;
+                reopened.ClickAt(new Point((int)((closeBox.X + 10) * reopened.ScaleShown), (int)((closeBox.Y + 10) * reopened.ScaleShown)));
+                must(minis == null && reopened.IsDisposed, "The X did not close the board.");
+                MiniTool(new ToolArguments { Name = "connect_four" });
+                must(Hands.Heard("column 3", out moveTool, out moveArgs) && moveTool == "mini_game", "A spoken column missed the board.");
+                DoTool(moveTool, moveArgs);
+                must(minis.Game.Cells[37] == 1, "The spoken column didn't land at the bottom.");
+                MiniTool(new ToolArguments { Name = "rock_paper_scissors" });
+                must(Hands.Heard("rock", out moveTool, out moveArgs) && moveTool == "mini_game", "A spoken hand missed the board.");
+                DoTool(moveTool, moveArgs);
+                must(minis.Game.YourHand == 0 && !Hands.Heard("nice one", out moveTool, out moveArgs), "The spoken hand or ordinary chat was wrong.");
+                chatting = true; local = false;
+                ChatHeard("play tic tac toe");
+                ChatHeard("top left");
+                must(minis.Game.Cells[0] == 1 && dropping && talkState == TalkState.Off, "A voice move didn't play locally or added a reply for every move.");
+                ChatHeard("nice one");
+                must(!dropping && talkState == TalkState.Thinking && miniContext.Contains("X"), "Board chat stayed muted after a voice move.");
+                chatting = chatBefore; local = localBefore; dropping = dropBefore;
+                talkState = TalkState.Off;
+                using (ManualResetEvent headStarted = new ManualResetEvent(false))
+                using (ManualResetEvent headRelease = new ManualResetEvent(false))
+                {
+                    brain.Model = "mini-smoke";
+                    headTest = delegate { headStarted.Set(); headRelease.WaitOne(2000); return "This late line must be discarded."; };
+                    minis.Game.Result = 3;
+                    MiniPlayed(); miniChat.Last = clock.Elapsed.TotalSeconds - 8;
+                    MiniTick();
+                    must(headStarted.WaitOne(2000), "The delayed board head didn't start.");
+                    int saidBeforeClose = linesSaid.Count;
+                    CloseMinis(); headRelease.Set();
+                    Stopwatch finishing = Stopwatch.StartNew();
+                    while (miniHeadBusy && finishing.ElapsedMilliseconds < 2000) { Application.DoEvents(); Thread.Sleep(5); }
+                    must(!miniHeadBusy && linesSaid.Count == saidBeforeClose && miniContext.Length == 0 && miniLine == null, "A delayed head spoke after the board closed.");
+                }
+                checks.Add("PASS minis: voice moves stay local and quiet, ordinary voice chat resumes, offline outcomes use fallback lines, and closing discards a late brain reply");
+                checks.Add("PASS minis: the real window opens without a brain, accepts mouse, keyboard and spoken moves, shares its board with her quick head, sets her mood, keeps scores, and Esc or X disposes the board and bitmap and stops its timers");
+            }
+            catch (System.ComponentModel.Win32Exception error) { checks.Add("LIMIT minis: Windows could not open the board on this desktop (" + error.NativeErrorCode + ")"); }
+            finally
+            {
+                CloseMinis(); miniScores.Clear();
+                preferences.Motion = motionBefore; Think = thinkBefore; talkState = talkBefore; voiceUntil = voiceBefore;
+                chatting = chatBefore; local = localBefore; dropping = dropBefore; escAsk = escBefore;
+                brain.Model = brainBefore; headTest = headBefore; asideTest = asideBefore; Commentary.Stage = stageBefore;
+            }
+        }
+
         private static void SmokeGameAsks(System.Collections.Generic.List<string> checks)
         {
             string[] nope = { "Już, SoChi — odpalamy CS2 i gramy. Nie mam teraz sterowania komputerem, więc nie uruchomię go za ciebie; pokaż mi ekran po włączeniu, a przeprowadzę cię do meczu.", "This time I won't pretend I've already clicked anything — show me the game screen, and I'll guide you straight into a match.", "I can't actually click for you, but I can walk you through it.", "No tengo control de tu PC.", "Je ne peux pas cliquer pour toi.", "Ich kann das nicht klicken.", "Não consigo clicar nisso.", "Non posso cliccare.", "Не могу нажать на это." };
@@ -11303,6 +11588,7 @@ namespace CapriDesktop
                             if (preferences.ClipGames != clipsWereOn || mainframe.ClipsShown != clipsWereOn || LoadPreferences().ClipGames != clipsWereOn) throw new Exception("Clip my games didn't switch back from HABITS.");
                             checks.Add("PASS Clip my games switches and saves from GAMES and shows its saved state");
                             SmokeGameEars(checks);
+                            SmokeMinis(checks);
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
                             if (!mainframe.Visible || !mainframe.ShowInTaskbar || mainframe.WindowState != FormWindowState.Minimized) throw new Exception("Mainframe did not start minimized in the taskbar.");
