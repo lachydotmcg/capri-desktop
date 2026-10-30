@@ -39,7 +39,16 @@ namespace CapriDesktop
             using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : bench ? ".Bench" : ""), out first))
             using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
             {
-                if (!first) { Native.AllowSetForegroundWindow(-1); restore.Set(); return 0; }
+                if (!first)
+                {
+                    if (smoke)
+                    {
+                        Directory.CreateDirectory(args[1]);
+                        File.WriteAllText(Path.Combine(args[1], "failure.txt"), "Another smoke test holds Capri's test lock. This run did not start.");
+                        return 1;
+                    }
+                    Native.AllowSetForegroundWindow(-1); restore.Set(); return 0;
+                }
                 try
                 {
                     string data = smoke || bench ? Path.GetFullPath(args[1]) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri");
@@ -54,12 +63,18 @@ namespace CapriDesktop
                         Application.ThreadException += delegate(object sender, ThreadExceptionEventArgs crash) { Crashed(crash.Exception); };
                         StartedFresh = Starting(data);
                     }
+                    else Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
                     using (Companion app = new Companion(data, restore, smoke))
                     {
                         if (smoke) app.StartSmokeTest(data);
                         if (bench) app.StartBench(data);
                         Application.Run(app);
                         HerCursor.Off();
+                        if (smoke && !app.TestFinished)
+                        {
+                            app.TestFailed = true;
+                            if (!File.Exists(Path.Combine(data, "failure.txt"))) File.WriteAllText(Path.Combine(data, "failure.txt"), "Smoke test closed before completion at " + app.TestStep + ".");
+                        }
                         return app.TestFailed ? 1 : 0;
                     }
                 }
@@ -1264,6 +1279,8 @@ namespace CapriDesktop
         // Her perch fps choices. The art is 30 fps: slower holds each frame longer, faster mixes in-betweens of neighbouring frames.
         internal static readonly int[] PerchRates = { 10, 15, 20, 30, 40, 50, 60 };
         internal bool TestFailed;
+        internal bool TestFinished;
+        internal string TestStep = "startup";
 
         internal Companion(string data, EventWaitHandle signal, bool smoke)
         {
@@ -8945,6 +8962,10 @@ namespace CapriDesktop
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
+            File.Delete(Path.Combine(output, "failure.txt"));
+            File.Delete(Path.Combine(output, "smoke-test.txt"));
+            Action<string> smokeStep = delegate(string name) { TestStep = name; File.WriteAllText(Path.Combine(output, "smoke-step.txt"), name); };
+            smokeStep("startup");
             Hands.PleaseRoll = delegate { return 1; };
             Shown += delegate
             {
@@ -8971,6 +8992,17 @@ namespace CapriDesktop
                 System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
                 HttpListener fakeAgent = null;
                 string agentHost = null;
+                int agentPatience = Voice.Patience;
+                ManualResetEvent agentMade = new ManualResetEvent(false);
+                string madeAgent = null;
+                int agentThread = 0;
+                bool agentTimeouts = false;
+                Exception agentProblem = null;
+                Exception agentServerProblem = null;
+                CancellationTokenSource agentStop = new CancellationTokenSource();
+                bool agentStarted = false;
+                double agentDeadline = 0;
+                string agentRequest = "starting the listener";
                 Action<string> handsRun = null;
                 Func<System.Collections.Generic.List<InstalledApp>> handsCatalog = null;
                 Form backdrop = null;
@@ -8987,6 +9019,13 @@ namespace CapriDesktop
                 double linkDeadline = 0;
                 short[][] earLine = null;
                 System.Collections.Generic.List<string> checks = new System.Collections.Generic.List<string>();
+                FormClosed += delegate
+                {
+                    agentStop.Cancel();
+                    if (fakeAgent != null) fakeAgent.Close();
+                    test.Stop();
+                    test.Dispose();
+                };
                 bool stepping = false;
                 test.Tick += delegate
                 {
@@ -9010,6 +9049,11 @@ namespace CapriDesktop
                                     throw new Exception("OCR waited or processed a bitmap on the UI thread.");
                                 checks.Add("PASS OCR runs on a worker; its synchronous calls return immediately on the UI thread (engine ready: " + uiReady + ")");
                             }
+                        }
+                        if (TestStep != "step " + step && !(step == 5 && !agentStarted)) smokeStep("step " + step);
+                        if (step >= 5 && step <= 9)
+                        {
+                            lock (asked) if (agentServerProblem != null) throw new Exception("The fake ElevenLabs server stopped at " + TestStep + ".", agentServerProblem);
                         }
                         if (step == 0)
                         {
@@ -18788,8 +18832,9 @@ namespace CapriDesktop
                             Buffer.BlockCopy(line, 0, lineBytes, 0, lineBytes.Length);
                             string lineAudio = Convert.ToBase64String(lineBytes);
                             HttpListener server = fakeAgent;
-                            ThreadPool.QueueUserWorkItem(delegate
+                            Thread agentServer = new Thread(delegate()
                             {
+                                System.Net.WebSockets.WebSocket socket = null;
                                 try
                                 {
                                     Action<HttpListenerContext, string> answer = delegate(HttpListenerContext context, string json)
@@ -18800,20 +18845,19 @@ namespace CapriDesktop
                                         context.Response.OutputStream.Write(bytes, 0, bytes.Length);
                                         context.Response.Close();
                                     };
-                                    System.Net.WebSockets.WebSocket socket = null;
                                     Func<string> receive = delegate
                                     {
                                         byte[] buffer = new byte[65536];
                                         using (MemoryStream message = new MemoryStream())
                                             while (true)
                                             {
-                                                System.Net.WebSockets.WebSocketReceiveResult got = socket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None).Result;
+                                                System.Net.WebSockets.WebSocketReceiveResult got = socket.ReceiveAsync(new ArraySegment<byte>(buffer), agentStop.Token).Result;
                                                 if (got.MessageType == System.Net.WebSockets.WebSocketMessageType.Close) return null;
                                                 message.Write(buffer, 0, got.Count);
                                                 if (got.EndOfMessage) return System.Text.Encoding.UTF8.GetString(message.ToArray());
                                             }
                                     };
-                                    Action<string> send = delegate(string json) { socket.SendAsync(new ArraySegment<byte>(System.Text.Encoding.UTF8.GetBytes(json)), System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None).Wait(); };
+                                    Action<string> send = delegate(string json) { socket.SendAsync(new ArraySegment<byte>(System.Text.Encoding.UTF8.GetBytes(json)), System.Net.WebSockets.WebSocketMessageType.Text, true, agentStop.Token).Wait(); };
                                     Func<string, string> chunk = delegate(string text)
                                     {
                                         int at = text.IndexOf("\"user_audio_chunk\":\"", StringComparison.Ordinal);
@@ -18835,9 +18879,11 @@ namespace CapriDesktop
                                             string body;
                                             using (StreamReader reader = new StreamReader(request.Request.InputStream)) body = reader.ReadToEnd();
                                             string path = request.Request.Url.PathAndQuery;
+                                            lock (asked) agentRequest = request.Request.HttpMethod + " " + request.Request.Url.AbsolutePath;
                                             lock (asked) asked.Add("http " + request.Request.HttpMethod + " " + path + " " + request.Request.Headers["xi-api-key"] + " " + body);
                                             answer(request, path.IndexOf("get-signed-url", StringComparison.Ordinal) >= 0 ? "{\"signed_url\":\"ws://localhost:" + port + "/talk?token=t\"}" : path.StartsWith("/v1/convai/tools", StringComparison.Ordinal) ? (request.Request.HttpMethod == "GET" ? keptTools : "{\"id\":\"tool_" + (++made) + "\"}") : "{\"agent_id\":\"agent_test\"}");
                                         }
+                                        if (socket != null) socket.Dispose();
                                         socket = talk.AcceptWebSocketAsync(null).Result.WebSocket;
                                         lock (asked) asked.Add("init " + receive());
                                         send("{\"type\":\"conversation_initiation_metadata\",\"conversation_initiation_metadata_event\":{\"conversation_id\":\"conv_test\",\"agent_output_audio_format\":\"pcm_16000\",\"user_input_audio_format\":\"pcm_16000\"}}");
@@ -18853,7 +18899,7 @@ namespace CapriDesktop
                                                 lock (asked) asked.Add("woke " + kind);
                                                 if (kind == "loud") woke++;
                                             }
-                                            socket.CloseOutputAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).Wait();
+                                            socket.CloseOutputAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "", agentStop.Token).Wait();
                                             continue;
                                         }
                                         send("{\"type\":\"ping\",\"ping_event\":{\"event_id\":7,\"ping_ms\":20}}");
@@ -18885,8 +18931,11 @@ namespace CapriDesktop
                                         catch (Exception) { }
                                     }
                                 }
-                                catch (Exception error) { lock (asked) asked.Add("server " + error.GetType().Name); }
+                                catch (Exception error) { if (!agentStop.IsCancellationRequested) lock (asked) agentServerProblem = error; }
+                                finally { if (socket != null) socket.Dispose(); }
                             });
+                            agentServer.IsBackground = true;
+                            agentServer.Start();
                             agentHost = Voice.Host;
                             handsRun = Hands.Run;
                             handsCatalog = Hands.Catalog;
@@ -18894,31 +18943,64 @@ namespace CapriDesktop
                             Hands.Run = delegate(string id) { lock (asked) asked.Add("ran " + id); };
                             Hands.Forget();
                             Voice.Host = "http://localhost:" + port;
+                            Voice.Patience = 2000;
                             voice.Key = "sk_test_capri_1234";
                             voice.VoiceId = "abc";
-                            if (Agent.Create(voice.Key, voice.VoiceId) != "agent_test") throw new Exception("ElevenLabs agent was not made.");
-                            preferences.AgentId = "agent_old";
-                            preferences.AgentVersion = 1;
-                            preferences.AgentPersonality = "0123456789abcdef";
-                            Brain.Unsee();
-                            brain.Saw("a pixel art farm with a red barn", "Cute barn.");
-                            File.WriteAllText(Brain.MemoriesPath, Brain.MemoriesHead + "## Earlier\n- They beat Malenia after 40 tries.\n");
-                            CloseTalk();
-                            pill.Press(2);
-                            if (!pill.Chatting || pill.Muted || !chatting || TalkPill.Render(1, 0, true).Width <= TalkPill.Measure(1).Width + 30) throw new Exception("Wave did not start voice chat with the mic button apart on the right.");
-                            if (PillHeld(false) || pillUntil < clock.Elapsed.TotalSeconds + 2) throw new Exception("Voice chat should pop the talk pill up for a few seconds, not hold it up for the whole call: held " + PillHeld(false) + " (typer " + typer.Visible + "), up for " + (pillUntil - clock.Elapsed.TotalSeconds).ToString("0.0") + " s.");
-                            Bitmap[] chips = { TalkPill.Render(2, 0, true, false, 2), TalkPill.Render(2, 3, true, false, 6), TalkPill.Render(2, 0, true, true), TalkPill.Render(2, 0) };
-                            using (Bitmap sheet = new Bitmap(chips[0].Width + 40, chips.Length * (chips[0].Height + 16) + 16, PixelFormat.Format32bppArgb))
-                            using (Graphics graphics = Graphics.FromImage(sheet))
+                            agentDeadline = clock.Elapsed.TotalSeconds + 15;
+                            smokeStep("voice chat: creating the fake ElevenLabs agent");
+                            Thread agentMaker = new Thread(delegate()
                             {
-                                graphics.Clear(Color.FromArgb(214, 220, 228));
-                                for (int i = 0; i < chips.Length; i++) graphics.DrawImage(chips[i], 20, 16 + i * (chips[0].Height + 16), chips[i].Width, chips[i].Height);
-                                sheet.Save(Path.Combine(output, "pill-mic.png"), ImageFormat.Png);
-                            }
-                            foreach (Bitmap chip in chips) chip.Dispose();
+                                agentThread = Thread.CurrentThread.ManagedThreadId;
+                                try
+                                {
+                                    HttpWebRequest agentTimeout = Voice.Open("/v1/convai/tools", "sk_test_capri_1234", "GET");
+                                    agentTimeouts = agentTimeout.Timeout == 2000 && agentTimeout.ReadWriteTimeout == 2000;
+                                    agentTimeout.Abort();
+                                    madeAgent = Agent.Create("sk_test_capri_1234", "abc");
+                                }
+                                catch (Exception agentError) { agentProblem = agentError; }
+                                finally { agentMade.Set(); }
+                            });
+                            agentMaker.IsBackground = true;
+                            agentMaker.Start();
                         }
                         else if (step == 5)
                         {
+                            if (!agentStarted)
+                            {
+                                if (!agentMade.WaitOne(0))
+                                {
+                                    lock (asked) smokeStep("voice chat: creating the fake ElevenLabs agent; " + agentRequest);
+                                    if (clock.Elapsed.TotalSeconds < agentDeadline) return;
+                                    throw new Exception("The fake ElevenLabs agent took over 15 s to be made at " + TestStep + ".");
+                                }
+                                if (agentProblem != null) throw new Exception("The fake ElevenLabs agent could not be made.", agentProblem);
+                                if (madeAgent != "agent_test") throw new Exception("ElevenLabs agent was not made.");
+                                if (agentThread == Thread.CurrentThread.ManagedThreadId || !agentTimeouts) throw new Exception("The fake ElevenLabs setup lost its worker or short request timeouts.");
+                                checks.Add("PASS ElevenLabs smoke setup: her agent is made off the UI thread with a 2 s request timeout and a 15 s step deadline");
+                                smokeStep("voice chat: opening the fake ElevenLabs link");
+                                preferences.AgentId = "agent_old";
+                                preferences.AgentVersion = 1;
+                                preferences.AgentPersonality = "0123456789abcdef";
+                                Brain.Unsee();
+                                brain.Saw("a pixel art farm with a red barn", "Cute barn.");
+                                File.WriteAllText(Brain.MemoriesPath, Brain.MemoriesHead + "## Earlier\n- They beat Malenia after 40 tries.\n");
+                                CloseTalk();
+                                pill.Press(2);
+                                if (!pill.Chatting || pill.Muted || !chatting || TalkPill.Render(1, 0, true).Width <= TalkPill.Measure(1).Width + 30) throw new Exception("Wave did not start voice chat with the mic button apart on the right.");
+                                if (PillHeld(false) || pillUntil < clock.Elapsed.TotalSeconds + 2) throw new Exception("Voice chat should pop the talk pill up for a few seconds, not hold it up for the whole call: held " + PillHeld(false) + " (typer " + typer.Visible + "), up for " + (pillUntil - clock.Elapsed.TotalSeconds).ToString("0.0") + " s.");
+                                Bitmap[] chips = { TalkPill.Render(2, 0, true, false, 2), TalkPill.Render(2, 3, true, false, 6), TalkPill.Render(2, 0, true, true), TalkPill.Render(2, 0) };
+                                using (Bitmap sheet = new Bitmap(chips[0].Width + 40, chips.Length * (chips[0].Height + 16) + 16, PixelFormat.Format32bppArgb))
+                                using (Graphics graphics = Graphics.FromImage(sheet))
+                                {
+                                    graphics.Clear(Color.FromArgb(214, 220, 228));
+                                    for (int i = 0; i < chips.Length; i++) graphics.DrawImage(chips[i], 20, 16 + i * (chips[0].Height + 16), chips[i].Width, chips[i].Height);
+                                    sheet.Save(Path.Combine(output, "pill-mic.png"), ImageFormat.Png);
+                                }
+                                foreach (Bitmap chip in chips) chip.Dispose();
+                                agentStarted = true;
+                                return;
+                            }
                             if (agent == null || !agent.Ready || mainframe.VoiceStatus.IndexOf("Voice chat on", StringComparison.Ordinal) != 0)
                             {
                                 if (linkDeadline == 0) linkDeadline = clock.Elapsed.TotalSeconds + 5;
@@ -19045,7 +19127,11 @@ namespace CapriDesktop
                             pill.Press(2);
                             if (pill.Chatting || chatting || agent != null || ears.Listening || speaker.Busy || resting) throw new Exception("Wave did not end voice chat.");
                             Voice.Host = agentHost;
+                            Voice.Patience = agentPatience;
+                            agentStop.Cancel();
                             fakeAgent.Stop();
+                            fakeAgent.Close();
+                            fakeAgent = null;
                             voice.Key = null;
             voiceBroke = false;
                             ShowVoice();
@@ -19815,6 +19901,7 @@ namespace CapriDesktop
                             checks.Add("LIMIT handler-driven integration test; physical mouse input and tray UI require a manual check");
                             checks.Add("PASS quit menu requested application exit");
                             File.WriteAllLines(Path.Combine(output, "smoke-test.txt"), checks);
+                            TestFinished = true;
                             test.Stop();
                             test.Dispose();
                             backdrop.Close();
@@ -19824,6 +19911,8 @@ namespace CapriDesktop
                     }
                     catch (Exception error)
                     {
+                        agentStop.Cancel();
+                        if (fakeAgent != null) { fakeAgent.Close(); fakeAgent = null; }
                         if (resetGlance != null) resetGlance();
                         TestFailed = true;
                         File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString());

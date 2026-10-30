@@ -58,6 +58,7 @@ namespace CapriDesktop
     internal sealed class Voice
     {
         internal static string Host = "https://api.elevenlabs.io";
+        internal static int Patience = 20000;
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Capri.ElevenLabs");
         internal volatile string Key;
         internal volatile string VoiceId;
@@ -154,8 +155,8 @@ namespace CapriDesktop
             request.UserAgent = "Capri-Desktop";
             request.Headers["xi-api-key"] = key;
             request.ServicePoint.Expect100Continue = false;
-            request.Timeout = 20000;
-            request.ReadWriteTimeout = 20000;
+            request.Timeout = Patience;
+            request.ReadWriteTimeout = Patience;
             return request;
         }
 
