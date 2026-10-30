@@ -133,6 +133,15 @@ mapped ledges stay unavailable, with the reason shown in motion status. Placemen
 retries at most once a second while visible, and normal movement resumes when a
 verified output mapping returns. Bring also unhides and recovers an unmapped pet.
 
+Mainframe and its settings sheets retain the requested viewport when their first
+compositor configure is tiled. Their separate owned-window placement floats,
+resizes and centers the window on the focused output without applying pet rules.
+If output names are unavailable, a unique exact rectangle is accepted; otherwise
+viewport fitting uses the observed window-to-DIP size ratio without creating an
+input mapping. The original content zoom and scrolling remain unchanged. Passive
+viewport changes do not activate the window; an explicit Bring does so only after
+the compositor reports the full window inside the visible work area.
+
 `CAPRI_MOTION_TRACE=/absolute/new-file.jsonl` enables a bounded local diagnostic
 trace of pet geometry, capture state and pointer timing. It never logs other
 window titles or desktop pixels and refuses to overwrite an existing file.

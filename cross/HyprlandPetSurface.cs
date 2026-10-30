@@ -9,26 +9,6 @@ namespace CapriDesktop
 {
     internal sealed partial class HyprlandDesktop
     {
-        internal async Task PlaceOwnedWindowAsync(string title, Point origin, int workspace, CancellationToken cancellation)
-        {
-            if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("An explicit owned window role is required.", nameof(title));
-            await EnsureDialect(cancellation).ConfigureAwait(false);
-            HyprlandWindow[] owned = HyprlandJson.Windows(await QueryAsync("j/clients", cancellation).ConfigureAwait(false))
-                .Where(w => w.Pid == Environment.ProcessId && w.Title == title).ToArray();
-            if (owned.Length != 1) throw new InvalidOperationException("The owned window is not mapped uniquely.");
-            HyprlandWindow window = owned[0];
-            if (!window.Floating)
-                await Dispatch(lua.Value ? "hl.dsp.window.float({action=\"on\",window=\"" + window.Selector + "\"})" : "setfloating " + window.Selector, cancellation).ConfigureAwait(false);
-            if (window.Workspace != workspace)
-                await Dispatch(MoveWorkspace(window, workspace.ToString(CultureInfo.InvariantCulture)), cancellation).ConfigureAwait(false);
-            HyprlandWindow[] after = HyprlandJson.Windows(await QueryAsync("j/clients", cancellation).ConfigureAwait(false));
-            if (!after.Any(w => w.Address == window.Address && w.Pid == Environment.ProcessId && w.Title == title))
-                throw new InvalidOperationException("The owned window changed during placement.");
-            string x = Math.Round(origin.X).ToString(CultureInfo.InvariantCulture), y = Math.Round(origin.Y).ToString(CultureInfo.InvariantCulture);
-            await Dispatch(lua.Value ? "hl.dsp.window.move({window=\"" + window.Selector + "\",x=" + x + ",y=" + y + "})"
-                : "movewindowpixel exact " + x + " " + y + "," + window.Selector, cancellation).ConfigureAwait(false);
-        }
-
         internal async Task<HyprlandWindow> PetSurfaceAsync(CancellationToken cancellation)
         {
             HyprlandWindow[] owned = HyprlandJson.Windows(await QueryAsync("j/clients", cancellation).ConfigureAwait(false))

@@ -11,6 +11,7 @@
     <Compile Include="../../cross/Hyprland*.cs" Link="%(Filename)%(Extension)" />
     <Compile Include="../../cross/DesktopEnvelope.cs" Link="DesktopEnvelope.cs" />
     <Compile Include="../../cross/PetPlacementGeometry.cs" Link="PetPlacementGeometry.cs" />
+    <Compile Include="../../cross/MainframePlacementGeometry.cs" Link="MainframePlacementGeometry.cs" />
     <Compile Include="../../cross/Perches.cs" Link="Perches.cs" />
   </ItemGroup>
 </Project>

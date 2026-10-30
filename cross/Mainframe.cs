@@ -22,6 +22,9 @@ namespace CapriDesktop
         private readonly LayoutTransformControl zoom;
         private readonly ScrollViewer scroll;
         private readonly CancellationTokenSource nativeLifetime = new CancellationTokenSource();
+        private CancellationTokenSource nativePlacement;
+        private bool nativeClosed;
+        private Size desiredViewport = new Size(384, 764);
         private double columns = 1, wantedHeight = 760;
         internal event Action<string> PlacementFailed;
         internal MainframeWindow(string title)
@@ -43,44 +46,54 @@ namespace CapriDesktop
             gradient.GradientStops.Add(new GradientStop(Color.Parse("#360E1A"), 0)); gradient.GradientStops.Add(new GradientStop(Color.Parse("#0A0A10"), 1));
             Content = new NeonPlate { Frame = true, Fill = gradient, Stroke = MainframeTheme.Brim, Child = scroll };
             Opened += (_, _) => { ResizeFrame(CurrentZoom, columns, wantedHeight); BringToActiveOutput(); };
-            Closed += (_, _) => { nativeLifetime.Cancel(); nativeLifetime.Dispose(); };
+            Closed += (_, _) => { nativeClosed = true; nativeLifetime.Cancel(); nativeLifetime.Dispose(); };
             ScalingChanged += (_, _) => ResizeFrame(CurrentZoom, columns, wantedHeight);
             KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
         }
         internal double CurrentZoom { get; private set; } = 1;
-        internal async void BringToActiveOutput()
+        internal async void BringToActiveOutput(bool activate = true)
         {
             var compositor = HyprlandDesktop.Current;
-            if (compositor == null) return;
-            CancellationToken token = nativeLifetime.Token;
+            if (compositor == null || nativeClosed) return;
+            nativePlacement?.Cancel();
+            using var placement = CancellationTokenSource.CreateLinkedTokenSource(nativeLifetime.Token);
+            nativePlacement = placement;
+            CancellationToken token = placement.Token;
             Exception problem = null;
-            for (int attempt = 0; attempt < 4; attempt++)
+            Vector? measured = null;
+            double measuredScaling = RenderScaling;
+            try
             {
-                try
+                for (int attempt = 0; attempt < 6; attempt++)
                 {
-                    var desktop = await compositor.CaptureSnapshotAsync(token);
-                    if (desktop.Locked) throw new InvalidOperationException("The desktop session is locked.");
-                    var output = desktop.Outputs.SingleOrDefault(m => m.Focused);
-                    if (output == null) throw new InvalidOperationException("No active output is available for Mainframe.");
-                    var screen = Screens.All.SingleOrDefault(s => s.DisplayName == output.Name);
-                    if (screen == null) throw new InvalidOperationException("The active output's XWayland geometry is unavailable.");
-                    var map = new HyprlandDisplayMap(output, screen.Bounds);
-                    double xFactor = output.Logical.Width / map.AvaloniaBounds.Width;
-                    double yFactor = output.Logical.Height / map.AvaloniaBounds.Height;
-                    Rect area = output.WorkingArea;
-                    Width = Math.Min(Width, Math.Max(280, (area.Width - 24) / xFactor / RenderScaling));
-                    Height = Math.Min(Height, Math.Max(240, (area.Height - 24) / yFactor / RenderScaling));
-                    double width = Width * RenderScaling * xFactor, height = Height * RenderScaling * yFactor;
-                    var origin = new Point(area.X + Math.Max(0, (area.Width - width) / 2), area.Y + Math.Max(0, (area.Height - height) / 2));
-                    await compositor.PlaceOwnedWindowAsync(Title, origin, output.SpecialWorkspace != 0 ? output.SpecialWorkspace : output.Workspace, token);
-                    if (IsVisible) Activate();
-                    return;
+                    try
+                    {
+                        var observed = await compositor.ObserveOwnedWindowAsync(Title, token);
+                        var screen = MainframePlacementGeometry.Match(observed.Output, Screens.All);
+                        if (measuredScaling != RenderScaling) { measured = null; measuredScaling = RenderScaling; }
+                        if (screen == null) measured ??= MainframePlacementGeometry.Measure(observed.Window.Logical.Size, Bounds.Size);
+                        Size requested = desiredViewport;
+                        MainframeViewport viewport = MainframePlacementGeometry.Fit(observed.Output, observed.Window.Logical.Size, Bounds.Size,
+                            requested, new Size(MinWidth, MinHeight), screen, RenderScaling, measured);
+                        Width = viewport.Dip.Width; Height = viewport.Dip.Height;
+                        Point origin = MainframePlacementGeometry.Center(observed.Output.WorkingArea, viewport.Logical);
+                        await compositor.PlaceOwnedWindowAsync(Title, origin, observed.Workspace, token, observed, viewport.Logical);
+                        var placed = await compositor.ObserveOwnedWindowAsync(Title, token);
+                        if (requested == desiredViewport && placed.Window.Address == observed.Window.Address && placed.Output.Id == observed.Output.Id && placed.Visible &&
+                            Math.Abs(placed.Window.Logical.Width - viewport.Logical.Width) <= 1 && Math.Abs(placed.Window.Logical.Height - viewport.Logical.Height) <= 1)
+                        {
+                            if (activate && IsVisible) Activate();
+                            return;
+                        }
+                        problem = new InvalidOperationException("Mainframe is waiting for its resized window to fit the active work area.");
+                    }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
+                    catch (Exception error) { problem = error; }
+                    try { await Task.Delay(80, token); } catch (OperationCanceledException) { return; }
                 }
-                catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
-                catch (Exception error) { problem = error; }
-                try { await Task.Delay(80, token); } catch (OperationCanceledException) { return; }
+                PlacementFailed?.Invoke("Window placement: " + problem?.Message);
             }
-            PlacementFailed?.Invoke("Window placement: " + problem?.Message);
+            finally { if (nativePlacement == placement) nativePlacement = null; }
         }
         internal void ResizeFrame(double scale, double columnCount, double height)
         {
@@ -90,10 +103,12 @@ namespace CapriDesktop
             var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
             double dpi = screen?.Scaling ?? RenderScaling;
             var area = screen?.WorkingArea ?? new PixelRect(0, 0, 1280, 900);
-            Width = Math.Min(380 * columnCount * scale + 4, Math.Max(280, area.Width / dpi - 32));
-            Height = Math.Min(height * scale + 4, Math.Max(240, area.Height / dpi - 48));
+            desiredViewport = new Size(Math.Min(380 * columnCount * scale + 4, Math.Max(280, area.Width / dpi - 32)),
+                Math.Min(height * scale + 4, Math.Max(240, area.Height / dpi - 48)));
+            Width = desiredViewport.Width; Height = desiredViewport.Height;
             if (IsVisible)
             {
+                if (HyprlandDesktop.Current != null) { BringToActiveOutput(false); return; }
                 int maxX = area.Right - (int)Math.Ceiling(Width * dpi), maxY = area.Bottom - (int)Math.Ceiling(Height * dpi);
                 Position = new PixelPoint(Math.Clamp(Position.X, area.X, Math.Max(area.X, maxX)), Math.Clamp(Position.Y, area.Y, Math.Max(area.Y, maxY)));
             }

@@ -598,6 +598,91 @@ namespace CapriDesktop
             Equal(1, desk.Maps.Length, "A later verified output match restores native mapping after recovery");
         }
 
+        private static async Task MainframePlacement()
+        {
+            HyprlandOutput plain = HyprlandJson.Outputs(new JsonArray(Output()).ToJsonString())[0];
+            Screen exact = new Screen(1, new PixelRect(0, 0, 1920, 1080), new PixelRect(0, 30, 1920, 1050), true);
+            Equal(exact, MainframePlacementGeometry.Match(plain, new[] { exact }), "Mainframe accepts a unique exact rectangle when display names are missing");
+            Check(MainframePlacementGeometry.Match(plain, new[] { exact, exact }) == null, "Ambiguous display rectangles do not create a Mainframe map");
+            Fake fake = new Fake { Effect = false };
+            fake.Outputs = new JsonArray(Output(x: -1280, y: -80, scale: 1.5));
+            fake.Windows = new JsonArray(Window(pid: Environment.ProcessId), Window("0x456", Environment.ProcessId, 9));
+            fake.Windows[0]["class"] = "Capri"; fake.Windows[0]["title"] = "Capri";
+            fake.Windows[1]["class"] = "Capri"; fake.Windows[1]["title"] = "Capri Mainframe";
+            fake.Windows[1]["size"] = new JsonArray(1000, 600); fake.Windows[1]["at"] = new JsonArray(9000, 9000);
+            using HyprlandDesktop service = Service(fake);
+            HyprlandOwnedPlacement seen = await service.ObserveOwnedWindowAsync("Capri Mainframe", default);
+            Equal(0x456L, seen.Window.Address, "Mainframe observation selects its distinct owned role");
+            Check(service.Snapshot == null, "Owned-window observation does not manufacture a whole-scene action snapshot");
+            Check(MainframePlacementGeometry.Match(seen.Output, new[] { exact }) == null, "Scaled output with unavailable names stays unmapped");
+            MainframeViewport fit = MainframePlacementGeometry.Fit(seen.Output, new Size(1600, 1000), new Size(800, 500),
+                new Size(800, 500), new Size(280, 240), null, 2);
+            Equal(new Size(628, 333), fit.Dip, "Unmapped viewport fits using measured logical-to-DIP dimensions without applying DPI twice");
+            Equal(new Size(1256, 666), fit.Logical, "The bounded viewport has an explicit compositor size request");
+            Equal(new Size(628, 333), MainframePlacementGeometry.Fit(seen.Output, new Size(1600, 1000), new Size(800, 500),
+                new Size(800, 500), new Size(280, 240), null, 1).Dip, "Measured fallback does not infer output scale from global DPI");
+            Equal(new Size(1256, 666), MainframePlacementGeometry.Fit(seen.Output, new Size(1256, 666), new Size(800, 500),
+                new Size(800, 500), new Size(280, 240), null, 1, new Vector(2, 2)).Logical, "Pending Avalonia configure cannot feed a resized window back into the measured scale");
+            Throws(() => MainframePlacementGeometry.Fit(seen.Output, new Size(0, 1), new Size(800, 500), new Size(800, 500), new Size(280, 240), null, 1), "Unrendered window dimensions cannot be used as a placement ratio");
+            Point origin = MainframePlacementGeometry.Center(seen.Output.WorkingArea, seen.Window.Logical.Size);
+            Equal(new Point(-1140, -5), origin, "Mainframe is centered using the actual compositor envelope and reserved work area");
+            fake.AfterDispatch = command =>
+            {
+                if (command.Contains("window.float")) fake.Windows[1]["floating"] = true;
+                if (command.Contains("workspace=\"1\"")) fake.Windows[1]["workspace"] = new JsonObject { ["id"] = 1, ["name"] = "1" };
+                if (command.Contains("x=-1140,y=-5")) fake.Windows[1]["at"] = new JsonArray(-1140, -5);
+            };
+            await service.PlaceOwnedWindowAsync("Capri Mainframe", origin, seen.Workspace, default, seen);
+            Check(fake.Dispatches.All(c => c.Contains("address:0x456") && !c.Contains("address:0x123")), "Mainframe placement never mutates the pet window");
+            Check(fake.Dispatches.Any(c => c.Contains("follow=false")), "Mainframe moves to the visible workspace without switching desktop focus");
+            Check(fake.Dispatches.All(c => !c.Contains("set_prop") && !c.Contains("focus")), "Mainframe does not receive pet policy or helper-level focus changes");
+            Check((await service.ObserveOwnedWindowAsync("Capri Mainframe", default)).Visible, "The actual owned window is fully inside the focused work area after placement");
+            Equal(0x123L, fake.Active, "Native placement preserves focus for the view's explicit activation step");
+            fake.Outputs[0]["scale"] = 1;
+            seen = await service.ObserveOwnedWindowAsync("Capri Mainframe", default);
+            fake.Windows[1]["size"] = new JsonArray(942, 522);
+            fake.Windows[1]["floating"] = false;
+            fake.Dispatches.Clear();
+            fake.AfterDispatch = command =>
+            {
+                if (command.Contains("window.float")) fake.Windows[1]["floating"] = true;
+                if (command.Contains("window.resize") && command.Contains("x=384,y=804")) fake.Windows[1]["size"] = new JsonArray(384, 804);
+                if (command.Contains("workspace=\"3\"")) fake.Windows[1]["workspace"] = new JsonObject { ["id"] = 3, ["name"] = "3" };
+            };
+            await service.PlaceOwnedWindowAsync("Capri Mainframe", new Point(-512, 73), 1, default, seen, new Size(384, 804));
+            int floated = fake.Dispatches.FindIndex(c => c.Contains("window.float"));
+            int resized = fake.Dispatches.FindIndex(c => c.Contains("window.resize") && c.Contains("relative=false"));
+            int moved = fake.Dispatches.FindIndex(c => c.Contains("window.move"));
+            Check(floated >= 0 && resized > floated && moved > resized, "Initial tiling is followed by an exact requested resize before Mainframe is positioned");
+            Equal(new Size(384, 804), (await service.ObserveOwnedWindowAsync("Capri Mainframe", default)).Window.Logical.Size, "Requested primary viewport replaces the demonstrated 942 by 522 tiled configure");
+            fake.Dispatches.Clear();
+            JsonObject second = Output(id: 1, name: "DP-2", x: 640); second["activeWorkspace"] = new JsonObject { ["id"] = 3, ["name"] = "3" };
+            fake.Outputs.Add(second);
+            await service.PlaceOwnedWindowAsync("Capri Mainframe", new Point(900, 50), 3, default);
+            Check(fake.Dispatches.Any(c => c.Contains("workspace=\"3\"") && c.Contains("follow=false")), "Generic owned overlays may use a visible nonfocused output without changing focus");
+            fake.Outputs.RemoveAt(1);
+            seen = await service.ObserveOwnedWindowAsync("Capri Mainframe", default);
+            fake.Dispatches.Clear(); fake.Locked = true;
+            try { await service.PlaceOwnedWindowAsync("Capri Mainframe", origin, 1, default, seen); Check(false, "Locked placement must fail"); }
+            catch (InvalidOperationException) { Check(true, "Mainframe placement rejects a locked desktop"); }
+            Equal(0, fake.Dispatches.Count, "A locked desktop receives no owned-window mutation");
+            fake.Locked = false;
+            fake.Windows[1]["floating"] = false;
+            fake.AfterDispatch = _ => fake.Locked = true;
+            try { await service.PlaceOwnedWindowAsync("Capri Mainframe", origin, 1, default, seen); Check(false, "Mid-placement lock must fail"); }
+            catch (InvalidOperationException) { Check(true, "Lock changes after floating stop subsequent placement operations"); }
+            Equal(1, fake.Dispatches.Count, "No workspace or position write follows the newly observed lock");
+            fake.Locked = false; fake.AfterDispatch = null; fake.Dispatches.Clear();
+            fake.Outputs[0]["reserved"] = new JsonArray(0, 100, 0, 0);
+            try { await service.PlaceOwnedWindowAsync("Capri Mainframe", origin, 1, default, seen); Check(false, "Stale work area must fail"); }
+            catch (InvalidOperationException) { Check(true, "A changed work area invalidates the observed placement"); }
+            Equal(0, fake.Dispatches.Count, "Stale Mainframe geometry is never dispatched");
+            fake.Windows[1]["pid"] = Environment.ProcessId + 1;
+            try { await service.PlaceOwnedWindowAsync("Capri Mainframe", origin, 1, default); Check(false, "Foreign title must fail"); }
+            catch (InvalidOperationException) { Check(true, "Matching titles in another process cannot be moved"); }
+            Equal(0, fake.Dispatches.Count, "Foreign window receives no placement mutation");
+        }
+
         private static async Task<int> Main(string[] args)
         {
             try
@@ -612,7 +697,7 @@ namespace CapriDesktop
                     return 0;
                 }
                 Geometry(); await VisibilityAndLedges(); await WindowActions(); await Revocation(); await PointerAndFailure(); Envelope(); await SocketTransport();
-                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement(); await UnmappedPetRecovery();
+                await SnapshotPublication(); await SpanningFloating(); await RestoreRebind(); await PetPlacement(); await UnmappedPetRecovery(); await MainframePlacement();
                 Console.WriteLine(JsonSerializer.Serialize(new { status = "PASS", checks, scope = "synthetic native desktop fixtures; no live mutation, pixels, audio or input" }));
                 return 0;
             }
