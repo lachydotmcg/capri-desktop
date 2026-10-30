@@ -33,6 +33,13 @@ jobs:
             cp SOURCE.json /output/
             bash src/capri/ci/smoke-linux.sh "$PWD/src/publish/Capri" /output/smoke
           '
+      - name: Return artifact ownership to the runner
+        if: always()
+        run: |
+          if [[ -d "$RUNNER_TEMP/package-output" ]] && docker image inspect capri-arch-build >/dev/null 2>&1; then
+            docker run --rm --user root -v "$RUNNER_TEMP/package-output:/output" capri-arch-build \
+              chown -R --no-dereference "$(id -u):$(id -g)" /output
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
