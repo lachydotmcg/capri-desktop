@@ -8,21 +8,41 @@ using Avalonia.Threading;
 
 namespace CapriDesktop
 {
+    internal sealed class BrainConnections
+    {
+        internal Func<string, CodexBrain> Codex = path => new CodexBrain(path);
+        internal Func<string[]> LocalModels = Brain.InstalledModels;
+        internal Func<string, System.Collections.Generic.List<string>> CloudModels = Brain.CloudModels;
+    }
+
     internal sealed partial class Pet
     {
         private volatile CodexBrain codex;
+        private readonly BrainConnections brainConnections;
+        private int brainSelection;
         private readonly SemaphoreSlim providerChange = new(1, 1);
         private string brainConnectionStatus;
+        private bool brainSessionLocked;
         private string[] localBrainChoices = Array.Empty<string>();
         internal event Action BrainConnectionChanged;
-        internal string BrainProvider => Saved.BrainProvider ?? (Brain.Remote != null ? "cloud" : "ollama");
+        internal string BrainProvider => string.IsNullOrEmpty(Saved.BrainProvider) ? (Brain.Remote != null ? "cloud" : "ollama") : Saved.BrainProvider;
         internal string BrainConnectionStatus => brainConnectionStatus ?? (BrainProvider == "codex" ? codex?.Status ?? "Disconnected" : Brain.Model == null ? "No model connected" : "Selected · " + Brain.Model);
         internal bool BrainConnected => BrainProvider == "codex" ? codex?.Connected == true : Brain.Model != null;
         internal string[] BrainModelChoices => BrainProvider == "codex" ? codex?.Models.Select(m => m.Id).ToArray() ?? Array.Empty<string>() : BrainProvider == "cloud" ? cloudModels?.ToArray() ?? Array.Empty<string>() : localBrainChoices;
 
-        private void RevokeBrainWork()
+        private void RevokeBrainWork(bool invalidateSelection = false)
         {
+            if (invalidateSelection) Interlocked.Increment(ref brainSelection);
             ++asking; ComputerJobs.Stop(); Brain.Cancel(); StopChat(); StopSpeech();
+        }
+
+        internal void ObserveBrainLock(bool? locked)
+        {
+            if (!locked.HasValue || brainSessionLocked == locked.Value) return;
+            brainSessionLocked = locked.Value;
+            if (!locked.Value) return;
+            RevokeBrainWork(true);
+            Talk.Dismiss();
         }
 
         private void ProviderChanged()
@@ -31,12 +51,30 @@ namespace CapriDesktop
             BrainConnectionChanged?.Invoke();
         }
 
-        internal async Task ConnectCodexAsync()
+        private int BeginBrainSelection()
+        {
+            int ticket = Interlocked.Increment(ref brainSelection);
+            RevokeBrainWork();
+            return ticket;
+        }
+
+        private bool OwnsBrainSelection(int ticket) => ticket == Volatile.Read(ref brainSelection) && !quitting;
+
+        internal static Cloud RestoreSavedCloud(string provider, string model, Func<string> readKey)
+        {
+            if ((!string.IsNullOrEmpty(provider) && provider != "cloud") || string.IsNullOrEmpty(model)) return null;
+            string key = readKey();
+            return key != null && Cloud.KindOf(key) != null ? new Cloud(key, model) : null;
+        }
+
+        internal Task ConnectCodexAsync() => ConnectCodexAsync(BeginBrainSelection(), Saved.CodexModel);
+
+        private async Task ConnectCodexAsync(int ticket, string preferred)
         {
             await providerChange.WaitAsync();
             try
             {
-                RevokeBrainWork();
+                if (!OwnsBrainSelection(ticket)) return;
                 Brain.Provider = null;
                 Saved.BrainProvider = "codex";
                 Brain.Model = null;
@@ -44,7 +82,7 @@ namespace CapriDesktop
                 brainConnectionStatus = "Connecting to Codex / ChatGPT plan…";
                 ProviderChanged();
                 codex?.Dispose();
-                codex = new CodexBrain(Path.Combine(folder, "codex"));
+                codex = brainConnections.Codex(Path.Combine(folder, "codex"));
                 CodexBrain connection = codex;
                 connection.Changed += () => Dispatcher.UIThread.Post(() =>
                 {
@@ -67,9 +105,8 @@ namespace CapriDesktop
                 Save();
                 try
                 {
-                    string preferred = Saved.CodexModel;
                     await Task.Run(() => connection.Connect(preferred));
-                    if (quitting || codex != connection) return;
+                    if (!OwnsBrainSelection(ticket) || codex != connection) { connection.Dispose(); return; }
                     Brain.Provider = connection;
                     Brain.Model = connection.Model;
                     Saved.CodexModel = connection.Model;
@@ -78,26 +115,29 @@ namespace CapriDesktop
                 }
                 catch (Exception error)
                 {
+                    if (!OwnsBrainSelection(ticket) || codex != connection) { connection.Dispose(); return; }
                     brainConnectionStatus = error.Message;
-                    if (codex == connection) { connection.Dispose(); codex = null; Brain.Provider = null; }
+                    connection.Dispose(); codex = null; Brain.Provider = null;
                 }
                 ProviderChanged();
             }
             finally { providerChange.Release(); }
         }
 
-        internal async Task PickCodexModelAsync(string model)
+        internal Task PickCodexModelAsync(string model)
         {
-            if (string.IsNullOrWhiteSpace(model) || !BrainModelChoices.Contains(model)) return;
-            if (Brain.Model == model && BrainConnected) return;
+            if (BrainProvider != "codex" || string.IsNullOrWhiteSpace(model) || !BrainModelChoices.Contains(model) || Brain.Model == model && BrainConnected) return Task.CompletedTask;
+            int ticket = BeginBrainSelection();
             Saved.CodexModel = model;
             Save();
-            await ConnectCodexAsync();
+            return ConnectCodexAsync(ticket, model);
         }
 
-        internal void DisconnectCodex()
+        internal void DisconnectCodex() => DisconnectCodex(BeginBrainSelection());
+
+        private void DisconnectCodex(int ticket)
         {
-            RevokeBrainWork();
+            if (!OwnsBrainSelection(ticket)) return;
             Brain.Provider = null;
             codex?.Dispose(); codex = null;
             if (BrainProvider == "codex") Brain.Model = null;
@@ -107,49 +147,63 @@ namespace CapriDesktop
 
         internal async Task SelectBrainProviderAsync(string provider)
         {
-            if (provider == "codex") { await ConnectCodexAsync(); return; }
-            if (provider != "ollama" && provider != "cloud") throw new ArgumentException("Unknown brain provider.", nameof(provider));
-            DisconnectCodex();
+            if (provider != "codex" && provider != "ollama" && provider != "cloud") throw new ArgumentException("Unknown brain provider.", nameof(provider));
+            int ticket = BeginBrainSelection();
+            if (provider == "codex") { await ConnectCodexAsync(ticket, Saved.CodexModel); return; }
+            DisconnectCodex(ticket);
             Brain.Remote = null;
             Brain.Model = null;
             Saved.BrainProvider = provider;
             brainConnectionStatus = null;
             if (provider == "cloud")
             {
-                string key = ReadSecret(BrainKeyFile);
-                if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(Saved.CloudModel))
-                {
-                    Brain.Remote = new Cloud(key, Saved.CloudModel); Brain.Model = Saved.CloudModel;
-                }
+                Cloud restored = RestoreSavedCloud(provider, Saved.CloudModel, () => ReadSecret(BrainKeyFile));
+                if (restored != null) { Brain.Remote = restored; Brain.Model = restored.Model; }
                 else brainConnectionStatus = "Connect an optional provider API key to use Cloud.";
             }
             Save();
-            await RefreshBrainModelsAsync();
-            ProviderChanged();
+            await RefreshBrainModelsAsync(ticket, provider);
         }
 
-        internal async Task RefreshBrainModelsAsync()
+        internal Task RefreshBrainModelsAsync()
         {
-            if (BrainProvider == "codex") { await ConnectCodexAsync(); return; }
+            if (BrainProvider == "codex") return ConnectCodexAsync();
+            return RefreshBrainModelsAsync(Volatile.Read(ref brainSelection), BrainProvider);
+        }
+
+        private async Task RefreshBrainModelsAsync(int ticket, string provider)
+        {
             try
             {
-                if (BrainProvider == "cloud")
+                if (provider == "cloud")
                 {
-                    string key = ReadSecret(BrainKeyFile);
-                    if (!string.IsNullOrEmpty(key)) cloudModels = await Task.Run(() => Brain.CloudModels(key));
+                    Cloud remote = Brain.Remote;
+                    if (remote != null)
+                    {
+                        var found = await Task.Run(() => brainConnections.CloudModels(remote.Key));
+                        if (!OwnsBrainSelection(ticket) || BrainProvider != provider || Brain.Remote != remote) return;
+                        cloudModels = found;
+                        brainConnectionStatus = null;
+                    }
                 }
                 else
                 {
-                    localBrainChoices = await Task.Run(Brain.InstalledModels);
+                    string[] found = await Task.Run(brainConnections.LocalModels);
+                    if (!OwnsBrainSelection(ticket) || BrainProvider != provider) return;
+                    localBrainChoices = found;
                     if (Brain.Model == null)
                     {
-                        Brain.Model = Brain.PickModel(localBrainChoices, Saved.Model, null);
+                        Brain.Model = Brain.PickModel(found, Saved.Model, null);
                         if (Brain.Model != null) { Saved.Model = Brain.Model; Save(); }
                     }
+                    brainConnectionStatus = null;
                 }
-                brainConnectionStatus = null;
             }
-            catch (Exception error) { brainConnectionStatus = error.Message; }
+            catch (Exception error)
+            {
+                if (!OwnsBrainSelection(ticket) || BrainProvider != provider) return;
+                brainConnectionStatus = error.Message;
+            }
             ProviderChanged();
         }
 

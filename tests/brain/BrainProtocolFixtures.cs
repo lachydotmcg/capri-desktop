@@ -9,14 +9,14 @@ using CapriDesktop;
 
 internal static class BrainProtocolFixtures
 {
-    private sealed class Server : IDisposable
+    internal sealed class Server : IDisposable
     {
         internal BrainChecks.Pipe Pipe;
         internal string Mode = "complete", Account = "fixture-a";
         internal TaskCompletionSource<bool> Held = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal TaskCompletionSource<bool> Proposed = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal int Interruptions;
-        internal bool SourceViolation, UnsupportedExperimental, ConfigurationSafe;
+        internal bool SourceViolation, UnsupportedExperimental, ConfigurationSafe, ProposalRejected;
         internal string Thread, Turn;
         private int sequence;
         private readonly SemaphoreSlim writer = new(1, 1);
@@ -33,7 +33,7 @@ internal static class BrainProtocolFixtures
                 while (true)
                 {
                     var request = await Pipe.Read();
-                    if (!request.TryGetProperty("method", out var method)) { if (request.TryGetProperty("id", out var rid) && rid.GetInt32() == 800) Proposed.TrySetResult(true); continue; }
+                    if (!request.TryGetProperty("method", out var method)) { if (request.TryGetProperty("id", out var rid) && rid.GetInt32() == 800) { ProposalRejected = request.TryGetProperty("error", out _); Proposed.TrySetResult(true); } continue; }
                     string name = method.GetString();
                     if (!request.TryGetProperty("id", out var id)) continue;
                     var p = request.GetProperty("params");
@@ -55,10 +55,22 @@ internal static class BrainProtocolFixtures
                                 p.GetProperty("developerInstructions").GetString().Contains(CodexBrain.Boundary);
                             result = new { thread = new { id = Thread }, model = "fixture-model", instructionSources = SourceViolation ? new[] { "/project/AGENTS.md" } : new[] { "/fixture/codex/AGENTS.md" } }; break;
                         case "turn/start":
+                            string previous = Turn;
                             Turn = "turn-" + ++sequence;
+                            if (Mode == "late-before-response")
+                            {
+                                await Send(new { method = "turn/completed", @params = new { threadId = Thread, turn = new { id = previous, status = "completed" } } });
+                                await Send(new { method = "item/agentMessage/delta", @params = new { threadId = Thread, turnId = previous, delta = "stale" } });
+                            }
+                            if (Mode == "early-current") await Finish("completed");
+                            if (Mode == "early-proposal" || Mode == "early-stale-proposal")
+                                await Send(new { id = 800, method = "item/tool/call", @params = new { threadId = Thread, turnId = Mode == "early-proposal" ? Turn : previous, callId = "call-early", tool = "capri_plan_open_app", arguments = new { name = "Fixture" } } });
+                            if (Mode == "early-overflow")
+                                for (int n = 0; n < 257; n++) await Send(new { method = "item/agentMessage/delta", @params = new { threadId = Thread, turnId = Turn, delta = "x" } });
                             await Send(new { id, result = new { turn = new { id = Turn } } });
                             await Send(new { method = "turn/started", @params = new { threadId = Thread, turn = new { id = Turn } } });
-                            if (Mode == "proposal")
+                            if (Mode.StartsWith("early-") || Mode == "late-before-response") Held.TrySetResult(true);
+                            else if (Mode == "proposal")
                             {
                                 await Send(new { id = 800, method = "item/tool/call", @params = new { threadId = Thread, turnId = Turn, callId = "call-1", tool = "capri_plan_open_app", arguments = new { name = "Fixture" } } });
                                 Held.TrySetResult(true);
@@ -125,6 +137,31 @@ internal static class BrainProtocolFixtures
                 server.SourceViolation = true;
                 try { await Task.Run(() => provider.Complete(provider.Model, messages, null, calls, 40, null)); BrainChecks.Check(false, "project instructions rejected"); }
                 catch (BrainException e) { BrainChecks.Check(e.Message.Contains("project instructions"), "unexpected project instructions stop companion request"); }
+            }
+            foreach (string mode in new[] { "late-before-response", "early-current", "early-proposal", "early-stale-proposal", "early-overflow" })
+            using (var server = await Server.Open())
+            using (var provider = new CodexBrain(Path.Combine(root, mode), _ => server.Pipe.Rpc))
+            {
+                await provider.Connect(null);
+                // Establish a prior turn in the same chat lane, as in the independent regression.
+                var messages = new List<ChatMessage> { new("system", "fixture"), new("user", "first") };
+                await Task.Run(() => provider.Complete(provider.Model, messages, null, new(), 40, null));
+                server.Mode = mode;
+                var calls = new List<KeyValuePair<string, ToolArguments>>(); var chunks = new List<string>();
+                var running = Task.Run(() => provider.Complete(provider.Model, messages, mode.Contains("proposal") ? Hands.Tools : null, calls, 40, chunks.Add));
+                await server.Held.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                if (mode.Contains("proposal")) await server.Proposed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                // A request barrier proves all earlier wire messages have been consumed without time-based assertions.
+                if (mode != "early-overflow") await server.Pipe.Rpc.Request("barrier", new { }, CancellationToken.None);
+                if (mode == "late-before-response") BrainChecks.Check(!running.IsCompleted, "late previous completion cannot finish a new turn awaiting its authoritative completion");
+                if (mode != "early-current" && mode != "early-overflow") await server.Finish("completed");
+                try
+                {
+                    string result = await running.WaitAsync(TimeSpan.FromSeconds(5));
+                    BrainChecks.Check(mode != "early-overflow" && result == "fixture reply" && string.Concat(chunks) == "fixture reply", mode + " preserves only current response-authoritative streamed text");
+                    if (mode.Contains("proposal")) BrainChecks.Check(calls.Count == (mode == "early-proposal" ? 1 : 0) && server.ProposalRejected == (mode == "early-stale-proposal"), mode + " validates server request only after response authority without blocking reader");
+                }
+                catch (IOException e) when (mode == "early-overflow") { BrainChecks.Check(e.Message.Contains("pre-response") && !provider.Connected && calls.Count == 0, "pre-response notification overflow fails closed with no proposals"); }
             }
             using (var server = await Server.Open())
             using (var provider = new CodexBrain(Path.Combine(root, "disconnect"), _ => server.Pipe.Rpc))

@@ -110,7 +110,14 @@ internal static class BrainChecks
         File.WriteAllText(Path.Combine(directory, "live-receipt.json"), JsonSerializer.Serialize(new { model, identity, thread, hello, follow, after, imageReply = seen, proposalCount = proposals.Count, resumedReply = again, chunks = chunks.Count, events = events.ToArray(), instructionSourceCount = resumed.InstructionSources.Length, globalInstructionsExplicitlyScoped = true }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static async Task<int> Main(string[] args)
+    [STAThread]
+    private static int Main(string[] args)
+    {
+        if (args.Length == 2 && args[0] == "--lifecycle") return BrainLifecycleFixtures.Start(args[1]);
+        return Run(args).GetAwaiter().GetResult();
+    }
+
+    private static async Task<int> Run(string[] args)
     {
         await Transport();
         await BrainProtocolFixtures.Run();

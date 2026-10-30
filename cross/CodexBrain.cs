@@ -57,6 +57,9 @@ namespace CapriDesktop
             internal readonly TaskCompletionSource<string> Done = new(TaskCreationOptions.RunContinuationsAsynchronously);
             internal readonly TaskCompletionSource<string> Ended = new(TaskCreationOptions.RunContinuationsAsynchronously);
             internal Task Interruption;
+            internal readonly TaskCompletionSource<string> Authority = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            internal readonly Queue<(string Method, JsonElement Parameters)> Early = new();
+            internal int BufferedCharacters, WaitingRequests;
             internal readonly StringBuilder Text = new();
             internal readonly HashSet<string> Calls = new();
             internal readonly List<KeyValuePair<string, ToolArguments>> Proposals = new();
@@ -260,13 +263,21 @@ namespace CapriDesktop
             {
                 string effort = choice.Efforts.Contains("low") ? "low" : choice.Efforts.FirstOrDefault() ?? "low";
                 var started = await rpc.Request("turn/start", new { threadId = thread, input, effort, model, environments = Array.Empty<object>(), serviceTierForTurn = "default" }, CancellationToken.None).ConfigureAwait(false);
-                lock (gate) current.Id = Text(started.GetProperty("turn"), "id");
-                LastTurnId = current.Id;
+                lock (gate)
+                {
+                    current.Id = Text(started.GetProperty("turn"), "id");
+                    if (string.IsNullOrEmpty(current.Id)) throw new IOException("Codex did not identify the started turn.");
+                    LastTurnId = current.Id;
+                    current.Authority.TrySetResult(current.Id);
+                    while (current.Early.TryDequeue(out var notification)) ApplyNotification(current, notification.Method, notification.Parameters);
+                    current.BufferedCharacters = 0;
+                }
                 if (current.Cancelled) await Interrupt(current).ConfigureAwait(false);
                 string answer = await current.Done.Task.WaitAsync(deadline.Token).ConfigureAwait(false);
                 lock (gate)
                 {
                     if (current.Cancelled || current.Generation != generation) throw new OperationCanceledException();
+                    if (string.IsNullOrWhiteSpace(answer) && current.Proposals.Count == 0) throw new BrainException("Codex completed without an assistant reply. Press Retry.");
                     calls.AddRange(current.Proposals);
                 }
                 if (image) ImageQualified = true;
@@ -275,6 +286,7 @@ namespace CapriDesktop
             }
             finally
             {
+                current.Authority.TrySetCanceled();
                 if (current.Cancelled) await Interrupt(current).ConfigureAwait(false);
                 lock (gate) if (active == current) active = null;
             }
@@ -288,57 +300,76 @@ namespace CapriDesktop
                 lock (gate) if (identity == "codex:disconnected") return;
                 Cancel(); StatusChanged("Codex account changed; press Retry to verify it.", false); Revoked?.Invoke(); return;
             }
-            Turn current;
-            lock (gate) current = active;
-            if (current == null || Text(parameters, "threadId") != current.Thread) return;
-            string id = Text(parameters, "turnId");
-            if (method == "turn/started" || method == "turn/completed") id = Text(parameters.GetProperty("turn"), "id");
             lock (gate)
             {
-                if (current.Id == null && id != null) current.Id = id;
-                if (id != null && current.Id != id) return;
-                if (method == "turn/completed") current.Ended.TrySetResult(Text(parameters.GetProperty("turn"), "status"));
-                if (current.Cancelled || current.Generation != generation)
+                Turn current = active;
+                if (current == null || Text(parameters, "threadId") != current.Thread) return;
+                if (method != "turn/started" && method != "turn/completed" && method != "item/agentMessage/delta" && method != "item/completed") return;
+                if (current.Id == null)
                 {
-                    if (method == "turn/started") _ = Interrupt(current);
+                    current.BufferedCharacters += parameters.GetRawText().Length;
+                    if (current.Early.Count >= 256 || current.BufferedCharacters > 1024 * 1024)
+                        throw new IOException("Codex exceeded the pre-response notification buffer. The turn was stopped.");
+                    current.Early.Enqueue((method, parameters));
                     return;
                 }
-                if (method == "item/agentMessage/delta")
+                ApplyNotification(current, method, parameters);
+            }
+        }
+
+        private void ApplyNotification(Turn current, string method, JsonElement parameters)
+        {
+            string id = Text(parameters, "turnId");
+            if (method == "turn/started" || method == "turn/completed")
+                id = parameters.TryGetProperty("turn", out var reported) ? Text(reported, "id") : null;
+            if (string.IsNullOrEmpty(id) || current.Id != id) return;
+            if (method == "turn/completed") current.Ended.TrySetResult(Text(parameters.GetProperty("turn"), "status"));
+            if (current.Cancelled || current.Generation != generation) return;
+            if (method == "item/agentMessage/delta")
+            {
+                string item = Text(parameters, "itemId");
+                if (current.CurrentItem != item) { current.CurrentItem = item; current.Text.Clear(); }
+                current.Text.Append(Text(parameters, "delta"));
+                StreamedChunks++;
+                current.Streamed?.Invoke(current.Text.ToString());
+            }
+            else if (method == "item/completed" && parameters.TryGetProperty("item", out var item) && Text(item, "type") == "agentMessage")
+            {
+                string content = Text(item, "text");
+                if (content != null) { current.CurrentItem = Text(item, "id"); current.Text.Clear(); current.Text.Append(content); }
+            }
+            else if (method == "turn/completed")
+            {
+                var turn = parameters.GetProperty("turn");
+                string status = Text(turn, "status");
+                if (status == "completed") current.Done.TrySetResult(current.Text.ToString());
+                else if (status == "interrupted") current.Done.TrySetCanceled();
+                else
                 {
-                    string item = Text(parameters, "itemId");
-                    if (current.CurrentItem != item) { current.CurrentItem = item; current.Text.Clear(); }
-                    current.Text.Append(Text(parameters, "delta"));
-                    StreamedChunks++;
-                    current.Streamed?.Invoke(current.Text.ToString());
-                }
-                else if (method == "item/completed" && parameters.TryGetProperty("item", out var item) && Text(item, "type") == "agentMessage")
-                {
-                    string content = Text(item, "text");
-                    if (content != null) { current.CurrentItem = Text(item, "id"); current.Text.Clear(); current.Text.Append(content); }
-                }
-                else if (method == "turn/completed")
-                {
-                    var turn = parameters.GetProperty("turn");
-                    string status = Text(turn, "status");
-                    if (status == "completed") current.Done.TrySetResult(current.Text.ToString());
-                    else if (status == "interrupted") current.Done.TrySetCanceled();
-                    else
-                    {
-                        string error = turn.TryGetProperty("error", out var problem) && problem.ValueKind == JsonValueKind.Object ? Text(problem, "message") : null;
-                        current.Done.TrySetException(new BrainException("Codex " + status + ": " + (error ?? "the turn did not complete.")));
-                    }
+                    string error = turn.TryGetProperty("error", out var problem) && problem.ValueKind == JsonValueKind.Object ? Text(problem, "message") : null;
+                    current.Done.TrySetException(new BrainException("Codex " + status + ": " + (error ?? "the turn did not complete.")));
                 }
             }
         }
 
-        private Task<object> ServerRequest(string method, JsonElement parameters)
+        private async Task<object> ServerRequest(string method, JsonElement parameters)
         {
             if (method != "item/tool/call") throw new InvalidOperationException("Only Capri's typed action proposals are supported.");
+            Turn current;
             lock (gate)
             {
-                Turn current = active;
+                current = active;
+                if (current == null || current.Cancelled || current.Generation != generation || Text(parameters, "threadId") != current.Thread)
+                    throw new OperationCanceledException();
+                if (current.WaitingRequests >= 16) throw new InvalidOperationException("Too many pending Codex tool requests.");
+                current.WaitingRequests++;
+            }
+            try { await current.Authority.Task.WaitAsync(TimeSpan.FromSeconds(90)).ConfigureAwait(false); }
+            finally { lock (gate) current.WaitingRequests--; }
+            lock (gate)
+            {
                 string tool = Text(parameters, "tool"), id = Text(parameters, "callId");
-                if (current == null || current.Cancelled || current.Generation != generation || Text(parameters, "threadId") != current.Thread || Text(parameters, "turnId") != current.Id)
+                if (active != current || current.Cancelled || current.Done.Task.IsCompleted || current.Generation != generation || Text(parameters, "threadId") != current.Thread || Text(parameters, "turnId") != current.Id)
                     throw new OperationCanceledException();
                 if (!current.Allowed.Contains(tool) || current.Proposals.Count >= 8 || !current.Calls.Add(id))
                     throw new InvalidOperationException("Unknown, duplicate or excessive action proposal.");
@@ -347,7 +378,7 @@ namespace CapriDesktop
                 var arguments = (ToolArguments)new DataContractJsonSerializer(typeof(ToolArguments)).ReadObject(buffer);
                 if (!Hands.Valid(name, arguments)) throw new InvalidOperationException("The proposed action is not valid.");
                 current.Proposals.Add(new KeyValuePair<string, ToolArguments>(name, arguments));
-                return Task.FromResult<object>(new { success = true, contentItems = new[] { new { type = "inputText", text = "Typed proposal received. No action has executed. Capri will validate permissions and execute only after this turn completes successfully. Do not repeat this proposal." } } });
+                return new { success = true, contentItems = new[] { new { type = "inputText", text = "Typed proposal received. No action has executed. Capri will validate permissions and execute only after this turn completes successfully. Do not repeat this proposal." } } };
             }
         }
 
@@ -360,7 +391,7 @@ namespace CapriDesktop
                 connect = connecting;
                 generation++;
                 current = active;
-                if (current != null) { current.Cancelled = true; current.Proposals.Clear(); current.Done.TrySetCanceled(); }
+                if (current != null) { current.Cancelled = true; current.Proposals.Clear(); current.Authority.TrySetCanceled(); current.Done.TrySetCanceled(); }
             }
             connect?.Cancel();
             if (current != null) _ = Interrupt(current);
@@ -379,6 +410,7 @@ namespace CapriDesktop
         {
             try
             {
+                if (current.Ended.Task.IsCompleted) return;
                 await rpc.Request("turn/interrupt", new { threadId = current.Thread, turnId = current.Id }, CancellationToken.None, TimeSpan.FromSeconds(5)).ConfigureAwait(false);
                 EventObserved?.Invoke("capri/interruptAcknowledged");
                 await current.Ended.Task.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);

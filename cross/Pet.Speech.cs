@@ -80,8 +80,7 @@ namespace CapriDesktop
         }
         internal void StopTalking()
         {
-            ComputerJobs.Stop();
-            ++asking; Brain.Cancel(); StopChat(); StopSpeech();
+            RevokeBrainWork(true);
             localVoice.Cancel = localEars.Cancel = true;
             Talk.Answer("(stop)", "Stopped.");
         }

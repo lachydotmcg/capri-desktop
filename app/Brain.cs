@@ -1361,7 +1361,15 @@ namespace CapriDesktop
             IBrainProvider provider = Provider;
             if (provider != null)
             {
-                string answer = provider.Complete(model, messages, tools ? openAiTools ?? Hands.Tools : null, calls, limit, streamed, routing ? "actions" : purpose);
+                Action<string> currentText = streamed == null ? null : new Action<string>(delegate(string text)
+                {
+                    lock (gate)
+                    {
+                        if (ticket >= 0 && ticket != cancelled) return;
+                        streamed(text);
+                    }
+                });
+                string answer = provider.Complete(model, messages, tools ? openAiTools ?? Hands.Tools : null, calls, limit, currentText, routing ? "actions" : purpose);
                 Check(ticket);
                 return answer;
             }

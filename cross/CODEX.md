@@ -11,7 +11,9 @@ Capri starts and owns one child process while this provider is selected. It does
 not copy tokens, change Codex's global configuration, or sign other clients out.
 Disconnect and close affect only Capri's work and child. Provider/model changes
 and Stop revoke pending native work and speech; Stop waits for the actual turn's
-interruption before another turn can begin. A failed or uncertain turn is never
+interruption before another turn can begin. Hide, Quiet, sleep and session lock
+also revoke ordinary chat, pending tool proposals, queued connections and speech.
+Repeated sleeping or locked ticks do not repeatedly cancel the provider. A failed or uncertain turn is never
 automatically replayed. Retry starts a fresh connection and resumes only a
 matching account/model's dedicated Capri thread.
 
@@ -44,11 +46,19 @@ experimental API negotiation; an incompatible server fails visibly instead of
 falling back to unrestricted tools. See the [official app-server
 protocol](https://learn.chatgpt.com/docs/app-server).
 
-Run deterministic protocol/lifecycle checks:
+Run deterministic protocol checks:
 
 ```sh
 dotnet run --project tests/brain/BrainChecks.csproj -c Release
 ```
+
+The optional `--lifecycle /absolute/private/test-directory` check runs real Pet
+transitions with delayed provider IO. It requires an explicitly unused private
+Xvfb display from `:192` through `:219`, `CAPRI_BRAIN_TEST_XVFB=1`, private
+XDG configuration/data directories, and unset Wayland/Hyprland session variables.
+Check both the X socket and lock before allocating the display. It uses the
+shipped BareDesk fallback for window discovery; physical lock and desktop input
+remain separate host checks. Never run it against the owner's desktop.
 
 The explicitly opted-in live check uses the current managed sign-in, creates
 only dedicated test threads and tests streaming, follow-up, interruption,

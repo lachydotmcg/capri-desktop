@@ -447,12 +447,13 @@ namespace CapriDesktop
         private int asking;
         private Smoke smoke;
 
-        internal Pet(IClassicDesktopStyleApplicationLifetime desktop)
+        internal Pet(IClassicDesktopStyleApplicationLifetime desktop, BrainConnections brainConnections = null)
         {
             this.desktop = desktop;
             motionTrace = MotionTrace.Open();
             InitializeNativeDrag();
             PositionChanged += delegate { TraceMotion("position"); };
+            this.brainConnections = brainConnections ?? new BrainConnections();
             folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
             fresh = Program.Smoke == null && !File.Exists(Path.Combine(folder, "cross.json"));
             Saved = Program.Smoke != null ? new Settings() : Load();
@@ -496,11 +497,11 @@ namespace CapriDesktop
             Hands.Animate = AnimateTool;
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
-            string brainKey = ReadSecret(BrainKeyFile);
-            if (brainKey != null && Cloud.KindOf(brainKey) != null && !string.IsNullOrEmpty(Saved.CloudModel))
+            Cloud savedCloud = RestoreSavedCloud(Saved.BrainProvider, Saved.CloudModel, () => ReadSecret(BrainKeyFile));
+            if (savedCloud != null)
             {
-                Brain.Remote = new Cloud(brainKey, Saved.CloudModel);
-                Brain.Model = Saved.CloudModel;
+                Brain.Remote = savedCloud;
+                Brain.Model = savedCloud.Model;
             }
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
@@ -762,9 +763,7 @@ namespace CapriDesktop
             EndRootDrag(false, false);
             petSurface?.Suspend(true);
             // Hiding revokes native jobs and pending consent as well as her reply and voice.
-            ++asking;
-            ComputerJobs.Stop();
-            StopChat(); StopSpeech();
+            RevokeBrainWork(true);
             SetAway(true);
             Talk.Dismiss();
             GlitchOut(delegate { seat = null; walking = false; Hide(); });
@@ -798,6 +797,7 @@ namespace CapriDesktop
         {
             if (pressed || dragging) TraceMotion("tick");
             double now = Now;
+            if (Desk is HyprlandDesk) ObserveBrainLock(HyprlandDesktop.Current?.Snapshot?.Locked);
             RefreshDesktop(now);
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
@@ -1985,8 +1985,7 @@ namespace CapriDesktop
                 return;
             }
             if (SleepAfter <= 0 || idle < SleepAfter || !Drowsy) return;
-            ComputerJobs.Stop();
-            StopChat(); StopSpeech();
+            RevokeBrainWork(true);
             Play(sleep);
             sleepIdle = idle;
             sleptAt = Mouse();
@@ -2012,12 +2011,13 @@ namespace CapriDesktop
                 Sync();
                 return resting ? "Woke up." : "Already awake.";
             }
+            if (napAsked || napping) return "Already going to sleep. A click on me wakes me up.";
+            if (clip == sleep) { napping = true; Sync(); return "Already asleep. A click on me wakes me up."; }
             ComeBack();
             if (seat != null || hanging) StandUp();
             EndWalk();
             dancing = false;
-            ComputerJobs.Stop();
-            StopChat(); StopSpeech();
+            RevokeBrainWork(true);
             napAsked = true;
             Sync();
             return "Going to sleep. A click on me wakes me up.";
@@ -2241,7 +2241,7 @@ namespace CapriDesktop
         internal bool QuietShown { get { return quietItem.IsChecked; } }
 
         // Quiet or a nap they asked for: no glances, pop-ins, check-ins, cheers or jokes.
-        private bool Hushed { get { return shushed || napAsked || napping; } }
+        private bool Hushed { get { return shushed || napAsked || napping || brainSessionLocked; } }
 
         // Quiet, like Windows' quiet key, for when they focus or game: she stops what she's saying and doesn't glance, pop in,
         // check in, cheer or joke until it's turned off, but still answers when they talk to her. Starting her again ends it.
@@ -2251,7 +2251,7 @@ namespace CapriDesktop
             nextPopIn = -1;
             nextGlance = -1;
             ForgetNudges();
-            if (shushed) { ComputerJobs.Stop(); StopChat(); StopSpeech(); }
+            if (shushed) RevokeBrainWork(true);
             Talk.Answer("(quiet)", shushed ? "Going quiet. Right-click me > Quiet when you want me back." : "I'm back, choom.");
             Sync();
             if (ShushChanged != null) ShushChanged();
@@ -2455,12 +2455,13 @@ namespace CapriDesktop
         {
             if (BrainProvider == "codex") { ShowCodexBrains(); return; }
             if (Brain.Remote != null) { ShowCloud(); ListCloud(); return; }
+            int selection = Volatile.Read(ref brainSelection);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
                 try { found = Brain.InstalledModels(); }
                 catch (Exception) { }
-                Dispatcher.UIThread.Post(delegate { ShowBrains(found); });
+                Dispatcher.UIThread.Post(delegate { if (OwnsBrainSelection(selection) && BrainProvider == "ollama") ShowBrains(found); });
             });
         }
 
@@ -2526,6 +2527,7 @@ namespace CapriDesktop
             Cloud remote = Brain.Remote;
             if (remote == null || cloudListing || cloudModels != null) return;
             cloudListing = true;
+            int selection = Volatile.Read(ref brainSelection);
             string key = remote.Key;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -2535,7 +2537,7 @@ namespace CapriDesktop
                 Dispatcher.UIThread.Post(delegate
                 {
                     cloudListing = false;
-                    if (found == null || Brain.Remote == null || Brain.Remote.Key != key) return;
+                    if (!OwnsBrainSelection(selection) || BrainProvider != "cloud" || found == null || Brain.Remote != remote) return;
                     cloudModels = found;
                     ShowCloud();
                 });
@@ -2629,7 +2631,7 @@ namespace CapriDesktop
         {
             if (BrainProvider == "codex") { _ = PickCodexModelAsync(model); return; }
             if (string.IsNullOrEmpty(model) || model == Brain.Model) return;
-            RevokeBrainWork();
+            BeginBrainSelection();
             // Her chat carries on with the new model, so changing brains never wipes what she was doing.
             Brain.Model = model;
             Saved.Model = model;
@@ -3262,6 +3264,8 @@ namespace CapriDesktop
         internal void FindBrain()
         {
             if (BrainProvider == "codex") { if (codex == null) _ = ConnectCodexAsync(); return; }
+            if (BrainProvider == "cloud") return;
+            int selection = Volatile.Read(ref brainSelection);
             string saved = Saved.Model;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -3270,7 +3274,7 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (BrainProvider == "codex" || Brain.Model != null || model == null) return;
+                    if (!OwnsBrainSelection(selection) || BrainProvider != "ollama" || Brain.Model != null || model == null) return;
                     Brain.Model = model;
                     Saved.Model = model;
                     Save();
@@ -3280,6 +3284,7 @@ namespace CapriDesktop
 
         internal void Hear(string text)
         {
+            if (brainSessionLocked) return;
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
             if (text.Length > 240) text = text.Substring(0, 240);
@@ -3361,6 +3366,7 @@ namespace CapriDesktop
 
         private void Reply(int ticket, string heard, string said)
         {
+            if (ticket != asking || brainSessionLocked) return;
             if (!Speaks || Voice.Spoken(said).Length == 0) { Talk.Answer(heard, said); TypeAlong(said, ticket); return; }
             if (Brain.Provider == null) Talk.Thinking(heard);
             CancellationToken cancellation = speechJob.Token;
@@ -3466,20 +3472,21 @@ namespace CapriDesktop
                 catch (Exception error) { Brain.Log(company + " models", -1, error.Message); problem = "Couldn't reach " + company + ". Check your internet, then paste the key again."; }
                 Dispatcher.UIThread.Post(delegate
                 {
+                    if (ticket != asking) return;
                     string model = found == null ? null : Brain.DefaultCloudModel(kind, found);
                     if (problem == null && model == null) problem = "That key can't use any chat models.";
                     if (problem != null) { if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
                     UseCloud(key, model, found);
                     WriteSecret(BrainKeyFile, key, "brain key");
-                    if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under Brain in my right-click menu.");
+                    Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under Brain in my right-click menu.");
                 });
             });
         }
 
         internal void UseCloud(string key, string model, List<string> models)
         {
-            if (BrainProvider == "codex") DisconnectCodex();
-            else RevokeBrainWork();
+            int selection = BeginBrainSelection();
+            DisconnectCodex(selection);
             Saved.BrainProvider = "cloud";
             Brain.Cancel();
             Brain.Remote = new Cloud(key, model);
@@ -3493,7 +3500,7 @@ namespace CapriDesktop
         {
             Cloud remote = Brain.Remote;
             if (remote == null || string.IsNullOrEmpty(model)) return;
-            RevokeBrainWork();
+            BeginBrainSelection();
             remote.Model = model;
             Brain.Model = model;
             Saved.CloudModel = model;
@@ -3503,7 +3510,7 @@ namespace CapriDesktop
         // Back to Ollama: the key file goes, and she finds her Ollama model again.
         internal void ForgetBrainKey()
         {
-            if (BrainProvider == "codex") DisconnectCodex();
+            DisconnectCodex(BeginBrainSelection());
             Saved.BrainProvider = "ollama";
             Brain.Cancel();
             Brain.Remote = null;
