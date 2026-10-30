@@ -1349,22 +1349,30 @@ namespace CapriDesktop
         }
 
         // Tabs through Settings from Back and names the first control that gets focus without all of it showing, or null.
-        internal string TabShows()
+        internal string TabShows(out string limit)
         {
+            limit = null;
+            Restore();
+            if (Control.MouseButtons != MouseButtons.None) { limit = "a mouse button is held"; return null; }
+            if (!more.Focus() || !more.Focused) { limit = "Windows did not give Settings keyboard focus"; return null; }
             Control from = more;
             bool keys = false;
             for (int i = 0; i < 160; i++)
             {
+                if (Control.MouseButtons != MouseButtons.None) { limit = "a mouse button was pressed during the Tab walk"; return null; }
+                if (!ContainsFocus) { limit = "Settings lost keyboard focus during the Tab walk"; return null; }
                 if (!SelectNextControl(from, true, true, true, true)) break;
                 Control at = ActiveControl;
+                if (!ContainsFocus) { limit = "Settings lost keyboard focus during the Tab walk"; return null; }
                 if (at == null || at == from || at == more) break;
+                if (!at.ContainsFocus) return "Tab selected a control without moving keyboard focus";
                 Control whole = at;
                 while (whole.Parent != this) whole = whole.Parent;
                 if (!ClientRectangle.Contains(whole.Bounds)) return "Tab reached " + (whole.AccessibleName ?? whole.Text) + " half off the screen";
                 keys = keys || whole == quietKeys;
                 from = at;
             }
-            more.Focus();
+            if (!more.Focus() || !more.Focused) { limit = "Windows did not return keyboard focus to Back"; return null; }
             return keys ? null : "Tab never reached the quiet key";
         }
 
