@@ -1068,7 +1068,7 @@ namespace CapriDesktop
             int port = LocalPort(address);
             if (port == 0) return null;
             int number;
-            return int.TryParse((address ?? "").Trim(), out number) ? LocalHost(port) : new Uri(address.Trim()).GetLeftPart(UriPartial.Authority);
+            return int.TryParse((address ?? "").Trim(), out number) ? LocalHost(port) : Regex.Match(address.Trim(), @"\A[^/]+//[^/]+").Value;
         }
 
         internal static string ServerName(int port)
