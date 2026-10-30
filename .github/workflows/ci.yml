@@ -22,6 +22,9 @@ jobs:
       - name: Build and smoke test
         shell: pwsh
         run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 180
+      - name: Verify portable source integration
+        shell: pwsh
+        run: ./portable/Verify-Portable.ps1
       - name: Assemble portable USB package
         shell: pwsh
         run: |
