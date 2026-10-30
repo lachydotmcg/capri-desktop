@@ -58,13 +58,14 @@ namespace CapriDesktop
         private static readonly List<string> said = new List<string>();
         private static readonly Dictionary<string, int> noticed = new Dictionary<string, int>();
         private static bool thinking;
+        private static int deaths;
         private static bool spoke;
         private static int spokeAt;
         private static Timer ticks;
         private static int ticking;
         internal static GameLog Log = new GameLog(GameLog.Minecraft);
         // These are noise until the frames say otherwise, so Events only spaces them out.
-        private static readonly string[] Small = { "sound", "noise", "flash", "motion", "scene" };
+        private static readonly string[] Small = { "sound", "noise", "flash", "motion", "scene", "chat" };
         private static readonly Regex Stock = new Regex(@"^(nice|nice (one|shot|job|try|work|move)|wow|whoa|woah|oof|ouch|yikes|damn|dang|haha+|lol|good (one|job|shot|try)|great (job|shot)|well (played|done)|that was (close|crazy|insane|awesome|wild|epic|intense|cool)|close (one|call)|so close|you got this|keep (it up|going)|let'?s go|go go go|what a (play|shot|moment)|unlucky)\b[\s.!,]*(choom\b[\s.!]*)?$", RegexOptions.IgnoreCase);
 
         private static readonly string[] Ordinary = { "a", "all", "an", "and", "but", "he", "how", "i", "i'm", "it", "it's", "its", "just", "my", "no", "not", "now", "oh", "one", "she", "so", "that", "that's", "the", "there", "these", "they", "this", "those", "we", "well", "what", "you", "you're", "your" };
@@ -85,19 +86,26 @@ namespace CapriDesktop
                 frameBefore = frameAfter = null;
             }
             int now = Clock();
-            lock (gate) if (thinking || !Due(kind, pace, now)) return false;
+            lock (gate)
+            {
+                // Counted even when she stays quiet about it, since the running total is half the joke.
+                if (kind == "death") deaths++;
+                if (thinking || !Due(kind, pace, now)) return false;
+            }
             string game = Game();
             if (game == null || !Free()) return false;
             string[] recent;
+            int died;
             lock (gate)
             {
                 if (thinking || !Due(kind, pace, now)) return false;
                 thinking = true;
                 noticed[kind] = now;
                 recent = said.ToArray();
+                died = kind == "death" ? deaths : 0;
             }
             Stopwatch took = Stopwatch.StartNew();
-            ThreadPool.QueueUserWorkItem(delegate { Comment(kind, detail, game, frameBefore, frameAfter, recent, pace, took); });
+            ThreadPool.QueueUserWorkItem(delegate { Comment(kind, detail, game, frameBefore, frameAfter, recent, pace, died, took); });
             return true;
         }
 
@@ -110,7 +118,7 @@ namespace CapriDesktop
             return !noticed.TryGetValue(kind, out seen) || unchecked(now - seen) >= gap;
         }
 
-        private static void Comment(string kind, string detail, string game, byte[] before, byte[] after, string[] recent, int pace, Stopwatch took)
+        private static void Comment(string kind, string detail, string game, byte[] before, byte[] after, string[] recent, int pace, int died, Stopwatch took)
         {
             string line = "";
             try
@@ -118,7 +126,7 @@ namespace CapriDesktop
                 List<byte[]> frames = new List<byte[]>();
                 if (before != null) frames.Add(Shrunk(before));
                 if (after != null) frames.Add(Shrunk(after));
-                line = Line(See(Brain.Character + Rules, Ask(kind, detail, game, recent, pace, frames.Count), frames.ToArray()), recent);
+                line = Line(See(Brain.Character + Rules, Ask(kind, detail, game, recent, pace, frames.Count, died), frames.ToArray()), recent);
             }
             catch (Exception error) { if (!(error is System.Net.WebException) && !(error is BrainException)) Brain.Log("comment", -1, error.GetType().Name + ": " + error.Message); }
             bool keep = line.Length > 0 && took.ElapsedMilliseconds <= Late && Pace != Off && Free();
@@ -135,17 +143,21 @@ namespace CapriDesktop
         }
 
         // Each comment is a fresh look with no chat history, so she's shown the game, what happened and her last lines.
-        internal static string Ask(string kind, string detail, string game, IList<string> recent, int pace, int frames)
+        internal static string Ask(string kind, string detail, string game, IList<string> recent, int pace, int frames, int died = 0)
         {
-            StringBuilder ask = new StringBuilder("(They're playing " + game + ". " + What(kind, detail));
+            StringBuilder ask = new StringBuilder("(They're playing " + game + ".");
+            if (recent.Count > 0)
+            {
+                ask.Append(" You already said these, so this line can't repeat one or sound like one:");
+                foreach (string line in recent) ask.Append("\n- " + line);
+                ask.Append("\n");
+            }
+            else ask.Append(" ");
+            ask.Append(What(kind, detail));
+            if (died > 1) ask.Append(" That's " + died + " deaths since you started watching.");
             if (frames == 2) ask.Append(" The first picture is the screen just before it, the second just after.");
             else if (frames == 1) ask.Append(" The picture is the screen right now.");
             ask.Append(pace == Chatty ? " You're in a chatty mood, so say something unless there's really nothing there." : " Only say something if something really happened; otherwise SKIP.");
-            if (recent.Count > 0)
-            {
-                ask.Append(" Your last lines, which this one mustn't sound like, in words or in shape:");
-                foreach (string line in recent) ask.Append("\n- " + line);
-            }
             return ask + ")";
         }
 
@@ -267,6 +279,7 @@ namespace CapriDesktop
                 noticed.Clear();
                 thinking = false;
                 spoke = false;
+                deaths = 0;
             }
         }
     }

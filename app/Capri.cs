@@ -19763,6 +19763,16 @@ namespace CapriDesktop
                 must(PushBindable(0, 0x05) && PushBindable(0, 0x10) && PushBindable(2, 0x41) && PushBindable(0, 0) && !PushBindable(0, 0x01) && !PushBindable(0, 0x02) && !PushBindable(16, 0x41), "Her push-to-talk binds the wrong keys.");
                 string taken = SetPushKey(preferences.TalkMods, preferences.TalkVk);
                 must(taken != null && taken.IndexOf("already", StringComparison.Ordinal) >= 0 && preferences.PushVk == 0x05, "Her push-to-talk took a key she already uses: " + taken);
+                mainframe.PickKeys(PushSlot);
+                mainframe.TakeKeys(Keys.F8);
+                mainframe.ConfirmKeys();
+                must(preferences.PushVk == (int)Keys.F8 && preferences.PushMods == 0 && !mainframe.Picking && mainframe.PushKeyShown == "Push to talk: F8", "Her settings didn't pick a push-to-talk key: " + mainframe.PushKeyShown);
+                string clash = SetHotkey(1, preferences.PushMods, preferences.PushVk);
+                must(clash != null && clash.IndexOf("push-to-talk", StringComparison.Ordinal) >= 0, "Another of her keys took the push-to-talk key: " + clash);
+                mainframe.PickKeys(PushSlot);
+                mainframe.TakeKeys(Keys.ShiftKey | Keys.Shift);
+                mainframe.ConfirmKeys();
+                must(preferences.PushVk == 0x10 && mainframe.PushKeyShown == "Push to talk: Shift", "Shift alone didn't bind for push to talk: " + mainframe.PushKeyShown);
                 must(SetPushKey(0, 0x06) == null && preferences.PushVk == 0x06 && PushKeyName != "not set", "Her push-to-talk didn't take a mouse button: " + PushKeyName);
                 must(SetPushKey(0, 0) == null && preferences.PushVk == 0 && PushKeyName == "not set", "Her push-to-talk didn't turn off.");
                 checks.Add("PASS push to talk: holding her key, any key or mouse button with or without modifiers, stops her and opens her ears, letting go sends what was said to the running job, a tap goes nowhere, her other keys can't be taken, and it reads the key rather than taking it, so it works with a game in front");
@@ -19903,6 +19913,10 @@ namespace CapriDesktop
                 spokenLines.Clear();
                 must(Commentary.Trigger("death", "Steve_99 tried to swim in lava", before, after), "A brain that can't see lost what the game's log said.");
                 must(spokenAre(1) && seenWidths.Count == 0, "A brain that can't see was sent frames: " + seenWidths.Count);
+                fakeNow += 30000;
+                nextLine = "Lava's starting to feel like a commute.";
+                must(Commentary.Trigger("death", "Steve_99 tried to swim in lava", before, after), "A second death wasn't looked at.");
+                must(spokenAre(2) && seenAsks[seenAsks.Count - 1].IndexOf("That's 2 deaths since you started watching", StringComparison.Ordinal) >= 0, "Her running count of deaths is wrong: " + seenAsks[seenAsks.Count - 1]);
                 Commentary.Sees = seesWas;
                 Commentary.Reset();
                 spokenLines.Clear();
