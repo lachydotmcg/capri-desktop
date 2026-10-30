@@ -2061,8 +2061,9 @@ namespace CapriDesktop
 
         // Claude 5.5 and the other toolset models drive the mouse and keyboard from screenshots themselves.
         // Her fast hands can ask the brain they picked, when that's a bigger one.
-        internal bool Advises { get { Cloud remote = Remote; return remote != null && Drives && !noFastest && !noAdvisor && !remote.Model.StartsWith("claude-haiku", StringComparison.Ordinal); } }
-        private volatile bool noAdvisor;
+        internal bool Advises { get { Cloud remote = Remote; return remote != null && Drives && !noFastest && noAdvisor != remote.Key + remote.Model && !remote.Model.StartsWith("claude-haiku", StringComparison.Ordinal); } }
+        // The key and brain that turned the advisor down: another pair may well have it.
+        private volatile string noAdvisor;
 
         // The API's advisor tool: Claude's servers run the bigger brain over the whole job, and one ask a turn keeps the bill down.
         private static string Offering(string tools, string model)
@@ -2100,7 +2101,7 @@ namespace CapriDesktop
             if (remote == null || !remote.Claude) throw new BrainException(Offline);
             string model = fast && !noFastest ? Fastest : remote.Model;
             // A job that's had an answer from the advisor has to keep offering it, or the request is refused.
-            bool answered = messages.IndexOf("\"advisor_tool_result\"", StringComparison.Ordinal) >= 0, advising = answered || (model == Fastest && Advises);
+            bool answered = Regex.IsMatch(messages, "\"type\"\\s*:\\s*\"advisor_tool_result\""), advising = answered || (model == Fastest && Advises);
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
             // Her hands keep only the newest three pictures, which changes earlier turns. These models bind each thinking block to
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
@@ -2126,7 +2127,7 @@ namespace CapriDesktop
                 // A key without the advisor plays without it.
                 if (advising && !answered && error.Message.IndexOf("advisor", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    noAdvisor = true;
+                    noAdvisor = remote.Key + remote.Model;
                     return Drive(system, tools, messages, deep, fast, ticket);
                 }
                 // Their key doesn't have the fast model, so the game runs on the brain they picked.

@@ -1917,9 +1917,11 @@ namespace CapriDesktop
         // Any brain that can see: a picture, what it's told and what to do, and its reply. Null for Claude's own computer tools.
         internal Func<byte[], string, string, string> Seer;
         private int hitches;
-        // Her fast hands can call the advisor, and when they last did.
-        internal bool Consults;
+        // Whether her fast hands can call the advisor, when they last did, and whether that ask failed.
+        internal Func<bool> Advised;
         private int consulted;
+        private bool advisorDown;
+        private bool Consults { get { Func<bool> advised = Advised; return Drive != null && advised != null && advised(); } }
 
         // A game job that's about to give up because the game looks stuck, or it is, gets sent back three times at most: games hitch, and players get lost.
         private bool Hitched(string words)
@@ -2349,13 +2351,19 @@ namespace CapriDesktop
                 talk.Add("{\"role\":\"assistant\",\"content\":" + reply.Raw + "}");
                 List<ClaudeBlock> calls = new List<ClaudeBlock>();
                 StringBuilder said = new StringBuilder();
+                bool asked = false;
                 if (reply.Content != null)
                     foreach (ClaudeBlock block in reply.Content)
                     {
                         if (block.Type == "tool_use") calls.Add(block);
-                        else if (block.Type == "server_tool_use") consulted = turns;
+                        else if (block.Type == "server_tool_use") asked = true;
                         else if (block.Type == "text" && block.Text != null) said.Append(block.Text).Append(' ');
                     }
+                if (asked)
+                {
+                    consulted = turns;
+                    advisorDown = reply.Raw.IndexOf("\"advisor_tool_result_error\"", StringComparison.Ordinal) >= 0;
+                }
                 if (calls.Count == 0)
                 {
                     string words = Clean(said.ToString(), "");
@@ -2368,9 +2376,15 @@ namespace CapriDesktop
                         continue;
                     }
                     if (question) return End("asked", words);
+                    // Asking isn't doing, so a turn that only asked isn't the end of the job.
+                    if (asked && !advisorDown && ++hitches <= 3)
+                    {
+                        talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.AfterAsking) + "}]}");
+                        continue;
+                    }
                     if (Hitched(words))
                     {
-                        talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Consults ? Computer.HitchAsk : Computer.Hitch) + "}]}");
+                        talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Consults && !advisorDown ? Computer.HitchAsk : Computer.Hitch) + "}]}");
                         continue;
                     }
                     return End("done", words.Length > 0 ? words : Summary());
@@ -2605,7 +2619,7 @@ namespace CapriDesktop
                 else final.Picture = Latest();
             }
             // Asking is up to her, and a lost brain is the last to notice, so she's reminded every 30 turns.
-            if (Consults && Playing && turns - consulted >= 30)
+            if (Playing && !advisorDown && Consults && turns - consulted >= 30)
             {
                 consulted = turns;
                 after += ",{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.AskAdvisor) + "}";
