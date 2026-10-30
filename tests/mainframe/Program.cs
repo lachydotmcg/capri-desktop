@@ -87,6 +87,11 @@ internal sealed class Checks : Application
                 Check(pet.Saved.Pitch == previous - 1, "actual keyboard arrow changes the focused slider by one step");
                 var nickname = frame.GetVisualDescendants().OfType<TextBox>().Single(c => AutomationProperties.GetName(c) == "What should she call you?");
                 frame.Activate(); nickname.Focus(); await Painted();
+                var inputBorder = nickname.GetVisualDescendants().OfType<Border>().Single(c => c.Name == "PART_BorderElement");
+                Check(nickname.IsFocused && ((ISolidColorBrush)inputBorder.Background).Color == ((ISolidColorBrush)MainframeTheme.Field).Color,
+                    "focused native input keeps the dark Mainframe field palette");
+                Check(((ISolidColorBrush)inputBorder.BorderBrush).Color == ((ISolidColorBrush)MainframeTheme.Cyan).Color,
+                    "focused native input has a visible cyan focus border");
                 if (Environment.GetEnvironmentVariable("CAPRI_PRIVATE_CLIPBOARD_TEST") == "1")
                 {
                     await frame.Clipboard.SetTextAsync("fixture choom");

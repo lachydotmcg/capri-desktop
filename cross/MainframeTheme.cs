@@ -38,7 +38,17 @@ namespace CapriDesktop
         internal static TextBox Input(string hint, bool secret = false)
         {
             var input = new TextBox { Watermark = hint, FontFamily = Text, FontSize = 14, MinHeight = 28, Padding = new Thickness(7, 3),
-                Background = Field, Foreground = Cyan, BorderBrush = Edge, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(0), PasswordChar = secret ? '\u2022' : '\0' };
+                Background = Field, Foreground = Cyan, BorderBrush = Edge, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(0),
+                CaretBrush = Cyan, SelectionBrush = DeepEdge, SelectionForegroundBrush = White, PasswordChar = secret ? '\u2022' : '\0' };
+            // Fluent applies interaction brushes inside its template, independently of the base properties.
+            // Keep native text editing and accessibility while scoping every state to Mainframe's palette.
+            foreach (string state in new[] { "", "PointerOver", "Focused", "Disabled" })
+            {
+                input.Resources["TextControlBackground" + state] = state == "PointerOver" ? Hover : Field;
+                input.Resources["TextControlForeground" + state] = state == "Disabled" ? Faint : Cyan;
+                input.Resources["TextControlBorderBrush" + state] = state == "Focused" ? Cyan : state == "PointerOver" ? Rule : Edge;
+                input.Resources["TextControlPlaceholderForeground" + state] = Faint;
+            }
             AutomationProperties.SetName(input, hint);
             return input;
         }
