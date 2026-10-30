@@ -11593,7 +11593,7 @@ namespace CapriDesktop
                 {
                     brain.Model = "mini-smoke";
                     headTest = delegate { headStarted.Set(); headRelease.WaitOne(2000); return "This late line must be discarded."; };
-                    minis.Game.Result = 3;
+                    minis.Game.Result = 3; minis.Game.Last = "You played the middle.";
                     MiniPlayed(); miniChat.Last = clock.Elapsed.TotalSeconds - 8;
                     MiniTick();
                     must(headStarted.WaitOne(2000), "The delayed board head didn't start.");
