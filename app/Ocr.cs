@@ -27,6 +27,7 @@ namespace CapriDesktop
         {
             internal readonly List<ReadWord> Words = new List<ReadWord>();
             internal readonly List<string> Lines = new List<string>();
+            internal readonly List<ReadWord> Phrases = new List<ReadWord>();
         }
 
         private sealed class ReadLine
@@ -68,6 +69,12 @@ namespace CapriDesktop
         internal static List<string> Lines(Bitmap frame, int scale, int timeoutMs)
         {
             return Read(frame, scale, timeoutMs).Lines;
+        }
+
+        // Each line of text with the box around it, top to bottom.
+        internal static List<ReadWord> Phrases(Bitmap frame, int scale, int timeoutMs)
+        {
+            return Read(frame, scale, timeoutMs).Phrases;
         }
 
         private static int Left(Stopwatch clock, int timeoutMs)
@@ -150,6 +157,7 @@ namespace CapriDesktop
                 foreach (ReadLine sorted in ordered)
                 {
                     found.Lines.Add(sorted.Text);
+                    found.Phrases.Add(new ReadWord { Text = sorted.Text, Box = sorted.Box });
                     found.Words.AddRange(sorted.Words);
                 }
                 return found;

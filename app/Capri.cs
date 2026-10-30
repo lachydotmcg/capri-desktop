@@ -5469,6 +5469,8 @@ namespace CapriDesktop
             Cloud driver = brain.Remote;
             // A game job thinks harder on every turn.
             running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing); }) : null;
+            // Anything else that can see plays from pictures.
+            running.Seer = running.Drive == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700); }) : null;
             running.Blind = delegate { blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             running.Seen = delegate(Sight sight)
@@ -9110,6 +9112,89 @@ namespace CapriDesktop
             }
         }
 
+        // A brain with no computer tools plays a game from pictures, written moves and all.
+        private static void SmokeSighted(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> written = Computer.Moves("Sure!\nlook{\"x\": 75, \"y\": 50}\nwalk{\"keys\": \"w\", \"seconds\": 1}\nclick{x: 50, y: 48}\n<think>click{\"x\": 1, \"y\": 1}</think>");
+            if (written.Count != 3 || written[0].Key != "look" || written[0].Value.X != 75 || written[1].Value.Seconds != "1" || written[2].Value.Y != 48) throw new Exception("Written moves weren't read: " + written.Count);
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> plainClick = Computer.Moves("click 50 48");
+            if (plainClick.Count != 1 || plainClick[0].Key != "click" || plainClick[0].Value.X != 50 || Computer.Moves("I'd click the button").Count != 0) throw new Exception("A plain written click wasn't read.");
+            byte[] jpeg;
+            using (Bitmap plain = new Bitmap(320, 180))
+            {
+                using (Graphics paint = Graphics.FromImage(plain)) paint.Clear(Color.Black);
+                jpeg = Jpeg(plain, 320);
+            }
+            string words;
+            byte[] gridded = Computer.Gridded(new Picture { Jpeg = jpeg, Size = new Size(320, 180), Area = new Rectangle(0, 0, 320, 180) }, out words);
+            using (System.IO.MemoryStream read = new System.IO.MemoryStream(gridded))
+            using (Bitmap back = new Bitmap(read))
+                if (back.Width != 320 || back.Height != 180 || back.GetPixel(32, 90).GetBrightness() < 0.1f || back.GetPixel(40, 150).GetBrightness() > 0.1f) throw new Exception("Her grid wasn't drawn on the picture.");
+            byte[] junk = { 1, 2, 3 };
+            if (Computer.Gridded(new Picture { Jpeg = junk }, out words) != junk) throw new Exception("A picture she can't read wasn't passed along as it came.");
+            bool member;
+            ToolArguments spot = new ToolArguments { X = 25, Y = 50 };
+            Picture shown = new Picture { Jpeg = jpeg, Size = new Size(1280, 720), Area = new Rectangle(0, 0, 1920, 1080) };
+            if (Computer.Planned("right_click", spot, shown, out member) != "right_click" || !member || spot.Coordinate[0] != 320 || spot.Coordinate[1] != 360) throw new Exception("The grid's numbers didn't become pixels.");
+            ToolArguments turn = new ToolArguments { X = 75, Y = 50 };
+            if (Computer.Planned("look", turn, shown, out member) != "look" || member || turn.X != 960) throw new Exception("A look's numbers didn't become pixels.");
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<Sight> glimpseWas = Computer.Glimpse;
+            Func<Target> focusWas = Computer.Focus;
+            Func<Point, Target> underWas = Computer.Under;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<Sight> lookWas = Computer.Look;
+            try
+            {
+                System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>();
+                Computer.Shoot = delegate(Rectangle? part) { return new Picture { Jpeg = jpeg, Size = new Size(1280, 720), Area = new Rectangle(0, 0, 1280, 720) }; };
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Minecraft 26.3", Program = "javaw" }; };
+                Computer.Look = delegate { return new Sight { Window = new IntPtr(7), Title = "Minecraft 26.3", Program = "javaw" }; };
+                Computer.Focus = delegate { return null; };
+                Computer.Under = delegate(Point at) { return null; };
+                Computer.Front = delegate { return new IntPtr(7); };
+                Computer.Use = delegate(string name, ToolArguments args, Picture picture) { ran.Add(name + (args.Coordinate != null ? " " + args.Coordinate[0] + "," + args.Coordinate[1] : "") + (args.Text != null ? " " + args.Text : "")); return "Clicked."; };
+                Computer.Act = delegate(string name, ToolArguments args, Sight sight) { ran.Add(name + (args.X.HasValue ? " " + args.X + "," + args.Y : "")); return name == "walk" ? "Stopped after 1.2 s: something's in the way." : "Done it."; };
+                string[] script =
+                {
+                    "look{\"x\": 75, \"y\": 50}\nwalk{\"keys\": \"w\", \"seconds\": \"1\"}\nclick{\"x\": 50, \"y\": 50}",
+                    "Looks good to me.",
+                    "press{\"keys\": \"e\"}\ntype{\"text\": \"hi\", \"enter\": \"yes\"}",
+                    "done{\"text\": \"I walked to the tree.\"}"
+                };
+                int turnNumber = 0;
+                System.Collections.Generic.List<string> told = new System.Collections.Generic.List<string>();
+                string system = null;
+                Job playing = new Job("play minecraft and go to the tree");
+                playing.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { throw new Exception("A seeing brain was asked to read buttons in a game."); };
+                playing.Seer = delegate(byte[] picture, string prompt, string user) { system = prompt; told.Add(user); return script[turnNumber++]; };
+                string ended = playing.Run();
+                string path = string.Join(" | ", ran.ToArray());
+                if (ended != "I walked to the tree." || playing.Outcome != "done" || path != "look 960,360 | walk | left_click 640,360 | key e | type hi | key Return") throw new Exception("Her seeing job went wrong: " + ended + " / " + path);
+                if (system.IndexOf("numbers along the top are x", StringComparison.Ordinal) < 0 || system.IndexOf("you're a real gamer", StringComparison.Ordinal) < 0) throw new Exception("A seeing brain wasn't told about the grid or the game.");
+                if (told[1].IndexOf("What your last moves did:", StringComparison.Ordinal) < 0 || told[1].IndexOf("something's in the way", StringComparison.Ordinal) < 0 || told[2].IndexOf("no moves", StringComparison.Ordinal) < 0) throw new Exception("A seeing brain wasn't told how its moves went: " + told[1]);
+                Job blind = new Job("play minecraft");
+                int reads = 0;
+                blind.Seer = delegate(byte[] picture, string prompt, string user) { throw new BrainException("no images here"); };
+                blind.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { reads++; return "done{\"text\": \"Read the buttons.\"}"; };
+                if (blind.Run() != "Read the buttons." || reads != 1) throw new Exception("A brain that can't see didn't fall back to reading buttons.");
+                checks.Add("PASS every brain that can see plays from pictures: a numbered grid, written moves in any shape a small model writes them, Security's checks on each, what each move did on the next turn, and reading buttons when a brain can't take pictures");
+            }
+            finally
+            {
+                Computer.Shoot = shootWas;
+                Computer.Glimpse = glimpseWas;
+                Computer.Focus = focusWas;
+                Computer.Under = underWas;
+                Computer.Use = useWas;
+                Computer.Act = actWas;
+                Computer.Front = frontWas;
+                Computer.Look = lookWas;
+            }
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
@@ -9214,6 +9299,7 @@ namespace CapriDesktop
                         {
                             SmokeCamera(checks);
                             SmokeGameAsks(checks);
+                            SmokeSighted(checks);
                             SmokeFrames(checks);
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;

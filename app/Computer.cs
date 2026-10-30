@@ -1808,6 +1808,10 @@ namespace CapriDesktop
         internal Sight WaitingSight;
         // Set for Claude models that drive from screenshots with Anthropic's computer tools. Blind runs if the model turns them down.
         internal Func<string, string, string, ClaudeReply> Drive;
+        // Any brain that can see: a picture, what it's told and what to do, and its reply. Null for Claude's own computer tools.
+        internal Func<byte[], string, string, string> Seer;
+        private bool sighted, waitingMember;
+        private Target waitingTarget;
         internal Action Blind;
         // A game job thinks harder on every turn and gets her game lines. Their words make it one, or a game's window in front
         // partway through, and it stays one.
@@ -1909,6 +1913,7 @@ namespace CapriDesktop
             Computer.Arm();
             if (talk.Count > 0 || (Drive != null && !Asking))
                 return Drive == null ? End("failed", "My brain changed partway through that job, so I stopped. Ask me again.") : Drove();
+            if (sighted) return Sighted();
             int lost = 0;
             int skipped = 0;
             int carts = 0;
@@ -1939,6 +1944,12 @@ namespace CapriDesktop
                 if (print != lastPrint || sight == null || sight.Targets.Count == 0) still = 0;
                 else if (lastTool != null) still++;
                 if (!Playing && Computer.GameWindow(sight)) Playing = true;
+                // A game shows no buttons to read, and nor do some apps, so a brain that can see looks at the picture instead.
+                if (Seer != null && (Playing || sight == null || sight.Targets.Count < Computer.FewTargets))
+                {
+                    sighted = true;
+                    return Sighted();
+                }
                 // Small brains reach the page they were asked for, then open the first thing on it. A screen with empty boxes still has filling in to do.
                 string searched = moved && lastTool != null ? Computer.Searched(Task, sight) : null;
                 if (searched != null) nudge += "\nThe page now shows results for " + Voice.Quote(searched) + ", which is what their job asked for. Call done and say so.";
@@ -2101,6 +2112,96 @@ namespace CapriDesktop
                 answers.Clear();
                 stopped = Batch(false);
                 if (stopped != null) return stopped;
+            }
+        }
+
+        // A brain without Claude's tools plays from pictures too: each turn gets the screen with a grid on it and the words read off it,
+        // and writes its moves as text. That's anything that can see, down to a small model on their own PC.
+        private string Sighted()
+        {
+            if (Asking)
+            {
+                KeyValuePair<string, ToolArguments> waiting = Waiting;
+                Waiting = default(KeyValuePair<string, ToolArguments>);
+                if (risk != null) approved.Add(risk);
+                Step(waiting.Key, waiting.Value, waitingMember, waitingTarget);
+                if (Computer.Interrupted) return End("stopped", Computer.Why);
+            }
+            int lost = 0;
+            string results = "";
+            while (true)
+            {
+                if (Computer.Interrupted) return End("stopped", Computer.Why);
+                turns++;
+                if (!Look()) return End("failed", "I couldn't see the screen.");
+                if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
+                string words;
+                byte[] picture = Computer.Gridded(shown, out words);
+                string fresh = Heard();
+                if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
+                Show("Thinking");
+                string reply;
+                Stopwatch turnClock = Stopwatch.StartNew();
+                try { reply = Seer(picture, Computer.Allowing(Computer.Sees) + (Playing ? Computer.Playing : ""), Computer.Seen(Task, Steps, words) + asides + results + "\n\nWhat are your next moves?"); }
+                catch (System.Net.WebException) { if (!Computer.Interrupted) throw; return End("stopped", Computer.Why); }
+                catch (BrainException error)
+                {
+                    // Credits, keys and outages fail the same either way. A brain that can't take pictures reads buttons instead.
+                    if (turns > 1 || error.Told) throw;
+                    Brain.Log("seeing", -1, "turned down, reading buttons instead");
+                    Seer = null;
+                    sighted = false;
+                    Show(null);
+                    return Run();
+                }
+                Show(null);
+                Action<string> trace = Trace;
+                if (trace != null) trace("seen turn " + turns + " " + turnClock.ElapsedMilliseconds + " ms | " + (reply ?? "").Replace("\n", " "));
+                if (Computer.Interrupted) return End("stopped", Computer.Why);
+                results = "";
+                List<KeyValuePair<string, ToolArguments>> moves = Computer.Moves(reply);
+                if (moves.Count == 0)
+                {
+                    if (++lost >= 3) return Steps.Count > 0 ? End("done", Summary()) : End("failed", Computer.Confused);
+                    results = "\nYour last reply had no moves. Reply with only your moves, one per line, like the ones you were shown.";
+                    continue;
+                }
+                lost = 0;
+                foreach (KeyValuePair<string, ToolArguments> move in moves)
+                {
+                    ToolArguments args = move.Value;
+                    if (move.Key == "ask" || move.Key == "done")
+                    {
+                        string said = Clean(args.Text, move.Key == "ask" ? "What should I do next?" : "Done.");
+                        if (Computer.Needless(said) && (move.Key == "ask" || Regex.IsMatch(said, @"\?\W*$")))
+                        {
+                            if (++skips > 3) return End("failed", Computer.Stalled);
+                            results = "\nYou asked " + Voice.Quote(said) + " but their job already says what to do, so don't ask: do it now. Capri stops you herself before any step that needs their OK.";
+                            break;
+                        }
+                        return End(move.Key == "ask" ? "asked" : "done", Regex.IsMatch(args.Text ?? "", @"^\W*(done)?\W*$", RegexOptions.IgnoreCase) && move.Key == "done" ? Summary() : said);
+                    }
+                    bool member;
+                    string tool = Computer.Planned(move.Key, args, shown, out member);
+                    Target target;
+                    string question;
+                    string danger = Danger(tool, args, member, out target, out question);
+                    if (Needs(danger))
+                    {
+                        Waiting = new KeyValuePair<string, ToolArguments>(tool, args);
+                        waitingMember = member;
+                        waitingTarget = target;
+                        risk = danger;
+                        return End("waiting", question);
+                    }
+                    string result = Step(tool, args, member, target);
+                    if (tool == "type" && args.Enter == "yes" && !Computer.Failed(result)) result = Step("key", new ToolArguments { Text = "Return" }, true, null);
+                    if (trace != null) trace("  " + tool + " -> " + result);
+                    results += "\n" + move.Key + ": " + result;
+                    if (Computer.Interrupted) return End("stopped", Computer.Why);
+                    if (Computer.Failed(result)) break;
+                }
+                if (results.Length > 0 && !results.StartsWith("\nYou asked", StringComparison.Ordinal)) results = "\nWhat your last moves did:" + results;
             }
         }
 
