@@ -98,6 +98,20 @@ She sits on your windows and chats, talks with an ElevenLabs key, remembers your
    Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
 4. **Linux:** unpack it and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
 
+## Run her from a USB drive
+
+<details>
+<summary><b>Take her with you (Windows)</b></summary>
+
+Build the drive's folder with `./ci/make-usb.ps1 -Destination E:\` (or copy `Capri.exe` to the drive yourself and add a file called `portable.mode` next to it). A removable drive also works without the file: she sets herself up there when you run her.
+
+- **Everything stays on the drive:** her brain and eyes (`AI`), notes, chats and settings (`Data`), voices (`Voice`) and her log (`Logs`).
+- **Each PC gets the model that suits it.** She reads the PC's memory and graphics card and uses the best brain on the drive that fits. Downloads go straight to the drive and are checked before she uses them.
+- **Keep the drive in while she runs.** If it comes out she pauses her brain, downloads and saving, and carries on when it's back. If Windows gives it a new drive letter, restart her from the drive.
+- **She leaves the PC alone.** She doesn't update herself or add herself to Windows startup from a drive. To update her, swap in the newest `Capri.exe`.
+
+</details>
+
 ## How to use her
 
 - **Pencil:** type to her
@@ -258,6 +272,7 @@ Pick what she calls you, her language, her voice and what she does on your PC fr
 **Setup and updates**
 
 - [x] One installer with everything in it, no admin rights needed
+- [x] Running from a USB drive with her brain, notes and voices on it, pausing when it comes out
 - [x] The Capri Mainframe for her brain, voice and settings
 - [x] A Start with Windows switch, on by default
 - [x] Updates that install themselves

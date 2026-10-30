@@ -132,6 +132,9 @@ namespace CapriDesktop
             new Pick("Qwen3 4B", "qwen3:4b-instruct-2507-q4_K_M", "unsloth/Qwen3-4B-Instruct-2507-GGUF", "a06e946bb6b655725eafa393f4a9745d460374c9", "Qwen3-4B-Instruct-2507-Q4_K_M.gguf", "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597", 2497281120)
         };
         private readonly string root;
+        private readonly string runtime;
+        private readonly string models;
+        private readonly string vision;
         private readonly object gate = new object();
         private Process server;
         private static IntPtr job;
@@ -145,7 +148,11 @@ namespace CapriDesktop
 
         internal Engine(string data)
         {
-            root = Path.Combine(data, "brain");
+            Portable usb = Portable.Current;
+            root = usb == null ? Path.Combine(data, "brain") : usb.Ai;
+            runtime = usb == null ? root : usb.Runtime;
+            models = usb == null ? Path.Combine(root, "models") : usb.Models;
+            vision = usb == null ? models : usb.Vision;
             CpuOnly = File.Exists(CpuMark);
         }
 
@@ -168,10 +175,10 @@ namespace CapriDesktop
 
         internal static string Amount(long size) { return size < 1e9 ? Math.Round(size / 1e6) + " MB" : (size / 1e9).ToString("0.#") + " GB"; }
 
-        private string Folder { get { return Path.Combine(root, "engine-" + Build); } }
+        private string Folder { get { return Path.Combine(runtime, "engine-" + Build); } }
         private string Server { get { return Path.Combine(Folder, "llama-server.exe"); } }
-        private string ModelPath(Pick pick) { return Path.Combine(Path.Combine(root, "models"), pick.File); }
-        private string EyesPath(Pick pick) { return pick.EyesFile == null ? null : Path.Combine(Path.Combine(root, "models"), pick.EyesFile); }
+        private string ModelPath(Pick pick) { return Path.Combine(models, pick.File); }
+        private string EyesPath(Pick pick) { return pick.EyesFile == null ? null : Path.Combine(vision, pick.EyesFile); }
 
         internal bool HasEyes(Pick pick) { string path = EyesPath(pick); return path != null && File.Exists(path); }
 
@@ -181,12 +188,17 @@ namespace CapriDesktop
             Cancel = false;
             string drive = Path.GetPathRoot(root);
             if (new DriveInfo(drive).AvailableFreeSpace < pick.EyesSize + (64L << 20)) throw new IOException("Storage too full: her eyes need " + Amount(pick.EyesSize) + " free on " + drive.TrimEnd('\\') + ".");
+            Directory.CreateDirectory(Path.GetDirectoryName(EyesPath(pick)));
             Fetch(pick.EyesUrl, EyesPath(pick), pick.EyesSize, pick.EyesSha256, "her eyes", progress, delegate { return Cancel; });
         }
 
-        internal Pick Installed()
+        internal Pick Installed() { return Installed(null); }
+
+        internal Pick Installed(Machine machine)
         {
             if (!File.Exists(Server)) return null;
+            int floor = machine == null || Portable.Current == null ? 0 : Math.Max(0, Array.IndexOf(Picks, Fit(machine)));
+            for (int i = floor; i < Picks.Length; i++) if (File.Exists(ModelPath(Picks[i]))) return Picks[i];
             foreach (Pick pick in Picks) if (File.Exists(ModelPath(pick))) return pick;
             return null;
         }
@@ -197,13 +209,13 @@ namespace CapriDesktop
 
         internal void Install(Pick pick, Action<string, long, long> progress)
         {
-            Directory.CreateDirectory(root);
+            Directory.CreateDirectory(runtime);
             long needed = (File.Exists(Server) ? 0 : ZipSize * 4) + (File.Exists(ModelPath(pick)) ? 0 : pick.Size) + (256L << 20);
             string drive = Path.GetPathRoot(root);
             if (new DriveInfo(drive).AvailableFreeSpace < needed) throw new IOException("Storage too full: her brain needs " + Amount(needed) + " free on " + drive.TrimEnd('\\') + ".");
             if (!File.Exists(Server))
             {
-                string zip = Path.Combine(root, "engine-" + Build + ".zip");
+                string zip = Path.Combine(runtime, "engine-" + Build + ".zip");
                 Fetch(ZipUrl, zip, ZipSize, ZipSha, "the engine", progress, delegate { return Cancel; });
                 string staging = Folder + ".new";
                 if (Directory.Exists(staging)) Directory.Delete(staging, true);
@@ -312,6 +324,7 @@ namespace CapriDesktop
 
         internal void Ensure(Pick pick)
         {
+            if (Portable.Paused) throw new BrainException("My USB drive is out. Put it back and try again.");
             lock (gate)
             {
                 bool eyes = HasEyes(pick);
