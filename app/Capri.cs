@@ -187,6 +187,9 @@ namespace CapriDesktop
         [DataMember] public bool OnTop = true;
         [DataMember] public long UpdateCheckedAt;
         [DataMember] public string Model;
+        [DataMember] public string LocalAddress;
+        [DataMember] public int BrainPort;
+        [DataMember] public string LocalModel;
         [DataMember] public bool Welcomed;
         // She's asked to get to know them, after setup or from Settings, so setting up a new brain doesn't ask again.
         [DataMember] public bool Met;
@@ -221,6 +224,8 @@ namespace CapriDesktop
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
         [DataMember] public int Recall = 8;
+        [DataMember] public int MemorySize;
+        [DataMember] public int ReplyLength;
         // Remember our chats is on by default: transcripts and memories.md stay on this PC.
         [DataMember] public bool Remembers = true;
         [DataMember] public bool ClipGames;
@@ -1425,6 +1430,8 @@ namespace CapriDesktop
             Brain.Nickname = Brain.Nick(preferences.Nickname).Length == 0 ? null : Brain.Nick(preferences.Nickname);
             Brain.Wordiness = Math.Max(0, Math.Min(2, preferences.Wordiness));
             Brain.Recall = preferences.Recall == 16 || preferences.Recall == 32 ? preferences.Recall : 8;
+            Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, preferences.MemorySize) >= 0 ? preferences.MemorySize : 0;
+            Brain.ReplyLength = Math.Max(0, Math.Min(Brain.ReplySizes.Length - 1, preferences.ReplyLength));
             Brain.Keeping = preferences.Remembers;
             Brain.Digging = !smoke;
             if (!smoke) Brain.Keeper = brain;
@@ -4162,6 +4169,24 @@ namespace CapriDesktop
 
         internal int Volume { get { return Voice.Loudness; } }
 
+        internal int MemorySize { get { return Brain.MemorySize; } }
+
+        internal void SetMemorySize(int value)
+        {
+            Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, value) >= 0 ? value : 0;
+            preferences.MemorySize = Brain.MemorySize;
+            SavePreferences();
+        }
+
+        internal int ReplyLength { get { return Brain.ReplyLength; } }
+
+        internal void SetReplyLength(int value)
+        {
+            Brain.ReplyLength = Math.Max(0, Math.Min(Brain.ReplySizes.Length - 1, value));
+            preferences.ReplyLength = Brain.ReplyLength;
+            SavePreferences();
+        }
+
         internal void SetVolume(int percent)
         {
             Voice.Loudness = Math.Max(0, Math.Min(150, percent));
@@ -4475,12 +4500,13 @@ namespace CapriDesktop
         {
             name = (name ?? "").Trim();
             if (name.Length == 0) return "Type a model name first.";
-            if (brain.Local != null) return "Custom models need Ollama or an API key.";
+            if (brain.Local != null) return "Custom models need Ollama, a local server or an API key.";
             if (brain.Model == null) return "Find her a brain first.";
             Cloud remote = brain.Remote;
             if (remote == null && installed != null && Array.IndexOf(installed, name) < 0 && Array.IndexOf(installed, name + ":latest") < 0) return "Ollama doesn't have it. Run: ollama pull " + name;
             ChooseModel(name);
             if (remote == null) { mainframe.ShowOllama(installed ?? new[] { name }, name); return "Using " + name + "."; }
+            if (remote.Kind == "local") { mainframe.ShowCloud(remote, null); return "Using " + name + " on " + remote.Name + "."; }
             if (cloudModels == null) cloudModels = new System.Collections.Generic.List<string> { remote.Model };
             if (!cloudModels.Contains(name)) cloudModels.Add(name);
             mainframe.ShowCloud(remote, cloudModels);
@@ -5255,7 +5281,7 @@ namespace CapriDesktop
         private string Unseeing()
         {
             Cloud remote = brain.Remote;
-            if (remote != null) return remote.Kind == "deepseek" ? Brain.Blind : remote.Model == brain.Unsighted ? Brain.Sightless(remote) : null;
+            if (remote != null) return remote.Kind == "deepseek" ? Brain.Blind : !brain.Sighted(remote) ? Brain.Sightless(remote) : null;
             if (brain.Model == null) return "You can't see their screen: your brain is offline.";
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
@@ -5647,7 +5673,7 @@ namespace CapriDesktop
         internal void FindBrain()
         {
             Cloud remote = brain.Remote;
-            if (remote != null)
+            if (remote != null && remote.Kind != "local")
             {
                 brain.Local = null;
                 if (remote.Model != null) { brain.Model = remote.Model; mainframe.ShowCloud(remote, cloudModels); }
@@ -5657,14 +5683,57 @@ namespace CapriDesktop
             if (finding || SettingUp) return;
             finding = true;
             mainframe.Searching();
+            string address = preferences.LocalAddress;
+            int port = preferences.BrainPort;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] installed = null;
                 try { installed = Brain.InstalledModels(); } catch (WebException) { } catch (IOException) { } catch (SerializationException) { }
+                System.Collections.Generic.List<Cloud> servers = Brain.LocalBrains(address, port);
                 Machine found = Machine.Read();
                 Pick local = engine.Installed();
-                Post(delegate { finding = false; UseBrain(installed, found, local); });
+                Post(delegate
+                {
+                    finding = false;
+                    if (address != preferences.LocalAddress) { FindBrain(); return; }
+                    mainframe.ShowServers(servers, installed, local);
+                    if (brain.Remote == null && preferences.Tier == 0 && (installed == null || installed.Length == 0) && local == null && servers.Count > 0)
+                    {
+                        Cloud first = servers[0];
+                        brain.Remote = new Cloud(first.Port, first.Model);
+                        Keep(brain.Remote);
+                    }
+                    UseBrain(installed, found, local);
+                });
             });
+        }
+
+        internal string LocalAddress { get { return preferences.LocalAddress ?? ""; } }
+
+        internal string SetLocalAddress(string address)
+        {
+            int port = Brain.LocalPort(address);
+            if (!string.IsNullOrWhiteSpace(address) && port == 0) return "Use a loopback address, like http://127.0.0.1:1234.";
+            preferences.LocalAddress = port == 0 ? null : Brain.LocalHost(port);
+            SavePreferences();
+            bool local = brain.Remote == null || brain.Remote.Kind == "local";
+            if (!testing && local) FindBrain();
+            return port == 0 ? "Local server address cleared." : local ? "Local server address saved. Pick its model under BRAIN." : "Local server address saved. Pick NORMAL to use it.";
+        }
+
+        internal void ChooseLocalBrain(Cloud server, string model, Pick local)
+        {
+            brain.Cancel();
+            ++asking;
+            CloseTalk();
+            brain.Remote = server == null ? null : new Cloud(server.Port, model);
+            brain.Local = local == null ? null : engine;
+            brain.LocalPick = local;
+            brain.Model = model;
+            preferences.BrainPort = server == null ? 0 : server.Port;
+            if (server != null) preferences.LocalModel = model;
+            else preferences.Model = model;
+            SavePreferences();
         }
 
         private void Post(Action action)
@@ -5725,8 +5794,8 @@ namespace CapriDesktop
             // A game job thinks harder on every turn.
             running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing); }) : null;
             // Anything else that can see plays from pictures.
-            running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700); }) : null;
-            running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320); };
+            running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
+            running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
             running.Reader = testing ? null : new Action<Sight>(Computer.ReadWords);
             running.Blind = delegate { blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
@@ -6000,7 +6069,7 @@ namespace CapriDesktop
                 mainframe.ShowCloud(remote, cloudModels);
                 return;
             }
-            if (installed != null && installed.Length > 0)
+            if (installed != null && installed.Length > 0 && (local == null || preferences.Model != local.Name))
             {
                 brain.Local = null;
                 brain.Model = Brain.PickModel(installed, preferences.Model, fit);
@@ -6111,6 +6180,7 @@ namespace CapriDesktop
 
         private Cloud TierCloud()
         {
+            if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel);
             string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
             return key == null ? null : new Cloud(key, preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel);
         }
@@ -6129,7 +6199,8 @@ namespace CapriDesktop
 
         private void Keep(Cloud remote)
         {
-            if (remote.Kind == "nvidia") preferences.NvidiaModel = remote.Model;
+            if (remote.Kind == "local") { preferences.BrainPort = remote.Port; preferences.LocalModel = remote.Model; }
+            else if (remote.Kind == "nvidia") preferences.NvidiaModel = remote.Model;
             else preferences.PaidModel = remote.Model;
             Mirror();
             SavePreferences();
@@ -7242,7 +7313,7 @@ namespace CapriDesktop
             return 0;
         }
 
-        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0)
+        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0, string contentType = "application/json", string headers = "")
         {
             System.Net.Sockets.TcpListener server = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
             server.Start();
@@ -7274,7 +7345,7 @@ namespace CapriDesktop
                             System.Text.RegularExpressions.Match coded = System.Text.RegularExpressions.Regex.Match(reply, @"^!(\d{3}) ");
                             byte[] answer = System.Text.Encoding.UTF8.GetBytes(coded.Success ? reply.Substring(coded.Length) : reply);
                             if (!drip && delay > 0) Thread.Sleep(delay);
-                            byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 " + (coded.Success ? coded.Groups[1].Value : status.ToString()) + " Reply\r\nContent-Type: application/json\r\nContent-Length: " + (answer.Length + missing) + "\r\nConnection: close\r\n\r\n");
+                            byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 " + (coded.Success ? coded.Groups[1].Value : status.ToString()) + " Reply\r\nContent-Type: " + contentType + "\r\nContent-Length: " + (answer.Length + missing) + "\r\nConnection: close\r\n" + headers + "\r\n");
                             stream.Write(head, 0, head.Length);
                             if (!drip) stream.Write(answer, 0, answer.Length);
                             else foreach (byte part in answer) { stream.WriteByte(part); Thread.Sleep(delay); }
@@ -11465,6 +11536,304 @@ namespace CapriDesktop
             checks.Add("LIMIT Gaming Mode here uses a made-up game: a real game's window, borderless over a real one, exclusive full screen and mouse-look with the HUD up need a manual check");
         }
 
+        private static string LocalReply(string content)
+        {
+            return "{\"choices\":[{\"message\":{\"content\":" + Voice.Quote(content) + "},\"finish_reason\":\"stop\"}]}";
+        }
+
+        private static void SmokeLocalBrains(System.Collections.Generic.List<string> checks)
+        {
+            for (int port = 1; port <= 65535; port++)
+            {
+                Uri host = new Uri(Brain.LocalHost(port));
+                if (host.Scheme != "http" || host.Host != "127.0.0.1" || host.Port != port || host.UserInfo.Length != 0 || host.AbsolutePath != "/") throw new Exception("A local probe built another host.");
+            }
+            foreach (string bad in new[] { "https://127.0.0.1:1234", "http://example.com:1234", "http://192.168.1.2:1234", "http://127.0.0.1.example.com:1234", "http://user@127.0.0.1:1234", "http://127.0.0.1:1234/?key=test", "http://127.0.0.1:1234/#test", "http://127.0.0.1:1234/elsewhere", "0", "65536", "" })
+                if (Brain.LocalPort(bad) != 0) throw new Exception("A nonlocal server address was accepted.");
+            foreach (string good in new[] { "1234", "http://localhost:1234", "http://127.0.0.1:1234/v1", "http://[::1]:1234/v1/" })
+                if (Brain.LocalPort(good) != 1234) throw new Exception("A loopback server address was lost.");
+            if (Brain.ServerName(1234) != "LM Studio" || Brain.ServerName(1337) != "Jan" || Brain.ServerName(5001) != "KoboldCpp" || Brain.ServerName(8080) != "llama.cpp") throw new Exception("The local servers lost their names.");
+            string models = "{\"data\":[{\"id\":\"my/model\",\"capabilities\":{\"vision\":true}},{\"id\":\"text\",\"capabilities\":[\"tools\"]},{\"id\":\"unknown\"},{\"id\":\"my/model\"},{\"id\":\"\"},null]}";
+            System.Collections.Generic.List<Cloud> parsed = Brain.ReadLocalModels(1234, models);
+            Brain sight = new Brain();
+            if (parsed.Count != 3 || parsed[0].Model != "my/model" || !sight.Sighted(parsed[0]) || sight.Sighted(parsed[1]) || !sight.Sighted(parsed[2])) throw new Exception("Local model ids or their stated vision support were lost.");
+            checks.Add("PASS local brains: every port builds only http://127.0.0.1:<port>, addresses stay on loopback, server labels and arbitrary model ids parse, and missing vision metadata stays unknown");
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                string address = FakeServer(new[] { models, LocalReply("Still here."), LocalReply("A blue square."), "!400 {\"error\":{\"message\":\"image input is not supported\"}}" }, asked, out fake);
+                int localPort = Brain.LocalPort(address);
+                System.Collections.Generic.List<Cloud> found = Brain.LocalModels(localPort);
+                if (found.Count != 3) throw new Exception("The local model probe lost a model.");
+                Brain local = new Brain { Model = "unknown", Remote = new Cloud(localPort, "unknown") };
+                if (local.Ask("hello") != "Still here." || local.See(new byte[] { 1, 2, 3 }, "Look", "What's here?", 90) != "A blue square.") throw new Exception("The local chat or picture did not answer.");
+                bool blind = false;
+                try { local.See(new byte[] { 1 }, "Look", "Again", 90); }
+                catch (BrainException unseen) { blind = unseen.Message == Brain.Sightless(local.Remote); }
+                if (!blind || local.Sighted(local.Remote) || !local.Sighted(new Cloud(localPort == 1234 ? 1337 : 1234, "unknown"))) throw new Exception("The local image rejection was not kept per server and model.");
+                int before = asked.Count;
+                try { local.See(new byte[] { 1 }, "Look", "Again", 90); }
+                catch (BrainException) { }
+                if (asked.Count != before) throw new Exception("A known text model was sent another picture.");
+                foreach (string sent in asked) if (sent.IndexOf("Authorization:", StringComparison.OrdinalIgnoreCase) >= 0 || sent.IndexOf("x-api-key:", StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("A local server received a key header.");
+                if (!asked[0].StartsWith("GET /v1/models ", StringComparison.Ordinal) || asked[1].IndexOf("\"model\":\"unknown\"", StringComparison.Ordinal) < 0 || asked[2].IndexOf("data:image/jpeg;base64,AQID", StringComparison.Ordinal) < 0) throw new Exception("Local requests did not use the OpenAI API.");
+                fake.Stop();
+                Stopwatch unreachable = Stopwatch.StartNew();
+                int unreachableCount = Brain.LocalModels(localPort).Count;
+                if (unreachableCount != 0 || unreachable.ElapsedMilliseconds > 2500) throw new Exception("An unreachable local port returned " + unreachableCount + " models in " + unreachable.ElapsedMilliseconds + " ms.");
+                asked.Clear();
+                address = FakeServer(new[] { models }, asked, out fake, 200, 25, true);
+                Stopwatch dripped = Stopwatch.StartNew();
+                if (Brain.LocalModels(Brain.LocalPort(address)).Count != 0 || dripped.ElapsedMilliseconds > 2500) throw new Exception("A stalled model list outlived its probe timeout.");
+                fake.Stop();
+                address = FakeServer(new[] { "" }, asked, out fake, 302, 0, false, 0, "application/json", "Location: http://127.0.0.1:1/v1/models\r\n");
+                if (Brain.LocalModels(Brain.LocalPort(address)).Count != 0) throw new Exception("A redirected model list was accepted.");
+                fake.Stop();
+                checks.Add("PASS local probes and pictures: fake models and chat work without a key, an unknown model gets a picture, image rejection becomes Sightless for that server, and unreachable, stalled and redirected model lists return quickly with nothing");
+
+                asked.Clear();
+                string streamed = "data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Still \"}}]}\n\ndata: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"here.\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n";
+                string toolStream = "data: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"name\":\"media\",\"arguments\":\"{\\\"action\\\":\"}}]}}]}\n\ndata: {\"choices\":[{\"delta\":{\"tool_calls\":[{\"index\":0,\"function\":{\"arguments\":\"\\\"next\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n";
+                address = FakeServer(new[] { streamed, toolStream, streamed }, asked, out fake, 200, 1, true, 0, "text/event-stream");
+                Brain streaming = new Brain { Model = "stream-model", Remote = new Cloud(Brain.LocalPort(address), "stream-model") };
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+                if (streaming.Aside("Chat", "hello", 90) != "Still here.") throw new Exception("Streamed text did not join.");
+                streaming.Step("Tools", "Next song", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
+                if (calls.Count != 1 || calls[0].Key != "media" || calls[0].Value.Action != "next" || streaming.Quick("Look", "This", 90, new byte[] { 1, 2 }) != "Still here.") throw new Exception("Streamed tool arguments or pictures were lost.");
+                foreach (string sent in asked) if (sent.IndexOf("\"stream\":true", StringComparison.Ordinal) < 0 || sent.IndexOf("Authorization:", StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("A local stream had the wrong request.");
+                fake.Stop();
+                checks.Add("PASS local streaming uses the shared OpenAI reader: bytewise text joins, split native tool arguments survive, and pictures stream without an authorization header");
+
+                asked.Clear();
+                address = FakeServer(new[] { "!400 {\"error\":{\"message\":\"streaming is not supported\"}}", LocalReply("Still here."), LocalReply("Good to see you.") }, asked, out fake);
+                Brain unstreamed = new Brain { Model = "plain", Remote = new Cloud(Brain.LocalPort(address), "plain") };
+                if (unstreamed.Ask("hello") != "Still here." || unstreamed.Ask("how are you?") != "Good to see you." || asked.Count != 3 || asked[0].IndexOf("\"stream\":true", StringComparison.Ordinal) < 0 || asked[1].IndexOf("\"stream\":", StringComparison.Ordinal) >= 0 || asked[2].IndexOf("\"stream\":", StringComparison.Ordinal) >= 0) throw new Exception("A local server without streaming did not fall back to ordinary completions.");
+                fake.Stop();
+                checks.Add("PASS local servers without streaming: an unsupported stream retries as an ordinary OpenAI completion, and the next chat keeps that form");
+
+                asked.Clear();
+                address = FakeServer(new[] { "!400 {\"error\":{\"message\":\"This model does not support tools\"}}", LocalReply("media{\"action\":\"next\"}"), LocalReply("Skipped it."), LocalReply("media{\"action\":\"next\"}"), LocalReply("Skipped again.") }, asked, out fake);
+                Brain written = new Brain { Model = "written", Remote = new Cloud(Brain.LocalPort(address), "written") };
+                int acted = 0;
+                written.Act = delegate(string name, ToolArguments arguments) { if (name != "media" || arguments.Action != "next") throw new Exception("The written tool changed."); acted++; return "Skipped to the next track."; };
+                written.Ask("search YouTube for combos");
+                written.Ask("search YouTube for parkour");
+                if (acted != 2 || asked.Count != 5 || asked[0].IndexOf("\"tools\":", StringComparison.Ordinal) < 0 || asked[1].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || asked[3].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || asked[1].IndexOf("To use one, reply with only the call", StringComparison.Ordinal) < 0) throw new Exception("Local written tools did not fall back and stay working.");
+                fake.Stop();
+                asked.Clear();
+                address = FakeServer(new[] { LocalReply("media{\"action\":\"next\"}") }, asked, out fake);
+                written.Remote = new Cloud(Brain.LocalPort(address), "written");
+                calls.Clear();
+                written.Step("Tools", "Next song", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
+                if (asked.Count != 1 || asked[0].IndexOf("\"tools\":", StringComparison.Ordinal) < 0) throw new Exception("Another local server inherited the written-tool fallback.");
+                checks.Add("PASS local written tools: a rejected native tool call retries with Hands' written form, runs it and remembers the fallback; another server with the same model starts with native tools");
+            }
+            catch (System.Net.Sockets.SocketException unavailable) { checks.Add("LIMIT local brain transport checks: loopback sockets unavailable here (" + unavailable.SocketErrorCode + ")"); }
+            finally { if (fake != null) fake.Stop(); }
+        }
+
+        private void SmokeLocalPicker(System.Collections.Generic.List<string> checks)
+        {
+            Cloud wasRemote = brain.Remote;
+            Engine wasLocal = brain.Local;
+            Pick wasPick = brain.LocalPick;
+            string wasModel = brain.Model, wasAddress = preferences.LocalAddress, wasServerModel = preferences.LocalModel, wasOllama = preferences.Model;
+            int wasPort = preferences.BrainPort, wasTier = preferences.Tier;
+            try
+            {
+                preferences.Tier = 0;
+                mainframe.TypeLocalAddress("http://localhost:43210/v1");
+                if (preferences.LocalAddress != "http://127.0.0.1:43210" || LoadPreferences().LocalAddress != preferences.LocalAddress || mainframe.LocalAddressShown != preferences.LocalAddress) throw new Exception("The local server field did not save and show its address.");
+                mainframe.ShowServers(new System.Collections.Generic.List<Cloud> { new Cloud(1234, "same-model"), new Cloud(1337, "same-model") }, new[] { "ollama-test" }, Engine.Picks[0]);
+                mainframe.ShowOllama(new[] { "ollama-test" }, "ollama-test");
+                if (string.Join("|", mainframe.BrainChoices) != "Ollama · ollama-test|Built-in · " + Engine.Picks[0].Name + "|LM Studio · same-model|Jan · same-model") throw new Exception("Local models did not share the Ollama picker.");
+                mainframe.PickBrain(2);
+                Cloud kept = TierCloud();
+                if (brain.Remote == null || brain.Remote.Port != 1234 || brain.Model != "same-model" || mainframe.Status.IndexOf("LM Studio · same-model", StringComparison.Ordinal) < 0 || LoadPreferences().BrainPort != 1234 || kept == null || kept.Port != 1234) throw new Exception("The selected local model did not save or show its name.");
+                Brain.ReadLocalModels(1234, "{\"data\":[{\"id\":\"same-model\",\"capabilities\":{\"vision\":false}}]}");
+                if (Unseeing() != Brain.Sightless(brain.Remote)) throw new Exception("A local model's reported lack of vision did not reach Unseeing.");
+                mainframe.PickBrain(3);
+                if (brain.Remote.Port != 1337 || Unseeing() != null) throw new Exception("Equal model ids on different servers collapsed.");
+                string longName = "my-local-model-" + new string('x', 120);
+                mainframe.TypeCustomModel(longName);
+                if (brain.Remote.Model != longName || mainframe.Status.IndexOf(longName, StringComparison.Ordinal) < 0 || LoadPreferences().LocalModel != longName) throw new Exception("A local model's full name was not kept in BRAIN.");
+                mainframe.PickBrain(0);
+                if (brain.Remote != null || brain.Local != null || preferences.BrainPort != 0 || brain.Model != "ollama-test") throw new Exception("The picker did not return to Ollama.");
+                mainframe.PickBrain(1);
+                if (brain.Local != engine || brain.Remote != null) throw new Exception("The picker did not return to the built-in brain.");
+                SmokeBrainLayout(checks);
+                checks.Add("PASS local brain picker: Ollama, built-in, LM Studio and Jan share it, equal model ids keep their server, the address and selection save, and BRAIN shows the selected model's name");
+            }
+            finally
+            {
+                brain.Remote = wasRemote; brain.Local = wasLocal; brain.LocalPick = wasPick; brain.Model = wasModel;
+                preferences.LocalAddress = wasAddress; preferences.LocalModel = wasServerModel; preferences.Model = wasOllama; preferences.BrainPort = wasPort; preferences.Tier = wasTier;
+                SavePreferences();
+                mainframe.ShowServers(new System.Collections.Generic.List<Cloud>(), null, null);
+                mainframe.Sync();
+            }
+        }
+
+        private static string SentBody(string request) { return request.Substring(request.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4); }
+
+        private static void SmokeBrainBodies(System.Collections.Generic.List<string> checks)
+        {
+            int wasMemory = Brain.MemorySize, wasReply = Brain.ReplyLength, wasRecall = Brain.Recall;
+            string wasOllama = Brain.Ollama, wasOpenAi = Brain.OpenAi, wasClaude = Brain.Anthropic, wasDeep = Brain.DeepSeek, wasNvidia = Brain.Nvidia;
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8;
+                string answer = "{\"message\":{\"content\":\"Done.\"},\"choices\":[{\"message\":{\"content\":\"Done.\"},\"finish_reason\":\"stop\"}],\"content\":[{\"type\":\"text\",\"text\":\"Done.\"}],\"stop_reason\":\"end_turn\"}";
+                string[] replies = new string[100];
+                for (int replyAt = 0; replyAt < replies.Length; replyAt++) replies[replyAt] = answer;
+                System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                string address = FakeServer(replies, asked, out fake);
+                Brain.Ollama = Brain.OpenAi = Brain.Anthropic = Brain.DeepSeek = Brain.Nvidia = address;
+                Brain local = new Brain { Model = "test" };
+                System.Collections.Generic.List<ChatMessage> messages = new System.Collections.Generic.List<ChatMessage> { new ChatMessage("system", "Talk"), new ChatMessage("user", "Hello") };
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+                local.Aside("Talk", "Hello", 90);
+                local.Complete(address, "test", messages, false, calls, null, 90, -1, false);
+                local.Remote = new Cloud("sk-test", "test");
+                local.Aside("Talk", "Hello", 90);
+                local.Remote = new Cloud("sk-ant-test", "test");
+                local.Aside("Talk", "Hello", 90);
+                string[] automatic =
+                {
+                    "{\"keep_alive\":\"15m\",\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"options\":{\"num_ctx\":4096,\"num_predict\":90,\"temperature\":0.85},\"stream\":false,\"think\":false}",
+                    "{\"max_tokens\":90,\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"capri\",\"stream\":false,\"temperature\":0.85}",
+                    "{\"max_completion_tokens\":2000,\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\"}",
+                    "{\"max_tokens\":16000,\"messages\":[{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"system\":\"Talk\"}"
+                };
+                for (int autoAt = 0; autoAt < automatic.Length; autoAt++) if (SentBody(asked[autoAt]) != automatic[autoAt]) throw new Exception("Auto changed request body " + autoAt + ": " + SentBody(asked[autoAt]));
+                checks.Add("PASS brain settings Auto: Ollama, built-in, OpenAI and Claude request bodies exactly match their previous JSON, including each token default and omitted fields");
+
+                local.Remote = null;
+                Engine builtIn = new Engine(Path.Combine(Environment.CurrentDirectory, "out", "context-check"));
+                foreach (int memory in Brain.MemorySizes)
+                {
+                    Brain.MemorySize = memory;
+                    local.Aside("Talk", "Hello", 90);
+                    string memoryOptions = Brain.Field(SentBody(asked[asked.Count - 1]), "options");
+                    int memoryExpected = memory == 0 ? 4096 : memory;
+                    if (Brain.Field(memoryOptions, "num_ctx") != memoryExpected.ToString() || builtIn.StartInfo(Engine.Picks[0], true, false, 32123, Brain.Window).Arguments.IndexOf(" -c " + memoryExpected + " ", StringComparison.Ordinal) < 0) throw new Exception("Memory size did not reach Ollama and the built-in launch.");
+                }
+                Brain.MemorySize = 0;
+                Brain.Recall = 16;
+                local.Aside("Talk", "Hello", 180);
+                string remembered = Brain.Field(SentBody(asked[asked.Count - 1]), "options");
+                if (Brain.Window != 8192 || Brain.Field(remembered, "num_ctx") != "8192" || Brain.Field(remembered, "num_predict") != "180") throw new Exception("Auto lost the longer chat's existing context or reply allowance.");
+                Brain.Recall = 8;
+                Brain.MemorySize = 65536;
+                Cloud[] clouds = { new Cloud("sk-test", "test"), new Cloud("sk-" + new string('a', 32), "test"), new Cloud("nvapi-test", "test"), new Cloud("sk-ant-test", "test"), new Cloud(Brain.LocalPort(address), "test") };
+                int[] tokens = { 0, 256, 2048, 8192 };
+                for (int length = 0; length < tokens.Length; length++)
+                {
+                    Brain.ReplyLength = length;
+                    local.Remote = null;
+                    local.Aside("Talk", "Hello", 90);
+                    string replyOptions = Brain.Field(SentBody(asked[asked.Count - 1]), "options");
+                    if (Brain.Field(replyOptions, "num_predict") != (length == 0 ? 90 : tokens[length]).ToString()) throw new Exception("Reply length did not reach Ollama.");
+                    local.Complete(address, "test", messages, false, calls, null, 90, -1, false);
+                    if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != (length == 0 ? 90 : tokens[length]).ToString()) throw new Exception("Reply length did not reach the built-in completion.");
+                    foreach (Cloud remote in clouds)
+                    {
+                        local.Remote = remote;
+                        local.Aside("Talk", "Hello", 90);
+                        string body = SentBody(asked[asked.Count - 1]);
+                        int replyExpected = length == 0 ? remote.Claude ? 16000 : 2000 : tokens[length];
+                        string field = remote.Kind == "openai" ? "max_completion_tokens" : "max_tokens";
+                        if (Brain.Field(body, field) != replyExpected.ToString() || Brain.Field(body, "num_ctx") != null || Brain.Field(body, "options") != null) throw new Exception("Reply or context settings reached " + remote.Kind + " incorrectly.");
+                    }
+                }
+                checks.Add("PASS memory and reply request settings: all six memory choices reach Ollama num_ctx and the built-in -c argument; all four reply choices reach Ollama, built-in, local servers and every cloud kind, without sending context options to those servers or clouds");
+
+                Brain.ReplyLength = 1;
+                local.Remote = null;
+                local.Step("Tools", "Next", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
+                if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "400") throw new Exception("Short shrank a local job.");
+                local.See(new byte[] { 1 }, "Talk", "Hello", 700, true);
+                if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "700") throw new Exception("Short shrank a game's eyes.");
+                local.Aside("Talk", "Hello", 320, true);
+                if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "320") throw new Exception("Short shrank a job's aside.");
+                local.Complete(address, "test", messages, false, calls, null, 700, -1, false, null, true);
+                if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != "700") throw new Exception("Short shrank a built-in job.");
+                local.Remote = clouds[4];
+                local.Step("Tools", "Next", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
+                if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != "2000") throw new Exception("Short shrank a local server job.");
+                local.Remote = clouds[3];
+                local.Quick("Talk", "Hello", 320);
+                if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != "320") throw new Exception("Short shrank a game comment.");
+                foreach (int chosen in new[] { 0, 1, 3 })
+                {
+                    Brain.ReplyLength = chosen;
+                    local.Drive("Tools", "[]", "[]");
+                    if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != (chosen == 3 ? "8192" : "4096")) throw new Exception("A long job lost its allowance or a larger user setting.");
+                    local.Drive("Tools", "[]", "[]", true);
+                    if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != "16000") throw new Exception("A game lost its thinking room.");
+                }
+                local.Remote = null;
+                local.Step("Tools", "Next", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
+                if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "8192") throw new Exception("A job ignored a larger reply setting.");
+                checks.Add("PASS job allowances: Short keeps local steps, built-in jobs, local server tools, game pictures, asides and comments at their own defaults; Long raises smaller jobs, while deep game turns keep 16000 tokens, and Auto keeps 4096 for other driving");
+            }
+            catch (System.Net.Sockets.SocketException unavailable) { checks.Add("LIMIT brain request settings: loopback sockets unavailable here (" + unavailable.SocketErrorCode + ")"); }
+            finally
+            {
+                if (fake != null) fake.Stop();
+                Brain.MemorySize = wasMemory; Brain.ReplyLength = wasReply; Brain.Recall = wasRecall;
+                Brain.Ollama = wasOllama; Brain.OpenAi = wasOpenAi; Brain.Anthropic = wasClaude; Brain.DeepSeek = wasDeep; Brain.Nvidia = wasNvidia;
+            }
+        }
+
+        private void SmokeBrainSettings(System.Collections.Generic.List<string> checks)
+        {
+            int wasMemory = Brain.MemorySize, wasReply = Brain.ReplyLength;
+            try
+            {
+                SetMemorySize(0); SetReplyLength(0); mainframe.Sync();
+                Preferences old;
+                using (MemoryStream earlier = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Recall\":16}"))) old = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(earlier);
+                if (mainframe.BrainSettings != "Auto | Auto" || old.MemorySize != 0 || old.ReplyLength != 0 || new Preferences().MemorySize != 0 || new Preferences().ReplyLength != 0) throw new Exception("New and old settings did not keep Auto.");
+                string[] memoryNames = { "Auto", "4K", "8K", "16K", "32K", "64K" };
+                string[] replyNames = { "Auto", "256", "2K", "8K" };
+                for (int memory = 0; memory < Brain.MemorySizes.Length; memory++)
+                {
+                    mainframe.SlideMemorySize(memory);
+                    if (MemorySize != Brain.MemorySizes[memory] || LoadPreferences().MemorySize != MemorySize || !mainframe.BrainSettings.StartsWith(memoryNames[memory] + " | ", StringComparison.Ordinal)) throw new Exception("Memory size did not save or show its choice.");
+                }
+                for (int reply = 0; reply < replyNames.Length; reply++)
+                {
+                    mainframe.SlideReplyLength(reply);
+                    if (ReplyLength != reply || LoadPreferences().ReplyLength != reply || mainframe.BrainSettings != "64K | " + replyNames[reply]) throw new Exception("Reply length did not save or show its choice.");
+                }
+                mainframe.SlideMemorySize(0); mainframe.SlideReplyLength(0);
+                if (mainframe.BrainSettings != "Auto | Auto" || LoadPreferences().MemorySize != 0 || LoadPreferences().ReplyLength != 0) throw new Exception("The brain settings did not return to Auto.");
+                checks.Add("PASS BRAIN controls: Memory size and Reply length start on Auto in new and old settings; every choice moves its Setting control, saves to Preferences and shows again, and Auto restores the existing defaults");
+            }
+            finally { SetMemorySize(wasMemory); SetReplyLength(wasReply); mainframe.Sync(); }
+        }
+
+        private void SmokeBrainLayout(System.Collections.Generic.List<string> checks)
+        {
+            bool wasSettings = mainframe.SettingsShown;
+            int wasSize = preferences.MainframeSize;
+            try
+            {
+                mainframe.ShowSettings(true);
+                foreach (int size in new[] { 100, 125, 150, 175, 200 })
+                {
+                    mainframe.SizeMainframe(size);
+                    string crowded = mainframe.Overlap() ?? mainframe.Outside();
+                    if (crowded != null) throw new Exception("BRAIN controls at " + size + "% overlap or leave the page: " + crowded);
+                }
+                checks.Add("PASS BRAIN layout: every setting stays on its scrollable page at 100%, 125%, 150%, 175% and 200%, with no overlaps or controls poking out");
+            }
+            finally { mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
@@ -11568,6 +11937,8 @@ namespace CapriDesktop
                         }
                         if (step == 0)
                         {
+                            SmokeLocalBrains(checks);
+                            SmokeBrainBodies(checks);
                             SmokeCamera(checks);
                             SmokeGameAsks(checks);
                             SmokeSighted(checks);
@@ -17997,6 +18368,8 @@ namespace CapriDesktop
                             if (!mainframeShown) mainframe.Hide();
                             if (!balloonOpened) throw new Exception("Clicking the download popup didn't open Capri Mainframe.");
                             checks.Add("PASS voice installs: her free voice and ears get one dotted bar under VOICE that pushes the rest down without overlaps and closes when done, and the download popup opens Capri Mainframe");
+                            SmokeLocalPicker(checks);
+                            SmokeBrainSettings(checks);
                             int mainTall = mainframe.ClientSize.Height, mainWide = mainframe.ClientSize.Width;
                             mainframe.ShowSettings(true);
                             // Settings opens a second column beside the first. With four voice sliders and her perch row it can be taller than the main page too.

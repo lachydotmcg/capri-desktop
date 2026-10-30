@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1172;
+        private const int PageTall = 1284;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -68,6 +68,8 @@ namespace CapriDesktop
         private static readonly string[] WanderNames = { "Off", "Rarely", "Sometimes", "Often", "Restless" };
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
         private static readonly int[] Recalls = { 8, 16, 32 };
+        private static readonly string[] MemoryNames = { "Auto", "4K", "8K", "16K", "32K", "64K" };
+        private static readonly string[] ReplyNames = { "Auto", "256", "2K", "8K" };
         private const int VoiceHeight = 300;
         // While her free voice or ears download, a row with the brain setup's dotted bar opens here and pushes the rest down.
         private const int InstallAt = 443;
@@ -193,6 +195,8 @@ namespace CapriDesktop
         private bool textSaved;
         private readonly List<KeyValuePair<Control, int>> lower = new List<KeyValuePair<Control, int>>();
         private string[] lastInstalled;
+        private List<Cloud> lastServers = new List<Cloud>();
+        private Pick lastLocal;
         private float filled;
         private bool expanded = true;
         private bool loaded;
@@ -250,7 +254,12 @@ namespace CapriDesktop
         private readonly Readout repliesName;
         private readonly Slider recall;
         private readonly Readout recallName;
+        private readonly Slider memorySize;
+        private readonly Readout memorySizeName;
+        private readonly Slider replyLength;
+        private readonly Readout replyLengthName;
         private readonly Entry custom;
+        private readonly Entry localAddress;
         private readonly Label customNote;
         private readonly Slider perchFps;
         private readonly Readout perchFpsName;
@@ -299,6 +308,9 @@ namespace CapriDesktop
             for (int i = 0; i < header; i++) Scrolls(Controls[i]);
             Section("BRAIN >", 0, 58);
             brainName = Caption("", 28, 79, Type(11f, true), White);
+            brainName.AutoSize = false;
+            brainName.AutoEllipsis = true;
+            brainName.Size = new Size(328, 20);
             brainNote = Caption("", 28, 101, Font, Faint);
             modelMenu = Dropdown();
             models = Make("", 28, 134, 244, 28, delegate { modelMenu.Show(models, new Point(0, models.Height)); });
@@ -573,63 +585,78 @@ namespace CapriDesktop
             recall = Setting("Memory", Lengths, c, 410, "How much of the chat she keeps");
             recallName = new Readout(recall);
             recall.Changed += delegate { if (syncing) return; recallName.Text = Lengths[recall.Value]; capri.SetRecall(Recalls[recall.Value]); };
-            bubble = Setting("Bubble", BubbleNames, c, 438, "How long her replies stay up");
+            memorySize = Setting("Memory size", MemoryNames, c, 438, "Memory size in tokens for Ollama and her built-in brain. Auto keeps her usual context size");
+            memorySizeName = new Readout(memorySize);
+            memorySize.Changed += delegate { if (syncing) return; memorySizeName.Text = MemoryNames[memorySize.Value]; capri.SetMemorySize(Brain.MemorySizes[memorySize.Value]); };
+            replyLength = Setting("Max reply", ReplyNames, c, 466, "The longest reply she can give, in tokens. Auto keeps to Replies above; 2K or 8K lets her run on. Jobs keep more room when they need it");
+            replyLengthName = new Readout(replyLength);
+            replyLength.Changed += delegate { if (syncing) return; replyLengthName.Text = ReplyNames[replyLength.Value]; capri.SetReplyLength(replyLength.Value); };
+            bubble = Setting("Bubble", BubbleNames, c, 494, "How long her replies stay up");
             bubbleName = new Readout(bubble);
             bubble.Changed += delegate { if (syncing) return; bubbleName.Text = BubbleNames[bubble.Value]; capri.SetBubbleTime(bubble.Value); };
-            custom = Input(28 + c, 469, 244, 22);
+            custom = Input(28 + c, 525, 244, 22);
             custom.Cue = "Custom model name";
             custom.Box.AccessibleName = "Custom model name";
             custom.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseCustom(); } };
-            Make("Use", 280 + c, 469, 76, 22, delegate { UseCustom(); });
-            customNote = Caption("Any Ollama model you've pulled, or a model id on your key.", 28 + c, 498, small, Faint);
+            Make("Use", 280 + c, 525, 76, 22, delegate { UseCustom(); });
+            customNote = Caption("A model in Ollama, on your local server or on your key.", 28 + c, 554, small, Faint);
+            customNote.AutoSize = false;
+            customNote.AutoEllipsis = true;
+            customNote.Size = new Size(328, 28);
             customNote.MaximumSize = new Size(328, 0);
-            Section("HABITS >", c, 544);
-            Make("Open her memories", 220 + c, 541, 136, 20, delegate { capri.OpenMemories(); }).AccessibleName = "Open her memories: memories.md and her chat transcripts, kept on this PC";
-            startup = Switch("Start with Windows", c, 568, delegate { if (!syncing) capri.ToggleStartup(); });
-            discord = Switch("Show on Discord", c, 596, delegate { if (!syncing) capri.ToggleDiscord(); });
-            cursor = Switch("Use her cursor", c, 624, delegate { if (!syncing) capri.ToggleCursor(); });
-            remembering = Switch("Remember our chats", c, 652, delegate { if (!syncing) capri.ToggleRemembering(); });
+            Caption("Local server address", 28 + c, 586, Font, Rose);
+            localAddress = Input(28 + c, 615, 244, 22);
+            localAddress.Cue = "http://127.0.0.1:1234";
+            localAddress.Box.AccessibleName = "Local server address";
+            localAddress.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseLocalAddress(); } };
+            Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); });
+            Section("HABITS >", c, 656);
+            Make("Open her memories", 220 + c, 653, 136, 20, delegate { capri.OpenMemories(); }).AccessibleName = "Open her memories: memories.md and her chat transcripts, kept on this PC";
+            startup = Switch("Start with Windows", c, 680, delegate { if (!syncing) capri.ToggleStartup(); });
+            discord = Switch("Show on Discord", c, 708, delegate { if (!syncing) capri.ToggleDiscord(); });
+            cursor = Switch("Use her cursor", c, 736, delegate { if (!syncing) capri.ToggleCursor(); });
+            remembering = Switch("Remember our chats", c, 764, delegate { if (!syncing) capri.ToggleRemembering(); });
             remembering.AccessibleName = "Remember our chats. She keeps daily transcripts and memories.md on this PC, never uploaded";
             // SECURITY took Blackwall mode's place (Lachy, 29 Oct): its button opens her SECURITY window, and the line under it
             // says what the preset does. Blackwall mode is its Blackwall preset now.
-            security = Make("Security: " + Security.PresetName, 28 + c, 683, 328, 22, delegate { OpenSecurity(); });
+            security = Make("Security: " + Security.PresetName, 28 + c, 795, 328, 22, delegate { OpenSecurity(); });
             security.AccessibleName = "Security: what she does on your PC without asking first";
-            blackwallNote = Caption(Security.Short, 28 + c, 707, small, Faint);
+            blackwallNote = Caption(Security.Short, 28 + c, 819, small, Faint);
             blackwallNote.AutoSize = false;
             blackwallNote.TextAlign = ContentAlignment.MiddleRight;
-            blackwallNote.Bounds = new Rectangle(28 + c, 707, 328, 18);
+            blackwallNote.Bounds = new Rectangle(28 + c, 819, 328, 18);
             // Frames a second while she sits on a window. Her sway takes 2 s at every fps; past 30 she draws in-betweens.
-            perchFps = Setting("Perch", PerchNames, c, 728, "Her perch frames per second");
+            perchFps = Setting("Perch", PerchNames, c, 840, "Her perch frames per second");
             perchFpsName = new Readout(perchFps);
             perchFps.Changed += delegate { if (syncing) return; capri.SetPerchFps(Companion.PerchRates[perchFps.Value]); ShowPerch(); };
-            perchNote = Caption("", 28 + c, 756, small, Faint);
+            perchNote = Caption("", 28 + c, 868, small, Faint);
             perchNote.AutoSize = false;
             perchNote.TextAlign = ContentAlignment.MiddleRight;
-            perchNote.Bounds = new Rectangle(28 + c, 756, 328, 18);
+            perchNote.Bounds = new Rectangle(28 + c, 868, 328, 18);
             careMenu = Dropdown();
             for (int careRow = 0; careRow < careToggles.Length; careRow++)
             {
                 CareKind careKind = (CareKind)careRow;
-                Toggle careToggle = Switch(Care.Names[careRow], c, 788 + careRow * 28, delegate { if (!syncing) capri.ToggleCare(careKind); });
+                Toggle careToggle = Switch(Care.Names[careRow], c, 900 + careRow * 28, delegate { if (!syncing) capri.ToggleCare(careKind); });
                 careToggle.Width = 224;
                 careToggle.Switch = 68;
                 careToggle.AccessibleName = Care.Names[careRow] + " check-in" + (careKind == CareKind.Eyes ? ": look away for 20 seconds" : careKind == CareKind.Meal ? ": mealtimes from noon, if you've been here since before lunch" : "");
                 careToggles[careRow] = careToggle;
-                Key careTime = Make("", 260 + c, 791 + careRow * 28, 96, 22, delegate { ChooseCareTime(careKind); });
+                Key careTime = Make("", 260 + c, 903 + careRow * 28, 96, 22, delegate { ChooseCareTime(careKind); });
                 careTime.Chevron = true;
                 careTimes[careRow] = careTime;
             }
-            Make("Edit check-in lines", 28 + c, 988, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
-            Section("GAMES >", c, 1012);
+            Make("Edit check-in lines", 28 + c, 1100, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
+            Section("GAMES >", c, 1124);
             // What she says about a game they're playing, from what happens in it rather than on a timer.
-            comments = Setting("Comments", Commentary.PaceNames, c, 1036, "How much she says about a game you're playing: off, only when something happens, or chatty");
+            comments = Setting("Comments", Commentary.PaceNames, c, 1148, "How much she says about a game you're playing: off, only when something happens, or chatty");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
-            gamingMode = Switch("Gaming Mode", c, 1064, delegate { if (!syncing) capri.ToggleGaming(); });
+            gamingMode = Switch("Gaming Mode", c, 1176, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it";
-            clipGames = Switch("Clip my games", c, 1092, delegate { if (!syncing) capri.ToggleClips(); });
+            clipGames = Switch("Clip my games", c, 1204, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory; clips stay in Videos\\Capri Clips on this PC";
-            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1120, small, Faint);
+            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1232, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -734,6 +761,18 @@ namespace CapriDesktop
         {
             customNote.Text = capri.ChooseCustomModel(custom.Box.Text, lastInstalled);
         }
+
+        internal void TypeCustomModel(string name) { custom.Box.Text = name; UseCustom(); }
+
+        private void UseLocalAddress()
+        {
+            customNote.Text = capri.SetLocalAddress(localAddress.Box.Text);
+            localAddress.Box.Text = capri.LocalAddress;
+        }
+
+        internal void TypeLocalAddress(string address) { localAddress.Box.Text = address; UseLocalAddress(); }
+
+        internal string LocalAddressShown { get { return localAddress.Box.Text; } }
 
         internal bool SettingsShown { get { return paged; } }
 
@@ -1314,6 +1353,11 @@ namespace CapriDesktop
             repliesName.Text = Lengths[replies.Value];
             recall.Value = Math.Max(0, Array.IndexOf(Recalls, capri.Recall));
             recallName.Text = Lengths[recall.Value];
+            memorySize.Value = Math.Max(0, Array.IndexOf(Brain.MemorySizes, capri.MemorySize));
+            memorySizeName.Text = MemoryNames[memorySize.Value];
+            replyLength.Value = capri.ReplyLength;
+            replyLengthName.Text = ReplyNames[replyLength.Value];
+            if (!localAddress.Box.Focused) localAddress.Box.Text = capri.LocalAddress;
             perchFps.Value = Math.Max(0, Array.IndexOf(Companion.PerchRates, capri.PerchFps));
             ShowPerch();
             syncing = false;
@@ -1327,6 +1371,12 @@ namespace CapriDesktop
         }
 
         internal string PerchStatus { get { return perchFpsName.Text + " | " + (perchNote.Text.Length > 0 ? perchNote.Text : "-"); } }
+
+        internal string BrainSettings { get { return memorySizeName.Text + " | " + replyLengthName.Text; } }
+
+        internal void SlideMemorySize(int index) { memorySize.Slide(index); }
+
+        internal void SlideReplyLength(int index) { replyLength.Slide(index); }
 
         internal void SlidePerch(int steps) { Press(perchFps, steps); }
 
@@ -1389,6 +1439,7 @@ namespace CapriDesktop
                 for (int j = i + 1; j < Controls.Count; j++)
                 {
                     Control a = Controls[i], b = Controls[j];
+                    if (Hidden(a) || Hidden(b)) continue;
                     if (!a.Visible || !b.Visible || (a is Label && a.Text.Length == 0) || (b is Label && b.Text.Length == 0)) continue;
                     if (a.Bounds.IntersectsWith(b.Bounds)) return a.Text + " / " + b.Text;
                 }
@@ -1504,24 +1555,49 @@ namespace CapriDesktop
             models.Visible = true;
             hint.Visible = false;
             lastInstalled = installed;
-            modelMenu.Items.Clear();
-            foreach (string name in installed)
-            {
-                string pick = name;
-                ToolStripMenuItem item = new ToolStripMenuItem(name, null, delegate { capri.ChooseModel(pick); ShowOllama(lastInstalled, pick); });
-                item.Checked = name == chosen;
-                modelMenu.Items.Add(item);
-            }
+            LocalMenu(chosen, null);
             Arrange(false);
         }
+
+        internal void ShowServers(List<Cloud> servers, string[] installed, Pick local)
+        {
+            lastServers = servers;
+            lastInstalled = installed;
+            lastLocal = local;
+        }
+
+        private void LocalMenu(string chosen, Cloud remote)
+        {
+            modelMenu.Items.Clear();
+            foreach (string name in lastInstalled ?? new string[0])
+            {
+                string pick = name;
+                ToolStripMenuItem item = new ToolStripMenuItem("Ollama · " + name, null, delegate { capri.ChooseLocalBrain(null, pick, null); ShowOllama(lastInstalled, pick); });
+                item.Checked = remote == null && name == chosen;
+                modelMenu.Items.Add(item);
+            }
+            if (lastLocal != null) modelMenu.Items.Add(Choice("Built-in · " + lastLocal.Name, remote == null && chosen == lastLocal.Name, delegate { capri.ChooseLocalBrain(null, lastLocal.Name, lastLocal); ShowLocal(lastLocal); }));
+            List<Cloud> listed = new List<Cloud>(lastServers);
+            if (remote != null && !listed.Exists(candidate => candidate.Source == remote.Source)) listed.Add(remote);
+            foreach (Cloud server in listed)
+            {
+                Cloud pick = new Cloud(server.Port, server.Model);
+                modelMenu.Items.Add(Choice(pick.Name + " · " + pick.Model, remote != null && remote.Source == pick.Source, delegate { capri.ChooseLocalBrain(pick, pick.Model, null); ShowCloud(pick, null); }));
+            }
+        }
+
+        internal string[] BrainChoices { get { List<string> choices = new List<string>(); foreach (ToolStripItem item in modelMenu.Items) choices.Add(item.Text); return choices.ToArray(); } }
+
+        internal void PickBrain(int index) { ((ToolStripMenuItem)modelMenu.Items[index]).PerformClick(); }
 
         internal void ShowCloud(Cloud remote, List<string> found)
         {
             brainName.Text = remote.Name + " · " + remote.Model;
-            brainNote.Text = "Using your " + remote.Company + " key";
+            brainNote.Text = remote.Kind == "local" ? "Running on this PC · :" + remote.Port : "Using your " + remote.Company + " key";
             models.Text = remote.Model;
             models.Visible = true;
             hint.Visible = false;
+            if (remote.Kind == "local") { LocalMenu(null, remote); Arrange(false); return; }
             modelMenu.Items.Clear();
             foreach (string name in found ?? new List<string> { remote.Model })
             {
@@ -1581,7 +1657,9 @@ namespace CapriDesktop
         {
             brainName.Text = "Built-in · " + pick.Name;
             brainNote.Text = "Running on this PC";
-            models.Visible = false;
+            models.Text = pick.Name;
+            models.Visible = lastServers.Count > 0 || (lastInstalled != null && lastInstalled.Length > 0);
+            LocalMenu(pick.Name, null);
             hint.Visible = false;
             Arrange(false);
         }

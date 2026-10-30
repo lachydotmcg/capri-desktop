@@ -6,6 +6,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 namespace CapriDesktop
 {
@@ -110,6 +111,8 @@ namespace CapriDesktop
     internal sealed class CompletionChoice
     {
         [DataMember(Name = "message")] public CompletionMessage Message;
+        [DataMember(Name = "delta")] public CompletionMessage Delta;
+        [DataMember(Name = "index")] public int Index;
         [DataMember(Name = "finish_reason")] public string Stopped;
     }
 
@@ -125,6 +128,7 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class CompletionCall
     {
+        [DataMember(Name = "index")] public int Index;
         [DataMember(Name = "function")] public CompletionFunction Function;
     }
 
@@ -161,6 +165,7 @@ namespace CapriDesktop
         [DataMember(Name = "reasoning_effort", EmitDefaultValue = false)] public string Effort;
         [DataMember(Name = "thinking", EmitDefaultValue = false)] public CloudThinking Thinking;
         [DataMember(Name = "chat_template_kwargs", EmitDefaultValue = false)] public CloudTemplate Template;
+        [DataMember(Name = "stream", EmitDefaultValue = false)] public bool Stream;
     }
 
     [DataContract]
@@ -246,11 +251,15 @@ namespace CapriDesktop
     {
         internal readonly string Key;
         internal readonly string Kind;
+        internal readonly int Port;
         internal volatile string Model;
         internal Cloud(string key, string model) { Key = key; Kind = KindOf(key); Model = model; }
+        internal Cloud(int port, string model) { Brain.LocalHost(port); Port = port; Kind = "local"; Model = model; }
         internal bool Claude { get { return Kind == "anthropic"; } }
-        internal string Name { get { return Kind == "anthropic" ? "Claude" : Kind == "deepseek" ? "DeepSeek" : Kind == "nvidia" ? "NVIDIA" : "ChatGPT"; } }
-        internal string Company { get { return Kind == "anthropic" ? "Anthropic" : Kind == "deepseek" ? "DeepSeek" : Kind == "nvidia" ? "NVIDIA" : "OpenAI"; } }
+        internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "deepseek" ? "DeepSeek" : Kind == "nvidia" ? "NVIDIA" : "ChatGPT"; } }
+        internal string Company { get { return Kind == "local" ? Name : Kind == "anthropic" ? "Anthropic" : Kind == "deepseek" ? "DeepSeek" : Kind == "nvidia" ? "NVIDIA" : "OpenAI"; } }
+        internal string Source { get { return Kind + (Kind == "local" ? "|" + Port : "") + "|" + Model; } }
+        internal string Sight { get { return Kind == "local" ? Source : Model; } }
 
         internal static string KindOf(string key)
         {
@@ -310,6 +319,7 @@ namespace CapriDesktop
         internal volatile Pick LocalPick;
         internal Func<string, ToolArguments, string> Act;
         private volatile string toolless;
+        private volatile string unstreamed;
         private volatile string thinker;
         private volatile string ollamaCpu;
         internal volatile Cloud Remote;
@@ -388,6 +398,10 @@ namespace CapriDesktop
         internal static volatile string Nickname;
         internal static volatile int Wordiness;
         internal static volatile int Recall = 8;
+        internal static volatile int MemorySize;
+        internal static volatile int ReplyLength;
+        internal static readonly int[] MemorySizes = { 0, 4096, 8192, 16384, 32768, 65536 };
+        internal static readonly int[] ReplySizes = { 0, 256, 2048, 8192 };
         private static readonly int[] Budgets = { 90, 180, 360 };
         private static readonly int[] Caps = { 220, 420, 820 };
 
@@ -438,7 +452,13 @@ namespace CapriDesktop
             return wordy == 1 ? "\nThey picked longer replies: use up to four sentences, under 70 words." : wordy >= 2 ? "\nThey picked long replies: use up to a short paragraph, under 140 words." : "";
         }
 
-        internal static int Window { get { return Recall > 8 ? 8192 : 4096; } }
+        internal static int Window { get { return MemorySize > 0 ? MemorySize : Recall > 8 ? 8192 : 4096; } }
+
+        internal static int ReplyLimit(int automatic, bool job = false)
+        {
+            int chosen = ReplySizes[Math.Max(0, Math.Min(ReplySizes.Length - 1, ReplyLength))];
+            return chosen == 0 ? automatic : job ? Math.Max(automatic, chosen) : chosen;
+        }
 
         internal static int Budget { get { return Budgets[Math.Max(0, Math.Min(2, Wordiness))]; } }
 
@@ -766,7 +786,7 @@ namespace CapriDesktop
                     new ChatMessage("system", FoldRules + Now()),
                     new ChatMessage("user", "memories.md now:\n" + (before.Length == 0 ? "(empty)" : before) + "\n\nNew lines from your chat log, oldest first:\n" + string.Join("\n", shared.ToArray()))
                 };
-                string raw = folder.Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, 900);
+                string raw = folder.Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, 900, -1, false, null, null, true);
                 List<string> kept = new List<string>();
                 HashSet<string> seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (string line in Visible(raw).Split('\n'))
@@ -1018,6 +1038,106 @@ namespace CapriDesktop
                 if (list.Models != null) foreach (ModelInfo model in list.Models) if (!string.IsNullOrEmpty(model.Name) && model.Name.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Name);
                 return names.ToArray();
             }
+        }
+
+        internal static string LocalHost(int port)
+        {
+            if (port < 1 || port > 65535) throw new ArgumentOutOfRangeException("port");
+            return "http://127.0.0.1:" + port;
+        }
+
+        internal static int LocalPort(string address)
+        {
+            string typed = (address ?? "").Trim();
+            int port;
+            if (int.TryParse(typed, out port)) return port > 0 && port <= 65535 ? port : 0;
+            Uri uri;
+            IPAddress host;
+            if (!Uri.TryCreate(typed, UriKind.Absolute, out uri) || uri.Scheme != "http" || uri.UserInfo.Length > 0 || uri.Query.Length > 0 || uri.Fragment.Length > 0) return 0;
+            if (!string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase) && (!IPAddress.TryParse(uri.Host.Trim('[', ']'), out host) || !IPAddress.IsLoopback(host))) return 0;
+            if (uri.AbsolutePath != "/" && uri.AbsolutePath.TrimEnd('/') != "/v1") return 0;
+            return uri.Port > 0 ? uri.Port : 0;
+        }
+
+        internal static string ServerName(int port)
+        {
+            return port == 1234 ? "LM Studio" : port == 1337 ? "Jan" : port == 5001 ? "KoboldCpp" : port == 8080 ? "llama.cpp" : "Local server :" + port;
+        }
+
+        private static readonly Dictionary<string, bool> serverEyes = new Dictionary<string, bool>();
+
+        internal bool Sighted(Cloud remote)
+        {
+            if (Unsighted == remote.Sight) return false;
+            bool sees;
+            lock (serverEyes) return remote.Kind != "local" || !serverEyes.TryGetValue(remote.Source, out sees) || sees;
+        }
+
+        internal static List<Cloud> ReadLocalModels(int port, string json)
+        {
+            XmlDocument document = new XmlDocument();
+            using (XmlDictionaryReader reader = JsonReaderWriterFactory.CreateJsonReader(Encoding.UTF8.GetBytes(json), XmlDictionaryReaderQuotas.Max)) document.Load(reader);
+            List<Cloud> found = new List<Cloud>();
+            foreach (XmlNode item in document.SelectNodes("/root/data/item"))
+            {
+                XmlNode id = item.SelectSingleNode("id");
+                if (id == null || string.IsNullOrWhiteSpace(id.InnerText) || found.Exists(listedModel => listedModel.Model == id.InnerText)) continue;
+                Cloud model = new Cloud(port, id.InnerText);
+                bool? sees = null;
+                XmlNode vision = item.SelectSingleNode("capabilities/vision|capabilities/supports_vision|vision|supports_vision");
+                bool stated;
+                if (vision != null && bool.TryParse(vision.InnerText, out stated)) sees = stated;
+                else
+                {
+                    XmlNode modalities = item.SelectSingleNode("input_modalities|modalities/input");
+                    XmlNode abilities = item.SelectSingleNode("capabilities");
+                    XmlNode listed = modalities ?? (abilities != null && abilities.Attributes["type"] != null && abilities.Attributes["type"].Value == "array" ? abilities : null);
+                    if (listed != null)
+                    {
+                        sees = false;
+                        foreach (XmlNode ability in listed.ChildNodes) if (ability.InnerText == "vision" || ability.InnerText == "image") sees = true;
+                    }
+                }
+                lock (serverEyes)
+                {
+                    if (sees.HasValue) serverEyes[model.Source] = sees.Value;
+                    else serverEyes.Remove(model.Source);
+                }
+                found.Add(model);
+            }
+            return found;
+        }
+
+        internal static List<Cloud> LocalModels(int port)
+        {
+            HttpWebRequest request = Create(LocalHost(port) + "/v1/models", 600);
+            System.Threading.Tasks.Task<List<Cloud>> probe = System.Threading.Tasks.Task.Factory.StartNew(delegate
+            {
+                try
+                {
+                    using (WebResponse response = request.GetResponse())
+                    using (StreamReader reader = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) return ReadLocalModels(port, reader.ReadToEnd());
+                }
+                catch (WebException error) { if (error.Response != null) error.Response.Close(); }
+                catch (IOException) { }
+                catch (XmlException) { }
+                catch (SerializationException) { }
+                return new List<Cloud>();
+            }, System.Threading.Tasks.TaskCreationOptions.LongRunning);
+            if (probe.Wait(600)) return probe.Result;
+            request.Abort();
+            return new List<Cloud>();
+        }
+
+        internal static List<Cloud> LocalBrains(string address, int chosen)
+        {
+            List<int> ports = new List<int> { 1234, 1337, 5001, 8080 };
+            int custom = LocalPort(address);
+            if (custom > 0 && !ports.Contains(custom)) ports.Add(custom);
+            if (chosen > 0 && chosen <= 65535 && !ports.Contains(chosen)) ports.Add(chosen);
+            List<Cloud> found = new List<Cloud>();
+            foreach (int port in ports) found.AddRange(LocalModels(port));
+            return found;
         }
 
         internal static string PickModel(string[] installed, string saved, Pick fit)
@@ -1327,7 +1447,7 @@ namespace CapriDesktop
         private string Reach(string model, string text, List<ChatMessage> recent, List<KeyValuePair<string, ToolArguments>> calls, int ticket)
         {
             Cloud remote = Remote;
-            string source = remote != null ? remote.Kind + "|" + remote.Model : Local != null ? "local|" + model : Ollama + "|" + model;
+            string source = remote != null ? remote.Source : Local != null ? "local|" + model : Ollama + "|" + model;
             bool native = toolless != source;
             List<ChatMessage> asking = new List<ChatMessage>();
             string game = Hands.GameNote(Hands.GameOpen()) + Hands.MiniBoard();
@@ -1338,7 +1458,7 @@ namespace CapriDesktop
             try { raw = Think(model, asking, native, calls, null, 120, ticket, true); }
             catch (BrainException error)
             {
-                if (!native || !Regex.IsMatch(error.Message, @"does not support tools|tools? (are |is )?(not supported|unsupported)|doesn't support tools", RegexOptions.IgnoreCase)) throw;
+                if (!native || !Toolless(error.Message)) throw;
                 toolless = source;
                 asking[0] = new ChatMessage("system", Hands.Prompt + Hands.Listing + game);
                 raw = Think(model, asking, false, calls, null, 120, ticket, true);
@@ -1353,7 +1473,7 @@ namespace CapriDesktop
             return raw;
         }
 
-        internal string See(byte[] jpeg, string system, string instruction, int limit)
+        internal string See(byte[] jpeg, string system, string instruction, int limit, bool job = false)
         {
             int ticket;
             lock (gate) ticket = cancelled;
@@ -1361,6 +1481,7 @@ namespace CapriDesktop
             if (model == null) throw new BrainException(Offline);
             Cloud remote = Remote;
             if (remote != null && remote.Kind == "deepseek") throw new BrainException(Blind);
+            if (remote != null && !Sighted(remote)) throw new BrainException(Sightless(remote));
             model = Looker(model);
             string data = Convert.ToBase64String(jpeg);
             string parts = null;
@@ -1370,23 +1491,23 @@ namespace CapriDesktop
             if (parts == null) asked.Images = new[] { data };
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
             string raw;
-            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), parts, limit, ticket); }
+            try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), parts, limit, ticket, false, null, null, job); }
             catch (BrainException error)
             {
                 if (remote == null || !Regex.IsMatch(error.Message, "multimodal|image|vision", RegexOptions.IgnoreCase)) throw;
-                Unsighted = remote.Model;
+                Unsighted = remote.Sight;
                 throw new BrainException(Sightless(remote));
             }
             return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
         }
 
         // One small call on a brain of its own, so talking to her doesn't cancel it.
-        internal string Aside(string system, string user, int limit)
+        internal string Aside(string system, string user, int limit, bool job = false)
         {
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
-            return Visible(aside.Think(model, new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) }, false, new List<KeyValuePair<string, ToolArguments>>(), null, limit));
+            return Visible(aside.Think(model, new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) }, false, new List<KeyValuePair<string, ToolArguments>>(), null, limit, -1, false, null, null, job));
         }
 
         // An Ollama brain that can't see borrows the eyes of a model on this PC that can.
@@ -1452,6 +1573,7 @@ namespace CapriDesktop
             List<string> pictures = new List<string>();
             if (frames != null) foreach (byte[] jpeg in frames) if (jpeg != null) pictures.Add(Convert.ToBase64String(jpeg));
             if (pictures.Count > 0 && remote != null && remote.Kind == "deepseek") throw new BrainException(Blind);
+            if (pictures.Count > 0 && remote != null && !Sighted(remote)) throw new BrainException(Sightless(remote));
             string parts = null;
             if (pictures.Count > 0 && remote != null && remote.Claude)
             {
@@ -1472,22 +1594,22 @@ namespace CapriDesktop
             string raw;
             try
             {
-                if (remote == null || !remote.Claude || noFastest) raw = Think(model, messages, false, calls, parts, limit);
+                if (remote == null || !remote.Claude || noFastest) raw = Think(model, messages, false, calls, parts, limit, -1, false, null, null, true);
                 else
                 {
-                    try { raw = AskClaude(new Cloud(remote.Key, Fastest), messages, false, calls, parts, -1, null, false, limit); }
+                    try { raw = AskClaude(new Cloud(remote.Key, Fastest), messages, false, calls, parts, -1, null, false, limit, true); }
                     catch (BrainException error)
                     {
                         if (error.Message != Gone) throw;
                         noFastest = true;
-                        raw = Think(model, messages, false, calls, parts, limit);
+                        raw = Think(model, messages, false, calls, parts, limit, -1, false, null, null, true);
                     }
                 }
             }
             catch (BrainException error)
             {
                 if (remote == null || pictures.Count == 0 || !Regex.IsMatch(error.Message, "multimodal|image|vision", RegexOptions.IgnoreCase)) throw;
-                Unsighted = remote.Model;
+                Unsighted = remote.Sight;
                 throw new BrainException(Sightless(remote));
             }
             return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
@@ -1513,55 +1635,71 @@ namespace CapriDesktop
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             Cloud remote = Remote;
-            string source = remote != null ? remote.Kind + "|" + remote.Model : Local != null ? "local|" + model : Ollama + "|" + model;
+            string source = remote != null ? remote.Source : Local != null ? "local|" + model : Ollama + "|" + model;
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) };
             if (toolless != source)
             {
-                try { return Think(model, messages, true, calls, null, 400, ticket, false, tools, claudeTools); }
+                try { return Think(model, messages, true, calls, null, 400, ticket, false, tools, claudeTools, true); }
                 catch (BrainException error)
                 {
-                    if (!Regex.IsMatch(error.Message, @"does not support tools|tools? (are |is )?(not supported|unsupported)|doesn't support tools", RegexOptions.IgnoreCase)) throw;
+                    if (!Toolless(error.Message)) throw;
                     toolless = source;
                 }
             }
             messages[0] = new ChatMessage("system", system + listing);
-            return Think(model, messages, false, calls, null, 400, ticket);
+            return Think(model, messages, false, calls, null, 400, ticket, false, null, null, true);
         }
 
-        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null)
+        private static bool Toolless(string problem)
+        {
+            return Regex.IsMatch(problem ?? "", @"does not support (tools|tool use|function calling)|doesn't support tools|(?:tools?|tool use|function calling) (?:are |is )?(?:not supported|unsupported)|unsupported (?:tools?|function calling)|(?:tools?|tool_choice).*(?:not supported|not allowed|not enabled)", RegexOptions.IgnoreCase);
+        }
+
+        private string Think(string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int limit = 90, int ticket = -1, bool routing = false, string openAiTools = null, string claudeTools = null, bool job = false)
         {
             Check(ticket);
             Cloud remote = Remote;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
-            if (remote != null && remote.Claude) return AskClaude(remote, messages, tools, calls, parts, ticket, claudeTools, routing);
+            if (remote != null && remote.Claude) return AskClaude(remote, messages, tools, calls, parts, ticket, claudeTools, routing, 0, job);
             if (remote != null)
             {
                 bool openAi = remote.Kind == "openai";
                 bool brief = remote.Kind == "nvidia" && remote.Model == "google/gemma-4-31b-it";
-                string effort = Effort(remote.Model, openAi);
+                string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi);
                 OpenAiRequest body = new OpenAiRequest
                 {
                     Model = remote.Model,
                     Messages = messages.ToArray(),
-                    Limit = openAi ? 2000 : (int?)null,
-                    Tokens = openAi ? (int?)null : brief ? Math.Max(256, limit) : 2000,
+                    Limit = openAi ? ReplyLimit(2000, job || routing) : (int?)null,
+                    Tokens = openAi ? (int?)null : ReplyLimit(brief ? Math.Max(256, limit) : 2000, job || routing),
                     Effort = effort,
                     Thinking = remote.Kind == "deepseek" ? new CloudThinking() : null,
-                    Template = brief ? new CloudTemplate() : null
+                    Template = brief ? new CloudTemplate() : null,
+                    Stream = remote.Kind == "local" && unstreamed != remote.Source
                 };
-                string address = Address(remote.Kind, "/chat/completions");
-                Action<HttpWebRequest> sign = delegate(HttpWebRequest request) { Sign(request, remote.Key, false); };
+                string address = remote.Kind == "local" ? LocalHost(remote.Port) + "/v1/chat/completions" : Address(remote.Kind, "/chat/completions");
+                Action<HttpWebRequest> sign = remote.Kind == "local" ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, remote.Key, false); });
+                int wait = remote.Kind == "local" ? 180000 : CloudWait;
                 CompletionReply reply;
-                try { reply = Send<CompletionReply>(address, body, CloudWait, listed, sign, parts, ticket); }
+                try { reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket); }
                 catch (BrainException error)
                 {
-                    // A model that turns down its reasoning_effort, like gpt-6-luna with tools, gets the value its error names, once, and keeps it.
-                    string taken = error.Told ? null : EffortFrom(error.Message, effort);
-                    if (taken == null) throw;
-                    lock (efforts) efforts[remote.Model] = taken;
-                    Log(address, -1, remote.Model + " takes reasoning_effort " + (taken.Length == 0 ? "left out" : taken) + ", asking again");
-                    body.Effort = taken.Length == 0 ? null : taken;
-                    reply = Send<CompletionReply>(address, body, CloudWait, listed, sign, parts, ticket);
+                    if (body.Stream && Regex.IsMatch(error.Message, @"stream(?:ing)?.*(?:not supported|unsupported|not available|not allowed)|(?:not support|unsupported|unknown).*stream", RegexOptions.IgnoreCase))
+                    {
+                        unstreamed = remote.Source;
+                        body.Stream = false;
+                        reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
+                    }
+                    else
+                    {
+                        // A model that turns down its reasoning_effort, like gpt-6-luna with tools, gets the value its error names, once, and keeps it.
+                        string taken = error.Told ? null : EffortFrom(error.Message, effort);
+                        if (taken == null) throw;
+                        lock (efforts) efforts[remote.Model] = taken;
+                        Log(address, -1, remote.Model + " takes reasoning_effort " + (taken.Length == 0 ? "left out" : taken) + ", asking again");
+                        body.Effort = taken.Length == 0 ? null : taken;
+                        reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
+                    }
                 }
                 CompletionMessage cut = reply != null && reply.Choices != null && reply.Choices.Length > 0 && reply.Choices[0] != null ? reply.Choices[0].Message : null;
                 if (routing && Stopped(reply) && cut != null && Unfinished(cut.Content, cut.Calls != null, cut.Thinking ?? cut.Reasoning))
@@ -1569,7 +1707,7 @@ namespace CapriDesktop
                     {
                         if (body.Limit != null) body.Limit = room;
                         else body.Tokens = room;
-                        return Send<CompletionReply>(address, body, Math.Max(CloudWait, room * 50), listed, sign, parts, ticket);
+                        return Send<CompletionReply>(address, body, Math.Max(wait, room * 50), listed, sign, parts, ticket);
                     });
                 if (routing && Stopped(reply)) return CutShort(Said(reply), Whole(reply), calls);
                 return Read(reply, calls);
@@ -1580,7 +1718,7 @@ namespace CapriDesktop
                 local.Ensure(LocalPick);
                 string lost;
                 bool garbled = false;
-                try { return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools); }
+                try { return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); }
                 catch (BrainException error)
                 {
                     garbled = error.Message == Gibberish;
@@ -1597,16 +1735,16 @@ namespace CapriDesktop
                 local.CpuOnly = true;
                 local.Stop();
                 local.Ensure(LocalPick);
-                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools);
+                return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
             }
             string thinking = Ollama + "|" + model;
-            ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = new ChatOptions { Limit = thinker == thinking ? limit + 2048 : limit, Context = Window, Gpu = ollamaCpu == model ? (int?)0 : null } };
+            ChatRequest asking = new ChatRequest { Model = model, Messages = messages.ToArray(), Think = false, Options = new ChatOptions { Limit = ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing), Context = Window, Gpu = ollamaCpu == model ? (int?)0 : null } };
             ChatReply chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
             if (chat.Error != null) throw new BrainException(chat.Error);
-            if (thinker != thinking && chat.Stopped == "length" && chat.Message != null && (!string.IsNullOrEmpty(chat.Message.Thinking) || (chat.Message.Content ?? "").IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0))
+            if (thinker != thinking && ReplyLimit(limit + 2048, job || routing) > asking.Options.Limit && chat.Stopped == "length" && chat.Message != null && (!string.IsNullOrEmpty(chat.Message.Thinking) || (chat.Message.Content ?? "").IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 thinker = thinking;
-                asking.Options.Limit = limit + 2048;
+                asking.Options.Limit = ReplyLimit(limit + 2048, job || routing);
                 chat = Send<ChatReply>(Ollama + "/api/chat", asking, 180000, listed, null, null, ticket);
                 if (chat.Error != null) throw new BrainException(chat.Error);
             }
@@ -1655,18 +1793,18 @@ namespace CapriDesktop
             return sent != null && Regex.IsMatch(error, @"unrecognized|unknown (parameter|argument|field)|not (supported|allowed|permitted)|unsupported (parameter|argument)|extra (inputs?|fields?)", RegexOptions.IgnoreCase) ? "" : null;
         }
 
-        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null)
+        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null, bool job = false)
         {
             string thinking = address + "|" + model;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
-            CompletionRequest asking = new CompletionRequest { Messages = messages.ToArray(), Limit = thinker == thinking ? limit + 2048 : limit };
+            CompletionRequest asking = new CompletionRequest { Messages = messages.ToArray(), Limit = ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing) };
             CompletionReply reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, null, parts, ticket);
             CompletionChoice choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             CompletionMessage message = choice != null ? choice.Message : null;
-            if (thinker != thinking && choice != null && choice.Stopped == "length" && message != null && (!string.IsNullOrEmpty(message.Thinking) || !string.IsNullOrEmpty(message.Reasoning) || (message.Content ?? "").IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0))
+            if (thinker != thinking && ReplyLimit(limit + 2048, job || routing) > asking.Limit && choice != null && choice.Stopped == "length" && message != null && (!string.IsNullOrEmpty(message.Thinking) || !string.IsNullOrEmpty(message.Reasoning) || (message.Content ?? "").IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 thinker = thinking;
-                asking.Limit = limit + 2048;
+                asking.Limit = ReplyLimit(limit + 2048, job || routing);
                 reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, null, parts, ticket);
                 choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             }
@@ -1782,7 +1920,7 @@ namespace CapriDesktop
             return Visible(message.Content);
         }
 
-        private string AskClaude(Cloud remote, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int ticket = -1, string claudeTools = null, bool routing = false, int brief = 0)
+        private string AskClaude(Cloud remote, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int ticket = -1, string claudeTools = null, bool routing = false, int brief = 0, bool job = false)
         {
             string model = remote.Model;
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
@@ -1796,6 +1934,7 @@ namespace CapriDesktop
             };
             // A small call on her fastest brain answers straight off, with no thinking first.
             if (brief > 0) { body.Limit = brief; body.Thinking = new ClaudeThinking(); }
+            body.Limit = ReplyLimit(body.Limit, job || routing);
             Action<HttpWebRequest> sign = delegate(HttpWebRequest request)
             {
                 Sign(request, remote.Key, true);
@@ -1855,7 +1994,7 @@ namespace CapriDesktop
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
             // and the model thinks again. Adaptive is already their default.
             bool bound = Regex.IsMatch(remote.Model, @"^claude-(opus-5-5|sonnet-5-5|fable-5-1|haiku-5-5)");
-            int limit = deep ? DeepTokens : 4096;
+            int limit = ReplyLimit(deep ? DeepTokens : 4096, true);
             string body = "{\"model\":" + Voice.Quote(remote.Model) + ",\"max_tokens\":" + limit + (bound ? ",\"thinking\":{\"type\":\"adaptive\",\"block_binding\":{\"prefix_mismatch_behavior\":\"drop_block\"}}" : "")
                 + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + tools + ",\"output_config\":{\"effort\":\"" + (deep ? "high" : "low") + "\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
             string betas = (fallback ? "server-side-fallback-2026-07-01" : "") + (fallback && bound ? "," : "") + (bound ? "thinking-binding-controls-2026-08-01" : "");
@@ -2140,6 +2279,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null && web.Status == WebExceptionStatus.RequestCanceled) return null;
+            if (web != null && remote != null && remote.Kind == "local") return "Can't reach " + remote.Name + ". Check that your local server is running at " + LocalHost(remote.Port) + ", then try me again.";
             if (web != null && remote != null && web.Status == WebExceptionStatus.Timeout) return remote.Company + " didn't answer in time. Try again or pick another model " + BrainMenu + ".";
             if (web != null && remote != null && web.Response == null) return "Can't reach " + remote.Company + ", choom. Check your internet, then try me again.";
             if (web != null && web.Status == WebExceptionStatus.Timeout) return "Took too long to think, choom. My brain runs on your PC, so open games slow me down. Close one, or " + FreeKeyHow + ".";
@@ -2270,7 +2410,8 @@ namespace CapriDesktop
             text = Regex.Replace(text, @"\s+", " ").Trim();
             text = Regex.Replace(text, @"^(capri|capricorn)\s*(:|>)\s*", "", RegexOptions.IgnoreCase);
             text = text.Trim('"', '“', '”', ' ');
-            int most = Caps[Math.Max(0, Math.Min(2, Wordiness))];
+            int chosen = ReplySizes[Math.Max(0, Math.Min(ReplySizes.Length - 1, ReplyLength))];
+            int most = chosen > 0 ? chosen * 4 : Caps[Math.Max(0, Math.Min(2, Wordiness))];
             if (text.Length <= most) return text;
             int cut = text.LastIndexOfAny(new[] { '.', '!', '?' }, most - 1);
             if (cut >= 60) return text.Substring(0, cut + 1);
@@ -2321,6 +2462,7 @@ namespace CapriDesktop
                     {
                         T reply;
                         if (typeof(T) == typeof(string)) using (StreamReader text = new StreamReader(incoming, Encoding.UTF8)) reply = (T)(object)text.ReadToEnd();
+                        else if (typeof(T) == typeof(CompletionReply) && (response.ContentType ?? "").StartsWith("text/event-stream", StringComparison.OrdinalIgnoreCase)) reply = (T)(object)ReadCompletion(incoming);
                         else reply = (T)new DataContractJsonSerializer(typeof(T)).ReadObject(incoming);
                         if (System.Threading.Interlocked.CompareExchange(ref expired, 0, 0) != 0) throw new WebException("The reply took too long.", WebExceptionStatus.Timeout);
                         return reply;
@@ -2345,6 +2487,68 @@ namespace CapriDesktop
                 throw;
             }
             finally { lock (gate) active.Remove(request); }
+        }
+
+        internal static CompletionReply ReadCompletion(Stream incoming)
+        {
+            CompletionChoice choice = new CompletionChoice { Message = new CompletionMessage() };
+            SortedDictionary<int, CompletionCall> calls = new SortedDictionary<int, CompletionCall>();
+            bool ended = false;
+            using (StreamReader reader = new StreamReader(incoming, Encoding.UTF8))
+            {
+                StringBuilder data = new StringBuilder();
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (line.StartsWith("data:", StringComparison.Ordinal)) { if (data.Length > 0) data.Append('\n'); data.Append(line.Substring(5).TrimStart()); }
+                    if (line.Length != 0 || data.Length == 0) continue;
+                    string chunk = data.ToString();
+                    data.Length = 0;
+                    if (chunk.Trim() == "[DONE]") { ended = true; break; }
+                    AddCompletion(chunk, choice, calls);
+                }
+                if (data.Length > 0)
+                {
+                    if (data.ToString().Trim() == "[DONE]") ended = true;
+                    else AddCompletion(data.ToString(), choice, calls);
+                }
+            }
+            if (!ended && choice.Stopped == null) throw new BrainException("My brain's reply stopped before it finished. Try again.", true);
+            if (calls.Count > 0) choice.Message.Calls = new List<CompletionCall>(calls.Values).ToArray();
+            return new CompletionReply { Choices = new[] { choice } };
+        }
+
+        private static void AddCompletion(string json, CompletionChoice choice, SortedDictionary<int, CompletionCall> calls)
+        {
+            string error = Field(json, "error");
+            if (error != null && error != "null")
+            {
+                string message = error.StartsWith("{", StringComparison.Ordinal) ? Field(error, "message") : error;
+                if (message != null && message.StartsWith("\"", StringComparison.Ordinal) && message.EndsWith("\"", StringComparison.Ordinal)) throw new BrainException(Unescape(message.Substring(1, message.Length - 2)));
+                throw new BrainException("My brain couldn't finish its reply. Try again.", true);
+            }
+            CompletionReply chunk;
+            using (MemoryStream buffer = new MemoryStream(Encoding.UTF8.GetBytes(json))) chunk = (CompletionReply)new DataContractJsonSerializer(typeof(CompletionReply)).ReadObject(buffer);
+            if (chunk.Choices == null) return;
+            foreach (CompletionChoice part in chunk.Choices)
+            {
+                if (part == null || part.Index != 0) continue;
+                if (part.Stopped != null) choice.Stopped = part.Stopped;
+                CompletionMessage delta = part.Delta ?? part.Message;
+                if (delta == null) continue;
+                choice.Message.Content += delta.Content;
+                choice.Message.Thinking += delta.Thinking;
+                choice.Message.Reasoning += delta.Reasoning;
+                if (delta.Calls == null) continue;
+                foreach (CompletionCall piece in delta.Calls)
+                {
+                    if (piece == null || piece.Function == null) continue;
+                    CompletionCall call;
+                    if (!calls.TryGetValue(piece.Index, out call)) calls[piece.Index] = call = new CompletionCall { Function = new CompletionFunction() };
+                    call.Function.Name += piece.Function.Name;
+                    call.Function.Arguments += piece.Function.Arguments;
+                }
+            }
         }
 
         private static BrainException Problem(WebException error, bool remote)
@@ -2420,6 +2624,7 @@ namespace CapriDesktop
         {
             ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
             HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            if (request.RequestUri.IsLoopback) request.AllowAutoRedirect = false;
             request.ServicePoint.ConnectionLimit = Math.Max(request.ServicePoint.ConnectionLimit, 16);
             request.ServicePoint.Expect100Continue = false;
             request.Proxy = null;
