@@ -230,6 +230,7 @@ namespace CapriDesktop
         // Remember our chats is on by default: transcripts and memories.md stay on this PC.
         [DataMember] public bool Remembers = true;
         [DataMember] public bool ClipGames;
+        [DataMember] public bool ClipMoments;
         [DataMember] public int Volume = 100;
         [DataMember] public int Sounds = 60;
         [DataMember] public int SleepAfter = 120;
@@ -3980,9 +3981,21 @@ namespace CapriDesktop
 
         internal bool ClipsOn { get { return preferences.ClipGames; } }
 
+        internal bool ClipMomentsOn { get { return preferences.ClipMoments; } }
+
         internal void ToggleClips()
         {
             preferences.ClipGames = !preferences.ClipGames;
+            if (!preferences.ClipGames) preferences.ClipMoments = false;
+            clips.Enable(!testing && preferences.ClipGames);
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void ToggleClipMoments()
+        {
+            preferences.ClipMoments = !preferences.ClipMoments;
+            if (preferences.ClipMoments) preferences.ClipGames = true;
             clips.Enable(!testing && preferences.ClipGames);
             SavePreferences();
             mainframe.Sync();
@@ -10774,6 +10787,8 @@ namespace CapriDesktop
                     Hands.SaveClip = off.Clip;
                     string offLine = Hands.Do("clip", new ToolArguments());
                     if (!offLine.Contains("Settings > GAMES") || off.Enabled || Hands.Pulled(offLine) != offLine) throw new Exception("Clips didn't explain their off switch.");
+                    bool offSaved;
+                    if (off.Clip(30, out offSaved) != offLine || offSaved) throw new Exception("An automatic clip reported success while clips were off.");
                 }
                 int savedSeconds = 0;
                 Hands.SaveClip = delegate(int requested) { savedSeconds = requested; return "Saved 120 seconds of Synthetic Game: clip.mp4"; };
@@ -24134,9 +24149,215 @@ namespace CapriDesktop
         private sealed class StageLog : IGameStage
         {
             internal readonly System.Collections.Generic.List<string> Shown = new System.Collections.Generic.List<string>();
-            public void Say(string line) { Shown.Add("say " + line); }
-            public void Hear(string words, bool thinking) { Shown.Add("hear " + words + " " + thinking); }
-            public void Mood(GameMood mood) { Shown.Add("mood " + mood); }
+            public void Say(string line) { lock (Shown) Shown.Add("say " + line); }
+            public void Hear(string words, bool thinking) { lock (Shown) Shown.Add("hear " + words + " " + thinking); }
+            public void Mood(GameMood mood) { lock (Shown) Shown.Add("mood " + mood); }
+        }
+
+        private static void SmokeMomentComments(System.Collections.Generic.List<string> checks)
+        {
+            Func<bool> momentSettingWas = Commentary.Moments, momentFreeWas = Commentary.Free, momentSeesWas = Commentary.Sees;
+            Func<string> momentKeepWas = Commentary.Keep, momentGameWas = Commentary.Game;
+            Func<int> momentClockWas = Commentary.Clock;
+            Func<string, string, byte[][], string> momentSeeWas = Commentary.See;
+            Action<string, string, GameMood> momentSpeakWas = Commentary.Speak;
+            IGameStage momentStageWas = Commentary.Stage;
+            int momentPaceWas = Commentary.Pace, momentLateWas = Commentary.Late;
+            string momentLogWas = Brain.LogPath;
+            string momentLog = Path.Combine(Path.GetTempPath(), "capri-moment-check-" + Guid.NewGuid().ToString("N") + ".log");
+            ManualResetEvent momentGo = new ManualResetEvent(false);
+            Action<bool, string> momentMust = delegate(bool fine, string why) { if (!fine) throw new Exception(why); };
+            Action<Func<bool>> momentWait = delegate(Func<bool> done)
+            {
+                Stopwatch momentWaiting = Stopwatch.StartNew();
+                while (!done() && momentWaiting.ElapsedMilliseconds < 4000) Thread.Sleep(5);
+                momentMust(done(), "A big moment check did not finish.");
+            };
+            try
+            {
+                bool momentFlag;
+                string momentLine = "Skeleton got you from across the ravine.";
+                foreach (string momentTagged in new[] { "[clip] " + momentLine, "Skeleton got you [clip] from across the ravine.", momentLine + " [CLIP] [clip]" })
+                    momentMust(Commentary.Line(momentTagged, new string[0], out momentFlag) == momentLine && momentFlag, "A clip tag leaked into her line or was lost.");
+                momentMust(Commentary.Line("[clip]", new string[0], out momentFlag) == "" && momentFlag, "A tag on its own was spoken or lost.");
+                momentMust(Commentary.Line(momentLine, new string[0], out momentFlag) == momentLine && !momentFlag, "An unflagged line changed or asked for a clip.");
+                foreach (string momentFiltered in new[] { "[clip] SKIP", "[clip] Nice one!", "[clip] Nothing's really changed between those two shots." })
+                    momentMust(Commentary.Line(momentFiltered, new string[0], out momentFlag) == "" && momentFlag, "A filtered reaction lost its clip flag or was spoken.");
+                momentMust(Commentary.Line("[clip] " + momentLine, new[] { momentLine }, out momentFlag) == "" && momentFlag, "A repeated reaction lost its clip flag.");
+                checks.Add("PASS big moment tags: start, middle, end and repeated tags are stripped, a tag alone stays silent, unflagged text is untouched, and filtered reactions retain the flag");
+
+                bool momentSetting = false, momentClips = false;
+                Commentary.Moments = delegate { return momentSetting && momentClips; };
+                string momentRules = Commentary.Rules;
+                for (int momentCombination = 0; momentCombination < 4; momentCombination++)
+                {
+                    momentSetting = (momentCombination & 1) != 0;
+                    momentClips = (momentCombination & 2) != 0;
+                    momentMust(momentSetting && momentClips ? Commentary.Rules.StartsWith(momentRules, StringComparison.Ordinal) && Commentary.Rules.Contains("[clip]") : Commentary.Rules == momentRules && !Commentary.Rules.Contains("[clip]"), "The clip instruction did not follow both switches.");
+                }
+                checks.Add("PASS big moment rules: only Save big moments with clips on adds the instruction to judge and flag a moment");
+
+                int momentNow = 1000000, momentCalls = 0, momentDeciding = 0, momentFailure = 0;
+                int momentUi = Thread.CurrentThread.ManagedThreadId;
+                bool momentWorker = false;
+                string momentAnswer = "", momentSystem = "";
+                System.Collections.Generic.List<string> momentSpoken = new System.Collections.Generic.List<string>();
+                StageLog momentStage = new StageLog();
+                Func<int> momentShown = delegate { lock (momentStage.Shown) return momentStage.Shown.Count; };
+                Func<int> momentSaid = delegate { lock (momentSpoken) return momentSpoken.Count; };
+                Commentary.Reset();
+                Commentary.Pace = Commentary.Events;
+                Commentary.Late = 6000;
+                Commentary.Stage = momentStage;
+                Commentary.Game = delegate { return "Minecraft"; };
+                Commentary.Free = delegate { return true; };
+                Commentary.Sees = delegate { return true; };
+                Commentary.Clock = delegate { return momentNow; };
+                Commentary.See = delegate(string momentPrompt, string momentAsk, byte[][] momentFrames)
+                {
+                    momentDeciding = Thread.CurrentThread.ManagedThreadId;
+                    momentSystem = momentPrompt;
+                    return momentAnswer;
+                };
+                Commentary.Speak = delegate(string momentSaying, string momentKind, GameMood momentMood) { lock (momentSpoken) momentSpoken.Add(momentSaying); };
+                Commentary.Keep = delegate
+                {
+                    momentWorker = Thread.CurrentThread.IsBackground && Thread.CurrentThread.ManagedThreadId != momentUi && Thread.CurrentThread.ManagedThreadId != momentDeciding;
+                    Interlocked.Increment(ref momentCalls);
+                    if (!momentGo.WaitOne(4000)) throw new Exception("The moment save was not released.");
+                    if (momentFailure == 2) throw new IOException("moment check exception");
+                    return momentFailure == 1 ? "moment check failed" : null;
+                };
+                Action<string, int> momentReact = delegate(string momentReply, int momentAdvance)
+                {
+                    momentAnswer = momentReply;
+                    momentNow = unchecked(momentNow + momentAdvance);
+                    momentMust(Commentary.Trigger("kill", null, null, null), "A big moment did not get a look.");
+                    momentWait(delegate { return !Commentary.Thinking; });
+                };
+                momentReact("[clip] That creeper waited for you specifically.", 0);
+                momentWait(delegate { return Interlocked.CompareExchange(ref momentCalls, 0, 0) == 1 && momentSaid() == 1; });
+                momentMust(momentWorker && momentSystem.Contains("[clip]") && momentShown() == 0, "A save ran on her UI or deciding thread, or announced before it finished.");
+                momentReact("Skeleton stole your diamonds. [clip]", 10000);
+                momentWait(delegate { return momentSaid() == 2; });
+                momentReact("Lava ate the whole inventory.", 10000);
+                momentWait(delegate { return momentSaid() == 3; });
+                momentMust(momentCalls == 1 && momentShown() == 0, "A nearby flag extended a pending save, or an unflagged line saved.");
+                momentGo.Set();
+                momentWait(delegate { return momentShown() == 1; });
+                momentReact("[clip]", 10000);
+                momentWait(delegate { return momentShown() == 2; });
+                momentMust(momentCalls == 2 && momentSaid() == 3, "A tag alone spoke, or a new moment at 30 seconds did not save.");
+                lock (momentStage.Shown)
+                    foreach (string momentNotice in momentStage.Shown) momentMust(momentNotice == "say > sys: clipped", "A saved moment had more than a quiet HUD notice.");
+                lock (momentSpoken)
+                    foreach (string momentVoice in momentSpoken) momentMust(!momentVoice.Contains("[clip]") && !momentVoice.Contains("sys:"), "A tag or clip notice was spoken.");
+                checks.Add("PASS big moment saves: a flag calls Keep once on a separate worker, flags ten seconds apart save once without extending, an unflagged line does not save, pending saves let comments continue, and a tag alone saves at 30 seconds with only a quiet HUD notice after success");
+
+                bool momentCanLog = true;
+                try { File.WriteAllText(momentLog, ""); }
+                catch (IOException) { momentCanLog = false; }
+                catch (UnauthorizedAccessException) { momentCanLog = false; }
+                if (!momentCanLog) checks.Add("LIMIT big moment failure checks need a writable temporary log");
+                else
+                {
+                    Brain.LogPath = momentLog;
+                    for (int momentFault = 1; momentFault <= 2; momentFault++)
+                    {
+                        momentFailure = momentFault;
+                        momentReact("[clip]", 30000);
+                        string momentExpected = momentFault == 1 ? "moment check failed" : "moment check exception";
+                        momentWait(delegate
+                        {
+                            try { return File.ReadAllText(momentLog).Contains(momentExpected); }
+                            catch (IOException) { return false; }
+                        });
+                        momentMust(momentShown() == 2 && momentSaid() == 3, "A failed automatic save interrupted them.");
+                    }
+                    momentReact("Obsidian saved your last heart.", 10000);
+                    momentWait(delegate { return momentSaid() == 4; });
+                    momentFailure = 0;
+                    momentReact("[clip]", 20000);
+                    momentWait(delegate { return momentShown() == 3; });
+                    momentMust(momentCalls == 5 && momentSaid() == 4, "A failed save stopped the next comment or clip.");
+                    checks.Add("PASS big moment failures: returned errors and thrown exceptions are logged without a HUD or spoken notice, and the next comment and save still run");
+                }
+                int momentBeforeOff = momentCalls;
+                momentSetting = false;
+                momentReact("[clip]", 30000);
+                momentMust(!momentSystem.Contains("[clip]") && momentCalls == momentBeforeOff, "Save big moments off still asked for or saved a moment.");
+                momentSetting = true;
+                momentClips = false;
+                momentReact("[clip]", 30000);
+                momentMust(!momentSystem.Contains("[clip]") && momentCalls == momentBeforeOff, "Clips off still asked for or saved a moment.");
+                momentClips = true;
+                Commentary.Pace = Commentary.Off;
+                momentMust(!Commentary.Trigger("kill", null, null, null) && momentCalls == momentBeforeOff, "Comments off still judged or saved a moment.");
+                checks.Add("PASS big moments stay off when either switch is off, and comments off means no judging or automatic saves");
+            }
+            finally
+            {
+                momentGo.Set();
+                Commentary.Moments = momentSettingWas;
+                Commentary.Keep = momentKeepWas;
+                Commentary.Free = momentFreeWas;
+                Commentary.Sees = momentSeesWas;
+                Commentary.Game = momentGameWas;
+                Commentary.Clock = momentClockWas;
+                Commentary.See = momentSeeWas;
+                Commentary.Speak = momentSpeakWas;
+                Commentary.Stage = momentStageWas;
+                Commentary.Pace = momentPaceWas;
+                Commentary.Late = momentLateWas;
+                Commentary.Reset();
+                Brain.LogPath = momentLogWas;
+                try { File.Delete(momentLog); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+        }
+
+        private void SmokeMomentSettings(System.Collections.Generic.List<string> checks)
+        {
+            bool momentClipsWereOn = preferences.ClipGames, momentsWereOn = preferences.ClipMoments;
+            bool momentPageWas = mainframe.SettingsShown;
+            try
+            {
+                using (MemoryStream momentOld = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}")))
+                    if (((Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(momentOld)).ClipMoments || new Preferences().ClipMoments)
+                        throw new Exception("Save big moments did not start off in new or older settings.");
+                preferences.ClipGames = preferences.ClipMoments = false;
+                mainframe.Sync();
+                mainframe.ShowSettings(true);
+                mainframe.FlipClipMoments();
+                Preferences momentSaved = LoadPreferences();
+                if (!preferences.ClipMoments || !preferences.ClipGames || !mainframe.ClipMomentsShown || !mainframe.ClipsShown || !momentSaved.ClipMoments || !momentSaved.ClipGames)
+                    throw new Exception("Save big moments did not turn on, save and show both switches.");
+                mainframe.FlipClipMoments();
+                momentSaved = LoadPreferences();
+                if (preferences.ClipMoments || mainframe.ClipMomentsShown || momentSaved.ClipMoments || !momentSaved.ClipGames)
+                    throw new Exception("Save big moments did not switch off and save with clips still on.");
+                mainframe.FlipClipMoments();
+                mainframe.FlipClips();
+                momentSaved = LoadPreferences();
+                if (preferences.ClipGames || preferences.ClipMoments || mainframe.ClipsShown || mainframe.ClipMomentsShown || momentSaved.ClipGames || momentSaved.ClipMoments)
+                    throw new Exception("Switching clips off left Save big moments on.");
+                string momentCrowded = mainframe.Overlap() ?? mainframe.Outside();
+                if (momentCrowded != null) throw new Exception("The big moment switch crowded Settings: " + momentCrowded);
+                string momentHelp = SelfKnow.Matching("How does Save big moments work?");
+                if (momentHelp == null || !momentHelp.StartsWith("Save big moments:", StringComparison.Ordinal) || !momentHelp.Contains("Comments off outside Gaming Mode") || !momentHelp.Contains("Videos\\Capri Clips"))
+                    throw new Exception("Save big moments did not explain its switch, comments or storage.");
+                checks.Add("PASS Save big moments starts off, saves and shows both switches when enabled, leaves manual clips on when disabled, follows Clip my games off, fits Settings without overlaps, and has its own help topic");
+            }
+            finally
+            {
+                preferences.ClipGames = momentClipsWereOn;
+                preferences.ClipMoments = momentsWereOn;
+                clips.Enable(!testing && preferences.ClipGames);
+                SavePreferences();
+                mainframe.Sync();
+                mainframe.ShowSettings(momentPageWas);
+            }
         }
 
         // Talking to her mid-job and her game comments, with fake heads, keys, mics and frames. Nothing here presses a key, moves
@@ -24690,6 +24911,9 @@ namespace CapriDesktop
                 string askText = Commentary.Ask("advancement", "They just got the advancement Stone Age", "Minecraft", new string[0], Commentary.Chatty, 1);
                 must(askText.IndexOf("Stone Age", StringComparison.Ordinal) >= 0 && askText.IndexOf("right now", StringComparison.Ordinal) >= 0, "Her ask lost what happened: " + askText);
                 checks.Add("PASS game comments: a trigger gets one look at shrunk before and after frames with the game's name and her last lines, and one line or none; a second trigger for the same moment is dropped, the gaps hold for Events only and Chatty, SKIP, stock lines, repeats and lines that missed the moment stay unsaid, and Off, no game or not being free means no look at all");
+
+                SmokeMomentComments(checks);
+                SmokeMomentSettings(checks);
 
                 System.Collections.Generic.List<string> delivered = new System.Collections.Generic.List<string>();
                 commentTest = delegate(string line) { delivered.Add(line); };

@@ -407,6 +407,13 @@ namespace CapriDesktop
 
         internal string Clip(int seconds)
         {
+            bool saved;
+            return Clip(seconds, out saved);
+        }
+
+        internal string Clip(int seconds, out bool saved)
+        {
+            saved = false;
             if (!Enabled) return "Turn on Clip my games in Settings > GAMES, then I can clip that.";
             string open = Computer.GameOpen();
             lock (gate)
@@ -423,6 +430,7 @@ namespace CapriDesktop
             Directory.CreateDirectory(directory);
             string path = Path.Combine(directory, title + " " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss-fff") + " " + Guid.NewGuid().ToString("N").Substring(0, 6) + ".mp4");
             ClipResult result = Save(path, seconds).GetAwaiter().GetResult();
+            saved = result.Problem == null;
             return result.Problem ?? "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + open + (result.Sound ? "" : " without sound") + ": " + result.Path + (result.Merged ? " Merged your clip requests into this clip." : "");
         }
 

@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1284;
+        private const int PageTall = 1312;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -127,6 +127,7 @@ namespace CapriDesktop
         private readonly Key[] careTimes = new Key[7];
         private readonly ContextMenuStrip careMenu;
         private readonly Toggle clipGames;
+        private readonly Toggle clipMoments;
         private readonly Label voiceHead;
         // OFF, PREBUILT LOCAL (her own voices), CUSTOM LOCAL (a voice model they set up on their PC) and CLOUD VOICE.
         private readonly Rung[] voiceRungs = new Rung[4];
@@ -656,7 +657,9 @@ namespace CapriDesktop
             gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it";
             clipGames = Switch("Clip my games", c, 1204, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory; clips stay in Videos\\Capri Clips on this PC";
-            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1232, small, Faint);
+            clipMoments = Switch("Save big moments", c, 1232, delegate { if (!syncing) capri.ToggleClipMoments(); });
+            clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
+            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1260, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -1307,6 +1310,7 @@ namespace CapriDesktop
                 careTimes[careSync].AccessibleName = Care.Names[careSync] + (careSetting == CareKind.Late ? " after " : " every ") + careTimes[careSync].Text;
             }
             clipGames.Checked = capri.ClipsOn;
+            clipMoments.Checked = capri.ClipMomentsOn;
             frameSize.Value = Math.Max(0, Array.IndexOf(FrameSizes, capri.MainframeSize));
             ShowFrameSize();
             VoiceTier();
@@ -1419,6 +1423,10 @@ namespace CapriDesktop
         internal bool ClipsShown { get { return clipGames.Checked; } }
 
         internal void FlipClips() { clipGames.Checked = !clipGames.Checked; }
+
+        internal bool ClipMomentsShown { get { return clipMoments.Checked; } }
+
+        internal void FlipClipMoments() { clipMoments.Checked = !clipMoments.Checked; }
 
         internal bool ElevenShown { get { return voiceRow == 3 && cloudName == Eleven && voiceRungs[3].Checked && !voiceRungs[0].Checked && !voiceRungs[1].Checked && !voiceRungs[2].Checked; } }
 
