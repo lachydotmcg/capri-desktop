@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 920;
+        private const int PageTall = 1144;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -121,6 +121,9 @@ namespace CapriDesktop
         private readonly Toggle caughtUp;
         private readonly Toggle stayOnModel;
         private readonly Toggle remembering;
+        private readonly Toggle[] careToggles = new Toggle[7];
+        private readonly Key[] careTimes = new Key[7];
+        private readonly ContextMenuStrip careMenu;
         private readonly Label voiceHead;
         // OFF, PREBUILT LOCAL (her own voices), CUSTOM LOCAL (a voice model they set up on their PC) and CLOUD VOICE.
         private readonly Rung[] voiceRungs = new Rung[4];
@@ -602,14 +605,28 @@ namespace CapriDesktop
             perchNote.AutoSize = false;
             perchNote.TextAlign = ContentAlignment.MiddleRight;
             perchNote.Bounds = new Rectangle(28 + c, 756, 328, 18);
-            Section("GAMES >", c, 788);
+            careMenu = Dropdown();
+            for (int careRow = 0; careRow < careToggles.Length; careRow++)
+            {
+                CareKind careKind = (CareKind)careRow;
+                Toggle careToggle = Switch(Care.Names[careRow], c, 788 + careRow * 28, delegate { if (!syncing) capri.ToggleCare(careKind); });
+                careToggle.Width = 224;
+                careToggle.Switch = 68;
+                careToggle.AccessibleName = Care.Names[careRow] + " check-in" + (careKind == CareKind.Eyes ? ": look away for 20 seconds" : careKind == CareKind.Meal ? ": mealtimes from noon, if you've been here since before lunch" : "");
+                careToggles[careRow] = careToggle;
+                Key careTime = Make("", 260 + c, 791 + careRow * 28, 96, 22, delegate { ChooseCareTime(careKind); });
+                careTime.Chevron = true;
+                careTimes[careRow] = careTime;
+            }
+            Make("Edit check-in lines", 28 + c, 988, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
+            Section("GAMES >", c, 1012);
             // What she says about a game they're playing, from what happens in it rather than on a timer.
-            comments = Setting("Comments", Commentary.PaceNames, c, 812, "How much she says about a game you're playing: off, only when something happens, or chatty");
+            comments = Setting("Comments", Commentary.PaceNames, c, 1036, "How much she says about a game you're playing: off, only when something happens, or chatty");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
-            gamingMode = Switch("Gaming Mode", c, 840, delegate { if (!syncing) capri.ToggleGaming(); });
+            gamingMode = Switch("Gaming Mode", c, 1064, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it";
-            Caption("Her HUD reacts to your game until you close it.", 28 + c, 868, small, Faint);
+            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1092, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -671,6 +688,33 @@ namespace CapriDesktop
             toggle.CheckedChanged += changed;
             Controls.Add(toggle);
             return toggle;
+        }
+
+        private static string CareTimeName(CareKind kind, int time)
+        {
+            if (kind == CareKind.Late) return (time % 12 == 0 ? 12 : time % 12) + (time < 12 ? " am" : " pm");
+            return time % 60 == 0 ? time / 60 + " h" : time + " min";
+        }
+
+        private void ChooseCareTime(CareKind kind)
+        {
+            CareChoices(kind);
+            Key careButton = careTimes[(int)kind];
+            careMenu.Show(careButton, new Point(0, careButton.Height));
+        }
+
+        private void CareChoices(CareKind kind)
+        {
+            careMenu.Items.Clear();
+            int[] choices = kind == CareKind.Late ? new[] { 21, 22, 23, 0, 1, 2, 3, 4, 5 } : kind == CareKind.Meal ? new[] { 180, 240, 300, 360, 480 } : new[] { 15, 25, 30, 45, 60, 90, 120, 180, 240 };
+            foreach (int careChoice in choices)
+            {
+                int careValue = careChoice;
+                ToolStripMenuItem careItem = new ToolStripMenuItem(CareTimeName(kind, careValue));
+                careItem.Checked = capri.CareTime(kind) == careValue;
+                careItem.Click += delegate { capri.SetCareTime(kind, careValue); };
+                careMenu.Items.Add(careItem);
+            }
         }
 
         private void UseNickname()
@@ -906,7 +950,7 @@ namespace CapriDesktop
             ScrollPage(0);
             SuspendLayout();
             Grow(this, factor);
-            foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu }) menu.Font = Font;
+            foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu }) menu.Font = Font;
             Scale(new SizeF(factor, factor));
             zoom = next;
             ResumeLayout(false);
@@ -1180,7 +1224,7 @@ namespace CapriDesktop
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); }
+            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); }
             base.Dispose(disposing);
         }
 
@@ -1213,6 +1257,13 @@ namespace CapriDesktop
             caughtUp.Checked = capri.CaughtUp;
             stayOnModel.Checked = capri.StayOnModel;
             remembering.Checked = capri.Remembers;
+            for (int careSync = 0; careSync < careToggles.Length; careSync++)
+            {
+                CareKind careSetting = (CareKind)careSync;
+                careToggles[careSync].Checked = capri.CareOn(careSetting);
+                careTimes[careSync].Text = CareTimeName(careSetting, capri.CareTime(careSetting));
+                careTimes[careSync].AccessibleName = Care.Names[careSync] + (careSetting == CareKind.Late ? " after " : " every ") + careTimes[careSync].Text;
+            }
             frameSize.Value = Math.Max(0, Array.IndexOf(FrameSizes, capri.MainframeSize));
             ShowFrameSize();
             VoiceTier();
@@ -1297,6 +1348,20 @@ namespace CapriDesktop
         internal bool RemembersShown { get { return remembering.Checked; } }
 
         internal void FlipRemembering() { remembering.Checked = !remembering.Checked; }
+
+        internal bool CareShown(CareKind kind) { return careToggles[(int)kind].Checked; }
+
+        internal string CareTimeShown(CareKind kind) { return careTimes[(int)kind].Text; }
+
+        internal void FlipCare(CareKind kind) { careToggles[(int)kind].Checked = !careToggles[(int)kind].Checked; }
+
+        internal void PickCareTime(CareKind kind, int time)
+        {
+            CareChoices(kind);
+            foreach (ToolStripMenuItem carePick in careMenu.Items)
+                if (carePick.Text == CareTimeName(kind, time)) { carePick.PerformClick(); break; }
+            careMenu.Close();
+        }
 
         internal bool ElevenShown { get { return voiceRow == 3 && cloudName == Eleven && voiceRungs[3].Checked && !voiceRungs[0].Checked && !voiceRungs[1].Checked && !voiceRungs[2].Checked; } }
 

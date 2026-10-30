@@ -1133,8 +1133,14 @@ namespace CapriDesktop
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             Func<string, ToolArguments, string> act = Act;
+            string self = null;
+#if !CROSS
+            self = SelfKnow.Matching(text);
+#endif
+            string selfGuide = self == null ? "" : "\nFor this app-help question, use the attached facts about yourself in your own voice and their language. Explain the relevant controls in enough short sentences to be useful; for a tutorial give its six brief steps, instead of the usual short reply and no-list format. These facts describe this version, not which settings they currently have on.";
+            int answerBudget = self == null ? Budget : Math.Max(Budget, 360);
             List<ChatMessage> messages = new List<ChatMessage>();
-            messages.Add(new ChatMessage("system", Character + Remembered() + Gap() + (act != null ? Hands.Chat : "") + Now()));
+            messages.Add(new ChatMessage("system", Character + Remembered() + Gap() + (act != null ? Hands.Chat : "") + Now() + selfGuide));
             List<ChatMessage> recent;
             List<string> chat;
             lock (gate)
@@ -1143,7 +1149,7 @@ namespace CapriDesktop
                 recent = history.GetRange(Math.Max(0, history.Count - 2), Math.Min(2, history.Count));
                 chat = history.ConvertAll(message => message.Content);
             }
-            messages.Add(new ChatMessage("user", text + Recalled(text, chat)));
+            messages.Add(new ChatMessage("user", text + Recalled(text, chat) + (self == null ? "" : "\n\n(Facts about yourself in this version of Capri, to use in your own words:\n" + self + "\n)")));
             List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
             string raw = null;
             string direct;
@@ -1196,7 +1202,7 @@ namespace CapriDesktop
             }
             if (calls.Count == 0)
             {
-                raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, Budget, ticket);
+                raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
                 // Her brain says "act" when this is a job, in whatever language they said it. Her hands find what to do, and if they
                 // find nothing she just answers, unless they're in a game or plainly asked.
                 if (act != null && Hands.Handed(Clean(raw)))
@@ -1210,8 +1216,8 @@ namespace CapriDesktop
                     if (calls.Count == 0 && (playing != null || Hands.Wants(request))) calls.Add(Hands.Forced(request));
                     if (calls.Count == 0)
                     {
-                        messages[0] = new ChatMessage("system", Character + Remembered() + Gap() + Hands.ChatOnly + Now());
-                        raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, Budget, ticket);
+                        messages[0] = new ChatMessage("system", Character + Remembered() + Gap() + Hands.ChatOnly + Now() + selfGuide);
+                        raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
                         if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
                     }
                 }

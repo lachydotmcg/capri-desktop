@@ -409,6 +409,7 @@ namespace CapriDesktop
             Commentary.Speak = delegate(string line, string kind, GameMood mood) { Post(delegate { CommentSay(line, kind, mood); }); };
             Commentary.Shot = CommentShot;
             if (!testing) Commentary.Start();
+            if (!testing) WatchGames();
         }
 
         // The game in front, by its window's title: a game she knows by name, her own game job, or anything full screen that isn't

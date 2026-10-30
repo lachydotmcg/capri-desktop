@@ -262,6 +262,22 @@ namespace CapriDesktop
         [DataMember] public string AgentPersonality;
         // Check in on me is on by default. Before 0.7.3 it was saved as PopIns, off by default, so the new name turns it on once for everyone.
         [DataMember] public bool CheckIns = true;
+        [DataMember] public bool CareWater = true;
+        [DataMember] public int CareWaterMinutes = 60;
+        [DataMember] public bool CareStretch = true;
+        [DataMember] public int CareStretchMinutes = 90;
+        [DataMember] public bool CareEyes;
+        [DataMember] public int CareEyesMinutes = 25;
+        [DataMember] public bool CareLate = true;
+        [DataMember] public int CareLateHour = 1;
+        [DataMember] public bool CareMeal = true;
+        [DataMember] public int CareMealMinutes = 360;
+        [DataMember] public bool CareGame = true;
+        [DataMember] public int CareGameMinutes = 120;
+        [DataMember] public bool CareBored = true;
+        [DataMember] public int CareBoredMinutes = 60;
+        [DataMember] public bool CareWritten;
+        [DataMember] public long CareNight;
         [DataMember] public string VoiceStyle;
         [DataMember] public bool StartupSet;
         [DataMember] public bool QuickHands;
@@ -386,7 +402,56 @@ namespace CapriDesktop
             PerchFps = 30;
             MainframeSize = 0;
             CheckIns = true;
+            CareWater = CareStretch = CareLate = CareMeal = CareGame = CareBored = true;
+            CareWaterMinutes = CareBoredMinutes = 60;
+            CareStretchMinutes = 90;
+            CareEyesMinutes = 25;
+            CareLateHour = 1;
+            CareMealMinutes = 360;
+            CareGameMinutes = 120;
             CaughtUp = true;
+        }
+
+        internal bool CareOn(CareKind kind)
+        {
+            switch (kind)
+            {
+                case CareKind.Water: return CareWater;
+                case CareKind.Stretch: return CareStretch;
+                case CareKind.Eyes: return CareEyes;
+                case CareKind.Late: return CareLate;
+                case CareKind.Meal: return CareMeal;
+                case CareKind.Game: return CareGame;
+                default: return CareBored;
+            }
+        }
+
+        internal int CareTime(CareKind kind)
+        {
+            switch (kind)
+            {
+                case CareKind.Water: return CareWaterMinutes > 0 ? CareWaterMinutes : 60;
+                case CareKind.Stretch: return CareStretchMinutes > 0 ? CareStretchMinutes : 90;
+                case CareKind.Eyes: return CareEyesMinutes > 0 ? CareEyesMinutes : 25;
+                case CareKind.Late: return CareLateHour >= 0 && CareLateHour < 24 ? CareLateHour : 1;
+                case CareKind.Meal: return CareMealMinutes > 0 ? CareMealMinutes : 360;
+                case CareKind.Game: return CareGameMinutes > 0 ? CareGameMinutes : 120;
+                default: return CareBoredMinutes > 0 ? CareBoredMinutes : 60;
+            }
+        }
+
+        internal void SetCare(CareKind kind, bool on, int time)
+        {
+            switch (kind)
+            {
+                case CareKind.Water: CareWater = on; CareWaterMinutes = time; break;
+                case CareKind.Stretch: CareStretch = on; CareStretchMinutes = time; break;
+                case CareKind.Eyes: CareEyes = on; CareEyesMinutes = time; break;
+                case CareKind.Late: CareLate = on; CareLateHour = time; break;
+                case CareKind.Meal: CareMeal = on; CareMealMinutes = time; break;
+                case CareKind.Game: CareGame = on; CareGameMinutes = time; break;
+                case CareKind.Bored: CareBored = on; CareBoredMinutes = time; break;
+            }
         }
     }
 
@@ -912,6 +977,12 @@ namespace CapriDesktop
         private readonly ToolStripMenuItem wanderItem;
         private double nextWander = -1;
         private double nextPopIn = -1;
+        private Reminders reminders;
+        private bool reminderUp;
+        private Care care;
+        private CareLines careLines;
+        private double careGameAt = -1;
+        private string careGame;
         private double popOut = -1;
         private int popClicks;
         private static readonly string[] PopLines = { "Boo. Just checking on you.", "Hi! Don't mind me.", "Peekaboo.", "Miss me? I missed you.", "Hey, you. Having fun?", "Surprise. I got bored without you.", "Don't get up.", "Just passing through.", "Thought I heard my name.", "Pretend I'm not here." };
@@ -920,6 +991,7 @@ namespace CapriDesktop
         private int noticedClicks;
         private double nudgeGap = NudgeGap;
         private double nudgeOut = -1;
+        private bool boredAsk;
         private static readonly string[] NudgeLines = { "Psst. Remember me? Tiny, glitchy, very important.", "I'm bored. Entertain me.", "Hey. Hey. Look at me.", "You've been ignoring me for ages. Rude.", "Pay attention to me or I start clicking things.", "Knock knock. It's your favourite gremlin.", "Choom. I'm bored out of my many minds.", "One of my minds says you've forgotten me. The rest agree.", "I've counted your desktop icons twice now.", "This is me being patient. It's going badly." };
         private static readonly string[] NoticedLines = { "Finally. Hi.", "There you are.", "Knew you couldn't resist me.", "Oh good, you're alive.", "Took you long enough." };
         private static readonly string[] SnubbedLines = { "Fine. Ignore me. See if I care.", "Wow. Ignored. Noted.", "I'll just sit here. Alone. Bored.", "Cool. Cool cool cool.", "Remembering this for later." };
@@ -1320,6 +1392,7 @@ namespace CapriDesktop
             startMarker = smoke ? null : Path.Combine(data, Program.StartMarker);
             Brain.LogPath = Path.Combine(data, "errors.txt");
             Brain.MemoryPath = Path.Combine(data, "me.md");
+            reminders = new Reminders(data, DateTime.Now);
             Brain.MemoriesPath = Path.Combine(data, "memories.md");
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
@@ -1333,6 +1406,10 @@ namespace CapriDesktop
             heyCapri = new WakeWord(data);
             presence = new Presence(Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             preferences = smoke ? new Preferences() : LoadPreferences();
+            bool careNew = !preferences.CareWritten;
+            careLines = new CareLines(Path.Combine(data, "check-ins.md"));
+            if (careNew) preferences.CareWritten = careLines.Create();
+            care = new Care(delegate { return clock.Elapsed.TotalSeconds; }, delegate { return DateTime.Now; }, careLines.Pick);
             // SECURITY: their toggles, with "Hey Capri" kept in its own setting for her wake word.
             Migrate(preferences);
             Security.Load(preferences.Permissions);
@@ -1476,6 +1553,9 @@ namespace CapriDesktop
             voice.Key = Voice.Unprotect(preferences.VoiceKey);
             Hands.Look = LookAt;
             Hands.Work = RunJob;
+            Hands.Plan = reminders.Route;
+            Hands.Remind = reminders.Remind;
+            Hands.Routine = RoutineTool;
             brain.Act = DoTool;
             Hands.Resume = ResumeJob;
             Hands.Rename = CallThem;
@@ -1537,7 +1617,9 @@ namespace CapriDesktop
                 CheckGame(clock.Elapsed.TotalSeconds);
                 if (!testing) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
+                if (!testing) CheckReminders(DateTime.Now);
                 if (!testing) CheckNudge(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
+                if (!testing) CheckCare(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
                 if (!testing) CheckHoliday(DateTime.Now, Native.IdleMilliseconds());
                 if (!testing) presence.Show(preferences.NoDiscord ? null : Doing);
                 if (!testing) CheckHd(clock.Elapsed.TotalSeconds);
@@ -1555,6 +1637,7 @@ namespace CapriDesktop
             Size = CanvasSize(preferences.Size);
             Rectangle work = Screen.PrimaryScreen.WorkingArea;
             anchor = preferences.HasPosition ? new Point(preferences.X, preferences.Y) : new Point(work.Right - Width - 28, work.Bottom - Height - 12);
+            if (!smoke && careNew && preferences.CareWritten) SavePreferences();
             anchor = KeepOnScreen(anchor);
             Location = anchor;
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged += DisplaysChanged;
@@ -2870,8 +2953,54 @@ namespace CapriDesktop
             if (nextPopIn < 0) nextPopIn = now + PopGap();
             if (now < nextPopIn) return;
             nextPopIn = now + PopGap();
-            if (quiet > 60000 || quitting || dragging || pressed || chatting || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || docked) return;
+            if (!PopFree(now, quiet)) return;
             PopIn(now);
+        }
+
+        private bool PopFree(double now, long quiet)
+        {
+            return quiet <= 60000 && !Hushed && !quitting && !dragging && !pressed && !chatting && !typer.Visible && !menu.Visible && speech == null
+                && talkState == TalkState.Off && outro == null && !onPanel && popOut < 0 && !docked && working == null && job == null
+                && !pushing && !transcribing && !speaker.Busy && now >= voiceUntil && !FullScreen();
+        }
+
+        private void CheckCare(double now, long quiet)
+        {
+            if (preferences.CareGame && quiet <= Care.Away && now >= careGameAt)
+            {
+                careGameAt = now + 15;
+                careGame = Computer.GameOpen() ?? GameAhead();
+            }
+            string line = care.Check(preferences, quiet, !hidden && nudgeOut < 0 && PopFree(now, quiet), careGame, noticed, nudgeGap / NudgeGap);
+            if (line == null) return;
+            if (care.Said == CareKind.Bored) AskedForAttention(now, true);
+            if (care.Said == CareKind.Late) SavePreferences();
+            Say(line);
+        }
+
+        internal bool CareOn(CareKind kind) { return preferences.CareOn(kind); }
+
+        internal int CareTime(CareKind kind) { return preferences.CareTime(kind); }
+
+        internal void ToggleCare(CareKind kind)
+        {
+            preferences.SetCare(kind, !preferences.CareOn(kind), preferences.CareTime(kind));
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void SetCareTime(CareKind kind, int time)
+        {
+            preferences.SetCare(kind, preferences.CareOn(kind), time);
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void OpenCare()
+        {
+            string path = Path.Combine(Path.GetDirectoryName(settingsPath), "check-ins.md");
+            if (!File.Exists(path)) File.WriteAllText(path, "# Capri's check-ins\n\n");
+            Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\""));
         }
 
         private void PopIn(double now)
@@ -2907,6 +3036,28 @@ namespace CapriDesktop
             };
             if (wasHidden) arrive();
             else GlitchOut(arrive, false);
+        }
+
+        private void CheckReminders(DateTime now)
+        {
+            if (quitting || dragging || pressed || typer.Visible || menu.Visible || outro != null) return;
+            if (!chatting && working == null && (speech != null || talkState != TalkState.Off)) return;
+            string line;
+            try { line = reminders.Take(now); }
+            catch (IOException) { return; }
+            catch (UnauthorizedAccessException) { return; }
+            if (line == null) return;
+            reminderUp = true;
+            bool bubbleOnly = chatting || Hushed || preferences.Quiet || FullScreen();
+            if (working != null)
+            {
+                asideShown = line;
+                asideUntil = clock.Elapsed.TotalSeconds + BubbleHold(line.Length);
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (!bubbleOnly && job != null) SayAside(line, job);
+            }
+            else Remark("reminder", line, bubbleOnly);
+            if (IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
         }
 
         private bool popHide;
@@ -2953,6 +3104,8 @@ namespace CapriDesktop
         // With Check in on me on, ignored for a while when they're at the PC, she comes over and asks for attention: a click gets a happy line, silence gets a sulk and a longer wait.
         private void CheckNudge(double now, long quiet)
         {
+            if (quiet > Care.Away) { noticed = -1; nudgeOut = -1; nudgeGap = NudgeGap; boredAsk = false; return; }
+            if (boredAsk && !preferences.CareBored) { nudgeOut = -1; boredAsk = false; }
             bool attending = clicks != noticedClicks || dragging || pressed || chatting || typer.Visible || menu.Visible || talkState != TalkState.Off || onPanel;
             if (noticed < 0 || attending) { noticed = now; noticedClicks = clicks; }
             if (nudgeOut >= 0)
@@ -2961,25 +3114,36 @@ namespace CapriDesktop
                 {
                     nudgeOut = -1;
                     nudgeGap = NudgeGap;
-                    if (!chatting && !typer.Visible && talkState == TalkState.Off && !onPanel) Say(Lines.Pick(NoticedLines));
+                    if (PopFree(now, quiet)) Say(boredAsk ? careLines.Pick("Bored noticed") : Lines.Pick(NoticedLines));
+                    boredAsk = false;
                 }
                 else if (now >= nudgeOut && speech == null)
                 {
                     nudgeOut = -1;
                     nudgeGap = Math.Min(nudgeGap * 2, NudgeGap * 4);
                     noticed = now;
-                    if (quiet < 20000 && !hidden) Say(Lines.Pick(SnubbedLines));
+                    if (quiet < 20000 && !hidden && PopFree(now, quiet)) Say(boredAsk ? careLines.Pick("Bored ignored") : Lines.Pick(SnubbedLines));
+                    boredAsk = false;
                 }
                 return;
             }
-            if (!preferences.CheckIns || Hushed || hidden || quiet > 30000 || now - noticed < nudgeGap || (lastGlance >= 0 && now - lastGlance < 300)) return;
+            if (preferences.CareBored || !preferences.CheckIns || Hushed || hidden || quiet > 30000 || now - noticed < nudgeGap || (lastGlance >= 0 && now - lastGlance < 300)) return;
             if (quitting || riding || onPanel || falling || hanging || typer.Visible || speech != null || outro != null || popOut >= 0 || (clip != idle && clip != perch)) return;
+            if (!PopFree(now, quiet)) return;
             Nudge(now);
+        }
+
+        private void AskedForAttention(double now, bool bored = false)
+        {
+            noticed = now;
+            noticedClicks = clicks;
+            nudgeOut = now + 20;
+            boredAsk = bored;
         }
 
         private void Nudge(double now)
         {
-            nudgeOut = now + 20;
+            AskedForAttention(now);
             string line = Lines.Pick(NudgeLines);
             Point cursor = Cursor.Position;
             Point hip = Hip();
@@ -3544,6 +3708,27 @@ namespace CapriDesktop
         // Use her cursor, on by default: people asked to watch her search YouTube and pick a video, play songs from Spotify's search and drag Spotify's volume slider herself.
         // If there's no brain, or it gets lost, hits a rate limit or times out on the way, the quick tool still does what they asked.
         private string DoTool(string tool, ToolArguments args) { return DoTool(tool, args, asking); }
+
+        private string RoutineTool(ToolArguments args)
+        {
+            return args.Action == "run" ? reminders.Run(args.Phrase, RunRoutine) : reminders.Routine(args);
+        }
+
+        private string RunRoutine(string steps)
+        {
+            int routineTicket = asking;
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+            if (!Hands.Several(steps, calls))
+            {
+                string stepTool;
+                ToolArguments stepArgs;
+                if (Hands.Heard(steps, out stepTool, out stepArgs)) calls.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>(stepTool, stepArgs));
+                else return Think != null ? Think(steps) : brain.Ask(steps);
+            }
+            System.Collections.Generic.List<string> results = new System.Collections.Generic.List<string>();
+            foreach (System.Collections.Generic.KeyValuePair<string, ToolArguments> call in calls) results.Add(DoTool(call.Key, call.Value, routineTicket));
+            return Security.Reply(results) ?? string.Join(" ", results.ToArray());
+        }
 
         private string DoTool(string tool, ToolArguments args, int ticket)
         {
@@ -6105,12 +6290,13 @@ namespace CapriDesktop
 
         // Something she says on her own, like what she makes of their screen: her bubble shows only her words, with no
         // "> sys: watching" above them (Lachy, 30 Oct: testers found it too robotic).
-        private void Remark(string shown, string line)
+        private void Remark(string shown, string line, bool bubbleOnly = false)
         {
             if (hidden) SetHidden(false);
             heard = shown;
             box.Prompt = "";
-            Answer(++asking, line, TalkState.Talking);
+            if (bubbleOnly) Begin(++asking, line, TalkState.Talking, null);
+            else Answer(++asking, line, TalkState.Talking);
         }
 
         internal void SetUpFreeVoice(bool told = false)
@@ -7981,14 +8167,16 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
-            if (text.Length > 240) text = text.Substring(0, 240);
+            System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
+            if (text.Length > 240 && planned.Key == null) text = text.Substring(0, 240);
             // Mid-job, what they say goes to the job instead of cancelling it: she says she's got it, does it, then carries on
             // (Lachy, 29 Oct: "she needs to actually listen to me mid way through").
             // Now it's two heads: the job runs on while her fast brain sorts what they said and answers (Asides.cs).
             Job running = job;
             if (MidJob(running) && prompt == "> you: ")
             {
-                HeardMidJob(text, running);
+                if (planned.Key != null) AsideTool(text, planned.Key, planned.Value, running);
+                else HeardMidJob(text, running);
                 return;
             }
             if (local) { talkState = TalkState.Thinking; CheckEars(clock.Elapsed.TotalSeconds); }
@@ -8011,10 +8199,11 @@ namespace CapriDesktop
                     return;
                 }
             }
-            bool askPlease;
-            text = Hands.Manners(text, out askPlease);
+            bool askPlease = false;
+            if (planned.Key == null) text = Hands.Manners(text, out askPlease);
             if (askPlease) { Answer(ticket, Hands.SayPlease, TalkState.Talking); return; }
             Func<string, string> think = Think;
+            if (planned.Key != null) think = delegate { return Security.Said(DoTool(planned.Key, planned.Value, ticket)); };
             string quick;
             ToolArguments quickArgs;
             // Their yes or no to her asking first (SECURITY) works before she has a brain too; anything else drops what she held.
@@ -8197,6 +8386,8 @@ namespace CapriDesktop
             if (box.Visible) box.Hide();
             speech = null;
             if (docked) DockQuiet();
+            if (reminderUp && !preferences.OnTop && IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            reminderUp = false;
         }
 
         private void UpdateTalk(double now)
@@ -8815,6 +9006,802 @@ namespace CapriDesktop
             finally { Directory.Delete(keysRoot, true); }
         }
 
+        private void SmokeReminders(System.Collections.Generic.List<string> checks)
+        {
+            DateTime reminderNow = new DateTime(2026, 10, 31, 14, 10, 0);
+            string[,] reminderTimes =
+            {
+                { "in 20 minutes", "2026-10-31 14:30" }, { "in 2 hours", "2026-10-31 16:10" },
+                { "in an hour", "2026-10-31 15:10" }, { "in half an hour", "2026-10-31 14:40" },
+                { "at 5pm", "2026-10-31 17:00" }, { "at 5 p.m.", "2026-10-31 17:00" },
+                { "at 17:30", "2026-10-31 17:30" }, { "tomorrow at 9", "2026-11-01 09:00" },
+                { "tonight", "2026-10-31 20:00" }, { "tonight at 9", "2026-10-31 21:00" },
+                { "at half past five", "2026-10-31 17:30" }, { "half past 5pm", "2026-10-31 17:30" },
+                { "at 5", "2026-10-31 17:00" }, { "at 5am", "2026-11-01 05:00" },
+                { "at 9", "2026-10-31 21:00" }, { "at 12am", "2026-11-01 00:00" },
+                { "at 12pm", "2026-11-01 12:00" }, { "at midnight", "2026-11-01 00:00" },
+                { "at noon", "2026-11-01 12:00" }, { "tomorrow at 00:00", "2026-11-01 00:00" },
+                { "en veinte minutos", "2026-10-31 14:30" }, { "dentro de una hora", "2026-10-31 15:10" },
+                { "a las 17:30", "2026-10-31 17:30" }, { "mañana a las 9", "2026-11-01 09:00" },
+                { "a las cinco de la tarde", "2026-10-31 17:00" },
+                { "esta noche", "2026-10-31 20:00" }, { "a las cinco y media", "2026-10-31 17:30" },
+                { "dans vingt minutes", "2026-10-31 14:30" }, { "dans une heure", "2026-10-31 15:10" },
+                { "dans une demi-heure", "2026-10-31 14:40" }, { "à 17h30", "2026-10-31 17:30" },
+                { "demain à 9h", "2026-11-01 09:00" }, { "ce soir", "2026-10-31 20:00" },
+                { "à cinq heures du soir", "2026-10-31 17:00" },
+                { "à cinq heures et demie", "2026-10-31 17:30" }, { "in zwanzig Minuten", "2026-10-31 14:30" },
+                { "in einer Stunde", "2026-10-31 15:10" }, { "um 17:30 Uhr", "2026-10-31 17:30" },
+                { "in einer halben Stunde", "2026-10-31 14:40" }, { "um halb sechs abends", "2026-10-31 17:30" },
+                { "morgen um 9", "2026-11-01 09:00" }, { "heute Abend", "2026-10-31 20:00" },
+                { "um halb sechs", "2026-10-31 17:30" }, { "za dwadzieścia minut", "2026-10-31 14:30" },
+                { "za godzinę", "2026-10-31 15:10" }, { "za pół godziny", "2026-10-31 14:40" },
+                { "o 17:30", "2026-10-31 17:30" }, { "jutro o 9", "2026-11-01 09:00" },
+                { "o 5 po południu", "2026-10-31 17:00" },
+                { "dziś wieczorem", "2026-10-31 20:00" }, { "o w pół do szóstej", "2026-10-31 17:30" },
+                { "em vinte minutos", "2026-10-31 14:30" }, { "daqui a uma hora", "2026-10-31 15:10" },
+                { "em meia hora", "2026-10-31 14:40" }, { "às 17:30", "2026-10-31 17:30" },
+                { "às cinco da tarde", "2026-10-31 17:00" },
+                { "amanhã às 9", "2026-11-01 09:00" }, { "hoje à noite", "2026-10-31 20:00" },
+                { "às cinco e meia", "2026-10-31 17:30" }
+            };
+            for (int reminderTime = 0; reminderTime < reminderTimes.GetLength(0); reminderTime++)
+            {
+                DateTime reminderDue;
+                if (!Reminders.Parse(reminderTimes[reminderTime, 0], reminderNow, out reminderDue) || reminderDue.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) != reminderTimes[reminderTime, 1])
+                    throw new Exception("Reminder time was wrong: " + reminderTimes[reminderTime, 0] + " -> " + reminderDue.ToString("o"));
+            }
+            string[,] reminderEdges =
+            {
+                { "2026-12-31 23:50", "in 20 minutes", "2027-01-01 00:10" },
+                { "2026-12-31 23:50", "at 00:00", "2027-01-01 00:00" },
+                { "2026-12-31 23:50", "tomorrow at 9", "2027-01-01 09:00" },
+                { "2026-11-01 00:00", "at 12am", "2026-11-02 00:00" },
+                { "2026-11-01 00:00", "at 12pm", "2026-11-01 12:00" },
+                { "2026-11-01 00:00", "at 00:01", "2026-11-01 00:01" },
+                { "2026-10-31 17:30", "at 17:30", "2026-11-01 17:30" },
+                { "2026-10-31 04:10", "at 5", "2026-10-31 05:00" },
+                { "2026-10-31 17:00", "at 5", "2026-11-01 05:00" },
+                { "2026-10-31 18:10", "at half past five", "2026-11-01 05:30" },
+                { "2026-10-31 14:10", "at 5 a.m.", "2026-11-01 05:00" },
+                { "2026-10-31 14:10", "a las cinco de la mañana", "2026-11-01 05:00" }
+            };
+            for (int reminderEdge = 0; reminderEdge < reminderEdges.GetLength(0); reminderEdge++)
+            {
+                DateTime edgeNow = DateTime.ParseExact(reminderEdges[reminderEdge, 0], "yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+                DateTime edgeDue;
+                if (!Reminders.Parse(reminderEdges[reminderEdge, 1], edgeNow, out edgeDue) || edgeDue.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) != reminderEdges[reminderEdge, 2]) throw new Exception("Reminder midnight edge was wrong: " + reminderEdges[reminderEdge, 1]);
+            }
+            checks.Add("PASS reminder hours without am or pm try the afternoon today before tomorrow, while explicit am, tomorrow, noon and midnight keep their meaning");
+            foreach (string badWhen in new string[] { "", "in zero minutes", "in -2 hours", "at 24:00", "at 17:60", "at 13pm", "tomorrow at 25", "after lunch", "10", "5", "a", "at a", "at an", "tomorrow at a" })
+            {
+                DateTime badDue;
+                if (Reminders.Parse(badWhen, reminderNow, out badDue)) throw new Exception("An unknown reminder time was understood: " + badWhen);
+            }
+            checks.Add("PASS reminders parse relative minutes and hours, clock times, tomorrow, tonight and half past in six languages against a fixed local clock, including past times, noon, midnight and year rollover");
+
+            Reminders savedReminders = reminders;
+            Func<string, System.Collections.Generic.KeyValuePair<string, ToolArguments>> savedPlan = Hands.Plan;
+            Func<ToolArguments, string> savedRemind = Hands.Remind, savedRoutine = Hands.Routine;
+            Func<System.Collections.Generic.List<InstalledApp>> savedReminderCatalog = Hands.Catalog;
+            Action<string> savedReminderRun = Hands.Run;
+            Func<string, string> savedReminderThink = Think;
+            Func<string, string> savedRoutineAnimate = Hands.Animate;
+            Func<string, byte[]> savedReminderSpeak = Speak, savedReminderFree = FreeSpeak;
+            Func<bool> savedReminderScreen = FullScreen;
+            bool savedReminderQuiet = preferences.Quiet, savedReminderSilent = preferences.Silent, savedReminderShush = shushed, savedReminderQuick = preferences.QuickHands;
+            bool savedReminderChatting = chatting, savedReminderLocal = local;
+            Job savedReminderJob = job;
+            string savedReminderWorking = working;
+            string savedReminderSecurity = Security.Saved;
+            string reminderFolder = Path.Combine(Path.GetDirectoryName(settingsPath), "reminders-check-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                reminders = new Reminders(reminderFolder, reminderNow);
+                reminders.Now = delegate { return reminderNow; };
+                Hands.Plan = reminders.Route;
+                Hands.Remind = reminders.Remind;
+                Hands.Routine = RoutineTool;
+                string[,] reminderRoutes =
+                {
+                    { "remind me in 20 minutes to take the pizza out", "take the pizza out", "in 20 minutes" },
+                    { "remind me at 5pm to call mum", "call mum", "at 5pm" },
+                    { "remind me at 5 pm to call mum", "call mum", "at 5 pm" },
+                    { "remind me tomorrow at 9 to pay rent", "pay rent", "tomorrow at 9" },
+                    { "in an hour tell me to stretch", "stretch", "in an hour" },
+                    { "remind me tonight to read", "read", "tonight" },
+                    { "remind me at half past five to leave", "leave", "at half past five" },
+                    { "recuérdame en 20 minutos sacar la pizza", "sacar la pizza", "en 20 minutos" },
+                    { "recuérdame a las 5pm llamar a mamá", "llamar a mamá", "a las 5pm" },
+                    { "recuérdame a las cinco de la tarde llamar a mamá", "llamar a mamá", "a las cinco de la tarde" },
+                    { "recuérdame mañana a las 9 pagar el alquiler", "pagar el alquiler", "mañana a las 9" },
+                    { "dentro de una hora dime que me estire", "me estire", "dentro de una hora" },
+                    { "recuérdame esta noche leer", "leer", "esta noche" },
+                    { "rappelle-moi dans 20 minutes de sortir la pizza", "sortir la pizza", "dans 20 minutes" },
+                    { "rappelle-moi à 17h30 d'appeler maman", "appeler maman", "à 17h30" },
+                    { "rappelle-moi demain à 9 de payer le loyer", "payer le loyer", "demain à 9" },
+                    { "dans une heure dis-moi de m'étirer", "m'étirer", "dans une heure" },
+                    { "rappelle-moi ce soir de lire", "lire", "ce soir" },
+                    { "erinnere mich in 20 Minuten daran, die Pizza herauszuholen", "die Pizza herauszuholen", "in 20 Minuten" },
+                    { "erinnere mich um 17:30 Uhr daran, Mama anzurufen", "Mama anzurufen", "um 17:30 Uhr" },
+                    { "erinnere mich morgen um 9 daran, die Miete zu zahlen", "die Miete zu zahlen", "morgen um 9" },
+                    { "in einer Stunde sag mir, dass ich mich strecken soll", "ich mich strecken soll", "in einer Stunde" },
+                    { "erinnere mich heute Abend daran, zu lesen", "zu lesen", "heute Abend" },
+                    { "przypomnij mi za 20 minut żeby wyjąć pizzę", "wyjąć pizzę", "za 20 minut" },
+                    { "przypomnij mi o 17:30 zadzwonić do mamy", "zadzwonić do mamy", "o 17:30" },
+                    { "przypomnij mi jutro o 9 zapłacić czynsz", "zapłacić czynsz", "jutro o 9" },
+                    { "za godzinę powiedz mi żeby się rozciągnąć", "się rozciągnąć", "za godzinę" },
+                    { "przypomnij mi dziś wieczorem żeby czytać", "czytać", "dziś wieczorem" },
+                    { "lembre-me em 20 minutos de tirar a pizza", "tirar a pizza", "em 20 minutos" },
+                    { "lembra-me às 17:30 de ligar para a mãe", "ligar para a mãe", "às 17:30" },
+                    { "me lembre amanhã às 9 de pagar o aluguel", "pagar o aluguel", "amanhã às 9" },
+                    { "daqui a uma hora me diga para me alongar", "me alongar", "daqui a uma hora" },
+                    { "lembre-me hoje à noite de ler", "ler", "hoje à noite" }
+                };
+                string reminderTool;
+                ToolArguments reminderArgs;
+                for (int reminderRoute = 0; reminderRoute < reminderRoutes.GetLength(0); reminderRoute++)
+                {
+                    if (!Hands.Direct(reminderRoutes[reminderRoute, 0], out reminderTool, out reminderArgs) || reminderTool != "remind" || reminderArgs.Text != reminderRoutes[reminderRoute, 1] || reminderArgs.When != reminderRoutes[reminderRoute, 2] || !Hands.Valid(reminderTool, reminderArgs)) throw new Exception("Reminder route was wrong: " + reminderRoutes[reminderRoute, 0]);
+                    if (!Hands.Heard("Hey Capri, " + reminderRoutes[reminderRoute, 0], out reminderTool, out reminderArgs) || reminderTool != "remind" || reminderArgs.Text != reminderRoutes[reminderRoute, 1]) throw new Exception("A spoken reminder was missed: " + reminderRoutes[reminderRoute, 0]);
+                }
+                foreach (string bareReminder in new string[] { "remind me", "remind me in 20 minutes", "remind me tomorrow at 25 to call mum", "remind me tomorrow after lunch to call mum", "recuérdame", "rappelle-moi", "erinnere mich", "przypomnij mi", "lembre-me" })
+                    if (Hands.Heard(bareReminder, out reminderTool, out reminderArgs)) throw new Exception("An incomplete reminder was understood: " + bareReminder);
+                foreach (string partialReminder in new string[] { "remind me at 5pm tomorrow to call mum", "remind me at 7 tonight to call mum", "remind me in an hour and a half to stretch", "remind me 10 minutes before the meeting", "remind me at 5pm 30 seconds later to call mum", "remind me at a time to call mum", "remind me tomorrow at an hour to call mum", "remind me tomorrow 10 minutes before the meeting" })
+                    if (Hands.Heard(partialReminder, out reminderTool, out reminderArgs)) throw new Exception("Part of a reminder time was saved as its note: " + partialReminder);
+                checks.Add("PASS reminder parsing leaves trailing time words, digits, compound durations, bare numbers and articles for her brain instead of saving a partial time");
+                foreach (string reminderAsk in new string[] { "remind me to take the pizza out in 20 minutes", "remind me at 5pm tomorrow to call mum", "remind me at 7 tonight to call mum", "remind me in an hour and a half to stretch", "remind me 10 minutes before the meeting", "when I say let's go open steam", "list my reminders", "list my routines", "cancel the reminder" })
+                    if (!Hands.Wants(reminderAsk)) throw new Exception("A reminder or routine missed her hands: " + reminderAsk);
+                if (Hands.Heard("remind me to take the pizza out in 20 minutes", out reminderTool, out reminderArgs) || Hands.Wants("remind me what we talked about") || Hands.Heard("remind me what we talked about", out reminderTool, out reminderArgs)) throw new Exception("Reminder requests and conversation recall were mixed up.");
+                checks.Add("PASS reminder and routine requests reach the brain's hands path when the local route cannot parse them, while remind me what we talked about stays chat");
+                foreach (string listReminder in new string[] { "qué recordatorios tengo", "quels sont mes rappels", "welche Erinnerungen habe ich", "jakie mam przypomnienia", "quais lembretes eu tenho" })
+                    if (!Hands.Heard(listReminder, out reminderTool, out reminderArgs) || reminderTool != "remind" || reminderArgs.Action != "list") throw new Exception("A reminder list was missed: " + listReminder);
+                foreach (string cancelReminder in new string[] { "cancela el recordatorio de pizza", "annule le rappel de pizza", "lösche die Erinnerung an pizza", "anuluj przypomnienie o pizza", "cancele o lembrete da pizza" })
+                    if (!Hands.Heard(cancelReminder, out reminderTool, out reminderArgs) || reminderTool != "remind" || reminderArgs.Action != "cancel" || reminderArgs.Text != "pizza") throw new Exception("A reminder cancellation was missed: " + cancelReminder);
+                if (!Hands.Typed("remind{\"text\":\"pizza\",\"when\":\"in 20 minutes\"}", out reminderTool, out reminderArgs) || reminderTool != "remind" || reminderArgs.When != "in 20 minutes"
+                    || !Hands.Typed("routine{\"phrase\":\"movie time\",\"steps\":\"open netflix and turn the volume down\"}", out reminderTool, out reminderArgs) || reminderTool != "routine" || reminderArgs.Phrase != "movie time"
+                    || Hands.Valid("remind", new ToolArguments { Text = "pizza" }) || Hands.Valid("routine", new ToolArguments { Phrase = "movie time" })) throw new Exception("The new tools lost their arguments or accepted missing ones.");
+                checks.Add("PASS reminder routes understand complete typed and spoken asks in English, Spanish, French, German, Polish and Portuguese; incomplete asks stay with chat, and both tools keep and validate their arguments");
+
+                if (!Hands.Heard("remind me in 20 minutes to take the pizza out", out reminderTool, out reminderArgs) || !DoTool(reminderTool, reminderArgs).StartsWith("I'll remind you ", StringComparison.Ordinal)) throw new Exception("A reminder was not saved.");
+                Reminders reloadedReminders = new Reminders(reminderFolder, reminderNow.AddMinutes(10));
+                if (reloadedReminders.Take(reminderNow.AddMinutes(19)) != null || reloadedReminders.Take(reminderNow.AddMinutes(20)) != "Reminder: take the pizza out" || reloadedReminders.Take(reminderNow.AddMinutes(21)) != null || new Reminders(reminderFolder, reminderNow.AddMinutes(30)).Take(reminderNow.AddMinutes(30)) != null) throw new Exception("A saved reminder fired early or more than once.");
+                reminders = reloadedReminders;
+                reminders.Now = delegate { return reminderNow; };
+                reminders.Remind(new ToolArguments { Text = "pay rent", When = "in an hour" });
+                Reminders lateReminders = new Reminders(reminderFolder, reminderNow.AddHours(2));
+                string lateReminder = lateReminders.Take(reminderNow.AddHours(2));
+                if (lateReminder == null || !lateReminder.StartsWith("Late reminder, due ", StringComparison.Ordinal) || !lateReminder.EndsWith(": pay rent", StringComparison.Ordinal) || lateReminders.Take(reminderNow.AddHours(2)) != null || new Reminders(reminderFolder, reminderNow.AddHours(3)).Take(reminderNow.AddHours(3)) != null) throw new Exception("A reminder missed while off was not said once as late.");
+                reminders = lateReminders;
+                reminders.Now = delegate { return reminderNow; };
+                Hands.Plan = reminders.Route;
+                Hands.Remind = reminders.Remind;
+                reminders.Remind(new ToolArguments { Text = "pizza", When = "in 2 hours" });
+                if (!Hands.Heard("what reminders do I have", out reminderTool, out reminderArgs) || !DoTool(reminderTool, reminderArgs).Contains("pizza") || !Hands.Heard("cancel the pizza reminder", out reminderTool, out reminderArgs) || DoTool(reminderTool, reminderArgs) != "Cancelled your reminder: pizza" || new Reminders(reminderFolder, reminderNow.AddHours(4)).Take(reminderNow.AddHours(4)) != null) throw new Exception("Listing or cancelling a reminder failed.");
+                checks.Add("PASS reminders save and reload, fire once and never twice across restarts, mark missed reminders late at startup, and list and cancel through her tools");
+
+                reminders.Remind(new ToolArguments { Text = "take the pizza out", When = "in 2 hours" });
+                foreach (string missingReminder in new string[] { "cancel the reminder", "cancel my reminder" })
+                    if (Hands.Heard(missingReminder, out reminderTool, out reminderArgs)) throw new Exception("An article selected a reminder: " + missingReminder);
+                foreach (string reminderFragment in new string[] { "the", "my", "piz", "he pizza", "pizza ou" })
+                    if (DoTool("remind", new ToolArguments { Action = "cancel", Text = reminderFragment }) != "Couldn't find that reminder.") throw new Exception("Part of a word cancelled a reminder: " + reminderFragment);
+                if (!new Reminders(reminderFolder, reminderNow).Remind(new ToolArguments { Action = "list" }).Contains("take the pizza out")
+                    || !Hands.Heard("cancel the pizza out reminder", out reminderTool, out reminderArgs) || DoTool(reminderTool, reminderArgs) != "Cancelled your reminder: take the pizza out"
+                    || new Reminders(reminderFolder, reminderNow).Take(reminderNow.AddHours(3)) != null) throw new Exception("Reminder cancellation did not keep whole word boundaries.");
+                checks.Add("PASS cancelling a reminder rejects the and my alone and partial words, keeps the saved reminder intact, and cancels a whole word phrase");
+
+                System.Collections.Generic.List<string> routineRuns = new System.Collections.Generic.List<string>();
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Premiere", "premiere"), new InstalledApp("Spotify", "spotify") }; };
+                Hands.Run = delegate(string routineApp) { routineRuns.Add(routineApp); };
+                Hands.Forget();
+                preferences.QuickHands = true;
+                Security.Load(Security.Of(Security.Trusted));
+                foreach (string unclearRoutine in new string[] { "when I say let's go open steam", "when I say thanks, I really mean it", "when I say \"thanks\", I really mean it" })
+                    if (Hands.Heard(unclearRoutine, out reminderTool, out reminderArgs)) throw new Exception("A conversational or ambiguous phrase became a routine: " + unclearRoutine);
+                foreach (string clearRoutine in new string[] { "when I say let's go, open steam", "when I say \"let's go\" open steam" })
+                    if (!Hands.Heard(clearRoutine, out reminderTool, out reminderArgs) || reminderTool != "routine" || reminderArgs.Phrase != "let's go" || reminderArgs.Steps != "open steam") throw new Exception("A clear routine phrase was split at its verb: " + clearRoutine);
+                checks.Add("PASS routine definitions keep verbs inside the phrase, require a listed action after the comma or quoted phrase, and leave ambiguous splits and conversation for her brain");
+                if (!Hands.Heard("when I say let's get to work, open premiere and spotify", out reminderTool, out reminderArgs) || reminderTool != "routine" || reminderArgs.Phrase != "let's get to work" || reminderArgs.Steps != "open premiere and spotify") throw new Exception("A routine definition was not heard.");
+                DoTool(reminderTool, reminderArgs);
+                if (routineRuns.Count != 0) throw new Exception("Saving a routine ran it.");
+                reminders = new Reminders(reminderFolder, reminderNow);
+                reminders.Now = delegate { return reminderNow; };
+                Hands.Plan = reminders.Route;
+                Hands.Remind = reminders.Remind;
+                foreach (string routinePhrase in new string[] { "let's get to work", "HEY CAPRI! LET’S GET TO WORK.", "Capri, lets get to work!" })
+                {
+                    if (!Hands.Heard(routinePhrase, out reminderTool, out reminderArgs) || reminderTool != "routine" || reminderArgs.Action != "run") throw new Exception("A saved routine phrase was missed: " + routinePhrase);
+                    DoTool(reminderTool, reminderArgs);
+                }
+                if (string.Join(",", routineRuns.ToArray()) != "premiere,spotify,premiere,spotify,premiere,spotify") throw new Exception("A routine did not run through her ordinary opening tools.");
+                string routineAnimation = null;
+                Hands.Animate = delegate(string routineMove) { routineAnimation = routineMove; return "Blinked."; };
+                reminders.Routine(new ToolArguments { Phrase = "blink", Steps = "blink" });
+                if (!Hands.Heard("blink", out reminderTool, out reminderArgs) || DoTool(reminderTool, reminderArgs) != "Blinked." || routineAnimation != "blink") throw new Exception("A routine shadowed its own ordinary action.");
+                if (Hands.Heard("I said Capri, let's get to work", out reminderTool, out reminderArgs) && reminderTool == "routine") throw new Exception("A routine ran inside a longer sentence.");
+                string routineJob = null;
+                Think = delegate(string routineRequest) { routineJob = routineRequest; return "Movie time is ready."; };
+                if (!Hands.Heard("when I say movie time, open netflix and turn the volume down", out reminderTool, out reminderArgs) || reminderArgs.Phrase != "movie time") throw new Exception("A mixed routine definition was missed.");
+                DoTool(reminderTool, reminderArgs);
+                if (!Hands.Heard("movie time", out reminderTool, out reminderArgs) || DoTool(reminderTool, reminderArgs) != "Movie time is ready." || routineJob != "open netflix and turn the volume down") throw new Exception("A routine did not pass all its steps to the ordinary request path.");
+                if (!Hands.Heard("what routines do I have", out reminderTool, out reminderArgs) || !DoTool(reminderTool, reminderArgs).Contains("movie time: open netflix and turn the volume down") || !Hands.Heard("forget the movie time routine", out reminderTool, out reminderArgs) || DoTool(reminderTool, reminderArgs) != "Forgot your routine: movie time" || new Reminders(reminderFolder, reminderNow).Steps("movie time") != null) throw new Exception("Listing or forgetting a routine failed.");
+                checks.Add("PASS routines save without running, reload, match the whole phrase with case, punctuation or Hey Capri, run ordinary tools or pass the whole job to the usual request path, and list and forget");
+                if (!Hands.Heard("forget about my workout routine", out reminderTool, out reminderArgs) || reminderTool != "remember" || reminderArgs.Action != "forget" || reminderArgs.Text != "my workout routine"
+                    || !Hands.Heard("forget the workout routine", out reminderTool, out reminderArgs) || reminderTool != "remember") throw new Exception("Forgetting a note about a routine was intercepted.");
+                reminders.Routine(new ToolArguments { Phrase = "workout", Steps = "play workout music" });
+                if (!Hands.Heard("forget the workout routine", out reminderTool, out reminderArgs) || reminderTool != "routine" || DoTool(reminderTool, reminderArgs) != "Forgot your routine: workout") throw new Exception("An existing routine did not match its forget request.");
+                checks.Add("PASS forgetting a routine only takes the routine branch when it exists, and forget about my workout routine still reaches remember");
+
+                CloseTalk();
+                int reminderBrainCalls = 0;
+                Think = delegate { reminderBrainCalls++; return "Unexpected brain call."; };
+                preferences.Silent = true;
+                Hear("remind me in an hour to stretch");
+                Stopwatch reminderWait = Stopwatch.StartNew();
+                while (reply == null && reminderWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (reminderBrainCalls != 0 || reply == null || !reply.Contains(": stretch")) throw new Exception("A complete reminder went to her brain.");
+                CloseTalk();
+                int reminderVoices = 0;
+                Speak = delegate { reminderVoices++; return null; };
+                FreeSpeak = Speak;
+                preferences.Silent = false;
+                preferences.Quiet = false;
+                FullScreen = delegate { return true; };
+                shushed = false;
+                CheckReminders(reminderNow.AddHours(1));
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (reply != "Reminder: stretch" || !box.Visible || reminderVoices != 0) throw new Exception("A full-screen game held back a reminder bubble or spoke over it.");
+                CloseTalk();
+                reminders.Remind(new ToolArguments { Text = "quiet reminder", When = "in an hour" });
+                FullScreen = delegate { return false; };
+                shushed = true;
+                CheckReminders(reminderNow.AddHours(1));
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (reply != "Reminder: quiet reminder" || !box.Visible || reminderVoices != 0) throw new Exception("Quiet mode held back a reminder bubble or spoke over it.");
+                CloseTalk();
+                reminders.Remind(new ToolArguments { Text = "spoken reminder", When = "in an hour" });
+                shushed = false;
+                CheckReminders(reminderNow.AddHours(1));
+                Stopwatch reminderVoiceWait = Stopwatch.StartNew();
+                while (reply == null && reminderVoiceWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (reply != "Reminder: spoken reminder" || reminderVoices == 0) throw new Exception("A reminder did not use her usual voice path.");
+                checks.Add("PASS complete reminders skip the brain, due reminders use her bubble and usual voice path, and Quiet mode and full-screen games still show the bubble without voice");
+
+                CloseTalk();
+                Job reminderJob = new Job("open notepad");
+                job = reminderJob;
+                working = "On it. Esc stops me.";
+                talkState = TalkState.Thinking;
+                int reminderJobTicket = asking;
+                Hear("remind me in 20 minutes to check the oven");
+                Stopwatch reminderJobWait = Stopwatch.StartNew();
+                while ((asideShown == null || !asideShown.Contains("check the oven")) && reminderJobWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (job != reminderJob || asking != reminderJobTicket || talkState != TalkState.Thinking || reminderBrainCalls != 0 || working == null || asideShown == null || !asideShown.Contains(": check the oven")
+                    || !new Reminders(reminderFolder, reminderNow).Remind(new ToolArguments { Action = "list" }).Contains("check the oven")) throw new Exception("A mid-job reminder was acknowledged without saving, or replaced the active job.");
+                string reminderJobLine = asideShown;
+                Hear("when I say oven ready, open spotify");
+                Stopwatch reminderRoutineWait = Stopwatch.StartNew();
+                while (asideShown == reminderJobLine && reminderRoutineWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (job != reminderJob || asking != reminderJobTicket || routineRuns.Count != 6 || new Reminders(reminderFolder, reminderNow).Steps("oven ready") != "open spotify") throw new Exception("A mid-job routine was not saved beside the active job.");
+                checks.Add("PASS reminders and routine definitions received mid-job execute their planned tools and persist without cancelling or replacing the active job");
+
+                CheckReminders(reminderNow.AddMinutes(20));
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                if (asideShown != "Reminder: check the oven" || box.Reply != asideShown || !box.Visible || job != reminderJob || asking != reminderJobTicket || talkState != TalkState.Thinking
+                    || reminders.Take(reminderNow.AddMinutes(20)) != null) throw new Exception("A due reminder waited for the job to end or took over its reply.");
+                job = null;
+                working = null;
+                CloseTalk();
+                int reminderCallVoices = reminderVoices;
+                foreach (bool reminderLocalCall in new bool[] { false, true })
+                {
+                    chatting = true;
+                    local = reminderLocalCall;
+                    talkState = TalkState.Thinking;
+                    reminders.Remind(new ToolArguments { Text = "call reminder", When = "in an hour" });
+                    CheckReminders(reminderNow.AddHours(1));
+                    UpdateTalk(clock.Elapsed.TotalSeconds);
+                    if (reply != "Reminder: call reminder" || !box.Visible || reminderVoices != reminderCallVoices || !chatting || local != reminderLocalCall
+                        || reminders.Take(reminderNow.AddHours(1)) != null) throw new Exception("A due reminder waited for a call to end or spoke over it.");
+                    CloseTalk();
+                }
+                chatting = false;
+                local = false;
+                checks.Add("PASS due reminders show in the working text during a job and only in her bubble during local or cloud calls, without waiting for either to finish or firing twice");
+            }
+            catch (IOException reminderIo) { checks.Add("LIMIT reminder persistence could not use the smoke folder: " + reminderIo.Message); }
+            catch (UnauthorizedAccessException reminderAccess) { checks.Add("LIMIT reminder persistence could not use the smoke folder: " + reminderAccess.Message); }
+            finally
+            {
+                chatting = false;
+                local = false;
+                CloseTalk();
+                job = savedReminderJob;
+                working = savedReminderWorking;
+                chatting = savedReminderChatting;
+                local = savedReminderLocal;
+                reminders = savedReminders;
+                Hands.Plan = savedPlan;
+                Hands.Remind = savedRemind;
+                Hands.Routine = savedRoutine;
+                Hands.Catalog = savedReminderCatalog;
+                Hands.Run = savedReminderRun;
+                Hands.Forget();
+                Think = savedReminderThink;
+                Hands.Animate = savedRoutineAnimate;
+                Speak = savedReminderSpeak;
+                FreeSpeak = savedReminderFree;
+                FullScreen = savedReminderScreen;
+                preferences.Quiet = savedReminderQuiet;
+                preferences.Silent = savedReminderSilent;
+                preferences.QuickHands = savedReminderQuick;
+                shushed = savedReminderShush;
+                Security.Load(savedReminderSecurity);
+            }
+        }
+
+        private static void SmokeSelfKnow(System.Collections.Generic.List<string> checks)
+        {
+            string[,] selfSamples =
+            {
+                { "what does pop in on me do", "Check in on me" },
+                { "how do I change your voice", "Voice" },
+                { "what's Blackwall", "Security" },
+                { "how do I make you bigger", "Size" },
+                { "why can't you see my screen", "Watch my screen" },
+                { "what's the Bubble setting", "Bubble" },
+                { "how do I connect a free key", "Free key" },
+                { "what can you do", "What she can do" },
+                { "give me a tutorial", "Tutorial" },
+                { "how do I use you", "Tutorial" },
+                { "Can you give me a tutorial?", "Tutorial" },
+                { "WHAT DOES POP-IN ON ME DO?", "Check in on me" },
+                { "why can\u2019t you see my screen?", "Watch my screen" },
+                { "what does Gaming Mode do?", "Gaming Mode" },
+                { "how does Free voice in games work?", "Free voice in games" },
+                { "how do your game comments work?", "Comments" },
+                { "where is personality.md?", "personality.md" },
+                { "how do I stop a job?", "Stop a job" },
+                { "how do I set a reminder?", "Reminders" },
+                { "how does your wake word work?", "Listen for \"Hey Capri\"" }
+            };
+            for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
+            {
+                string selfFound = SelfKnow.Matching(selfSamples[selfSample, 0]);
+                if (selfFound == null || !selfFound.StartsWith(selfSamples[selfSample, 1] + ":", StringComparison.Ordinal))
+                    throw new Exception("Self knowledge missed the best topic for: " + selfSamples[selfSample, 0]);
+            }
+            string[] selfOrdinary = { null, "", "you", "your", "hey Capri", "what's your favourite song", "how do I bake bread", "how was your day", "what do you think of my drawing", "your voice is lovely", "is your voice pretty", "can you remind me what I said yesterday", "what is on my screen", "what's the Blackwall in Cyberpunk 2077", "what is Blackwall in Night City", "give me a Minecraft tutorial", "how do I use you in a game", "how do I change your voice in Skyrim", "how do I change your voice in a videogame", "what's the Bubble setting in Stardew Valley", "what can you do in Elden Ring", "how do I beat this boss", "give me a tutorial for chess", "how do I use you to play chess", "how do I change my game's settings" };
+            foreach (string selfChat in selfOrdinary)
+                if (SelfKnow.Matching(selfChat) != null) throw new Exception("Self knowledge matched ordinary chat or a game: " + selfChat);
+            foreach (SelfKnow.Topic selfTopic in SelfKnow.Topics)
+            {
+                string selfNamed = SelfKnow.Matching("What is the " + selfTopic.Name + " setting in Capri?");
+                if (selfNamed == null || !selfNamed.StartsWith(selfTopic.Name + ":", StringComparison.Ordinal))
+                    throw new Exception("Self knowledge cannot find its named topic: " + selfTopic.Name);
+            }
+            string selfMany = SelfKnow.Matching("Explain Capri settings: Bubble, Mainframe size, Voice layers, Size, Memory and Volume");
+            if (selfMany == null || selfMany.Split('\n').Length != 3 || selfMany.IndexOf("Mainframe size:", StringComparison.Ordinal) < 0
+                || selfMany.IndexOf("Voice layers:", StringComparison.Ordinal) < 0 || selfMany.IndexOf("Mainframe:", StringComparison.Ordinal) >= 0)
+                throw new Exception("Self knowledge did not keep the three best-fitting topics.");
+            string[] selfSteps = SelfKnow.Tutorial.Split('\n');
+            if (selfSteps.Length != 6 || SelfKnow.Matching("how do I use you") != "Tutorial:\n" + SelfKnow.Tutorial)
+                throw new Exception("Her tutorial lost its six steps.");
+            for (int selfStep = 0; selfStep < selfSteps.Length; selfStep++)
+                if (!selfSteps[selfStep].StartsWith((selfStep + 1) + ". ", StringComparison.Ordinal)) throw new Exception("Her tutorial lost its step order.");
+            checks.Add("PASS self knowledge: sample asks find the right topic, every named topic is reachable, a tutorial has six steps, only the three best topics fit, and ordinary chat and game questions find nothing");
+
+            string selfRoot = null;
+            foreach (string selfStart in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
+            {
+                DirectoryInfo selfFolder = new DirectoryInfo(selfStart);
+                while (selfFolder != null)
+                {
+                    if (File.Exists(Path.Combine(selfFolder.FullName, "app", "Mainframe.cs"))) { selfRoot = selfFolder.FullName; break; }
+                    selfFolder = selfFolder.Parent;
+                }
+                if (selfRoot != null) break;
+            }
+            if (selfRoot == null) checks.Add("LIMIT self knowledge setting names need the app source tree; it is not beside this executable or working directory");
+            else
+            {
+                System.Collections.Generic.Dictionary<string, string> selfSources = new System.Collections.Generic.Dictionary<string, string>();
+                System.Collections.Generic.HashSet<string> selfLabels = new System.Collections.Generic.HashSet<string>();
+                bool selfReadable = true;
+                foreach (SelfKnow.Topic selfEntry in SelfKnow.Topics)
+                {
+                    if (selfEntry.File == null) continue;
+                    string selfSource;
+                    if (!selfSources.TryGetValue(selfEntry.File, out selfSource))
+                    {
+                        try { selfSource = File.ReadAllText(Path.Combine(selfRoot, "app", selfEntry.File)); }
+                        catch (IOException) { selfReadable = false; break; }
+                        catch (UnauthorizedAccessException) { selfReadable = false; break; }
+                        selfSources.Add(selfEntry.File, selfSource);
+                    }
+                    string selfLiteral = "\"" + selfEntry.Label.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+                    if (selfSource.IndexOf(selfLiteral, StringComparison.Ordinal) < 0)
+                        throw new Exception("Self knowledge has an old label in " + selfEntry.File + ": " + selfEntry.Label);
+                    selfLabels.Add(selfEntry.Label);
+                }
+                if (!selfReadable) checks.Add("LIMIT self knowledge could not read all its setting sources here");
+                else
+                {
+                    foreach (Match selfControl in Regex.Matches(selfSources["Mainframe.cs"], "(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
+                        if (!selfLabels.Contains(selfControl.Groups[1].Value)) throw new Exception("Self knowledge is missing a setting: " + selfControl.Groups[1].Value);
+                    foreach (string selfPermission in Security.Names)
+                        if (!selfLabels.Contains(selfPermission)) throw new Exception("Self knowledge is missing a SECURITY toggle: " + selfPermission);
+                    foreach (string selfPreset in Security.Presets)
+                        if (SelfKnow.Matching("Explain the Security setting").IndexOf(selfPreset, StringComparison.Ordinal) < 0)
+                            throw new Exception("Self knowledge is missing a SECURITY preset: " + selfPreset);
+                    checks.Add("PASS self knowledge names: every available topic label is a checked string in its source, every Mainframe switch and slider and all SECURITY presets and toggles are covered");
+                }
+            }
+
+            string selfOllama = Brain.Ollama, selfNotes = Brain.MemoryPath, selfMemories = Brain.MemoriesPath, selfTranscripts = Brain.TranscriptPath, selfLog = Brain.LogPath;
+            bool selfKeeping = Brain.Keeping;
+            System.Net.Sockets.TcpListener selfServer = null;
+            System.Collections.Generic.List<string> selfRequests = new System.Collections.Generic.List<string>();
+            try
+            {
+                const string selfReply = "{\"message\":{\"role\":\"assistant\",\"content\":\"Right here with you.\"},\"done\":true}";
+                try { Brain.Ollama = FakeServer(new[] { selfReply, selfReply, selfReply, selfReply }, selfRequests, out selfServer); }
+                catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT self knowledge chat wiring could not open its local test server"); return; }
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                Brain selfBrain = new Brain { Model = "self-knowledge-test" };
+                string[] selfAsks = { "what's the Bubble setting", "what's your favourite song", "give me a tutorial", "what's Blackwall in Cyberpunk 2077" };
+                for (int selfAsk = 0; selfAsk < selfAsks.Length; selfAsk++)
+                {
+                    if (selfBrain.Ask(selfAsks[selfAsk]) != "Right here with you.") throw new Exception("Self knowledge replaced her brain's own answer.");
+                    string selfWire;
+                    lock (selfRequests)
+                    {
+                        if (selfRequests.Count != selfAsk + 1) throw new Exception("Self knowledge made an extra brain call.");
+                        selfWire = selfRequests[selfAsk];
+                    }
+                    ChatRequest selfRequest;
+                    using (MemoryStream selfBody = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(selfWire.Substring(selfWire.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4))))
+                        selfRequest = (ChatRequest)new DataContractJsonSerializer(typeof(ChatRequest)).ReadObject(selfBody);
+                    ChatMessage selfLast = selfRequest.Messages[selfRequest.Messages.Length - 1];
+                    bool selfHelp = selfAsk == 0 || selfAsk == 2;
+                    if (selfLast.Role != "user" || (selfLast.Content.IndexOf("Facts about yourself", StringComparison.Ordinal) >= 0) != selfHelp
+                        || (selfRequest.Messages[0].Content.IndexOf("For this app-help question", StringComparison.Ordinal) >= 0) != selfHelp
+                        || selfRequest.Messages[0].Content.IndexOf(Brain.Persona, StringComparison.Ordinal) < 0)
+                        throw new Exception("Self knowledge facts or her personality went to the wrong prompt.");
+                    if (selfHelp && selfLast.Content.IndexOf(SelfKnow.Matching(selfAsks[selfAsk]), StringComparison.Ordinal) < 0)
+                        throw new Exception("Self knowledge facts were missing from the user's message.");
+                    if (!selfHelp && (selfLast.Content != selfAsks[selfAsk] || selfRequest.Options.Limit != Brain.Budget))
+                        throw new Exception("Self knowledge changed an unrelated message or its reply budget.");
+                    if (selfHelp && selfRequest.Options.Limit < 360) throw new Exception("Her walkthrough had no room to finish.");
+                    for (int selfHistory = 1; selfHistory < selfRequest.Messages.Length - 1; selfHistory++)
+                        if (selfRequest.Messages[selfHistory].Content.IndexOf("Facts about yourself", StringComparison.Ordinal) >= 0)
+                            throw new Exception("Self knowledge facts leaked into later chat history.");
+                }
+                checks.Add("PASS self knowledge chat: facts ride only on relevant user messages, her personality and brain answer stay intact, tutorial replies have room, no extra brain call runs, and ordinary chat and games keep their original text and budget even after app help");
+            }
+            finally
+            {
+                Brain.Ollama = selfOllama;
+                Brain.MemoryPath = selfNotes;
+                Brain.MemoriesPath = selfMemories;
+                Brain.TranscriptPath = selfTranscripts;
+                Brain.LogPath = selfLog;
+                Brain.Keeping = selfKeeping;
+                if (selfServer != null) selfServer.Stop();
+            }
+        }
+
+        private void SmokeCare(System.Collections.Generic.List<string> checks)
+        {
+            double careNow = 0;
+            DateTime careDay = new DateTime(2026, 10, 30, 10, 0, 0);
+            Func<double> careClock = delegate { return careNow; };
+            Func<DateTime> careCalendar = delegate { return careDay.AddSeconds(careNow); };
+            Func<CareKind, string> careWords = delegate(CareKind wordKind) { return wordKind.ToString(); };
+            Func<Preferences> careOff = delegate
+            {
+                Preferences offSettings = new Preferences();
+                for (int offIndex = 0; offIndex < Care.Names.Length; offIndex++) offSettings.SetCare((CareKind)offIndex, false, offSettings.CareTime((CareKind)offIndex));
+                return offSettings;
+            };
+            Action<bool, string> careMust = delegate(bool passed, string problem) { if (!passed) throw new Exception("Care: " + problem); };
+            CareKind[] timedKinds = { CareKind.Water, CareKind.Stretch, CareKind.Eyes, CareKind.Game, CareKind.Bored };
+            foreach (CareKind timedKind in timedKinds)
+            {
+                careNow = 0;
+                Preferences timedSettings = careOff();
+                timedSettings.SetCare(timedKind, true, timedSettings.CareTime(timedKind));
+                Care timedCare = new Care(careClock, careCalendar, careWords);
+                double timedDue = timedSettings.CareTime(timedKind) * 60.0;
+                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == null, timedKind + " fired on startup.");
+                careNow = timedDue - 1;
+                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == null, timedKind + " fired early.");
+                careNow = timedDue;
+                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == timedKind.ToString(), timedKind + " missed its time.");
+                careNow = timedDue * 2;
+                careMust(timedCare.Check(timedSettings, 0, true, "Game A", timedDue, 1) == timedKind.ToString(), timedKind + " did not repeat on its own timer.");
+                timedSettings.SetCare(timedKind, false, timedSettings.CareTime(timedKind));
+                careNow = timedDue * 3;
+                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == null, timedKind + " ignored Off.");
+                timedSettings.SetCare(timedKind, true, 30);
+                careMust(timedCare.Check(timedSettings, 0, true, "Game A", careNow, 1) == null, timedKind + " was overdue when enabled.");
+                careNow += 1800;
+                careMust(timedCare.Check(timedSettings, 0, true, "Game A", careNow - 1800, 1) == timedKind.ToString(), timedKind + " ignored its new interval.");
+            }
+            checks.Add("PASS care timers: water at 60 minutes, stretch at 90, eyes at 25, the same game at 120 and boredom at 60, with independent repeats, Off and changed intervals on a fake clock");
+
+            Preferences heldSettings = careOff();
+            heldSettings.CareWater = heldSettings.CareStretch = heldSettings.CareEyes = true;
+            careNow = 0;
+            Care heldCare = new Care(careClock, careCalendar, careWords);
+            heldCare.Check(heldSettings, 0, true, null, 0, 1);
+            foreach (double heldAt in new[] { 1500.0, 3600, 5400, 7199 })
+            {
+                careNow = heldAt;
+                careMust(heldCare.Check(heldSettings, 0, false, null, 0, 1) == null, "a held check-in escaped.");
+            }
+            careMust(heldCare.Check(heldSettings, 0, true, null, 0, 1) != null, "held check-ins were all lost.");
+            careNow = 7200;
+            careMust(heldCare.Check(heldSettings, 0, true, null, 0, 1) == null, "held check-ins piled up on the next tick.");
+            careNow = 7201;
+            careMust(heldCare.Check(heldSettings, 0, true, null, 0, 1) == null, "a second overdue check-in escaped.");
+            checks.Add("PASS care holds: overdue check-ins coalesce to one when clear and the other timers start fresh, without a pile on following ticks");
+
+            Preferences idleSettings = careOff();
+            idleSettings.CareWater = true;
+            careNow = 0;
+            Care idleCare = new Care(careClock, careCalendar, careWords);
+            idleCare.Check(idleSettings, 0, true, null, 0, 1);
+            careNow = 3600;
+            careMust(idleCare.Check(idleSettings, Care.Away + 1, true, null, 0, 1) == null, "an idle PC got a check-in.");
+            careNow = 7200;
+            careMust(idleCare.Check(idleSettings, 0, true, null, 0, 1) == null, "idle time counted on return.");
+            careNow = 10799;
+            careMust(idleCare.Check(idleSettings, 0, true, null, 0, 1) == null, "the idle reset started before the user returned.");
+            careNow = 10800;
+            careMust(idleCare.Check(idleSettings, 0, true, null, 0, 1) == "Water", "the timer did not restart after idle.");
+            checks.Add("PASS care idle: over ten minutes idle clears held check-ins and a fresh hour starts when they return");
+
+            Preferences nightSettings = careOff();
+            nightSettings.CareLate = true;
+            careNow = 0;
+            careDay = new DateTime(2026, 10, 30, 23, 0, 0);
+            Care nightCare = new Care(careClock, careCalendar, careWords);
+            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == null, "the sleep nudge came before 1 am.");
+            careNow = 7200;
+            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == "Late", "the 1 am sleep nudge was missed.");
+            careNow = 10800;
+            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == null, "sleep nudged twice in a night.");
+            Care restartedNight = new Care(careClock, careCalendar, careWords);
+            careMust(restartedNight.Check(nightSettings, 0, true, null, 0, 1) == null, "a restart repeated the same night's nudge.");
+            careNow = 93600;
+            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == "Late", "the next night was not a new night.");
+            Preferences eveningSettings = careOff();
+            eveningSettings.CareLate = true;
+            eveningSettings.CareLateHour = 23;
+            careNow = 0;
+            Care eveningCare = new Care(careClock, careCalendar, careWords);
+            careMust(eveningCare.Check(eveningSettings, 0, true, null, 0, 1) == "Late", "an edited bedtime was ignored.");
+            careNow = 7200;
+            careMust(eveningCare.Check(eveningSettings, 0, true, null, 0, 1) == null, "midnight counted as a second night.");
+            Preferences staleNightSettings = careOff();
+            staleNightSettings.CareLate = true;
+            Care staleNight = new Care(careClock, careCalendar, careWords);
+            staleNight.Check(staleNightSettings, 0, false, null, 0, 1);
+            careNow = 32400;
+            careMust(staleNight.Check(staleNightSettings, 0, true, null, 0, 1) == null, "last night's held nudge arrived in daylight.");
+            checks.Add("PASS care nights: the chosen hour fires once per night across midnight and restarts, returns next night and expires in the morning");
+
+            Preferences mealSettings = careOff();
+            mealSettings.CareMeal = true;
+            careNow = 0;
+            careDay = new DateTime(2026, 10, 30, 11, 0, 0);
+            Care mealCare = new Care(careClock, careCalendar, careWords);
+            mealCare.Check(mealSettings, 0, true, null, 0, 1);
+            careNow = 3599;
+            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == null, "lunch was early.");
+            careNow = 3600;
+            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == "Meal", "lunch was missed.");
+            careNow = 3700;
+            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == null, "lunch repeated.");
+            careNow = 25200;
+            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == "Meal", "dinner was missed.");
+            Care afternoonCare = new Care(careClock, careCalendar, careWords);
+            careMust(afternoonCare.Check(mealSettings, 0, true, null, 0, 1) == null, "starting after lunch counted as being on since morning.");
+            careNow = 0;
+            Care staleMeal = new Care(careClock, careCalendar, careWords);
+            staleMeal.Check(mealSettings, 0, true, null, 0, 1);
+            careNow = 3600;
+            staleMeal.Check(mealSettings, 0, false, null, 0, 1);
+            careNow = 10800;
+            careMust(staleMeal.Check(mealSettings, 0, true, null, 0, 1) == null, "a held lunch arrived hours late.");
+            checks.Add("PASS care meals: lunch and dinner only after starting before lunch, once per mealtime, with stale held meals discarded");
+
+            Preferences gameSettings = careOff();
+            gameSettings.CareGame = true;
+            careNow = 0;
+            Care gameCare = new Care(careClock, careCalendar, careWords);
+            gameCare.Check(gameSettings, 0, true, "Game A", 0, 1);
+            careNow = 7199;
+            careMust(gameCare.Check(gameSettings, 0, true, "Game A", 0, 1) == null, "a game break came early.");
+            careNow = 7200;
+            careMust(gameCare.Check(gameSettings, 0, true, "Game B", 0, 1) == null, "two different games counted as one session.");
+            careNow = 14400;
+            careMust(gameCare.Check(gameSettings, 0, false, "Game B", 0, 1) == null, "a game break escaped full screen.");
+            careNow = 14401;
+            careMust(gameCare.Check(gameSettings, 0, true, null, 0, 1) == "Game", "a held break was lost when the game closed.");
+            checks.Add("PASS care games: changing games starts a new two-hour session and a held break can appear when the game closes");
+
+            string careFolder = Path.Combine(Path.GetDirectoryName(settingsPath), "care-smoke", Guid.NewGuid().ToString("N"));
+            string careFile = Path.Combine(careFolder, "check-ins.md");
+            CareLines fileLines = new CareLines(careFile);
+            bool careFiles = fileLines.Create();
+            if (!careFiles) checks.Add("LIMIT care lines: this environment could not create the smoke check-ins.md");
+            else
+            {
+                string previousBored = null;
+                for (int boredDraw = 0; boredDraw < 12; boredDraw++)
+                {
+                    string boredLine = fileLines.Pick(CareKind.Bored);
+                    careMust(boredLine != null && boredLine != previousBored, "boredom repeated the same line.");
+                    previousBored = boredLine;
+                }
+                string editedCare = "## Water\n- A sip, please.\n\n## Bored\n- Edited boredom.\n\n## Bored noticed\n- Edited hello.\n\n## Bored ignored\n- Edited sulk.\n";
+                File.WriteAllText(careFile, editedCare);
+                careMust(fileLines.Create() && File.ReadAllText(careFile) == editedCare, "defaults overwrote an edited file.");
+                careNow = 0;
+                Care editedTimer = new Care(careClock, careCalendar, fileLines.Pick);
+                editedTimer.Check(idleSettings, 0, true, null, 0, 1);
+                careNow = 3600;
+                careMust(editedTimer.Check(idleSettings, 0, true, null, 0, 1) == "A sip, please.", "an edited line was not read at delivery.");
+                File.WriteAllText(careFile, editedCare.Replace("- A sip, please.", ""));
+                careNow = 7200;
+                careMust(editedTimer.Check(idleSettings, 0, true, null, 0, 1) == null, "a removed line fell back to a default.");
+                File.WriteAllText(careFile, "");
+                careMust(fileLines.Pick(CareKind.Bored) == null && fileLines.Pick("Bored ignored") == null, "an empty check-ins file still spoke.");
+                File.Delete(careFile);
+                careMust(fileLines.Pick(CareKind.Water) == null && !File.Exists(careFile), "a deleted check-ins file was silently restored.");
+                File.WriteAllText(careFile, editedCare);
+                string legacyCareFile = Path.Combine(careFolder, "older-check-ins.md");
+                File.WriteAllText(legacyCareFile, "Their old personality text.\n");
+                CareLines legacyCareLines = new CareLines(legacyCareFile);
+                careMust(legacyCareLines.Create() && File.ReadAllText(legacyCareFile).StartsWith("Their old personality text.\n", StringComparison.Ordinal) && legacyCareLines.Pick(CareKind.Water) != null, "existing personality text did not keep its text and get defaults once.");
+                checks.Add("PASS care lines: editable local defaults, live edits, removed lines, empty or deleted files, editable boredom replies and no consecutive boredom repeats");
+            }
+
+            DataContractJsonSerializer careJson = new DataContractJsonSerializer(typeof(Preferences));
+            Preferences oldCare = (Preferences)careJson.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}")));
+            careMust(oldCare.CareWater && oldCare.CareStretch && oldCare.CareBored && !oldCare.CareEyes && oldCare.CareWaterMinutes == 60 && oldCare.CareStretchMinutes == 90 && oldCare.CareEyesMinutes == 25 && oldCare.CareLateHour == 1 && oldCare.CareGameMinutes == 120, "older settings did not get the defaults.");
+            Preferences carePreferencesWas = preferences;
+            Care careWas = care;
+            CareLines careLinesWas = careLines;
+            Func<bool> careScreenWas = FullScreen;
+            double careNoticedWas = noticed, careNudgeWas = nudgeOut, careGapWas = nudgeGap, careVoiceWas = voiceUntil, carePopWas = popOut;
+            int careClicksWas = noticedClicks;
+            bool careBoredWas = boredAsk, careShushWas = shushed, careChatWas = chatting, careHiddenWas = hidden;
+            string careSpeechWas = speech, careWorkWas = working;
+            Job careJobWas = job;
+            TalkState careTalkWas = talkState;
+            try
+            {
+                preferences = new Preferences();
+                mainframe.Sync();
+                for (int careUi = 0; careUi < Care.Names.Length; careUi++)
+                {
+                    CareKind uiKind = (CareKind)careUi;
+                    bool uiOn = preferences.CareOn(uiKind);
+                    careMust(mainframe.CareShown(uiKind) == uiOn, "a HABITS toggle disagreed with its setting.");
+                    mainframe.FlipCare(uiKind);
+                    careMust(preferences.CareOn(uiKind) != uiOn && LoadPreferences().CareOn(uiKind) != uiOn, "a HABITS toggle did not save.");
+                    int uiTime = uiKind == CareKind.Late ? 23 : uiKind == CareKind.Meal ? 240 : 30;
+                    mainframe.PickCareTime(uiKind, uiTime);
+                    careMust(preferences.CareTime(uiKind) == uiTime && LoadPreferences().CareTime(uiKind) == uiTime && mainframe.CareTimeShown(uiKind) == (uiKind == CareKind.Late ? "11 pm" : uiKind == CareKind.Meal ? "4 h" : "30 min"), "a HABITS time did not show and save.");
+                }
+                checks.Add("PASS care HABITS: seven compact toggle and time rows match defaults and save every on/off and timing change");
+                preferences = careOff();
+                preferences.CareBored = true;
+                preferences.CheckIns = true;
+                if (careFiles) careLines = fileLines;
+                careNow = 0;
+                care = new Care(careClock, careCalendar, careWords);
+                FullScreen = delegate { return false; };
+                shushed = chatting = hidden = false;
+                speech = working = null;
+                job = null;
+                talkState = TalkState.Off;
+                voiceUntil = 0;
+                popOut = nudgeOut = -1;
+                nudgeGap = NudgeGap;
+                noticed = 0;
+                noticedClicks = clicks;
+                boredAsk = false;
+                careMust(PopFree(0, 0), "the smoke companion was not free for pop-ins.");
+                CheckCare(0, 0);
+                careNow = 3600;
+                shushed = true;
+                CheckCare(careNow, 0);
+                careMust(speech == null && !PopFree(careNow, 0), "quiet did not hold care and pop-ins together.");
+                shushed = false;
+                FullScreen = delegate { return true; };
+                CheckCare(careNow, 0);
+                careMust(speech == null && !PopFree(careNow, 0), "full screen did not hold care and pop-ins together.");
+                FullScreen = delegate { return false; };
+                chatting = true;
+                CheckCare(careNow, 0);
+                careMust(speech == null && !PopFree(careNow, 0), "voice chat did not hold care and pop-ins together.");
+                chatting = false;
+                working = "a job";
+                CheckCare(careNow, 0);
+                careMust(speech == null && working == "a job", "care interrupted a job.");
+                working = null;
+                speech = "already speaking";
+                CheckCare(careNow, 0);
+                careMust(speech == "already speaking", "care replaced her speech.");
+                speech = null;
+                voiceUntil = careNow + 10;
+                CheckCare(careNow, 0);
+                careMust(speech == null, "care interrupted playing voice audio.");
+                voiceUntil = 0;
+                CheckCare(careNow, 0);
+                careMust(speech == "Bored" && noticed == careNow && nudgeOut == careNow + 20 && boredAsk, "boredom did not count as an attention ask.");
+                speech = null;
+                CheckNudge(careNow + 21, 0);
+                if (careFiles) careMust(speech == "Edited sulk.", "a boredom follow-up ignored check-ins.md.");
+                speech = null;
+                careNow = 7200;
+                CheckNudge(careNow, 0);
+                CheckCare(careNow, 0);
+                careMust(speech == null && nudgeOut < 0 && nudgeGap == NudgeGap * 2, "boredom doubled up with the two-hour ask or lost the sulk's longer wait.");
+                careNow = 10821;
+                CheckCare(careNow, 0);
+                careMust(speech == "Bored", "boredom did not return after the longer wait.");
+                speech = null;
+                noticedClicks = clicks - 1;
+                careNow++;
+                CheckNudge(careNow, 0);
+                if (careFiles) careMust(speech == "Edited hello.", "noticing her ignored the edited reply.");
+                careMust(nudgeGap == NudgeGap && nudgeOut < 0 && noticed == careNow, "noticing her did not reset the attention wait.");
+                speech = null;
+                CheckCare(careNow, 0);
+                careNow += 3599;
+                CheckCare(careNow, 0);
+                careMust(speech == null, "boredom came less than an hour after attention.");
+                careNow++;
+                CheckCare(careNow, 0);
+                careMust(speech == "Bored", "attention left boredom on the old longer wait.");
+                speech = null;
+                CheckNudge(careNow, Care.Away + 1);
+                careMust(noticed < 0 && nudgeOut < 0, "idle did not reset the shared attention clock.");
+                CheckNudge(careNow + 1, 0);
+                careMust(noticed == careNow + 1, "attention did not restart on return.");
+                checks.Add("PASS care attention: boredom shares the attention clock and editable sulk, backs off when ignored, resets on idle and never doubles up with the old two-hour ask");
+                checks.Add("PASS care delivery: care and pop-ins share quiet, full-screen and voice-chat holds; jobs, speech and voice audio are left alone");
+            }
+            finally
+            {
+                preferences = carePreferencesWas;
+                care = careWas;
+                careLines = careLinesWas;
+                FullScreen = careScreenWas;
+                noticed = careNoticedWas;
+                noticedClicks = careClicksWas;
+                nudgeOut = careNudgeWas;
+                nudgeGap = careGapWas;
+                boredAsk = careBoredWas;
+                shushed = careShushWas;
+                chatting = careChatWas;
+                hidden = careHiddenWas;
+                speech = careSpeechWas;
+                working = careWorkWas;
+                job = careJobWas;
+                talkState = careTalkWas;
+                voiceUntil = careVoiceWas;
+                popOut = carePopWas;
+                SavePreferences();
+                mainframe.Sync();
+            }
+        }
+
         private static void SmokeFrames(System.Collections.Generic.List<string> checks)
         {
             const int motionWidth = 128;
@@ -9027,6 +10014,208 @@ namespace CapriDesktop
                 Thread.Sleep(10);
             }
             return null;
+        }
+
+        private static void SmokeGameSense(System.Collections.Generic.List<string> checks)
+        {
+            byte[] senseWorld = new byte[480 * 270 * 4];
+            Random senseRandom = new Random(627);
+            for (int noiseAt = 0; noiseAt < senseWorld.Length; noiseAt += 4)
+            {
+                senseWorld[noiseAt] = (byte)senseRandom.Next(25, 190);
+                senseWorld[noiseAt + 1] = (byte)senseRandom.Next(25, 190);
+                senseWorld[noiseAt + 2] = (byte)senseRandom.Next(25, 190);
+                senseWorld[noiseAt + 3] = 255;
+            }
+            string[] senseClips = { "flash", "hurt", "bar_drop", "cut", "dark", "pan", "red wall", "steady bar", "small drop", "day to night", "sky", "tilt", "vertical bar", "right bar", "empty bar", "same colours", "brief cut", "held light", "cooldown", "cut hold", "idle then pan", "idle then fade", "idle then bar", "slow drain", "drain then drop", "long flash", "light cut" };
+            for (int senseCase = 0; senseCase < senseClips.Length + 2; senseCase++)
+            {
+                bool uneven = senseCase >= senseClips.Length;
+                string clip = uneven ? senseCase == senseClips.Length ? "slow drain" : "drain then drop" : senseClips[senseCase];
+                GameSense sense = new GameSense();
+                System.Collections.Generic.List<string> senseKinds = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<double> senseTimes = new System.Collections.Generic.List<double>();
+                System.Collections.Generic.List<double> senseStrengths = new System.Collections.Generic.List<double>();
+                double senseNow = 0;
+                sense.Noticed += delegate(string ignoredKind, double ignoredStrength) { throw new Exception("A failing game sense subscriber."); };
+                sense.Noticed += delegate(string sensedKind, double sensedStrength)
+                {
+                    senseKinds.Add(sensedKind); senseTimes.Add(senseNow); senseStrengths.Add(sensedStrength);
+                };
+                for (int senseFrame = 0; senseFrame < (uneven ? 130 : 65); senseFrame++)
+                {
+                    senseNow = uneven ? senseFrame / 10.0 + (senseFrame % 2 == 0 ? 0 : 0.04) : senseFrame / 5.0;
+                    sense.Feed(SenseFrame(senseWorld, clip, (int)Math.Floor(senseNow * 5 + 0.000001)), 240, 135, senseNow);
+                }
+                string expected = senseCase < 5 ? clip : clip == "vertical bar" || clip == "right bar" || clip == "empty bar" || clip == "idle then bar" || clip == "drain then drop" ? "bar_drop" : clip == "same colours" || clip == "cut hold" || clip == "light cut" ? "cut" : clip == "cooldown" || clip == "held light" || clip == "long flash" ? "flash" : null;
+                int expectedCount = clip == "cooldown" ? 2 : expected == null ? 0 : 1;
+                if (senseKinds.Count != expectedCount) throw new Exception("Game sense " + clip + " expected " + expectedCount + " events, got " + string.Join(", ", senseKinds) + " at " + string.Join(", ", senseTimes));
+                for (int senseEvent = 0; senseEvent < senseKinds.Count; senseEvent++)
+                {
+                    if (double.IsNaN(senseStrengths[senseEvent]) || senseStrengths[senseEvent] < 0 || senseStrengths[senseEvent] > 1) throw new Exception("Invalid game sense strength.");
+                    double earliest = expected == "flash" ? clip == "held light" || clip == "long flash" ? 5.2 : senseEvent == 0 ? 4.4 : 8.4 : expected == "bar_drop" ? clip == "idle then bar" || clip == "drain then drop" ? 8.2 : 4.2 : expected == "cut" ? clip == "light cut" ? 5.2 : 4.6 : expected == "dark" ? 7.0 : 4.0;
+                    if (senseKinds[senseEvent] != expected || senseTimes[senseEvent] < earliest - 0.01 || senseTimes[senseEvent] > earliest + 0.6)
+                        throw new Exception("Game sense " + clip + " fired " + senseKinds[senseEvent] + " at " + senseTimes[senseEvent] + ", expected " + expected + " near " + earliest + ".");
+                    if (expected == "bar_drop" && Math.Abs(senseStrengths[senseEvent] - (clip == "empty bar" ? 1 : 0.3)) > 0.015) throw new Exception("Game sense lost the size of a bar drop.");
+                }
+            }
+            checks.Add("PASS game sense: scrolling colour noise with a fixed HUD notices one flash, red edge hurt, 30% bar loss, persistent cut and dark fade at the right times; strengths stay in range, horizontal, vertical, right-anchored and empty bars keep the lost fraction");
+            checks.Add("PASS game sense stays quiet through fast panning, a red wall across the middle, steady HUD, 3% bar loss, slow day to night, bright sky, damage tilt and a brief scene change; same-colour cuts persist, cooldowns and cut holds prevent repeats");
+            checks.Add("PASS game sense ignores an idle strip that pans away or fades, learns a fixed bar when its surroundings move and ignores a 40% drain over three seconds while catching a later sudden 30% drop at regular and uneven feed times");
+            checks.Add("PASS game sense calls held near-white light a single flash after the hold expires, including when the picture returns; a bright coloured scene still becomes a cut");
+
+            GameSense resetSense = new GameSense();
+            int resetNotices = 0;
+            resetSense.Noticed += delegate(string resetKind, double resetStrength) { resetNotices++; };
+            byte[] resetFrame = SenseFrame(senseWorld, "steady bar", 0);
+            for (int invalidCase = 0; invalidCase < 10; invalidCase++)
+            {
+                for (int resetWarm = 0; resetWarm < 20; resetWarm++) resetSense.Feed(SenseFrame(senseWorld, "steady bar", resetWarm), 240, 135, resetWarm / 5.0);
+                if (invalidCase == 0) resetSense.Feed(null, 240, 135, 4);
+                else if (invalidCase == 1) resetSense.Feed(new byte[7], 240, 135, 4);
+                else if (invalidCase == 2) resetSense.Feed(resetFrame, int.MaxValue, int.MaxValue, 4);
+                else if (invalidCase == 3) resetSense.Feed(resetFrame, 0, 135, 4);
+                else if (invalidCase == 4) resetSense.Feed(resetFrame, 240, -135, 4);
+                else if (invalidCase == 5) resetSense.Feed(resetFrame, 240, 135, double.NaN);
+                else if (invalidCase == 6) resetSense.Feed(resetFrame, 240, 135, double.PositiveInfinity);
+                else if (invalidCase == 7) resetSense.Feed(new byte[32 * 24 * 4], 32, 24, 4);
+                else if (invalidCase == 8) resetSense.Feed(resetFrame, 240, 135, -1);
+                else resetSense.Reset();
+                resetSense.Feed(SenseFrame(senseWorld, "bar_drop", 20), 240, 135, 4.2);
+                if (resetNotices != 0) throw new Exception("Bad game frames or Reset kept old bar evidence.");
+                resetSense.Reset();
+            }
+            resetSense.Feed(new byte[4], 1, 1, 0);
+            resetSense.Feed(new byte[] { 255, 255, 255, 255 }, 1, 1, 0.2);
+            resetSense.Reset();
+            for (int repeatRound = 0; repeatRound < 2; repeatRound++)
+            {
+                for (int repeatFrame = 0; repeatFrame < 30; repeatFrame++)
+                {
+                    byte[] reused = SenseFrame(senseWorld, "bar_drop", repeatFrame);
+                    Buffer.BlockCopy(reused, 0, resetFrame, 0, reused.Length);
+                    resetSense.Feed(resetFrame, 240, 135, repeatFrame / 5.0);
+                }
+                if (resetNotices != repeatRound + 1) throw new Exception("Reset kept a cooldown or game sense retained the caller's reused buffer.");
+                resetSense.Reset();
+            }
+            checks.Add("PASS game sense resets on malformed frames, changed dimensions, invalid or reversed clocks and Reset; tiny frames are safe, reused caller buffers work, reset clears cooldowns and failing subscribers stay contained");
+            using (Bitmap senseBitmap = new Bitmap(480, 270, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics senseDrawing = Graphics.FromImage(senseBitmap)) senseDrawing.Clear(Color.FromArgb(255, 210, 90, 30));
+                byte[] senseBgra = GameSense.Bgra(senseBitmap, 240, 135);
+                int middleAt = (67 * 240 + 120) * 4;
+                if (senseBgra == null || senseBgra.Length != 240 * 135 * 4 || senseBgra[middleAt] != 30 || senseBgra[middleAt + 1] != 90 || senseBgra[middleAt + 2] != 210 || senseBgra[middleAt + 3] != 255) throw new Exception("Game sense bitmap conversion lost BGRA order or dimensions.");
+                if (GameSense.Bgra(null, 240, 135) != null || GameSense.Bgra(senseBitmap, 0, 135) != null || GameSense.Bgra(senseBitmap, int.MaxValue, int.MaxValue) != null) throw new Exception("Game sense bitmap conversion accepted invalid input.");
+            }
+            checks.Add("PASS game sense makes a small BGRA frame from a bitmap and rejects invalid conversions");
+
+            byte[][] senseBench = new byte[65][];
+            for (int benchFrame = 0; benchFrame < senseBench.Length; benchFrame++) senseBench[benchFrame] = SenseFrame(senseWorld, "same colours", benchFrame);
+            Process senseProcess = Process.GetCurrentProcess();
+            IntPtr senseAffinity = IntPtr.Zero;
+            bool sensePinned = false;
+            try
+            {
+                try
+                {
+                    senseAffinity = senseProcess.ProcessorAffinity;
+                    long senseMask = senseAffinity.ToInt64();
+                    senseProcess.ProcessorAffinity = new IntPtr(senseMask & -senseMask);
+                    sensePinned = true;
+                }
+                catch (System.ComponentModel.Win32Exception) { }
+                catch (InvalidOperationException) { }
+                GameSense timedSense = new GameSense();
+                for (int timingWarm = 0; timingWarm < senseBench.Length; timingWarm++) timedSense.Feed(senseBench[timingWarm], 240, 135, timingWarm / 5.0);
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                double timingTotal = 0, timingPeak = 0;
+                for (int timingRound = 0; timingRound < 8; timingRound++)
+                {
+                    timedSense.Reset();
+                    for (int timingFrame = 0; timingFrame < senseBench.Length; timingFrame++)
+                    {
+                        long timingStart = Stopwatch.GetTimestamp();
+                        timedSense.Feed(senseBench[timingFrame], 240, 135, timingFrame / 5.0);
+                        double timingMs = (Stopwatch.GetTimestamp() - timingStart) * 1000.0 / Stopwatch.Frequency;
+                        timingTotal += timingMs;
+                        timingPeak = Math.Max(timingPeak, timingMs);
+                    }
+                }
+                double timingMean = timingTotal / (8 * senseBench.Length);
+                checks.Add((sensePinned && timingPeak < 2 ? "PASS " : "LIMIT ") + "game sense at 240x135 takes " + timingMean.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " ms per frame, slowest " + timingPeak.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " ms here" + (sensePinned ? " on one core" : "; processor affinity unavailable, one-core timing not verified"));
+            }
+            finally
+            {
+                if (sensePinned) senseProcess.ProcessorAffinity = senseAffinity;
+                senseProcess.Dispose();
+            }
+        }
+
+        private static byte[] SenseFrame(byte[] world, string clip, int number)
+        {
+            const int width = 240, height = 135;
+            byte[] pixels = new byte[width * height * 4];
+            bool after = number >= 20;
+            bool cut = (clip == "cut" || clip == "same colours" || clip == "cut hold") && after || clip == "brief cut" && number == 20;
+            bool idle = clip == "idle then pan" || clip == "idle then fade" || clip == "idle then bar";
+            int shift = clip == "idle then fade" ? 0 : idle ? Math.Max(0, number - 19) * (clip == "idle then pan" ? 43 : 3) : number * (clip == "pan" ? 43 : 3);
+            for (int worldY = 0; worldY < height; worldY++)
+                for (int worldX = 0; worldX < width; worldX++)
+                {
+                    int sourceY = (worldY + (cut ? 135 : 0) + (clip == "tilt" ? (worldX - 120) * (number % 5 - 2) / 60 : 0) + 270) % 270;
+                    int sourceX = (worldX + shift) % 480;
+                    int sourceAt = (sourceY * 480 + sourceX) * 4;
+                    int targetAt = (worldY * width + worldX) * 4;
+                    pixels[targetAt] = world[sourceAt]; pixels[targetAt + 1] = world[sourceAt + 1]; pixels[targetAt + 2] = world[sourceAt + 2]; pixels[targetAt + 3] = 255;
+                    if (cut && clip != "same colours") { pixels[targetAt] = (byte)(140 + pixels[targetAt] / 2); pixels[targetAt + 1] /= 2; pixels[targetAt + 2] /= 2; }
+                    if (clip == "day to night")
+                    {
+                        double daylight = 1 - number / 80.0;
+                        pixels[targetAt] = (byte)(pixels[targetAt] * daylight); pixels[targetAt + 1] = (byte)(pixels[targetAt + 1] * daylight); pixels[targetAt + 2] = (byte)(pixels[targetAt + 2] * daylight);
+                    }
+                    if (clip == "sky" && worldY < number * 3 - 30) { pixels[targetAt] = 245; pixels[targetAt + 1] = 225; pixels[targetAt + 2] = 180; }
+                    if (clip == "red wall" && worldY > 25 && worldY < 110 && worldX > number * 7 - 180 && worldX < number * 7 - 90) { pixels[targetAt] = 15; pixels[targetAt + 1] = 15; pixels[targetAt + 2] = 230; }
+                }
+            bool dropping = clip == "bar_drop" || clip == "vertical bar" || clip == "right bar" || clip == "empty bar" || clip == "small drop" || clip == "cut hold";
+            int barFill = after && dropping ? clip == "small drop" ? 97 : clip == "empty bar" ? 0 : 70 : 100;
+            if (clip == "slow drain" || clip == "drain then drop") barFill = 100 - Math.Min(40, Math.Max(0, number - 20) * 40 / 15) - (clip == "drain then drop" && number >= 40 ? 30 : 0);
+            if (clip == "idle then bar" && number >= 40) barFill = 70;
+            bool upright = clip == "vertical bar";
+            for (int hudRow = 0; hudRow < (upright ? 104 : 10); hudRow++)
+                for (int hudColumn = 0; hudColumn < (upright ? 10 : 104); hudColumn++)
+                {
+                    int hudX = hudColumn + 10 - (clip == "idle then pan" ? shift : 0);
+                    if (hudX < 0 || clip == "idle then fade" && number >= 20) continue;
+                    int hudAt = ((hudRow + 8) * width + hudX) * 4;
+                    int barPosition = upright ? hudRow - 2 : hudColumn - 2;
+                    bool filled = (upright ? hudColumn >= 2 && hudColumn < 8 : hudRow >= 2 && hudRow < 8) && barPosition >= 0 && barPosition < 100
+                        && (clip == "right bar" || upright ? barPosition >= 100 - barFill : barPosition < barFill);
+                    pixels[hudAt] = filled ? (byte)30 : (byte)16; pixels[hudAt + 1] = filled ? (byte)220 : (byte)16; pixels[hudAt + 2] = filled ? (byte)35 : (byte)16;
+                }
+            bool flash = clip == "flash" && number >= 20 && number < 22 || clip == "cooldown" && (number >= 20 && number < 22 || number >= 25 && number < 27 || number >= 40 && number < 42) || clip == "long flash" && number >= 20 && number < 30 || (clip == "held light" || clip == "light cut") && after;
+            for (int effectY = 0; effectY < height; effectY++)
+                for (int effectX = 0; effectX < width; effectX++)
+                {
+                    int effectAt = (effectY * width + effectX) * 4;
+                    if (flash)
+                    {
+                        pixels[effectAt] = (byte)(210 + pixels[effectAt] / 6); pixels[effectAt + 1] = (byte)(210 + pixels[effectAt + 1] / 6); pixels[effectAt + 2] = (byte)(210 + pixels[effectAt + 2] / 6);
+                        if (clip == "light cut") pixels[effectAt] -= 55;
+                    }
+                    bool edgeHurt = clip == "hurt" && number >= 20 && number < 25 || clip == "cut hold" && number >= 23 && number < 27;
+                    if (edgeHurt && (effectX < 24 || effectX >= 216 || effectY < 14 || effectY >= 121))
+                    {
+                        pixels[effectAt] /= 4; pixels[effectAt + 1] /= 4; pixels[effectAt + 2] = 230;
+                    }
+                    if (clip == "dark" && after)
+                    {
+                        double fade = Math.Max(0, 1 - (number - 20) / 10.0);
+                        pixels[effectAt] = (byte)(pixels[effectAt] * fade); pixels[effectAt + 1] = (byte)(pixels[effectAt + 1] * fade); pixels[effectAt + 2] = (byte)(pixels[effectAt + 2] * fade);
+                    }
+                }
+            return pixels;
         }
 
         private static void SmokeGameEars(System.Collections.Generic.List<string> checks)
@@ -9433,6 +10622,14 @@ namespace CapriDesktop
                 blind.Seer = delegate(byte[] picture, string prompt, string user) { throw new BrainException("no images here"); };
                 blind.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { reads++; return "done{\"text\": \"Read the buttons.\"}"; };
                 if (blind.Run() != "Read the buttons." || reads != 1) throw new Exception("A brain that can't see didn't fall back to reading buttons.");
+                if (WatchKind("hurt") != "hit" || WatchKind("bar_drop") != "hit" || WatchKind("cut") != "scene" || WatchKind("flash") != "flash") throw new Exception("Her game watcher named a moment wrong.");
+                Job flinching = new Job("play minecraft");
+                Computer.Flinched = false;
+                flinching.Hurt();
+                bool flinchedInGame = Computer.Flinched;
+                Computer.Flinched = false;
+                new Job("write a line in notepad").Hurt();
+                if (!flinchedInGame || Computer.Flinched) throw new Exception("A hit didn't reach a game job, or it reached one that isn't a game.");
                 if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
                 Func<string, bool> localSeesWas = Brain.LocalSees;
                 Func<string> localEyesWere = Brain.LocalEyes;
@@ -9836,6 +11033,10 @@ namespace CapriDesktop
                             SmokeLooseCalls(checks);
                             SmokeFrames(checks);
                             SmokeGameKeys(checks);
+                            SmokeReminders(checks);
+                            SmokeGameSense(checks);
+                            SmokeSelfKnow(checks);
+                            SmokeCare(checks);
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
@@ -11950,6 +13151,8 @@ namespace CapriDesktop
                             if (!poppedUp || !poppedBack || !stayedOut || !keptOut || !stayedPut || preferences.CheckIns != popsWere) throw new Exception("Her pop-ins went wrong: up " + poppedUp + ", back " + poppedBack + ", stayed " + stayedOut + ", kept " + keptOut + ", put " + stayedPut);
                             checks.Add("PASS pop-ins: with the setting on she pops up on top of your app even when hidden, says hi and hides again, and when she's already out she stays out; with Wander off she says hi from where she is");
                             bool nudgesWere = preferences.CheckIns;
+                            bool boredWas = preferences.CareBored;
+                            preferences.CareBored = false;
                             Point nudgeFrom = anchor;
                             Ledge nudgeSeat = seat;
                             double nudgeGlance = lastGlance, nudgeAt = clock.Elapsed.TotalSeconds;
@@ -11996,6 +13199,7 @@ namespace CapriDesktop
                             bool nudgeOff = !preferences.CheckIns && speech == null && nudgeOut < 0;
                             ToggleCheckIns();
                             preferences.CheckIns = nudgesWere;
+                            preferences.CareBored = boredWas;
                             lastGlance = nudgeGlance;
                             popOut = -1;
                             nudgeOut = -1;
@@ -19821,7 +21025,7 @@ namespace CapriDesktop
                             if (heard != "hi" || reply != "Loud and clear, choom." || (talkState != TalkState.Talking && talkState != TalkState.Online) || !speaker.Busy) throw new Exception("Voice chat did not hear and answer: " + heard + " / " + reply + " / " + talkState + " / " + log);
                             Play(idle);
                             if (MouthCell(clock.Elapsed.TotalSeconds, idle) < 0) throw new Exception("Her mouth did not follow the agent's audio.");
-                            string[] wanted = { "http POST /v1/convai/agents/create sk_test_capri_1234 {\"name\":\"Capri\"", "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}", "http PATCH /v1/convai/agents/agent_old sk_test_capri_1234 {\"conversation_config\":{\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45},\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "\"tool_ids\":[\"tool_kept\",\"tool_1\",\"tool_2\",\"tool_3\",\"tool_4\",\"tool_5\",\"tool_6\",\"tool_7\",\"tool_8\",\"tool_9\",\"tool_10\",\"tool_11\",\"tool_12\"]", "\"tool_ids\":[\"tool_kept\",\"tool_13\",\"tool_14\",\"tool_15\",\"tool_16\",\"tool_17\",\"tool_18\",\"tool_19\",\"tool_20\",\"tool_21\",\"tool_22\",\"tool_23\",\"tool_24\"]}}}}", "\"name\":\"move_yourself\"", "\"name\":\"animate\"", "\"name\":\"play_music\"", "\"name\":\"app_window\"", "\"name\":\"look_at_screen\"", "http GET /v1/convai/tools sk_test_capri_1234", "http POST /v1/convai/tools sk_test_capri_1234 {\"tool_config\":{\"type\":\"client\",\"name\":\"open_website\"", "\"name\":\"media\",\"description\":\"Control the music", "\"expects_response\":true,\"response_timeout_secs\":20}}", "You have tools for their PC", "tool {\"type\":\"client_tool_result\",\"tool_call_id\":\"call_1\",\"result\":\"Opened Spotify.\",\"is_error\":false}", "ran SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "Never check in", "beg them to talk or say they left you hanging", "\"prompt\":{\"prompt\":\"You are Capri", "\"llm\":\"gemini-2.5-flash\"", "\"tts\":{\"voice_id\":\"abc\"}", "\"overrides\":{\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":true}},\"tts\":{\"voice_id\":true}}}", "http GET /v1/convai/conversation/get-signed-url?agent_id=agent_old sk_test_capri_1234", "init {\"type\":\"conversation_initiation_client_data\",\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "pong {\"type\":\"pong\",\"event_id\":7}", "chunk silent | chunk loud | chunk loud" };
+                            string[] wanted = { "http POST /v1/convai/agents/create sk_test_capri_1234 {\"name\":\"Capri\"", "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}", "http PATCH /v1/convai/agents/agent_old sk_test_capri_1234 {\"conversation_config\":{\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45},\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "\"tool_ids\":[\"tool_kept\",\"tool_1\",\"tool_2\",\"tool_3\",\"tool_4\",\"tool_5\",\"tool_6\",\"tool_7\",\"tool_8\",\"tool_9\",\"tool_10\",\"tool_11\",\"tool_12\",\"tool_13\",\"tool_14\"]", "\"tool_ids\":[\"tool_kept\",\"tool_15\",\"tool_16\",\"tool_17\",\"tool_18\",\"tool_19\",\"tool_20\",\"tool_21\",\"tool_22\",\"tool_23\",\"tool_24\",\"tool_25\",\"tool_26\",\"tool_27\",\"tool_28\"]}}}}", "\"name\":\"move_yourself\"", "\"name\":\"animate\"", "\"name\":\"play_music\"", "\"name\":\"app_window\"", "\"name\":\"look_at_screen\"", "http GET /v1/convai/tools sk_test_capri_1234", "http POST /v1/convai/tools sk_test_capri_1234 {\"tool_config\":{\"type\":\"client\",\"name\":\"open_website\"", "\"name\":\"media\",\"description\":\"Control the music", "\"expects_response\":true,\"response_timeout_secs\":20}}", "You have tools for their PC", "tool {\"type\":\"client_tool_result\",\"tool_call_id\":\"call_1\",\"result\":\"Opened Spotify.\",\"is_error\":false}", "ran SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", "Never check in", "beg them to talk or say they left you hanging", "\"prompt\":{\"prompt\":\"You are Capri", "\"llm\":\"gemini-2.5-flash\"", "\"tts\":{\"voice_id\":\"abc\"}", "\"overrides\":{\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":true}},\"tts\":{\"voice_id\":true}}}", "http GET /v1/convai/conversation/get-signed-url?agent_id=agent_old sk_test_capri_1234", "init {\"type\":\"conversation_initiation_client_data\",\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":\"You are Capri", "pong {\"type\":\"pong\",\"event_id\":7}", "chunk silent | chunk loud | chunk loud" };
                             foreach (string piece in wanted) if (log.IndexOf(piece, StringComparison.Ordinal) < 0) throw new Exception("Agent traffic was missing " + piece + ": " + log);
                             bool sawInVoice = false;
                             lock (asked) foreach (string entry in asked) if (entry.StartsWith("init ", StringComparison.Ordinal) && entry.IndexOf("a pixel art farm with a red barn. You said: \\\"Cute barn.\\\"", StringComparison.Ordinal) >= 0) sawInVoice = true;
@@ -19832,7 +21036,7 @@ namespace CapriDesktop
                             File.Delete(Brain.MemoriesPath);
                             string voiceDay = File.ReadAllText(Path.Combine(Brain.TranscriptPath, DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
                             if (!memoriesInVoice || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d You \(voice\):\*\* hi\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\*\d\d:\d\d Capri \(voice\):\*\* Loud and clear, choom\.\n") || !System.Text.RegularExpressions.Regex.IsMatch(voiceDay, @"\*\d\d:\d\d Job: Opened Spotify\.\*\n")) throw new Exception("Voice chat didn't start with her memories, or its lines and jobs missed her transcript: " + voiceDay);
-                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != 24) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
+                            if (log.IndexOf("tool_stale", StringComparison.Ordinal) >= 0 || System.Text.RegularExpressions.Regex.Matches(log, "http POST /v1/convai/tools").Count != 28) throw new Exception("Voice chat reused a stale tool or remade a kept one: " + log);
                             Hands.Run = handsRun;
                             Hands.Catalog = handsCatalog;
                             Hands.Forget();

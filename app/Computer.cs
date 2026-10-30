@@ -1843,6 +1843,7 @@ namespace CapriDesktop
         internal Func<string, string, string, ClaudeReply> Drive;
         // Any brain that can see: a picture, what it's told and what to do, and its reply. Null for Claude's own computer tools.
         internal Func<byte[], string, string, string> Seer;
+        internal void Hurt() { if (Playing) Computer.Flinched = true; }
         // Brains that can't see click the words read off the screen when a window gives them nothing else to read.
         internal Action<Sight> Reader;
         private bool sighted, waitingMember;
@@ -2350,6 +2351,12 @@ namespace CapriDesktop
                 results = "";
                 foreach (KeyValuePair<string, ToolArguments> move in moves)
                 {
+                    if (Computer.Flinched)
+                    {
+                        Computer.Flinched = false;
+                        results += "\nSomething just hurt you, so your other moves didn't run. Look at the screen first.";
+                        break;
+                    }
                     ToolArguments args = move.Value;
                     if (move.Key == "ask" || move.Key == "done")
                     {
@@ -2396,7 +2403,7 @@ namespace CapriDesktop
         // Runs Claude's calls in order. Returns why the job stopped, or null once every call has its answer in the talk.
         private string Batch(bool resumed)
         {
-            bool broken = false;
+            bool broken = false, hit = false;
             bool acts = Array.Exists(batch, call => call.Toolset != "computer" || (call.Name != "screenshot" && call.Name != "zoom"));
             bool moved = !resumed && next == 0 && acts && looked != IntPtr.Zero && Computer.Front() != looked;
             if (moved)
@@ -2409,7 +2416,12 @@ namespace CapriDesktop
             {
                 ClaudeBlock call = batch[next];
                 ToolArguments args = call.Input ?? new ToolArguments();
-                if (broken) { answers.Add(new Answered { Call = call, Text = "Not executed: an earlier computer action in this turn failed.", Error = true }); continue; }
+                if (Computer.Flinched && !broken)
+                {
+                    Computer.Flinched = false;
+                    hit = broken = true;
+                }
+                if (broken) { answers.Add(new Answered { Call = call, Text = hit ? "Not executed: something just hurt you, so look first." : "Not executed: an earlier computer action in this turn failed.", Error = true }); continue; }
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 bool member = Computer.MemberCall(call.Toolset, call.Name);
                 Answered answer = new Answered { Call = call };
@@ -2443,7 +2455,7 @@ namespace CapriDesktop
             // A fresh look rides on the batch's last answer, unless it was a look that ran.
             string last = batch.Length > 0 ? batch[batch.Length - 1].Name : "";
             string after = "";
-            if ((moved || (last != "screenshot" && last != "zoom")) && Look())
+            if ((moved || hit || (last != "screenshot" && last != "zoom")) && Look())
             {
                 Answered final = answers[answers.Count - 1];
                 if (final.Error) after = ",{\"type\":\"text\",\"text\":\"The screen now:\"}" + Latest();

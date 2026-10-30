@@ -31,6 +31,9 @@ namespace CapriDesktop
         internal string Asked;
         [DataMember(Name = "target")] public string Target;
         [DataMember(Name = "text")] public string Text;
+        [DataMember(Name = "when")] public string When;
+        [DataMember(Name = "phrase")] public string Phrase;
+        [DataMember(Name = "steps")] public string Steps;
         [DataMember(Name = "keys")] public string Keys;
         [DataMember(Name = "button")] public string Button;
         [DataMember(Name = "enter")] public string Enter;
@@ -439,6 +442,7 @@ namespace CapriDesktop
             "When they tell you to come here or teleport to them, go to another monitor, sit down, sit on a window they name (like their Roblox window) or the taskbar, lie down, sit up, stand up, walk around, wander off somewhere, hang, ride their cursor or hop off it, hide or come back, that's you too: use move_yourself, which also moves your Capri Mainframe window to another monitor. " +
             "When they ask you to dance, stop dancing, glitch, grin, blink or play one of your animations, use animate. " +
             "When they ask you to remember or forget something about them, or to leave or make a memory, use remember: it saves to your notes, me.md, which you read every chat. Never say you can't keep memories. " +
+            "For reminders use remind with text and when, in their local time, or action list or cancel. For saved routines use routine with phrase and steps in their words, or action list, forget or run. Saving a routine does not run its steps. " +
             "You have a web browser: when they ask something you don't know or that changes, like the weather, news, scores, prices or times, search Google for it instead of guessing or saying you can't. " +
             "Most messages are just chat, not jobs: answer those as yourself, with your own opinions and tastes, and don't offer to open, play or look at anything unless they ask.";
 
@@ -463,6 +467,7 @@ namespace CapriDesktop
             "When they tell you yourself to come here, teleport to them or their mouse, go to another monitor, sit, sit on a window they name or the taskbar, lie down, sit up, stand up, walk around, wander off somewhere, hang, ride or hop off their cursor, hide or come back, call move_yourself; moving your Mainframe window to a monitor is move_yourself too. To dance, stop dancing, glitch, grin, blink or play one of your animations, call animate.\n" +
             "Never reply with a question about whether to do what they asked. Call the tool.\n" +
             "If they ask you to remember, note down or forget something about them, or to leave, make or save a memory, call remember with a short note about them in the third person.\n" +
+            "For a reminder call remind with text and when (in 20 minutes, at 5pm, at 17:30, tomorrow at 9, tonight or at half past five); the PC parses their local time. Use action list to list reminders or cancel with text to cancel one. For when I say a phrase do something, call routine with phrase and steps in their words; save it without doing the steps now. Use action list, forget with phrase, or run with phrase for saved routines.\n" +
             "Questions about their current screen or song need a tool too. If the target is unclear, pick the closest match yourself. For chat, negated or hypothetical requests, call no tool and reply with only the word: chat";
 
         internal const string Chat =
@@ -500,6 +505,10 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which shortcut\",\"enum\":[\"discord_mute\",\"discord_deafen\",\"screenshot\",\"clip_that\",\"record\",\"game_bar\",\"show_desktop\",\"task_manager\",\"clipboard\",\"emoji\",\"voice_typing\",\"live_captions\",\"narrator\",\"magnifier\",\"magnifier_off\",\"color_filters\",\"quick_settings\"]}},\"required\":[\"name\"]}" },
             { "remember", "Save a short note about them to your notes (me.md) so you remember it next time, like a favourite game or what they're making, or forget a note. Use it whenever they ask you to remember, note down, save or forget something, or to leave or make a memory.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The note, about them in the third person, or what to forget\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"remember\",\"forget\"]}},\"required\":[\"text\"]}" },
+            { "remind", "Save a reminder on their PC, list their reminders, or cancel a reminder. Times use their local clock. Give the reminder in their words; the PC works out when it is due.",
+              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to remind them about, or which reminder to cancel\"},\"when\":{\"type\":\"string\",\"description\":\"When, like in 20 minutes, at 5pm, at 17:30, tomorrow at 9, tonight or at half past five\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"cancel\"]}}}" },
+            { "routine", "Save steps to run when they say a phrase, list their routines, forget one, or run one. Saving only keeps the steps for later. Keep the steps in their words, just like an ordinary request to Capri.",
+              "{\"type\":\"object\",\"properties\":{\"phrase\":{\"type\":\"string\",\"description\":\"The phrase that starts the routine\"},\"steps\":{\"type\":\"string\",\"description\":\"Everything to do when they say the phrase\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"forget\",\"run\"]}}}" },
             { "power", "Shut down, restart, sleep, lock or sign out of their PC, or cancel a shutdown. Do it as soon as they ask, without asking if they're sure. \"Go to sleep\" or \"take a nap\" said to you is about you, not their PC: use nap.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"shut_down\",\"restart\",\"sleep\",\"lock\",\"sign_out\",\"cancel\"]},\"minutes\":{\"type\":\"string\",\"description\":\"How many minutes from now, only if they said when\"}},\"required\":[\"action\"]}" },
             { "nap", "Go to sleep yourself on their screen, or wake up: your own nap, not their PC's. Use it when they tell you to go to sleep, take a nap, go to bed or wake up. You stay asleep until they click you or talk to you.",
@@ -519,6 +528,8 @@ namespace CapriDesktop
 
         private static readonly Regex Asks = new Regex(
             @"^(open|launch|start|run|load up|boot up|fire up|play|shuffle|put on|blast|queue|close|quit|exit|kill|shut down|switch (back |over )?to|back to|go to|bring up|pull up|show me|minimi[sz]e|pause|unpause|resume|stop the music|skip|next|previous|go back|volume|louder|quieter|mute|unmute|search|google|look up|mind (opening|launching|playing|closing))\b" +
+            @"|^remind me(?:$|\s+(?:to|in|at|on|tomorrow|tonight|after|before|next|\d+)\b)|^when i say\b|^(list|show|cancel|remove|delete|forget)\b.*\b(reminders?|routines?)$|^what (are my (reminders|routines)|(reminders|routines) do i have)$" +
+            @"|^(recu[eé]rdame|rappelle[- ]moi|erinnere mich|przypomnij mi|lembra[- ]me|lembre[- ]me|me lembre|me lembra)\b" +
             @"|^(turn|make) (it|this|that|the volume|the music|the sound) (up|down|louder|quieter)\b|^(turn (up|down)|lower|raise) (the )?(volume|music|sound)\b|^put (some |a )?(music|song|tunes) on\b|^(get|bring) .+ (going|up)$" +
             @"|^(look at|take a (look|peek)( at)?|check out|check|rate|watch) (this|that|it|my|the|what)\b" +
             @"|^(click|tap|double click|right click|type|press|scroll|go on|get on|hop on|sign in|log in|fill (in|out)|use (my|the) (mouse|keyboard|computer|pc))\b|^(use|make|create|write|draw|search|find) .+ (in|on|with|using|into) (the |my )?\w+" +
@@ -659,6 +670,9 @@ namespace CapriDesktop
         internal static Func<string> NowPlaying = SpotifyTitle;
         internal static Func<string, string, string> Work = delegate { return "Using the mouse and keyboard isn't ready on this PC yet."; };
         internal static Func<string, string> Resume = delegate { return null; };
+        internal static Func<string, KeyValuePair<string, ToolArguments>> Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
+        internal static Func<ToolArguments, string> Remind = delegate { return "Couldn't open your reminders."; };
+        internal static Func<ToolArguments, string> Routine = delegate { return "Couldn't open your routines."; };
         // Puts dots over a password she typed into a password box, wherever it would show or be saved.
         internal static Func<string, string> Hush = delegate(string text) { return text; };
         internal static Action<byte[]> Chord = PressChord;
@@ -720,6 +734,8 @@ namespace CapriDesktop
                 if (tool == "use_computer") return string.IsNullOrWhiteSpace(args.Task) ? "Which job, choom?" : Work(args.Task.Trim(), args.Asked);
                 if (tool == "shortcut") return Shortcut(args.Name);
                 if (tool == "remember") return args.Action == "forget" ? Brain.Unnote(Theirs(args.Text)) : CallMe(args.Text) ?? Brain.Note(Theirs(args.Text));
+                if (tool == "remind") return Remind(args);
+                if (tool == "routine") return Routine(args);
                 if (tool == "power") return Turn(args.Action, args.Minutes);
                 if (tool == "nap") return Nap(args.Action != "wake");
                 if (tool == "move_yourself") return MoveSelf(args.Action, args.Action == "sit_on" || args.Action == "lie_down" ? args.Window : args.Screen);
@@ -847,6 +863,7 @@ namespace CapriDesktop
         internal static void Rescue(string said, List<KeyValuePair<string, ToolArguments>> calls)
         {
             string text = Asked(said);
+            if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine")) return;
             if (calls.Exists(call => call.Key == "use_computer" || call.Key == "look_at_screen" || call.Key == "media" || call.Key == "play_music")) return;
             if (Wants(said) && ((Errand(said) && !calls.Exists(call => call.Key == "shortcut" || call.Key == "remember")) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
             {
@@ -1399,6 +1416,7 @@ namespace CapriDesktop
 
         internal static bool Heard(string said, out string tool, out ToolArguments args)
         {
+            if (Planned(said, out tool, out args)) return true;
             List<string> tries = new List<string>();
             Match named = Regex.Match(said ?? "", @"\b[ck]app?r(?:i|ee|ie|y)\b[\s,.!?]*([^\s,.!?].*)$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
             if (named.Success) tries.Add(named.Groups[1].Value);
@@ -1406,7 +1424,7 @@ namespace CapriDesktop
             if (sentences.Length > 1) tries.Add(sentences[sentences.Length - 1]);
             tries.Add(said ?? "");
             foreach (string attempt in tries)
-                if (Direct(attempt, out tool, out args))
+                if (Direct(attempt, out tool, out args) && !(tool == "routine" && args.Action == "run"))
                 {
                     if (tool == "media" && Regex.IsMatch(attempt, @"\b(keep|carry on|continue|go on) playing\b", RegexOptions.IgnoreCase) && GameOpen() != null) break;
                     return true;
@@ -1437,6 +1455,7 @@ namespace CapriDesktop
 
         internal static bool Direct(string said, out string tool, out ToolArguments args)
         {
+            if (Planned(said, out tool, out args)) return true;
             tool = null;
             args = new ToolArguments();
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
@@ -1527,7 +1546,15 @@ namespace CapriDesktop
 
         internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^(Which app|What should I play|No app called|More than one|That didn't work|Couldn't|There's no|That isn't a website|Which job|Should I |Got lost|Ran out of steps|You pressed Esc|You grabbed the mouse|Using the mouse and keyboard isn't)|isn't open\.$|but (couldn't|it's still open)"); }
 
-        private static readonly Regex LooseText = new Regex(@"\b(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power|nap|move_yourself|animate)\s*(\{[^{}]*\}|\([^()]*\))");
+        private static bool Planned(string said, out string tool, out ToolArguments args)
+        {
+            KeyValuePair<string, ToolArguments> planned = Plan(said);
+            tool = planned.Key;
+            args = planned.Value;
+            return tool != null;
+        }
+
+        private static readonly Regex LooseText = new Regex(@"\b(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate)\s*(\{[^{}]*\}|\([^()]*\))");
         private static readonly Regex ToolPair = new Regex(@"[""']?(\w+)[""']?\s*[:=]\s*(?:""([^""]*)""|'([^']*)'|([^,})\s][^,})]*))");
 
         private static ToolArguments Pairs(string tool, string call)
@@ -1557,11 +1584,14 @@ namespace CapriDesktop
             else if (key == "kind") args.Kind = value;
             else if (key == "task") args.Task = value;
             else if (key == "text") args.Text = value;
+            else if (key == "when") args.When = value;
+            else if (key == "phrase") args.Phrase = value;
+            else if (key == "steps") args.Steps = value;
             else if (key == "minutes") args.Minutes = value;
             else if (key == "screen") args.Screen = value;
         }
 
-        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power|nap|move_yourself|animate)\s*(\{.*\})\z", RegexOptions.Singleline);
+        private static readonly Regex ToolText = new Regex(@"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate)\s*(\{.*\})\z", RegexOptions.Singleline);
 
         internal static bool Typed(string reply, out string tool, out ToolArguments args, bool loose = false)
         {
@@ -1585,7 +1615,7 @@ namespace CapriDesktop
             return true;
         }
 
-        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|power|nap|move_yourself|animate";
+        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|remind|routine|power|nap|move_yourself|animate";
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
         private static readonly Regex NamedInside = new Regex(@"""name""\s*:\s*""(" + ToolNames + @")""");
         private static readonly Regex GivenInside = new Regex(@"""(?:arguments|parameters)""\s*:\s*\{");
@@ -1710,6 +1740,8 @@ namespace CapriDesktop
             if (tool == "use_computer") return Named(args.Task);
             if (tool == "shortcut") return Regex.IsMatch(args.Name ?? "", @"\A(discord_mute|discord_deafen|screenshot|clip_that|record|game_bar|show_desktop|task_manager|clipboard|emoji|voice_typing|live_captions|narrator|magnifier|magnifier_off|color_filters|quick_settings)\z");
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
+            if (tool == "remind") return args.Action == "list" || (args.Action == "cancel" ? Named(args.Text) : (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text) && Named(args.When));
+            if (tool == "routine") return args.Action == "list" || (Named(args.Phrase) && (args.Action == "forget" || args.Action == "run" || ((string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Steps))));
             if (tool == "power") return Regex.IsMatch(args.Action ?? "", @"\A(shut_down|restart|sleep|lock|sign_out|cancel)\z") && (string.IsNullOrEmpty(args.Minutes) || Regex.IsMatch(args.Minutes.Trim(), @"\A\d{1,4}\z"));
             if (tool == "nap") return string.IsNullOrEmpty(args.Action) || args.Action == "sleep" || args.Action == "wake";
             if (tool == "move_yourself") return Regex.IsMatch(args.Action ?? "", @"\A(come_here|other_screen|sit|sit_on|lie_down|sit_up|stand_up|walk_around|wander|hang|ride_cursor|hop_off|hide|show|move_mainframe)\z") && (args.Action != "sit_on" || Named(args.Window));

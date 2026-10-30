@@ -662,7 +662,7 @@ namespace CapriDesktop
             try
             {
                 Hold(codes, true);
-                while (clock.Elapsed.TotalSeconds < wanted && !interrupted)
+                while (clock.Elapsed.TotalSeconds < wanted && !interrupted && !Flinched)
                 {
                     Thread.Sleep(90);
                     byte[] now = GrayFrame(area);
@@ -685,10 +685,14 @@ namespace CapriDesktop
             finally { Hold(codes, false); }
             if (interrupted) return Why;
             string time = clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
+            if (Flinched) return "Stopped after " + time + ": something hurt you.";
             if (cut) return "Stopped after " + time + ": the whole screen changed.";
             if (blocked) return "Stopped after " + time + ": something's in the way" + (jumps > 0 ? ", even after jumping." : ".");
             return "Moved for " + time + (jumps > 0 ? ", jumping " + jumps + (jumps == 1 ? " time." : " times.") : ".");
         }
+
+        // Set when her game watcher sees her take a hit, so she looks up instead of finishing what she's doing.
+        internal static volatile bool Flinched;
 
         // Holds a mouse button, with any keys, for as long as it takes. With stop on, she lets go when what's under the crosshair changes.
         internal static string MouseHold(string button, string seconds, string keys, string stop, Sight sight)
@@ -710,7 +714,7 @@ namespace CapriDesktop
             {
                 Hold(codes, true);
                 Mouse(right ? 0x0008 : 0x0002, 0);
-                while (clock.Elapsed.TotalSeconds < wanted && !interrupted)
+                while (clock.Elapsed.TotalSeconds < wanted && !interrupted && !Flinched)
                 {
                     Thread.Sleep(watching ? 70 : 30);
                     if (!watching || Changed(first, Middle(GrayFrame(area))) < 0.45) continue;
@@ -725,6 +729,7 @@ namespace CapriDesktop
             }
             if (interrupted) return Why;
             string time = clock.Elapsed.TotalSeconds.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s";
+            if (Flinched) return "Let go after " + time + ": something hurt you.";
             return changed ? "Let go after " + time + ": what's under the crosshair changed." : "Held for " + time + ".";
         }
     }
