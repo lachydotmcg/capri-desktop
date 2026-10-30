@@ -227,7 +227,8 @@ namespace CapriDesktop
             Slide(right, "Size", Pet.SizeNames, () => Array.IndexOf(Pet.Sizes, pet.Saved.Size), i => pet.Resize(Pet.Sizes[i]));
             Switch(right, "Check in on me", () => !pet.Saved.NoCheckIns, pet.SetCheckIns);
             Switch(right, "Always on top", () => pet.OnTop, pet.SetOnTop);
-            Slide(right, "Mainframe size", FrameNames, () => Array.IndexOf(Pet.MainframeSizes, pet.MainframeSize), i => pendingZoom = Pet.MainframeSizes[i], () => { pet.SetMainframeSize(pendingZoom); Rezoom(); });
+            var zoomSize = Slide(right, "Mainframe size", FrameNames, () => Array.IndexOf(Pet.MainframeSizes, pet.MainframeSize), _ => { });
+            zoomSize.Released += () => { if (!syncing) Guard(() => { pet.SetMainframeSize(Pet.MainframeSizes[zoomSize.Value]); Rezoom(); }); };
             Note(right, "Auto uses 100% on this desktop; OS display scaling is applied once.");
             Section(right, "WATCH");
             Switch(right, "Watch my screen", () => pet.Saved.Watch, pet.SetWatch);
@@ -253,7 +254,6 @@ namespace CapriDesktop
             Note(right, "Perch: original 30 fps sequence. Interpolated perch rates and custom cursors are not available on this backend.");
         }
 
-        private int pendingZoom;
         private void Choice(StackPanel panel, string label, string[] labels, Func<int> get, Action<int> set)
         {
             var choice = new NeonPicker(label, labels, i => { if (!syncing) Guard(() => set(i)); }); Row(panel, label, choice); readers.Add(() => choice.Selected = get());
@@ -264,11 +264,12 @@ namespace CapriDesktop
             toggle.IsCheckedChanged += (_, _) => { if (!syncing) Guard(() => set(toggle.IsChecked == true)); };
             Row(panel, label, toggle); readers.Add(() => toggle.IsChecked = get());
         }
-        private void Slide(StackPanel panel, string label, string[] labels, Func<int> get, Action<int> set, Action release = null)
+        private NeonSlider Slide(StackPanel panel, string label, string[] labels, Func<int> get, Action<int> set, Action release = null)
         {
             var slider = new NeonSlider(label, labels); slider.Changed += i => { if (!syncing) Guard(() => set(i)); };
             slider.Released += () => { if (!syncing && release != null) Guard(release); };
             Row(panel, label, slider); readers.Add(() => slider.Value = get());
+            return slider;
         }
         private void Guard(Action action) { try { action(); } catch (Exception error) { Report(error.Message); } }
         private async void Run(Func<Task> action)

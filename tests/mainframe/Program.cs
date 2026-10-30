@@ -109,6 +109,8 @@ internal sealed class Checks : Application
             Check(pet.MainframeSize == 150 && pet.Saved.Volume == voiceBefore, "zoom release persists without retuning voice");
             await Painted(); Capture(frame, "settings-150");
             pet.SetMainframeSize(200); frame.ShowSettings(true); await Painted(); Capture(frame, "settings-200");
+            zoom.Slider.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyUpEvent, Key = Key.Right });
+            Check(pet.MainframeSize == 200, "releasing unchanged zoom preserves the currently saved size");
             var area = frame.Screens.ScreenFromWindow(frame).WorkingArea;
             Check(frame.Width * frame.RenderScaling <= area.Width && frame.Height * frame.RenderScaling <= area.Height, "200 percent window stays inside available work area");
             var scroll = frame.GetVisualDescendants().OfType<ScrollViewer>().First();
