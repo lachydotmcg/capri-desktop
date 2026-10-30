@@ -17735,6 +17735,21 @@ namespace CapriDesktop
                                     Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" }; };
                                     if (drivePlayed != "Played a round." || !drivePlay.Playing || playSystem != Computer.Seeing + Computer.Playing || funRun != "Played a round." || funBefore || !driveFun.Playing || funSystem != Computer.Seeing + Computer.Playing || new Job("send hi in #general on discord").Playing)
                                         throw new Exception("A game job didn't get her game lines: " + drivePlayed + " / " + drivePlay.Playing + " / " + funRun + " / " + driveFun.Playing);
+                                    // Whether a game job is really over is a brain's call, in any language.
+                                    driveTurn = 0;
+                                    driveScript = new[] { "{\"content\":[{\"type\":\"text\",\"text\":\"Nie dam rady.\"}],\"stop_reason\":\"end_turn\"}", "{\"content\":[{\"type\":\"text\",\"text\":\"Gotowe.\"}],\"stop_reason\":\"end_turn\"}" };
+                                    System.Collections.Generic.List<string> finishing = new System.Collections.Generic.List<string>();
+                                    Job driveJudged = new Job("play bedwars on roblox");
+                                    driveJudged.Drive = scripted;
+                                    driveJudged.Aside = delegate(string system, string user)
+                                    {
+                                        if (system != Computer.Finishing) return "";
+                                        finishing.Add(user);
+                                        return finishing.Count == 1 ? "NO" : "YES.";
+                                    };
+                                    string judgedRun = driveJudged.Run();
+                                    if (judgedRun != "Gotowe." || driveTurn != 2 || finishing.Count != 2 || !finishing[0].Contains("Nie dam rady.") || !finishing[0].Contains("play bedwars on roblox"))
+                                        throw new Exception("A brain's word on a finished game job didn't count: " + judgedRun + " / " + driveTurn + " / " + finishing.Count);
                                     // Lachy, 30 Oct: "they were constantly yapping to chat".
                                     if (Computer.Playing.IndexOf("read it but keep playing quietly", StringComparison.Ordinal) < 0 || Computer.Playing.IndexOf("answer each message once", StringComparison.Ordinal) < 0 || Computer.Playing.IndexOf("Never comment on the game to chat between messages.", StringComparison.Ordinal) < 0)
                                         throw new Exception("Her game lines lost the chat rules: " + Computer.Playing);

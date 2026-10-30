@@ -1923,10 +1923,24 @@ namespace CapriDesktop
         private bool advisorDown;
         private bool Consults { get { Func<bool> advised = Advised; return Drive != null && advised != null && advised(); } }
 
-        // A game job that's about to give up because the game looks stuck, or it is, gets sent back three times at most: games hitch, and players get lost.
+        // A game job that stops short gets sent back three times at most: games hitch, and players get lost.
         private bool Hitched(string words)
         {
-            return Playing && Computer.GivingUp(words) && ++hitches <= 3;
+            return Playing && hitches < 3 && Unfinished(words) && ++hitches <= 3;
+        }
+
+        // Her second brain says whether it's done, in any language. Her words only decide when it can't answer.
+        private bool Unfinished(string words)
+        {
+            Func<string, string, string> aside = Aside;
+            string said = null;
+            try { if (aside != null) said = aside(Computer.Finishing, "What they asked for: " + Task + asides + "\nWhat the player said: " + words); }
+            catch (BrainException error) { Brain.Log("finishing", -1, error.Message); }
+            catch (System.Net.WebException error) { Brain.Log("finishing", -1, error.Message); }
+            Action<string> trace = Trace;
+            if (trace != null) trace("  finished? -> " + said);
+            Match answer = Regex.Match(said ?? "", @"\b(yes|no)\b", RegexOptions.IgnoreCase);
+            return answer.Success ? answer.Value.Equals("no", StringComparison.OrdinalIgnoreCase) : Computer.GivingUp(words);
         }
 
         // What she says out loud while she plays.

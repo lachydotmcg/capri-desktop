@@ -242,6 +242,7 @@ namespace CapriDesktop
 
         // The moves written in a brain's reply, in order.
         internal const string Hitch = "If what they asked for is really done, say so in one line. If it isn't, don't stop yet. If the game looks frozen, wait 20 seconds and look again. If you're lost or stuck, that's normal: turn around, go back, jump, or try another way, and keep playing.";
+        internal const string Finishing = "Someone asked a player to do something in a game, and below is what the player said when they stopped. Answer NO if any of what was asked for isn't done, or if they couldn't confirm it. Answer YES if it's all done, or if they were only asked to play for a while. Answer with one word.";
         internal const string HitchAsk = "If what they asked for is really done, say so in one line. If it isn't, don't stop: call advisor now, do what it says, and keep playing.";
         internal const string AfterAsking = "That was your advisor, and nothing has moved yet. Do what it said, or say so in one line if the job's really done.";
         // Her fast hands can ask the brain they picked, which reads the whole job so far.
