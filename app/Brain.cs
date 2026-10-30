@@ -184,12 +184,19 @@ namespace CapriDesktop
         [DataMember(Name = "messages")] public ChatMessage[] Messages;
         [DataMember(Name = "output_config", EmitDefaultValue = false)] public ClaudeOutput Output;
         [DataMember(Name = "fallbacks", EmitDefaultValue = false)] public string Fallbacks;
+        [DataMember(Name = "thinking", EmitDefaultValue = false)] public ClaudeThinking Thinking;
     }
 
     [DataContract]
     internal sealed class ClaudeOutput
     {
         [DataMember(Name = "effort")] public string Effort = "low";
+    }
+
+    [DataContract]
+    internal sealed class ClaudeThinking
+    {
+        [DataMember(Name = "type")] public string Type = "disabled";
     }
 
     [DataContract]
@@ -1309,6 +1316,61 @@ namespace CapriDesktop
             return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
         }
 
+        // Her fastest brain on a Claude key, for the small calls below.
+        internal const string Fastest = "claude-haiku-5-5";
+        private volatile bool noFastest;
+
+        // One small call beside whatever else she's doing, with up to a few pictures: her second head while a job runs and her
+        // comments on a game. It's outside her chat, so a turn she's thinking about doesn't wait on it, and it never cancels one.
+        internal string Quick(string system, string instruction, int limit, params byte[][] frames)
+        {
+            string model = Model;
+            if (model == null) throw new BrainException(Offline);
+            Cloud remote = Remote;
+            List<string> pictures = new List<string>();
+            if (frames != null) foreach (byte[] jpeg in frames) if (jpeg != null) pictures.Add(Convert.ToBase64String(jpeg));
+            if (pictures.Count > 0 && remote != null && remote.Kind == "deepseek") throw new BrainException(Blind);
+            string parts = null;
+            if (pictures.Count > 0 && remote != null && remote.Claude)
+            {
+                List<string> blocks = pictures.ConvertAll(data => "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"" + data + "\"}}");
+                blocks.Add("{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}");
+                parts = "[" + string.Join(",", blocks.ToArray()) + "]";
+            }
+            else if (pictures.Count > 0 && (remote != null || Local != null))
+            {
+                List<string> blocks = pictures.ConvertAll(data => "{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + data + "\"}}");
+                blocks.Insert(0, "{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}");
+                parts = "[" + string.Join(",", blocks.ToArray()) + "]";
+            }
+            ChatMessage asked = new ChatMessage("user", parts != null ? Parts : instruction);
+            if (parts == null && pictures.Count > 0) asked.Images = pictures.ToArray();
+            List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
+            List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
+            string raw;
+            try
+            {
+                if (remote == null || !remote.Claude || noFastest) raw = Think(model, messages, false, calls, parts, limit);
+                else
+                {
+                    try { raw = AskClaude(new Cloud(remote.Key, Fastest), messages, false, calls, parts, -1, null, false, limit); }
+                    catch (BrainException error)
+                    {
+                        if (error.Message != Gone) throw;
+                        noFastest = true;
+                        raw = Think(model, messages, false, calls, parts, limit);
+                    }
+                }
+            }
+            catch (BrainException error)
+            {
+                if (remote == null || pictures.Count == 0 || !Regex.IsMatch(error.Message, "multimodal|image|vision", RegexOptions.IgnoreCase)) throw;
+                Unsighted = remote.Model;
+                throw new BrainException(Sightless(remote));
+            }
+            return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
+        }
+
         internal void Remember(string asked, string said)
         {
             lock (gate)
@@ -1598,7 +1660,7 @@ namespace CapriDesktop
             return Visible(message.Content);
         }
 
-        private string AskClaude(Cloud remote, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int ticket = -1, string claudeTools = null, bool routing = false)
+        private string AskClaude(Cloud remote, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts = null, int ticket = -1, string claudeTools = null, bool routing = false, int brief = 0)
         {
             string model = remote.Model;
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
@@ -1610,6 +1672,8 @@ namespace CapriDesktop
                 Output = Regex.IsMatch(model, @"^claude-((opus|sonnet|haiku|fable|mythos)-5|opus-4-[5-8]|sonnet-4-6)") ? new ClaudeOutput() : null,
                 Fallbacks = fallback ? "default" : null
             };
+            // A small call on her fastest brain answers straight off, with no thinking first.
+            if (brief > 0) { body.Limit = brief; body.Thinking = new ClaudeThinking(); }
             Action<HttpWebRequest> sign = delegate(HttpWebRequest request)
             {
                 Sign(request, remote.Key, true);
@@ -2436,5 +2500,36 @@ namespace CapriDesktop
             int end = other != null && other.Index > label.Index ? other.Index : text.Length;
             return text.Substring(start, end - start).Trim(' ', '*', '_', '#', '>', '-', '|', '/', ';', ',');
         }
+    }
+
+    // Her set lines, a few ways of saying each, so what she says on her own doesn't sound like a recording. Shared by Windows,
+    // Mac and Linux.
+    internal static class Lines
+    {
+        internal static readonly string[] OnIt = { "On it. Esc stops me.", "Hands on. Esc if you change your mind.", "Mine now. Esc pulls me off.", "Okay, driving. Esc to bail.", "Watch this. Esc if I get weird.", "Going in. Esc stops me any time.", "Leave it with me. Esc if it goes sideways.", "Say less. Esc takes it back." };
+        internal static readonly string[] GotIt = { "Got it.", "Yep.", "Heard you.", "Sure, folding that in.", "Okay, adding that.", "Mm-hm, on the list.", "Noted.", "Yeah, I can do that too." };
+        internal static readonly string[] Changed = { "Okay, changing course.", "Switching it up.", "Sure, new plan.", "Yep, doing it that way.", "Fine, your way.", "Got it, scrapping that bit." };
+        internal static readonly string[] Stopped = { "Stopped.", "Okay, hands off.", "Dropped it.", "Done, I've let go.", "Fine, leaving it there.", "Stopped where I was." };
+        internal static readonly string[] Busy = { "Hands are full, tell me again in a sec.", "Hang on, finishing this bit first.", "Missed that, I'm mid-click. Say it again?", "One sec, brain's on the job." };
+        private static readonly Dictionary<string[], List<string>> said = new Dictionary<string[], List<string>>();
+        private static readonly Random Dice = new Random();
+
+        // A line she hasn't said lately: the last half of a set stays out of the draw, so no two in a row ever match.
+        internal static string Pick(string[] set)
+        {
+            lock (said)
+            {
+                List<string> lately;
+                if (!said.TryGetValue(set, out lately)) said[set] = lately = new List<string>();
+                List<string> fresh = new List<string>(set);
+                fresh.RemoveAll(line => lately.Contains(line));
+                string picked = fresh[Dice.Next(fresh.Count)];
+                lately.Add(picked);
+                if (lately.Count > set.Length / 2) lately.RemoveAt(0);
+                return picked;
+            }
+        }
+
+        internal static bool Is(string[] set, string line) { return Array.IndexOf(set, line) >= 0; }
     }
 }

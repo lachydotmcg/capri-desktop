@@ -129,6 +129,7 @@ namespace CapriDesktop
             fresh.TalkMods = old.TalkMods; fresh.TalkVk = old.TalkVk; fresh.MuteMods = old.MuteMods; fresh.MuteVk = old.MuteVk;
             fresh.TypeMods = old.TypeMods; fresh.TypeVk = old.TypeVk; fresh.HideMods = old.HideMods; fresh.HideVk = old.HideVk;
             fresh.QuietMods = old.QuietMods; fresh.QuietVk = old.QuietVk;
+            fresh.PushMods = old.PushMods; fresh.PushVk = old.PushVk;
             try { using (FileStream stream = File.Create(settings)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, fresh); }
             catch (Exception) { try { File.Delete(settings); } catch (Exception) { } }
         }
@@ -222,6 +223,11 @@ namespace CapriDesktop
         // Her quiet key, Ctrl + Alt + P (Zenni's ask). P, since AltGr + Q types @ on German keyboards and Ctrl + Alt is AltGr.
         [DataMember] public int QuietMods = 3;
         [DataMember] public int QuietVk = 0x50;
+        // Her push-to-talk key: 0 until they pick one. It's read, not taken, so it still does its own job in a game.
+        [DataMember] public int PushMods;
+        [DataMember] public int PushVk;
+        // How much she says about a game they're playing: 0 off, 1 events only, 2 chatty. Off until they turn it on, since it shows her brain their screen.
+        [DataMember] public int CommentPace;
         [DataMember] public int WanderPace = 1;
         // How often she pops in while Check in on me is on: 0 rarely, 1 sometimes (every 8 to 20 minutes, as before), 2 often.
         [DataMember] public int PopPace = 1;
@@ -822,7 +828,7 @@ namespace CapriDesktop
         internal double Seed;
     }
 
-    internal sealed class Companion : Form
+    internal sealed partial class Companion : Form
     {
         private readonly Clip idle = new Clip("idle", 16, 8, 1.11f);
         private readonly Clip blink = new Clip("blink", 4, 8, 1.11f);
@@ -1469,6 +1475,8 @@ namespace CapriDesktop
             pill.Voice += ToggleChat;
             pill.Mute += ToggleMic;
             ears.Heard += Listen;
+            heyCapri.Overheard = OverHeard;
+            WireCommentary();
             ears.Level += delegate(double value) { Post(delegate { HeardLevel(value); }); };
             heyCapri.Heard += delegate { Post(HeardHeyCapri); };
             HeyCapriChanged += WakeChanged;
@@ -1570,6 +1578,7 @@ namespace CapriDesktop
             mouseKeys.Tick += delegate { WatchMouseKeys(); };
             WatchMouse();
             mainframe.Hotkeys(TalkKeyName, MuteKeyName, TypeKeyName, HideKeyName, QuietKeyName);
+            mainframe.PushKey(PushKeyName);
             mainframe.ShowShortcut(talkKey, muteFree);
             mainframe.ShowKeys(typeKey, hideKey, quietKey);
             RefreshIcons();
@@ -3525,7 +3534,7 @@ namespace CapriDesktop
                 }
             }
             finally { if (held) Monitor.Exit(mouseGate); }
-            if (done == Computer.Escaped) escAsk = ticket;
+            if (Computer.Stopped(done)) escAsk = ticket;
             // A slider she couldn't reach still gets the volume keys, unless they stopped her.
             bool missed = task != null && (lost || (done != null && (done.Contains(Computer.Bigger) || (tool == "media" && Hands.Failed(done) && !done.StartsWith("You ", StringComparison.Ordinal)))));
             if (missed) done = Hands.Do(tool, args);
@@ -4001,6 +4010,15 @@ namespace CapriDesktop
 
         internal string QuietKeyName { get { return KeyName(preferences.QuietMods, preferences.QuietVk); } }
 
+        internal int CommentPace { get { return Math.Max(0, Math.Min(2, preferences.CommentPace)); } }
+
+        internal void SetCommentPace(int pace)
+        {
+            preferences.CommentPace = Math.Max(0, Math.Min(2, pace));
+            Commentary.Pace = preferences.CommentPace;
+            SavePreferences();
+        }
+
         // Any key alone or with any of Alt (1), Ctrl (2), Shift (4) and Win (8), which are RegisterHotKey's own flags, and middle click
         // or a side mouse button too. A modifier on its own, a left or right click or an IME placeholder never counts.
         internal static bool Bindable(int mods, int vk) { return (mods & ~15) == 0 && vk > 0 && vk < 0xFF && Array.IndexOf(NotKeys, vk) < 0; }
@@ -4019,8 +4037,8 @@ namespace CapriDesktop
 
         internal static string KeyName(int mods, int vk) { return ModNames(mods) + KeyWord(vk); }
 
-        private static readonly int[] WordedKeys = { 0x03, 0x08, 0x09, 0x0C, 0x0D, 0x13, 0x14, 0x1B, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2C, 0x2D, 0x2E, 0x2F, 0x5D, 0x5F, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x90, 0x91, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7 };
-        private static readonly string[] KeyWords = { "Break", "Backspace", "Tab", "Clear", "Enter", "Pause", "Caps Lock", "Esc", "Space", "Page Up", "Page Down", "End", "Home", "Left", "Up", "Right", "Down", "Print Screen", "Insert", "Delete", "Help", "Menu", "Sleep", "Num *", "Num +", "Num Separator", "Num -", "Num .", "Num /", "Num Lock", "Scroll Lock", "Browser Back", "Browser Forward", "Browser Refresh", "Browser Stop", "Browser Search", "Browser Favorites", "Browser Home", "Volume Mute", "Volume Down", "Volume Up", "Next Track", "Previous Track", "Stop Media", "Play/Pause", "Mail", "Media Select", "App 1", "App 2" };
+        private static readonly int[] WordedKeys = { 0x10, 0x11, 0x12, 0x03, 0x08, 0x09, 0x0C, 0x0D, 0x13, 0x14, 0x1B, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x2C, 0x2D, 0x2E, 0x2F, 0x5D, 0x5F, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0x90, 0x91, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF, 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7 };
+        private static readonly string[] KeyWords = { "Shift", "Ctrl", "Alt", "Break", "Backspace", "Tab", "Clear", "Enter", "Pause", "Caps Lock", "Esc", "Space", "Page Up", "Page Down", "End", "Home", "Left", "Up", "Right", "Down", "Print Screen", "Insert", "Delete", "Help", "Menu", "Sleep", "Num *", "Num +", "Num Separator", "Num -", "Num .", "Num /", "Num Lock", "Scroll Lock", "Browser Back", "Browser Forward", "Browser Refresh", "Browser Stop", "Browser Search", "Browser Favorites", "Browser Home", "Volume Mute", "Volume Down", "Volume Up", "Next Track", "Previous Track", "Stop Media", "Play/Pause", "Mail", "Media Select", "App 1", "App 2" };
 
         // The name on the key: letters and digits as they are, F1 to F24, and words for the rest.
         private static string KeyWord(int vk)
@@ -4047,6 +4065,7 @@ namespace CapriDesktop
             if (!Bindable(value.TypeMods, value.TypeVk)) { value.TypeMods = 3; value.TypeVk = 0x54; }
             if (!Bindable(value.HideMods, value.HideVk)) { value.HideMods = 3; value.HideVk = 0x48; }
             if (!Bindable(value.QuietMods, value.QuietVk)) { value.QuietMods = 3; value.QuietVk = 0x50; }
+            if (!PushBindable(value.PushMods, value.PushVk)) { value.PushMods = 0; value.PushVk = 0; }
             Unclash(value);
         }
 
@@ -4084,11 +4103,13 @@ namespace CapriDesktop
 
         internal string SetHotkey(int slot, int mods, int vk)
         {
+            if (slot == PushSlot) return SetPushKey(mods, vk);
             if (!Bindable(mods, vk)) return "Press a key, alone or with Ctrl, Alt, Shift or Win.";
             string name = KeyName(mods, vk);
             int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk };
             for (int i = 0; i < KeyJobs.Length; i++)
                 if (i != slot && mods == bound[i * 2] && vk == bound[i * 2 + 1]) return name + " is already her " + KeyJobs[i] + " key.";
+            if (preferences.PushVk != 0 && mods == preferences.PushMods && vk == preferences.PushVk) return name + " is already her push-to-talk key.";
             if (!testing && IsHandleCreated)
             {
                 if (slot == 1)
@@ -4133,7 +4154,7 @@ namespace CapriDesktop
 
         private void WatchMouse()
         {
-            if (!testing && (ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk)))
+            if (!testing && (preferences.PushVk != 0 || ByMouse(preferences.TalkVk) || ByMouse(preferences.MuteVk) || ByMouse(preferences.TypeVk) || ByMouse(preferences.HideVk) || ByMouse(preferences.QuietVk)))
             {
                 // A click from before she started watching doesn't count.
                 if (!mouseKeys.Enabled) foreach (int vk in new[] { 0x04, 0x05, 0x06 }) Native.GetAsyncKeyState(vk);
@@ -4162,6 +4183,7 @@ namespace CapriDesktop
                 Message press = Message.Create(Handle, 0x0312, new IntPtr(ids[slot]), IntPtr.Zero);
                 WndProc(ref press);
             }
+            WatchPush();
         }
 
         internal int BubbleTime { get { return Math.Max(0, Math.Min(2, preferences.BubbleTime)); } }
@@ -5053,6 +5075,8 @@ namespace CapriDesktop
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
             if (now < nextGlance || quiet > 600000 || brain.Model == null || hidden || MicOpen || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
             nextGlance = now + GlanceGap * (0.8 + random.NextDouble() * 0.4);
+            // In a game with her comments on, what happens in it sets when she talks, not this timer.
+            if (Commentary.Pace != Commentary.Off && GameAhead() != null) return;
             if (Unseeing() != null) return;
             byte[] shot;
             try
@@ -5441,7 +5465,7 @@ namespace CapriDesktop
                 Post(delegate { if (job == running && preferences.Motion && !hidden) takeover.Follow(window, name, bounds, preferences.Size / 240f); });
             };
             running.Busy = delegate(string what) { Post(delegate { taskPanel.Busy(running, what); }); };
-            running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); };
+            running.Stepped = delegate(JobStep step) { Post(delegate { taskPanel.Add(running, step); }); if (step.Finished) AgentStep(running); };
             Computer.PlacePointer(PointerHome());
             Post(delegate { JobOn(running); });
             string result = null;
@@ -5483,7 +5507,8 @@ namespace CapriDesktop
 
         private void JobOn(Job running)
         {
-            working = "On it. Esc stops me.";
+            string start = Lines.Pick(Lines.OnIt);
+            working = start;
             if (typer.Visible) typer.Hide();
             pointing = true;
             if (!hidden) taskPanel.Begin(running, running.Words, Screen.FromControl(this).WorkingArea);
@@ -5495,14 +5520,14 @@ namespace CapriDesktop
             // Not on a Bluetooth headset's mic, which would put the job's sound at call quality.
             if (!chatting && !testing && preferences.HeyCapri && FreeChatOn && OwnEars && HandsFreeMic(preferences.Mic) == null) { jobEars = true; StartLocal(); }
             UpdateTalk(clock.Elapsed.TotalSeconds);
-            SayJobStart(running);
+            SayJobStart(start, running);
         }
 
         // She says her job's first line out loud too (Lachy, 29 Oct: "she doesnt verbally say 'on it, esc stops me'"), in the voice
         // her replies use, picked the way Answer picks it (Quiet only turns her cloud voice off). It plays beside the job, after
         // any line she's still saying, and leaves the reply the job ends with alone. Silent keeps it to her bubble, and so does
         // ElevenLabs voice chat, which speaks for itself.
-        private void SayJobStart(Job running) { SayAside("On it. Escape stops me.", running); }
+        private void SayJobStart(string start, Job running) { SayAside(start.Replace("Esc", "Escape"), running); }
 
         // A line said beside her job, like her "Got it." when they tell her more mid-job. It leaves her ask's turn alone.
         private void SayAside(string line, Job running)
@@ -5515,6 +5540,7 @@ namespace CapriDesktop
             if (speak == null && (voice.Key == null || local || voiceBroke || preferences.Quiet)) speak = free;
             if (speak == null) return;
             string words = Voice.Spoken(line);
+            int turn = ++asideVoice;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem;
@@ -5524,7 +5550,7 @@ namespace CapriDesktop
                 Action play = null;
                 play = delegate
                 {
-                    if (job != running || IsDisposed || (chatting && !local)) return;
+                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local)) return;
                     double now = clock.Elapsed.TotalSeconds;
                     if (voiceUntil > now)
                     {
@@ -5533,6 +5559,7 @@ namespace CapriDesktop
                     }
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
                     CheckEars(now);
+                    Played(wav);
                     voice.Play(wav);
                 };
                 Post(play);
@@ -5544,6 +5571,7 @@ namespace CapriDesktop
         private void JobOff(Job running, string outcome, string result)
         {
             working = null;
+            asideShown = null;
             if (jobEars)
             {
                 jobEars = false;
@@ -7231,6 +7259,7 @@ namespace CapriDesktop
         private void Gather(short[] chunk)
         {
             double level = VoiceLevel(chunk);
+            if (OverHerLocally(chunk, level)) return;
             lock (waking)
             {
                 if (!local || !earsReady || dictation != null || ears.Muted || earsShut || transcribing) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
@@ -7449,14 +7478,14 @@ namespace CapriDesktop
             {
                 Post(delegate
                 {
-                    if (agent != opened || dropping) return;
+                    if (agent != opened || dropping || repeating || clock.Elapsed.TotalSeconds < bargedUntil) return;
                     if (Unprompted()) { dropping = true; checkedIn = true; Hush(); return; }
                     stirred = Environment.TickCount;
                     speaker.Play(ChatVoice(samples));
                     if (!frames.Enabled && !hidden) frames.Start();
                 });
             };
-            opened.Interrupted += delegate { Post(delegate { if (agent == opened) Hush(); }); };
+            opened.Interrupted += delegate { Post(delegate { if (agent != opened) return; bargedUntil = -1; Hush(); }); };
             opened.Closed += delegate(string problem) { Post(delegate { if (agent != opened) return; if (problem != null) ChatFailed(problem); else Rest(); }); };
             agent = opened;
             opened.Start(url, voiceId);
@@ -7613,12 +7642,12 @@ namespace CapriDesktop
         private void Finished(Agent told, string tool, string result, int ticket)
         {
             if (string.IsNullOrEmpty(result)) return;
-            if (result == Computer.Escaped) { if (escTold == ticket) return; escTold = ticket; }
+            if (Computer.Stopped(result)) { if (escTold == ticket) return; escTold = ticket; }
             lock (shortcutGate) { toolAsked = true; toolDone = result; }
             stirred = Environment.TickCount;
             Action<string> heard = finishedTest;
             if (heard != null) { heard(result); return; }
-            if (told != null && told.Ready) { told.Say("(Capri's hands finished the " + tool + " job: " + result + ") Tell them how it went in one short line. Don't call a tool for it again."); return; }
+            if (told != null && told.Ready) { DoneLine(told, tool, result); return; }
             Post(delegate { if (talkState != TalkState.Thinking) Answer(++asking, result, TalkState.Talking); });
         }
 
@@ -7632,6 +7661,7 @@ namespace CapriDesktop
                 if (tool == shortcutTool && Environment.TickCount - shortcutAt < 10000) return shortcutResult ?? "Already doing that.";
             }
             string key = Security.Asks(tool, args) ? null : MouseKey(tool, args);
+            if (key != null && Folded(tool, args, key)) return FoldedLater;
             if (key != null) return Later(opened, tool, args, key);
             string done = DoTool(tool, args);
             if (string.IsNullOrEmpty(done)) done = Computer.Escaped;
@@ -7680,10 +7710,15 @@ namespace CapriDesktop
             box.Prompt = "> you: ";
             Brain.Learn(text);
             dropping = false;
+            repeating = false;
+            bargedUntil = -1;
             string tool = null;
             ToolArguments args = null;
             // Their yes to her asking first (SECURITY) runs what she held, like a shortcut, and their no leaves it.
             bool answering = VoiceAnswer(text, ticket, agent);
+            // Mid-job they can stop it, and the agent gets the job's latest to answer from. Her hands carry on either way.
+            Job midJob = job;
+            if (!answering && MidJob(midJob)) AgentMidJob(text, midJob);
             bool shortcut = !answering && Hands.Heard(text, out tool, out args);
             lock (shortcutGate) { if (!answering) { toolAsked = shortcut; heardLast = text; toolDone = null; } }
             if (shortcut)
@@ -7724,6 +7759,8 @@ namespace CapriDesktop
             if (dropping) return;
             if (checkedIn && Unprompted()) { dropping = true; Hush(); return; }
             string said = Computer.Mask(Voice.Spoken(text));
+            // The agent saying the same line again never gets as far as their ears.
+            if (SaidAgain(said)) return;
             string promised = null;
             lock (shortcutGate) if (!toolAsked && heardLast != null && Hands.Promised(said)) { promised = heardLast; heardLast = null; }
             if (promised != null) { string missed = said; ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(4000); lock (shortcutGate) if (toolAsked) return; Brain.Log("https://api.elevenlabs.io/v1/convai/conversation", -1, "Voice chat said she'd do it but no tool ran. Heard: " + promised + " | Said: " + missed); }); }
@@ -7827,6 +7864,8 @@ namespace CapriDesktop
 
         private void Listen(short[] chunk)
         {
+            // Their push-to-talk key, held: what the mic hears is theirs until they let go.
+            lock (waking) if (pushed != null) { pushed.Add(chunk); return; }
             if (local) { Gather(chunk); return; }
             lock (waking)
             {
@@ -7851,7 +7890,7 @@ namespace CapriDesktop
                 }
             }
             Agent open = agent;
-            if (open != null) open.Send(speaker.Busy ? new short[chunk.Length] : chunk);
+            if (open != null) open.Send(OverHer(chunk, open));
         }
 
         internal void Hear(string text) { Hear(text, text, "> you: "); }
@@ -7863,14 +7902,11 @@ namespace CapriDesktop
             if (text.Length > 240) text = text.Substring(0, 240);
             // Mid-job, what they say goes to the job instead of cancelling it: she says she's got it, does it, then carries on
             // (Lachy, 29 Oct: "she needs to actually listen to me mid way through").
+            // Now it's two heads: the job runs on while her fast brain sorts what they said and answers (Asides.cs).
             Job running = job;
-            if (running != null && working != null && !running.Asking && prompt == "> you: ")
+            if (MidJob(running) && prompt == "> you: ")
             {
-                Brain.Transcribe(local ? "You (voice)" : "You", text);
-                running.Tell(text);
-                working = "Got it. Esc stops me.";
-                UpdateTalk(clock.Elapsed.TotalSeconds);
-                SayAside("Got it.", running);
+                HeardMidJob(text, running);
                 return;
             }
             if (local) { talkState = TalkState.Thinking; CheckEars(clock.Elapsed.TotalSeconds); }
@@ -8059,6 +8095,7 @@ namespace CapriDesktop
             if (seconds < 0.2) return;
             Say(said);
             mouths = Voice.Mouths(wav, MouthRate);
+            Played(wav);
             if (!testing) voice.Play(wav);
         }
 
@@ -8093,7 +8130,7 @@ namespace CapriDesktop
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
             box.Heard = heard;
-            box.Reply = talkState == TalkState.Thinking ? (working ?? (slowWarned ? (brain.Remote != null ? "Still thinking. Waiting for " + brain.Remote.Company + "." : SlowLocal) : null)) : reply;
+            box.Reply = talkState == TalkState.Thinking ? (AsideNow(now) ?? working ?? (slowWarned ? (brain.Remote != null ? "Still thinking. Waiting for " + brain.Remote.Company + "." : SlowLocal) : null)) : reply;
             box.Revealed = revealed;
             float s = TalkScale();
             Point head = Head();
