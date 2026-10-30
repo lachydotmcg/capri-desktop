@@ -607,10 +607,9 @@ namespace CapriDesktop
             comments = Setting("Comments", Commentary.PaceNames, c, 812, "How much she says about a game you're playing: off, only when something happens, or chatty");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
-            Section("GAMING >", c, 786);
             gamingMode = Switch("Gaming Mode", c, 840, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it";
-            Caption("Her HUD sits top-left over your game until you close it.", 28 + c, 868, small, Faint);
+            Caption("Her HUD reacts to your game until you close it.", 28 + c, 868, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];

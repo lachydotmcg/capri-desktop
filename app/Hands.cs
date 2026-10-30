@@ -924,6 +924,9 @@ namespace CapriDesktop
         }
 
         // What she should have done instead of asking: their own words as a mouse and keyboard job.
+        // The title of a game open on their PC, or null. Set where her hands can look, which is Windows so far.
+        internal static Func<string> GameOpen = delegate { return null; };
+
         // "Play minecraft and punch a tree" is more than opening it, so all of it goes to her hands.
         private static readonly Regex AndThen = new Regex(@"(?:^|\s)(?:and|then|until|und|dann|y|luego|et|puis|e|depois|i|potem|и|потом)\s+\S", RegexOptions.IgnoreCase);
 
@@ -1405,7 +1408,7 @@ namespace CapriDesktop
             foreach (string attempt in tries)
                 if (Direct(attempt, out tool, out args))
                 {
-                    if (tool == "media" && Regex.IsMatch(attempt, @"\b(keep|carry on|continue|go on) playing\b", RegexOptions.IgnoreCase) && Computer.GameOpen() != null) break;
+                    if (tool == "media" && Regex.IsMatch(attempt, @"\b(keep|carry on|continue|go on) playing\b", RegexOptions.IgnoreCase) && GameOpen() != null) break;
                     return true;
                 }
             tool = null;

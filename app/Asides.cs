@@ -587,7 +587,7 @@ namespace CapriDesktop
 
         internal string PushKeyName { get { return preferences.PushVk == 0 ? "not set" : KeyName(preferences.PushMods, preferences.PushVk); } }
 
-        // Her key slots are 0 to 4, and this one comes after them. 0 for the key means it's off.
+        // Her key slots are 0 to 5, and this one comes after them. 0 for the key means it's off.
         internal const int PushSlot = 6;
 
         // Any key or mouse button, a modifier on its own too, but never a left or right click or an IME placeholder.
@@ -596,7 +596,7 @@ namespace CapriDesktop
         private string SetPushKey(int mods, int vk)
         {
             if (!PushBindable(mods, vk)) return "Press a key or a mouse button, alone or with Ctrl, Alt, Shift or Win.";
-            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk };
+            int[] bound = { preferences.TalkMods, preferences.TalkVk, preferences.MuteMods, preferences.MuteVk, preferences.TypeMods, preferences.TypeVk, preferences.HideMods, preferences.HideVk, preferences.QuietMods, preferences.QuietVk, preferences.GameMods, preferences.GameVk };
             for (int i = 0; vk != 0 && i < KeyJobs.Length; i++)
                 if (mods == bound[i * 2] && vk == bound[i * 2 + 1]) return KeyName(mods, vk) + " is already her " + KeyJobs[i] + " key.";
             preferences.PushMods = mods;

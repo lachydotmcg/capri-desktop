@@ -1323,6 +1323,7 @@ namespace CapriDesktop
             Brain.MemoriesPath = Path.Combine(data, "memories.md");
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
+            Hands.GameOpen = delegate { return Computer.GameOpen(); };
             engine = new Engine(data);
             kokoro = new LocalVoice(data);
             qwen = new QwenVoice(data);
@@ -8723,6 +8724,11 @@ namespace CapriDesktop
                 if (lines.Count != known.Length) throw new Exception("OCR returned the wrong number of plain lines: " + string.Join(" / ", lines));
                 for (int ordered = 0; ordered < known.Length; ordered++) if (!string.Equals(lines[ordered], known[ordered], StringComparison.OrdinalIgnoreCase)) throw new Exception("OCR's lines were not top to bottom: " + string.Join(" / ", lines));
                 checks.Add("PASS Windows OCR reads known words at scales 1 and 2 with boxes in original frame pixels and lines top to bottom");
+                Sight unread = new Sight { Window = new IntPtr(5) };
+                unread.Targets.Add(new Target { Number = 2, Role = "button", Name = "Close", Value = "" });
+                Computer.ReadWords(unread, Picture.Of(screen, new Rectangle(100, 200, screen.Width, screen.Height)));
+                Target capriWords = unread.Targets.Find(found => found.Role == "words" && found.Name == "Capri");
+                if (capriWords == null || capriWords.Number <= 2 || capriWords.Box.Left < 100 + 64 - 16 || capriWords.Box.Left > 100 + 64 + 16 || capriWords.Box.Top < 200 + 72 - 16 || capriWords.Box.Top > 200 + 72 + 24) throw new Exception("Words on screen didn't become something to click where they are.");
                 using (Bitmap crop = screen.Clone(new Rectangle(40, 40, 400, 200), PixelFormat.Format32bppArgb))
                 {
                     for (int expired = 0; expired < 3; expired++) using (Bitmap brief = (Bitmap)crop.Clone()) Ocr.Words(brief, 1, 1);
@@ -9140,7 +9146,7 @@ namespace CapriDesktop
                     truth = roundSpeed;
                     cameraX = cameraY = 0;
                     Computer.TurnView(new ToolArguments { Right = 90 }, game);
-                    if (Math.Abs(cameraX - worldWidth / 4.0) > 24) throw new Exception("Her camera missed a quarter turn in a game whose view comes round at mouse speed " + roundSpeed + ": went " + cameraX + ".");
+                    if (Math.Abs((cameraX % worldWidth + worldWidth) % worldWidth - worldWidth / 4.0) > 24) throw new Exception("Her camera missed a quarter turn in a game whose view comes round at mouse speed " + roundSpeed + ": went " + cameraX + ".");
                     Computer.TurnView(new ToolArguments { Level = "yes" }, game);
                     if (Math.Abs(cameraY - (400 - worldWidth / 4.0)) > 24) throw new Exception("Her camera didn't level out at mouse speed " + roundSpeed + ": ended at " + cameraY + ".");
                 }

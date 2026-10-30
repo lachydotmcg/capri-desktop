@@ -44,8 +44,8 @@ namespace CapriDesktop
 
         internal const string Reflecting =
             "You just finished playing a game for your user, and you're writing a note to yourself for next time. You get the job, how it ended and the moves you made. " +
-            "Write up to 3 short lines, each starting with \"- \", about what you'd want to know next time: a control you worked out, what worked, what didn't and why, what killed you, or where something is. " +
-            "Only write what you actually found out from these moves, in plain words. Nothing about the user, and nothing that only matters to this one run. If you learned nothing new, reply with only the word: nothing";
+            "Write up to 3 short lines, each starting with \"- \", about the game itself that you'd want to know next time: a control you worked out, how long something takes, what worked in it, what didn't and why, what killed you, or where something is. " +
+            "Only write what you actually found out from these moves, in plain words. Nothing about the user, nothing about your tools or your own replies, and nothing that only matters to this one run. If you learned nothing new about the game, reply with only the word: nothing";
 
         // "Minecraft 26.3 - Singleplayer" is Minecraft, and "Cyberpunk 2077 (C) 2020 by CD Projekt RED" is Cyberpunk 2077.
         internal static string Name(string title)

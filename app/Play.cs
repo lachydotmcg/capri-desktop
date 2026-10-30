@@ -189,7 +189,7 @@ namespace CapriDesktop
             "Reply with only your next moves, one per line, in order. Send several when they belong together. After them you get a new picture, so check what changed.\n" +
             "Your moves:\n" +
             "click{\"text\": \"Play\"} clicks those words on screen, which is the surest way to press a button or menu item. click{\"x\": 50, \"y\": 48} clicks a spot, for anything without words. double_click and right_click work the same way.\n" +
-            "press{\"keys\": \"esc\"} presses a key or keys, like e, enter or ctrl+a.\n" +
+            "press{\"keys\": \"e\"} presses a key or keys, like enter, 1 or ctrl+a. Esc usually backs out of what's on screen, so only press it to leave something.\n" +
             "type{\"text\": \"hello\", \"enter\": \"yes\"} types into what's selected, and enter yes presses Enter after it.\n" +
             "scroll{\"x\": 50, \"y\": 50, \"direction\": \"down\"} scrolls there.\n" +
             "wait{\"seconds\": \"2\"} waits.\n" +
@@ -295,10 +295,18 @@ namespace CapriDesktop
             return best;
         }
 
-        // Adds the words on screen to what she can read, each as something to click, for windows that show a brain nothing else.
-        internal static void ReadWords(Sight sight)
+        internal static bool Same(byte[] a, byte[] b)
         {
-            Picture picture = Shoot(null);
+            if (a == null || b == null || a.Length != b.Length) return false;
+            for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
+            return true;
+        }
+
+        // Adds the words on screen to what she can read, each as something to click, for windows that show a brain nothing else.
+        internal static void ReadWords(Sight sight) { ReadWords(sight, Shoot(null)); }
+
+        internal static void ReadWords(Sight sight, Picture picture)
+        {
             if (picture == null || picture.Jpeg == null) return;
             try
             {

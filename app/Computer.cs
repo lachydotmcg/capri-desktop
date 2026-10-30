@@ -195,7 +195,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"string\",\"description\":\"The keys to hold, joined with +, like w, a, shift+w. Default w\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long to keep going. Default 2\"},\"jump\":{\"type\":\"string\",\"description\":\"Jump when something's in the way. Default yes\",\"enum\":[\"yes\",\"no\"]}}}" },
             { "learn", "Save one short thing you worked out about this game for every time you play it after this, like a key, what killed you, what worked or where something is. You're told these before you play it again.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"One short line\"}},\"required\":[\"text\"]}" },
-            { "mouse_hold", "Hold a mouse button in a game for as long as something takes, like holding left click to mine a block or fire, or right click to aim, block or use. Set stop to yes to let go by itself when what's under the crosshair changes, like when a block breaks.",
+            { "mouse_hold", "Hold a mouse button in a game for as long as something takes, like holding left click to mine a block or fire, or right click to aim, block or use. When you're breaking something, always set stop to yes, so it lets go by itself the moment what's under the crosshair changes and you don't start on the next block.",
               "{\"type\":\"object\",\"properties\":{\"button\":{\"type\":\"string\",\"description\":\"Which button. Default left\",\"enum\":[\"left\",\"right\"]},\"seconds\":{\"type\":\"string\",\"description\":\"Longest to hold it. Default 1\"},\"keys\":{\"type\":\"string\",\"description\":\"Keys to hold with it, joined with +, if any\"},\"stop\":{\"type\":\"string\",\"description\":\"Let go when what's under the crosshair changes\",\"enum\":[\"yes\",\"no\"]}}}" }
         };
 
@@ -1848,6 +1848,7 @@ namespace CapriDesktop
         internal Func<string, string, string> Aside;
         private string game;
         private string carried;
+        private string lastMoves;
         private readonly List<string> played = new List<string>();
         internal Action Blind;
         // A game job thinks harder on every turn and gets her game lines. Their words make it one, or a game's window in front
@@ -2289,8 +2290,11 @@ namespace CapriDesktop
             {
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 turns++;
+                byte[] lastLook = shown == null ? null : shown.Jpeg;
                 if (!Look()) return End("failed", "I couldn't see the screen.");
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
+                // Nothing on screen moved at all, or it's about to make the same moves again: small brains need telling.
+                if (lastLook != null && results.Length > 0 && Computer.Same(lastLook, shown.Jpeg)) results += "\nThe screen didn't change at all after that, so it didn't work. Try something different.";
                 string words;
                 List<ReadWord> spots;
                 byte[] picture = Computer.Gridded(shown, out words, out spots);
@@ -2320,7 +2324,15 @@ namespace CapriDesktop
                 }
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 results = "";
+                // The window in front changed while it was thinking, so its moves are for something that's gone.
+                if (looked != IntPtr.Zero && Computer.Front() != looked)
+                {
+                    results = "\nNot done: the window in front changed before those moves ran. Look at the new screen.";
+                    continue;
+                }
                 List<KeyValuePair<string, ToolArguments>> moves = Computer.Moves(reply);
+                if (moves.Count > 0 && reply == lastMoves) results = "\nYou just made exactly those moves and you're making them again. If they aren't getting you anywhere, try something else.";
+                lastMoves = reply;
                 if (moves.Count == 0)
                 {
                     if (++lost >= 3) return Steps.Count > 0 ? End("done", Summary()) : End("failed", Computer.Confused);
@@ -2328,6 +2340,8 @@ namespace CapriDesktop
                     continue;
                 }
                 lost = 0;
+                string repeated = results;
+                results = "";
                 foreach (KeyValuePair<string, ToolArguments> move in moves)
                 {
                     ToolArguments args = move.Value;
@@ -2369,6 +2383,7 @@ namespace CapriDesktop
                     if (Computer.Failed(result)) break;
                 }
                 if (results.Length > 0 && !results.StartsWith("\nYou asked", StringComparison.Ordinal)) results = "\nWhat your last moves did:" + results;
+                results += repeated;
             }
         }
 

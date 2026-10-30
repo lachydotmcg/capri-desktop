@@ -1170,7 +1170,7 @@ namespace CapriDesktop
             string request = agreed ? recent[0].Content : text;
             bool follows = !agreed && recent.Count == 2 && Hands.Follows(text, recent[0].Content, recent[1].Content);
             bool reached = false;
-            string playing = act != null ? Computer.GameOpen() : null;
+            string playing = act != null ? Hands.GameOpen() : null;
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             if (act != null && recent.Count == 2 && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(text.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = text }));
@@ -1324,7 +1324,7 @@ namespace CapriDesktop
             string source = remote != null ? remote.Kind + "|" + remote.Model : Local != null ? "local|" + model : Ollama + "|" + model;
             bool native = toolless != source;
             List<ChatMessage> asking = new List<ChatMessage>();
-            string game = Hands.GameNote(Computer.GameOpen());
+            string game = Hands.GameNote(Hands.GameOpen());
             asking.Add(new ChatMessage("system", (native ? Hands.Prompt : Hands.Prompt + Hands.Listing) + game));
             asking.AddRange(recent);
             asking.Add(new ChatMessage("user", text));
@@ -1849,7 +1849,31 @@ namespace CapriDesktop
         private static readonly Regex BareWords = new Regex("(?<![\\\\])\"(seconds|minutes|times|level|jump|stop|enter|keys|hold|press|button|direction|target|text)\"\\s*:\\s*(true|false|-?\\d+(?:\\.\\d+)?)");
         private static readonly Regex QuotedNumbers = new Regex("(?<![\\\\])\"(x|y|right|up|scroll_amount|duration|repeat)\"\\s*:\\s*\"(-?\\d+(?:\\.\\d+)?)\"");
         private static readonly Regex ListedKeys = new Regex("(?<![\\\\])\"(keys|hold|text)\"\\s*:\\s*\\[\\s*\"([^\"\\]]*)\"(?:\\s*,\\s*\"([^\"\\]]*)\")?(?:\\s*,\\s*\"([^\"\\]]*)\")?\\s*\\]");
-        private static readonly Regex ToolInput = new Regex("\"input\"\\s*:\\s*\\{[^{}]*\\}");
+        private static readonly Regex ToolInput = new Regex("(?<![\\\\])\"input\"\\s*:\\s*\\{");
+
+        // The reply with every tool call's arguments emptied, however deep they go.
+        private static string Inputless(string text)
+        {
+            StringBuilder kept = new StringBuilder();
+            int at = 0;
+            foreach (Match found in ToolInput.Matches(text))
+            {
+                if (found.Index < at) continue;
+                kept.Append(text, at, found.Index - at).Append("\"input\":{}");
+                int depth = 0, i = found.Index + found.Length - 1;
+                bool quoted = false;
+                for (; i < text.Length; i++)
+                {
+                    char c = text[i];
+                    if (quoted) { if (c == '\\') i++; else if (c == '"') quoted = false; }
+                    else if (c == '"') quoted = true;
+                    else if (c == '{') depth++;
+                    else if (c == '}' && --depth == 0) break;
+                }
+                at = Math.Min(text.Length, i + 1);
+            }
+            return kept.Append(text, at, text.Length - at).ToString();
+        }
 
         private static ClaudeReply Read(string text)
         {
@@ -1879,7 +1903,7 @@ namespace CapriDesktop
                 // One odd tool call costs a turn, not the job: it runs with what could be read, and the next turn sees how that went.
                 Log("reading a reply", -1, text.Substring(0, Math.Min(text.Length, 1500)));
                 try { reply = Read(Loosened(text)); }
-                catch (SerializationException) { reply = Read(ToolInput.Replace(text, "\"input\":{}")); }
+                catch (SerializationException) { reply = Read(Inputless(text)); }
             }
             reply.Raw = Field(text, "content");
             if (reply.Raw == null) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
