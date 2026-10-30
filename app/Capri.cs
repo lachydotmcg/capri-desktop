@@ -23997,6 +23997,7 @@ namespace CapriDesktop
                 must(Commentary.Line("That zombie waited for you too.", recentLines) == "", "She repeated the shape of a line.");
                 must(Commentary.Line("Skeleton got you from across the ravine.", recentLines) == "Skeleton got you from across the ravine.", "A fresh line was dropped.");
                 must(Commentary.Line("SAY: Skeleton got you from across the ravine.", recentLines) == "Skeleton got you from across the ravine.", "A labelled line wasn't read.");
+                must(Commentary.Line("Nothing's really changed between those two shots, choom.", new string[0]) == "" && Commentary.Line("That shotgun shot took half his frame out.", new string[0]) != "", "She read the pictures out loud, or a real line about a shot was dropped.");
                 must(Commentary.Shaped("Hit by a train.", "Hit by a bus.") && !Commentary.Shaped("Clean shot.", "Good aim on that one."), "Her same-shape check is wrong.");
                 string askText = Commentary.Ask("advancement", "They just got the advancement Stone Age", "Minecraft", new string[0], Commentary.Chatty, 1);
                 must(askText.IndexOf("Stone Age", StringComparison.Ordinal) >= 0 && askText.IndexOf("right now", StringComparison.Ordinal) >= 0, "Her ask lost what happened: " + askText);
