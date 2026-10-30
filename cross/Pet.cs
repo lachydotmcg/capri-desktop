@@ -3670,7 +3670,7 @@ namespace CapriDesktop
         {
             get
             {
-                try { return LocalSpeaker.Where(LocalSpeaker.Endpoint(localVoice.Url)); }
+                try { return LocalSpeaker.Where(LocalSpeaker.Endpoint(localVoice.Address)); }
                 catch (VoiceException) { return "not set"; }
             }
         }
@@ -3689,7 +3689,7 @@ namespace CapriDesktop
         {
             ComeBack();
             string heard = part == "url" ? "(local voice server)" : part == "model" ? "(local voice model)" : "(local voice)";
-            string ask = part == "url" ? "Type your local voice server's address, like " + LocalSpeaker.Address + ", and press Enter."
+            string ask = part == "url" ? "Type your local voice server's address, like " + LocalSpeaker.Default + ", and press Enter. A dash goes back to " + LocalSpeaker.Default + "."
                 : part == "model" ? "Type the model your server should use, like kokoro, and press Enter. A dash leaves it to the server."
                 : "Type the voice your server should use, like af_heart, and press Enter. A dash leaves it to the server.";
             Talk.AskFor(heard, ask, delegate(string typed)
@@ -3874,7 +3874,7 @@ namespace CapriDesktop
             speak.Click += delegate { SetSpeak(Saved.Silent); };
             voiceMenu.Items.Add(speak);
             voiceMenu.Items.Add(new Separator());
-            MenuItem server = new MenuItem { Header = "Server: " + (string.IsNullOrEmpty(localVoice.Url) ? "not set" : localVoice.Url) + "..." };
+            MenuItem server = new MenuItem { Header = "Server: " + (string.IsNullOrEmpty(localVoice.Url) ? LocalSpeaker.Default + " (Kokoro's usual)" : localVoice.Url) + "..." };
             server.Click += delegate { AskLocalVoice("url"); };
             MenuItem model = new MenuItem { Header = "Model: " + (string.IsNullOrEmpty(localVoice.Model) ? "server's default" : localVoice.Model) + "..." };
             model.Click += delegate { AskLocalVoice("model"); };
