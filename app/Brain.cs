@@ -1431,7 +1431,10 @@ namespace CapriDesktop
                 done = held ?? string.Join(" ", results.ToArray());
                 Cloud remote = Remote;
                 string pulled = held ?? (results.Count == 1 ? Hands.Pulled(results[0]) : null);
+                bool stopped = false;
 #if !CROSS
+                // A job they stopped is over: her brain would only guess at what "Dropped it." meant.
+                stopped = results.Exists(Computer.Stopped);
                 if (calls.Exists(fileCall => fileCall.Key == "read_file"))
                 {
                     List<ChatMessage> fileMessages = new List<ChatMessage>();
@@ -1445,7 +1448,7 @@ namespace CapriDesktop
                 else
 #endif
                 if (pulled != null) raw = pulled;
-                else if (results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !calls.Exists(call => call.Key == "look_at_screen"))) raw = done;
+                else if (stopped || results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !calls.Exists(call => call.Key == "look_at_screen"))) raw = done;
                 else
                 {
                     messages = new List<ChatMessage>

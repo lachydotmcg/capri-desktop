@@ -12196,13 +12196,23 @@ namespace CapriDesktop
                 checks.Add("PASS local servers without streaming: an unsupported stream retries as an ordinary OpenAI completion, and the next chat keeps that form");
 
                 asked.Clear();
-                address = FakeServer(new[] { "!400 {\"error\":{\"message\":\"This model does not support tools\"}}", LocalReply("media{\"action\":\"next\"}"), LocalReply("Skipped it."), LocalReply("media{\"action\":\"next\"}"), LocalReply("Skipped again.") }, asked, out fake);
+                address = FakeServer(new[] { "!400 {\"error\":{\"message\":\"This model does not support tools\"}}", LocalReply("media{\"action\":\"next\"}"), LocalReply("Skipped it."), LocalReply("media{\"action\":\"next\"}"), LocalReply("Skipped again."), LocalReply("media{\"action\":\"next\"}"), LocalReply("Track's skipped, all done.") }, asked, out fake);
                 Brain written = new Brain { Model = "written", Remote = new Cloud(Brain.LocalPort(address), "written") };
                 int acted = 0;
                 written.Act = delegate(string name, ToolArguments arguments) { if (name != "media" || arguments.Action != "next") throw new Exception("The written tool changed."); acted++; return "Skipped to the next track."; };
                 written.Ask("search YouTube for combos");
                 written.Ask("search YouTube for parkour");
                 if (acted != 2 || asked.Count != 5 || asked[0].IndexOf("\"tools\":", StringComparison.Ordinal) < 0 || asked[1].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || asked[3].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || asked[1].IndexOf("To use one, reply with only the call", StringComparison.Ordinal) < 0) throw new Exception("Local written tools did not fall back and stay working.");
+                Action haltedWas = Computer.Halted;
+                Computer.Halted = delegate { };
+                try
+                {
+                    written.Act = delegate(string name, ToolArguments arguments) { Computer.Arm(); Computer.Interrupt("Dropped it."); return "Dropped it."; };
+                    string stoppedReply = written.Ask("search YouTube for drift");
+                    if (stoppedReply != "Dropped it." || asked.Count != 6) throw new Exception("Her brain retold a job they stopped: " + stoppedReply);
+                    checks.Add("PASS a job they stopped is said as it is, with no brain call to retell it");
+                }
+                finally { Computer.Arm(); Computer.Halted = haltedWas; }
                 fake.Stop();
                 asked.Clear();
                 address = FakeServer(new[] { LocalReply("media{\"action\":\"next\"}") }, asked, out fake);
