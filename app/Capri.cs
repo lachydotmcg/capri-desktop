@@ -19793,13 +19793,9 @@ namespace CapriDesktop
             catch (EntryPointNotFoundException) { return false; }
         }
 
-        // The smoke test sets this too.
-        internal static bool? FakedExclusive;
-
         // A Direct3D game in exclusive full screen, which nothing can draw over.
         internal static bool Exclusive()
         {
-            if (FakedExclusive.HasValue) return FakedExclusive.Value;
             int state;
             try { return SHQueryUserNotificationState(out state) == 0 && state == 3; }
             catch (EntryPointNotFoundException) { return false; }
