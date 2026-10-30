@@ -91,6 +91,34 @@ internal sealed class Checks : Application
         }
         owner.Activate(); await Painted();
     }
+    private async Task SecurityPicker(Pet pet, Window window)
+    {
+        var picker = window.GetVisualDescendants().OfType<NeonPicker>().Single();
+        var value = picker.GetVisualDescendants().OfType<NeonButton>().Single(c => AutomationProperties.GetName(c) == "Security preset");
+        pet.ClickSecurity(Security.Blackwall, -1);
+        picker.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Right });
+        Check(picker.Selected == Security.Lockdown && Security.Preset == Security.Lockdown,
+            "Security next skips derived Custom and applies Lockdown after Blackwall");
+        picker.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Left });
+        Check(picker.Selected == Security.Blackwall && Security.Preset == Security.Blackwall,
+            "Security previous skips derived Custom and applies Blackwall before Lockdown");
+        pet.ClickSecurity(Security.Trusted, -1); pet.ClickSecurity(-1, Security.Open);
+        Check(Security.Preset == Security.Custom && picker.Selected == Security.Custom && (string)value.Content == "Custom",
+            "individual grant changes still display the actual derived Custom status");
+        picker.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Right });
+        Check(picker.Selected == Security.Lockdown && Security.Preset == Security.Lockdown,
+            "Security arrow can leave derived Custom through a real preset");
+        if (Environment.GetEnvironmentVariable("CAPRI_PRIVATE_UI_TEST") == "1")
+        {
+            pet.ClickSecurity(Security.Blackwall, -1); window.Activate(); await Painted();
+            await PrivatePointer.Click(value.PointToScreen(new Point(value.Bounds.Width / 2, value.Bounds.Height / 2)));
+            await Painted(); await PrivatePointer.Key(0xff57); await PrivatePointer.Key(0xff0d); await Painted();
+            Check(picker.Selected == Security.Blackwall && Security.Preset == Security.Blackwall,
+                "native Security menu End and Enter cannot select disabled Custom");
+            Capture(window, "security-preset-checked");
+        }
+        pet.ClickSecurity(Security.Trusted, -1);
+    }
     private async void Run()
     {
         var desktop = (IClassicDesktopStyleApplicationLifetime)ApplicationLifetime;
@@ -168,7 +196,8 @@ internal sealed class Checks : Application
             scroll.Offset = new Vector(scroll.Extent.Width, scroll.Extent.Height); await Painted(); Capture(frame, "settings-200-scrolled");
             pet.SetMainframeSize(100); frame.ShowSettings(false); await Painted();
             frame.OpenSecurity(); await Painted(); var security = desktop.Windows.Single(w => w.Title == "Capri Security"); Capture(security, "security-100");
-            Check(Security.Mask == permissions, "opening Security does not change grants"); security.Close();
+            Check(Security.Mask == permissions, "opening Security does not change grants");
+            await SecurityPicker(pet, security); security.Close();
             var layersBefore = Saved(pet.Saved); frame.OpenLayers(); await Painted(); var layers = desktop.Windows.Single(w => w.Title == "Capri Voice layers"); Capture(layers, "layers-100");
             Check(Saved(pet.Saved) == layersBefore, "opening Voice Layers does not rewrite tuned values"); layers.Close();
             frame.OpenVoiceSetup(false); await Painted(); var setup = desktop.Windows.Single(w => w.Title == "Capri Voice setup"); Capture(setup, "voice-setup-100"); setup.Close();

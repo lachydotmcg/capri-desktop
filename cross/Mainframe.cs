@@ -393,7 +393,7 @@ namespace CapriDesktop
         {
             var sheet = Sheet("Security", 780); if (sheet == null) return; var content = sheet.Body;
             Section(content, "PRESET");
-            var preset = new NeonPicker("Security preset", Security.Presets, i => { if (i < 4) pet.ClickSecurity(i, -1); });
+            var preset = new NeonPicker("Security preset", Security.Presets, i => pet.ClickSecurity(i, -1), i => i != Security.Custom);
             Wide(content, preset); var note = Note(content, Security.Short);
             var toggles = new List<NeonSwitch>(); bool loading = false;
             Section(content, "WHAT SHE CAN DO");

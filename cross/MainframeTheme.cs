@@ -142,28 +142,40 @@ namespace CapriDesktop
     {
         private readonly NeonButton value;
         private readonly Action<int> changed;
+        private readonly Func<int, bool> selectable;
         private string[] choices;
         private int selected;
+        // A derived status may be displayed even when it is not a selectable action.
         internal int Selected { get { return selected; } set { selected = Math.Clamp(value, 0, Math.Max(0, choices.Length - 1)); this.value.Content = choices.Length == 0 ? "None available" : choices[selected]; } }
-        internal NeonPicker(string name, string[] options, Action<int> change)
+        internal NeonPicker(string name, string[] options, Action<int> change, Func<int, bool> canSelect = null)
         {
-            choices = options; changed = change;
+            choices = options; changed = change; selectable = canSelect;
             var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,22"), Height = 25 };
-            var left = MainframeTheme.Button("‹", () => Pick(selected - 1), name + ": previous");
-            var right = MainframeTheme.Button("›", () => Pick(selected + 1), name + ": next");
+            var left = MainframeTheme.Button("‹", () => Step(-1), name + ": previous");
+            var right = MainframeTheme.Button("›", () => Step(1), name + ": next");
             value = MainframeTheme.Button("", Open, name); value.Foreground = MainframeTheme.Cyan; value.Padding = new Thickness(3, 1);
             left.Padding = right.Padding = new Thickness(0); left.MinHeight = right.MinHeight = value.MinHeight = 23;
             grid.Children.Add(left); grid.Children.Add(value); grid.Children.Add(right); Grid.SetColumn(value, 1); Grid.SetColumn(right, 2); Content = grid; Selected = 0;
-            KeyDown += (_, e) => { if (e.Key == Key.Left || e.Key == Key.Right) { Pick(selected + (e.Key == Key.Right ? 1 : -1)); e.Handled = true; } };
+            KeyDown += (_, e) => { if (e.Key == Key.Left || e.Key == Key.Right) { Step(e.Key == Key.Right ? 1 : -1); e.Handled = true; } };
         }
         internal void Choices(string[] options) { choices = options; Selected = selected; }
-        private void Pick(int at) { if (choices.Length == 0) return; Selected = (at + choices.Length) % choices.Length; changed(Selected); }
+        private bool CanSelect(int at) => at >= 0 && at < choices.Length && (selectable == null || selectable(at));
+        private void Pick(int at) { if (!CanSelect(at)) return; Selected = at; changed(Selected); }
+        private void Step(int direction)
+        {
+            int at = selected;
+            for (int i = 0; i < choices.Length; i++)
+            {
+                at = (at + direction + choices.Length) % choices.Length;
+                if (CanSelect(at)) { Pick(at); return; }
+            }
+        }
         private void Open()
         {
             var menu = new ContextMenu { Background = MainframeTheme.Ground, Foreground = MainframeTheme.Cyan, BorderBrush = MainframeTheme.Brim, BorderThickness = new Thickness(1), FontFamily = MainframeTheme.Text };
             for (int i = 0; i < choices.Length; i++)
             {
-                int at = i; var item = new MenuItem { Header = choices[i], ToggleType = MenuItemToggleType.Radio, IsChecked = i == selected, FontFamily = MainframeTheme.Text, Foreground = MainframeTheme.Cyan };
+                int at = i; var item = new MenuItem { Header = choices[i], ToggleType = MenuItemToggleType.Radio, IsChecked = i == selected, IsEnabled = CanSelect(i), FontFamily = MainframeTheme.Text, Foreground = MainframeTheme.Cyan };
                 item.Click += (_, _) => Pick(at); menu.Items.Add(item);
             }
             menu.Open(value);
