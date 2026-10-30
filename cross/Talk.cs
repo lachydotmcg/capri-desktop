@@ -206,7 +206,7 @@ namespace CapriDesktop
             layers.Children.Add(new Plate());
             layers.Children.Add(row);
             Content = layers;
-            Deactivated += delegate { if (Program.Smoke == null) Hide(); };
+            Deactivated += delegate { if (Program.Smoke == null && DismissOnDeactivation) Hide(); };
         }
 
         internal string Draft { get { return input.Text; } set { input.Text = value; } }
@@ -232,9 +232,7 @@ namespace CapriDesktop
             int top = below ? feet.Y + (int)(8 * scale) : head.Y - tallPx - (int)(18 * scale);
             PlaceAt(new PixelPoint(left, top), new Size(Math.Ceiling(Sheet.PanelWidth()), Tall), scale);
             if (above.Width > 0) Follow(above, area, scale);
-            Show();
-            Look.OnTopAgain(this);
-            FocusAfterPlacement(() =>
+            ShowForInput(() => { Show(); Look.OnTopAgain(this); }, () =>
             {
                 Activate();
                 input.Focus();

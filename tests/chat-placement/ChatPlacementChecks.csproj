@@ -9,5 +9,6 @@
     <PackageReference Include="Avalonia" Version="11.3.22" />
     <Compile Include="../../cross/HyprlandGeometry.cs" Link="HyprlandGeometry.cs" />
     <Compile Include="../../cross/ChatPlacementQueue.cs" Link="ChatPlacementQueue.cs" />
+    <Compile Include="../../cross/ChatFocusGate.cs" Link="ChatFocusGate.cs" />
   </ItemGroup>
 </Project>

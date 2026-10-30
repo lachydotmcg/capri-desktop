@@ -16,3 +16,9 @@ Actual compositor checks must confirm bubble, pill and typer beside the pet on
 each output/workspace, correct size, typer keyboard focus and Escape, and no late
 window move or activation after hide/close. Preserve the normal runtime and review
 gate while testing the isolated candidate.
+
+Focus regressions distinguish initial mapping deactivation from deactivation after
+the typer acquires focus. Pending opening has a three-second bound and retries a
+missing initial display map. Explicit hide/close or another Open cancels the old
+request, and changing the compositor's input owner cancels pending activation.
+Actual movement verification remains the shared native helper's responsibility.
