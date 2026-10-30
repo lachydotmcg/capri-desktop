@@ -19,7 +19,7 @@ namespace CapriDesktop
     }
 
     internal sealed record ComputerOutput(string Name, ComputerRect Area, double Scale, int Transform, int PixelWidth, int PixelHeight);
-    internal sealed record ComputerTarget(string Address, int Pid, string Birth, string App, ComputerRect Area, int Monitor, int Workspace);
+    internal sealed record ComputerTarget(string Address, int Pid, string Birth, string App, ComputerRect Area, int Monitor, int Workspace, bool? XWayland = null);
     internal sealed record ComputerSnapshot(string Session, string Layout, ComputerTarget Target, ComputerOutput Output, double PointerX, double PointerY, bool Active);
 
     internal sealed class ComputerFrame
@@ -76,7 +76,7 @@ namespace CapriDesktop
             }
             string birth = HyprlandDesktop.ReadProcessIdentity(picked.Pid);
             if (string.IsNullOrEmpty(birth)) throw new InvalidOperationException("The target process identity is unavailable.");
-            ComputerTarget target = new ComputerTarget("0x" + picked.Address.ToString("x"), picked.Pid, birth, picked.AppId, Rect(picked.Logical), picked.Monitor, picked.Workspace);
+            ComputerTarget target = new ComputerTarget("0x" + picked.Address.ToString("x"), picked.Pid, birth, picked.AppId, Rect(picked.Logical), picked.Monitor, picked.Workspace, picked.XWayland);
             HyprlandOutput monitor = output == null ? snapshot.Outputs.FirstOrDefault(item => item.Id == picked.Monitor) : snapshot.Outputs.FirstOrDefault(item => item.Name.Equals(output, StringComparison.OrdinalIgnoreCase));
             if (monitor == null) throw new InvalidOperationException("The requested output is not connected.");
             ComputerOutput selected = new ComputerOutput(monitor.Name, Rect(monitor.Logical), monitor.Scale, monitor.Transform, monitor.PixelWidth, monitor.PixelHeight);

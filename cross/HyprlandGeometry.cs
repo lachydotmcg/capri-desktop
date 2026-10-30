@@ -14,7 +14,7 @@ namespace CapriDesktop
 
     internal sealed record HyprlandWindow(long Address, int Pid, string AppId, string Title, Rect Logical,
         int Monitor, int Workspace, string WorkspaceName, bool Hidden, bool Pinned, bool Floating,
-        int Fullscreen, int FocusOrder, int GroupSize)
+        int Fullscreen, int FocusOrder, int GroupSize, bool? XWayland = null)
     {
         internal string Selector => "address:0x" + Address.ToString("x", CultureInfo.InvariantCulture);
     }
@@ -106,7 +106,8 @@ namespace CapriDesktop
                 windows.Add(new HyprlandWindow(Address(String(row, "address")), Int(row, "pid"), String(row, "class"), String(row, "title"),
                     new Rect(at.X, at.Y, size.X, size.Y), Int(row, "monitor", -1), Int(workspace, "id"), String(workspace, "name"),
                     Bool(row, "hidden"), Bool(row, "pinned"), Bool(row, "floating"), Int(row, "fullscreen"), Int(row, "focusHistoryID", int.MaxValue),
-                    row.TryGetProperty("grouped", out JsonElement grouped) ? grouped.GetArrayLength() : 0));
+                    row.TryGetProperty("grouped", out JsonElement grouped) ? grouped.GetArrayLength() : 0,
+                    row.TryGetProperty("xwayland", out JsonElement xwayland) && (xwayland.ValueKind == JsonValueKind.True || xwayland.ValueKind == JsonValueKind.False) ? xwayland.GetBoolean() : (bool?)null));
             }
             if (windows.Any(w => w.Address == 0 || w.Pid <= 0) || windows.Select(w => w.Address).Distinct().Count() != windows.Count)
                 throw new FormatException("Ambiguous window identity.");

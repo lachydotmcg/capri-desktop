@@ -19,6 +19,13 @@ content goes to the selected vision model only for a requested screen action or
 the separate opt-in Watch setting. An installed local text model does not prove
 vision support. Check actual model compatibility before relying on computer jobs.
 
+Automated text entry currently requires a target explicitly identified by Hyprland
+as native Wayland. XWayland targets are rejected before starting the text input
+helper because its custom virtual keyboard keymap can send incorrect keys there;
+an absent or malformed target identity also stops text entry. Type the text
+manually or select a native Wayland app. Ordinary human typing in Capri is
+unaffected. This guard does not qualify an alternative X11 text implementation.
+
 ## Build and check
 
 Build dependencies are .NET 10 SDK, make, GCC, pkgconf and Python, plus the runtime

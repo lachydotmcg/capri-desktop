@@ -75,6 +75,14 @@ namespace CapriDesktop
 
     internal sealed class ArchInput : IComputerInput
     {
+        private readonly string helperPath;
+        private readonly Func<ProcessStartInfo, Process> start;
+        internal ArchInput(string helperPath = null, Func<ProcessStartInfo, Process> start = null)
+        {
+            this.helperPath = helperPath ?? Helper;
+            this.start = start ?? Process.Start;
+        }
+
         internal static string Helper { get { return Path.Combine(AppContext.BaseDirectory, "native", "capri-input"); } }
         internal static bool Available { get { return OperatingSystem.IsLinux() && File.Exists(Helper); } }
 
@@ -93,7 +101,13 @@ namespace CapriDesktop
 
         public void Execute(ComputerAction action, ComputerFrame frame, IComputerDesktop desktop, Action<double, double> guard, CancellationToken token)
         {
-            if (!Available) throw new InvalidOperationException("Native mouse and keyboard input needs Capri's optional native/capri-input helper.");
+            if (action.Action == "type")
+            {
+                bool? xwayland = frame?.Source?.Target?.XWayland;
+                if (xwayland == true) throw new InvalidOperationException("Automated text entry into XWayland windows is disabled because it can send incorrect keys. Type the text yourself, or use a native Wayland window.");
+                if (xwayland == null) throw new InvalidOperationException("Automated text entry is disabled because this window's Wayland/XWayland identity is unknown. Type the text yourself, or use a native Wayland window.");
+            }
+            if (!OperatingSystem.IsLinux() || !File.Exists(helperPath)) throw new InvalidOperationException("Native mouse and keyboard input needs Capri's optional native/capri-input helper.");
             double px = frame.Source.PointerX, py = frame.Source.PointerY;
             guard(px, py);
             if (action.Action == "click" || action.Action == "double_click" || action.Action == "drag" || action.Action == "scroll")
@@ -117,7 +131,7 @@ namespace CapriDesktop
                 mode = "drag"; payload = FormattableString.Invariant($"{dx} {dy} {action.Duration}");
             }
             else { mode = action.Action; payload = action.Button ?? "left"; }
-            using Process helper = Process.Start(ComputerProcess.Start(Helper, new[] { mode })) ?? throw new InvalidOperationException("Couldn't start native input.");
+            using Process helper = start(ComputerProcess.Start(helperPath, new[] { mode })) ?? throw new InvalidOperationException("Couldn't start native input.");
             using CancellationTokenRegistration stopped = token.Register(() => ComputerProcess.Stop(helper));
             Task<string> errors = helper.StandardError.ReadToEndAsync();
             try

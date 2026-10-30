@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using CapriDesktop;
 
@@ -20,6 +21,53 @@ internal static class ComputerChecks
         catch (InvalidOperationException) { return true; }
         catch (FormatException) { return true; }
         catch (JsonException) { return true; }
+    }
+
+    private sealed class HelperReached : Exception { }
+
+    private static void CheckTextTargets(Desktop desktop)
+    {
+        JsonObject window = JsonNode.Parse("{\"address\":\"0x123\",\"pid\":123,\"mapped\":true,\"at\":[0,0],\"size\":[800,600],\"workspace\":{\"id\":1}}").AsObject();
+        JsonArray clients = new JsonArray(window);
+        window["xwayland"] = true;
+        Check(HyprlandJson.Windows(clients.ToJsonString()).Single().XWayland == true, "Hyprland preserves explicit XWayland target identity");
+        window["xwayland"] = false;
+        Check(HyprlandJson.Windows(clients.ToJsonString()).Single().XWayland == false, "Hyprland preserves explicit native Wayland target identity");
+        window.Remove("xwayland");
+        Check(HyprlandJson.Windows(clients.ToJsonString()).Single().XWayland == null, "missing compositor identity stays unknown rather than native");
+        window["xwayland"] = "false";
+        Check(HyprlandJson.Windows(clients.ToJsonString()).Single().XWayland == null, "malformed compositor identity stays unknown rather than native");
+
+        string helper = Path.GetTempFileName();
+        try
+        {
+            int starts = 0, guards = 0;
+            string mode = null;
+            ArchInput input = new ArchInput(helper, start => { starts++; mode = start.ArgumentList[0]; throw new HelperReached(); });
+            ComputerAction type = new ComputerAction { Action = "type", Text = "synthetic text" };
+            foreach (bool? identity in new bool?[] { true, null })
+            {
+                ComputerFrame blocked = desktop.Capture(desktop.Current with { Target = desktop.Current.Target with { XWayland = identity } }, true, CancellationToken.None);
+                blocked.Source = desktop.Current with { Target = desktop.Current.Target with { XWayland = identity } };
+                string error = null;
+                try { input.Execute(type, blocked, desktop, (x, y) => guards++, CancellationToken.None); }
+                catch (InvalidOperationException rejected) { error = rejected.Message; }
+                Check(starts == 0 && guards == 0 && error != null && error.Contains(identity == true ? "XWayland windows is disabled" : "identity is unknown"), "automated text rejects " + (identity == true ? "XWayland" : "unknown") + " before helper invocation or input guards");
+            }
+            ComputerFrame native = desktop.Capture(desktop.Current, true, CancellationToken.None);
+            native.Source = native.Source with { Target = native.Source.Target with { XWayland = false } };
+            bool eligible = false;
+            try { input.Execute(type, native, desktop, (x, y) => guards++, CancellationToken.None); }
+            catch (HelperReached) { eligible = true; }
+            Check(eligible && starts == 1 && guards == 1 && mode == "text", "known native Wayland text remains eligible at the intercepted helper boundary");
+            Check(Reject(() => ComputerJobs.Same(native.Source, native.Source with { Target = native.Source.Target with { XWayland = true } }, true)), "window backend identity changes invalidate the bound target");
+            native.Source = native.Source with { Target = native.Source.Target with { XWayland = true } };
+            eligible = false;
+            try { input.Execute(new ComputerAction { Action = "press", Keys = "TAB" }, native, desktop, (x, y) => guards++, CancellationToken.None); }
+            catch (HelperReached) { eligible = true; }
+            Check(eligible && starts == 2 && mode == "key", "text-only guard leaves existing key actions unchanged without sending real input");
+        }
+        finally { File.Delete(helper); }
     }
 
     private sealed class Desktop : IComputerDesktop
@@ -50,6 +98,7 @@ internal static class ComputerChecks
         try
         {
             Desktop desktop = new Desktop();
+            CheckTextTargets(desktop);
             ComputerFrame frame = desktop.Capture(desktop.Current, true, CancellationToken.None);
             Check(frame.ToLogical(600, 450) == (-600, 100), "image pixels map once to negative logical origin at fractional scale");
             string[] cropArgs = ArchComputer.CaptureArguments(desktop.Current, frame.Area, true), outputArgs = ArchComputer.CaptureArguments(desktop.Current, desktop.Current.Output.Area, false);
