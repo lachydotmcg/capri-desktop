@@ -42,12 +42,15 @@ if (-not (Test-Path -LiteralPath $ollamaExe)) {
         Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
         $found = Get-ChildItem -LiteralPath $extractPath -Filter 'ollama.exe' -File -Recurse | Select-Object -First 1
         if (-not $found) { throw 'The downloaded Ollama archive did not contain ollama.exe.' }
-        Copy-Item -LiteralPath $found.FullName -Destination $ollamaExe -Force
-        Get-ChildItem -LiteralPath $extractPath -File -Recurse | Where-Object { $_.FullName -ne $found.FullName } | ForEach-Object {
-            $relative = $_.FullName.Substring($extractPath.Length).TrimStart('\')
+        $runtimeFiles = Get-ChildItem -LiteralPath $found.Directory.FullName -File -Recurse
+        foreach ($runtimeFile in $runtimeFiles) {
+            $relative = $runtimeFile.FullName.Substring($found.Directory.FullName.Length).TrimStart('\')
             $destination = Join-Path $ollamaRoot $relative
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
-            Copy-Item -LiteralPath $_.FullName -Destination $destination -Force
+            Copy-Item -LiteralPath $runtimeFile.FullName -Destination $destination -Force
+        }
+        if (-not (Test-Path -LiteralPath $ollamaExe)) {
+            Copy-Item -LiteralPath $found.FullName -Destination $ollamaExe -Force
         }
     }
     catch {
