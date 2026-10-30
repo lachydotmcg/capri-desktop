@@ -61,6 +61,9 @@ namespace CapriDesktop
                 pet.AwayChanged = delegate { hide.Header = pet.Away ? "Show her" : "Hide her"; };
                 NativeMenuItem bring = new NativeMenuItem("Bring her back");
                 bring.Click += delegate { pet.Bring(); };
+                NativeMenuItem settings = new NativeMenuItem("Settings · Mainframe");
+                settings.Click += delegate { pet.OpenMainframe(); };
+                menu.Items.Add(settings);
                 NativeMenuItem quit = new NativeMenuItem("Quit Capri");
                 quit.Click += delegate { pet.Quit(); };
                 menu.Items.Add(talk);

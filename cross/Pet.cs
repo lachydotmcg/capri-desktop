@@ -20,6 +20,7 @@ namespace CapriDesktop
     [DataContract]
     internal sealed class Settings
     {
+        [DataMember] internal int MainframeSize;
         [DataMember] internal int X;
         [DataMember] internal int Y;
         [DataMember] internal bool Placed;
@@ -192,8 +193,8 @@ namespace CapriDesktop
         // Mac and Linux don't update themselves yet, so she checks GitHub's latest release now and then and offers its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
-        internal static readonly double[] Sizes = { 140, 170, 240, 320, 440, 560 };
-        private static readonly string[] SizeNames = { "Tiny", "Small", "Medium", "Large", "Huge", "Giant" };
+        internal static readonly double[] Sizes = { 140, 170, 200, 240, 280, 320, 380, 440, 500, 560 };
+        internal static readonly string[] SizeNames = { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" };
         internal readonly Brain Brain = new Brain();
         internal readonly Talk Talk;
         internal Desk Desk = Desk.Make();
@@ -1403,6 +1404,7 @@ namespace CapriDesktop
 
         internal void Resize(double size)
         {
+            if (Array.IndexOf(Sizes, size) < 0) throw new ArgumentOutOfRangeException(nameof(size));
             EndWalk();
             PixelPoint hip = Hip;
             PixelPoint middle = Middle;
@@ -1463,7 +1465,10 @@ namespace CapriDesktop
             move.Items.Add(introItem);
             brainMenu = new MenuItem { Header = "Brain" };
             brainMenu.Items.Add(new MenuItem { Header = "Looking for models...", IsEnabled = false });
-            MenuItem settings = new MenuItem { Header = "Settings" };
+            MenuItem settings = new MenuItem { Header = "Settings shortcuts" };
+            MenuItem mainframeItem = new MenuItem { Header = "Settings · Mainframe" };
+            mainframeItem.Click += delegate { OpenMainframe(); };
+            menu.Items.Add(mainframeItem);
             MenuItem language = new MenuItem { Header = "Language" };
             for (int i = 0; i < Brain.Languages.GetLength(0); i++)
             {
@@ -2032,11 +2037,10 @@ namespace CapriDesktop
         internal bool Napping { get { return napping; } }
 
         // Her own moves, like on Windows: "teleport here" glitches her over to their mouse, "go to my other monitor" to the same
-        // spot on another screen, and she sits, stands, hangs, hides and comes back. Riding the cursor and the Mainframe are
-        // Windows-only so far.
+        // spot on another screen, and she sits, stands, hangs, hides and comes back. Riding the cursor is Windows-only so far.
         internal string MoveSelf(string action, string screen)
         {
-            if (action == "move_mainframe") return "My Mainframe is only on Windows so far. Here my settings are in my right-click menu.";
+            if (action == "move_mainframe") { OpenMainframe(); return "Opened Mainframe."; }
             if (action == "ride_cursor" || action == "hop_off") return "Riding your cursor is only on Windows so far.";
             if (action == "hide")
             {
@@ -3709,6 +3713,7 @@ namespace CapriDesktop
             Saved.X = anchor.X;
             Saved.Y = anchor.Y;
             Saved.Placed = true;
+            NotifySettings();
             if (Program.Smoke != null) return;
             try
             {
@@ -3723,6 +3728,7 @@ namespace CapriDesktop
             if (quitting) return;
             quitting = true;
             DisposeNativeMotion();
+            CloseMainframe();
             ComputerJobs.Stop();
             Brain.Cancel();
             DisposeSpeech();
@@ -3741,6 +3747,7 @@ namespace CapriDesktop
         internal void Finish(int code)
         {
             DisposeNativeMotion();
+            CloseMainframe();
             ComputerJobs.Stop();
             Brain.Cancel();
             DisposeSpeech();

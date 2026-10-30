@@ -1,0 +1,56 @@
+id,section,control,binding_or_gap,contract,runtime_status
+B01,Primary Brain,Provider and connection,New Codex provider alongside current local/API providers,Same themed picker and real state; no API-key field for Codex,IMPLEMENTED_HOST_CHECK_PENDING
+B02,Primary Brain,Model and Refresh,Current model discovery and new Codex account catalog,Do not filter through API-only codex-excluding regex; inference qualification,IMPLEMENTED_HOST_CHECK_PENDING
+B03,Primary Brain,Connect Retry Disconnect,New owned app-server lifecycle,Actual errors and Stop; preserve global Codex sign-in,IMPLEMENTED_HOST_CHECK_PENDING
+B04,Primary Brain,Existing setup/tiers,Current Ollama/cloud setup paths,Preserve actual backend; distinguish plan from API tiers,IMPLEMENTED_HOST_CHECK_PENDING
+V01,Primary Voice,Off prebuilt custom cloud modes,Current speech selection plus capability state,Real modes; no voice retuning or new hosted dependency,IMPLEMENTED_HOST_CHECK_PENDING
+V02,Primary Voice,Model/style picker and local setup,Pet.Speech and SpeechSetup,Installed model discovery; current downloadable packs preserved,IMPLEMENTED_HOST_CHECK_PENDING
+V03,Primary Voice,Reference/model/server sheets,Existing Linux supported selections and explicit gaps,Owner-selected reference; unavailable HD setup explained,IMPLEMENTED_HOST_CHECK_PENDING
+V04,Primary Voice,Optional cloud service/key/voice/model,Existing ElevenLabs key/voice setup; no new hosted speech dependency.,Masked credentials; no new required hosted account,IMPLEMENTED_HOST_CHECK_PENDING
+V05,Primary Voice,Microphone and Test,PulseInput/Ears/device selection,Actual capture source and device lifecycle,IMPLEMENTED_HOST_CHECK_PENDING
+V06,Primary Voice,Voice test/Stop/status,Current speech/audio cancellation,Fresh selected route; no cached-only readiness,IMPLEMENTED_HOST_CHECK_PENDING
+C01,Primary Capri,Hide Bring here perch/cursor actions,Existing MoveSelf/Bring/Hide/Sit APIs; custom cursor remains unavailable.,Visible current workspace; absent cursor mode honest,IMPLEMENTED_HOST_CHECK_PENDING
+C02,Primary Capri,Updates Help Quit,Existing update/help/quit lifecycle,Keep endpoints and shutdown semantics; no updater takeover,IMPLEMENTED_HOST_CHECK_PENDING
+Y01,YOU,Language,Existing Brain.Language/Pet setting,Same options and persistence,IMPLEMENTED_HOST_CHECK_PENDING
+Y02,YOU,Nickname Save Get to know me,Existing nickname/meeting state,Same memory rules; Enter saves; no accidental apply on load,PRIVATE_NATIVE_UI_CHECKED
+Y03,YOU,Open her notes,Existing notes editor/open path,Open actual isolated-profile notes,IMPLEMENTED_HOST_CHECK_PENDING
+S01,VOICE,Volume,Current voice volume,Discrete 0..150 values; live readout; preserve value,IMPLEMENTED_HOST_CHECK_PENDING
+S02,VOICE,Pitch,Current voice pitch,-6..+6; preview on release,PRIVATE_NATIVE_UI_CHECKED
+S03,VOICE,Speed,Current pace,70..150 source choices; preview on release,IMPLEMENTED_HOST_CHECK_PENDING
+S04,VOICE,Robot,Current DSP robot,Source fine-step amounts; preview on release,IMPLEMENTED_HOST_CHECK_PENDING
+S05,VOICE,Glitch,Current DSP glitch,Source fine-step amounts; preview on release,IMPLEMENTED_HOST_CHECK_PENDING
+S06,VOICE,Sounds,Current Sfx level,Independent sound level; no voice gain reset,IMPLEMENTED_HOST_CHECK_PENDING
+S07,VOICE,Typing sound,Current typing sound setting,Immediate actual state and persistence,IMPLEMENTED_HOST_CHECK_PENDING
+S08,VOICE,Voice Layers sheet,Current two-layer DSP state,On/off; two pitches/delays; live readouts and real preview,PRIVATE_NATIVE_UI_CHECKED
+S09,VOICE,Free voice in games,HD GPU rest is unavailable on this backend.,Do not fake unsupported HD behavior or broaden voice task,CAPABILITY_GAP
+M01,MOVES,Wander,Current wander state,Off Rarely Sometimes Often Restless source semantics,IMPLEMENTED_HOST_CHECK_PENDING
+M02,MOVES,Sleep,Current idle sleep,Never/1/2/5/10/30 minute source choices,IMPLEMENTED_HOST_CHECK_PENDING
+M03,MOVES,Pop-ins,Current pop pace,Rarely Sometimes Often source choices,IMPLEMENTED_HOST_CHECK_PENDING
+M04,MOVES,Dance to music,Current no-dance state,Preserve actual MPRIS/animation behavior,PRIVATE_NATIVE_UI_CHECKED
+M05,MOVES,Glitch in at startup,Current intro setting,No unrelated motion reauthoring,IMPLEMENTED_HOST_CHECK_PENDING
+M06,MOVES,Mini player,Mini-player is outside this task.,Record absent feature; no fake toggle/new player project,CAPABILITY_GAP
+K01,KEYS,Talk,No global shortcut registration on this backend; use TALK/tray/Mainframe.,Confirm/Cancel and collisions; focused-window key is not global,CAPABILITY_GAP
+K02,KEYS,Mute mic,No global shortcut registration on this backend; use TALK/tray/Mainframe.,Same registration contract,CAPABILITY_GAP
+K03,KEYS,Type,No global shortcut registration on this backend; use TALK/tray/Mainframe.,Same registration contract,CAPABILITY_GAP
+K04,KEYS,Hide/show,No global shortcut registration on this backend; use TALK/tray/Mainframe.,Same registration contract,CAPABILITY_GAP
+K05,KEYS,Quiet,No global shortcut registration on this backend; use TALK/tray/Mainframe.,Same registration contract,CAPABILITY_GAP
+P01,CAPRI,Character size,Pet.Sizes ten validated values,Add source ten choices consistently in setter/store/render envelope,PRIVATE_NATIVE_UI_CHECKED
+P02,CAPRI,Check in on me,Existing check-in setting,Preserve value and quiet/fullscreen behavior,IMPLEMENTED_HOST_CHECK_PENDING
+P03,CAPRI,Always on top,Existing topmost/raise state,Keep workspace pinning separate,IMPLEMENTED_HOST_CHECK_PENDING
+P04,CAPRI,Mainframe size,New native settings zoom state,Auto/100/125/150/175/200 with OS scale once,PRIVATE_NATIVE_UI_CHECKED
+W01,WATCH,Watch my screen,Existing opt-in glance setting,No initialization-triggered capture/grant,IMPLEMENTED_HOST_CHECK_PENDING
+W02,WATCH,Keep her caught up,Existing NoCaughtUp state,Same semantics and actual provider routing,IMPLEMENTED_HOST_CHECK_PENDING
+W03,WATCH,Every,Existing glance interval,10/15/30/60/90/120/180/300/600 seconds,IMPLEMENTED_HOST_CHECK_PENDING
+R01,BRAIN settings,Stay on my model,Existing stay-on-model state,No silent account/billing/model fallback,IMPLEMENTED_HOST_CHECK_PENDING
+R02,BRAIN settings,Replies,Existing Wordiness,Source Short/Medium/Long choices,IMPLEMENTED_HOST_CHECK_PENDING
+R03,BRAIN settings,Memory,Existing Recall,8/16/32 source values,IMPLEMENTED_HOST_CHECK_PENDING
+R04,BRAIN settings,Bubble,Existing bubble time,Quick/Normal/Long source choices,IMPLEMENTED_HOST_CHECK_PENDING
+R05,BRAIN settings,Custom model name,Existing and new provider-specific discovery,Validate using selected provider; no wrong regex,IMPLEMENTED_HOST_CHECK_PENDING
+H01,HABITS,Startup,Existing login entry setting,Manual-only remains off; no apply on view load,IMPLEMENTED_HOST_CHECK_PENDING
+H02,HABITS,Discord presence,Existing Presence flag,No new tracking/endpoints,IMPLEMENTED_HOST_CHECK_PENDING
+H03,HABITS,Remember our chats,Existing local transcripts/memories,Selected provider only; no private data published,IMPLEMENTED_HOST_CHECK_PENDING
+H04,HABITS,Security sheet,Existing presets/toggles/capability discovery,Same typed grant semantics and actual capability reasons,PRIVATE_NATIVE_UI_CHECKED
+H05,HABITS,Perch FPS,Original 30fps perch animation retained; interpolation is unavailable.,Implement only necessary setting support or record honest gap,CAPABILITY_GAP
+U01,Window,Settings open/close and focus,New Avalonia Mainframe/owned sheets,Menu/tray entry; close leaves pet alive,PRIVATE_NATIVE_UI_CHECKED
+U02,Window,Resize/zoom/scroll/workarea,New native layout,All focus targets reachable at 100/150/200 percent,PRIVATE_NATIVE_UI_CHECKED
+U03,Window,Theme and fonts,Current upstream Neon/Mainframe source,Exact color/geometry; record lawful resolved font,PRIVATE_NATIVE_UI_CHECKED
