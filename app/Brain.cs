@@ -1178,7 +1178,9 @@ namespace CapriDesktop
                 {
                     string handed = Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket);
                     Hands.Rescue(request, calls);
-                    if (calls.Count == 0 && (agreed || Hands.Hesitant(handed, request))) calls.Add(Hands.Forced(request));
+                    bool partly = Hands.Partly(request, calls);
+                    if (partly) calls.Clear();
+                    if (calls.Count == 0 && (agreed || partly || Hands.Hesitant(handed, request) || (playing != null && Hands.Wants(request)))) calls.Add(Hands.Forced(request));
                 }
             }
             if (calls.Count == 0)
@@ -1354,6 +1356,44 @@ namespace CapriDesktop
                 throw new BrainException(Sightless(remote));
             }
             return Regex.Replace(Visible(raw), @"\s+", " ").Trim();
+        }
+
+        // One small call on a brain of its own, so talking to her doesn't cancel it.
+        internal string Aside(string system, string user, int limit)
+        {
+            string model = Model;
+            if (model == null) throw new BrainException(Offline);
+            Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
+            return Visible(aside.Think(model, new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) }, false, new List<KeyValuePair<string, ToolArguments>>(), null, limit));
+        }
+
+        // Whether an Ollama model takes pictures, by what Ollama says about it. One it can't say about gets the benefit of the doubt.
+        internal static Func<string, bool> LocalSees = OllamaSees;
+        private static readonly Dictionary<string, bool> ollamaEyes = new Dictionary<string, bool>();
+
+        private static bool OllamaSees(string model)
+        {
+            bool sees;
+            lock (ollamaEyes) if (ollamaEyes.TryGetValue(model, out sees)) return sees;
+            sees = true;
+            try
+            {
+                HttpWebRequest request = Open("/api/show", 3000);
+                request.Method = "POST";
+                request.ContentType = "application/json";
+                byte[] asked = Encoding.UTF8.GetBytes("{\"model\":" + Voice.Quote(model) + "}");
+                using (Stream sending = request.GetRequestStream()) sending.Write(asked, 0, asked.Length);
+                using (WebResponse response = request.GetResponse())
+                using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                {
+                    Match listed = Regex.Match(reader.ReadToEnd(), "\"capabilities\"\\s*:\\s*\\[([^\\]]*)\\]");
+                    if (listed.Success) sees = listed.Groups[1].Value.IndexOf("\"vision\"", StringComparison.Ordinal) >= 0;
+                }
+            }
+            catch (WebException) { return true; }
+            catch (IOException) { return true; }
+            lock (ollamaEyes) ollamaEyes[model] = sees;
+            return sees;
         }
 
         internal void Remember(string asked, string said)

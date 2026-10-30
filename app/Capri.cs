@@ -1309,6 +1309,7 @@ namespace CapriDesktop
             Brain.MemoryPath = Path.Combine(data, "me.md");
             Brain.MemoriesPath = Path.Combine(data, "memories.md");
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
+            GameNotes.Folder = Path.Combine(data, "games");
             engine = new Engine(data);
             kokoro = new LocalVoice(data);
             qwen = new QwenVoice(data);
@@ -5012,6 +5013,7 @@ namespace CapriDesktop
             if (brain.Model == null) return "You can't see their screen: your brain is offline.";
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
+            if (local == null && !Brain.LocalSees(brain.Model)) return "Your brain can't see. Tell them to pick a model that can under BRAIN in Capri Mainframe, or press Free key and connect a free NVIDIA key so you can.";
             if (local == null || pick == null) return null;
             if (pick.EyesFile == null) return "Your brain can't see. Tell them to press Free key in Capri Mainframe and connect a free NVIDIA key so you can.";
             if (local.HasEyes(pick)) return null;
@@ -5470,7 +5472,8 @@ namespace CapriDesktop
             // A game job thinks harder on every turn.
             running.Drive = brain.Drives && driver.Model != blindModel ? new Func<string, string, string, ClaudeReply>(delegate(string system, string tools, string messages) { return brain.Drive(system, tools, messages, running.Playing); }) : null;
             // Anything else that can see plays from pictures.
-            running.Seer = running.Drive == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700); }) : null;
+            running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700); }) : null;
+            running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 220); };
             running.Blind = delegate { blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             running.Seen = delegate(Sight sight)
@@ -9112,6 +9115,41 @@ namespace CapriDesktop
             }
         }
 
+        // What she learns in a game stays between sessions: each game has its own notes, and they're in every prompt after.
+        private static void SmokeGameNotes(System.Collections.Generic.List<string> checks)
+        {
+            string[,] titles = { { "Minecraft 26.3 - Singleplayer", "Minecraft" }, { "Minecraft* 26.3 - Multiplayer (LAN)", "Minecraft" }, { "Cyberpunk 2077 (C) 2020 by CD Projekt RED", "Cyberpunk 2077" }, { "Counter-Strike 2", "Counter-Strike 2" }, { "The Witcher 3: Wild Hunt", "The Witcher 3: Wild Hunt" }, { "VALORANT  ", "VALORANT" }, { "Roblox", "Roblox" } };
+            for (int i = 0; i < titles.GetLength(0); i++)
+                if (GameNotes.Name(titles[i, 0]) != titles[i, 1]) throw new Exception("Game title read wrong: " + titles[i, 0] + " as " + GameNotes.Name(titles[i, 0]));
+            string folderWas = GameNotes.Folder, folder = Path.Combine(Path.GetTempPath(), "capri-notes-" + Guid.NewGuid().ToString("N"));
+            GameNotes.Folder = folder;
+            try
+            {
+                if (GameNotes.Brief(null) != "" || GameNotes.Learn(null, "x").IndexOf("didn't work", StringComparison.Ordinal) < 0) throw new Exception("Game notes acted with no game open.");
+                string plain = GameNotes.Brief("Some Indie Game");
+                if (plain.IndexOf("Some Indie Game", StringComparison.Ordinal) < 0 || plain.IndexOf("learned", StringComparison.Ordinal) >= 0) throw new Exception("A new game's brief is wrong: " + plain);
+                if (GameNotes.Learn("Minecraft", "  logs break\nin about 3 seconds by hand ") != "Learned that for next time." || GameNotes.Learn("Minecraft", "Logs break in about 3 seconds BY HAND") != "You already knew that.") throw new Exception("Learning a line went wrong.");
+                string brief = GameNotes.Brief("Minecraft");
+                if (brief.IndexOf("Survival and crafting", StringComparison.Ordinal) < 0 || brief.IndexOf("- logs break in about 3 seconds by hand", StringComparison.Ordinal) < 0 || brief.IndexOf("not orders", StringComparison.Ordinal) < 0) throw new Exception("Her brief lost something: " + brief);
+                if (GameNotes.Brief("CS2").IndexOf("Tactical shooter", StringComparison.Ordinal) < 0 || GameNotes.Brief("Cyberpunk 2077").IndexOf("Open-world", StringComparison.Ordinal) < 0 || GameNotes.Brief("Roblox").IndexOf("Every experience", StringComparison.Ordinal) < 0) throw new Exception("A kind of game wasn't known.");
+                for (int i = 0; i < 400; i++) GameNotes.Learn("Long Game", "Fact number " + i + " about this very long game that she keeps on learning from");
+                string longBrief = GameNotes.Brief("Long Game");
+                if (longBrief.Length > 4600 || longBrief.IndexOf("Fact number 399 ", StringComparison.Ordinal) < 0 || longBrief.IndexOf("Fact number 0 ", StringComparison.Ordinal) >= 0) throw new Exception("A long notes file wasn't cut to its newest lines.");
+                if (GameNotes.Reflected("Terraria", "nothing") != 0 || GameNotes.Reflected("Terraria", "<think>hm</think>- Torches stop slimes spawning nearby.\n- Dig sideways to escape.") != 2 || GameNotes.Reflected("Terraria", "- one\n- Line two is here. - Line three is here. - Line four is here. - Line five is here.") > 3) throw new Exception("Her reflection's lines weren't saved.");
+                if (Computer.Toolset.IndexOf("{\"name\":\"learn\",", StringComparison.Ordinal) < 0 || Computer.Toolset.IndexOf("\"level\":", StringComparison.Ordinal) < 0 || Computer.Moves("learn{\"text\": \"e opens the crate\"}").Count != 1) throw new Exception("Her learn tool isn't listed.");
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> opened = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> { new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = "Minecraft" }) };
+                if (!Hands.Partly("play minecraft and punch a tree until you have 3 logs", opened) || Hands.Partly("play minecraft", opened) || Hands.Partly("open minecraft please", opened)) throw new Exception("Opening a game wasn't told from doing something in it.");
+                opened[0] = new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = "Rock and Roll Racing" });
+                if (Hands.Partly("open rock and roll racing", opened)) throw new Exception("An app with and in its name was split.");
+                checks.Add("PASS each game has its own notes she writes herself: titles read as one game, the same line once, newest notes in every prompt, what kind of game it is, and opening a game told from playing it");
+            }
+            finally
+            {
+                GameNotes.Folder = folderWas;
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            }
+        }
+
         // A brain with no computer tools plays a game from pictures, written moves and all.
         private static void SmokeSighted(System.Collections.Generic.List<string> checks)
         {
@@ -9126,18 +9164,29 @@ namespace CapriDesktop
                 jpeg = Jpeg(plain, 320);
             }
             string words;
-            byte[] gridded = Computer.Gridded(new Picture { Jpeg = jpeg, Size = new Size(320, 180), Area = new Rectangle(0, 0, 320, 180) }, out words);
+            System.Collections.Generic.List<ReadWord> readWords;
+            byte[] gridded = Computer.Gridded(new Picture { Jpeg = jpeg, Size = new Size(320, 180), Area = new Rectangle(0, 0, 320, 180) }, out words, out readWords);
             using (System.IO.MemoryStream read = new System.IO.MemoryStream(gridded))
             using (Bitmap back = new Bitmap(read))
                 if (back.Width != 320 || back.Height != 180 || back.GetPixel(32, 90).GetBrightness() < 0.1f || back.GetPixel(40, 150).GetBrightness() > 0.1f) throw new Exception("Her grid wasn't drawn on the picture.");
             byte[] junk = { 1, 2, 3 };
-            if (Computer.Gridded(new Picture { Jpeg = junk }, out words) != junk) throw new Exception("A picture she can't read wasn't passed along as it came.");
+            if (Computer.Gridded(new Picture { Jpeg = junk }, out words, out readWords) != junk) throw new Exception("A picture she can't read wasn't passed along as it came.");
             bool member;
             ToolArguments spot = new ToolArguments { X = 25, Y = 50 };
             Picture shown = new Picture { Jpeg = jpeg, Size = new Size(1280, 720), Area = new Rectangle(0, 0, 1920, 1080) };
-            if (Computer.Planned("right_click", spot, shown, out member) != "right_click" || !member || spot.Coordinate[0] != 320 || spot.Coordinate[1] != 360) throw new Exception("The grid's numbers didn't become pixels.");
+            if (Computer.Planned("right_click", spot, shown, readWords, out member) != "right_click" || !member || spot.Coordinate[0] != 320 || spot.Coordinate[1] != 360) throw new Exception("The grid's numbers didn't become pixels.");
             ToolArguments turn = new ToolArguments { X = 75, Y = 50 };
-            if (Computer.Planned("look", turn, shown, out member) != "look" || member || turn.X != 960) throw new Exception("A look's numbers didn't become pixels.");
+            if (Computer.Planned("look", turn, shown, readWords, out member) != "look" || member || turn.X != 960) throw new Exception("A look's numbers didn't become pixels.");
+            System.Collections.Generic.List<ReadWord> onScreen = new System.Collections.Generic.List<ReadWord> { new ReadWord { Text = "Tou Died!", Box = new Rectangle(522, 175, 231, 38) }, new ReadWord { Text = "fiespawn", Box = new Rectangle(584, 399, 110, 22) }, new ReadWord { Text = "Title Screen", Box = new Rectangle(560, 463, 161, 20) } };
+            ToolArguments named = new ToolArguments { Text = "Respawn" };
+            Computer.Planned("click", named, shown, onScreen, out member);
+            if (named.Coordinate == null || named.Coordinate[0] != 639 || named.Coordinate[1] != 410) throw new Exception("Clicking misread words missed.");
+            ToolArguments partWords = new ToolArguments { Text = "title" };
+            Computer.Planned("click", partWords, shown, onScreen, out member);
+            if (partWords.Coordinate == null || partWords.Coordinate[1] != 473) throw new Exception("Clicking part of the words missed.");
+            ToolArguments gone = new ToolArguments { Text = "Multiplayer" };
+            Computer.Planned("click", gone, shown, onScreen, out member);
+            if (gone.Coordinate != null) throw new Exception("Words that aren't on screen were clicked anyway.");
             Func<Rectangle?, Picture> shootWas = Computer.Shoot;
             Func<Sight> glimpseWas = Computer.Glimpse;
             Func<Target> focusWas = Computer.Focus;
@@ -9146,9 +9195,13 @@ namespace CapriDesktop
             Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
             Func<IntPtr> frontWas = Computer.Front;
             Func<Sight> lookWas = Computer.Look;
+            Func<string> gameWas = Computer.GameOpen;
+            string notesWere = GameNotes.Folder, notes = Path.Combine(Path.GetTempPath(), "capri-notes-" + Guid.NewGuid().ToString("N"));
+            GameNotes.Folder = notes;
             try
             {
                 System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>();
+                Computer.GameOpen = delegate { return "Minecraft 26.3 - Singleplayer"; };
                 Computer.Shoot = delegate(Rectangle? part) { return new Picture { Jpeg = jpeg, Size = new Size(1280, 720), Area = new Rectangle(0, 0, 1280, 720) }; };
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Minecraft 26.3", Program = "javaw" }; };
                 Computer.Look = delegate { return new Sight { Window = new IntPtr(7), Title = "Minecraft 26.3", Program = "javaw" }; };
@@ -9161,18 +9214,23 @@ namespace CapriDesktop
                 {
                     "look{\"x\": 75, \"y\": 50}\nwalk{\"keys\": \"w\", \"seconds\": \"1\"}\nclick{\"x\": 50, \"y\": 50}",
                     "Looks good to me.",
-                    "press{\"keys\": \"e\"}\ntype{\"text\": \"hi\", \"enter\": \"yes\"}",
+                    "press{\"keys\": \"e\"}\nlearn{\"text\": \"Trees are south of spawn.\"}\ntype{\"text\": \"hi\", \"enter\": \"yes\"}",
                     "done{\"text\": \"I walked to the tree.\"}"
                 };
                 int turnNumber = 0;
                 System.Collections.Generic.List<string> told = new System.Collections.Generic.List<string>();
                 string system = null;
                 Job playing = new Job("play minecraft and go to the tree");
+                string reflected = null;
+                playing.Aside = delegate(string prompt, string user) { reflected = user; return "- Walking into trees stops you."; };
                 playing.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { throw new Exception("A seeing brain was asked to read buttons in a game."); };
                 playing.Seer = delegate(byte[] picture, string prompt, string user) { system = prompt; told.Add(user); return script[turnNumber++]; };
                 string ended = playing.Run();
                 string path = string.Join(" | ", ran.ToArray());
+                Stopwatch reflecting = Stopwatch.StartNew();
+                while (reflecting.ElapsedMilliseconds < 3000 && GameNotes.Brief("Minecraft").IndexOf("Walking into trees stops you.", StringComparison.Ordinal) < 0) System.Threading.Thread.Sleep(20);
                 if (ended != "I walked to the tree." || playing.Outcome != "done" || path != "look 960,360 | walk | left_click 640,360 | key e | type hi | key Return") throw new Exception("Her seeing job went wrong: " + ended + " / " + path);
+                if (system.IndexOf("Survival and crafting", StringComparison.Ordinal) < 0 || GameNotes.Brief("Minecraft").IndexOf("- Trees are south of spawn.", StringComparison.Ordinal) < 0 || reflected == null || reflected.IndexOf("something's in the way", StringComparison.Ordinal) < 0) throw new Exception("A game job didn't get its brief, or didn't keep what it learned: " + reflected);
                 if (system.IndexOf("numbers along the top are x", StringComparison.Ordinal) < 0 || system.IndexOf("you're a real gamer", StringComparison.Ordinal) < 0) throw new Exception("A seeing brain wasn't told about the grid or the game.");
                 if (told[1].IndexOf("What your last moves did:", StringComparison.Ordinal) < 0 || told[1].IndexOf("something's in the way", StringComparison.Ordinal) < 0 || told[2].IndexOf("no moves", StringComparison.Ordinal) < 0) throw new Exception("A seeing brain wasn't told how its moves went: " + told[1]);
                 Job blind = new Job("play minecraft");
@@ -9192,6 +9250,9 @@ namespace CapriDesktop
                 Computer.Act = actWas;
                 Computer.Front = frontWas;
                 Computer.Look = lookWas;
+                Computer.GameOpen = gameWas;
+                GameNotes.Folder = notesWere;
+                if (Directory.Exists(notes)) Directory.Delete(notes, true);
             }
         }
 
@@ -9207,6 +9268,7 @@ namespace CapriDesktop
             FormClosed += delegate { Application.RemoveMessageFilter(smokeInput); };
             Hands.PleaseRoll = delegate { return 1; };
             Computer.GameOpen = delegate { return null; };
+            Brain.LocalSees = delegate { return true; };
             Shown += delegate
             {
                 System.Threading.Tasks.Task<System.Collections.Generic.List<string>> ocrCheck = System.Threading.Tasks.Task.Run(delegate
@@ -9300,6 +9362,7 @@ namespace CapriDesktop
                             SmokeCamera(checks);
                             SmokeGameAsks(checks);
                             SmokeSighted(checks);
+                            SmokeGameNotes(checks);
                             SmokeFrames(checks);
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;

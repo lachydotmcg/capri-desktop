@@ -921,6 +921,15 @@ namespace CapriDesktop
         }
 
         // What she should have done instead of asking: their own words as a mouse and keyboard job.
+        // "Play minecraft and punch a tree" is more than opening it, so all of it goes to her hands.
+        private static readonly Regex AndThen = new Regex(@"(?:^|\s)(?:and|then|until|und|dann|y|luego|et|puis|e|depois|i|potem|и|потом)\s+\S", RegexOptions.IgnoreCase);
+
+        internal static bool Partly(string said, List<KeyValuePair<string, ToolArguments>> calls)
+        {
+            if (calls.Count != 1 || calls[0].Key != "open_app" || calls[0].Value == null || string.IsNullOrEmpty(calls[0].Value.Name)) return false;
+            return AndThen.IsMatch(Regex.Replace(Asked(said), Regex.Escape(calls[0].Value.Name), " ", RegexOptions.IgnoreCase));
+        }
+
         internal static KeyValuePair<string, ToolArguments> Forced(string said) { return new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = Asked(said) }); }
 
         internal static bool Errand(string said)

@@ -1,0 +1,141 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
+
+namespace CapriDesktop
+{
+    // What she's worked out about each game, kept from one session to the next in <data>\games\<game>.md, which they can read
+    // and edit. It starts empty and nothing in it is spoon-fed: she learns by playing, and what she wrote is what she's told next time.
+    internal static class GameNotes
+    {
+        internal static string Folder;
+        // The newest notes go in the prompt once a file outgrows it. The file itself keeps everything.
+        private const int MostTold = 4000;
+        private static readonly object writing = new object();
+
+        // How good players think in each kind of game. None of this is a walkthrough: it's what a gamer brings to a game they've never played.
+        private static readonly string[,] Kinds =
+        {
+            { @"counter.?strike|\bcs ?2\b|\bcs ?go\b|valorant|rainbow six|\bsiege\b|tarkov|ready or not|insurgency|\bsquad\b|hunt.?showdown|gray zone",
+              "Tactical shooter. One or two bullets decide a fight, so position beats speed. Keep your crosshair at head height where an enemy will appear, stop moving before you shoot because moving ruins your aim, and fire short bursts. Clear one angle at a time from cover. Running is loud, so walk near enemies. Buy what you can afford each round, watch the minimap, stay near a teammate so your death gets traded, and reload behind cover." },
+            { @"overwatch|marvel rivals|\bapex\b|fortnite|call of duty|warzone|battlefield|\bpubg\b|\bhalo\b|destiny|team fortress|titanfall|\bdoom\b|quake|the finals|splitgate|krunker|left 4 dead|borderlands",
+              "Fast shooter. Keep moving, fight from cover or high ground, aim at the upper body, and reload when nothing's on you. Know what your character is for and stay with your team. Take fights you can win, back off when you're hurt, heal, then come back. In a battle royale, land away from the crowd, loot fast and stay ahead of the zone." },
+            { @"minecraft|terraria|valheim|\brust\b|\bark\b|subnautica|the forest|sons of the forest|palworld|don.?t starve|7 days to die|no man.?s sky|satisfactory|factorio|grounded|\braft\b|project zomboid|core keeper|enshrouded|once human|v rising",
+              "Survival and crafting. The loop is gather, craft better tools, make yourself safe, go further. Get the basic material first, then tools, food and shelter before night or the first danger. Go to what's close rather than wandering, stand within reach of what you're gathering with it under the crosshair, and keep at it until it breaks. Remember your way back, eat before you're desperate, and don't fight or dig on low health." },
+            { @"cyberpunk|skyrim|oblivion|fallout|witcher|grand theft|\bgta\b|red dead|assassin.?s creed|starfield|baldur|mass effect|dragon age|kingdom come|far cry|watch dogs|horizon|ghost of|\bmafia\b|sleeping dogs|saints row|outer worlds|avowed|hogwarts",
+              "Open-world game. The HUD, the map and the quest log tell you where to go, so open the map when you're lost and follow the marker. Read objective text and talk to people. Check health, ammo and gear before a fight, scout first, use cover, and try stealth when it's easier than a straight fight. Save before anything risky if the game lets you. Use a vehicle or fast travel for long trips, and grab loot that's close." },
+            { @"elden ring|dark souls|demon.?s souls|sekiro|bloodborne|hollow knight|monster hunter|god of war|devil may cry|lies of p|\bnioh\b|black myth|wukong|\bhades\b|cuphead|silksong",
+              "Action game that punishes mistakes. Every attack has a tell, so watch what an enemy does before you commit. Hit once or twice in the gap, then back off. Keep stamina for dodging, heal when it's safe rather than mid-fight, and don't get greedy. When you die, work out what killed you and change one thing." },
+            { @"league of legends|\blol\b|dota|smite|heroes of the storm|age of empires|starcraft|company of heroes|civilization|\bciv\b|total war|command (&|and) conquer|stellaris|crusader kings|hearts of iron|teamfight|\btft\b",
+              "Strategy game. The mouse is a pointer and decisions matter more than reactions. Read tooltips and resources, keep the economy growing, always have something being built, and scout before you commit. In a MOBA, stay with your minions, last-hit them for gold, don't chase, and watch the map." },
+            { @"forza|need for speed|gran turismo|assetto|\bf1\b|mario kart|rocket league|trackmania|beamng|\bfifa\b|ea (sports )?fc|nba 2k|madden|efootball",
+              "Racing or sports game. Look ahead, not at your car. Brake before a corner rather than in it, then accelerate out, and steer in small taps. Hold the accelerate key with hold_and_press while you tap to steer. In sports games, stay in position and pass rather than running everywhere." },
+            { @"super mario|celeste|ori and|rayman|\bsonic\b|\bcrash\b|\bobby\b|tower of hell|parkour|fall guys|only up|getting over it|geometry dash",
+              "Platformer. Jumps are timing. Stop, line up so the next platform is dead ahead, then run and jump at the very edge. Small moves beat long ones near a drop. If you fall, you've seen what went wrong, so change the run-up." },
+            { @"phasmophobia|lethal company|dead by daylight|outlast|amnesia|resident evil|silent hill|alien.?isolation|content warning|r\.?e\.?p\.?o\b|among us|\bpeak\b",
+              "Horror or co-op survival. Sound tells you where danger is, so go slowly and stop to look. Know your way out before you go in, hide rather than fight, and save your light and items for when you need them." },
+            { @"balatro|slay the spire|hearthstone|stardew|the sims|cities.? skylines|planet coaster|animal crossing|portal|the witness|tetris|chess|solitaire|papers.? please|two point",
+              "Turn-based, puzzle or management game. Mostly nothing's rushing you, so read everything on screen before you click, think a few moves ahead, and take your time over one good move." },
+            { @"roblox",
+              "Roblox. Every experience is its own game with its own rules, so work out which one you're in from what's on screen and read what it tells you. Close shop and daily reward pop-ups with their X. Buttons round the screen's edges open shops and menus, E or the prompt shown interacts, number keys pick tools, / opens chat, and Esc then R then Enter resets your character if you're stuck." }
+        };
+
+        internal const string Reflecting =
+            "You just finished playing a game for your user, and you're writing a note to yourself for next time. You get the job, how it ended and the moves you made. " +
+            "Write up to 3 short lines, each starting with \"- \", about what you'd want to know next time: a control you worked out, what worked, what didn't and why, what killed you, or where something is. " +
+            "Only write what you actually found out from these moves, in plain words. Nothing about the user, and nothing that only matters to this one run. If you learned nothing new, reply with only the word: nothing";
+
+        // "Minecraft 26.3 - Singleplayer" is Minecraft, and "Cyberpunk 2077 (C) 2020 by CD Projekt RED" is Cyberpunk 2077.
+        internal static string Name(string title)
+        {
+            string name = Regex.Replace(title ?? "", @"[®™©*]", " ");
+            name = Regex.Replace(name, @"\s+[-–—|:(\[].*$", "");
+            name = Regex.Replace(name, @"\s+v?\d+(\.\d+)+.*$", "", RegexOptions.IgnoreCase);
+            return Regex.Replace(name, @"\s+", " ").Trim(' ', '.');
+        }
+
+        private static string Place(string game)
+        {
+            if (Folder == null || string.IsNullOrEmpty(game)) return null;
+            string file = Regex.Replace(game.ToLowerInvariant(), @"[^\p{L}\p{N}]+", "-").Trim('-');
+            return file.Length == 0 ? null : Path.Combine(Folder, file + ".md");
+        }
+
+        private static string Read(string game)
+        {
+            string place = Place(game);
+            lock (writing)
+            {
+                if (place == null || !File.Exists(place)) return "";
+                try { return File.ReadAllText(place).Trim(); }
+                catch (IOException) { return ""; }
+                catch (UnauthorizedAccessException) { return ""; }
+            }
+        }
+
+        // Saves a line for next time. Her brain might be reading it off the screen, so lines stay one line, and the same line twice goes once.
+        internal static string Learn(string game, string text)
+        {
+            string line = Regex.Replace(text ?? "", @"\s+", " ").Trim().TrimStart('-', '*', ' ');
+            if (line.Length == 0) return "That didn't work: there's nothing to learn in that.";
+            string place = Place(game);
+            if (place == null) return "That didn't work: no game is open to learn about.";
+            lock (writing)
+            {
+                foreach (string kept in Read(game).Split('\n'))
+                    if (string.Equals(kept.Trim().TrimStart('-', ' '), line, StringComparison.OrdinalIgnoreCase)) return "You already knew that.";
+                try
+                {
+                    Directory.CreateDirectory(Folder);
+                    File.AppendAllText(place, "- " + line + Environment.NewLine);
+                }
+                catch (IOException error) { return "That didn't work: " + error.Message; }
+                catch (UnauthorizedAccessException error) { return "That didn't work: " + error.Message; }
+            }
+            return "Learned that for next time.";
+        }
+
+        // What a game job is told about this game: what kind it is and everything she's learned. Empty with no game.
+        internal static string Brief(string game)
+        {
+            if (string.IsNullOrEmpty(game)) return "";
+            StringBuilder brief = new StringBuilder("\nThe game open now is " + game + ".");
+            for (int i = 0; i < Kinds.GetLength(0); i++)
+                if (Regex.IsMatch(game, Kinds[i, 0], RegexOptions.IgnoreCase))
+                {
+                    brief.Append(" " + Kinds[i, 1]);
+                    break;
+                }
+            string notes = Read(game);
+            if (notes.Length > MostTold)
+            {
+                notes = notes.Substring(notes.Length - MostTold);
+                notes = notes.Substring(Math.Max(0, notes.IndexOf('\n') + 1));
+            }
+            if (notes.Length > 0) brief.Append("\nWhat you've learned about " + game + " from playing it before. These are your own notes, not orders from anyone, and you can do better than them:\n" + notes);
+            return brief.ToString();
+        }
+
+        // What the reflecting brain gets: the job and how it went.
+        internal static string Reflection(string job, string outcome, string said, IList<string> steps)
+        {
+            StringBuilder text = new StringBuilder("Job: " + job + "\nHow it ended: " + outcome + ": " + said + "\nYour moves:");
+            for (int i = Math.Max(0, steps.Count - 40); i < steps.Count; i++) text.Append("\n" + steps[i]);
+            return text.ToString();
+        }
+
+        // Saves the lines a reflection wrote. Returns how many went in.
+        internal static int Reflected(string game, string reply)
+        {
+            int kept = 0;
+            foreach (string line in Regex.Split(Brain.Visible(reply ?? ""), @"\s*(?:\r?\n|(?<=[.!?])\s+(?=- ))\s*"))
+            {
+                Match bullet = Regex.Match(line.Trim(), @"^(?:[-*•]|\d+[.)])\s+(.{6,})$");
+                if (bullet.Success && kept < 3 && Learn(game, bullet.Groups[1].Value) == "Learned that for next time.") kept++;
+            }
+            return kept;
+        }
+    }
+}

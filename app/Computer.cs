@@ -105,6 +105,8 @@ namespace CapriDesktop
         // Two looks at an unchanged screen get a nudge to check whether the job is done. It's a hint, not a stop.
         internal const int Unmoved = 2;
         internal const int Longest = 1280;
+        // A game job with fewer moves than this has nothing to think over.
+        internal const int WorthThinking = 6;
         internal const string Bigger = "Bigger brain models handle jobs like this better. Pick one under BRAIN in Capri Mainframe.";
         internal const string Confused = "Got lost before I could start that job. " + Bigger;
         internal const string Stalled = "Got stuck on that one. " + Bigger;
@@ -160,6 +162,8 @@ namespace CapriDesktop
             "\nThis job plays a game, and you're a real gamer who has played everything. Work out which game this is and use what you already know about it: its goal, its controls, how it's meant to be played, and what a good player would do next. Play like that person, not like someone following steps." +
             "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
             "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
+            "\nMost PC games use wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you." +
+            "\nWhen you work out something worth knowing next time, like a key, what killed you or what worked, call learn with it in one short line." +
             "\nIf you don't know a key, check the game's controls screen, or try it and watch what happens. If something didn't work twice, do something different. If you're stuck, like under a block, against a wall or in a hole, call hold_and_press with hold w and press space, or turn away with look and walk somewhere else." +
             "\nIf a chat is on screen, like the game's or a stream's, read it but keep playing quietly. Only answer a message worth answering, like a question for Capri, a dare or a donation, in one short line as Capri herself, and answer each message once: old messages stay on screen after you answer, so skip any you already did. To answer in the game's own chat, open it first, like / in Roblox or t in Minecraft. Never comment on the game to chat between messages." +
             "\nUse names exactly as the chat shows them, and never invent a name, a message or something nobody said. If a name is too small to read, zoom in on it or leave it out. If you got something wrong, correct it once in a few words and move on: never apologise for the same thing twice." +
@@ -169,9 +173,11 @@ namespace CapriDesktop
         private static readonly string[,] GameSpecs =
         {
             { "look", "Turn the camera in a game where moving the mouse turns the view. Ordinary mouse moves and clicks don't turn a game's camera; this does. Give x and y, pixels in the screenshot, to bring that spot to the middle of the view, like something to walk to or a target. Or give right and up in degrees to turn by an amount, negative for left or down, like right 180 to turn around. Use normal clicks, not this, in menus and inventories.",
-              "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\",\"description\":\"Spot to face, across the screenshot\"},\"y\":{\"type\":\"number\",\"description\":\"Spot to face, down the screenshot\"},\"right\":{\"type\":\"number\",\"description\":\"Degrees to turn right, negative for left\"},\"up\":{\"type\":\"number\",\"description\":\"Degrees to look up, negative for down\"}}}" },
+              "{\"type\":\"object\",\"properties\":{\"x\":{\"type\":\"number\",\"description\":\"Spot to face, across the screenshot\"},\"y\":{\"type\":\"number\",\"description\":\"Spot to face, down the screenshot\"},\"right\":{\"type\":\"number\",\"description\":\"Degrees to turn right, negative for left\"},\"up\":{\"type\":\"number\",\"description\":\"Degrees to look up, negative for down\"},\"level\":{\"type\":\"string\",\"description\":\"yes to look straight ahead at the horizon in a first-person game\",\"enum\":[\"yes\"]}}}" },
             { "walk", "Move around in a game by holding movement keys. It jumps over small things by itself and lets go by itself when you're really stuck, and it tells you how it went.",
               "{\"type\":\"object\",\"properties\":{\"keys\":{\"type\":\"string\",\"description\":\"The keys to hold, joined with +, like w, a, shift+w. Default w\"},\"seconds\":{\"type\":\"string\",\"description\":\"How long to keep going. Default 2\"},\"jump\":{\"type\":\"string\",\"description\":\"Jump when something's in the way. Default yes\",\"enum\":[\"yes\",\"no\"]}}}" },
+            { "learn", "Save one short thing you worked out about this game for every time you play it after this, like a key, what killed you, what worked or where something is. You're told these before you play it again.",
+              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"One short line\"}},\"required\":[\"text\"]}" },
             { "mouse_hold", "Hold a mouse button in a game for as long as something takes, like holding left click to mine a block or fire, or right click to aim, block or use. Set stop to yes to let go by itself when what's under the crosshair changes, like when a block breaks.",
               "{\"type\":\"object\",\"properties\":{\"button\":{\"type\":\"string\",\"description\":\"Which button. Default left\",\"enum\":[\"left\",\"right\"]},\"seconds\":{\"type\":\"string\",\"description\":\"Longest to hold it. Default 1\"},\"keys\":{\"type\":\"string\",\"description\":\"Keys to hold with it, joined with +, if any\"},\"stop\":{\"type\":\"string\",\"description\":\"Let go when what's under the crosshair changes\",\"enum\":[\"yes\",\"no\"]}}}" }
         };
@@ -240,7 +246,7 @@ namespace CapriDesktop
         internal static string Tools { get { return Rendering()[0]; } }
         internal static string ClaudeTools { get { return Rendering()[1]; } }
         // Her own hold_and_press rides beside Claude's computer tools, so she can hold w while she presses space.
-        internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "]";
+        internal static readonly string Toolset = "[{\"type\":\"computer_toolset_20260801\"}," + Render("open_app") + "," + Render("open_website") + "," + Render("hold_and_press") + "," + Render("look") + "," + Render("walk") + "," + Render("mouse_hold") + "," + Render("learn") + "]";
         internal static string Listing { get { return Rendering()[2]; } }
         private static readonly Regex StepText = new Regex(@"\b(click|type|press|hold_and_press|scroll|open_app|open_website|wait_for|wait|note|ask|done)\s*(\{[^{}]*\})", RegexOptions.Singleline);
         private static readonly Regex BareClick = new Regex(@"^\W*click\W*(\d{1,3})\W*$", RegexOptions.IgnoreCase);
@@ -627,6 +633,7 @@ namespace CapriDesktop
             if (tool == "type") return "type " + Voice.Quote(args.Text ?? "") + at + (args.Enter == "yes" ? " + enter" : "");
             if (tool == "press") return "press " + (args.Keys ?? "");
             if (tool == "hold_and_press") return "hold " + (args.Hold ?? "") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and press " + args.Press);
+            if (tool == "learn") return "learn " + Voice.Quote(args.Text ?? "");
             if (tool == "look") return "look";
             if (tool == "walk") return "walk " + (args.Keys ?? "w") + " " + (args.Seconds ?? "2") + " s";
             if (tool == "mouse_hold") return "hold " + (args.Button ?? "left") + " click " + (args.Seconds ?? "1") + " s";
@@ -673,6 +680,7 @@ namespace CapriDesktop
             if (tool == "type") return "Typing " + Voice.Quote((args.Text ?? "").Length > 24 ? args.Text.Substring(0, 21) + "..." : args.Text ?? "") + ".";
             if (tool == "press") return "Pressing " + (args.Keys ?? "") + ".";
             if (tool == "hold_and_press") return "Holding " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressing " + args.Press) + ".";
+            if (tool == "learn") return "Noting that for next time.";
             if (tool == "look") return "Looking around.";
             if (tool == "walk") return "Moving.";
             if (tool == "mouse_hold") return "Holding " + (args.Button ?? "left") + " click.";
@@ -696,6 +704,7 @@ namespace CapriDesktop
             if (tool == "type") return "Typed " + Voice.Quote(text) + (args.Enter == "yes" ? " and pressed Enter" : "");
             if (tool == "press") return "Pressed " + (args.Keys ?? "");
             if (tool == "hold_and_press") return "Held " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressed " + args.Press);
+            if (tool == "learn") return "Noted that for next time";
             if (tool == "look") return "Looked around";
             if (tool == "walk") return "Moved";
             if (tool == "mouse_hold") return "Held " + (args.Button ?? "left") + " click";
@@ -1812,6 +1821,10 @@ namespace CapriDesktop
         internal Func<byte[], string, string, string> Seer;
         private bool sighted, waitingMember;
         private Target waitingTarget;
+        // The game this job plays once one's open, the moves it made there, and a small call that thinks over how it went.
+        internal Func<string, string, string> Aside;
+        private string game;
+        private readonly List<string> played = new List<string>();
         internal Action Blind;
         // A game job thinks harder on every turn and gets her game lines. Their words make it one, or a game's window in front
         // partway through, and it stays one.
@@ -1901,6 +1914,33 @@ namespace CapriDesktop
             }
         }
 
+        private string Game()
+        {
+            if (game == null && Playing)
+            {
+                string open = Computer.GameOpen();
+                if (open != null) game = GameNotes.Name(open);
+            }
+            return game;
+        }
+
+        // A game job gets her game lines, what kind of game this is and what she's learned about it before.
+        private string Briefed() { return Playing ? Computer.Playing + GameNotes.Brief(Game()) : ""; }
+
+        // A game job that ran a while thinks over how it went, off to the side, and keeps what it found out for next time.
+        private void Reflect(string outcome, string said)
+        {
+            Func<string, string, string> aside = Aside;
+            string about = Game();
+            if (aside == null || about == null || played.Count < Computer.WorthThinking || outcome == "waiting" || outcome == "asked") return;
+            string asked = GameNotes.Reflection(Words, outcome, said, played.ToArray());
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { GameNotes.Reflected(about, aside(GameNotes.Reflecting, asked)); }
+                catch (Exception error) { Brain.Log("reflecting", -1, error.Message); }
+            });
+        }
+
         // A brain error partway through, like a rate limit mid-drag, still lets go of the mouse and hands it back.
         internal string Run()
         {
@@ -1965,7 +2005,7 @@ namespace CapriDesktop
                 Show("Thinking");
                 string fresh = Heard();
                 if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
-                try { written = Think(Computer.Allowing(Computer.Prompt) + (Playing ? Computer.Playing : ""), Computer.Brief(Task, Steps, sight, notes, earlier) + asides + (lost > 0 ? "\nYour last reply had no tool call. Reply with only one tool call, or call done." : "") + nudged, calls); }
+                try { written = Think(Computer.Allowing(Computer.Prompt) + Briefed(), Computer.Brief(Task, Steps, sight, notes, earlier) + asides + (lost > 0 ? "\nYour last reply had no tool call. Reply with only one tool call, or call done." : "") + nudged, calls); }
                 catch (System.Runtime.Serialization.SerializationException) { written = ""; calls.Clear(); }
                 Show(null);
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
@@ -2062,7 +2102,7 @@ namespace CapriDesktop
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
                 ClaudeReply reply;
                 Stopwatch turnClock = Stopwatch.StartNew();
-                try { reply = Drive(Computer.Allowing(Computer.Seeing) + (Playing ? Computer.Playing : ""), Computer.Toolset, Conversation()); }
+                try { reply = Drive(Computer.Allowing(Computer.Seeing) + Briefed(), Computer.Toolset, Conversation()); }
                 catch (System.Runtime.Serialization.SerializationException) { return End("failed", "Got a reply from my brain I couldn't read. Try again."); }
                 // Their Esc cut the turn off while it was still thinking.
                 catch (System.Net.WebException) { if (!Computer.Interrupted) throw; return End("stopped", Computer.Why); }
@@ -2136,13 +2176,14 @@ namespace CapriDesktop
                 if (!Look()) return End("failed", "I couldn't see the screen.");
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
                 string words;
-                byte[] picture = Computer.Gridded(shown, out words);
+                List<ReadWord> spots;
+                byte[] picture = Computer.Gridded(shown, out words, out spots);
                 string fresh = Heard();
                 if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
                 Show("Thinking");
                 string reply;
                 Stopwatch turnClock = Stopwatch.StartNew();
-                try { reply = Seer(picture, Computer.Allowing(Computer.Sees) + (Playing ? Computer.Playing : ""), Computer.Seen(Task, Steps, words) + asides + results + "\n\nWhat are your next moves?"); }
+                try { reply = Seer(picture, Computer.Allowing(Computer.Sees) + Briefed(), Computer.Seen(Task, Steps, words) + asides + results + "\n\nWhat are your next moves?"); }
                 catch (System.Net.WebException) { if (!Computer.Interrupted) throw; return End("stopped", Computer.Why); }
                 catch (BrainException error)
                 {
@@ -2156,7 +2197,11 @@ namespace CapriDesktop
                 }
                 Show(null);
                 Action<string> trace = Trace;
-                if (trace != null) trace("seen turn " + turns + " " + turnClock.ElapsedMilliseconds + " ms | " + (reply ?? "").Replace("\n", " "));
+                if (trace != null)
+                {
+                    trace("seen turn " + turns + " " + turnClock.ElapsedMilliseconds + " ms | " + (reply ?? "").Replace("\n", " ") + " | read: " + words.Replace("\n", " "));
+                    File.WriteAllBytes(Path.Combine(TraceFolder, "grid-" + shots.ToString("0000") + ".jpg"), picture);
+                }
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 results = "";
                 List<KeyValuePair<string, ToolArguments>> moves = Computer.Moves(reply);
@@ -2182,7 +2227,13 @@ namespace CapriDesktop
                         return End(move.Key == "ask" ? "asked" : "done", Regex.IsMatch(args.Text ?? "", @"^\W*(done)?\W*$", RegexOptions.IgnoreCase) && move.Key == "done" ? Summary() : said);
                     }
                     bool member;
-                    string tool = Computer.Planned(move.Key, args, shown, out member);
+                    string tool = Computer.Planned(move.Key, args, shown, spots, out member);
+                    // Words it wanted to click that aren't on screen.
+                    if (member && args.Coordinate == null && tool != "scroll" && tool != "key" && tool != "type")
+                    {
+                        results += "\n" + move.Key + ": That didn't work: " + Voice.Quote(args.Text ?? "that") + " isn't on screen.";
+                        break;
+                    }
                     Target target;
                     string question;
                     string danger = Danger(tool, args, member, out target, out question);
@@ -2362,9 +2413,10 @@ namespace CapriDesktop
             Action<JobStep> stepped = Stepped;
             if (stepped != null && doing != null) stepped(new JobStep { Tool = name, Label = doing });
             string result;
-            try { result = member ? Computer.Use(name, args, shown) : Computer.Act(name, args, Computer.Glimpse()); }
+            try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, Computer.Glimpse()); }
             catch (Exception error) { result = "That didn't work: " + error.Message; }
             if (secret) result = Hush(result, args.Text);
+            if (Playing && !secret) played.Add(name + " " + Computer.Traced(args) + ": " + result);
             bool failed = Computer.Failed(result) || Computer.Interrupted;
             string done = member ? Computer.Moving(name, masked, target, true) : Computer.Did(name, masked, null);
             if (doing != null)
@@ -2393,6 +2445,7 @@ namespace CapriDesktop
             Outcome = outcome;
             Computer.Finish();
             Show(null);
+            Reflect(outcome, said);
             return Computer.Mask(said);
         }
 
