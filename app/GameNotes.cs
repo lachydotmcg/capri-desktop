@@ -108,6 +108,8 @@ namespace CapriDesktop
                     brief.Append(" " + Kinds[i, 1]);
                     break;
                 }
+            string keys = GameKeys.Summary(game);
+            if (keys != null) brief.Append("\nIts keys on this PC: " + keys + ".");
             string notes = Read(game);
             if (notes.Length > MostTold)
             {

@@ -5059,7 +5059,7 @@ namespace CapriDesktop
             if (brain.Model == null) return "You can't see their screen: your brain is offline.";
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
-            if (local == null && !Brain.LocalSees(brain.Model)) return "Your brain can't see. Tell them to pick a model that can under BRAIN in Capri Mainframe, or press Free key and connect a free NVIDIA key so you can.";
+            if (local == null && !Brain.LocalSees(brain.Model) && Brain.LocalEyes() == null) return "Your brain can't see, and no model on this PC can. Offer to run ollama pull gemma4:e4b for them, about 3 GB, and you'll borrow its eyes by yourself. They can also pick a model that sees under BRAIN in Capri Mainframe, or press Free key and connect a free NVIDIA key.";
             if (local == null || pick == null) return null;
             if (pick.EyesFile == null) return "Your brain can't see. Tell them to press Free key in Capri Mainframe and connect a free NVIDIA key so you can.";
             if (local.HasEyes(pick)) return null;
@@ -8789,6 +8789,32 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeGameKeys(System.Collections.Generic.List<string> checks)
+        {
+            string keysRoot = Path.Combine(Path.GetTempPath(), "capri-keys-" + Guid.NewGuid().ToString("N"));
+            string minecraftKeys = Path.Combine(keysRoot, ".minecraft");
+            string cyberpunkKeys = Path.Combine(keysRoot, "CD Projekt Red", "Cyberpunk 2077");
+            Directory.CreateDirectory(minecraftKeys);
+            Directory.CreateDirectory(cyberpunkKeys);
+            try
+            {
+                File.WriteAllText(Path.Combine(minecraftKeys, "options.txt"), "fov:1.0\nkey_key.forward:key.keyboard.w\nkey_key.attack:key.mouse.left\nkey_key.sneak:key.keyboard.left.shift\nkey_key.sprint:key.mouse.4\nkey_key.hotbar.1:key.keyboard.1\nkey_key.drop:key.keyboard.unknown\n");
+                string fromOptions = GameKeys.Summary("Minecraft 26.3 - Singleplayer", keysRoot, keysRoot);
+                if (fromOptions != "forward w, attack left mouse, sneak left shift, sprint mouse 4") throw new Exception("Minecraft's keys read wrong: " + fromOptions);
+                string settings = Path.Combine(cyberpunkKeys, "UserSettings.json");
+                File.WriteAllText(settings, "{\"version\":2,\"data\":[{\"group_name\":\"/graphics\",\"options\":[{\"name\":\"forward\",\"value\":\"IK_Z\"}]},"
+                    + "{\"group_name\":\"/key_bindings/SettingsLocomotion\",\"options\":[{\"name\":\"forward\",\"value\":\"IK_W\"},{\"name\":\"sprintHold\",\"value\":\"IK_RShift\"},{\"name\":\"sprintToggle\",\"value\":\"IK_LShift\"},"
+                    + "{\"name\":\"attack\",\"value\":\"IK_LeftMouse\"},{\"name\":\"visionHold\",\"value\":\"IK_Tab\"},{\"name\":\"jump\",\"value\":\"IK_None\"}]},"
+                    + "{\"group_name\":\"/key_bindings/SettingsVehicle\",\"options\":[{\"name\":\"callVehicle\",\"value\":\"IK_V\"}]}]}");
+                string fromSettings = GameKeys.Summary("Cyberpunk 2077 (C) 2020 by CD Projekt RED", keysRoot, keysRoot);
+                if (fromSettings != "move forward w, sprint left shift, shoot left mouse, scanner tab, call vehicle v") throw new Exception("Cyberpunk's keys read wrong: " + fromSettings);
+                File.WriteAllText(settings, "{\"data\":[{");
+                if (GameKeys.Summary("Cyberpunk 2077", keysRoot, keysRoot) != null || GameKeys.Summary("Minecraft", Path.Combine(keysRoot, "nowhere"), keysRoot) != null || GameKeys.Summary("Hades", keysRoot, keysRoot) != null) throw new Exception("A broken or missing keys file made up keys.");
+                checks.Add("PASS she reads the keys a game is really set to from its own files: Minecraft's options.txt and Cyberpunk's UserSettings.json, in plain words, and nothing from a file that's broken or missing");
+            }
+            finally { Directory.Delete(keysRoot, true); }
+        }
+
         private static void SmokeFrames(System.Collections.Generic.List<string> checks)
         {
             const int motionWidth = 128;
@@ -9407,6 +9433,23 @@ namespace CapriDesktop
                 blind.Seer = delegate(byte[] picture, string prompt, string user) { throw new BrainException("no images here"); };
                 blind.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { reads++; return "done{\"text\": \"Read the buttons.\"}"; };
                 if (blind.Run() != "Read the buttons." || reads != 1) throw new Exception("A brain that can't see didn't fall back to reading buttons.");
+                if (Computer.MemberCall("computer", "look") || !Computer.MemberCall("computer", "left_click") || Computer.MemberCall(null, "left_click")) throw new Exception("A tool filed under Claude's computer tools went the wrong way.");
+                Func<string, bool> localSeesWas = Brain.LocalSees;
+                Func<string> localEyesWere = Brain.LocalEyes;
+                try
+                {
+                    Brain lent = new Brain { Model = "qwen3:8b" };
+                    Brain.LocalSees = delegate(string model) { return model == "gemma4:e4b"; };
+                    Brain.LocalEyes = delegate { return "gemma4:e4b"; };
+                    if (lent.Looker("qwen3:8b") != "gemma4:e4b" || lent.Looker("gemma4:e4b") != "gemma4:e4b") throw new Exception("A blind Ollama brain didn't borrow the eyes of a model that can see.");
+                    Brain.LocalEyes = delegate { return null; };
+                    if (lent.Looker("qwen3:8b") != "qwen3:8b") throw new Exception("A blind Ollama brain looked for eyes that aren't there.");
+                }
+                finally
+                {
+                    Brain.LocalSees = localSeesWas;
+                    Brain.LocalEyes = localEyesWere;
+                }
                 checks.Add("PASS every brain that can see plays from pictures: a numbered grid, written moves in any shape a small model writes them, Security's checks on each, what each move did on the next turn, and reading buttons when a brain can't take pictures");
             }
             finally
@@ -9792,6 +9835,7 @@ namespace CapriDesktop
                             SmokeLongJob(checks);
                             SmokeLooseCalls(checks);
                             SmokeFrames(checks);
+                            SmokeGameKeys(checks);
                             SmokeGameEars(checks);
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
@@ -13826,7 +13870,7 @@ namespace CapriDesktop
                                         || driven[1].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t1\",\"content\":[{\"type\":\"text\",\"text\":\"Opened Discord.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
                                         || driven[2].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t2\",\"toolset_name\":\"computer\",\"content\":[{\"type\":\"text\",\"text\":\"Done.\"}]}", StringComparison.Ordinal) < 0
                                         || driven[2].IndexOf("{\"type\":\"tool_result\",\"tool_use_id\":\"t3\",\"toolset_name\":\"computer\",\"content\":[{\"type\":\"text\",\"text\":\"Done.\"},{\"type\":\"image\"", StringComparison.Ordinal) < 0
-                                        || driven[3].IndexOf("[Image omitted]", StringComparison.Ordinal) < 0)
+                                        || driven[3].IndexOf("[Image omitted]", StringComparison.Ordinal) < 0 || !driven[3].EndsWith(",\"cache_control\":{\"type\":\"ephemeral\"}}]}]", StringComparison.Ordinal) || Regex.Matches(driven[3], "cache_control").Count != 1)
                                         throw new Exception("Claude's screenshot hands went wrong: " + driveSent + " / shots " + driveShots + " / images " + driveImages + " / " + string.Join("|", driveMoves.ToArray()) + " / " + string.Join("|", driveRows.ToArray()));
                                     driven.Clear();
                                     driveMoves.Clear();

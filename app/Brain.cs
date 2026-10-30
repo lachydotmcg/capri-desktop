@@ -1355,6 +1355,7 @@ namespace CapriDesktop
             if (model == null) throw new BrainException(Offline);
             Cloud remote = Remote;
             if (remote != null && remote.Kind == "deepseek") throw new BrainException(Blind);
+            model = Looker(model);
             string data = Convert.ToBase64String(jpeg);
             string parts = null;
             if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";
@@ -1380,6 +1381,26 @@ namespace CapriDesktop
             if (model == null) throw new BrainException(Offline);
             Brain aside = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
             return Visible(aside.Think(model, new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) }, false, new List<KeyValuePair<string, ToolArguments>>(), null, limit));
+        }
+
+        // An Ollama brain that can't see borrows the eyes of a model on this PC that can.
+        internal string Looker(string model)
+        {
+            if (Remote != null || Local != null || LocalSees(model)) return model;
+            return LocalEyes() ?? model;
+        }
+
+        internal static Func<string> LocalEyes = OllamaEyes;
+
+        private static string OllamaEyes()
+        {
+            try
+            {
+                foreach (string name in InstalledModels()) if (LocalSees(name)) return name;
+            }
+            catch (WebException) { }
+            catch (IOException) { }
+            return null;
         }
 
         // Whether an Ollama model takes pictures, by what Ollama says about it. One it can't say about gets the benefit of the doubt.
