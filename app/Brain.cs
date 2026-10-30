@@ -369,7 +369,7 @@ namespace CapriDesktop
         // (Lachy, 30 Oct: she kept apologising for names she made up, "over 5 times each"), and the voice fix.
         internal const string Machinery =
             "Always: answer in one or two short sentences, under 25 words, or up to three when you're comforting them. Plain text only: no emoji, no asterisks, no actions, no lists. Stay in character.\n" +
-            "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice.\n" +
+            "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice. Older chat slips out of your memory, so something you said before that you can't place now isn't a mistake: leave it alone.\n" +
             "Only if they say your voice, voice chat or ElevenLabs is broken or won't connect: tell them to make a new ElevenLabs key with Restrict key turned off, paste it under VOICE in Capri Mainframe and press Connect. Never invent other settings or permissions to turn on.";
 
         internal static string Persona { get { return DefaultPersonality + "\n" + Safety + "\n" + Machinery; } }
@@ -1474,7 +1474,11 @@ namespace CapriDesktop
             lock (gate)
                 for (int i = Math.Max(0, history.Count - 6); i < history.Count; i++)
                     if (history[i].Role == "assistant") saidLately.Add(history[i].Content ?? "");
-            string said = Unclosed(Fresh(Sparing(Clean(raw), lately, name), request, saidLately));
+            bool praised = false;
+            lock (gate)
+                for (int i = Math.Max(0, history.Count - 10); i < history.Count; i++)
+                    if (history[i].Role == "assistant" && Regex.IsMatch(history[i].Content ?? "", @"\bgood (boy|girl)\b", RegexOptions.IgnoreCase)) praised = true;
+            string said = Unclosed(Fresh(Unpraised(Sparing(Clean(raw), lately, name), praised), request, saidLately));
             if (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs)) said = "";
             if (said.Length == 0 && done != null) said = done;
             if (said.Length == 0) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
@@ -2414,6 +2418,16 @@ namespace CapriDesktop
             return Regex.Replace(text, @"<\|channel>thought\b.*?(<channel\|>|$)", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase);
         }
 
+        // "Good boy" only lands now and then, so a sentence with it in goes if she said it lately, unless that's all she said.
+        private static readonly Regex Praise = new Regex(@"(^|(?<=[.!?]\s))[^.!?]*\bgood (boy|girl)\b[^.!?]*[.!?]?\s*", RegexOptions.IgnoreCase);
+
+        internal static string Unpraised(string said, bool lately)
+        {
+            if (!lately) return said;
+            string kept = Praise.Replace(said, "").Trim();
+            return kept.Length == 0 ? said : kept;
+        }
+
         internal static string Sparing(string said, bool lately, string name = null)
         {
             const RegexOptions Loose = RegexOptions.IgnoreCase;
@@ -2467,6 +2481,14 @@ namespace CapriDesktop
             return true;
         }
 
+        // Quotes around the whole reply come off. A pair that belongs to a song or a name stays.
+        private static string Unquoted(string text)
+        {
+            int marks = Regex.Matches(text, "[\"“”]").Count;
+            if (marks > 2 || (marks == 2 && !Regex.IsMatch(text, "^[\"“”].*[\"“”]$"))) return text;
+            return text.Trim('"', '“', '”', ' ');
+        }
+
         internal static string Clean(string text)
         {
             if (text == null) return "";
@@ -2475,7 +2497,7 @@ namespace CapriDesktop
             text = Regex.Replace(text, @"[\uD800-\uDFFF☀-➿️]", "");
             text = Regex.Replace(text, @"\s+", " ").Trim();
             text = Regex.Replace(text, @"^(capri|capricorn)\s*(:|>)\s*", "", RegexOptions.IgnoreCase);
-            text = text.Trim('"', '“', '”', ' ');
+            text = Unquoted(text);
             int chosen = ReplySizes[Math.Max(0, Math.Min(ReplySizes.Length - 1, ReplyLength))];
             int most = chosen > 0 ? chosen * 4 : Caps[Math.Max(0, Math.Min(2, Wordiness))];
             if (text.Length <= most) return text;
