@@ -503,10 +503,6 @@ namespace CapriDesktop
 
         private static readonly string[,] Specs =
         {
-#if !CROSS
-            { "mini_game", "Play your own tic-tac-toe, connect four or rock paper scissors board beside you. Only these three games; online play goes to their browser. A move uses their square, column or rock/paper/scissors as text. again starts a new round; close closes your board.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move\"}},\"required\":[\"name\"]}" },
-#endif
             { "open_app", "Open, launch or play an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name\"}},\"required\":[\"name\"]}" },
             { "open_website", "Open a website in their browser, or search a site like YouTube or Google.",
@@ -546,6 +542,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}" },
             { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
               "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}" },
+            { "mini_game", "Play your own tic-tac-toe, connect four or rock paper scissors board beside you. Only these three games; online play goes to their browser. A move uses their square, column or rock/paper/scissors as text. again starts a new round; close closes your board.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move\"}},\"required\":[\"name\"]}" },
 #endif
         };
 
