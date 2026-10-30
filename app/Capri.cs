@@ -8555,12 +8555,140 @@ namespace CapriDesktop
                 && at >= from.AddTicks(-(from.Ticks % TimeSpan.TicksPerSecond));
         }
 
+        private static void CheckOcr(System.Collections.Generic.List<string> checks, string output)
+        {
+            Bitmap discarded = new Bitmap(8, 8);
+            discarded.Dispose();
+            if (Ocr.Words(null, 1, 1000).Count != 0 || Ocr.Lines(discarded, 1, 1000).Count != 0 || Ocr.Sharpened(discarded, new Rectangle(0, 0, 8, 8), 2) != null)
+                throw new Exception("OCR did not ignore a missing or disposed bitmap.");
+            using (Bitmap shades = new Bitmap(8, 4))
+            {
+                using (Graphics paint = Graphics.FromImage(shades))
+                using (Brush grey = new SolidBrush(Color.FromArgb(208, 208, 208)))
+                {
+                    paint.Clear(Color.FromArgb(96, 96, 96));
+                    paint.FillRectangle(grey, 4, 0, 4, 4);
+                }
+                using (Bitmap contrast = Ocr.Sharpened(shades, new Rectangle(-2, -1, 10, 5), 2))
+                {
+                    if (contrast == null || contrast.Size != new Size(16, 8) || contrast.GetPixel(2, 2).R >= 96 || contrast.GetPixel(12, 2).R <= 208 || shades.GetPixel(1, 1).R != 96)
+                        throw new Exception("OCR's crop did not clip, upscale and boost contrast without changing its source.");
+                }
+                if (Ocr.Words(shades, 0, 1000).Count != 0 || Ocr.Lines(shades, 1, 0).Count != 0 || Ocr.Sharpened(shades, new Rectangle(20, 20, 4, 4), 2) != null)
+                    throw new Exception("OCR did not ignore an empty crop, invalid scale or expired timeout.");
+            }
+            checks.Add("PASS OCR handles missing and disposed bitmaps, empty crops and expired timeouts; sharpening clips, upscales and boosts contrast without changing the frame");
+            if (!Ocr.Ready)
+            {
+                checks.Add("LIMIT Windows OCR has no engine for this PC's languages or English; recognition, HUD digits and timings could not run");
+                return;
+            }
+            using (Bitmap screen = new Bitmap(1920, 1080))
+            using (Font plain = new Font("Arial", 28, FontStyle.Regular, GraphicsUnit.Pixel))
+            {
+                string[] known = { "Capri", "words", "Ready" };
+                Point[] places = { new Point(64, 72), new Point(520, 420), new Point(1240, 940) };
+                Rectangle[] expected = new Rectangle[known.Length];
+                using (Graphics drawing = Graphics.FromImage(screen))
+                {
+                    drawing.Clear(Color.White);
+                    drawing.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                    for (int label = 0; label < known.Length; label++)
+                    {
+                        drawing.DrawString(known[label], plain, Brushes.Black, places[label]);
+                        expected[label] = Rectangle.Ceiling(new RectangleF(places[label], drawing.MeasureString(known[label], plain)));
+                        expected[label].Inflate(3, 3);
+                    }
+                }
+                screen.Save(Path.Combine(output, "ocr-screen.png"), ImageFormat.Png);
+                foreach (int enlargement in new int[] { 1, 2 })
+                {
+                    System.Collections.Generic.List<ReadWord> words = Ocr.Words(screen, enlargement, 10000);
+                    foreach (ReadWord word in words) if (word.Box.Width <= 0 || word.Box.Height <= 0 || !new Rectangle(Point.Empty, screen.Size).Contains(word.Box)) throw new Exception("OCR returned a box outside its frame.");
+                    for (int wanted = 0; wanted < known.Length; wanted++)
+                    {
+                        bool located = false;
+                        foreach (ReadWord candidate in words) if (string.Equals(candidate.Text, known[wanted], StringComparison.OrdinalIgnoreCase) && expected[wanted].Contains(candidate.Box)) located = true;
+                        if (!located) throw new Exception("OCR missed " + known[wanted] + " or put its box in the wrong place at scale " + enlargement + ".");
+                    }
+                }
+                System.Collections.Generic.List<string> lines = Ocr.Lines(screen, 1, 10000);
+                if (lines.Count != known.Length) throw new Exception("OCR returned the wrong number of plain lines: " + string.Join(" / ", lines));
+                for (int ordered = 0; ordered < known.Length; ordered++) if (!string.Equals(lines[ordered], known[ordered], StringComparison.OrdinalIgnoreCase)) throw new Exception("OCR's lines were not top to bottom: " + string.Join(" / ", lines));
+                checks.Add("PASS Windows OCR reads known words at scales 1 and 2 with boxes in original frame pixels and lines top to bottom");
+                using (Bitmap crop = screen.Clone(new Rectangle(40, 40, 400, 200), PixelFormat.Format32bppArgb))
+                {
+                    for (int expired = 0; expired < 3; expired++) using (Bitmap brief = (Bitmap)crop.Clone()) Ocr.Words(brief, 1, 1);
+                    System.Collections.Generic.List<ReadWord> recovered = Ocr.Words(crop, 1, 10000);
+                    if (recovered.Count != 1 || !string.Equals(recovered[0].Text, known[0], StringComparison.OrdinalIgnoreCase) || recovered[0].Box.X >= 64 || recovered[0].Box.Y >= 72)
+                        throw new Exception("OCR did not recover after short timeouts or return crop-local boxes.");
+                    System.Threading.Tasks.Task<System.Collections.Generic.List<ReadWord>> together = System.Threading.Tasks.Task.Run(delegate { return Ocr.Words(screen, 1, 10000); });
+                    System.Collections.Generic.List<string> beside = Ocr.Lines(crop, 1, 10000);
+                    if (!together.Wait(10000) || together.Result.Count != known.Length || beside.Count != 1) throw new Exception("Concurrent OCR calls did not both finish.");
+                    checks.Add("PASS OCR recovers after short timeouts and immediate source disposal, keeps crop-local boxes and serializes concurrent recognition");
+                    foreach (Bitmap sized in new Bitmap[] { screen, crop })
+                    {
+                        double[] times = new double[5];
+                        for (int sample = 0; sample < times.Length; sample++)
+                        {
+                            Stopwatch elapsed = Stopwatch.StartNew();
+                            System.Collections.Generic.List<ReadWord> measured = Ocr.Words(sized, 1, 10000);
+                            times[sample] = elapsed.Elapsed.TotalMilliseconds;
+                            if (measured.Count != (sized == screen ? known.Length : 1)) throw new Exception("OCR timing run did not read its words.");
+                        }
+                        Array.Sort(times);
+                        checks.Add("PASS OCR timing " + sized.Width + "x" + sized.Height + ": median " + times[2].ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + " ms (" + times[0].ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + "-" + times[4].ToString("F1", System.Globalization.CultureInfo.InvariantCulture) + " ms, 5 warm reads, scale 1, conversion included)");
+                    }
+                }
+            }
+            using (Bitmap hud = new Bitmap(520, 150, PixelFormat.Format32bppArgb))
+            using (Font mono = new Font("Lucida Console", 12, FontStyle.Regular, GraphicsUnit.Pixel))
+            {
+                Random noise = new Random(1234);
+                int[] background = new int[hud.Width * hud.Height];
+                for (int pixel = 0; pixel < background.Length; pixel++) background[pixel] = Color.FromArgb(noise.Next(30, 145), noise.Next(30, 145), noise.Next(30, 145)).ToArgb();
+                BitmapData texture = hud.LockBits(new Rectangle(Point.Empty, hud.Size), ImageLockMode.WriteOnly, PixelFormat.Format32bppArgb);
+                try { for (int stripe = 0; stripe < hud.Height; stripe++) Marshal.Copy(background, stripe * hud.Width, new IntPtr(texture.Scan0.ToInt64() + (long)stripe * texture.Stride), hud.Width); }
+                finally { hud.UnlockBits(texture); }
+                string[] hudText = { "XYZ: 123.456 / 64.000 / -78.900", "Facing: north (Towards negative Z) (-179.9 / 12.3)" };
+                using (Graphics lettering = Graphics.FromImage(hud))
+                {
+                    lettering.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                    for (int hudRow = 0; hudRow < hudText.Length; hudRow++)
+                    {
+                        lettering.DrawString(hudText[hudRow], mono, Brushes.Black, 29, 29 + hudRow * 28);
+                        lettering.DrawString(hudText[hudRow], mono, Brushes.White, 28, 28 + hudRow * 28);
+                    }
+                }
+                hud.Save(Path.Combine(output, "ocr-hud.png"), ImageFormat.Png);
+                using (Bitmap sharpened = Ocr.Sharpened(hud, new Rectangle(16, 12, 488, 112), 4))
+                {
+                    if (sharpened == null || sharpened.Size != new Size(1952, 448)) throw new Exception("OCR's HUD crop did not upscale.");
+                    sharpened.Save(Path.Combine(output, "ocr-hud-sharpened.png"), ImageFormat.Png);
+                    System.Collections.Generic.List<string> hudLines = Ocr.Lines(sharpened, 1, 10000);
+                    string readHud = string.Join(" / ", hudLines);
+                    MatchCollection numbers = Regex.Matches(readHud, @"-?\d+(?:\.\d+)?");
+                    string[] digits = { "123.456", "64.000", "-78.900", "-179.9", "12.3" };
+                    if (hudLines.Count != 2 || numbers.Count != digits.Length) throw new Exception("OCR lost HUD lines or numbers: " + readHud);
+                    for (int number = 0; number < digits.Length; number++) if (numbers[number].Value != digits[number]) throw new Exception("OCR changed a HUD digit, decimal point or minus sign: " + readHud);
+                    checks.Add("PASS OCR reads a 12 px monospace HUD, white with a dark shadow on noise, after sharpening at scale 4: " + readHud);
+                }
+            }
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
             Hands.PleaseRoll = delegate { return 1; };
             Shown += delegate
             {
+                System.Threading.Tasks.Task<System.Collections.Generic.List<string>> ocrCheck = System.Threading.Tasks.Task.Run(delegate
+                {
+                    System.Collections.Generic.List<string> ocrResults = new System.Collections.Generic.List<string>();
+                    try { CheckOcr(ocrResults, output); }
+                    finally { File.WriteAllLines(Path.Combine(output, "ocr-test.txt"), ocrResults); }
+                    return ocrResults;
+                });
                 System.Windows.Forms.Timer test = new System.Windows.Forms.Timer();
                 test.Interval = 500;
                 int step = 0;
@@ -8601,6 +8729,22 @@ namespace CapriDesktop
                     stepping = true;
                     try
                     {
+                        if (ocrCheck != null)
+                        {
+                            if (!ocrCheck.IsCompleted) return;
+                            checks.AddRange(ocrCheck.GetAwaiter().GetResult());
+                            ocrCheck = null;
+                            using (Bitmap uiOcr = new Bitmap(400, 200))
+                            using (Font uiFont = new Font("Arial", 28, FontStyle.Regular, GraphicsUnit.Pixel))
+                            {
+                                using (Graphics uiDrawing = Graphics.FromImage(uiOcr)) { uiDrawing.Clear(Color.White); uiDrawing.DrawString("Capri", uiFont, Brushes.Black, 30, 40); }
+                                Stopwatch uiTime = Stopwatch.StartNew();
+                                bool uiReady = Ocr.Ready;
+                                if (Ocr.Words(uiOcr, 1, 10000).Count != 0 || Ocr.Lines(uiOcr, 1, 10000).Count != 0 || Ocr.Sharpened(uiOcr, new Rectangle(Point.Empty, uiOcr.Size), 4) != null || uiTime.ElapsedMilliseconds > 250)
+                                    throw new Exception("OCR waited or processed a bitmap on the UI thread.");
+                                checks.Add("PASS OCR runs on a worker; its synchronous calls return immediately on the UI thread (engine ready: " + uiReady + ")");
+                            }
+                        }
                         if (step == 0)
                         {
                             preferences.NoSitting = true;
