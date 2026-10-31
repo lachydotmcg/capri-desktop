@@ -28120,7 +28120,7 @@ namespace CapriDesktop
                 {
                     momentAnswer = momentReply;
                     momentNow = unchecked(momentNow + momentAdvance);
-                    momentMust(Commentary.Trigger("kill", null, null, null), "A big moment did not get a look.");
+                    momentMust(Commentary.Trigger("kill", null, new byte[] { 1, 2, 3 }, null), "A big moment did not get a look.");
                     momentWait(delegate { return !Commentary.Thinking; });
                 };
                 momentReact("[clip] That creeper waited for you specifically.", 0);
