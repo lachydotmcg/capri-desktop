@@ -27521,7 +27521,10 @@ namespace CapriDesktop
                             nextGlance = 1000;
                             Play(sleep);
                             CheckGlance(1000, 130000);
-                            if (captures != 1 || glancing || lastPrint != null || mainframe.Status.IndexOf(BlackScreen, StringComparison.Ordinal) < 0 || nextGlance < 1096 || nextGlance > 1144) throw new Exception("An idle or sleeping watcher missed its black-frame check or its next interval.");
+                            if (captures != 0) throw new Exception("She looked at the screen in her sleep.");
+                            Play(seat != null ? perch : idle);
+                            CheckGlance(1000, 130000);
+                            if (captures != 1 || glancing || lastPrint != null || mainframe.Status.IndexOf(BlackScreen, StringComparison.Ordinal) < 0 || nextGlance < 1096 || nextGlance > 1144) throw new Exception("An idle watcher missed its black-frame check or its next interval.");
                             if (LookAt(null) != BlackScreen || captures != 2) throw new Exception("The look tool sent a black frame.");
                             lock (glanceAsked) if (glanceAsked.Count != 0) throw new Exception("A black capture reached the brain.");
                             Grab = delegate(Rectangle place) { throw new Exception("Capture unavailable."); };
