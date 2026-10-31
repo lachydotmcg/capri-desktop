@@ -859,7 +859,7 @@ namespace CapriDesktop
         // A stream (Lachy, 1 Nov: "I had way more viewers when she actually spoke to chat"): her job is the whole stream, she's
         // shown the chat every few turns, and she answers it out loud with say beside her moves. Only Esc ends it. --stream
         // keeps it on until she's restarted; asking for it in words keeps it on for that job.
-        internal static bool Streaming;
+        internal static bool Streaming { get { return Hands.Streaming; } set { Hands.Streaming = value; } }
         internal static bool StreamingAlways;
         internal const string StreamNote = "\nTonight you're running Capri's live stream, and this job is the stream. It never finishes: keep calling tools until they press Esc, and never stop to say you're done.\n" +
             "Play the game they asked for. If it isn't open, open it and get into a game. Then really play it well, picking what to do next yourself or from chat, and stay alive: viewers want to watch you be good at this.\n" +

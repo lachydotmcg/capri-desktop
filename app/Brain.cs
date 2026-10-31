@@ -1531,9 +1531,9 @@ namespace CapriDesktop
             bool follows = !agreed && recent.Count == 2 && Hands.Follows(text, recent[0].Content, recent[1].Content);
             bool reached = false;
             string playing = act != null ? Hands.GameOpen() : null;
-            if (act != null && Hands.StreamAsked(request)) Computer.Streaming = true;
+            if (act != null && Hands.StreamAsked(request)) Hands.Streaming = true;
             // On stream, asking her to play starts her stream job however it's worded.
-            if (act != null && Computer.Streaming && Hands.Streams(request))
+            if (act != null && Hands.Streaming && Hands.Streams(request))
                 calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = request }));
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && recent.Count == 2 && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(text.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
