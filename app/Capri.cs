@@ -12216,7 +12216,7 @@ namespace CapriDesktop
                 { "WHAT DOES POP-IN ON ME DO?", "Check in on me" },
                 { "why can\u2019t you see my screen?", "Watch my screen" },
                 { "what does Gaming Mode do?", "Gaming Mode" },
-                { "can you keep your memories in obsidian?", "Memory vault" },
+                { "can you keep your memories in obsidian?", "Obsidian vault" },
                 { "how do i activate gaming mode", "Gaming Mode" },
                 { "how to activate gaming mode", "Gaming Mode" },
                 { "how do I turn on game mode?", "Gaming Mode" },
