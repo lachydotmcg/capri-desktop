@@ -231,6 +231,15 @@ namespace CapriDesktop
         private readonly Dictionary<Control, int> tops = new Dictionary<Control, int>();
         private int pageView = PageTall;
         private int pageScroll;
+        // Simple view hides the rows most people never need and closes the gaps. Every setting is still one click away, and
+        // these are stretches of each column as built, by Top.
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1048, 1100 }, new[] { 1128, 1184 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 206 }, new[] { 316, 705 }, new[] { 894, 2000 } };
+        private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
+        private bool simple;
+        private Key allKey;
+        private int PageNow { get { return simple ? SimpleTall : PageTall; } }
+        private const int SimpleTall = 500;
         private int wheel;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
@@ -581,6 +590,8 @@ namespace CapriDesktop
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             }
             Section("CAPRI >", c, 58);
+            allKey = Make("All settings", 256 + c, 55, 100, 20, delegate { capri.ToggleAllSettings(); ShowSettings(true); });
+            allKey.AccessibleName = "Switch between the main settings and all of them";
             sizeSlider = Setting("Size", SizeNames, c, 82, "Her size");
             sizeName = new Readout(sizeSlider);
             sizeSlider.Changed += delegate { if (syncing) return; sizeName.Text = SizeNames[sizeSlider.Value]; capri.SetCharacterSize(SizeSteps[sizeSlider.Value]); };
@@ -714,10 +725,12 @@ namespace CapriDesktop
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
+            underVoice.Add(new KeyValuePair<Control, int>(gameMute, gameMute.Top));
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
                 pageLeft.Add(new KeyValuePair<Control, int>(control, control.Left));
+                built[control] = control.Top;
                 Scrolls(control);
                 control.Left += Far;
                 Reachable(control, false);
@@ -940,6 +953,7 @@ namespace CapriDesktop
             int back = pageScroll;
             ScrollPage(0);
             foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lift);
+            CloseGaps();
             ScrollPage(back);
         }
 
@@ -964,15 +978,20 @@ namespace CapriDesktop
         internal void ShowSettings(bool on)
         {
             if (!on) CancelKeys();
+            ScrollPage(0);
             paged = on;
+            simple = !capri.AllSettings;
+            allKey.Text = simple ? "All settings" : "Simple view";
+            allKey.Invalidate();
             more.Text = on ? "Back" : "Settings";
             more.Invalidate();
             Place();
             foreach (KeyValuePair<Control, int> entry in mainLeft) Reachable(entry.Key, !on);
-            foreach (KeyValuePair<Control, int> entry in pageLeft) Reachable(entry.Key, on);
+            foreach (KeyValuePair<Control, int> entry in pageLeft) Reachable(entry.Key, on && !Folded(entry.Key));
             if (Hidden(ActiveControl)) more.Focus();
             if (on) Sync();
             wheel = 0;
+            CloseGaps();
             Arrange(expanded);
             Rectangle area = Screen.FromControl(this).WorkingArea;
             if (on && Right > area.Right) Left = Math.Max(area.Left, area.Right - Width);
@@ -985,11 +1004,34 @@ namespace CapriDesktop
         private void Place()
         {
             foreach (KeyValuePair<Control, int> entry in mainLeft) entry.Key.Left = Scaled(entry.Value) + (paged ? Far : 0);
-            foreach (KeyValuePair<Control, int> entry in pageLeft) entry.Key.Left = Scaled(entry.Value) + (paged ? 0 : Far);
+            foreach (KeyValuePair<Control, int> entry in pageLeft) entry.Key.Left = Scaled(entry.Value) + (paged && !Folded(entry.Key) ? 0 : Far);
             int edge = paged ? Column : 0;
             build.Left = Scaled(230 + edge);
             minimize.Left = Scaled(300 + edge);
             close.Left = Scaled(330 + edge);
+        }
+
+        private bool Folded(Control control)
+        {
+            int top;
+            if (!simple || control == allKey || !built.TryGetValue(control, out top)) return false;
+            foreach (int[] band in pageLeft.Exists(entry => entry.Key == control && entry.Value >= Column) ? FoldedRight : FoldedLeft)
+                if (top >= band[0] && top < band[1]) return true;
+            return false;
+        }
+
+        // Moves what's left up over the rows Simple view hides, or back where it was built.
+        private void CloseGaps()
+        {
+            foreach (KeyValuePair<Control, int> entry in pageLeft)
+            {
+                int top;
+                if (!built.TryGetValue(entry.Key, out top) || Folded(entry.Key)) continue;
+                int gone = 0;
+                if (simple) foreach (int[] band in entry.Value >= Column ? FoldedRight : FoldedLeft) if (top >= band[1]) gone += band[1] - band[0];
+                bool lifts = underVoice.Exists(moved => moved.Key == entry.Key);
+                entry.Key.Top = Scaled(top - gone - (lifts && !simple ? lifted : 0));
+            }
         }
 
         // A header or settings control moves with the page, and Tab landing on it scrolls it into view.
@@ -1002,7 +1044,7 @@ namespace CapriDesktop
         // Scrolls just far enough to show all of a control Tab reached. A click leaves the page where it is.
         private void Reveal(Control control)
         {
-            if (!paged || pageView >= PageTall || Control.MouseButtons != MouseButtons.None) return;
+            if (!paged || pageView >= PageNow || Control.MouseButtons != MouseButtons.None) return;
             float s = Unit();
             int edge = Scaled(8);
             // Near the top it goes all the way up, so the header shows too.
@@ -1014,7 +1056,7 @@ namespace CapriDesktop
         // Moves the page and its header up by `to` px, as far as the page runs past the screen. Off Settings it's always 0.
         private void ScrollPage(int to)
         {
-            int next = paged ? Math.Max(0, Math.Min(PageTall - pageView, to)) : 0;
+            int next = paged ? Math.Max(0, Math.Min(PageNow - pageView, to)) : 0;
             if (next == pageScroll) return;
             if (pageScroll == 0) foreach (Control control in scrolled) tops[control] = control.Top;
             pageScroll = next;
@@ -1031,13 +1073,13 @@ namespace CapriDesktop
         private int Fit()
         {
             int room = ShortScreen > 0 ? ShortScreen : (int)(Screen.FromControl(this).WorkingArea.Height / Unit());
-            return Math.Max(4 * ScrollRow, Math.Min(MostView, room));
+            return Math.Max(4 * ScrollRow, Math.Min(Math.Min(MostView, PageNow), room));
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
             base.OnMouseWheel(e);
-            if (!paged || pageView >= PageTall) return;
+            if (!paged || pageView >= PageNow) return;
             wheel += e.Delta;
             int rows = wheel / 120;
             wheel -= rows * 120;
@@ -1162,6 +1204,7 @@ namespace CapriDesktop
                 shownFallback = layoutFallback;
                 foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu }) menu.Font = Font;
                 foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
+                CloseGaps();
                 freeVoices.Width = Scaled(freeReady && !yoursShown ? 328 : 196);
                 customVoice.Width = Scaled(freeReady ? 328 : 196);
                 Place();
@@ -1388,11 +1431,11 @@ namespace CapriDesktop
             Edging(graphics, this, s);
             if (paged)
             {
-                if (pageView >= PageTall) return;
+                if (pageView >= PageNow) return;
                 // A thin thumb on her right edge shows how much of the page is on screen, and where.
                 float rail = Height - 36 * s;
-                float thumb = rail * pageView / PageTall;
-                float at = 18 * s + (rail - thumb) * pageScroll / (PageTall - pageView);
+                float thumb = rail * pageView / PageNow;
+                float at = 18 * s + (rail - thumb) * pageScroll / (PageNow - pageView);
                 using (Brush track = new SolidBrush(Dash)) graphics.FillRectangle(track, Width - 8 * s, 18 * s, 2 * s, rail);
                 using (Brush lit = new SolidBrush(Cyan)) graphics.FillRectangle(lit, Width - 8 * s, at, 2 * s, thumb);
                 return;
@@ -1540,7 +1583,7 @@ namespace CapriDesktop
             if (paged) pageView = Fit();
             ClientSize = new Size(Scaled(paged ? Wide + Column : Wide), Scaled(paged ? pageView : Tall + shift + below - fold));
             ScrollPage(pageScroll);
-            bool scrolls = paged && pageView < PageTall;
+            bool scrolls = paged && pageView < PageNow;
             topRim.Visible = bottomRim.Visible = scrolls;
             if (scrolls)
             {
@@ -1909,14 +1952,14 @@ namespace CapriDesktop
         }
 
         // The whole settings page, scrolled or not, in the window's own px.
-        private Rectangle PageArea { get { return paged ? new Rectangle(0, -Scaled(pageScroll), ClientSize.Width, Math.Max(ClientSize.Height, Scaled(PageTall))) : ClientRectangle; } }
+        private Rectangle PageArea { get { return paged ? new Rectangle(0, -Scaled(pageScroll), ClientSize.Width, Math.Max(ClientSize.Height, Scaled(PageNow))) : ClientRectangle; } }
 
         // Settings on a short screen: how much shows (or whole) and whether the rims hold her frame together.
-        internal string ScrollStatus { get { return (paged && pageView < PageTall ? pageView + " tall" : "whole") + " | " + (topRim.Visible && bottomRim.Visible ? "rims" : "-"); } }
+        internal string ScrollStatus { get { return (paged && pageView < PageNow ? pageView + " tall" : "whole") + " | " + (topRim.Visible && bottomRim.Visible ? "rims" : "-"); } }
 
         internal int Scrolled { get { return pageScroll; } }
 
-        internal int ScrollMost { get { return Math.Max(0, PageTall - pageView); } }
+        internal int ScrollMost { get { return Math.Max(0, PageNow - pageView); } }
 
         internal int BackTop { get { return more.Top; } }
 

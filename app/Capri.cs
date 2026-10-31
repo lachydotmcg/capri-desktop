@@ -226,6 +226,7 @@ namespace CapriDesktop
         [DataMember] public bool HideFullScreen;
         [DataMember] public bool PlayerFullScreen;
         [DataMember] public bool ExploreAway;
+        [DataMember] public bool AllSettings;
         [DataMember] public int ExploreAfter;
         [DataMember] public bool FreeVoice;
         [DataMember] public bool FreeChatTold;
@@ -5584,6 +5585,8 @@ namespace CapriDesktop
         internal bool HideFullScreen { get { return preferences.HideFullScreen; } }
         internal bool PlayerFullScreen { get { return preferences.PlayerFullScreen; } }
         internal bool ExploreAway { get { return preferences.ExploreAway; } }
+        internal bool AllSettings { get { return testing || preferences.AllSettings; } }
+        internal void ToggleAllSettings() { preferences.AllSettings = !preferences.AllSettings; SavePreferences(); }
         internal int ExploreAfter { get { return preferences.ExploreAfter > 0 ? preferences.ExploreAfter : 300; } }
 
         internal void ToggleKeepAwake()
