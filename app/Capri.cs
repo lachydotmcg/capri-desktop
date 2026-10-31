@@ -9850,8 +9850,8 @@ namespace CapriDesktop
                 System.Xml.XmlDocument screenJson = new System.Xml.XmlDocument();
                 using (System.Xml.XmlDictionaryReader screenReader = JsonReaderWriterFactory.CreateJsonReader(System.Text.Encoding.UTF8.GetBytes(screenRequest.Substring(screenRequest.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4)), System.Xml.XmlDictionaryReaderQuotas.Max)) screenJson.Load(screenReader);
                 if (screenJson.SelectSingleNode("/root/model").InnerText != Brain.NvidiaDefault) throw new Exception("A picture switched the selected NVIDIA model.");
-                foreach (string screenPart in new[] { "\"max_tokens\":2000", "\"reasoning_effort\":\"none\"", "\"stream\":true", "\"content\":[{\"type\":\"text\"", "\"type\":\"image_url\"", "data:image/jpeg;base64," + Convert.ToBase64String(jpeg), "Read \\\"this\\\".\\nNext line." })
-                    if (!screenRequest.Contains(screenPart)) throw new Exception("A NVIDIA picture lost its model, budget, content array or encoding.");
+                foreach (string screenPart in new[] { "\"max_tokens\":2000", "\"reasoning_effort\":\"none\"", "\"stream\":true", "\"content\":[{\"type\":\"text\"", "\"type\":\"image_url\"", "data:image/jpeg;base64," + Convert.ToBase64String(jpeg), "Read \\\"this\\\".\\u000aNext line." })
+                    if (!screenRequest.Contains(screenPart)) throw new Exception("A NVIDIA picture lost its model, budget, content array or encoding: " + screenPart);
                 if (screenRequest.Contains("@capri-image@") || screenRequest.Contains("\"tools\":") || !File.ReadAllText(screenLogFile).Contains("image requests are rate limited")) throw new Exception("A picture retained its placeholder, sent tools or lost the server's error reason.");
                 checks.Add("PASS NVIDIA screen requests use the selected model and a JPEG content array, disable Super reasoning, keep the server reason, wait through a 429 and recover without marking vision unsupported");
                 checks.Add("LIMIT NVIDIA's hosted image limits and real replies need a real key; these screen requests use a local stand-in");
@@ -9871,14 +9871,14 @@ namespace CapriDesktop
                 if (screenBrain.Ask(screenAsks[0]) != Brain.Sightless(screenBrain.Remote) || screenRequests.Count != 3) throw new Exception("A vision failure was rewritten by another text reply.");
                 screenServer.Stop();
                 screenRequests.Clear();
-                Brain.Ollama = FakeServer(new[] { "{\"message\":{\"content\":\"A code editor.\"}}", "{\"message\":{\"content\":\"You've got code open, choom.\"}}", "{\"message\":{\"content\":\"A file list.\"}}", "{\"message\":{\"content\":\"That's a file list, choom.\"}}" }, screenRequests, out screenServer);
+                Brain.Ollama = FakeServer(new[] { "{\"message\":{\"content\":\"A code editor.\"}}", "{\"message\":{\"content\":\"You've got code open, choom.\"}}", "{\"message\":{\"content\":\"A file list.\"}}", "{\"message\":{\"content\":\"That's a file list.\"}}" }, screenRequests, out screenServer);
                 Brain.LocalSees = delegate(string seeingModel) { return seeingModel == "seeing-model"; };
                 Brain.LocalEyes = delegate { return "seeing-model"; };
                 Brain borrowed = new Brain { Model = "text-model" };
                 borrowed.Act = delegate { return "You looked at their screen. You see: " + borrowed.See(jpeg, "Look.", "Describe.", 160); };
                 if (borrowed.Ask(screenAsks[1]) != "You've got code open, choom." || borrowed.Model != "text-model" || !screenRequests[0].Contains("\"model\":\"seeing-model\"") || !screenRequests[1].Contains("\"model\":\"text-model\"")) throw new Exception("A blind Ollama brain did not answer with borrowed eyes.");
                 borrowed.Model = "seeing-model";
-                if (borrowed.Ask(screenAsks[2]) != "That's a file list, choom." || screenRequests.Count != 4) throw new Exception("A seeing local brain did not answer from the picture in her own words.");
+                if (borrowed.Ask(screenAsks[2]) != "That's a file list." || screenRequests.Count != 4) throw new Exception("A seeing local brain did not answer from the picture in her own words.");
                 Brain.LocalEyes = delegate { return null; };
                 borrowed.Model = "text-model";
                 bool eyesMissing = false;
@@ -14192,7 +14192,7 @@ namespace CapriDesktop
                 CloseTalk();
                 preferences.Silent = true;
                 preferences.BubbleTime = 1;
-                string longComment = string.Join(" ", new string[120]).Replace(" ", "That was close. ");
+                string longComment = string.Join(" ", new string[600]).Replace(" ", "That was close. ");
                 Remark("watching", longComment, true);
                 double now = clock.Elapsed.TotalSeconds;
                 replyStart = now - longComment.Length / pace - 1;
