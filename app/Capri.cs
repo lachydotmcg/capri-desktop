@@ -1374,6 +1374,7 @@ namespace CapriDesktop
         // it again.
         private readonly Meeting meeting = new Meeting();
         private double meetAt = -1;
+        private bool voiceCheckDue;
         private const int BlinkFrom = 9;
         // Her perch blinks where her artist drew it: loop frames 29 to 36 (index 28 on).
         private const int PerchBlinkFrom = 28;
@@ -1631,6 +1632,7 @@ namespace CapriDesktop
             {
                 if (restore.WaitOne(0)) { RestoreAtCursor(); mainframe.Restore(); }
                 if (startMarker != null && clock.Elapsed.TotalSeconds >= 15) Settled();
+                CheckVoiceReady();
                 if (!testing) CheckIdle(Native.IdleMilliseconds());
                 if (!testing) CheckGlance(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
                 if (!testing) CheckWander(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
@@ -3822,7 +3824,7 @@ namespace CapriDesktop
                 return "Play " + Voice.Quote(song) + (string.IsNullOrEmpty(args.Kind) || args.Kind == "song" ? "" : " (the " + args.Kind + ")") + " on Spotify: open Spotify, click its search box, type " + Voice.Quote(song) + " and press Enter, then press play on the best match.";
             }
             if (tool == "open_website" && !string.IsNullOrWhiteSpace(args.Search) && Regex.IsMatch((args.Site ?? "").Trim(), @"^(https?://)?(www\.|m\.)?youtube(\.com)?/?$", RegexOptions.IgnoreCase))
-                return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + ": open YouTube, click its search bar, type it and press Enter, then scroll down through the results.";
+                return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser + " using open_website with browser " + Voice.Quote(args.Browser)) + ": open YouTube, click its search bar, type it and press Enter, then scroll down through the results.";
             // Volume is the PC's volume. Spotify's own slider only when they said Spotify.
             if (tool == "media" && (args.Action == "volume_up" || args.Action == "volume_down") && args.App == "spotify" && SpotifyOpen())
             {
@@ -6242,9 +6244,11 @@ namespace CapriDesktop
 
         private void Greet()
         {
-            if (hidden) SetHidden(false);
             // After setup, once she's said hi with her new brain, she gets to know them. Only the first time.
             if (!preferences.Met && !testing) meetAt = clock.Elapsed.TotalSeconds + 1;
+            // They got in first, so her hello doesn't cancel what they asked.
+            if (box.Prompt == "> you: " && talkState != TalkState.Off) return;
+            if (hidden) SetHidden(false);
             Hear("(You just woke up on this PC with a brand new brain. Say hi to the user in one short line.)", "brain online", "> sys: ");
         }
 
@@ -6528,7 +6532,7 @@ namespace CapriDesktop
                     }
                     else
                     {
-                        if (voice.Key == null || preferences.Quiet || voiceBroke) TestVoice();
+                        if (voice.Key == null || preferences.Quiet || voiceBroke) voiceCheckDue = true;
                         GetFreeEars();
                         EarsArrived();
                     }
@@ -6935,7 +6939,7 @@ namespace CapriDesktop
                     if (!preferences.HdVoice) { qwen.Stop(); return; }
                     if (problem != null) HdTrouble(problem);
                     if (line != null) CheckVoice(line, true);
-                    else if (test && problem == null) TestVoice();
+                    else if (test && problem == null) voiceCheckDue = true;
                 });
             });
         }
@@ -6988,6 +6992,14 @@ namespace CapriDesktop
 
         internal const string TestLine = "Voice link online. Miss me, choom?";
         internal const string SilentNote = "Her voice is OFF. Pick another row under VOICE to hear her.";
+
+        // Her voice landed by itself, so the check that says so waits its turn: it would cancel anything they've just asked.
+        private void CheckVoiceReady()
+        {
+            if (!voiceCheckDue || talkState != TalkState.Off || MidJob(job)) return;
+            voiceCheckDue = false;
+            TestVoice();
+        }
 
         internal void TestVoice()
         {
@@ -10359,6 +10371,7 @@ namespace CapriDesktop
                 { "how do I set a reminder?", "Reminders" },
                 { "how do I change the memory size?", "Memory size" },
                 { "how do I use LM Studio?", "Local servers" },
+                { "which browser can you open websites in?", "Browser choice" },
                 { "how do I start one of your mini games?", "Mini games" },
                 { "how do I play connect four with you?", "Mini games" },
                 { "how do I give you a file?", "Handing her a file" },
@@ -13527,6 +13540,133 @@ namespace CapriDesktop
             finally { mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
         }
 
+        private static void SmokeOpening(System.Collections.Generic.List<string> checks)
+        {
+            Func<System.Collections.Generic.List<InstalledApp>> openingCatalog = Hands.Catalog;
+            Func<System.Collections.Generic.List<OpenWindow>> openingWindows = Hands.Windows;
+            Func<OpenWindow, string, bool> openingSteer = Hands.Steer;
+            Func<IntPtr> openingForeground = Hands.Foreground;
+            Func<string, string> openingResult = Hands.Opened;
+            Func<string, string> openingBrowser = Hands.BrowserPath;
+            Action<string> openingRun = Hands.Run;
+            Action<string, string> openingBrowse = Hands.Browse;
+            Func<string, bool> openingExists = Hands.Exists;
+            Func<string, System.Collections.Generic.KeyValuePair<string, ToolArguments>> openingPlan = Hands.Plan;
+            try
+            {
+                System.Collections.Generic.List<OpenWindow> openingShown = new System.Collections.Generic.List<OpenWindow> { new OpenWindow(new IntPtr(501), "Calculator help - Opera", "opera") };
+                System.Collections.Generic.List<string> openingLaunched = new System.Collections.Generic.List<string>();
+                IntPtr openingFront = new IntPtr(501);
+                int openingFocused = 0, openingReads = 0;
+                Hands.Plan = delegate { return new System.Collections.Generic.KeyValuePair<string, ToolArguments>(); };
+                Hands.Exists = delegate { return false; };
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Calculator", "calculator-package!App"), new InstalledApp("Paint", "paint-package!App"), new InstalledApp("Slow Game", "steam://rungameid/123") }; };
+                Hands.Forget();
+                Hands.Windows = delegate { openingReads++; return openingShown; };
+                Hands.Foreground = delegate { return openingFront; };
+                Hands.Steer = delegate(OpenWindow openingTarget, string openingAction) { if (openingAction != "switch_to") throw new Exception("Opening used the wrong window action."); openingFocused++; openingFront = openingTarget.Handle; return true; };
+                Hands.Opened = delegate(string openingName) { return Hands.BringOpened(openingName, 30); };
+                Hands.Run = delegate(string openingId)
+                {
+                    openingLaunched.Add(openingId);
+                    if (openingId == "calculator-package!App" && openingShown.Count == 1) openingShown.Add(new OpenWindow(new IntPtr(502), "Calculator", "ApplicationFrameHost"));
+                    if (openingId == "paint-package!App") openingShown.Add(new OpenWindow(new IntPtr(503), "Untitled - Paint", "ApplicationFrameHost"));
+                };
+                if (Hands.Do("open_app", new ToolArguments { Name = "Calculator" }) != "Opened Calculator." || openingFront != new IntPtr(502)) throw new Exception("The packaged app stayed behind the browser's matching page title.");
+                openingFront = new IntPtr(501);
+                if (Hands.Do("open_app", new ToolArguments { Name = "Calculator" }) != "Opened Calculator." || openingFront != new IntPtr(502)) throw new Exception("The already open app stayed behind.");
+                if (Hands.Do("open_app", new ToolArguments { Name = "Paint" }) != "Opened Paint." || openingFront != new IntPtr(503)) throw new Exception("Paint's host process hid its window.");
+                openingFront = new IntPtr(501);
+                Hands.Steer = delegate { return false; };
+                string openingBehind = Hands.Do("open_app", new ToolArguments { Name = "Calculator" });
+                if (openingBehind != "Opened Calculator, but it's behind Opera." || Hands.Pulled(openingBehind) != openingBehind || !Computer.Failed(openingBehind)) throw new Exception("A failed foreground change was reported as success.");
+                string openingSlow = Hands.Do("open_app", new ToolArguments { Name = "Slow Game" });
+                int openingFinishedReads = openingReads, openingFinishedFocus = openingFocused;
+                openingShown.Add(new OpenWindow(new IntPtr(504), "Slow Game", "slowgame"));
+                Thread.Sleep(40);
+                if (openingSlow != "Opened Slow Game, but its window hasn't appeared yet." || openingReads != openingFinishedReads || openingFocused != openingFinishedFocus) throw new Exception("A slow launch kept watching or took focus later.");
+                checks.Add("PASS opening apps: packaged windows match their titles, an existing window comes forward, a denied switch names the app still in front, and a slow launch stops looking before its window arrives");
+                checks.Add("LIMIT opening apps: foreground attachment, minimized windows and real launch timing need an interactive Windows desktop; these windows and launches are stand-ins");
+
+                Hands.Steer = delegate(OpenWindow browserTarget, string browserAction) { openingFront = browserTarget.Handle; return browserAction == "switch_to"; };
+                foreach (string browserChoice in new[] { "Chrome", "Edge", "Firefox", "Opera", "Opera GX", "Brave", "Vivaldi" })
+                {
+                    string browserExe = @"C:\Browsers\" + browserChoice + "\\" + Hands.BrowserProgram(browserChoice) + ".exe";
+                    string browserSent = null, browserAddress = null;
+                    openingShown.Clear();
+                    openingShown.Add(new OpenWindow(new IntPtr(510), "Old tab - " + browserChoice, Hands.BrowserProgram(browserChoice)));
+                    Hands.BrowserPath = delegate(string browserWanted) { return browserWanted == browserChoice ? browserExe : null; };
+                    Hands.Browse = delegate(string browserFile, string browserUrl) { browserSent = browserFile; browserAddress = browserUrl; };
+                    openingFront = new IntPtr(501);
+                    string browserResult = Hands.Do("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = browserChoice });
+                    if (browserSent != browserExe || browserAddress != Hands.Address("youtube", "cats") || openingFront != new IntPtr(510) || browserResult != "Searched youtube.com for cats in " + browserChoice + ".") throw new Exception("The chosen browser was lost: " + browserChoice);
+                    ProcessStartInfo browserStart = Hands.BrowserLaunch(browserExe, browserAddress);
+                    if (browserStart.FileName != browserExe || !browserStart.UseShellExecute || browserStart.Arguments != (browserChoice == "Firefox" ? "-new-tab " : "") + "\"" + browserAddress + "\"") throw new Exception("The browser didn't receive a link for a new tab.");
+                    foreach (string browserAsk in new[] { "open youtube in " + browserChoice, "search for cats on youtube in " + browserChoice, "in " + browserChoice + " open reddit" })
+                    {
+                        string browserTool;
+                        ToolArguments browserArgs;
+                        bool browserSearch = browserAsk.StartsWith("search", StringComparison.Ordinal);
+                        string browserSite = browserAsk.StartsWith("in ", StringComparison.Ordinal) ? "reddit" : "youtube";
+                        if (!Hands.Direct(browserAsk, out browserTool, out browserArgs) || browserTool != "open_website" || browserArgs.Browser != browserChoice.ToLowerInvariant() || browserArgs.Site != browserSite || browserArgs.Search != (browserSearch ? "cats" : null)) throw new Exception("Direct lost a browser: " + browserAsk);
+                        if (!Hands.Heard("Hey Capri, " + browserAsk, out browserTool, out browserArgs) || browserTool != "open_website" || browserArgs.Browser != browserChoice.ToLowerInvariant() || browserArgs.Site != browserSite || browserArgs.Search != (browserSearch ? "cats" : null)) throw new Exception("Heard lost a browser: " + browserAsk);
+                    }
+                    if (!Hands.Valid("open_website", new ToolArguments { Site = "youtube", Browser = browserChoice })) throw new Exception("A supported browser was invalid.");
+                }
+                foreach (string browserTerm in new[] { "chrome hearts", "edge of tomorrow", "firefox", "opera gx theme", "brave", "vivaldi", "cats in chrome hearts", "\"cats in chrome\"" })
+                {
+                    string termTool;
+                    ToolArguments termArgs;
+                    if (!Hands.Direct("search youtube for " + browserTerm, out termTool, out termArgs) || termTool != "open_website" || termArgs.Browser != null || termArgs.Search != browserTerm
+                        || !Hands.Heard("search youtube for " + browserTerm, out termTool, out termArgs) || termArgs.Browser != null || termArgs.Search != browserTerm) throw new Exception("A search term became a browser: " + browserTerm);
+                }
+                openingShown.Clear();
+                OpenWindow namedChrome = new OpenWindow(new IntPtr(513), "Page - Google Chrome", "chrome");
+                openingShown.Add(namedChrome);
+                if (Hands.OpenedWindow(openingShown, "Google Chrome") != namedChrome) throw new Exception("The full browser name in All apps didn't match its window.");
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> browserRescue = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> { new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_website", new ToolArguments { Site = "Calculator", Browser = "chrome" }) };
+                Hands.Rescue("open Calculator in chrome", browserRescue);
+                if (browserRescue.Count != 1 || browserRescue[0].Key != "open_website" || browserRescue[0].Value.Browser != "chrome") throw new Exception("An installed app overrode an explicit browser.");
+                Hands.BrowserPath = delegate { return null; };
+                int fallbackBefore = openingLaunched.Count;
+                string browserFallback = Hands.Do("open_website", new ToolArguments { Site = "reddit", Browser = "Brave" });
+                if (browserFallback != "Opened reddit.com in your default browser because Brave isn't installed." || openingLaunched.Count != fallbackBefore + 1 || openingLaunched[fallbackBefore] != Hands.Address("reddit", null) || Hands.Pulled(browserFallback) != browserFallback) throw new Exception("A missing browser didn't fall back and say so.");
+                if (Hands.Valid("open_website", new ToolArguments { Site = "youtube", Browser = "unknown" }) || !Hands.Valid("open_website", new ToolArguments { Site = "youtube" }) || Hands.Read("{\"site\":\"youtube\",\"browser\":\"edge\"}").Browser != "edge") throw new Exception("The optional browser didn't survive validation and JSON.");
+                string writtenBrowserTool;
+                ToolArguments writtenBrowserArgs;
+                if (!Hands.Typed("open_website{site:youtube,browser:firefox}", out writtenBrowserTool, out writtenBrowserArgs, true) || writtenBrowserArgs.Browser != "firefox") throw new Exception("The written browser argument was lost.");
+                if (Hands.BrowserCommand("\"C:\\Program Files\\Opera GX\\opera.exe\" --flag") != @"C:\Program Files\Opera GX\opera.exe" || Hands.BrowserCommand(@"C:\Browsers\firefox.exe -url") != @"C:\Browsers\firefox.exe" || Hands.BrowserCommand("not a browser") != null) throw new Exception("A registered browser command wasn't read correctly.");
+                if (Hands.Tools.IndexOf("\"browser\"", StringComparison.Ordinal) < 0 || Computer.Tools.IndexOf("\"browser\"", StringComparison.Ordinal) < 0 || Computer.Toolset.IndexOf("\"browser\"", StringComparison.Ordinal) < 0 || CursorJob("open_website", new ToolArguments { Site = "youtube", Search = "cats", Browser = "edge" }).IndexOf("browser \"edge\"", StringComparison.Ordinal) < 0) throw new Exception("A chat or job route omitted browser choice.");
+                checks.Add("PASS browser choice: all seven browsers keep their exe, link and foreground target, Direct and Heard keep named browsers before and after requests, search terms stay intact, missing browsers fall back explicitly, and chat and job schemas and cursor jobs keep the argument");
+                checks.Add("LIMIT browser choice: real Windows registrations and each browser's tab handoff need an installed browser; these launch checks use stand-ins");
+            }
+            finally
+            {
+                Hands.Catalog = openingCatalog; Hands.Windows = openingWindows; Hands.Steer = openingSteer; Hands.Foreground = openingForeground;
+                Hands.Opened = openingResult; Hands.BrowserPath = openingBrowser; Hands.Run = openingRun; Hands.Browse = openingBrowse; Hands.Exists = openingExists; Hands.Plan = openingPlan; Hands.Forget();
+            }
+        }
+
+        private void SmokeVoiceWaits(System.Collections.Generic.List<string> checks)
+        {
+            bool waitsSilent = preferences.Silent, waitsDue = voiceCheckDue;
+            try
+            {
+                CloseTalk();
+                preferences.Silent = true;
+                voiceCheckDue = true;
+                talkState = TalkState.Thinking;
+                int waitsTicket = asking;
+                CheckVoiceReady();
+                if (!voiceCheckDue || asking != waitsTicket) throw new Exception("A voice check cut in on something they asked.");
+                CloseTalk();
+                CheckVoiceReady();
+                if (voiceCheckDue) throw new Exception("A voice check never ran once she was free.");
+                checks.Add("PASS the voice check after her voice lands waits for what she's answering, so it can't cancel what they asked");
+            }
+            finally { preferences.Silent = waitsSilent; voiceCheckDue = waitsDue; CloseTalk(); }
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
@@ -13538,6 +13678,7 @@ namespace CapriDesktop
             Application.AddMessageFilter(smokeInput);
             FormClosed += delegate { Application.RemoveMessageFilter(smokeInput); };
             Hands.PleaseRoll = delegate { return 1; };
+            Hands.Opened = delegate { return ""; };
             Func<string> findGame = Computer.GameOpen;
             Computer.GameOpen = delegate { return null; };
             Brain.LocalSees = delegate { return true; };
@@ -13631,6 +13772,8 @@ namespace CapriDesktop
                         }
                         if (step == 0)
                         {
+                            SmokeOpening(checks);
+                            SmokeVoiceWaits(checks);
                             SmokeLocalBrains(checks);
                             SmokeBrainBodies(checks);
                             SmokeCamera(checks);

@@ -22,6 +22,7 @@ namespace CapriDesktop
         [DataMember(Name = "name")] public string Name;
         [DataMember(Name = "site")] public string Site;
         [DataMember(Name = "search")] public string Search;
+        [DataMember(Name = "browser")] public string Browser;
         [DataMember(Name = "action")] public string Action;
         [DataMember(Name = "focus")] public string Focus;
         [DataMember(Name = "song")] public string Song;
@@ -511,8 +512,8 @@ namespace CapriDesktop
         {
             { "open_app", "Open, launch or play an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name\"}},\"required\":[\"name\"]}" },
-            { "open_website", "Open a website in their browser, or search a site like YouTube or Google.",
-              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"}},\"required\":[\"site\"]}" },
+            { "open_website", "Open a website in their browser, or search a site like YouTube or Google. Set browser only when they named a browser; otherwise leave it out for their default.",
+              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}},\"required\":[\"site\"]}" },
             { "media", "Control the music or video playing on their PC, the PC's volume (up, down, set to a level, mute or unmute), or check what song is playing.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"next\",\"previous\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\"]},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, the volume from 0 to 100. For volume_up or volume_down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}" },
             { "look_at_screen", "Take a screenshot of their screen and look at it right now: what they're doing, playing or showing you. Use it whenever they ask you to check, look at or see their screen, or ask what something on it is. You can always look, so never say you can't see their screen.",
@@ -696,6 +697,10 @@ namespace CapriDesktop
         internal static Func<List<InstalledApp>> Catalog = ReadCatalog;
         internal static Func<string, bool> Exists = File.Exists;
         internal static Action<string> Run = Start;
+        internal static Func<string, string> Opened = BringOpened;
+        internal static Func<string, string> BrowserPath = FindBrowser;
+        internal static Action<string, string> Browse = StartBrowser;
+        internal static Func<IntPtr> Foreground = Native.GetForegroundWindow;
         internal static Action<byte> Press = Tap;
         internal static Func<string, string> Look = delegate { return "You can't see their screen right now."; };
 #if !CROSS
@@ -747,11 +752,14 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern int GetWindowThreadProcessId(IntPtr window, out int process);
         [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
         [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
+        [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr window, int command);
         [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
         [DllImport("user32.dll")] private static extern bool BringWindowToTop(IntPtr window);
         [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
         [DllImport("user32.dll")] private static extern bool AttachThreadInput(int from, int to, bool attach);
         [DllImport("kernel32.dll")] private static extern int GetCurrentThreadId();
+        [StructLayout(LayoutKind.Sequential)] private struct Message { internal IntPtr Window; internal uint Id; internal UIntPtr WParam; internal IntPtr LParam; internal uint Time; internal int X, Y; internal uint Private; }
+        [DllImport("user32.dll")] private static extern bool PeekMessage(out Message message, IntPtr window, uint first, uint last, uint flags);
         private static readonly Regex Junk = new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
         private static readonly string[,] Searches =
         {
@@ -774,7 +782,7 @@ namespace CapriDesktop
             try
             {
                 if (tool == "open_app") return OpenApp(args.Name);
-                if (tool == "open_website") return OpenSite(args.Site, args.Search);
+                if (tool == "open_website") return OpenSite(args.Site, args.Search, args.Browser);
                 if (tool == "media") return Media(args);
                 if (tool == "look_at_screen") return Look(args.Focus);
                 if (tool == "play_music") return PlayMusic(args.Song, args.App, args.Kind);
@@ -949,7 +957,7 @@ namespace CapriDesktop
             for (int i = 0; i < calls.Count; i++)
             {
                 ToolArguments args = calls[i].Value;
-                if (calls[i].Key != "open_website" || args == null || string.IsNullOrEmpty(args.Site) || Regex.IsMatch(text, @"[a-z0-9-]+\.[a-z]{2,}", RegexOptions.IgnoreCase)) continue;
+                if (calls[i].Key != "open_website" || args == null || string.IsNullOrEmpty(args.Site) || !string.IsNullOrEmpty(args.Browser) || Regex.IsMatch(text, @"[a-z0-9-]+\.[a-z]{2,}", RegexOptions.IgnoreCase)) continue;
                 string name = Regex.Replace(args.Site.Trim(), @"^(https?://)?(www\.)?|\.[a-z.]+(/.*)?$", "", RegexOptions.IgnoreCase);
                 if (Regex.IsMatch(text, @"\b" + Regex.Escape(name) + @"\b", RegexOptions.IgnoreCase) && Installed(name) && string.IsNullOrEmpty(args.Search)) calls[i] = new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = name });
             }
@@ -968,6 +976,7 @@ namespace CapriDesktop
 
         internal static string Pulled(string result)
         {
+            if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser because |but (it's behind|I couldn't bring) )")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
@@ -1635,6 +1644,8 @@ namespace CapriDesktop
             Match found = Regex.Match(text, @"^(?:open|launch|start|go to|fire up|load up)\s+(spotify|youtube)\s*(?:,|and|&)?\s*(?:then\s+)?(?:play|shuffle|put on|blast)\s+(.+)$", RegexOptions.IgnoreCase);
             if (found.Success) text = "play " + found.Groups[2].Value + " on " + found.Groups[1].Value;
             if (Regex.IsMatch(text, @"\b(and|then|but)\s+(open|launch|play|close|quit|pause|don't|do not)\b", RegexOptions.IgnoreCase)) return false;
+            ToolArguments website = WebsiteRequest(text);
+            if (website != null) { tool = "open_website"; args = website; return true; }
             found = Regex.Match(text, @"^(open|launch|start|run|load up|boot up|fire up)\s+(up\s+)?(.+)$", RegexOptions.IgnoreCase);
             if (found.Success)
             {
@@ -1723,6 +1734,7 @@ namespace CapriDesktop
             if (key == "name") args.Name = value;
             else if (key == "site") args.Site = value;
             else if (key == "search") args.Search = value;
+            else if (key == "browser") args.Browser = value;
             else if (key == "action") args.Action = value;
             else if (key == "focus") args.Focus = value;
             else if (key == "song") args.Song = value;
@@ -1898,7 +1910,7 @@ namespace CapriDesktop
             if (args == null) return false;
             if (tool == "mini_game") return Regex.IsMatch(args.Name ?? "", @"\A(tic_tac_toe|connect_four|rock_paper_scissors)\z") && (string.IsNullOrEmpty(args.Action) || Regex.IsMatch(args.Action, @"\A(open|again|close|move)\z")) && (args.Action != "move" || Named(args.Text));
             if (tool == "open_app") return Named(args.Name);
-            if (tool == "open_website") return Named(args.Site);
+            if (tool == "open_website") return Named(args.Site) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
             if (tool == "look_at_screen") return true;
             if (tool == "media")
             {
@@ -2002,7 +2014,8 @@ namespace CapriDesktop
             InstalledApp chosen = found[0];
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
             Run(chosen.Id);
-            return "Opened " + (AppName(chosen) == "spotify" ? "Spotify" : chosen.Name) + ".";
+            string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
+            return "Opened " + openedName + Opened(openedName) + ".";
         }
 
         internal static List<InstalledApp> Match(List<InstalledApp> apps, string wanted)
@@ -2175,15 +2188,180 @@ namespace CapriDesktop
             return info;
         }
 
-        private static string OpenSite(string site, string search)
+        private static string OpenSite(string site, string search, string browser = null)
         {
             string address = Address(site, search);
             if (address == null) return "That isn't a website.";
-            Run(address);
-            if (address.TrimEnd('/') == "https://" + Home) return "Opened your own website, " + Home + ".";
+            string browserName = BrowserName(browser);
+            string browserPath = browserName == null ? null : BrowserPath(browserName);
+            if (browserPath == null) Run(address);
+            else Browse(browserPath, address);
             string host = new Uri(address).Host;
             if (host.StartsWith("www.", StringComparison.Ordinal)) host = host.Substring(4);
-            return string.IsNullOrWhiteSpace(search) ? "Opened " + host + "." : "Searched " + host + " for " + search.Trim() + ".";
+            string result = address.TrimEnd('/') == "https://" + Home ? "Opened your own website, " + Home : string.IsNullOrWhiteSpace(search) ? "Opened " + host : "Searched " + host + " for " + search.Trim();
+            if (browserName == null) return result + ".";
+            if (browserPath == null) return result + " in your default browser because " + browserName + " isn't installed.";
+            return result + " in " + browserName + Opened(browserName) + ".";
+        }
+
+        private const string BrowserWords = @"chrome|edge|firefox|opera gx|opera|brave|vivaldi";
+
+        internal static string BrowserName(string browser)
+        {
+            string plain = (browser ?? "").Trim().ToLowerInvariant();
+            string[] choices = { "Chrome", "Edge", "Firefox", "Opera", "Opera GX", "Brave", "Vivaldi" };
+            foreach (string choice in choices) if (plain == choice.ToLowerInvariant()) return choice;
+            return null;
+        }
+
+        private static string BrowserApp(string name)
+        {
+            string plain = Regex.Replace(Plain(name), @"^(google|microsoft|mozilla) | (browser|stable)$", "");
+            return BrowserName(plain);
+        }
+
+        // "open youtube in chrome", "in firefox open reddit", "search for cats on youtube in edge". Only the end or the start of what they said can name a browser, so "chrome hearts" stays a search.
+        private static ToolArguments WebsiteRequest(string text)
+        {
+            string browser = null;
+            Match before = Regex.Match(text, @"^in (?:the )?(" + BrowserWords + @")(?: browser)?[, ]+(.+)$", RegexOptions.IgnoreCase);
+            if (before.Success) { browser = before.Groups[1].Value.ToLowerInvariant(); text = before.Groups[2].Value; }
+            Match after = Regex.Match(text, @"^(.+?)\s+in (?:the )?(" + BrowserWords + @")(?: browser)?$", RegexOptions.IgnoreCase);
+            if (after.Success && browser == null) { browser = after.Groups[2].Value.ToLowerInvariant(); text = after.Groups[1].Value; }
+            Match opening = Regex.Match(text, @"^(?:open|launch|start|go to|load up|fire up)\s+(.+)$", RegexOptions.IgnoreCase);
+            if (opening.Success && Site(opening.Groups[1].Value) && (browser != null || !Installed(opening.Groups[1].Value)))
+                return new ToolArguments { Site = opening.Groups[1].Value.Trim(), Browser = browser };
+            Match searching = Regex.Match(text, @"^search\s+(\S+)\s+for\s+(.+)$", RegexOptions.IgnoreCase);
+            if (searching.Success && Site(searching.Groups[1].Value)) return new ToolArguments { Site = searching.Groups[1].Value, Search = searching.Groups[2].Value.Trim(), Browser = browser };
+            Match searchingOn = Regex.Match(text, @"^search(?: for)?\s+(.+?)\s+on\s+(\S+)$", RegexOptions.IgnoreCase);
+            if (searchingOn.Success && Site(searchingOn.Groups[2].Value)) return new ToolArguments { Site = searchingOn.Groups[2].Value, Search = searchingOn.Groups[1].Value.Trim(), Browser = browser };
+            return null;
+        }
+
+        internal static ProcessStartInfo BrowserLaunch(string path, string address)
+        {
+            string tab = string.Equals(Path.GetFileName(path), "firefox.exe", StringComparison.OrdinalIgnoreCase) ? "-new-tab " : "";
+            return new ProcessStartInfo(path, tab + "\"" + address.Replace("\"", "%22") + "\"") { UseShellExecute = true };
+        }
+
+        private static void StartBrowser(string path, string address)
+        {
+            using (Process.Start(BrowserLaunch(path, address))) { }
+        }
+
+        internal static string BrowserProgram(string browser)
+        {
+            string name = BrowserName(browser);
+            return name == "Edge" ? "msedge" : name == "Opera GX" ? "opera" : (name ?? "").ToLowerInvariant();
+        }
+
+        private static bool BrowserFile(string path, string browser, string client = null)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            string leaf = Path.GetFileName(path);
+            if (!string.Equals(leaf, BrowserProgram(browser) + ".exe", StringComparison.OrdinalIgnoreCase) && !((browser == "Opera" || browser == "Opera GX") && string.Equals(leaf, "launcher.exe", StringComparison.OrdinalIgnoreCase))) return false;
+            if ((browser == "Opera" || browser == "Opera GX") && ((Plain(path).Contains("opera gx") || Plain(client).Replace(" ", "").Contains("operagx")) != (browser == "Opera GX"))) return false;
+            return Exists(path);
+        }
+
+        internal static string BrowserCommand(string command)
+        {
+            Match executable = Regex.Match(Environment.ExpandEnvironmentVariables(command ?? "").Trim(), "^(?:\"([^\"]+\\.exe)\"|(.+?\\.exe))(?:\\s|$)", RegexOptions.IgnoreCase);
+            return executable.Success ? executable.Groups[1].Success ? executable.Groups[1].Value : executable.Groups[2].Value : null;
+        }
+
+        // Where Windows says that browser is, then where it installs by default.
+        private static string FindBrowser(string browser)
+        {
+            foreach (Microsoft.Win32.RegistryHive browserHive in new[] { Microsoft.Win32.RegistryHive.CurrentUser, Microsoft.Win32.RegistryHive.LocalMachine })
+                foreach (Microsoft.Win32.RegistryView browserView in new[] { Microsoft.Win32.RegistryView.Registry64, Microsoft.Win32.RegistryView.Registry32 })
+                {
+                    try
+                    {
+                        using (Microsoft.Win32.RegistryKey browserRoot = Microsoft.Win32.RegistryKey.OpenBaseKey(browserHive, browserView))
+                        {
+                            using (Microsoft.Win32.RegistryKey appPath = browserRoot.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\App Paths\" + BrowserProgram(browser) + ".exe"))
+                            {
+                                string registered = appPath == null ? null : appPath.GetValue(null) as string;
+                                string executablePath = string.IsNullOrWhiteSpace(registered) ? null : Environment.ExpandEnvironmentVariables(registered.Trim().Trim('"'));
+                                if (BrowserFile(executablePath, browser)) return executablePath;
+                            }
+                            using (Microsoft.Win32.RegistryKey clients = browserRoot.OpenSubKey(@"Software\Clients\StartMenuInternet"))
+                            {
+                                if (clients != null)
+                                    foreach (string client in clients.GetSubKeyNames())
+                                        using (Microsoft.Win32.RegistryKey command = clients.OpenSubKey(client + @"\shell\open\command"))
+                                        {
+                                            string clientPath = BrowserCommand(command == null ? null : command.GetValue(null) as string);
+                                            if (BrowserFile(clientPath, browser, client)) return clientPath;
+                                        }
+                            }
+                        }
+                    }
+                    catch (System.Security.SecurityException) { }
+                    catch (UnauthorizedAccessException) { }
+                    catch (IOException) { }
+                }
+            string relative = browser == "Chrome" ? @"Google\Chrome\Application\chrome.exe" : browser == "Edge" ? @"Microsoft\Edge\Application\msedge.exe" : browser == "Firefox" ? @"Mozilla Firefox\firefox.exe" : browser == "Brave" ? @"BraveSoftware\Brave-Browser\Application\brave.exe" : browser == "Vivaldi" ? @"Vivaldi\Application\vivaldi.exe" : browser + @"\opera.exe";
+            foreach (string browserFolder in new[] { Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) })
+            {
+                if (browserFolder.Length == 0) continue;
+                foreach (string browserRelative in new[] { relative, @"Programs\" + relative, relative.Replace("opera.exe", "launcher.exe"), @"Programs\" + relative.Replace("opera.exe", "launcher.exe") })
+                {
+                    string candidatePath = Path.Combine(browserFolder, browserRelative);
+                    if (BrowserFile(candidatePath, browser)) return candidatePath;
+                }
+            }
+            return null;
+        }
+
+        // What a launch left in front, as the end of "Opened it". A slow game gets 2.5 seconds, then she leaves it alone, so it can't take the front from them later.
+        private static string BringOpened(string name)
+        {
+            try { return BringOpened(name, 2500); }
+            catch (Exception) { return ", but I couldn't bring its window to the front"; }
+        }
+
+        internal static string BringOpened(string name, int milliseconds)
+        {
+            Stopwatch opening = Stopwatch.StartNew();
+            List<OpenWindow> seen;
+            do
+            {
+                seen = Windows();
+                OpenWindow chosenWindow = OpenedWindow(seen, name);
+                if (chosenWindow != null && (milliseconds == 0 || opening.ElapsedMilliseconds < milliseconds))
+                {
+                    if (Steer(chosenWindow, "switch_to")) return "";
+                    IntPtr foregroundWindow = Foreground();
+                    OpenWindow inFront = Windows().Find(frontWindow => frontWindow.Handle == foregroundWindow);
+                    return inFront == null || inFront.Handle == chosenWindow.Handle ? ", but I couldn't bring its window to the front" : ", but it's behind " + (BrowserName(inFront.Program) ?? (inFront.Program == "msedge" ? "Edge" : inFront.Title));
+                }
+                int remaining = milliseconds - (int)opening.ElapsedMilliseconds;
+                if (remaining <= 0) break;
+                Thread.Sleep(Math.Min(100, remaining));
+            } while (opening.ElapsedMilliseconds < milliseconds);
+            return ", but its window hasn't appeared yet";
+        }
+
+        // Packaged apps like Calculator run under ApplicationFrameHost, so their window is found by its title, and a browser tab with the same word in it doesn't count.
+        internal static OpenWindow OpenedWindow(List<OpenWindow> windows, string name)
+        {
+            string wantedBrowser = BrowserApp(name);
+            string wantedName = Plain(name);
+            OpenWindow bestWindow = null;
+            int bestScore = 0;
+            foreach (OpenWindow candidateWindow in windows)
+            {
+                string programName = candidateWindow.Program.ToLowerInvariant();
+                bool browserWindow = Array.IndexOf(Browsers, programName) >= 0;
+                if (wantedBrowser != null ? programName != BrowserProgram(wantedBrowser) : browserWindow) continue;
+                int windowScore = wantedBrowser != null ? 4 : Math.Max(Score(Plain(candidateWindow.Program), wantedName), Score(Plain(candidateWindow.Title), wantedName));
+                if (windowScore < 2 || windowScore <= bestScore) continue;
+                bestScore = windowScore;
+                bestWindow = candidateWindow;
+            }
+            return bestWindow;
         }
 
         internal static string Address(string site, string search)
@@ -2791,14 +2969,20 @@ namespace CapriDesktop
 
         internal static bool Front(IntPtr handle)
         {
-            if (IsIconic(handle)) ShowWindow(handle, 9);
+            if (!IsWindow(handle)) return false;
+            if (IsIconic(handle)) ShowWindowAsync(handle, 9);
+            Message pending;
+            PeekMessage(out pending, IntPtr.Zero, 0, 0, 0);
             int ignored;
             int mine = GetCurrentThreadId();
             int theirs = GetWindowThreadProcessId(Native.GetForegroundWindow(), out ignored);
             bool attached = theirs != 0 && theirs != mine && AttachThreadInput(mine, theirs, true);
-            BringWindowToTop(handle);
-            SetForegroundWindow(handle);
-            if (attached) AttachThreadInput(mine, theirs, false);
+            try
+            {
+                BringWindowToTop(handle);
+                SetForegroundWindow(handle);
+            }
+            finally { if (attached) AttachThreadInput(mine, theirs, false); }
             for (int i = 0; i < 10 && Native.GetForegroundWindow() != handle; i++) Thread.Sleep(50);
             return Native.GetForegroundWindow() == handle;
         }

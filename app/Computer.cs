@@ -219,8 +219,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"direction\":{\"type\":\"string\",\"description\":\"Which way\",\"enum\":[\"up\",\"down\"]},\"target\":{\"type\":\"string\",\"description\":\"The number of what to scroll, if any\"}},\"required\":[\"direction\"]}" },
             { "open_app", "Open an app or game installed on their PC by its name.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name\"}},\"required\":[\"name\"]}" },
-            { "open_website", "Open a website in their browser, or search a site like YouTube or Google.",
-              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for there, if any\"}},\"required\":[\"site\"]}" },
+            { "open_website", "Open a website in their browser, or search a site like YouTube or Google. Set browser only when they named a browser; otherwise leave it out for their default.",
+              "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for there, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}},\"required\":[\"site\"]}" },
             { "wait", "Wait for something to load.",
               "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds\"}},\"required\":[\"seconds\"]}" },
             { "note", "Remember something for later in this job, like an order number or a code you read on screen. Write $name in later type text to fill it in.",
@@ -669,7 +669,7 @@ namespace CapriDesktop
             if (tool == "mouse_hold") return "hold " + (args.Button ?? "left") + " click " + (args.Seconds ?? "1") + " s";
             if (tool == "scroll") return "scroll " + (args.Direction ?? "") + at;
             if (tool == "open_app") return "open_app " + Voice.Quote(args.Name ?? "");
-            if (tool == "open_website") return "open_website " + Voice.Quote(args.Site ?? "") + (string.IsNullOrEmpty(args.Search) ? "" : " search " + Voice.Quote(args.Search));
+            if (tool == "open_website") return "open_website " + Voice.Quote(args.Site ?? "") + (string.IsNullOrEmpty(args.Search) ? "" : " search " + Voice.Quote(args.Search)) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser);
             if (tool == "wait") return "wait " + (args.Seconds ?? "") + " s";
             if (tool == "wait_for") return "wait_for " + Voice.Quote(args.Text ?? "");
             if (tool == "note") return "note $" + NoteName(args.Name) + " = " + Voice.Quote(args.Text ?? "");
@@ -716,14 +716,14 @@ namespace CapriDesktop
             if (tool == "mouse_hold") return "Holding " + (args.Button ?? "left") + " click.";
             if (tool == "scroll") return "Scrolling " + (args.Direction ?? "down") + ".";
             if (tool == "open_app") return "Opening " + (args.Name ?? "it") + ".";
-            if (tool == "open_website") return "Opening " + (args.Site ?? "it") + ".";
+            if (tool == "open_website") return "Opening " + (args.Site ?? "it") + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser) + ".";
             if (tool == "wait") return "Waiting for it to load.";
             if (tool == "wait_for") return "Waiting for " + Voice.Quote((args.Text ?? "").Length > 24 ? args.Text.Substring(0, 21) + "..." : args.Text ?? "") + ".";
             if (tool == "note") return "Noting that down.";
             return "Working.";
         }
 
-        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^(There's no|That didn't work|Couldn't|No app called|More than one|Which app|That isn't|Not opening|Won't)"); }
+        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^(There's no|That didn't work|Couldn't|No app called|More than one|Which app|That isn't|Not opening|Won't)|^(Opened|Searched) .+, but (it's behind|I couldn't bring)"); }
 
         internal static string Did(string tool, ToolArguments args, Sight sight)
         {
@@ -740,7 +740,7 @@ namespace CapriDesktop
             if (tool == "mouse_hold") return "Held " + (args.Button ?? "left") + " click";
             if (tool == "scroll") return "Scrolled " + (args.Direction == "up" ? "up" : "down");
             if (tool == "open_app") return "Opened " + (args.Name ?? "the app");
-            if (tool == "open_website") return "Opened " + (args.Site ?? "the site") + (string.IsNullOrEmpty(args.Search) ? "" : " and searched " + Voice.Quote(args.Search));
+            if (tool == "open_website") return "Opened " + (args.Site ?? "the site") + (string.IsNullOrEmpty(args.Search) ? "" : " and searched " + Voice.Quote(args.Search)) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser);
             if (tool == "wait") return "Waited for it to load";
             if (tool == "wait_for") return "Waited for " + Voice.Quote(text);
             if (tool == "note") return "Noted $" + NoteName(args.Name);
