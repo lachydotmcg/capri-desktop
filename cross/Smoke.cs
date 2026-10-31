@@ -1437,7 +1437,7 @@ namespace CapriDesktop
             }
             fakeVoice.Stop();
             Voice.Host = hostWas;
-            fail("ElevenLabs still asks with its own key", Voice.Seconds(elevenSaid) > 0.99 && elevenAsked.StartsWith("POST /v1/text-to-speech/v1?output_format=wav_24000 good-key-1234 {\"text\":\"Hey chewm.\"}", StringComparison.Ordinal));
+            fail("ElevenLabs still asks with its own key", Voice.Seconds(elevenSaid) > 0.99 && elevenAsked.StartsWith("POST /v1/text-to-speech/v1?output_format=wav_24000 good-key-1234 {\"text\":\"Hey chewm.\",\"model_id\":\"eleven_v4_turbo\"}", StringComparison.Ordinal));
             pet.SetVoiceProvider(Speakers.Local);
             fail("an unset address is Kokoro's usual one", pet.Speaks && pet.VoiceStatus == "local localhost:8880 | server's voice | speaking" && pet.VoiceMenu == "Provider: Local server | - | *Speak replies | - | Server: " + LocalSpeaker.Default + " (Kokoro's usual)... | Model: server's default... | Voice: server's default... | Format: WAV | - | Test voice");
             fail("a bad address isn't kept", !pet.SetLocalVoice("url", "ftp://nope") && pet.VoiceStatus.StartsWith("local localhost:8880", StringComparison.Ordinal));

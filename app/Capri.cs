@@ -28163,7 +28163,9 @@ namespace CapriDesktop
                                 int rippleMiddle = rippled.Width / 2;
                                 bool ringLeft = false;
                                 for (int x = 0; x < rippleMiddle - 4; x++) if (rippled.GetPixel(x, rippleMiddle).A > 40) ringLeft = true;
-                                Color pointerBody = rippled.GetPixel(rippleMiddle + rippled.Width / 20, rippleMiddle + rippled.Width / 6);
+                                Color pointerBody = Color.Empty;
+                                for (int x = rippleMiddle; x < rippleMiddle + rippled.Width / 5 && pointerBody.IsEmpty; x++)
+                                    for (int y = rippleMiddle; y < rippleMiddle + rippled.Width / 5; y++) { Color seen = rippled.GetPixel(x, y); if (seen.A > 200 && seen.R > 200 && seen.G < 120) { pointerBody = seen; break; } }
                                 pointerRippled = herPointer.Rippling && ringLeft && pointerBody.A > 200 && pointerBody.R > 200 && pointerBody.G < 120;
                                 rippled.Save(Path.Combine(output, "her-pointer.png"), System.Drawing.Imaging.ImageFormat.Png);
                                 // Recordings show her pointer; her own screenshots smear it out like her sprite.
