@@ -355,7 +355,8 @@ namespace CapriDesktop
         internal static Func<Sight> Look = See;
         internal static Func<string, ToolArguments, Sight, string> Act = Do;
         internal static Func<string, ToolArguments, string> Hand = Hands.Do;
-        internal static Func<int> Own = delegate { return Process.GetCurrentProcess().Id; };
+        private static readonly int ownProcess = CurrentProcess();
+        internal static Func<int> Own = delegate { return ownProcess; };
         internal static Func<IntPtr> Front = Topmost;
         // Claude's screenshot hands. Capri swaps Grab for a capture with her painted out of it.
         internal static Func<Rectangle, Bitmap> Grab = Copy;
@@ -792,6 +793,11 @@ namespace CapriDesktop
             return window == null ? IntPtr.Zero : window.Handle;
         }
 
+        private static int CurrentProcess() { using (Process current = Process.GetCurrentProcess()) return current.Id; }
+        private static readonly object pickLock = new object();
+        private static int pickedProcess;
+        private static string pickedProgram;
+
         private static OpenWindow Pick()
         {
             int own = Own();
@@ -801,10 +807,19 @@ namespace CapriDesktop
             {
                 StringBuilder title = new StringBuilder(256);
                 GetWindowText(front, title, title.Capacity);
-                string program = "";
-                try { using (Process owner = Process.GetProcessById(process)) program = owner.ProcessName; }
-                catch (ArgumentException) { }
-                catch (InvalidOperationException) { }
+                string program;
+                lock (pickLock)
+                {
+                    if (process != pickedProcess || pickedProgram == null)
+                    {
+                        pickedProgram = "";
+                        try { using (Process owner = Process.GetProcessById(process)) pickedProgram = owner.ProcessName; }
+                        catch (ArgumentException) { }
+                        catch (InvalidOperationException) { }
+                        pickedProcess = process;
+                    }
+                    program = pickedProgram;
+                }
                 if (title.Length > 0 && !Regex.IsMatch(program, "^(explorer|ShellExperienceHost|StartMenuExperienceHost|SearchHost)$", RegexOptions.IgnoreCase)) return new OpenWindow(front, title.ToString(), program);
             }
             foreach (OpenWindow window in Hands.Windows())
@@ -979,6 +994,48 @@ namespace CapriDesktop
         {
             OpenWindow picked = Pick();
             return picked == null ? new Sight() : Framed(picked);
+        }
+
+        internal static bool ExploreAllowed(Sight sight, bool fullScreen)
+        {
+            if (sight == null || sight.Window == IntPtr.Zero || fullScreen) return false;
+            string program = sight.Program ?? "", title = sight.Title ?? "";
+            bool reader = Regex.IsMatch(program, @"^(acrobat|acrord32|sumatrapdf|calibre|ebook-viewer|kindle)(\.exe)?$", RegexOptions.IgnoreCase);
+            return (Browsers.IsMatch(program) || reader) && !GameTitles.IsMatch(title) && !GameWords.IsMatch(title) && !Watching.IsMatch(title)
+                && !Talky.IsMatch(title) && !Risky.IsMatch(title) && !SignInWords.IsMatch(title) && !PersonalField.IsMatch(title);
+        }
+
+        internal static Rectangle ExplorePage(Sight sight, Point at)
+        {
+            if (!ExploreAllowed(sight, Native.FillsScreen()) || Native.GetForegroundWindow() != sight.Window || GameExe(sight.Window)) return Rectangle.Empty;
+            AutomationElement focus = AutomationElement.FocusedElement;
+            if (focus == null || focus.Current.IsPassword || focus.Current.ControlType == ControlType.Edit || focus.Current.ControlType == ControlType.ComboBox) return Rectangle.Empty;
+            AutomationElement pointed = AutomationElement.FromPoint(new System.Windows.Point(at.X, at.Y));
+            Rectangle page = Rectangle.Empty;
+            bool scrolls = false;
+            while (pointed != null)
+            {
+                AutomationElement.AutomationElementInformation info = pointed.Current;
+                if (info.IsPassword || info.ControlType == ControlType.Edit || info.ControlType == ControlType.ComboBox) return Rectangle.Empty;
+                object scrolling;
+                if (pointed.TryGetCurrentPattern(ScrollPattern.Pattern, out scrolling) && ((ScrollPattern)scrolling).Current.VerticallyScrollable) scrolls = true;
+                if (info.ControlType == ControlType.Document)
+                {
+                    System.Windows.Rect rect = info.BoundingRectangle;
+                    if (!rect.IsEmpty) page = Rectangle.Intersect(sight.Bounds, Rectangle.FromLTRB((int)rect.Left, (int)rect.Top, (int)rect.Right, (int)rect.Bottom));
+                }
+                if (info.NativeWindowHandle == sight.Window.ToInt64()) return scrolls && page.Contains(at) ? page : Rectangle.Empty;
+                pointed = TreeWalker.ControlViewWalker.GetParent(pointed);
+            }
+            return Rectangle.Empty;
+        }
+
+        internal static bool ScrollAway(Sight page, Rectangle bounds, Sight current, Point before, Point cursor, IntPtr under, bool full, Func<bool> away)
+        {
+            if (page == null || current == null || !ExploreAllowed(current, full) || current.Window != page.Window || current.Title != page.Title
+                || under != page.Window || before != cursor || bounds.IsEmpty || !bounds.Contains(cursor) || !away()) return false;
+            SendMouse(0x0800, -120);
+            return true;
         }
 
         // The monitor her hands look at: the one with the window in front.
@@ -2022,6 +2079,34 @@ namespace CapriDesktop
         }
 
         private static bool Extended(short code) { return (code >= 0x21 && code <= 0x28) || code == 0x2D || code == 0x2E || code == 0x5B || code == 0x5D; }
+    }
+
+    // How long since they last touched the PC. Windows counts her own wheel too, so the moments it went in don't count.
+    internal sealed class AwayInput
+    {
+        private const int Slack = 32;
+        private uint lastReal, lastOwn, ownAt;
+        private bool seeded, owned;
+
+        internal long Quiet()
+        {
+            uint sampled;
+            long idle = Native.IdleMilliseconds(out sampled);
+            return Quiet(sampled, idle);
+        }
+
+        internal long Quiet(uint now, long idle)
+        {
+            uint seen = unchecked(now - (uint)idle);
+            if (!seeded) { lastReal = lastOwn = seen; seeded = true; }
+            else if (owned && Math.Abs(unchecked((int)(seen - ownAt))) <= Slack) lastOwn = seen;
+            else if (unchecked((int)(seen - lastReal)) > 0 && unchecked((int)(seen - lastOwn)) > 0) lastReal = seen;
+            return unchecked(now - lastReal);
+        }
+
+        internal void Own() { Own(unchecked((uint)Environment.TickCount)); }
+
+        internal void Own(uint at) { ownAt = at; owned = true; }
     }
 
     internal sealed class Job

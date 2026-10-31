@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1364;
+        private const int PageTall = 1476;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -123,6 +123,11 @@ namespace CapriDesktop
         private readonly Toggle caughtUp;
         private readonly Toggle stayOnModel;
         private readonly Toggle remembering;
+        private readonly Toggle hideFullScreen, playerFullScreen, exploreAway;
+        private readonly Slider exploreAfter;
+        private readonly Readout exploreAfterName;
+        private static readonly int[] AwayTimes = { 60, 120, 300, 600, 900, 1800 };
+        private static readonly string[] AwayNames = { "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" };
         private readonly Toggle[] careToggles = new Toggle[7];
         private readonly Key[] careTimes = new Key[7];
         private readonly ContextMenuStrip careMenu;
@@ -634,35 +639,45 @@ namespace CapriDesktop
             perchNote.AutoSize = false;
             perchNote.TextAlign = ContentAlignment.MiddleRight;
             perchNote.Bounds = new Rectangle(28 + c, 868, 328, 18);
+            hideFullScreen = Switch("Hide in full screen", c, 888, delegate { if (!syncing) capri.ToggleHideFullScreen(); });
+            playerFullScreen = Switch("Mini player over full screen", c, 916, delegate { if (!syncing) capri.TogglePlayerFullScreen(); });
+            exploreAway = Switch("Explore while I'm away", c, 944, delegate { if (!syncing) capri.ToggleExploreAway(); });
+            hideFullScreen.Switch = playerFullScreen.Switch = exploreAway.Switch = 68;
+            hideFullScreen.AccessibleName = "Hide in full screen. Gaming Mode takes priority; a manual hide stays hidden";
+            playerFullScreen.AccessibleName = "Mini player over full screen. Works over borderless windows; exclusive full screen cannot show overlays";
+            exploreAway.AccessibleName = "Explore while I'm away. Scrolls browser or reader pages without moving your mouse; your input stops her";
+            exploreAfter = Setting("Explore after", AwayNames, c, 972, "How long you are away before she scrolls a browser or reader");
+            exploreAfterName = new Readout(exploreAfter);
+            exploreAfter.Changed += delegate { if (!syncing) capri.SetExploreAfter(AwayTimes[exploreAfter.Value]); };
             careMenu = Dropdown();
             for (int careRow = 0; careRow < careToggles.Length; careRow++)
             {
                 CareKind careKind = (CareKind)careRow;
-                Toggle careToggle = Switch(Care.Names[careRow], c, 900 + careRow * 28, delegate { if (!syncing) capri.ToggleCare(careKind); });
+                Toggle careToggle = Switch(Care.Names[careRow], c, 1012 + careRow * 28, delegate { if (!syncing) capri.ToggleCare(careKind); });
                 careToggle.Width = 224;
                 careToggle.Switch = 68;
                 careToggle.AccessibleName = Care.Names[careRow] + " check-in" + (careKind == CareKind.Eyes ? ": look away for 20 seconds" : careKind == CareKind.Meal ? ": mealtimes from noon, if you've been here since before lunch" : "");
                 careToggles[careRow] = careToggle;
-                Key careTime = Make("", 260 + c, 903 + careRow * 28, 96, 22, delegate { ChooseCareTime(careKind); });
+                Key careTime = Make("", 260 + c, 1015 + careRow * 28, 96, 22, delegate { ChooseCareTime(careKind); });
                 careTime.Chevron = true;
                 careTimes[careRow] = careTime;
             }
-            Make("Edit check-in lines", 28 + c, 1100, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
-            Section("GAMES >", c, 1124);
+            Make("Edit check-in lines", 28 + c, 1212, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
+            Section("GAMES >", c, 1236);
             // What she says about a game they're playing, from what happens in it rather than on a timer.
-            comments = Setting("Comments", Commentary.PaceNames, c, 1148, "How much she says about a game you're playing: off, only when something happens, or chatty");
+            comments = Setting("Comments", Commentary.PaceNames, c, 1260, "How much she says about a game you're playing: off, only when something happens, or chatty");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
-            gamingMode = Switch("Gaming Mode", c, 1176, delegate { if (!syncing) capri.ToggleGaming(); });
+            gamingMode = Switch("Gaming Mode", c, 1288, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
-            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1202, small, Faint);
-            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28 + c, 1218, small, Faint);
-            Caption("Works best on MAX INTELLIGENCE.", 28 + c, 1234, small, Faint);
-            clipGames = Switch("Clip my games", c, 1256, delegate { if (!syncing) capri.ToggleClips(); });
+            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1314, small, Faint);
+            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28 + c, 1330, small, Faint);
+            Caption("Works best on MAX INTELLIGENCE.", 28 + c, 1346, small, Faint);
+            clipGames = Switch("Clip my games", c, 1368, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory; clips stay in Videos\\Capri Clips on this PC";
-            clipMoments = Switch("Save big moments", c, 1284, delegate { if (!syncing) capri.ToggleClipMoments(); });
+            clipMoments = Switch("Save big moments", c, 1396, delegate { if (!syncing) capri.ToggleClipMoments(); });
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
-            fastHands = Switch("Fast hands in games", c, 1312, delegate { if (!syncing) capri.ToggleFastHands(); });
+            fastHands = Switch("Fast hands in games", c, 1424, delegate { if (!syncing) capri.ToggleFastHands(); });
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. If you picked a bigger Claude brain she asks it when she's stuck, and chat stays on the brain you picked";
             for (int i = first; i < Controls.Count; i++)
             {
@@ -1535,6 +1550,11 @@ namespace CapriDesktop
             caughtUp.Checked = capri.CaughtUp;
             stayOnModel.Checked = capri.StayOnModel;
             remembering.Checked = capri.Remembers;
+            hideFullScreen.Checked = capri.HideFullScreen;
+            playerFullScreen.Checked = capri.PlayerFullScreen;
+            exploreAway.Checked = capri.ExploreAway;
+            exploreAfter.Value = Math.Max(0, Array.IndexOf(AwayTimes, capri.ExploreAfter));
+            exploreAfterName.Text = AwayNames[exploreAfter.Value];
             for (int careSync = 0; careSync < careToggles.Length; careSync++)
             {
                 CareKind careSetting = (CareKind)careSync;
@@ -1636,6 +1656,21 @@ namespace CapriDesktop
         internal bool StayShown { get { return stayOnModel.Checked; } }
 
         internal void FlipStay() { stayOnModel.Checked = !stayOnModel.Checked; }
+
+        internal string DesktopSettingsStatus { get { return hideFullScreen.Checked + " | " + playerFullScreen.Checked + " | " + exploreAway.Checked + " | " + exploreAfterName.Text; } }
+        internal void FlipHideFullScreen() { hideFullScreen.Checked = !hideFullScreen.Checked; }
+        internal void FlipPlayerFullScreen() { playerFullScreen.Checked = !playerFullScreen.Checked; }
+        internal void FlipExploreAway() { exploreAway.Checked = !exploreAway.Checked; }
+        internal void SlideExploreAfter(int steps) { Press(exploreAfter, steps); }
+        internal bool DesktopSettingsFit
+        {
+            get
+            {
+                foreach (Toggle desktopToggle in new[] { hideFullScreen, playerFullScreen, exploreAway })
+                    if (TextRenderer.MeasureText(desktopToggle.Text, desktopToggle.Font, Size.Empty, TextFormatFlags.NoPadding).Width > desktopToggle.NameRoom || !PageArea.Contains(desktopToggle.Bounds)) return false;
+                return PageArea.Contains(exploreAfter.Bounds) && PageArea.Contains(exploreAfterName.Bounds);
+            }
+        }
 
         internal bool RemembersShown { get { return remembering.Checked; } }
 

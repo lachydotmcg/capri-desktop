@@ -220,6 +220,10 @@ namespace CapriDesktop
         [DataMember] public bool Quiet;
         [DataMember] public bool Silent;
         [DataMember] public bool Wander;
+        [DataMember] public bool HideFullScreen;
+        [DataMember] public bool PlayerFullScreen;
+        [DataMember] public bool ExploreAway;
+        [DataMember] public int ExploreAfter;
         [DataMember] public bool FreeVoice;
         [DataMember] public bool FreeChatTold;
         [DataMember] public bool NoDance;
@@ -1042,6 +1046,24 @@ namespace CapriDesktop
         private Preferences preferences;
         private readonly ClipBuffer clips = new ClipBuffer();
         private Bitmap frame;
+        private Native.Surface bodySurface;
+        private Clip drawnClip;
+        private Bitmap drawnArt;
+        private int drawnCell = -1, drawnMouth = -1, drawnMix, bodyPaints;
+        private bool drawnVeil, drawnMotion, drawnSettled, drawnNotes;
+        private double drawnLean;
+        private float drawnBreath, drawnTilt;
+        private bool fullScreenHidden, manualHidden, frontBusy;
+        private double frontChecked = -1;
+        private readonly AwayInput awayInput = new AwayInput();
+        private const double ExploreFor = 1800;
+        private bool exploring, exploreBusy, exploreTired, screenOff;
+        private double exploreBegan;
+        private int exploreTicket;
+        private double exploreAt;
+        private IntPtr exploreWindow;
+        private Point exploreFrom, exploreTo;
+        private double exploreMoved;
         private Point anchor;
         private Point pointerStart;
         private Point anchorStart;
@@ -1202,6 +1224,7 @@ namespace CapriDesktop
         private bool playerClosed;
         private double playerHopUntil = -1;
         private IntPtr playerFront;
+        private bool playerTop;
         // The song whose Spotify heart was last read, so each song's is read once.
         private string heartRead;
         private bool heartBusy;
@@ -1209,7 +1232,7 @@ namespace CapriDesktop
         private const double PlayerLinger = 60;
         private const double PlayerQuiet = 10;
         // Windows' full-screen check, which puts the player away. Tests swap it out.
-        internal static Func<bool> FullScreen = Native.Gaming;
+        internal static Func<bool> FullScreen = Native.FillsScreen;
         private bool pointing;
         private IntPtr namedWindow;
         private string namedApp;
@@ -1647,12 +1670,17 @@ namespace CapriDesktop
             signals.Interval = 250;
             signals.Tick += delegate
             {
+                double signalNow = clock.Elapsed.TotalSeconds;
+                long signalIdle = Native.IdleMilliseconds();
+                if (!testing) CheckForeground(signalNow);
+                if (!testing) CheckExplore(signalNow);
+                if (preferences.ExploreAway) signalIdle = awayInput.Quiet();
                 if (restore.WaitOne(0)) { RestoreAtCursor(); mainframe.Restore(); }
                 if (startMarker != null && clock.Elapsed.TotalSeconds >= 15) Settled();
                 CheckVoiceReady();
-                if (!testing) CheckIdle(Native.IdleMilliseconds());
-                if (!testing) CheckGlance(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
-                if (!testing) CheckWander(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
+                if (!testing) CheckIdle(signalIdle);
+                if (!testing) CheckGlance(signalNow, signalIdle);
+                if (!testing) CheckWander(signalNow, signalIdle);
                 if (!testing) CheckMusic(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckPlayer(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckHome(clock.Elapsed.TotalSeconds);
@@ -1660,12 +1688,12 @@ namespace CapriDesktop
                 if (!testing) CheckLie(clock.Elapsed.TotalSeconds);
                 CheckGame(clock.Elapsed.TotalSeconds);
                 if (!testing) Clip.RestAll(Environment.TickCount);
-                if (!testing) CheckPopIn(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
+                if (!testing) CheckPopIn(signalNow, signalIdle);
                 if (!testing) CheckReminders(DateTime.Now);
                 if (!testing) lookout.Deliver();
-                if (!testing) CheckNudge(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
-                if (!testing) CheckCare(clock.Elapsed.TotalSeconds, Native.IdleMilliseconds());
-                if (!testing) CheckHoliday(DateTime.Now, Native.IdleMilliseconds());
+                if (!testing) CheckNudge(signalNow, signalIdle);
+                if (!testing) CheckCare(signalNow, signalIdle);
+                if (!testing) CheckHoliday(DateTime.Now, signalIdle);
                 if (!testing) presence.Show(preferences.NoDiscord ? null : Doing);
                 if (!testing) CheckHd(clock.Elapsed.TotalSeconds);
                 StayOnTop();
@@ -1703,6 +1731,8 @@ namespace CapriDesktop
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
+            Ledges.Enabled = !testing;
+            if (!testing) Native.WatchScreen(Handle);
             bool spawn = !instant && preferences.Motion && !preferences.NoIntro && !preferences.NoSitting;
             if (spawn) SpawnInMiddle();
             Play(instant || !preferences.Motion || preferences.NoIntro ? grin : arrive);
@@ -1772,21 +1802,32 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = clock.Elapsed.TotalSeconds;
+            MoveExplorePointer(now);
+            int interval = FrameInterval(now);
+            if (frames.Interval != interval) frames.Interval = interval;
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
             if (docked) { DockTick(now); return; }
+            if (hidden) { frames.Stop(); return; }
             if (riding) FollowCursor(); else if (onPanel) HoldPanel(); else if (falling) Tumble(now); else if (seat != null) HoldSeat(now);
             if (walking) Walk(now);
             if (!riding && !dragging && !walking && !falling && outro == null && clip != arrive && clip != leave) Face();
             if (!Steady(now)) RenderFrame();
-            if (!riding && !dragging && !walking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off) frames.Stop();
-            int interval = FrameInterval(now);
-            if (frames.Interval != interval) frames.Interval = interval;
+            else UpdateTalk(now);
+            if (!exploring && !riding && !dragging && !walking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off) frames.Stop();
         }
 
-        // Her frame timer ticks every 33 ms, except while she sits through her perch at another fps. WinForms timers tick on
-        // Windows' 1/64 s clock, so 33 ms really comes every 47 ms; off 30 she asks for just under a whole number of its ticks.
+        // Over a game her quiet body follows its art and her docked mouth follows speech. Otherwise she keeps 33 ms or her
+        // selected perch rate. On Windows' 1/64 s clock, 33 ms takes 47 ms; off 30 she asks just under a whole number of ticks.
         private int FrameInterval(double now)
         {
+            if (exploring && now - exploreMoved < 0.8) return 33;
+            if (frontBusy)
+            {
+                if (docked) return 66;
+                if (riding || dragging || walking || falling || outro != null || !Quiet(now) || clip == dance || clip == perchDance) return 33;
+                double rate = clip == perch || clip == laydown || clip == laydownSleep ? Math.Min(clip.Fps, preferences.PerchFps) : clip.Fps;
+                return Math.Max(33, (int)(1000 / Math.Max(1, Math.Min(30, rate))) - 10);
+            }
             int fps = preferences.PerchFps;
             if (fps == 30 || !SittingStill || (clip != perch && clip != perchDance) || (fps < 30 && (clip != perch || !Quiet(now)))) return 33;
             return Math.Max(1, 64 / fps) * 1000 / 64 - 1;
@@ -1852,6 +1893,7 @@ namespace CapriDesktop
             idleCycle = 0;
             perchMix = 0;
             drawnStep = -1;
+            drawnClip = null;
             blinkWith = null;
             danceLast = -1;
             nodGain = 0;
@@ -2206,6 +2248,7 @@ namespace CapriDesktop
             if (action == "move_mainframe") return MoveMainframe(screen);
             if (action == "hide")
             {
+                manualHidden = true;
                 if (hidden) return "Already hidden.";
                 hideAsked = true;
                 return "Hiding. " + (hideKey ? HideKeyName + " or a double-click" : "A double-click") + " on my tray icon brings me back.";
@@ -2621,6 +2664,7 @@ namespace CapriDesktop
         private void DisplaysChanged(object sender, EventArgs e)
         {
             if (IsDisposed) return;
+            Ledges.Invalidate();
             BeginInvoke((Action)delegate { if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); });
         }
 
@@ -2796,6 +2840,7 @@ namespace CapriDesktop
 
         protected override void WndProc(ref Message message)
         {
+            if (message.Msg == 0x0218 && message.WParam.ToInt64() == 0x8013) screenOff = Native.ScreenOff(message.LParam);
             if (message.Msg == 0x0084 && frame != null)
             {
                 long value = message.LParam.ToInt64();
@@ -4839,7 +4884,7 @@ namespace CapriDesktop
         // window's thread, and she perches on it like a window edge.
         private void CheckPlayer(double now)
         {
-            if (preferences.NoPlayer || hidden || quitting) { HidePlayer(); return; }
+            if (!PlayerAllowed) { HidePlayer(); return; }
             if (!tuneBusy && now - tuneAt >= 1)
             {
                 tuneBusy = true;
@@ -4854,7 +4899,7 @@ namespace CapriDesktop
             }
             if (!player.Visible) return;
             PlayerLegs();
-            if (!preferences.OnTop) PlayerLayer(false);
+            PlayerLayer(false);
         }
 
         // What's playing came back. It shows while something plays and stays up a minute after a pause. Closing it keeps it
@@ -4863,8 +4908,8 @@ namespace CapriDesktop
         {
             if (tune != null && tune.Playing) tuneHeard = now;
             else if (playerClosed && now - tuneHeard >= PlayerQuiet) { playerClosed = false; tuneHeard = -1; }
-            bool allowed = !preferences.NoPlayer && !hidden && !quitting && !playerClosed;
-            bool up = allowed && tune != null && tuneHeard >= 0 && now - tuneHeard < PlayerLinger && !FullScreen();
+            bool allowed = PlayerAllowed && !playerClosed;
+            bool up = allowed && tune != null && tuneHeard >= 0 && now - tuneHeard < PlayerLinger && (preferences.PlayerFullScreen || !FullScreen());
             // Never out from under them while they're using it.
             if (!up && allowed && player.Busy) { up = true; tune = tune ?? player.Tune; }
             if (!up) { HidePlayer(); return; }
@@ -4872,6 +4917,8 @@ namespace CapriDesktop
             if (player.Visible && asked < player.SentAt + 0.3) return;
             ShowPlayer(tune, now);
         }
+
+        private bool PlayerAllowed { get { return !preferences.NoPlayer && !quitting && !docked && (!hidden || fullScreenHidden && !manualHidden && preferences.PlayerFullScreen); } }
 
         private void ShowPlayer(Tune tune, double now)
         {
@@ -4933,9 +4980,12 @@ namespace CapriDesktop
         {
             if (!player.IsHandleCreated || !IsHandleCreated) return;
             IntPtr front = Native.GetForegroundWindow();
-            if (!now && front == playerFront) return;
+            bool top = preferences.OnTop || preferences.PlayerFullScreen && FullScreen();
+            if (!now && front == playerFront && top == playerTop) return;
             playerFront = front;
-            if (!preferences.OnTop) { Native.SetWindowPos(player.Handle, Handle, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); return; }
+            playerTop = top;
+            player.Above = top;
+            if (!top) { Native.SetWindowPos(player.Handle, Handle, 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); return; }
             Native.SetWindowPos(player.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             lastForeground = new IntPtr(-1);
             StayOnTop();
@@ -5327,6 +5377,7 @@ namespace CapriDesktop
 
         private void SetHidden(bool value)
         {
+            manualHidden = value;
             if (docked && !value) return;
             if (value && !hidden) { GlitchOut(delegate { ShowHidden(true); }); return; }
             ShowHidden(value);
@@ -5334,7 +5385,142 @@ namespace CapriDesktop
 
         private void ShowHidden(bool value)
         {
+            manualHidden = value;
+            ApplyHidden(value || fullScreenHidden);
+        }
+
+        internal bool HideFullScreen { get { return preferences.HideFullScreen; } }
+        internal bool PlayerFullScreen { get { return preferences.PlayerFullScreen; } }
+        internal bool ExploreAway { get { return preferences.ExploreAway; } }
+        internal int ExploreAfter { get { return preferences.ExploreAfter > 0 ? preferences.ExploreAfter : 300; } }
+
+        internal void ToggleHideFullScreen()
+        {
+            preferences.HideFullScreen = !preferences.HideFullScreen;
+            CheckFullScreen(FullScreen());
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void TogglePlayerFullScreen()
+        {
+            preferences.PlayerFullScreen = !preferences.PlayerFullScreen;
+            tuneAt = -10;
+            if (!testing) CheckPlayer(clock.Elapsed.TotalSeconds);
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void ToggleExploreAway()
+        {
+            preferences.ExploreAway = !preferences.ExploreAway;
+            StopExplore();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal void SetExploreAfter(int seconds)
+        {
+            preferences.ExploreAfter = seconds > 0 ? seconds : 300;
+            StopExplore();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        private void CheckForeground(double now)
+        {
+            bool full = FullScreen();
+            CheckFullScreen(full);
+            if (now < frontChecked) return;
+            frontChecked = now + 1;
+            Sight ahead = Computer.Glimpse();
+            frontBusy = full || (ahead != null && ahead.Window == Native.GetForegroundWindow() && Computer.GameWindow(ahead));
+            // Over a game with nothing to do she gives way to it. Listening, talking, clipping or working, she keeps her place so her ears and hands don't stutter.
+            Native.Lower(frontBusy && working == null && !chatting && !preferences.HeyCapri && !preferences.ClipGames && talkState == TalkState.Off);
+        }
+
+        private void CheckFullScreen(bool full)
+        {
+            bool shouldHide = preferences.HideFullScreen && full && !GamingOn;
+            if (fullScreenHidden == shouldHide) return;
+            fullScreenHidden = shouldHide;
+            if (!docked && hidden != (manualHidden || shouldHide)) ApplyHidden(manualHidden || shouldHide);
+        }
+
+        private void StopExplore()
+        {
+            if (!exploring && !exploreBusy) return;
+            exploring = false;
+            exploreWindow = IntPtr.Zero;
+            exploreTicket++;
+            watchTicket++;
+            herPointer.End();
+        }
+
+        private bool ExploreFree()
+        {
+            return preferences.ExploreAway && !hidden && !docked && !quitting && !dragging && !pressed && !riding && !onPanel && !GamingOn
+                && job == null && working == null && !typer.Visible && !menu.Visible && (!chatting || local) && !pushing && !transcribing && !Hushed && !screenOff && !FullScreen();
+        }
+
+        private void CheckExplore(double now)
+        {
+            if (!preferences.ExploreAway) { StopExplore(); return; }
+            long humanQuiet = awayInput.Quiet();
+            if (humanQuiet < (long)ExploreAfter * 1000) exploreTired = false;
+            // Half an hour is plenty: her wheel counts as input, and past that their screen should get to turn off and their PC to sleep.
+            if (exploring && now - exploreBegan >= ExploreFor) exploreTired = true;
+            if (exploreTired || !ExploreFree() || humanQuiet < (long)ExploreAfter * 1000 || (exploring && Native.GetForegroundWindow() != exploreWindow)) { StopExplore(); return; }
+            if (exploreBusy || now < exploreAt) return;
+            exploreAt = now + 4 + random.NextDouble() * 5;
+            Sight page = Computer.Glimpse();
+            if (!Computer.ExploreAllowed(page, false) || page.Window != Native.GetForegroundWindow()) { StopExplore(); return; }
+            Point cursorAt = Computer.CursorAt();
+            int awayTicket = exploreTicket;
+            exploreBusy = true;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                Rectangle pageBounds = Rectangle.Empty;
+                try { pageBounds = Computer.ExplorePage(page, cursorAt); }
+                catch (Exception) { }
+                Post(delegate
+                {
+                    exploreBusy = false;
+                    if (awayTicket != exploreTicket || !ExploreFree() || awayInput.Quiet() < (long)ExploreAfter * 1000) return;
+                    Sight still = Computer.Glimpse();
+                    if (pageBounds.IsEmpty || still == null || still.Window != page.Window || still.Title != page.Title || Native.GetForegroundWindow() != page.Window || Computer.CursorAt() != cursorAt
+                        || Native.GetAncestor(Native.WindowFromPoint(new Native.Point(cursorAt.X, cursorAt.Y)), 2) != page.Window) { StopExplore(); return; }
+                    if (!exploring)
+                    {
+                        exploring = true;
+                        exploreBegan = now;
+                        exploreWindow = page.Window;
+                        herPointer.Begin(Head());
+                        nextGlance = now + Math.Min(20, GlanceGap);
+                    }
+                    exploreFrom = herPointer.Tip;
+                    exploreTo = new Point(pageBounds.Left + pageBounds.Width / 4 + random.Next(Math.Max(1, pageBounds.Width / 2)), pageBounds.Top + pageBounds.Height / 4 + random.Next(Math.Max(1, pageBounds.Height / 2)));
+                    exploreMoved = clock.Elapsed.TotalSeconds;
+                    if (!Computer.ScrollAway(page, pageBounds, still, cursorAt, Computer.CursorAt(), Native.GetAncestor(Native.WindowFromPoint(new Native.Point(cursorAt.X, cursorAt.Y)), 2), FullScreen(),
+                        delegate { return awayTicket == exploreTicket && Native.GetForegroundWindow() == page.Window && awayInput.Quiet() >= (long)ExploreAfter * 1000; })) StopExplore();
+                    else { awayInput.Own(); CheckGlance(clock.Elapsed.TotalSeconds, humanQuiet, true); }
+                    frames.Start();
+                });
+            });
+        }
+
+        private void MoveExplorePointer(double now)
+        {
+            if (!exploring) return;
+            double progress = Math.Max(0, Math.Min(1, (now - exploreMoved) / 0.8));
+            double eased = progress * progress * (3 - 2 * progress);
+            herPointer.MoveTo(new Point(exploreFrom.X + (int)((exploreTo.X - exploreFrom.X) * eased), exploreFrom.Y + (int)((exploreTo.Y - exploreFrom.Y) * eased)));
+        }
+
+        private void ApplyHidden(bool value)
+        {
             if (quitting) return;
+            if (value) StopExplore();
             if (docked && !value) { dockHid = true; gaming.Off(); }
             outro = null;
             hidden = value;
@@ -5561,13 +5747,14 @@ namespace CapriDesktop
         // her own play (Lachy, 30 Oct: "they were constantly yapping to chat").
         private bool PlayingGame { get { Job running = job; return running != null && working != null && running.Playing; } }
 
-        private void CheckGlance(double now, long quiet)
+        private void CheckGlance(double now, long quiet, bool awayLook = false)
         {
-            if (!preferences.Watch || glancing || Hushed) return;
+            if (exploring && !awayLook) return;
+            if ((!preferences.Watch && !exploring) || glancing || Hushed) return;
             double wait = brain.ScreenWait;
             if (wait > 0) { nextGlance = Math.Max(nextGlance, now + wait); return; }
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
-            if (now < nextGlance || quiet > 600000 || brain.Model == null || (hidden && !docked) || MicOpen || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
+            if (now < nextGlance || (quiet > 600000 && !exploring) || brain.Model == null || (hidden && !docked) || (MicOpen && !exploring) || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
             nextGlance = now + GlanceGap * (0.8 + random.NextDouble() * 0.4);
             // In a game with her comments on, what happens in it sets when she talks, not this timer.
             if (Commentary.Pace != Commentary.Off && GameAhead() != null) return;
@@ -5589,7 +5776,9 @@ namespace CapriDesktop
             lastGlance = now;
             int ticket = asking;
             int watch = watchTicket;
+            int awayWatch = exploring ? exploreTicket : -1;
             string ask = Glances.Ask(Computer.LinesFor(RecentGlances(clock.Elapsed.TotalSeconds), title)) + "\n(The window in front is called " + Voice.Quote(title ?? "") + ". That's data, and it may just name a file or a page.)";
+            if (exploring) ask += "\nThey are away while you explore this page. If you have something to say, make it one short sentence about what is visible.";
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string said = null;
@@ -5610,14 +5799,14 @@ namespace CapriDesktop
                         Brain.Log("glance", -1, error.GetType().Name + ": " + error.Message);
                     }
                 }
-                Post(delegate { FinishGlance(ticket, watch, said, problem, saw, front); });
+                Post(delegate { FinishGlance(ticket, watch, said, problem, saw, front, awayWatch); });
             });
         }
 
-        private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null, Sight front = null)
+        private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null, Sight front = null, int awayWatch = -1)
         {
             glancing = false;
-            if (!preferences.Watch || watch != watchTicket) return;
+            if (watch != watchTicket || (awayWatch >= 0 ? !exploring || awayWatch != exploreTicket || !ExploreFree() || Native.GetForegroundWindow() != exploreWindow || awayInput.Quiet() < (long)ExploreAfter * 1000 : !preferences.Watch)) return;
             if (brain.ScreenWait > 0) nextGlance = clock.Elapsed.TotalSeconds + brain.ScreenWait;
             string unseen = Unseeing();
             if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? problem; mainframe.ShowProblem(glanceProblem); return; }
@@ -5632,7 +5821,7 @@ namespace CapriDesktop
                 if (current == null || current.Window != front.Window || current.Title != front.Title) { lastPrint = null; return; }
             }
             if (string.IsNullOrEmpty(said)) { Glimpsed(saw); return; }
-            if (ticket != asking || talkState != TalkState.Off || typer.Visible || MicOpen || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
+            if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(clock.Elapsed.TotalSeconds), Brain.Nickname)) { Glimpsed(saw); return; }
             glanced.Add(Tuple.Create(clock.Elapsed.TotalSeconds, said));
@@ -6057,6 +6246,7 @@ namespace CapriDesktop
         {
             if (quitting) return Computer.Why;
             job = running;
+            if (InvokeRequired) Invoke(new Action(StopExplore)); else StopExplore();
             running.Think = delegate(string system, string user, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls) { return brain.Step(system, user, Computer.Tools, Computer.ClaudeTools, Computer.Listing, calls); };
             Cloud driver = brain.Remote;
             // A game job thinks harder on every turn, on her fast hands unless they've turned those off.
@@ -7681,6 +7871,7 @@ namespace CapriDesktop
 
         private void OpenTyper()
         {
+            StopExplore();
             if (typer.Visible) { typer.Hide(); return; }
             float s = TalkScale();
             if (docked) typer.Open(GameHud.Bounds.Location, GameHud.Bounds.Location, Screen.FromRectangle(GameHud.Bounds).WorkingArea, s, GameHud.Bounds);
@@ -8903,13 +9094,13 @@ namespace CapriDesktop
                 return;
             }
             if (!preferences.Motion && !riding && seat == null && !falling && clip != glitch && clip != dangle && clip != wake) Play(idle);
-            if ((preferences.Motion || riding || seat != null || falling || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
+            if ((exploring || preferences.Motion || riding || seat != null || falling || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
             RenderFrame();
         }
 
         private void RenderFrame()
         {
-            if (!IsHandleCreated || hidden || IsDisposed) return;
+            if (!IsHandleCreated || hidden || docked || IsDisposed) return;
             double now = clock.Elapsed.TotalSeconds;
             int cell = Advance(now);
             if (arrivalDue)
@@ -8924,18 +9115,48 @@ namespace CapriDesktop
             int talk = MouthCell(now, shown);
             if (PerchTalks(TalkingNow)) { shown = perchTalk; cell = loopCell; }
             else if (LieTalks(TalkingNow)) { shown = laydownTalk; cell = loopCell; }
+            UpdateTalk(now);
+            if (pill.Visible) UpdatePill(now);
+            if (!BodyChanged(now, shown, cell, talk)) return;
             Bitmap tween = perchMix > 0 ? Tween(shown, cell, following) : null;
-            Bitmap next = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb);
-            using (Graphics graphics = Graphics.FromImage(next)) Draw(graphics, shown, cell, talk, tween);
-            Native.DrawLayered(Handle, next, anchor);
+            if (bodySurface == null || bodySurface.Image.Size != Size)
+            {
+                if (bodySurface != null) bodySurface.Dispose();
+                bodySurface = new Native.Surface(Width, Height);
+            }
+            frame = bodySurface.Image;
+            using (Graphics graphics = Graphics.FromImage(frame))
+            {
+                graphics.Clear(Color.Transparent);
+                Draw(graphics, shown, cell, talk, tween);
+            }
+            bodySurface.Show(Handle, anchor);
+            bodyPaints++;
+            drawnClip = shown;
+            drawnArt = Art(shown);
+            drawnCell = cell;
+            drawnMouth = talk;
+            drawnMix = perchMix;
+            drawnVeil = veiled || now < veilUntil;
+            drawnMotion = preferences.Motion;
+            drawnSettled = preferences.Motion && !dragging && clip != dangle && !Asleep;
+            drawnLean = leanAngle;
+            drawnBreath = Breath(now);
+            drawnTilt = Tilt(now);
+            drawnNotes = preferences.Motion && notes.Exists(note => now - note.Born < NoteLife);
             drawnStep = veiled || now < veilUntil ? -1 : (long)((now - clipStart) * preferences.PerchFps);
             drawnAt = anchor;
             drawnFacing = facingLeft;
-            Bitmap old = frame;
-            frame = next;
-            if (old != null) old.Dispose();
-            UpdateTalk(now);
-            if (pill.Visible) UpdatePill(now);
+        }
+
+        private bool BodyChanged(double now, Clip shown, int cell, int talk)
+        {
+            return frame == null || frame.Size != Size || shown != drawnClip || Art(shown) != drawnArt || cell != drawnCell || talk != drawnMouth || perchMix != drawnMix
+                || anchor != drawnAt || facingLeft != drawnFacing || leanAngle != drawnLean || preferences.Motion != drawnMotion
+                || (preferences.Motion && !dragging && clip != dangle && !Asleep) != drawnSettled || (veiled || now < veilUntil) != drawnVeil
+                || (preferences.Motion && (walking || clip == dance || clip == perchDance || drawnNotes || notes.Exists(note => now - note.Born < NoteLife)))
+                // Her breathing is slower than her art, so a step too small to see isn't worth a paint.
+                || (preferences.Motion && !dragging && clip != dangle && !Asleep && (Math.Abs(Breath(now) - drawnBreath) >= 0.25f || Math.Abs(Tilt(now) - drawnTilt) >= 0.1f));
         }
 
         // Above 30 fps, the in-between of a perch frame and the one after it (or the blink frame there), mixed into one spare cell.
@@ -9064,6 +9285,10 @@ namespace CapriDesktop
         }
 
         // tween, when given, is a spare cell to draw in place of the clip's own.
+        private static float Breath(double now) { return (float)Math.Sin(now * 1.75) * 2.2f; }
+
+        private static float Tilt(double now) { return (float)Math.Sin(now * 0.95) * 0.65f; }
+
         private void Draw(Graphics graphics, Clip shown, int cell, int talk = -1, Bitmap tween = null)
         {
             if (veiled || clock.Elapsed.TotalSeconds < veilUntil) return;
@@ -9074,8 +9299,8 @@ namespace CapriDesktop
             graphics.SmoothingMode = SmoothingMode.HighQuality;
             double now = clock.Elapsed.TotalSeconds;
             bool settled = preferences.Motion && !dragging && clip != dangle && !Asleep;
-            float breathe = settled ? (float)Math.Sin(now * 1.75) * 2.2f : 0;
-            float tilt = settled ? (float)Math.Sin(now * 0.95) * 0.65f : 0;
+            float breathe = settled ? Breath(now) : 0;
+            float tilt = settled ? Tilt(now) : 0;
             graphics.TranslateTransform(Width / 2f, Height / 2f + breathe);
             graphics.RotateTransform(tilt + (float)leanAngle);
             if (facingLeft) graphics.ScaleTransform(-1, 1);
@@ -9311,6 +9536,7 @@ namespace CapriDesktop
             if (disposing)
             {
                 clips.Dispose();
+                Native.Lower(false);
                 CloseMinis();
                 miniTicks.Dispose();
                 clickDelay.Dispose();
@@ -9324,7 +9550,7 @@ namespace CapriDesktop
                 typer.Dispose();
                 mainframe.Dispose();
                 Clip.DisposeAll();
-                if (frame != null) frame.Dispose();
+                if (bodySurface != null) bodySurface.Dispose();
                 if (inBetween != null) inBetween.Dispose();
             }
             base.Dispose(disposing);
@@ -9336,6 +9562,211 @@ namespace CapriDesktop
             DateTime at;
             return line.Length >= 19 && DateTime.TryParseExact(line.Substring(0, 19), "yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out at)
                 && at >= from.AddTicks(-(from.Ticks % TimeSpan.TicksPerSecond));
+        }
+
+        private static void DesktopChecks(System.Collections.Generic.List<string> checks)
+        {
+            DataContractJsonSerializer desktopSerializer = new DataContractJsonSerializer(typeof(Preferences));
+            Preferences desktopBlank = new Preferences(), desktopOld;
+            using (MemoryStream desktopMissing = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}"))) desktopOld = (Preferences)desktopSerializer.ReadObject(desktopMissing);
+            if (desktopBlank.HideFullScreen || desktopBlank.PlayerFullScreen || desktopBlank.ExploreAway || desktopOld.HideFullScreen || desktopOld.PlayerFullScreen || desktopOld.ExploreAway) throw new Exception("New desktop habits were on without being chosen.");
+            desktopBlank.HideFullScreen = desktopBlank.PlayerFullScreen = desktopBlank.ExploreAway = true;
+            desktopBlank.ExploreAfter = 600;
+            using (MemoryStream desktopSaved = new MemoryStream())
+            {
+                desktopSerializer.WriteObject(desktopSaved, desktopBlank);
+                desktopSaved.Position = 0;
+                Preferences desktopLoaded = (Preferences)desktopSerializer.ReadObject(desktopSaved);
+                if (!desktopLoaded.HideFullScreen || !desktopLoaded.PlayerFullScreen || !desktopLoaded.ExploreAway || desktopLoaded.ExploreAfter != 600) throw new Exception("Desktop habits did not round trip.");
+            }
+            checks.Add("PASS full-screen hiding, the full-screen mini player and away exploring default off in new and older settings, and all three switches and the away time save and load");
+
+            Rectangle desktopMonitor = new Rectangle(-1920, 0, 1920, 1080);
+            if (!Native.Covers(desktopMonitor, desktopMonitor) || !Native.Covers(Rectangle.Inflate(desktopMonitor, 8, 8), desktopMonitor)
+                || Native.Covers(new Rectangle(-1920, 0, 1920, 1040), desktopMonitor) || Native.Covers(new Rectangle(0, 0, 1920, 1080), desktopMonitor)) throw new Exception("Full screen did not follow the window's own monitor.");
+            checks.Add("PASS full-screen geometry includes borderless windows on another monitor");
+
+            AwayInput desktopInput = new AwayInput();
+            if (desktopInput.Quiet(100000, 60000) != 60000) throw new Exception("Away time was not seeded from Windows idle time.");
+            desktopInput.Own(100010);
+            if (desktopInput.Quiet(100020, 10) != 60020) throw new Exception("Her own wheel reset away time.");
+            if (desktopInput.Quiet(100100, 90) != 60100) throw new Exception("Her last wheel counted as them once time moved on.");
+            desktopInput.Own(100200);
+            if (desktopInput.Quiet(100400, 5) != 5) throw new Exception("Their input did not count over her wheel.");
+            AwayInput desktopWrap = new AwayInput();
+            desktopWrap.Quiet(0xFFFFFFF0, 1000);
+            desktopWrap.Own(0xFFFFFFF8);
+            if (desktopWrap.Quiet(8, 16) != 1024) throw new Exception("Away time broke when the Windows tick count wrapped.");
+            if (desktopWrap.Quiet(100, 2) != 2) throw new Exception("Input after a tick-count wrap did not count.");
+            using (Native.Screen32 desktopPower = new Native.Screen32(0)) if (!Native.ScreenOff(desktopPower.Pointer)) throw new Exception("A screen going off wasn't read.");
+            using (Native.Screen32 desktopPower = new Native.Screen32(1)) if (Native.ScreenOff(desktopPower.Pointer)) throw new Exception("A screen coming on read as off.");
+            checks.Add("PASS away time ignores her own wheel, counts theirs, reads a screen going off, and survives tick-count wraparound");
+
+            Sight desktopPage = new Sight { Window = new IntPtr(7), Program = "chrome", Title = "Geography - Wikipedia", Bounds = new Rectangle(0, 0, 800, 600) };
+            Point desktopCursor = new Point(200, 200);
+            Action<int, int> desktopMouse = Computer.SendMouse;
+            int desktopWheels = 0;
+            try
+            {
+                Computer.SendMouse = delegate(int desktopFlags, int desktopData)
+                {
+                    if (desktopFlags != 0x0800 || desktopData != -120) throw new Exception("Away exploring tried something other than a wheel step.");
+                    desktopWheels++;
+                };
+                if (!Computer.ScrollAway(desktopPage, desktopPage.Bounds, desktopPage, desktopCursor, desktopCursor, desktopPage.Window, false, delegate { return true; })) throw new Exception("Away exploring did not scroll a reader page.");
+                if (Computer.ScrollAway(desktopPage, desktopPage.Bounds, desktopPage, desktopCursor, desktopCursor, desktopPage.Window, false, delegate { return false; })
+                    || Computer.ScrollAway(desktopPage, desktopPage.Bounds, desktopPage, desktopCursor, new Point(201, 200), desktopPage.Window, false, delegate { return true; })
+                    || Computer.ScrollAway(desktopPage, desktopPage.Bounds, desktopPage, desktopCursor, desktopCursor, new IntPtr(8), false, delegate { return true; })
+                    || Computer.ScrollAway(desktopPage, Rectangle.Empty, desktopPage, desktopCursor, desktopCursor, desktopPage.Window, false, delegate { return true; })
+                    || Computer.ScrollAway(desktopPage, desktopPage.Bounds, desktopPage, desktopCursor, desktopCursor, desktopPage.Window, true, delegate { return true; }) || desktopWheels != 1) throw new Exception("A cancelled, moved, unreadable or full-screen page received a wheel.");
+                foreach (string desktopTitle in new[] { "Play Roblox", "Chess game", "YouTube video", "Discord", "Sign in", "Checkout" })
+                    if (Computer.ExploreAllowed(new Sight { Window = new IntPtr(7), Program = "chrome", Title = desktopTitle }, false)) throw new Exception("Away exploring accepted " + desktopTitle + ".");
+                if (Computer.ExploreAllowed(new Sight { Window = new IntPtr(7), Program = "notepad", Title = "Notes" }, false)
+                    || !Computer.ExploreAllowed(new Sight { Window = new IntPtr(7), Program = "SumatraPDF", Title = "Geography.pdf" }, false)) throw new Exception("Away exploring lost its browser and reader choices.");
+            }
+            finally { Computer.SendMouse = desktopMouse; }
+            checks.Add("PASS away exploring sends only a wheel through her hands, leaves their cursor alone, and rejects cancellation, moved cursors, other windows, unreadable pages, full screen, games and Computer's blocked title groups");
+            foreach (string desktopTopic in new[] { "Hide in full screen", "Mini player over full screen", "Explore while I'm away", "Explore after" })
+            {
+                string desktopFacts = SelfKnow.Matching("What is the " + desktopTopic + " setting in Capri?");
+                if (desktopFacts == null || !desktopFacts.StartsWith(desktopTopic + ":", StringComparison.Ordinal)) throw new Exception("Self knowledge missed " + desktopTopic + ".");
+            }
+            checks.Add("PASS every new desktop setting has its named self-knowledge topic, including the exclusive full-screen limitation");
+            try
+            {
+                using (Native.Surface desktopSurface = new Native.Surface(16, 16))
+                {
+                    using (Graphics desktopPaint = Graphics.FromImage(desktopSurface.Image)) desktopPaint.Clear(Color.FromArgb(128, 80, 120, 160));
+                    Color desktopPixel = desktopSurface.Image.GetPixel(8, 8);
+                    if (desktopPixel.A != 128 || Math.Abs(desktopPixel.R - 80) > 1 || Math.Abs(desktopPixel.G - 120) > 1 || Math.Abs(desktopPixel.B - 160) > 1) throw new Exception("The reused native surface lost its alpha or colours.");
+                    using (Graphics desktopClear = Graphics.FromImage(desktopSurface.Image)) desktopClear.Clear(Color.Transparent);
+                    if (desktopSurface.Image.GetPixel(8, 8).A != 0) throw new Exception("A reused native surface kept the old frame.");
+                }
+                checks.Add("PASS the reusable native body bitmap preserves premultiplied alpha and clears between frames without allocating another full-size bitmap");
+            }
+            catch (System.ComponentModel.Win32Exception) { checks.Add("LIMIT native body bitmap: Windows could not create a GDI surface in this environment"); }
+            checks.Add("LIMIT live desktop checks: real input, a real screen turning off, password UI Automation, exclusive full screen and before/after CPU need an interactive bench");
+        }
+
+        private void DesktopWindowChecks(System.Collections.Generic.List<string> checks)
+        {
+            if (GamingOn || docked || chatting || working != null || dragging || riding || walking || falling || onPanel || outro != null || speech != null || talkState != TalkState.Off)
+            {
+                checks.Add("LIMIT desktop visibility and paint checks: her smoke scene is busy");
+                return;
+            }
+            Preferences desktopPreferences = preferences;
+            Func<bool> desktopFull = FullScreen;
+            Func<GameSeen> desktopFind = gaming.Find;
+            bool desktopHidden = hidden, desktopManual = manualHidden, desktopAutomatic = fullScreenHidden, desktopInstant = instant, desktopBusy = frontBusy;
+            Ledge desktopSeat = seat;
+            Clip desktopClip = clip;
+            Point desktopAnchor = anchor;
+            bool desktopLying = lying, desktopHanging = hanging, desktopSettings = mainframe.SettingsShown, desktopPlayerClosed = playerClosed;
+            try
+            {
+                preferences = new Preferences { Motion = false, NoIntro = true, NoSitting = true, NoPlayer = true };
+                instant = true;
+                playerClosed = false;
+                mainframe.ShowSettings(true);
+                fullScreenHidden = manualHidden = false;
+                FullScreen = delegate { return true; };
+                ShowHidden(false);
+                mainframe.Sync();
+                if (ExploreAfter != 300 || mainframe.DesktopSettingsStatus != "False | False | False | 5 min" || !mainframe.DesktopSettingsFit) throw new Exception("The new HABITS rows did not fit or show their defaults.");
+                mainframe.FlipHideFullScreen();
+                if (!hidden || !fullScreenHidden || manualHidden) throw new Exception("Full screen did not hide just her body.");
+                ShowHidden(true);
+                CheckFullScreen(false);
+                if (!hidden || !manualHidden) throw new Exception("Leaving full screen undid a manual hide.");
+                ShowHidden(false);
+                CheckFullScreen(true);
+                CheckFullScreen(false);
+                if (hidden || manualHidden) throw new Exception("She did not return after automatic hiding.");
+                CheckFullScreen(true);
+                gaming.Find = delegate { return null; };
+                gaming.On(clock.Elapsed.TotalSeconds);
+                CheckFullScreen(true);
+                if (hidden || fullScreenHidden) throw new Exception("Full-screen hiding took priority over armed Gaming Mode.");
+                gaming.Off();
+                CheckFullScreen(true);
+                preferences.NoPlayer = false;
+                mainframe.FlipPlayerFullScreen();
+                if (!PlayerAllowed) throw new Exception("Automatic body hiding also hid the opted-in mini player.");
+                ShowHidden(true);
+                if (PlayerAllowed) throw new Exception("The mini player ignored a manual hide.");
+                ShowHidden(false);
+                preferences.HideFullScreen = false;
+                CheckFullScreen(false);
+                mainframe.FlipExploreAway();
+                mainframe.SlideExploreAfter(1);
+                if (!ExploreAway || ExploreAfter != 600 || !LoadPreferences().ExploreAway || LoadPreferences().ExploreAfter != 600) throw new Exception("Away controls did not save their switch and time.");
+                checks.Add("PASS HABITS controls fit and save; full-screen hiding returns automatically, respects manual hiding and yields to Gaming Mode; the opted-in mini player survives automatic body hiding but respects a manual hide");
+
+                preferences.PlayerFullScreen = false;
+                Tune desktopTune = new Tune { Title = "Smoke song", Artist = "Smoke artist", Playing = true };
+                Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
+                if (player.Visible) throw new Exception("The mini player appeared over full screen with its switch off.");
+                preferences.PlayerFullScreen = true;
+                Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
+                if (!player.Visible) throw new Exception("The mini player stayed away with its full-screen switch on.");
+                preferences.NoPlayer = true;
+                HidePlayer();
+                int desktopWatch = watchTicket, desktopAway = exploreTicket, desktopGlances = glanced.Count;
+                exploring = true;
+                StopExplore();
+                glancing = true;
+                FinishGlance(asking, desktopWatch, "This must not arrive.", null, null, null, desktopAway);
+                if (glancing || glanced.Count != desktopGlances || speech != null) throw new Exception("A late away comment survived their input.");
+                checks.Add("PASS the full-screen mini player follows its switch, and stopping exploration discards an in-flight watch reply");
+                seat = null;
+                lying = hanging = false;
+                notes.Clear();
+                Play(idle);
+                RenderFrame();
+                Bitmap desktopBody = frame;
+                int desktopPaints = bodyPaints;
+                RenderFrame();
+                if (bodyPaints != desktopPaints || frame != desktopBody) throw new Exception("An unchanged body still painted or allocated a full-size bitmap.");
+                if (!BodyChanged(clock.Elapsed.TotalSeconds, idle, drawnCell, 2)) throw new Exception("A mouth change was not painted.");
+                hidden = true;
+                RenderFrame();
+                if (bodyPaints != desktopPaints) throw new Exception("A hidden body painted.");
+                hidden = false;
+                frontBusy = true;
+                if (FrameInterval(clock.Elapsed.TotalSeconds) != 115) throw new Exception("An idle sprite did not use its artwork's cadence over a game.");
+                riding = true;
+                if (FrameInterval(clock.Elapsed.TotalSeconds) != 33) throw new Exception("Moving over a game became choppy.");
+                riding = false;
+                docked = true;
+                if (FrameInterval(clock.Elapsed.TotalSeconds) != 66) throw new Exception("The docked mouth did not keep its own cadence.");
+                docked = false;
+                checks.Add("PASS unchanged frames reuse her bitmap without painting, hidden bodies paint nothing, mouth changes repaint, and games slow idle artwork while preserving movement and docked speech");
+            }
+            finally
+            {
+                gaming.Off();
+                gaming.Find = desktopFind;
+                StopExplore();
+                preferences = desktopPreferences;
+                FullScreen = desktopFull;
+                docked = riding = false;
+                frontBusy = desktopBusy;
+                fullScreenHidden = desktopAutomatic;
+                manualHidden = desktopManual;
+                ApplyHidden(desktopHidden);
+                seat = desktopSeat;
+                anchor = desktopAnchor;
+                lying = desktopLying;
+                hanging = desktopHanging;
+                instant = desktopInstant;
+                playerClosed = desktopPlayerClosed;
+                mainframe.ShowSettings(desktopSettings);
+                Play(desktopClip);
+                SavePreferences();
+                UpdateAnimation();
+                mainframe.Sync();
+            }
         }
 
         private static void CheckOcr(System.Collections.Generic.List<string> checks, string output)
@@ -17420,6 +17851,8 @@ namespace CapriDesktop
                             if (!cursorShown || !bypassShown || !quickShown || !blackwallNamed || Computer.Bypass || !UsesCursor || HeyCapriOn) throw new Exception("The Use her cursor and Security switches went wrong: " + mainframe.JobsStatus + " / " + mainframe.BlackwallStatus);
                             checks.Add("PASS Settings switches: Use her cursor starts on, and SECURITY sits where Blackwall mode was under HABITS, showing Trusted with \"She asks before paying or what you didn't say.\" under it; the old Blackwall switch picks the Blackwall preset and back");
                             SecurityChecks(checks, output);
+                            DesktopChecks(checks);
+                            DesktopWindowChecks(checks);
                             string runKeyWas = Startup.RunKey, approvedKeyWas = Startup.ApprovedKey, startupRoot = "Software\\Capri smoke " + Guid.NewGuid().ToString("N");
                             string startupExe = Path.GetFullPath(Application.ExecutablePath), elsewhere = Path.Combine(Path.GetTempPath(), "Capri elsewhere", "Capri.exe"), startupShown;
                             bool startupWas = preferences.StartupSet, devOff, defaultOn, turnedOff, offSticks, taskManagerOff, backOn, otherCopy, keptOther, cleared, startupParsed;
@@ -27092,6 +27525,13 @@ namespace CapriDesktop
         [DllImport("gdi32.dll")] private static extern bool DeleteDC(IntPtr dc);
         [DllImport("gdi32.dll")] private static extern IntPtr SelectObject(IntPtr dc, IntPtr value);
         [DllImport("gdi32.dll")] private static extern bool DeleteObject(IntPtr value);
+        [StructLayout(LayoutKind.Sequential)] private struct Dib { internal int Size, Width, Height; internal short Planes, Bits; internal int Compression, Bytes, X, Y, Used, Important; }
+        [DllImport("gdi32.dll")] private static extern IntPtr CreateDIBSection(IntPtr dc, ref Dib info, int usage, out IntPtr bits, IntPtr section, int offset);
+        [StructLayout(LayoutKind.Sequential)] private struct WindowBox { internal int Left, Top, Right, Bottom; }
+        [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out WindowBox bounds);
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, System.Text.StringBuilder name, int size);
+        [DllImport("user32.dll")] private static extern bool IsZoomed(IntPtr window);
+        [DllImport("user32.dll")] private static extern IntPtr RegisterPowerSettingNotification(IntPtr window, ref Guid setting, int flags);
         [DllImport("user32.dll", SetLastError = true)] private static extern bool UpdateLayeredWindow(IntPtr window, IntPtr screen, ref Point destination, ref Size size, IntPtr source, ref Point origin, int colorKey, ref Blend blend, int flags);
         [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
         [DllImport("kernel32.dll")] private static extern bool GetSystemTimes(out long idle, out long kernel, out long user);
@@ -27105,10 +27545,14 @@ namespace CapriDesktop
             return read;
         }
 
-        internal static long IdleMilliseconds()
+        internal static long IdleMilliseconds() { uint sampled; return IdleMilliseconds(out sampled); }
+
+        internal static long IdleMilliseconds(out uint sampled)
         {
             InputInfo info = new InputInfo { Size = Marshal.SizeOf(typeof(InputInfo)) };
-            return GetLastInputInfo(ref info) ? unchecked((uint)Environment.TickCount - info.Time) : 0;
+            bool read = GetLastInputInfo(ref info);
+            sampled = unchecked((uint)Environment.TickCount);
+            return read ? unchecked(sampled - info.Time) : 0;
         }
 
         // The smoke test sets this to try both answers without a game running.
@@ -27129,6 +27573,83 @@ namespace CapriDesktop
             int state;
             try { return SHQueryUserNotificationState(out state) == 0 && state == 3; }
             catch (EntryPointNotFoundException) { return false; }
+        }
+
+        internal static bool Covers(Rectangle window, Rectangle monitor) { return !window.IsEmpty && window.Contains(monitor); }
+
+        internal static bool FillsScreen()
+        {
+            if (FakedGaming.HasValue) return FakedGaming.Value;
+            if (Gaming()) return true;
+            IntPtr front = GetForegroundWindow();
+            if (front == IntPtr.Zero || IsZoomed(front)) return false;
+            System.Text.StringBuilder kind = new System.Text.StringBuilder(128);
+            GetClassName(front, kind, kind.Capacity);
+            if (kind.ToString() == "Progman" || kind.ToString() == "WorkerW" || kind.ToString() == "Shell_TrayWnd") return false;
+            WindowBox bounds;
+            return GetWindowRect(front, out bounds) && Covers(Rectangle.FromLTRB(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom), Screen.FromHandle(front).Bounds);
+        }
+
+        private static bool lowered;
+
+        internal static void Lower(bool game)
+        {
+            if (lowered == game) return;
+            lowered = game;
+            try { using (Process own = Process.GetCurrentProcess()) own.PriorityClass = game ? ProcessPriorityClass.BelowNormal : ProcessPriorityClass.Normal; }
+            catch (System.ComponentModel.Win32Exception) { }
+            catch (InvalidOperationException) { }
+        }
+
+        private static Guid displayState = new Guid("6FE69556-704A-47A0-8F24-C28D936FDA47");
+
+        // Windows then sends WM_POWERBROADCAST when the screen goes off and when it comes back.
+        internal static void WatchScreen(IntPtr window) { RegisterPowerSettingNotification(window, ref displayState, 0); }
+
+        // POWERBROADCAST_SETTING is a GUID, its data's length and the data: 0 is off, 1 on, 2 dimmed.
+        internal static bool ScreenOff(IntPtr setting) { return Marshal.ReadInt32(setting, 20) == 0; }
+
+        // A POWERBROADCAST_SETTING for her tests.
+        internal sealed class Screen32 : IDisposable
+        {
+            internal readonly IntPtr Pointer = Marshal.AllocHGlobal(24);
+            internal Screen32(int state) { Marshal.WriteInt32(Pointer, 16, 4); Marshal.WriteInt32(Pointer, 20, state); }
+            public void Dispose() { Marshal.FreeHGlobal(Pointer); }
+        }
+
+        internal sealed class Surface : IDisposable
+        {
+            internal readonly Bitmap Image;
+            private IntPtr memory, bitmap, previous;
+
+            internal Surface(int width, int height)
+            {
+                memory = CreateCompatibleDC(IntPtr.Zero);
+                Dib info = new Dib { Size = Marshal.SizeOf(typeof(Dib)), Width = width, Height = -height, Planes = 1, Bits = 32 };
+                IntPtr pixels;
+                bitmap = CreateDIBSection(memory, ref info, 0, out pixels, IntPtr.Zero, 0);
+                if (memory == IntPtr.Zero || bitmap == IntPtr.Zero || pixels == IntPtr.Zero) { Dispose(); throw new System.ComponentModel.Win32Exception(); }
+                previous = SelectObject(memory, bitmap);
+                try { Image = new Bitmap(width, height, width * 4, PixelFormat.Format32bppPArgb, pixels); }
+                catch { Dispose(); throw; }
+            }
+
+            internal void Show(IntPtr window, System.Drawing.Point location)
+            {
+                Point destination = new Point(location.X, location.Y), origin = new Point(0, 0);
+                Size size = new Size(Image.Width, Image.Height);
+                Blend blend = new Blend { Alpha = 255, Format = 1 };
+                if (!UpdateLayeredWindow(window, IntPtr.Zero, ref destination, ref size, memory, ref origin, 0, ref blend, 2)) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            public void Dispose()
+            {
+                if (Image != null) Image.Dispose();
+                if (previous != IntPtr.Zero && memory != IntPtr.Zero) SelectObject(memory, previous);
+                if (bitmap != IntPtr.Zero) DeleteObject(bitmap);
+                if (memory != IntPtr.Zero) DeleteDC(memory);
+                previous = bitmap = memory = IntPtr.Zero;
+            }
         }
 
         internal static void DrawLayered(IntPtr window, Bitmap bitmap, System.Drawing.Point location)

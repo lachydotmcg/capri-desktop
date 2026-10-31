@@ -941,7 +941,7 @@ namespace CapriDesktop
             gaming.Exclusive = GameFinder.Exclusive;
             gaming.Dock = DockOn;
             gaming.Undock = LeaveDock;
-            gaming.Changed = delegate { mainframe.Sync(); };
+            gaming.Changed = delegate { CheckFullScreen(FullScreen()); mainframe.Sync(); };
             gaming.Say = GamingSay;
             gaming.Name = delegate { return string.IsNullOrWhiteSpace(Brain.Nickname) ? "choom" : Brain.Nickname; };
         }
@@ -1000,7 +1000,8 @@ namespace CapriDesktop
             napAsked = false;
             napping = false;
             hideAsked = false;
-            dockHid = hidden;
+            dockHid = hidden && (!fullScreenHidden || manualHidden);
+            fullScreenHidden = false;
             if (!hidden)
             {
                 StopRide();
@@ -1034,7 +1035,9 @@ namespace CapriDesktop
             dockTalk = null;
             dockWords = "";
             GameHud.Hide();
-            hidden = dockHid;
+            manualHidden = dockHid;
+            fullScreenHidden = preferences.HideFullScreen && !GamingOn && FullScreen();
+            hidden = manualHidden || fullScreenHidden;
             visibilityItem.Text = hidden ? "Show Capri" : "Hide Capri";
             if (!hidden)
             {

@@ -35,6 +35,13 @@ namespace CapriDesktop
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string type, string title);
         [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out Box value, int size);
         [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
+        // Outside her tests the list of windows is kept for a second, because a few things a second ask for it.
+        internal static bool Enabled;
+        private static int scannedAt;
+        private static List<Shown> windows;
+        private static readonly object windowLock = new object();
+
+        internal static void Invalidate() { lock (windowLock) windows = null; }
 
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd", "#32768", "tooltips_class32" };
         private const int IconInset = 2;
@@ -60,6 +67,7 @@ namespace CapriDesktop
             internal IntPtr Window;
             internal Rectangle Bounds;
             internal bool Seat;
+            internal bool Solid;
         }
 
         private static string Kind(IntPtr window)
@@ -109,16 +117,25 @@ namespace CapriDesktop
 
         private static List<Shown> Windows(ICollection<IntPtr> skip)
         {
-            List<Shown> found = new List<Shown>();
-            Visit visit = delegate(IntPtr window, IntPtr data)
+            lock (windowLock)
             {
-                Rectangle bounds;
-                if (!skip.Contains(window) && Showing(window, out bounds)) found.Add(new Shown { Window = window, Bounds = bounds, Seat = Seatable(window, bounds) });
-                return true;
-            };
-            EnumWindows(visit, IntPtr.Zero);
-            GC.KeepAlive(visit);
-            return found;
+                int now = Environment.TickCount;
+                if (!Enabled || windows == null || unchecked((uint)(now - scannedAt)) >= 1000)
+                {
+                    List<Shown> found = new List<Shown>();
+                    Visit visit = delegate(IntPtr window, IntPtr data)
+                    {
+                        Rectangle bounds;
+                        if (Showing(window, out bounds)) found.Add(new Shown { Window = window, Bounds = bounds, Seat = Seatable(window, bounds), Solid = Solid(window, bounds) });
+                        return true;
+                    };
+                    EnumWindows(visit, IntPtr.Zero);
+                    GC.KeepAlive(visit);
+                    windows = found;
+                    scannedAt = now;
+                }
+                return windows.FindAll(shown => !skip.Contains(shown.Window));
+            }
         }
 
         internal static List<int[]> Open(int left, int right, int y, IEnumerable<Rectangle> above)
@@ -174,17 +191,13 @@ namespace CapriDesktop
 
         internal static bool Covered(Ledge seat, int x, ICollection<IntPtr> skip)
         {
-            bool covered = false;
-            Visit visit = delegate(IntPtr window, IntPtr data)
+            foreach (Shown window in Windows(new IntPtr[0]))
             {
-                if (window == seat.Window) return false;
-                Rectangle bounds;
-                if (!skip.Contains(window) && Showing(window, out bounds) && Solid(window, bounds) && x >= bounds.Left && x < bounds.Right && seat.Y >= bounds.Top && seat.Y < bounds.Bottom) { covered = true; return false; }
-                return true;
-            };
-            EnumWindows(visit, IntPtr.Zero);
-            GC.KeepAlive(visit);
-            return covered;
+                if (window.Window == seat.Window) return false;
+                Rectangle bounds = window.Bounds;
+                if (!skip.Contains(window.Window) && window.Solid && x >= bounds.Left && x < bounds.Right && seat.Y >= bounds.Top && seat.Y < bounds.Bottom) return true;
+            }
+            return false;
         }
 
         private static IntPtr DesktopList()
