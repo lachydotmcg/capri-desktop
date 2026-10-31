@@ -15960,7 +15960,7 @@ namespace CapriDesktop
             {
                 Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8;
                 string answer = "{\"message\":{\"content\":\"Done.\"},\"choices\":[{\"message\":{\"content\":\"Done.\"},\"finish_reason\":\"stop\"}],\"content\":[{\"type\":\"text\",\"text\":\"Done.\"}],\"stop_reason\":\"end_turn\"}";
-                string[] replies = new string[100];
+                string[] replies = new string[120];
                 for (int replyAt = 0; replyAt < replies.Length; replyAt++) replies[replyAt] = answer;
                 System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
                 string address = FakeServer(replies, asked, out fake);
@@ -15979,7 +15979,7 @@ namespace CapriDesktop
                     "{\"keep_alive\":\"15m\",\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"options\":{\"num_ctx\":4096,\"num_predict\":90,\"temperature\":0.85},\"stream\":false,\"think\":false}",
                     "{\"max_tokens\":90,\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"capri\",\"stream\":false,\"temperature\":0.85}",
                     "{\"max_completion_tokens\":2000,\"messages\":[{\"content\":\"Talk\",\"role\":\"system\"},{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\"}",
-                    "{\"max_tokens\":16000,\"messages\":[{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"system\":\"Talk\"}"
+                    "{\"max_tokens\":16000,\"messages\":[{\"content\":\"Hello\",\"role\":\"user\"}],\"model\":\"test\",\"system\":[{\"text\":\"Talk\",\"type\":\"text\"}]}"
                 };
                 for (int autoAt = 0; autoAt < automatic.Length; autoAt++) if (SentBody(asked[autoAt]) != automatic[autoAt]) throw new Exception("Auto changed request body " + autoAt + ": " + SentBody(asked[autoAt]));
                 checks.Add("PASS brain settings Auto: Ollama, built-in, OpenAI and Claude request bodies exactly match their previous JSON, including each token default and omitted fields");
@@ -16040,6 +16040,15 @@ namespace CapriDesktop
                 local.Remote = clouds[3];
                 local.Quick("Talk", "Hello", 320);
                 if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != "320") throw new Exception("Short shrank a game comment.");
+                local.Quick(Brain.Persona + Brain.Speech() + "\nA line that changes.", "Hello", 320);
+                string cachedPrompt = Brain.Field(SentBody(asked[asked.Count - 1]), "system");
+                if (!cachedPrompt.StartsWith("[{\"cache_control\":{\"type\":\"ephemeral\"},\"text\":\"", StringComparison.Ordinal) || !cachedPrompt.EndsWith(",\"type\":\"text\"},{\"text\":\"\\nA line that changes.\",\"type\":\"text\"}]", StringComparison.Ordinal)) throw new Exception("Her character wasn't marked for Claude's cache: " + cachedPrompt);
+                Brain cacheBrain = new Brain { Model = "test", Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5") };
+                cacheBrain.Ask("tell me something");
+                string cacheChat = Brain.Field(SentBody(asked[asked.Count - 1]), "system");
+                int cacheEnd = cacheChat.IndexOf("},{\"text\":", StringComparison.Ordinal);
+                if (!cacheChat.StartsWith("[{\"cache_control\":{\"type\":\"ephemeral\"}", StringComparison.Ordinal) || cacheEnd < 0 || cacheChat.IndexOf("Right now it's", StringComparison.Ordinal) < cacheEnd) throw new Exception("The time went in front of Claude's cache in her chat: " + cacheChat);
+                checks.Add("PASS Claude's cache: her prompts mark the part that stays the same, chat's mark stops before the time, and a prompt with nothing steady has no mark");
                 foreach (int chosen in new[] { 0, 1, 3 })
                 {
                     Brain.ReplyLength = chosen;
@@ -22648,7 +22657,7 @@ namespace CapriDesktop
                                     string[][] cloudWanted =
                                     {
                                         new[] { "GET /v1/models?limit=100", "x-api-key: sk-ant-test", "anthropic-version: 2026-10-21" },
-                                        new[] { "POST /v1/messages", "anthropic-beta: server-side-fallback-2026-07-01", "\"fallbacks\":\"default\"", "\"output_config\":{\"effort\":\"low\"}", "\"system\":\"You are the hands of Capri","\"tools\":[{\"name\":\"open_app\",\"description\":", "\"input_schema\":{\"type\":\"object\"" },
+                                        new[] { "POST /v1/messages", "anthropic-beta: server-side-fallback-2026-07-01", "\"fallbacks\":\"default\"", "\"output_config\":{\"effort\":\"low\"}", "\"system\":[{\"cache_control\":{\"type\":\"ephemeral\"},\"text\":\"You are the hands of Capri","\"tools\":[{\"name\":\"open_app\",\"description\":", "\"input_schema\":{\"type\":\"object\"" },
                                         new[] { "POST /v1/messages", "Tool results, from what you just did:", "open_app:", "Opened Spotify." },
                                         new[] { "GET /v1/models", "Authorization: Bearer sk-proj-test" },
                                         new[] { "POST /v1/chat/completions", "\"max_completion_tokens\":2000", "\"reasoning_effort\":\"low\"", "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"" },
@@ -22958,7 +22967,7 @@ namespace CapriDesktop
                                     if (seeSent.Length != 4) throw new Exception("Vision made " + seeSent.Length + " requests.");
                                     string[][] seeWanted =
                                     {
-                                        new[] { "POST /v1/messages", "\"system\":\"Plain.\"", "\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"AQIDBAUG\"}},{\"type\":\"text\",\"text\":\"What is this?\"}]" },
+                                        new[] { "POST /v1/messages", "\"system\":[{\"text\":\"Plain.\",\"type\":\"text\"}]", "\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"AQIDBAUG\"}},{\"type\":\"text\",\"text\":\"What is this?\"}]" },
                                         new[] { "POST /v1/chat/completions", "\"max_tokens\":256", "\"enable_thinking\":false", "\"content\":[{\"type\":\"text\",\"text\":\"What is this?\"},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64,AQIDBAUG\"}}]" },
                                         new[] { "POST /api/chat", "\"images\":[\"AQIDBAUG\"]", "\"num_predict\":160", "\"content\":\"What is this?\"" },
                                         new[] { "POST /v1/chat/completions", "Pay attention to: the crate", "data:image/jpeg;base64,/9j/" }
