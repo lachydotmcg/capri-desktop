@@ -309,7 +309,7 @@ namespace CapriDesktop
         [DataMember] public int HdRobot = VoiceFx.HdRobotDefault;
         [DataMember] public int HdVoiceGlitch;
         // Her voice layers (Lachy, 29 Oct): two copies of her voice under her, each with its own pitch (semitones off hers, in
-        // half steps) and delay (ms). Off here and in settings from before them, which get the layers' defaults; Tune turns them on.
+        // half steps) and delay (ms). Off by default, including her tuned voice; settings from before them get the layers' defaults.
         [DataMember] public bool VoiceLayers;
         [DataMember] public double LayerPitch1 = VoiceFx.Layering.HigherPitch;
         [DataMember] public int LayerDelay1 = VoiceFx.Layering.Behind;
@@ -342,6 +342,7 @@ namespace CapriDesktop
         // Set once she has her tuned voice, or kept theirs because they'd already moved a voice slider.
         [DataMember] public bool VoiceTuned;
 
+        [DataMember] public bool VoiceRetuned;
         // A new install: she starts in the PC's own language when she speaks it, and with her tuned voice.
         internal static Preferences Fresh()
         {
@@ -350,31 +351,35 @@ namespace CapriDesktop
             return fresh;
         }
 
-        // Her voice as Lachy tuned it (30 Oct: "free voice settings default"): 80% volume, pitch +3, 1.2x, robot and glitch left
-        // Off, and her voice layers on at their defaults. Pitch, speed, volume and layers go for every voice.
+        // Her voice as Lachy retuned it (31 Oct): 80% volume, pitch +2, 1.2x, robot and glitch left Off, and her voice layers off
+        // with their sliders at their defaults. Pitch, speed, volume and layers go for every voice.
         internal void Tune()
         {
             Volume = 80;
-            VoicePitch = 3;
+            VoicePitch = 2;
             VoiceSpeed = 120;
-            VoiceLayers = true;
+            VoiceLayers = false;
             LayerPitch1 = VoiceFx.Layering.HigherPitch;
             LayerDelay1 = VoiceFx.Layering.Behind;
             LayerPitch2 = VoiceFx.Layering.LowerPitch;
             LayerDelay2 = VoiceFx.Layering.Behind;
             VoiceTuned = true;
         }
+            VoiceRetuned = true;
 
         // Settings from before her tuned voice get it once if every voice slider is still where it started (Layer 1 started at
-        // +1.5); anyone who moved one keeps theirs.
+        // +1.5); 0.7.7's unchanged tuned voice gets the retune once too. Anyone who moved one keeps theirs.
         internal void TuneOnce()
         {
-            if (VoiceTuned) return;
-            bool untouched = Volume == 100 && VoicePitch == 0 && VoiceSpeed == 100 && VoiceRobot == 0 && VoiceGlitch == 0 && HdRobot == 0 && HdVoiceGlitch == 0 && !VoiceLayers
+            if (VoiceRetuned) return;
+            bool untouched = !VoiceTuned && Volume == 100 && VoicePitch == 0 && VoiceSpeed == 100 && VoiceRobot == 0 && VoiceGlitch == 0 && HdRobot == 0 && HdVoiceGlitch == 0 && !VoiceLayers
                 && (LayerPitch1 == 1.5 || LayerPitch1 == VoiceFx.Layering.HigherPitch) && LayerDelay1 == VoiceFx.Layering.Behind && LayerPitch2 == VoiceFx.Layering.LowerPitch && LayerDelay2 == VoiceFx.Layering.Behind;
-            if (untouched) Tune();
+            bool tuned = VoiceTuned && Volume == 80 && VoicePitch == 3 && VoiceSpeed == 120 && VoiceRobot == 0 && VoiceGlitch == 0 && HdRobot == 0 && HdVoiceGlitch == 0 && VoiceLayers
+                && LayerPitch1 == VoiceFx.Layering.HigherPitch && LayerDelay1 == VoiceFx.Layering.Behind && LayerPitch2 == VoiceFx.Layering.LowerPitch && LayerDelay2 == VoiceFx.Layering.Behind;
+            if (untouched || tuned) Tune();
             VoiceTuned = true;
         }
+            VoiceRetuned = true;
 
         [OnDeserializing]
         private void Defaults(StreamingContext context)
@@ -3617,26 +3622,42 @@ namespace CapriDesktop
                 throw new Exception("Her layers' settings went wrong: saved " + loadedShown + ", from before them " + oldShown + ", new " + freshShown + ", clamped " + clamped);
             checks.Add("PASS voice layers' settings: off in blank settings and in settings from before them, with Layer 1 at +2 and Layer 2 at -2.5 semitones, both 25 ms behind her; each layer's pitch and delay save and load as set, in half steps from -12 to +12 semitones and 0 to 250 ms");
 
-            // Her tuned voice (Lachy, 30 Oct): a new install starts with it; settings from before it get it once while every voice
-            // slider is where it started, Layer 1's old +1.5 included; anyone who moved one, or already has it, keeps theirs.
+            // Her retuned voice (Lachy, 31 Oct): new installs and untouched settings get it, Layer 1's old +1.5 included; the old
+            // tuned voice gets it once too, while anyone who moved a slider keeps theirs, even if they later move it back.
             Func<string, Preferences> tunedRead = delegate(string text)
             {
                 Preferences read = (Preferences)json.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text)));
                 read.TuneOnce();
                 return read;
             };
-            Func<Preferences, string> tunedShown = delegate(Preferences p) { return p.Volume + " | " + p.VoicePitch + " | " + p.VoiceSpeed + " | " + p.VoiceRobot + "/" + p.VoiceGlitch + " | HD " + p.HdRobot + "/" + p.HdVoiceGlitch + " | " + LayersOf(p).Shown + " | " + p.VoiceTuned; };
-            const string tunedWanted = "80 | 3 | 120 | 0/0 | HD 0/0 | On | +2, 25 ms | -2.5, 25 ms | True";
+            Func<Preferences, string> tunedShown = delegate(Preferences p) { return p.Volume + " | " + p.VoicePitch + " | " + p.VoiceSpeed + " | " + p.VoiceRobot + "/" + p.VoiceGlitch + " | HD " + p.HdRobot + "/" + p.HdVoiceGlitch + " | " + LayersOf(p).Shown + " | " + p.VoiceTuned + "/" + p.VoiceRetuned; };
+            const string tunedWanted = "80 | 2 | 120 | 0/0 | HD 0/0 | Off | +2, 25 ms | -2.5, 25 ms | True/True";
             string tunedNew = tunedShown(Preferences.Fresh());
             string tunedOld = tunedShown(tunedRead("{\"Volume\":100,\"VoicePitch\":0,\"VoiceSpeed\":100,\"VoiceRobot\":0,\"VoiceGlitch\":0,\"HdRobot\":0,\"HdVoiceGlitch\":0,\"VoiceLayers\":false,\"LayerPitch1\":1.5,\"LayerDelay1\":25,\"LayerPitch2\":-2.5,\"LayerDelay2\":25}"));
             string tunedBare = tunedShown(tunedRead("{\"Size\":240}"));
             string tunedMoved = tunedShown(tunedRead("{\"Volume\":100,\"VoicePitch\":2}"));
             string tunedLouder = tunedShown(tunedRead("{\"Volume\":120}"));
             string tunedKept = tunedShown(tunedRead("{\"VoiceTuned\":true,\"Volume\":100,\"VoicePitch\":0,\"VoiceSpeed\":100}"));
-            if (tunedNew != tunedWanted || tunedOld != tunedWanted || tunedBare != tunedWanted || tunedMoved != "100 | 2 | 100 | 0/0 | HD 0/0 | Off | +2, 25 ms | -2.5, 25 ms | True"
-                || tunedLouder != "120 | 0 | 100 | 0/0 | HD 0/0 | Off | +2, 25 ms | -2.5, 25 ms | True" || tunedKept != "100 | 0 | 100 | 0/0 | HD 0/0 | Off | +2, 25 ms | -2.5, 25 ms | True" || new Preferences().VoiceTuned)
+            if (tunedNew != tunedWanted || tunedOld != tunedWanted || tunedBare != tunedWanted || tunedMoved != "100 | 2 | 100 | 0/0 | HD 0/0 | Off | +2, 25 ms | -2.5, 25 ms | True/True"
+                || tunedLouder != "120 | 0 | 100 | 0/0 | HD 0/0 | Off | +2, 25 ms | -2.5, 25 ms | True/True" || tunedKept != "100 | 0 | 100 | 0/0 | HD 0/0 | Off | +2, 25 ms | -2.5, 25 ms | True/True" || new Preferences().VoiceTuned || new Preferences().VoiceRetuned)
                 throw new Exception("Her tuned voice went wrong: new " + tunedNew + " // untouched " + tunedOld + " // bare " + tunedBare + " // moved " + tunedMoved + " // louder " + tunedLouder + " // kept " + tunedKept);
-            checks.Add("PASS her tuned voice: a new install starts at 80% volume, pitch +3, 1.2x, robot and glitch Off on every voice, and voice layers on at +2 and -2.5, 25 ms behind her; settings from before it with every voice slider untouched get it once, and anyone who moved one keeps theirs");
+            checks.Add("PASS her tuned voice: a new install starts at 80% volume, pitch +2, 1.2x, robot and glitch Off on every voice, and voice layers off with their sliders at +2 and -2.5, 25 ms behind her; settings from before it with every voice slider untouched get it once, and anyone who moved one keeps theirs");
+            string tunedPrevious = tunedShown(tunedRead("{\"VoiceTuned\":true,\"Volume\":80,\"VoicePitch\":3,\"VoiceSpeed\":120,\"VoiceRobot\":0,\"VoiceGlitch\":0,\"HdRobot\":0,\"HdVoiceGlitch\":0,\"VoiceLayers\":true,\"LayerPitch1\":2,\"LayerDelay1\":25,\"LayerPitch2\":-2.5,\"LayerDelay2\":25}"));
+            Preferences tunedAdjusted = tunedRead("{\"VoiceTuned\":true,\"Volume\":81,\"VoicePitch\":3,\"VoiceSpeed\":120,\"VoiceLayers\":true}");
+            string tunedAdjustedShown = tunedShown(tunedAdjusted);
+            tunedAdjusted.Volume = 80;
+            using (MemoryStream tunedSaved = new MemoryStream())
+            {
+                json.WriteObject(tunedSaved, tunedAdjusted);
+                tunedSaved.Position = 0;
+                tunedAdjusted = (Preferences)json.ReadObject(tunedSaved);
+            }
+            tunedAdjusted.TuneOnce();
+            string tunedDecided = tunedShown(tunedAdjusted);
+            if (tunedPrevious != tunedWanted || tunedAdjustedShown != "81 | 3 | 120 | 0/0 | HD 0/0 | On | +2, 25 ms | -2.5, 25 ms | True/True"
+                || tunedDecided != "80 | 3 | 120 | 0/0 | HD 0/0 | On | +2, 25 ms | -2.5, 25 ms | True/True")
+                throw new Exception("Her voice retune went wrong: previous " + tunedPrevious + " // adjusted " + tunedAdjustedShown + " // decided " + tunedDecided);
+            checks.Add("PASS her voice retunes once: 0.7.7's unchanged tuned voice gets pitch +2 and layers off; moving one slider keeps their voice, and that decision survives saving and loading even if they move it back");
 
             // Her VOICE LAYERS window from Settings > VOICE: the switch, a slider each, MAIN's pitch and Settings' moving together,
             // Defaults, and the layout at 100%, 150% and 200%.
