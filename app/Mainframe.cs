@@ -45,6 +45,8 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         private const int PageTall = 1340;
+        // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
+        private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -639,7 +641,7 @@ namespace CapriDesktop
             localAddress.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseLocalAddress(); } };
             Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); });
             Section("HABITS >", c, 656);
-            Make("Memory vault", 114 + c, 653, 102, 20, delegate { ShowMemoryVault(); }).AccessibleName = "Memory vault: keep her notes in your Obsidian vault";
+            Make("Obsidian vault", 104 + c, 653, 112, 20, delegate { ShowMemoryVault(); }).AccessibleName = "Obsidian vault: keep her notes in your Obsidian vault";
             Make("Open her memories", 220 + c, 653, 136, 20, delegate { capri.OpenMemories(); }).AccessibleName = "Open her memories: memories.md and her chat transcripts, kept on this PC";
             startup = Switch("Start with Windows", c, 680, delegate { if (!syncing) capri.ToggleStartup(); });
             discord = Switch("Show on Discord", c, 708, delegate { if (!syncing) capri.ToggleDiscord(); });
@@ -750,7 +752,7 @@ namespace CapriDesktop
             {
                 dialog.AutoScaleDimensions = new SizeF(96f, 96f);
                 dialog.AutoScaleMode = AutoScaleMode.Dpi;
-                dialog.Text = "Memory vault";
+                dialog.Text = "Obsidian memory vault";
                 dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
                 dialog.MaximizeBox = false;
                 dialog.MinimizeBox = false;
@@ -1022,13 +1024,14 @@ namespace CapriDesktop
             try { foreach (Control control in scrolled) control.Top = tops[control] - shift; }
             finally { Native.SendMessage(Handle, 0x000B, new IntPtr(1), IntPtr.Zero); }
             Invalidate(true);
+            Update();
         }
 
         // How much of the settings page the screen's working area has room for, before scaling.
         private int Fit()
         {
             int room = ShortScreen > 0 ? ShortScreen : (int)(Screen.FromControl(this).WorkingArea.Height / Unit());
-            return Math.Max(4 * ScrollRow, Math.Min(PageTall, room));
+            return Math.Max(4 * ScrollRow, Math.Min(MostView, room));
         }
 
         protected override void OnMouseWheel(MouseEventArgs e)
@@ -1085,6 +1088,8 @@ namespace CapriDesktop
             {
                 CreateParams value = base.CreateParams;
                 value.Style = (value.Style | 0x00020000 | 0x00080000) & ~0x00010000;
+                // Windows paints the page and every control together, so scrolling never shows them half moved.
+                value.ExStyle |= 0x02000000;
                 return value;
             }
         }
