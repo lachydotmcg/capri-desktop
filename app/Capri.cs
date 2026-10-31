@@ -10370,6 +10370,7 @@ namespace CapriDesktop
                 if (!napAsked || napping) throw new Exception("Losing her window cancelled an asked-for nap.");
                 napTicks(0, 200);
                 if (!Asleep) throw new Exception("She did not settle again after losing her window.");
+                lieItem.Enabled = lying;
                 lieItem.PerformClick();
                 CheckIdle(napNow, 0);
                 if (napAsked || napping || Asleep || lying) throw new Exception("Her nap overrode Sit up.");
