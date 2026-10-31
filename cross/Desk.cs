@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using Avalonia;
 
 namespace CapriDesktop
@@ -25,6 +28,7 @@ namespace CapriDesktop
             {
                 if (OperatingSystem.IsWindows()) return new WindowsDesk();
                 if (OperatingSystem.IsMacOS()) return new MacDesk();
+                if (OperatingSystem.IsLinux() && HyprDesk.Socket() != null) return new HyprDesk();
                 if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null && Environment.GetEnvironmentVariable("DISPLAY") != null) return new X11Desk();
             }
             catch (Exception) { }
@@ -428,6 +432,185 @@ namespace CapriDesktop
             if (shadow != null && shadow.Length == 4) { left += (int)shadow[0]; right -= (int)shadow[1]; top += (int)shadow[2]; bottom -= (int)shadow[3]; }
             if (right <= left || bottom <= top) return null;
             return Make(window.ToInt64(), new PixelRect(left, top, right - left, bottom - top), seat);
+        }
+    }
+
+    // Hyprland, through its own socket: her windows float and stay on every workspace instead of tiling, she sits on the
+    // windows it lists on the workspaces it shows, and she knows where the mouse is, which Wayland doesn't otherwise say.
+    internal sealed class HyprDesk : Desk
+    {
+        private readonly string socket = Socket();
+        private readonly int own = Environment.ProcessId;
+        private readonly HashSet<string> tamed = new HashSet<string>();
+        private readonly System.Threading.Timer taming;
+        private double scale = 1;
+
+        // Her bubble, typing box and pill show up after she does, so every second any new window of hers gets tamed too.
+        internal HyprDesk()
+        {
+            taming = new System.Threading.Timer(delegate
+            {
+                try { foreach (JsonElement client in Json("j/clients").EnumerateArray()) if (client.GetProperty("pid").GetInt32() == own) Tame(client); }
+                catch (Exception) { }
+            }, null, 500, 1000);
+        }
+
+        internal static string Socket()
+        {
+            string signature = Environment.GetEnvironmentVariable("HYPRLAND_INSTANCE_SIGNATURE");
+            if (string.IsNullOrEmpty(signature) || signature.IndexOfAny(new[] { '/', '\\' }) >= 0) return null;
+            string runtime = Environment.GetEnvironmentVariable("XDG_RUNTIME_DIR");
+            foreach (string folder in new[] { runtime == null ? null : Path.Combine(runtime, "hypr"), "/tmp/hypr" })
+            {
+                if (folder == null) continue;
+                string path = Path.Combine(folder, signature, ".socket.sock");
+                if (File.Exists(path)) return path;
+            }
+            return null;
+        }
+
+        internal override string Name { get { return "Hyprland"; } }
+
+        internal override string Debug() { return "scale " + scale; }
+
+        internal string Ask(string command)
+        {
+            using (Socket talk = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified))
+            {
+                talk.ReceiveTimeout = 1000;
+                talk.SendTimeout = 1000;
+                talk.Connect(new UnixDomainSocketEndPoint(socket));
+                talk.Send(Encoding.UTF8.GetBytes(command));
+                using (MemoryStream reply = new MemoryStream())
+                {
+                    byte[] chunk = new byte[65536];
+                    int got;
+                    while ((got = talk.Receive(chunk)) > 0) reply.Write(chunk, 0, got);
+                    return Encoding.UTF8.GetString(reply.ToArray());
+                }
+            }
+        }
+
+        private JsonElement Json(string command)
+        {
+            using (JsonDocument parsed = JsonDocument.Parse(Ask(command))) return parsed.RootElement.Clone();
+        }
+
+        // XWayland apps, like her, see Hyprland's layout times the monitor's scale when it zeroes their scaling.
+        private void Rescale(JsonElement monitors)
+        {
+            double found = 1;
+            try
+            {
+                JsonElement option = Json("j/getoption xwayland:force_zero_scaling");
+                if (option.TryGetProperty("int", out JsonElement zero) && zero.GetInt32() == 1)
+                    foreach (JsonElement monitor in monitors.EnumerateArray()) found = Math.Max(found, monitor.GetProperty("scale").GetDouble());
+            }
+            catch (Exception) { }
+            scale = found;
+        }
+
+        private int Px(double value) { return (int)Math.Round(value * scale); }
+
+        internal override PixelPoint? Pointer()
+        {
+            try
+            {
+                JsonElement at = Json("j/cursorpos");
+                return new PixelPoint(Px(at.GetProperty("x").GetDouble()), Px(at.GetProperty("y").GetDouble()));
+            }
+            catch (Exception) { return null; }
+        }
+
+        internal override List<Spot> Windows(ICollection<long> skip)
+        {
+            List<Spot> found = new List<Spot>();
+            JsonElement monitors = Json("j/monitors");
+            Rescale(monitors);
+            HashSet<long> shown = new HashSet<long>();
+            foreach (JsonElement monitor in monitors.EnumerateArray())
+            {
+                shown.Add(monitor.GetProperty("activeWorkspace").GetProperty("id").GetInt64());
+                if (monitor.TryGetProperty("specialWorkspace", out JsonElement special) && special.TryGetProperty("id", out JsonElement id) && id.GetInt64() != 0) shown.Add(id.GetInt64());
+            }
+            List<JsonElement> clients = new List<JsonElement>();
+            foreach (JsonElement client in Json("j/clients").EnumerateArray())
+            {
+                if (client.GetProperty("pid").GetInt32() == own) { Tame(client); continue; }
+                clients.Add(client);
+            }
+            // Floating windows sit over tiled ones, and among each the last focused is on top.
+            clients.Sort(delegate(JsonElement a, JsonElement b)
+            {
+                int floating = b.GetProperty("floating").GetBoolean().CompareTo(a.GetProperty("floating").GetBoolean());
+                return floating != 0 ? floating : a.GetProperty("focusHistoryID").GetInt32().CompareTo(b.GetProperty("focusHistoryID").GetInt32());
+            });
+            foreach (JsonElement client in clients)
+            {
+                Spot spot = Look(client, shown);
+                if (spot != null && !skip.Contains(spot.Window)) found.Add(spot);
+            }
+            return found;
+        }
+
+        internal override Spot Find(long window)
+        {
+            JsonElement monitors = Json("j/monitors");
+            HashSet<long> shown = new HashSet<long>();
+            foreach (JsonElement monitor in monitors.EnumerateArray()) shown.Add(monitor.GetProperty("activeWorkspace").GetProperty("id").GetInt64());
+            foreach (JsonElement client in Json("j/clients").EnumerateArray())
+                if (Address(client) == window) return Look(client, shown);
+            return null;
+        }
+
+        internal override bool Alive(long window)
+        {
+            foreach (JsonElement client in Json("j/clients").EnumerateArray()) if (Address(client) == window) return true;
+            return false;
+        }
+
+        private static long Address(JsonElement client)
+        {
+            string address = client.GetProperty("address").GetString() ?? "";
+            if (address.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) address = address.Substring(2);
+            long value;
+            return long.TryParse(address, System.Globalization.NumberStyles.HexNumber, null, out value) ? value : 0;
+        }
+
+        private Spot Look(JsonElement client, HashSet<long> shown)
+        {
+            if (!client.GetProperty("mapped").GetBoolean() || client.GetProperty("hidden").GetBoolean()) return null;
+            long workspace = client.GetProperty("workspace").GetProperty("id").GetInt64();
+            bool pinned = client.TryGetProperty("pinned", out JsonElement pin) && pin.GetBoolean();
+            if (!pinned && !shown.Contains(workspace)) return null;
+            JsonElement at = client.GetProperty("at"), size = client.GetProperty("size");
+            int width = Px(size[0].GetDouble()), height = Px(size[1].GetDouble());
+            if (width <= 0 || height <= 0) return null;
+            int full = client.TryGetProperty("fullscreen", out JsonElement screen) ? (screen.ValueKind == JsonValueKind.True ? 1 : screen.ValueKind == JsonValueKind.Number ? screen.GetInt32() : 0) : 0;
+            return Make(Address(client), new PixelRect(Px(at[0].GetDouble()), Px(at[1].GetDouble()), width, height), full == 0);
+        }
+
+        // Hyprland tiles every new window, which would make her a tile, so each of hers floats and is pinned to every workspace.
+        private void Tame(JsonElement client)
+        {
+            string address = client.GetProperty("address").GetString();
+            if (address == null) return;
+            lock (tamed) if (tamed.Contains(address)) return;
+            try
+            {
+                if (!client.GetProperty("floating").GetBoolean()) Dispatch("float", "setfloating", address);
+                if (!(client.TryGetProperty("pinned", out JsonElement pin) && pin.GetBoolean())) Dispatch("pin", "pin", address);
+                lock (tamed) tamed.Add(address);
+            }
+            catch (Exception) { }
+        }
+
+        // Hyprland 0.57 and later take Lua, like hl.dsp.window.pin({ action = "enable", window = "address:0x..." }); older ones
+        // take "pin address:0x...". She tries Lua first and falls back when it isn't taken.
+        private void Dispatch(string lua, string classic, string address)
+        {
+            string reply = Ask("dispatch hl.dsp.window." + lua + "({ action = \"enable\", window = \"address:" + address + "\" })");
+            if (reply.Trim() != "ok") Ask("dispatch " + classic + " address:" + address);
         }
     }
 }

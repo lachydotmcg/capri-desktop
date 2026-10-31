@@ -9215,7 +9215,8 @@ namespace CapriDesktop
             {
                 WantGaming(true);
                 gaming.On(clock.Elapsed.TotalSeconds);
-                text = afterGaming;
+                // "Play Minecraft" alone only opens it; said with Gaming Mode it means her hands on the game.
+                text = afterGaming.StartsWith("play ", StringComparison.OrdinalIgnoreCase) ? afterGaming.TrimEnd('.', '!', ' ') + " yourself" : afterGaming;
             }
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
