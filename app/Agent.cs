@@ -108,6 +108,7 @@ namespace CapriDesktop
         private ClientWebSocket socket;
         private Thread worker;
         private volatile bool ready;
+        private string lastHeard;
         internal Func<string, ToolArguments, string> Act;
 
         internal static string Prompt { get { return Brain.Persona + Hands.Note + "\nYou are talking out loud in a live voice chat: keep every reply to one or two short spoken sentences, and never write tags in square brackets.\nIf the user goes quiet, they're busy, gaming or muted: stay quiet until they talk to you. Never check in, ask if they're still there, beg them to talk or say they left you hanging.\nSo the voice says your slang right, always spell choom as chewm, preem as preme and yezzirrr as yessirrr. Say chewm rarely, at most once every few replies and never on its own.\nWhen your hands are on a job it runs by itself, so keep talking with them like normal. Lines starting Capri's hands tell you how it's going: use them if they ask, and don't announce them otherwise. If they add to the job or change it, call use_computer once with their words and say so in a few words. Never say a job is done until you're told it finished."; } }
@@ -264,7 +265,7 @@ namespace CapriDesktop
                 Action<int> opened = Opened;
                 if (opened != null) opened(rate);
             }
-            else if (item.Type == "user_transcript" && item.Heard != null && !string.IsNullOrEmpty(item.Heard.Text)) { Action<string> heard = Heard; if (heard != null) heard(item.Heard.Text); }
+            else if (item.Type == "user_transcript" && item.Heard != null && !string.IsNullOrEmpty(item.Heard.Text)) { lastHeard = item.Heard.Text; Action<string> heard = Heard; if (heard != null) heard(item.Heard.Text); }
             else if (item.Type == "agent_response" && item.Reply != null && !string.IsNullOrEmpty(item.Reply.Text)) { Action<string> replied = Replied; if (replied != null) replied(Voice.Unsaid(item.Reply.Text)); }
             else if (item.Type == "audio" && item.Audio != null && item.Audio.Data != null)
             {
@@ -278,6 +279,7 @@ namespace CapriDesktop
             else if (item.Type == "client_tool_call" && item.Call != null && item.Call.Id != null)
             {
                 AgentToolCall call = item.Call;
+                if (call.Name == "app_window" && call.Arguments != null) call.Arguments.Asked = lastHeard ?? "";
                 Func<string, ToolArguments, string> act = Act;
                 ThreadPool.QueueUserWorkItem(delegate
                 {

@@ -52,7 +52,7 @@ namespace CapriDesktop
             string text = Hands.Asked(said);
             if (direct && tool == "power") return AsideKind.Tool;
             if (direct && tool == "watch_for") return AsideKind.Tool;
-            if (Stops.IsMatch(text)) return AsideKind.Stop;
+            if (Stops.IsMatch(text) || Regex.IsMatch(text, @"^end (?:the )?task$", RegexOptions.IgnoreCase)) return AsideKind.Stop;
             if (direct && tool == "look_at_screen") return AsideKind.Screen;
             if (Looks.IsMatch(text)) { tool = "look_at_screen"; args.Focus = text; return AsideKind.Screen; }
             if (text.Length <= 70 && (Progress.IsMatch(text) || Lasting.IsMatch(text))) return AsideKind.Status;

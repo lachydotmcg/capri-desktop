@@ -29,6 +29,7 @@ namespace CapriDesktop
         [STAThread]
         private static int Main(string[] args)
         {
+            if (args.Length == 4 && args[0] == "--release-input") return InputRelease.Watch(args[1], args[2], args[3]);
             try { Native.SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { Native.SetProcessDPIAware(); }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -1226,6 +1227,7 @@ namespace CapriDesktop
         private string reply;
         private double replyStart;
         private double replyDone = -1;
+        private int remarkTicket = -1;
         private double pillUntil = 10;
         private int asking;
         private bool finding;
@@ -1633,7 +1635,7 @@ namespace CapriDesktop
             getWakePack = FetchWake;
             box.Dismissed += delegate { if (box.Leaving < 0) box.Leaving = clock.Elapsed.TotalSeconds; };
             typer.Submitted += Hear;
-            typer.VisibleChanged += delegate { if (!typer.Visible && replyDone >= 0) replyDone = clock.Elapsed.TotalSeconds; };
+            typer.VisibleChanged += delegate { if (!typer.Visible && replyDone >= 0 && remarkTicket != asking) replyDone = clock.Elapsed.TotalSeconds; };
             frames = new System.Windows.Forms.Timer();
             frames.Interval = 33;
             frames.Tick += delegate { Tick(); };
@@ -3864,7 +3866,7 @@ namespace CapriDesktop
             if (now < nextWander) return;
             nextWander = now + (45 + random.NextDouble() * 75) * pace;
             if (talkState != TalkState.Off) CloseTalk();
-            if (random.NextDouble() < 0.5 && Blink()) return;
+            if (WanderArea().IsEmpty && random.NextDouble() < 0.5 && Blink()) return;
             Wander();
         }
 
@@ -4626,6 +4628,7 @@ namespace CapriDesktop
         }
 
         private double BubbleHold(int length) { return Math.Min(14, 4 + length * 0.05) * new[] { 0.5, 1, 2 }[BubbleTime]; }
+        internal static double CommentHold(int length, int time) { return (4 + length * 0.05) * new[] { 0.5, 1, 2 }[time]; }
 
         internal void SetSleepAfter(int seconds)
         {
@@ -4993,7 +4996,7 @@ namespace CapriDesktop
             foreach (Ledge ledge in Around())
             {
                 if (!ledge.Icon.IsEmpty || ledge.Right - ledge.Left < preferences.Size / 2) continue;
-                if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor) continue;
+                if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor && (ledge.Window != IntPtr.Zero || (ledge.Left == seat.Left && ledge.Right == seat.Right && ledge.Y == seat.Y))) continue;
                 if (ledge.Y - room < Screen.FromPoint(new Point(ledge.Left, ledge.Y)).Bounds.Top) continue;
                 spots.Add(ledge);
             }
@@ -5002,13 +5005,50 @@ namespace CapriDesktop
 
         private bool Wander()
         {
+            Rectangle area = WanderArea();
+            if (!area.IsEmpty)
+            {
+                Point beside = WanderPoint(area, preferences.Size, random.NextDouble(), random.NextDouble());
+                Ledge perch = new Ledge { Left = beside.X - 8, Right = beside.X + 8, Y = beside.Y, Floor = true, Free = true };
+                GlitchOut(delegate { Hop(perch, beside.X); }, false);
+                return true;
+            }
             System.Collections.Generic.List<Ledge> spots = Spots();
             if (spots.Count == 0) return false;
-            Ledge spot = spots[random.Next(spots.Count)];
+            Ledge spot = WanderSpot(spots, preferences.Size, random.NextDouble());
             int margin = preferences.Size / 4;
             int x = spot.Left + margin + random.Next(Math.Max(1, spot.Right - spot.Left - 2 * margin));
             GlitchOut(delegate { Hop(spot, x); }, false);
             return seat == spot;
+        }
+
+        private Rectangle WanderArea()
+        {
+            Sight front = Computer.Glimpse();
+            return front == null || !FullScreen() ? Rectangle.Empty : Screen.FromRectangle(front.Bounds).Bounds;
+        }
+
+        // Longer ledges get more of her visits, so a short strip of window doesn't keep pulling her back.
+        internal static Ledge WanderSpot(System.Collections.Generic.List<Ledge> spots, int size, double pick)
+        {
+            long total = 0;
+            foreach (Ledge ledge in spots) total += Math.Max(1, ledge.Right - ledge.Left - 2 * (size / 4));
+            long at = (long)(pick * total);
+            foreach (Ledge ledge in spots)
+            {
+                at -= Math.Max(1, ledge.Right - ledge.Left - 2 * (size / 4));
+                if (at < 0) return ledge;
+            }
+            return spots[spots.Count - 1];
+        }
+
+        // Where she lands with something full screen in front: a side of it, about halfway up, clear of the crosshair in the
+        // middle and the health bars along the bottom (john_sandevistan, 31 Oct).
+        internal static Point WanderPoint(Rectangle area, int size, double across, double down)
+        {
+            int margin = Math.Min(size / 2, area.Width / 8), band = area.Width / 6;
+            int x = across < 0.5 ? area.Left + margin + (int)(across * 2 * band) : area.Right - margin - (int)((across - 0.5) * 2 * band);
+            return new Point(x, area.Top + area.Height * 2 / 5 + (int)(down * area.Height / 5));
         }
 
         private void Hop(Ledge spot, int x)
@@ -6622,8 +6662,9 @@ namespace CapriDesktop
             if (hidden) SetHidden(false);
             heard = shown;
             box.Prompt = "";
-            if (bubbleOnly) Begin(++asking, line, TalkState.Talking, null);
-            else Answer(++asking, line, TalkState.Talking);
+            remarkTicket = ++asking;
+            if (bubbleOnly) Begin(remarkTicket, line, TalkState.Talking, null);
+            else Answer(remarkTicket, line, TalkState.Talking);
         }
 
         internal void SetUpFreeVoice(bool told = false)
@@ -8320,6 +8361,7 @@ namespace CapriDesktop
         private void ChatHeard(string text)
         {
             if (!chatting) return;
+            agentComment = false;
             if (StopListening(text)) return;
             Brain.Transcribe("You (voice)", text);
             spoke = true;
@@ -8388,6 +8430,8 @@ namespace CapriDesktop
             if (dropping) return;
             if (checkedIn && Unprompted()) { dropping = true; Hush(); return; }
             string said = Computer.Mask(Voice.Spoken(text));
+            remarkTicket = agentComment ? asking : -1;
+            agentComment = false;
             // The agent saying the same line again never gets as far as their ears.
             if (SaidAgain(said)) return;
             string promised = null;
@@ -8406,6 +8450,7 @@ namespace CapriDesktop
         private void StopChat()
         {
             if (!chatting) return;
+            agentComment = false;
             bool wasLocal = local;
             chatting = false;
             local = false;
@@ -8792,6 +8837,7 @@ namespace CapriDesktop
             reply = null;
             replyDone = -1;
             box.Opened = -1;
+            remarkTicket = -1;
             box.Leaving = -1;
             if (box.Visible) box.Hide();
             speech = null;
@@ -8809,7 +8855,9 @@ namespace CapriDesktop
                 replyDone = now;
                 if (talkState == TalkState.Talking) talkState = TalkState.Online;
             }
-            if (replyDone >= 0 && box.Leaving < 0 && !box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice) && now > voiceUntil && now > replyDone + BubbleHold(reply.Length)) box.Leaving = now;
+            bool comment = remarkTicket == asking;
+            double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
+            if (replyDone >= 0 && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && now > replyDone + hold) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
@@ -14037,6 +14085,146 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeReportedLogic(System.Collections.Generic.List<string> checks)
+        {
+            Func<System.Collections.Generic.List<OpenWindow>> windowsBefore = Hands.Windows;
+            Func<OpenWindow, string, bool> steerBefore = Hands.Steer;
+            System.Collections.Generic.List<OpenWindow> open = new System.Collections.Generic.List<OpenWindow>();
+            System.Collections.Generic.List<string> closed = new System.Collections.Generic.List<string>();
+            try
+            {
+                Hands.Windows = delegate { return open; };
+                Hands.Steer = delegate(OpenWindow target, string action) { closed.Add(target.Program + ":" + action); return true; };
+                string[] systemNames = { "taskhostw", "Taskmgr", "svchost", "explorer", "csrss", "winlogon", "wininit", "dwm", "smss", "services", "lsass", "sihost", "ShellExperienceHost" };
+                foreach (string systemName in systemNames)
+                {
+                    OpenWindow systemWindow = new OpenWindow(new IntPtr(open.Count + 1), "task chrome discord", systemName);
+                    open.Add(systemWindow);
+                    foreach (string guess in new[] { "task", "host", "chrome", "discord", "win", "explore" })
+                        if (Hands.CloseScore(systemWindow, guess, "end task " + guess) != 0) throw new Exception("A loose name reached " + systemName + ".");
+                    if (Hands.CloseScore(systemWindow, systemName.ToLowerInvariant(), "end task") != 0) throw new Exception("A guessed exact name reached " + systemName + ".");
+                    string exact = Hands.Do("app_window", new ToolArguments { Name = systemName + ".exe", Action = "close", Asked = "end task " + systemName + ".exe" });
+                    if (!exact.StartsWith("Closed ", StringComparison.Ordinal) || closed[closed.Count - 1] != systemName + ":close") throw new Exception("An exact request did not reach " + systemName + ".");
+                }
+                closed.Clear();
+                open.Add(new OpenWindow(new IntPtr(100), "New tab", "chrome"));
+                open.Add(new OpenWindow(new IntPtr(101), "Friends", "Discord"));
+                foreach (string command in new[] { "end task", "end the task", "end task chrome", "end task for discord" })
+                {
+                    string tool;
+                    ToolArguments arguments;
+                    if (!Hands.Direct(command, out tool, out arguments) || tool != "app_window" || arguments.Action != "close" || arguments.Asked != command) throw new Exception("The end-task request was read wrong: " + command);
+                    string answer = Hands.Do(tool, arguments);
+                    if ((command == "end task" || command == "end the task") && (answer != "Which app, choom?" || closed.Count != 0)) throw new Exception("An unnamed task closed an app.");
+                }
+                if (string.Join(",", closed.ToArray()) != "chrome:close,Discord:close") throw new Exception("A named end-task request closed the wrong app.");
+                foreach (string stop in new[] { "end task", "end the task" })
+                {
+                    string stopTool;
+                    ToolArguments stopArgs;
+                    if (Asides.Plain(stop, out stopTool, out stopArgs) != AsideKind.Stop) throw new Exception("End task did not stop her current job.");
+                }
+                foreach (string alias in new[] { "Task Manager", "File Explorer", "Windows Explorer" })
+                    if (!Hands.Do("app_window", new ToolArguments { Name = alias, Action = "close", Asked = "close " + alias }).StartsWith("Closed ", StringComparison.Ordinal)) throw new Exception("An exact Windows app name was lost.");
+                checks.Add("PASS end task: an unnamed task ends her current job or asks which app; named Chrome and Discord close, loose program and title matches never reach Windows components, guessed exact names stay unmatched, and exact process names, .exe names, Task Manager and File Explorer still work");
+            }
+            finally { Hands.Windows = windowsBefore; Hands.Steer = steerBefore; }
+
+            int[] held = new int[256];
+            held[0x11] = 1;
+            held[0x57] = 1;
+            held[0x27] = 3;
+            System.Collections.Generic.List<string> released = new System.Collections.Generic.List<string>();
+            InputRelease.Release(held, 0x2A, delegate(short code, bool up, bool extended) { released.Add(code + ":" + up + ":" + extended); }, delegate(int flags, int data) { released.Add("mouse:" + flags + ":" + data); });
+            if (string.Join(",", released.ToArray()) != "17:True:False,39:True:True,87:True:False,mouse:84:0") throw new Exception("Input recovery released the wrong keys or buttons.");
+            released.Clear();
+            InputRelease.Release(new int[256], 0, delegate(short code, bool up, bool extended) { released.Add("key"); }, delegate(int flags, int data) { released.Add("mouse"); });
+            if (released.Count != 0) throw new Exception("Input recovery touched input she did not hold.");
+            checks.Add("PASS input recovery releases only her recorded keys and mouse buttons, keeps extended-key flags, and leaves an empty ledger alone");
+            checks.Add("LIMIT forced termination, including killing the whole process tree, and driver crashes need an isolated desktop; no real keys, buttons or processes are stopped by this check");
+
+            if (!new Preferences().OnTop || !Preferences.Fresh().OnTop) throw new Exception("Always on top did not start on.");
+            foreach (string saved in new[] { "{}", "{\"OnTop\":false}", "{\"OnTop\":true}" })
+            {
+                DataContractJsonSerializer settings = new DataContractJsonSerializer(typeof(Preferences));
+                using (MemoryStream input = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(saved)))
+                using (MemoryStream output = new MemoryStream())
+                {
+                    Preferences loaded = (Preferences)settings.ReadObject(input);
+                    bool expected = !saved.Contains("false");
+                    if (loaded.OnTop != expected) throw new Exception("Older settings changed Always on top.");
+                    settings.WriteObject(output, loaded);
+                    output.Position = 0;
+                    if (((Preferences)settings.ReadObject(output)).OnTop != expected) throw new Exception("Saving changed Always on top.");
+                }
+            }
+            checks.Add("PASS Always on top starts on, missing older settings stay on, and an explicit off or on survives a save and reload");
+
+            Ledge narrow = new Ledge { Left = 0, Right = 220 }, wide = new Ledge { Left = 300, Right = 1320 };
+            System.Collections.Generic.List<Ledge> ledges = new System.Collections.Generic.List<Ledge> { narrow, wide };
+            int narrowPicks = 0;
+            for (int sample = 0; sample < 1000; sample++) if (WanderSpot(ledges, 240, (sample + 0.5) / 1000) == narrow) narrowPicks++;
+            if (narrowPicks != 100) throw new Exception("Short ledges still get the same chance as long ledges.");
+            foreach (Rectangle monitor in new[] { new Rectangle(0, 0, 1920, 1080), new Rectangle(-2560, -1440, 2560, 1440), new Rectangle(1920, 0, 1280, 720), new Rectangle(400, 250, 800, 600) })
+            {
+                System.Collections.Generic.HashSet<Point> points = new System.Collections.Generic.HashSet<Point>();
+                for (int across = 0; across <= 9; across++)
+                    for (int down = 0; down <= 9; down++)
+                    {
+                        Point point = WanderPoint(monitor, 240, across / 10.0, down / 10.0);
+                        bool beside = point.X < monitor.Left + monitor.Width / 3 || point.X >= monitor.Right - monitor.Width / 3;
+                        if (!monitor.Contains(point) || !beside || point.Y < monitor.Top + monitor.Height / 3 || point.Y > monitor.Bottom - monitor.Height / 4) throw new Exception("Teleporting in a game landed on the crosshair, the health bars or off the screen: " + point);
+                        points.Add(point);
+                    }
+                if (points.Count != 100) throw new Exception("Teleporting in a game collapsed onto a few spots.");
+            }
+            if (CommentHold(400, 1) <= CommentHold(100, 1) || CommentHold(1000, 1) <= CommentHold(400, 1) || CommentHold(100, 0) * 4 != CommentHold(100, 2)) throw new Exception("Comment reading time did not follow its length and setting.");
+            checks.Add("PASS teleports weight ledges by usable width, and with something full screen she lands beside it, clear of the crosshair and the health bars, on primary, negative and secondary monitors");
+            checks.Add("PASS comment reading time grows with the whole line and follows Quick, Normal and Long without a ceiling for long comments");
+        }
+
+        private void SmokeComments(System.Collections.Generic.List<string> checks)
+        {
+            bool silentBefore = preferences.Silent;
+            int timeBefore = preferences.BubbleTime;
+            try
+            {
+                CloseTalk();
+                preferences.Silent = true;
+                preferences.BubbleTime = 1;
+                string longComment = string.Join(" ", new string[120]).Replace(" ", "That was close. ");
+                Remark("watching", longComment, true);
+                double now = clock.Elapsed.TotalSeconds;
+                replyStart = now - longComment.Length / pace - 1;
+                UpdateTalk(now);
+                if (!box.Scrollable) throw new Exception("The comment check did not exercise a scrolling bubble.");
+                double due = replyDone + CommentHold(longComment.Length, BubbleTime);
+                UpdateTalk(due - 0.1);
+                if (box.Leaving >= 0) throw new Exception("A comment left before its reading time.");
+                UpdateTalk(due + 0.1);
+                if (box.Leaving < 0) throw new Exception("A scrolling comment stayed forever.");
+                UpdateTalk(due + 0.4);
+                if (talkState != TalkState.Off || box.Visible) throw new Exception("The comment did not leave without a click.");
+                Remark("watching", "A short comment.", true);
+                replyStart = now - 10;
+                UpdateTalk(now);
+                double shortDue = replyDone + CommentHold(reply.Length, BubbleTime);
+                voiceUntil = shortDue + 5;
+                UpdateTalk(shortDue + 1);
+                if (box.Leaving >= 0) throw new Exception("A comment left during her own voice.");
+                UpdateTalk(shortDue + 6);
+                if (box.Leaving < 0) throw new Exception("A comment stayed after her voice and reading time.");
+                CloseTalk();
+                Begin(++asking, longComment, TalkState.Talking, null);
+                replyStart = now - longComment.Length / pace - 1;
+                UpdateTalk(now);
+                UpdateTalk(now + 300);
+                if (!box.Scrollable || box.Leaving >= 0) throw new Exception("An ordinary scrolling answer lost its reading controls.");
+                checks.Add("PASS comments, including scrolling screen and game remarks, leave after reading and speech without a click; ordinary scrolling answers keep their reading controls");
+            }
+            finally { preferences.Silent = silentBefore; preferences.BubbleTime = timeBefore; CloseTalk(); }
+        }
+
         private void SmokeVoiceWaits(System.Collections.Generic.List<string> checks)
         {
             bool waitsSilent = preferences.Silent, waitsDue = voiceCheckDue;
@@ -14494,6 +14682,8 @@ namespace CapriDesktop
                         }
                         if (step == 0)
                         {
+                            SmokeReportedLogic(checks);
+                            SmokeComments(checks);
                             SmokeOpening(checks);
                             SmokeVoiceWaits(checks);
                             SmokeVault(checks);

@@ -1892,8 +1892,10 @@ namespace CapriDesktop
 
         internal static Action<int, int> SendMouse = delegate(int flags, int data)
         {
+            InputRelease.Mouse(flags, true);
             Input[] inputs = { new Input { Type = 0, Data = new InputUnion { Mouse = new MouseInput { Flags = flags, Data = data } } } };
             SendInput(1, inputs, Marshal.SizeOf(typeof(Input)));
+            InputRelease.Mouse(flags, false);
         };
 
         // Games such as Roblox and Minecraft read a key's scan code rather than its virtual-key code, so each press sends the
@@ -1913,10 +1915,12 @@ namespace CapriDesktop
 
         internal static Action<short, bool, bool> SendKey = delegate(short key, bool up, bool extended)
         {
+            if (!up) InputRelease.Key(key, extended ? 3 : 1);
             short scan = Scan(key);
             int flags = (up ? 0x0002 : 0) | (extended ? 0x0001 : 0) | (scan != 0 ? 0x0008 : 0);
             Input[] inputs = { new Input { Type = 1, Data = new InputUnion { Key = new KeyInput { Key = key, Scan = scan, Flags = flags } } } };
             SendInput(1, inputs, Marshal.SizeOf(typeof(Input)));
+            if (up) InputRelease.Key(key, 0);
         };
 
         private static void Write(string text)
@@ -3065,6 +3069,111 @@ namespace CapriDesktop
         {
             text = Regex.Replace(text ?? "", @"\s+", " ").Trim();
             return text.Length == 0 ? fallback : text.Length > 200 ? text.Substring(0, 197) + "..." : text;
+        }
+    }
+
+    internal static class InputRelease
+    {
+        private static readonly object gate = new object();
+        private static System.IO.MemoryMappedFiles.MemoryMappedFile map;
+        private static System.IO.MemoryMappedFiles.MemoryMappedViewAccessor state;
+        private static Process helper;
+        private static string sharedName;
+        private static bool watching;
+        internal const int Bytes = 1032;
+
+        // Task Manager skips her exit handlers. This windowless helper waits on her process handle, outside the voice and
+        // brain job, and lets go of only the input she sent. It never restarts her or closes another process.
+        private static void Open()
+        {
+            if (watching || (helper != null && !helper.HasExited)) return;
+            if (helper != null) helper.Dispose();
+            helper = null;
+            if (map == null)
+            {
+                sharedName = "Local\\Capri.Input." + Guid.NewGuid().ToString("N");
+                map = System.IO.MemoryMappedFiles.MemoryMappedFile.CreateNew(sharedName, Bytes);
+                state = map.CreateViewAccessor();
+            }
+            state.Write(0, 0);
+            using (Process parent = Process.GetCurrentProcess())
+            {
+                string arguments = "--release-input " + parent.Id + " " + parent.StartTime.ToUniversalTime().Ticks + " " + sharedName;
+                helper = Process.Start(new ProcessStartInfo(System.Windows.Forms.Application.ExecutablePath, arguments) { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden });
+            }
+            Stopwatch ready = Stopwatch.StartNew();
+            while (state.ReadInt32(0) == 0 && !helper.HasExited && ready.ElapsedMilliseconds < 3000) Thread.Sleep(10);
+            if (state.ReadInt32(0) == 0) Brain.Log("input recovery", -1, "Her input recovery helper did not become ready.");
+        }
+
+        internal static void Key(short key, int held)
+        {
+            if (watching || key < 0 || key > 255) return;
+            lock (gate)
+            {
+                try { Open(); state.Write(4 + key * 4, held); }
+                catch (Exception error) { Brain.Log("input recovery", -1, Voice.Short(error.Message)); }
+            }
+        }
+
+        internal static void Mouse(int flags, bool before)
+        {
+            if (watching || (flags & (before ? 0x002A : 0x0054)) == 0) return;
+            lock (gate)
+            {
+                try
+                {
+                    Open();
+                    int buttons = state.ReadInt32(1028);
+                    state.Write(1028, before ? buttons | (flags & 0x002A) : buttons & ~((flags & 0x0054) >> 1));
+                }
+                catch (Exception error) { Brain.Log("input recovery", -1, Voice.Short(error.Message)); }
+            }
+        }
+
+        internal static void Release(int[] keys, int buttons, Action<short, bool, bool> key, Action<int, int> mouse)
+        {
+            for (short code = 0; code < 256; code++) if (keys[code] != 0) key(code, true, (keys[code] & 2) != 0);
+            if ((buttons & 0x002A) != 0) mouse((buttons & 0x002A) << 1, 0);
+        }
+
+        internal static int Watch(string id, string started, string name)
+        {
+            int parentId;
+            long parentStart;
+            if (!int.TryParse(id, out parentId) || !long.TryParse(started, out parentStart) || !name.StartsWith("Local\\Capri.Input.", StringComparison.Ordinal)) return 1;
+            watching = true;
+            try
+            {
+                using (System.IO.MemoryMappedFiles.MemoryMappedFile shared = System.IO.MemoryMappedFiles.MemoryMappedFile.OpenExisting(name))
+                using (System.IO.MemoryMappedFiles.MemoryMappedViewAccessor held = shared.CreateViewAccessor())
+                {
+                    Process parent = null;
+                    try { parent = Process.GetProcessById(parentId); }
+                    catch (ArgumentException) { }
+                    if (parent != null)
+                    {
+                        using (parent)
+                        {
+                            try
+                            {
+                                if (parent.StartTime.ToUniversalTime().Ticks == parentStart)
+                                {
+                                    IntPtr handle = parent.Handle;
+                                    held.Write(0, 1);
+                                    parent.WaitForExit();
+                                }
+                            }
+                            catch (InvalidOperationException) { }
+                        }
+                    }
+                    int[] keys = new int[256];
+                    held.ReadArray(4, keys, 0, keys.Length);
+                    Release(keys, held.ReadInt32(1028), Computer.SendKey, Computer.SendMouse);
+                }
+                return 0;
+            }
+            catch (Exception) { return 1; }
         }
     }
 

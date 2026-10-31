@@ -786,7 +786,7 @@ namespace CapriDesktop
                 if (tool == "media") return Media(args);
                 if (tool == "look_at_screen") return Look(args.Focus);
                 if (tool == "play_music") return PlayMusic(args.Song, args.App, args.Kind);
-                if (tool == "app_window") return Window(args.Name, args.Action);
+                if (tool == "app_window") return Window(args.Name, args.Action, args.Asked);
                 if (tool == "use_computer") return string.IsNullOrWhiteSpace(args.Task) ? "Which job, choom?" : Work(args.Task.Trim(), args.Asked);
                 if (tool == "shortcut") return Shortcut(args.Name);
                 if (tool == "remember") return args.Action == "forget" ? Brain.Unnote(Theirs(args.Text)) : CallMe(args.Text) ?? Brain.Note(Theirs(args.Text));
@@ -1697,12 +1697,22 @@ namespace CapriDesktop
                 tool = "play_music";
                 return true;
             }
+            found = Regex.Match(text, @"^end (?:the )?task(?: (?:for )?(.+))?$", RegexOptions.IgnoreCase);
+            if (found.Success)
+            {
+                tool = "app_window";
+                args.Name = found.Groups[1].Success ? found.Groups[1].Value.Trim() : "task";
+                args.Action = "close";
+                args.Asked = said;
+                return true;
+            }
             found = Regex.Match(text, @"^(close|quit|exit|kill|shut down|switch to|go to|bring up|show me|minimi[sz]e)\s+(.+)$", RegexOptions.IgnoreCase);
             if (!found.Success || Regex.IsMatch(found.Groups[2].Value, @"^(it|this|that|them|this one|that one|everything|all|all of (it|them)|the window|this window|that window)$", RegexOptions.IgnoreCase) || !Showing(found.Groups[2].Value)) return false;
             string verb = found.Groups[1].Value.ToLowerInvariant();
             tool = "app_window";
             args.Name = found.Groups[2].Value.Trim();
             args.Action = verb.StartsWith("minimi", StringComparison.Ordinal) ? "minimize" : Regex.IsMatch(verb, "^(close|quit|exit|kill|shut down)$") ? "close" : "switch_to";
+            args.Asked = said;
             return true;
         }
 
@@ -2876,14 +2886,16 @@ namespace CapriDesktop
             catch (IOException) { return ""; }
         }
 
-        private static string Window(string wanted, string action)
+        private static string Window(string wanted, string action, string asked)
         {
             if (action != "switch_to" && action != "minimize" && action != "close") return "There's no window action called " + action + ".";
-            string want = Regex.Replace(Plain(wanted), @"^the |( app| application| game| tab| window)$", "");
+            wanted = Regex.Replace(wanted ?? "", @"^end (?:the )?task(?: for)?(?:\s+|$)", "", RegexOptions.IgnoreCase);
+            string want = Regex.Replace(Plain(Regex.Replace(wanted, @"\.exe$", "", RegexOptions.IgnoreCase)), @"^the |( app| application| game| tab| window)$", "");
             if (want.Length == 0) return "Which app, choom?";
+            if (action == "close" && (want == "task" || want == "end task" || want == "end the task")) return "Which app, choom?";
             wanted = wanted.Trim();
             int best;
-            List<OpenWindow> top = Best(want, out best);
+            List<OpenWindow> top = Best(want, out best, action == "close", asked);
             if (top.Count == 0) return Unlisted() ?? wanted + " isn't open.";
             // When several apps match, the one whose own name matches goes first, then the one nearest the front.
             OpenWindow first = top.Find(window => Score(Plain(window.Program), want) == best) ?? top[0];
@@ -2898,13 +2910,27 @@ namespace CapriDesktop
         }
 
         // The open windows whose program or title matches best, front first.
-        private static List<OpenWindow> Best(string want, out int best)
+        internal static int CloseScore(OpenWindow window, string want, string asked)
+        {
+            string program = Plain(window.Program);
+            if (program.Length == 0) return 0;
+            if (Regex.IsMatch(program, @"^(taskhostw?|taskmgr|svchost|explorer|csrss|winlogon|wininit|dwm|smss|services|lsass|lsm|system|registry|memorycompression|fontdrvhost|sihost|conhost|runtimebroker|shellexperiencehost|startmenuexperiencehost|searchhost|searchindexer|audiodg|spoolsv|securityhealthservice|msmpeng)$"))
+            {
+                bool exact = want == program || (program == "explorer" && (want == "file explorer" || want == "windows explorer")) || (program == "taskmgr" && want == "task manager");
+                string names = Regex.Escape(program) + (program == "explorer" ? "|file explorer|windows explorer" : program == "taskmgr" ? "|task manager" : "");
+                if (!exact || (asked != null && !Regex.IsMatch(Plain(asked), @"(?:^| )(?:" + names + @")(?: |$)"))) return 0;
+                return 4;
+            }
+            return Math.Max(Score(program, want), Score(Plain(window.Title), want));
+        }
+
+        private static List<OpenWindow> Best(string want, out int best, bool closing = false, string asked = null)
         {
             List<OpenWindow> top = new List<OpenWindow>();
             best = 0;
             foreach (OpenWindow window in Windows())
             {
-                int score = Math.Max(Score(Plain(window.Program), want), Score(Plain(window.Title), want));
+                int score = closing ? CloseScore(window, want, asked) : Math.Max(Score(Plain(window.Program), want), Score(Plain(window.Title), want));
                 if (score == 0 || score < best) continue;
                 if (score > best) { best = score; top.Clear(); }
                 top.Add(window);

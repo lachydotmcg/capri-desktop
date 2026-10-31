@@ -1461,6 +1461,7 @@ namespace CapriDesktop
                 {
                     Check(ticket);
                     if (call.Key == "use_computer" && call.Value != null && call.Value.Asked == null) call.Value.Asked = request;
+                    if (call.Key == "app_window" && call.Value != null) call.Value.Asked = request;
                     if (call.Key == "media") Hands.Aim(call.Value, request);
                     string result;
 #if !CROSS

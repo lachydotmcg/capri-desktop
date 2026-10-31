@@ -528,6 +528,8 @@ namespace CapriDesktop
             catch (Exception) { return null; }
         }
 
+        private bool agentComment;
+
         private void CommentSay(string line, string kind, GameMood mood)
         {
             string game = Commentary.Game();
@@ -540,6 +542,7 @@ namespace CapriDesktop
             if (test == null && chatting && !local && told != null && told.Ready)
             {
                 stirred = Environment.TickCount;
+                agentComment = true;
                 told.Say("(Say this about their game, word for word, and nothing else: " + Voice.Quote(line) + ")");
                 return;
             }

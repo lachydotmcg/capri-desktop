@@ -137,11 +137,12 @@ namespace CapriSetup
             string marker = Path.Combine(destination, ".capri-install");
             string existing = Path.Combine(destination, "Capri.exe");
             if (Directory.Exists(destination) && !File.Exists(marker) && File.Exists(existing) && !Ours(existing)) throw new IOException("There's a Capri.exe in " + destination + " that isn't this Capri. Move it out of that folder, then install again.");
+            // Her input helper lives a moment after she closes, so a copy on its way out gets a few seconds.
             foreach (Process process in Process.GetProcessesByName("Capri"))
             {
                 using (process)
                 {
-                    try { if (string.Equals(process.MainModule.FileName, Path.Combine(destination, "Capri.exe"), StringComparison.OrdinalIgnoreCase)) throw new IOException("Quit Capri from her tray menu, then install again."); }
+                    try { if (string.Equals(process.MainModule.FileName, Path.Combine(destination, "Capri.exe"), StringComparison.OrdinalIgnoreCase) && !process.WaitForExit(3000)) throw new IOException("Quit Capri from her tray menu, then install again."); }
                     catch (System.ComponentModel.Win32Exception) { }
                 }
             }
