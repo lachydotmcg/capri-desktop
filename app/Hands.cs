@@ -432,6 +432,9 @@ namespace CapriDesktop
 
     internal static class Hands
     {
+        internal const string SpokenName = @"(?:\b[ck]app?r(?:i|ee|ie|y)\b|\b(?:kopri|recovery|капри|كابري)\b|(?<![\p{L}\p{M}\p{N}_])कैप्री(?![\p{L}\p{M}\p{N}_])|カプリ|卡普里|카프리)";
+        internal static bool HeardName(string words) { return Regex.IsMatch(words ?? "", SpokenName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant); }
+
         // Her chat and voice chat line about her tools, with SECURITY's line after it while one of her tools' toggles is off.
         internal static string Note { get { return Noted + Security.Note + MiniNote + MiniBoard(); } }
 
@@ -1271,12 +1274,12 @@ namespace CapriDesktop
 
         // "Go to sleep" or "take a nap" said to her is her own nap, not the PC's (that needs a PC word), and "wake up" ends it.
         // "Sleep here" is the same nap, where she is.
-        private static readonly Regex Napping = new Regex(@"^(?:(?:go (?:back )?to (?:sleep|bed)|(?:go )?(?:take|have|grab) (?:a |ur |your )?(?:little |quick |power )?(?:nap|snooze|rest)|go (?:nap|rest|snooze|sleep)|nap(?: time)?|sleep|doze off|get some (?:sleep|rest))(?: (?:here|there|right here|right there|over here|where you are))?|(?<wake>wake(?: up|y wakey)|rise and shine))(?:[\s,]+(?:now|then|already|girl|choom|[ck]app?r(?:i|ee|ie|y)))*$", RegexOptions.IgnoreCase);
+        private static readonly Regex Napping = new Regex(@"^(?:(?:go (?:back )?to (?:sleep|bed)|(?:go )?(?:take|have|grab) (?:a |ur |your )?(?:little |quick |power )?(?:nap|snooze|rest)|go (?:nap|rest|snooze|sleep)|nap(?: time)?|sleep|doze off|get some (?:sleep|rest))(?: (?:here|there|right here|right there|over here|where you are))?|(?<wake>wake(?: up|y wakey)|rise and shine))(?:[\s,]+(?:now|then|already|girl|choom|" + SpokenName + @"))*$", RegexOptions.IgnoreCase);
 
         // Her own moves said to her, so they never wait on a brain: "teleport here", "go to my other monitor", "move the Mainframe
         // to my other screen", "sit down", "sit on my Roblox window", "lie down", "walk around", "hang here", "ride my cursor",
         // "hide". A bare "hop off" stays a call to leave, and "hang on", "hang up", "sit with me" and "go away" aren't moves.
-        private const string Hers = @"(?:[\s,]+(?:now|then|already|again|quick|real quick|for me|for us|please|pls|plz|girl|choom|bestie|[ck]app?r(?:i|ee|ie|y)))*$";
+        private const string Hers = @"(?:[\s,]+(?:now|then|already|again|quick|real quick|for me|for us|please|pls|plz|girl|choom|bestie|" + SpokenName + @"))*$";
         // The window she's told to sit or lie on, by its app's or game's name: "Roblox" in "sit on my Roblox window". Words for
         // a person, a pronoun or her cursor never name one.
         private const string OnWindow = @"(?!(?:(?:the|my|your|ur|our|that|this) )?(?:it|that|this|there|here|me|you|him|her|them|us|lap|face|head|knees?|bed|couch|sofa|chair|cursor|mouse|pointer|window|ledge|back|side|stomach|tummy)\b)(?:the |my |your |ur |our |that |this )?(?<w>[\p{L}\p{Nd}][\p{L}\p{Nd} .'&+-]{0,40}?)";
@@ -1544,7 +1547,7 @@ namespace CapriDesktop
         {
             if (Planned(said, out tool, out args)) return true;
             List<string> tries = new List<string>();
-            Match named = Regex.Match(said ?? "", @"\b[ck]app?r(?:i|ee|ie|y)\b[\s,.!?]*([^\s,.!?].*)$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
+            Match named = Regex.Match(said ?? "", SpokenName + @"[\s,.!?]*([^\s,.!?].*)$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
             if (named.Success) tries.Add(named.Groups[1].Value);
             string[] sentences = Regex.Split((said ?? "").Trim(), @"(?<=[.!?])\s+");
             if (sentences.Length > 1) tries.Add(sentences[sentences.Length - 1]);

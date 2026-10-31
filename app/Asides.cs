@@ -176,6 +176,8 @@ namespace CapriDesktop
             return over >= Held;
         }
 
+        internal bool Above(double mic, double mine, double wake) { return mic >= wake && (mine <= Pause || mic >= share * mine * Margin); }
+
         // How loud a clip of her voice is, ten times a second.
         internal static double[] Levels(byte[] wav)
         {
@@ -446,6 +448,7 @@ namespace CapriDesktop
         private readonly List<short[]> heldBack = new List<short[]>();
         private volatile bool barging;
         private bool overHeld;
+        private volatile bool nameOver;
         private double bargedUntil = -1;
         private volatile int micTalked;
 
@@ -473,6 +476,7 @@ namespace CapriDesktop
         {
             double now = clock.Elapsed.TotalSeconds;
             if (level >= WakeLevel) micTalked = Environment.TickCount;
+            if (nameOver && local && earsReady && !ears.Muted && !transcribing) return false;
             if (!local || !earsReady || ears.Muted || transcribing || now >= voiceUntil)
             {
                 talkOver.Reset();
@@ -488,8 +492,13 @@ namespace CapriDesktop
                 if (preroll.Count > 4) preroll.RemoveAt(0);
                 if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake())) return true;
             }
-            talkOver.Reset();
             overHeld = false;
+            if (preferences.ListenCapri)
+            {
+                nameOver = true;
+                return true;
+            }
+            talkOver.Reset();
             Post(BargeIn);
             return true;
         }
@@ -532,6 +541,7 @@ namespace CapriDesktop
         private void PushStart()
         {
             pushing = true;
+            nameOver = false;
             BargeIn();
             Commentary.Stage.Hear("", false);
             if (chatting && !local)
@@ -583,7 +593,7 @@ namespace CapriDesktop
         {
             if (problem != null) { mainframe.VoiceNote(problem, true); return; }
             if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote("I couldn't make out any words. Try closer to the mic.", false); return; }
-            mainframe.VoiceNote("Heard you.", false);
+            mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);
             Commentary.Stage.Hear(text, true);
             Hear(text, text, "> you: ");
         }

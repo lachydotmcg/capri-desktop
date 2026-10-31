@@ -248,6 +248,7 @@ namespace CapriDesktop
         private readonly Readout commentsName;
         private readonly Toggle intro;
         private readonly Toggle typing;
+        private readonly Toggle listenCapri;
         private readonly Toggle hdGames;
         private readonly Toggle miniPlayer;
         private readonly Readout sleepName;
@@ -511,8 +512,11 @@ namespace CapriDesktop
             typing.Hint = "When she types";
             typing.HintFont = small;
             typing.AccessibleName = "Typing sound. A soft typing sound while her text replies type out";
-            // The row under Typing sound, shown only while her HD voice is on (Lachy, 29 Oct). Off out of the box.
-            hdGames = Switch("Free voice in games", 0, 400, delegate { if (!syncing) capri.ToggleHdGameRest(); });
+            listenCapri = Switch("Listen for Capri", 0, 400, delegate { if (!syncing) capri.ToggleListenCapri(); });
+            Caption("Say her name anywhere to chat", 28, 428, small, Faint);
+            listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence. Stop and push to talk still work";
+            // The row under Listen for Capri, shown only while her HD voice is on (Lachy, 29 Oct). Off out of the box.
+            hdGames = Switch("Free voice in games", 0, 450, delegate { if (!syncing) capri.ToggleHdGameRest(); });
             hdGames.AccessibleName = "Free voice in games: while a game or video is full screen, her free voice talks instead of her HD voice, so the game gets the graphics card";
             hdGames.Visible = false;
             int afterVoice = Controls.Count;
@@ -561,7 +565,11 @@ namespace CapriDesktop
             confirmKeys.Visible = cancelKeys.Visible = clearKeys.Visible = false;
             keysNote = Caption("", 28, 872, small, Faint);
             keysNote.MaximumSize = new Size(328, 0);
-            for (int i = afterVoice; i < Controls.Count; i++) underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
+            for (int i = afterVoice; i < Controls.Count; i++)
+            {
+                Controls[i].Top += Row + 22;
+                underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
+            }
             Section("CAPRI >", c, 58);
             sizeSlider = Setting("Size", SizeNames, c, 82, "Her size");
             sizeName = new Readout(sizeSlider);
@@ -884,9 +892,13 @@ namespace CapriDesktop
 
         internal bool TypingShown { get { return typing.Checked; } }
 
+        internal bool ListenCapriShown { get { return listenCapri.Checked; } }
+
+        internal void FlipListenCapri() { listenCapri.Checked = !listenCapri.Checked; }
+
         internal string HdGamesStatus { get { return hdGames.Visible ? (hdGames.Checked ? "on" : "off") : "-"; } }
 
-        // Free voice in games has the row under Typing sound, shown only while her HD voice is on. Without it, MOVES and KEYS
+        // Free voice in games has the row under Listen for Capri, shown only while her HD voice is on. Without it, MOVES and KEYS
         // move up into its row.
         private void ShowHdGames()
         {
@@ -1605,6 +1617,7 @@ namespace CapriDesktop
             commentsName.Text = Commentary.PaceNames[comments.Value];
             intro.Checked = capri.Intro;
             typing.Checked = capri.TypingSound;
+            listenCapri.Checked = capri.ListenCapriOn;
             ShowHdGames();
             miniPlayer.Checked = capri.PlayerOn;
             replies.Value = capri.Wordiness;

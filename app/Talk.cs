@@ -654,6 +654,7 @@ namespace CapriDesktop
         private Point centre;
         private bool chatting;
         private bool muted;
+        private bool listenForName;
         private int level;
         private int tear;
         private int seed;
@@ -676,6 +677,12 @@ namespace CapriDesktop
         internal bool Chatting { get { return chatting; } }
 
         internal bool Muted { get { return muted; } }
+
+        internal bool ListenForName
+        {
+            get { return listenForName; }
+            set { if (listenForName == value) return; listenForName = value; if (Visible) Redraw(); }
+        }
 
         // True for the few frames it glitches in.
         internal bool Tearing { get { return tear > 0; } }
@@ -715,7 +722,7 @@ namespace CapriDesktop
                 ticks.Stop();
                 ticks.Start();
             }
-            Present(Render(scale, hover, chatting, muted, level, tear, seed), new Point(centre.X - Measure(scale).Width / 2, centre.Y));
+            Present(Render(scale, hover, chatting, muted, level, tear, seed, listenForName), new Point(centre.X - Measure(scale).Width / 2, centre.Y));
         }
 
         // For the smoke test: it glitches in when it shows, and a redraw while it's up stays clean.
@@ -728,12 +735,12 @@ namespace CapriDesktop
                 Hide();
                 Redraw();
                 bool torn = Visible && tear == TearFrames;
-                using (Bitmap clean = Render(scale, hover, chatting, muted, level)) torn = torn && Differs(Image, clean);
+                using (Bitmap clean = Render(scale, hover, chatting, muted, level, 0, 0, listenForName)) torn = torn && Differs(Image, clean);
                 tear = 0;
                 ticks.Stop();
                 Redraw();
                 bool calm = tear == 0 && !ticks.Enabled;
-                using (Bitmap clean = Render(scale, hover, chatting, muted, level)) calm = calm && !Differs(Image, clean);
+                using (Bitmap clean = Render(scale, hover, chatting, muted, level, 0, 0, listenForName)) calm = calm && !Differs(Image, clean);
                 return torn && calm;
             }
             finally { Motion = motion; }
@@ -768,7 +775,7 @@ namespace CapriDesktop
 
         internal static int EdgeWidth(float s) { return Math.Max(1, (int)Math.Round(1.5 * s)); }
 
-        internal static string Label(int part, bool chatting, bool muted) { return part == 1 ? "TYPE" : chatting && muted ? "MUTED" : "TALK"; }
+        internal static string Label(int part, bool chatting, bool muted, bool listenForName = false) { return part == 1 ? "TYPE" : chatting && muted ? "MUTED" : chatting && listenForName ? "CAPRI" : "TALK"; }
 
         // How many of a bar's segments the mic level lights, for a level from 0 to 6.
         internal static int Lit(int bar, int level)
@@ -821,7 +828,7 @@ namespace CapriDesktop
             return new[] { new Rectangle(start, middle - wide / 2, wide, wide), new Rectangle(start + wide + gap, middle - ink.Height / 2, ink.Width, ink.Height) };
         }
 
-        internal static Bitmap Render(float s, int hover, bool chatting = false, bool muted = false, int level = 0, int tear = 0, int seed = 0)
+        internal static Bitmap Render(float s, int hover, bool chatting = false, bool muted = false, int level = 0, int tear = 0, int seed = 0, bool listenForName = false)
         {
             Size size = Measure(s);
             Bitmap image = new Bitmap(chatting ? size.Width + (int)Math.Round(4 * s) + size.Height : size.Width, size.Height, PixelFormat.Format32bppPArgb);
@@ -843,7 +850,7 @@ namespace CapriDesktop
                 using (Brush cyan = new SolidBrush(Color.FromArgb(220, Look.Cyan))) graphics.FillRectangle(cyan, body.Right - (int)Math.Round(32 * s), body.Top - (int)Math.Round(2 * s), (int)Math.Round(15 * s), sliver);
                 using (Brush pink = new SolidBrush(Color.FromArgb(220, Look.Pink))) graphics.FillRectangle(pink, body.Left + (int)Math.Round(12 * s), body.Bottom + (int)Math.Round(2 * s) - sliver, (int)Math.Round(11 * s), sliver);
                 Color wash = Mix(Fill, Look.Cyan, WashAlpha);
-                string talk = Label(2, chatting, muted);
+                string talk = Label(2, chatting, muted, listenForName);
                 Rectangle[] pencil = Layout(s, 1, Ink(font, "TYPE"));
                 Rectangle[] wave = Layout(s, 2, Ink(font, talk));
                 DrawPencil(graphics, new PointF(pencil[0].X + pencil[0].Width / 2f, pencil[0].Y + pencil[0].Height / 2f), 0.9f * s, hover == 1 ? Look.Cyan : Look.Ink, hover == 1 ? wash : Fill);

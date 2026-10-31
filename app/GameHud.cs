@@ -1098,6 +1098,7 @@ namespace CapriDesktop
         // Their mic while voice chat is on: the bars, and LISTENING once they speak, unless it's her own line coming through.
         private void DockLevel(double value)
         {
+            if (local && preferences.ListenCapri && !pushing) return;
             GameHud.Level(value);
             if (value >= HeardSpeech && talkState == TalkState.Off && speech == null) GameHud.Hear(dockWords, false);
         }
@@ -1105,6 +1106,7 @@ namespace CapriDesktop
         // What they've said so far, from Windows' speech recognition, which shows words as they come.
         private void DockWords(string words)
         {
+            if (local && preferences.ListenCapri && !pushing) return;
             if (!docked || talkState != TalkState.Off) return;
             dockWords = words ?? "";
             GameHud.Hear(dockWords, false);

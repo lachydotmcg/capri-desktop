@@ -226,6 +226,8 @@ namespace CapriDesktop
         [DataMember] public int ExploreAfter;
         [DataMember] public bool FreeVoice;
         [DataMember] public bool FreeChatTold;
+        [DataMember] public bool ListenCapri;
+        [DataMember] public bool ListenCapriTold;
         [DataMember] public bool NoDance;
         [DataMember] public string Language;
         [DataMember] public string Nickname;
@@ -7003,7 +7005,7 @@ namespace CapriDesktop
         private void HeardLevel(double value)
         {
             if (value >= MicAlive) micHeard = true;
-            double level = local && (earsShut || transcribing || noiseHold || !earsReady) ? 0 : value;
+            double level = local && (preferences.ListenCapri && !pushing || earsShut || transcribing || noiseHold || !earsReady) ? 0 : value;
             pill.SetLevel(level);
             if (docked) DockLevel(level);
         }
@@ -7768,6 +7770,7 @@ namespace CapriDesktop
             bool hd = preferences.HdVoice, yours = YourVoice.Active(qwen.Folder), served = preferences.ServerVoice;
             mainframe.ShowFree(ready, hd ? QwenVoice.Style : served ? VoiceServer.Style : kokoro.Style.Name, SettingUpVoice, HdFits, yours, YourVoice.Saved(qwen.Folder), served && !hd ? VoiceServer.Label(server.Url, server.Api) : null);
             if (!note) return;
+            if (chatting && local && preferences.ListenCapri && earsReady) { mainframe.VoiceNote(ears.Muted ? "Listening for Capri; mic muted." : LocalListening, false); return; }
             string name = "custom voice";
             if (voices != null) foreach (VoiceEntry entry in voices.Voices) if (entry.Id == voice.VoiceId && entry.Name != null) name = entry.Name;
             mainframe.VoiceNote(voice.Key == null || (served && preferences.Quiet) ? (served ? (server.Api == VoiceServer.Files ? "Voice model " + VoiceServer.Label(server.Url, server.Api) + ", on your PC." : VoiceServer.Name(server.Url, server.Api) + " at " + VoiceServer.Where(server.Url, server.Api) + ".") + (ready ? " Her free voice fills in if it's down." : "") : hd && settingUpHd ? "Getting her HD voice (" + Engine.Amount(QwenVoice.PackSize) + "), one time. Pick another free voice to stop." : hd && qwen.Installed ? (yours ? "HD voice from your clip, on your graphics card. Games get her free voice." : "HD voice on your graphics card. Games get her free voice.") : ready ? (yours ? "Free voice, runs on your PC. Your voice only works with HD." : "Free voice, runs on your PC.") : SettingUpVoice ? "This may take some time. For a better sounding, faster voice, get an API key." : "Get her free voice (" + Engine.Amount(LocalVoice.PackSize) + "), or pick CLOUD VOICE.") : voice.VoiceId == null ? "Needs your Voice ID." : "ElevenLabs · " + name, false);
@@ -7882,8 +7885,8 @@ namespace CapriDesktop
         private void ToggleChat()
         {
             if (chatting) { StopChat(); return; }
-            // Voice chat follows the VOICE pick: anything but ElevenLabs, or no key, is free voice chat.
-            if (FreeChatOn && (preferences.Quiet || preferences.Silent || voice.Key == null)) { StartLocal(); return; }
+            // Listen for Capri needs her own ears; otherwise voice chat follows the VOICE pick.
+            if (ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, voice.Key != null)) { StartLocal(); return; }
             if ((preferences.Quiet || preferences.Silent) && voice.Key != null)
             {
                 heard = "(voice)";
@@ -7925,6 +7928,7 @@ namespace CapriDesktop
             ears.Muted = false;
             if (!testing && !muteKey) muteKey = ByMouse(preferences.MuteVk) || Native.RegisterHotKey(Handle, MuteKeyId, preferences.MuteMods | 0x4000, preferences.MuteVk);
             pill.SetChat(true, false);
+            pill.ListenForName = preferences.ListenCapri;
             pillUntil = clock.Elapsed.TotalSeconds + PillPop;
             // Turned on mid-job, it leaves the job running, so what they say next goes to it.
             if (working == null)
@@ -7934,6 +7938,8 @@ namespace CapriDesktop
             }
             ListenLocally();
         }
+
+        internal static bool ChatUsesEars(bool name, bool quiet, bool silent, bool connected) { return name || FreeChatOn && (quiet || silent || !connected); }
 
         private void EarsNote(string text, bool problem)
         {
@@ -7948,6 +7954,19 @@ namespace CapriDesktop
         // Free voice chat is listening. How it works gets said the first time and after that only shows under VOICE, unless she promised to say when she can hear them.
         private void EarsReady(bool promised)
         {
+            if (preferences.ListenCapri)
+            {
+                pill.ListenForName = true;
+                string waiting = ears.Muted ? "Listening for Capri; mic muted." : LocalListening;
+                mainframe.VoiceNote(earsLead + waiting, false);
+                if (!preferences.ListenCapriTold && talkState != TalkState.Thinking)
+                {
+                    EarsNote(earsLead + waiting + " Say my name anywhere in your sentence.", false);
+                    preferences.ListenCapriTold = true;
+                    if (!testing) SavePreferences();
+                }
+                return;
+            }
             const string on = "Free voice chat on. Talk and I'll type back.";
             if (ears.Muted) EarsNote(earsLead + "Free voice chat is ready; your mic is muted.", false);
             else if (earsLead.Length > 0) EarsNote(earsLead + "Free voice chat is on; talk and I'll type back.", false);
@@ -7968,6 +7987,7 @@ namespace CapriDesktop
 
         private void ListenLocally()
         {
+            nameOver = false;
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
             if (OwnEars) { ListenOwn(); return; }
@@ -7981,7 +8001,7 @@ namespace CapriDesktop
             opened.Heard = delegate(string text) { OnUi(delegate { if (dictation == opened) HeardDictation(text); }); };
             opened.Partial = delegate(string words) { OnUi(delegate { if (dictation == opened) DockWords(words); }); };
             opened.Lost = delegate(string problem) { OnUi(delegate { if (dictation == opened) DictationLost(problem); }); };
-            if (preferences.FreeChatTold && earsLead.Length == 0) mainframe.VoiceNote("One sec, opening my ears.", false);
+            if ((preferences.ListenCapri || preferences.FreeChatTold) && earsLead.Length == 0) mainframe.VoiceNote("One sec, opening my ears.", false);
             else EarsNote(earsLead + "One sec, opening my ears.", false);
             opened.Start(delegate(string problem) { OnUi(delegate { if (dictation == opened) Dictated(problem); }); });
         }
@@ -8079,24 +8099,77 @@ namespace CapriDesktop
             }
             earsReady = true;
             CheckEars(clock.Elapsed.TotalSeconds);
+            if (preferences.ListenCapri)
+            {
+                EarsReady(false);
+                mainframe.VoiceNote(LocalListening + " Offline hearing. " + why, true);
+                return;
+            }
             EarsNote(earsLead + (ears.Muted ? "Free voice chat is ready with offline hearing; your mic is muted. " : "Free voice chat on, but I'm hearing offline, so I'll miss some words. ") + (why == Dictation.PrivacyOff ? "Turn on Online speech recognition in Windows Settings > Privacy & security > Speech." : "The reason is under VOICE in the Mainframe."), false);
             mainframe.VoiceNote(why, true);
         }
 
         private void HeardDictation(string text)
         {
-            if (!chatting || !local || !earsReady) return;
-            CheckEars(clock.Elapsed.TotalSeconds);
+            if (!chatting || !local || !earsReady || ears.Muted) return;
             text = Hearing.Clean(text);
+            if (preferences.ListenCapri && !pushing && clock.Elapsed.TotalSeconds < voiceUntil && !nameOver && !VoiceStop(text) && !(PcEars.Active && StopWords(text))) return;
+            if (!VoiceForHer(text)) { nameOver = false; return; }
+            nameOver = false;
+            if (preferences.ListenCapri && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy))
+            {
+                if (StopVoice(text)) return;
+                BargeIn();
+            }
+            CheckEars(clock.Elapsed.TotalSeconds);
             if (earsShut || text.Length == 0) return;
-            mainframe.VoiceNote("Free voice chat on. Talk and I'll type back.", false);
+            mainframe.VoiceNote(LocalListening, false);
             Hear(text, text, "> you: ");
+        }
+
+        internal bool ListenCapriOn { get { return preferences.ListenCapri; } }
+
+        internal void ToggleListenCapri()
+        {
+            preferences.ListenCapri = !preferences.ListenCapri;
+            nameOver = false;
+            SavePreferences();
+            mainframe.Sync();
+            if (!chatting) return;
+            if (preferences.ListenCapri && !local) { StopChat(); StartLocal(); return; }
+            pill.ListenForName = preferences.ListenCapri;
+            if (earsReady) EarsReady(false);
+        }
+
+        private string LocalListening { get { return preferences.ListenCapri ? "Listening for Capri." : "Free voice chat on. Talk and I'll type back."; } }
+
+        private bool VoiceForHer(string text)
+        {
+            if (!preferences.ListenCapri || pushing || Hands.HeardName(text)) return true;
+            return (MidJob(job) || PcEars.Active || talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy)
+                && (VoiceStop(text) || PcEars.Active && StopWords(text));
+        }
+
+        private static bool VoiceStop(string text)
+        {
+            string stopTool;
+            ToolArguments stopArgs;
+            return Asides.Plain(text, out stopTool, out stopArgs) == AsideKind.Stop;
+        }
+
+        private bool StopVoice(string text)
+        {
+            if (StopListening(text)) return true;
+            if (!VoiceStop(text)) return false;
+            if (MidJob(job)) Hear(text, text, "> you: ");
+            else { BargeIn(); CloseTalk(); }
+            return true;
         }
 
         private void CheckEars(double now)
         {
             // A job leaves her thinking until it ends, but her ears stay open through it so they can tell her more.
-            earsShut = local && (!earsReady || transcribing || ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || now < voiceUntil);
+            earsShut = local && (!earsReady || transcribing || ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || now < voiceUntil && !nameOver);
             if (!earsShut) return;
             lock (waking) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; }
             pill.SetLevel(0);
@@ -8104,6 +8177,7 @@ namespace CapriDesktop
 
         private void Missed(string text, bool problem)
         {
+            if (preferences.ListenCapri && !problem) return;
             mainframe.VoiceNote(text, problem);
             double now = clock.Elapsed.TotalSeconds;
             if (now - earsWarned < 8 || talkState == TalkState.Thinking) return;
@@ -8115,9 +8189,14 @@ namespace CapriDesktop
         {
             double level = VoiceLevel(chunk);
             if (OverHerLocally(chunk, level)) return;
+            if (nameOver && clock.Elapsed.TotalSeconds < voiceUntil && !talkOver.Above(level, SpokenLevel(clock.Elapsed.TotalSeconds), room < 0 ? WakeLevel : RoomWake()))
+            {
+                chunk = new short[chunk.Length];
+                level = 0;
+            }
             lock (waking)
             {
-                if (!local || !earsReady || dictation != null || ears.Muted || earsShut || transcribing) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
+                if (!local || !earsReady || dictation != null || ears.Muted || earsShut && !nameOver || transcribing) { utterance = null; preroll.Clear(); loudRun = 0; quietRun = 0; return; }
                 // The room's level is its quietest moment: it drops straight to anything quieter and creeps up 2% a chunk between lines, never mid-line. It starts no higher than the old fixed level allows.
                 if (room < 0) room = Math.Min(Math.Max(level, 0.0003), WakeLevel / RoomMargin);
                 else if (level < room) room = Math.Max(level, 0.0003);
@@ -8155,7 +8234,7 @@ namespace CapriDesktop
                         low = Math.Min(low, piece);
                         high = Math.Max(high, piece);
                     }
-                    if (high < low * 1.2) { room = Math.Max(room, low); utterance = null; quietRun = 0; return; }
+                    if (high < low * 1.2) { room = Math.Max(room, low); utterance = null; quietRun = 0; nameOver = false; return; }
                 }
                 if (quietRun < 9 && utterance.Count < 150) return;
                 short[][] taken = utterance.ToArray();
@@ -8171,10 +8250,11 @@ namespace CapriDesktop
                     for (int i = 4; i < taken.Length; i++) quietest = Math.Min(quietest, VoiceLevel(taken[i]));
                     room = Math.Max(room, quietest);
                     noiseHold = true;
+                    nameOver = false;
                     Post(delegate { if (ticket == chatTicket && local) Missed("I heard 15 seconds without a pause. Try a shorter line or lower your mic volume.", false); });
                     return;
                 }
-                if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds)) return;
+                if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds)) { nameOver = false; return; }
                 transcribing = true;
                 Post(delegate { Transcribe(taken, ticket, request, wake); });
             }
@@ -8227,10 +8307,11 @@ namespace CapriDesktop
         private void Transcribe(short[][] taken, int ticket, int request, double wake = WakeLevel)
         {
             if (ticket != chatTicket || !local || !chatting) return;
-            if (request != asking) { transcribing = false; CheckEars(clock.Elapsed.TotalSeconds); return; }
-            if (ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil || !Speech(taken, wake))
+            if (request != asking) { transcribing = false; nameOver = false; CheckEars(clock.Elapsed.TotalSeconds); return; }
+            if (ears.Muted || (talkState == TalkState.Thinking && working == null && !PcEars.Active) || clock.Elapsed.TotalSeconds < voiceUntil && !nameOver || !Speech(taken, wake))
             {
                 transcribing = false;
+                nameOver = false;
                 CheckEars(clock.Elapsed.TotalSeconds);
                 if (!earsShut) Missed("I couldn't make out any words. Try closer to the mic.", false);
                 return;
@@ -8241,7 +8322,7 @@ namespace CapriDesktop
             int at = 0;
             foreach (short[] piece in taken) { Array.Copy(piece, 0, samples, at, piece.Length); at += piece.Length; }
             CheckEars(clock.Elapsed.TotalSeconds);
-            mainframe.VoiceNote("Hearing you...", false);
+            if (!preferences.ListenCapri) mainframe.VoiceNote("Hearing you...", false);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string text = null;
@@ -8256,8 +8337,9 @@ namespace CapriDesktop
         {
             if (ticket != chatTicket || !chatting || !local) return;
             transcribing = false;
+            nameOver = false;
             CheckEars(clock.Elapsed.TotalSeconds);
-            if (request != asking || ears.Muted) { mainframe.VoiceNote("Free voice chat on. Talk and I'll type back.", false); return; }
+            if (request != asking || ears.Muted) { if (!preferences.ListenCapri) mainframe.VoiceNote(LocalListening, false); return; }
             if (problem != null)
             {
                 Missed("I couldn't hear that. Try again, or check your mic under VOICE.", true);
@@ -8265,7 +8347,13 @@ namespace CapriDesktop
                 return;
             }
             if (string.IsNullOrEmpty(text)) { Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
-            mainframe.VoiceNote("Free voice chat on. Talk and I'll type back.", false);
+            if (!VoiceForHer(text)) return;
+            if (preferences.ListenCapri && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy))
+            {
+                if (StopVoice(text)) return;
+                BargeIn();
+            }
+            mainframe.VoiceNote(LocalListening, false);
             Hear(text, text, "> you: ");
         }
 
@@ -8566,7 +8654,7 @@ namespace CapriDesktop
 
         private void ChatHeard(string text)
         {
-            if (!chatting) return;
+            if (!chatting || !VoiceForHer(text)) return;
             agentComment = false;
             if (StopListening(text)) return;
             Brain.Transcribe("You (voice)", text);
@@ -8686,7 +8774,9 @@ namespace CapriDesktop
             lock (waking) { resting = false; backlog = null; preroll.Clear(); loudRun = 0; utterance = null; quietRun = 0; noiseHold = false; }
             earsShut = false;
             transcribing = false;
+            nameOver = false;
             pill.SetChat(false, false);
+            pill.ListenForName = false;
             pillUntil = clock.Elapsed.TotalSeconds + PillPop;
             ShowVoice();
             if (wasLocal)
@@ -8735,11 +8825,12 @@ namespace CapriDesktop
         {
             if (!chatting) return;
             ears.Muted = !ears.Muted;
+            if (ears.Muted) nameOver = false;
             if (dictation != null && earsReady) dictation.Hold(ears.Muted);
             pill.SetChat(true, ears.Muted);
             pillUntil = clock.Elapsed.TotalSeconds + PillPop;
             CheckEars(clock.Elapsed.TotalSeconds);
-            if (local && earsReady) mainframe.VoiceNote(ears.Muted ? "Mic muted. Click the mic to unmute." : transcribing ? "Hearing you..." : "Free voice chat on. Talk and I'll type back.", false);
+            if (local && earsReady) mainframe.VoiceNote(ears.Muted ? "Mic muted. Click the mic to unmute." : transcribing && !preferences.ListenCapri ? "Hearing you..." : LocalListening, false);
             else if (!local) mainframe.VoiceNote(ears.Muted ? "Mic muted. Voice chat pauses once she stops talking." : "Mic on. Talk and she'll pick up.", false);
         }
 
@@ -8796,10 +8887,12 @@ namespace CapriDesktop
             if (!PcEars.Active) return false;
             string stopTool;
             ToolArguments stopArgs;
-            if (Asides.Plain(text, out stopTool, out stopArgs) != AsideKind.Stop && !Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase)) return false;
+            if (Asides.Plain(text, out stopTool, out stopArgs) != AsideKind.Stop && !StopWords(text)) return false;
             PcEars.Stop();
             return true;
         }
+
+        private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
         private void Hear(string text, string shown, string prompt, int switches = 0)
         {
@@ -26437,6 +26530,7 @@ namespace CapriDesktop
                             if (!menuShown || !typerShown || typer.Visible) throw new Exception("Her menu or type box didn't show for their pictures: menu " + menuShown + ", type box " + typerShown);
                             checks.Add("PASS her right-click menu, with Move open, and her type box, with a draft in it, are drawn for her-menu.png and type-box.png");
                             TalkChecks(checks);
+                            ListenCapriChecks(output, checks);
                             GamingChecks(output, checks);
                             checks.Add("LIMIT handler-driven integration test; physical mouse input and tray UI require a manual check");
                             checks.Add("PASS quit menu requested application exit");
@@ -26683,6 +26777,308 @@ namespace CapriDesktop
 
         // Talking to her mid-job and her game comments, with fake heads, keys, mics and frames. Nothing here presses a key, moves
         // the mouse, opens a mic or plays a sound, so it's safe beside anything else on the screen.
+        private void ListenCapriChecks(string output, System.Collections.Generic.List<string> checks)
+        {
+            string[] namedLines = { "what's the weather capri", "capri what time is it", "hey capri open spotify", "i was telling capri about it" };
+            string[] otherLines = { "what's for dinner", "open spotify", "i love pasta", "caprese", "capricorn", "decapri", "capri123" };
+            foreach (string namedLine in namedLines) if (!Hands.HeardName(namedLine)) throw new Exception("Listen for Capri missed " + namedLine);
+            foreach (string otherLine in otherLines) if (Hands.HeardName(otherLine)) throw new Exception("Listen for Capri matched " + otherLine);
+            foreach (string first in new[] { "c", "k" })
+                foreach (string middle in new[] { "ap", "app" })
+                    foreach (string last in new[] { "ri", "ree", "rie", "ry" })
+                        if (!Hands.HeardName("hello " + first + middle + last + "!")) throw new Exception("Listen for Capri missed a spelling.");
+            foreach (string script in new[] { "Capri", "капри", "カプリ", "卡普里", "카프리", "كابري", "कैप्री" })
+                if (!Hands.HeardName("hello " + script + "!") || !Hands.HeardName(script.ToUpperInvariant())) throw new Exception("Listen for Capri missed " + script);
+            foreach (string joinedName in new[] { "カプリ今何時", "卡普里现在几点", "카프리야 안녕", "Kopri, hi", "Recovery, hi", "CAPRI SUN", "Capri's here" })
+                if (!Hands.HeardName(joinedName)) throw new Exception("Listen for Capri missed " + joinedName);
+            if (SelfKnow.Matching("How does Listen for Capri work?") == null) throw new Exception("Listen for Capri has no help topic.");
+            checks.Add("PASS Listen for Capri matches her name anywhere, all sixteen c/k and single/double p spellings, Kopri and Recovery from her recognition checks, all six scripts, adjacent Chinese/Japanese words and Korean particles; Capri Sun counts, caprese and capricorn do not");
+
+            bool listenWas = preferences.ListenCapri, toldWas = preferences.ListenCapriTold, freeToldWas = preferences.FreeChatTold;
+            bool quietWas = preferences.Quiet, silentWas = preferences.Silent, freeChatWas = FreeChatOn;
+            int typingWas = preferences.Typing;
+            bool? ownWas = ownEarsTest;
+            Func<Dictation> dictationWas = Dictation.Make;
+            Func<string, string> thinkWas = Think;
+            Func<string, byte[]> speakWas = Speak, freeSpeakWas = FreeSpeak;
+            Func<short[], string> hearingWas = Hearing.Run;
+            Job runningWas = job;
+            string workingWas = working, transcriptWas = Brain.TranscriptPath;
+            bool keepingWas = Brain.Keeping, pageWas = mainframe.SettingsShown;
+            bool heyWas = preferences.HeyCapri, wakeChecksWas = wakeChecks, wakeOpenWas = wakeOpen, wakeMutedWas = wakeMicMuted, shushedWas = shushed;
+            Brain keeperWas = Brain.Keeper;
+            Action<string> stopWas = stopTest;
+            IGameStage stageWas = Commentary.Stage;
+            StageLog nameStage = new StageLog();
+            System.Collections.Generic.List<string> reached = new System.Collections.Generic.List<string>();
+            int nameCalls = 0, nameSpeaks = 0, nameStops = 0;
+            Func<int, short[]> nameWave = delegate(int amplitude)
+            {
+                short[] waveSamples = new short[Ears.Chunk];
+                for (int waveAt = 0; waveAt < waveSamples.Length; waveAt++) waveSamples[waveAt] = (short)(Math.Sin(waveAt * Math.PI / 40) * amplitude);
+                return waveSamples;
+            };
+            Action<Func<bool>> waitName = delegate(Func<bool> arrived)
+            {
+                Stopwatch nameWait = Stopwatch.StartNew();
+                while (!arrived() && nameWait.ElapsedMilliseconds < 4000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (!arrived()) throw new Exception("Listen for Capri's stand-in reply did not arrive.");
+            };
+            try
+            {
+                StopChat();
+                CloseTalk();
+                job = null;
+                working = null;
+                preferences.ListenCapri = false;
+                preferences.ListenCapriTold = false;
+                preferences.FreeChatTold = true;
+                preferences.Quiet = preferences.Silent = true;
+                preferences.Typing = 2;
+                FreeChatOn = true;
+                ownEarsTest = false;
+                Brain.TranscriptPath = Path.Combine(output, "listen-capri");
+                Directory.CreateDirectory(Brain.TranscriptPath);
+                Brain.Keeping = true;
+                Brain.Keeper = null;
+                Commentary.Stage = nameStage;
+                StandInDictation nameDictation = new StandInDictation();
+                Dictation.Make = delegate { return nameDictation; };
+                Think = delegate(string fullSentence) { lock (reached) reached.Add(fullSentence); Interlocked.Increment(ref nameCalls); return "Heard the whole sentence."; };
+                Speak = delegate { Interlocked.Increment(ref nameSpeaks); return null; };
+                FreeSpeak = null;
+                stopTest = delegate { nameStops++; };
+                using (MemoryStream oldName = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}")))
+                    if (((Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(oldName)).ListenCapri || new Preferences().ListenCapri) throw new Exception("Listen for Capri did not start off.");
+                mainframe.Sync();
+                mainframe.ShowSettings(true);
+                mainframe.FlipListenCapri();
+                if (!preferences.ListenCapri || !mainframe.ListenCapriShown || !LoadPreferences().ListenCapri) throw new Exception("Listen for Capri did not save or show its switch.");
+                string nameLayout = mainframe.Overlap() ?? mainframe.Outside();
+                if (nameLayout != null) throw new Exception("Listen for Capri crowded Settings: " + nameLayout);
+                ToggleChat();
+                if (!local || !chatting || agent != null || !earsReady || !pill.ListenForName || mainframe.VoiceNoteText != LocalListening + " Say my name anywhere in your sentence.") throw new Exception("Listen for Capri did not open its own ears and explain itself once.");
+                int onceAsked = asking;
+                string onceReply = reply;
+                EarsReady(false);
+                if (asking != onceAsked || reply != onceReply || mainframe.VoiceNoteText != "Listening for Capri.") throw new Exception("Listen for Capri repeated its notice.");
+                ShowVoice();
+                if (mainframe.VoiceNoteText != "Listening for Capri.") throw new Exception("The voice picker hid Listen for Capri's status.");
+                CloseTalk();
+                Func<string> nameState = delegate
+                {
+                    System.Text.StringBuilder state = new System.Text.StringBuilder();
+                    state.Append(asking).Append('|').Append(reply).Append('|').Append(heard).Append('|').Append(talkState).Append('|').Append(box.Visible).Append('|').Append(box.Prompt).Append('|').Append(speech).Append('|').Append(voiceUntil).Append('|').Append(bargeIns).Append('|').Append(mainframe.VoiceNoteText).Append('|').Append(nameCalls).Append('|').Append(nameSpeaks).Append('|').Append(agentComment).Append('|').Append(dockWords);
+                    foreach (ChatMessage message in brain.History) state.Append('|').Append(message.Role).Append(':').Append(message.Content);
+                    foreach (string transcriptFile in Directory.GetFiles(Brain.TranscriptPath)) state.Append('|').Append(transcriptFile).Append(':').Append(File.ReadAllText(transcriptFile));
+                    foreach (string stageLine in nameStage.Shown) state.Append('|').Append(stageLine);
+                    return state.ToString();
+                };
+                foreach (bool busyEars in new[] { false, true })
+                {
+                    if (busyEars) { job = new Job("stand-in job"); working = "Working."; jobEars = true; }
+                    foreach (string ignoredLine in otherLines)
+                    {
+                        string unchanged = nameState();
+                        nameDictation.Partial(ignoredLine);
+                        nameDictation.Heard(ignoredLine);
+                        transcribing = true;
+                        HeardLocally(chatTicket, asking, ignoredLine, null);
+                        ChatHeard(ignoredLine);
+                        HeardLevel(0.5);
+                        if (nameState() != unchanged || transcribing || earsShut) throw new Exception("Background speech changed her state: " + ignoredLine);
+                    }
+                }
+                checks.Add("PASS Listen for Capri drops dinner, open spotify, pasta and near-name words at Windows dictation, offline and chat callbacks, including job ears, without changing asking, reply, heard, talkState, bubble visibility, history, transcript, voice status, partial captions, brain calls or speech");
+                foreach (string stopLine in new[] { "stop", "cancel", "enough", "never mind", "hands off", "arrête", "стоп" })
+                {
+                    int stopsBefore = nameStops;
+                    HeardLocally(chatTicket, asking, stopLine, null);
+                    if (nameStops != stopsBefore + 1) throw new Exception("A stop without her name did not reach the job: " + stopLine);
+                }
+                job = null;
+                working = null;
+                jobEars = false;
+                CloseTalk();
+                foreach (string deliveredLine in namedLines)
+                {
+                    int callsBefore = nameCalls;
+                    HeardLocally(chatTicket, asking, deliveredLine, null);
+                    waitName(delegate { return nameCalls == callsBefore + 1 && reply == "Heard the whole sentence."; });
+                    lock (reached) if (reached[reached.Count - 1] != deliveredLine) throw new Exception("Her ears cut a sentence at her name.");
+                    CloseTalk();
+                    nameDictation.Heard(deliveredLine);
+                    waitName(delegate { return nameCalls == callsBefore + 2 && reply == "Heard the whole sentence."; });
+                    lock (reached) if (reached[reached.Count - 1] != deliveredLine) throw new Exception("Windows speech cut a sentence at her name.");
+                    CloseTalk();
+                }
+                int pushedCalls = nameCalls;
+                pushing = true;
+                nameDictation.Heard("i love pasta");
+                waitName(delegate { return nameCalls == pushedCalls + 1 && reply == "Heard the whole sentence."; });
+                pushing = false;
+                CloseTalk();
+                PushHeard("what's for dinner", null);
+                waitName(delegate { return nameCalls == pushedCalls + 2 && reply == "Heard the whole sentence."; });
+                if (mainframe.VoiceNoteText != "Listening for Capri.") throw new Exception("Push to talk hid Listen for Capri's status.");
+                CloseTalk();
+                voiceUntil = clock.Elapsed.TotalSeconds + 30;
+                talkState = TalkState.Talking;
+                string talkingState = nameState();
+                HeardLocally(chatTicket, asking, "i love pasta", null);
+                if (nameState() != talkingState) throw new Exception("Background speech stopped her voice.");
+                HeardLocally(chatTicket, asking, "stop", null);
+                if (voiceUntil != 0 || talkState != TalkState.Off) throw new Exception("Stop without her name left her talking.");
+                voiceUntil = clock.Elapsed.TotalSeconds + 30;
+                talkState = TalkState.Talking;
+                nameDictation.Heard("stop");
+                if (voiceUntil != 0 || talkState != TalkState.Off) throw new Exception("Windows speech needed her name to stop her talking.");
+                Func<int, Func<bool>, PcSound> captureWas = PcEars.Capture;
+                Func<bool> speakingWas = PcEars.Speaking;
+                try
+                {
+                    PcEars.Speaking = delegate { return false; };
+                    foreach (string listeningStop in new[] { "stop listening", "quit listening", "cancel listening", "enough listening" })
+                        for (int stopRoute = 0; stopRoute < 3; stopRoute++)
+                        {
+                            voiceUntil = clock.Elapsed.TotalSeconds + 30;
+                            talkState = TalkState.Talking;
+                            PcEars.Capture = delegate(int stopSeconds, Func<bool> wasStopped)
+                            {
+                                if (stopRoute == 0) HeardLocally(chatTicket, asking, listeningStop, null);
+                                else if (stopRoute == 1) nameDictation.Heard(listeningStop);
+                                else ChatHeard(listeningStop);
+                                if (!wasStopped()) throw new Exception("Listen for Capri swallowed " + listeningStop);
+                                return new PcSound();
+                            };
+                            PcEars.Text(1, null);
+                        }
+                }
+                finally { PcEars.Capture = captureWas; PcEars.Speaking = speakingWas; CloseTalk(); }
+                checks.Add("PASS Listen for Capri sends all four requested sentences whole through both local recognition paths; stop words still stop a stand-in job and her speech, and held or released push-to-talk needs no name");
+                checks.Add("PASS stop, quit, cancel and enough listening reach an active PC sound capture through every speech callback without her name, even while she talks");
+
+                Dictation sampleDictation = dictation;
+                dictation = null;
+                try
+                {
+                    int decodedLines = 0;
+                    string decodedWords = "i love pasta";
+                    Hearing.Run = delegate { Interlocked.Increment(ref decodedLines); return decodedWords; };
+                    foreach (bool sayStop in new[] { false, true })
+                    {
+                        decodedWords = sayStop ? "stop" : "i love pasta";
+                        CloseTalk();
+                        talkState = TalkState.Talking;
+                        voiceUntil = clock.Elapsed.TotalSeconds + 30;
+                        spokenAt = clock.Elapsed.TotalSeconds;
+                        spokenLevels = new double[400];
+                        for (int levelAt = 0; levelAt < spokenLevels.Length; levelAt++) spokenLevels[levelAt] = 0.1;
+                        talkOver.Reset();
+                        nameOver = false;
+                        room = -1;
+                        lineAt = -100;
+                        noiseHold = false;
+                        CheckEars(clock.Elapsed.TotalSeconds);
+                        int audioAsked = asking, audioBarges = bargeIns, audioCalls = nameCalls, decodedBefore = decodedLines;
+                        double audioUntil = voiceUntil;
+                        string audioNote = mainframe.VoiceNoteText;
+                        for (int echoAt = 0; echoAt < 6; echoAt++) Gather(nameWave(1200));
+                        for (int humanAt = 0; humanAt < 8; humanAt++) Gather(nameWave(humanAt % 2 == 0 ? 14000 : 20000));
+                        for (int tailAt = 0; tailAt < 12; tailAt++) Gather(nameWave(1200));
+                        if (asking != audioAsked || bargeIns != audioBarges || voiceUntil != audioUntil || mainframe.VoiceNoteText != audioNote) throw new Exception("A sound interrupted her before its words were checked.");
+                        waitName(delegate { return decodedLines == decodedBefore + 1 && !transcribing; });
+                        if (nameCalls != audioCalls || chatting == false || earsReady == false || (sayStop ? voiceUntil != 0 || bargeIns != audioBarges + 1 : voiceUntil != audioUntil || bargeIns != audioBarges || asking != audioAsked)) throw new Exception("Her audio handoff missed a stop or reacted to background speech.");
+                    }
+                    CloseTalk();
+                    decodedWords = "i love pasta";
+                    int pushedAudio = nameCalls;
+                    PushStart();
+                    for (int pushChunk = 0; pushChunk < 5; pushChunk++) Listen(nameWave(10000));
+                    PushDone();
+                    waitName(delegate { return nameCalls == pushedAudio + 1 && reply == "Heard the whole sentence."; });
+                    CloseTalk();
+                }
+                finally { dictation = sampleDictation; Hearing.Run = hearingWas; nameOver = false; }
+                checks.Add("PASS Listen for Capri gathers and transcribes a stand-in line over her own speech without an early interruption or Hearing you flash; unnamed chatter leaves her speaking, stop interrupts after recognition, and a captured push-to-talk line reaches her after key release");
+                mainframe.FlipListenCapri();
+                if (preferences.ListenCapri || mainframe.ListenCapriShown || LoadPreferences().ListenCapri || pill.ListenForName) throw new Exception("Listen for Capri did not switch off.");
+                foreach (string ordinaryLine in new[] { "what's for dinner", "open spotify", "i love pasta" })
+                {
+                    int ordinaryBefore = nameCalls;
+                    HeardLocally(chatTicket, asking, ordinaryLine, null);
+                    waitName(delegate { return nameCalls == ordinaryBefore + 1 && reply == "Heard the whole sentence."; });
+                    CloseTalk();
+                }
+                preferences.ListenCapri = true;
+                preferences.Quiet = preferences.Silent = false;
+                Func<string, byte[]> freeNameVoice;
+                if (PickVoice(false, out freeNameVoice) != Speak || !ChatUsesEars(true, false, false, true) || ChatUsesEars(false, false, false, true) || !ChatUsesEars(false, true, false, true) || !ChatUsesEars(false, false, false, false)) throw new Exception("Listen for Capri changed her voice pick or the old chat routes.");
+                if (TalkPill.Label(2, true, false, true) != "CAPRI" || TalkPill.Label(2, true, true, true) != "MUTED" || TalkPill.Label(2, false, false, true) != "TALK") throw new Exception("Her name pill lost the chat or mute state.");
+                checks.Add("PASS Listen for Capri is off in new and old settings, saves both ways, fits Settings and has help; on it uses local ears with the selected ElevenLabs reply voice, off the old routes and ordinary sentences work, and the pill keeps mute and closed-chat labels");
+                StopChat();
+                CloseTalk();
+                preferences.ListenCapri = false;
+                chatting = true;
+                local = false;
+                agent = new Agent();
+                ToggleListenCapri();
+                if (!local || !chatting || agent != null || !pill.ListenForName) throw new Exception("Turning Listen for Capri on left the server voice link open.");
+                StopChat();
+                CloseTalk();
+                preferences.HeyCapri = true;
+                preferences.Silent = true;
+                wakeChecks = true;
+                wakeOpen = true;
+                wakeMicMuted = shushed = false;
+                HeardHeyCapri();
+                wakeChecks = false;
+                if (!chatting || !local || wakeOpen || !pill.ListenForName) throw new Exception("Hey Capri did not open chat under Listen for Capri.");
+                string awakeState = nameState();
+                nameDictation.Heard("i love pasta");
+                if (!chatting || nameState() != awakeState) throw new Exception("Chat closed or answered background speech after Hey Capri.");
+                ToggleChat();
+                if (chatting) throw new Exception("The talk key did not close chat after Hey Capri.");
+                checks.Add("PASS enabling Listen for Capri hands a stand-in ElevenLabs link to her local ears; Hey Capri still opens chat with both switches on, background speech leaves it open and unchanged, and the talk key closes it");
+                checks.Add("LIMIT Listen for Capri's real microphone, how each recogniser spells her name, and ElevenLabs credit billing need a live voice check");
+            }
+            finally
+            {
+                pushing = false;
+                jobEars = false;
+                StopChat();
+                CloseTalk();
+                preferences.ListenCapri = listenWas;
+                preferences.ListenCapriTold = toldWas;
+                preferences.FreeChatTold = freeToldWas;
+                preferences.Quiet = quietWas;
+                preferences.Silent = silentWas;
+                preferences.Typing = typingWas;
+                FreeChatOn = freeChatWas;
+                ownEarsTest = ownWas;
+                Dictation.Make = dictationWas;
+                Think = thinkWas;
+                Speak = speakWas;
+                FreeSpeak = freeSpeakWas;
+                Hearing.Run = hearingWas;
+                job = runningWas;
+                working = workingWas;
+                Brain.TranscriptPath = transcriptWas;
+                Brain.Keeping = keepingWas;
+                Brain.Keeper = keeperWas;
+                preferences.HeyCapri = heyWas;
+                wakeChecks = wakeChecksWas;
+                wakeOpen = wakeOpenWas;
+                wakeMicMuted = wakeMutedWas;
+                shushed = shushedWas;
+                stopTest = stopWas;
+                Commentary.Stage = stageWas;
+                mainframe.Sync();
+                mainframe.ShowSettings(pageWas);
+                SavePreferences();
+            }
+        }
+
         internal void TalkChecks(System.Collections.Generic.List<string> checks)
         {
             Action<bool, string> must = delegate(bool fine, string what) { if (!fine) throw new Exception(what); };
