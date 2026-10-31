@@ -692,6 +692,15 @@ namespace CapriDesktop
         private static readonly object gate = new object();
         private static SpeechRecognitionEngine engine;
 
+        internal static bool Available
+        {
+            get
+            {
+                try { return SpeechRecognitionEngine.InstalledRecognizers().Count > 0; }
+                catch (Exception) { return false; }
+            }
+        }
+
         internal static string Text(short[] samples) { return Clean(Run(samples)); }
 
         internal static string Clean(string text)

@@ -215,6 +215,8 @@ namespace CapriDesktop
         [DataMember] public int GlanceGap;
         // Remember what she sees is on by default: what she saw costs a few words per chat, next to the screenshot each glance already sends.
         [DataMember] public bool CaughtUp = true;
+        [DataMember] public bool FollowUps = true;
+        [DataMember] public int WatchMemory = WatchAlong.DefaultLines;
         // Stay on my model: a stuck NVIDIA model says what went wrong instead of handing the message to another model (Zak's ask).
         [DataMember] public bool StayOnModel;
         [DataMember] public bool Quiet;
@@ -436,6 +438,8 @@ namespace CapriDesktop
             CareMealMinutes = 360;
             CareGameMinutes = 120;
             CaughtUp = true;
+            FollowUps = true;
+            WatchMemory = WatchAlong.DefaultLines;
         }
 
         internal static int FrameSize(int size)
@@ -1636,6 +1640,8 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
+            Hands.WatchAlong = WatchAlongTool;
+            WatchAlong.Active = delegate { return watchAlong != null; };
             Hands.SaveClip = clips.Clip;
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
             clips.Enable(!testing && preferences.ClipGames);
@@ -1693,6 +1699,8 @@ namespace CapriDesktop
                 if (restore.WaitOne(0)) { RestoreAtCursor(); mainframe.Restore(); }
                 if (startMarker != null && clock.Elapsed.TotalSeconds >= 15) Settled();
                 CheckVoiceReady();
+                if (!testing) CheckFollowUp(signalNow);
+                if (!testing) CheckWatchAlong(signalNow);
                 if (!testing) CheckIdle(signalIdle);
                 if (!testing) CheckGlance(signalNow, signalIdle);
                 if (!testing) CheckWander(signalNow, signalIdle);
@@ -2223,7 +2231,7 @@ namespace CapriDesktop
         private bool RestFree(double now)
         {
             return preferences.Motion && !hidden && !quitting && !dragging && !pressed && !riding && !onPanel && !chatting && !pushing && !transcribing && !GamingOn
-                && !typer.Visible && !menu.Visible && !SleepBusy && speech == null && talkState == TalkState.Off && now >= voiceUntil && !speaker.Busy && !musicOn && !danceAsked;
+                && !typer.Visible && !menu.Visible && !SleepBusy && speech == null && talkState == TalkState.Off && now >= voiceUntil && !speaker.Busy && !musicOn && !danceAsked && watchAlong == null;
         }
 
         private bool FinishingRest(double now)
@@ -5874,6 +5882,8 @@ namespace CapriDesktop
         internal void ToggleCaughtUp()
         {
             preferences.CaughtUp = !preferences.CaughtUp;
+            watchMemoryTicket++;
+            if (watchAlong != null && !preferences.CaughtUp) watchAlong.Folds.Clear();
             SavePreferences();
             mainframe.Sync();
         }
@@ -5952,7 +5962,7 @@ namespace CapriDesktop
         private void CheckGlance(double now, long quiet, bool awayLook = false)
         {
             if (exploring && !awayLook) return;
-            if ((!preferences.Watch && !exploring) || glancing || Hushed) return;
+            if ((!preferences.Watch && !exploring) || glancing || Hushed || watchAlong != null) return;
             double wait = brain.ScreenWait;
             if (wait > 0) { nextGlance = Math.Max(nextGlance, now + wait); return; }
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
@@ -6047,6 +6057,14 @@ namespace CapriDesktop
 
         private bool Changed(Bitmap screen, bool force = false)
         {
+            byte[] print = ScreenPrint(screen);
+            if (!force && !Glances.Moved(print, lastPrint)) return false;
+            lastPrint = print;
+            return true;
+        }
+
+        private static byte[] ScreenPrint(Bitmap screen)
+        {
             byte[] print = new byte[64 * 36 * 3];
             using (Bitmap tiny = new Bitmap(64, 36, PixelFormat.Format24bppRgb))
             {
@@ -6064,9 +6082,7 @@ namespace CapriDesktop
                     print[i + 2] = pixel.B;
                 }
             }
-            if (!force && !Glances.Moved(print, lastPrint)) return false;
-            lastPrint = print;
-            return true;
+            return print;
         }
 
         private Bitmap CaptureScreen()
@@ -7063,13 +7079,13 @@ namespace CapriDesktop
 
         // Something she says on her own, like what she makes of their screen: her bubble shows only her words, with no
         // "> sys: watching" above them (Lachy, 30 Oct: testers found it too robotic).
-        private void Remark(string shown, string line, bool bubbleOnly = false)
+        private void Remark(string shown, string line, bool bubbleOnly = false, byte[] prepared = null, bool ready = false)
         {
             if (hidden) SetHidden(false);
             heard = shown;
             box.Prompt = "";
             remarkTicket = ++asking;
-            if (bubbleOnly) Begin(remarkTicket, line, TalkState.Talking, null);
+            if (bubbleOnly || ready) Begin(remarkTicket, line, TalkState.Talking, prepared);
             else Answer(remarkTicket, line, TalkState.Talking);
         }
 
@@ -8085,6 +8101,7 @@ namespace CapriDesktop
 
         private void OpenTyper()
         {
+            followUp.Drop();
             StopExplore();
             if (typer.Visible) { typer.Hide(); return; }
             WakeRest(!SleepBusy);
@@ -8327,6 +8344,7 @@ namespace CapriDesktop
         {
             if (!chatting || !local || !earsReady || ears.Muted) return;
             text = Hearing.Clean(text);
+            if (watchAlong != null && WatchAlong.Request(text) == "stop" && StopWatchAlong(text)) return;
             if (preferences.ListenCapri && !pushing && clock.Elapsed.TotalSeconds < voiceUntil && !nameOver && !VoiceStop(text) && !(PcEars.Active && StopWords(text))) return;
             if (!VoiceForHer(text)) { nameOver = false; return; }
             nameOver = false;
@@ -8359,6 +8377,7 @@ namespace CapriDesktop
 
         private bool VoiceForHer(string text)
         {
+            if (watchAlong != null && (WatchAlong.Request(text) == "stop" || VoiceStop(text))) return true;
             if (!preferences.ListenCapri || pushing || Hands.HeardName(text)) return true;
             return (MidJob(job) || PcEars.Active || talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy)
                 && (VoiceStop(text) || PcEars.Active && StopWords(text));
@@ -8373,6 +8392,7 @@ namespace CapriDesktop
 
         private bool StopVoice(string text)
         {
+            if (StopWatchAlong(text)) return true;
             if (StopListening(text)) return true;
             if (!VoiceStop(text)) return false;
             if (MidJob(job)) Hear(text, text, "> you: ");
@@ -9114,6 +9134,8 @@ namespace CapriDesktop
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
             WakeRest(!SleepBusy);
+            followUp.Drop();
+            if (StopWatchAlong(text)) return;
             if (StopListening(text)) return;
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
@@ -9152,6 +9174,9 @@ namespace CapriDesktop
             bool askPlease = false;
             if (planned.Key == null && !fileMessage) text = Hands.Manners(text, out askPlease);
             if (askPlease) { Answer(ticket, Hands.SayPlease, TalkState.Talking); return; }
+            bool followAllowed = preferences.FollowUps && prompt == "> you: " && agent == null && (!chatting || local);
+            int followInput = FollowInput(), followMic = micTalked;
+            string followLine = "";
             Func<string, string> think = Think;
             if (planned.Key != null) think = delegate { return Security.Said(DoTool(planned.Key, planned.Value, ticket)); };
             string quick;
@@ -9163,12 +9188,12 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || quick == "nap" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick))) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
+            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
             if (think == null && fileMessage) think = brain.Ask;
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
-                think = brain.Ask;
+                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine); };
             }
             reply = null;
             replyDone = -1;
@@ -9199,6 +9224,7 @@ namespace CapriDesktop
                     {
                         if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1); return; }
                         if (problem != null && ticket == asking) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem));
+                        if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
                         Answer(ticket, said, state, quiet);
                         if (said == Brain.Offline) FindBrain();
                     });
@@ -9212,7 +9238,7 @@ namespace CapriDesktop
 
         internal static bool WithoutBrain(string tool)
         {
-            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "gaming_mode";
+            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "gaming_mode" || tool == "watch_along";
         }
 
         private bool SwitchModel(Cloud remote)
@@ -9237,6 +9263,7 @@ namespace CapriDesktop
             Func<string, byte[]> speak = PickVoice(quiet, out free);
             string words = Voice.Spoken((said ?? "").Replace(Computer.Dots, "the password"));
             if (speak == null || words.Length == 0 || state == TalkState.Dormant) { Begin(ticket, said, state, null); return; }
+            answerVoice = ticket;
             reply = null;
             replyDone = -1;
             Say(null);
@@ -9258,12 +9285,13 @@ namespace CapriDesktop
                 if (!testing && (problem != null || (speak == free && took.ElapsedMilliseconds > 5000))) Brain.Log(speak == free ? "free voice" : "ElevenLabs voice", took.ElapsedMilliseconds, problem ?? "slow, " + (wav == null ? 0 : Voice.Seconds(wav)).ToString("0.0") + " s of speech");
                 Post(delegate
                 {
+                    if (answerVoice == ticket) answerVoice = -1;
                     voiceBroken = problem != null;
                     if (hdSpeaking == ticket) hdSpeaking = -1;
                     if (ticket != asking || IsDisposed) return;
                     if (problem != null) mainframe.VoiceNote(problem, wav == null);
                     if (reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, wav);
-                    else if (talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
+                    else if (FollowDelivery(ticket) && talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
                 });
             });
         }
@@ -9306,7 +9334,8 @@ namespace CapriDesktop
 
         private void Begin(int ticket, string said, TalkState state, byte[] wav)
         {
-            if (ticket != asking || IsDisposed) return;
+            if (ticket != asking || IsDisposed || !FollowDelivery(ticket)) return;
+            if (ticket == followTicket && !followLogged) { brain.Followed(said); followLogged = true; }
             if (slowWarned && brain.Remote != null && state != TalkState.Dormant) mainframe.ShowCloud(brain.Remote, cloudModels);
             reply = said;
             replyStart = clock.Elapsed.TotalSeconds;
@@ -9803,6 +9832,8 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            EndWatchAlong();
+            followUp.Drop();
             Hands.Finder.Stop();
             clips.Dispose();
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplaysChanged;
@@ -12591,6 +12622,211 @@ namespace CapriDesktop
                 talkState = careTalkWas;
                 voiceUntil = careVoiceWas;
                 popOut = carePopWas;
+                SavePreferences();
+                mainframe.Sync();
+            }
+        }
+
+        private static void SmokeTalkLogic(System.Collections.Generic.List<string> checks)
+        {
+            string[,] parts = {
+                { "One thought.", "One thought.", "" },
+                { "One thought.\n|||\nAnother thought.", "One thought.", "Another thought." },
+                { "One.\n|||\nTwo.\n|||\nThree.", "One.", "Two.\nThree." },
+                { "|||\nOne thought.", "One thought.", "" },
+                { "One thought.\n|||", "One thought.", "" },
+                { "|||", "", "" },
+                { "```text\n|||\n```", "```text\n|||\n```", "" },
+                { "```text\n|||\n```\n|||\nAfter code.", "```text\n|||\n```", "After code." },
+                { "~~~text\n|||\n~~~", "~~~text\n|||\n~~~", "" },
+                { "One ||| thought.", "One ||| thought.", "" },
+                { "[grin] One.\r\n ||| \r\n[glitch] Two.", "[grin] One.", "[glitch] Two." }
+            };
+            for (int partAt = 0; partAt < parts.GetLength(0); partAt++)
+            {
+                string after;
+                if (Replies.Split(parts[partAt, 0], out after) != parts[partAt, 1] || after != parts[partAt, 2]) throw new Exception("Reply separator changed part " + partAt + ".");
+            }
+            FollowUp pending = new FollowUp();
+            pending.Hold("Second thought.", 3, 4, 5);
+            if (pending.Take(1, 3, 4, 5, true, false) != null || pending.Take(20, 3, 4, 5, true, true) != null || pending.Take(21, 3, 4, 5, true, true) != null || pending.Take(22, 3, 4, 5, true, true) != "Second thought." || pending.Take(30, 3, 4, 5, true, true) != null) throw new Exception("Her follow-up did not wait for the first answer and a beat, or followed itself.");
+            pending.Hold("Drop for speech.", 3, 4, 5);
+            if (pending.Take(40, 3, 4, 6, true, true) != null || pending.Line != null) throw new Exception("Speaking first kept her follow-up.");
+            pending.Hold("Drop for typing.", 3, 4, 5);
+            if (pending.Take(40, 3, 6, 5, true, true) != null || pending.Line != null) throw new Exception("Typing first kept her follow-up.");
+            pending.Hold("Drop for a new answer.", 3, 4, 5);
+            if (pending.Take(40, 4, 4, 5, true, true) != null || pending.Line != null) throw new Exception("A new answer kept her old follow-up.");
+            pending.Hold("Drop for a job.", 3, 4, 5);
+            if (pending.Take(40, 3, 4, 5, false, true) != null || pending.Line != null) throw new Exception("A busy job allowed a follow-up.");
+            checks.Add("PASS follow-up separator keeps one or two parts, folds a third into the second, handles empty ends and CRLF, preserves tags and fenced code; delivery waits for the first answer and a beat, drops for speech, typing, new answers and jobs, and runs once");
+
+            foreach (string start in new[] { "watch this with me", "watch this video with me", "let's watch this", "react to this", "Capri, could you watch this stream with me please?" })
+            {
+                string startTool;
+                ToolArguments startArgs;
+                if (!Hands.Heard(start, out startTool, out startArgs) || startTool != "watch_along" || startArgs.Action != "start") throw new Exception("Watching together missed: " + start);
+            }
+            foreach (string other in new[] { "watch out", "watch your mouth", "watch for the delivery" })
+            {
+                string otherTool;
+                ToolArguments otherArgs;
+                if (Hands.Heard(other, out otherTool, out otherArgs) && otherTool == "watch_along") throw new Exception("Watching together took: " + other);
+            }
+            Func<bool> watchActiveWas = WatchAlong.Active;
+            WatchAlong.Active = delegate { return true; };
+            foreach (string stop in new[] { "stop watching", "stop watching with me", "stop reacting", "we're done watching" })
+            {
+                string stopTool;
+                ToolArguments stopArgs;
+                if (!Hands.Heard(stop, out stopTool, out stopArgs) || stopTool != "watch_along" || stopArgs.Action != "stop") throw new Exception("Watching together missed its stop: " + stop);
+            }
+            WatchAlong.Active = watchActiveWas;
+            if (WatchAlong.Request("stop watching") != null) throw new Exception("Stop watching took a request with nothing being watched.");
+            WatchMemory memory = new WatchMemory { Limit = 4 };
+            if (memory.Add("First line.") != null || memory.Add("Second line.") != null || memory.Add("Third line.") != null || memory.Add("Fourth line.") != "First line.\nSecond line." || memory.Count != 2 || memory.Text != "Third line.\nFourth line.") throw new Exception("Watch-along did not fold the oldest half at its limit.");
+            using (WatchAlong watching = new WatchAlong())
+            using (PcSound heardSound = new PcSound())
+            {
+                watching.Memory.Limit = 4;
+                watching.Memory.Add("Only in memory.");
+                watching.Folds.Enqueue("Old words.");
+                watching.Picture = new byte[] { 1, 2 };
+                watching.CanHear = true;
+                watching.Speaking = delegate { return true; };
+                byte[] sound = new byte[] { 0, 64, 0, 64 };
+                watching.Sample(sound, Ears.Rate, heardSound);
+                if (heardSound.Sound) throw new Exception("Watch-along transcribed her own voice.");
+                watching.Speaking = delegate { return false; };
+                watching.Sample(sound, Ears.Rate, heardSound);
+                if (!heardSound.Sound || watching.QuietFor >= WatchAlong.SoundGap) throw new Exception("Watch-along missed sound or called it a gap.");
+                if (watching.Ended(WatchAlong.EndSeconds - 1) || !watching.Ended(WatchAlong.EndSeconds)) throw new Exception("Watch-along did not end after inactivity.");
+                watching.Dispose();
+                if (watching.Memory.Count != 0 || watching.Folds.Count != 0 || watching.Picture != null) throw new Exception("Stopping watch-along kept its rolling memory.");
+            }
+            Preferences fresh = new Preferences();
+            Preferences older;
+            using (MemoryStream settings = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}"))) older = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(settings);
+            if (!fresh.FollowUps || !older.FollowUps || fresh.WatchMemory != WatchAlong.DefaultLines || older.WatchMemory != WatchAlong.DefaultLines) throw new Exception("New talk settings lost their defaults in old settings.");
+            if (SelfKnow.Matching("Explain the Follow-up messages setting") == null || SelfKnow.Matching("Explain Watch-along memory") == null) throw new Exception("Her new talk settings have no self knowledge.");
+            checks.Add("PASS watch-along phrases and stops go through Hands.Heard, unrelated watch phrases stay out, rolling words fold at their line limit, sound gaps exclude her voice, inactivity ends it, stop clears memory, and old settings get the defaults and help");
+        }
+
+        private static void SmokeTalkBrain(System.Collections.Generic.List<string> checks, string root)
+        {
+            root = Path.Combine(root, Guid.NewGuid().ToString("N"));
+            string oldOllama = Brain.Ollama, oldAnthropic = Brain.Anthropic, oldNotes = Brain.MemoryPath, oldMemories = Brain.MemoriesPath, oldTranscripts = Brain.TranscriptPath, oldLog = Brain.LogPath;
+            bool oldKeeping = Brain.Keeping, oldDigging = Brain.Digging;
+            Brain oldKeeper = Brain.Keeper;
+            System.Net.Sockets.TcpListener talkServer = null;
+            System.Collections.Generic.List<string> talkRequests = new System.Collections.Generic.List<string>();
+            try
+            {
+                Directory.CreateDirectory(root);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.LogPath = null;
+                Brain.TranscriptPath = root;
+                Brain.Keeping = true;
+                Brain.Digging = false;
+                Brain.Keeper = null;
+                string[] replies = { "[grin] First thought.\n|||\n[glitch] Second thought.", "```text\n|||\n```\n|||\nAfter the code.", "Just a single thought.", "One thought.\n|||\nA second thought.", "Opened Calculator.\n|||\nAnother thought after the job." };
+                string[] bodies = Array.ConvertAll(replies, delegate(string rawReply) { return "{\"message\":{\"content\":" + Voice.Quote(rawReply) + "}}"; });
+                Brain.Ollama = FakeServer(bodies, talkRequests, out talkServer);
+                Brain first = new Brain { Model = "talk-check" };
+                first.Load(Path.Combine(root, "chat.json"));
+                string after;
+                string said = first.Ask("Tell me a thought", true, out after);
+                if (said != "[grin] First thought." || after != "[glitch] Second thought." || first.History.Count != 2 || first.History[1].Content != said || File.ReadAllText(Path.Combine(root, "chat.json")).Contains("Second thought")) throw new Exception("Her first chat saved or spoke the pending follow-up.");
+                first.Followed(after);
+                if (first.History.Count != 3 || first.History[2].Role != "assistant" || first.History[2].Content != after || !File.ReadAllText(Path.Combine(root, "chat.json")).Contains("Second thought")) throw new Exception("Her delivered follow-up was not an assistant message.");
+                System.Collections.Generic.List<ChatMessage> turn = Brain.LastTurn(first.History);
+                if (turn.Count != 2 || turn[0].Content != "Tell me a thought" || !turn[1].Content.Contains("First thought") || !turn[1].Content.Contains("Second thought")) throw new Exception("A follow-up hid their last message from yes and remember that.");
+                System.Collections.Generic.List<ChatMessage> conversation = Brain.Conversation(first.History);
+                if (conversation.Count != 2 || conversation[1].Content != said + "\n" + after || first.History.Count != 3) throw new Exception("Her local brain got consecutive assistant turns or her saved bubbles were merged.");
+                string written = string.Join("\n", Array.ConvertAll(Directory.GetFiles(root, "*.md"), File.ReadAllText));
+                if (!written.Contains("First thought") || !written.Contains("Second thought") || written.Contains("|||")) throw new Exception("Her two delivered messages did not reach the transcript cleanly.");
+                Brain code = new Brain { Model = "talk-check" };
+                if (!code.Ask("Show me the separator in code", true, out after).Contains("|||") || after != "After the code.") throw new Exception("Cleaning a code block swallowed the real follow-up.");
+                Brain plain = new Brain { Model = "talk-check" };
+                if (plain.Ask("Tell me a thought", true, out after) != "Just a single thought." || after.Length != 0) throw new Exception("A brain ignoring the separator changed.");
+                Brain disabled = new Brain { Model = "talk-check" };
+                if (!disabled.Ask("Tell me a thought", false, out after).Contains("A second thought.") || after.Length != 0) throw new Exception("Disabled follow-ups lost part of the answer.");
+                int jobs = 0;
+                Brain toolReply = new Brain { Model = "talk-check", Act = delegate { jobs++; return "Opened Calculator."; } };
+                toolReply.Ask("open calculator", true, out after);
+                if (jobs != 1 || after.Length != 0) throw new Exception("A tool reply produced a follow-up or changed the tool.");
+                if (talkRequests.Count != replies.Length || !talkRequests[0].Contains("|||")) throw new Exception("Follow-ups took another brain call or missed their instruction.");
+                talkServer.Stop();
+                talkRequests.Clear();
+                Brain.Anthropic = FakeServer(new[] { "{\"content\":[{\"type\":\"text\",\"text\":\"SAW: A train. SAY: SKIP\"}]}", "{\"content\":[{\"type\":\"text\",\"text\":\"SAW: A train. SAY: SKIP\"}]}" }, talkRequests, out talkServer);
+                foreach (string model in new[] { "claude-haiku-5-5", "claude-sonnet-5-5" })
+                {
+                    Brain seeing = new Brain { Model = model, Remote = new Cloud("sk-ant-test", model) };
+                    seeing.Quick(Brain.Persona + Brain.Speech(), WatchAlong.Ask(new System.Collections.Generic.List<string>(), "Video", "The train left.", true), WatchAlong.ReplyTokens, new byte[] { 1, 2, 3 });
+                }
+                if (talkRequests.Count != 2 || !talkRequests[0].Contains("claude-haiku-5-5") || !talkRequests[1].Contains("claude-haiku-5-5") || !talkRequests[1].Contains("image/jpeg") || !talkRequests[1].Contains("\"thinking\":{\"type\":\"disabled\"}")) throw new Exception("Watch-along changed the chosen model or omitted its picture and plain reply mode.");
+                first.Saw("A pilot missed the last train.", null, false, true);
+                written = string.Join("\n", Array.ConvertAll(Directory.GetFiles(root, "*.md"), File.ReadAllText));
+                if (!written.Contains("She watched with you: A pilot missed the last train.")) throw new Exception("A folded watch-along note did not reach the real transcript.");
+                checks.Add("PASS Brain.Ask splits before Clean without another call, keeps tags and code, ignores missing separators, stores only delivered follow-ups as assistant messages, keeps tool replies whole, and Watch-along uses her fast Claude with pictures and folds into her real transcript");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT talk features could not open their local brain stand-in"); }
+            catch (UnauthorizedAccessException) { checks.Add("LIMIT talk features could not write their isolated transcript check"); }
+            catch (IOException) { checks.Add("LIMIT talk features could not read or write their isolated transcript check"); }
+            finally
+            {
+                if (talkServer != null) talkServer.Stop();
+                Brain.Ollama = oldOllama; Brain.Anthropic = oldAnthropic;
+                Brain.MemoryPath = oldNotes; Brain.MemoriesPath = oldMemories; Brain.TranscriptPath = oldTranscripts; Brain.LogPath = oldLog;
+                Brain.Keeping = oldKeeping; Brain.Digging = oldDigging; Brain.Keeper = oldKeeper;
+            }
+        }
+
+        private void SmokeTalkSettings(System.Collections.Generic.List<string> checks)
+        {
+            bool oldFollow = preferences.FollowUps, oldCaught = preferences.CaughtUp;
+            int oldMemory = preferences.WatchMemory;
+            Job oldJob = job;
+            string oldWorking = working;
+            WatchAlong oldWatch = watchAlong;
+            try
+            {
+                mainframe.FlipFollowUps();
+                if (preferences.FollowUps == oldFollow || mainframe.FollowUpsShown != preferences.FollowUps || LoadPreferences().FollowUps != preferences.FollowUps) throw new Exception("Follow-up messages did not switch and save.");
+                mainframe.FlipFollowUps();
+                SetWatchMemory(48);
+                if (mainframe.WatchMemoryShown != 48 || LoadPreferences().WatchMemory != 48) throw new Exception("Watch-along memory did not show and save.");
+                preferences.FollowUps = true;
+                job = new Job("stand-in job");
+                working = "Working.";
+                followUp.Hold("Must stay quiet.", asking, FollowInput(), micTalked);
+                CheckFollowUp(clock.Elapsed.TotalSeconds);
+                if (followUp.Line != null || FollowUpAllowed()) throw new Exception("The real job gate kept a follow-up.");
+                watchAlong = new WatchAlong();
+                watchAlong.Memory.Limit = 4;
+                preferences.CaughtUp = false;
+                WatchHeard(watchAlong, "One."); WatchHeard(watchAlong, "Two."); WatchHeard(watchAlong, "Three."); WatchHeard(watchAlong, "Four.");
+                if (watchAlong.Folds.Count != 0 || watchAlong.Memory.Count != 2) throw new Exception("Caught up off kept the old dialogue.");
+                preferences.CaughtUp = true;
+                WatchHeard(watchAlong, "Five."); WatchHeard(watchAlong, "Six.");
+                if (watchAlong.Folds.Count != 1 || watchAlong.Folds.Dequeue() != "Three.\nFour.") throw new Exception("Caught up on missed the folded dialogue.");
+                WatchAlong ended = watchAlong;
+                string endTool;
+                ToolArguments endArgs;
+                if (!Hands.Heard("stop watching with me", out endTool, out endArgs)) throw new Exception("The watch-along stop was not heard.");
+                Hands.Do(endTool, endArgs);
+                if (watchAlong != null || ended.Memory.Count != 0) throw new Exception("Her watch-along tool did not stop and clear its memory.");
+                checks.Add("PASS Mainframe switches and saves follow-ups and watch-along memory, the real job gate drops follow-ups, caught up controls folding, and the spoken stop reaches her mode and clears it");
+                checks.Add("LIMIT follow-up timing with real voices, PC loopback sound, local recognition, video endings and watch-along reactions need a live session");
+            }
+            finally
+            {
+                EndWatchAlong();
+                watchAlong = oldWatch;
+                preferences.FollowUps = oldFollow;
+                preferences.CaughtUp = oldCaught;
+                preferences.WatchMemory = oldMemory;
+                job = oldJob;
+                working = oldWorking;
+                followUp.Drop();
                 SavePreferences();
                 mainframe.Sync();
             }
@@ -16757,6 +16993,9 @@ namespace CapriDesktop
                             SmokeCare(checks);
                             SmokeClips(checks);
                             SmokeListen(checks);
+                            SmokeTalkLogic(checks);
+                            SmokeTalkSettings(checks);
+                            SmokeTalkBrain(checks, Path.Combine(output, "talk-checks"));
                             bool clipsWereOn = preferences.ClipGames;
                             mainframe.FlipClips();
                             if (preferences.ClipGames == clipsWereOn || mainframe.ClipsShown != preferences.ClipGames || LoadPreferences().ClipGames != preferences.ClipGames) throw new Exception("Clip my games didn't switch, show and save from HABITS.");
@@ -17395,11 +17634,14 @@ namespace CapriDesktop
                                 if (Spots().Exists(candidate => candidate.Window == shelf.Handle)) throw new Exception("Wander offered the window she already sits on.");
                                 int blinkFrom = Hip().X;
                                 if (!Blink() || walking || seat == null || seat.Window != shelf.Handle || Hip().Y != shelf.Top || Hip().X == blinkFrom) throw new Exception("Wander did not teleport her along her window.");
+                                bool? wanderGamingWas = Native.FakedGaming;
+                                Native.FakedGaming = false;
                                 for (int i = 0; i < 5; i++)
                                 {
                                     Ledge was = seat;
                                     if (!Wander() || seat == null || falling || Hip().Y != seat.Y || (seat.Window == was.Window && seat.Floor == was.Floor)) throw new Exception("Wander did not land her on another window or the taskbar.");
                                 }
+                                Native.FakedGaming = wanderGamingWas;
                                 StandUp();
                                 if (!Spots().Exists(candidate => candidate.Window == shelf.Handle)) throw new Exception("Wander did not offer an open window to hop onto.");
                                 anchor = Seated(shelf.Left + 220, shelf.Top - 12);

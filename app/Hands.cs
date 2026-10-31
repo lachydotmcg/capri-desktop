@@ -575,6 +575,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" },
 #if !CROSS
             { "draw", Ink.Description, Ink.Schema },
+            { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}" },
             { "gaming_mode", "Turn Gaming Mode on or off: your small HUD over their game, where you watch and comment. up, down, left, right and reset move the HUD.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}" },
             { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
@@ -768,6 +770,7 @@ namespace CapriDesktop
         internal static Func<ToolArguments, string> Remind = delegate { return "Couldn't open your reminders."; };
 #if !CROSS
         internal static Func<ToolArguments, string> WatchFor = delegate { return "Couldn't watch the screen just now."; };
+        internal static Func<string, string> WatchAlong = delegate { return "Couldn't start watching together just now."; };
 #endif
         internal static Func<ToolArguments, string> Routine = delegate { return "Couldn't open your routines."; };
         // Puts dots over a password she typed into a password box, wherever it would show or be saved.
@@ -863,6 +866,7 @@ namespace CapriDesktop
                 }
                 if (tool == "mini_game") return Valid(tool, args) ? Mini(args) : "Couldn't find that desktop board action.";
 #if !CROSS
+                if (tool == "watch_along") return WatchAlong(args.Action);
                 if (tool == "listen")
                 {
                     int listenSeconds = 15;
@@ -1691,6 +1695,8 @@ namespace CapriDesktop
 #if !CROSS
             ToolArguments drawing = Ink.Request(text);
             if (drawing != null) { tool = drawing.Task == null ? "draw" : "use_computer"; args = drawing; if (drawing.Task != null) args.Task = said; return true; }
+            string together = CapriDesktop.WatchAlong.Request(text);
+            if (together != null) { tool = "watch_along"; args.Action = together; return true; }
             ToolArguments watchArgs = WatchRequest(text);
             if (watchArgs != null) { tool = "watch_for"; args = watchArgs; return true; }
             int clipSeconds = ClipSeconds(text);
@@ -1936,7 +1942,7 @@ namespace CapriDesktop
 
         private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip"
 #if !CROSS
-            + "|find_file|website_nickname|mini_game|watch_for|listen|draw"
+            + "|find_file|website_nickname|mini_game|watch_for|listen|draw|watch_along"
 #endif
             ;
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
@@ -2050,6 +2056,7 @@ namespace CapriDesktop
         {
 #if !CROSS
             if (tool == "draw") return Ink.Valid(args);
+            if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
             if (tool == "listen")
             {
                 int listenDuration;

@@ -655,7 +655,7 @@ namespace CapriDesktop
         private static readonly List<Sighting> sightings = new List<Sighting>();
         private static readonly object seeing = new object();
 
-        internal void Saw(string what, string said, bool asked = false)
+        internal void Saw(string what, string said, bool asked = false, bool watched = false)
         {
             string text = Regex.Replace(what ?? "", @"\s+", " ").Trim();
             if (text.Length == 0) return;
@@ -664,7 +664,7 @@ namespace CapriDesktop
                 sightings.Add(new Sighting { At = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture), Saw = text, Said = string.IsNullOrEmpty(said) ? null : said, Asked = asked });
                 if (sightings.Count > 30) sightings.RemoveRange(0, sightings.Count - 30);
             }
-            Transcribe(null, (asked ? "She looked at your screen: " : "She glanced at your screen: ") + text.TrimEnd('.') + (string.IsNullOrEmpty(said) && !asked ? ". She stayed quiet." : "."));
+            Transcribe(null, (watched ? "She watched with you: " : asked ? "She looked at your screen: " : "She glanced at your screen: ") + text.TrimEnd('.') + (string.IsNullOrEmpty(said) && !asked && !watched ? ". She stayed quiet." : "."));
             lock (gate) Save();
         }
 
@@ -1391,8 +1391,11 @@ namespace CapriDesktop
             request.Headers["anthropic-version"] = "2026-10-21";
         }
 
-        internal string Ask(string text)
+        internal string Ask(string text) { string after; return Ask(text, false, out after); }
+
+        internal string Ask(string text, bool followUps, out string followLine)
         {
+            followLine = "";
             Learn(text);
             int ticket;
             lock (gate) ticket = cancelled;
@@ -1420,13 +1423,14 @@ namespace CapriDesktop
             string selfGuide = self == null ? "" : "\nFor this app-help question, use the attached facts about yourself in your own voice and their language. Explain the relevant controls in enough short sentences to be useful; for a tutorial give its six brief steps, instead of the usual short reply and no-list format. These facts describe this version, not which settings they currently have on.";
             int answerBudget = self == null ? Budget : Math.Max(Budget, 360);
             List<ChatMessage> messages = new List<ChatMessage>();
-            messages.Add(new ChatMessage("system", Character + Remembered() + Gap() + (act != null ? fileChat ? Hands.ChatOnly : Hands.Chat + Hands.MiniBoard() : "") + Now() + selfGuide));
+            string secondThought = followUps ? Replies.Instruction : "";
+            messages.Add(new ChatMessage("system", Character + secondThought + Remembered() + Gap() + (act != null ? fileChat ? Hands.ChatOnly : Hands.Chat + Hands.MiniBoard() : "") + Now() + selfGuide));
             List<ChatMessage> recent;
             List<string> chat;
             lock (gate)
             {
-                messages.AddRange(history);
-                recent = history.GetRange(Math.Max(0, history.Count - 2), Math.Min(2, history.Count));
+                messages.AddRange(Conversation(history));
+                recent = LastTurn(history);
                 chat = history.ConvertAll(message => message.Content);
             }
             messages.Add(new ChatMessage("user", text + Recalled(text, chat) + (self == null ? "" : "\n\n(Facts about yourself in this version of Capri, to use in your own words:\n" + self + "\n)")));
@@ -1503,7 +1507,7 @@ namespace CapriDesktop
                     if (calls.Count == 0 && (playing != null || Hands.Wants(request))) calls.Add(Hands.Forced(request));
                     if (calls.Count == 0)
                     {
-                        messages[0] = new ChatMessage("system", Character + Remembered() + Gap() + Hands.ChatOnly + Hands.MiniBoard() + Now() + selfGuide);
+                        messages[0] = new ChatMessage("system", Character + secondThought + Remembered() + Gap() + Hands.ChatOnly + Hands.MiniBoard() + Now() + selfGuide);
                         raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
                         if (Hands.Handed(Clean(raw))) raw = Hands.Unpromised;
                     }
@@ -1622,8 +1626,13 @@ namespace CapriDesktop
             lock (gate)
                 for (int i = Math.Max(0, history.Count - 10); i < history.Count; i++)
                     if (history[i].Role == "assistant" && Regex.IsMatch(history[i].Content ?? "", @"\bgood (boy|girl)\b", RegexOptions.IgnoreCase)) praised = true;
-            string said = done != null && calls.Exists(pathCall => pathCall.Key == "find_file" || pathCall.Key == "website_nickname") ? done : Unclosed(Fresh(Unpraised(Sparing(Clean(raw), lately, name), praised), request, saidLately));
-            if (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs)) said = "";
+            string after;
+            string firstPart = Replies.Split(Visible(raw), out after);
+            if (!followUps || calls.Count > 0) { firstPart = firstPart + (after.Length == 0 ? "" : "\n" + after); after = ""; }
+            string said = done != null && calls.Exists(pathCall => pathCall.Key == "find_file" || pathCall.Key == "website_nickname") ? done : Unclosed(Fresh(Unpraised(Sparing(Clean(firstPart), lately, name), praised), request, saidLately));
+            after = Unclosed(Sparing(Clean(after), lately || Regex.IsMatch(said, called, RegexOptions.IgnoreCase), name));
+            if (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs)) { said = ""; after = ""; }
+            if (said.Length == 0 && after.Length > 0) { said = after; after = ""; }
             if (said.Length == 0 && done != null) said = done;
             if (said.Length == 0) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
             lock (gate)
@@ -1634,6 +1643,7 @@ namespace CapriDesktop
                 Kept();
             }
             Logged(text, said);
+            followLine = after;
             return said;
         }
 
@@ -1849,6 +1859,38 @@ namespace CapriDesktop
         }
 
         internal List<ChatMessage> History { get { lock (gate) return new List<ChatMessage>(history); } }
+
+        internal static List<ChatMessage> Conversation(List<ChatMessage> messages)
+        {
+            List<ChatMessage> turns = new List<ChatMessage>();
+            foreach (ChatMessage message in messages)
+            {
+                if (turns.Count == 0 && message.Role != "user") continue;
+                if (turns.Count > 0 && message.Role == "assistant" && turns[turns.Count - 1].Role == "assistant") turns[turns.Count - 1].Content += "\n" + message.Content;
+                else turns.Add(new ChatMessage(message.Role, message.Content));
+            }
+            return turns;
+        }
+
+        internal static List<ChatMessage> LastTurn(List<ChatMessage> messages)
+        {
+            for (int turnAt = messages.Count - 1; turnAt >= 0; turnAt--)
+            {
+                if (messages[turnAt].Role != "user") continue;
+                List<string> answers = new List<string>();
+                for (int answerAt = turnAt + 1; answerAt < messages.Count; answerAt++)
+                    if (messages[answerAt].Role == "assistant") answers.Add(messages[answerAt].Content);
+                if (answers.Count == 0) return new List<ChatMessage>();
+                return new List<ChatMessage> { messages[turnAt], new ChatMessage("assistant", string.Join("\n", answers.ToArray())) };
+            }
+            return new List<ChatMessage>();
+        }
+
+        internal void Followed(string said)
+        {
+            lock (gate) { history.Add(new ChatMessage("assistant", said)); Kept(); }
+            Transcribe("Capri", said);
+        }
 
         internal string Step(string system, string user, string tools, string claudeTools, string listing, List<KeyValuePair<string, ToolArguments>> calls)
         {
@@ -3094,6 +3136,38 @@ namespace CapriDesktop
         }
     }
 
+    internal static class Replies
+    {
+        internal const string Instruction = "\nSparingly, only when you really have a second thought, put one short follow-up after your answer on a new line, with a line containing only ||| between them. Usually just answer. Never use it for a tool or a job.";
+
+        internal static string Split(string text, out string after)
+        {
+            StringBuilder first = new StringBuilder(), second = new StringBuilder();
+            bool split = false;
+            char fence = '\0';
+            int fenceLength = 0;
+            foreach (string line in (text ?? "").Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+            {
+                string trimmed = line.Trim();
+                if (trimmed.StartsWith("```", StringComparison.Ordinal) || trimmed.StartsWith("~~~", StringComparison.Ordinal))
+                {
+                    int run = 0;
+                    while (run < trimmed.Length && trimmed[run] == trimmed[0]) run++;
+                    if (fence == '\0') { fence = trimmed[0]; fenceLength = run; }
+                    else if (fence == trimmed[0] && run >= fenceLength && trimmed.Substring(run).Trim().Length == 0) fence = '\0';
+                }
+                if (fence == '\0' && trimmed == "|||") { split = true; continue; }
+                StringBuilder part = split ? second : first;
+                if (part.Length > 0) part.Append('\n');
+                part.Append(line);
+            }
+            string before = first.ToString().Trim();
+            after = second.ToString().Trim();
+            if (before.Length == 0) { before = after; after = ""; }
+            return before;
+        }
+    }
+
     // Her glances at their screen for Watch my screen, shared by Windows, Mac and Linux: what she's asked, reading her reply,
     // and spotting a line that brings back one she already said.
     internal static class Glances
@@ -3121,11 +3195,11 @@ namespace CapriDesktop
             "choom preem nova gonk delta eddies flatline flatlined corpo corpos yezzirrr night city arasaka capri").Split(' '));
 
         // Each glance is a fresh look with no chat history, so she's shown her recent lines and older topics to stay off.
-        internal static string Ask(List<string> said)
+        internal static string Ask(List<string> said, string line = Line)
         {
-            if (said.Count == 0) return Line;
+            if (said.Count == 0) return line;
             int shown = Math.Max(0, said.Count - 6);
-            string ask = Line + "\n(You already said these about their screen:";
+            string ask = line + "\n(You already said these about their screen:";
             for (int i = shown; i < said.Count; i++) ask += "\n- " + said[i];
             List<string> older = new List<string>();
             for (int i = 0; i < shown; i++) foreach (string key in Keys(said[i], Brain.Nickname)) if (older.Count < 12) Key(older, key);

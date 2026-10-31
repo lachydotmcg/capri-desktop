@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1504;
+        private const int PageTall = 1560;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -121,6 +121,11 @@ namespace CapriDesktop
         private int heldMods;
         private readonly Toggle watch;
         private readonly Toggle caughtUp;
+        private readonly Toggle followUps;
+        private readonly Slider watchMemory;
+        private readonly Readout watchMemoryName;
+        private static readonly int[] WatchLines = { 8, 16, 24, 48, 96 };
+        private static readonly string[] WatchLineNames = { "8 lines", "16 lines", "24 lines", "48 lines", "96 lines" };
         private readonly Toggle stayOnModel;
         private readonly Toggle remembering;
         private readonly Toggle keepAwake, hideFullScreen, playerFullScreen, exploreAway;
@@ -590,6 +595,10 @@ namespace CapriDesktop
             gap = Setting("Every", GapNames, c, 288, "Time between glances");
             gapName = new Readout(gap);
             gap.Changed += delegate { if (syncing) return; gapName.Text = GapNames[gap.Value]; capri.SetGlanceGap(Gaps[gap.Value]); };
+            watchMemory = Setting("Watch-along memory", WatchLineNames, c, 316, "Lines of PC dialogue held in memory while watching together. The oldest half becomes a note when Remember what she sees is on");
+            watchMemoryName = new Readout(watchMemory);
+            watchMemory.Changed += delegate { if (!syncing) capri.SetWatchMemory(WatchLines[watchMemory.Value]); };
+            int afterWatchMemory = Controls.Count;
             Section("BRAIN >", c, 330);
             stayOnModel = Switch("Stay on my model", c, 354, delegate { if (!syncing) capri.ToggleStayOnModel(); });
             stayOnModel.AccessibleName = "Stay on my model. When an NVIDIA model gets stuck she says so instead of switching to another one";
@@ -608,6 +617,9 @@ namespace CapriDesktop
             bubble = Setting("Bubble", BubbleNames, c, 494, "How long her replies stay up");
             bubbleName = new Readout(bubble);
             bubble.Changed += delegate { if (syncing) return; bubbleName.Text = BubbleNames[bubble.Value]; capri.SetBubbleTime(bubble.Value); };
+            followUps = Switch("Follow-up messages", c, 522, delegate { if (!syncing) capri.ToggleFollowUps(); });
+            followUps.AccessibleName = "Follow-up messages. Sometimes she adds a second thought after her answer. Your typing or speech drops it";
+            int afterFollowUps = Controls.Count;
             custom = Input(28 + c, 525, 244, 22);
             custom.Cue = "Custom model name";
             custom.Box.AccessibleName = "Custom model name";
@@ -689,6 +701,8 @@ namespace CapriDesktop
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
             fastHands = Switch("Fast hands in games", c, 1452, delegate { if (!syncing) capri.ToggleFastHands(); });
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. If you picked a bigger Claude brain she asks it when she's stuck, and chat stays on the brain you picked";
+            for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
+                Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -1562,6 +1576,9 @@ namespace CapriDesktop
             if (guard != null && !guard.IsDisposed) guard.Sync();
             watch.Checked = capri.Watching;
             caughtUp.Checked = capri.CaughtUp;
+            followUps.Checked = capri.FollowUps;
+            watchMemory.Value = Math.Max(0, Array.IndexOf(WatchLines, capri.WatchMemoryLines));
+            watchMemoryName.Text = WatchLineNames[watchMemory.Value];
             stayOnModel.Checked = capri.StayOnModel;
             remembering.Checked = capri.Remembers;
             keepAwake.Checked = capri.KeepAwake;
@@ -1666,6 +1683,9 @@ namespace CapriDesktop
         internal bool WatchShown { get { return watch.Checked; } }
 
         internal bool CaughtUpShown { get { return caughtUp.Checked; } }
+        internal bool FollowUpsShown { get { return followUps.Checked; } }
+        internal int WatchMemoryShown { get { return WatchLines[watchMemory.Value]; } }
+        internal void FlipFollowUps() { followUps.Checked = !followUps.Checked; }
 
         internal void FlipCaughtUp() { caughtUp.Checked = !caughtUp.Checked; }
 
