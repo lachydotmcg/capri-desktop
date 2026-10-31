@@ -845,6 +845,7 @@ namespace CapriDesktop
         internal Action Changed = delegate { };
         internal Action<string> Say = delegate { };
         internal Func<string> Name = delegate { return "choom"; };
+        internal Func<bool> Hud = delegate { return true; };
 
         internal string On(double now)
         {
@@ -876,10 +877,11 @@ namespace CapriDesktop
             goneAt = -1;
             Dock(game);
             Changed();
-            return "Gaming Mode on, " + Name() + (Warn(game) ? ". " + Borderless : ". Docking top-left until you close the game.");
+            return "Gaming Mode on, " + Name() + (Warn(game) ? ". " + Borderless : (Hud() ? ". Docking top-left until you close the game." : ". I'll stay out here with you until you close the game."));
         }
 
-        private const string Borderless = "That game's in exclusive full screen, so I can't show over it. Switch it to borderless and I'll dock top-left.";
+        private string Borderless { get { return Hud() ? BorderlessHud : "That game's in exclusive full screen, so I can't show over it. Switch it to borderless and you'll see me."; } }
+        private const string BorderlessHud = "That game's in exclusive full screen, so I can't show over it. Switch it to borderless and I'll dock top-left.";
 
         // True the first time this game is seen in exclusive full screen.
         private bool Warn(GameSeen game) { return Exclusive(game) && warned.Add(game.Name.ToLowerInvariant()); }
@@ -944,6 +946,8 @@ namespace CapriDesktop
             gaming.Undock = LeaveDock;
             gaming.Changed = delegate { CheckFullScreen(FullScreen()); mainframe.Sync(); };
             gaming.Say = GamingSay;
+            // Lachy, 31 Oct: for now Gaming Mode keeps her normal self, body, panel and all, and the HUD stays out of it.
+            gaming.Hud = delegate { return testing; };
             gaming.Name = delegate { return string.IsNullOrWhiteSpace(Brain.Nickname) ? "choom" : Brain.Nickname; };
         }
 
@@ -1009,6 +1013,7 @@ namespace CapriDesktop
         // She glitches off the desktop, and the HUD comes up over the game.
         private void DockOn(GameSeen game)
         {
+            if (!gaming.Hud()) return;
             GameHud.Offset = GameSpots.Find(preferences.GameSpots, game.Name);
             if (docked) { GameHud.Show(game.Bounds); return; }
             if (outro != null) { Action next = outro; outro = null; next(); }
@@ -1048,6 +1053,7 @@ namespace CapriDesktop
         // The HUD goes and she's back where she was, on her seat or ledge if she was on one, or hidden if she was hidden.
         private void LeaveDock()
         {
+            if (!docked) return;
             docked = false;
             dockTalk = null;
             dockWords = "";
