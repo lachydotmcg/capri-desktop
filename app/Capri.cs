@@ -220,6 +220,7 @@ namespace CapriDesktop
         [DataMember] public bool Silent;
         [DataMember] public bool Wander;
         [DataMember] public bool FreeVoice;
+        [DataMember] public bool FreeChatTold;
         [DataMember] public bool NoDance;
         [DataMember] public string Language;
         [DataMember] public string Nickname;
@@ -7565,6 +7566,21 @@ namespace CapriDesktop
             Begin(earsNotice, text, TalkState.Talking, null);
         }
 
+        // Free voice chat is listening. How it works gets said the first time and after that only shows under VOICE, unless she promised to say when she can hear them.
+        private void EarsReady(bool promised)
+        {
+            const string on = "Free voice chat on. Talk and I'll type back.";
+            if (ears.Muted) EarsNote(earsLead + "Free voice chat is ready; your mic is muted.", false);
+            else if (earsLead.Length > 0) EarsNote(earsLead + "Free voice chat is on; talk and I'll type back.", false);
+            else if (preferences.FreeChatTold && !promised) mainframe.VoiceNote(on, false);
+            else
+            {
+                bool shown = talkState != TalkState.Thinking;
+                EarsNote(on, false);
+                if (shown && !testing && !preferences.FreeChatTold) { preferences.FreeChatTold = true; SavePreferences(); }
+            }
+        }
+
         private void OnUi(Action action)
         {
             if (InvokeRequired) Post(action);
@@ -7586,7 +7602,8 @@ namespace CapriDesktop
             opened.Heard = delegate(string text) { OnUi(delegate { if (dictation == opened) HeardDictation(text); }); };
             opened.Partial = delegate(string words) { OnUi(delegate { if (dictation == opened) DockWords(words); }); };
             opened.Lost = delegate(string problem) { OnUi(delegate { if (dictation == opened) DictationLost(problem); }); };
-            EarsNote(earsLead + "One sec, opening my ears.", false);
+            if (preferences.FreeChatTold && earsLead.Length == 0) mainframe.VoiceNote("One sec, opening my ears.", false);
+            else EarsNote(earsLead + "One sec, opening my ears.", false);
             opened.Start(delegate(string problem) { OnUi(delegate { if (dictation == opened) Dictated(problem); }); });
         }
 
@@ -7607,7 +7624,7 @@ namespace CapriDesktop
                 mainframe.VoiceNote(other, true);
                 return;
             }
-            EarsNote(ears.Muted ? earsLead + "Free voice chat is ready; your mic is muted." : earsLead.Length > 0 ? earsLead + "Free voice chat is on; talk and I'll type back." : "Free voice chat on. Talk and I'll type back.", false);
+            EarsReady(false);
         }
 
         private void DictationLost(string problem)
@@ -7654,6 +7671,7 @@ namespace CapriDesktop
         private void ListenOwn()
         {
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
+            bool promised = earsAwaited;
             earsAwaited = false;
             Hearing.Own = parakeet;
             try { if (!testing && !ears.Listening) ears.Start(); }
@@ -7666,7 +7684,7 @@ namespace CapriDesktop
             earsReady = true;
             CheckEars(clock.Elapsed.TotalSeconds);
             if (!testing) ThreadPool.QueueUserWorkItem(delegate { try { parakeet.Warm(); } catch (Exception error) { Brain.Log("ears", -1, Voice.Short(error.Message)); } });
-            EarsNote(ears.Muted ? earsLead + "Free voice chat is ready; your mic is muted." : earsLead.Length > 0 ? earsLead + "Free voice chat is on; talk and I'll type back." : "Free voice chat on. Talk and I'll type back.", false);
+            EarsReady(promised);
         }
 
         private void ListenOffline(string why)
@@ -22937,6 +22955,49 @@ namespace CapriDesktop
                             CheckEars(clock.Elapsed.TotalSeconds);
                             if (!chatting || !local || earsReady || !earsShut || !lateStart.Started || reply != "One sec, opening my ears.") throw new Exception("Opening Windows speech looked ready to listen: " + reply);
                             if (lateStart.Language != preferences.Language || lateStart.Language != "English") throw new Exception("Windows speech didn't open in her picked language: " + lateStart.Language);
+                            bool freeToldWas = preferences.FreeChatTold;
+                            bool? quietOwnWas = ownEarsTest;
+                            Func<Dictation> quietMakeWas = Dictation.Make;
+                            try
+                            {
+                                preferences.FreeChatTold = true;
+                                foreach (bool quietOwn in new[] { false, true })
+                                {
+                                    ownEarsTest = quietOwn;
+                                    StandInDictation quietStart = new StandInDictation { Late = true };
+                                    Dictation.Make = delegate { return quietStart; };
+                                    string quietReplyWas = reply, quietHeardWas = heard, quietPromptWas = box.Prompt;
+                                    int quietAskedWas = asking, quietNoticeWas = earsNotice;
+                                    StartLocal();
+                                    if (box.Visible || talkState != TalkState.Off || reply != quietReplyWas || heard != quietHeardWas || box.Prompt != quietPromptWas || asking != quietAskedWas || earsNotice != quietNoticeWas)
+                                        throw new Exception("Opening free voice chat repeated its notice or changed her reply.");
+                                    if (!quietOwn) quietStart.Pending(null);
+                                    if (!earsReady || box.Visible || talkState != TalkState.Off || reply != quietReplyWas || heard != quietHeardWas || box.Prompt != quietPromptWas || asking != quietAskedWas || earsNotice != quietNoticeWas || mainframe.VoiceStatus.IndexOf("Free voice chat on.", StringComparison.Ordinal) != 0)
+                                        throw new Exception("Ready free voice chat repeated its notice or lost its Mainframe status.");
+                                    Begin(++asking, "Still answering, choom.", TalkState.Talking, null);
+                                    int quietReplyAsked = asking;
+                                    if (quietOwn) ListenOwn(); else Dictated(null);
+                                    if (reply != "Still answering, choom." || talkState != TalkState.Talking || heard != quietHeardWas || box.Prompt != quietPromptWas || asking != quietReplyAsked || earsNotice != quietNoticeWas)
+                                        throw new Exception("A repeated ready notice overlaid her current reply.");
+                                    StopChat();
+                                    CloseTalk();
+                                }
+                                // Ears that landed late still get said: she promised to.
+                                ownEarsTest = true;
+                                StartLocal();
+                                earsAwaited = true;
+                                ListenOwn();
+                                if (reply != "Free voice chat on. Talk and I'll type back.") throw new Exception("She promised to say when she could hear them, and didn't: " + reply);
+                            }
+                            finally
+                            {
+                                StopChat();
+                                CloseTalk();
+                                preferences.FreeChatTold = freeToldWas;
+                                ownEarsTest = quietOwnWas;
+                                Dictation.Make = quietMakeWas;
+                            }
+                            checks.Add("PASS free voice chat's opening and ready notices stay in the Mainframe after the first ready bubble, with Windows speech or her own ears, leave her current reply alone, and still show when she promised to say when her ears landed");
                             replyDone = clock.Elapsed.TotalSeconds - 120;
                             UpdateTalk(clock.Elapsed.TotalSeconds);
                             if (box.Leaving >= 0) throw new Exception("The opening-ears message faded before Windows speech started.");
