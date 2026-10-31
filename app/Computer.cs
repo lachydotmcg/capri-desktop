@@ -973,22 +973,35 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr window, out Box box);
         [DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr window, ref Point place);
 
-        // Puts the window in front over a screenshot, so a game has nothing of hers on it.
-        internal static void FrontOver(Bitmap shot, Rectangle area)
+        // Puts back what's under her from the window in front, so a game has nothing of hers on it.
+        internal static void FrontOver(Bitmap shot, Rectangle area, Rectangle[] hers)
         {
             OpenWindow picked = Pick();
-            if (picked != null) WindowOver(shot, area, picked.Handle);
+            if (picked != null) WindowOver(shot, area, picked.Handle, hers);
         }
 
-        // That window copied by itself. Windows hands back black or an old frame for some games, so a copy that doesn't look like the screen is left out.
-        internal static bool WindowOver(Bitmap shot, Rectangle area, IntPtr window)
+        // One copy at a time: a game that's stopped answering holds it for ever.
+        private static int copying;
+
+        // That window copied by itself, for the parts of the screen that are hers. Everything else stays as it is on screen, because that's what her clicks land on.
+        // Windows hands back black or an old frame for some games, so a copy that doesn't look like the screen is left out.
+        internal static bool WindowOver(Bitmap shot, Rectangle area, IntPtr window, Rectangle[] hers)
         {
             Box client;
             Point corner = Point.Empty;
             if (!GetClientRect(window, out client) || !ClientToScreen(window, ref corner) || client.Right < 64 || client.Bottom < 64) return false;
             int wide = client.Right, tall = client.Bottom;
+            Rectangle whole = Rectangle.Intersect(new Rectangle(corner.X, corner.Y, wide, tall), area);
+            List<Rectangle> covered = new List<Rectangle>();
+            foreach (Rectangle spot in hers)
+            {
+                Rectangle over = Rectangle.Intersect(spot, whole);
+                if (!over.IsEmpty) covered.Add(over);
+            }
+            if (covered.Count == 0 || Interlocked.CompareExchange(ref copying, 1, 0) != 0) return false;
+            object handing = new object();
             Bitmap own = null;
-            // A hung game would hold this call for ever, so it gets a thread and a second.
+            bool late = false;
             Thread copier = new Thread(delegate()
             {
                 try
@@ -1001,34 +1014,48 @@ namespace CapriDesktop
                         try { copied = PrintWindow(window, into, 3); }
                         finally { graphics.ReleaseHdc(into); }
                     }
-                    if (copied) own = copy;
-                    else copy.Dispose();
+                    lock (handing)
+                    {
+                        if (copied && !late) own = copy;
+                        else copy.Dispose();
+                    }
                 }
                 catch (Exception) { }
+                finally { Interlocked.Exchange(ref copying, 0); }
             });
             copier.IsBackground = true;
             copier.Start();
-            if (!copier.Join(1000) || own == null) return false;
+            if (!copier.Join(1000))
+                lock (handing)
+                {
+                    late = true;
+                    if (own != null) own.Dispose();
+                    own = null;
+                }
+            if (own == null) return false;
             using (own)
             {
-                int left = corner.X - area.X, top = corner.Y - area.Y;
-                if (!Alike(own, shot, left, top)) return false;
-                using (Graphics graphics = Graphics.FromImage(shot)) graphics.DrawImageUnscaled(own, left, top);
+                if (!Alike(own, corner, shot, area, whole, covered)) return false;
+                using (Graphics graphics = Graphics.FromImage(shot))
+                    foreach (Rectangle spot in covered)
+                    {
+                        graphics.SetClip(new Rectangle(spot.X - area.X, spot.Y - area.Y, spot.Width, spot.Height));
+                        graphics.DrawImageUnscaled(own, corner.X - area.X, corner.Y - area.Y);
+                    }
                 return true;
             }
         }
 
-        // At least half of a coarse grid of points matches the screen, and the copy isn't black.
-        private static bool Alike(Bitmap copy, Bitmap shot, int left, int top)
+        // At least half of a coarse grid of points on the screen, outside her spots, matches the copy, and the copy isn't black.
+        private static bool Alike(Bitmap copy, Point corner, Bitmap shot, Rectangle area, Rectangle whole, List<Rectangle> covered)
         {
             int seen = 0, same = 0, black = 0;
             for (int y = 0; y < 18; y++)
                 for (int x = 0; x < 32; x++)
                 {
-                    int across = copy.Width * x / 32 + copy.Width / 64, down = copy.Height * y / 18 + copy.Height / 36;
-                    int atX = across + left, atY = down + top;
-                    if (atX < 0 || atY < 0 || atX >= shot.Width || atY >= shot.Height) continue;
-                    Color theirs = copy.GetPixel(across, down), screen = shot.GetPixel(atX, atY);
+                    Point at = new Point(whole.X + whole.Width * x / 32 + whole.Width / 64, whole.Y + whole.Height * y / 18 + whole.Height / 36);
+                    if (covered.Exists(delegate(Rectangle spot) { return spot.Contains(at); })) continue;
+                    Color theirs = copy.GetPixel(at.X - corner.X, at.Y - corner.Y), screen = shot.GetPixel(at.X - area.X, at.Y - area.Y);
                     seen++;
                     if (theirs.R + theirs.G + theirs.B == 0) black++;
                     if (Math.Abs(theirs.R - screen.R) + Math.Abs(theirs.G - screen.G) + Math.Abs(theirs.B - screen.B) < 48) same++;
@@ -1994,14 +2021,17 @@ namespace CapriDesktop
         // A game job that stops short gets sent back three times at most: games hitch, and players get lost.
         private bool Hitched(string words)
         {
-            if (!Playing || hitches >= 3) return false;
+            if (!Playing) return false;
+            // Going round again is how Esc ends it, and it's how something they said gets done.
+            if (Computer.Interrupted || Told()) return true;
+            if (hitches >= 3) return false;
             bool unfinished = Unfinished(words);
-            // Going round again is how Esc ends it, and it's how something they said while she waited gets done.
-            if (Computer.Interrupted) return true;
-            bool told;
-            lock (heard) told = heard.Count > 0 || changes.Count > 0;
-            return (unfinished || told) && ++hitches <= 3;
+            if (Computer.Interrupted || Told()) return true;
+            if (unfinished) hitches++;
+            return unfinished;
         }
+
+        private bool Told() { lock (heard) return heard.Count > 0 || changes.Count > 0; }
 
         // Her second brain says whether it's done, in any language. Her words only decide when it can't answer.
         private bool Unfinished(string words)
@@ -2619,7 +2649,7 @@ namespace CapriDesktop
                             results = "\nYou asked " + Voice.Quote(said) + " but their job already says what to do, so don't ask: do it now. Capri stops you herself before any step that needs their OK.";
                             break;
                         }
-                        if (move.Key == "done" && Hitched(said)) { results += "\n" + Computer.Hitch; sentBack = true; break; }
+                        if (move.Key == "done" && Hitched(said)) { sentBack = results.Length == 0; results += "\n" + Computer.Hitch; break; }
                         return End(move.Key == "ask" ? "asked" : "done", Regex.IsMatch(args.Text ?? "", @"^\W*(done)?\W*$", RegexOptions.IgnoreCase) && move.Key == "done" ? Summary() : said);
                     }
                     bool member;
@@ -2760,11 +2790,12 @@ namespace CapriDesktop
         private bool Look()
         {
             Show("Looking at the screen");
+            // Read first, so a window that takes over during the shot counts as a change.
+            looked = Computer.Front();
             Picture fresh = Computer.Shoot(null);
             // This picture shows whatever hit her, so there's nothing left to stop for.
             Computer.Flinched = false;
             Show(null);
-            looked = Computer.Front();
             Action<Sight> seen = Seen;
             if (seen != null) seen(Computer.Glimpse());
             if (fresh == null) return false;

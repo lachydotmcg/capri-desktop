@@ -5512,28 +5512,37 @@ namespace CapriDesktop
             if (herPointer.Visible && pointed != null) Smear(shot, pointed, herPointer.Left - area.X, herPointer.Top - area.Y, pointed.Width, pointed.Height);
         }
 
-        // Her hands' screenshots. In a game the game's own window goes on top, which she was never on.
-        private Bitmap HandsGrab(Rectangle area)
+        // Where she, her bubble, her pill and her pointer are on screen.
+        private Rectangle[] OwnSpots()
         {
-            Bitmap shot = PaintedGrab(area);
-            Job playing = job;
-            if (playing != null && playing.Playing) Computer.FrontOver(shot, area);
-            return shot;
+            System.Collections.Generic.List<Rectangle> spots = new System.Collections.Generic.List<Rectangle>();
+            Bitmap drawn = frame;
+            if (drawn != null && !hidden) spots.Add(new Rectangle(anchor.X, anchor.Y, drawn.Width, drawn.Height));
+            if (box.Visible) spots.Add(box.Bounds);
+            if (pill.Visible) spots.Add(pill.Bounds);
+            Bitmap pointed = herPointer.Image;
+            if (herPointer.Visible && pointed != null) spots.Add(new Rectangle(herPointer.Location, pointed.Size));
+            return spots.ToArray();
         }
 
-        // The screen with her painted out, on the UI thread that owns her frames.
-        private Bitmap PaintedGrab(Rectangle area)
+        // Her hands' screenshots: the screen with her painted out, on the UI thread that owns her frames. In a game, what's under her comes from the game's own window, which she was never on.
+        private Bitmap HandsGrab(Rectangle area)
         {
             Bitmap shot = OwnGrab(area);
-            if (!InvokeRequired) { PaintOut(shot, area); return shot; }
-            try
-            {
-                IAsyncResult painted = BeginInvoke(new Action(delegate { PaintOut(shot, area); }));
-                // A busy UI thread could still be painting this one, so send a fresh grab with her and the task panel in it instead.
-                if (!painted.AsyncWaitHandle.WaitOne(3000)) return Grab(area);
-                EndInvoke(painted);
-            }
-            catch (InvalidOperationException) { }
+            Rectangle[] hers = null;
+            Action paint = delegate { PaintOut(shot, area); hers = OwnSpots(); };
+            if (!InvokeRequired) paint();
+            else
+                try
+                {
+                    IAsyncResult painted = BeginInvoke(paint);
+                    // A busy UI thread could still be painting this one, so send a fresh grab with her and the task panel in it instead.
+                    if (!painted.AsyncWaitHandle.WaitOne(3000)) return Grab(area);
+                    EndInvoke(painted);
+                }
+                catch (InvalidOperationException) { }
+            Job playing = job;
+            if (hers != null && playing != null && playing.Playing) Computer.FrontOver(shot, area, hers);
             return shot;
         }
 
@@ -11313,7 +11322,7 @@ namespace CapriDesktop
                 }
                 frameForm.Close();
             }
-            // She sees a game's own window through anything of hers on top of it, and a copy that doesn't look like the screen is left out.
+            // She sees a game's own window under anything of hers on top of it, whatever else is in front stays, and a copy that doesn't look like the screen is left out.
             using (Form underForm = new Form())
             using (Form overForm = new Form())
             {
@@ -11336,26 +11345,31 @@ namespace CapriDesktop
                 Thread.Sleep(200);
                 Application.DoEvents();
                 Rectangle overArea = underForm.Bounds;
+                Rectangle[] overHers = { overForm.Bounds };
                 IntPtr underHandle = underForm.Handle;
                 using (Bitmap overShot = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
                 using (Bitmap overStale = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
                 {
                     using (Graphics overDraw = Graphics.FromImage(overShot)) overDraw.CopyFromScreen(overArea.Location, Point.Empty, overArea.Size);
                     using (Graphics overDraw = Graphics.FromImage(overStale)) overDraw.Clear(Color.Blue);
-                    bool overHadIt = overShot.GetPixel(160, 90).G < 80, overCopied = false, overStaleCopied = true, overDone = false;
+                    Color overBefore = overShot.GetPixel(160, 90);
+                    bool overHadIt = overBefore.R > 200 && overBefore.G < 80 && overBefore.B > 200, overCopied = false, overStaleCopied = true, overDone = false;
+                    // A window of someone else's in front of the game.
+                    overShot.SetPixel(20, 20, Color.Red);
                     Thread overThread = new Thread(delegate()
                     {
-                        overCopied = Computer.WindowOver(overShot, overArea, underHandle);
-                        overStaleCopied = Computer.WindowOver(overStale, overArea, underHandle);
+                        overCopied = Computer.WindowOver(overShot, overArea, underHandle, overHers);
+                        overStaleCopied = Computer.WindowOver(overStale, overArea, underHandle, overHers);
                         overDone = true;
                     });
                     overThread.Start();
                     while (!overDone) { Application.DoEvents(); Thread.Sleep(5); }
-                    Color overSeen = overShot.GetPixel(160, 90), overLeft = overStale.GetPixel(160, 90);
+                    Color overSeen = overShot.GetPixel(160, 90), overLeft = overStale.GetPixel(160, 90), overOther = overShot.GetPixel(20, 20);
                     if (overStaleCopied || overLeft.B < 200) throw new Exception("A window copy that didn't look like the screen went over it.");
                     if (!overHadIt) checks.Add("LIMIT window copies: the test window never got on top of the other one here");
                     else if (!overCopied || overSeen.G < 200 || overSeen.R > 60) throw new Exception("She couldn't see through her own window: " + overCopied + " " + overSeen);
-                    else checks.Add("PASS window copies: a game's own window shows what's under anything of hers, and a copy that doesn't match the screen is left out");
+                    else if (overOther.R < 200 || overOther.G > 60) throw new Exception("A window copy painted over something that isn't hers: " + overOther);
+                    else checks.Add("PASS window copies: a game's own window shows what's under anything of hers and nothing else, and a copy that doesn't match the screen is left out");
                 }
                 overForm.Close();
                 underForm.Close();
