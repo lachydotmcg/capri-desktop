@@ -836,6 +836,8 @@ namespace CapriDesktop
         private const string ArmedOut = "Gaming Mode's armed. I'll watch as soon as a game's up.";
         private readonly HashSet<string> warned = new HashSet<string>();
         private double dockedAt, goneAt = -1;
+        // She came in by herself and nobody's heard about it.
+        private bool quiet;
         internal Stage State { get; private set; }
         internal GameSeen Game { get; private set; }
         internal Func<GameSeen> Find = delegate { return null; };
@@ -847,9 +849,13 @@ namespace CapriDesktop
         internal Action<string> Say = delegate { };
         internal Func<string> Name = delegate { return "choom"; };
         internal Func<bool> Hud = delegate { return true; };
+        internal Func<bool> Stays = delegate { return false; };
+
+        internal bool Asked { get { return State != Stage.Off && !quiet; } }
 
         internal string On(double now)
         {
+            if (quiet) { quiet = false; return Landing(Game); }
             if (State != Stage.Off) return "Gaming Mode's already on.";
             GameSeen found = Find();
             if (found != null) return Land(found, now);
@@ -865,6 +871,7 @@ namespace CapriDesktop
             State = Stage.Off;
             Game = null;
             goneAt = -1;
+            quiet = false;
             if (on) Undock();
             Changed();
             return "Gaming Mode off.";
@@ -878,7 +885,20 @@ namespace CapriDesktop
             goneAt = -1;
             Dock(game);
             Changed();
-            return "Gaming Mode on, " + Name() + (Warn(game) ? ". " + Borderless : (Hud() ? ". Docking top-left until you close the game." : ". I'll stay out here with you until you close the game."));
+            return Landing(game);
+        }
+
+        private string Landing(GameSeen game) { return "Gaming Mode on, " + Name() + (Warn(game) ? ". " + Borderless : (Hud() ? ". Docking top-left until you close the game." : ". I'll stay out here with you until you close the game.")); }
+
+        // On by default (Lachy, 31 Oct): a game in front takes her in with nothing said, unless she can't show over it.
+        internal void Notice(double now)
+        {
+            if (State != Stage.Off) return;
+            GameSeen found = Find();
+            if (found == null) return;
+            quiet = true;
+            string line = Land(found, now);
+            if (line.EndsWith(Borderless, StringComparison.Ordinal)) Say(line);
         }
 
         private string Borderless { get { return Hud() ? BorderlessHud : "That game's in exclusive full screen, so I can't show over it. Switch it to borderless and you'll see me."; } }
@@ -915,8 +935,9 @@ namespace CapriDesktop
             }
             if (goneAt < 0) goneAt = now;
             if (now - goneAt < (goneAt - dockedAt < LauncherLife ? LauncherWait : GoneWait)) return;
+            bool told = !quiet;
             Off();
-            Say("GG, " + Name() + ". Gaming Mode off.");
+            if (told) Say("GG, " + Name() + (Stays() ? "." : ". Gaming Mode off."));
         }
     }
 
@@ -933,6 +954,17 @@ namespace CapriDesktop
         private string dockTalk, dockWords = "";
 
         internal bool GamingOn { get { return gaming.State != GameDock.Stage.Off; } }
+
+        // On unless they've turned it off. With no game up there's nothing for it to do, so it only runs while one is.
+        internal bool GamingWanted { get { return GamingOn || !preferences.NoGaming; } }
+
+        private void WantGaming(bool on)
+        {
+            if (preferences.NoGaming != on) return;
+            preferences.NoGaming = !on;
+            SavePreferences();
+            mainframe.Sync();
+        }
 
         // Gaming Mode is them asking her to watch, so she reacts at least when something happens, HUD or no HUD.
         private int GamePace { get { return Math.Max(CommentPace, GamingOn ? Commentary.Events : Commentary.Off); } }
@@ -952,6 +984,7 @@ namespace CapriDesktop
             gaming.Say = GamingSay;
             // Lachy, 31 Oct: for now Gaming Mode keeps her normal self, body, panel and all, and the HUD stays out of it.
             gaming.Hud = delegate { return testing; };
+            gaming.Stays = delegate { return !testing && !preferences.NoGaming; };
             gaming.Name = delegate { return string.IsNullOrWhiteSpace(Brain.Nickname) ? "choom" : Brain.Nickname; };
         }
 
@@ -961,8 +994,14 @@ namespace CapriDesktop
         // "on", "off", or which way to move her HUD: up, down, left, right or reset.
         internal string GamingMode(string action)
         {
-            if (action == "on") { WakeRest(true); return gaming.On(clock.Elapsed.TotalSeconds); }
-            if (action == "off") return gaming.Off();
+            if (action == "on") { WakeRest(true); WantGaming(true); return gaming.On(clock.Elapsed.TotalSeconds); }
+            if (action == "off")
+            {
+                bool wanted = GamingWanted;
+                WantGaming(false);
+                string left = gaming.Off();
+                return wanted ? "Gaming Mode off." : left;
+            }
             if (!docked) return "My HUD isn't up right now.";
             string game = gaming.Game.Name;
             Point spot = action == "reset" ? GameSpots.Built(game) : GameSpots.Nudged(GameHud.Offset, action);
@@ -974,7 +1013,7 @@ namespace CapriDesktop
         }
 
         // Her key and her Mainframe's switch.
-        internal void ToggleGaming() { GamingSay(GamingMode(GamingOn ? "off" : "on")); }
+        internal void ToggleGaming() { GamingSay(GamingMode(GamingWanted ? "off" : "on")); }
 
         // A line of her own in her usual voice. If she's busy answering them, it only shows, and hidden she keeps it to herself.
         private void GamingSay(string line)
@@ -994,14 +1033,17 @@ namespace CapriDesktop
             if (GamingOn) { jobDock = running; return; }
             if (gaming.Find() == null) return;
             jobDock = running;
-            GamingSay(GamingMode("on"));
+            WakeRest(true);
+            GamingSay(gaming.On(clock.Elapsed.TotalSeconds));
         }
 
         private void CheckGame(double now)
         {
             bool playing = PlayingGame;
-            if ((!GamingOn && !playing) || now < gameCheck) return;
+            bool watching = !testing && !preferences.NoGaming && !napAsked && !Asleep;
+            if ((!GamingOn && !playing && !watching) || now < gameCheck) return;
             gameCheck = now + 1;
+            if (watching) gaming.Notice(now);
             if (playing) DockForJob(job);
             if (!GamingOn) return;
             gaming.Check(now);

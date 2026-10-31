@@ -1645,7 +1645,7 @@ namespace CapriDesktop
             startup.Checked = capri.StartsWithWindows;
             discord.Checked = capri.OnDiscord;
             cursor.Checked = capri.UsesCursor;
-            gamingMode.Checked = capri.GamingOn;
+            gamingMode.Checked = capri.GamingWanted;
             security.Text = "Security: " + Security.PresetName;
             blackwallNote.Text = Security.Short;
             if (guard != null && !guard.IsDisposed) guard.Sync();
@@ -4152,7 +4152,7 @@ namespace CapriDesktop
                 Controls.Add(shut);
                 Caption("These start off. Turn on what you want. They're all in Settings too.", 28, 52, small, Faint);
                 Extra(0, "Watch my screen", "She glances at your screen and comments. Costs a little on a paid brain.", small, delegate { owner.capri.ToggleWatch(); });
-                Extra(1, "Comment on my games", "She reacts when things happen in your game. Costs a little on a paid brain.", small, delegate { owner.capri.SetCommentPace(toggles[1].Checked ? 1 : 0); owner.Sync(); });
+                Extra(1, "Comment on my games", "She talks about your game as you play. Costs a little on a paid brain.", small, delegate { owner.capri.SetCommentPace(toggles[1].Checked ? 2 : 0); owner.Sync(); });
                 Extra(2, "Clip my games", "Keeps the last two minutes of your game in memory. Say clip that to save it.", small, delegate { owner.capri.ToggleClips(); });
                 Extra(3, "Listen for Capri", "She keeps listening and answers when you say her name.", small, delegate { owner.capri.ToggleListenCapri(); });
                 Key done = new Key();

@@ -231,6 +231,7 @@ namespace CapriDesktop
         [DataMember] public bool FreeVoice;
         [DataMember] public bool FreeChatTold;
         [DataMember] public bool ListenCapri;
+        [DataMember] public bool NoGaming;
         [DataMember] public bool ListenCapriTold;
         [DataMember] public bool NoDance;
         [DataMember] public bool NoHeadPats;
@@ -5677,7 +5678,7 @@ namespace CapriDesktop
 
         private void CheckFullScreen(bool full)
         {
-            bool shouldHide = preferences.HideFullScreen && full && !GamingOn;
+            bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
             if (fullScreenHidden == shouldHide) return;
             fullScreenHidden = shouldHide;
             if (!docked && hidden != (manualHidden || shouldHide)) ApplyHidden(manualHidden || shouldHide);
@@ -15674,6 +15675,37 @@ namespace CapriDesktop
                 GamingMode("off");
                 front = null;
                 bool plainOff = !GamingOn && !docked && !hidden && GamePace == Commentary.Off;
+                // On by default (Lachy, 31 Oct): a game in front takes her in with nothing said, asking still gets its answer, closing the game leaves it on for the next one, and off stays off.
+                Func<bool> staysWas = gaming.Stays;
+                gaming.Stays = delegate { return true; };
+                preferences.NoGaming = false;
+                bool wantedAtRest = !GamingOn && GamingWanted;
+                said.Clear();
+                running = true;
+                front = game;
+                gaming.Notice(9100);
+                bool noticed = gaming.State == GameDock.Stage.Docked && !gaming.Asked && said.Count == 0 && !docked && !hidden && GamePace == Commentary.Events;
+                string askedWhenOn = GamingMode("on");
+                bool askedRight = askedWhenOn == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game." && gaming.Asked && GamingMode("on") == "Gaming Mode's already on.";
+                running = false;
+                front = null;
+                gaming.Check(9200);
+                gaming.Check(9300);
+                bool closedAsked = !GamingOn && GamingWanted && said.Count == 1 && said[0] == "GG, " + name + ".";
+                said.Clear();
+                running = true;
+                front = game;
+                gaming.Notice(9400);
+                running = false;
+                front = null;
+                gaming.Check(9500);
+                gaming.Check(9600);
+                bool closedQuietly = !GamingOn && GamingWanted && said.Count == 0;
+                string turnedOffNoGame = GamingMode("off");
+                bool stayedOff = turnedOffNoGame == "Gaming Mode off." && !GamingOn && !GamingWanted && !mainframe.GamingShown && GamingMode("off") == "Gaming Mode's already off.";
+                gaming.Stays = staysWas;
+                if (!wantedAtRest || !noticed || !askedRight || !closedAsked || !closedQuietly || !stayedOff) throw new Exception("Gaming Mode on by default went wrong: rest " + wantedAtRest + ", noticed " + noticed + ", asked " + askedRight + " (" + askedWhenOn + "), closed " + closedAsked + "/" + closedQuietly + ", off " + stayedOff + " (" + turnedOffNoGame + "), said " + string.Join(" / ", said.ToArray()));
+                checks.Add("PASS Gaming Mode is on by default: a game in front takes her in with nothing said, asking for it still gets its answer, closing the game leaves it on for the next one, and turning it off stays off");
                 gaming.Hud = delegate { return testing; };
                 preferences.CommentPace = plainPaceWas;
                 if (!plainStayed || !plainOff || plainMove != "My HUD isn't up right now.") throw new Exception("Gaming Mode without the HUD went wrong: stayed " + plainStayed + ", off " + plainOff + ", move " + plainMove + ", armed " + plainArmed + ", said " + string.Join(" / ", said.ToArray()) + ", doing " + Doing);
@@ -23681,7 +23713,7 @@ namespace CapriDesktop
                             bool launchRarely = WanderLevel == 1 && mainframe.WanderShown == "Rarely" && nextWander < 0 && LoadPreferences().Wander;
                             string launchCrowd = mainframe.ExtrasCrowded, launchOff = mainframe.ExtrasShown;
                             for (int launchRow = 0; launchRow < 4; launchRow++) mainframe.FlipExtra(launchRow);
-                            bool launchOn = preferences.Watch && preferences.CommentPace == 1 && mainframe.CommentsShown == "Events only" && preferences.ClipGames && preferences.ListenCapri && mainframe.ExtrasShown == "1111";
+                            bool launchOn = preferences.Watch && preferences.CommentPace == 2 && mainframe.CommentsShown == "Chatty" && preferences.ClipGames && preferences.ListenCapri && mainframe.ExtrasShown == "1111";
                             for (int launchBack = 0; launchBack < 4; launchBack++) mainframe.FlipExtra(launchBack);
                             bool launchOffAgain = !preferences.Watch && preferences.CommentPace == 0 && !preferences.ClipGames && !preferences.ListenCapri && mainframe.ExtrasShown == "0000";
                             mainframe.CloseExtras();
