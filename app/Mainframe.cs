@@ -395,7 +395,7 @@ namespace CapriDesktop
                 string each = name;
                 cloudMenu.Items.Add(Choice(each, false, delegate { PickCloud(each); }));
             }
-            cloudPick = Lower(Make(Clouds[0], 28, KeyAt, 100, 28, delegate { cloudMenu.Show(cloudPick, new Point(0, cloudPick.Height)); }));
+            cloudPick = Lower(Make(Clouds[0], 28, KeyAt, 108, 28, delegate { cloudMenu.Show(cloudPick, new Point(0, cloudPick.Height)); }));
             cloudPick.Chevron = true;
             cloudPick.AccessibleName = "Cloud voice service";
             keyEntry = Lower(Input(136, KeyAt, 136));
@@ -405,7 +405,7 @@ namespace CapriDesktop
             keyEntry.Box.TextChanged += delegate { Relabel(); };
             keyEntry.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; Connect(); } };
             // Fish Audio and OpenAI keep their key, voice and model in the voice model panel.
-            cloudVoice = Lower(Make("", 136, KeyAt, 220, 28, delegate { OpenServer(true, CloudApi(cloudName)); }));
+            cloudVoice = Lower(Make("", 144, KeyAt, 212, 28, delegate { OpenServer(true, CloudApi(cloudName)); }));
             voiceMenu = Dropdown();
             voiceEntry = Lower(Input(28, 346, 196));
             voiceEntry.Chevron = true;
@@ -482,7 +482,7 @@ namespace CapriDesktop
             nickname.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseNickname(); } };
             Make("Save", 280, 141, 76, 22, delegate { UseNickname(); });
             Section("VOICE >", 0, 180);
-            styleNote = Caption("Every voice, ElevenLabs too", 88, 178, small, Faint);
+            styleNote = Caption("Applies to every voice", 88, 178, small, Faint);
             styleNote.AutoSize = false;
             styleNote.TextAlign = ContentAlignment.MiddleRight;
             styleNote.Bounds = new Rectangle(88, 178, 192, 20);
@@ -700,6 +700,7 @@ namespace CapriDesktop
             clipMoments = Switch("Save big moments", c, 1424, delegate { if (!syncing) capri.ToggleClipMoments(); });
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
             fastHands = Switch("Fast hands in games", c, 1452, delegate { if (!syncing) capri.ToggleFastHands(); });
+            hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
@@ -2455,7 +2456,7 @@ namespace CapriDesktop
 
         internal string LayersCrowded { get { return layered == null || layered.IsDisposed ? "not open" : layered.Crowded(); } }
 
-        // VOICE's heading from 100% to 200%: "Every voice, ElevenLabs too" and the Layers button each fit their own text, and
+        // VOICE's heading from 100% to 200%: "Applies to every voice" and the Layers button each fit their own text, and
         // they don't meet. Null when they do.
         internal string VoiceHeadingFits()
         {
