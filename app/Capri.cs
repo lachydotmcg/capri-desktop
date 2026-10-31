@@ -213,7 +213,7 @@ namespace CapriDesktop
         [DataMember] public bool Tiered;
         [DataMember] public bool Watch;
         [DataMember] public int GlanceGap;
-        // Keep her caught up is on by default: what she saw costs a few words per chat, next to the screenshot each glance already sends.
+        // Remember what she sees is on by default: what she saw costs a few words per chat, next to the screenshot each glance already sends.
         [DataMember] public bool CaughtUp = true;
         // Stay on my model: a stuck NVIDIA model says what went wrong instead of handing the message to another model (Zak's ask).
         [DataMember] public bool StayOnModel;
@@ -5830,7 +5830,7 @@ namespace CapriDesktop
             Remark("watching", said);
         }
 
-        // With Keep her caught up on, a glance she kept quiet about still goes in her memory, so she can say what was on their screen.
+        // With Remember what she sees on, a glance she kept quiet about still goes in her memory, so she can say what was on their screen.
         private void Glimpsed(string saw)
         {
             if (preferences.CaughtUp) brain.Saw(saw, null);
@@ -16903,7 +16903,7 @@ namespace CapriDesktop
                                     long spent = 0;
                                     int ticked = 0, drew = 0, intervalAt30 = 0, perchSizeWas = preferences.Size;
                                     double probeUntil = 0;
-                                    Bitmap seen = frame;
+                                    int seen = bodyPaints;
                                     System.Windows.Forms.Timer probe = new System.Windows.Forms.Timer();
                                     probe.Tick += delegate
                                     {
@@ -16914,7 +16914,7 @@ namespace CapriDesktop
                                         Tick();
                                         spent += Stopwatch.GetTimestamp() - start;
                                         ticked++;
-                                        if (frame != seen) { drew++; seen = frame; }
+                                        if (bodyPaints != seen) { drew++; seen = bodyPaints; }
                                         int wanted = FrameInterval(clock.Elapsed.TotalSeconds);
                                         if (probe.Interval != wanted) probe.Interval = wanted;
                                     };
@@ -26015,7 +26015,7 @@ namespace CapriDesktop
                             if (glancing) { if (clock.Elapsed.TotalSeconds > glanceDeadline) throw new Exception("The fake glance timed out."); return; }
                             if (reply != null || lastGlance != 1000 || mainframe.Status.Contains("Couldn't read the screen.")) throw new Exception("SKIP was spoken, lost its retry time or kept an old screen error.");
                             lock (glanceAsked) if (glanceAsked.Count != 1) throw new Exception("The first glance sent the wrong number of requests.");
-                            if (Brain.Seen().IndexOf("a dungeon with a closed treasure chest. You stayed quiet.", StringComparison.Ordinal) < 0) throw new Exception("With Keep her caught up on, a glance she kept quiet about wasn't kept: " + Brain.Seen());
+                            if (Brain.Seen().IndexOf("a dungeon with a closed treasure chest. You stayed quiet.", StringComparison.Ordinal) < 0) throw new Exception("With Remember what she sees on, a glance she kept quiet about wasn't kept: " + Brain.Seen());
                             nextGlance = 1100;
                             CheckGlance(1100, 130000);
                             if (glancing) throw new Exception("An unchanged screen was retried too soon.");
@@ -26041,25 +26041,25 @@ namespace CapriDesktop
                             string lookedAt = LookAt("the error");
                             if (lookedAt != "You looked at their screen. You see: A code editor with a red error on line 12." || Brain.Seen().IndexOf(", when they asked you to look: A code editor with a red error on line 12. You told them about it.", StringComparison.Ordinal) < 0) throw new Exception("A look they asked for wasn't kept: " + lookedAt + " / " + Brain.Seen());
                             mainframe.FlipCaughtUp();
-                            if (preferences.CaughtUp || mainframe.CaughtUpShown || LoadPreferences().CaughtUp) throw new Exception("Keep her caught up didn't turn off and save.");
+                            if (preferences.CaughtUp || mainframe.CaughtUpShown || LoadPreferences().CaughtUp) throw new Exception("Remember what she sees didn't turn off and save.");
                             FinishGlance(asking, watchTicket, "", null, "a settings menu with a volume slider");
                             lastPrint = new byte[64 * 36 * 3];
                             dragging = true;
                             FinishGlance(asking, watchTicket, "Nice slider.", null, "a settings menu with a brightness slider");
                             dragging = false;
-                            if (Brain.Seen().IndexOf("a settings menu", StringComparison.Ordinal) >= 0 || reply != "Don't skip that chest.") throw new Exception("With Keep her caught up off, a glance she didn't say went in her memory: " + Brain.Seen());
+                            if (Brain.Seen().IndexOf("a settings menu", StringComparison.Ordinal) >= 0 || reply != "Don't skip that chest.") throw new Exception("With Remember what she sees off, a glance she didn't say went in her memory: " + Brain.Seen());
                             mainframe.FlipCaughtUp();
-                            if (!preferences.CaughtUp || !mainframe.CaughtUpShown || !LoadPreferences().CaughtUp) throw new Exception("Keep her caught up didn't turn back on and save.");
+                            if (!preferences.CaughtUp || !mainframe.CaughtUpShown || !LoadPreferences().CaughtUp) throw new Exception("Remember what she sees didn't turn back on and save.");
                             FinishGlance(asking, watchTicket, "", null, "a world map with three quest markers");
-                            if (Brain.Seen().IndexOf("a world map with three quest markers. You stayed quiet.", StringComparison.Ordinal) < 0) throw new Exception("With Keep her caught up on, a silent glance wasn't kept: " + Brain.Seen());
+                            if (Brain.Seen().IndexOf("a world map with three quest markers. You stayed quiet.", StringComparison.Ordinal) < 0) throw new Exception("With Remember what she sees on, a silent glance wasn't kept: " + Brain.Seen());
                             DataContractJsonSerializer caughtJson = new DataContractJsonSerializer(typeof(Preferences));
                             Preferences caughtOld = (Preferences)caughtJson.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}")));
                             Preferences caughtOff = (Preferences)caughtJson.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"CaughtUp\":false,\"Size\":240}")));
-                            if (!new Preferences().CaughtUp || !caughtOld.CaughtUp || caughtOff.CaughtUp) throw new Exception("Keep her caught up isn't on by default, or off doesn't stick.");
+                            if (!new Preferences().CaughtUp || !caughtOld.CaughtUp || caughtOff.CaughtUp) throw new Exception("Remember what she sees isn't on by default, or off doesn't stick.");
                             string glanceDay = File.ReadAllText(Path.Combine(Brain.TranscriptPath, DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md"));
                             if (!System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a dungeon with a closed treasure chest\. She stayed quiet\.\*\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a treasure chest next to their character\.\*\n\*\*\d\d:\d\d Capri:\*\* Don't skip that chest\.\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She looked at your screen: A code editor with a red error on line 12\.\*\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a world map with three quest markers\. She stayed quiet\.\*\n") || glanceDay.IndexOf("a settings menu", StringComparison.Ordinal) >= 0) throw new Exception("Her glances and looks didn't reach her transcript the right way: " + glanceDay);
                             Brain.Unsee();
-                            checks.Add("PASS screen memory: a spoken glance goes in her chat as what she saw plus her line, a look they asked for is kept too, and Keep her caught up (on by default, saved) decides whether glances she stays quiet about are kept");
+                            checks.Add("PASS screen memory: a spoken glance goes in her chat as what she saw plus her line, a look they asked for is kept too, and Remember what she sees (on by default, saved) decides whether glances she stays quiet about are kept");
                             resetGlance();
                             resetGlance = null;
                             heard = "Hello Capri.";
