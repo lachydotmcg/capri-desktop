@@ -3284,7 +3284,7 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException) { return; }
             if (line == null) return;
             reminderUp = true;
-            bool bubbleOnly = InChat || Hushed || preferences.Quiet || FullScreen();
+            bool bubbleOnly = InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice) || FullScreen();
             if (working != null)
             {
                 asideShown = line;
@@ -6631,7 +6631,7 @@ namespace CapriDesktop
             asideUntil = now + BubbleHold(line.Length);
             UpdateTalk(now);
             // A slow voice would never speak if each new line cancelled the one it's still making, so the next line waits for it.
-            if ((chatting && !local) || Hushed || preferences.Quiet || now < playVoiced) return;
+            if ((chatting && !local) || Hushed || now < playVoiced) return;
             playVoiced = now + 15;
             SayAside(line, running);
         }
@@ -8463,7 +8463,8 @@ namespace CapriDesktop
 
         private void KeepListening(double now)
         {
-            if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || hidden || quitting || preferences.Quiet || talkState != TalkState.Off || speech != null) return;
+            // Quiet only turns ElevenLabs off, so Fish Audio and her own voices listen too (Lachy, 31 Oct: "hey capri is basically unusable").
+            if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || hidden || quitting || talkState != TalkState.Off || speech != null) return;
             listenAt = now + 60;
             ToggleChat();
         }
@@ -28816,8 +28817,12 @@ namespace CapriDesktop
                 hidden = false;
                 preferences.Quiet = true;
                 KeepListening(1);
-                bool quietHeld = !chatting;
+                bool quietHeld = chatting && local;
+                CloseTalk();
+                StopChat();
                 preferences.Quiet = false;
+                earsClosed = false;
+                listenAt = 0;
                 KeepListening(1);
                 bool openedAlone = chatting && local && !InChat && pill.ListenForName;
                 CloseTalk();
@@ -28838,7 +28843,7 @@ namespace CapriDesktop
                 bool switchOpens = !earsClosed && listenAt == 0;
                 CloseTalk();
                 if (!closedHeld || !hiddenHeld || !quietHeld || !openedAlone || !retryHeld || !cameBack || !chatCounts || !shutAgain || !switchOpens) throw new Exception("Listen for Capri's ears did not look after themselves: closed " + closedHeld + ", hidden " + hiddenHeld + ", quiet " + quietHeld + ", opened " + openedAlone + ", retry " + retryHeld + ", back " + cameBack + ", chat " + chatCounts + ", shut " + shutAgain + ", switch " + switchOpens);
-                checks.Add("PASS Listen for Capri opens her ears with no key, brings them back after anything but the talk key, waits while she's hidden or Quiet, doesn't count as a conversation, and its switch reopens them");
+                checks.Add("PASS Listen for Capri opens her ears with no key, brings them back after anything but the talk key, waits while she's hidden, listens the same with ElevenLabs off, doesn't count as a conversation, and its switch reopens them");
                 checks.Add("LIMIT Listen for Capri's real microphone, how each recogniser spells her name, and ElevenLabs credit billing need a live voice check");
             }
             finally
