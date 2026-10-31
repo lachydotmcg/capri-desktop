@@ -980,6 +980,8 @@ namespace CapriDesktop
 
         internal bool HeadPatsShown { get { return headPats.Checked; } }
 
+        internal string WanderShown { get { return wanderName.Text; } }
+
         internal string JobsStatus { get { return (cursor.Checked ? "cursor" : "-") + " | " + security.Text; } }
 
         internal string BlackwallStatus { get { return security.Text + " | " + blackwallNote.Text; } }

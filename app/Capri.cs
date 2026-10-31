@@ -1754,6 +1754,13 @@ namespace CapriDesktop
             }
         }
 
+        // A new install only (Lachy, 31 Oct): she wanders now and then, after her usual wait rather than as soon as she arrives.
+        private void FirstLaunch()
+        {
+            SetWanderLevel(1);
+            nextWander = -1;
+        }
+
         protected override void OnShown(EventArgs e)
         {
             base.OnShown(e);
@@ -1775,6 +1782,7 @@ namespace CapriDesktop
                 mainframe.Restore();
                 preferences.Welcomed = true;
                 SavePreferences();
+                FirstLaunch();
             }
             if (!testing) FindBrain();
             if (!testing) DefaultStartup(Installed());
@@ -23616,6 +23624,13 @@ namespace CapriDesktop
                             mainframe.ShowSettings(true);
                             if (simpleCrowd != null || simpleTall >= mainframe.ClientSize.Height) throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height);
                             checks.Add("PASS Simple Settings: the main rows only, shorter than Advanced Settings, with nothing overlapping or poking out");
+                            int launchWander = WanderLevel;
+                            SetWanderLevel(0);
+                            FirstLaunch();
+                            bool launchRarely = WanderLevel == 1 && mainframe.WanderShown == "Rarely" && nextWander < 0 && LoadPreferences().Wander;
+                            SetWanderLevel(launchWander);
+                            if (!launchRarely) throw new Exception("A new install did not start her on Rarely: level " + WanderLevel + ", next " + nextWander);
+                            checks.Add("PASS a new install: she starts on Wander Rarely, saved, and doesn't set off as soon as she arrives; anyone updating keeps what they had");
                             ToggleHeadPats();
                             if (HeadPats || mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them off.");
                             ToggleHeadPats();
