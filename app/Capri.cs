@@ -7469,9 +7469,9 @@ namespace CapriDesktop
         // Seconds the pill shows when voice chat starts or stops or the mic is muted or unmuted, so you see the change.
         private const double PillPop = 3;
 
-        // What keeps the pill up: the cursor on her or on it, the typer, or a reply she's giving outside voice chat. Voice chat
-        // itself doesn't, so the pill and its mic wave hide like any other time instead of staying under her for the whole call.
-        private bool PillHeld(bool hovered) { return hovered || typer.Visible || (!chatting && talkState != TalkState.Off); }
+        // Only the cursor on her or on the pill, or the open typer, keeps it up. Her replies and voice chat don't hold it there,
+        // including while she's sitting on a window.
+        private bool PillHeld(bool hovered) { return hovered || typer.Visible; }
 
         private void UpdatePill(double now)
         {
@@ -22563,6 +22563,20 @@ namespace CapriDesktop
                             backdrop.Bounds = new Rectangle(area.Left + Math.Max(0, (area.Width - 920) / 2), area.Top + Math.Max(0, (area.Height - 560) / 2), Math.Min(920, area.Width), Math.Min(560, area.Height));
                             backdrop.BackColor = Color.FromArgb(237, 239, 242);
                             backdrop.TopMost = true;
+                            TalkState pillStateWas = talkState;
+                            bool pillChatWas = chatting;
+                            Ledge pillSeatWas = seat;
+                            try
+                            {
+                                chatting = false;
+                                talkState = TalkState.Talking;
+                                seat = null;
+                                if (PillHeld(false) || !PillHeld(true)) throw new Exception("A reply held the pill without a hover, or hovering stopped holding it.");
+                                seat = new Ledge { Window = new IntPtr(1) };
+                                if (PillHeld(false) || !PillHeld(true)) throw new Exception("A seated reply held the pill without a hover, or hovering stopped holding it.");
+                            }
+                            finally { talkState = pillStateWas; chatting = pillChatWas; seat = pillSeatWas; }
+                            checks.Add("PASS her reply does not hold the talk pill with the cursor off her and the pill, sitting on a window or not; hovering still holds it");
                             backdrop.Paint += delegate(object sender, PaintEventArgs paint)
                             {
                                 using (Pen line = new Pen(Color.FromArgb(225, 228, 232)))
@@ -23641,7 +23655,7 @@ namespace CapriDesktop
                             if (pillUntil < clock.Elapsed.TotalSeconds + 2 || PillHeld(false)) throw new Exception("Ctrl + Alt + N should pop the talk pill up for a few seconds in voice chat: up for " + (pillUntil - clock.Elapsed.TotalSeconds).ToString("0.0") + " s, held " + PillHeld(false) + ".");
                             WndProc(ref mutePress);
                             if (pill.Muted || ears.Muted) throw new Exception("Ctrl + Alt + N did not unmute the mic.");
-                            checks.Add("PASS the talk pill doesn't stay up for a whole voice chat: it pops up for a few seconds when the call starts or the mic is muted or unmuted, then hides unless you hover her");
+                            checks.Add("PASS the talk pill doesn't stay up for a whole voice chat: it pops up for a few seconds when the call starts or the mic is muted or unmuted, then hides unless you hover her or the pill, or keep the typer open");
                             ears.Feed(loud);
                             ears.Feed(loud);
                         }
