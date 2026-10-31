@@ -1791,6 +1791,7 @@ namespace CapriDesktop
             if (!testing) DefaultStartup(Installed());
             if (!testing) GreetSoon();
             listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
+            if (!testing) AgentVoice();
             if (!testing && FreeChatOn) { GetFreeVoice(); GetFreeEars(); }
             // An update can move her HD voice to a new engine: the old pack goes, and with HD on, the new one comes down.
             if (!testing) ThreadPool.QueueUserWorkItem(delegate { qwen.Tidy(); });
@@ -8401,6 +8402,23 @@ namespace CapriDesktop
         // They open once her hello's out of the way and come back after whatever closed them (hiding her, Quiet, a lost mic), unless they closed them on purpose.
         private bool earsClosed;
         private double listenAt;
+
+        private void AgentVoice()
+        {
+            string key = voice.Key, agentId = preferences.AgentId;
+            if (key == null || agentId == null) return;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try
+                {
+                    AgentTts tts = Agent.Speech(key, agentId);
+                    if (tts == null) return;
+                    voice.Settings = tts.Settings;
+                    Brain.Log("voice chat agent", -1, "model " + tts.Model + ", settings " + (tts.Settings ?? "none"));
+                }
+                catch (VoiceException error) { Brain.Log("voice chat agent", -1, error.Message); }
+            });
+        }
 
         private void KeepListening(double now)
         {
@@ -24455,7 +24473,7 @@ namespace CapriDesktop
                             string sent;
                             lock (asked) sent = string.Join("\n", asked.ToArray());
                             if (fetchedAgain != fetched) throw new Exception("The same ElevenLabs line twice in a row was paid for twice.");
-                            if (fetched.Length != tone.Length || sent.IndexOf("POST /v1/text-to-speech/abc?output_format=wav_24000", StringComparison.Ordinal) < 0 || sent.IndexOf("xi-api-key: sk_test_capri_1234", StringComparison.OrdinalIgnoreCase) < 0 || sent.IndexOf("{\"text\":\"Hi \\\"chewm\\\".\",\"model_id\":\"eleven_v3\"}", StringComparison.Ordinal) < 0 || sent.IndexOf("{\"text\":\"Hi again.\",\"model_id\":\"eleven_flash_v2_5\"}", StringComparison.Ordinal) < 0) throw new Exception("ElevenLabs request was wrong: " + sent);
+                            if (fetched.Length != tone.Length || sent.IndexOf("POST /v1/text-to-speech/abc?output_format=wav_24000", StringComparison.Ordinal) < 0 || sent.IndexOf("xi-api-key: sk_test_capri_1234", StringComparison.OrdinalIgnoreCase) < 0 || sent.IndexOf("{\"text\":\"Hi \\\"chewm\\\".\",\"model_id\":\"eleven_v3\"}", StringComparison.Ordinal) < 0 || sent.IndexOf("{\"text\":\"Hi again.\",\"model_id\":\"eleven_v4_turbo\"}", StringComparison.Ordinal) < 0) throw new Exception("ElevenLabs request was wrong: " + sent);
                             if (Voice.Sayable("Yezzirrr! Choom, that's PREEM, chooms. Supreme.") != "Yessirrr! Chewm, that's PREME, chewms. Supreme." || Voice.Unsaid("Chewm, a preme rig. Supreme chewms.") != "Choom, a preem rig. Supreme chooms.") throw new Exception("Slang respelling is wrong: " + Voice.Sayable("Choom, that's PREEM, chooms. Supreme."));
                             string readOut = Voice.Sayable("Grab me at https://www.capri-desktop.com/download. Tell your chooms & me 100% \U0001F525 w/ hype -> now");
                             if (readOut != "Grab me at capri-desktop dot com. Tell your chewms and me 100 percent with hype now") throw new Exception("Her voice would read links or symbols aloud: " + readOut);

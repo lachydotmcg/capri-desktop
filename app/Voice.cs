@@ -57,8 +57,11 @@ namespace CapriDesktop
     internal sealed class Voice
     {
         internal static string Host = "https://api.elevenlabs.io";
-        // Voice chat's model. Her other lines use it too unless they pick another, so she's the same person on a call and off it (Lachy, 31 Oct).
+        // Her lines off a call use v4 unless they pick another (Lachy, 1 Nov), and fall back to the model every account can use.
+        internal const string DefaultModel = "eleven_v4_turbo";
         internal const string CallModel = "eleven_flash_v2_5";
+        // Her voice chat agent's stability, similarity and speed as JSON, so she's the same person on a call and off it.
+        internal volatile string Settings;
         internal static int Patience = 20000;
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Capri.ElevenLabs");
         internal volatile string Key;
@@ -298,13 +301,25 @@ namespace CapriDesktop
             if (key == null || id == null) throw new VoiceException("No voice picked.");
             StringBuilder body = new StringBuilder("{\"text\":");
             body.Append(Quote(Sayable(text)));
-            body.Append(",\"model_id\":").Append(Quote(string.IsNullOrEmpty(model) ? CallModel : model));
+            string words = body.ToString();
+            body.Append(",\"model_id\":").Append(Quote(string.IsNullOrEmpty(model) ? DefaultModel : model));
+            string settings = Settings;
+            if (settings != null) body.Append(",\"voice_settings\":").Append(settings);
             body.Append('}');
             // The same line twice in a row, like the voice sliders' check line, plays the audio she already has instead of spending credits again.
             string asked = key + "\n" + id + "\n" + body;
             Tuple<string, byte[]> last = lastSaid;
             if (last != null && last.Item1 == asked) return last.Item2;
-            byte[] wav = Clean(Send(Open("/v1/text-to-speech/" + Uri.EscapeDataString(id) + "?output_format=wav_24000", key, "POST"), Encoding.UTF8.GetBytes(body.ToString())));
+            string address = "/v1/text-to-speech/" + Uri.EscapeDataString(id) + "?output_format=wav_24000";
+            byte[] wav;
+            try { wav = Clean(Send(Open(address, key, "POST"), Encoding.UTF8.GetBytes(body.ToString()))); }
+            catch (VoiceException error)
+            {
+                // A model or setting this account or voice can't use shouldn't cost her her voice.
+                if (error.Status != 400 && error.Status != 404 && error.Status != 422 || (settings == null && !string.IsNullOrEmpty(model))) throw;
+                string plain = words + ",\"model_id\":" + Quote(string.IsNullOrEmpty(model) ? CallModel : model) + "}";
+                wav = Clean(Send(Open(address, key, "POST"), Encoding.UTF8.GetBytes(plain)));
+            }
             lastSaid = Tuple.Create(asked, wav);
             return wav;
         }

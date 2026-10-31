@@ -124,6 +124,14 @@ namespace CapriDesktop
             return made.Id;
         }
 
+        // What her agent speaks with, for her lines off a call.
+        internal static AgentTts Speech(string key, string agentId)
+        {
+            string path = "/v1/convai/agents/" + Uri.EscapeDataString(agentId);
+            AgentShape shape = Voice.Reply<AgentShape>(Voice.Send(Voice.Open(path, key, "GET"), null), path);
+            return shape.Config == null ? null : shape.Config.Tts;
+        }
+
         internal static void Polyglot(string key, string agentId)
         {
             Voice.Send(Voice.Open("/v1/convai/agents/" + Uri.EscapeDataString(agentId), key, "PATCH"), Encoding.UTF8.GetBytes("{\"conversation_config\":{\"tts\":{\"model_id\":" + Voice.Quote(Voice.CallModel) + "}},\"platform_settings\":{\"overrides\":{\"conversation_config_override\":{\"agent\":{\"prompt\":{\"prompt\":true},\"language\":true},\"tts\":{\"voice_id\":true}}}}}"));
@@ -286,6 +294,37 @@ namespace CapriDesktop
                     string result = act == null ? "Her tools are off." : act(call.Name, call.Arguments);
                     Send("{\"type\":\"client_tool_result\",\"tool_call_id\":" + Voice.Quote(call.Id) + ",\"result\":" + Voice.Quote(result) + ",\"is_error\":false}");
                 });
+            }
+        }
+    }
+
+    [DataContract]
+    internal sealed class AgentShape
+    {
+        [DataMember(Name = "conversation_config")] public AgentConversation Config;
+    }
+
+    [DataContract]
+    internal sealed class AgentConversation
+    {
+        [DataMember(Name = "tts")] public AgentTts Tts;
+    }
+
+    [DataContract]
+    internal sealed class AgentTts
+    {
+        [DataMember(Name = "model_id")] public string Model;
+        [DataMember(Name = "stability")] public double? Stability;
+        [DataMember(Name = "similarity_boost")] public double? Similarity;
+        [DataMember(Name = "speed")] public double? Speed;
+
+        internal string Settings
+        {
+            get
+            {
+                if (Stability == null || Similarity == null) return null;
+                System.Globalization.CultureInfo plain = System.Globalization.CultureInfo.InvariantCulture;
+                return "{\"stability\":" + Stability.Value.ToString(plain) + ",\"similarity_boost\":" + Similarity.Value.ToString(plain) + (Speed == null ? "" : ",\"speed\":" + Speed.Value.ToString(plain)) + "}";
             }
         }
     }
