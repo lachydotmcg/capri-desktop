@@ -5595,7 +5595,9 @@ namespace CapriDesktop
         internal bool HideFullScreen { get { return preferences.HideFullScreen; } }
         internal bool PlayerFullScreen { get { return preferences.PlayerFullScreen; } }
         internal bool ExploreAway { get { return preferences.ExploreAway; } }
-        internal bool AdvancedSettings { get { return testing || preferences.AdvancedSettings; } }
+        // The test walks every row, so it sees them all except for the one step that checks Settings as people first see it.
+        private bool simpleTest;
+        internal bool AdvancedSettings { get { return (testing && !simpleTest) || preferences.AdvancedSettings; } }
         internal void ToggleAdvancedSettings() { preferences.AdvancedSettings = !preferences.AdvancedSettings; SavePreferences(); }
         internal int ExploreAfter { get { return preferences.ExploreAfter > 0 ? preferences.ExploreAfter : 300; } }
 
@@ -23605,6 +23607,15 @@ namespace CapriDesktop
                             bool sizedBack = Math.Abs(mainframe.Zoom - sizedFrom) < 0.01f && mainframe.ClientSize.Width == sizedWide && preferences.MainframeSize == 0 && mainframe.FrameSizeShown.StartsWith("Auto", StringComparison.Ordinal);
                             if (Math.Abs(sizedTo - 1.5f) > 0.01f || sizedBig <= sizedWide || sizedCrowd != null || !sizedSaved || !sizedBack) throw new Exception("The Mainframe size setting went wrong: zoom " + sizedFrom + " to " + sizedTo + ", " + sizedWide + " to " + sizedBig + " px wide, crowded " + sizedCrowd + ", saved " + sizedSaved + ", back " + sizedBack + " (" + mainframe.FrameSizeShown + ")");
                             checks.Add("PASS her Mainframe size: 150% grows Settings with nothing overlapping or poking out and is saved, and Auto puts it back as it was (Auto is " + mainframe.FrameSizeShown + " here)");
+                            simpleTest = true;
+                            mainframe.ShowSettings(true);
+                            string simpleCrowd = mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                            int simpleTall = mainframe.ClientSize.Height;
+                            snap("mainframe-settings-simple.png");
+                            simpleTest = false;
+                            mainframe.ShowSettings(true);
+                            if (simpleCrowd != null || simpleTall >= mainframe.ClientSize.Height) throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height);
+                            checks.Add("PASS Simple Settings: the main rows only, shorter than Advanced Settings, with nothing overlapping or poking out");
                             ToggleHeadPats();
                             if (HeadPats || mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them off.");
                             ToggleHeadPats();
