@@ -29522,6 +29522,18 @@ namespace CapriDesktop
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "#general - Discord", Program = "Discord" }; };
                 must(GameAhead() == null, "Discord was taken for a game: " + GameAhead());
                 FullScreen = delegate { return true; };
+                // Discord fills a monitor with no taskbar without counting as maximized, so it looked full screen (Lachy, 1 Nov: "Watch my screen is off right now and shes still watching my screen?").
+                must(GameAhead() == null, "Discord filling its monitor was taken for a game: " + GameAhead());
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "#minecraft-chat | Dopamine Distributors - Discord", Program = "Discord" }; };
+                must(GameAhead() == null, "A Discord channel named after a game was taken for one: " + GameAhead());
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Minecraft - Aria Math", Program = "Spotify" }; };
+                must(GameAhead() == null, "A song named after a game was taken for one: " + GameAhead());
+                using (Form titleBarForm = new Form())
+                {
+                    bool titleBarShown = Native.Titled(titleBarForm.Handle);
+                    titleBarForm.FormBorderStyle = FormBorderStyle.None;
+                    must(titleBarShown && !Native.Titled(titleBarForm.Handle), "A title bar wasn't told from a borderless window.");
+                }
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Cyberpunk 2077", Program = "Cyberpunk2077" }; };
                 must(GameAhead() == "Cyberpunk 2077", "A full screen game wasn't taken for one: " + GameAhead());
                 foreach (string gamePath in new[] { @"D:\Epic Games\Cyberpunk2077\bin\x64\Cyberpunk2077.exe", @"C:\Program Files (x86)\Steam\steamapps\common\Hades\x64\Hades.exe", @"C:\Riot Games\VALORANT\live\VALORANT.exe", @"C:\XboxGames\Forza\Content\forza.exe" })
@@ -29530,6 +29542,7 @@ namespace CapriDesktop
                     must(!Computer.GamePath(notGame), "A launcher was taken for a game: " + notGame);
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Some video - YouTube - Google Chrome", Program = "chrome" }; };
                 must(GameAhead() == null, "A full screen video was taken for a game: " + GameAhead());
+                checks.Add("PASS game comments only run on a real game: Discord filling its monitor, or a channel or song named after a game, isn't one");
                 checks.Add("PASS comment delivery: her line goes to the game stage and out, never while she's hushed, over them talking, over her own voice in any voice path, while they hold her push-to-talk key or while she's answering, and a game is told from Discord or a full screen video");
 
                 string player = null;
@@ -29812,12 +29825,16 @@ namespace CapriDesktop
 
         internal static bool Covers(Rectangle window, Rectangle monitor) { return !window.IsEmpty && window.Contains(monitor); }
 
+        // A title bar makes it an app sized to its monitor, not full screen, even one like Discord that doesn't count as maximized.
+        internal static bool Titled(IntPtr window) { return (GetWindowLong(window, -16) & 0x00C00000) == 0x00C00000; }
+
         internal static bool FillsScreen()
         {
             if (FakedGaming.HasValue) return FakedGaming.Value;
-            if (Gaming()) return true;
+            if (Exclusive()) return true;
             IntPtr front = GetForegroundWindow();
-            if (front == IntPtr.Zero || IsZoomed(front)) return false;
+            if (front == IntPtr.Zero || IsZoomed(front) || Titled(front)) return false;
+            if (Gaming()) return true;
             System.Text.StringBuilder kind = new System.Text.StringBuilder(128);
             GetClassName(front, kind, kind.Capacity);
             if (kind.ToString() == "Progman" || kind.ToString() == "WorkerW" || kind.ToString() == "Shell_TrayWnd") return false;

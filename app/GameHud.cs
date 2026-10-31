@@ -724,15 +724,17 @@ namespace CapriDesktop
 
         private static readonly Regex Stores = new Regex(@"\\steamapps\\common\\|\\Epic Games\\(?!Launcher\\|Epic Online)|\\GOG Games\\|\\GOG Galaxy\\Games\\|\\XboxGames\\(?!Minecraft Launcher\\)|\\Riot Games\\(?!Riot Client\\)|\\Ubisoft Game Launcher\\games\\|\\(?:EA Games|Origin Games)\\|\\Rockstar Games\\(?!(?:Launcher|Social Club|Rockstar Games Social Club)\\)|\\Amazon Games\\Library\\|\\itch\\apps\\" +
             @"|\\World of Warcraft\\(?:_(?:retail|classic(?:_era)?|ptr|xptr|beta)_\\)?Wow(?:Classic|B|T)?\.exe$|\\Overwatch\\(?:_retail_\\)?Overwatch\.exe$|\\Diablo IV\\Diablo IV\.exe$|\\Diablo III\\(?:x64\\)?Diablo III(?:64)?\.exe$|\\Diablo II Resurrected\\D2R\.exe$|\\StarCraft II\\Versions\\Base\d+\\SC2(?:_x64)?\.exe$", RegexOptions.IgnoreCase);
-        private static readonly Regex NotGames = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|iexplore|arc|vlc|mpv|mpc-hc(64)?|potplayer(mini)?(64)?|wmplayer|video\.ui|microsoft\.media\.player|netflix|powerpnt|obs(32|64)|discord|spotify|steam|steamwebhelper|epicgameslauncher|galaxyclient|minecraftlauncher|riotclientservices|riotclientux|riotclientuxrender|ubisoftconnect|upc|uplay|uplaywebcore|eadesktop|ealauncher|eabackgroundservice|origin|originwebhelperservice|battle\.net|blizzardbrowser|agent|(?:world of warcraft|overwatch|diablo (?:ii|iii|iv)) launcher|launcher|launcherpatcher|socialclubhelper|rockstarservice|rockstarerrorhandler|rgsclauncher|amazongames|itch|itch-setup|butler|code|cursor|devenv|rider64|idea64|notepad(\+\+)?|sublime_text|winword|excel|aseprite|blender|godot(?:[._-].*)?|gdevelop|unity|unrealeditor|sc2editor(?:_x64)?|worldedit(?:64)?|windowsterminal|cmd|powershell|pwsh)$", RegexOptions.IgnoreCase);
+        private static readonly Regex NotGames = new Regex(@"^(chrome|msedge|firefox|brave|opera|vivaldi|iexplore|arc|vlc|mpv|mpc-hc(64)?|potplayer(mini)?(64)?|wmplayer|video\.ui|microsoft\.media\.player|netflix|powerpnt|obs(32|64)|streamlabs( desktop)?|tiktok live studio|discord|slack|ms-teams|teams|telegram|whatsapp|signal|zoom|skype|claude|chatgpt|explorer|spotify|aimp|foobar2000|winamp|musicbee|steam|steamwebhelper|epicgameslauncher|galaxyclient|minecraftlauncher|riotclientservices|riotclientux|riotclientuxrender|ubisoftconnect|upc|uplay|uplaywebcore|eadesktop|ealauncher|eabackgroundservice|origin|originwebhelperservice|battle\.net|blizzardbrowser|agent|(?:world of warcraft|overwatch|diablo (?:ii|iii|iv)) launcher|launcher|launcherpatcher|socialclubhelper|rockstarservice|rockstarerrorhandler|rgsclauncher|amazongames|itch|itch-setup|butler|code|cursor|devenv|rider64|idea64|notepad(\+\+)?|sublime_text|winword|excel|aseprite|blender|godot(?:[._-].*)?|gdevelop|unity|unrealeditor|sc2editor(?:_x64)?|worldedit(?:64)?|windowsterminal|cmd|powershell|pwsh)$", RegexOptions.IgnoreCase);
 
         // A game's window: one of her known titles, anything installed by a game store, or a window with no title bar that fills its
         // monitor. Never a browser, player, launcher or editor, whose titles name games all the time.
         internal static bool IsGame(Sight sight, string path, bool fills)
         {
-            if (sight == null || sight.Window == IntPtr.Zero || NotGames.IsMatch(sight.Program ?? "")) return false;
+            if (sight == null || sight.Window == IntPtr.Zero || NotGame(sight.Program)) return false;
             return Computer.GameWindow(sight) || Stores.IsMatch(path ?? "") || fills;
         }
+
+        internal static bool NotGame(string program) { return NotGames.IsMatch(program ?? ""); }
 
         internal static string PathOf(int process)
         {
@@ -749,8 +751,8 @@ namespace CapriDesktop
 
         private static bool Fills(IntPtr window, Rectangle bounds)
         {
-            if (Native.Gaming()) return true;
-            return bounds.Contains(Screen.FromRectangle(bounds).Bounds) && (Native.GetWindowLong(window, -16) & 0x00C00000) != 0x00C00000;
+            if (Native.Exclusive()) return true;
+            return !Native.Titled(window) && (Native.Gaming() || bounds.Contains(Screen.FromRectangle(bounds).Bounds));
         }
 
         // The game in front, or null.

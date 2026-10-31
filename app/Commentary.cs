@@ -499,7 +499,7 @@ namespace CapriDesktop
             Sight front = Computer.Glimpse();
             if (front == null || front.Window == IntPtr.Zero) return null;
             Job running = job;
-            bool fills = FullScreen() && !Regex.IsMatch((front.Program ?? "") + " " + (front.Title ?? ""), @"\b(chrome|firefox|msedge|edge|brave|opera|vivaldi|arc|vlc|mpv|netflix|youtube|twitch|plex|powerpnt)\b", RegexOptions.IgnoreCase);
+            bool fills = FullScreen() && !Native.Titled(front.Window) && !Regex.IsMatch((front.Program ?? "") + " " + (front.Title ?? ""), @"\b(chrome|firefox|msedge|edge|brave|opera|vivaldi|arc|vlc|mpv|netflix|youtube|twitch|plex|powerpnt)\b", RegexOptions.IgnoreCase);
             if (!(running != null && running.Playing) && !Computer.WatchWindow(front, fills)) return null;
             string title = (front.Title ?? "").Trim();
             if (title.Length == 0) title = front.Program ?? "a game";

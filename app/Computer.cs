@@ -927,7 +927,7 @@ namespace CapriDesktop
         // A game's window in front makes it a game job too, like the Roblox window she opened herself. A video of one doesn't.
         internal static bool GameWindow(Sight sight)
         {
-            if (sight == null || sight.Window == IntPtr.Zero || Documents.IsMatch(sight.Program ?? "")) return false;
+            if (sight == null || sight.Window == IntPtr.Zero || Documents.IsMatch(sight.Program ?? "") || (GameFinder.NotGame(sight.Program) && !Browsers.IsMatch(sight.Program ?? ""))) return false;
             return (GameTitles.IsMatch((sight.Title ?? "") + " " + (sight.Program ?? "")) && !Watching.IsMatch(sight.Title ?? "")) || GameExe(sight.Window);
         }
 
@@ -950,7 +950,7 @@ namespace CapriDesktop
         // Whether the front window's a game to comment on. A game's name in an editor's or a browser's title doesn't make it one.
         internal static bool WatchWindow(Sight sight, bool fills)
         {
-            if (sight == null || sight.Window == IntPtr.Zero || Documents.IsMatch(sight.Program ?? "") || Browsers.IsMatch(sight.Program ?? "")) return false;
+            if (sight == null || sight.Window == IntPtr.Zero || Documents.IsMatch(sight.Program ?? "") || GameFinder.NotGame(sight.Program)) return false;
             return GameWindow(sight) || fills;
         }
 
