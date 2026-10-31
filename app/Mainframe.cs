@@ -4001,6 +4001,8 @@ namespace CapriDesktop
                 presetName.Text = Security.Presets[preset];
                 presetName.ForeColor = preset == Security.Custom ? Look.Yellow : Cyan;
                 presetLine.Text = Security.PresetLine(preset);
+                presets.Storm = preset == Security.Blackwall;
+                presets.Ink = preset == Security.Blackwall ? Color.FromArgb(255, 0, 70) : Color.Empty;
                 for (int i = 0; i < Security.Count; i++) toggles[i].Checked = Security.On(i);
                 syncing = false;
             }
@@ -4577,6 +4579,53 @@ namespace CapriDesktop
             private Color ink = Color.Empty;
             // A tick under every step, or every few on a slider with many, like her voice layers' pitch and delay.
             internal int TickEvery = 1;
+            // Blackwall's preset: red, torn and never quite still while it's picked (Lachy, 1 Nov).
+            private System.Windows.Forms.Timer storm;
+            private readonly Random tears = new Random();
+            internal bool Storm
+            {
+                get { return storm != null; }
+                set
+                {
+                    if (value == (storm != null)) return;
+                    if (value)
+                    {
+                        storm = new System.Windows.Forms.Timer();
+                        storm.Interval = 70;
+                        storm.Tick += delegate { Invalidate(); };
+                        storm.Start();
+                    }
+                    else { storm.Dispose(); storm = null; }
+                    Invalidate();
+                }
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing) Storm = false;
+                base.Dispose(disposing);
+            }
+
+            private void Tear(Graphics graphics, float s, TextFormatFlags flags, int reach)
+            {
+                Color red = Color.FromArgb(255, 0, 70);
+                using (Pen rim = new Pen(red, Math.Max(1f, s))) graphics.DrawRectangle(rim, 0, 0, Width - 1, Height - 1);
+                if (tears.Next(3) == 0) return;
+                int shift = tears.Next(-3, 4);
+                Rectangle band = new Rectangle(0, tears.Next(0, Math.Max(1, Height - 4)), Width, 2 + tears.Next((int)(6 * s) + 1));
+                graphics.SetClip(band);
+                using (Brush dark = new SolidBrush(Color.FromArgb(8, 6, 12))) graphics.FillRectangle(dark, band);
+                TextRenderer.DrawText(graphics, Shown, Font, new Rectangle(reach + shift, 0, Width - 2 * reach, (int)(Height - 4 * s)), red, flags | TextFormatFlags.PreserveGraphicsClipping);
+                graphics.ResetClip();
+                using (Brush shard = new SolidBrush(red))
+                using (Brush black = new SolidBrush(Color.FromArgb(8, 6, 12)))
+                    for (int i = 0; i < 3; i++)
+                    {
+                        int x = tears.Next(Width), y = tears.Next(Height), wide = 4 + tears.Next((int)(22 * s) + 1);
+                        graphics.FillRectangle(i == 1 ? black : shard, x, y, wide, Math.Max(1, (int)(1.5f * s)));
+                    }
+            }
+
             internal event EventHandler Changed;
             // Once the knob or an arrow key is let go somewhere new.
             internal event EventHandler Released;
@@ -4718,6 +4767,7 @@ namespace CapriDesktop
                     using (Brush off = new SolidBrush(Dash))
                     using (Brush on = new SolidBrush(Lit))
                         for (int i = 0; i < labels.Length; i++) graphics.FillRectangle(i == value ? on : off, left + i * (dash + gap), Height - 5.5f * s, dash, Math.Max(1, 1.5f * s));
+                    if (storm != null) Tear(graphics, s, flags, reach);
                     return;
                 }
                 float travel = Width - 2 * s - Grip;

@@ -1643,6 +1643,16 @@ namespace CapriDesktop
 
         // "Activate gaming mode", "game mode on", "gaming mode off", "move the hud down". Her name gets misheard as any word
         // ("Recovery, activate, game mode"), so one extra word before a verb can be her name, but questions and negatives aren't.
+        // "Capri, activate gaming mode and play Minecraft": what's left after asking for Gaming Mode, or null. A brain could do only half of it.
+        internal static string AfterGaming(string text)
+        {
+            Match both = GamingThen.Match((text ?? "").Trim());
+            if (!both.Success || Regex.IsMatch(both.Groups["lead"].Value, @"\b(?:don'?t|do not|never|how|why|what|when)\b", RegexOptions.IgnoreCase)) return null;
+            return both.Groups["rest"].Value.Trim();
+        }
+
+        private static readonly Regex GamingThen = new Regex(@"^(?<lead>(?:[\w'-]+[,.!]?\s+){0,4}?)(?:activate|enter|start|turn on|switch on|go into|go in|put on|get in|get into)\s+(?:the\s+)?(?:gaming|game)\s+mode(?:\s+on)?\s*(?:,\s*)?(?:\.\s*)?(?:and then|and|then)?\s+(?:then\s+)?(?<rest>\S.+)$", RegexOptions.IgnoreCase);
+
         internal static string GamingFor(string text)
         {
             string plain = Regex.Replace(Regex.Replace(text ?? "", @"[\s,]+capri$", "", RegexOptions.IgnoreCase), @"[\s,]+", " ").Trim();

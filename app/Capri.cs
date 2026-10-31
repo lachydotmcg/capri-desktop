@@ -9210,6 +9210,13 @@ namespace CapriDesktop
             followUp.Drop();
             if (StopWatchAlong(text)) return;
             if (StopListening(text)) return;
+            string afterGaming = Hands.AfterGaming(text);
+            if (afterGaming != null)
+            {
+                WantGaming(true);
+                gaming.On(clock.Elapsed.TotalSeconds);
+                text = afterGaming;
+            }
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
             if (text.Length > 240 && planned.Key == null && !fileMessage) text = text.Substring(0, 240);
@@ -15652,6 +15659,7 @@ namespace CapriDesktop
                 ShowHidden(false);
                 front = null;
                 // On by default, so her key's first press turns it off, and that holds until the next.
+                if (Hands.AfterGaming("Capri, activate gaming mode and play Minecraft") != "play Minecraft" || Hands.AfterGaming("Hey Capri, enter gaming mode and craft me a pickaxe") != "craft me a pickaxe" || Hands.AfterGaming("don't enter gaming mode and play Minecraft") != null || Hands.AfterGaming("activate gaming mode") != null) throw new Exception("Gaming Mode with a job after it was read wrong.");
                 preferences.NoGaming = false;
                 ToggleGaming();
                 bool keyOff = !GamingOn && !GamingWanted;

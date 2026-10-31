@@ -61,8 +61,31 @@ namespace CapriDesktop
             }
         }
 
+        // Her artist's cursor, with its tip where the old arrow's was, so her clicks land the same place.
+        private static Bitmap ArtistPointer(int size)
+        {
+            using (System.IO.Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Capri.Cursor.png"))
+            {
+                if (stream == null) return null;
+                using (Bitmap source = new Bitmap(stream))
+                {
+                    Bitmap art = new Bitmap(size, size, PixelFormat.Format32bppArgb);
+                    float fit = size * 30f / 32 / Math.Max(source.Width, source.Height), inset = size * 2f / 32;
+                    using (Graphics graphics = Graphics.FromImage(art))
+                    {
+                        graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        graphics.DrawImage(source, inset, inset, source.Width * fit, source.Height * fit);
+                    }
+                    return art;
+                }
+            }
+        }
+
         internal static Bitmap PointerArt(int size)
         {
+            Bitmap artist = ArtistPointer(size);
+            if (artist != null) return artist;
             float s = size / 32f;
             PointF[] arrow = { new PointF(2, 2), new PointF(2, 24), new PointF(8, 18.5f), new PointF(12, 27), new PointF(16, 25.2f), new PointF(12, 16.8f), new PointF(19.5f, 16.8f) };
             Bitmap art = new Bitmap(size, size, PixelFormat.Format32bppArgb);
@@ -2171,10 +2194,11 @@ namespace CapriDesktop
         private int reach = 40;
         private float scale = 1;
         private double tapped = -1;
+        internal readonly CursorBolts Bolts = new CursorBolts();
 
         internal HerPointer() : base("Capri pointer")
         {
-            ticks.Interval = 16;
+            ticks.Interval = 33;
             ticks.Tick += delegate { Step(); };
         }
 
@@ -2214,15 +2238,17 @@ namespace CapriDesktop
             using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) scale = Math.Max(1f, screen.DpiX / 96f);
             int size = (int)Math.Round(36 * scale);
             if (arrow == null || arrow.Width != size) { if (arrow != null) arrow.Dispose(); arrow = Look.PointerArt(size); }
-            lock (gate) { tip = at; reach = (int)Math.Round(40 * scale); }
+            lock (gate) { tip = at; reach = (int)Math.Round(90 * scale); }
             tapped = -1;
             Render();
+            if (Bolts.Look.On) ticks.Start();
         }
 
         internal void Tap()
         {
             if (!Visible) return;
             tapped = watch.Elapsed.TotalSeconds;
+            Bolts.Tap();
             ticks.Start();
             Render();
         }
@@ -2231,12 +2257,13 @@ namespace CapriDesktop
         {
             ticks.Stop();
             tapped = -1;
+            Bolts.Clear();
             if (Visible) Hide();
         }
 
         private void Step()
         {
-            if (tapped >= 0 && watch.Elapsed.TotalSeconds - tapped > Ripple) { tapped = -1; ticks.Stop(); }
+            if (tapped >= 0 && watch.Elapsed.TotalSeconds - tapped > Ripple) { tapped = -1; if (!Bolts.Look.On) ticks.Stop(); }
             if (Visible) Render();
         }
 
@@ -2258,6 +2285,9 @@ namespace CapriDesktop
                     using (Pen pink = new Pen(Color.FromArgb(alpha, Look.Pink), (2.6f - 1.2f * eased) * scale)) graphics.DrawEllipse(pink, reach - radius, reach - radius, radius * 2, radius * 2);
                 }
                 float s = arrow.Width / 32f;
+                double now = watch.Elapsed.TotalSeconds;
+                Bolts.Step(now, at, scale);
+                Bolts.Draw(graphics, new PointF(reach, reach), at, now, scale);
                 graphics.DrawImage(arrow, reach - 2 * s, reach - 2 * s, arrow.Width, arrow.Height);
             }
             Present(frame, new Point(at.X - reach, at.Y - reach));
