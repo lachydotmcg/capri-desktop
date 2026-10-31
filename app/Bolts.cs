@@ -12,11 +12,11 @@ namespace CapriDesktop
         internal Color Red = Color.FromArgb(255, 0, 70);
         internal Color Black = Color.FromArgb(8, 6, 12);
         internal int Count = 4;             // arcs around her while she's moving; idle she keeps about half
-        internal float Thickness = 2.6f;    // a ribbon's widest point
+        internal float Thickness = 4.2f;    // a ribbon's widest point
         internal float Radius = 26;         // how far from her cursor's middle an arc floats
         internal double ShortestLife = 0.12;
         internal double LongestLife = 0.30;
-        internal float Glow = 0.3f;         // 0 to 1, red ribbons only
+        internal float Glow = 0.22f;         // 0 to 1, red ribbons only
         internal int Trail = 3;             // fragments left behind per burst of movement
         internal int Burst = 3;             // extra bolts on a click
     }

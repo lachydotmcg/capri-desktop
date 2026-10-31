@@ -3944,8 +3944,8 @@ namespace CapriDesktop
                 Caption("What she does on your PC without asking. With a toggle off she asks first, and does it when you say yes.", 28, 52, small, Faint);
                 Caption("Preset", 28, 82, Type(9.5f * zoom), Rose);
                 presets = new Slider(new[] { Security.Presets[0], Security.Presets[1], Security.Presets[2], Security.Presets[3] });
-                presets.Font = Type(9.5f * zoom);
-                presets.Bounds = Box(120, 79, 260, 22);
+                presets.Font = Type(12f * zoom, true);
+                presets.Bounds = Box(120, 70, 340, 36);
                 presets.AccessibleName = "Security preset: Lockdown, Guarded, Trusted or Blackwall";
                 presets.Changed += delegate { if (!syncing) Security.Pick(presets.Value); };
                 presets.MouseUp += delegate { if (!syncing && Security.Preset == Security.Custom) Security.Pick(presets.Value); };
