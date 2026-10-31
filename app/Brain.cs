@@ -495,7 +495,7 @@ namespace CapriDesktop
                     if (Regex.IsMatch(current, @"^- " + Regex.Escape(text) + @"\.?\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase)) return "Already in my notes: " + text + ".";
                     if (current.Length > 8000) return "My notes are full. Clear some out in me.md first.";
                     if (current.Length > 0 && !current.EndsWith("\n", StringComparison.Ordinal)) current += "\n";
-                    File.WriteAllText(path, current + "- " + text + "\n");
+                    Portable.Write(path, current + "- " + text + "\n");
                 }
                 catch (IOException) { return "Couldn't save that to my notes."; }
                 catch (UnauthorizedAccessException) { return "Couldn't save that to my notes."; }
@@ -523,7 +523,7 @@ namespace CapriDesktop
                         if (note && (all || line.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0)) dropped++;
                         else kept.Add(line);
                     }
-                    if (dropped > 0) File.WriteAllText(path, string.Join("\n", kept.ToArray()).TrimEnd('\n') + "\n");
+                    if (dropped > 0) Portable.Write(path, string.Join("\n", kept.ToArray()).TrimEnd('\n') + "\n");
                 }
                 catch (IOException) { return "Couldn't change my notes."; }
                 catch (UnauthorizedAccessException) { return "Couldn't change my notes."; }
@@ -555,7 +555,7 @@ namespace CapriDesktop
                         if (current.Length > 0 && !current.EndsWith("\n", StringComparison.Ordinal)) current += "\n";
                         current += line + "\n";
                     }
-                    File.WriteAllText(path, current);
+                    Portable.Write(path, current);
                 }
                 catch (IOException) { return "Couldn't save that to my notes."; }
                 catch (UnauthorizedAccessException) { return "Couldn't save that to my notes."; }
@@ -772,12 +772,12 @@ namespace CapriDesktop
             }
             lock (writing)
             {
-                if (after != null) File.WriteAllText(memoriesPath, MemoriesHead + after + "\n");
+                if (after != null) Portable.Write(memoriesPath, MemoriesHead + after + "\n");
                 // Lines written while she was folding wait for next time.
                 string[] now = File.Exists(queuePath) ? File.ReadAllLines(queuePath) : new string[0];
                 StringBuilder left = new StringBuilder();
                 for (int i = lines.Length; i < now.Length; i++) left.Append(now[i]).Append('\n');
-                File.WriteAllText(queuePath, left.ToString());
+                Portable.Write(queuePath, left.ToString());
             }
             return null;
         }
@@ -1857,7 +1857,7 @@ namespace CapriDesktop
                 using (MemoryStream data = new MemoryStream())
                 {
                     new DataContractJsonSerializer(typeof(SavedChat)).WriteObject(data, new SavedChat { At = chattedAt.ToString("o", System.Globalization.CultureInfo.InvariantCulture), Messages = history.ToArray(), Seen = seen });
-                    File.WriteAllBytes(path, data.ToArray());
+                    Portable.Write(path, data.ToArray());
                 }
             }
             catch (IOException) { }

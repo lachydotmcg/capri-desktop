@@ -43,6 +43,12 @@ namespace CapriDesktop
                 {
                     string data = smoke ? Path.GetFullPath(args[1]) : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri");
                     Brain.LogPath = Path.Combine(data, "errors.txt");
+                    if (!smoke)
+                    {
+                        Portable.Current = Portable.Detect(Application.ExecutablePath);
+                        if (Portable.Current != null) { data = Portable.Current.Settings; Brain.LogPath = Path.Combine(Portable.Current.Logs, "errors.txt"); }
+                        else if (Portable.Problem != null) Brain.Log("portable", -1, Portable.Problem);
+                    }
                     // Whatever ends her, their own cursor comes back, and a crash goes in errors.txt.
                     AppDomain.CurrentDomain.ProcessExit += delegate { HerCursor.Off(); };
                     AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs crash) { HerCursor.Off(); Crashed(crash.ExceptionObject as Exception); };
@@ -1090,6 +1096,7 @@ namespace CapriDesktop
         private bool arrivalDue;
         private readonly Mainframe mainframe;
         private readonly Engine engine;
+        private DriveGuard drive;
         private Machine machine;
         private Pick fit;
         private bool ollamaRunning;
@@ -1287,17 +1294,19 @@ namespace CapriDesktop
             updater = new Updater(data, Application.ExecutablePath, smoke);
             updateExit = delegate { quitting = true; Close(); };
             startMarker = smoke ? null : Path.Combine(data, Program.StartMarker);
-            Brain.LogPath = Path.Combine(data, "errors.txt");
-            Brain.MemoryPath = Path.Combine(data, "me.md");
-            Brain.MemoriesPath = Path.Combine(data, "memories.md");
-            Brain.TranscriptPath = Path.Combine(data, "transcripts");
+            Portable usb = Portable.Current;
+            string voiceData = usb == null ? data : usb.Voices;
+            Brain.LogPath = Path.Combine(usb == null ? data : usb.Logs, "errors.txt");
+            Brain.MemoryPath = Path.Combine(usb == null ? data : usb.Memory, "me.md");
+            Brain.MemoriesPath = Path.Combine(usb == null ? data : usb.Memory, "memories.md");
+            Brain.TranscriptPath = Path.Combine(usb == null ? data : usb.Conversations, "transcripts");
             engine = new Engine(data);
-            kokoro = new LocalVoice(data);
-            qwen = new QwenVoice(data);
-            ModelFile.Engine = LocalVoice.Folder(data);
-            ModelFile.Shelf = Path.Combine(Path.Combine(data, "voice"), "models");
-            parakeet = new LocalEars(data);
-            heyCapri = new WakeWord(data);
+            kokoro = new LocalVoice(voiceData);
+            qwen = new QwenVoice(voiceData);
+            ModelFile.Engine = LocalVoice.Folder(voiceData);
+            ModelFile.Shelf = Path.Combine(Path.Combine(voiceData, "voice"), "models");
+            parakeet = new LocalEars(voiceData);
+            heyCapri = new WakeWord(voiceData);
             presence = new Presence(Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             preferences = smoke ? new Preferences() : LoadPreferences();
             // SECURITY: their toggles, with "Hey Capri" kept in its own setting for her wake word.
@@ -1319,7 +1328,7 @@ namespace CapriDesktop
             if (chosen != null && Directory.Exists(Path.GetDirectoryName(chosen))) { Brain.MemoryPath = chosen; Brain.VaultFolder = Path.GetDirectoryName(chosen); }
             Brain.Digging = !smoke;
             if (!smoke) Brain.Keeper = brain;
-            if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
+            if (!smoke) brain.Load(Path.Combine(usb == null ? data : usb.Conversations, "chat.json"));
             Voice.Loudness = Math.Max(0, Math.Min(150, preferences.Volume));
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, preferences.VoicePitch));
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, preferences.VoiceSpeed));
@@ -1518,6 +1527,13 @@ namespace CapriDesktop
                 if (!testing && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
             };
             signals.Start();
+            if (usb != null)
+            {
+                drive = new DriveGuard(usb.Here, 2000);
+                drive.Gone += delegate { Post(DriveGone); };
+                drive.Back += delegate { Post(DriveBack); };
+                drive.Start();
+            }
             Size = CanvasSize(preferences.Size);
             Rectangle work = Screen.PrimaryScreen.WorkingArea;
             anchor = preferences.HasPosition ? new Point(preferences.X, preferences.Y) : new Point(work.Right - Width - 28, work.Bottom - Height - 12);
@@ -1810,6 +1826,11 @@ namespace CapriDesktop
 
         private void CheckForUpdates(bool asked)
         {
+            if (Portable.Current != null)
+            {
+                if (asked) mainframe.UpdateNote("She runs from a USB drive, so she doesn't install updates on other PCs. Swap Capri.exe on the drive for the newest one.", false);
+                return;
+            }
             if (updating || installing) return;
             updating = true;
             updateStarted = true;
@@ -2992,6 +3013,7 @@ namespace CapriDesktop
 
         internal void ToggleStartup()
         {
+            if (Portable.Current != null) { Brain.Log("startup", -1, "She runs from a USB drive, so she doesn't add herself to this PC's Windows startup."); return; }
             if (!Startup.Set(Application.ExecutablePath, !StartsWithWindows)) Brain.Log("startup", -1, "Windows wouldn't let Capri change her Run entry.");
             preferences.StartupSet = true;
             SavePreferences();
@@ -5475,7 +5497,7 @@ namespace CapriDesktop
                 string[] installed = null;
                 try { installed = Brain.InstalledModels(); } catch (WebException) { } catch (IOException) { } catch (SerializationException) { }
                 Machine found = Machine.Read();
-                Pick local = engine.Installed();
+                Pick local = engine.Installed(found);
                 Post(delegate { finding = false; UseBrain(installed, found, local); });
             });
         }
@@ -5845,6 +5867,28 @@ namespace CapriDesktop
         }
 
         internal void CancelSetup() { engine.Cancel = true; }
+
+        private void DriveGone()
+        {
+            engine.Cancel = true;
+            kokoro.Cancel = true;
+            qwen.Cancel = true;
+            parakeet.Cancel = true;
+            heyCapri.Cancel = true;
+            engine.Stop();
+            Say("My USB drive came out, choom. I've paused so nothing breaks. Put it back and I'll carry on.");
+        }
+
+        private void DriveBack()
+        {
+            engine.Cancel = false;
+            kokoro.Cancel = false;
+            qwen.Cancel = false;
+            parakeet.Cancel = false;
+            heyCapri.Cancel = false;
+            Brain.Log("portable", -1, "Her USB drive came back after it was out, so she carried on.");
+            Say("Got my drive back. Carrying on.");
+        }
 
         private void Greet()
         {
@@ -8598,6 +8642,7 @@ namespace CapriDesktop
                 frames.Dispose();
                 chatTail.Dispose();
                 signals.Dispose();
+                if (drive != null) drive.Dispose();
                 tray.Dispose();
                 menu.Dispose();
                 pill.Dispose();
@@ -8609,6 +8654,103 @@ namespace CapriDesktop
                 if (inBetween != null) inBetween.Dispose();
             }
             base.Dispose(disposing);
+        }
+
+        private static string PortableCheck(string output)
+        {
+            const long Gb = 1L << 30;
+            string root = Path.Combine(output, "usb-test");
+            string marked = Path.Combine(output, "usb-test-marked");
+            foreach (string stale in new[] { root, marked }) if (Directory.Exists(stale)) Directory.Delete(stale, true);
+            Directory.CreateDirectory(root);
+            Directory.CreateDirectory(marked);
+            Portable was = Portable.Current;
+            Func<string, bool> removableWas = Portable.Removable;
+            try
+            {
+                string exe = Path.Combine(root, "Capri.exe");
+                Portable.Removable = delegate { return false; };
+                if (Portable.Detect(exe) != null) throw new Exception("A fixed drive with no portable.mode became portable.");
+                File.WriteAllText(Path.Combine(marked, Portable.Marker), "");
+                Portable hand = Portable.Detect(Path.Combine(marked, "Capri.exe"));
+                if (hand == null || hand.Id.Length != 32 || File.ReadAllText(Path.Combine(marked, Portable.Marker)).Trim() != hand.Id) throw new Exception("A portable.mode she was given did not get her drive's id.");
+                Portable.Removable = delegate { return true; };
+                Portable usb = Portable.Detect(exe);
+                if (usb == null || usb.Root != root || usb.Id.Length != 32 || !File.Exists(Path.Combine(root, Portable.Marker))) throw new Exception("A removable drive did not become portable.");
+                foreach (string folder in new[] { "Data\\Memory", "Data\\Conversations", "Data\\Settings", "Data\\Knowledge", "AI\\Runtime", "AI\\Models", "AI\\Vision", "AI\\Embeddings", "Voice", "Plugins", "Downloads", "Logs" })
+                    if (!Directory.Exists(Path.Combine(root, folder))) throw new Exception("Her USB folder " + folder + " was not made.");
+                if (usb.Models != Path.Combine(root, "AI", "Models") || usb.Memory != Path.Combine(root, "Data", "Memory") || usb.Voices != Path.Combine(root, "Voice")) throw new Exception("Her USB folders are in the wrong places.");
+                Portable again = Portable.Detect(exe);
+                if (again == null || again.Id != usb.Id) throw new Exception("She did not know her own drive the second time.");
+                string markerPath = Path.Combine(root, Portable.Marker);
+                string markerText = File.ReadAllText(markerPath);
+                File.WriteAllText(markerPath, "another-drive");
+                bool swapped = usb.Here();
+                File.Delete(markerPath);
+                bool missing = usb.Here();
+                File.WriteAllText(markerPath, markerText);
+                if (swapped || missing || !usb.Here()) throw new Exception("Her drive check did not tell her own drive from another or a missing one.");
+                Portable.Current = usb;
+                string note = Path.Combine(usb.Memory, "me.md");
+                Portable.Write(note, "one");
+                Portable.Write(note, "two");
+                Portable.Write(Path.Combine(usb.Conversations, "chat.json"), new byte[] { 1, 2, 3 });
+                Portable.Paused = true;
+                bool refused = false;
+                try { Portable.Write(note, "three"); } catch (IOException) { refused = true; }
+                Portable.Paused = false;
+                if (!refused || File.ReadAllText(note) != "two" || File.Exists(note + ".new") || File.ReadAllBytes(Path.Combine(usb.Conversations, "chat.json")).Length != 3) throw new Exception("Her saves were not kept whole while her drive was out.");
+                bool here = true;
+                int lost = 0;
+                int back = 0;
+                DriveGuard guard = new DriveGuard(delegate { return here; }, 1000);
+                guard.Gone += delegate { lost++; };
+                guard.Back += delegate { back++; };
+                guard.Poll();
+                here = false;
+                guard.Poll();
+                guard.Poll();
+                bool pausedWhileOut = Portable.Paused && guard.Away;
+                here = true;
+                guard.Poll();
+                guard.Poll();
+                bool carriedOn = !Portable.Paused && !guard.Away;
+                guard.Dispose();
+                if (lost != 1 || back != 1 || !pausedWhileOut || !carriedOn) throw new Exception("Her drive guard did not pause once when the drive went and carry on once when it came back.");
+                Engine engine = new Engine(output);
+                ProcessStartInfo launch = engine.StartInfo(Engine.Picks[0], true, false, 1);
+                if (!launch.FileName.StartsWith(usb.Runtime, StringComparison.OrdinalIgnoreCase) || launch.Arguments.IndexOf("-m \"" + Path.Combine(usb.Models, Engine.Picks[0].File) + "\"", StringComparison.Ordinal) < 0 || launch.Arguments.IndexOf("--mmproj \"" + Path.Combine(usb.Vision, Engine.Picks[0].EyesFile) + "\"", StringComparison.Ordinal) < 0) throw new Exception("Her brain did not run from her USB folders.");
+                string runtime = Path.Combine(usb.Runtime, "engine-" + Engine.Build);
+                Directory.CreateDirectory(runtime);
+                File.WriteAllText(Path.Combine(runtime, "llama-server.exe"), "x");
+                string big = Path.Combine(usb.Models, Engine.Picks[0].File);
+                string small = Path.Combine(usb.Models, Engine.Picks[2].File);
+                File.WriteAllText(big, "x");
+                File.WriteAllText(small, "x");
+                Machine strong = new Machine { Ram = 16 * Gb, Vram = 8 * Gb };
+                Machine middle = new Machine { Ram = 8 * Gb };
+                Machine weak = new Machine { Ram = 4 * Gb, Vram = Gb / 2 };
+                bool fitted = engine.Installed(strong) == Engine.Picks[0] && engine.Installed(middle) == Engine.Picks[2] && engine.Installed(weak) == Engine.Picks[2];
+                File.Delete(small);
+                bool fellBack = engine.Installed(weak) == Engine.Picks[0];
+                File.WriteAllText(small, "x");
+                Portable.Current = null;
+                bool plain = engine.Installed(weak) == Engine.Picks[0];
+                Portable.Current = usb;
+                if (!fitted || !fellBack || !plain) throw new Exception("She did not pick the model that suits each PC from the ones on her drive.");
+                Portable.Paused = true;
+                bool told = false;
+                try { engine.Ensure(Engine.Picks[2]); } catch (BrainException error) { told = error.Message.IndexOf("USB", StringComparison.Ordinal) >= 0; }
+                Portable.Paused = false;
+                if (!told) throw new Exception("Her brain did not say her drive was out.");
+                return "PASS portable mode: a drive with portable.mode, or a removable one, becomes hers and a fixed one does not; she makes Data, AI, Voice, Plugins, Downloads and Logs and knows her drive by its id; her notes and chat save whole and are refused while the drive is out; the drive guard pauses once when it goes and carries on once when it is back; her brain, eyes and runtime run from AI and she picks the installed model that suits each PC";
+            }
+            finally
+            {
+                Portable.Paused = false;
+                Portable.Current = was;
+                Portable.Removable = removableWas;
+            }
         }
 
         // An errors.txt line stamped at or after `from`, so a rerun in the same folder doesn't count the last run's lines.
@@ -11309,6 +11451,7 @@ namespace CapriDesktop
                             foreach (Pick option in Engine.Picks) if (!option.Url.StartsWith("https://huggingface.co/", StringComparison.Ordinal) || option.Url.IndexOf("/resolve/main/", StringComparison.Ordinal) >= 0 || option.Sha256.Length != 64 || option.Size < 500000000) throw new Exception("Model download is not pinned: " + option.Name);
                             if (engine.Installed() != null) throw new Exception("Test data already has a brain.");
                             checks.Add("PASS brain setup: this PC reads " + here.Describe() + ", hardware fit, pinned downloads, checksum");
+                            checks.Add(PortableCheck(output));
                             if (Engine.Threads(1) != 1 || Engine.Threads(2) != 1 || Engine.Threads(4) != 2 || Engine.Threads(6) != 3 || Engine.Threads(8) != 4 || Engine.Threads(64) != 4) throw new Exception("The brain takes too many CPU threads.");
                             foreach (bool cpu in new[] { false, true })
                                 foreach (bool eyes in new[] { false, true })
