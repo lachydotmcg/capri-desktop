@@ -16040,9 +16040,9 @@ namespace CapriDesktop
                 local.Remote = clouds[3];
                 local.Quick("Talk", "Hello", 320);
                 if (Brain.Field(SentBody(asked[asked.Count - 1]), "max_tokens") != "320") throw new Exception("Short shrank a game comment.");
-                local.Quick(Brain.Persona + Brain.Speech() + "\nA line that changes.", "Hello", 320);
+                local.Quick(Brain.Persona + Brain.Speech() + " A line that changes.", "Hello", 320);
                 string cachedPrompt = Brain.Field(SentBody(asked[asked.Count - 1]), "system");
-                if (!cachedPrompt.StartsWith("[{\"cache_control\":{\"type\":\"ephemeral\"},\"text\":\"", StringComparison.Ordinal) || !cachedPrompt.EndsWith(",\"type\":\"text\"},{\"text\":\"\\nA line that changes.\",\"type\":\"text\"}]", StringComparison.Ordinal)) throw new Exception("Her character wasn't marked for Claude's cache: " + cachedPrompt);
+                if (!cachedPrompt.StartsWith("[{\"cache_control\":{\"type\":\"ephemeral\"},\"text\":\"", StringComparison.Ordinal) || !cachedPrompt.EndsWith(",\"type\":\"text\"},{\"text\":\" A line that changes.\",\"type\":\"text\"}]", StringComparison.Ordinal)) throw new Exception("Her character wasn't marked for Claude's cache: " + cachedPrompt);
                 Brain cacheBrain = new Brain { Model = "test", Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5") };
                 cacheBrain.Ask("tell me something");
                 string cacheChat = Brain.Field(SentBody(asked[asked.Count - 1]), "system");
