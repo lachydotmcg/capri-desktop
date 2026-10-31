@@ -6599,7 +6599,7 @@ namespace CapriDesktop
             asideUntil = now + BubbleHold(line.Length);
             UpdateTalk(now);
             // A slow voice would never speak if each new line cancelled the one it's still making, so the next line waits for it.
-            if (chatting || Hushed || preferences.Quiet || now < playVoiced) return;
+            if ((chatting && !local) || Hushed || preferences.Quiet || now < playVoiced) return;
             playVoiced = now + 15;
             SayAside(line, running);
         }

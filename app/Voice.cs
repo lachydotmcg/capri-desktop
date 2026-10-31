@@ -57,6 +57,8 @@ namespace CapriDesktop
     internal sealed class Voice
     {
         internal static string Host = "https://api.elevenlabs.io";
+        // Voice chat's model. Her other lines use it too unless they pick another, so she's the same person on a call and off it (Lachy, 31 Oct).
+        internal const string CallModel = "eleven_flash_v2_5";
         internal static int Patience = 20000;
         private static readonly byte[] Entropy = Encoding.UTF8.GetBytes("Capri.ElevenLabs");
         internal volatile string Key;
@@ -296,7 +298,7 @@ namespace CapriDesktop
             if (key == null || id == null) throw new VoiceException("No voice picked.");
             StringBuilder body = new StringBuilder("{\"text\":");
             body.Append(Quote(Sayable(text)));
-            if (!string.IsNullOrEmpty(model)) body.Append(",\"model_id\":").Append(Quote(model));
+            body.Append(",\"model_id\":").Append(Quote(string.IsNullOrEmpty(model) ? CallModel : model));
             body.Append('}');
             // The same line twice in a row, like the voice sliders' check line, plays the audio she already has instead of spending credits again.
             string asked = key + "\n" + id + "\n" + body;
