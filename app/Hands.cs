@@ -849,6 +849,9 @@ namespace CapriDesktop
             return found;
         }
 
+        // "Play Minecraft with streamer mode and talk to chat": a stream asked for in words, whatever build she started on.
+        internal static bool StreamAsked(string said) { return Regex.IsMatch(said ?? "", @"\b(stream(?:er|ing)? mode|talk(?:ing)? to (?:the |my )?(?:chat|viewers)|(?:reply|replying|respond|responding|answer|answering) (?:to )?(?:the |my )?(?:chat|viewers)|(?:play|playing)\b.*\b(?:on|for) (?:the |my )?stream)\b", RegexOptions.IgnoreCase) && !Regex.IsMatch(said ?? "", @"\b(?:don'?t|do not|stop|end|turn off|never|how|why|what)\b", RegexOptions.IgnoreCase); }
+
         // On stream, asking her to play starts her stream job however it's worded.
         internal static bool Streams(string said) { return Regex.IsMatch(said ?? "", @"\b(play|playing|game|gaming|minecraft|stream|streaming|streamer|live|chat)\b", RegexOptions.IgnoreCase); }
 

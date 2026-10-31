@@ -35,7 +35,7 @@ namespace CapriDesktop
             Application.SetCompatibleTextRenderingDefault(false);
             bool smoke = args.Length == 2 && args[0] == "--smoke-test";
             bool bench = args.Length == 2 && args[0] == "--bench";
-            if (args.Length == 1 && args[0] == "--stream") Computer.Streaming = true;
+            if (args.Length == 1 && args[0] == "--stream") Computer.Streaming = Computer.StreamingAlways = true;
             string identity = WindowsIdentity.GetCurrent().User.Value;
             bool first;
             using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : bench ? ".Bench" : ""), out first))
@@ -6489,12 +6489,12 @@ namespace CapriDesktop
                 string result;
                 try { result = Work(running); }
                 catch (Exception error) { result = "That didn't work: " + error.Message; }
-                if (running.Outcome == "stopped" || Computer.Interrupted) return result;
+                if (running.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
                 rests = unchecked(Environment.TickCount - began) < 120000 ? Math.Min(rests + 1, 5) : 0;
                 int wait = 15000 << rests;
                 Brain.Log("stream", -1, "stopped (" + (running.Outcome ?? "failed") + "): " + result + " Starting again in " + wait / 1000 + " s.");
                 Computer.Pause(wait);
-                if (Computer.Interrupted) return result;
+                if (Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
             }
         }
 
@@ -15702,7 +15702,12 @@ namespace CapriDesktop
                 front = null;
                 // On by default, so her key's first press turns it off, and that holds until the next.
                 if (Hands.AfterGaming("Capri, activate gaming mode and play Minecraft") != "play Minecraft" || Hands.AfterGaming("Hey Capri, enter gaming mode and craft me a pickaxe") != "craft me a pickaxe" || Hands.AfterGaming("don't enter gaming mode and play Minecraft") != null || Hands.AfterGaming("activate gaming mode") != null) throw new Exception("Gaming Mode with a job after it was read wrong.");
-                if (Computer.StreamNote.IndexOf("Chat comes first", StringComparison.Ordinal) < 0 || Computer.Allowing(Computer.Seeing).Length == 0 || !Hands.Streams("Hey Capri, play Minecraft with streamer mode and talk to chat") || Hands.Streams("what's the time") || !Hands.ChatPanel().IsEmpty && Hands.ChatPanel().Width < 200) throw new Exception("Her stream note or chat panel was wrong.");
+                if (Computer.StreamNote.IndexOf("in the same turn as your next moves", StringComparison.Ordinal) < 0 || !Hands.Streams("Hey Capri, play Minecraft with streamer mode and talk to chat") || Hands.Streams("what's the time") || !Hands.ChatPanel().IsEmpty && Hands.ChatPanel().Width < 200) throw new Exception("Her stream note or chat panel was wrong.");
+                if (!Hands.StreamAsked("Hey Capri, play Minecraft with streamer mode and talk to chat") || !Hands.StreamAsked("Capri, use streaming mode and play minecraft while talking to chat") || !Hands.StreamAsked("play minecraft on my stream") || Hands.StreamAsked("play minecraft") || Hands.StreamAsked("how does streamer mode work") || Hands.StreamAsked("turn off streaming mode")) throw new Exception("A stream asked for in words was read wrong.");
+                Computer.Streaming = true;
+                bool quietDropped = Computer.PlayingNow.IndexOf("keep playing quietly", StringComparison.Ordinal) < 0;
+                Computer.Streaming = false;
+                if (!quietDropped || Computer.PlayingNow.IndexOf("keep playing quietly", StringComparison.Ordinal) < 0) throw new Exception("Her stream kept the game prompt's keep playing quietly, or a normal game lost it.");
                 preferences.NoGaming = false;
                 ToggleGaming();
                 bool keyOff = !GamingOn && !GamingWanted;
