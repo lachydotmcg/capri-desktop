@@ -5791,6 +5791,7 @@ namespace CapriDesktop
         internal bool Watching { get { return preferences.Watch; } }
         internal bool CaughtUp { get { return preferences.CaughtUp; } }
         internal bool Speaking { get { return !preferences.Quiet; } }
+        internal bool Moves { get { return preferences.Motion; } }
         internal bool Silent { get { return preferences.Silent; } }
 
         internal void ToggleSpeaking()
