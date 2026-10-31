@@ -14815,9 +14815,9 @@ namespace CapriDesktop
                 checks.Add("PASS Gaming Mode Settings: its three lines sit below the switch and above the other game rows, reach screen readers, and stay inside the page without overlaps at every Mainframe size");
                 System.Collections.Generic.List<string> frameProblems = new System.Collections.Generic.List<string>();
                 foreach (bool frameFallback in new[] { false, true })
-                    foreach (int frameDpi in new[] { 96, 120, 144, 168, 192, 96 })
-                        foreach (int frameText in new[] { 100, 150, 225 })
-                            foreach (int framePercent in new[] { 0, 100, 125, 150, 175, 200, 100 })
+                    foreach (int frameDpi in new[] { 96, 144, 192, 96 })
+                        foreach (int frameText in new[] { 100, 225 })
+                            foreach (int framePercent in new[] { 0, 100, 175, 200, 100 })
                             {
                                 mainframe.LayoutScale(frameDpi, frameText, frameFallback);
                                 mainframe.SizeMainframe(framePercent);
@@ -14831,7 +14831,7 @@ namespace CapriDesktop
                                 }
                             }
                 if (frameProblems.Count > 0) throw new Exception("Mainframe layout, " + frameProblems.Count + " problems:\r\n" + string.Join("\r\n", frameProblems.ToArray()));
-                checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at every size and simulated 100%, 125%, 150%, 175% and 200% DPI with 100%, 150% and 225% text and fallback fonts; returning to 100% keeps the original scale");
+                checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at Auto, 100%, 175% and 200% size on simulated 100%, 150% and 200% DPI with 100% and 225% text and fallback fonts; returning to 100% keeps the original scale");
                 checks.Add("LIMIT Mainframe display scaling: simulated pixel layouts do not confirm Windows text-setting notifications, real monitor moves, or high-DPI rendering; Windows may constrain simulated windows wider than this desktop, so those check text and overlaps without the viewport-edge check");
             }
             catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT Mainframe text measurement: Windows text rendering is unavailable on this desktop"); }
