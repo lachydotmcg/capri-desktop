@@ -273,6 +273,7 @@ namespace CapriDesktop
         private bool LookoutFree()
         {
             double now = clock.Elapsed.TotalSeconds;
+            if (Asleep || napAsked || napping || ownNap) return false;
             if (quitting || dragging || pressed || typer.Visible || menu.Visible || outro != null || pushing || transcribing) return false;
             if (speaker.Busy || now < voiceUntil || (speech != null && working == null) || unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);
@@ -280,6 +281,7 @@ namespace CapriDesktop
 
         private void LookoutSay(string line)
         {
+            if (Asleep || napAsked || napping || ownNap) return;
             reminderUp = true;
             bool bubbleOnly = chatting || Hushed || preferences.Quiet;
             if (docked) Commentary.Stage.Say(line);

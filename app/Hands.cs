@@ -1282,7 +1282,7 @@ namespace CapriDesktop
 
         // "Go to sleep" or "take a nap" said to her is her own nap, not the PC's (that needs a PC word), and "wake up" ends it.
         // "Sleep here" is the same nap, where she is.
-        private static readonly Regex Napping = new Regex(@"^(?:(?:go (?:back )?to (?:sleep|bed)|(?:go )?(?:take|have|grab) (?:a |ur |your )?(?:little |quick |power )?(?:nap|snooze|rest)|go (?:nap|rest|snooze|sleep)|nap(?: time)?|sleep|doze off|get some (?:sleep|rest))(?: (?:here|there|right here|right there|over here|where you are))?|(?<wake>wake(?: up|y wakey)|rise and shine))(?:[\s,]+(?:now|then|already|girl|choom|" + SpokenName + @"))*$", RegexOptions.IgnoreCase);
+        private static readonly Regex Napping = new Regex(@"^(?:(?:go (?:back )?to (?:sleep|bed)|(?:go )?(?:take|have|grab) (?:a |ur |your )?(?:little |quick |power )?(?:nap|snooze|rest)|go (?:nap|rest|snooze|sleep)|nap(?: time)?|sleep|good ?night|night night|doze off|get some (?:sleep|rest))(?: (?:here|there|right here|right there|over here|where you are))?|(?<wake>wake(?: up|y wakey)|rise and shine|good morning))(?:[\s,]+(?:now|then|already|girl|choom|" + SpokenName + @"))*$", RegexOptions.IgnoreCase);
 
         // Her own moves said to her, so they never wait on a brain: "teleport here", "go to my other monitor", "move the Mainframe
         // to my other screen", "sit down", "sit on my Roblox window", "lie down", "walk around", "hang here", "ride my cursor",
