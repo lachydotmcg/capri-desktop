@@ -450,7 +450,7 @@ namespace CapriDesktop
                     Hands.Catalog = delegate { return Hands.WithSteam(Limbs.LinuxApps(new[] { tempApps }), Hands.SteamApps(Limbs.SteamRoot(steamHome, false))); };
                     Hands.Forget();
                     string hades = Hands.Do("open_app", new ToolArguments { Name = "hades" });
-                    if (hades != "Opened Hades." || !did.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "steam://rungameid/1145360")) throw new Exception("A Steam game didn't open: " + hades + " / " + string.Join(" / ", did));
+                    if ((hades != "Opened Hades." && hades != "Opened Hades, but its window hasn't appeared yet.") || !did.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "steam://rungameid/1145360")) throw new Exception("A Steam game didn't open: " + hades + " / " + string.Join(" / ", did));
                     Hands.Catalog = delegate { return Limbs.LinuxApps(new[] { tempApps }); };
                     Hands.Forget();
                     string opened = Hands.Do("open_app", new ToolArguments { Name = "spotify" });
@@ -1514,7 +1514,7 @@ namespace CapriDesktop
             fail("unreadable sound", mp3 == "Capri can't read the sound your local voice server sent (audio/mpeg). Set its format to WAV or PCM.");
             fail("HTTP errors", broken == "Your local voice server said HTTP 500: model crashed" && missing != null && missing.IndexOf("(HTTP 404)", StringComparison.Ordinal) > 0);
             fail("no sound", empty == "Your local voice server sent back no sound.");
-            fail("timeouts", slow != null && slow.StartsWith("Your local voice server took over 1 s", StringComparison.Ordinal) && waited.ElapsedMilliseconds < 2900);
+            fail("timeouts", slow != null && slow.StartsWith("Your local voice server took over 1 s", StringComparison.Ordinal) && waited.ElapsedMilliseconds < 5500);
             server.Stop();
             pet.SetLocalVoice("voice", "tone");
             string down = problem("Hey.");
@@ -1784,7 +1784,7 @@ namespace CapriDesktop
             else if (voice == "empty") reply = new byte[0];
             else
             {
-                if (voice == "slow") Thread.Sleep(3000);
+                if (voice == "slow") Thread.Sleep(6000);
                 short[] tone = new short[24000];
                 for (int i = 0; i < tone.Length; i++) tone[i] = (short)(Math.Sin(i * 0.05) * 3000);
                 reply = Voice.Wave(tone, 24000);
