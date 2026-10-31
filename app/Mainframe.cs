@@ -231,13 +231,13 @@ namespace CapriDesktop
         private readonly Dictionary<Control, int> tops = new Dictionary<Control, int>();
         private int pageView = PageTall;
         private int pageScroll;
-        // Simple view hides the rows most people never need and closes the gaps. Every setting is still one click away, and
-        // these are stretches of each column as built, by Top.
+        // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
+        // them back. These are stretches of each column as built, by Top.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1048, 1100 }, new[] { 1128, 1184 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 206 }, new[] { 316, 705 }, new[] { 894, 2000 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 316, 698 }, new[] { 894, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
-        private Key allKey;
+        private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         private const int SimpleTall = 500;
         private int wheel;
@@ -473,6 +473,10 @@ namespace CapriDesktop
             // Settings: a setting to a row, its name on the left in red and its value in a box on the right, as on Cyberpunk
             // 2077's settings screen (Lachy, 30 Oct). A section's own buttons, like Layers, sit at the right of its band.
             const int c = Column;
+            // Up by Back and named for what it does: Lachy (31 Oct) missed a small All settings key in the CAPRI band.
+            advancedKey = Make("Advanced Settings", 238, 20, 136, 22, delegate { capri.ToggleAdvancedSettings(); ShowSettings(true); });
+            advancedKey.Accent = Cyan;
+            advancedKey.Loud = true;
             Section("YOU >", 0, 58);
             Make("Open her notes", 236, 55, 120, 20, delegate { capri.OpenNotes(); }).AccessibleName = "Open her notes: me.md, her notes about you";
             Named("Language", 0, 82);
@@ -590,8 +594,6 @@ namespace CapriDesktop
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             }
             Section("CAPRI >", c, 58);
-            allKey = Make("All settings", 256 + c, 55, 100, 20, delegate { capri.ToggleAllSettings(); ShowSettings(true); });
-            allKey.AccessibleName = "Switch between the main settings and all of them";
             sizeSlider = Setting("Size", SizeNames, c, 82, "Her size");
             sizeName = new Readout(sizeSlider);
             sizeSlider.Changed += delegate { if (syncing) return; sizeName.Text = SizeNames[sizeSlider.Value]; capri.SetCharacterSize(SizeSteps[sizeSlider.Value]); };
@@ -980,9 +982,10 @@ namespace CapriDesktop
             if (!on) CancelKeys();
             ScrollPage(0);
             paged = on;
-            simple = !capri.AllSettings;
-            allKey.Text = simple ? "All settings" : "Simple view";
-            allKey.Invalidate();
+            simple = !capri.AdvancedSettings;
+            advancedKey.Text = simple ? "Advanced Settings" : "Simple Settings";
+            advancedKey.AccessibleName = simple ? "Advanced Settings: show every setting" : "Simple Settings: show only the main settings";
+            advancedKey.Invalidate();
             more.Text = on ? "Back" : "Settings";
             more.Invalidate();
             Place();
@@ -1014,13 +1017,13 @@ namespace CapriDesktop
         private bool Folded(Control control)
         {
             int top;
-            if (!simple || control == allKey || !built.TryGetValue(control, out top)) return false;
+            if (!simple || control == advancedKey || !built.TryGetValue(control, out top)) return false;
             foreach (int[] band in pageLeft.Exists(entry => entry.Key == control && entry.Value >= Column) ? FoldedRight : FoldedLeft)
                 if (top >= band[0] && top < band[1]) return true;
             return false;
         }
 
-        // Moves what's left up over the rows Simple view hides, or back where it was built.
+        // Moves what's left up over the rows Settings hides while it's simple, or back where it was built.
         private void CloseGaps()
         {
             foreach (KeyValuePair<Control, int> entry in pageLeft)

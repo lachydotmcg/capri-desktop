@@ -52,6 +52,8 @@ namespace CapriDesktop
                 "Mainframe > Settings > BRAIN > Follow-up messages is on by default. Sometimes she adds one second thought in its own bubble and voice, from the same brain reply. It waits until her first voice and reading time finish, then another two seconds. Typing, speech or a new message drops it. It does not run in jobs, voice chat links or game comments; free voice chat waits for you to finish.", "Mainframe.cs", "Follow-up messages"),
             new Topic("Watch-along memory", "watch along memory|watch-along memory|watch this with me|watch a video with you|watch together|react to this",
                 "Say watch this with me, watch this video with me, let's watch this or react to this. She follows any window using PC sound and pictures, with free Parakeet or Windows offline speech recognition and a seeing brain. She explains missing eyes or ears and uses what works. Pictures are taken every five seconds; about every twenty seconds a small fast brain picks a short reaction or stays quiet, waiting for a gap in the sound. Mainframe > Settings > WATCH > Watch-along memory holds 8, 16, 24, 48 or 96 lines, default 24, only in memory. At the limit, the oldest half becomes one short note in her transcript if Remember what she sees is on, otherwise it is dropped. Say stop watching with me or stop; ninety seconds without sound or screen changes also ends it. Raw audio and the rolling transcript are not saved.", "Mainframe.cs", "Watch-along memory"),
+            new Topic("Advanced Settings", "advanced settings|simple settings|more settings|all your settings|all the settings|cant find that setting|cant find the setting|where did that setting go",
+                "Mainframe > Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which you left it on.", "Mainframe.cs", "Advanced Settings"),
             new Topic("Language", "your language|her language|change language|speak another language",
                 "Mainframe > Settings > YOU > Language chooses the language she replies in. Changing it starts a fresh recent chat.", "Mainframe.cs", "Language"),
             new Topic("What should she call you?", "your nickname|my nickname|change my name|what should she call you|what you call me",
@@ -298,6 +300,8 @@ namespace CapriDesktop
                 found.Append(Topics[best].Name).Append(": ").Append(Topics[best].Facts);
                 scores[best] = 0;
             }
+            // On the same line: a setting named here can be one Simple Settings hides, and the help must still say where it is.
+            if (found.ToString().Contains("Mainframe > Settings >")) found.Append(" A setting that isn't showing is under Advanced Settings, next to Back.");
             return found.Length == 0 ? null : found.ToString();
         }
     }
