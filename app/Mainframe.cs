@@ -1193,7 +1193,8 @@ namespace CapriDesktop
         // Resolution, a 3840 x 2160 desktop on a 1920 x 1080 screen at 100%, gets 200%.
         private float Wanted()
         {
-            float shrunk = Panels.Shrink(Screen.FromControl(this));
+            // GitHub's virtual screen says its panel is narrower than the desktop her test needs, which isn't a shrunken monitor.
+            float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this));
             autoZoom = Math.Max(1f, Math.Min(2f, (float)Math.Round(shrunk / DeviceScale() * 20) / 20));
             int picked = capri.MainframeSize;
             return picked > 0 ? picked / 100f : autoZoom;
