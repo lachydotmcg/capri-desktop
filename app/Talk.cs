@@ -2373,6 +2373,9 @@ namespace CapriDesktop
         // Back to the bottom-right corner for the next job.
         internal void ToCorner() { corner = null; }
 
+        // Where the next job's panel sits, by its bottom-left corner.
+        internal void Corner(Point bottomLeft) { corner = bottomLeft; }
+
         // The panel itself on screen, without the glow around it.
         internal Rectangle Plate
         {

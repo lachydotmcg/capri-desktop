@@ -35,6 +35,7 @@ namespace CapriDesktop
             Application.SetCompatibleTextRenderingDefault(false);
             bool smoke = args.Length == 2 && args[0] == "--smoke-test";
             bool bench = args.Length == 2 && args[0] == "--bench";
+            if (args.Length == 1 && args[0] == "--stream") Computer.Streaming = true;
             string identity = WindowsIdentity.GetCurrent().User.Value;
             bool first;
             using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : bench ? ".Bench" : ""), out first))
@@ -6473,7 +6474,28 @@ namespace CapriDesktop
             polling.Start();
         }
 
-        private string RunJob(string task, string asked) { return Work(new Job(task, asked)); }
+        private string RunJob(string task, string asked)
+        {
+            if (!Computer.Streaming) return Work(new Job(task, asked));
+            // On stream only their Esc ends it (Lachy, 30 Oct: "play for hours ... while im asleep"). Anything else that stops
+            // her, like a brain error or a run of turns without a move, starts the stream again after a breather, a longer one
+            // each time it breaks again within two minutes, up to eight minutes.
+            int rests = 0;
+            while (true)
+            {
+                Job running = new Job(task, asked);
+                int began = Environment.TickCount;
+                string result;
+                try { result = Work(running); }
+                catch (Exception error) { result = "That didn't work: " + error.Message; }
+                if (running.Outcome == "stopped" || Computer.Interrupted) return result;
+                rests = unchecked(Environment.TickCount - began) < 120000 ? Math.Min(rests + 1, 5) : 0;
+                int wait = 15000 << rests;
+                Brain.Log("stream", -1, "stopped (" + (running.Outcome ?? "failed") + "): " + result + " Starting again in " + wait / 1000 + " s.");
+                Computer.Pause(wait);
+                if (Computer.Interrupted) return result;
+            }
+        }
 
         private string ResumeJob(string text)
         {
@@ -6511,7 +6533,7 @@ namespace CapriDesktop
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
             running.Reader = testing ? null : new Action<Sight>(delegate(Sight read) { if (Ink.ScreenRequest(running.Task)) Computer.ReadWords(read, Computer.Shoot(null)); else Computer.ReadWords(read); });
-            running.Says = delegate(string line) { Post(delegate { PlayLine(line, running); }); };
+            running.Says = delegate(string line) { Post(delegate { if (Computer.Streaming) ChatLine(line, running); else PlayLine(line, running); }); };
             running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
             running.Seen = delegate(Sight sight)
@@ -6570,7 +6592,13 @@ namespace CapriDesktop
             working = start;
             if (typer.Visible) typer.Hide();
             pointing = true;
-            if (!hidden) taskPanel.Begin(running, running.Words, Screen.FromControl(this).WorkingArea);
+            if (!hidden)
+            {
+                Rectangle work = Screen.FromControl(this).WorkingArea;
+                // On stream the panel, and her on it, go bottom left, clear of the chat panel at the top right.
+                if (Computer.Streaming) taskPanel.Corner(new Point(work.Left + 8, work.Bottom - 8));
+                taskPanel.Begin(running, running.Words, work);
+            }
             // Her pointer sets off from beside her on the panel.
             if (SitOnPanel()) Computer.PlacePointer(PointerHome());
             herPointer.Begin(Computer.HerAt);
@@ -6607,9 +6635,21 @@ namespace CapriDesktop
             SayAside(line, running);
         }
 
+        // Her say lines on stream are for chat, so every one goes in her bubble and out loud, in her usual voice.
+        private void ChatLine(string line, Job running)
+        {
+            if (job != running || working == null) return;
+            double now = clock.Elapsed.TotalSeconds;
+            if (docked) Commentary.Stage.Say(line);
+            asideShown = line;
+            asideUntil = now + BubbleHold(line.Length);
+            UpdateTalk(now);
+            SayAside(line, running);
+        }
+
         private void SayAside(string line, Job running)
         {
-            if ((testing && !asideVoiceTest) || preferences.Silent || Hushed || (chatting && !local)) return;
+            if ((testing && !asideVoiceTest) || preferences.Silent || Hushed || (chatting && !local && !Computer.Streaming)) return;
             Func<string, byte[]> free;
             Func<string, byte[]> speak = PickVoice(false, out free, false);
             if (speak == null) return;
@@ -6624,7 +6664,7 @@ namespace CapriDesktop
                 Action play = null;
                 play = delegate
                 {
-                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local) || preferences.Silent || Hushed) return;
+                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local && !Computer.Streaming) || preferences.Silent || Hushed) return;
                     double now = clock.Elapsed.TotalSeconds;
                     if (voiceUntil > now)
                     {
@@ -15652,6 +15692,7 @@ namespace CapriDesktop
                 ShowHidden(false);
                 front = null;
                 // On by default, so her key's first press turns it off, and that holds until the next.
+                if (Computer.StreamNote.IndexOf("Chat comes first", StringComparison.Ordinal) < 0 || Computer.Allowing(Computer.Seeing).Length == 0 || !Hands.Streams("Hey Capri, play Minecraft with streamer mode and talk to chat") || Hands.Streams("what's the time") || !Hands.ChatPanel().IsEmpty && Hands.ChatPanel().Width < 200) throw new Exception("Her stream note or chat panel was wrong.");
                 preferences.NoGaming = false;
                 ToggleGaming();
                 bool keyOff = !GamingOn && !GamingWanted;
