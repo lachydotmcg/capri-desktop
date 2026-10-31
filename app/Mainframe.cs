@@ -1112,7 +1112,10 @@ namespace CapriDesktop
         {
             List<KeyValuePair<Control, int>> hidden = paged ? mainLeft : pageLeft;
             for (Control top = control; top != null && top != this; top = top.Parent)
+            {
+                if (Folded(top)) return true;
                 foreach (KeyValuePair<Control, int> entry in hidden) if (entry.Key == top) return true;
+            }
             return false;
         }
 
@@ -1962,7 +1965,7 @@ namespace CapriDesktop
             foreach (KeyValuePair<Control, int> entry in pageLeft)
             {
                 Control control = entry.Key;
-                if (!control.Visible || (control is Label && control.Text.Length == 0)) continue;
+                if (Folded(control) || !control.Visible || (control is Label && control.Text.Length == 0)) continue;
                 if (!page.Contains(control.Bounds)) return control.Text.Length > 0 ? control.Text : control.AccessibleName;
             }
             return null;

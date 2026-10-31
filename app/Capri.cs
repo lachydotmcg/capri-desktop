@@ -23577,6 +23577,7 @@ namespace CapriDesktop
                             if (!popsOpened || !popsOften || !popsRarely || !popsWaits || popsOverlap != null || preferences.PopPace != 1 || mainframe.PopsShown != "Sometimes" || popsOlder.PopPace != 1 || new Preferences().PopPace != 1) throw new Exception("The Pop-ins slider went wrong: opened " + popsOpened + ", often " + popsOften + ", rarely " + popsRarely + ", waits " + string.Join("/", Array.ConvertAll(new[] { popsSometimes[0], popsSometimes[1], popsFast[0], popsFast[1], popsSlow[0], popsSlow[1] }, popSeconds => ((int)popSeconds).ToString())) + ", overlap " + popsOverlap + ", old settings " + popsOlder.PopPace + ", shown " + mainframe.PopsShown);
                             checks.Add("PASS Pop-ins slider: under MOVES it shows Sometimes (every 8 to 20 minutes) by default; Often brings her every 3 to 8 minutes and Rarely every 20 to 40; each pick saves, settings from before it start at Sometimes, and nothing overlaps");
                             // A screen too short for Settings, like a 1080p laptop at 150%: the page fits the screen and scrolls, header and all.
+                            mainframe.ShowSettings(true);
                             int backTop = mainframe.BackTop;
                             mainframe.ShortScreen = 480;
                             mainframe.ShowSettings(true);
