@@ -29,8 +29,7 @@ A desktop companion. She sits on your windows and taskbar, chats with you, talks
 ### How can I support Capri?
 Capri is free. To support the people who make her, tip them on Ko-fi. The links are also at the bottom of every page of the website.
 - Lachy, developer: https://ko-fi.com/lachysdev
-- xoru, head tester: https://ko-fi.com/xorulance
-- Guh: https://ko-fi.com/guh703214
+- Lance and xoru, managers: https://ko-fi.com/xorulance
 - BaldDcMod, Discord moderator: https://ko-fi.com/balddcmod
 
 ### Do I need anything else installed?
