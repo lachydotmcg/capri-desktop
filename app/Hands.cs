@@ -1789,6 +1789,7 @@ namespace CapriDesktop
             if (Regex.IsMatch(text, @"\b(and|then|but)\s+(open|launch|play|close|quit|pause|don't|do not)\b", RegexOptions.IgnoreCase)) return false;
             ToolArguments website = WebsiteRequest(text);
             if (website != null) { tool = "open_website"; args = website; return true; }
+            if (Regex.IsMatch(text, @"^(?:open|launch|start|run|load up|boot up|fire up|pull up|bring up|show me|get me)\s+(?:(?:a|the|my|your)\s+)?calc(?:ulator)?$", RegexOptions.IgnoreCase) && Installed("Calculator")) { tool = "open_app"; args.Name = "Calculator"; return true; }
             found = Regex.Match(text, @"^(open|launch|start|run|load up|boot up|fire up)\s+(up\s+)?(.+)$", RegexOptions.IgnoreCase);
             if (found.Success)
             {
@@ -1855,12 +1856,15 @@ namespace CapriDesktop
 
         private static readonly Regex LooseText = new Regex(@"\b(" + ToolNames + @")\s*(\{[^{}]*\}|\([^()]*\))");
 
+        // "Play chess", or having her pull it up.
+        private const string MiniOpen = @"(?:(?:(?:wanna|want to|let's|lets|shall we|can we)\s+)?play\s+|(?:open|pull up|bring up|show me|start|launch|load up|fire up|get out)\s+(?:(?:a|the|your|my|me a|me the)\s+)?(?:game of\s+)?)?";
+
         internal static string MiniName(string text)
         {
 #if !CROSS
-            if (Regex.IsMatch((text ?? "").Replace('\u2019', '\''), @"^(?:(?:(?:wanna|want to|let's|lets|shall we|can we)\s+)?play\s+)?(?:native )?chess(?:\s+with\s+(?:me|you))?(?:\s+(?:on\s+)?(?:easy|normal|hard))?(?:(?:,?\s+i(?:'ll| will) be|\s+as)\s+(?:white|black))?$", RegexOptions.IgnoreCase)) return "chess";
+            if (Regex.IsMatch((text ?? "").Replace('\u2019', '\''), "^" + MiniOpen + @"(?:native )?chess(?:\s+(?:board|game))?(?:\s+with\s+(?:me|you))?(?:\s+(?:on\s+)?(?:easy|normal|hard))?(?:(?:,?\s+i(?:'ll| will) be|\s+as)\s+(?:white|black))?$", RegexOptions.IgnoreCase)) return "chess";
 #endif
-            Match mini = Regex.Match(text ?? "", @"^(?:(?:(?:wanna|want to|let's|lets|shall we|can we)\s+)?play\s+)?(tic[ -]?tac[ -]?toe|connect[ -](four|4)|rock[ ,]+paper[ ,]+scissors)(?:\s+with\s+(me|you))?$", RegexOptions.IgnoreCase);
+            Match mini = Regex.Match(text ?? "", "^" + MiniOpen + @"(tic[ -]?tac[ -]?toe|connect[ -](four|4)|rock[ ,]+paper[ ,]+scissors)(?:\s+(?:board|game))?(?:\s+with\s+(me|you))?$", RegexOptions.IgnoreCase);
             if (!mini.Success) return null;
             string name = mini.Groups[1].Value.ToLowerInvariant();
             return name.StartsWith("tic", StringComparison.Ordinal) ? "tic_tac_toe" : name.StartsWith("connect", StringComparison.Ordinal) ? "connect_four" : "rock_paper_scissors";

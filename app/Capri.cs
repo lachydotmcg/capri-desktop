@@ -14155,7 +14155,7 @@ namespace CapriDesktop
             {
                 Hands.MiniInput = delegate { return null; };
                 string routed; ToolArguments arguments;
-                foreach (string ask in new[] { "capri let's play chess", "play chess with me", "chess", "play chess on hard", "play chess on easy", "play chess on normal", "play chess, i'll be black" })
+                foreach (string ask in new[] { "capri let's play chess", "play chess with me", "chess", "play chess on hard", "play chess on easy", "play chess on normal", "play chess, i'll be black", "pull up chess", "open chess", "bring up the chess board", "open a game of chess", "show me your chess board" })
                     must(Hands.Heard(ask, out routed, out arguments) && routed == "mini_game" && arguments.Name == "chess" && Hands.Valid(routed, arguments), "Chess wording missed its native board: " + ask);
                 must(Hands.Heard("play chess on hard", out routed, out arguments) && arguments.Level == "hard", "Chess lost the requested level.");
                 Hands.MiniInput = ChessGame.Input;
@@ -14168,6 +14168,12 @@ namespace CapriDesktop
                 must(Hands.Typed("mini_game{\"name\":\"chess\",\"action\":\"open\",\"level\":\"hard\",\"side\":\"black\"}", out routed, out arguments) && arguments.Level == "hard" && arguments.Side == "black", "Chess tool text lost its level or side.");
                 Hands.Mini = delegate(ToolArguments called) { return called.Name + ":" + called.Action; };
                 foreach (string action in new[] { "open", "again", "close", "undo", "hint", "resign", "level" }) must(Hands.Do("mini_game", new ToolArguments { Name = "chess", Action = action, Level = "hard", Side = "black" }) == "chess:" + action, "Chess action missed dispatch.");
+                must(!Hands.Heard("show me chess openings", out routed, out arguments) || routed != "mini_game", "Talk about chess opened her board.");
+                var catalogKept = Hands.Catalog;
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Calculator", "calculator-package!App") }; };
+                foreach (string ask in new[] { "pull up a calculator", "open calculator", "bring up the calculator", "show me a calculator", "open calc" })
+                    must(Hands.Heard(ask, out routed, out arguments) && routed == "open_app" && arguments.Name == "Calculator", "Calculator wording missed: " + ask);
+                Hands.Catalog = catalogKept;
                 must(Hands.Tools.Contains("chess") && Hands.ClaudeTools.Contains("chess") && Hands.Listing.Contains("easy|normal|hard") && Agent.Version >= 26, "Chess was missing from a tool schema or agent version.");
                 checks.Add("PASS chess typed and spoken requests, board commands, browser exclusions, schema, text parser and action dispatch");
             }
@@ -27592,7 +27598,7 @@ namespace CapriDesktop
                             {
                                 if (glanceAsked.Count != 2) throw new Exception("The unchanged scene did not get one bounded retry.");
                                 foreach (string request in glanceAsked)
-                                    if (request.IndexOf("A game scene, scoreboard, inventory or quiet moment is enough.", StringComparison.Ordinal) < 0 || request.IndexOf("data:image/jpeg;base64,/9j/", StringComparison.Ordinal) < 0) throw new Exception("The glance lost its game prompt or screenshot.");
+                                    if (request.IndexOf("A game scene, scoreboard, inventory or quiet moment is enough", StringComparison.Ordinal) < 0 || request.IndexOf("data:image/jpeg;base64,/9j/", StringComparison.Ordinal) < 0) throw new Exception("The glance lost its game prompt or screenshot.");
                             }
                             if (RecentGlances(clock.Elapsed.TotalSeconds).IndexOf("Don't skip that chest.") < 0) throw new Exception("A delivered glance wasn't kept for the repeat check.");
                             checks.Add("PASS glance delivery: a sleeping watcher sends a valid frame, SKIP stays silent, unchanged scenes wait five minutes before retrying, and a sentence containing skip reaches the bubble and wakes her");
