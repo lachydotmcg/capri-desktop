@@ -425,6 +425,7 @@ namespace CapriDesktop
         internal static int Budget { get { return Budgets[Math.Max(0, Math.Min(2, Wordiness))]; } }
 
         internal static string MemoryPath;
+        internal static volatile string VaultFolder;
         internal static string Greeting(int hour) { return hour >= 5 && hour < 12 ? "Good morning, choom." : hour >= 22 || hour < 5 ? "Isn't it late, choom?" : "Miss me, choom?"; }
 
         internal static string GreetingClip(int hour) { return hour >= 5 && hour < 12 ? "morning" : hour >= 22 || hour < 5 ? "late" : "miss"; }
@@ -444,7 +445,9 @@ namespace CapriDesktop
         {
             string notes = Notes();
             if (notes.Length > 0 && Regex.IsMatch(notes, @"^- Pronouns:", RegexOptions.Multiline | RegexOptions.IgnoreCase)) notes += "\nGo by the pronouns in your notes, and match words like girl, boy or choom to them.";
-            return (notes.Length == 0 ? "" : "\nYour notes about them, from me.md (they can read and edit it). Use them when they fit, and don't recite them:\n" + notes) + Memories() + Seen();
+            string vault = VaultFolder;
+            string where = vault == null ? "" : "\nYour notes are the note " + Voice.Quote(Path.GetFileNameWithoutExtension(MemoryPath ?? "me.md")) + " in their Obsidian vault (" + vault + "), so you are connected to it: whatever you remember goes there and they can read it in Obsidian. Where your instructions say me.md, they mean that note.";
+            return where + (notes.Length == 0 ? "" : "\nYour notes about them, from me.md (they can read and edit it). Use them when they fit, and don't recite them:\n" + notes) + Memories() + Seen();
         }
 
         // Her prompt holds her newest notes; older ones turn up when a chat is about them.

@@ -288,6 +288,7 @@ namespace CapriDesktop
         [DataMember] public bool HasPlayerSpot;
         // Set once she has her tuned voice, or kept theirs because they'd already moved a voice slider.
         [DataMember] public bool VoiceTuned;
+        [DataMember] public string Vault;
 
         // A new install: she starts in the PC's own language when she speaks it, and with her tuned voice.
         internal static Preferences Fresh()
@@ -1313,6 +1314,9 @@ namespace CapriDesktop
             Brain.Wordiness = Math.Max(0, Math.Min(2, preferences.Wordiness));
             Brain.Recall = preferences.Recall == 16 || preferences.Recall == 32 ? preferences.Recall : 8;
             Brain.Keeping = preferences.Remembers;
+            ownNotes = Brain.MemoryPath;
+            string chosen = NotesIn(preferences.Vault);
+            if (chosen != null && Directory.Exists(Path.GetDirectoryName(chosen))) { Brain.MemoryPath = chosen; Brain.VaultFolder = Path.GetDirectoryName(chosen); }
             Brain.Digging = !smoke;
             if (!smoke) Brain.Keeper = brain;
             if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
@@ -3725,6 +3729,88 @@ namespace CapriDesktop
                 using (Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = false })) { }
             }
             catch (Exception) { Tell("open memories", "Couldn't open my memories. They live in " + Path.GetDirectoryName(path) + "."); }
+        }
+
+        private string ownNotes;
+        internal string Vault { get { return preferences.Vault ?? ""; } }
+
+        internal string SetVault(string folder)
+        {
+            folder = (folder ?? "").Trim().Trim('"');
+            string from = Brain.MemoryPath;
+            if (folder.Length == 0)
+            {
+                preferences.Vault = null;
+                SavePreferences();
+                Brain.MemoryPath = ownNotes;
+                Brain.VaultFolder = null;
+                return "Her notes are back in her own folder. Your vault keeps its copy of me.md.";
+            }
+            string notes;
+            try
+            {
+                notes = NotesIn(Path.GetFullPath(folder));
+                folder = Path.GetDirectoryName(notes);
+                Directory.CreateDirectory(folder);
+                if (from != null && File.Exists(from) && !string.Equals(Path.GetFullPath(from), notes, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!File.Exists(notes)) File.Copy(from, notes);
+                    else
+                    {
+                        string current = File.ReadAllText(notes);
+                        System.Text.StringBuilder missing = new System.Text.StringBuilder();
+                        foreach (string line in File.ReadAllLines(from))
+                            if (line.StartsWith("- ", StringComparison.Ordinal) && current.IndexOf(line.Trim(), StringComparison.OrdinalIgnoreCase) < 0) missing.Append(line.Trim()).Append('\n');
+                        if (missing.Length > 0) File.WriteAllText(notes, current + (current.Length == 0 || current.EndsWith("\n", StringComparison.Ordinal) ? "" : "\n") + missing);
+                    }
+                }
+                else if (!File.Exists(notes)) File.WriteAllText(notes, Brain.NotesHead);
+            }
+            catch (IOException error) { return "Couldn't use that: " + error.Message; }
+            catch (UnauthorizedAccessException error) { return "Couldn't use that: " + error.Message; }
+            catch (ArgumentException error) { return "Couldn't use that: " + error.Message; }
+            catch (NotSupportedException error) { return "Couldn't use that: " + error.Message; }
+            preferences.Vault = notes;
+            SavePreferences();
+            Brain.MemoryPath = notes;
+            Brain.VaultFolder = folder;
+            return "Connected. She saves her memories to " + Path.GetFileName(notes) + " in " + folder + ".";
+        }
+
+        internal const string VaultNote = "Capri Memories.md";
+
+        internal static System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> ObsidianVaults()
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> vaults = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>();
+            try
+            {
+                string list = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obsidian", "obsidian.json");
+                if (!File.Exists(list)) return vaults;
+                System.Collections.Generic.Dictionary<string, object> read = new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(File.ReadAllText(list)) as System.Collections.Generic.Dictionary<string, object>;
+                object listed;
+                System.Collections.Generic.Dictionary<string, object> all = read != null && read.TryGetValue("vaults", out listed) ? listed as System.Collections.Generic.Dictionary<string, object> : null;
+                if (all == null) return vaults;
+                foreach (object entry in all.Values)
+                {
+                    System.Collections.Generic.Dictionary<string, object> vault = entry as System.Collections.Generic.Dictionary<string, object>;
+                    object where;
+                    string path = vault != null && vault.TryGetValue("path", out where) ? where as string : null;
+                    if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) continue;
+                    vaults.Add(new System.Collections.Generic.KeyValuePair<string, string>(Path.GetFileName(path.TrimEnd('\\', '/')), path));
+                }
+                vaults.Sort(delegate(System.Collections.Generic.KeyValuePair<string, string> a, System.Collections.Generic.KeyValuePair<string, string> b) { return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase); });
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (ArgumentException) { }
+            catch (InvalidOperationException) { }
+            return vaults;
+        }
+
+        internal static string NotesIn(string chosen)
+        {
+            if (string.IsNullOrEmpty(chosen)) return null;
+            return chosen.EndsWith(".md", StringComparison.OrdinalIgnoreCase) ? chosen : Path.Combine(chosen, "me.md");
         }
 
         internal bool Remembers { get { return preferences.Remembers; } }
@@ -11594,6 +11680,25 @@ namespace CapriDesktop
                                 if (later.Gap().IndexOf("3 hours ago", StringComparison.Ordinal) < 0 || stale.Gap() != "" || File.ReadAllText(chatFile).IndexOf("\"messages\":[]", StringComparison.Ordinal) < 0) throw new Exception("Old chats were not aged or dropped: " + later.Gap());
                                 File.Delete(chatFile);
                                 checks.Add("PASS me.md notes: remember and forget save to her notes in the third person, refuse personal details, skip chat and questions, pick up favourites and projects on their own, reach her chat prompt, and the chat carries over a restart for a week");
+                                string vaultTest = Path.Combine(Path.GetDirectoryName(notesFile), "vault-test");
+                                if (Directory.Exists(vaultTest)) Directory.Delete(vaultTest, true);
+                                File.WriteAllText(notesFile, Brain.NotesHead + "- They love cats\n");
+                                string vaultNote = Path.Combine(vaultTest, VaultNote);
+                                string vaultSaid = SetVault(vaultNote);
+                                if (Brain.MemoryPath != vaultNote || Vault != vaultNote || Brain.VaultFolder != vaultTest || !File.Exists(vaultNote) || File.ReadAllText(vaultNote).IndexOf("- They love cats", StringComparison.Ordinal) < 0 || !vaultSaid.StartsWith("Connected.", StringComparison.Ordinal)) throw new Exception("Picking a vault note didn't move her notes there: " + vaultSaid);
+                                if (Brain.Notes() != "- They love cats" || Brain.Remembered().IndexOf("in their Obsidian vault (" + vaultTest + ")", StringComparison.Ordinal) < 0) throw new Exception("Her prompt doesn't say her notes are in their vault: " + Brain.Remembered());
+                                string ownVaultNote = Path.Combine(vaultTest, "Mine.md");
+                                File.WriteAllText(ownVaultNote, "# Mine\n- Their dog is Rex\n");
+                                SetVault(ownVaultNote);
+                                string vaultMerged = File.ReadAllText(ownVaultNote);
+                                if (vaultMerged != "# Mine\n- Their dog is Rex\n- They love cats\n" || Brain.MemoryPath != ownVaultNote) throw new Exception("An existing vault note didn't get her missing notes added once: " + vaultMerged);
+                                SetVault(vaultTest);
+                                if (Brain.MemoryPath != Path.Combine(vaultTest, "me.md") || NotesIn("C:\\notes\\Capri.md") != "C:\\notes\\Capri.md" || NotesIn("C:\\notes") != "C:\\notes\\me.md" || NotesIn("") != null) throw new Exception("A vault folder didn't become its me.md: " + Brain.MemoryPath);
+                                string backSaid = SetVault("");
+                                if (Brain.MemoryPath != notesFile || Brain.VaultFolder != null || Vault != "" || Brain.Remembered().IndexOf("Obsidian", StringComparison.Ordinal) >= 0 || !backSaid.StartsWith("Her notes are back", StringComparison.Ordinal)) throw new Exception("No vault didn't put her notes back in her own folder: " + backSaid);
+                                Brain.Unnote("everything");
+                                Directory.Delete(vaultTest, true);
+                                checks.Add("PASS memory vault: picking a note in their Obsidian vault moves her notes into it, an existing note only gets the notes it's missing, a folder uses its me.md, her prompt says where her notes are, and no vault puts her back on her own me.md");
                                 string[,] pressCases = { { "Capri, mute my mic.", "discord_mute" }, { "unmute me on discord", "discord_mute" }, { "turn off my mic", "discord_mute" }, { "can you mute myself in the call please", "discord_mute" }, { "deafen me", "discord_deafen" }, { "take a screenshot", "screenshot" }, { "clip that", "clip_that" }, { "start recording", "record" }, { "show the desktop", "show_desktop" }, { "open the emoji picker", "emoji" },
                                     { "turn on live captions", "live_captions" }, { "Capri, start narrator", "narrator" }, { "open magnifier", "magnifier" }, { "close the magnifier", "magnifier_off" }, { "turn on colour filters", "color_filters" }, { "voice typing", "voice_typing" }, { "open quick settings", "quick_settings" } };
                                 for (int i = 0; i < pressCases.GetLength(0); i++)
