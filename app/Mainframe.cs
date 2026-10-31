@@ -2278,7 +2278,7 @@ namespace CapriDesktop
 
         // `yours`: their clip is what her HD voice clones. `kept`: one is saved but she's on her own. `served`: the name of the voice
         // server she speaks through, like Fish Audio, when it's picked.
-        internal void ShowFree(bool ready, string chosen, bool busy, bool hdFits, bool yours, bool kept, string served = null)
+        internal void ShowFree(bool ready, string chosen, bool busy, Machine machine, bool yours, bool kept, string served = null)
         {
             bool hd = chosen == QwenVoice.Style;
             ShowHdGames();
@@ -2300,20 +2300,18 @@ namespace CapriDesktop
             // Capri ships no voice clip, so HD copies only a clip they pick: before there is one, HD asks for it.
             if (!yours && !kept)
             {
-                ToolStripMenuItem own = Choice(!hdFits ? "HD · needs a 6 GB graphics card" : "HD · graphics card, " + Engine.Amount(QwenVoice.PackSize), hd, delegate { PickYourVoice(); });
-                own.Enabled = hdFits;
+                ToolStripMenuItem own = Choice(QwenVoice.Advice(machine), hd, delegate { PickYourVoice(); });
                 freeMenu.Items.Add(own);
             }
             // Only her HD voice clones from a clip; her other styles are set voices.
             if (yours || kept)
             {
                 ToolStripMenuItem theirs = Choice("Your voice (HD)", yoursShown, delegate { if (yours) capri.ChooseVoiceStyle(QwenVoice.Style); else capri.UseKeptVoice(); });
-                theirs.Enabled = hdFits;
                 freeMenu.Items.Add(theirs);
             }
             ToolStripMenuItem pick = Choice(yours || kept ? "Pick a new clip of you..." : "Your voice (HD) · pick a clip of you...", false, delegate { PickYourVoice(); });
-            pick.Enabled = hdFits;
             freeMenu.Items.Add(pick);
+            freeMenu.Items.Add(Choice(QwenVoice.CpuChoice, capri.HdCpu, delegate { capri.ToggleHdCpu(); }));
             freeVoices.Invalidate();
             customVoice.Invalidate();
             freeSetup.Invalidate();
@@ -2342,6 +2340,15 @@ namespace CapriDesktop
                     if (choice != null && (choice.Text.StartsWith("HD ", StringComparison.Ordinal) || choice.Text.IndexOf("you", StringComparison.OrdinalIgnoreCase) >= 0)) items.Add(choice.Text + (choice.Checked ? " (picked)" : ""));
                 }
                 return freeVoices.Text + " | " + string.Join(", ", items.ToArray());
+            }
+        }
+
+        internal bool HdChoicesEnabled
+        {
+            get
+            {
+                foreach (ToolStripItem item in freeMenu.Items) if (item is ToolStripMenuItem && !item.Enabled) return false;
+                return true;
             }
         }
 

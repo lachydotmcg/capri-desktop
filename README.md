@@ -135,7 +135,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 
 | Under VOICE | What it is |
 | --- | --- |
-| **PREBUILT LOCAL** | Her own voices, free on your PC. **HD** sounds better on a graphics card with 6 GB or more, and copies a clip you pick |
+| **PREBUILT LOCAL** | Her own voices, free on your PC. **HD** copies a clip you pick: 6 GB graphics memory and 16 GB RAM recommended; 4 GB may fit with smaller chunks, or pick CPU for slower HD |
 | **CUSTOM LOCAL** | A voice model you run: a Piper, Kokoro, Kitten or Pocket TTS file, or your own Kokoro-FastAPI, Fish Speech or Qwen3-TTS server |
 | **CLOUD VOICE** | Fish Audio (free tier), ElevenLabs or OpenAI, with your own key |
 

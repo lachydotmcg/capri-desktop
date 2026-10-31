@@ -306,6 +306,7 @@ namespace CapriDesktop
         // Listen for "Hey Capri" is off out of the box (Lachy, 29 Oct). It's a toggle in her Security window, and the Blackwall preset turns it on.
         [DataMember] public bool HeyCapri;
         [DataMember] public bool HdVoice;
+        [DataMember] public bool HdCpu;
         // Free voice in games is off out of the box (Lachy, 29 Oct): her HD voice keeps talking while a game is full screen.
         // On, her free voice takes over while anything is full screen, so the game gets the graphics card back.
         [DataMember] public bool HdGameRest;
@@ -1295,9 +1296,9 @@ namespace CapriDesktop
         private bool settingUpEars, settingUpHd, wakingHd, hdTest;
         // A voice check she says once her HD voice wakes, in place of her usual one.
         private string hdLine;
-        private long voiceGot, voiceTotal, earsGot, earsTotal, hdGot, hdTotal, graphics = -1;
+        private int hdSpeaking = -1;
+        private long voiceGot, voiceTotal, earsGot, earsTotal, hdGot, hdTotal;
         private double hdRest = -1, hdUsed = -1, hdChecked = -1;
-        private bool? hdFitsTest;
         private const double HdRest = 600;
         private bool balloonMainframe;
         private bool? ownEarsTest;
@@ -1472,6 +1473,7 @@ namespace CapriDesktop
             heyCapri = new WakeWord(data);
             presence = new Presence(Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             preferences = smoke ? new Preferences() : LoadPreferences();
+            qwen.CpuOnly = preferences.HdCpu;
             bool careNew = !preferences.CareWritten;
             careLines = new CareLines(Path.Combine(data, "check-ins.md"));
             if (careNew) preferences.CareWritten = careLines.Create();
@@ -7424,20 +7426,31 @@ namespace CapriDesktop
 
         internal void CancelFreeVoice() { kokoro.Cancel = true; }
 
-        private bool HdFits
+        private Machine HdMachine
         {
             get
             {
-                if (hdFitsTest.HasValue) return hdFitsTest.Value;
-                if (graphics < 0) graphics = Machine.Read().Vram;
-                return graphics >= QwenVoice.CardNeeded;
+                if (qwen.Hardware == null) qwen.Hardware = Machine.Read();
+                return qwen.Hardware;
             }
+        }
+
+        internal bool HdCpu { get { return preferences.HdCpu; } }
+
+        internal void ToggleHdCpu()
+        {
+            preferences.HdCpu = !preferences.HdCpu;
+            qwen.CpuOnly = preferences.HdCpu;
+            qwen.Stop();
+            hdRest = -1;
+            SavePreferences();
+            ShowVoice();
+            if (preferences.HdVoice) WakeHd();
         }
 
         // HD is opt-in: one download, then it wakes on the graphics card when she talks and hands back to her free voice while games run.
         private void ChooseHd()
         {
-            if (!HdFits) { mainframe.VoiceNote("Her HD voice needs a graphics card with 6 GB or more.", true); return; }
             preferences.HdVoice = true;
             preferences.ServerVoice = false;
             hdRest = -1;
@@ -7463,7 +7476,7 @@ namespace CapriDesktop
                 bool cancelled = false;
                 Action<string, long, long> progress = delegate(string text, long done, long total)
                 {
-                    Post(delegate { if (total > 0) { hdGot = done; hdTotal = total; } ShowInstall(); });
+                    Post(delegate { if (total > 0) { hdGot = done; hdTotal = total; } ShowInstall(); if (text.StartsWith("HD may need ", StringComparison.Ordinal)) mainframe.VoiceNote(text, true); });
                 };
                 try { qwen.Install(progress); }
                 catch (OperationCanceledException) { cancelled = true; }
@@ -7492,14 +7505,9 @@ namespace CapriDesktop
             {
                 string problem = null;
                 bool stopped = false;
-                long room = qwen.Awake ? -1 : QwenVoice.FreeRoom();
-                if (room >= 0 && room < QwenVoice.RoomNeeded) problem = "Her HD voice needs about " + Engine.Amount(QwenVoice.RoomNeeded) + " of free graphics memory, so she's on her free voice. Close games or pick a smaller brain.";
-                else
-                {
-                    try { qwen.Warm(); }
-                    catch (OperationCanceledException) { stopped = true; }
-                    catch (Exception error) { problem = Voice.Short(error.Message); }
-                }
+                try { qwen.Warm(); }
+                catch (OperationCanceledException) { stopped = true; }
+                catch (Exception error) { problem = qwen.Failure(error.Message); }
                 Post(delegate
                 {
                     wakingHd = false;
@@ -7509,7 +7517,7 @@ namespace CapriDesktop
                     hdLine = null;
                     if (stopped) return;
                     if (!preferences.HdVoice) { qwen.Stop(); return; }
-                    if (problem != null) HdTrouble(problem);
+                    if (problem != null) HdTrouble(problem, qwen.NewProblem(problem));
                     if (line != null) CheckVoice(line, true);
                     else if (test && problem == null) voiceCheckDue = true;
                 });
@@ -7525,11 +7533,12 @@ namespace CapriDesktop
             return qwen.Or(fallback, delegate(string problem) { Post(delegate { HdTrouble(problem); }); });
         }
 
-        private void HdTrouble(string problem)
+        private void HdTrouble(string problem, bool tell = true)
         {
-            if (!testing) Brain.Log("HD voice", -1, problem);
             qwen.Stop();
             hdRest = clock.Elapsed.TotalSeconds + HdRest;
+            if (!tell) return;
+            if (!testing) Brain.Log("HD voice", -1, problem);
             mainframe.VoiceNote(problem, true);
         }
 
@@ -7906,7 +7915,6 @@ namespace CapriDesktop
         // Their own voice: a clip they pick is read, checked and cut on a worker thread, then saved where her HD voice looks for it.
         internal void UseYourVoice(string path)
         {
-            if (!HdFits) { mainframe.VoiceNote(YourVoiceCard, true); return; }
             mainframe.VoiceNote("Reading your clip...", false);
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -7915,8 +7923,6 @@ namespace CapriDesktop
                 Post(delegate { if (clip == null) mainframe.VoiceNote(problem, true); else KeepYourVoice(clip); });
             });
         }
-
-        internal const string YourVoiceCard = "Your voice uses her HD voice, and that needs a graphics card with 6 GB or more.";
 
         internal void KeepYourVoice(short[] clip)
         {
@@ -7972,8 +7978,9 @@ namespace CapriDesktop
             bool ready = kokoro.Installed;
             mainframe.ShowVoice(voice.Key == null ? null : Voice.Tail(voice.Key), voice.VoiceId, voice.Model, voices);
             bool hd = preferences.HdVoice, yours = YourVoice.Active(qwen.Folder), served = preferences.ServerVoice;
-            mainframe.ShowFree(ready, hd ? QwenVoice.Style : served ? VoiceServer.Style : kokoro.Style.Name, SettingUpVoice, HdFits, yours, YourVoice.Saved(qwen.Folder), served && !hd ? VoiceServer.Label(server.Url, server.Api) : null);
+            mainframe.ShowFree(ready, hd ? QwenVoice.Style : served ? VoiceServer.Style : kokoro.Style.Name, SettingUpVoice, HdMachine, yours, YourVoice.Saved(qwen.Folder), served && !hd ? VoiceServer.Label(server.Url, server.Api) : null);
             if (!note) return;
+            if (hd && voice.Key == null && !served && !settingUpHd && (preferences.HdCpu || QwenVoice.Warn(HdMachine))) { mainframe.VoiceNote(preferences.HdCpu ? "HD on your CPU: slower, and 16 GB of RAM is best." : QwenVoice.Advice(HdMachine), !preferences.HdCpu || HdMachine.Ram < QwenVoice.RamRecommended); return; }
             if (chatting && local && preferences.ListenCapri && earsReady) { mainframe.VoiceNote(ears.Muted ? "Listening for Capri; mic muted." : LocalListening, false); return; }
             string name = "custom voice";
             if (voices != null) foreach (VoiceEntry entry in voices.Voices) if (entry.Id == voice.VoiceId && entry.Name != null) name = entry.Name;
@@ -9237,6 +9244,7 @@ namespace CapriDesktop
             box.Leaving = -1;
             UpdateAnimation();
             int wait = speak == free ? Math.Max(VoiceWait, FreeWait) : VoiceWait;
+            hdSpeaking = preferences.HdVoice && speak == free ? ticket : -1;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 Thread.Sleep(wait);
@@ -9251,6 +9259,7 @@ namespace CapriDesktop
                 Post(delegate
                 {
                     voiceBroken = problem != null;
+                    if (hdSpeaking == ticket) hdSpeaking = -1;
                     if (ticket != asking || IsDisposed) return;
                     if (problem != null) mainframe.VoiceNote(problem, wav == null);
                     if (reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, wav);
@@ -9343,6 +9352,7 @@ namespace CapriDesktop
         {
             voice.Stop();
             Sfx.Untype();
+            hdSpeaking = -1;
             voiceUntil = 0;
             talkState = TalkState.Off;
             CheckEars(clock.Elapsed.TotalSeconds);
@@ -9371,7 +9381,7 @@ namespace CapriDesktop
             }
             bool comment = remarkTicket == asking;
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
-            if (replyDone >= 0 && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && now > replyDone + hold) box.Leaving = now;
+            if (replyDone >= 0 && hdSpeaking != asking && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && now > replyDone + hold) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
@@ -24321,14 +24331,32 @@ namespace CapriDesktop
                             Directory.Delete(packRoot, true);
                             checks.Add("PASS free voice: Free voice row and Get free voice button without a key, four styles with fallback, pack download + checksum + unpack from a fake server");
                             if (new Preferences().HdVoice) throw new Exception("Her HD voice is on by default.");
-                            hdFitsTest = false;
-                            ShowVoice();
-                            if (mainframe.HdChoice != "HD · needs a 6 GB graphics card (off)") throw new Exception("A small graphics card was offered her HD voice: " + mainframe.HdChoice);
+                            qwen.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
+                            string hdUsualLaunch = qwen.StartInfo(1234).Arguments;
+                            foreach (int hdCardGb in new[] { 2, 4, 6, 8 })
+                                foreach (int hdRamGb in new[] { 8, 16 })
+                                {
+                                    qwen.Hardware = new Machine { Vram = (long)hdCardGb << 30, Ram = (long)hdRamGb << 30 };
+                                    ShowVoice();
+                                    if (!mainframe.HdChoicesEnabled || mainframe.HdChoice.Contains("(off)")) throw new Exception("HD was blocked on " + hdCardGb + " GB graphics / " + hdRamGb + " GB RAM.");
+                                    ChooseVoiceStyle(QwenVoice.Style);
+                                    ProcessStartInfo hdMemoryStart = qwen.StartInfo(1234);
+                                    string hdMemoryLaunch = hdCardGb < 6 ? hdUsualLaunch.Replace("--codec-chunk-dur 6", "--codec-chunk-dur 2") : hdUsualLaunch;
+                                    if (!preferences.HdVoice || (QwenVoice.Warn(HdMachine) && mainframe.VoiceNoteText != QwenVoice.Advice(HdMachine)) || QwenVoice.Warn(HdMachine) != (hdCardGb < 6 || hdRamGb < 16)
+                                        || hdMemoryStart.Arguments != hdMemoryLaunch || hdMemoryStart.UseShellExecute || !hdMemoryStart.CreateNoWindow || !hdMemoryStart.RedirectStandardError)
+                                        throw new Exception("HD's memory advice or launch changed on " + hdCardGb + " GB graphics / " + hdRamGb + " GB RAM: " + hdMemoryStart.Arguments);
+                                    hdRest = clock.Elapsed.TotalSeconds + HdRest;
+                                    if (!mainframe.PickFree(QwenVoice.CpuChoice) || !preferences.HdCpu || !qwen.CpuOnly || hdRest != -1 || qwen.StartInfo(1234).Arguments != hdMemoryLaunch + " --device CPU") throw new Exception("HD's CPU choice didn't wake it with the CPU argument.");
+                                    if (!mainframe.PickFree(QwenVoice.CpuChoice) || preferences.HdCpu || qwen.CpuOnly || qwen.StartInfo(1234).Arguments != hdMemoryLaunch) throw new Exception("HD didn't return to its graphics card settings.");
+                                    ChooseVoiceStyle(LocalVoice.Styles[0].Name);
+                                }
+                            qwen.Hardware = new Machine();
                             ChooseVoiceStyle(QwenVoice.Style);
-                            if (preferences.HdVoice || mainframe.FreeStatus != "Free voice: Her own | " + freeSetupText) throw new Exception("Her HD voice turned on without a big enough graphics card: " + mainframe.FreeStatus);
-                            hdFitsTest = true;
+                            if (!preferences.HdVoice || !mainframe.HdChoicesEnabled || !mainframe.VoiceNoteText.Contains("unknown")) throw new Exception("Unknown graphics memory blocked HD.");
+                            ChooseVoiceStyle(LocalVoice.Styles[0].Name);
+                            qwen.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
                             ShowVoice();
-                            if (mainframe.HdChoice != "HD · graphics card, " + Engine.Amount(QwenVoice.PackSize)) throw new Exception("Her HD voice wasn't offered on a big graphics card: " + mainframe.HdChoice);
+                            if (mainframe.HdChoice != QwenVoice.Advice(HdMachine)) throw new Exception("Her HD voice wasn't offered on a big graphics card: " + mainframe.HdChoice);
                             ChooseVoiceStyle(QwenVoice.Style);
                             if (!preferences.HdVoice || mainframe.FreeStatus != "Free voice: HD | " + freeSetupText || !mainframe.HdChoice.EndsWith("(picked)", StringComparison.Ordinal)) throw new Exception("Picking her HD voice didn't stick: " + mainframe.FreeStatus + " / " + mainframe.HdChoice);
                             if (mainframe.Overlap() != null) throw new Exception("The free voice row overlaps with HD picked: " + mainframe.Overlap());
@@ -24355,8 +24383,9 @@ namespace CapriDesktop
                             if (preferences.HdVoice || kokoro.Style.Speaker != 6 || mainframe.FreeStatus != "Free voice: Sly | " + freeSetupText) throw new Exception("Picking a free voice didn't turn HD off: " + mainframe.FreeStatus);
                             if (mainframe.HdGamesStatus != "-") throw new Exception("Free voice in games still showed with HD off: " + mainframe.HdGamesStatus);
                             ChooseVoiceStyle(LocalVoice.Styles[0].Name);
-                            hdFitsTest = null;
-                            checks.Add("PASS HD voice: off by default, offered under the free voice only with a 6 GB graphics card, picking it sticks, Free voice in games shows in Settings only while it's on and starts off, a full-screen game sends her to her free voice only with it on, and picking another free voice turns HD off");
+                            qwen.Hardware = null;
+                            checks.Add("PASS HD voice memory: 2, 4, 6 and 8 GB graphics with 8 and 16 GB RAM all allow HD and clips; under 6 GB uses 2-second codec chunks, 6 GB and above keeps the same 1024-frame cache and 6-second chunks; low or unknown memory warns without blocking; CPU can be picked and undone on every machine, adding only --device CPU and clearing the retry wait");
+                            checks.Add("PASS HD voice: off by default, picking it sticks, Free voice in games shows in Settings only while it's on and starts off, a full-screen game sends her to her free voice only with it on, and picking another free voice turns HD off");
                             // Their own voice: a clip in any coding Windows reads becomes a 24 kHz mono 16-bit reference with its quiet ends cut, a bad clip
                             // says why in plain words, and the free voice menu brings back a clip a test build shelved.
                             string yvRoot = Path.Combine(output, "your-voice");
@@ -24480,20 +24509,18 @@ namespace CapriDesktop
                             string yvYourLine;
                             try
                             {
-                                hdFitsTest = false;
-                                UseYourVoice(Path.Combine(yvRoot, yvNames[0]));
-                                yvCard = mainframe.VoiceNoteText;
-                                hdFitsTest = true;
+                                qwen.Hardware = new Machine { Vram = 4L << 30, Ram = 16L << 30 };
                                 KeepYourVoice(yvClip);
+                                yvCard = mainframe.VoiceNoteText;
                                 byte[] yvReference = File.ReadAllBytes(Path.Combine(yvFolder, YourVoice.Using));
                                 int yvRate;
                                 yvSavedRight = preferences.HdVoice && Voice.Samples(yvReference, out yvRate).Length == yvClip.Length && yvRate == 24000 && BitConverter.ToInt16(yvReference, 22) == 1 && BitConverter.ToInt16(yvReference, 34) == 16 && !YourVoice.Saved(yvFolder);
-                                mainframe.ShowFree(true, QwenVoice.Style, false, true, true, false);
+                                mainframe.ShowFree(true, QwenVoice.Style, false, HdMachine, true, false);
                                 yvPicked = mainframe.YourVoiceStatus;
                                 yvOverlap = mainframe.Overlap();
                                 snap("mainframe-your-voice.png");
                                 YourVoice.Shelve(yvFolder);
-                                mainframe.ShowFree(true, QwenVoice.Style, false, true, false, true);
+                                mainframe.ShowFree(true, QwenVoice.Style, false, HdMachine, false, true);
                                 yvShelvedMenu = mainframe.YourVoiceStatus;
                                 yvHeard = null;
                                 asking++;
@@ -24506,7 +24533,7 @@ namespace CapriDesktop
                             finally
                             {
                                 FreeSpeak = yvFreeWas;
-                                hdFitsTest = true;
+                                qwen.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
                             }
                             asking++;
                             CloseTalk();
@@ -24516,14 +24543,14 @@ namespace CapriDesktop
                             ChooseVoiceStyle(LocalVoice.Styles[0].Name);
                             asking++;
                             CloseTalk();
-                            hdFitsTest = null;
                             string yvMenu = "Your voice (HD) (picked), Pick a new clip of you...";
-                            if (yvCard != YourVoiceCard || !yvSavedRight || yvPicked != "Free voice: Your voice | " + yvMenu || yvOverlap != null
+                            if (yvCard != QwenVoice.Advice(new Machine { Vram = 4L << 30, Ram = 16L << 30 }) || !yvSavedRight || yvPicked != "Free voice: Your voice | " + yvMenu || yvOverlap != null
                                 || yvShelvedMenu != "Free voice: HD | Your voice (HD), Pick a new clip of you..."
                                 || yvYourLine != Voice.Spoken(YourLine) || !yvUnshelved || yvTheirs != "Free voice: Your voice | " + yvMenu
-                                || preferences.HdVoice || YourVoice.Active(yvFolder) || mainframe.HdChoice != "HD · graphics card, " + Engine.Amount(QwenVoice.PackSize))
+                                || preferences.HdVoice || YourVoice.Active(yvFolder) || mainframe.HdChoice != QwenVoice.Advice(HdMachine))
                                 throw new Exception("Their voice didn't switch right: card " + yvCard + ", saved " + yvSavedRight + ", picked " + yvPicked + " (" + yvOverlap + "), shelved " + yvShelvedMenu + ", theirs " + yvYourLine + " / " + yvUnshelved + " / " + yvTheirs + ", after " + preferences.HdVoice + " / " + mainframe.HdChoice);
-                            checks.Add("PASS your voice: a clip of them talking as a 16-bit stereo, 24-bit, 8-bit or float WAV" + (yvPacked.Count > 0 ? ", or an " + string.Join(" or an ", yvPacked.ToArray()) + " through Windows' own decoders," : "") + " becomes a 24 kHz mono 16-bit reference for her HD voice with its quiet ends cut; too short, too long, almost silent, unreadable and missing clips each say why in plain words; without a 6 GB graphics card it says Your voice needs HD; picking one turns her HD voice on with their clip; Capri ships no voice, so there's no Her voice button, and a clip a test build shelved comes back with Your voice (HD) in the free voice menu");
+                            qwen.Hardware = null;
+                            checks.Add("PASS your voice: a clip of them talking as a 16-bit stereo, 24-bit, 8-bit or float WAV" + (yvPacked.Count > 0 ? ", or an " + string.Join(" or an ", yvPacked.ToArray()) + " through Windows' own decoders," : "") + " becomes a 24 kHz mono 16-bit reference for her HD voice with its quiet ends cut; too short, too long, almost silent, unreadable and missing clips each say why in plain words; picking one on a 4 GB graphics card turns her HD voice on with advice about memory; Capri ships no voice, so there's no Her voice button, and a clip a test build shelved comes back with Your voice (HD) in the free voice menu");
                             Func<byte[], string> hash = delegate(byte[] bytes) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant(); };
                             byte[] hdZip;
                             using (MemoryStream zipped = new MemoryStream())
@@ -24536,6 +24563,7 @@ namespace CapriDesktop
                             short[] hdWave = new short[9600];
                             for (int i = 0; i < hdWave.Length; i++) hdWave[i] = (short)Math.Round(16383 * Math.Sin(i * 0.07));
                             byte[] hdSpoken = Voice.Wave(hdWave, 24000), hdRegistered = System.Text.Encoding.ASCII.GetBytes("{\"name\":\"capri\",\"status\":\"registered\"}");
+                            int hdMemoryMode = 0, hdMemoryAfter = 0;
                             System.Collections.Generic.List<string> hdAsked = new System.Collections.Generic.List<string>();
                             System.Net.Sockets.TcpListener hdServer = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
                             hdServer.Start();
@@ -24565,8 +24593,10 @@ namespace CapriDesktop
                                             string[] words = request.Split(' ');
                                             string path = words.Length > 1 ? words[1] : "";
                                             bool hdSpeech = path.EndsWith("/v1/audio/speech", StringComparison.Ordinal), hdVoices = path.EndsWith("/v1/audio/voices", StringComparison.Ordinal);
+                                            int hdReplyMode = hdSpeech && Thread.VolatileRead(ref hdMemoryMode) != 0 && Interlocked.Decrement(ref hdMemoryAfter) < 0 ? Thread.VolatileRead(ref hdMemoryMode) : 0;
                                             byte[] answer = hdSpeech ? hdSpoken : hdVoices ? hdRegistered : path.EndsWith(".zip", StringComparison.Ordinal) ? hdZip : path.EndsWith("codec.gguf", StringComparison.Ordinal) ? hdCodec : hdModel;
-                                            byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: " + (hdSpeech ? "audio/wav" : hdVoices ? "application/json" : "application/octet-stream") + "\r\nContent-Length: " + answer.Length + "\r\nConnection: close\r\n\r\n");
+                                            if (hdReplyMode != 0) answer = System.Text.Encoding.UTF8.GetBytes("{\"error\":{\"type\":\"server_error\",\"message\":\"" + new string('x', 120) + (hdReplyMode == 3 ? " synthesis failed" : " VK_ERROR_OUT_OF_DEVICE_MEMORY: allocation failed") + "\"}}");
+                                            byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 " + (hdReplyMode == 1 ? "502 Bad Gateway" : hdReplyMode == 3 ? "500 Internal Server Error" : "200 OK") + "\r\nContent-Type: " + (hdReplyMode != 0 || hdVoices ? "application/json" : hdSpeech ? "audio/wav" : "application/octet-stream") + "\r\nContent-Length: " + answer.Length + "\r\nConnection: close\r\n\r\n");
                                             stream.Write(head, 0, head.Length);
                                             stream.Write(answer, 0, answer.Length);
                                         }
@@ -24580,8 +24610,10 @@ namespace CapriDesktop
                             long[] hdSizes = { QwenVoice.EngineSize, QwenVoice.CodecSize, QwenVoice.ModelSize };
                             System.Collections.Generic.List<string> hdSteps = new System.Collections.Generic.List<string>();
                             long hdTotalSeen = 0;
+                            Func<string, long> hdDiskWas = QwenVoice.DiskRoom;
                             try
                             {
+                                QwenVoice.DiskRoom = delegate(string hdDrive) { return 0; };
                                 QwenVoice.EngineUrl = "http://127.0.0.1:" + hdPort + "/engine.zip";
                                 QwenVoice.EngineSha = hash(hdZip);
                                 QwenVoice.EngineSize = hdZip.Length;
@@ -24593,10 +24625,12 @@ namespace CapriDesktop
                                 QwenVoice.ModelSize = hdModel.Length;
                                 if (hdVoice.Installed) throw new Exception("An empty folder counted as her HD voice.");
                                 hdVoice.Install(delegate(string text, long done, long total) { hdSteps.Add(text); hdTotalSeen = total; });
+                                if (!hdSteps.Exists(hdStep => hdStep.StartsWith("HD may need ", StringComparison.Ordinal))) throw new Exception("HD didn't warn about the stand-in full disk before trying the install.");
                                 if (!hdVoice.Installed || hdTotalSeen != QwenVoice.PackSize || !hdSteps.Contains("Checking her HD voice") || !hdSteps.Contains("Unpacking her HD voice") || Directory.Exists(Path.Combine(Path.Combine(hdRoot, "voice"), "engine-" + QwenVoice.Build + ".new")) || File.Exists(Path.Combine(Path.Combine(hdRoot, "voice"), "engine-" + QwenVoice.Build + ".zip"))) throw new Exception("Her HD voice pack did not install: " + string.Join(", ", hdSteps.ToArray()));
                             }
                             finally
                             {
+                                QwenVoice.DiskRoom = hdDiskWas;
                                 QwenVoice.EngineUrl = hdKept[0];
                                 QwenVoice.EngineSha = hdKept[1];
                                 QwenVoice.CodecUrl = hdKept[2];
@@ -24618,10 +24652,12 @@ namespace CapriDesktop
                             File.Delete(hdKeptClip);
                             if (!QwenVoice.CodecUrl.StartsWith("https://huggingface.co/Serveurperso/Qwen3-TTS-GGUF/resolve/", StringComparison.Ordinal) || !QwenVoice.EngineUrl.StartsWith("https://", StringComparison.Ordinal) || !QwenVoice.EngineUrl.EndsWith("/" + QwenVoice.Build + "-win-vulkan-x64.zip", StringComparison.Ordinal)
                                 || !QwenVoice.ModelUrl.StartsWith("https://", StringComparison.Ordinal) || !QwenVoice.ModelUrl.EndsWith("/" + QwenVoice.ModelFile, StringComparison.Ordinal) || QwenVoice.EngineSha.Length != 64 || QwenVoice.ModelSha.Length != 64 || QwenVoice.CodecSha.Length != 64) throw new Exception("Her HD voice points at the wrong download.");
+                            hdVoice.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
                             ProcessStartInfo hdStart = hdVoice.StartInfo(1234);
                             string hdLaunch = hdStart.Arguments;
                             if (Path.GetFileName(hdStart.FileName) != "tts-server.exe" || !hdLaunch.StartsWith("--model \"", StringComparison.Ordinal) || !hdLaunch.Contains(QwenVoice.ModelFile + "\" --codec \"") || !hdLaunch.Contains(QwenVoice.CodecFile + "\" --host 127.0.0.1 --port 1234 ") || !hdLaunch.EndsWith(" --ctx-size 1024 --codec-chunk-dur 6", StringComparison.Ordinal)) throw new Exception("Her HD voice starts with the wrong settings: " + hdStart.FileName + " " + hdLaunch);
                             checks.Add("PASS HD voice pack: the qwentts.cpp engine (" + QwenVoice.Build + "), Qwen3-TTS tokenizer and 1.7B talker download with their checksums and unpack from a fake server, the old llama.cpp pack and its half-finished downloads are cleared while their clips stay, and its server starts with a 1024-frame cache and 6-second codec chunks");
+                            checks.Add("PASS HD voice disk: a stand-in disk with no reported free space warns and still tries the pack; the fake pack installs");
                             string hdTrouble = null;
                             byte[] hdTone = Voice.Wave(new short[12000], 24000);
                             // Capri ships no voice clip, so her HD voice gets one to copy here: a made-up tone, no one's voice.
@@ -24687,6 +24723,45 @@ namespace CapriDesktop
                             for (int i = 0; !hdChanged && i < hdGlitched.Length; i++) hdChanged = hdGlitched[i] != hdLongSamples[i];
                             if (hdTrouble != null || !hdRoboted || hdRobotic.Length != hdLongSamples.Length || !hdChanged || hdRobotWas != VoiceFx.HdRobotDefault || hdGlitchWas != 0)
                                 throw new Exception("Her HD voice didn't follow its robot and glitch sliders: " + hdRobotWas + "% robot and " + hdGlitchWas + "% glitch out of the box, " + hdLongSamples.Length + " to " + hdRobotic.Length + " and " + hdGlitched.Length + " samples / " + hdTrouble);
+                            int hdMemoryNotes = 0, hdMemoryFallbacks = 0;
+                            string hdMemoryWords = null, hdMemoryNote = null;
+                            Func<string, byte[]> hdMemoryFallback = delegate(string hdLostWords) { hdMemoryFallbacks++; hdMemoryWords = hdLostWords; return hdTone; };
+                            Action<string> hdMemoryTell = delegate(string hdLostNote) { hdMemoryNotes++; hdMemoryNote = hdLostNote; };
+                            try
+                            {
+                                Interlocked.Exchange(ref hdMemoryAfter, 1);
+                                Interlocked.Exchange(ref hdMemoryMode, 1);
+                                if (hdVoice.Or(hdMemoryFallback, hdMemoryTell)(hdLong) != hdTone || hdMemoryWords != hdLong) throw new Exception("A late HD memory failure lost part of the line instead of giving it all to her free voice.");
+                                if (hdVoice.Or(hdMemoryFallback, hdMemoryTell)("Try that line again.") != hdTone || hdMemoryNotes != 1 || hdMemoryFallbacks != 2 || hdMemoryNote != hdVoice.Failure(QwenVoice.MemoryFull)) throw new Exception("HD's memory failure didn't fall back and explain it once: " + hdMemoryNote);
+                                Interlocked.Exchange(ref hdMemoryMode, 2);
+                                if (hdVoice.Or(hdMemoryFallback, hdMemoryTell)("An error in a successful HTTP reply.") != hdTone || hdMemoryNotes != 1) throw new Exception("HD missed memory trouble in a JSON reply or told them twice.");
+                                Interlocked.Exchange(ref hdMemoryMode, 0);
+                                hdVoice.Or(hdMemoryFallback, hdMemoryTell)("The server recovered.");
+                                Interlocked.Exchange(ref hdMemoryMode, 1);
+                                if (hdVoice.Or(hdMemoryFallback, hdMemoryTell)("Memory ran out again.") != hdTone || hdMemoryNotes != 2) throw new Exception("HD didn't explain a new memory failure after recovering.");
+                                Interlocked.Exchange(ref hdMemoryMode, 3);
+                                if (hdVoice.Or(hdMemoryFallback, hdMemoryTell)("A different server error.") != hdTone || hdMemoryNote.Contains("ran out of memory")) throw new Exception("HD called an ordinary HTTP 500 a memory failure.");
+                                foreach (string hdMemoryDetail in new[] { "CUDA out of memory", "ErrorOutOfDeviceMemory", "VK_ERROR_OUT_OF_HOST_MEMORY", "std::bad_alloc", "failed to allocate buffer", "ggml_backend_buffer allocation failed", "OOM" })
+                                    if (!QwenVoice.MemoryError(hdMemoryDetail)) throw new Exception("HD missed a memory error: " + hdMemoryDetail);
+                                if (QwenVoice.MemoryError("invalid voice") || QwenVoice.MemoryError("HTTP 500") || QwenVoice.MemoryError("room is quiet")) throw new Exception("HD mistook another error for memory trouble.");
+                            }
+                            finally { Interlocked.Exchange(ref hdMemoryMode, 0); }
+                            checks.Add("PASS HD voice out of memory: a fake server's late HTTP 502 and HTTP 200 JSON memory errors give the whole line to her free voice, explain it once across calls and offer Use CPU for HD; success resets the notice, a later failure explains it again, and an ordinary 500 stays an ordinary error");
+                            int hdHeldTicket = ++asking;
+                            Begin(hdHeldTicket, "Waiting for her HD voice.", TalkState.Talking, null);
+                            hdSpeaking = hdHeldTicket;
+                            remarkTicket = hdHeldTicket;
+                            replyStart = replyDone = clock.Elapsed.TotalSeconds;
+                            double hdHeldNow = clock.Elapsed.TotalSeconds + 86400;
+                            UpdateTalk(hdHeldNow);
+                            if (box.Leaving >= 0 || reply == null) throw new Exception("An HD line expired while its speech or fallback was still being made.");
+                            hdSpeaking = -1;
+                            UpdateTalk(hdHeldNow);
+                            if (box.Leaving < 0) throw new Exception("An HD line stayed pinned after its voice finished.");
+                            hdSpeaking = hdHeldTicket;
+                            CloseTalk();
+                            if (hdSpeaking != -1 || reply != null) throw new Exception("Dismissing a pending HD line didn't cancel its display.");
+                            checks.Add("PASS HD voice waiting: an old text reply stays open while HD or its fallback is being made, can expire once speech finishes, and can still be dismissed");
                             // Their clip went out with every line above. Shelved, she has no clip to copy, so the line goes to her free voice and she says she needs one.
                             YourVoice.Shelve(hdVoice.Folder);
                             byte[] hdNoClip = hdVoice.Or(delegate(string words) { return hdTone; }, hdNoted)("Hey choom.");
@@ -24701,13 +24776,16 @@ namespace CapriDesktop
                             hdVoice.Stop();
                             if (hdVoice.Awake) throw new Exception("Her HD voice stayed awake after Stop.");
                             Func<ProcessStartInfo, Process> hdSpawnWas = QwenVoice.Spawn;
-                            string hdCrash = null, hdStopped = null;
+                            string hdCrash = null, hdStopped = null, hdMemoryCrash = null;
                             DateTime hdCrashFrom = DateTime.Now;
                             try
                             {
                                 QwenVoice.Spawn = delegate(ProcessStartInfo info) { return Process.Start(new ProcessStartInfo("cmd.exe", "/c exit 3") { UseShellExecute = false, CreateNoWindow = true }); };
                                 try { hdVoice.Warm(); }
                                 catch (VoiceException error) { hdCrash = error.Message; }
+                                QwenVoice.Spawn = delegate(ProcessStartInfo hdMemoryInfo) { return Process.Start(new ProcessStartInfo("cmd.exe", "/c echo VK_ERROR_OUT_OF_DEVICE_MEMORY 1>&2 & exit /b 1") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true }); };
+                                try { hdVoice.Warm(); }
+                                catch (VoiceException hdMemoryError) { hdMemoryCrash = hdMemoryError.Message; }
                                 QwenVoice.Spawn = delegate(ProcessStartInfo info)
                                 {
                                     ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(700); hdVoice.Stop(); });
@@ -24723,10 +24801,11 @@ namespace CapriDesktop
                                 hdVoice.Stop();
                             }
                             string[] hdCrashLines = Array.FindAll(File.ReadAllLines(Brain.LogPath), line => LoggedSince(line, hdCrashFrom) && line.Contains(" | HD voice | ") && line.EndsWith(" | tts-server stopped while loading with exit code 0x00000003", StringComparison.Ordinal));
-                            if (hdCrash != "Her HD voice crashed loading. Close games, then try again." || hdCrashLines.Length != 1 || hdStopped != "quiet" || hdVoice.Awake) throw new Exception("Her HD voice didn't handle a crash or a stop while waking: " + hdCrash + " / " + hdCrashLines.Length + " log lines / " + hdStopped);
+                            if (hdCrash != "Her HD voice crashed loading. Close games, then try again." || hdCrashLines.Length != 1 || hdMemoryCrash != QwenVoice.MemoryFull || hdStopped != "quiet" || hdVoice.Awake) throw new Exception("Her HD voice didn't handle a crash or a stop while waking: " + hdCrash + " / " + hdCrashLines.Length + " log lines / " + hdMemoryCrash + " / " + hdStopped);
+                            checks.Add("PASS HD voice memory crash: a hidden stand-in process writes Vulkan's out-of-device-memory error to stderr and exits; she keeps the memory diagnosis without logging the server's output");
                             Directory.Delete(hdRoot, true);
                             checks.Add("PASS HD voice speech: their clip (a made-up tone: Capri ships no voice) goes to a fake qwentts server once, sound alone, then each line asks for her by name in English with her respelled words and its WAV becomes hers at 24 kHz, a long reply goes a few sentences per call so none hits the 41 s cap, the pitch slider lifts it 6 semitones without changing its length, its own robot and glitch (both Off out of the box) change it, with their clip shelved she has none to copy, so the line goes to her free voice and she says so, a sleeping voice won't speak, a dead server hands the line to her free voice, a server that crashes while waking is logged with its exit code, and stopping her mid-wake is quiet (full-screen check reads " + Native.Gaming() + ")");
-                            checks.Add("LIMIT HD voice synthesis not run in the smoke test; it needs the " + Engine.Amount(QwenVoice.PackSize) + " pack and a graphics card");
+                            checks.Add("LIMIT HD voice synthesis and peak memory not run in the smoke test; test the " + Engine.Amount(QwenVoice.PackSize) + " pack on a real 4 GB card with 16 GB RAM, and on CPU");
                             // Their own voice server: a fake one answers like Kokoro-FastAPI or vLLM-Omni would, with a 16-bit WAV, a float WAV
                             // streamed in chunks, an MP3, an error or nothing in time, and her free voice says the lines it can't.
                             short[] vsTone = new short[22050];
@@ -25258,7 +25337,7 @@ namespace CapriDesktop
                                 asking++;
                                 CloseTalk();
                                 preferences.ServerVoice = true;
-                                hdFitsTest = true;
+                                qwen.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
                                 ChooseVoiceStyle(QwenVoice.Style);
                                 vsHdOff = preferences.HdVoice && !preferences.ServerVoice;
                                 ChooseVoiceStyle(LocalVoice.Styles[0].Name);
@@ -25334,7 +25413,7 @@ namespace CapriDesktop
                                 test.Start();
                                 VoiceWait = vsVoiceWaitWas;
                                 FreeWait = vsFreeWaitWas;
-                                hdFitsTest = null;
+                                qwen.Hardware = null;
                                 vsMode = "wav";
                                 FreeSpeak = vsFreeWas;
                                 preferences.Quiet = vsQuietWas;
