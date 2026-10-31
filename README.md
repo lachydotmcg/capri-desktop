@@ -92,7 +92,7 @@ Stuck? The [setup guide](https://lachydotmcg.github.io/capri-desktop/setup/) wal
 She sits on your windows and chats, talks with an ElevenLabs key, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. The Mainframe, voice chat and jobs with her own cursor are Windows-only for now.
 
 1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip) or [Linux](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
-2. For her brain, use a free NVIDIA key or your own OpenAI, Claude or DeepSeek key from **Brain** in her right-click menu. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
+2. For her brain, use a free NVIDIA key or your own Gemini, OpenRouter, OpenAI, Claude or DeepSeek key from **Brain** in her right-click menu. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
 3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
    ```bash
    xattr -dr com.apple.quarantine /Applications/Capri.app
@@ -173,7 +173,7 @@ Pick what she calls you, her language, her voice and what she does on your PC fr
 
 - [x] Typing to her, with replies in her speech bubble
 - [x] A brain on your PC that sets itself up, or Ollama if you have it
-- [x] A free NVIDIA key, or your own ChatGPT, Claude or DeepSeek key
+- [x] A free NVIDIA key, or your own Gemini, OpenRouter, ChatGPT, Claude or DeepSeek key
 - [x] Three brain tiers: NORMAL, HIGHER and MAX INTELLIGENCE
 - [x] Remembering things about you, in her notes (me.md)
 - [x] Keeping your chat for up to a week

@@ -323,7 +323,7 @@ namespace CapriDesktop
             setup.Loud = true;
             hint = Caption("Have Ollama? Open it, then press Refresh.", 28, 264, Look.Mono(9f, FontStyle.Italic, GraphicsUnit.Point), Faint);
             tierNote = Caption("Pick one. Only one brain runs at a time.", 28, 168, Look.Mono(8.5f, FontStyle.Italic, GraphicsUnit.Point), Faint);
-            string[,] tiers = { { "NORMAL", "Free · local model" }, { "HIGHER", "Free · NVIDIA API" }, { "MAX INTELLIGENCE", "ChatGPT or Claude API" } };
+            string[,] tiers = { { "NORMAL", "Free · local model" }, { "HIGHER", "Free · NVIDIA API" }, { "MAX INTELLIGENCE", "Cloud API keys" } };
             for (int i = 0; i < rungs.Length; i++)
             {
                 int picked = i;
@@ -1979,9 +1979,9 @@ namespace CapriDesktop
             syncing = false;
             string tail = tier == 1 ? nvidiaTail : tier == 2 ? paidTail : null;
             textSaved = tail != null;
-            textEntry.Box.AccessibleName = tier == 1 ? "NVIDIA API key" : "OpenAI, Anthropic or DeepSeek API key";
-            tierNote.Text = tier == 1 ? "Most NVIDIA models can't see your screen." : "Pick one. Only one brain runs at a time.";
-            textEntry.Cue = textSaved ? (tier == 1 ? "NVIDIA key saved, ends " : "Key saved, ends ") + tail : tier == 1 ? "Paste your free NVIDIA key" : "Paste a ChatGPT or Claude key";
+            textEntry.Box.AccessibleName = tier == 1 ? "NVIDIA API key" : "Google AI, OpenRouter, OpenAI, Anthropic or DeepSeek API key";
+            tierNote.Text = tier == 1 ? "Most NVIDIA models can't see your screen." : tier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
+            textEntry.Cue = textSaved ? (tier == 1 ? "NVIDIA key saved, ends " : "Key saved, ends ") + tail : tier == 1 ? "Paste your free NVIDIA key" : "Paste a brain API key";
             RelabelText();
             Arrange(expanded);
         }
@@ -1993,7 +1993,8 @@ namespace CapriDesktop
                 Rectangle last = rungs[rungs.Length - 1].Bounds;
                 bool row = !textEntry.Visible || (textEntry.Top >= last.Bottom && textConnect.Right <= ClientSize.Width);
                 int end = textEntry.Visible ? textEntry.Bottom : last.Bottom;
-                return rungs[0].Top >= tierNote.Bottom && rungs[1].Top >= rungs[0].Bottom && rungs[2].Top >= rungs[1].Bottom && freeKey.Left >= rungs[1].Right && freeKey.Top >= rungs[1].Top && freeKey.Bottom <= rungs[1].Bottom && row && end <= voiceHead.Top && rungs[0].Right <= ClientSize.Width;
+                foreach (Rung brainRung in rungs) if (!brainRung.Fits) return false;
+                return tierNote.Right <= ClientSize.Width && rungs[0].Top >= tierNote.Bottom && rungs[1].Top >= rungs[0].Bottom && rungs[2].Top >= rungs[1].Bottom && freeKey.Left >= rungs[1].Right && freeKey.Top >= rungs[1].Top && freeKey.Bottom <= rungs[1].Bottom && row && end <= voiceHead.Top && rungs[0].Right <= ClientSize.Width;
             }
         }
 
@@ -4425,6 +4426,15 @@ namespace CapriDesktop
             internal Font HintFont;
             internal string Flag;
             internal Font FlagFont;
+
+            internal bool Fits
+            {
+                get
+                {
+                    TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
+                    return (int)(32 * ScaleOf(this)) + TextRenderer.MeasureText(Text, Font, Size.Empty, flags).Width + TextRenderer.MeasureText(Hint ?? "", HintFont ?? Font, Size.Empty, flags).Width <= Width;
+                }
+            }
 
             internal Rung()
             {
