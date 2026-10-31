@@ -283,7 +283,7 @@ namespace CapriDesktop
         {
             if (Asleep || napAsked || napping || ownNap) return;
             reminderUp = true;
-            bool bubbleOnly = chatting || Hushed || preferences.Quiet;
+            bool bubbleOnly = InChat || Hushed || preferences.Quiet;
             if (docked) Commentary.Stage.Say(line);
             if (working != null)
             {

@@ -1790,7 +1790,7 @@ namespace CapriDesktop
             if (!testing) FindBrain();
             if (!testing) DefaultStartup(Installed());
             if (!testing) GreetSoon();
-            if (!testing) ListenSoon();
+            listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
             if (!testing && FreeChatOn) { GetFreeVoice(); GetFreeEars(); }
             // An update can move her HD voice to a new engine: the old pack goes, and with HD on, the new one comes down.
             if (!testing) ThreadPool.QueueUserWorkItem(delegate { qwen.Tidy(); });
@@ -2880,7 +2880,7 @@ namespace CapriDesktop
             greetTried = true;
             string[] holiday = Brain.Holiday(now);
             string line = holiday != null ? holiday[random.Next(holiday.Length)] : Brain.Greeting(now.Hour);
-            if (line == null || ticket != asking || Hushed || hidden || chatting || speech != null || talkState != TalkState.Off || typer.Visible) return;
+            if (line == null || ticket != asking || Hushed || hidden || InChat || speech != null || talkState != TalkState.Off || typer.Visible) return;
             heard = "startup";
             box.Prompt = "> sys: ";
             if (holiday != null) holidaySaid = now.Date;
@@ -3275,14 +3275,14 @@ namespace CapriDesktop
         private void CheckReminders(DateTime now)
         {
             if (quitting || dragging || pressed || typer.Visible || menu.Visible || outro != null) return;
-            if (!chatting && working == null && (speech != null || talkState != TalkState.Off)) return;
+            if (!InChat && working == null && (speech != null || talkState != TalkState.Off)) return;
             string line;
             try { line = reminders.Take(now); }
             catch (IOException) { return; }
             catch (UnauthorizedAccessException) { return; }
             if (line == null) return;
             reminderUp = true;
-            bool bubbleOnly = chatting || Hushed || preferences.Quiet || FullScreen();
+            bool bubbleOnly = InChat || Hushed || preferences.Quiet || FullScreen();
             if (working != null)
             {
                 asideShown = line;
@@ -3340,7 +3340,7 @@ namespace CapriDesktop
         {
             if (quiet > Care.Away) { noticed = -1; nudgeOut = -1; nudgeGap = NudgeGap; boredAsk = false; return; }
             if (boredAsk && !preferences.CareBored) { nudgeOut = -1; boredAsk = false; }
-            bool attending = clicks != noticedClicks || dragging || pressed || chatting || typer.Visible || menu.Visible || talkState != TalkState.Off || onPanel;
+            bool attending = clicks != noticedClicks || dragging || pressed || InChat || typer.Visible || menu.Visible || talkState != TalkState.Off || onPanel;
             if (noticed < 0 || attending) { noticed = now; noticedClicks = clicks; }
             if (nudgeOut >= 0)
             {
@@ -4044,7 +4044,7 @@ namespace CapriDesktop
         private void CheckWander(double now, long quiet)
         {
             bool settled = talkState == TalkState.Off || (talkState == TalkState.Talking && replyDone >= 0 && now - replyDone > 8);
-            if (!preferences.Wander || Hushed || ownRest || SleepBusy || GamingOn || hidden || dragging || pressed || riding || onPanel || falling || hanging || chatting || typer.Visible || menu.Visible || speech != null || !settled || quiet > 90000 || (seat != null && seat.Free) || outro != null || (clip != idle && clip != perch && clip != dance && clip != perchDance)) return;
+            if (!preferences.Wander || Hushed || ownRest || SleepBusy || GamingOn || hidden || dragging || pressed || riding || onPanel || falling || hanging || InChat || typer.Visible || menu.Visible || speech != null || !settled || quiet > 90000 || (seat != null && seat.Free) || outro != null || (clip != idle && clip != perch && clip != dance && clip != perchDance)) return;
             double pace = WanderPaces[preferences.WanderPace];
             if (nextWander < 0) nextWander = now + (20 + random.NextDouble() * 40) * pace;
             if (now < nextWander) return;
@@ -4468,7 +4468,7 @@ namespace CapriDesktop
             Brain.Nickname = name.Length == 0 ? null : name;
             preferences.Nickname = Brain.Nickname;
             SavePreferences();
-            if (hidden || chatting || IsDisposed) return;
+            if (hidden || InChat || IsDisposed) return;
             heard = "settings";
             box.Prompt = "> sys: ";
             Answer(++asking, Brain.Renamed(name), TalkState.Talking);
@@ -4910,7 +4910,7 @@ namespace CapriDesktop
             bool wanted = danceAsked || (musicOn && !preferences.NoDance && preferences.Motion && !danceHeld);
             // Mid-job she bops along on her task panel too: the job keeps her thinking and voice chat may be on for them to cut
             // in, so only her talking stops it there (Lachy, 29 Oct: "she didnt bop her head when i played the songs").
-            bool busy = speech != null || (working != null ? now < voiceUntil : talkState != TalkState.Off || chatting);
+            bool busy = speech != null || (working != null ? now < voiceUntil : talkState != TalkState.Off || InChat);
             bool free = wanted && !hidden && !dragging && !pressed && !riding && !falling && !hanging && !walking && outro == null && !busy && !Hushed && !ownRest;
             if (dancing && !free) { Play(seat != null || onPanel ? perch : idle); UpdateAnimation(); }
             else if (!dancing && free && (clip == idle || clip == perch || clip == laydown)) { SitUp(false); Play(seat != null || onPanel ? perchDance : dance); frames.Start(); }
@@ -4938,7 +4938,7 @@ namespace CapriDesktop
                 Post(delegate
                 {
                     homeBusy = false;
-                    bool free = preferences.CheckIns && !Hushed && (!hidden || docked) && !quitting && !dragging && !pressed && !chatting && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
+                    bool free = preferences.CheckIns && !Hushed && (!hidden || docked) && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
                     string line = Cheer(game, song, clock.Elapsed.TotalSeconds, free);
                     if (line != null) Say(line);
                 });
@@ -4954,7 +4954,7 @@ namespace CapriDesktop
             double busy = lagTotal == 0 || total <= lagTotal ? 0 : 1 - (double)(idle - lagIdle) / (total - lagTotal);
             lagIdle = idle;
             lagTotal = total;
-            bool free = preferences.CheckIns && !Hushed && !hidden && !quitting && !dragging && !pressed && !chatting && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null && !Native.Gaming();
+            bool free = preferences.CheckIns && !Hushed && !hidden && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null && !Native.Gaming();
             string line = Lagging(busy, now, free);
             if (line != null) Say(line);
         }
@@ -7242,6 +7242,7 @@ namespace CapriDesktop
         // Free voice chat checks two things: a failed ears download gets another go, and a mic that sends only silence gets a warning.
         private void CheckHearing(double now)
         {
+            KeepListening(now);
             if (earsRetryAt >= 0 && now >= earsRetryAt)
             {
                 earsRetryAt = -1;
@@ -8145,7 +8146,8 @@ namespace CapriDesktop
 
         private void ToggleChat()
         {
-            if (chatting) { StopChat(); return; }
+            if (chatting) { earsClosed = preferences.ListenCapri; StopChat(); return; }
+            earsClosed = false;
             WakeRest(true);
             // Listen for Capri needs her own ears; otherwise voice chat follows the VOICE pick.
             if (ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, voice.Key != null)) { StartLocal(); return; }
@@ -8396,19 +8398,15 @@ namespace CapriDesktop
         // Listen for Capri's ears stay open while she runs, and that isn't a conversation, so she carries on as usual around it.
         private bool InChat { get { return chatting && !(local && preferences.ListenCapri); } }
 
-        // With Listen for Capri on her ears open when she does, once her hello's out of the way.
-        private void ListenSoon(int tries = 0)
+        // They open once her hello's out of the way and come back after whatever closed them (hiding her, Quiet, a lost mic), unless they closed them on purpose.
+        private bool earsClosed;
+        private double listenAt;
+
+        private void KeepListening(double now)
         {
-            ThreadPool.QueueUserWorkItem(delegate
-            {
-                Thread.Sleep(tries == 0 ? GreetPause + 500 : 1000);
-                Post(delegate
-                {
-                    if (!preferences.ListenCapri || chatting || quitting || IsDisposed) return;
-                    if ((talkState != TalkState.Off || speech != null) && tries < 30) { ListenSoon(tries + 1); return; }
-                    ToggleChat();
-                });
-            });
+            if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || hidden || quitting || preferences.Quiet || talkState != TalkState.Off || speech != null) return;
+            listenAt = now + 60;
+            ToggleChat();
         }
 
         internal void ToggleListenCapri()
@@ -8420,7 +8418,8 @@ namespace CapriDesktop
             if (!chatting)
             {
                 // Turning it on is them asking her to listen, so there's no key to press as well (Lachy, 31 Oct).
-                if (preferences.ListenCapri && !testing) ToggleChat();
+                earsClosed = false;
+                listenAt = 0;
                 return;
             }
             if (preferences.ListenCapri && !local) { StopChat(); StartLocal(); return; }
@@ -15634,10 +15633,15 @@ namespace CapriDesktop
                 bool stayedHidden = !docked && hidden && !Visible;
                 ShowHidden(false);
                 front = null;
+                // On by default, so her key's first press turns it off, and that holds until the next.
+                preferences.NoGaming = false;
                 ToggleGaming();
-                bool keyOn = gaming.State == GameDock.Stage.Armed && heard == "gaming mode";
+                bool keyOff = !GamingOn && !GamingWanted;
                 ToggleGaming();
-                bool keyOff = !GamingOn;
+                bool keyOn = gaming.State == GameDock.Stage.Armed && GamingWanted && heard == "gaming mode";
+                ToggleGaming();
+                keyOff = keyOff && !GamingOn && !GamingWanted;
+                preferences.NoGaming = false;
                 Job gameJob = new Job("play Minecraft");
                 DockForJob(gameJob);
                 bool jobNoGame = !GamingOn;
@@ -15704,6 +15708,7 @@ namespace CapriDesktop
                 string turnedOffNoGame = GamingMode("off");
                 bool stayedOff = turnedOffNoGame == "Gaming Mode off." && !GamingOn && !GamingWanted && !mainframe.GamingShown && GamingMode("off") == "Gaming Mode's already off.";
                 gaming.Stays = staysWas;
+                preferences.NoGaming = false;
                 if (!wantedAtRest || !noticed || !askedRight || !closedAsked || !closedQuietly || !stayedOff) throw new Exception("Gaming Mode on by default went wrong: rest " + wantedAtRest + ", noticed " + noticed + ", asked " + askedRight + " (" + askedWhenOn + "), closed " + closedAsked + "/" + closedQuietly + ", off " + stayedOff + " (" + turnedOffNoGame + "), said " + string.Join(" / ", said.ToArray()));
                 checks.Add("PASS Gaming Mode is on by default: a game in front takes her in with nothing said, asking for it still gets its answer, closing the game leaves it on for the next one, and turning it off stays off");
                 gaming.Hud = delegate { return testing; };
@@ -24393,8 +24398,8 @@ namespace CapriDesktop
                             if (Voice.Explain(401, "{\"detail\":{\"status\":\"missing_permissions\"}}").IndexOf("Restrict key turned off", StringComparison.Ordinal) < 0 || Voice.Unsaved(Voice.Explain(401, "{\"detail\":{\"status\":\"invalid_api_key\"}}")) != Voice.RejectedNew || Voice.RejectedNew.IndexOf("Forget", StringComparison.Ordinal) >= 0 || Voice.Unsaved("Can't reach ElevenLabs. Check your internet.") != "Can't reach ElevenLabs. Check your internet.") throw new Exception("A pasted key ElevenLabs rejected said to press Forget, but it was never saved.");
                             System.Net.Sockets.TcpListener fake = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
                             fake.Start();
-                            string[] fakeHeads = { "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json", "HTTP/1.1 200 OK\r\nContent-Type: audio/wav" };
-                            byte[][] fakeBodies = { System.Text.Encoding.UTF8.GetBytes("{\"detail\":{\"status\":\"invalid_api_key\",\"message\":\"Invalid API key\"}}"), tone };
+                            string[] fakeHeads = { "HTTP/1.1 401 Unauthorized\r\nContent-Type: application/json", "HTTP/1.1 200 OK\r\nContent-Type: audio/wav", "HTTP/1.1 200 OK\r\nContent-Type: audio/wav" };
+                            byte[][] fakeBodies = { System.Text.Encoding.UTF8.GetBytes("{\"detail\":{\"status\":\"invalid_api_key\",\"message\":\"Invalid API key\"}}"), tone, tone };
                             ThreadPool.QueueUserWorkItem(delegate
                             {
                                 try
@@ -24437,8 +24442,10 @@ namespace CapriDesktop
                                 try { probe.Speak("Hi \"choom\"."); throw new Exception("A 401 reply did not throw."); }
                                 catch (VoiceException error) { if (error.Status != 401 || error.Message != "ElevenLabs rejected the key. Press Forget, paste a new one.") throw new Exception("HTTP errors read wrong: " + error.Status + " " + error.Message); }
                                 fetched = probe.Speak("Hi \"choom\".");
-                                // The fake server answers twice, so a third request for the same line would fail.
+                                // The fake server has one reply left, for the line after this, so a repeat that asked again would use it up.
                                 fetchedAgain = probe.Speak("Hi \"choom\".");
+                                probe.Model = null;
+                                probe.Speak("Hi again.");
                             }
                             finally
                             {
@@ -24448,7 +24455,7 @@ namespace CapriDesktop
                             string sent;
                             lock (asked) sent = string.Join("\n", asked.ToArray());
                             if (fetchedAgain != fetched) throw new Exception("The same ElevenLabs line twice in a row was paid for twice.");
-                            if (fetched.Length != tone.Length || sent.IndexOf("POST /v1/text-to-speech/abc?output_format=wav_24000", StringComparison.Ordinal) < 0 || sent.IndexOf("xi-api-key: sk_test_capri_1234", StringComparison.OrdinalIgnoreCase) < 0 || sent.IndexOf("{\"text\":\"Hi \\\"chewm\\\".\",\"model_id\":\"eleven_v3\"}", StringComparison.Ordinal) < 0) throw new Exception("ElevenLabs request was wrong: " + sent);
+                            if (fetched.Length != tone.Length || sent.IndexOf("POST /v1/text-to-speech/abc?output_format=wav_24000", StringComparison.Ordinal) < 0 || sent.IndexOf("xi-api-key: sk_test_capri_1234", StringComparison.OrdinalIgnoreCase) < 0 || sent.IndexOf("{\"text\":\"Hi \\\"chewm\\\".\",\"model_id\":\"eleven_v3\"}", StringComparison.Ordinal) < 0 || sent.IndexOf("{\"text\":\"Hi again.\",\"model_id\":\"eleven_flash_v2_5\"}", StringComparison.Ordinal) < 0) throw new Exception("ElevenLabs request was wrong: " + sent);
                             if (Voice.Sayable("Yezzirrr! Choom, that's PREEM, chooms. Supreme.") != "Yessirrr! Chewm, that's PREME, chewms. Supreme." || Voice.Unsaid("Chewm, a preme rig. Supreme chewms.") != "Choom, a preem rig. Supreme chooms.") throw new Exception("Slang respelling is wrong: " + Voice.Sayable("Choom, that's PREEM, chooms. Supreme."));
                             string readOut = Voice.Sayable("Grab me at https://www.capri-desktop.com/download. Tell your chooms & me 100% \U0001F525 w/ hype -> now");
                             if (readOut != "Grab me at capri-desktop dot com. Tell your chewms and me 100 percent with hype now") throw new Exception("Her voice would read links or symbols aloud: " + readOut);
@@ -28719,6 +28726,42 @@ namespace CapriDesktop
                 ToggleChat();
                 if (chatting) throw new Exception("The talk key did not close chat after Hey Capri.");
                 checks.Add("PASS enabling Listen for Capri hands a stand-in ElevenLabs link to her local ears; Hey Capri still opens chat with both switches on, background speech leaves it open and unchanged, and the talk key closes it");
+                // Her ears stay open on their own, she carries on around them, and only the talk key keeps them shut.
+                CloseTalk();
+                preferences.Silent = preferences.HeyCapri = false;
+                listenAt = 0;
+                KeepListening(1);
+                bool closedHeld = !chatting && earsClosed;
+                earsClosed = false;
+                hidden = true;
+                KeepListening(1);
+                bool hiddenHeld = !chatting;
+                hidden = false;
+                preferences.Quiet = true;
+                KeepListening(1);
+                bool quietHeld = !chatting;
+                preferences.Quiet = false;
+                KeepListening(1);
+                bool openedAlone = chatting && local && !InChat && pill.ListenForName;
+                CloseTalk();
+                StopChat();
+                KeepListening(2);
+                bool retryHeld = !chatting;
+                listenAt = 0;
+                KeepListening(2);
+                bool cameBack = chatting && local;
+                CloseTalk();
+                preferences.ListenCapri = false;
+                bool chatCounts = InChat;
+                preferences.ListenCapri = true;
+                ToggleChat();
+                bool shutAgain = !chatting && earsClosed;
+                ToggleListenCapri();
+                ToggleListenCapri();
+                bool switchOpens = !earsClosed && listenAt == 0;
+                CloseTalk();
+                if (!closedHeld || !hiddenHeld || !quietHeld || !openedAlone || !retryHeld || !cameBack || !chatCounts || !shutAgain || !switchOpens) throw new Exception("Listen for Capri's ears did not look after themselves: closed " + closedHeld + ", hidden " + hiddenHeld + ", quiet " + quietHeld + ", opened " + openedAlone + ", retry " + retryHeld + ", back " + cameBack + ", chat " + chatCounts + ", shut " + shutAgain + ", switch " + switchOpens);
+                checks.Add("PASS Listen for Capri opens her ears with no key, brings them back after anything but the talk key, waits while she's hidden or Quiet, doesn't count as a conversation, and its switch reopens them");
                 checks.Add("LIMIT Listen for Capri's real microphone, how each recogniser spells her name, and ElevenLabs credit billing need a live voice check");
             }
             finally
