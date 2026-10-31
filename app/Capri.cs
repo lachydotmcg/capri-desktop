@@ -16064,9 +16064,19 @@ namespace CapriDesktop
                 if (SentBody(asked[asked.Count - 1]).Contains("advisor_20260301")) throw new Exception("The brain they picked was offered itself.");
                 local.Drive("Tools", "[]", "[{\"type\":\"advisor_tool_result\"}]", true);
                 if (!SentBody(asked[asked.Count - 1]).Contains(offered)) throw new Exception("A job with an advisor's answer stopped offering it, which the API refuses.");
-                local.Remote = new Cloud("sk-ant-test", Brain.Fastest);
+                // With Haiku picked she asks Sonnet, only in a game, and a key without Sonnet plays on.
+                local.Remote = new Cloud("sk-ant-haiku", Brain.Fastest);
                 local.Drive("Tools", "[]", "[]", true, true);
-                if (local.Advises || SentBody(asked[asked.Count - 1]).Contains("advisor_20260301")) throw new Exception("Haiku was offered itself as an advisor.");
+                if (!local.Advises || Brain.Field(SentBody(asked[asked.Count - 1]), "tools").IndexOf("[" + offered, StringComparison.Ordinal) != 0) throw new Exception("Haiku's fast hands didn't offer Sonnet: " + asked[asked.Count - 1]);
+                local.Drive("Tools", "[]", "[]");
+                if (SentBody(asked[asked.Count - 1]).Contains("advisor_20260301")) throw new Exception("A Haiku job that isn't a game was offered Sonnet.");
+                local.Drive("Tools", "[]", "[]", true);
+                if (SentBody(asked[asked.Count - 1]).Contains("advisor_20260301")) throw new Exception("Haiku with fast hands off was offered Sonnet.");
+                replies[asked.Count + 1] = "!404 {\"error\":{\"message\":\"model: claude-sonnet-5-5\"}}";
+                local.Drive("Tools", "[]", "[]", true);
+                int beforeMissing = asked.Count;
+                local.Drive("Tools", "[]", "[]", true, true);
+                if (asked.Count != beforeMissing + 2 || !SentBody(asked[asked.Count - 1]).Contains("\"model\":\"" + Brain.Fastest + "\"") || SentBody(asked[asked.Count - 1]).Contains("advisor_20260301") || local.Advises) throw new Exception("A key without Sonnet couldn't play on Haiku.");
                 local.Remote = new Cloud("sk-ant-test", "claude-sonnet-5-5");
                 replies[asked.Count + 1] = "!400 {\"error\":{\"message\":\"advisor-tool-2026-03-01 isn't available here\"}}";
                 local.Drive("Tools", "[]", "[]", true);
@@ -16078,7 +16088,7 @@ namespace CapriDesktop
                 local.Drive("Tools", "[]", "[{\"type\":\"text\",\"text\":\"\\\"advisor_tool_result\\\"\"},{\"name\":\"type\",\"text\":\"advisor_tool_result\"}]", true);
                 if (SentBody(asked[asked.Count - 1]).Contains("advisor_20260301")) throw new Exception("Words in a job turned the advisor on.");
                 local.Remote = wasPicked;
-                checks.Add("PASS advisor: fast hands offer the brain they picked beside her other tools with its beta, not on the brain they picked or on Haiku, keep offering it once it's answered, and play on without it when a key refuses it");
+                checks.Add("PASS advisor: fast hands offer the brain they picked, or Sonnet on Haiku, beside her other tools with its beta, not on the brain they picked or on Haiku outside a game, keep offering it once it's answered, and play on without it when a key refuses it or has no Sonnet");
                 local.Remote = null;
                 local.Step("Tools", "Next", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
                 if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "8192") throw new Exception("A job ignored a larger reply setting.");
@@ -22603,8 +22613,8 @@ namespace CapriDesktop
                                         throw new Exception("Claude's default did not pick Haiku when available or keep the first-model fallback.");
                                     Brain cloudy = new Brain();
                                     cloudy.Remote = new Cloud("sk-ant-test", Brain.DefaultCloudModel("anthropic", claudeModels));
-                                    if (cloudy.Advises) throw new Exception("The default Claude brain offered an advisor on Haiku.");
-                                    checks.Add("PASS a new Claude key picks Haiku 5.5 wherever it is in the model list, falls back to the first available model when Haiku is absent, and has no advisor on Haiku");
+                                    if (!cloudy.Advises) throw new Exception("The default Claude brain can't ask Sonnet.");
+                                    checks.Add("PASS a new Claude key picks Haiku 5.5 wherever it is in the model list, falls back to the first available model when Haiku is absent, and can ask Sonnet in a game");
                                     cloudy.Act = Hands.Do;
                                     cloudy.Remote = new Cloud("sk-ant-test", "claude-opus-5-5");
                                     cloudy.Model = "claude-opus-5-5";

@@ -1792,6 +1792,7 @@ namespace CapriDesktop
 
         // Her fastest brain on a Claude key, for the small calls below.
         internal const string Fastest = "claude-haiku-5-5";
+        internal const string Stronger = "claude-sonnet-5-5";
         private volatile bool noFastest;
 
         // One small call beside whatever else she's doing, with up to a few pictures: her second head while a job runs and her
@@ -2233,8 +2234,9 @@ namespace CapriDesktop
         }
 
         // Claude 5.5 and the other toolset models drive the mouse and keyboard from screenshots themselves.
-        // Her fast hands can ask the brain they picked, when that's a bigger one.
-        internal bool Advises { get { Cloud remote = Remote; return remote != null && Drives && !noFastest && noAdvisor != remote.Key + remote.Model && !remote.Model.StartsWith("claude-haiku", StringComparison.Ordinal); } }
+        // Her fast hands can ask the brain they picked, or Sonnet when that's Haiku (Lachy, 31 Oct: about 8 cents an ask).
+        internal bool Advises { get { Cloud remote = Remote; return remote != null && Drives && !noFastest && noAdvisor != remote.Key + remote.Model; } }
+        private static string Adviser(Cloud remote) { return remote.Model.StartsWith("claude-haiku", StringComparison.Ordinal) ? Stronger : remote.Model; }
         // The key and brain that turned the advisor down: another pair may well have it.
         private volatile string noAdvisor;
 
@@ -2274,7 +2276,7 @@ namespace CapriDesktop
             if (remote == null || !remote.Claude) throw new BrainException(Offline);
             string model = fast && !noFastest ? Fastest : remote.Model;
             // A job that's had an answer from the advisor has to keep offering it, or the request is refused.
-            bool answered = Regex.IsMatch(messages, "\"type\"\\s*:\\s*\"advisor_tool_result\""), advising = answered || (model == Fastest && Advises);
+            bool answered = Regex.IsMatch(messages, "\"type\"\\s*:\\s*\"advisor_tool_result\""), advising = answered || (fast && model == Fastest && Advises);
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
             // Her hands keep only the newest three pictures, which changes earlier turns. These models bind each thinking block to
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
@@ -2282,7 +2284,7 @@ namespace CapriDesktop
             bool bound = Regex.IsMatch(model, @"^claude-(opus-5-5|sonnet-5-5|fable-5-1|haiku-5-5)");
             int limit = ReplyLimit(deep ? DeepTokens : 4096, true);
             string body = "{\"model\":" + Voice.Quote(model) + ",\"max_tokens\":" + limit + (bound ? ",\"thinking\":{\"type\":\"adaptive\",\"block_binding\":{\"prefix_mismatch_behavior\":\"drop_block\"}}" : "")
-                + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + (advising ? Offering(tools, remote.Model) : tools) + ",\"output_config\":{\"effort\":\"" + (deep ? "high" : "low") + "\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
+                + ",\"system\":[{\"type\":\"text\",\"text\":" + Voice.Quote(system) + ",\"cache_control\":{\"type\":\"ephemeral\"}}],\"messages\":" + messages + ",\"tools\":" + (advising ? Offering(tools, Adviser(remote)) : tools) + ",\"output_config\":{\"effort\":\"" + (deep ? "high" : "low") + "\"}" + (fallback ? ",\"fallbacks\":\"default\"" : "") + "}";
             string betas = (fallback ? "server-side-fallback-2026-07-01" : "") + (fallback && bound ? "," : "") + (bound ? "thinking-binding-controls-2026-08-01" : "");
             if (advising) betas += (betas.Length > 0 ? "," : "") + "advisor-tool-2026-03-01";
             string text;
@@ -2297,8 +2299,8 @@ namespace CapriDesktop
             }
             catch (BrainException error)
             {
-                // A key without the advisor plays without it.
-                if (advising && !answered && error.Message.IndexOf("advisor", StringComparison.OrdinalIgnoreCase) >= 0)
+                // A key without the advisor plays without it, and so does a Haiku key without Sonnet.
+                if (advising && !answered && (error.Message.IndexOf("advisor", StringComparison.OrdinalIgnoreCase) >= 0 || (error.Message == Gone && Adviser(remote) != remote.Model)))
                 {
                     noAdvisor = remote.Key + remote.Model;
                     return Drive(system, tools, messages, deep, fast, ticket);
