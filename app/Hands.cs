@@ -794,6 +794,8 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);
         [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
+        [StructLayout(LayoutKind.Sequential)] private struct WindowEdges { internal int Left, Top, Right, Bottom; }
+        [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out WindowEdges edges);
         [DllImport("user32.dll")] private static extern int GetWindowTextLength(IntPtr window);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, StringBuilder text, int size);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
@@ -823,6 +825,32 @@ namespace CapriDesktop
         private static readonly object gate = new object();
         private static List<InstalledApp> cached;
         private static DateTime cachedAt;
+
+        // The messages in the floating chat panel TikTok LIVE Studio puts over a game: its own small window, apart from the studio
+        // itself, with its counters above and its comment box below. Empty when there's no panel up.
+        internal static System.Drawing.Rectangle ChatPanel()
+        {
+            Process[] studios = Process.GetProcessesByName("TikTok LIVE Studio");
+            List<int> ids = new List<int>();
+            foreach (Process studio in studios) { ids.Add(studio.Id); studio.Dispose(); }
+            System.Drawing.Rectangle found = System.Drawing.Rectangle.Empty;
+            if (ids.Count == 0) return found;
+            EnumWindows(delegate(IntPtr window, IntPtr data)
+            {
+                int process;
+                WindowEdges edges;
+                GetWindowThreadProcessId(window, out process);
+                if (!ids.Contains(process) || !IsWindowVisible(window) || IsIconic(window) || !GetWindowRect(window, out edges)) return true;
+                int wide = edges.Right - edges.Left, high = edges.Bottom - edges.Top;
+                if (wide < 200 || wide > 700 || high < 300) return true;
+                found = new System.Drawing.Rectangle(edges.Left, edges.Top + high / 7, wide, high - high / 7 - high / 14);
+                return false;
+            }, IntPtr.Zero);
+            return found;
+        }
+
+        // On stream, asking her to play starts her stream job however it's worded.
+        internal static bool Streams(string said) { return Regex.IsMatch(said ?? "", @"\b(play|playing|game|gaming|minecraft|stream|streaming|streamer|live|chat)\b", RegexOptions.IgnoreCase); }
 
         internal static string Do(string tool, ToolArguments args)
         {
