@@ -815,9 +815,8 @@ namespace CapriDesktop
                 if (tool == "use_computer")
                 {
                     if (string.IsNullOrWhiteSpace(args.Task)) return "Which job, choom?";
-                    string musicTool;
                     ToolArguments musicArgs;
-                    if (Heard(args.Task, out musicTool, out musicArgs) && musicTool == "play_music") return Do(musicTool, musicArgs);
+                    if (MusicJob(args.Task, out musicArgs)) return Do("play_music", musicArgs);
                     return Work(args.Task.Trim(), args.Asked);
                 }
                 if (tool == "shortcut") return Shortcut(args.Name);
@@ -1015,6 +1014,14 @@ namespace CapriDesktop
             string plain = Regex.Replace(text, @"^(do|did) (you|u) (know|have any idea)\b|\byou know\b|^(tell|show|get|find) me\b|\b(near me|where i (am|live)|in my (area|city|town|suburb))\b", "", RegexOptions.IgnoreCase);
             if (text.Length < 4 || !Question.IsMatch((said ?? "").Trim()) || !Unknown.IsMatch((reply ?? "").Replace('’', '\'')) || Regex.IsMatch(plain, @"\b(screen|song|playing|track|you|your|yourself|u|ur|capri|me|my|i|i'm|im)\b", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"\bscreen\b", RegexOptions.IgnoreCase)) return null;
             return new ToolArguments { Site = "google", Search = text };
+        }
+
+        // A clicking job that's only music goes straight to the song.
+        internal static bool MusicJob(string task, out ToolArguments music)
+        {
+            music = null;
+            string heard;
+            return Regex.IsMatch(task ?? "", @"\b(?:play|put on|shuffle|blast|queue|spotify|music|songs?|playlist|album)\b", RegexOptions.IgnoreCase) && Heard(task, out heard, out music) && heard == "play_music";
         }
 
         internal static string Pulled(string result)

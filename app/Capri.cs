@@ -3850,12 +3850,8 @@ namespace CapriDesktop
         {
             // Esc ends the whole ask: once it stops a job, the rest of that ask's tools and jobs don't run.
             if (ticket == escAsk) return "";
-            if (tool == "use_computer" && args != null && !string.IsNullOrWhiteSpace(args.Task))
-            {
-                string musicTool;
-                ToolArguments musicArgs;
-                if (Hands.Heard(args.Task, out musicTool, out musicArgs) && musicTool == "play_music") { tool = musicTool; args = musicArgs; }
-            }
+            ToolArguments musicArgs;
+            if (tool == "use_computer" && args != null && Hands.MusicJob(args.Task, out musicArgs)) { tool = "play_music"; args = musicArgs; }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
             string asked = Security.Gate(tool, args);
             if (asked != null) return asked;
