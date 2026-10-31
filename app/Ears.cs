@@ -13,7 +13,7 @@ using Microsoft.Win32;
 
 namespace CapriDesktop
 {
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 2)]
     internal struct WaveFormat
     {
         internal short Tag, Channels;
@@ -274,6 +274,7 @@ namespace CapriDesktop
         internal static bool SkipWave;
         private static bool fellBack;
         private readonly bool silent;
+        private readonly Func<int, SoundOut> open;
         internal bool Plain;
         private readonly List<IntPtr> pending = new List<IntPtr>();
         private readonly List<int> shapes = new List<int>();
@@ -295,7 +296,9 @@ namespace CapriDesktop
         [DllImport("winmm.dll")] private static extern int waveOutReset(IntPtr device);
         [DllImport("winmm.dll")] private static extern int waveOutClose(IntPtr device);
 
-        internal Speaker(bool quiet) { silent = quiet; }
+        internal Speaker(bool quiet) : this(quiet, delegate(int sampleRate) { return new SoundOut(sampleRate); }) { }
+
+        internal Speaker(bool quiet, Func<int, SoundOut> output) { silent = quiet; open = output; }
 
         internal static double Loudness(short[] samples, int start, int count)
         {
@@ -318,8 +321,8 @@ namespace CapriDesktop
             // Some PCs play every other app fine but won't open the wave API for her, so she tries WASAPI, which most apps use now.
             try
             {
-                modern = new SoundOut(rate);
-                if (!fellBack && !SkipWave) Brain.Log("Speakers", -1, "Windows' wave API wouldn't open the speakers (error " + failed + "), so she plays through WASAPI.");
+                modern = open(rate);
+                if (!fellBack && !SkipWave) Brain.Log("Speakers", -1, "Windows' wave API wouldn't open the speakers (error " + failed + "), so she plays through WASAPI. Process " + Process.GetCurrentProcess().Id + ", " + rate + " Hz mono PCM.");
                 fellBack = !SkipWave;
                 return;
             }
@@ -329,6 +332,8 @@ namespace CapriDesktop
 
         internal bool Modern { get { return modern != null; } }
         internal long ModernFed { get { return modern == null ? -1 : Interlocked.Read(ref modern.Fed); } }
+        internal long ModernPlayed { get { return modern == null ? -1 : Interlocked.Read(ref modern.Played); } }
+        internal string ModernFailure { get { return modern == null ? null : modern.Failure; } }
 
         internal static string Speakers(int failed)
         {
@@ -347,6 +352,7 @@ namespace CapriDesktop
         private void Write(short[] samples)
         {
             if (rate == 0 || samples.Length == 0) return;
+            if (modern != null && !modern.Alive) Open(rate);
             Sweep();
             long now = Stopwatch.GetTimestamp();
             if (now >= Interlocked.Read(ref until)) { began = now; shapes.Clear(); leftover.Clear(); lock (levels) levels.Clear(); Interlocked.Exchange(ref until, now); }
@@ -372,8 +378,18 @@ namespace CapriDesktop
             Marshal.Copy(samples, 0, header.Data, samples.Length);
             IntPtr pointer = Marshal.AllocHGlobal(size);
             Marshal.StructureToPtr(header, pointer, false);
-            waveOutPrepareHeader(device, pointer, size);
-            waveOutWrite(device, pointer, size);
+            int prepared = waveOutPrepareHeader(device, pointer, size);
+            int written = prepared == 0 ? waveOutWrite(device, pointer, size) : prepared;
+            if (written != 0)
+            {
+                if (prepared == 0) waveOutUnprepareHeader(device, pointer, size);
+                Marshal.FreeHGlobal(header.Data);
+                Marshal.FreeHGlobal(pointer);
+                Clear();
+                string problem = "Windows' wave API " + (prepared == 0 ? "write" : "prepare") + " failed (error " + written + ", " + rate + " Hz, " + samples.Length + " samples).";
+                Brain.Log("Speakers", -1, problem);
+                throw new VoiceException(problem);
+            }
             pending.Add(pointer);
         }
 
@@ -439,22 +455,30 @@ namespace CapriDesktop
     // and the Speaker opens a new one next time.
     internal sealed class SoundOut : IDisposable
     {
+        internal const int ConvertFlags = unchecked((int)0x88000000);
         private readonly int rate;
+        private readonly ISoundClient suppliedClient;
+        private readonly ISoundRender suppliedRender;
         private readonly object gate = new object();
         private readonly Queue<short[]> chunks = new Queue<short[]>();
         private readonly Thread feeder;
         private readonly ManualResetEvent ready = new ManualResetEvent(false);
         private int headAt;
-        private string failure;
+        private volatile string failure;
         private volatile bool stopped;
         private volatile bool flush;
         private volatile bool alive;
         // Samples handed to Windows so far.
         internal long Fed;
+        internal long Played;
 
-        internal SoundOut(int rate)
+        internal SoundOut(int rate) : this(rate, null, null) { }
+
+        internal SoundOut(int rate, ISoundClient output, ISoundRender writer)
         {
             this.rate = rate;
+            suppliedClient = output;
+            suppliedRender = writer;
             feeder = new Thread(Run) { IsBackground = true, Name = "Capri speakers" };
             feeder.SetApartmentState(ApartmentState.MTA);
             feeder.Start();
@@ -463,17 +487,21 @@ namespace CapriDesktop
         }
 
         internal bool Alive { get { return alive; } }
+        internal string Failure { get { return failure; } }
 
         internal void Write(short[] samples)
         {
             if (samples.Length == 0) return;
-            lock (gate) chunks.Enqueue(samples);
+            lock (gate)
+            {
+                if (!alive || stopped) throw new VoiceException(failure ?? "Her WASAPI speakers have stopped; the next line will open them again.");
+                chunks.Enqueue(samples);
+            }
         }
 
         internal void Clear()
         {
-            lock (gate) { chunks.Clear(); headAt = 0; }
-            flush = true;
+            lock (gate) { chunks.Clear(); headAt = 0; flush = true; }
         }
 
         private int Take(short[] into, int wanted)
@@ -481,6 +509,7 @@ namespace CapriDesktop
             int got = 0;
             lock (gate)
             {
+                if (flush) return 0;
                 while (got < wanted && chunks.Count > 0)
                 {
                     short[] head = chunks.Peek();
@@ -500,66 +529,151 @@ namespace CapriDesktop
             ISoundDevice device = null;
             ISoundClient client = null;
             object service = null;
+            object volumeService = null;
             IntPtr format = IntPtr.Zero;
+            bool opened = false, started = false;
             try
             {
                 int frames;
                 ISoundRender render;
+                ISoundVolume volume = null;
                 try
                 {
-                    devices = (ISoundDevices)new SoundDevices();
-                    int failed = devices.GetDefaultAudioEndpoint(0, 1, out device);
-                    if (failed != 0 || device == null) { failure = "Windows found no speakers (WASAPI error 0x" + failed.ToString("X8") + ")."; return; }
-                    Guid clientId = typeof(ISoundClient).GUID;
-                    object found;
-                    failed = device.Activate(ref clientId, 23, IntPtr.Zero, out found);
-                    if (failed != 0 || found == null) { failure = "Windows wouldn't open your speakers (WASAPI error 0x" + failed.ToString("X8") + ")."; return; }
-                    client = (ISoundClient)found;
+                    client = suppliedClient;
+                    if (client == null)
+                    {
+                        devices = (ISoundDevices)new SoundDevices();
+                        Check(devices.GetDefaultAudioEndpoint(0, 1, out device), "default speakers");
+                        if (device == null) throw new VoiceException("Windows found no WASAPI speakers.");
+                        Guid clientId = typeof(ISoundClient).GUID;
+                        object found;
+                        Check(device.Activate(ref clientId, 23, IntPtr.Zero, out found), "activate");
+                        client = (ISoundClient)found;
+                    }
                     format = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(WaveFormat)));
                     Marshal.StructureToPtr(WaveFormat.Mono(rate), format, false);
                     // Shared mode with AUTOCONVERTPCM and SRC_DEFAULT_QUALITY, and a 200 ms buffer.
-                    failed = client.Initialize(0, unchecked((int)0x88000000), 2000000, 0, format, IntPtr.Zero);
-                    if (failed != 0) { failure = "Windows wouldn't play her voice on your speakers (WASAPI error 0x" + failed.ToString("X8") + ")."; return; }
-                    if (client.GetBufferSize(out frames) != 0 || frames <= 0) { failure = "Windows gave her no room on your speakers."; return; }
-                    Guid renderId = typeof(ISoundRender).GUID;
-                    failed = client.GetService(ref renderId, out service);
-                    if (failed != 0 || service == null) { failure = "Windows wouldn't let her write to your speakers (WASAPI error 0x" + failed.ToString("X8") + ")."; return; }
-                    render = (ISoundRender)service;
-                    failed = client.Start();
-                    if (failed != 0) { failure = "Windows wouldn't start your speakers (WASAPI error 0x" + failed.ToString("X8") + ")."; return; }
+                    Check(client.Initialize(0, ConvertFlags, 2000000, 0, format, IntPtr.Zero), "initialize");
+                    Check(client.GetBufferSize(out frames), "buffer size");
+                    if (frames <= 0) throw new VoiceException("Windows gave her no room on your speakers.");
+                    render = suppliedRender;
+                    if (render == null)
+                    {
+                        Guid renderId = typeof(ISoundRender).GUID;
+                        Check(client.GetService(ref renderId, out service), "render service");
+                        render = (ISoundRender)service;
+                    }
+                    Guid volumeId = typeof(ISoundVolume).GUID;
+                    int volumeResult = client.GetService(ref volumeId, out volumeService);
+                    if (volumeResult == 0 && volumeService != null) volume = (ISoundVolume)volumeService;
+                    else Brain.Log("Speakers", -1, "WASAPI session volume couldn't be read (0x" + volumeResult.ToString("X8") + ").");
+                    IntPtr mix = IntPtr.Zero;
+                    string mixing = "unknown speaker format";
+                    try
+                    {
+                        if (client.GetMixFormat(out mix) == 0 && mix != IntPtr.Zero)
+                        {
+                            WaveFormat native = (WaveFormat)Marshal.PtrToStructure(mix, typeof(WaveFormat));
+                            mixing = native.SampleRate + " Hz / " + native.Channels + " channels / " + native.Bits + " bits";
+                        }
+                    }
+                    finally { if (mix != IntPtr.Zero) Marshal.FreeCoTaskMem(mix); }
+                    Brain.Log("Speakers", -1, "WASAPI opened, process " + Process.GetCurrentProcess().Id + ": " + rate + " Hz mono 16-bit PCM -> " + mixing + "; conversion 0x88000000; buffer " + frames + " frames. Waiting for audio.");
+                    opened = true;
                     alive = true;
                 }
                 catch (Exception error) { failure = "Windows wouldn't open your speakers: " + error.Message; return; }
                 finally { ready.Set(); }
                 short[] chunk = new short[frames];
+                int waiting = 0;
+                long progress = Stopwatch.GetTimestamp(), volumeAt = 0;
+                string quiet = null;
                 while (!stopped)
                 {
                     Thread.Sleep(10);
-                    if (flush) { flush = false; client.Stop(); client.Reset(); client.Start(); }
+                    if (stopped) break;
+                    bool clear;
+                    lock (gate) { clear = flush; flush = false; }
+                    if (clear)
+                    {
+                        if (started) Check(client.Stop(), "stop before clear");
+                        started = false;
+                        Check(client.Reset(), "reset");
+                        waiting = 0;
+                        progress = Stopwatch.GetTimestamp();
+                        volumeAt = 0;
+                    }
                     int padding;
-                    if (client.GetCurrentPadding(out padding) != 0) break;
+                    Check(client.GetCurrentPadding(out padding), "padding");
+                    if (padding < 0 || padding > frames) throw new VoiceException("WASAPI returned invalid padding: " + padding + " of " + frames + " frames.");
+                    if (waiting > padding)
+                    {
+                        if (Interlocked.Read(ref Played) == 0) Brain.Log("Speakers", -1, "WASAPI started and drained " + (waiting - padding) + " samples at " + rate + " Hz.");
+                        Interlocked.Add(ref Played, waiting - padding);
+                        progress = Stopwatch.GetTimestamp();
+                    }
+                    waiting = padding;
+                    if (waiting > 0 && Stopwatch.GetTimestamp() - progress > Stopwatch.Frequency * 3)
+                        throw new VoiceException("WASAPI buffer stopped draining: " + waiting + " frames still pending after 3 seconds.");
                     int free = frames - padding;
                     if (free <= 0) continue;
                     int got = Take(chunk, free);
                     if (got == 0) continue;
+                    if (volume != null && Stopwatch.GetTimestamp() >= volumeAt)
+                    {
+                        string muted = Quiet(volume);
+                        if (muted != null && muted != quiet) Brain.Log("Speakers", -1, muted);
+                        quiet = muted;
+                        volumeAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency;
+                    }
                     IntPtr data;
-                    if (render.GetBuffer(got, out data) != 0) break;
+                    Check(render.GetBuffer(got, out data), "get buffer");
                     Marshal.Copy(chunk, 0, data, got);
-                    if (render.ReleaseBuffer(got, 0) != 0) break;
+                    Check(render.ReleaseBuffer(got, 0), "release buffer");
+                    if (Interlocked.Read(ref Fed) == 0) Brain.Log("Speakers", -1, "WASAPI received its first " + got + " samples at " + rate + " Hz; release flags 0 (audio).");
                     Interlocked.Add(ref Fed, got);
+                    waiting += got;
+                    if (!started)
+                    {
+                        Check(client.Start(), "start");
+                        started = true;
+                        progress = Stopwatch.GetTimestamp();
+                    }
+                    else if (padding == 0) progress = Stopwatch.GetTimestamp();
                 }
             }
-            catch (Exception) { }
+            catch (Exception error)
+            {
+                alive = false;
+                failure = error.Message;
+                Brain.Log("Speakers", -1, failure + " " + rate + " Hz; submitted " + Interlocked.Read(ref Fed) + ", drained " + Interlocked.Read(ref Played) + " samples. Next line reopens the speakers.");
+            }
             finally
             {
                 alive = false;
-                try { if (client != null) client.Stop(); } catch (Exception) { }
-                if (service != null) Marshal.ReleaseComObject(service);
-                if (client != null) Marshal.ReleaseComObject(client);
+                try { if (started) Check(client.Stop(), "stop"); }
+                catch (Exception error) { if (opened && failure == null) Brain.Log("Speakers", -1, error.Message); }
+                if (volumeService != null && Marshal.IsComObject(volumeService)) Marshal.ReleaseComObject(volumeService);
+                if (service != null && Marshal.IsComObject(service)) Marshal.ReleaseComObject(service);
+                if (client != null && Marshal.IsComObject(client)) Marshal.ReleaseComObject(client);
                 if (device != null) Marshal.ReleaseComObject(device);
                 if (devices != null) Marshal.ReleaseComObject(devices);
                 if (format != IntPtr.Zero) Marshal.FreeHGlobal(format);
             }
+        }
+
+        private static void Check(int result, string operation)
+        {
+            if (result != 0) throw new VoiceException("WASAPI " + operation + " failed (0x" + result.ToString("X8") + ").");
+        }
+
+        internal static string Quiet(ISoundVolume volume)
+        {
+            bool muted;
+            float level;
+            int muteResult = volume.GetMute(out muted), levelResult = volume.GetMasterVolume(out level);
+            if (muteResult != 0 || levelResult != 0) return "WASAPI session volume couldn't be read (0x" + muteResult.ToString("X8") + ", 0x" + levelResult.ToString("X8") + ").";
+            return muted || level == 0 ? "WASAPI session is " + (muted ? "muted" : "at zero volume") + " (" + (level * 100).ToString("0") + "%). Check Capri in Windows' volume mixer." : null;
         }
 
         public void Dispose()
@@ -1362,6 +1476,15 @@ namespace CapriDesktop
     {
         [PreserveSig] int GetBuffer(int frames, out IntPtr data);
         [PreserveSig] int ReleaseBuffer(int frames, int flags);
+    }
+
+    [ComImport, Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface ISoundVolume
+    {
+        [PreserveSig] int SetMasterVolume(float level, IntPtr context);
+        [PreserveSig] int GetMasterVolume(out float level);
+        [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool mute, IntPtr context);
+        [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool mute);
     }
 
     // IAudioEndpointVolume, up to GetMute.

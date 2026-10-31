@@ -4,7 +4,6 @@ using System.IO;
 #if !CROSS
 using System.Diagnostics;
 using System.IO.Compression;
-using System.Media;
 using System.Reflection;
 using System.Threading;
 #endif
@@ -67,7 +66,11 @@ namespace CapriDesktop
         internal static Action<byte[]> Playback;
         internal static Action Silence;
 #else
-        private SoundPlayer player;
+        private readonly Speaker player;
+
+        internal Voice() : this(new Speaker(false)) { }
+
+        internal Voice(Speaker output) { player = output; }
 #endif
         internal static volatile int Loudness = 100;
 
@@ -409,16 +412,20 @@ namespace CapriDesktop
 
         internal void Play(byte[] wav)
         {
-            wav = Louder(wav);
 #if CROSS
-            if (Playback != null) Playback(wav);
+            if (Playback != null) Playback(Louder(wav));
 #else
             lock (PcEars.VoiceGate)
             {
-                if (PcEars.Capturing) return;
+                if (PcEars.Capturing) { Brain.Log("Voice playback", -1, "Speech held while she records the PC's sound."); return; }
                 Stop();
-                player = new SoundPlayer(new MemoryStream(wav));
-                player.Play();
+                int rate;
+                short[] samples = Samples(wav, out rate);
+                if (samples.Length == 0) throw new VoiceException("Her voice returned no PCM samples to play.");
+                if (Loudness == 0) Brain.Log("Voice playback", -1, "Her voice volume is 0%; speech is muted, while her other sounds have their own volume.");
+                else if (Speaker.Loudness(samples, 0, samples.Length) == 0) Brain.Log("Voice playback", -1, "Her voice returned silent PCM: " + samples.Length + " samples at " + rate + " Hz.");
+                player.Open(rate);
+                player.Play(samples);
             }
 #endif
         }
@@ -428,10 +435,7 @@ namespace CapriDesktop
 #if CROSS
             if (Silence != null) Silence();
 #else
-            if (player == null) return;
-            player.Stop();
-            player.Dispose();
-            player = null;
+            player.Close();
 #endif
         }
     }
@@ -3400,7 +3404,7 @@ namespace CapriDesktop
         }
 
         // Its sound as 24 kHz mono: a WAV in any coding YourVoice reads, or anything Windows' own decoders can, like MP3.
-        private static short[] Sound(byte[] reply, string type, string name)
+        internal static short[] Sound(byte[] reply, string type, string name)
         {
             if (reply.Length == 0) throw new VoiceException(name + " sent back no sound.");
             int rate;
@@ -3413,10 +3417,31 @@ namespace CapriDesktop
                 catch (Exception) { }
                 if (decoded != null) mono = YourVoice.Wav(decoded, out rate);
             }
-            if (mono == null) throw new VoiceException("Capri couldn't read the sound " + (name == Theirs ? "your voice server" : name) + " sent.");
+            if (mono == null) throw new VoiceException("Capri couldn't read the sound " + (name == Theirs ? "your voice server" : name) + " sent (" + SoundFormat(reply) + ", " + reply.Length + " bytes). Windows couldn't decode it.");
             short[] pcm = new short[mono.Length];
             for (int i = 0; i < mono.Length; i++) pcm[i] = (short)Math.Max(-32768, Math.Min(32767, Math.Round(mono[i] * 32767)));
             return rate == YourVoice.Rate ? pcm : VoiceFx.Resample(pcm, rate / (double)YourVoice.Rate);
+        }
+
+        internal static string SoundFormat(byte[] reply)
+        {
+            if (reply.Length >= 12 && Encoding.ASCII.GetString(reply, 0, 4) == "RIFF" && Encoding.ASCII.GetString(reply, 8, 4) == "WAVE")
+            {
+                for (int at = 12; at + 8 <= reply.Length; )
+                {
+                    int size = BitConverter.ToInt32(reply, at + 4);
+                    if (Encoding.ASCII.GetString(reply, at, 4) == "fmt " && size >= 16 && at + 24 <= reply.Length)
+                        return "WAV tag " + BitConverter.ToUInt16(reply, at + 8) + ", " + BitConverter.ToInt32(reply, at + 12) + " Hz, " + BitConverter.ToUInt16(reply, at + 10) + " channels, " + BitConverter.ToUInt16(reply, at + 22) + " bits";
+                    long next = (long)at + 8 + size + (size & 1);
+                    if (size < 0 || next > reply.Length) break;
+                    at = (int)next;
+                }
+                return "WAV without a readable format";
+            }
+            if (reply.Length >= 3 && Encoding.ASCII.GetString(reply, 0, 3) == "ID3") return "MP3";
+            if (reply.Length >= 4 && Encoding.ASCII.GetString(reply, 0, 4) == "fLaC") return "FLAC";
+            if (reply.Length >= 4 && Encoding.ASCII.GetString(reply, 0, 4) == "OggS") return "Ogg";
+            return "unrecognized audio format";
         }
 
         // What a reply says in words: OpenAI's error message, FastAPI's detail, or the text itself.

@@ -2686,7 +2686,7 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(GreetPause); Post(delegate { Greet(ticket, DateTime.Now); }); });
         }
 
-        // On a holiday her hello is its line, in her voice, since there's no recording of it.
+        // Her first line uses the same voice and effects as her replies, including while a local voice loads.
         private void Greet(int ticket, DateTime now)
         {
             greetTried = true;
@@ -2696,7 +2696,14 @@ namespace CapriDesktop
             heard = "startup";
             box.Prompt = "> sys: ";
             if (holiday != null) holidaySaid = now.Date;
-            byte[] hello = holiday != null ? null : Hello(Brain.GreetingClip(now.Hour));
+            // Her recorded hello costs nothing and needs no key. It wears their filters and layers, and a voice they've chosen says it instead (john_sandevistan, 31 Oct).
+            bool recorded = holiday == null && !preferences.Silent && !preferences.HdVoice && !preferences.ServerVoice && preferences.VoiceStyle == null;
+            if (recorded)
+            {
+                Func<string, byte[]> free, chosen = PickVoice(false, out free);
+                recorded = chosen == null || chosen == free;
+            }
+            byte[] hello = recorded ? VoiceFx.Styled(Hello(Brain.GreetingClip(now.Hour)), Voice.Spoken(line)) : null;
             if (hello == null) Answer(++asking, line, TalkState.Talking);
             else Begin(++asking, line, TalkState.Talking, hello);
         }
@@ -6061,6 +6068,7 @@ namespace CapriDesktop
 
         // A line said beside her job, like her "Got it." when they tell her more mid-job. It leaves her ask's turn alone.
         private double playVoiced;
+        private bool asideVoiceTest;
 
         // A line she says while she plays. A chat reply or a watch's alert that's still up keeps the bubble.
         private void PlayLine(string line, Job running)
@@ -6079,19 +6087,16 @@ namespace CapriDesktop
 
         private void SayAside(string line, Job running)
         {
-            if (testing || preferences.Silent || (chatting && !local)) return;
-            Func<string, byte[]> own = FreeSpeak ?? (!kokoro.Installed ? null : new Func<string, byte[]>(kokoro.Speak));
-            Func<string, byte[]> free = preferences.Quiet && !FreeChatOn ? null : preferences.ServerVoice ? Served(own) : FreeSpeak ?? Hd(own);
-            Func<string, byte[]> speak = preferences.Quiet || local || voiceBroke ? null : Speak;
-            if (speak == null && !local && !voiceBroke && voice.Ready && !preferences.Quiet) speak = voice.Speak;
-            if (speak == null && (voice.Key == null || local || voiceBroke || preferences.Quiet)) speak = free;
+            if ((testing && !asideVoiceTest) || preferences.Silent || Hushed || (chatting && !local)) return;
+            Func<string, byte[]> free;
+            Func<string, byte[]> speak = PickVoice(false, out free, false);
             if (speak == null) return;
             string words = Voice.Spoken(line);
             int turn = ++asideVoice;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem;
-                byte[] wav = Voiced(speak, free, words, out problem);
+                byte[] wav = Voiced(speak, free, words, out problem, false);
                 if (wav == null) { if (problem != null) Brain.Log("job line", -1, problem); return; }
                 int tries = 0;
                 Action play = null;
@@ -6108,7 +6113,7 @@ namespace CapriDesktop
                     playVoiced = voiceUntil;
                     CheckEars(now);
                     Played(wav);
-                    voice.Play(wav);
+                    PlayVoice(wav);
                 };
                 Post(play);
             });
@@ -8584,7 +8589,7 @@ namespace CapriDesktop
             slowWarned = false;
             box.Leaving = -1;
             UpdateAnimation();
-            bool quiet = local;
+            bool quiet = preferences.Quiet;
             Cloud remote = brain.Remote;
             if (!testing && (voice.Key == null || quiet || voiceBroke) && kokoro.Installed && !preferences.Quiet && !preferences.Silent) ThreadPool.QueueUserWorkItem(delegate { try { kokoro.Warm(); } catch (Exception) { } });
             if (!testing && preferences.HdVoice && (voice.Key == null || quiet || voiceBroke || preferences.Quiet) && !preferences.Silent && qwen.Installed && !qwen.Awake && clock.Elapsed.TotalSeconds >= hdRest && !HdStepsAside()) WakeHd();
@@ -8634,12 +8639,8 @@ namespace CapriDesktop
             if (ticket != asking || IsDisposed) return;
             voice.Stop();
             voiceUntil = 0;
-            Func<string, byte[]> own = FreeSpeak ?? (testing || !kokoro.Installed ? null : new Func<string, byte[]>(kokoro.Speak));
-            Func<string, byte[]> free = preferences.Quiet && !FreeChatOn ? null : preferences.ServerVoice ? Served(own) : FreeSpeak ?? (testing ? null : Hd(own));
-            Func<string, byte[]> speak = preferences.Quiet || local || quiet || voiceBroke ? null : Speak;
-            if (speak == null && !local && !quiet && !voiceBroke && !testing && voice.Ready && !preferences.Quiet) speak = voice.Speak;
-            if (speak == null && (voice.Key == null || local || quiet || voiceBroke || preferences.Quiet)) speak = free;
-            if (preferences.Silent) speak = null;
+            Func<string, byte[]> free;
+            Func<string, byte[]> speak = PickVoice(quiet, out free);
             string words = Voice.Spoken((said ?? "").Replace(Computer.Dots, "the password"));
             if (speak == null || words.Length == 0 || state == TalkState.Dormant) { Begin(ticket, said, state, null); return; }
             reply = null;
@@ -8671,7 +8672,18 @@ namespace CapriDesktop
             });
         }
 
-        private byte[] Voiced(Func<string, byte[]> speak, Func<string, byte[]> free, string words, out string problem)
+        private Func<string, byte[]> PickVoice(bool quiet, out Func<string, byte[]> free, bool fallback = true)
+        {
+            Func<string, byte[]> own = FreeSpeak ?? (testing || !kokoro.Installed ? null : new Func<string, byte[]>(kokoro.Speak));
+            free = preferences.Quiet && !FreeChatOn ? null : preferences.ServerVoice ? Served(fallback ? own : null) : FreeSpeak ?? (testing ? null : Hd(fallback || !preferences.HdVoice ? own : null));
+            if (!fallback && voiceBroke && !quiet && !preferences.Quiet && (Speak != null || voice.Key != null)) return null;
+            Func<string, byte[]> picked = preferences.Quiet || quiet || voiceBroke ? null : Speak;
+            if (picked == null && !quiet && !voiceBroke && !testing && voice.Ready && !preferences.Quiet) picked = voice.Speak;
+            if (picked == null && (voice.Key == null || quiet || voiceBroke || preferences.Quiet)) picked = free;
+            return preferences.Silent ? null : picked;
+        }
+
+        private byte[] Voiced(Func<string, byte[]> speak, Func<string, byte[]> free, string words, out string problem, bool fallback = true)
         {
             problem = null;
             // Her free voices style their own audio; ElevenLabs hands back a finished WAV, so its pitch, speed and glitch go on here.
@@ -8679,7 +8691,7 @@ namespace CapriDesktop
             catch (VoiceException error)
             {
                 problem = error.Message;
-                if (speak == free || !Broke(error.Message)) return null;
+                if (!fallback || speak == free || !Broke(error.Message)) return null;
                 voiceBroke = true;
                 if (free == null && FreeChatOn && !testing) { Post(delegate { GetFreeVoice(); }); problem = "Out of ElevenLabs credits, so she's getting her free voice."; return null; }
                 if (free == null) { problem = "Out of ElevenLabs credits. Pick PREBUILT LOCAL in Capri Mainframe and get her free voice."; return null; }
@@ -8724,7 +8736,20 @@ namespace CapriDesktop
             Say(said);
             mouths = Voice.Mouths(wav, MouthRate);
             Played(wav);
-            if (!testing) voice.Play(wav);
+            PlayVoice(wav);
+        }
+
+        private void PlayVoice(byte[] wav)
+        {
+            if (testing) return;
+            try { voice.Play(wav); }
+            catch (Exception error)
+            {
+                voiceUntil = 0;
+                voice.Stop();
+                Brain.Log("Voice playback", -1, error.Message);
+                mainframe.VoiceNote(error.Message, true);
+            }
         }
 
         private void CloseTalk()
@@ -13863,6 +13888,338 @@ namespace CapriDesktop
             finally { preferences.Silent = waitsSilent; voiceCheckDue = waitsDue; CloseTalk(); }
         }
 
+        private static void WaitVoice(Func<bool> done, string problem)
+        {
+            Stopwatch waited = Stopwatch.StartNew();
+            while (!done() && waited.ElapsedMilliseconds < 4500) { Application.DoEvents(); Thread.Sleep(5); }
+            if (!done()) throw new Exception(problem);
+        }
+
+        private void SmokeGreeting(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, byte[]> greetingSpeakWas = Speak, greetingFreeWas = FreeSpeak;
+            bool greetingQuietWas = preferences.Quiet, greetingSilentWas = preferences.Silent, greetingServerWas = preferences.ServerVoice, greetingHdWas = preferences.HdVoice;
+            string greetingStyleWas = preferences.VoiceStyle;
+            bool greetingLocalWas = local, greetingChatWas = chatting, greetingBrokenWas = voiceBroke;
+            int greetingPitchWas = VoiceFx.Pitch, greetingSpeedWas = VoiceFx.Speed, greetingRobotWas = VoiceFx.Robot, greetingGlitchWas = VoiceFx.Glitch;
+            VoiceFx.Layering greetingLayersWas = VoiceFx.Layers;
+            ManualResetEvent greetingLoaded = new ManualResetEvent(false), greetingEntered = new ManualResetEvent(false);
+            try
+            {
+                CloseTalk();
+                preferences.Quiet = preferences.Silent = preferences.ServerVoice = preferences.HdVoice = local = chatting = voiceBroke = false;
+                preferences.VoiceStyle = null;
+                VoiceFx.Pitch = 2; VoiceFx.Speed = 85; VoiceFx.Robot = 25; VoiceFx.Glitch = 12;
+                VoiceFx.Layers = new VoiceFx.Layering(true, 3, 40, -4, 90);
+                short[] greetingTone = new short[24000];
+                for (int greetingAt = 0; greetingAt < greetingTone.Length; greetingAt++) greetingTone[greetingAt] = (short)(9000 * Math.Sin(greetingAt * 0.05));
+                byte[] greetingWav = Voice.Wave(greetingTone, 24000);
+                int greetingPaid = 0, greetingFree = 0;
+                string greetingWords = null;
+                Speak = delegate(string firstWords) { Interlocked.Increment(ref greetingPaid); greetingWords = firstWords; greetingEntered.Set(); greetingLoaded.WaitOne(); return greetingWav; };
+                FreeSpeak = delegate(string freeWords) { Interlocked.Increment(ref greetingFree); return VoiceFx.Styled(greetingWav, freeWords); };
+                DateTime greetingDay = new DateTime(2026, 10, 30);
+                Greet(asking, greetingDay.AddHours(8));
+                WaitVoice(delegate { return greetingEntered.WaitOne(0); }, "The first greeting didn't request the chosen voice.");
+                if (voiceUntil != 0 || greetingFree != 0) throw new Exception("A cold greeting played a stock recording while the chosen voice loaded.");
+                greetingLoaded.Set();
+                WaitVoice(delegate { return reply == Brain.Greeting(8) && voiceUntil > 0; }, "The loaded greeting didn't play.");
+                double[] greetingExpected = TalkOver.Levels(VoiceFx.Styled(greetingWav, Voice.Spoken(Brain.Greeting(8))));
+                if (greetingPaid != 1 || greetingWords != Voice.Spoken(Brain.Greeting(8)) || spokenLevels == null || spokenLevels.Length != greetingExpected.Length) throw new Exception("The first greeting lost its voice or effects.");
+                for (int greetingLevel = 0; greetingLevel < greetingExpected.Length; greetingLevel++) if (Math.Abs(spokenLevels[greetingLevel] - greetingExpected[greetingLevel]) > 0.000001) throw new Exception("The greeting didn't apply filters and layers exactly once.");
+                foreach (int greetingHour in new[] { 23, 15 })
+                {
+                    CloseTalk();
+                    Greet(asking, greetingDay.AddHours(greetingHour));
+                    WaitVoice(delegate { return reply == Brain.Greeting(greetingHour) && voiceUntil > 0; }, "A greeting used the wrong hour or voice.");
+                }
+                CloseTalk();
+                preferences.Quiet = true;
+                preferences.VoiceStyle = "Sly";
+                Greet(asking, greetingDay.AddHours(15));
+                WaitVoice(delegate { return greetingFree == 1 && voiceUntil > 0; }, "The greeting ignored the selected local voice.");
+                preferences.VoiceStyle = null;
+                foreach (int helloHour in new[] { 8, 23, 15 })
+                {
+                    byte[] helloClip = Hello(Brain.GreetingClip(helloHour));
+                    if (helloClip == null || Voice.Seconds(helloClip) < 1 || Voice.Seconds(helloClip) > 5) throw new Exception("The " + Brain.GreetingClip(helloHour) + " startup recording is missing or the wrong length.");
+                    CloseTalk();
+                    Greet(asking, greetingDay.AddHours(helloHour));
+                    double[] helloExpected = TalkOver.Levels(VoiceFx.Styled(helloClip, Voice.Spoken(Brain.Greeting(helloHour))));
+                    if (reply != Brain.Greeting(helloHour) || heard != "startup" || voiceUntil <= 0 || mouths == null || greetingFree != 1 || spokenLevels == null || spokenLevels.Length != helloExpected.Length) throw new Exception("Her startup recording didn't play for hour " + helloHour + ".");
+                    for (int helloLevel = 0; helloLevel < helloExpected.Length; helloLevel++) if (Math.Abs(spokenLevels[helloLevel] - helloExpected[helloLevel]) > 0.000001) throw new Exception("Her startup recording missed their filters and layers.");
+                }
+                CloseTalk();
+                preferences.Silent = true;
+                Greet(asking, greetingDay.AddHours(15));
+                if (voiceUntil != 0 || greetingPaid != 3 || greetingFree != 1 || reply != Brain.Greeting(15)) throw new Exception("A silent greeting spoke.");
+                CloseTalk();
+                int greetingTicket = asking;
+                Greet(asking - 1, greetingDay.AddHours(8));
+                if (asking != greetingTicket || talkState != TalkState.Off) throw new Exception("A stale greeting interrupted them.");
+                preferences.Silent = false;
+                Speak = FreeSpeak = null;
+                Greet(asking, greetingDay.AddHours(8));
+                if (voiceUntil <= 0 || reply != Brain.Greeting(8)) throw new Exception("With no voice set up, her startup recording didn't play.");
+                checks.Add("PASS startup greetings: her recorded hello needs no key and wears their pitch, speed, robot, glitch and layers; a voice they've chosen says it instead, waits to load, and gets its effects exactly once; it follows the time of day, respects Silent, and skips a stale greeting");
+            }
+            finally
+            {
+                greetingLoaded.Set();
+                asking++;
+                CloseTalk();
+                Speak = greetingSpeakWas; FreeSpeak = greetingFreeWas;
+                preferences.Quiet = greetingQuietWas; preferences.Silent = greetingSilentWas; preferences.ServerVoice = greetingServerWas; preferences.HdVoice = greetingHdWas; preferences.VoiceStyle = greetingStyleWas;
+                local = greetingLocalWas; chatting = greetingChatWas; voiceBroke = greetingBrokenWas;
+                VoiceFx.Pitch = greetingPitchWas; VoiceFx.Speed = greetingSpeedWas; VoiceFx.Robot = greetingRobotWas; VoiceFx.Glitch = greetingGlitchWas; VoiceFx.Layers = greetingLayersWas;
+            }
+        }
+
+        private void SmokeJobVoice(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, byte[]> jobSpeakWas = Speak, jobFreeWas = FreeSpeak;
+            bool jobQuietWas = preferences.Quiet, jobSilentWas = preferences.Silent, jobServerWas = preferences.ServerVoice;
+            bool jobLocalWas = local, jobChatWas = chatting, jobBrokenWas = voiceBroke, jobHushedWas = shushed;
+            Job jobVoiceWas = job;
+            string jobWorkingWas = working;
+            double jobPlayedWas = playVoiced;
+            try
+            {
+                CloseTalk();
+                preferences.Quiet = preferences.Silent = preferences.ServerVoice = voiceBroke = shushed = false;
+                local = chatting = asideVoiceTest = true;
+                int jobPaid = 0, jobFree = 0;
+                string jobWords = null;
+                byte[] jobWav = Voice.Wave(new short[12000], 24000);
+                Speak = delegate(string pickedWords) { jobWords = pickedWords; Interlocked.Increment(ref jobPaid); return jobWav; };
+                FreeSpeak = delegate { Interlocked.Increment(ref jobFree); return jobWav; };
+                Job speakingJob = new Job("voice routing check");
+                job = speakingJob;
+                working = Lines.OnIt[0];
+                int jobTicket = asking;
+                SayJobStart(working, speakingJob);
+                WaitVoice(delegate { return jobPaid == 1 && voiceUntil > 0; }, "Opening offline ears made a job start use the wrong voice.");
+                if (jobFree != 0 || jobWords != Voice.Spoken(working.Replace("Esc", "Escape")) || asking != jobTicket || reply != null) throw new Exception("The job's chosen voice changed its words or the reply turn.");
+                voiceUntil = 0;
+                SayAside("Got it.", speakingJob);
+                WaitVoice(delegate { return jobPaid == 2 && voiceUntil > 0; }, "A mid-job line lost the selected voice.");
+                Func<string, byte[]> jobFallback;
+                Speak = delegate { throw new VoiceException("Out of ElevenLabs credits."); };
+                Func<string, byte[]> jobPicked = PickVoice(false, out jobFallback, false);
+                string jobProblem;
+                if (Voiced(jobPicked, jobFallback, "On it.", out jobProblem, false) != null || jobProblem == null || jobFree != 0 || voiceBroke) throw new Exception("A quick job line fell back to the stock voice.");
+                voiceBroke = true;
+                if (PickVoice(false, out jobFallback, false) != null) throw new Exception("A broken chosen voice made a job line switch voices.");
+                voiceBroke = false;
+                preferences.Silent = true;
+                if (PickVoice(false, out jobFallback, false) != null) throw new Exception("Silent left a job voice selected.");
+                preferences.Silent = false;
+                local = false;
+                int jobVoiceTicket = asideVoice;
+                SayJobStart(working, speakingJob);
+                if (asideVoice != jobVoiceTicket) throw new Exception("An ElevenLabs chat got a second job voice.");
+                checks.Add("PASS job starts and mid-job lines keep ElevenLabs when offline ears open, pronounce Esc as Escape without changing the bubble or reply turn, leave failed or unavailable quick lines silent, respect Silent, and don't duplicate ElevenLabs voice chat");
+            }
+            finally
+            {
+                asideVoiceTest = false; asideVoice++; CloseTalk();
+                Speak = jobSpeakWas; FreeSpeak = jobFreeWas;
+                preferences.Quiet = jobQuietWas; preferences.Silent = jobSilentWas; preferences.ServerVoice = jobServerWas;
+                local = jobLocalWas; chatting = jobChatWas; voiceBroke = jobBrokenWas; shushed = jobHushedWas;
+                job = jobVoiceWas; working = jobWorkingWas; playVoiced = jobPlayedWas;
+            }
+        }
+
+        private sealed class SoundCheck : ISoundClient, ISoundRender, ISoundVolume, IDisposable
+        {
+            internal volatile string Fail;
+            internal volatile bool Drain = true, Muted;
+            internal float Volume = 1;
+            internal int Rate, Flags, Starts, Resets, VolumeChanges, Peak;
+            internal bool StartedEmpty;
+            private int padding, frames, writing;
+            private bool started;
+            private IntPtr buffer;
+            private readonly object gate = new object();
+
+            private int Result(string operation) { return Fail == operation ? unchecked((int)0x88890004) : 0; }
+            public int Initialize(int mode, int flags, long duration, long period, IntPtr format, IntPtr session)
+            {
+                WaveFormat input = (WaveFormat)Marshal.PtrToStructure(format, typeof(WaveFormat));
+                if (mode != 0 || duration != 2000000 || period != 0 || input.Tag != 1 || input.Channels != 1 || input.Bits != 16 || input.Align != 2 || input.BytesPerSecond != input.SampleRate * 2) throw new Exception("Wrong speech format.");
+                Rate = input.SampleRate; Flags = flags; frames = Rate / 5;
+                buffer = Marshal.AllocHGlobal(frames * 2);
+                return Result("initialize");
+            }
+            public int GetBufferSize(out int size) { size = frames; return Result("buffer size"); }
+            public int GetStreamLatency(out long delay) { delay = 0; return 0; }
+            public int GetCurrentPadding(out int filled)
+            {
+                lock (gate) { if (started && Drain) padding = Math.Max(0, padding - Rate / 100); filled = padding; }
+                return Result("padding");
+            }
+            public int IsFormatSupported(int mode, IntPtr format, out IntPtr closest) { closest = IntPtr.Zero; return 0; }
+            public int GetMixFormat(out IntPtr format)
+            {
+                format = Marshal.AllocCoTaskMem(Marshal.SizeOf(typeof(WaveFormat)));
+                Marshal.StructureToPtr(new WaveFormat { Tag = 3, Channels = 2, SampleRate = 48000, BytesPerSecond = 384000, Align = 8, Bits = 32 }, format, false);
+                return 0;
+            }
+            public int GetDevicePeriod(out long normal, out long shortest) { normal = shortest = 100000; return 0; }
+            public int Start() { lock (gate) { StartedEmpty |= padding == 0; started = true; Starts++; } return Result("start"); }
+            public int Stop() { lock (gate) started = false; return Result("stop"); }
+            public int Reset() { lock (gate) { padding = 0; Resets++; } return Result("reset"); }
+            public int SetEventHandle(IntPtr handle) { return 0; }
+            public int GetService(ref Guid id, out object service) { service = this; return 0; }
+            public int GetBuffer(int count, out IntPtr data) { writing = count; data = buffer; return Result("get buffer"); }
+            public int ReleaseBuffer(int count, int flags)
+            {
+                if (count != writing || flags != 0) throw new Exception("Speech was released as silence or with the wrong length.");
+                short[] samples = new short[count];
+                Marshal.Copy(buffer, samples, 0, count);
+                foreach (short sample in samples) Peak = Math.Max(Peak, Math.Abs((int)sample));
+                lock (gate) padding += count;
+                return Result("release buffer");
+            }
+            public int SetMasterVolume(float level, IntPtr context) { VolumeChanges++; Volume = level; return 0; }
+            public int GetMasterVolume(out float level) { level = Volume; return 0; }
+            public int SetMute(bool mute, IntPtr context) { VolumeChanges++; Muted = mute; return 0; }
+            public int GetMute(out bool mute) { mute = Muted; return 0; }
+            public void Dispose() { if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer); buffer = IntPtr.Zero; }
+        }
+
+        private static void WaitSound(Func<bool> done, string problem)
+        {
+            Stopwatch waited = Stopwatch.StartNew();
+            while (!done() && waited.ElapsedMilliseconds < 4500) Thread.Sleep(5);
+            if (!done()) throw new Exception(problem);
+        }
+
+        private static void SmokeSound(System.Collections.Generic.List<string> checks, string output)
+        {
+            bool waveWas = Speaker.SkipWave;
+            int loudnessWas = Voice.Loudness;
+            string logWas = Brain.LogPath;
+            string log = Path.Combine(output, "speaker-check.txt");
+            try
+            {
+                Brain.LogPath = log;
+                File.WriteAllText(log, "");
+                Speaker.SkipWave = true;
+                Voice.Loudness = 50;
+                if (Marshal.SizeOf(typeof(WaveFormat)) != 18 || (int)Marshal.OffsetOf(typeof(WaveFormat), "Extra") != 16) throw new Exception("Her PCM format doesn't match Windows' WAVEFORMATEX.");
+                foreach (int soundRate in new[] { 16000, 22050, 24000, 44100, 48000 })
+                {
+                    System.Collections.Generic.List<SoundCheck> outputs = new System.Collections.Generic.List<SoundCheck>();
+                    using (Speaker outputSpeaker = new Speaker(false, delegate(int openedRate)
+                    {
+                        SoundCheck openedSound = new SoundCheck(); outputs.Add(openedSound);
+                        return new SoundOut(openedRate, openedSound, openedSound);
+                    }))
+                    {
+                        try
+                        {
+                            Voice outputVoice = new Voice(outputSpeaker);
+                            short[] sound = new short[soundRate / 10];
+                            for (int soundAt = 0; soundAt < sound.Length; soundAt++) sound[soundAt] = 12000;
+                            outputVoice.Play(Voice.Wave(sound, soundRate));
+                            WaitSound(delegate { return outputSpeaker.ModernPlayed >= sound.Length; }, "Finished speech never reached the fallback's buffer.");
+                            if (outputs.Count != 1 || outputs[0].Flags != SoundOut.ConvertFlags || outputs[0].Rate != soundRate || outputs[0].StartedEmpty || outputs[0].Peak != 6000) throw new Exception("Speech bypassed WASAPI, started empty, or applied volume twice.");
+                            long fedBeforeClear = outputSpeaker.ModernFed;
+                            outputSpeaker.Clear();
+                            outputSpeaker.Play(sound);
+                            WaitSound(delegate { return outputSpeaker.ModernFed >= fedBeforeClear + sound.Length && outputs[0].Starts == 2; }, "Clear lost the next voice line.");
+                            if (outputs[0].Resets != 1 || outputs[0].StartedEmpty) throw new Exception("Clear didn't refill before restarting speech.");
+                            outputs[0].Fail = "padding";
+                            WaitSound(delegate { return outputSpeaker.ModernFailure != null; }, "A lost WASAPI device stayed alive.");
+                            outputSpeaker.Play(sound);
+                            WaitSound(delegate { return outputs.Count == 2 && outputSpeaker.ModernPlayed >= sound.Length; }, "The next voice chunk didn't reopen a failed stream.");
+                            outputVoice.Play(Voice.Wave(sound, soundRate));
+                            WaitSound(delegate { return outputs.Count == 3 && outputSpeaker.ModernPlayed >= sound.Length; }, "A second finished voice line reused a closed stream.");
+                            outputVoice.Stop();
+                            if (outputSpeaker.Modern) throw new Exception("Stopping a voice left its stream open.");
+                        }
+                        finally { outputSpeaker.Close(); foreach (SoundCheck used in outputs) used.Dispose(); }
+                    }
+                }
+                checks.Add("PASS finished speech uses Speaker and WASAPI at 16, 22.05, 24, 44.1 and 48 kHz, requests PCM and rate conversion, applies her volume once, fills before starting, survives Clear followed by another line, and reopens after a lost stream or a stopped voice");
+                foreach (string operation in new[] { "start", "padding", "get buffer", "release buffer", "stop", "reset" })
+                {
+                    using (SoundCheck broken = new SoundCheck())
+                    using (SoundOut brokenStream = new SoundOut(24000, broken, broken))
+                    {
+                        if (operation == "stop" || operation == "reset")
+                        {
+                            brokenStream.Write(new short[2400]);
+                            WaitSound(delegate { return broken.Starts > 0; }, "The test stream didn't start.");
+                            broken.Fail = operation;
+                            brokenStream.Clear();
+                        }
+                        else
+                        {
+                            broken.Fail = operation;
+                            try { brokenStream.Write(new short[2400]); }
+                            catch (VoiceException) { }
+                        }
+                        WaitSound(delegate { return !brokenStream.Alive; }, "WASAPI " + operation + " failed silently.");
+                        if (brokenStream.Failure == null || !brokenStream.Failure.Contains(operation) || !brokenStream.Failure.Contains("88890004")) throw new Exception("A WASAPI error lost its operation or HRESULT.");
+                    }
+                }
+                using (SoundCheck stalledSound = new SoundCheck { Drain = false, Muted = true })
+                using (SoundOut stalledStream = new SoundOut(24000, stalledSound, stalledSound))
+                {
+                    stalledStream.Write(new short[2400]);
+                    WaitSound(delegate { return !stalledStream.Alive; }, "A buffer that never drains stayed alive.");
+                    if (!stalledStream.Failure.Contains("stopped draining") || stalledSound.VolumeChanges != 0) throw new Exception("A stalled stream wasn't diagnosed, or changed their mute.");
+                    stalledSound.Muted = false; stalledSound.Volume = 0;
+                    if (SoundOut.Quiet(stalledSound) == null) throw new Exception("Zero session volume wasn't diagnosed.");
+                }
+                string logged = File.ReadAllText(log);
+                if (!logged.Contains("session is muted") || !logged.Contains("stopped draining") || !logged.Contains("release buffer failed") || !logged.Contains("submitted") || !logged.Contains("drained")) throw new Exception("A silent speaker failure left no useful error log.");
+                checks.Add("PASS WASAPI logs failed writes, starts, stops, resets and padding calls with their HRESULT and sample counts; a buffer that never drains fails visibly, and session mute and zero volume are diagnosed without changing them");
+                short[] original = new short[4800];
+                for (int originalAt = 0; originalAt < original.Length; originalAt++) original[originalAt] = (short)(9000 * Math.Sin(originalAt * 0.04));
+                byte[] fishWave = Voice.Wave(original, 48000);
+                short[] fishSound = VoiceServer.Sound(fishWave, "audio/wav", "Fish Audio");
+                if (fishSound.Length != 2400 || Speaker.Loudness(fishSound, 0, fishSound.Length) < 0.1 || !VoiceServer.SoundFormat(fishWave).Contains("48000 Hz") || VoiceServer.SoundFormat(new byte[0]) != "unrecognized audio format") throw new Exception("Fish Audio's rate conversion or format diagnosis went wrong.");
+                bool fishUnreadable = false;
+                try { VoiceServer.Sound(new byte[] { 102, 76, 97, 67, 0, 0 }, "audio/flac", "Fish Audio"); }
+                catch (VoiceException fishError) { fishUnreadable = fishError.Message.Contains("FLAC, 6 bytes") && fishError.Message.Contains("Windows couldn't decode"); }
+                if (!fishUnreadable) throw new Exception("An undecodable Fish reply lost its format and size.");
+                checks.Add("PASS Fish Audio WAV replies are decoded and resampled from 48 kHz to 24 kHz, and unreadable audio is described by its format and size without logging its contents");
+            }
+            finally { Speaker.SkipWave = waveWas; Voice.Loudness = loudnessWas; Brain.LogPath = logWas; }
+        }
+
+        private static void SmokeHardwareSound(System.Collections.Generic.List<string> checks)
+        {
+            bool hardwareWaveWas = Speaker.SkipWave;
+            using (Speaker hardwareSpeaker = new Speaker(false))
+            {
+                try
+                {
+                    Speaker.SkipWave = true;
+                    Voice hardwareVoice = new Voice(hardwareSpeaker);
+                    foreach (int hardwareRate in new[] { 24000, 22050 })
+                    {
+                        hardwareVoice.Play(Voice.Wave(new short[hardwareRate / 10], hardwareRate));
+                        Stopwatch hardwareWait = Stopwatch.StartNew();
+                        while (hardwareSpeaker.ModernPlayed < hardwareRate / 10 && hardwareSpeaker.ModernFailure == null && hardwareWait.ElapsedMilliseconds < 1500) Thread.Sleep(10);
+                        if (!hardwareSpeaker.Modern || hardwareSpeaker.ModernFailure != null || hardwareSpeaker.ModernPlayed < hardwareRate / 10)
+                        {
+                            checks.Add("LIMIT WASAPI hardware at " + hardwareRate + " Hz: " + (hardwareSpeaker.ModernFailure ?? "submitted " + hardwareSpeaker.ModernFed + ", drained " + hardwareSpeaker.ModernPlayed + " samples"));
+                            return;
+                        }
+                    }
+                    hardwareVoice.Stop();
+                    checks.Add("PASS finished WAV speech reaches WASAPI and its buffers drain at 24 and 22.05 kHz across two voice lines");
+                    checks.Add("LIMIT WASAPI hardware check used silence; actual audibility, Windows mixer settings and the tester's speakers need a listening check");
+                }
+                catch (VoiceException error) { checks.Add("LIMIT her WASAPI speakers didn't play here: " + error.Message); }
+                finally { Speaker.SkipWave = hardwareWaveWas; }
+            }
+        }
+
         internal void StartSmokeTest(string output)
         {
             Directory.CreateDirectory(output);
@@ -13971,6 +14328,7 @@ namespace CapriDesktop
                             SmokeOpening(checks);
                             SmokeVoiceWaits(checks);
                             SmokeVault(checks);
+                            SmokeSound(checks, output);
                             SmokeLocalBrains(checks);
                             SmokeBrainBodies(checks);
                             SmokeCamera(checks);
@@ -14434,38 +14792,8 @@ namespace CapriDesktop
                             string greetDay = string.Join("|", greetings);
                             const string greetWanted = "Isn't it late, choom?|Isn't it late, choom?|Isn't it late, choom?|Isn't it late, choom?|Isn't it late, choom?|Good morning, choom.|Good morning, choom.|Good morning, choom.|Good morning, choom.|Good morning, choom.|Good morning, choom.|Good morning, choom.|Miss me, choom?|Miss me, choom?|Miss me, choom?|Miss me, choom?|Miss me, choom?|Miss me, choom?|Miss me, choom?|Miss me, choom?|Miss me, choom?|Miss me, choom?|Isn't it late, choom?|Isn't it late, choom?";
                             if (greetDay != greetWanted) throw new Exception("Startup greetings came at the wrong hours: " + greetDay);
-                            int askedBeforeGreet = asking;
-                            foreach (string clipName in new[] { "morning", "late", "miss" })
-                            {
-                                byte[] helloClip = Hello(clipName);
-                                if (helloClip == null || Voice.Seconds(helloClip) < 1 || Voice.Seconds(helloClip) > 5) throw new Exception("The " + clipName + " startup recording is missing or the wrong length.");
-                            }
-                            bool quietWas = preferences.Quiet;
-                            preferences.Quiet = false;
-                            // An ordinary day, so these hold when the smoke test runs on a holiday too.
-                            DateTime ordinary = new DateTime(2026, 10, 30);
-                            Greet(asking, ordinary.AddHours(8));
-                            string morning = reply;
-                            bool greetedMorning = asking == askedBeforeGreet + 1 && morning == "Good morning, choom." && heard == "startup" && voiceUntil > 0 && mouths != null;
-                            CloseTalk();
-                            Greet(asking, ordinary.AddHours(23));
-                            string late = reply;
-                            bool lateVoiced = voiceUntil > 0;
-                            CloseTalk();
-                            Greet(asking, ordinary.AddHours(15));
-                            string afternoon = reply;
-                            bool afternoonVoiced = voiceUntil > 0;
-                            CloseTalk();
-                            preferences.Quiet = true;
-                            Greet(asking, ordinary.AddHours(15));
-                            bool quietTyped = reply == "Miss me, choom?" && voiceUntil > 0;
-                            CloseTalk();
-                            preferences.Quiet = quietWas;
-                            int askedStale = asking;
-                            Greet(asking - 1, ordinary.AddHours(8));
-                            bool skippedStale = asking == askedStale && talkState == TalkState.Off;
-                            if (!greetedMorning || late != "Isn't it late, choom?" || !lateVoiced || afternoon != "Miss me, choom?" || !afternoonVoiced || !quietTyped || !skippedStale) throw new Exception("Startup greeting went wrong: " + morning + " / " + late + " / " + afternoon + " / quiet " + quietTyped + " / stale " + skippedStale);
-                            checks.Add("PASS startup greeting: she giggles and says good morning from 5 am to noon, isn't it late from 10 pm to 5 am, and miss me the rest of the day, in her recorded voice with no key needed (even with Use ElevenLabs off, since it costs no credits); none once you've already said something");
+                            SmokeGreeting(checks);
+                            SmokeJobVoice(checks);
                             // Halloween: 31 October in any year, from midnight to midnight, and not the days either side.
                             string halloweenWrong = null;
                             foreach (DateTime day in new[] { new DateTime(2026, 10, 30, 23, 59, 59), new DateTime(2026, 11, 1), new DateTime(2027, 10, 30, 12, 0, 0), new DateTime(2026, 12, 25) })
@@ -18551,24 +18879,7 @@ namespace CapriDesktop
                                     if (stay != "Playing I Really Want to Stay at Your House on Spotify." || stayRun != "spotify:track:42W7fJXB7razFefTxMSyYp" || stayShort != stay || stayShortRun != stayRun) throw new Exception("I Really Want to Stay at Your House didn't play the Rosa Walton track: " + stay + " / " + stayShort);
                                     checks.Add("PASS Spotify discovery: Store names and IDs, classic shortcuts, French paths, and an executable without a shortcut all open and play with no running window");
                                     // When Windows' wave API won't open the speakers, her voice goes out through WASAPI: a moment of silence here.
-                                    Speaker.SkipWave = true;
-                                    Speaker wasapi = new Speaker(false);
-                                    string wasapiProblem = null;
-                                    try { wasapi.Open(24000); }
-                                    catch (VoiceException error) { wasapiProblem = error.Message; }
-                                    finally { Speaker.SkipWave = false; }
-                                    if (wasapiProblem != null) checks.Add("LIMIT her WASAPI speakers didn't open here: " + wasapiProblem);
-                                    else
-                                    {
-                                        wasapi.Play(new short[2400]);
-                                        Stopwatch wasapiWait = Stopwatch.StartNew();
-                                        while (wasapi.ModernFed <= 0 && wasapiWait.ElapsedMilliseconds < 1000) Thread.Sleep(10);
-                                        long wasapiFed = wasapi.ModernFed;
-                                        bool wasapiUsed = wasapi.Modern;
-                                        wasapi.Close();
-                                        if (!wasapiUsed || wasapiFed <= 0 || wasapi.Modern) throw new Exception("Her WASAPI speakers didn't play: modern " + wasapiUsed + ", fed " + wasapiFed);
-                                        checks.Add("PASS speakers: when Windows' wave API won't open the speakers, her voice goes out through WASAPI (" + wasapiFed + " samples in " + wasapiWait.ElapsedMilliseconds + " ms)");
-                                    }
+                                    SmokeHardwareSound(checks);
                                     Hands.Run = delegate(string id) { ran.Add(id); };
                                     Hands.Exists = delegate { return false; };
                                     System.Collections.Generic.List<InstalledApp> duplicates = new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Musique et podcasts", spotifyId), new InstalledApp("Spotify", spotifyPath) };
