@@ -15385,11 +15385,18 @@ namespace CapriDesktop
             }
             foreach (string talk in new[] { "what's gaming mode", "i love gaming mode", "does game mode help my fps", "what game should i play", "the hud in this game is so good", "is gaming mode any good",
                 "how do i activate gaming mode", "how to activate gaming mode", "don't activate gaming mode", "do not activate gaming mode", "never use gaming mode", "why did you activate gaming mode", "should i use gaming mode", "can't activate gaming mode", "i activate gaming mode at night", "love gaming mode", "open the game", "use this mod", "i'm in a gaming mood", "gaming mood", "game mod", "gaming mod", "game mood",
-                "no activate gaming mode", "not activate gaming mode", "dont activate gaming mode", "don’t activate gaming mode", "how activate gaming mode", "why activate gaming mode", "to activate gaming mode", "i activate gaming mode", "you activate gaming mode", "we activate gaming mode", "they activate gaming mode", "maybe activate gaming mode", "never, use gaming mode", "don't, activate gaming mode", "Kopri gaming mode", "Recovery gaming mode on", "love time for gaming mode", "how do I turn on game mode?", "how do I, Capri, activate gaming mode", "don't, Capri, activate gaming mode", "just don't, Capri, activate gaming mode", "no actives el modo juego", "ne désactive pas le mode jeu", "не включай игровой режим", "не вмикай ігровий режим", "oyun modunu açma", "jangan aktifkan mode game", "ゲームモードをオンにしないで", "不要打开游戏模式", "게임 모드 켜지 마" })
+                "no activate gaming mode", "not activate gaming mode", "dont activate gaming mode", "don’t activate gaming mode", "how activate gaming mode", "why activate gaming mode", "to activate gaming mode", "i activate gaming mode", "you activate gaming mode", "we activate gaming mode", "they activate gaming mode", "maybe activate gaming mode", "never, use gaming mode", "don't, activate gaming mode", "love time for gaming mode", "how do I turn on game mode?", "how do I, Capri, activate gaming mode", "don't, Capri, activate gaming mode", "just don't, Capri, activate gaming mode", "no actives el modo juego", "ne désactive pas le mode jeu", "не включай игровой режим", "не вмикай ігровий режим", "oyun modunu açma", "jangan aktifkan mode game", "ゲームモードをオンにしないで", "不要打开游戏模式", "게임 모드 켜지 마" })
             {
                 string found;
                 ToolArguments told;
                 if (Hands.Heard(talk, out found, out told) && found == "gaming_mode") throw new Exception("\"" + talk + "\" isn't Gaming Mode.");
+            }
+            // Speech often hears her name as these, and Listen for Capri takes them as her name too.
+            foreach (string misheard in new[] { "Kopri gaming mode", "Recovery gaming mode on" })
+            {
+                string found;
+                ToolArguments told;
+                if (!Hands.Heard(misheard, out found, out told) || found != "gaming_mode") throw new Exception("\"" + misheard + "\" missed Gaming Mode: " + found);
             }
             checks.Add("PASS Gaming Mode requests: everyday on and off commands, names, speech spellings and fourteen other languages reach her hands; questions, negatives and ordinary chat do not switch it");
             Sight storeSight = new Sight { Window = new IntPtr(-1), Program = "unlisted-game", Title = "An unlisted window" };
