@@ -11625,6 +11625,23 @@ namespace CapriDesktop
                 picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = "open spotify and play Blinding Lights" }));
                 Hands.Rescue("open spotify and play Blinding Lights", picked);
                 if (picked.Count != 1 || picked[0].Key != "play_music") throw new Exception("The brain's clicking choice was not corrected.");
+                foreach (string[] filed in new[]
+                {
+                    new[] { "play this round with me", "this round with me", "use_computer" },
+                    new[] { "play my minecraft world", "my minecraft world", "use_computer" },
+                    new[] { "play that", "that", "use_computer" },
+                    new[] { "play solitaire", "solitaire", "use_computer" },
+                    new[] { "play this chess match with me", "this chess match with me", "mini_game" },
+                    new[] { "play that", "Neon Nights", "play_music" },
+                    new[] { "play video games by lana del rey", "Video Games", "play_music" },
+                    new[] { "play stay with me", "stay with me", "play_music" }
+                })
+                {
+                    picked.Clear();
+                    picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("play_music", new ToolArguments { Song = filed[1] }));
+                    Hands.Rescue(filed[0], picked);
+                    if (picked.Count != 1 || picked[0].Key != filed[2]) throw new Exception("\"" + filed[0] + "\" filed under music as \"" + filed[1] + "\" ended up as " + (picked.Count == 0 ? "nothing" : picked[0].Key) + ".");
+                }
                 string musicResult = Hands.Do("use_computer", new ToolArguments { Task = "play Blinding Lights on spotify" });
                 if (!musicResult.StartsWith("Playing ", StringComparison.Ordinal) || launches.Count != 1 || launches[0] != "spotify:track:0VjIjW4GlUZAMYd2vXMi3b" || playClicks != 0) throw new Exception("A known track clicked or opened a browser.");
                 int beforePrivate = musicFetches;
@@ -14159,6 +14176,14 @@ namespace CapriDesktop
                 string routed; ToolArguments arguments;
                 foreach (string ask in new[] { "capri let's play chess", "play chess with me", "chess", "play chess on hard", "play chess on easy", "play chess on normal", "play chess, i'll be black", "pull up chess", "open chess", "bring up the chess board", "open a game of chess", "show me your chess board" })
                     must(Hands.Heard(ask, out routed, out arguments) && routed == "mini_game" && arguments.Name == "chess" && Hands.Valid(routed, arguments), "Chess wording missed its native board: " + ask);
+                Func<System.Collections.Generic.List<OpenWindow>> chessWindows = Hands.Windows;
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                foreach (string chessWords in new[] { "play this chess match with me", "capri play a chess match with me", "let's play this chess match", "play a game of chess with me", "play a round of chess", "play some chess", "play chess against me", "play this chess game on hard" })
+                    must(Hands.Heard(chessWords, out routed, out arguments) && routed == "mini_game" && arguments.Name == "chess" && Hands.Valid(routed, arguments), "Chess wording missed its native board: " + chessWords);
+                must(Hands.MiniName("play a game of tic tac toe with me") == "tic_tac_toe" && Hands.MiniName("play this connect four match") == "connect_four", "A board wording missed its game.");
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow> { new OpenWindow(new IntPtr(15), "Play Chess Online", "Opera") }; };
+                must(Hands.Heard("play this chess match with me", out routed, out arguments) && routed == "use_computer" && arguments.Task == "play this chess match with me", "Her board opened over a chess match on screen.");
+                Hands.Windows = chessWindows;
                 must(Hands.Heard("play chess on hard", out routed, out arguments) && arguments.Level == "hard", "Chess lost the requested level.");
                 Hands.MiniInput = ChessGame.Input;
                 foreach (string command in new[] { "take that back", "undo", "new game", "i resign", "hint", "resign", "i'll be black" })
@@ -14626,6 +14651,10 @@ namespace CapriDesktop
                 must(Hands.Direct("play minecraft", out named, out namedArgs) && named == "open_app" && namedArgs.Name == "minecraft", "Minecraft stopped opening its app.");
                 must(!Hands.Direct("play wasd minigame", out named, out namedArgs) && !Hands.Direct("play Stardew Valley", out named, out namedArgs) && !Hands.Heard("keep playing", out named, out namedArgs), "An external game became a board or a song.");
                 must(Hands.Direct("play some music", out named, out namedArgs) && named == "play_music", "Music stopped routing to music.");
+                foreach (string notSong in new[] { "play this", "play that", "play tetris", "play solitaire", "play poker", "play a game of sudoku" })
+                    must(!Hands.Direct(notSong, out named, out namedArgs), "A game went to Spotify: " + notSong);
+                foreach (string titled in new[] { "play bohemian rhapsody", "play stay with me", "play this love", "play poker face", "play tetris on spotify" })
+                    must(Hands.Direct(titled, out named, out namedArgs) && named == "play_music", "A song stopped routing to music: " + titled);
                 must(Hands.Heard("play tic tac toe online", out named, out namedArgs) && named == "open_website" && namedArgs.Site == "google", "Online tic-tac-toe did not reach the browser.");
                 foreach (string left in new[] { "don't play tic tac toe", "if we play tic tac toe", "play checkers", "play tic tac toe on youtube", "play tic tac toe and open discord", "top left", "middle", "column 3", "rock", "nice one", "you're cheating" })
                     must(!Hands.Heard(left, out named, out namedArgs) || named != "mini_game", "A board stole these words: " + left);

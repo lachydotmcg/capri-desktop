@@ -544,7 +544,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"next\",\"previous\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\"]},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, the volume from 0 to 100. For volume_up or volume_down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}" },
             { "look_at_screen", "Take a screenshot of their screen and look at it right now: what they're doing, playing or showing you. Use it whenever they ask you to check, look at or see their screen, or ask what something on it is. You can always look, so never say you can't see their screen.",
               "{\"type\":\"object\",\"properties\":{\"focus\":{\"type\":\"string\",\"description\":\"What to look at, if they said\"}}}" },
-            { "play_music", "Play a song, playlist, album or artist they name, on Spotify or YouTube, including open Spotify and play requests. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
+            { "play_music", "Play a song, playlist, album or artist they name, on Spotify or YouTube, including open Spotify and play requests. Only for things to listen to: a game, match or board is never this, even when they say play. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
               "{\"type\":\"object\",\"properties\":{\"song\":{\"type\":\"string\",\"description\":\"What to play, like a song and its artist or a playlist's name\"},\"kind\":{\"type\":\"string\",\"description\":\"What it is\",\"enum\":[\"song\",\"playlist\",\"album\",\"artist\"]},\"app\":{\"type\":\"string\",\"description\":\"Where to play it, if they said\",\"enum\":[\"spotify\",\"youtube\"]}},\"required\":[\"song\"]}" },
             { "app_window", "Switch to, minimize or close an app or game that's open on their PC. Naming a site closes that browser tab.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"close\"]}},\"required\":[\"name\",\"action\"]}" },
@@ -1008,10 +1008,17 @@ namespace CapriDesktop
             string text = Asked(said);
             string directTool;
             ToolArguments directArgs;
-            if (Direct(said, out directTool, out directArgs) && (directTool == "play_music" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
+            if (Direct(said, out directTool, out directArgs) && (directTool == "play_music" || directTool == "mini_game" || directTool == "website_nickname" || directTool == "find_file" || directTool == "open_website"))
             {
                 calls.Clear();
                 calls.Add(new KeyValuePair<string, ToolArguments>(directTool, directArgs));
+                return;
+            }
+            // A brain can file any "play" under music, and Spotify then gets "this chess match with me" typed into it (a tester, 31 Oct).
+            if (calls.Exists(filed => filed.Key == "play_music" && GameAsk(text, filed.Value == null ? null : filed.Value.Song)))
+            {
+                calls.Clear();
+                calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = said }));
                 return;
             }
             if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine")) return;
@@ -1039,6 +1046,19 @@ namespace CapriDesktop
                 string name = Regex.Replace(args.Site.Trim(), @"^(https?://)?(www\.)?|\.[a-z.]+(/.*)?$", "", RegexOptions.IgnoreCase);
                 if (Regex.IsMatch(text, @"\b" + Regex.Escape(name) + @"\b", RegexOptions.IgnoreCase) && Installed(name) && string.IsNullOrEmpty(args.Search)) calls[i] = new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = name });
             }
+        }
+
+        // Joining a game or naming one, not putting on a song: "play this round with me", "play my minecraft world", "play solitaire".
+        private static bool GameAsk(string text, string song)
+        {
+            Match asked = Regex.Match(Suggestion(text ?? ""), @"^play\s+(.+?)[.!?]*$", RegexOptions.IgnoreCase);
+            if (!asked.Success) return false;
+            string target = asked.Groups[1].Value;
+            if (Regex.IsMatch(target, @"\b(songs?|tracks?|tunes?|albums?|playlists?|music|soundtrack|ost|theme|remix|spotify|youtube|by)\b", RegexOptions.IgnoreCase)) return false;
+            if (Regex.IsMatch(target, @"^(this|that)$", RegexOptions.IgnoreCase)) return Plain(song ?? "") == Plain(target);
+            bool pointed = Regex.IsMatch(target, @"^(this|that|these|those|my|our)\b", RegexOptions.IgnoreCase);
+            bool joined = Regex.IsMatch(target, @"\b(with|against)\s+(me|us|you)$", RegexOptions.IgnoreCase);
+            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target);
         }
 
         private static readonly Regex Unknown = new Regex(@"\b(can'?t|cannot|can not|unable to|don'?t have|no way to|not able to)\b[^.!?]{0,40}\b(check|browse|look|search|google|access|know|tell|real[- ]?time|live|internet|web|online|current|up[- ]to[- ]date|forecast)\b|\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to)|gonna|i gotta|i have to|i need to)\s+(\w+\s+){0,2}(search|google|look (it |that |this )?up|check)\b|\b(you('ll)? (might|may|will|would)? ?(need|want|have) to|maybe (you can|try)|you (gotta|got to|could|can|should)|try)\s+(\w+\s+){0,3}(look|check|search|google)\b|\bcheck (a|the|your) (\w+\s+){0,2}(weather|news|app|site|feed|forecast|website)\b|\bcrystal ball\b", RegexOptions.IgnoreCase);
@@ -1732,6 +1752,8 @@ namespace CapriDesktop
             string miniName = MiniName(text);
             if (miniName != null)
             {
+                // "This match" with a chess site up means that match, so a job plays it rather than her board opening over it.
+                if (Regex.IsMatch(text, @"\b(?:this|that)\b", RegexOptions.IgnoreCase) && MiniBoard().Length == 0 && Showing(miniName.Replace('_', ' '))) { tool = "use_computer"; args.Task = said; return true; }
                 tool = "mini_game"; args.Name = miniName; args.Action = "open";
                 if (miniName == "chess")
                 {
@@ -1809,9 +1831,9 @@ namespace CapriDesktop
                 string target = found.Groups[1].Value.Trim();
                 if (Regex.IsMatch(target, @"^(the|this|that|my|our) (game|match|round|level|map)\b", RegexOptions.IgnoreCase)) return false;
                 if (!found.Groups[3].Success && Installed(target)) { tool = "open_app"; args.Name = target; return true; }
-                if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
+                if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|this$|that$|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
                 // "play the wasd minigame" is a game, not a song to search Spotify for (a tester, 30 Oct), and so is a game that's open.
-                if (!found.Groups[3].Success && (Playable.IsMatch(target) || Nickname(target) != null || Showing(target))) return false;
+                if (!found.Groups[3].Success && (Playable.IsMatch(target) || PlainGame.IsMatch(target) || Nickname(target) != null || Showing(target))) return false;
                 if (found.Groups[3].Success) args.App = found.Groups[3].Value.ToLowerInvariant();
                 if (Regex.IsMatch(target, @"^(music$|some music$|((a|any|some|random) )?(song|track|tune|music)s?$|(something|anything)\b(?!\s+by\s))", RegexOptions.IgnoreCase)) { tool = "play_music"; args.Kind = "song"; args.Song = Pick(); return true; }
                 Match kind = Regex.Match(target, @"^(?:(?:the|my|your)\s+)?(.+?)\s+(playlist|album)$", RegexOptions.IgnoreCase);
@@ -1859,12 +1881,15 @@ namespace CapriDesktop
         // "Play chess", or having her pull it up.
         private const string MiniOpen = @"(?:(?:(?:wanna|want to|let's|lets|shall we|can we)\s+)?play\s+|(?:open|pull up|bring up|show me|start|launch|load up|fire up|get out)\s+(?:(?:a|the|your|my|me a|me the)\s+)?(?:game of\s+)?)?";
 
+        private const string MiniThe = @"(?:(?:a|an|the|this|that|our|my|your|some|another)\s+)?(?:(?:game|match|round)\s+of\s+)?";
+        private const string MiniAfter = @"(?:\s+(?:board|game|match|round))?(?:\s+(?:with|against)\s+(?:me|you|us))?";
+
         internal static string MiniName(string text)
         {
 #if !CROSS
-            if (Regex.IsMatch((text ?? "").Replace('\u2019', '\''), "^" + MiniOpen + @"(?:native )?chess(?:\s+(?:board|game))?(?:\s+with\s+(?:me|you))?(?:\s+(?:on\s+)?(?:easy|normal|hard))?(?:(?:,?\s+i(?:'ll| will) be|\s+as)\s+(?:white|black))?$", RegexOptions.IgnoreCase)) return "chess";
+            if (Regex.IsMatch((text ?? "").Replace('\u2019', '\''), "^" + MiniOpen + MiniThe + @"(?:native )?chess" + MiniAfter + @"(?:\s+(?:on\s+)?(?:easy|normal|hard))?(?:(?:,?\s+i(?:'ll| will) be|\s+as)\s+(?:white|black))?$", RegexOptions.IgnoreCase)) return "chess";
 #endif
-            Match mini = Regex.Match(text ?? "", "^" + MiniOpen + @"(tic[ -]?tac[ -]?toe|connect[ -](four|4)|rock[ ,]+paper[ ,]+scissors)(?:\s+(?:board|game))?(?:\s+with\s+(me|you))?$", RegexOptions.IgnoreCase);
+            Match mini = Regex.Match(text ?? "", "^" + MiniOpen + MiniThe + @"(tic[ -]?tac[ -]?toe|connect[ -](four|4)|rock[ ,]+paper[ ,]+scissors)" + MiniAfter + "$", RegexOptions.IgnoreCase);
             if (!mini.Success) return null;
             string name = mini.Groups[1].Value.ToLowerInvariant();
             return name.StartsWith("tic", StringComparison.Ordinal) ? "tic_tac_toe" : name.StartsWith("connect", StringComparison.Ordinal) ? "connect_four" : "rock_paper_scissors";
@@ -2168,6 +2193,8 @@ namespace CapriDesktop
             return false;
         }
 
+        // Games that go by one plain word, so "play solitaire" isn't a song to search Spotify for.
+        private static readonly Regex PlainGame = new Regex(@"^(?:(?:a|some|another)\s+)?(?:(?:game|round|hand)\s+of\s+)?(?:chess|checkers|poker|blackjack|solitaire|sudoku|tetris|minesweeper|wordle|uno)$", RegexOptions.IgnoreCase);
         private static readonly Regex Playable = new Regex(@"\b(games?|mini ?games?|obby|obbies|levels?|rounds?|match(es)?|matchmaking|ranked|deathmatch|map|mode|bedwars|skywars|roblox|minecraft|fortnite|valorant|counter[- ]?strike|wasd)\b", RegexOptions.IgnoreCase);
 
         // What players call their games, for when nothing installed goes by the name they said ("open cs", a tester, 30 Oct).
