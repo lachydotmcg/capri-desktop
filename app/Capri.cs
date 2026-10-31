@@ -220,6 +220,7 @@ namespace CapriDesktop
         [DataMember] public bool Quiet;
         [DataMember] public bool Silent;
         [DataMember] public bool Wander;
+        [DataMember] public bool NoKeepAwake;
         [DataMember] public bool HideFullScreen;
         [DataMember] public bool PlayerFullScreen;
         [DataMember] public bool ExploreAway;
@@ -1130,6 +1131,8 @@ namespace CapriDesktop
         // A Claude model that turned down the computer tools this session, so its jobs read buttons instead.
         private volatile string blindModel;
         private string working;
+        private bool keepAwakeWanted;
+        private Func<uint, uint> keepAwakeTest;
         // Her own ears, opened for a job while voice chat was off, so they can just talk to her mid-job. They close with it.
         private bool jobEars;
         private bool pendingClick;
@@ -1672,6 +1675,7 @@ namespace CapriDesktop
             signals.Interval = 250;
             signals.Tick += delegate
             {
+                CheckKeepAwake();
                 double signalNow = clock.Elapsed.TotalSeconds;
                 long signalIdle = Native.IdleMilliseconds();
                 if (!testing) CheckForeground(signalNow);
@@ -1798,7 +1802,7 @@ namespace CapriDesktop
             base.OnFormClosing(e);
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && e.CloseReason != CloseReason.WindowsShutDown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
-            if (!e.Cancel) { quitting = true; Computer.Close(); }
+            if (!e.Cancel) { quitting = true; CheckKeepAwake(); Computer.Close(); }
         }
 
         private void Tick()
@@ -4021,7 +4025,7 @@ namespace CapriDesktop
             frames.Start();
         }
 
-        internal void Quit() { quitting = true; GlitchOut(Close); }
+        internal void Quit() { quitting = true; CheckKeepAwake(); GlitchOut(Close); }
 
         private void Halt()
         {
@@ -5387,10 +5391,29 @@ namespace CapriDesktop
             ApplyHidden(value || fullScreenHidden);
         }
 
+        internal bool KeepAwake { get { return !preferences.NoKeepAwake; } }
         internal bool HideFullScreen { get { return preferences.HideFullScreen; } }
         internal bool PlayerFullScreen { get { return preferences.PlayerFullScreen; } }
         internal bool ExploreAway { get { return preferences.ExploreAway; } }
         internal int ExploreAfter { get { return preferences.ExploreAfter > 0 ? preferences.ExploreAfter : 300; } }
+
+        internal void ToggleKeepAwake()
+        {
+            preferences.NoKeepAwake = !preferences.NoKeepAwake;
+            CheckKeepAwake();
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        private void CheckKeepAwake()
+        {
+            if (testing && keepAwakeTest == null) return;
+            bool wanted = KeepAwake && !quitting && (job != null || working != null || lookout.Count > 0);
+            if (wanted == keepAwakeWanted) return;
+            keepAwakeWanted = wanted;
+            uint state = Native.ES_CONTINUOUS | (wanted ? Native.ES_SYSTEM_REQUIRED | Native.ES_DISPLAY_REQUIRED : 0);
+            if (keepAwakeTest != null) keepAwakeTest(state); else Native.SetThreadExecutionState(state);
+        }
 
         internal void ToggleHideFullScreen()
         {
@@ -9624,6 +9647,8 @@ namespace CapriDesktop
         {
             if (disposing)
             {
+                quitting = true;
+                CheckKeepAwake();
                 clips.Dispose();
                 Native.Lower(false);
                 CloseMinis();
@@ -9651,6 +9676,138 @@ namespace CapriDesktop
             DateTime at;
             return line.Length >= 19 && DateTime.TryParseExact(line.Substring(0, 19), "yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out at)
                 && at >= from.AddTicks(-(from.Ticks % TimeSpan.TicksPerSecond));
+        }
+
+        private void KeepAwakeChecks(System.Collections.Generic.List<string> checks)
+        {
+            DataContractJsonSerializer awakeSerializer = new DataContractJsonSerializer(typeof(Preferences));
+            Preferences awakeBlank = new Preferences(), awakeOld;
+            using (MemoryStream awakeMissing = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}"))) awakeOld = (Preferences)awakeSerializer.ReadObject(awakeMissing);
+            if (awakeBlank.NoKeepAwake || Preferences.Fresh().NoKeepAwake || awakeOld.NoKeepAwake) throw new Exception("Keeping the PC awake did not default on in new and older settings.");
+            foreach (bool awakeOff in new[] { true, false })
+            {
+                awakeBlank.NoKeepAwake = awakeOff;
+                using (MemoryStream awakeSaved = new MemoryStream())
+                {
+                    awakeSerializer.WriteObject(awakeSaved, awakeBlank);
+                    awakeSaved.Position = 0;
+                    if (((Preferences)awakeSerializer.ReadObject(awakeSaved)).NoKeepAwake != awakeOff) throw new Exception("Keep PC awake for jobs did not save and load.");
+                }
+            }
+            checks.Add("PASS Keep PC awake for jobs defaults on in new and older settings and saves and loads both choices");
+
+            bool awakeLabel = false;
+            foreach (SelfKnow.Topic awakeTopic in SelfKnow.Topics)
+                if (awakeTopic.Label == "Keep PC awake for jobs" && awakeTopic.File == "Mainframe.cs") awakeLabel = true;
+            string awakeHelp = SelfKnow.Matching("Explain the Keep PC awake for jobs setting") ?? "";
+            if (!awakeLabel || !awakeHelp.Contains("both the PC and screen") || !awakeHelp.Contains("closed laptop lid still sleeps")
+                || !awakeHelp.Contains("never wakes a sleeping screen") || !awakeHelp.Contains("half an hour")) throw new Exception("She did not know what Keep PC awake for jobs does.");
+            checks.Add("PASS Keep PC awake for jobs has its exact label in self knowledge and explains both PC and screen, the laptop lid and separate away exploring");
+
+            if (lookout.Count > 0)
+            {
+                checks.Add("LIMIT keep awake transitions and Settings row: a screen watch is already active in her smoke scene");
+                return;
+            }
+            Preferences awakePreferences = preferences;
+            Job awakeJob = job;
+            string awakeWorking = working;
+            bool awakeQuitting = quitting, awakeWanted = keepAwakeWanted, awakeExploring = exploring, awakeSettings = mainframe.SettingsShown;
+            bool awakeAutomatic = lookout.Automatic;
+            Func<string> awakeUnseeing = lookout.Unseeing;
+            Func<uint, uint> awakeNative = keepAwakeTest;
+            int awakeThread = Thread.CurrentThread.ManagedThreadId;
+            System.Collections.Generic.List<uint> awakeCalls = new System.Collections.Generic.List<uint>();
+            try
+            {
+                preferences = new Preferences();
+                job = null;
+                working = null;
+                quitting = keepAwakeWanted = exploring = false;
+                lookout.Automatic = false;
+                lookout.Unseeing = delegate { return null; };
+                keepAwakeTest = delegate(uint awakeState)
+                {
+                    if (Thread.CurrentThread.ManagedThreadId != awakeThread || InvokeRequired) throw new Exception("The awake hold left her UI thread.");
+                    awakeCalls.Add(awakeState);
+                    return 0x80000000;
+                };
+                mainframe.ShowSettings(true);
+                mainframe.Sync();
+                if (!KeepAwake || !mainframe.KeepAwakeShown || !mainframe.DesktopSettingsFit) throw new Exception("Keep PC awake for jobs did not show on or fit beside the other HABITS rows.");
+                CheckKeepAwake();
+                CheckKeepAwake();
+                if (awakeCalls.Count != 0) throw new Exception("An idle tick took an awake hold.");
+
+                job = new Job("keep awake check");
+                working = "Working.";
+                CheckKeepAwake();
+                CheckKeepAwake();
+                job = null;
+                CheckKeepAwake();
+                if (awakeCalls.Count != 1 || awakeCalls[0] != 0x80000003) throw new Exception("Starting a job did not hold both PC and display exactly once, or working lost the hold.");
+                working = null;
+                CheckKeepAwake();
+                CheckKeepAwake();
+                if (awakeCalls.Count != 2 || awakeCalls[1] != 0x80000000) throw new Exception("Ending the last job did not clear its awake hold exactly once.");
+
+                job = new Job("waiting for an answer");
+                job.Waiting = new System.Collections.Generic.KeyValuePair<string, ToolArguments>("click", new ToolArguments());
+                CheckKeepAwake();
+                CheckKeepAwake();
+                if (!job.Asking || awakeCalls.Count != 3 || awakeCalls[2] != 0x80000003) throw new Exception("A job waiting for their answer did not keep both PC and display awake.");
+                job = null;
+                CheckKeepAwake();
+                if (awakeCalls.Count != 4 || awakeCalls[3] != 0x80000000) throw new Exception("Finishing a waiting job did not release its awake hold.");
+
+                lookout.Run(new ToolArguments { Text = "keep awake smoke watch", Often = "every_time" });
+                CheckKeepAwake();
+                job = new Job("a job beside a watch");
+                CheckKeepAwake();
+                job = null;
+                CheckKeepAwake();
+                if (lookout.Count != 1 || awakeCalls.Count != 5 || awakeCalls[4] != 0x80000003) throw new Exception("An active watch did not keep the hold through a job ending.");
+                lookout.Run(new ToolArguments { Action = "stop", Text = "keep awake smoke watch" });
+                CheckKeepAwake();
+                if (awakeCalls.Count != 6 || awakeCalls[5] != 0x80000000) throw new Exception("Ending the last watch did not clear its awake hold.");
+                checks.Add("PASS keep awake uses a native stand-in on the UI thread: jobs and waiting answers set both PC and display once, unchanged ticks do nothing, an active watch holds through a job ending, and the last job or watch clears once");
+
+                job = new Job("switch off during a job");
+                CheckKeepAwake();
+                if (awakeCalls.Count != 7 || awakeCalls[6] != 0x80000003) throw new Exception("A new job did not reacquire the awake hold.");
+                mainframe.FlipKeepAwake();
+                if (KeepAwake || mainframe.KeepAwakeShown || !LoadPreferences().NoKeepAwake || awakeCalls.Count != 8 || awakeCalls[7] != 0x80000000) throw new Exception("Switching off mid-job did not save and clear the awake hold immediately.");
+                CheckKeepAwake();
+                if (awakeCalls.Count != 8) throw new Exception("An off switch let the job reacquire the awake hold.");
+                mainframe.FlipKeepAwake();
+                if (!KeepAwake || !mainframe.KeepAwakeShown || LoadPreferences().NoKeepAwake || awakeCalls.Count != 9 || awakeCalls[8] != 0x80000003) throw new Exception("Switching on mid-job did not save and restore the awake hold.");
+                quitting = true;
+                CheckKeepAwake();
+                CheckKeepAwake();
+                if (awakeCalls.Count != 10 || awakeCalls[9] != 0x80000000) throw new Exception("Quitting did not clear the awake hold exactly once.");
+                quitting = false;
+                job = null;
+                preferences.ExploreAway = exploring = true;
+                CheckKeepAwake();
+                if (awakeCalls.Count != 10 || ExploreFor != 1800) throw new Exception("Away exploring took an awake hold or lost its half-hour stop.");
+                checks.Add("PASS keep awake HABITS row fits, starts on and saves both choices; switching off mid-job clears immediately, switching on restores it, quitting clears once and away exploring alone takes no hold");
+            }
+            finally
+            {
+                lookout.Run(new ToolArguments { Action = "stop", Text = "keep awake smoke watch" });
+                lookout.Automatic = awakeAutomatic;
+                lookout.Unseeing = awakeUnseeing;
+                preferences = awakePreferences;
+                job = awakeJob;
+                working = awakeWorking;
+                quitting = awakeQuitting;
+                keepAwakeWanted = awakeWanted;
+                keepAwakeTest = awakeNative;
+                exploring = awakeExploring;
+                SavePreferences();
+                mainframe.ShowSettings(awakeSettings);
+                mainframe.Sync();
+            }
         }
 
         private static void DesktopChecks(System.Collections.Generic.List<string> checks)
@@ -17941,6 +18098,7 @@ namespace CapriDesktop
                             checks.Add("PASS Settings switches: Use her cursor starts on, and SECURITY sits where Blackwall mode was under HABITS, showing Trusted with \"She asks before paying or what you didn't say.\" under it; the old Blackwall switch picks the Blackwall preset and back");
                             SecurityChecks(checks, output);
                             DesktopChecks(checks);
+                            KeepAwakeChecks(checks);
                             DesktopWindowChecks(checks);
                             string runKeyWas = Startup.RunKey, approvedKeyWas = Startup.ApprovedKey, startupRoot = "Software\\Capri smoke " + Guid.NewGuid().ToString("N");
                             string startupExe = Path.GetFullPath(Application.ExecutablePath), elsewhere = Path.Combine(Path.GetTempPath(), "Capri elsewhere", "Capri.exe"), startupShown;
@@ -27927,6 +28085,8 @@ namespace CapriDesktop
         [DllImport("user32.dll", SetLastError = true)] private static extern bool UpdateLayeredWindow(IntPtr window, IntPtr screen, ref Point destination, ref Size size, IntPtr source, ref Point origin, int colorKey, ref Blend blend, int flags);
         [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
         [DllImport("kernel32.dll")] private static extern bool GetSystemTimes(out long idle, out long kernel, out long user);
+        internal const uint ES_CONTINUOUS = 0x80000000, ES_SYSTEM_REQUIRED = 0x00000001, ES_DISPLAY_REQUIRED = 0x00000002;
+        [DllImport("kernel32.dll")] internal static extern uint SetThreadExecutionState(uint state);
 
         // Every CPU's idle time and its total time so far, in 100 ns ticks. Kernel time counts idle time too.
         internal static bool CpuTimes(out long idle, out long total)
