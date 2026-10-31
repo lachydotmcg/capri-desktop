@@ -926,6 +926,7 @@ namespace CapriDesktop
         private readonly GameDock gaming = new GameDock();
         private bool docked, dockHid, gameKey;
         private double gameCheck;
+        private Job jobDock;
         private string dockTalk, dockWords = "";
 
         internal bool GamingOn { get { return gaming.State != GameDock.Stage.Off; } }
@@ -977,10 +978,24 @@ namespace CapriDesktop
             Answer(++asking, line, TalkState.Talking);
         }
 
+        // A job that's playing a game brings Gaming Mode up by itself once the game's in front. It goes the same way as any other
+        // Gaming Mode, when the game closes or they turn it off. Once a job, so turning it off holds until her next one.
+        private void DockForJob(Job running)
+        {
+            if (running == null || running == jobDock) return;
+            if (GamingOn) { jobDock = running; return; }
+            if (gaming.Find() == null) return;
+            jobDock = running;
+            GamingSay(GamingMode("on"));
+        }
+
         private void CheckGame(double now)
         {
-            if (!GamingOn || now < gameCheck) return;
+            bool playing = PlayingGame;
+            if ((!GamingOn && !playing) || now < gameCheck) return;
             gameCheck = now + 1;
+            if (playing) DockForJob(job);
+            if (!GamingOn) return;
             gaming.Check(now);
             if (!docked) return;
             GameHud.Status(!preferences.Silent, shushed);
@@ -1021,6 +1036,8 @@ namespace CapriDesktop
             pill.Hide();
             typer.Hide();
             if (box.Visible) box.Hide();
+            // A job that's already running moves to the HUD, as one started in Gaming Mode does.
+            taskPanel.Stop();
             visibilityItem.Text = "Hide Capri";
             GameHud.Status(!preferences.Silent, shushed);
             GameHud.Show(game.Bounds);

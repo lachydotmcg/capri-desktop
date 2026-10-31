@@ -15509,12 +15509,29 @@ namespace CapriDesktop
                 bool keyOn = gaming.State == GameDock.Stage.Armed && heard == "gaming mode";
                 ToggleGaming();
                 bool keyOff = !GamingOn;
+                Job gameJob = new Job("play Minecraft");
+                DockForJob(gameJob);
+                bool jobNoGame = !GamingOn;
+                front = game;
+                taskPanel.Begin(gameJob, "play Minecraft", Screen.FromControl(this).WorkingArea);
+                DockForJob(gameJob);
+                bool jobIn = docked && !taskPanel.Showing;
+                gaming.Off();
+                DockForJob(gameJob);
+                bool jobStayedOff = !GamingOn;
+                gaming.On(8300);
+                Job nextJob = new Job("play Minecraft");
+                DockForJob(nextJob);
+                gaming.Off();
+                DockForJob(nextJob);
+                bool jobKept = !GamingOn;
+                front = null;
                 CloseTalk();
                 anchor = home;
                 Location = anchor;
-                if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden || !keyOn || !keyOff)
-                    throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + "/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden + ", key " + keyOn + "/" + keyOff);
-                checks.Add("PASS Gaming Mode: her words reach it and chat about it doesn't; with no game she stays armed and docks when one comes up; docked her body and bubble are gone, the HUD is click-through and never active, and it shows what she says, THINKING, a job's status, LISTENING with live words and her quiet key; the HUD moves per game and starts under Cyberpunk's health bar; turning it off, or the game exiting, puts her back where she was; a launcher's game takes over; exclusive full screen is mentioned once; and the hide key and her tray icon end it");
+                if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden || !keyOn || !keyOff || !jobNoGame || !jobIn || !jobStayedOff || !jobKept)
+                    throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + "/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden + ", key " + keyOn + "/" + keyOff + ", game job " + jobNoGame + "/" + jobIn + "/" + jobStayedOff + "/" + jobKept);
+                checks.Add("PASS Gaming Mode: her words reach it and chat about it doesn't; with no game she stays armed and docks when one comes up; docked her body and bubble are gone, the HUD is click-through and never active, and it shows what she says, THINKING, a job's status, LISTENING with live words and her quiet key; the HUD moves per game and starts under Cyberpunk's health bar; turning it off, or the game exiting, puts her back where she was; a launcher's game takes over; exclusive full screen is mentioned once; the hide key and her tray icon end it; and a game job docks her once the game's in front, moves its panel to the HUD, and stays off when it's turned off");
             }
             finally
             {
