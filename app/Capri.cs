@@ -19033,9 +19033,9 @@ namespace CapriDesktop
                             if (Width != 170 + PaddingSize * 2) throw new Exception("Small size failed.");
                             ((ToolStripMenuItem)((ToolStripMenuItem)menu.Items[4]).DropDownItems[1]).PerformClick();
                             checks.Add("PASS size menu");
-                            string[] tops = new string[menu.Items.Count];
-                            for (int i = 0; i < tops.Length; i++) tops[i] = menu.Items[i].Text;
-                            if (string.Join(",", tops) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,Hide Capri,Size,Move,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops));
+                            System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
+                            foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,Hide Capri,Size,Move,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;
