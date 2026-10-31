@@ -233,6 +233,7 @@ namespace CapriDesktop
         [DataMember] public bool ListenCapri;
         [DataMember] public bool ListenCapriTold;
         [DataMember] public bool NoDance;
+        [DataMember] public bool NoHeadPats;
         [DataMember] public string Language;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
@@ -2825,7 +2826,7 @@ namespace CapriDesktop
 
         private void Stroke(Point cursor)
         {
-            if (pressed || dragging || riding || hidden || chatting || working != null || frame == null || !Solid(PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
+            if (preferences.NoHeadPats || pressed || dragging || riding || hidden || chatting || working != null || frame == null || !Solid(PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
             int dx = cursor.X - petX;
             if (Math.Abs(dx) < 6) return;
             long now = clock.ElapsedMilliseconds;
@@ -4367,6 +4368,15 @@ namespace CapriDesktop
         internal bool Dancing { get { return !preferences.NoDance; } }
 
         internal bool Intro { get { return !preferences.NoIntro; } }
+
+        internal bool HeadPats { get { return !preferences.NoHeadPats; } }
+
+        internal void ToggleHeadPats()
+        {
+            preferences.NoHeadPats = !preferences.NoHeadPats;
+            SavePreferences();
+            mainframe.Sync();
+        }
 
         internal bool VoiceWorking { get { return voice.Ready && !preferences.Quiet && !voiceBroken; } }
 
@@ -10412,6 +10422,27 @@ namespace CapriDesktop
                 Petted();
                 petTicket++;
                 if (Asleep || napping) throw new Exception("A pet did not wake her.");
+                Point patSpot = Point.Empty;
+                for (int patRow = 0; patRow < frame.Height && patSpot.IsEmpty; patRow += 8)
+                    for (int patColumn = 0; patColumn + 10 < frame.Width && patSpot.IsEmpty; patColumn += 8)
+                        if (Solid(new Point(patColumn, patRow)) && Solid(new Point(patColumn + 10, patRow))) patSpot = new Point(patColumn, patRow);
+                patSpot = PointToScreen(patSpot);
+                Func<int> patRub = delegate
+                {
+                    int patFrom = petTicket;
+                    petAt = -60000;
+                    petX = patSpot.X;
+                    petWay = 0;
+                    petTurns.Clear();
+                    for (int patTurn = 0; patTurn < 6; patTurn++) Stroke(new Point(patSpot.X + (patTurn % 2 == 0 ? 10 : 0), patSpot.Y));
+                    petTicket++;
+                    return petTicket - patFrom - 1;
+                };
+                if (patRub() != 1) throw new Exception("Rubbing the cursor over her did not count as a head pat.");
+                preferences.NoHeadPats = true;
+                int patsOff = patRub();
+                preferences.NoHeadPats = false;
+                if (patsOff != 0) throw new Exception("Head pats stayed on with the switch off.");
                 napReset();
                 Play(sleep);
                 napping = true;
@@ -12200,7 +12231,9 @@ namespace CapriDesktop
                 { "how do I change the game break setting?", "Game break" },
                 { "how do I edit check-in lines?", "Edit check-in lines" },
                 { "how do I save a routine?", "Routines" },
-                { "how does your wake word work?", "Listen for \"Hey Capri\"" }
+                { "how does your wake word work?", "Listen for \"Hey Capri\"" },
+                { "how do I turn off head pats?", "Head pats" },
+                { "where did my settings go?", "Advanced Settings" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
             {
@@ -23568,6 +23601,10 @@ namespace CapriDesktop
                             bool sizedBack = Math.Abs(mainframe.Zoom - sizedFrom) < 0.01f && mainframe.ClientSize.Width == sizedWide && preferences.MainframeSize == 0 && mainframe.FrameSizeShown.StartsWith("Auto", StringComparison.Ordinal);
                             if (Math.Abs(sizedTo - 1.5f) > 0.01f || sizedBig <= sizedWide || sizedCrowd != null || !sizedSaved || !sizedBack) throw new Exception("The Mainframe size setting went wrong: zoom " + sizedFrom + " to " + sizedTo + ", " + sizedWide + " to " + sizedBig + " px wide, crowded " + sizedCrowd + ", saved " + sizedSaved + ", back " + sizedBack + " (" + mainframe.FrameSizeShown + ")");
                             checks.Add("PASS her Mainframe size: 150% grows Settings with nothing overlapping or poking out and is saved, and Auto puts it back as it was (Auto is " + mainframe.FrameSizeShown + " here)");
+                            ToggleHeadPats();
+                            if (HeadPats || mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them off.");
+                            ToggleHeadPats();
+                            if (!HeadPats || !mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them back on.");
                             SetVolume(50);
                             SetSoundLevel(30);
                             SetSleepAfter(600);

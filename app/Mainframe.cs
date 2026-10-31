@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1340;
+        private const int PageTall = 1368;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -102,6 +102,7 @@ namespace CapriDesktop
         private readonly Readout sizeName;
         private readonly Toggle checkIns;
         private readonly Toggle onTop;
+        private readonly Toggle headPats;
         private readonly Toggle startup;
         private readonly Toggle discord;
         private readonly Toggle cursor;
@@ -234,12 +235,12 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1048, 1100 }, new[] { 1128, 1184 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 316, 698 }, new[] { 894, 2000 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 344, 726 }, new[] { 922, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
-        private const int SimpleTall = 500;
+        private const int SimpleTall = 528;
         private int wheel;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
@@ -605,6 +606,9 @@ namespace CapriDesktop
             frameSizeName = new Readout(frameSize);
             frameSize.Changed += delegate { if (!syncing) ShowFrameSize(); };
             frameSize.Released += delegate { if (!syncing) { capri.SetMainframeSize(FrameSizes[frameSize.Value]); Rezoom(Wanted()); ShowFrameSize(); } };
+            headPats = Switch("Head pats", c, 194, delegate { if (!syncing) capri.ToggleHeadPats(); });
+            headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
+            int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
             watch = Switch("Watch my screen", c, 232, delegate { if (!syncing) capri.ToggleWatch(); });
             watch.AccessibleName = "Watch my screen. She comments now and then";
@@ -726,6 +730,9 @@ namespace CapriDesktop
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
+            // Head pats took a row under Mainframe size, so the rest of this column sits one lower.
+            for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row;
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
             underVoice.Add(new KeyValuePair<Control, int>(gameMute, gameMute.Top));
             for (int i = first; i < Controls.Count; i++)
@@ -970,6 +977,8 @@ namespace CapriDesktop
         internal string HabitsStatus { get { return startup.Checked ? "startup" : "-"; } }
 
         internal bool DiscordShown { get { return discord.Checked; } }
+
+        internal bool HeadPatsShown { get { return headPats.Checked; } }
 
         internal string JobsStatus { get { return (cursor.Checked ? "cursor" : "-") + " | " + security.Text; } }
 
@@ -1692,6 +1701,7 @@ namespace CapriDesktop
             pops.Value = Math.Max(0, Math.Min(PopNames.Length - 1, capri.PopPace));
             popsName.Text = PopNames[pops.Value];
             dance.Checked = capri.Dancing;
+            headPats.Checked = capri.HeadPats;
             bubble.Value = capri.BubbleTime;
             bubbleName.Text = BubbleNames[bubble.Value];
             comments.Value = capri.CommentPace;
