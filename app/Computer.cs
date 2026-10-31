@@ -1093,7 +1093,7 @@ namespace CapriDesktop
             Bitmap shot = new Bitmap(area.Width, area.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
             try
             {
-                using (Graphics graphics = Graphics.FromImage(shot)) graphics.CopyFromScreen(area.Location, Point.Empty, area.Size, System.Drawing.CopyPixelOperation.SourceCopy | System.Drawing.CopyPixelOperation.CaptureBlt);
+                using (Graphics graphics = Graphics.FromImage(shot)) Native.CopyScreen(graphics, area.Location, area.Size);
                 return shot;
             }
             catch { shot.Dispose(); throw; }

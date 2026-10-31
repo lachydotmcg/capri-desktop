@@ -6270,7 +6270,7 @@ namespace CapriDesktop
             Bitmap shot = new Bitmap(area.Width, area.Height, PixelFormat.Format24bppRgb);
             try
             {
-                using (Graphics graphics = Graphics.FromImage(shot)) graphics.CopyFromScreen(area.Location, Point.Empty, area.Size, CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);
+                using (Graphics graphics = Graphics.FromImage(shot)) Native.CopyScreen(graphics, area.Location, area.Size);
                 return shot;
             }
             catch { shot.Dispose(); throw; }
@@ -29389,6 +29389,16 @@ namespace CapriDesktop
         [DllImport("user32.dll", SetLastError = true)] internal static extern bool PostMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
         [DllImport("user32.dll")] internal static extern int MsgWaitForMultipleObjectsEx(int count, IntPtr[] handles, int milliseconds, int wake, int flags);
         [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr window);
+        [DllImport("gdi32.dll", SetLastError = true)] private static extern bool BitBlt(IntPtr target, int x, int y, int width, int height, IntPtr source, int fromX, int fromY, uint how);
+
+        // A screenshot with her ink in it. Windows skips layered windows unless it's told CAPTUREBLT, and .NET's CopyFromScreen won't take that flag beside SRCCOPY.
+        internal static void CopyScreen(Graphics graphics, Point from, Size size)
+        {
+            IntPtr screen = GetDC(IntPtr.Zero), target = graphics.GetHdc();
+            try { if (!BitBlt(target, 0, 0, size.Width, size.Height, screen, from.X, from.Y, 0x40CC0020)) throw new System.ComponentModel.Win32Exception(); }
+            finally { graphics.ReleaseHdc(target); ReleaseDC(IntPtr.Zero, screen); }
+        }
+
         [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr window, IntPtr dc);
         [DllImport("gdi32.dll")] private static extern IntPtr CreateCompatibleDC(IntPtr dc);
         [DllImport("gdi32.dll")] private static extern bool DeleteDC(IntPtr dc);
