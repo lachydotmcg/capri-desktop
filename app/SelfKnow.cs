@@ -56,7 +56,7 @@ namespace CapriDesktop
                 "Mainframe > Settings > CAPRI > Head pats is on by default. Rub the cursor back and forth over her and she grins and says a line, at most once every 20 seconds, and a pat wakes her from a nap. Turned off, rubbing the cursor over her does nothing.", "Mainframe.cs", "Head pats"),
             new Topic("Advanced Settings", "advanced settings|simple settings|more settings|all your settings|all the settings|cant find that setting|cant find the setting|where did that setting go|where did my settings go|where did the settings go|settings are missing",
                 "Mainframe > Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which you left it on.", "Mainframe.cs", "Advanced Settings"),
-            new Topic("Extras", "extras window|the extras|your extras|first launch picker",
+            new Topic("Extras", "extras window|extras screen|your extras|first launch picker",
                 "On a new install's first launch she opens EXTRAS over the Mainframe with four switches, all off: Watch my screen, Comment on my games, Clip my games and Listen for Capri. Each costs something or uses the mic, so they're your pick, and Done closes it. All four are in Settings as well: WATCH, GAMES, GAMES and VOICE. Comment on my games is GAMES > Comments set to its middle step.", "Mainframe.cs", "EXTRAS >"),
             new Topic("Language", "your language|her language|change language|speak another language",
                 "Mainframe > Settings > YOU > Language chooses the language she replies in. Changing it starts a fresh recent chat.", "Mainframe.cs", "Language"),
