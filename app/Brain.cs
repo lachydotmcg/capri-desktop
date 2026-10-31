@@ -1622,7 +1622,7 @@ namespace CapriDesktop
             lock (gate)
                 for (int i = Math.Max(0, history.Count - 10); i < history.Count; i++)
                     if (history[i].Role == "assistant" && Regex.IsMatch(history[i].Content ?? "", @"\bgood (boy|girl)\b", RegexOptions.IgnoreCase)) praised = true;
-            string said = Unclosed(Fresh(Unpraised(Sparing(Clean(raw), lately, name), praised), request, saidLately));
+            string said = done != null && calls.Exists(pathCall => pathCall.Key == "find_file" || pathCall.Key == "website_nickname") ? done : Unclosed(Fresh(Unpraised(Sparing(Clean(raw), lately, name), praised), request, saidLately));
             if (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs)) said = "";
             if (said.Length == 0 && done != null) said = done;
             if (said.Length == 0) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);

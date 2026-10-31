@@ -1425,6 +1425,7 @@ namespace CapriDesktop
             Brain.MemoryPath = Path.Combine(data, "me.md");
             reminders = new Reminders(data, DateTime.Now);
             Brain.MemoriesPath = Path.Combine(data, "memories.md");
+            Hands.Websites = new Websites(data);
             Brain.TranscriptPath = Path.Combine(data, "transcripts");
             GameNotes.Folder = Path.Combine(data, "games");
             Hands.GameOpen = delegate { return Computer.GameOpen(); };
@@ -3802,6 +3803,12 @@ namespace CapriDesktop
         {
             // Esc ends the whole ask: once it stops a job, the rest of that ask's tools and jobs don't run.
             if (ticket == escAsk) return "";
+            if (tool == "use_computer" && args != null && !string.IsNullOrWhiteSpace(args.Task))
+            {
+                string musicTool;
+                ToolArguments musicArgs;
+                if (Hands.Heard(args.Task, out musicTool, out musicArgs) && musicTool == "play_music") { tool = musicTool; args = musicArgs; }
+            }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
             string asked = Security.Gate(tool, args);
             if (asked != null) return asked;
@@ -3815,6 +3822,8 @@ namespace CapriDesktop
                 if (mouse) Monitor.Enter(mouseGate, ref held);
                 // Esc stopped this ask's job while this one waited its turn.
                 if (ticket == escAsk) done = "";
+                else if (tool == "find_file") done = Hands.Finder.Do(args ?? new ToolArguments(), delegate { return ticket != asking || ticket == escAsk || quitting; });
+                else if (tool == "website_nickname") done = Hands.Do(tool, args);
                 else if (task == null) done = Hands.Do(tool, args);
                 else
                 {
@@ -3843,8 +3852,7 @@ namespace CapriDesktop
                 string song = args.Song.Trim();
                 bool spotify = args.App == "spotify" || (args.App != "youtube" && Hands.Installed("spotify"));
                 if (!spotify) return "Play " + Voice.Quote(song) + " on YouTube: open YouTube, click its search bar, type " + Voice.Quote(song) + " and press Enter, scroll down through the results and look at a few, then click the video that fits best.";
-                if (Regex.IsMatch(song, @"^liked songs$", RegexOptions.IgnoreCase)) return "Play their Liked Songs on Spotify: open Spotify, go to Your Library, open Liked Songs and press its play button.";
-                return "Play " + Voice.Quote(song) + (string.IsNullOrEmpty(args.Kind) || args.Kind == "song" ? "" : " (the " + args.Kind + ")") + " on Spotify: open Spotify, click its search box, type " + Voice.Quote(song) + " and press Enter, then press play on the best match.";
+                return null;
             }
             if (tool == "open_website" && !string.IsNullOrWhiteSpace(args.Search) && Regex.IsMatch((args.Site ?? "").Trim(), @"^(https?://)?(www\.|m\.)?youtube(\.com)?/?$", RegexOptions.IgnoreCase))
                 return "Search YouTube for " + Voice.Quote(args.Search.Trim()) + (string.IsNullOrEmpty(args.Browser) ? "" : " in " + args.Browser + " using open_website with browser " + Voice.Quote(args.Browser)) + ": open YouTube, click its search bar, type it and press Enter, then scroll down through the results.";
@@ -8294,13 +8302,14 @@ namespace CapriDesktop
                 finally { Free(key); }
                 Finished(told, tool, result, ticket);
             });
-            return StartedLater;
+            return tool == "find_file" ? "Capri is searching file and folder names on a worker. She will show the paths when it finishes. Don't call it again for the same search." : StartedLater;
         }
 
         // How a job that outlasted its tool call went: she says it in the call while it's open, or in her bubble once it's closed.
         private void Finished(Agent told, string tool, string result, int ticket)
         {
             if (string.IsNullOrEmpty(result)) return;
+            if (tool == "find_file" && ticket != asking) return;
             if (Computer.Stopped(result)) { if (escTold == ticket) return; escTold = ticket; }
             lock (shortcutGate) { toolAsked = true; toolDone = result; }
             stirred = Environment.TickCount;
@@ -8308,7 +8317,12 @@ namespace CapriDesktop
             if (heard != null) { heard(result); return; }
             // Their own "stop" in voice chat got its answer from the agent, which only needs to know it happened.
             if (told != null && told.Ready && result != Computer.Escaped && Computer.Stopped(result)) { told.Tell("Capri's hands stopped the job, like they asked. It's over, so don't bring it up again."); return; }
-            if (told != null && told.Ready) { DoneLine(told, tool, result); return; }
+            if (told != null && told.Ready)
+            {
+                if (tool == "find_file") Post(delegate { if (ticket == asking) Begin(ticket, result, TalkState.Talking, null); });
+                DoneLine(told, tool, tool == "find_file" ? FileFinder.Spoken(result) : result);
+                return;
+            }
             Post(delegate { if (talkState != TalkState.Thinking) Answer(++asking, result, TalkState.Talking); });
         }
 
@@ -8321,6 +8335,7 @@ namespace CapriDesktop
                 toolAsked = true;
                 if (tool == shortcutTool && (Environment.TickCount - shortcutAt < 10000 || tool == "listen" && PcEars.Active)) return shortcutResult ?? "Already doing that.";
             }
+            if (tool == "find_file" && args != null && (string.IsNullOrEmpty(args.Action) || args.Action == "search")) return Later(opened, tool, args, "find_file " + args.Description);
             string key = Security.Asks(tool, args) ? null : MouseKey(tool, args);
             if (key != null && Folded(tool, args, key)) return FoldedLater;
             if (key != null) return Later(opened, tool, args, key);
@@ -8410,7 +8425,7 @@ namespace CapriDesktop
                         Post(delegate { Answer(ticket, result, TalkState.Talking); });
                     }
                     else if (Security.IsHold(result)) { if (told != null) told.Tell(result); }
-                    else if (unchecked(Environment.TickCount - began) > 8000) Finished(told, tool, result, ticket);
+                    else if (tool == "find_file" || unchecked(Environment.TickCount - began) > 8000) Finished(told, tool, result, ticket);
                     else if (told != null) told.Tell("Capri's hands already did what they just asked (" + tool + "): " + result + " Don't call a tool for it again. React to it in one short line.");
                 });
             }
@@ -8439,6 +8454,7 @@ namespace CapriDesktop
             if (promised != null) { string missed = said; ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(4000); lock (shortcutGate) if (toolAsked) return; Brain.Log("https://api.elevenlabs.io/v1/convai/conversation", -1, "Voice chat said she'd do it but no tool ran. Heard: " + promised + " | Said: " + missed); }); }
             Brain.Transcribe("Capri (voice)", said);
             reply = said;
+            lock (shortcutGate) if (toolDone != null && toolDone.StartsWith("The closest match is ", StringComparison.Ordinal)) reply = toolDone;
             replyStart = clock.Elapsed.TotalSeconds;
             replyDone = -1;
             talkState = TalkState.Talking;
@@ -8647,7 +8663,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || brain.Model == null && (quick == "media" || quick == "nap" || quick == "move_yourself" || quick == "animate" || quick == "gaming_mode"))) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
+            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || brain.Model == null && WithoutBrain(quick))) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
             if (think == null && fileMessage) think = brain.Ask;
             if (think == null)
             {
@@ -8693,6 +8709,11 @@ namespace CapriDesktop
 
         // A stuck NVIDIA model hands the message to the next one, twice at most, unless Stay on my model is on.
         private bool Hops(Cloud remote, int switches) { return switches < 2 && !brain.Attachments.Has && !preferences.StayOnModel && SwitchModel(remote); }
+
+        internal static bool WithoutBrain(string tool)
+        {
+            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "gaming_mode";
+        }
 
         private bool SwitchModel(Cloud remote)
         {
@@ -9243,6 +9264,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            Hands.Finder.Stop();
             clips.Dispose();
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= DisplaysChanged;
             StopRide();
@@ -10271,6 +10293,204 @@ namespace CapriDesktop
                 preferences.QuickHands = savedReminderQuick;
                 shushed = savedReminderShush;
                 Security.Load(savedReminderSecurity);
+            }
+        }
+
+        internal static void SmokeRequests(System.Collections.Generic.List<string> checks, string folder)
+        {
+            Func<System.Collections.Generic.List<InstalledApp>> requestCatalog = Hands.Catalog;
+            Func<System.Collections.Generic.List<OpenWindow>> requestWindows = Hands.Windows;
+            Func<string, bool> requestExists = Hands.Exists, requestPlaying = Hands.SongPlaying, requestPress = Hands.PressPlay;
+            Func<string, string> requestFetch = Hands.Fetch, requestBrowser = Hands.BrowserPath, requestOpened = Hands.Opened;
+            Func<string> requestGame = Hands.GameOpen;
+            Func<string, System.Collections.Generic.KeyValuePair<string, ToolArguments>> requestPlan = Hands.Plan;
+            Action<string> requestRun = Hands.Run;
+            Action<string, string> requestBrowse = Hands.Browse;
+            Websites requestWebsites = Hands.Websites;
+            FileFinder requestFinder = Hands.Finder;
+            Func<Tune> requestTune = Tunes.Spotify;
+            try
+            {
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Spotify", "spotify"), new InstalledApp("Minecraft", "minecraft") }; };
+                Hands.Exists = delegate { return false; };
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                Hands.GameOpen = delegate { return null; };
+                Hands.Plan = delegate { return new System.Collections.Generic.KeyValuePair<string, ToolArguments>(); };
+                Hands.Finder = new FileFinder();
+                Hands.Websites = null;
+                Hands.Forget();
+                string[,] requests =
+                {
+                    { "open spotify and play X", "play_music" }, { "play X on spotify", "play_music" }, { "put on my X playlist", "play_music" },
+                    { "open spotify and play Blinding Lights", "play_music" },
+                    { "play Blinding Lights on spotify", "play_music" },
+                    { "put on my driving playlist", "play_music" },
+                    { "open spotify and play my driving playlist", "play_music" },
+                    { "Capri, can you open spotify and play Blinding Lights for me?", "play_music" },
+                    { "let's watch some youtube", "open_website" }, { "lets watch youtube", "open_website" },
+                    { "let's play minecraft", "open_app" }, { "let's listen to some music", "play_music" },
+                    { "wanna watch some youtube", "open_website" }, { "we should open spotify", "open_app" },
+                    { "how about some youtube", "open_website" }, { "time for some youtube", "open_website" }, { "put on some youtube", "open_website" },
+                    { "answer the questions on my screen", "use_computer" }, { "do this quiz", "use_computer" },
+                    { "do this quiz for me", "use_computer" }, { "answer this quiz", "use_computer" },
+                    { "fill in this quiz", "use_computer" }, { "answer these questions", "use_computer" },
+                    { "Hey, Capri. Can you please show me the path to the cyberpunk game folder", "find_file" },
+                    { "find my holiday photos", "find_file" }, { "find budget.xlsx", "find_file" }
+                };
+                string[] conversations = { "let's talk", "let's see", "let's go", "let's be honest", "we should talk", "how about you", "time for bed", "i watched youtube yesterday", "what's a quiz", "i have a quiz tomorrow" };
+                string heardTool;
+                ToolArguments heardArgs;
+                for (int requestIndex = 0; requestIndex < requests.GetLength(0); requestIndex++)
+                {
+                    string wording = requests[requestIndex, 0], expected = requests[requestIndex, 1];
+                    if (!Hands.Heard(wording, out heardTool, out heardArgs) || heardTool != expected || !Hands.Valid(heardTool, heardArgs) || !Hands.Wants(wording)) throw new Exception("Request routed wrong: " + wording + " -> " + heardTool);
+                    if (expected != "use_computer" && !WithoutBrain(heardTool)) throw new Exception("A direct request still needs a brain: " + wording);
+                    if (expected == "use_computer" && heardArgs.Task != wording) throw new Exception("A question job lost their wording.");
+                    if (expected == "play_music" && heardArgs.App == "spotify" && CursorJob(heardTool, heardArgs) != null) throw new Exception("Spotify took a clicking detour.");
+                }
+                foreach (string conversation in conversations)
+                    if (Hands.Heard(conversation, out heardTool, out heardArgs) || Hands.Wants(conversation)) throw new Exception("Conversation became a job: " + conversation);
+                if (Hands.Heard("search youtube for cats and open spotify", out heardTool, out heardArgs) || Hands.Heard("find example.com", out heardTool, out heardArgs) && heardTool == "find_file") throw new Exception("A direct route swallowed a second action or mistook a website for a file.");
+                foreach (string webSearch in new[] { "search for cat videos", "look for funny pictures", "find cheap flights" })
+                    if (Hands.Heard(webSearch, out heardTool, out heardArgs) && heardTool == "find_file") throw new Exception("A web search became a file search: " + webSearch);
+                foreach (string pcSearch in new[] { "where's my homework folder", "look for tax return on my pc", "find my videos folder" })
+                    if (!Hands.Heard(pcSearch, out heardTool, out heardArgs) || heardTool != "find_file") throw new Exception("A search of this PC went elsewhere: " + pcSearch);
+                if (Hands.Heard("wanna play something", out heardTool, out heardArgs)) throw new Exception("Wanna play something picked a song: " + heardTool);
+                if (Hands.Heard("remember my score is 12.5", out heardTool, out heardArgs) && heardTool == "website_nickname") throw new Exception("A note became a website nickname.");
+                checks.Add("PASS suggestions and screen questions: every reported ask routes through Heard, Wants and Direct; ordinary conversation stays chat, quizzes use a normal job, and opening apps, sites and music works without a brain");
+
+                System.Collections.Generic.List<string> launches = new System.Collections.Generic.List<string>();
+                int playClicks = 0, musicFetches = 0;
+                Hands.Run = delegate(string launched) { launches.Add(launched); };
+                Hands.Fetch = delegate { musicFetches++; return "<a href=\"https://open.spotify.com/track/0VjIjW4GlUZAMYd2vXMi3b\">Blinding Lights by The Weeknd</a>"; };
+                Hands.SongPlaying = delegate { return true; };
+                Hands.PressPlay = delegate { playClicks++; return true; };
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> picked = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+                picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = "open spotify and play Blinding Lights" }));
+                Hands.Rescue("open spotify and play Blinding Lights", picked);
+                if (picked.Count != 1 || picked[0].Key != "play_music") throw new Exception("The brain's clicking choice was not corrected.");
+                string musicResult = Hands.Do("use_computer", new ToolArguments { Task = "play Blinding Lights on spotify" });
+                if (!musicResult.StartsWith("Playing ", StringComparison.Ordinal) || launches.Count != 1 || launches[0] != "spotify:track:0VjIjW4GlUZAMYd2vXMi3b" || playClicks != 0) throw new Exception("A known track clicked or opened a browser.");
+                int beforePrivate = musicFetches;
+                Hands.Do("play_music", new ToolArguments { Song = "my driving", Kind = "playlist", App = "spotify" });
+                if (musicFetches != beforePrivate || launches[launches.Count - 1] != "spotify:search:driving" || playClicks != 1) throw new Exception("An own playlist used a public URI or repeated Play.");
+                string similarSongs = "<a href=\"https://open.spotify.com/track/1111111111111111111111\">Blinding Lights by Someone Else</a><a href=\"https://open.spotify.com/track/2222222222222222222222\">Blinding Lights by The Weeknd</a>";
+                if (Hands.SpotifyLink(similarSongs, "song", "Blinding Lights by The Weeknd") != "2222222222222222222222") throw new Exception("A same-name song hid the requested artist.");
+                for (int musicSpec = 0; musicSpec < Hands.Count; musicSpec++)
+                    if (Hands.Name(musicSpec) == "play_music" && !Hands.ElevenLabsTool(musicSpec).Contains("\"response_timeout_secs\":60")) throw new Exception("Spotify's playback wait outlasts its voice tool.");
+                ToolArguments desired = new ToolArguments { Song = "Blinding Lights by The Weeknd", Kind = "song", App = "spotify" };
+                Tune requestedTune = new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "Spotify.exe", Playing = true };
+                if (!Hands.Started(desired, requestedTune, requestedTune) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "Spotify.exe", Playing = false }) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "Someone Else", App = "Spotify.exe", Playing = true }) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "chrome", Playing = true })) throw new Exception("Playback used a title without its playing state, artist or app.");
+                if (!Hands.Started(new ToolArguments { Song = "blinding lights the weeknd", Kind = "song" }, null, requestedTune)) throw new Exception("A song named with its artist never counted as playing.");
+                int quietClicks = playClicks;
+                Hands.SongPlaying = delegate { return false; };
+                string unstarted = Hands.Do("play_music", new ToolArguments { Song = "Blinding Lights", Kind = "song", App = "spotify" });
+                if (playClicks != quietClicks + 1 || !unstarted.StartsWith("Playing ", StringComparison.Ordinal)) throw new Exception("A track that didn't start by itself never got its Play pressed: " + unstarted);
+                Hands.SongPlaying = delegate { return true; };
+                checks.Add("PASS Spotify: direct and brain-picked music stays play_music, a track that's playing is left alone, a track that didn't start gets one Play, own playlists search Spotify once, and playing means Spotify's own session with the title and artist; paused, wrong-artist and other-app sessions don't count");
+                checks.Add("LIMIT live Spotify playback and personal playlist controls: URI launches, Play and Windows media sessions use stand-ins here");
+
+                string fixture = Path.Combine(folder, Guid.NewGuid().ToString("N"));
+                try { Directory.CreateDirectory(fixture); File.WriteAllText(Path.Combine(fixture, "writable.txt"), "names only"); }
+                catch (IOException) { checks.Add("LIMIT website and file fixtures: the smoke folder isn't writable"); return; }
+                catch (UnauthorizedAccessException) { checks.Add("LIMIT website and file fixtures: the smoke folder isn't writable"); return; }
+                Hands.Websites = new Websites(fixture);
+                Hands.Websites.Current = delegate { return "https://example.com/current"; };
+                foreach (string remembering in new[] { "remember this website as apples", "call this site apples", "remember apples is example.com/page", "Capri, please remember this website that I am currently on as 'apples'" })
+                {
+                    if (!Hands.Heard(remembering, out heardTool, out heardArgs) || heardTool != "website_nickname" || !Hands.Wants(remembering) || !Hands.Valid(heardTool, heardArgs)) throw new Exception("Website saving routed wrong: " + remembering);
+                    if (!Hands.Do(heardTool, heardArgs).StartsWith("I'll remember apples as https://example.com/", StringComparison.Ordinal)) throw new Exception("Website nickname was not saved.");
+                }
+                Hands.Websites = new Websites(fixture);
+                if (Hands.Websites.Find("APPLES") != "https://example.com/current") throw new Exception("Website nicknames did not survive reload.");
+                Hands.BrowserPath = delegate { return "chrome.exe"; };
+                Hands.Browse = delegate(string browserPath, string address) { launches.Add(browserPath + " " + address); };
+                Hands.Opened = delegate { return ""; };
+                foreach (string opening in new[] { "open apples", "check out the apples website", "go to apples", "take me to apples", "open apples in chrome", "capri can you check out the apples website" })
+                {
+                    if (!Hands.Heard(opening, out heardTool, out heardArgs) || heardTool != "open_website" || heardArgs.Site != "apples" || !Hands.Wants(opening)) throw new Exception("Website opening routed wrong: " + opening);
+                    Hands.Do(heardTool, heardArgs);
+                    if (!launches[launches.Count - 1].EndsWith("https://example.com/current", StringComparison.Ordinal)) throw new Exception("A nickname became a search.");
+                    if (opening.EndsWith("in chrome", StringComparison.Ordinal) && launches[launches.Count - 1] != "chrome.exe https://example.com/current") throw new Exception("A nickname lost the named browser.");
+                }
+                if (Hands.Heard("open apples pie", out heardTool, out heardArgs) || !Hands.Heard("google apples pie", out heardTool, out heardArgs) || heardArgs.Search != "apples pie") throw new Exception("A nickname took over part of a target or a search.");
+                Hands.Websites.Current = delegate { return null; };
+                if (!Hands.Websites.Do(new ToolArguments { Action = "save", Name = "missing" }).StartsWith("I couldn't read that browser's address.", StringComparison.Ordinal) || new Websites(fixture).Find("missing") != null) throw new Exception("An unreadable address was guessed.");
+                if (!Hands.Heard("what websites do you know", out heardTool, out heardArgs) || !Hands.Do(heardTool, heardArgs).Contains("apples: https://example.com/current")) throw new Exception("Saved websites were not listed.");
+                if (!Hands.Heard("forget the apples website", out heardTool, out heardArgs) || Hands.Do(heardTool, heardArgs) != "Forgot the apples website." || new Websites(fixture).Find("apples") != null) throw new Exception("A forgotten website came back.");
+                foreach (string browserName in new[] { "chrome", "msedge", "firefox", "opera", "opera gx", "brave", "vivaldi" }) if (!Websites.Browser(browserName)) throw new Exception("A browser's address reader is missing: " + browserName);
+                System.Collections.Generic.List<OpenWindow> browserWindows = new System.Collections.Generic.List<OpenWindow> { new OpenWindow(new IntPtr(2), "Page", "chrome"), new OpenWindow(new IntPtr(3), "Another page", "firefox") };
+                if (Websites.BrowserWindow(new IntPtr(1), "Capri", true, browserWindows) != new IntPtr(2) || Websites.BrowserWindow(new IntPtr(3), "firefox", false, browserWindows) != new IntPtr(3) || Websites.BrowserWindow(new IntPtr(4), "notepad", false, browserWindows) != IntPtr.Zero) throw new Exception("Typing in Capri lost the front browser, or a different foreground app borrowed its address.");
+                if (Websites.AddressScore("urlbar-input", "", false) == 0 || Websites.AddressScore("", "Address and search bar", false) == 0 || Websites.AddressScore("urlbar-input", "Address", true) != 0 || Websites.AddressScore("", "Password", false) != 0) throw new Exception("Address selection included a page field or missed a browser control.");
+                checks.Add("PASS website nicknames: current and explicit addresses save next to her memories, reload, open as whole targets in the named browser, list and forget; an unreadable address asks for the URL without input, and page fields aren't address bars");
+                checks.Add("LIMIT live browser address bars: Chrome, Edge, Firefox, Opera, Opera GX, Brave and Vivaldi still need a live browser check");
+
+                string gameFolder = Path.Combine(fixture, "Cyberpunk"), otherFolder = Path.Combine(fixture, "Cyberpunk 2077"), ignoredFolder = Path.Combine(fixture, @"node_modules\Cyberpunk");
+                Directory.CreateDirectory(Path.Combine(gameFolder, "Cyberpunk inside")); Directory.CreateDirectory(otherFolder); Directory.CreateDirectory(ignoredFolder);
+                Directory.CreateDirectory(Path.Combine(fixture, @"Shallow\Deeper\Cyberpunk deeper"));
+                File.WriteAllText(Path.Combine(fixture, "Cyberpunk.txt"), "Must not be read.");
+                File.WriteAllText(Path.Combine(fixture, "budget.xlsx"), "Only its name is searched.");
+                System.Collections.Generic.List<FileMatch> foundFiles = FileFinder.Search("cyberpunk game folder", new[] { fixture, gameFolder }, delegate { return false; });
+                if (foundFiles.Count != 2 || foundFiles[0].Path != gameFolder || foundFiles[1].Path != otherFolder) throw new Exception("File search lost its nearest folder, duplicated a root, entered a cache, or dug below what it found.");
+                if (FileFinder.Search("deeper folder", new[] { fixture }, delegate { return false; }).Count != 1) throw new Exception("File search missed a folder further down.");
+                if (FileFinder.Search("cyberpunk", new[] { fixture }, delegate { return true; }).Count != 0) throw new Exception("A stopped scan kept searching.");
+                foreach (string ignored in new[] { "Windows", @"AppData\Local\Cache", @"AppData\Local\Temp", "node_modules", ".git", "__pycache__", ".venv" }) if (!FileFinder.Skip(Path.Combine(fixture, ignored))) throw new Exception("A broad scan enters " + ignored);
+                if (FileFinder.Skip(Path.Combine(fixture, @"AppData\Roaming\MyGame\Saves"))) throw new Exception("The cache skip hid saved game data.");
+                string steamFixture = Path.Combine(fixture, "Steam"), extraLibrary = Path.Combine(fixture, "Other library"), epicFixture = Path.Combine(fixture, "Manifests");
+                Directory.CreateDirectory(Path.Combine(steamFixture, "steamapps")); Directory.CreateDirectory(epicFixture);
+                File.WriteAllText(Path.Combine(steamFixture, @"steamapps\libraryfolders.vdf"), "\"libraryfolders\" { \"1\" { \"path\" \"" + extraLibrary.Replace("\\", "\\\\") + "\" } }");
+                File.WriteAllText(Path.Combine(epicFixture, "game.item"), "{\"InstallLocation\":" + Voice.Quote(otherFolder) + "}");
+                if (!new System.Collections.Generic.List<string>(FileFinder.Steam(steamFixture)).Contains(Path.Combine(extraLibrary, @"steamapps\common")) || !new System.Collections.Generic.List<string>(FileFinder.Epic(epicFixture)).Contains(otherFolder)) throw new Exception("A game store's custom folder was lost.");
+                string selectedFile = null, workerResult = null;
+                bool searchedOnWorker = false;
+                Hands.Finder.Roots = delegate { searchedOnWorker = Thread.CurrentThread.IsThreadPoolThread; return new[] { fixture }; };
+                Hands.Finder.Reveal = delegate(string selectedPath) { selectedFile = selectedPath; };
+                using (ManualResetEvent filesFinished = new ManualResetEvent(false))
+                {
+                    ThreadPool.QueueUserWorkItem(delegate { try { workerResult = Computer.Do("find_file", new ToolArguments { Description = "cyberpunk game folder" }, null); } finally { filesFinished.Set(); } });
+                    if (!filesFinished.WaitOne(5000)) throw new Exception("The fixture file search did not finish.");
+                }
+                if (!searchedOnWorker || workerResult == null || !workerResult.Contains(gameFolder) || Hands.Pulled(workerResult) != workerResult || !Voice.Spoken(workerResult).Contains(" drive, ")) throw new Exception("File paths were lost, unspeakable, or searched on the UI thread.");
+                foreach (string reveal in new[] { "show it to me", "open that folder" })
+                {
+                    if (!Hands.Heard(reveal, out heardTool, out heardArgs) || heardTool != "find_file" || heardArgs.Action != "show") throw new Exception("The first file wasn't remembered for " + reveal);
+                    Hands.Do(heardTool, heardArgs);
+                    if (selectedFile != gameFolder || FileFinder.Explorer(selectedFile).Arguments != "/select,\"" + gameFolder + "\"") throw new Exception("Explorer did not select the first path.");
+                }
+                bool widened = false;
+                Hands.Finder.Roots = delegate { return new[] { gameFolder }; };
+                Hands.Finder.Wider = delegate { widened = true; return new[] { fixture }; };
+                if (!Hands.Finder.Do(new ToolArguments { Description = "budget.xlsx" }, null).Contains(Path.Combine(fixture, "budget.xlsx")) || !widened) throw new Exception("A file outside the likely places was never searched for.");
+                widened = false;
+                Hands.Finder.Do(new ToolArguments { Description = "cyberpunk inside folder" }, null);
+                if (widened) throw new Exception("A file search went through every drive after finding it.");
+                string findJson = "find_file{\"description\":\"cyberpunk game folder\"}";
+                if (!Hands.Typed(findJson, out heardTool, out heardArgs) || heardTool != "find_file" || !Hands.Valid(heardTool, heardArgs) || !Computer.Written(findJson, out heardTool, out heardArgs) || Computer.Moves(findJson).Count != 1 || !Hands.Tools.Contains("find_file") || !Hands.ClaudeTools.Contains("find_file") || !Computer.Tools.Contains("find_file") || !Computer.ClaudeTools.Contains("find_file") || !Computer.Toolset.Contains("find_file") || !Computer.Sees.Contains("find_file")) throw new Exception("A file-search tool surface is missing.");
+                if (!Hands.Heard("stop searching for files", out heardTool, out heardArgs) || heardTool != "find_file" || heardArgs.Action != "stop") throw new Exception("File search stop did not route.");
+                using (ManualResetEvent scanEntered = new ManualResetEvent(false))
+                using (ManualResetEvent scanRelease = new ManualResetEvent(false))
+                using (ManualResetEvent scanFinished = new ManualResetEvent(false))
+                {
+                    string cancelledScan = null;
+                    Hands.Finder.Roots = delegate { scanEntered.Set(); scanRelease.WaitOne(5000); return new[] { fixture }; };
+                    ThreadPool.QueueUserWorkItem(delegate { try { cancelledScan = Hands.Finder.Do(new ToolArguments { Description = "cyberpunk" }, null); } finally { scanFinished.Set(); } });
+                    if (!scanEntered.WaitOne(5000)) throw new Exception("The cancellable file scan did not start.");
+                    if (!Hands.Heard("stop", out heardTool, out heardArgs) || heardTool != "find_file" || heardArgs.Action != "stop") throw new Exception("Stop did not reach the active file scan.");
+                    Hands.Do(heardTool, heardArgs);
+                    scanRelease.Set();
+                    if (!scanFinished.WaitOne(5000) || cancelledScan != "Stopped looking for files." || Hands.Finder.Busy) throw new Exception("The active file scan ignored stop.");
+                }
+                checks.Add("PASS file search: names only, whole paths ranked by match, folders distinguished from files, the likely places before every drive, the shallowest matches without digging below them, duplicate roots and caches skipped, Steam and Epic custom locations read, worker results kept for chat and jobs, and show selects the first path; cancellation and spoken paths work");
+                checks.Add("LIMIT live drive permissions, Explorer selection and streamed voice display: file paths use local fixtures and a launch stand-in here");
+                if (!(SelfKnow.Matching("how does file search work") ?? "").Contains("worker") || !(SelfKnow.Matching("how do website nicknames work") ?? "").Contains("websites.json")) throw new Exception("Her help missed the new requests.");
+                checks.Add("PASS her help explains file search, website nicknames and Spotify's direct path with Use her cursor on or off");
+            }
+            finally
+            {
+                Hands.Catalog = requestCatalog; Hands.Windows = requestWindows; Hands.Exists = requestExists; Hands.SongPlaying = requestPlaying; Hands.PressPlay = requestPress;
+                Hands.Fetch = requestFetch; Hands.BrowserPath = requestBrowser; Hands.Opened = requestOpened; Hands.GameOpen = requestGame; Hands.Plan = requestPlan;
+                Hands.Run = requestRun; Hands.Browse = requestBrowse; Hands.Websites = requestWebsites; Hands.Finder = requestFinder; Tunes.Spotify = requestTune;
+                Hands.Forget();
             }
         }
 
@@ -13097,7 +13317,7 @@ namespace CapriDesktop
                 blind.Seer = delegate(byte[] picture, string prompt, string user) { throw new BrainException("no images here"); };
                 blind.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { reads++; return "done{\"text\": \"Read the buttons.\"}"; };
                 if (blind.Run() != "Read the buttons." || reads != 1) throw new Exception("A brain that can't see didn't fall back to reading buttons.");
-                foreach (string blindTool in new[] { "look", "walk", "mouse_hold", "learn", "say" })
+                foreach (string blindTool in new[] { "look", "walk", "mouse_hold", "learn", "say", "find_file" })
                 {
                     string parsedTool;
                     ToolArguments parsedArgs;
@@ -14073,6 +14293,7 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS BRAIN layout: every setting stays on its scrollable page at 100%, 125%, 150%, 175% and 200%, with no overlaps or controls poking out");
                 checks.Add("PASS Gaming Mode Settings: its three lines sit below the switch and above the other game rows, reach screen readers, and stay inside the page without overlaps at every Mainframe size");
+                System.Collections.Generic.List<string> frameProblems = new System.Collections.Generic.List<string>();
                 foreach (bool frameFallback in new[] { false, true })
                     foreach (int frameDpi in new[] { 96, 120, 144, 168, 192, 96 })
                         foreach (int frameText in new[] { 100, 150, 225 })
@@ -14086,9 +14307,10 @@ namespace CapriDesktop
                                     int frameWidth = (int)Math.Round((framePage ? 760 : 380) * frameDpi / 96f * frameText / 100f * mainframe.Zoom);
                                     string frameProblem = mainframe.TextFits() ?? mainframe.Overlap() ?? (framePage && mainframe.ClientSize.Width == frameWidth ? mainframe.Outside() : null);
                                     bool frameWidthFits = frameWidth > SystemInformation.MaxWindowTrackSize.Width || mainframe.ClientSize.Width == frameWidth;
-                                    if (frameProblem != null || !frameWidthFits) throw new Exception("Mainframe layout at " + frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? "Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
+                                    if (frameProblem != null || !frameWidthFits) frameProblems.Add(frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? "Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
                                 }
                             }
+                if (frameProblems.Count > 0) throw new Exception("Mainframe layout, " + frameProblems.Count + " problems:\r\n" + string.Join("\r\n", frameProblems.ToArray()));
                 checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at every size and simulated 100%, 125%, 150%, 175% and 200% DPI with 100%, 150% and 225% text and fallback fonts; returning to 100% keeps the original scale");
                 checks.Add("LIMIT Mainframe display scaling: simulated pixel layouts do not confirm Windows text-setting notifications, real monitor moves, or high-DPI rendering; Windows may constrain simulated windows wider than this desktop, so those check text and overlaps without the viewport-edge check");
             }
@@ -14861,6 +15083,7 @@ namespace CapriDesktop
                             SmokeGameSense(checks);
                             SmokeSelfKnow(checks);
                             SmokeFiles(checks);
+                            SmokeRequests(checks, Path.Combine(output, "request-checks"));
                             SmokeCare(checks);
                             SmokeClips(checks);
                             SmokeListen(checks);
@@ -17072,7 +17295,7 @@ namespace CapriDesktop
                                 DoTool("play_music", new ToolArguments { Song = "I Really Want to Stay at Your House", App = "youtube" });
                                 DoTool("media", new ToolArguments { Action = "volume_down", App = "spotify" });
                                 DoTool("open_website", new ToolArguments { Site = "youtube.com", Search = "lofi" });
-                                DoTool("play_music", new ToolArguments { Song = "Liked Songs", Kind = "playlist", App = "spotify" });
+                                if (CursorJob("play_music", new ToolArguments { Song = "Liked Songs", Kind = "playlist", App = "spotify" }) != null) throw new Exception("Spotify was turned into a cursor job.");
                                 cursorStuck = Computer.Stalled;
                                 stuckResult = DoTool("open_website", new ToolArguments { Site = "youtube", Search = "parkour" });
                                 cursorStuck = null;
@@ -17119,9 +17342,9 @@ namespace CapriDesktop
                                 brain.Model = cursorModelWas;
                                 escAsk = -1;
                             }
-                            if (cursorTasks.Count != 5 || !cursorTasks[0].StartsWith("Play \"I Really Want to Stay at Your House\" on YouTube: open YouTube, click its search bar", StringComparison.Ordinal) || cursorTasks[0].IndexOf("scroll down through the results and look at a few", StringComparison.Ordinal) < 0
+                            if (cursorTasks.Count != 4 || !cursorTasks[0].StartsWith("Play \"I Really Want to Stay at Your House\" on YouTube: open YouTube, click its search bar", StringComparison.Ordinal) || cursorTasks[0].IndexOf("scroll down through the results and look at a few", StringComparison.Ordinal) < 0
                                 || !cursorTasks[1].StartsWith("Turn Spotify's volume down: open Spotify and drag its volume slider", StringComparison.Ordinal) || !cursorTasks[2].StartsWith("Search YouTube for \"lofi\": open YouTube, click its search bar", StringComparison.Ordinal)
-                                || !cursorTasks[3].StartsWith("Play their Liked Songs on Spotify", StringComparison.Ordinal) || cursorRan.Count != 2 || cursorRan[0].IndexOf("parkour", StringComparison.Ordinal) < 0 || cursorRan[1].IndexOf("cats", StringComparison.Ordinal) < 0 || !quickSkipped || CursorJob("open_app", new ToolArguments { Name = "Discord" }) != null)
+                                || cursorRan.Count != 2 || cursorRan[0].IndexOf("parkour", StringComparison.Ordinal) < 0 || cursorRan[1].IndexOf("cats", StringComparison.Ordinal) < 0 || !quickSkipped || CursorJob("open_app", new ToolArguments { Name = "Discord" }) != null)
                                 throw new Exception("Her cursor jobs went wrong: " + string.Join(" / ", cursorTasks.ToArray()) + " | ran " + string.Join(", ", cursorRan.ToArray()) + " | stuck " + stuckResult);
                             if (!pcVolume || !sliderFellBack) throw new Exception("Volume went to Spotify's slider when it shouldn't, or didn't fall back to the keys: PC " + pcVolume + ", fell back " + sliderFellBack + " / keys " + slidKeys.Count);
                             if (!escRest) throw new Exception("Esc stopped one job but the rest of the ask still ran, or the next ask didn't: keys " + slidKeys.Count);
@@ -17166,7 +17389,7 @@ namespace CapriDesktop
                             if (firstAnswer != StartedLater || answeredMs > 500 || retryAnswer != AlreadyLater || secondAnswer != StartedLater ||!laterTurns || laterTold.Count != 2 || laterSaid.IndexOf("Did open notepad and type hi.", StringComparison.Ordinal) < 0 || laterSaid.IndexOf("Did open paint.", StringComparison.Ordinal) < 0)
                                 throw new Exception("A voice chat job didn't answer at once, ran twice or shared the mouse: " + firstAnswer + " in " + answeredMs + " ms / " + retryAnswer + " / " + laterRan + " / told " + laterSaid);
                             checks.Add("PASS voice chat jobs: a cursor job answers ElevenLabs' tool call at once instead of timing out at 20 s, runs on its own and says how it went when it ends; the same job asked again joins it, and a second job waits its turn on the mouse");
-                            checks.Add("PASS use her cursor: on by default she searches YouTube and picks a video, plays from Spotify's search and drags Spotify's volume slider with her own cursor when they say Spotify; plain volume uses the PC's volume keys even with Spotify open; a slider she can't reach falls back to the keys unless they stopped her; if her brain gets lost the quick tool still does it, and turning it off uses the quick tools");
+                            checks.Add("PASS use her cursor: on by default she searches YouTube and picks a video and drags Spotify's volume slider with her own cursor when they say Spotify; Spotify music keeps its direct tool; plain volume uses the PC's volume keys even with Spotify open; a slider she can't reach falls back to the keys unless they stopped her; if her brain gets lost the quick tool still does it, and turning it off uses the quick tools");
                             bool bypassWas = Computer.Bypass;
                             Job payJob = new Job("play lofi on youtube"), sendingJob = new Job("message Sam hi on Discord");
                             Computer.Bypass = false;
@@ -19246,6 +19469,8 @@ namespace CapriDesktop
                                 Func<OpenWindow, string, bool> realSteer = Hands.Steer;
                                 Func<string, bool> realPressPlay = Hands.PressPlay;
                                 Func<string> realNowPlaying = Hands.NowPlaying;
+                                Func<string, bool> realSongPlaying = Hands.SongPlaying;
+                                Hands.SongPlaying = delegate { return true; };
                                 Func<System.Collections.Generic.List<InstalledApp>> fakeCatalog = Hands.Catalog;
                                 System.Collections.Generic.List<string> lookups = new System.Collections.Generic.List<string>();
                                 System.Collections.Generic.List<string> steered = new System.Collections.Generic.List<string>();
@@ -19465,16 +19690,16 @@ namespace CapriDesktop
                                     spotifyWindows.Clear();
                                     spotifyWindows.Add(new OpenWindow(new IntPtr(11), "Spotify Free", "Spotify"));
                                     spotifyWindows.Add(new OpenWindow(new IntPtr(12), frenchTitle, "SPOTIFY"));
-                                    if (Hands.NowPlaying() != frenchTitle || Hands.Do("media", new ToolArguments { Action = "now_playing" }) != "Spotify is playing D\u00e9senchant\u00e9e by Myl\u00e8ne Farmer." || !Hands.Started("Spotify", frenchTitle) || Hands.Started(frenchTitle, frenchTitle)) throw new Exception("A French track title was read wrong.");
+                                    if (Hands.NowPlaying() != frenchTitle || Hands.Do("media", new ToolArguments { Action = "now_playing" }) != "Spotify is playing D\u00e9senchant\u00e9e by Myl\u00e8ne Farmer." || !Hands.TrackTitle(frenchTitle)) throw new Exception("A French track title was read wrong.");
                                     foreach (string title in new[] { "Spotify", "Spotify Free", "Spotify Premium", "Spotify Gratuit", "Accueil - Spotify", "Se connecter \u00e0 Spotify", "Publicit\u00e9" })
                                     {
                                         spotifyWindows.Clear();
                                         spotifyWindows.Add(new OpenWindow(new IntPtr(12), title, "Spotify"));
-                                        if (Hands.Started("", title) || Hands.Do("media", new ToolArguments { Action = "now_playing" }) != (title == "Spotify" || title.StartsWith("Spotify ", StringComparison.Ordinal) ? "Spotify is open but paused." : "Spotify is open, but I can't tell what's playing.")) throw new Exception("A Spotify status title was reported as a song.");
+                                        if (Hands.TrackTitle(title) || Hands.Do("media", new ToolArguments { Action = "now_playing" }) != (title == "Spotify" || title.StartsWith("Spotify ", StringComparison.Ordinal) ? "Spotify is open but paused." : "Spotify is open, but I can't tell what's playing.")) throw new Exception("A Spotify status title was reported as a song.");
                                     }
                                     spotifyWindows.Clear();
                                     spotifyWindows.Add(new OpenWindow(new IntPtr(13), frenchTitle, "chrome"));
-                                    if (Hands.NowPlaying() != "" || Hands.Started("Spotify", "")) throw new Exception("Another app was treated as Spotify playback.");
+                                    if (Hands.NowPlaying() != "" || Hands.TrackTitle("")) throw new Exception("Another app was treated as Spotify playback.");
                                     checks.Add("PASS Spotify titles come from Spotify windows, keep French track names, and do not treat login or home titles as playback");
                                     Hands.Windows = listedWindows;
                                     Hands.PressPlay = realPressPlay;
@@ -19485,12 +19710,12 @@ namespace CapriDesktop
                                     {
                                         { "hey capri, can you open spotify for me?", "open_app|spotify||" }, { "Play Roblox", "open_app|Roblox||" }, { "open youtube", "open_website|youtube||" },
                                         { "launch google.com please", "open_website|google.com||" }, { "play Blinding Lights by The Weeknd on YouTube.", "play_music|Blinding Lights by The Weeknd|song|youtube" },
-                                        { "play my lofi beats playlist", "play_music|lofi beats|playlist|" }, { "play something by Drake", "play_music|Drake|artist|" }, { "play my liked songs", "play_music|Liked Songs|playlist|" },
+                                        { "play my lofi beats playlist", "play_music|my lofi beats|playlist|" }, { "play something by Drake", "play_music|Drake|artist|" }, { "play my liked songs", "play_music|Liked Songs|playlist|" },
                                         { "skip this song", "media||next|" }, { "turn it up", "media||volume_up|" }, { "close discord", "app_window|discord|close|" }, { "minimise word", "app_window|word|minimize|" },
                                         { "switch to roblox", "app_window|roblox|switch_to|" }, { "play with me", "" }, { "play something", "play_music|Chippin' In|song|" }, { "play a song", "play_music|Chippin' In|song|" }, { "open my downloads folder", "" },
                                         { "close it", "" }, { "close fortnite", "" }, { "what's on my screen?", "look_at_screen|||" }, { "open zorblax", "" },
                                         { "open spotify and shuffle my liked songs", "play_music|Liked Songs|playlist|spotify" }, { "play your liked songs playlist", "play_music|Liked Songs|playlist|" },
-                                        { "play the album Blonde by Frank Ocean", "play_music|Blonde by Frank Ocean|album|" }, { "shuffle my lofi beats playlist", "play_music|lofi beats|playlist|" },
+                                        { "play the album Blonde by Frank Ocean", "play_music|Blonde by Frank Ocean|album|" }, { "shuffle my lofi beats playlist", "play_music|my lofi beats|playlist|" },
                                         { "whats playing?", "media||now_playing|" }, { "capri, what song is this", "media||now_playing|" }, { "what’s playing right now", "media||now_playing|" }
                                     };
                                     for (int i = 0; i < routes.GetLength(0); i++)
@@ -19538,7 +19763,7 @@ namespace CapriDesktop
                                         { "Capri, wish we could go to the moon together...", "play_music|I Really Want to Stay at Your House|song|", "false" },
                                         { "play irwtsayh", "play_music|irwtsayh|song|", "true" },
                                         { "play Blinding Lights by The Weeknd on YouTube.", "play_music|Blinding Lights by The Weeknd|song|youtube", "true" },
-                                        { "play my lofi beats playlist", "play_music|lofi beats|playlist|", "true" },
+                                        { "play my lofi beats playlist", "play_music|my lofi beats|playlist|", "true" },
                                         { "play something by Drake", "play_music|Drake|artist|", "true" },
                                         { "play me some music", "", "true" },
                                         { "get spotify going", "", "true" },
@@ -20457,6 +20682,7 @@ namespace CapriDesktop
                                     Hands.Steer = realSteer;
                                     Hands.PressPlay = realPressPlay;
                                     Hands.NowPlaying = realNowPlaying;
+                                    Hands.SongPlaying = realSongPlaying;
                                     Hands.Catalog = fakeCatalog;
                                     Hands.Forget();
                                 }

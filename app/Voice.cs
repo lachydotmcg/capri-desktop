@@ -113,6 +113,9 @@ namespace CapriDesktop
 
         internal static string Spoken(string said)
         {
+#if !CROSS
+            said = FileFinder.Spoken(said);
+#endif
             string words = Regex.Replace(Regex.Replace(said ?? "", @"\[[^\]]*\]", " ").Replace("*", ""), @"\s+", " ").Trim();
             return Regex.IsMatch(words, @"[\p{L}\p{Nd}]") ? words : "";
         }

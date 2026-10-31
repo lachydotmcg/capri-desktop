@@ -66,6 +66,7 @@ namespace CapriDesktop
         internal static Func<Tune> Read = ReadSession;
         // The session Windows puts first, playing or paused, or null. Tests swap it out.
         internal static Func<Tune> Current = ReadCurrent;
+        internal static Func<Tune> Spotify = ReadSpotify;
         // Sends previous, next, play, pause, seek:<seconds>, like or unlike to the app playing the tune. True when it went through.
         internal static Func<Tune, string, bool> Send = SendToSession;
         // Brings a window to the front. Tests swap it out.
@@ -163,6 +164,19 @@ namespace CapriDesktop
                 return tune.Title.Length == 0 ? null : tune;
             }
             catch (Exception) { manager = null; return null; }
+        }
+
+        private static Tune ReadSpotify()
+        {
+            try
+            {
+                GlobalSystemMediaTransportControlsSessionManager sessions = Manager();
+                if (sessions == null) return null;
+                foreach (GlobalSystemMediaTransportControlsSession session in sessions.GetSessions())
+                    if ((session.SourceAppUserModelId ?? "").IndexOf("spotify", StringComparison.OrdinalIgnoreCase) >= 0) return Describe(session);
+            }
+            catch (Exception) { manager = null; }
+            return null;
         }
 
         private static Tune Describe(GlobalSystemMediaTransportControlsSession session)
