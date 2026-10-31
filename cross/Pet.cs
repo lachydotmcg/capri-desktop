@@ -62,6 +62,13 @@ namespace CapriDesktop
         [DataMember] internal bool NotOnTop;
         // Security's toggles 1 to 10 as 1s and 0s, like Windows. Missing in settings from before it, which get Trusted.
         [DataMember] internal string Permissions;
+        // Which provider makes her voice: elevenlabs, local or off. Missing in settings from before it, which were ElevenLabs.
+        // Silent stays apart: it quiets the provider they picked without forgetting it.
+        [DataMember] internal string VoiceProvider;
+        [DataMember] internal string LocalVoiceUrl;
+        [DataMember] internal string LocalVoiceModel;
+        [DataMember] internal string LocalVoiceName;
+        [DataMember] internal string LocalVoiceFormat;
     }
 
     // The bits of GitHub's latest release she reads to tell them about an update.
@@ -246,6 +253,9 @@ namespace CapriDesktop
         private bool away;
         private bool opened;
         private readonly Voice voice = new Voice();
+        private readonly LocalSpeaker localVoice = new LocalSpeaker();
+        private readonly QuietSpeaker noVoice = new QuietSpeaker();
+        private ISpeaker elevenLabs;
         private VoiceListing voices;
         private string voiceProblem;
         private bool listing;
@@ -487,6 +497,12 @@ namespace CapriDesktop
             }
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
+            elevenLabs = new ElevenLabsSpeaker(voice);
+            Saved.VoiceProvider = Speakers.Known(Saved.VoiceProvider);
+            localVoice.Url = Saved.LocalVoiceUrl;
+            localVoice.Model = Saved.LocalVoiceModel;
+            localVoice.Speaker = Saved.LocalVoiceName;
+            localVoice.Format = LocalSpeaker.Known(Saved.LocalVoiceFormat);
             if (Program.Smoke == null) { Voice.Playback = Limbs.Speak; Voice.Silence = Limbs.Hush; }
             if (Program.Smoke == null)
             {
@@ -801,7 +817,7 @@ namespace CapriDesktop
             if (OperatingSystem.IsLinux()) system += " " + (Environment.GetEnvironmentVariable("XDG_SESSION_TYPE") ?? "?") + " " + (Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "?");
             Cloud remote = Brain.Remote;
             string brain = remote != null ? remote.Name + " " + remote.Model : Brain.Model != null ? "Ollama " + Brain.Model : "none";
-            string head = "Capri v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + " | " + system + " | brain: " + brain + " | voice: " + (voice.Key != null ? "ElevenLabs" : "none");
+            string head = "Capri v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + " | " + system + " | brain: " + brain + " | voice: " + (Speaker.Ready ? Speaker.Name : "none");
             string[] lines = new string[0];
             try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
             int from = Math.Max(0, lines.Length - 25);
@@ -1750,12 +1766,13 @@ namespace CapriDesktop
         {
             if (!Speaks)
             {
-                Talk.Answer("(voice check)", voice.Ready ? "My voice is off, choom. Settings > Voice > Use ElevenLabs turns it back on." : "Add an ElevenLabs key under Settings > Voice to hear that, choom.");
+                Talk.Answer("(voice check)", Unspoken);
                 return;
             }
             int ticket = ++asking;
             voice.Stop();
-            string id = voice.VoiceId;
+            ISpeaker speaker = Speaker;
+            string id = speaker == elevenLabs ? voice.VoiceId : Saved.VoiceProvider + "\n" + localVoice.Url + "\n" + localVoice.Model + "\n" + localVoice.Speaker + "\n" + localVoice.Format;
             byte[] said = styleVoice == id ? styleSaid : null;
             Talk.Thinking("(voice check)");
             ThreadPool.QueueUserWorkItem(delegate
@@ -1764,7 +1781,7 @@ namespace CapriDesktop
                 string problem = null;
                 try
                 {
-                    if (said == null) said = voice.Speak(StyleLine);
+                    if (said == null) said = speaker.Speak(StyleLine);
                     wav = VoiceFx.Styled(said, StyleLine);
                 }
                 catch (VoiceException error) { problem = Mac(error.Message); }
@@ -3235,11 +3252,33 @@ namespace CapriDesktop
             return true;
         }
 
-        internal bool Speaks { get { return voice.Ready && !Saved.Silent; } }
+        internal ISpeaker Speaker
+        {
+            get
+            {
+                string picked = Speakers.Known(Saved.VoiceProvider);
+                return picked == Speakers.Local ? localVoice : picked == Speakers.Off ? (ISpeaker)noVoice : elevenLabs;
+            }
+        }
+
+        internal bool Speaks { get { return Speaker.Ready && !Saved.Silent; } }
+
+        // Why a voice check stays quiet, for the provider they picked.
+        private string Unspoken
+        {
+            get
+            {
+                string picked = Speakers.Known(Saved.VoiceProvider);
+                if (picked == Speakers.Off) return "My voice provider is off, choom. Settings > Voice > Provider picks one.";
+                if (picked == Speakers.Local) return localVoice.Ready ? "My voice is off, choom. Settings > Voice > Speak replies turns it back on." : "Set your local voice server under Settings > Voice to hear that, choom.";
+                return voice.Ready ? "My voice is off, choom. Settings > Voice > Use ElevenLabs turns it back on." : "Add an ElevenLabs key under Settings > Voice to hear that, choom.";
+            }
+        }
 
         private void Reply(int ticket, string heard, string said)
         {
             if (!Speaks || Voice.Spoken(said).Length == 0) { Talk.Answer(heard, said); TypeAlong(said, ticket); return; }
+            ISpeaker speaker = Speaker;
             Talk.Thinking(heard);
             bool[] shown = { false };
             DispatcherTimer.RunOnce(delegate
@@ -3253,8 +3292,8 @@ namespace CapriDesktop
             {
                 byte[] wav = null;
                 string problem = null;
-                // ElevenLabs hands back a finished WAV, so her pitch, speed, robot and glitch go on here, like on Windows.
-                try { wav = VoiceFx.Styled(voice.Speak(said), said); }
+                // Every provider hands back a finished WAV, so her pitch, speed, robot and glitch go on here, like on Windows.
+                try { wav = VoiceFx.Styled(speaker.Speak(said), said); }
                 catch (VoiceException error) { problem = Mac(error.Message); }
                 catch (Exception error) { problem = Voice.Short("Voice glitched: " + error.Message); }
                 Dispatcher.UIThread.Post(delegate
@@ -3441,7 +3480,71 @@ namespace CapriDesktop
             return voice.VoiceId;
         }
 
-        internal string VoiceStatus { get { return (voice.Key == null ? "no key" : "key " + Voice.Tail(voice.Key)) + " | " + (VoiceName() ?? "no voice") + " | " + (Speaks ? "speaking" : "quiet"); } }
+        internal string VoiceStatus
+        {
+            get
+            {
+                string picked = Speakers.Known(Saved.VoiceProvider);
+                string quiet = Speaks ? "speaking" : "quiet";
+                if (picked == Speakers.Off) return "off | no voice | " + quiet;
+                if (picked == Speakers.Local) return "local " + LocalWhere + " | " + (string.IsNullOrEmpty(localVoice.Speaker) ? "server's voice" : localVoice.Speaker) + " | " + quiet;
+                return (voice.Key == null ? "no key" : "key " + Voice.Tail(voice.Key)) + " | " + (VoiceName() ?? "no voice") + " | " + quiet;
+            }
+        }
+
+        private string LocalWhere
+        {
+            get
+            {
+                try { return LocalSpeaker.Where(LocalSpeaker.Endpoint(localVoice.Url)); }
+                catch (VoiceException) { return "not set"; }
+            }
+        }
+
+        internal void SetVoiceProvider(string picked)
+        {
+            picked = Speakers.Known(picked);
+            if (picked == Saved.VoiceProvider) return;
+            voice.Stop();
+            Saved.VoiceProvider = picked;
+            voiceProblem = null;
+            Save();
+        }
+
+        internal void AskLocalVoice(string part)
+        {
+            ComeBack();
+            string heard = part == "url" ? "(local voice server)" : part == "model" ? "(local voice model)" : "(local voice)";
+            string ask = part == "url" ? "Type your local voice server's address, like " + LocalSpeaker.Address + ", and press Enter."
+                : part == "model" ? "Type the model your server should use, like kokoro, and press Enter. A dash leaves it to the server."
+                : "Type the voice your server should use, like af_heart, and press Enter. A dash leaves it to the server.";
+            Talk.AskFor(heard, ask, delegate(string typed)
+            {
+                if (SetLocalVoice(part, typed)) Talk.Answer(heard, "Saved. Settings > Voice > Test voice to hear me through it.");
+            });
+        }
+
+        // A blank or a dash clears the model or voice, so the server picks its own.
+        internal bool SetLocalVoice(string part, string typed)
+        {
+            string value = (typed ?? "").Trim();
+            if (value == "-") value = "";
+            if (part == "url")
+            {
+                if (value.Length > 0)
+                {
+                    try { LocalSpeaker.Endpoint(value); }
+                    catch (VoiceException error) { Talk.Answer("(local voice server)", error.Message); return false; }
+                }
+                localVoice.Url = Saved.LocalVoiceUrl = value.Length == 0 ? null : value;
+            }
+            else if (part == "model") localVoice.Model = Saved.LocalVoiceModel = value.Length == 0 ? null : value;
+            else if (part == "format") localVoice.Format = Saved.LocalVoiceFormat = LocalSpeaker.Known(value);
+            else localVoice.Speaker = Saved.LocalVoiceName = value.Length == 0 ? null : value;
+            voiceProblem = null;
+            Save();
+            return true;
+        }
 
         internal bool VoiceWorking { get { return Speaks && voiceProblem == null; } }
 
@@ -3529,6 +3632,29 @@ namespace CapriDesktop
         {
             if (voiceMenu == null) return;
             voiceMenu.Items.Clear();
+            string picked = Speakers.Known(Saved.VoiceProvider);
+            MenuItem provider = new MenuItem { Header = "Provider: " + (picked == Speakers.Local ? localVoice.Name : picked == Speakers.Off ? "Off" : "ElevenLabs") };
+            string[] pickable = { Speakers.ElevenLabs, Speakers.Local, Speakers.Off };
+            string[] pickNames = { "ElevenLabs", localVoice.Name + " (OpenAI speech API)", "Off" };
+            for (int i = 0; i < pickable.Length; i++)
+            {
+                string one = pickable[i];
+                MenuItem pick = new MenuItem { Header = pickNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "voice provider", IsChecked = one == picked };
+                pick.Click += delegate { SetVoiceProvider(one); };
+                provider.Items.Add(pick);
+            }
+            voiceMenu.Items.Add(provider);
+            voiceMenu.Items.Add(new Separator());
+            if (picked == Speakers.Off)
+            {
+                voiceMenu.Items.Add(new MenuItem { Header = "No voice provider. She types her replies.", IsEnabled = false });
+                return;
+            }
+            if (picked == Speakers.Local)
+            {
+                RefreshLocalVoice();
+                return;
+            }
             if (voice.Key == null)
             {
                 MenuItem add = new MenuItem { Header = "Add ElevenLabs key..." };
@@ -3565,6 +3691,37 @@ namespace CapriDesktop
             remove.Click += delegate { ForgetVoice(); };
             voiceMenu.Items.Add(renew);
             voiceMenu.Items.Add(remove);
+            if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
+        }
+
+        private void RefreshLocalVoice()
+        {
+            MenuItem speak = new MenuItem { Header = "Speak replies", ToggleType = MenuItemToggleType.CheckBox, IsChecked = Speaks, IsEnabled = localVoice.Ready };
+            speak.Click += delegate { SetSpeak(Saved.Silent); };
+            voiceMenu.Items.Add(speak);
+            voiceMenu.Items.Add(new Separator());
+            MenuItem server = new MenuItem { Header = "Server: " + (string.IsNullOrEmpty(localVoice.Url) ? "not set" : localVoice.Url) + "..." };
+            server.Click += delegate { AskLocalVoice("url"); };
+            MenuItem model = new MenuItem { Header = "Model: " + (string.IsNullOrEmpty(localVoice.Model) ? "server's default" : localVoice.Model) + "..." };
+            model.Click += delegate { AskLocalVoice("model"); };
+            MenuItem name = new MenuItem { Header = "Voice: " + (string.IsNullOrEmpty(localVoice.Speaker) ? "server's default" : localVoice.Speaker) + "..." };
+            name.Click += delegate { AskLocalVoice("voice"); };
+            bool pcm = localVoice.Format == LocalSpeaker.Pcm;
+            MenuItem format = new MenuItem { Header = "Format: " + (pcm ? "PCM" : "WAV") };
+            MenuItem wav = new MenuItem { Header = "WAV", ToggleType = MenuItemToggleType.Radio, GroupName = "local voice format", IsChecked = !pcm };
+            wav.Click += delegate { SetLocalVoice("format", LocalSpeaker.Wav); };
+            MenuItem raw = new MenuItem { Header = "PCM (16-bit, 24 kHz)", ToggleType = MenuItemToggleType.Radio, GroupName = "local voice format", IsChecked = pcm };
+            raw.Click += delegate { SetLocalVoice("format", LocalSpeaker.Pcm); };
+            format.Items.Add(wav);
+            format.Items.Add(raw);
+            voiceMenu.Items.Add(server);
+            voiceMenu.Items.Add(model);
+            voiceMenu.Items.Add(name);
+            voiceMenu.Items.Add(format);
+            voiceMenu.Items.Add(new Separator());
+            MenuItem test = new MenuItem { Header = "Test voice", IsEnabled = Speaks };
+            test.Click += delegate { HearStyle(); };
+            voiceMenu.Items.Add(test);
             if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
         }
 
