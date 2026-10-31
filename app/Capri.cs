@@ -27269,7 +27269,7 @@ namespace CapriDesktop
                             bool paidReply = false;
                             Speak = delegate(string words) { paidReply = true; return tone; };
                             Answer(++asking, "Typing back.", TalkState.Talking);
-                            if (paidReply || reply != "Typing back." || earsShut || voiceUntil != 0) throw new Exception("Free chat used paid speech or stayed shut after a typed answer.");
+                            if (paidReply || reply != "Typing back." || earsShut || voiceUntil != 0) throw new Exception("Free chat used paid speech or stayed shut after a typed answer: paid " + paidReply + ", reply " + reply + ", shut " + earsShut + ", voice until " + voiceUntil + ", quiet " + preferences.Quiet + ", silent " + preferences.Silent + ", follow " + followTicket + "/" + asking + ", state " + talkState + ", ready " + earsReady + ", transcribing " + transcribing + ", muted " + ears.Muted + ", pc ears " + PcEars.Active + ", working " + working);
                             voiceUntil = clock.Elapsed.TotalSeconds + 10;
                             CheckEars(clock.Elapsed.TotalSeconds);
                             foreach (short[] piece in earLine) ears.Feed(piece);
