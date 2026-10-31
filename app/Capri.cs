@@ -16897,6 +16897,8 @@ namespace CapriDesktop
 
         internal void StartSmokeTest(string output)
         {
+            // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
+            Native.FakedGaming = false;
             Directory.CreateDirectory(output);
             File.Delete(Path.Combine(output, "failure.txt"));
             File.Delete(Path.Combine(output, "smoke-test.txt"));
@@ -24671,7 +24673,7 @@ namespace CapriDesktop
                                 hdKeptOutOfGame = !HdStepsAside();
                                 ToggleHdGameRest();
                             }
-                            finally { Native.FakedGaming = null; }
+                            finally { Native.FakedGaming = false; }
                             if (hdGamesPicked != "off" || hdGamesOn != "on" || !hdKeptInGame || !hdRestedInGame || !hdKeptOutOfGame || preferences.HdGameRest)
                                 throw new Exception("Free voice in games didn't work: shown " + hdGamesPicked + " then " + hdGamesOn + ", HD kept in a game with it off " + hdKeptInGame + ", rested in a game with it on " + hdRestedInGame + ", kept with nothing full screen " + hdKeptOutOfGame);
                             ChooseVoiceStyle("Sly");
