@@ -1993,10 +1993,12 @@ namespace CapriDesktop
             for (int i = 0; i < times && !interrupted; i++)
             {
                 Sfx.Play(Cue.Click);
+                // Games read the mouse once a frame, so a press has to outlast a slow frame or two, and the cursor has to settle first.
+                Thread.Sleep(50);
                 Mouse(down, 0);
-                Thread.Sleep(40);
+                Thread.Sleep(90);
                 Mouse(up, 0);
-                Thread.Sleep(70);
+                Thread.Sleep(90);
             }
         }
 
