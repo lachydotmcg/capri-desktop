@@ -117,7 +117,7 @@ namespace CapriDesktop
             "Your own mix. Pick a preset to start again from it."
         };
         // The Settings line under her SECURITY button, short enough for its row.
-        private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music and shortcuts. She asks for the rest.", "She asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
+        private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
         // Lockdown has them all off, Guarded the first three on, Trusted the first seven and Blackwall all eleven.
         private static readonly int[] Masks = { 0, 0x7, 0x7F, 0x7FF };
         private static int mask = 0x7F;

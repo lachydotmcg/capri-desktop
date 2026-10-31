@@ -19315,9 +19315,9 @@ namespace CapriDesktop
                             ToggleCursor();
                             bool quickShown = mainframe.JobsStatus == "- | Security: Trusted" && !UsesCursor;
                             ToggleCursor();
-                            bool blackwallNamed = mainframe.BlackwallStatus == "Security: Trusted | She asks before paying or what you didn't say.";
+                            bool blackwallNamed = mainframe.BlackwallStatus == "Security: Trusted | Asks before paying or what you didn't say.";
                             if (!cursorShown || !bypassShown || !quickShown || !blackwallNamed || Computer.Bypass || !UsesCursor || HeyCapriOn) throw new Exception("The Use her cursor and Security switches went wrong: " + mainframe.JobsStatus + " / " + mainframe.BlackwallStatus);
-                            checks.Add("PASS Settings switches: Use her cursor starts on, and SECURITY sits where Blackwall mode was under HABITS, showing Trusted with \"She asks before paying or what you didn't say.\" under it; the old Blackwall switch picks the Blackwall preset and back");
+                            checks.Add("PASS Settings switches: Use her cursor starts on, and SECURITY sits where Blackwall mode was under HABITS, showing Trusted with \"Asks before paying or what you didn't say.\" under it; the old Blackwall switch picks the Blackwall preset and back");
                             SecurityChecks(checks, output);
                             DesktopChecks(checks);
                             KeepAwakeChecks(checks);
