@@ -20,7 +20,7 @@ namespace CapriDesktop
     internal sealed class FileFinder
     {
         internal const string Description = "Find files or folders on this PC by a plain description of their names. Returns whole paths, best match first. Use action show to select the first result in File Explorer, or stop to cancel a search. Searches names only, not file contents.";
-        internal const string Schema = "{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\",\"description\":\"What file or folder to find, in their words\"},\"action\":{\"type\":\"string\",\"enum\":[\"search\",\"show\",\"stop\"]}}}";
+        internal const string Schema = "{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\",\"description\":\"What file or folder to find, in their words\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; search by default\",\"enum\":[\"search\",\"show\",\"stop\"]}}}";
         private readonly object gate = new object();
         private CancellationTokenSource searching;
         private List<FileMatch> last = new List<FileMatch>();

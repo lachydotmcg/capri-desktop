@@ -11688,6 +11688,10 @@ namespace CapriDesktop
                 if (Hands.SpotifyLink(similarSongs, "song", "Blinding Lights by The Weeknd") != "2222222222222222222222") throw new Exception("A same-name song hid the requested artist.");
                 for (int musicSpec = 0; musicSpec < Hands.Count; musicSpec++)
                     if (Hands.Name(musicSpec) == "play_music" && !Hands.ElevenLabsTool(musicSpec).Contains("\"response_timeout_secs\":60")) throw new Exception("Spotify's playback wait outlasts its voice tool.");
+                // ElevenLabs turns down a whole tool over one parameter with no description, and voice chat can't open without her tools.
+                for (int voiceSpec = 0; voiceSpec < Hands.Count; voiceSpec++)
+                    if (System.Text.RegularExpressions.Regex.IsMatch(Hands.ElevenLabsTool(voiceSpec), "\"\\w+\":\\{\"type\":\"(?:string|number|integer|boolean)\"(?![^{}]*\"description\":\"[^\"])"))
+                        throw new Exception("ElevenLabs would refuse " + Hands.Name(voiceSpec) + ": one of its parameters has no description.");
                 ToolArguments desired = new ToolArguments { Song = "Blinding Lights by The Weeknd", Kind = "song", App = "spotify" };
                 Tune requestedTune = new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "Spotify.exe", Playing = true };
                 if (!Hands.Started(desired, requestedTune, requestedTune) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "Spotify.exe", Playing = false }) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "Someone Else", App = "Spotify.exe", Playing = true }) || Hands.Started(desired, null, new Tune { Title = "Blinding Lights", Artist = "The Weeknd", App = "chrome", Playing = true })) throw new Exception("Playback used a title without its playing state, artist or app.");
