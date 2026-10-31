@@ -445,6 +445,8 @@ namespace CapriDesktop
             installNote.Visible = false;
             int v = VoiceHeight;
             Lower(Section("CAPRI >", 0, 184 + v));
+            Key support = Lower(Make("Support", 280, 181 + v, 76, 20, delegate { capri.OpenSupport(); }));
+            support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
             showHide = Lower(Make("Hide Capri", 28, 206 + v, 104, 28, delegate { capri.ToggleHidden(); }));
             Lower(Make("Bring here", 140, 206 + v, 104, 28, delegate { capri.BringHere(); }));
             perch = Lower(Make("Ride cursor", 252, 206 + v, 104, 28, delegate { capri.TogglePerch(); }));

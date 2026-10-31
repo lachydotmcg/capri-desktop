@@ -1386,6 +1386,7 @@ namespace CapriDesktop
         private const string GuidePage = "https://lachydotmcg.github.io/capri-desktop/setup/#voice";
         private const string DiscordPage = "https://discord.gg/F4fDHfGtFk";
         private const string HelpPage = "https://lachydotmcg.github.io/capri-desktop/help/";
+        internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
         internal static Action<string> Browse = delegate(string page) { try { Process.Start(page); } catch (System.ComponentModel.Win32Exception) { } };
@@ -2193,7 +2194,7 @@ namespace CapriDesktop
 
         private static void OpenPage(string page)
         {
-            if (page != OllamaPage && page != FreeKeyPage && page != GuidePage && page != DiscordPage && page != HelpPage) return;
+            if (page != OllamaPage && page != FreeKeyPage && page != GuidePage && page != DiscordPage && page != HelpPage && page != SupportPage) return;
             Browse(page);
         }
 
@@ -7064,6 +7065,7 @@ namespace CapriDesktop
         internal void OpenFreeKeyPage() { OpenPage(FreeKeyPage); Tell("free key", FreeKeyLine); }
 
         internal void OpenHelp() { OpenPage(HelpPage); }
+        internal void OpenSupport() { OpenPage(SupportPage); }
 
         // Windows Settings > Privacy & security > Speech, where Online speech recognition is.
         internal const string SpeechSettings = "ms-settings:privacy-speech";
@@ -18909,6 +18911,9 @@ namespace CapriDesktop
                                 Control updateButton = null;
                                 foreach (Control control in mainframe.Controls) if (control is Button && control.Text == "Check for updates") updateButton = control;
                                 if (updateButton == null) throw new Exception("Mainframe lost its update button.");
+                                bool supportShown = false;
+                                foreach (Control control in mainframe.Controls) if (control is Button && control.Text == "Support") supportShown = true;
+                                if (!supportShown || SupportPage != "https://ko-fi.com/lachysdev") throw new Exception("Mainframe lost its Support button or its Ko-fi link.");
                                 FormWindowState beforeUpdate = mainframe.WindowState;
                                 mainframe.WindowState = FormWindowState.Normal;
                                 ((Button)updateButton).PerformClick();
