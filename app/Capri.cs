@@ -6270,7 +6270,7 @@ namespace CapriDesktop
             Bitmap shot = new Bitmap(area.Width, area.Height, PixelFormat.Format24bppRgb);
             try
             {
-                using (Graphics graphics = Graphics.FromImage(shot)) Native.CopyScreen(graphics, area.Location, area.Size);
+                using (Graphics graphics = Graphics.FromImage(shot)) Native.CopyScreen(graphics, area);
                 return shot;
             }
             catch { shot.Dispose(); throw; }
@@ -29392,10 +29392,10 @@ namespace CapriDesktop
         [DllImport("gdi32.dll", SetLastError = true)] private static extern bool BitBlt(IntPtr target, int x, int y, int width, int height, IntPtr source, int fromX, int fromY, uint how);
 
         // A screenshot with her ink in it. Windows skips layered windows unless it's told CAPTUREBLT, and .NET's CopyFromScreen won't take that flag beside SRCCOPY.
-        internal static void CopyScreen(Graphics graphics, Point from, Size size)
+        internal static void CopyScreen(Graphics graphics, System.Drawing.Rectangle area)
         {
             IntPtr screen = GetDC(IntPtr.Zero), target = graphics.GetHdc();
-            try { if (!BitBlt(target, 0, 0, size.Width, size.Height, screen, from.X, from.Y, 0x40CC0020)) throw new System.ComponentModel.Win32Exception(); }
+            try { if (!BitBlt(target, 0, 0, area.Width, area.Height, screen, area.X, area.Y, 0x40CC0020)) throw new System.ComponentModel.Win32Exception(); }
             finally { graphics.ReleaseHdc(target); ReleaseDC(IntPtr.Zero, screen); }
         }
 
