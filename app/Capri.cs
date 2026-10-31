@@ -343,6 +343,8 @@ namespace CapriDesktop
         // Set once she has her tuned voice, or kept theirs because they'd already moved a voice slider.
         [DataMember] public bool VoiceTuned;
         [DataMember] public bool VoiceRetuned;
+        // Her notes file when it's a note in their Obsidian vault, or null for me.md in her own folder.
+        [DataMember] public string Vault;
 
         // A new install: she starts in the PC's own language when she speaks it, and with her tuned voice.
         internal static Preferences Fresh()
@@ -1444,6 +1446,9 @@ namespace CapriDesktop
             Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, preferences.MemorySize) >= 0 ? preferences.MemorySize : 0;
             Brain.ReplyLength = Math.Max(0, Math.Min(Brain.ReplySizes.Length - 1, preferences.ReplyLength));
             Brain.Keeping = preferences.Remembers;
+            ownNotes = Brain.MemoryPath;
+            string chosen = NotesIn(preferences.Vault);
+            if (chosen != null && Directory.Exists(Path.GetDirectoryName(chosen))) { Brain.MemoryPath = chosen; Brain.VaultFolder = Path.GetDirectoryName(chosen); }
             Brain.Digging = !smoke;
             if (!smoke) Brain.Keeper = brain;
             if (!smoke) brain.Load(Path.Combine(data, "chat.json"));
@@ -4001,6 +4006,92 @@ namespace CapriDesktop
                 using (Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = false })) { }
             }
             catch (Exception) { Tell("open memories", "Couldn't open my memories. They live in " + Path.GetDirectoryName(path) + "."); }
+        }
+
+        // Memory vault: her notes can be a note in their Obsidian vault, so they read and edit them there.
+        private string ownNotes;
+        internal string Vault { get { return preferences.Vault ?? ""; } }
+
+        internal string SetVault(string folder)
+        {
+            folder = (folder ?? "").Trim().Trim('"');
+            string from = Brain.MemoryPath;
+            if (folder.Length == 0)
+            {
+                preferences.Vault = null;
+                SavePreferences();
+                Brain.MemoryPath = ownNotes;
+                Brain.VaultFolder = null;
+                return "Her notes are back in her own folder. Your vault keeps its copy of me.md.";
+            }
+            string notes;
+            try
+            {
+                notes = NotesIn(Path.GetFullPath(folder));
+                folder = Path.GetDirectoryName(notes);
+                Directory.CreateDirectory(folder);
+                // Her notes so far come along: a new file starts as a copy, and a note of theirs gets any she's missing added to the end.
+                if (from != null && File.Exists(from) && !string.Equals(Path.GetFullPath(from), notes, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!File.Exists(notes)) File.Copy(from, notes);
+                    else
+                    {
+                        string current = File.ReadAllText(notes);
+                        System.Text.StringBuilder missing = new System.Text.StringBuilder();
+                        foreach (string line in File.ReadAllLines(from))
+                            if (line.StartsWith("- ", StringComparison.Ordinal) && current.IndexOf(line.Trim(), StringComparison.OrdinalIgnoreCase) < 0) missing.Append(line.Trim()).Append('\n');
+                        if (missing.Length > 0) File.WriteAllText(notes, current + (current.Length == 0 || current.EndsWith("\n", StringComparison.Ordinal) ? "" : "\n") + missing);
+                    }
+                }
+                else if (!File.Exists(notes)) File.WriteAllText(notes, Brain.NotesHead);
+            }
+            catch (IOException error) { return "Couldn't use that: " + error.Message; }
+            catch (UnauthorizedAccessException error) { return "Couldn't use that: " + error.Message; }
+            catch (ArgumentException error) { return "Couldn't use that: " + error.Message; }
+            catch (NotSupportedException error) { return "Couldn't use that: " + error.Message; }
+            preferences.Vault = notes;
+            SavePreferences();
+            Brain.MemoryPath = notes;
+            Brain.VaultFolder = folder;
+            return "Connected. She saves her memories to " + Path.GetFileName(notes) + " in " + folder + ".";
+        }
+
+        internal const string VaultNote = "Capri Memories.md";
+
+        // The vaults this Windows user has opened in Obsidian, by folder name, from Obsidian's own list. Empty without Obsidian.
+        internal static System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> ObsidianVaults()
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> vaults = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>();
+            try
+            {
+                string list = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obsidian", "obsidian.json");
+                if (!File.Exists(list)) return vaults;
+                System.Collections.Generic.Dictionary<string, object> read = new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(File.ReadAllText(list)) as System.Collections.Generic.Dictionary<string, object>;
+                object listed;
+                System.Collections.Generic.Dictionary<string, object> all = read != null && read.TryGetValue("vaults", out listed) ? listed as System.Collections.Generic.Dictionary<string, object> : null;
+                if (all == null) return vaults;
+                foreach (object entry in all.Values)
+                {
+                    System.Collections.Generic.Dictionary<string, object> vault = entry as System.Collections.Generic.Dictionary<string, object>;
+                    object where;
+                    string path = vault != null && vault.TryGetValue("path", out where) ? where as string : null;
+                    if (string.IsNullOrEmpty(path) || !Directory.Exists(path)) continue;
+                    vaults.Add(new System.Collections.Generic.KeyValuePair<string, string>(Path.GetFileName(path.TrimEnd('\\', '/')), path));
+                }
+                vaults.Sort(delegate(System.Collections.Generic.KeyValuePair<string, string> a, System.Collections.Generic.KeyValuePair<string, string> b) { return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase); });
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            catch (ArgumentException) { }
+            catch (InvalidOperationException) { }
+            return vaults;
+        }
+
+        // The note file her memories go in: the .md file they picked, or me.md in the folder they picked.
+        internal static string NotesIn(string chosen)
+        {
+            if (string.IsNullOrEmpty(chosen)) return null;
+            return chosen.EndsWith(".md", StringComparison.OrdinalIgnoreCase) ? chosen : Path.Combine(chosen, "me.md");
         }
 
         internal bool Remembers { get { return preferences.Remembers; } }

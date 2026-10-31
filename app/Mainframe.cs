@@ -613,6 +613,7 @@ namespace CapriDesktop
             localAddress.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseLocalAddress(); } };
             Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); });
             Section("HABITS >", c, 656);
+            Make("More settings", 114 + c, 653, 102, 20, delegate { ShowMoreSettings(); }).AccessibleName = "More settings: keep her notes in your Obsidian vault";
             Make("Open her memories", 220 + c, 653, 136, 20, delegate { capri.OpenMemories(); }).AccessibleName = "Open her memories: memories.md and her chat transcripts, kept on this PC";
             startup = Switch("Start with Windows", c, 680, delegate { if (!syncing) capri.ToggleStartup(); });
             discord = Switch("Show on Discord", c, 708, delegate { if (!syncing) capri.ToggleDiscord(); });
@@ -680,6 +681,87 @@ namespace CapriDesktop
             Searching();
             Sync();
             Application.AddMessageFilter(this);
+        }
+
+        private static Button DialogButton(string text, int x, int y, int width, Color accent)
+        {
+            Button button = new Button { Text = text, Bounds = new Rectangle(x, y, width, 30), FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Look.Ink, UseVisualStyleBackColor = false };
+            button.FlatAppearance.BorderColor = accent;
+            return button;
+        }
+
+        private static Label Heading(string text, int y) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, 18), ForeColor = Look.Yellow, Font = Look.Mono(9f, FontStyle.Bold, GraphicsUnit.Point) }; }
+
+        private static Label Hint(string text, int y, int height) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, height), ForeColor = Look.Dim }; }
+
+        // More settings, under HABITS: her notes can live in their Obsidian vault.
+        private void ShowMoreSettings()
+        {
+            using (Form dialog = new Form())
+            {
+                dialog.AutoScaleDimensions = new SizeF(96f, 96f);
+                dialog.AutoScaleMode = AutoScaleMode.Dpi;
+                dialog.Text = "More settings";
+                dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dialog.MaximizeBox = false;
+                dialog.MinimizeBox = false;
+                dialog.ShowInTaskbar = false;
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                dialog.BackColor = Look.Panel;
+                dialog.ForeColor = Look.Ink;
+                dialog.Font = Look.Mono(9f, FontStyle.Regular, GraphicsUnit.Point);
+                dialog.ClientSize = new Size(520, 170);
+                // Their own Obsidian vaults, read from Obsidian's list on this PC: picking one keeps her memories in its Capri Memories note.
+                List<KeyValuePair<string, string>> vaults = Companion.ObsidianVaults();
+                List<string> vaultNotes = new List<string> { "" };
+                ComboBox vault = new ComboBox { Bounds = new Rectangle(16, 44, 368, 24), DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Look.Ink };
+                vault.AccessibleName = "Which Obsidian vault her memories go in";
+                vault.Items.Add("Her own notes (no vault)");
+                foreach (KeyValuePair<string, string> found in vaults) { vault.Items.Add("Vault: " + found.Key); vaultNotes.Add(System.IO.Path.Combine(found.Value, Companion.VaultNote)); }
+                Action showVault = delegate
+                {
+                    string current = Companion.NotesIn(capri.Vault);
+                    int at = current == null ? 0 : vaultNotes.FindIndex(delegate(string note) { return string.Equals(note, current, StringComparison.OrdinalIgnoreCase); });
+                    if (at < 0)
+                    {
+                        // A note they picked with Browse stays as its own choice.
+                        at = vaultNotes.FindIndex(1, delegate(string note) { return note.StartsWith("|", StringComparison.Ordinal); });
+                        if (at < 0) { vault.Items.Add(""); vaultNotes.Add(""); at = vaultNotes.Count - 1; }
+                        vault.Items[at] = "Note: " + System.IO.Path.GetFileName(current);
+                        vaultNotes[at] = "|" + current;
+                    }
+                    vault.SelectedIndex = at;
+                };
+                bool showing = true;
+                showVault();
+                showing = false;
+                Button pickVault = DialogButton("Browse", 392, 42, 112, Look.Dim);
+                Label vaultNote = Hint(capri.Vault.Length > 0 ? "She saves her memories to " + System.IO.Path.GetFileName(Companion.NotesIn(capri.Vault)) + "." : vaults.Count > 0 ? "Pick one of your Obsidian vaults and her memories go in a Capri Memories note there." : "No Obsidian vaults found on this PC. Open one in Obsidian first, or Browse to a note.", 78, 34);
+                Action<string> useVault = delegate(string chosen)
+                {
+                    vaultNote.Text = capri.SetVault(chosen);
+                    showing = true;
+                    showVault();
+                    showing = false;
+                };
+                vault.SelectedIndexChanged += delegate { if (!showing && vault.SelectedIndex >= 0) useVault(vaultNotes[vault.SelectedIndex].TrimStart('|')); };
+                pickVault.Click += delegate
+                {
+                    // A save box, so they can pick a note already in a vault or type a new one's name.
+                    using (SaveFileDialog picker = new SaveFileDialog { Title = "Pick the note her memories go in", Filter = "Notes (*.md)|*.md", DefaultExt = "md", AddExtension = true, OverwritePrompt = false, CheckPathExists = true, FileName = Companion.VaultNote })
+                    {
+                        string current = Companion.NotesIn(capri.Vault);
+                        if (current == null && vaults.Count > 0) current = System.IO.Path.Combine(vaults[0].Value, Companion.VaultNote);
+                        if (current != null && System.IO.Directory.Exists(System.IO.Path.GetDirectoryName(current))) { picker.InitialDirectory = System.IO.Path.GetDirectoryName(current); picker.FileName = System.IO.Path.GetFileName(current); }
+                        if (picker.ShowDialog(dialog) == DialogResult.OK) useVault(picker.FileName);
+                    }
+                };
+                Button close = DialogButton("Close", 404, 124, 100, Look.Dim);
+                close.Click += delegate { dialog.Close(); };
+                dialog.CancelButton = close;
+                dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, close });
+                dialog.ShowDialog(this);
+            }
         }
 
         // A section's band and title. x is 0 for the left column or Column for the right; the band spans the column.
