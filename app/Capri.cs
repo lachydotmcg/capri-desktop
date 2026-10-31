@@ -1368,6 +1368,7 @@ namespace CapriDesktop
         // Her glance lines from the last hour, so she stops bringing up the same thing on their screen.
         private readonly System.Collections.Generic.List<Tuple<double, string>> glanced = new System.Collections.Generic.List<Tuple<double, string>>();
         private byte[] lastPrint;
+        private const double GlanceTalkGap = 60;
         private Rectangle lastArea;
         private volatile bool fetchingEyes;
         private double thinkingSince = double.NaN;
@@ -6037,6 +6038,8 @@ namespace CapriDesktop
             if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(clock.Elapsed.TotalSeconds), Brain.Nickname)) { Glimpsed(saw); return; }
+            // She can look every 10 seconds, but talking that often wears on people (Lachy, 31 Oct), so a look this soon after her last line stays to herself.
+            if (glanced.Count > 0 && clock.Elapsed.TotalSeconds - glanced[glanced.Count - 1].Item1 < GlanceTalkGap) { Glimpsed(saw); return; }
             glanced.Add(Tuple.Create(clock.Elapsed.TotalSeconds, said));
             brain.Saw(saw, said);
             brain.Remember(string.IsNullOrEmpty(saw) ? "(You glanced at their screen.)" : "(You glanced at their screen and saw: " + saw + ")", said);

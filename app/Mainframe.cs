@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1560;
+        private const int PageTall = 1340;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -687,25 +687,28 @@ namespace CapriDesktop
                 careTimes[careRow] = careTime;
             }
             Make("Edit check-in lines", 28 + c, 1240, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
-            Section("GAMES >", c, 1264);
+            int gamesFrom = Controls.Count;
+            Section("GAMES >", 0, 914);
             // What she says about a game they're playing, from what happens in it rather than on a timer.
-            comments = Setting("Comments", Commentary.PaceNames, c, 1288, "How much she says about a game you're playing: off, only when something happens, or chatty");
+            comments = Setting("Comments", Commentary.PaceNames, 0, 938, "How much she says about a game you're playing: off, only when something happens, or chatty");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
-            gamingMode = Switch("Gaming Mode", c, 1316, delegate { if (!syncing) capri.ToggleGaming(); });
+            gamingMode = Switch("Gaming Mode", 0, 966, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
-            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1342, small, Faint);
-            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28 + c, 1358, small, Faint);
-            Caption("Works best on MAX INTELLIGENCE.", 28 + c, 1374, small, Faint);
-            clipGames = Switch("Clip my games", c, 1396, delegate { if (!syncing) capri.ToggleClips(); });
+            Caption("Her HUD reacts to your game until you close it.", 28, 992, small, Faint);
+            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1008, small, Faint);
+            Caption("Works best on MAX INTELLIGENCE.", 28, 1024, small, Faint);
+            clipGames = Switch("Clip my games", 0, 1046, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory; clips stay in Videos\\Capri Clips on this PC";
-            clipMoments = Switch("Save big moments", c, 1424, delegate { if (!syncing) capri.ToggleClipMoments(); });
+            clipMoments = Switch("Save big moments", 0, 1074, delegate { if (!syncing) capri.ToggleClipMoments(); });
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
-            fastHands = Switch("Fast hands in games", c, 1452, delegate { if (!syncing) capri.ToggleFastHands(); });
+            fastHands = Switch("Fast hands in games", 0, 1102, delegate { if (!syncing) capri.ToggleFastHands(); });
+            int gamesTo = Controls.Count;
             hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
+            for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
