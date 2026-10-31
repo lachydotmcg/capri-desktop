@@ -9301,9 +9301,11 @@ namespace CapriDesktop
             Func<string, byte[]> own = FreeSpeak ?? (testing || !kokoro.Installed ? null : new Func<string, byte[]>(kokoro.Speak));
             free = preferences.Quiet && !FreeChatOn ? null : preferences.ServerVoice ? Served(fallback ? own : null) : FreeSpeak ?? (testing ? null : Hd(fallback || !preferences.HdVoice ? own : null));
             if (!fallback && voiceBroke && !quiet && !preferences.Quiet && (Speak != null || voice.Key != null)) return null;
-            Func<string, byte[]> picked = preferences.Quiet || quiet || voiceBroke ? null : Speak;
-            if (picked == null && !quiet && !voiceBroke && !testing && voice.Ready && !preferences.Quiet) picked = voice.Speak;
-            if (picked == null && (voice.Key == null || quiet || voiceBroke || preferences.Quiet)) picked = free;
+            // Free chat stays free. A job's lines and Listen for Capri share its ears but keep the voice they picked.
+            bool freeOnly = quiet || (fallback && local && !jobEars && !preferences.ListenCapri);
+            Func<string, byte[]> picked = preferences.Quiet || freeOnly || voiceBroke ? null : Speak;
+            if (picked == null && !freeOnly && !voiceBroke && !testing && voice.Ready && !preferences.Quiet) picked = voice.Speak;
+            if (picked == null && (voice.Key == null || freeOnly || voiceBroke || preferences.Quiet)) picked = free;
             return preferences.Silent ? null : picked;
         }
 
