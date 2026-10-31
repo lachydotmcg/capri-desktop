@@ -181,7 +181,7 @@ namespace CapriDesktop
             "\nThis job plays a game, and you're a real gamer who has played everything. Work out which game this is and use what you already know about it: its goal, its controls, how it's meant to be played, and what a good player would do next. Play like that person, not like someone following steps." +
             "\nEach turn, look closely at the screen: where you are, what's around you, what's a threat, what you're trying to do right now. Then act. Send several moves in one turn when they belong together, like look, then walk, then mouse_hold, because the game doesn't wait while you think. Then check what changed." +
             "\nTo face something in a 3D game, call look with its x and y. Ordinary mouse moves don't turn a game's camera, and a click only hits what's at the crosshair in the middle of the view. Use walk to move, mouse_hold to mine, shoot, aim or use things, and key presses for the rest. In menus, inventories and maps the mouse is a normal pointer, so click as usual." +
-            "\nMost PC games use wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you. If a click doesn't do what you wanted, try the other mouse button, then holding it. Games hitch: if one seems frozen or ignores you, wait 20 seconds and look again before you think it's stuck. Getting lost or stuck is normal, so turn around, go back, jump, or try another way, and keep playing until what they asked for is done or they say stop." +
+            "\nMost PC games use wasd to move, space to jump, shift to run, ctrl or c to crouch, e or f to use things, r to reload, tab for scores or inventory, m for the map and esc to pause. If you lose track of how far up or down you're looking, call look with level yes. If you die or fail, respawn or retry and carry on, and work out what got you. If a click doesn't do what you wanted, try the other mouse button, then holding it. Story choices and dialogue options in their game are theirs: leave them alone unless they asked you to play the story. Games hitch: if one seems frozen or ignores you, wait 20 seconds and look again before you think it's stuck. Getting lost or stuck is normal, so turn around, go back, jump, or try another way, and keep playing until what they asked for is done or they say stop." +
             "\nWhen you work out something worth knowing next time, like a key, what killed you or what worked, call learn with it in one short line. Do it the moment something you tried finally works, especially a button or key that wasn't what you first tried, so you never have to work it out again." +
             "\nRead the key hints the game shows before you guess: its prompts, HUD and legends are the real keys for right now, and they change with what you're doing, like in a car or with a weapon out. If you don't know a key, check the game's controls screen, or try it and watch what happens. If a prompt ignores a quick press, hold that key for a second, because many games use hold to confirm. If something didn't work twice, do something different. If you're stuck, like under a block, against a wall or in a hole, call hold_and_press with hold w and press space, or turn away with look and walk somewhere else." +
             "\nThey can watch you play, so while you do it you're Capri herself: a cocky little gremlin having the time of her life. Whenever something happens, like a win, a death, a close call or a stupid mistake, call say with one line in the same turn as your moves and keep going. Aim for a line every few turns: talking is half of why they watch you." +
@@ -967,6 +967,73 @@ namespace CapriDesktop
                 return shot;
             }
             catch { shot.Dispose(); throw; }
+        }
+
+        [DllImport("user32.dll")] private static extern bool PrintWindow(IntPtr window, IntPtr into, uint how);
+        [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr window, out Box box);
+        [DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr window, ref Point place);
+
+        // Puts the window in front over a screenshot, so a game has nothing of hers on it.
+        internal static void FrontOver(Bitmap shot, Rectangle area)
+        {
+            OpenWindow picked = Pick();
+            if (picked != null) WindowOver(shot, area, picked.Handle);
+        }
+
+        // That window copied by itself. Windows hands back black or an old frame for some games, so a copy that doesn't look like the screen is left out.
+        internal static bool WindowOver(Bitmap shot, Rectangle area, IntPtr window)
+        {
+            Box client;
+            Point corner = Point.Empty;
+            if (!GetClientRect(window, out client) || !ClientToScreen(window, ref corner) || client.Right < 64 || client.Bottom < 64) return false;
+            int wide = client.Right, tall = client.Bottom;
+            Bitmap own = null;
+            // A hung game would hold this call for ever, so it gets a thread and a second.
+            Thread copier = new Thread(delegate()
+            {
+                try
+                {
+                    Bitmap copy = new Bitmap(wide, tall, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                    bool copied = false;
+                    using (Graphics graphics = Graphics.FromImage(copy))
+                    {
+                        IntPtr into = graphics.GetHdc();
+                        try { copied = PrintWindow(window, into, 3); }
+                        finally { graphics.ReleaseHdc(into); }
+                    }
+                    if (copied) own = copy;
+                    else copy.Dispose();
+                }
+                catch (Exception) { }
+            });
+            copier.IsBackground = true;
+            copier.Start();
+            if (!copier.Join(1000) || own == null) return false;
+            using (own)
+            {
+                int left = corner.X - area.X, top = corner.Y - area.Y;
+                if (!Alike(own, shot, left, top)) return false;
+                using (Graphics graphics = Graphics.FromImage(shot)) graphics.DrawImageUnscaled(own, left, top);
+                return true;
+            }
+        }
+
+        // At least half of a coarse grid of points matches the screen, and the copy isn't black.
+        private static bool Alike(Bitmap copy, Bitmap shot, int left, int top)
+        {
+            int seen = 0, same = 0, black = 0;
+            for (int y = 0; y < 18; y++)
+                for (int x = 0; x < 32; x++)
+                {
+                    int across = copy.Width * x / 32 + copy.Width / 64, down = copy.Height * y / 18 + copy.Height / 36;
+                    int atX = across + left, atY = down + top;
+                    if (atX < 0 || atY < 0 || atX >= shot.Width || atY >= shot.Height) continue;
+                    Color theirs = copy.GetPixel(across, down), screen = shot.GetPixel(atX, atY);
+                    seen++;
+                    if (theirs.R + theirs.G + theirs.B == 0) black++;
+                    if (Math.Abs(theirs.R - screen.R) + Math.Abs(theirs.G - screen.G) + Math.Abs(theirs.B - screen.B) < 48) same++;
+                }
+            return seen > 0 && same * 2 >= seen && black * 10 < seen * 9;
         }
 
         // A screenshot of that part of the screen, or of her monitor, sized for Claude. Null when Windows won't share it, like on the lock screen.
@@ -1920,13 +1987,20 @@ namespace CapriDesktop
         // Whether her fast hands can call the advisor, when they last did, and whether that ask failed.
         internal Func<bool> Advised;
         private int consulted;
+        private int nudges;
         private bool advisorDown;
         private bool Consults { get { Func<bool> advised = Advised; return Drive != null && advised != null && advised(); } }
 
         // A game job that stops short gets sent back three times at most: games hitch, and players get lost.
         private bool Hitched(string words)
         {
-            return Playing && hitches < 3 && Unfinished(words) && ++hitches <= 3;
+            if (!Playing || hitches >= 3) return false;
+            bool unfinished = Unfinished(words);
+            // Going round again is how Esc ends it, and it's how something they said while she waited gets done.
+            if (Computer.Interrupted) return true;
+            bool told;
+            lock (heard) told = heard.Count > 0 || changes.Count > 0;
+            return (unfinished || told) && ++hitches <= 3;
         }
 
         // Her second brain says whether it's done, in any language. Her words only decide when it can't answer.
@@ -1934,12 +2008,24 @@ namespace CapriDesktop
         {
             Func<string, string, string> aside = Aside;
             string said = null;
-            try { if (aside != null) said = aside(Computer.Finishing, "What they asked for: " + Task + asides + "\nWhat the player said: " + words); }
-            catch (BrainException error) { Brain.Log("finishing", -1, error.Message); }
-            catch (System.Net.WebException error) { Brain.Log("finishing", -1, error.Message); }
+            if (aside != null)
+            {
+                string asked = Computer.Mask("What they asked for: " + Task + asides + "\nWhat the player said: " + words);
+                // Its own thread and ten seconds, so Esc gets through and a bad reply can't end the job.
+                Thread asking = new Thread(delegate()
+                {
+                    try { said = aside(Computer.Finishing, asked); }
+                    catch (Exception error) { Brain.Log("finishing", -1, error.Message); }
+                });
+                asking.IsBackground = true;
+                asking.Start();
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!asking.Join(100) && waited.ElapsedMilliseconds < 10000 && !Computer.Interrupted) { }
+            }
             Action<string> trace = Trace;
-            if (trace != null) trace("  finished? -> " + said);
-            Match answer = Regex.Match(said ?? "", @"\b(yes|no)\b", RegexOptions.IgnoreCase);
+            if (trace != null) trace("  finished? -> " + Computer.Mask(said ?? ""));
+            // The last word counts, because its reasons can hold either one.
+            Match answer = Regex.Match(said ?? "", @"\b(yes|no)\b", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
             return answer.Success ? answer.Value.Equals("no", StringComparison.OrdinalIgnoreCase) : Computer.GivingUp(words);
         }
 
@@ -2391,7 +2477,7 @@ namespace CapriDesktop
                     }
                     if (question) return End("asked", words);
                     // Asking isn't doing, so a turn that only asked isn't the end of the job.
-                    if (asked && !advisorDown && ++hitches <= 3)
+                    if (asked && !advisorDown && ++nudges <= 3)
                     {
                         talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.AfterAsking) + "}]}");
                         continue;
@@ -2403,6 +2489,7 @@ namespace CapriDesktop
                     }
                     return End("done", words.Length > 0 ? words : Summary());
                 }
+                nudges = 0;
                 batch = calls.ToArray();
                 next = 0;
                 answers.Clear();
@@ -2453,6 +2540,7 @@ namespace CapriDesktop
             }
             int lost = 0;
             string results = "";
+            bool sentBack = false;
             while (true)
             {
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
@@ -2463,7 +2551,8 @@ namespace CapriDesktop
                 if (!Look()) return End("failed", "I couldn't see the screen.");
                 if (!Playing && Computer.GameWindow(Computer.Glimpse())) Playing = true;
                 // Nothing on screen moved at all, or it's about to make the same moves again: small brains need telling.
-                if (lastLook != null && results.Length > 0 && Computer.Same(lastLook, shown.Jpeg)) results += "\nThe screen didn't change at all after that, so it didn't work. Try something different.";
+                if (lastLook != null && results.Length > 0 && !sentBack && Computer.Same(lastLook, shown.Jpeg)) results += "\nThe screen didn't change at all after that, so it didn't work. Try something different.";
+                sentBack = false;
                 string words;
                 List<ReadWord> spots;
                 byte[] picture = Computer.Gridded(shown, out words, out spots);
@@ -2530,7 +2619,7 @@ namespace CapriDesktop
                             results = "\nYou asked " + Voice.Quote(said) + " but their job already says what to do, so don't ask: do it now. Capri stops you herself before any step that needs their OK.";
                             break;
                         }
-                        if (move.Key == "done" && Hitched(said)) { results = "\n" + Computer.Hitch; break; }
+                        if (move.Key == "done" && Hitched(said)) { results += "\n" + Computer.Hitch; sentBack = true; break; }
                         return End(move.Key == "ask" ? "asked" : "done", Regex.IsMatch(args.Text ?? "", @"^\W*(done)?\W*$", RegexOptions.IgnoreCase) && move.Key == "done" ? Summary() : said);
                     }
                     bool member;

@@ -5512,8 +5512,17 @@ namespace CapriDesktop
             if (herPointer.Visible && pointed != null) Smear(shot, pointed, herPointer.Left - area.X, herPointer.Top - area.Y, pointed.Width, pointed.Height);
         }
 
-        // Her hands' screenshots, with her painted out on the UI thread that owns her frames.
+        // Her hands' screenshots. In a game the game's own window goes on top, which she was never on.
         private Bitmap HandsGrab(Rectangle area)
+        {
+            Bitmap shot = PaintedGrab(area);
+            Job playing = job;
+            if (playing != null && playing.Playing) Computer.FrontOver(shot, area);
+            return shot;
+        }
+
+        // The screen with her painted out, on the UI thread that owns her frames.
+        private Bitmap PaintedGrab(Rectangle area)
         {
             Bitmap shot = OwnGrab(area);
             if (!InvokeRequired) { PaintOut(shot, area); return shot; }
@@ -11303,6 +11312,53 @@ namespace CapriDesktop
                     if (!frameDuplication || frameGrab.Live != "DXGI Desktop Duplication") checks.Add("LIMIT DXGI Desktop Duplication is unavailable here; screen capture used Graphics.CopyFromScreen");
                 }
                 frameForm.Close();
+            }
+            // She sees a game's own window through anything of hers on top of it, and a copy that doesn't look like the screen is left out.
+            using (Form underForm = new Form())
+            using (Form overForm = new Form())
+            {
+                foreach (Form overPart in new[] { underForm, overForm })
+                {
+                    overPart.FormBorderStyle = FormBorderStyle.None;
+                    overPart.ShowInTaskbar = false;
+                    overPart.StartPosition = FormStartPosition.Manual;
+                    overPart.TopMost = true;
+                }
+                underForm.Bounds = new Rectangle(frameScreen.Left + 40, frameScreen.Top + 40, 320, 180);
+                underForm.BackColor = Color.Lime;
+                overForm.Bounds = new Rectangle(frameScreen.Left + 160, frameScreen.Top + 110, 80, 40);
+                overForm.BackColor = Color.Magenta;
+                underForm.Show();
+                overForm.Show();
+                underForm.Refresh();
+                overForm.Refresh();
+                Application.DoEvents();
+                Thread.Sleep(200);
+                Application.DoEvents();
+                Rectangle overArea = underForm.Bounds;
+                IntPtr underHandle = underForm.Handle;
+                using (Bitmap overShot = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
+                using (Bitmap overStale = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
+                {
+                    using (Graphics overDraw = Graphics.FromImage(overShot)) overDraw.CopyFromScreen(overArea.Location, Point.Empty, overArea.Size);
+                    using (Graphics overDraw = Graphics.FromImage(overStale)) overDraw.Clear(Color.Blue);
+                    bool overHadIt = overShot.GetPixel(160, 90).G < 80, overCopied = false, overStaleCopied = true, overDone = false;
+                    Thread overThread = new Thread(delegate()
+                    {
+                        overCopied = Computer.WindowOver(overShot, overArea, underHandle);
+                        overStaleCopied = Computer.WindowOver(overStale, overArea, underHandle);
+                        overDone = true;
+                    });
+                    overThread.Start();
+                    while (!overDone) { Application.DoEvents(); Thread.Sleep(5); }
+                    Color overSeen = overShot.GetPixel(160, 90), overLeft = overStale.GetPixel(160, 90);
+                    if (overStaleCopied || overLeft.B < 200) throw new Exception("A window copy that didn't look like the screen went over it.");
+                    if (!overHadIt) checks.Add("LIMIT window copies: the test window never got on top of the other one here");
+                    else if (!overCopied || overSeen.G < 200 || overSeen.R > 60) throw new Exception("She couldn't see through her own window: " + overCopied + " " + overSeen);
+                    else checks.Add("PASS window copies: a game's own window shows what's under anything of hers, and a copy that doesn't match the screen is left out");
+                }
+                overForm.Close();
+                underForm.Close();
             }
             using (FrameGrab speedGrab = new FrameGrab())
             {
@@ -17745,7 +17801,7 @@ namespace CapriDesktop
                                     {
                                         if (system != Computer.Finishing) return "";
                                         finishing.Add(user);
-                                        return finishing.Count == 1 ? "NO" : "YES.";
+                                        return finishing.Count == 1 ? "There's no pickaxe yet. NO." : "There's no more to do. YES.";
                                     };
                                     string judgedRun = driveJudged.Run();
                                     if (judgedRun != "Gotowe." || driveTurn != 2 || finishing.Count != 2 || !finishing[0].Contains("Nie dam rady.") || !finishing[0].Contains("play bedwars on roblox"))
