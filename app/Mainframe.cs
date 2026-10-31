@@ -604,7 +604,6 @@ namespace CapriDesktop
             customNote.AutoSize = false;
             customNote.AutoEllipsis = true;
             customNote.Size = new Size(328, 28);
-            customNote.MaximumSize = new Size(328, 0);
             Caption("Local server address", 28 + c, 586, Font, Rose);
             localAddress = Input(28 + c, 615, 244, 22);
             localAddress.Cue = "http://127.0.0.1:1234";
@@ -1169,7 +1168,7 @@ namespace CapriDesktop
                 {
                     Label label = control as Label;
                     if (label != null && label.AutoSize) control.Location = new Point(At(bounds.X, scale), At(bounds.Y, scale));
-                    else control.Bounds = new Rectangle(At(bounds.X, scale), At(bounds.Y, scale), At(bounds.Width, scale), At(bounds.Height, scale));
+                    else control.Bounds = Rectangle.FromLTRB(At(bounds.Left, scale), At(bounds.Top, scale), At(bounds.Right, scale), At(bounds.Bottom, scale));
                 }
                 if (oldFont != null) oldFont.Dispose();
                 if (oldHint != null) oldHint.Dispose();
@@ -1480,7 +1479,6 @@ namespace CapriDesktop
             brainNote.MaximumSize = new Size(Scaled(328), 0);
             voiceNote.MaximumSize = new Size(Scaled(328), 0);
             updateNote.MaximumSize = new Size(Scaled(328), 0);
-            customNote.MaximumSize = new Size(Scaled(328), 0);
             if (keysNote != null) keysNote.MaximumSize = new Size(Scaled(328), 0);
             if (paged) pageView = Fit();
             ClientSize = new Size(Scaled(paged ? Wide + Column : Wide), Scaled(paged ? pageView : Tall + shift + below - fold));
