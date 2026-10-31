@@ -66,6 +66,12 @@ namespace CapriDesktop
         [DataMember(Name = "up")] public double? Up;
         [DataMember(Name = "jump")] public string Jump;
         [DataMember(Name = "stop")] public string Stop;
+        [DataMember(Name = "shapes")] public string Shapes;
+#if !CROSS
+        internal Picture Drawing;
+        internal bool DrawingGrid;
+        internal List<InkShape> DrawingShapes;
+#endif
 
         internal ToolArguments Copy() { return (ToolArguments)MemberwiseClone(); }
     }
@@ -437,7 +443,7 @@ namespace CapriDesktop
         internal static bool HeardName(string words) { return Regex.IsMatch(words ?? "", SpokenName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant); }
 
         // Her chat and voice chat line about her tools, with SECURITY's line after it while one of her tools' toggles is off.
-        internal static string Note { get { return Noted + Security.Note + MiniNote + MiniBoard(); } }
+        internal static string Note { get { return Noted + Security.Note + MiniNote + MiniBoard() + DrawingNote; } }
 
 #if CROSS
         private const string MiniNote = "";
@@ -447,6 +453,18 @@ namespace CapriDesktop
         internal static Func<string> MiniBoard = delegate { return ""; };
         internal static Func<string, ToolArguments> MiniInput = delegate { return null; };
         internal static Func<ToolArguments, string> Mini = delegate { return "Couldn't open the board just now."; };
+        internal static Func<ToolArguments, string> Draw = delegate { return "Couldn't show my drawing on your screen."; };
+        private static string DrawingNote
+        {
+            get
+            {
+#if CROSS
+                return "";
+#else
+                return Ink.Note + Ink.Context();
+#endif
+            }
+        }
 
         private const string Noted =
             "\nYou have tools for their PC: open (launch, play) their apps and games, switch to, minimize or close apps that are open, play songs or videos they name, open websites or search them, control their music and volume, look at their screen, and use their mouse and keyboard for jobs inside apps and sites. " +
@@ -471,7 +489,7 @@ namespace CapriDesktop
 
         // Her hands' prompt. While one of her tools' toggles is off in SECURITY, its line goes in after "Call the tool.", so she
         // still calls it and Capri asks them.
-        internal static string Prompt { get { string note = Security.Note; return (note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote; } }
+        internal static string Prompt { get { string note = Security.Note; return (note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote; } }
 
         private const string Handing =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You don't chat.\n" +
@@ -556,6 +574,7 @@ namespace CapriDesktop
             { "animate", "Play one of your own animations on their screen: your idle, your glitch, your grin or a blink, or dance until they tell you to stop. Use it when they ask you to dance, stop dancing, do your glitch, grin, smile or blink, or play an animation by name.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" },
 #if !CROSS
+            { "draw", Ink.Description, Ink.Schema },
             { "gaming_mode", "Turn Gaming Mode on or off: your small HUD over their game, where you watch and comment. up, down, left, right and reset move the HUD.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}" },
             { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
@@ -823,6 +842,7 @@ namespace CapriDesktop
                 if (tool == "shortcut") return Shortcut(args.Name);
                 if (tool == "remember") return args.Action == "forget" ? Brain.Unnote(Theirs(args.Text)) : CallMe(args.Text) ?? Brain.Note(Theirs(args.Text));
 #if !CROSS
+                if (tool == "draw") return Draw(args);
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
@@ -952,6 +972,9 @@ namespace CapriDesktop
             string held = heldForPlease;
             heldForPlease = null;
             if (held != null && JustPlease.IsMatch(said ?? "")) return held + " please";
+#if !CROSS
+            if (Ink.Request(Asked(said)) != null) return said;
+#endif
             if (Polite.IsMatch(said ?? "") || !Wants(said) || PleaseRoll() != 0) return said;
             heldForPlease = said;
             askPlease = true;
@@ -961,6 +984,7 @@ namespace CapriDesktop
         internal static bool Wants(string said)
         {
 #if !CROSS
+            if (Ink.Request(Asked(said)) != null) return true;
             if (Files.PathIn(said) != null) return true;
             if (WatchRequest(Asked(said)) != null) return true;
             if (CapriDesktop.Websites.Request(Asked(said)) != null || FileFinder.Request(Asked(said), Finder.Busy, Finder.Found) != null) return true;
@@ -989,6 +1013,13 @@ namespace CapriDesktop
             if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine")) return;
 #if !CROSS
             if (calls.Exists(watched => watched.Key == "watch_for")) return;
+            if (Ink.ScreenRequest(said))
+            {
+                calls.Clear();
+                calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = said }));
+                return;
+            }
+            if (calls.Exists(drawn => drawn.Key == "draw")) return;
 #endif
             if (calls.Exists(call => call.Key == "use_computer" || call.Key == "look_at_screen" || call.Key == "listen" || call.Key == "media" || call.Key == "play_music")) return;
             if (Wants(said) && ((Errand(said) && !calls.Exists(call => call.Key == "shortcut" || call.Key == "remember")) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
@@ -1027,6 +1058,9 @@ namespace CapriDesktop
 
         internal static string Pulled(string result)
         {
+#if !CROSS
+            if (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.") return result;
+#endif
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser because |but (it's behind|I couldn't bring) )")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
@@ -1655,6 +1689,8 @@ namespace CapriDesktop
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
 #if !CROSS
+            ToolArguments drawing = Ink.Request(text);
+            if (drawing != null) { tool = drawing.Task == null ? "draw" : "use_computer"; args = drawing; if (drawing.Task != null) args.Task = said; return true; }
             ToolArguments watchArgs = WatchRequest(text);
             if (watchArgs != null) { tool = "watch_for"; args = watchArgs; return true; }
             int clipSeconds = ClipSeconds(text);
@@ -1857,6 +1893,7 @@ namespace CapriDesktop
             else if (key == "task") args.Task = value;
             else if (key == "text") args.Text = value;
             else if (key == "description") args.Description = value;
+            else if (key == "shapes") args.Shapes = value;
             else if (key == "path") args.Path = value;
             else if (key == "page") { int page; args.Page = int.TryParse(value, out page) ? page : -1; }
             else if (key == "offset") { long offset; args.Offset = long.TryParse(value, out offset) ? offset : -1; }
@@ -1899,7 +1936,7 @@ namespace CapriDesktop
 
         private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip"
 #if !CROSS
-            + "|find_file|website_nickname|mini_game|watch_for|listen"
+            + "|find_file|website_nickname|mini_game|watch_for|listen|draw"
 #endif
             ;
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
@@ -2012,6 +2049,7 @@ namespace CapriDesktop
         internal static bool Valid(string tool, ToolArguments args)
         {
 #if !CROSS
+            if (tool == "draw") return Ink.Valid(args);
             if (tool == "listen")
             {
                 int listenDuration;

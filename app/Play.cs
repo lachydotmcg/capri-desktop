@@ -216,6 +216,7 @@ namespace CapriDesktop
         internal const string Sees =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You do their job with their mouse and keyboard, looking at the screen like a person would.\n" +
             MusicNote +
+            Ink.Seen +
             "Each turn you get a picture of the screen with a grid on it. The numbers along the top are x and the numbers down the left are y, both from 0 to 100, so x 50 y 50 is the middle of the screen. Use them to say where things are. You also get the words read off the screen, each with where it is.\n" +
             "Reply with only your next moves, one per line, in order. Send several when they belong together. After them you get a new picture, so check what changed.\n" +
             "Your moves:\n" +
@@ -226,6 +227,7 @@ namespace CapriDesktop
             "wait{\"seconds\": \"2\"} waits.\n" +
             "open_app{\"name\": \"Minecraft\"} opens an app or game. open_website{\"site\": \"youtube.com\"} opens a website.\n" +
             "find_file{\"description\": \"cyberpunk game folder\"} finds files and folders by name and returns paths. find_file{\"action\": \"show\"} selects the first match in Explorer; action stop cancels a search.\n" +
+            "draw{\"shapes\":\"circle 20 30 40 50; arrow 50 50 70 60; text 30 20 hi\"} draws on your 0-100 grid, with the same mapping as click. line and box take two corners, path takes point pairs. action add keeps earlier ink; clear erases it.\n" +
             "look{\"x\": 62, \"y\": 40} turns a game's camera so that spot comes to the middle of the view. look{\"right\": 90} or look{\"up\": -30} turns by degrees, negative for left or down. look{\"level\": \"yes\"} looks straight ahead at the horizon.\n" +
             "walk{\"keys\": \"w\", \"seconds\": \"3\"} walks by holding keys, jumps small things, and stops by itself when it's stuck.\n" +
             "mouse_hold{\"button\": \"left\", \"seconds\": \"2\", \"stop\": \"yes\"} holds a mouse button, and stop yes lets go when what's under the crosshair changes.\n" +
@@ -239,7 +241,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first. They already asked, and asking again annoys them. Capri stops you herself before any step that needs their OK.\n" +
             "If a cookie banner or popup covers the page, deal with it first, then carry on. If a move didn't work, try something else rather than the same thing again.";
 
-        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
+        private static readonly Regex MoveText = new Regex(@"\b(click|double_click|right_click|press|type|scroll|wait|look|walk|mouse_hold|hold_and_press|open_app|open_website|find_file|draw|say|learn|done|ask)\s*(\{(?:[^{}""]|""(?:\\.|[^""\\])*"")*\})", RegexOptions.Singleline);
         private static readonly Regex PlainClick = new Regex(@"\b(click|double_click|right_click)\W+(\d{1,3}(?:\.\d+)?)\W+(\d{1,3}(?:\.\d+)?)\b", RegexOptions.IgnoreCase);
 
         // The moves written in a brain's reply, in order.
@@ -276,6 +278,10 @@ namespace CapriDesktop
             member = true;
             switch (move)
             {
+                case "draw":
+                    args.Drawing = shown;
+                    args.DrawingGrid = true;
+                    break;
                 case "click": case "double_click": case "right_click": case "scroll":
                     ReadWord named = placed || move == "scroll" ? null : Closest(args.Text, spots);
                     if (named != null)
@@ -364,6 +370,7 @@ namespace CapriDesktop
                     {
                         if (number >= MostTargets || Regex.Matches(line.Text, @"\p{L}|\p{N}").Count < 2) continue;
                         Point corner = picture.ToScreen(line.Box.Left, line.Box.Top), across = picture.ToScreen(line.Box.Right, line.Box.Bottom);
+                        if (InkWord(Rectangle.FromLTRB(corner.X, corner.Y, across.X, across.Y), line.Text)) continue;
                         sight.Targets.Add(new Target { Number = ++number, Role = "words", Name = line.Text, Value = "", Box = Rectangle.FromLTRB(corner.X, corner.Y, across.X, across.Y) });
                     }
                 }
@@ -388,6 +395,8 @@ namespace CapriDesktop
                     foreach (ReadWord line in Ocr.Phrases(shot, 1, 1500))
                     {
                         if (Regex.Matches(line.Text, @"\p{L}|\p{N}").Count < 2) continue;
+                        Point wordCorner = picture.ToScreen(line.Box.Left, line.Box.Top), wordAcross = picture.ToScreen(line.Box.Right, line.Box.Bottom);
+                        if (InkWord(Rectangle.FromLTRB(wordCorner.X, wordCorner.Y, wordAcross.X, wordAcross.Y), line.Text)) continue;
                         spots.Add(line);
                         if (listed.Count < 40) listed.Add(Voice.Quote(line.Text) + " at " + (line.Box.X + line.Box.Width / 2) * 100 / shot.Width + "," + (line.Box.Y + line.Box.Height / 2) * 100 / shot.Height);
                     }

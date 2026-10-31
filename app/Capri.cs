@@ -1638,6 +1638,7 @@ namespace CapriDesktop
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
             clips.Enable(!testing && preferences.ClipGames);
             SetUpMinis();
+            SetUpInk();
             SetUpGaming();
             Hands.Hush = Computer.Mask;
             Computer.Grab = HandsGrab;
@@ -1864,6 +1865,7 @@ namespace CapriDesktop
             Point hip = Hip();
             int room = Screen.FromPoint(hip).WorkingArea.Right - hip.X;
             bool left = room < preferences.Size * (facingLeft ? 0.9f : 0.6f);
+            if (ink.Moving && Math.Abs(ink.Tip.X - hip.X) < preferences.Size * 4 && Math.Abs(ink.Tip.Y - hip.Y) < preferences.Size * 4) left = ink.Tip.X < hip.X;
             if (left == facingLeft) return;
             facingLeft = left;
             anchor = new Point(anchor.X + hip.X - Hip().X, anchor.Y);
@@ -5925,7 +5927,7 @@ namespace CapriDesktop
             string seen;
             try
             {
-                seen = brain.See(shot, "You describe screenshots accurately and briefly.", "Describe what's on this screen in two or three plain sentences: what kind of game or app it is (name it only if the name is on screen), what's happening, and any text or numbers that matter. Don't guess who a person is from their face; name someone only if their name is written on screen." + (string.IsNullOrWhiteSpace(focus) ? "" : " Pay attention to: " + focus.Trim()), 160);
+                seen = brain.See(shot, "You describe screenshots accurately and briefly." + Ink.Seen, "Describe what's on this screen in two or three plain sentences: what kind of game or app it is (name it only if the name is on screen), what's happening, and any text or numbers that matter. Don't guess who a person is from their face; name someone only if their name is written on screen." + (string.IsNullOrWhiteSpace(focus) ? "" : " Pay attention to: " + focus.Trim()), 160);
             }
             catch (BrainException)
             {
@@ -6250,7 +6252,7 @@ namespace CapriDesktop
             Bitmap shot = new Bitmap(area.Width, area.Height, PixelFormat.Format24bppRgb);
             try
             {
-                using (Graphics graphics = Graphics.FromImage(shot)) graphics.CopyFromScreen(area.Location, Point.Empty, area.Size);
+                using (Graphics graphics = Graphics.FromImage(shot)) graphics.CopyFromScreen(area.Location, Point.Empty, area.Size, CopyPixelOperation.SourceCopy | CopyPixelOperation.CaptureBlt);
                 return shot;
             }
             catch { shot.Dispose(); throw; }
@@ -6458,7 +6460,7 @@ namespace CapriDesktop
             // Anything else that can see plays from pictures.
             running.Seer = running.Drive == null && Unseeing() == null ? new Func<byte[], string, string, string>(delegate(byte[] jpeg, string system, string user) { return brain.See(jpeg, system, user, 700, true); }) : null;
             running.Aside = delegate(string system, string user) { return brain.Aside(system, user, 320, true); };
-            running.Reader = testing ? null : new Action<Sight>(Computer.ReadWords);
+            running.Reader = testing ? null : new Action<Sight>(delegate(Sight read) { if (Ink.ScreenRequest(running.Task)) Computer.ReadWords(read, Computer.Shoot(null)); else Computer.ReadWords(read); });
             running.Says = delegate(string line) { Post(delegate { PlayLine(line, running); }); };
             running.Blind = delegate { if (!running.Playing || preferences.SlowHands) blindModel = driver.Model; };
             running.Progress = delegate(string status) { Post(delegate { working = status + " Esc stops me."; UpdateTalk(clock.Elapsed.TotalSeconds); }); };
@@ -9154,7 +9156,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || quick == "nap" || brain.Model == null && WithoutBrain(quick))) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
+            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || quick == "nap" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick))) think = delegate { return Security.Said(DoTool(quick, quickArgs)); };
             if (think == null && fileMessage) think = brain.Ask;
             if (think == null)
             {
@@ -9842,6 +9844,7 @@ namespace CapriDesktop
                 clips.Dispose();
                 Native.Lower(false);
                 CloseMinis();
+                ink.Dispose();
                 miniTicks.Dispose();
                 clickDelay.Dispose();
                 frames.Dispose();
@@ -14045,6 +14048,195 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeInk(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<InkShape> inkGood = Ink.Parse("line 1 2 3 4; arrow(10,20,30,40); circle [10,20,50,60]; box 80 90 20 30; path 0 0 10 20 30 40; text 12 15 \"hi; choom\"");
+            if (inkGood.Count != 6 || inkGood[4].Points.Length != 3 || inkGood[5].Text != "hi; choom") throw new Exception("Ink lost a good shape or its text.");
+            if (Ink.Parse("line 1 2 3 4; triangle 1 2 3 4; circle 1 1 1 9; path 1 2 3; line NaN 2 3 4; text 10 20 hi; arrow bad; box 10 20 30 40").Count != 3 || Ink.Parse("").Count != 0 || Ink.Parse("[]").Count != 0) throw new Exception("Bad ink spoiled good shapes or an empty list drew something.");
+            if (Ink.Parse("LINE -1.5 +2 3e1 4\nbox (1, 2, 3, 4)\npath [1,2], [3,4], [5,6]").Count != 3) throw new Exception("Ink did not read loose numbers and point lists.");
+            checks.Add("PASS ink parses all six shapes, loose points, mixed good and bad shapes and empty lists");
+            string[,] inkRequests =
+            {
+                { "draw a circle around the start button", "use_computer" },
+                { "circle the start button", "use_computer" },
+                { "point at the save button", "use_computer" },
+                { "underline that word", "use_computer" },
+                { "draw an arrow to the clock", "use_computer" },
+                { "show me where to click", "use_computer" },
+                { "draw me a cat", "draw" },
+                { "draw on my screen", "draw" },
+                { "write hi on my screen", "draw" },
+                { "clear your drawing", "draw" },
+                { "add a circle around the start button", "use_computer" },
+                { "draw me a cat, add it", "draw" }
+            };
+            for (int inkRequestIndex = 0; inkRequestIndex < inkRequests.GetLength(0); inkRequestIndex++)
+            {
+                string inkHeardTool;
+                ToolArguments inkHeardArgs;
+                string inkWording = inkRequests[inkRequestIndex, 0];
+                if (!Hands.Heard(inkWording, out inkHeardTool, out inkHeardArgs) || inkHeardTool != inkRequests[inkRequestIndex, 1] || !Hands.Wants(inkWording) || !Hands.Valid(inkHeardTool, inkHeardArgs)) throw new Exception("A drawing request missed her hands: " + inkWording);
+                if (inkHeardTool == "use_computer" && inkHeardArgs.Task != inkWording) throw new Exception("A drawing job lost their exact words.");
+            }
+            foreach (string inkChat in new[] { "don't draw on my screen", "I drew a cat", "if you draw a cat", "draw a cat in paint" })
+            {
+                string inkChatTool;
+                ToolArguments inkChatArgs;
+                if (Hands.Heard(inkChat, out inkChatTool, out inkChatArgs) && inkChatTool == "draw") throw new Exception("Ink took conversation or another app's job.");
+            }
+            if (DrawTool(new ToolArguments()) != Ink.Question || Hands.Pulled(Ink.Question) != Ink.Question || Hands.Pulled("Cleared my drawing.") != "Cleared my drawing.") throw new Exception("An empty drawing request or a clear needed another model reply.");
+            Func<bool> inkActiveWas = Ink.Active;
+            try
+            {
+                Ink.Active = delegate { return true; };
+                foreach (string inkClear in new[] { "clear your drawing", "rub that out", "erase that", "Hey Capri, can you clear your drawing please?" })
+                {
+                    string inkClearTool;
+                    ToolArguments inkClearArgs;
+                    if (!Hands.Heard(inkClear, out inkClearTool, out inkClearArgs) || inkClearTool != "draw" || inkClearArgs.Action != "clear" || inkClearArgs.Description != null || Asides.Plain(inkClear, out inkClearTool, out inkClearArgs) != AsideKind.Tool) throw new Exception("Clearing ink needed a brain.");
+                }
+                ToolArguments inkAdd = Ink.Request("add a dog");
+                if (inkAdd == null || inkAdd.Action != "add" || inkAdd.Task == null) throw new Exception("Adding to an existing drawing did not look at its placement.");
+                if (Ink.Request("add milk to my shopping list") != null || Ink.Request("add a reminder for 5") != null) throw new Exception("Her ink took an add that wasn't about it.");
+            }
+            finally { Ink.Active = inkActiveWas; }
+            if (Ink.Request("erase that") != null || Ink.Request("rub it out") != null || Ink.Request("clear your drawing") == null) throw new Exception("Erase took a request with nothing drawn, or clear your drawing stopped working.");
+            Func<int> inkPleaseWas = Hands.PleaseRoll;
+            try
+            {
+                Hands.PleaseRoll = delegate { return 0; };
+                bool inkPlease;
+                if (Hands.Manners("draw me a cat", out inkPlease) != "draw me a cat" || inkPlease || Hands.Manners("clear your drawing", out inkPlease) != "clear your drawing" || inkPlease) throw new Exception("Ink added a please step.");
+            }
+            finally { Hands.PleaseRoll = inkPleaseWas; }
+            checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, and clear and bare draw need no brain");
+            Rectangle[] inkLayout = { new Rectangle(-2560, 120, 2560, 1440), new Rectangle(0, 0, 1920, 1080) };
+            Picture inkPicture = new Picture { Size = new Size(1120, 390), Area = Ink.Desktop(inkLayout), Jpeg = new byte[] { 1, 2, 3 } };
+            ToolArguments inkClick = new ToolArguments { X = 25, Y = 50 };
+            bool inkMember;
+            Computer.Planned("click", inkClick, inkPicture, null, out inkMember);
+            Point? inkLanding = Computer.Landing(inkClick, inkPicture);
+            System.Collections.Generic.List<InkShape> inkGrid = Ink.Map(Ink.Parse("path 25 50 75 50; text 25 50 hi"), inkPicture, true);
+            System.Collections.Generic.List<InkShape> inkPixels = Ink.Map(Ink.Parse("path 280 195 840 195"), inkPicture, false);
+            if (!inkMember || inkLanding != new Point(-1440, 780) || inkGrid[0].Points[0] != inkLanding.Value || inkGrid[1].Points[0] != inkLanding.Value || inkGrid[0].Points[1] != new Point(800, 780) || inkPixels[0].Points[0] != inkLanding.Value) throw new Exception("Ink and clicks disagree on the grid or the left monitor.");
+            Picture inkFine = new Picture { Size = new Size(1000, 1000), Area = new Rectangle(-1000, 0, 1000, 1000) };
+            ToolArguments inkFineClick = new ToolArguments { X = 0.35, Y = 0.35 };
+            Computer.Planned("click", inkFineClick, inkFine, null, out inkMember);
+            if (Ink.Map(Ink.Parse("path 0.35 0.35 50 50"), inkFine, true)[0].Points[0] != Computer.Landing(inkFineClick, inkFine).Value) throw new Exception("Ink rounded a fractional grid point differently from a click.");
+            InkShape inkTarget = Ink.At(new Target { Box = new Rectangle(-2300, 1450, 48, 40) }, "line");
+            if (inkTarget.Points[0] != new Point(-2300, 1490) || inkTarget.Points[1] != new Point(-2252, 1490)) throw new Exception("Ink scaled a readable target twice.");
+            System.Collections.Generic.List<InkStroke> inkStrokes = new System.Collections.Generic.List<InkStroke>();
+            inkStrokes.Add(new InkStroke(inkGrid[0], 0));
+            if (Ink.Covered(inkStrokes, inkLayout).Length != 2 || Ink.Covered(inkStrokes, new Rectangle[0]).Length != 0) throw new Exception("Ink lost a monitor or made up monitor space.");
+            InkStroke inkOutside = new InkStroke(Ink.Parse("circle -1000 -1000 1000 1000")[0], 0);
+            if (inkOutside.Touches(new Rectangle(-10, -10, 20, 20))) throw new Exception("An off-screen outline claimed space inside it.");
+            checks.Add("PASS ink and clicks share screenshot and grid mapping across different monitor sizes and a negative origin");
+            InkStroke inkLine = new InkStroke(Ink.Parse("line 20 50 180 50")[0], 0);
+            using (Bitmap inkCanvas = new Bitmap(220, 100))
+            using (Graphics inkPaint = Graphics.FromImage(inkCanvas))
+            {
+                inkPaint.Clear(Color.Transparent);
+                inkLine.Paint(inkPaint, 0);
+                if (inkCanvas.GetPixel(50, 50).A != 0) throw new Exception("Ink appeared all at once.");
+                inkLine.Paint(inkPaint, InkStroke.Seconds / 2);
+                if (inkCanvas.GetPixel(50, 50).A == 0 || inkCanvas.GetPixel(160, 50).A != 0 || inkLine.Tip(InkStroke.Seconds / 2) != new Point(100, 50)) throw new Exception("An ink stroke did not draw progressively.");
+                inkLine.Paint(inkPaint, InkStroke.Seconds);
+                if (inkCanvas.GetPixel(160, 50).A == 0) throw new Exception("Ink did not finish its stroke.");
+            }
+            checks.Add("PASS pink strokes draw progressively over half a second and expose their moving tip");
+            InkStroke inkWords = new InkStroke(Ink.Parse("text -500 100 save here")[0], 0);
+            if (!Ink.Word(new[] { inkWords }, Rectangle.Round(inkWords.Bounds), "save") || Ink.Word(new[] { inkWords }, new Rectangle(100, 100, 80, 20), "save") || Ink.Word(new[] { inkLine }, new Rectangle(20, 50, 160, 10), "save")) throw new Exception("Her ink text could become an OCR click target, or a real control was hidden by an outline.");
+            checks.Add("PASS her written annotations are excluded from OCR click targets without hiding real controls");
+            string inkWrittenTool;
+            ToolArguments inkWrittenArgs;
+            string inkCall = "draw{\"shapes\":\"line 10 20 30 40\",\"action\":\"add\"}";
+            if (!Hands.Tools.Contains("\"name\":\"draw\"") || !Hands.ClaudeTools.Contains("\"name\":\"draw\"") || !Hands.Listing.Contains("draw{") || !Hands.Typed(inkCall, out inkWrittenTool, out inkWrittenArgs, true) || inkWrittenTool != "draw" || inkWrittenArgs.Shapes != "line 10 20 30 40" || Hands.Written(inkCall).Count != 1 || !Computer.Toolset.Contains("\"name\":\"draw\"") || !Computer.Written(inkCall, out inkWrittenTool, out inkWrittenArgs) || Computer.Moves(inkCall).Count != 1 || Agent.Version < 28) throw new Exception("A drawing schema, parser, ToolNames or voice version was missed.");
+            checks.Add("PASS draw is in chat, Claude, written moves, ToolNames and the refreshed voice agent");
+            Func<ToolArguments, string> inkDrawWas = Hands.Draw;
+            Func<string, ToolArguments, string> inkHandWas = Computer.Hand;
+            Func<Rectangle[]> inkMonitorsWas = Ink.Monitors;
+            Func<Sight> inkLookWas = Computer.Look, inkGlimpseWas = Computer.Glimpse;
+            Func<IntPtr> inkFrontWas = Computer.Front;
+            Func<Rectangle?, Picture> inkShootWas = Computer.Shoot;
+            Action<Sight> inkTargetsWas = Computer.InkTargets;
+            try
+            {
+                ToolArguments inkActed = null;
+                Hands.Draw = delegate(ToolArguments inkGiven) { inkActed = inkGiven; return "Drew on your screen."; };
+                Computer.Hand = Hands.Do;
+                Ink.Monitors = delegate { return inkLayout; };
+                if (DoTool("draw", new ToolArguments { Shapes = "line 10 20 30 40" }) != "Drew on your screen." || inkActed.Shapes == null) throw new Exception("Chat did not dispatch draw.");
+                Sight inkSight = new Sight { Program = "notepad", Title = "Stand-in controls" };
+                for (int inkTargetIndex = 1; inkTargetIndex <= 5; inkTargetIndex++) inkSight.Targets.Add(new Target { Number = inkTargetIndex, Name = inkTargetIndex == 1 ? "Start" : "Control", Role = "button", Box = new Rectangle(-2300, 1450, 48, 40) });
+                Computer.Look = delegate { return inkSight; };
+                Computer.Glimpse = delegate { return inkSight; };
+                Computer.Front = delegate { return IntPtr.Zero; };
+                Computer.InkTargets = delegate { };
+                Computer.Shoot = delegate(Rectangle? inkArea) { return inkPicture; };
+                int inkBlindTurns = 0;
+                Job inkBlind = new Job("circle the start button");
+                inkBlind.Think = delegate(string inkSystem, string inkUser, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> inkCalls) { return inkBlindTurns++ == 0 ? "draw{\"target\":\"1\",\"kind\":\"circle\"}" : "done{\"text\":\"Circled Start.\"}"; };
+                if (inkBlind.Run() != "Circled Start." || inkActed.DrawingShapes[0].Points[0] != new Point(-2303, 1447)) throw new Exception("A blind drawing job lost the real target bounds.");
+                int inkSeenTurns = 0;
+                Job inkSeeing = new Job("circle the start button");
+                inkSeeing.Think = delegate { throw new Exception("A picture-reading drawing job used the text-only route."); };
+                inkSeeing.Seer = delegate { return inkSeenTurns++ == 0 ? "draw{\"shapes\":\"circle 25 50 30 60\"}" : "done{\"text\":\"Circled Start.\"}"; };
+                if (inkSeeing.Run() != "Circled Start." || inkActed.DrawingShapes[0].Points[0] != inkLanding.Value) throw new Exception("A picture-reading drawing job missed the grid mapping.");
+                int inkClaudeTurns = 0;
+                Job inkClaude = new Job("circle the start button");
+                inkClaude.Drive = delegate { return inkClaudeTurns++ == 0 ? new ClaudeReply { Content = new[] { new ClaudeBlock { Type = "tool_use", Id = "ink", Name = "draw", Input = new ToolArguments { Shapes = "circle 280 195 336 234" } } } } : new ClaudeReply { Content = new[] { new ClaudeBlock { Type = "text", Text = "Circled Start." } } }; };
+                if (inkClaude.Run() != "Circled Start." || inkActed.DrawingShapes[0].Points[0] != inkLanding.Value) throw new Exception("Claude's drawing job missed screenshot pixel mapping.");
+                checks.Add("PASS chat dispatches draw and Claude, picture-reading and blind jobs use their actual screen coordinates");
+                Ink.Monitors = delegate { return new Rectangle[0]; };
+                using (Ink inkEmpty = new Ink()) if (inkEmpty.Draw(Ink.Parse("line 1 1 20 20"), false) != Ink.NoSpace || inkEmpty.Has) throw new Exception("Ink claimed to draw without a monitor.");
+                checks.Add("PASS ink reports missing monitor space without claiming to draw");
+            }
+            finally
+            {
+                Hands.Draw = inkDrawWas;
+                Computer.Hand = inkHandWas;
+                Ink.Monitors = inkMonitorsWas;
+                Computer.Look = inkLookWas;
+                Computer.Glimpse = inkGlimpseWas;
+                Computer.Front = inkFrontWas;
+                Computer.Shoot = inkShootWas;
+                Computer.InkTargets = inkTargetsWas;
+                Computer.Finish();
+            }
+            if (!Environment.UserInteractive || Screen.AllScreens.Length == 0 || Native.GetForegroundWindow() == IntPtr.Zero) { checks.Add("LIMIT ink overlay: no interactive desktop to check focus and window styles"); return; }
+            using (Ink inkOverlay = new Ink())
+            {
+                Rectangle inkMonitor = Screen.PrimaryScreen.Bounds;
+                string inkLineText = "line " + (inkMonitor.Left + 20) + " " + (inkMonitor.Top + 20) + " " + (inkMonitor.Left + 80) + " " + (inkMonitor.Top + 50);
+                IntPtr inkFront = Native.GetForegroundWindow();
+                string inkOpened = inkOverlay.Draw(Ink.Parse(inkLineText), false);
+                if (inkOpened == Ink.NoOverlay || inkOpened == Ink.NoSpace) { checks.Add("LIMIT ink overlay: " + inkOpened); return; }
+                InkWindow inkWindow = inkOverlay.Windows[0];
+                int inkStyle = Native.GetWindowLong(inkWindow.Handle, -20);
+                int inkNeeded = 0x00000020 | 0x00080000 | 0x08000000 | 0x00000080 | 0x00000008;
+                if ((inkStyle & inkNeeded) != inkNeeded || (inkStyle & 0x00040000) != 0 || Native.GetForegroundWindow() != inkFront || !inkMonitor.Contains(inkWindow.Bounds) || inkWindow.Bounds.Width >= inkMonitor.Width / 2) throw new Exception("Ink took focus, lost click-through or covered more than its drawing.");
+                inkWindow.Advance(double.MaxValue);
+                if (inkWindow.Animating || !inkOverlay.Has) throw new Exception("Settled ink kept repainting or disappeared.");
+                Computer.Interrupt("Esc smoke stand-in");
+                if (!inkOverlay.Has) throw new Exception("Esc cleared persistent ink.");
+                Computer.Arm();
+                Computer.Finish();
+                if (inkOverlay.Draw(Ink.Parse(inkLineText), true) != "Added to my drawing." || inkOverlay.Count != 2 || inkOverlay.Draw(Ink.Parse(inkLineText), false) != "Drew on your screen." || inkOverlay.Count != 1) throw new Exception("Add or replace lost the drawing's strokes.");
+                inkOverlay.Clear();
+                if (inkOverlay.Has || inkOverlay.Windows.Length != 0) throw new Exception("Clear left an ink window behind.");
+            }
+            string inkMenuResult = DrawTool(new ToolArguments { Shapes = "line " + (Screen.PrimaryScreen.Bounds.Left + 25) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) + " " + (Screen.PrimaryScreen.Bounds.Left + 75) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) });
+            if (inkMenuResult == Ink.NoOverlay || inkMenuResult == Ink.NoSpace) { checks.Add("LIMIT ink tray item: " + inkMenuResult); return; }
+            try
+            {
+                if (!clearInkItem.Available || clearInkItem.Text != "Clear her drawing") throw new Exception("Drawn ink had no clear item.");
+                clearInkItem.PerformClick();
+                if (ink.Has || clearInkItem.Available) throw new Exception("The tray item did not clear her drawing.");
+            }
+            finally { DrawTool(new ToolArguments { Action = "clear" }); }
+            checks.Add("PASS ink is layered, topmost, click-through, absent from Alt-Tab and never activates; it settles, adds, replaces and clears");
+        }
+
         private void SmokeMinis(System.Collections.Generic.List<string> checks)
         {
             SmokeChess(checks);
@@ -14785,7 +14977,7 @@ namespace CapriDesktop
                 blind.Seer = delegate(byte[] picture, string prompt, string user) { throw new BrainException("no images here"); };
                 blind.Think = delegate(string a, string b, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> c) { reads++; return "done{\"text\": \"Read the buttons.\"}"; };
                 if (blind.Run() != "Read the buttons." || reads != 1) throw new Exception("A brain that can't see didn't fall back to reading buttons.");
-                foreach (string blindTool in new[] { "look", "walk", "mouse_hold", "learn", "say", "find_file" })
+                foreach (string blindTool in new[] { "look", "walk", "mouse_hold", "learn", "say", "find_file", "draw" })
                 {
                     string parsedTool;
                     ToolArguments parsedArgs;
@@ -16563,6 +16755,7 @@ namespace CapriDesktop
                             checks.Add("PASS Clip my games switches and saves from GAMES and shows its saved state");
                             SmokeGameEars(checks);
                             SmokeMinis(checks);
+                            SmokeInk(checks);
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
                             if (!mainframe.Visible || !mainframe.ShowInTaskbar || mainframe.WindowState != FormWindowState.Minimized) throw new Exception("Mainframe did not start minimized in the taskbar.");
