@@ -502,7 +502,7 @@ namespace CapriDesktop
             string notes = Notes();
             if (notes.Length > 0 && Regex.IsMatch(notes, @"^- Pronouns:", RegexOptions.Multiline | RegexOptions.IgnoreCase)) notes += "\nGo by the pronouns in your notes, and match words like girl, boy or choom to them.";
             string vault = VaultFolder;
-            string where = vault == null ? "" : "\nYour notes are the note " + Voice.Quote(Path.GetFileNameWithoutExtension(MemoryPath ?? "me.md")) + " in their Obsidian vault (" + vault + "), so you are connected to it: whatever you remember goes there and they can read it in Obsidian. Where your instructions say me.md, they mean that note.";
+            string where = vault == null ? "" : "\nYour notes are the note " + Voice.Quote(Path.GetFileNameWithoutExtension(MemoryPath ?? "me.md")) + " in their Obsidian vault " + Voice.Quote(Path.GetFileName(vault.TrimEnd('\\', '/'))) + ", so whatever you remember goes there and they can read it in Obsidian. Where your instructions say me.md, they mean that note.";
             return where + (notes.Length == 0 ? "" : "\nYour notes about them, from me.md (they can read and edit it). Use them when they fit, and don't recite them:\n" + notes) + Memories() + Seen();
         }
 

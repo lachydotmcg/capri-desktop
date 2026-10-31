@@ -4011,49 +4011,44 @@ namespace CapriDesktop
         // Memory vault: her notes can be a note in their Obsidian vault, so they read and edit them there.
         private string ownNotes;
         internal string Vault { get { return preferences.Vault ?? ""; } }
+        internal bool VaultHere { get { return Brain.VaultFolder != null; } }
 
         internal string SetVault(string folder)
         {
             folder = (folder ?? "").Trim().Trim('"');
-            string from = Brain.MemoryPath;
-            if (folder.Length == 0)
-            {
-                preferences.Vault = null;
-                SavePreferences();
-                Brain.MemoryPath = ownNotes;
-                Brain.VaultFolder = null;
-                return "Her notes are back in her own folder. Your vault keeps its copy of me.md.";
-            }
             string notes;
             try
             {
-                notes = NotesIn(Path.GetFullPath(folder));
-                folder = Path.GetDirectoryName(notes);
-                Directory.CreateDirectory(folder);
-                // Her notes so far come along: a new file starts as a copy, and a note of theirs gets any she's missing added to the end.
-                if (from != null && File.Exists(from) && !string.Equals(Path.GetFullPath(from), notes, StringComparison.OrdinalIgnoreCase))
-                {
-                    if (!File.Exists(notes)) File.Copy(from, notes);
-                    else
-                    {
-                        string current = File.ReadAllText(notes);
-                        System.Text.StringBuilder missing = new System.Text.StringBuilder();
-                        foreach (string line in File.ReadAllLines(from))
-                            if (line.StartsWith("- ", StringComparison.Ordinal) && current.IndexOf(line.Trim(), StringComparison.OrdinalIgnoreCase) < 0) missing.Append(line.Trim()).Append('\n');
-                        if (missing.Length > 0) File.WriteAllText(notes, current + (current.Length == 0 || current.EndsWith("\n", StringComparison.Ordinal) ? "" : "\n") + missing);
-                    }
-                }
-                else if (!File.Exists(notes)) File.WriteAllText(notes, Brain.NotesHead);
+                notes = folder.Length == 0 ? ownNotes : NotesIn(Path.GetFullPath(folder));
+                Directory.CreateDirectory(Path.GetDirectoryName(notes));
+                CarryNotes(Brain.MemoryPath, notes);
             }
             catch (IOException error) { return "Couldn't use that: " + error.Message; }
             catch (UnauthorizedAccessException error) { return "Couldn't use that: " + error.Message; }
             catch (ArgumentException error) { return "Couldn't use that: " + error.Message; }
             catch (NotSupportedException error) { return "Couldn't use that: " + error.Message; }
-            preferences.Vault = notes;
+            bool own = folder.Length == 0;
+            preferences.Vault = own ? null : notes;
             SavePreferences();
             Brain.MemoryPath = notes;
-            Brain.VaultFolder = folder;
-            return "Connected. She saves her memories to " + Path.GetFileName(notes) + " in " + folder + ".";
+            Brain.VaultFolder = own ? null : Path.GetDirectoryName(notes);
+            return own ? "Her notes are back in her own folder, and your vault keeps its copy." : "Connected. She saves her memories to " + Path.GetFileName(notes) + " in " + Path.GetDirectoryName(notes) + ".";
+        }
+
+        // Her notes so far come along: a new file starts as a copy, and a note already there gets any she's missing added to the end.
+        private static void CarryNotes(string from, string to)
+        {
+            if (from == null || !File.Exists(from) || string.Equals(Path.GetFullPath(from), to, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!File.Exists(to)) File.WriteAllText(to, Brain.NotesHead);
+                return;
+            }
+            if (!File.Exists(to)) { File.Copy(from, to); return; }
+            string current = File.ReadAllText(to);
+            System.Text.StringBuilder missing = new System.Text.StringBuilder();
+            foreach (string line in File.ReadAllLines(from))
+                if (line.StartsWith("- ", StringComparison.Ordinal) && current.IndexOf(line.Trim(), StringComparison.OrdinalIgnoreCase) < 0) missing.Append(line.Trim()).Append('\n');
+            if (missing.Length > 0) File.WriteAllText(to, current + (current.Length == 0 || current.EndsWith("\n", StringComparison.Ordinal) ? "" : "\n") + missing);
         }
 
         internal const string VaultNote = "Capri Memories.md";
@@ -4061,12 +4056,22 @@ namespace CapriDesktop
         // The vaults this Windows user has opened in Obsidian, by folder name, from Obsidian's own list. Empty without Obsidian.
         internal static System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> ObsidianVaults()
         {
-            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> vaults = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>();
             try
             {
                 string list = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "obsidian", "obsidian.json");
-                if (!File.Exists(list)) return vaults;
-                System.Collections.Generic.Dictionary<string, object> read = new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(File.ReadAllText(list)) as System.Collections.Generic.Dictionary<string, object>;
+                if (File.Exists(list)) return VaultsIn(File.ReadAllText(list));
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>();
+        }
+
+        internal static System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> VaultsIn(string json)
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> vaults = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>();
+            try
+            {
+                System.Collections.Generic.Dictionary<string, object> read = new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(json) as System.Collections.Generic.Dictionary<string, object>;
                 object listed;
                 System.Collections.Generic.Dictionary<string, object> all = read != null && read.TryGetValue("vaults", out listed) ? listed as System.Collections.Generic.Dictionary<string, object> : null;
                 if (all == null) return vaults;
@@ -4080,8 +4085,6 @@ namespace CapriDesktop
                 }
                 vaults.Sort(delegate(System.Collections.Generic.KeyValuePair<string, string> a, System.Collections.Generic.KeyValuePair<string, string> b) { return string.Compare(a.Key, b.Key, StringComparison.OrdinalIgnoreCase); });
             }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
             catch (ArgumentException) { }
             catch (InvalidOperationException) { }
             return vaults;
@@ -10455,6 +10458,7 @@ namespace CapriDesktop
                 { "WHAT DOES POP-IN ON ME DO?", "Check in on me" },
                 { "why can\u2019t you see my screen?", "Watch my screen" },
                 { "what does Gaming Mode do?", "Gaming Mode" },
+                { "can you keep your memories in obsidian?", "Memory vault" },
                 { "how does Free voice in games work?", "Free voice in games" },
                 { "how do your game comments work?", "Comments" },
                 { "where is personality.md?", "personality.md" },
@@ -13738,6 +13742,41 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeVault(System.Collections.Generic.List<string> checks)
+        {
+            string folder = Path.Combine(Path.GetTempPath(), "capri-vault-" + Guid.NewGuid().ToString("N"));
+            string oldPath = Brain.MemoryPath, oldOwn = ownNotes, oldFolder = Brain.VaultFolder, oldVault = preferences.Vault;
+            try
+            {
+                string me = Path.Combine(folder, "own", "me.md"), inVault = Path.Combine(folder, "vault"), note = Path.Combine(inVault, VaultNote);
+                Directory.CreateDirectory(Path.GetDirectoryName(me));
+                Directory.CreateDirectory(inVault);
+                File.WriteAllText(me, Brain.NotesHead + "- They like cats\n");
+                ownNotes = Brain.MemoryPath = me;
+                Brain.VaultFolder = null;
+                SetVault(note);
+                if (Brain.MemoryPath != note || Brain.VaultFolder != inVault || !VaultHere || preferences.Vault != note || !File.ReadAllText(note).Contains("- They like cats")) throw new Exception("Her notes didn't move into the vault.");
+                File.AppendAllText(note, "- They play chess\n");
+                SetVault("");
+                if (Brain.MemoryPath != me || VaultHere || preferences.Vault != null || !File.ReadAllText(me).Contains("- They play chess")) throw new Exception("What she learned in the vault didn't come back with her.");
+                File.WriteAllText(note, "# Theirs\n- They like cats\n");
+                SetVault(note);
+                string merged = File.ReadAllText(note);
+                if (!merged.StartsWith("# Theirs", StringComparison.Ordinal) || merged.IndexOf("- They like cats", StringComparison.Ordinal) != merged.LastIndexOf("- They like cats", StringComparison.Ordinal) || !merged.Contains("- They play chess")) throw new Exception("A note already in the vault lost its lines or got doubled ones.");
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> vaults = VaultsIn("{\"vaults\":{\"a1\":{\"path\":" + Voice.Quote(inVault) + ",\"ts\":1},\"b2\":{\"path\":" + Voice.Quote(Path.Combine(folder, "gone")) + ",\"ts\":2}}}");
+                if (vaults.Count != 1 || vaults[0].Key != "vault" || vaults[0].Value != inVault || VaultsIn("not json").Count != 0 || NotesIn("") != null || NotesIn(note) != note || NotesIn(inVault) != Path.Combine(inVault, "me.md")) throw new Exception("Her Obsidian vault list read wrong.");
+                checks.Add("PASS Memory vault: her notes move into a vault and come back with what she learned there, a note already in it keeps its lines, and only real vaults are listed");
+            }
+            finally
+            {
+                Brain.MemoryPath = oldPath;
+                ownNotes = oldOwn;
+                Brain.VaultFolder = oldFolder;
+                preferences.Vault = oldVault;
+                try { Directory.Delete(folder, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+            }
+        }
+
         private void SmokeVoiceWaits(System.Collections.Generic.List<string> checks)
         {
             bool waitsSilent = preferences.Silent, waitsDue = voiceCheckDue;
@@ -13865,6 +13904,7 @@ namespace CapriDesktop
                         {
                             SmokeOpening(checks);
                             SmokeVoiceWaits(checks);
+                            SmokeVault(checks);
                             SmokeLocalBrains(checks);
                             SmokeBrainBodies(checks);
                             SmokeCamera(checks);

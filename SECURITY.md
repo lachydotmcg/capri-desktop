@@ -4,7 +4,7 @@
 
 The app has no analytics, no crash reports and no usage pings. We never receive your chat logs, transcriptions, screenshots, files, keys or notes.
 
-Your settings, chats, transcripts, notes and error logs stay on your PC, in `%LOCALAPPDATA%\Capri` on Windows. Keys you save are encrypted for your Windows account. On Mac and Linux they sit unencrypted in local files that only your account can read.
+Your settings, chats, transcripts, notes and error logs stay on your PC, in `%LOCALAPPDATA%\Capri` on Windows. Keys you save are encrypted for your Windows account. On Mac and Linux they sit unencrypted in local files that only your account can read. If you pick an Obsidian vault for her notes, they live in that vault instead, and go wherever your vault syncs.
 
 The [code is public](https://github.com/lachydotmcg/capri-desktop), so you can check all of this yourself.
 
