@@ -576,7 +576,7 @@ namespace CapriDesktop
             pushKeys = Make("Push to talk: not set", 28, 815, 328, 22, delegate { PickKeys(Companion.PushSlot); });
             pushKeys.AccessibleName = "Her push-to-talk key: hold it to talk to her, with a game in front too. Click, press a key or a mouse button, then Confirm";
             gameKeys = Make("Gaming Mode: Ctrl + Alt + G", 28, 843, 328, 22, delegate { PickKeys(5); });
-            gameKeys.AccessibleName = "Her Gaming Mode key: she docks in a small HUD over your game until you close it. Click, press new keys, then Confirm";
+            gameKeys.AccessibleName = "Her Gaming Mode key: she reacts to your game until you close it. Click, press new keys, then Confirm";
             // Only a click ends picking a key, so Enter, Esc and Tab can be her keys too. Confirm and Cancel show in KEYS' band
             // while one is being picked.
             confirmKeys = Make("Confirm", 212, 645, 78, 20, delegate { ConfirmKeys(); });
@@ -715,8 +715,8 @@ namespace CapriDesktop
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
             gamingMode = Switch("Gaming Mode", 0, 966, delegate { if (!syncing) capri.ToggleGaming(); });
-            gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
-            Caption("Her HUD reacts to your game until you close it.", 28, 992, small, Faint);
+            gamingMode.AccessibleName = "Gaming Mode. She reacts to your game until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
+            Caption("She reacts to your game until you close it.", 28, 992, small, Faint);
             Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1008, small, Faint);
             Caption("Works best on MAX INTELLIGENCE.", 28, 1024, small, Faint);
             clipGames = Switch("Clip my games", 0, 1046, delegate { if (!syncing) capri.ToggleClips(); });

@@ -16347,7 +16347,7 @@ namespace CapriDesktop
                         if (gamingControl.Text == "Clip my games") gamingClip = gamingControl;
                         if (gamingControl.Text == "Save big moments") gamingMoments = gamingControl;
                         if (gamingControl.Text == "Fast hands in games") gamingHands = gamingControl;
-                        if (gamingControl.Text == "Her HUD reacts to your game until you close it.") gamingEnd = gamingControl;
+                        if (gamingControl.Text == "She reacts to your game until you close it.") gamingEnd = gamingControl;
                     }
                     if (gamingToggle == null || gamingCaption == null || gamingDisclaimer == null || gamingClip == null || gamingMoments == null || gamingHands == null || gamingEnd == null
                         || !gamingCaption.Visible || !gamingDisclaimer.Visible
