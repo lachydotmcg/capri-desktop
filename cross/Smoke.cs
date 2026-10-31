@@ -41,6 +41,7 @@ namespace CapriDesktop
         private TcpListener fakeVoice;
         private readonly List<string> voiceAsked = new List<string>();
         private readonly List<byte[]> spoken = new List<byte[]>();
+        private readonly List<string> speechAsked = new List<string>();
 
         private bool blinked;
         private bool slept;
@@ -287,6 +288,7 @@ namespace CapriDesktop
                     || layersSet != "On | +3, 40 ms | -4, 100 ms" || Pet.LayersOf(layersLoaded).Shown != "On | +3, 40 ms | -4, 100 ms" || Pet.LayersOf(layersOld).Shown != layersPlainShown || Pet.LayersOf(new Settings()).Shown != layersPlainShown || layersBack != layersPlainShown || VoiceFx.Styled(toneWav, "Hey choom.") != toneWav)
                     throw new Exception("Voice layers went wrong: " + layersWrong + " / new " + layersNew + ", on " + layersOn + " (" + layersSaid.Length + " samples from " + tonePcm.Length + "), set " + layersSet + ", loaded " + Pet.LayersOf(layersLoaded).Shown + ", older " + Pet.LayersOf(layersOld).Shown + ", back " + layersBack);
                 checks.Add("PASS voice layers: Settings > Voice style > Layers turns on two copies of her under her, like Windows, with Layer 1 and Layer 2's pitch and delay in their own menus; " + layersFound + "; her ElevenLabs replies get them and come back 25 ms longer for their tails; off out of the box and in settings from before them, and off her voice is byte for byte as it was; the layers save and load as set");
+                LocalVoiceChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
@@ -1031,7 +1033,7 @@ namespace CapriDesktop
                 string last = asked.Length == 0 ? "" : asked[asked.Length - 1];
                 if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under Settings > Voice." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
                 string voiceMenu = pet.VoiceMenu;
-                if (voiceMenu != "*Use ElevenLabs | - | *Capri Test | Adam | - | New key... | Remove key ending 1234") throw new Exception("The Voice menu listed the wrong things: " + voiceMenu);
+                if (voiceMenu != "Provider: ElevenLabs | - | *Use ElevenLabs | - | *Capri Test | Adam | - | New key... | Remove key ending 1234") throw new Exception("The Voice menu listed the wrong things: " + voiceMenu);
                 checks.Add("PASS voice key: Settings > Voice asks for the key in a hidden box, explains and drops a rejected key, keeps a good one in a private file and picks their own voice first");
                 if (pet.TypingSound) throw new Exception("Typing sound stayed on while her ElevenLabs voice works.");
                 pet.Think = delegate(string words) { return "Preem question, choom."; };
@@ -1058,7 +1060,7 @@ namespace CapriDesktop
                 lock (spoken) voiced = spoken.Count;
                 if (voiced != 2 || pet.VoiceStatus != "key 1234 | Capri Test | quiet" || !pet.TypingSound) throw new Exception("Speak replies off still spoke, or typing stayed off: " + voiced + " | " + pet.VoiceStatus);
                 pet.ForgetVoice();
-                if (File.Exists(Path.Combine(folder, "voice-key")) || pet.VoiceStatus != "no key | v1 | quiet" || pet.VoiceMenu != "Add ElevenLabs key...") throw new Exception("Remove key didn't remove it: " + pet.VoiceStatus + " | " + pet.VoiceMenu);
+                if (File.Exists(Path.Combine(folder, "voice-key")) || pet.VoiceStatus != "no key | v1 | quiet" || pet.VoiceMenu != "Provider: ElevenLabs | - | Add ElevenLabs key...") throw new Exception("Remove key didn't remove it: " + pet.VoiceStatus + " | " + pet.VoiceMenu);
                 checks.Add("PASS voice: replies are spoken through ElevenLabs and type out at the voice's pace, Use ElevenLabs off keeps her quiet, and Remove key deletes the file");
                 fakeVoice.Stop();
                 Send(shelf, "quit");
@@ -1393,6 +1395,232 @@ namespace CapriDesktop
                 || trustedPrompt.IndexOf("SECURITY", StringComparison.Ordinal) >= 0 || openPrompt.IndexOf("Call the tool.\nThey've set her SECURITY settings to ask first before you open apps, games or sites. Still call the tool as soon as they ask", StringComparison.Ordinal) < 0)
                 throw new Exception("Security asked about something Mac and Linux don't have, or her prompt didn't follow it: " + mouseFree + " / " + lockdownNote);
             checks.Add("PASS Security gates: with each of the five toggles off she holds the call and asks (\"Open spotify? Say yes and I will.\", \"Lock your PC? Say yes and I will.\"), nothing runs until a yes, a yes runs it once through her own hands, a no leaves it alone and a new message drops it; two held calls are one question and one yes; in text chat her question goes out word for word and the next message's yes does it; mouse and keyboard jobs, which Mac and Linux don't have yet, never ask; and her brain is told to still call a tool that's off and let her ask");
+        }
+
+        // A local voice server, like Kokoro-FastAPI: picked apart from ElevenLabs, asked with no key, its WAV in any coding read
+        // into the 16-bit mono her style and playback take, and every way it can fail said plainly instead of crashing her.
+        private void LocalVoiceChecks()
+        {
+            List<string> wrong = new List<string>();
+            Func<string, bool, string> fail = delegate(string what, bool ok) { if (!ok) wrong.Add(what); return what; };
+            Settings fresh = new Settings();
+            fail("old settings are ElevenLabs", Speakers.Known(fresh.VoiceProvider) == Speakers.ElevenLabs && pet.VoiceStatus == "no key | no voice | quiet" && pet.Speaker.Name == "ElevenLabs");
+            Settings old;
+            using (MemoryStream saved = new MemoryStream(Encoding.UTF8.GetBytes("{\"VoiceId\":\"v9\",\"Silent\":true}")))
+                old = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(saved);
+            fail("settings from before providers load as ElevenLabs", old.VoiceId == "v9" && old.Silent && Speakers.Known(old.VoiceProvider) == Speakers.ElevenLabs && old.LocalVoiceUrl == null);
+            Settings kept = new Settings { VoiceProvider = Speakers.Local, LocalVoiceUrl = "localhost:8880", LocalVoiceModel = "kokoro", LocalVoiceName = "af_heart", LocalVoiceFormat = LocalSpeaker.Pcm, VoiceId = "v1" };
+            Settings back;
+            using (MemoryStream saved = new MemoryStream())
+            {
+                new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).WriteObject(saved, kept);
+                saved.Position = 0;
+                back = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(saved);
+            }
+            fail("local settings save and load", back.VoiceProvider == Speakers.Local && back.LocalVoiceUrl == "localhost:8880" && back.LocalVoiceModel == "kokoro" && back.LocalVoiceName == "af_heart" && back.LocalVoiceFormat == LocalSpeaker.Pcm && back.VoiceId == "v1");
+            fail("addresses", LocalSpeaker.Endpoint("localhost:8880").ToString() == "http://localhost:8880/v1/audio/speech" && LocalSpeaker.Endpoint("http://127.0.0.1:9000/v1/").ToString() == "http://127.0.0.1:9000/v1/audio/speech" && LocalSpeaker.Endpoint("https://tts.lan/api/v1/audio/speech").ToString() == "https://tts.lan/api/v1/audio/speech");
+            bool unset = false, badScheme = false;
+            try { LocalSpeaker.Endpoint(" "); } catch (VoiceException) { unset = true; }
+            try { LocalSpeaker.Endpoint("ftp://x"); } catch (VoiceException) { badScheme = true; }
+            fail("bad addresses", unset && badScheme);
+
+            string hostWas = Voice.Host;
+            Voice.Host = FakeVoice();
+            byte[] elevenSaid = new ElevenLabsSpeaker(new Voice { Key = "good-key-1234", VoiceId = "v1" }).Speak("Hey choom.");
+            string elevenAsked;
+            lock (voiceAsked)
+            {
+                elevenAsked = voiceAsked.Count == 0 ? "" : voiceAsked[voiceAsked.Count - 1];
+                voiceAsked.Clear();
+            }
+            fakeVoice.Stop();
+            Voice.Host = hostWas;
+            fail("ElevenLabs still asks with its own key", Voice.Seconds(elevenSaid) > 0.99 && elevenAsked.StartsWith("POST /v1/text-to-speech/v1?output_format=wav_24000 good-key-1234 {\"text\":\"Hey chewm.\"}", StringComparison.Ordinal));
+            pet.SetVoiceProvider(Speakers.Local);
+            fail("an unset local server stays quiet", !pet.Speaks && pet.VoiceStatus == "local not set | server's voice | quiet" && pet.VoiceMenu == "Provider: Local server | - | Speak replies (off) | - | Server: not set... | Model: server's default... | Voice: server's default... | Format: WAV | - | Test voice (off)");
+            fail("a bad address isn't kept", !pet.SetLocalVoice("url", "ftp://nope") && pet.VoiceStatus.StartsWith("local not set", StringComparison.Ordinal));
+            TcpListener server = new TcpListener(IPAddress.Loopback, 0);
+            server.Start();
+            Thread serve = new Thread(delegate()
+            {
+                while (true)
+                {
+                    TcpClient client;
+                    try { client = server.AcceptTcpClient(); }
+                    catch (Exception) { return; }
+                    ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        try { using (client) ServeSpeech(client.GetStream()); }
+                        catch (Exception) { }
+                    });
+                }
+            });
+            serve.IsBackground = true;
+            serve.Start();
+            string url = "127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port;
+            pet.SetLocalVoice("url", url);
+            pet.SetLocalVoice("model", "kokoro");
+            pet.SetLocalVoice("voice", "tone");
+            fail("a set local server speaks", pet.Speaks && pet.Speaker.Name == "Local server" && pet.VoiceStatus == "local " + url + " | tone | speaking" && pet.VoiceMenu == "Provider: Local server | - | *Speak replies | - | Server: " + url + "... | Model: kokoro... | Voice: tone... | Format: WAV | - | Test voice");
+            Func<string, string> problem = delegate(string text)
+            {
+                try { pet.Speaker.Speak(text); return null; }
+                catch (VoiceException error) { return error.Message; }
+            };
+            byte[] said = pet.Speaker.Speak("Hey choom & co.");
+            string asked;
+            lock (speechAsked) asked = speechAsked.Count == 0 ? "" : speechAsked[speechAsked.Count - 1];
+            fail("16-bit mono WAV", Voice.Seconds(said) > 0.99 && Voice.Seconds(said) < 1.01);
+            fail("asked with no key", asked.StartsWith("POST /v1/audio/speech |", StringComparison.Ordinal) && asked.IndexOf("authorization", StringComparison.OrdinalIgnoreCase) < 0 && asked.IndexOf("xi-api-key", StringComparison.OrdinalIgnoreCase) < 0
+                && asked.EndsWith("{\"model\":\"kokoro\",\"input\":\"Hey chewm and co.\",\"voice\":\"tone\",\"response_format\":\"wav\"}", StringComparison.Ordinal));
+            pet.SetPitch(3);
+            byte[] styled = VoiceFx.Styled(said, "Hey choom & co.");
+            pet.SetPitch(0);
+            int styledRate;
+            fail("her style goes on", styled != said && Voice.Samples(styled, out styledRate).Length > 0 && styledRate == 24000);
+            pet.SetLocalVoice("voice", "float");
+            byte[] floats = pet.Speaker.Speak("Hey.");
+            int floatRate;
+            short[] floatPcm = Voice.Samples(floats, out floatRate);
+            fail("streamed float stereo WAV", floatRate == 22050 && floatPcm.Length == 22050 && Math.Abs(floatPcm[100] - (short)Math.Round(Math.Sin(100 * 0.05) * 0.5 * 32767)) <= 1);
+            try { File.WriteAllBytes(Path.Combine(folder, "local-voice.wav"), Voice.Louder(VoiceFx.Styled(floats, "Hey."))); }
+            catch (IOException) { }
+            pet.SetLocalVoice("format", LocalSpeaker.Pcm);
+            pet.SetLocalVoice("voice", "pcm");
+            int pcmRate;
+            fail("raw pcm", Voice.Samples(pet.Speaker.Speak("Hey."), out pcmRate).Length == 12000 && pcmRate == 24000 && pet.VoiceMenu.IndexOf("Format: PCM", StringComparison.Ordinal) > 0);
+            pet.SetLocalVoice("format", LocalSpeaker.Wav);
+            string json = null, mp3 = null, broken = null, empty = null, missing = null;
+            pet.SetLocalVoice("voice", "json");
+            json = problem("Hey.");
+            pet.SetLocalVoice("voice", "mp3");
+            mp3 = problem("Hey.");
+            pet.SetLocalVoice("voice", "broken");
+            broken = problem("Hey.");
+            pet.SetLocalVoice("voice", "empty");
+            empty = problem("Hey.");
+            pet.SetLocalVoice("url", url + "/nowhere");
+            missing = problem("Hey.");
+            pet.SetLocalVoice("url", url);
+            pet.SetLocalVoice("voice", "slow");
+            ((LocalSpeaker)pet.Speaker).Patience = 1000;
+            Stopwatch waited = Stopwatch.StartNew();
+            string slow = problem("Hey.");
+            waited.Stop();
+            ((LocalSpeaker)pet.Speaker).Patience = 20000;
+            fail("words, not sound", json != null && json.StartsWith("Your local voice server sent words, not sound: no such voice", StringComparison.Ordinal));
+            fail("unreadable sound", mp3 == "Capri can't read the sound your local voice server sent (audio/mpeg). Set its format to WAV or PCM.");
+            fail("HTTP errors", broken == "Your local voice server said HTTP 500: model crashed" && missing != null && missing.IndexOf("(HTTP 404)", StringComparison.Ordinal) > 0);
+            fail("no sound", empty == "Your local voice server sent back no sound.");
+            fail("timeouts", slow != null && slow.StartsWith("Your local voice server took over 1 s", StringComparison.Ordinal) && waited.ElapsedMilliseconds < 2900);
+            server.Stop();
+            pet.SetLocalVoice("voice", "tone");
+            string down = problem("Hey.");
+            fail("a server that's down", down == "Can't reach your local voice server at " + url + ". Is it running?" && pet.Speaks);
+            pet.SetSpeak(false);
+            fail("Speak replies off quiets it", !pet.Speaks && pet.VoiceStatus.EndsWith("| quiet", StringComparison.Ordinal));
+            pet.SetSpeak(true);
+            pet.SetVoiceProvider(Speakers.Off);
+            fail("Off", !pet.Speaks && pet.VoiceStatus == "off | no voice | quiet" && pet.VoiceMenu == "Provider: Off | - | No voice provider. She types her replies. (off)" && pet.Speaker.Name == "none");
+            pet.SetVoiceProvider(Speakers.ElevenLabs);
+            fail("back to ElevenLabs", pet.VoiceStatus == "no key | no voice | quiet" && pet.VoiceMenu == "Provider: ElevenLabs | - | Add ElevenLabs key...");
+            pet.SetLocalVoice("url", "");
+            pet.SetLocalVoice("model", "");
+            pet.SetLocalVoice("voice", "");
+            if (wrong.Count > 0) throw new Exception("Local voice went wrong: " + string.Join(", ", wrong) + " / " + json + " / " + mp3 + " / " + broken + " / " + missing + " / " + empty + " / " + slow + " (" + waited.ElapsedMilliseconds + " ms) / " + down + " / " + pet.VoiceStatus + " / " + asked);
+            checks.Add("PASS local voice: Settings > Voice > Provider picks ElevenLabs, a local server or Off, apart from Use ElevenLabs and Speak replies; settings from before it stay ElevenLabs and the local server's address, model, voice and format save and load; an unset server keeps her quiet; she asks POST /v1/audio/speech with no key, reads its 16-bit, float, stereo, streamed WAV or raw pcm into the 16-bit mono her style and speakers take, and says plainly when it sends words, MP3, nothing, HTTP 404 or 500, takes too long or is down");
+        }
+
+        private void ServeSpeech(NetworkStream stream)
+        {
+            List<byte> read = new List<byte>();
+            byte[] chunk = new byte[4096];
+            int end = -1;
+            while (end < 0)
+            {
+                int got = stream.Read(chunk, 0, chunk.Length);
+                if (got <= 0) return;
+                for (int i = 0; i < got; i++) read.Add(chunk[i]);
+                for (int i = 3; i < read.Count && end < 0; i++) if (read[i - 3] == 13 && read[i - 2] == 10 && read[i - 1] == 13 && read[i] == 10) end = i + 1;
+            }
+            string head = Encoding.ASCII.GetString(read.ToArray(), 0, end);
+            string[] lines = head.Split(new[] { "\r\n" }, StringSplitOptions.None);
+            string[] first = lines[0].Split(' ');
+            int length = 0;
+            List<string> names = new List<string>();
+            foreach (string line in lines)
+            {
+                int colon = line.IndexOf(':');
+                if (colon < 0) continue;
+                string name = line.Substring(0, colon).Trim().ToLowerInvariant();
+                names.Add(name);
+                if (name == "content-length") length = int.Parse(line.Substring(colon + 1).Trim());
+            }
+            while (read.Count - end < length)
+            {
+                int got = stream.Read(chunk, 0, chunk.Length);
+                if (got <= 0) break;
+                for (int i = 0; i < got; i++) read.Add(chunk[i]);
+            }
+            string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
+            lock (speechAsked) speechAsked.Add(first[0] + " " + first[1] + " | " + string.Join(",", names) + " | " + body);
+            System.Text.RegularExpressions.Match picked = System.Text.RegularExpressions.Regex.Match(body, "\"voice\":\"([a-z0-9]+)\"");
+            string voice = picked.Success ? picked.Groups[1].Value : "";
+            int status = 200;
+            string type = "audio/wav";
+            byte[] reply;
+            if (first[1] != "/v1/audio/speech") { status = 404; type = "application/json"; reply = Encoding.UTF8.GetBytes("{\"detail\":\"Not Found\"}"); }
+            else if (voice == "float")
+            {
+                // Float stereo at 22.05 kHz, streamed: its RIFF and data sizes are left at 0xFFFFFFFF.
+                using (MemoryStream wav = new MemoryStream())
+                using (BinaryWriter writer = new BinaryWriter(wav))
+                {
+                    writer.Write(Encoding.ASCII.GetBytes("RIFF"));
+                    writer.Write(uint.MaxValue);
+                    writer.Write(Encoding.ASCII.GetBytes("WAVEfmt "));
+                    writer.Write(16);
+                    writer.Write((short)3);
+                    writer.Write((short)2);
+                    writer.Write(22050);
+                    writer.Write(22050 * 8);
+                    writer.Write((short)8);
+                    writer.Write((short)32);
+                    writer.Write(Encoding.ASCII.GetBytes("data"));
+                    writer.Write(uint.MaxValue);
+                    for (int i = 0; i < 22050; i++)
+                    {
+                        float level = (float)(Math.Sin(i * 0.05) * 0.5);
+                        writer.Write(level);
+                        writer.Write(level);
+                    }
+                    writer.Flush();
+                    reply = wav.ToArray();
+                }
+            }
+            else if (voice == "pcm")
+            {
+                short[] tone = new short[12000];
+                for (int i = 0; i < tone.Length; i++) tone[i] = (short)(Math.Sin(i * 0.05) * 3000);
+                reply = new byte[tone.Length * 2];
+                Buffer.BlockCopy(tone, 0, reply, 0, reply.Length);
+                type = "audio/pcm";
+            }
+            else if (voice == "json") { type = "application/json"; reply = Encoding.UTF8.GetBytes("{\"detail\":\"no such voice\"}"); }
+            else if (voice == "mp3") { type = "audio/mpeg"; reply = new byte[] { (byte)'I', (byte)'D', (byte)'3', 4, 0, 0, 0, 0, 0, 0, 0xFF, 0xFB }; }
+            else if (voice == "broken") { status = 500; type = "application/json"; reply = Encoding.UTF8.GetBytes("{\"detail\":\"model crashed\"}"); }
+            else if (voice == "empty") reply = new byte[0];
+            else
+            {
+                if (voice == "slow") Thread.Sleep(3000);
+                short[] tone = new short[24000];
+                for (int i = 0; i < tone.Length; i++) tone[i] = (short)(Math.Sin(i * 0.05) * 3000);
+                reply = Voice.Wave(tone, 24000);
+            }
+            byte[] top = Encoding.ASCII.GetBytes("HTTP/1.1 " + status + " " + (status == 200 ? "OK" : "Error") + "\r\nContent-Type: " + type + "\r\nContent-Length: " + reply.Length + "\r\nConnection: close\r\n\r\n");
+            stream.Write(top, 0, top.Length);
+            stream.Write(reply, 0, reply.Length);
+            stream.Flush();
         }
 
         private string FakeVoice()
