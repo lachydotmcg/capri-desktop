@@ -47,6 +47,7 @@ namespace CapriDesktop
         [DataMember(Name = "seconds")] public string Seconds;
         [DataMember(Name = "minutes")] public string Minutes;
         [DataMember(Name = "level")] public string Level;
+        [DataMember(Name = "side")] public string Side;
         [DataMember(Name = "screen")] public string Screen;
         [DataMember(Name = "window")] public string Window;
         [DataMember(Name = "coordinate")] public double[] Coordinate;
@@ -441,7 +442,7 @@ namespace CapriDesktop
 #if CROSS
         private const string MiniNote = "";
 #else
-        private const string MiniNote = "\nYour own desktop boards are tic-tac-toe, connect four and rock paper scissors. Use mini_game for those exact games, with name tic_tac_toe, connect_four or rock_paper_scissors. A request to play online belongs in their browser. Other games keep using open_app or use_computer. While your board is open, mini_game action move takes their square, column or choice as text; again starts another round and close puts it away. Board chat is ordinary conversation: answer from the position below.";
+        private const string MiniNote = "\nYour own desktop boards are tic-tac-toe, connect four, rock paper scissors and chess. Use mini_game with name tic_tac_toe, connect_four, rock_paper_scissors or chess. A request to play online belongs in their browser. Other games keep using open_app or use_computer. While your board is open, mini_game action move takes their square, column or choice as text; again starts another round and close puts it away. Chess is local, uses mouse moves, and also takes undo, hint, resign and level. Chess levels are easy, normal and hard; side is white by default or black. Board chat is ordinary conversation: answer from the position below.";
 #endif
         internal static Func<string> MiniBoard = delegate { return ""; };
         internal static Func<string, ToolArguments> MiniInput = delegate { return null; };
@@ -559,8 +560,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}" },
             { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
               "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}" },
-            { "mini_game", "Play your own tic-tac-toe, connect four or rock paper scissors board beside you. Only these three games; online play goes to their browser. A move uses their square, column or rock/paper/scissors as text. again starts a new round; close closes your board.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move\"}},\"required\":[\"name\"]}" },
+            { "mini_game", "Play your own tic-tac-toe, connect four, rock paper scissors or native chess board beside you. Online play goes to their browser. A move uses their square, column or rock/paper/scissors as text; chess moves use the mouse. again starts a new round; close closes your board. Chess also has undo, hint, resign and level. Chess needs no brain or key; choose easy, normal or hard and their side, white by default.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\",\"chess\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\",\"undo\",\"hint\",\"resign\",\"level\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move on a non-chess board\"},\"level\":{\"type\":\"string\",\"description\":\"Chess strength\",\"enum\":[\"easy\",\"normal\",\"hard\"]},\"side\":{\"type\":\"string\",\"description\":\"Their chess pieces\",\"enum\":[\"white\",\"black\"]}},\"required\":[\"name\"]}" },
             { "watch_for", "Watch for something that will show on their screen: tell me when, let me know when, warn me if, keep an eye on, or watch for. Stay quiet until it happens. Use remind for anything that goes by the clock. Watches last until she closes; list names them, stop with text stops a matching watch, and stop without text stops them all.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to watch for, in their words, or which watch to stop\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; watch by default\",\"enum\":[\"watch\",\"list\",\"stop\"]},\"often\":{\"type\":\"string\",\"description\":\"Once by default, or every time after the condition clears\",\"enum\":[\"once\",\"every_time\"]}}}" },
             { "listen", "Capture what's playing on their PC, like a video, a call, a stream or a game's dialogue, and give back the words. Listen from now for 15 seconds by default, after your own voice finishes. Use it when they ask what someone said, to listen to this, or to translate what someone is saying. It cannot replay earlier sound or identify songs by ear.",
@@ -840,7 +841,7 @@ namespace CapriDesktop
                     if (!string.IsNullOrEmpty(args.Seconds) && (!int.TryParse(args.Seconds, out clipSeconds) || clipSeconds <= 0)) return "How many seconds should I clip?";
                     return SaveClip(clipSeconds);
                 }
-                if (tool == "mini_game") return Mini(args);
+                if (tool == "mini_game") return Valid(tool, args) ? Mini(args) : "Couldn't find that desktop board action.";
 #if !CROSS
                 if (tool == "listen")
                 {
@@ -1684,8 +1685,21 @@ namespace CapriDesktop
                 args.Name = text.Substring(5); args.Task = said; return true;
             }
             if (ListenFor(text)) { tool = "listen"; args.Focus = said; return true; }
+            Match chessWeb = Regex.Match(text, @"^(?:open|play chess on|play chess at)\s+(?:https?://)?(?:www\.)?(chess\.com)(?:/)?$", RegexOptions.IgnoreCase);
+            if (chessWeb.Success) { tool = "open_website"; args.Site = "chess.com"; return true; }
             string miniName = MiniName(text);
-            if (miniName != null) { tool = "mini_game"; args.Name = miniName; args.Action = "open"; return true; }
+            if (miniName != null)
+            {
+                tool = "mini_game"; args.Name = miniName; args.Action = "open";
+                if (miniName == "chess")
+                {
+                    Match chessLevel = Regex.Match(text, @"\b(easy|normal|hard)\b", RegexOptions.IgnoreCase);
+                    Match chessSide = Regex.Match(text, @"\b(white|black)\b", RegexOptions.IgnoreCase);
+                    args.Level = chessLevel.Success ? chessLevel.Value.ToLowerInvariant() : null;
+                    args.Side = chessSide.Success ? chessSide.Value.ToLowerInvariant() : null;
+                }
+                return true;
+            }
             string miniWeb = Regex.Replace(text, @"\s+online\b", "", RegexOptions.IgnoreCase);
             if (miniWeb != text && MiniName(miniWeb) != null)
             {
@@ -1801,6 +1815,9 @@ namespace CapriDesktop
 
         internal static string MiniName(string text)
         {
+#if !CROSS
+            if (Regex.IsMatch((text ?? "").Replace('\u2019', '\''), @"^(?:(?:(?:wanna|want to|let's|lets|shall we|can we)\s+)?play\s+)?(?:native )?chess(?:\s+with\s+(?:me|you))?(?:\s+(?:on\s+)?(?:easy|normal|hard))?(?:(?:,?\s+i(?:'ll| will) be|\s+as)\s+(?:white|black))?$", RegexOptions.IgnoreCase)) return "chess";
+#endif
             Match mini = Regex.Match(text ?? "", @"^(?:(?:(?:wanna|want to|let's|lets|shall we|can we)\s+)?play\s+)?(tic[ -]?tac[ -]?toe|connect[ -](four|4)|rock[ ,]+paper[ ,]+scissors)(?:\s+with\s+(me|you))?$", RegexOptions.IgnoreCase);
             if (!mini.Success) return null;
             string name = mini.Groups[1].Value.ToLowerInvariant();
@@ -1848,6 +1865,8 @@ namespace CapriDesktop
             else if (key == "steps") args.Steps = value;
             else if (key == "minutes") args.Minutes = value;
             else if (key == "seconds") args.Seconds = value;
+            else if (key == "level") args.Level = value;
+            else if (key == "side") args.Side = value;
             else if (key == "screen") args.Screen = value;
 #if !CROSS
             else if (key == "often") args.Often = value;
@@ -1878,9 +1897,9 @@ namespace CapriDesktop
             return true;
         }
 
-        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|find_file|website_nickname|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip|mini_game"
+        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip"
 #if !CROSS
-            + "|watch_for|listen"
+            + "|find_file|website_nickname|mini_game|watch_for|listen"
 #endif
             ;
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
@@ -2006,7 +2025,16 @@ namespace CapriDesktop
                 return args != null && (string.IsNullOrEmpty(args.Seconds) || (int.TryParse(args.Seconds, out duration) && duration > 0));
             }
             if (args == null) return false;
-            if (tool == "mini_game") return Regex.IsMatch(args.Name ?? "", @"\A(tic_tac_toe|connect_four|rock_paper_scissors)\z") && (string.IsNullOrEmpty(args.Action) || Regex.IsMatch(args.Action, @"\A(open|again|close|move)\z")) && (args.Action != "move" || Named(args.Text));
+            if (tool == "mini_game")
+            {
+                bool chess = args.Name == "chess";
+                return Regex.IsMatch(args.Name ?? "", @"\A(tic_tac_toe|connect_four|rock_paper_scissors|chess)\z")
+                    && (string.IsNullOrEmpty(args.Action) || Regex.IsMatch(args.Action, chess ? @"\A(open|again|close|undo|hint|resign|level)\z" : @"\A(open|again|close|move)\z"))
+                    && (args.Action != "move" || Named(args.Text))
+                    && (string.IsNullOrEmpty(args.Level) || chess && Regex.IsMatch(args.Level, @"\A(easy|normal|hard)\z"))
+                    && (string.IsNullOrEmpty(args.Side) || chess && Regex.IsMatch(args.Side, @"\A(white|black)\z"))
+                    && (args.Action != "level" || Named(args.Level));
+            }
             if (tool == "open_app") return Named(args.Name);
             if (tool == "open_website") return Named(args.Site) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
             if (tool == "look_at_screen") return true;

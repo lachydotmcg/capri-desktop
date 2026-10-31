@@ -277,6 +277,7 @@ namespace CapriDesktop
         internal string Board, Fallback, Said;
         internal int Result;
         internal double Began;
+        internal bool Local;
     }
 
     internal sealed class MiniChat
@@ -299,6 +300,14 @@ namespace CapriDesktop
             waiting.Clear();
             waiting.Enqueue(new MiniLine { Board = game.BoardText(), Result = game.Result, Fallback = lines[dice.Next(lines.Length)] });
             quietMoves = 0;
+        }
+
+        internal void Observe(ChessGame game, Random dice)
+        {
+            string line = ChessLines.Pick(game.Moment, dice);
+            if (line == null) return;
+            waiting.Clear();
+            waiting.Enqueue(new MiniLine { Board = game.BoardText(), Result = game.Result, Fallback = line, Said = line, Local = true });
         }
 
         internal MiniLine Take(double now) { return waiting.Count == 0 || now - Last < 8 ? null : waiting.Dequeue(); }
@@ -580,6 +589,7 @@ namespace CapriDesktop
     internal sealed partial class Companion
     {
         private MiniBoard minis;
+        private ChessBoard chess;
         private readonly Dictionary<string, MiniScore> miniScores = new Dictionary<string, MiniScore>();
         private readonly Random miniRandom = new Random();
         private readonly MiniChat miniChat = new MiniChat();
@@ -602,6 +612,7 @@ namespace CapriDesktop
         {
             string kind = miniKind;
             if (kind.Length == 0) return null;
+            if (kind == "chess") return ChessGame.Input(text);
             string action = Regex.IsMatch(text, @"^(?:close|quit|exit|stop)(?: (?:the |our |your )?(?:board|mini ?game))?$", RegexOptions.IgnoreCase) ? "close"
                 : Regex.IsMatch(text, @"^(?:again|play again|another round|new round|rematch)$", RegexOptions.IgnoreCase) ? "again"
                 : MiniGame.Input(kind, text) >= 0 ? "move" : null;
@@ -615,9 +626,10 @@ namespace CapriDesktop
             if (args.Action == "close")
             {
                 if (MidJob(job) && string.Equals((args.Text ?? "").Trim(), "stop", StringComparison.OrdinalIgnoreCase)) StopJob(Lines.Pick(Lines.Stopped));
-                CloseMinis();
+                CloseMinis(args.Name == "chess");
                 return "Board's away, choom.";
             }
+            if (args.Name == "chess") return ChessTool(args);
             if (args.Action == "move" && (minis == null || minis.Game.Kind != args.Name)) return "That board isn't open.";
             if (minis == null || minis.Game.Kind != args.Name)
             {
@@ -646,6 +658,59 @@ namespace CapriDesktop
             return "Board's up, choom. " + minis.Game.Status;
         }
 
+        private string ChessTool(ToolArguments args)
+        {
+            bool openedNow = chess == null;
+            if (openedNow)
+            {
+                CloseMinis(true);
+                MiniScore score;
+                if (!miniScores.TryGetValue("chess", out score)) { score = new MiniScore(); miniScores.Add("chess", score); }
+                ChessBoard opened = new ChessBoard(new ChessGame(score, args.Level, args.Side));
+                chess = opened;
+                miniKind = "chess";
+                opened.Above = preferences.OnTop;
+                opened.Played += ChessPlayed;
+                opened.FormClosed += delegate { if (chess == opened) { chess = null; ClearMini(); } };
+                opened.Open(Bounds);
+                miniTicks.Start();
+            }
+            string action = args.Action ?? "open";
+            if (action == "open" && !openedNow)
+            {
+                if (!string.IsNullOrEmpty(args.Side) && (args.Side == "white" ? 1 : -1) != chess.Game.You) action = "again";
+                else if (!string.IsNullOrEmpty(args.Level)) action = "level";
+            }
+            if (action != "open" && !(openedNow && action == "again"))
+            {
+                if (action == "undo" || action == "again" || action == "level") { miniTicket++; miniLine = null; miniChat.Clear(); }
+                chess.Command(action, args.Level, args.Side);
+            }
+            MiniContext();
+            return action == "hint" ? "Looking for a hint on the board." : chess.Game.Status;
+        }
+
+        private void ChessPlayed()
+        {
+            MiniContext();
+            if (chess == null) return;
+            if (chess.Game.Moment == null) return;
+            if (chess.Game.Moment == "reset")
+            {
+                miniTicket++; miniLine = null; miniChat.Clear(); chess.Game.Moment = null;
+                return;
+            }
+            if (miniLine != null) { miniTicket++; miniLine = null; }
+            int result = chess.Game.Result;
+            if (result != 0)
+            {
+                Commentary.Stage.Mood(result == 2 ? GameMood.Happy : result == 1 ? GameMood.Hit : GameMood.Surprise);
+                if (preferences.Motion) AnimateTool(result == 2 ? "grin" : "glitch");
+            }
+            miniChat.Observe(chess.Game, miniRandom);
+            chess.Game.Moment = null;
+        }
+
         private bool HearMini(string text)
         {
             string tool;
@@ -653,7 +718,11 @@ namespace CapriDesktop
             if (!Hands.Heard(text, out tool, out args) || tool != "mini_game") return false;
             int ticket = ++asking;
             string done = DoTool(tool, args, ticket);
-            if (args.Action != "move") { brain.Remember(text, done); heard = text; box.Prompt = "> you: "; Answer(ticket, done, TalkState.Talking); }
+            if (args.Action != "move")
+            {
+                brain.Remember(text, done); heard = text; box.Prompt = "> you: ";
+                if (args.Name == "chess") ChessSay(done, ticket); else Answer(ticket, done, TalkState.Talking);
+            }
             return true;
         }
 
@@ -670,16 +739,20 @@ namespace CapriDesktop
             replyDone = -1;
             talkState = TalkState.Off;
             Say(null);
-            if (args.Action != "move") { brain.Remember(text, done); Begin(asking, done, TalkState.Talking, null); }
+            if (args.Action != "move")
+            {
+                brain.Remember(text, done);
+                if (args.Name == "chess") ChessSay(done, asking); else Begin(asking, done, TalkState.Talking, null);
+            }
             UpdateAnimation();
             return true;
         }
 
-        private void MiniContext()
+        private void MiniContext(bool localOnly = false)
         {
-            miniContext = minis == null ? "" : minis.Game.BoardText();
+            miniContext = chess != null ? chess.Game.BoardText() : minis == null ? "" : minis.Game.BoardText();
             Agent told = agent;
-            if (told != null && told.Ready) told.Tell(miniContext.Length == 0 ? "Capri's desktop board is closed." : miniContext);
+            if (!localOnly && chess == null && told != null && told.Ready) told.Tell(miniContext.Length == 0 ? "Capri's desktop board is closed." : miniContext);
         }
 
         private void MiniPlayed()
@@ -700,8 +773,8 @@ namespace CapriDesktop
 
         private void MiniTick()
         {
-            if (minis == null) return;
-            minis.Motion = preferences.Motion;
+            if (minis == null && chess == null) return;
+            if (minis != null) minis.Motion = preferences.Motion;
             double now = clock.Elapsed.TotalSeconds;
             if (miniLine == null)
             {
@@ -710,6 +783,7 @@ namespace CapriDesktop
                 miniLine = next;
                 next.Began = now;
                 int ticket = ++miniTicket;
+                if (next.Local) { next.Said = next.Fallback; return; }
                 if ((testing && headTest == null) || brain.Model == null || miniHeadBusy) { next.Said = next.Fallback; return; }
                 miniHeadBusy = true;
                 ThreadPool.QueueUserWorkItem(delegate
@@ -730,27 +804,52 @@ namespace CapriDesktop
             string line = spoken.Said ?? spoken.Fallback;
             brain.Remember("(Our desktop game: " + spoken.Board + ")", line);
             if (asideTest != null) { asideTest(line); return; }
+            if (spoken.Local)
+            {
+                if (MidJob(job)) { asideShown = line; asideUntil = now + BubbleHold(line.Length); UpdateTalk(now); }
+                else { if (hidden) SetHidden(false); heard = ""; box.Prompt = ""; remarkTicket = ++asking; ChessSay(line, remarkTicket); }
+                return;
+            }
             if (chatting && !local && agent != null && agent.Ready) { dropping = repeating = false; stirred = Environment.TickCount; agent.Say("(Say this word for word: " + Voice.Quote(line) + ")"); }
             else if (MidJob(job)) AsideSay(line, job, "(Our desktop game.)");
             else Remark("", line);
         }
 
-        private void ClearMini()
+        private void ChessSay(string line, int ticket)
         {
+            Begin(ticket, line, TalkState.Talking, null);
+            if (preferences.Silent || preferences.Quiet) return;
+            Func<string, byte[]> speak = FreeSpeak ?? (testing || !kokoro.Installed ? null : new Func<string, byte[]>(kokoro.Speak));
+            if (speak == null) return;
+            int boardTicket = miniTicket;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                byte[] wav = null;
+                try { wav = speak(Voice.Spoken(line)); } catch (Exception) { }
+                Post(delegate { if (ticket == asking && boardTicket == miniTicket && reply == line && talkState != TalkState.Off) PlayReply(line, wav); });
+            });
+        }
+
+        private void ClearMini(bool localOnly = false)
+        {
+            localOnly = localOnly || miniKind == "chess";
             miniKind = "";
             miniTicket++;
             miniLine = null;
             miniChat.Clear();
             miniTicks.Stop();
-            MiniContext();
+            MiniContext(localOnly);
         }
 
-        private void CloseMinis()
+        private void CloseMinis(bool localOnly = false)
         {
             MiniBoard closing = minis;
             minis = null;
             if (closing != null) closing.Dispose();
-            ClearMini();
+            ChessBoard chessClosing = chess;
+            chess = null;
+            if (chessClosing != null) chessClosing.Dispose();
+            ClearMini(localOnly);
         }
     }
 }

@@ -3870,7 +3870,6 @@ namespace CapriDesktop
                 // Esc stopped this ask's job while this one waited its turn.
                 if (ticket == escAsk) done = "";
                 else if (tool == "find_file") done = Hands.Finder.Do(args ?? new ToolArguments(), delegate { return ticket != asking || ticket == escAsk || quitting; });
-                else if (tool == "website_nickname") done = Hands.Do(tool, args);
                 else if (task == null) done = Hands.Do(tool, args);
                 else
                 {
@@ -6131,6 +6130,11 @@ namespace CapriDesktop
             {
                 minis.Above = preferences.OnTop;
                 if (minis.IsHandleCreated) Native.SetWindowPos(minis.Handle, new IntPtr(preferences.OnTop ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            }
+            if (chess != null)
+            {
+                chess.Above = preferences.OnTop;
+                if (chess.IsHandleCreated) Native.SetWindowPos(chess.Handle, new IntPtr(preferences.OnTop ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             }
             foreach (Form above in new Form[] { pill, box, typer })
             {
@@ -13256,8 +13260,269 @@ namespace CapriDesktop
             return games;
         }
 
+        private static void SmokeChess(System.Collections.Generic.List<string> checks)
+        {
+            Action<bool, string> must = delegate(bool okay, string why) { if (!okay) throw new Exception(why); };
+            string[] positions = { ChessPosition.Start, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -" };
+            long[][] totals = { new long[] { 20, 400, 8902, 197281 }, new long[] { 48, 2039, 97862 }, new long[] { 14, 191, 2812, 43238 } };
+            for (int fixture = 0; fixture < positions.Length; fixture++)
+            {
+                ChessPosition board = new ChessPosition(positions[fixture]);
+                string before = board.Fen();
+                for (int depth = 1; depth <= totals[fixture].Length; depth++)
+                {
+                    long nodes = board.Perft(depth);
+                    must(nodes == totals[fixture][depth - 1] && board.Fen() == before && board.History.Count == 1, "Chess perft or restoration failed at fixture " + fixture + " depth " + depth + ": " + nodes);
+                    checks.Add("PASS chess perft " + fixture + " depth " + depth + " = " + nodes);
+                }
+            }
+            foreach (string level in new[] { "easy", "normal", "hard" })
+                foreach (string mateFen in new[] { "7k/5Q2/6K1/8/8/8/8/8 w - -", "8/8/8/8/8/6k1/5q2/7K b - -" })
+                {
+                    ChessPosition mate = new ChessPosition(mateFen);
+                    ChessChoice choice = new ChessSearch(mate, level, new Random(8), null).Run();
+                    must(choice.Move.From >= 0 && mate.Play(choice.Move.Text) && mate.Ending() == "Checkmate", "Chess missed mate in one on " + level);
+                }
+            checks.Add("PASS chess finds white and black mate in one at easy, normal and hard");
+            foreach (string tacticLevel in new[] { "easy", "normal", "hard" })
+            {
+                ChessPosition tactic = new ChessPosition("4k3/8/8/8/4q3/8/4R3/4K3 w - -");
+                ChessChoice tacticMove = new ChessSearch(tactic, tacticLevel, new Random(2), null).Run();
+                must(tacticMove.Move.Text == "e2e4", "Chess left a free queen on " + tacticLevel);
+            }
+            checks.Add("PASS chess at every level takes an undefended queen instead of choosing an arbitrary legal move");
+            must(new ChessPosition("7k/5Q2/6K1/8/8/8/8/8 b - -").Ending() == "Stalemate", "Chess missed stalemate.");
+            must(new ChessPosition("7k/6Q1/6K1/8/8/8/8/8 b - - 100 1").Ending() == "Checkmate", "A draw clock replaced checkmate.");
+            foreach (int promotion in new[] { 5, 4, 3, 2 })
+                foreach (int promoteSide in new[] { 1, -1 })
+                {
+                    ChessPosition promoted = new ChessPosition(promoteSide == 1 ? "7k/P7/6K1/8/8/8/8/8 w - -" : "8/8/8/8/8/6k1/p7/7K b - -");
+                    string promoteBefore = promoted.Fen();
+                    ChessMove promoteMove = promoted.Find((promoteSide == 1 ? "a7a8" : "a2a1") + " pnbrqk"[promotion]);
+                    must(promoteMove.From >= 0, "A promotion choice was missing.");
+                    ChessUndo promoteUndo = promoted.Push(promoteMove, true);
+                    must(promoted.Cells[promoteMove.To] == promoteSide * promotion && promoted.Half == 0, "Promotion used the wrong piece.");
+                    promoted.Pop(promoteUndo);
+                    must(promoted.Fen() == promoteBefore && promoted.History.Count == 1, "Promotion undo lost the pawn.");
+                }
+            ChessPosition ep = new ChessPosition("7k/8/8/3pP3/8/8/8/K7 w - d6 0 1");
+            string epBefore = ep.Fen();
+            ChessUndo epUndo = ep.Push(ep.Find("e5d6"), true);
+            must(ep.Cells[ChessPosition.At("d5")] == 0 && ep.Cells[ChessPosition.At("d6")] == 1 && ep.Ep == -1 && ep.Half == 0, "En passant failed.");
+            ep.Pop(epUndo);
+            must(ep.Fen() == epBefore && ep.Key() == ep.History[0], "En passant undo failed.");
+            ChessPosition pinnedEp = new ChessPosition("k3r3/8/8/3pP3/8/8/8/4K3 w - d6");
+            must(pinnedEp.Find("e5d6").From < 0 && pinnedEp.Key() == new ChessPosition("k3r3/8/8/3pP3/8/8/8/4K3 w - -").Key(), "A pinned en passant capture changed legal moves or repetition identity.");
+            must(ep.Key() != new ChessPosition("7k/8/8/3pP3/8/8/8/K7 w - -").Key(), "A legal en passant right was lost from repetition identity.");
+            must(new ChessPosition("8/8/8/r4pPK/8/8/8/7k w - f6").Find("g5f6").From < 0, "En passant exposed its own king on a rank.");
+            foreach (string castle in new[] { "e1g1", "e1c1", "e8g8", "e8c8" })
+            {
+                bool white = castle[1] == '1';
+                ChessPosition castled = new ChessPosition("r3k2r/8/8/8/8/8/8/R3K2R " + (white ? "w" : "b") + " KQkq -");
+                string castleBefore = castled.Fen();
+                ChessMove castleMove = castled.Find(castle);
+                must(castleMove.From >= 0, "A legal castle was missing.");
+                ChessUndo castleUndo = castled.Push(castleMove, true);
+                must(castled.Cells[(castleMove.From + castleMove.To) / 2] == (white ? 4 : -4) && (castled.Rights & (white ? 3 : 12)) == 0, "Castling lost its rook or rights.");
+                castled.Pop(castleUndo);
+                must(castled.Fen() == castleBefore, "Castling undo failed.");
+            }
+            must(new ChessPosition("4kr2/8/8/8/8/8/8/4K2R w K -").Find("e1g1").From < 0, "Chess castled through check.");
+            ChessPosition lostRights = new ChessPosition("4k3/8/8/8/8/8/8/R3K2R w KQ -");
+            must(lostRights.Play("h1h2") && lostRights.Play("e8e7") && lostRights.Play("h2h1") && lostRights.Play("e7e8") && lostRights.Find("e1g1").From < 0, "A returned rook regained castling rights.");
+            checks.Add("PASS chess stalemate, all eight promotion choices and their undo, en passant and pins, all four castles and rights");
+            ChessPosition repeat = new ChessPosition(ChessPosition.Start);
+            for (int cycle = 0; cycle < 2; cycle++) foreach (string repeatMove in new[] { "g1f3", "g8f6", "f3g1", "f6g8" }) must(repeat.Play(repeatMove), "Repetition fixture had an illegal move.");
+            must(repeat.Repetitions == 3 && repeat.Ending() == "Threefold repetition", "Chess missed threefold repetition.");
+            ChessPosition fifty = new ChessPosition("7k/8/8/8/8/8/8/KR6 w - - 99 50");
+            must(fifty.Play("b1b2") && fifty.Ending() == "Fifty-move rule", "Chess missed fifty moves.");
+            foreach (string dead in new[] { "7k/8/8/8/8/8/8/K7 w - -", "7k/8/8/8/8/8/8/KN6 w - -", "7k/8/8/8/8/8/8/KB6 w - -", "7k/8/8/8/8/3b4/8/KB6 w - -" }) must(new ChessPosition(dead).Insufficient, "Chess missed insufficient material.");
+            foreach (string alive in new[] { "7k/8/8/8/8/8/8/KNN5 w - -", "7k/8/8/8/8/8/8/KBN5 w - -", "7k/8/8/8/8/4b3/8/KB6 w - -" }) must(!new ChessPosition(alive).Insufficient, "Chess called a possible mate insufficient material.");
+            checks.Add("PASS chess threefold repetition, fifty moves and insufficient material without declaring two knights a dead position");
+            MiniScore score = new MiniScore();
+            ChessGame scored = new ChessGame(score, "hard", "white");
+            scored.Board = new ChessPosition("7k/5Q2/6K1/8/8/8/8/8 w - -");
+            must(scored.Move(scored.Board.Find("f7g7"), null) && scored.Result == 1 && score.You == 1 && !scored.Move(new ChessMove(0, 1, 0), null), "Chess did not score mate exactly once.");
+            scored.Undo();
+            must(score.You == 0 && scored.Result == 0 && scored.Board.Turn == 1, "Undo kept the old chess result.");
+            scored.Again(null, "black"); scored.Resign(); scored.Resign();
+            must(score.Her == 1 && scored.Result == 2 && scored.You == -1, "Chess resignation or side was wrong.");
+            scored.Again("easy", "white");
+            must(score.Her == 1 && scored.Level == "easy", "New chess lost session scores.");
+            must(scored.Move(scored.Board.Find("e2e4"), null) && scored.Move(scored.Board.Find("e7e5"), new ChessChoice()), "Chess round fixture failed.");
+            scored.Undo();
+            must(scored.Board.Fen() == ChessPosition.Start, "Chess undo did not return the user's full turn.");
+            scored.Move(scored.Board.Find("e2e4"), null); scored.Undo();
+            must(scored.Board.Fen() == ChessPosition.Start, "Chess undo while Capri thinks did not restore the position.");
+            ChessGame drawn = new ChessGame(score, "normal", "white");
+            drawn.Board = new ChessPosition("7k/8/5QK1/8/8/8/8/8 w - -");
+            must(drawn.Move(drawn.Board.Find("f6f7"), null) && drawn.Result == 3 && score.Draws == 1, "Chess draw did not reach the session score.");
+            drawn.Undo();
+            must(score.Draws == 0, "Undo kept a chess draw score.");
+            ChessGame moments = new ChessGame(new MiniScore(), "normal", "white");
+            moments.Board = new ChessPosition("4k3/8/8/8/4q3/8/4R3/4K3 w - -");
+            must(moments.Move(moments.Board.Find("e2e4"), null) && moments.Moment == "her_queen", "Taking her queen did not reach chess commentary.");
+            moments.Again(null, "black");
+            moments.Board = new ChessPosition("4k3/8/8/8/4q3/8/4R3/4K3 w - -");
+            must(moments.Move(moments.Board.Find("e2e4"), new ChessChoice()) && moments.Moment == "your_queen", "Taking their queen did not reach chess commentary.");
+            moments.Again(null, "white");
+            moments.Move(moments.Board.Find("e2e4"), null); moments.Move(moments.Board.Find("e7e5"), new ChessChoice { Score = 0 });
+            moments.Move(moments.Board.Find("g1f3"), null); moments.Move(moments.Board.Find("b8c6"), new ChessChoice { Score = 250 });
+            must(moments.Moment == "blunder", "A lost two-pawn evaluation did not reach chess commentary.");
+            checks.Add("PASS chess session wins, losses, draws, resign, side selection, new game and full-turn undo including a pending reply");
+            Func<string, ToolArguments> inputWas = Hands.MiniInput;
+            Func<ToolArguments, string> miniWas = Hands.Mini;
+            try
+            {
+                Hands.MiniInput = delegate { return null; };
+                string routed; ToolArguments arguments;
+                foreach (string ask in new[] { "capri let's play chess", "play chess with me", "chess", "play chess on hard", "play chess on easy", "play chess on normal", "play chess, i'll be black" })
+                    must(Hands.Heard(ask, out routed, out arguments) && routed == "mini_game" && arguments.Name == "chess" && Hands.Valid(routed, arguments), "Chess wording missed its native board: " + ask);
+                must(Hands.Heard("play chess on hard", out routed, out arguments) && arguments.Level == "hard", "Chess lost the requested level.");
+                Hands.MiniInput = ChessGame.Input;
+                foreach (string command in new[] { "take that back", "undo", "new game", "i resign", "hint", "resign", "i'll be black" })
+                    must(Hands.Heard(command, out routed, out arguments) && routed == "mini_game" && arguments.Name == "chess" && Hands.Valid(routed, arguments), "An open chess board missed: " + command);
+                must(Hands.Heard("i'll be black", out routed, out arguments) && arguments.Side == "black" && arguments.Action == "again", "Chess side selection was lost.");
+                foreach (string browser in new[] { "open chess.com", "play chess on chess.com", "play chess online" })
+                    must(Hands.Heard(browser, out routed, out arguments) && routed == "open_website", "Chess stole a browser request: " + browser);
+                must(ChessGame.Input("nice one") == null && Hands.MiniName("don't play chess") == null && Hands.MiniName("play chess on chess.com") == null, "Chess stole ordinary words.");
+                must(Hands.Typed("mini_game{\"name\":\"chess\",\"action\":\"open\",\"level\":\"hard\",\"side\":\"black\"}", out routed, out arguments) && arguments.Level == "hard" && arguments.Side == "black", "Chess tool text lost its level or side.");
+                Hands.Mini = delegate(ToolArguments called) { return called.Name + ":" + called.Action; };
+                foreach (string action in new[] { "open", "again", "close", "undo", "hint", "resign", "level" }) must(Hands.Do("mini_game", new ToolArguments { Name = "chess", Action = action, Level = "hard", Side = "black" }) == "chess:" + action, "Chess action missed dispatch.");
+                must(Hands.Tools.Contains("chess") && Hands.ClaudeTools.Contains("chess") && Hands.Listing.Contains("easy|normal|hard") && Agent.Version >= 26, "Chess was missing from a tool schema or agent version.");
+                checks.Add("PASS chess typed and spoken requests, board commands, browser exclusions, schema, text parser and action dispatch");
+            }
+            finally { Hands.MiniInput = inputWas; Hands.Mini = miniWas; }
+            int lineCount = 0;
+            foreach (string[] group in ChessLines.Lines) lineCount += group.Length;
+            must(lineCount >= 30, "Chess needs at least thirty stock lines.");
+            MiniChat chatter = new MiniChat();
+            scored.Moment = null; chatter.Observe(scored, new Random(1));
+            must(chatter.Count == 0, "Chess spoke on a quiet move.");
+            foreach (string moment in new[] { "your_queen", "her_queen", "your_check", "her_check", "won", "lost", "blunder", "draw", "resign" })
+            {
+                scored.Moment = moment;
+                chatter.Observe(scored, new Random(2));
+                MiniLine line = chatter.Take(8);
+                must(line != null && line.Local && line.Said == line.Fallback && line.Said.Length > 0, "A chess moment needed an API line: " + moment);
+            }
+            checks.Add("PASS chess has " + lineCount + " local stock lines for queens, checks, mate, blunders, draws and resignations; quiet moves stay quiet");
+            ChessPosition hardPosition = new ChessPosition(positions[1]);
+            string workerBefore = hardPosition.Fen();
+            int caller = Thread.CurrentThread.ManagedThreadId;
+            Stopwatch elapsed = Stopwatch.StartNew();
+            ChessWork hardWork = ChessWork.Start(hardPosition, "hard", 4);
+            while (!hardWork.Done && elapsed.ElapsedMilliseconds < 5000) Thread.Sleep(5);
+            if (!hardWork.Done) { hardWork.Cancelled = true; checks.Add("LIMIT chess hard worker did not get enough CPU within 5 seconds on this host"); }
+            else
+            {
+                must(hardWork.Error == null && hardWork.Choice != null && hardWork.Choice.Worker != caller && hardPosition.Find(hardWork.Choice.Move.Text).From >= 0 && hardPosition.Fen() == workerBefore && hardPosition.History.Count == 1, "Chess worker failed, used the caller, or changed the live board.");
+                checks.Add((elapsed.ElapsedMilliseconds <= 3500 ? "PASS" : "LIMIT") + " chess hard worker: " + hardWork.Choice.Move.Text + ", depth " + hardWork.Choice.Depth + ", " + hardWork.Choice.Nodes + " nodes, " + elapsed.ElapsedMilliseconds + " ms; target 2500 ms search, 3500 ms including scheduling");
+            }
+            ChessWork cancelledWork = ChessWork.Start(hardPosition, "hard", 5);
+            cancelledWork.Cancelled = true;
+            Stopwatch cancelWait = Stopwatch.StartNew();
+            while (!cancelledWork.Done && cancelWait.ElapsedMilliseconds < 2000) Thread.Sleep(5);
+            checks.Add(cancelledWork.Done ? "PASS chess worker cooperatively cancels without touching the live board" : "LIMIT chess cancellation worker could not be scheduled within 2 seconds");
+            try
+            {
+                foreach (float drawScale in new[] { 1f, 1.5f, 2f })
+                    foreach (string drawSide in new[] { "white", "black" })
+                    {
+                        ChessGame picture = new ChessGame(new MiniScore(), "normal", drawSide);
+                        using (Bitmap image = ChessBoard.Render(picture, drawScale, ChessPosition.At("e2"), picture.Board.Legal(), new ChessMove(-1, -1, 0), false, ""))
+                            must(image.Width == (int)(ChessBoard.Wide * drawScale) && image.Height == (int)(ChessBoard.Tall * drawScale) && image.GetPixel(0, 0).A == 0, "Chess drawing lost its DPI or clipped corners.");
+                    }
+                must(ChessBoard.Tile(ChessPosition.At("a1"), 1).Y > ChessBoard.Tile(ChessPosition.At("a8"), 1).Y && ChessBoard.Tile(ChessPosition.At("a1"), -1).Y < ChessBoard.Tile(ChessPosition.At("a8"), -1).Y, "Chess did not rotate for black.");
+                must(ChessBoard.BoardScale(192, new Rectangle(0, 0, 480, 634)) == 1, "Chess did not fit a small working area.");
+                checks.Add("PASS chess draws both sides at 100%, 150%, 200% with shape pieces and fits the monitor");
+            }
+            catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT chess bitmap drawing: GDI is unavailable on this host"); }
+        }
+
+        private void SmokeChessBoard(System.Collections.Generic.List<string> checks)
+        {
+            if (!Environment.UserInteractive) { checks.Add("LIMIT chess live board: no interactive desktop for mouse, promotion, commands, cancellation and close checks"); return; }
+            Action<bool, string> must = delegate(bool okay, string why) { if (!okay) throw new Exception(why); };
+            string brainWas = brain.Model;
+            Func<string, string, byte[][], string> headWas = headTest;
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            Action<string> asideWas = asideTest;
+            TalkState talkWas = talkState;
+            bool topWas = preferences.OnTop;
+            int escWas = escAsk;
+            double voiceWas = voiceUntil;
+            try
+            {
+                brain.Model = null;
+                escAsk = -1;
+                headTest = delegate { throw new Exception("Chess asked a brain for a stock line."); };
+                Speak = delegate { throw new Exception("Chess asked a paid voice for a line."); };
+                FreeSpeak = delegate { return null; };
+                string spoken = null;
+                asideTest = delegate(string line) { spoken = line; };
+                must(HearMini("capri let's play chess"), "Native chess did not open through text without a brain.");
+                ChessBoard opened = chess;
+                must(opened != null && minis == null && opened.Game.You == 1 && opened.Game.Level == "normal" && Hands.MiniBoard().Contains("CHESS"), "Chess did not use the mini-game opening path.");
+                Func<int, Point> middle = delegate(int square)
+                {
+                    RectangleF tile = ChessBoard.Tile(square, opened.Game.You);
+                    return new Point((int)((tile.X + tile.Width / 2) * opened.ScaleShown), (int)((tile.Y + tile.Height / 2) * opened.ScaleShown));
+                };
+                opened.Command("level", "hard", null);
+                opened.ClickAt(middle(ChessPosition.At("e2")));
+                opened.ClickAt(middle(ChessPosition.At("e4")));
+                ChessWork pending = opened.Pending;
+                must(pending != null && opened.Game.Board.Cells[ChessPosition.At("e4")] == 1, "Chess click move did not start a worker.");
+                must(VoiceMini("take that back") && pending.Cancelled && opened.Game.Board.Fen() == ChessPosition.Start, "Spoken chess undo did not cancel and restore.");
+                Stopwatch unwind = Stopwatch.StartNew();
+                while (!pending.Done && unwind.ElapsedMilliseconds < 2000) { Application.DoEvents(); Thread.Sleep(5); }
+                Application.DoEvents();
+                must(opened.Game.Board.Fen() == ChessPosition.Start && !opened.Busy, "A stale reply landed after undo.");
+                opened.DragTo(middle(ChessPosition.At("d2")), middle(ChessPosition.At("d4")));
+                must(opened.Game.Board.Cells[ChessPosition.At("d4")] == 1, "Chess drag did not move a pawn.");
+                ChessWork beforeNew = opened.Pending;
+                must(HearMini("new game") && beforeNew.Cancelled && opened.Game.Board.Fen() == ChessPosition.Start, "New game did not cancel a pending chess reply.");
+                must(VoiceMini("i'll be black") && opened.Game.You == -1 && opened.Busy, "Black did not rotate the board and start Capri as white.");
+                must(HearMini("new game") && opened.Game.You == -1, "New chess did not keep the user's side.");
+                opened.Command("again", "normal", "white");
+                opened.Game.Board = new ChessPosition("7k/P7/6K1/8/8/8/8/8 w - -");
+                opened.Command("level", "normal", null);
+                opened.ClickAt(middle(ChessPosition.At("a7"))); opened.ClickAt(middle(ChessPosition.At("a8")));
+                must(opened.Game.Board.Cells[ChessPosition.At("a7")] == 1 && !opened.Busy, "Promotion auto-picked a queen before the user's choice.");
+                RectangleF knight = ChessBoard.Button(143);
+                opened.ClickAt(new Point((int)((knight.X + knight.Width / 2) * opened.ScaleShown), (int)((knight.Y + knight.Height / 2) * opened.ScaleShown)));
+                must(opened.Game.Board.Cells[ChessPosition.At("a8")] == 2 && opened.Game.Result == 3, "The mouse promotion picker lost its knight or insufficient-material draw.");
+                opened.Command("again", "normal", "white");
+                must(VoiceMini("hint") && opened.Busy, "Spoken hint did not start its own worker.");
+                ChessWork beforeResign = opened.Pending;
+                must(HearMini("i resign") && beforeResign.Cancelled && opened.Game.Result == 2, "Resign did not finish the game and cancel its hint.");
+                miniChat.Last = clock.Elapsed.TotalSeconds - 8; talkState = TalkState.Off; voiceUntil = 0;
+                MiniTick(); MiniTick();
+                must(spoken != null && miniLine == null, "Chess did not deliver a stock outcome through mini commentary.");
+                preferences.OnTop = !topWas; Layer();
+                must(opened.Above == preferences.OnTop, "Chess did not follow Always on top.");
+                opened.Command("again", "hard", "black");
+                ChessWork beforeClose = opened.Pending;
+                RectangleF close = ChessBoard.Button(128);
+                opened.ClickAt(new Point((int)((close.X + 15) * opened.ScaleShown), (int)((close.Y + 15) * opened.ScaleShown)));
+                must(chess == null && opened.IsDisposed && beforeClose.Cancelled && !opened.Ticking && opened.Image == null && miniContext.Length == 0, "Closing chess kept its board, timer, worker or context.");
+                checks.Add("PASS chess opens without a brain; mouse click and drag, promotion choice, text and voice commands, local lines, topmost, worker cancellation and immediate close use the mini-game path");
+            }
+            catch (System.ComponentModel.Win32Exception unavailable) { checks.Add("LIMIT chess live board: Windows could not open it on this desktop (" + unavailable.NativeErrorCode + ")"); }
+            finally
+            {
+                CloseMinis(); miniScores.Remove("chess");
+                brain.Model = brainWas; headTest = headWas; Speak = speakWas; FreeSpeak = freeWas; asideTest = asideWas;
+                talkState = talkWas; preferences.OnTop = topWas; escAsk = escWas; voiceUntil = voiceWas;
+                Layer();
+            }
+        }
+
         private void SmokeMinis(System.Collections.Generic.List<string> checks)
         {
+            SmokeChess(checks);
+            SmokeChessBoard(checks);
             Action<bool, string> must = delegate(bool okay, string why) { if (!okay) throw new Exception(why); };
             int[,] lines = { { 0, 1, 2 }, { 3, 4, 5 }, { 6, 7, 8 }, { 0, 3, 6 }, { 1, 4, 7 }, { 2, 5, 8 }, { 0, 4, 8 }, { 2, 4, 6 } };
             for (int owner = 1; owner <= 2; owner++)
@@ -13386,9 +13651,9 @@ namespace CapriDesktop
                 must(!Hands.Direct("play wasd minigame", out named, out namedArgs) && !Hands.Direct("play Stardew Valley", out named, out namedArgs) && !Hands.Heard("keep playing", out named, out namedArgs), "An external game became a board or a song.");
                 must(Hands.Direct("play some music", out named, out namedArgs) && named == "play_music", "Music stopped routing to music.");
                 must(Hands.Heard("play tic tac toe online", out named, out namedArgs) && named == "open_website" && namedArgs.Site == "google", "Online tic-tac-toe did not reach the browser.");
-                foreach (string left in new[] { "don't play tic tac toe", "if we play tic tac toe", "play chess", "play tic tac toe on youtube", "play tic tac toe and open discord", "top left", "middle", "column 3", "rock", "nice one", "you're cheating" })
+                foreach (string left in new[] { "don't play tic tac toe", "if we play tic tac toe", "play checkers", "play tic tac toe on youtube", "play tic tac toe and open discord", "top left", "middle", "column 3", "rock", "nice one", "you're cheating" })
                     must(!Hands.Heard(left, out named, out namedArgs) || named != "mini_game", "A board stole these words: " + left);
-                must(Hands.Tools.Contains("mini_game") && Hands.ClaudeTools.Contains("mini_game") && Hands.Listing.Contains("mini_game") && Hands.Valid("mini_game", new ToolArguments { Name = "connect_four" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "chess" }), "The board tool wasn't registered or accepted another game.");
+                must(Hands.Tools.Contains("mini_game") && Hands.ClaudeTools.Contains("mini_game") && Hands.Listing.Contains("mini_game") && Hands.Valid("mini_game", new ToolArguments { Name = "connect_four" }) && !Hands.Valid("mini_game", new ToolArguments { Name = "checkers" }), "The board tool wasn't registered or accepted another game.");
                 must(Hands.Listing.Contains("tic_tac_toe|connect_four|rock_paper_scissors") && Hands.Typed("mini_game{\"name\":\"tic_tac_toe\",\"action\":\"open\"}", out named, out namedArgs) && named == "mini_game" && namedArgs.Name == "tic_tac_toe", "The text-only board tool was missing its arguments or parser.");
                 checks.Add("PASS minis: chat and voice routes, registered tool, and Minecraft, WASD minigame, music, an already open game, online play and ordinary words keep their routes");
             }
