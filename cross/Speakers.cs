@@ -116,6 +116,8 @@ namespace CapriDesktop
             request.Timeout = patience;
             request.ReadWriteTimeout = patience;
             string where = Where(endpoint);
+            // A Mac reports running out of patience as a plain broken read, so the clock decides which one it was.
+            System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 using (Stream upload = request.GetRequestStream()) upload.Write(payload, 0, payload.Length);
@@ -128,7 +130,7 @@ namespace CapriDesktop
                 HttpWebResponse response = error.Response as HttpWebResponse;
                 if (response == null)
                 {
-                    if (error.Status == WebExceptionStatus.Timeout) throw new VoiceException("Your local voice server took over " + patience / 1000 + " s to answer.");
+                    if (error.Status == WebExceptionStatus.Timeout || waited.ElapsedMilliseconds >= patience) throw new VoiceException("Your local voice server took over " + patience / 1000 + " s to answer.");
                     if (error.Status == WebExceptionStatus.ConnectFailure || error.Status == WebExceptionStatus.NameResolutionFailure || Unreached(error)) throw new VoiceException("Can't reach your local voice server at " + where + ". Is it running?");
                     throw new VoiceException("Your local voice server at " + where + " stopped answering.");
                 }
@@ -140,7 +142,11 @@ namespace CapriDesktop
                 if (status == 404) throw new VoiceException("Your local voice server has no " + endpoint.AbsolutePath + " (HTTP 404). Check its address.", status);
                 throw new VoiceException("Your local voice server said HTTP " + status + (detail.Length > 0 ? ": " + Voice.Short(detail) : "."), status);
             }
-            catch (IOException) { throw new VoiceException("Your local voice server at " + where + " stopped answering."); }
+            catch (IOException)
+            {
+                if (waited.ElapsedMilliseconds >= patience) throw new VoiceException("Your local voice server took over " + patience / 1000 + " s to answer.");
+                throw new VoiceException("Your local voice server at " + where + " stopped answering.");
+            }
         }
 
         // .NET's HttpWebRequest reports a refused connection as an unknown error, with the socket's own error inside.
