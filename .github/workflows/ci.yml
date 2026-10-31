@@ -27,6 +27,13 @@ jobs:
         with:
           name: smoke-windows
           path: out/windows/smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Capri-windows
+          path: |
+            out/windows/Capri.exe
+            out/windows/Capri-Setup.exe
 
   linux:
     runs-on: ubuntu-24.04

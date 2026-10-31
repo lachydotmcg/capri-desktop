@@ -1219,7 +1219,7 @@ namespace CapriDesktop
         private const string HelpPage = "https://lachydotmcg.github.io/capri-desktop/help/";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
-        internal static Action<string> Browse = delegate(string page) { try { Process.Start(page); } catch (System.ComponentModel.Win32Exception) { } };
+        internal static Action<string> Browse = delegate(string page) { try { using (Process.Start(Hands.InChrome(page) ?? new ProcessStartInfo(page))) { } } catch (System.ComponentModel.Win32Exception) { } };
         // Opens a file of hers in Notepad. Smoke tests swap it to see which file a button opened.
         internal static Action<string> Edit = delegate(string path) { using (Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = false })) { } };
         // Room around her square, so her perched legs (they hang 8% of her size below it) aren't cut off at Giant.
