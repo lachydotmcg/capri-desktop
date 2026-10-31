@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1340;
+        private const int PageTall = 1364;
         // Settings opens a second column to the right, so every setting shows at once.
         private const int Column = 380;
         private const int Far = 30000;
@@ -656,14 +656,16 @@ namespace CapriDesktop
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
             gamingMode = Switch("Gaming Mode", c, 1176, delegate { if (!syncing) capri.ToggleGaming(); });
-            gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it";
-            clipGames = Switch("Clip my games", c, 1204, delegate { if (!syncing) capri.ToggleClips(); });
+            gamingMode.AccessibleName = "Gaming Mode. She docks at the top left of your game in a small HUD until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
+            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1202, small, Faint);
+            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28 + c, 1218, small, Faint);
+            Caption("Works best on MAX INTELLIGENCE.", 28 + c, 1234, small, Faint);
+            clipGames = Switch("Clip my games", c, 1256, delegate { if (!syncing) capri.ToggleClips(); });
             clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory; clips stay in Videos\\Capri Clips on this PC";
-            clipMoments = Switch("Save big moments", c, 1232, delegate { if (!syncing) capri.ToggleClipMoments(); });
+            clipMoments = Switch("Save big moments", c, 1284, delegate { if (!syncing) capri.ToggleClipMoments(); });
             clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
-            fastHands = Switch("Fast hands in games", c, 1260, delegate { if (!syncing) capri.ToggleFastHands(); });
+            fastHands = Switch("Fast hands in games", c, 1312, delegate { if (!syncing) capri.ToggleFastHands(); });
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. If you picked a bigger Claude brain she asks it when she's stuck, and chat stays on the brain you picked";
-            Caption("Her HUD reacts to your game until you close it.", 28 + c, 1288, small, Faint);
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];

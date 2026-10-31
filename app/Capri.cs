@@ -10459,6 +10459,18 @@ namespace CapriDesktop
                 { "why can\u2019t you see my screen?", "Watch my screen" },
                 { "what does Gaming Mode do?", "Gaming Mode" },
                 { "can you keep your memories in obsidian?", "Memory vault" },
+                { "how do i activate gaming mode", "Gaming Mode" },
+                { "how to activate gaming mode", "Gaming Mode" },
+                { "how do I turn on game mode?", "Gaming Mode" },
+                { "how do I enable gamer mode?", "Gaming Mode" },
+                { "how do I start gaming mod?", "Gaming Mode" },
+                { "how do I activate game mod?", "Gaming Mode" },
+                { "how do I turn on gaming mood?", "Gaming Mode" },
+                { "how do I turn on the HUD?", "Gaming Mode" },
+                { "can I ask you to enter gaming mode?", "Gaming Mode" },
+                { "where is the game mode switch?", "Gaming Mode" },
+                { "what is the gaming mode key?", "Gaming Mode" },
+                { "does gaming mode work well on other brains?", "Gaming Mode" },
                 { "how does Free voice in games work?", "Free voice in games" },
                 { "how do your game comments work?", "Comments" },
                 { "where is personality.md?", "personality.md" },
@@ -10506,6 +10518,10 @@ namespace CapriDesktop
             for (int selfStep = 0; selfStep < selfSteps.Length; selfStep++)
                 if (!selfSteps[selfStep].StartsWith((selfStep + 1) + ". ", StringComparison.Ordinal)) throw new Exception("Her tutorial lost its step order.");
             checks.Add("PASS self knowledge: sample asks find the right topic, every named topic is reachable, a tutorial has six steps, only the three best topics fit, and ordinary chat and game questions find nothing");
+            string selfGamingHelp = SelfKnow.Matching("how do I activate game mode?");
+            foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Settings > GAMES", "Gaming Mode switch", "default key is Ctrl + Alt + G", "MAX INTELLIGENCE", "weaker on other brains" })
+                if (selfGamingHelp == null || !selfGamingHelp.Contains(selfGamingFact)) throw new Exception("Gaming Mode help missed: " + selfGamingFact);
+            checks.Add("PASS self knowledge: Gaming Mode explains asking her, the Settings switch, the default key and the difference between MAX INTELLIGENCE and other brains");
 
             string selfMaxReplyHelp = SelfKnow.Matching("What does Max reply Auto do?");
             string selfClippingHelp = SelfKnow.Matching("How do I clip my games?");
@@ -12961,8 +12977,29 @@ namespace CapriDesktop
             string[,] orders =
             {
                 { "Capri, activate gaming mode", "on" }, { "activate gaming mode", "on" }, { "game mode on", "on" }, { "Gaming mode.", "on" }, { "turn on game mode", "on" }, { "turn gaming mode on please", "on" }, { "Recovery, activate, game mode.", "on" },
+                { "Hey Capri, activate gaming mode", "on" }, { "activate gaming mode capri", "on" }, { "activate gaming mode, capri", "on" },
+                { "Kopri activate gaming mode", "on" }, { "Hey Kopri activate gaming mode", "on" }, { "Recovery activate game mode", "on" },
+                { "just activate gaming mode", "on" }, { "go ahead and activate gaming mode", "on" }, { "I want you to activate gaming mode", "on" }, { "I need you to turn on gaming mode", "on" }, { "I'd like you to enable game mode", "on" }, { "let's activate gaming mode", "on" }, { "time for gaming mode", "on" },
+                { "open gaming mode", "on" }, { "launch gaming mode", "on" }, { "run gaming mode", "on" }, { "use gaming mode", "on" }, { "begin gaming mode", "on" }, { "initiate gaming mode", "on" }, { "boot up gaming mode", "on" }, { "fire up gaming mode", "on" }, { "start up gaming mode", "on" }, { "put on gaming mode", "on" }, { "put yourself in gaming mode", "on" }, { "go gaming mode", "on" },
+                { "gamer mode on", "on" }, { "activate gaming mod", "on" }, { "activate game mod", "on" }, { "turn on gaming mood", "on" }, { "gaming mood on", "on" }, { "game mod off", "off" },
+                { "can you activate gaming mode please", "on" }, { "I would like you to enable game mode", "on" }, { "I’d like you to enable game mode", "on" }, { "Kopri turn off gaming mode", "off" },
+                { "I finished my match. Capri, activate gaming mode", "on" }, { "That was fun. Activate gaming mode", "on" },
                 { "gaming mode off", "off" }, { "Capri, turn off gaming mode", "off" }, { "exit game mode", "off" }, { "game mode off", "off" }, { "deactivate gaming mode", "off" },
-                { "move the hud down", "down" }, { "hud up a bit", "up" }, { "lower the hud", "down" }, { "raise the hud", "up" }, { "move your hud left", "left" }, { "reset the hud", "reset" }, { "put the hud back", "reset" }
+                { "cancel gaming mode", "off" }, { "kill gaming mode", "off" }, { "come out of gaming mode", "off" }, { "stop using gaming mode", "off" }, { "gaming mode off capri", "off" },
+                { "activa el modo juego", "on" }, { "desactiva el modo juego", "off" }, { "enciende el modo de juego", "on" }, { "apaga el modo de juego", "off" },
+                { "active le mode jeu", "on" }, { "désactive le mode jeu", "off" }, { "desactive le mode jeu", "off" },
+                { "aktiviere den Spielmodus", "on" }, { "deaktiviere den Spielmodus", "off" }, { "schalte den Spielmodus ein", "on" }, { "schalte den Spielmodus aus", "off" },
+                { "ativa o modo de jogo", "on" }, { "desativa o modo de jogo", "off" }, { "liga o modo de jogo", "on" }, { "desliga o modo de jogo", "off" },
+                { "attiva la modalità gioco", "on" }, { "disattiva la modalità gioco", "off" }, { "attiva la modalita gioco", "on" }, { "disattiva la modalita gioco", "off" },
+                { "włącz tryb gry", "on" }, { "wyłącz tryb gry", "off" }, { "wlacz tryb gry", "on" }, { "wylacz tryb gry", "off" },
+                { "zet gamemodus aan", "on" }, { "zet gamemodus uit", "off" }, { "schakel de gamemodus in", "on" }, { "schakel de gamemodus uit", "off" },
+                { "включи игровой режим", "on" }, { "выключи игровой режим", "off" }, { "увімкни ігровий режим", "on" }, { "вимкни ігровий режим", "off" },
+                { "oyun modunu aç", "on" }, { "oyun modunu ac", "on" }, { "oyun modunu kapat", "off" },
+                { "aktifkan mode game", "on" }, { "nonaktifkan mode game", "off" }, { "nyalakan mode game", "on" }, { "matikan mode game", "off" },
+                { "ゲームモードをオンにして", "on" }, { "ゲームモードをオフにして", "off" }, { "ゲームモードを有効にしてください", "on" }, { "ゲームモードを無効にしてください", "off" },
+                { "打开游戏模式", "on" }, { "关闭游戏模式", "off" }, { "打開遊戲模式", "on" }, { "關閉遊戲模式", "off" },
+                { "게임 모드 켜줘", "on" }, { "게임 모드 꺼줘", "off" }, { "게임 모드를 켜 주세요", "on" }, { "게임 모드를 꺼 주세요", "off" },
+                { "move the hud down", "down" }, { "hud up a bit", "up" }, { "lower the hud", "down" }, { "raise the hud", "up" }, { "move your hud left", "left" }, { "reset the hud", "reset" }, { "put the hud back", "reset" }, { "Recovery, move the hud down", "down" }
             };
             for (int i = 0; i < orders.GetLength(0); i++)
             {
@@ -12970,12 +13007,23 @@ namespace CapriDesktop
                 ToolArguments told;
                 if (!Hands.Heard(orders[i, 0], out found, out told) || found != "gaming_mode" || told.Action != orders[i, 1]) throw new Exception("\"" + orders[i, 0] + "\" didn't reach Gaming Mode: " + found + " " + (told == null ? null : told.Action));
             }
-            foreach (string talk in new[] { "what's gaming mode", "i love gaming mode", "does game mode help my fps", "what game should i play", "the hud in this game is so good", "is gaming mode any good" })
+            foreach (string talk in new[] { "what's gaming mode", "i love gaming mode", "does game mode help my fps", "what game should i play", "the hud in this game is so good", "is gaming mode any good",
+                "how do i activate gaming mode", "how to activate gaming mode", "don't activate gaming mode", "do not activate gaming mode", "never use gaming mode", "why did you activate gaming mode", "should i use gaming mode", "can't activate gaming mode", "i activate gaming mode at night", "love gaming mode", "open the game", "use this mod", "i'm in a gaming mood", "gaming mood", "game mod", "gaming mod", "game mood",
+                "no activate gaming mode", "not activate gaming mode", "dont activate gaming mode", "don’t activate gaming mode", "how activate gaming mode", "why activate gaming mode", "to activate gaming mode", "i activate gaming mode", "you activate gaming mode", "we activate gaming mode", "they activate gaming mode", "maybe activate gaming mode", "never, use gaming mode", "don't, activate gaming mode", "Kopri gaming mode", "Recovery gaming mode on", "love time for gaming mode", "how do I turn on game mode?", "how do I, Capri, activate gaming mode", "don't, Capri, activate gaming mode", "just don't, Capri, activate gaming mode", "no actives el modo juego", "ne désactive pas le mode jeu", "не включай игровой режим", "не вмикай ігровий режим", "oyun modunu açma", "jangan aktifkan mode game", "ゲームモードをオンにしないで", "不要打开游戏模式", "게임 모드 켜지 마" })
             {
                 string found;
                 ToolArguments told;
                 if (Hands.Heard(talk, out found, out told) && found == "gaming_mode") throw new Exception("\"" + talk + "\" isn't Gaming Mode.");
             }
+            checks.Add("PASS Gaming Mode requests: everyday on and off commands, names, speech spellings and fourteen other languages reach her hands; questions, negatives and ordinary chat do not switch it");
+            Sight storeSight = new Sight { Window = new IntPtr(-1), Program = "unlisted-game", Title = "An unlisted window" };
+            foreach (string storeGame in new[] { @"C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher\games\Anno 1800\Bin\Win64\Anno1800.exe", @"C:\Program Files\EA Games\The Sims 4\Game\Bin\TS4_x64.exe", @"D:\Origin Games\Apex\r5apex.exe", @"C:\Program Files (x86)\World of Warcraft\_retail_\Wow.exe", @"D:\World of Warcraft\_classic_\WowClassic.exe", @"D:\Overwatch\_retail_\Overwatch.exe", @"D:\Diablo IV\Diablo IV.exe", @"D:\Diablo III\Diablo III.exe", @"D:\Diablo III\x64\Diablo III64.exe", @"D:\Diablo II Resurrected\D2R.exe", @"D:\StarCraft II\Versions\Base75025\SC2_x64.exe", @"C:\Program Files\Rockstar Games\Red Dead Redemption 2\RDR2.exe", @"C:\Amazon Games\Library\Blue Fire\BlueFire.exe", @"C:\Users\Player\AppData\Roaming\itch\apps\a-game\game.exe" })
+                if (!GameFinder.IsGame(storeSight, storeGame, false)) throw new Exception("Gaming Mode missed a store game: " + storeGame);
+            foreach (string storeLauncher in new[] { @"C:\Program Files (x86)\Ubisoft\Ubisoft Game Launcher\upc.exe", @"C:\Program Files\Electronic Arts\EA Desktop\EA Desktop\EADesktop.exe", @"C:\Program Files (x86)\Origin\Origin.exe", @"C:\Program Files (x86)\Battle.net\Battle.net.exe", @"C:\Program Files (x86)\Battle.net\Browser\BlizzardBrowser.exe", @"C:\Program Files (x86)\World of Warcraft\World of Warcraft Launcher.exe", @"D:\Overwatch\Overwatch Launcher.exe", @"D:\Diablo IV\Diablo IV Launcher.exe", @"D:\StarCraft II\SC2Editor.exe", @"C:\Program Files\Rockstar Games\Launcher\Launcher.exe", @"C:\Program Files\Rockstar Games\Social Club\SocialClubHelper.exe", @"C:\Users\Player\AppData\Local\Amazon Games\App\AmazonGames.exe", @"C:\Users\Player\AppData\Local\itch\app-26.1.9\itch.exe", @"C:\Riot Games\Riot Client\RiotClientServices.exe", @"C:\Program Files\Epic Games\Launcher\Portal\Binaries\Win64\EpicGamesLauncher.exe" })
+                if (GameFinder.IsGame(storeSight, storeLauncher, false)) throw new Exception("Gaming Mode mistook a launcher or editor folder for a game: " + storeLauncher);
+            foreach (string storeProgram in new[] { "chrome", "code", "blender", "aseprite", "godot", "Godot_v4.4-stable_win64", "SC2Editor", "WorldEdit", "upc", "EADesktop", "Origin", "Battle.net", "BlizzardBrowser", "World of Warcraft Launcher", "Overwatch Launcher", "Diablo IV Launcher", "Launcher", "SocialClubHelper", "AmazonGames", "itch" })
+                if (GameFinder.IsGame(new Sight { Window = new IntPtr(-1), Program = storeProgram, Title = "Overwatch" }, @"D:\EA Games\Example\example.exe", true)) throw new Exception("Gaming Mode let a store folder or full-screen title beat NotGames: " + storeProgram);
+            checks.Add("PASS Gaming Mode game folders: Ubisoft, EA, Origin, Battle.net titles, Rockstar, Amazon and itch games count, launchers and editors do not, and NotGames wins over store folders, titles and full-screen windows");
             if (Hands.Pulled("Gaming Mode's armed. I'll dock as soon as a game's up.") == null || Hands.Pulled("Moved my HUD down.") == null) throw new Exception("Gaming Mode's lines went back through her brain.");
             string name = gaming.Name();
             Func<GameSeen> realFind = gaming.Find;
@@ -13629,8 +13677,26 @@ namespace CapriDesktop
                     mainframe.SizeMainframe(size);
                     string crowded = mainframe.Overlap() ?? mainframe.Outside();
                     if (crowded != null) throw new Exception("BRAIN controls at " + size + "% overlap or leave the page: " + crowded);
+                    Control gamingToggle = null, gamingCaption = null, gamingDisclaimer = null, gamingClip = null, gamingMoments = null, gamingHands = null, gamingEnd = null;
+                    foreach (Control gamingControl in mainframe.Controls)
+                    {
+                        if (gamingControl.Text == "Gaming Mode") gamingToggle = gamingControl;
+                        if (gamingControl.Text == "\"Hey Capri, activate gaming mode\" turns it on.") gamingCaption = gamingControl;
+                        if (gamingControl.Text == "Works best on MAX INTELLIGENCE.") gamingDisclaimer = gamingControl;
+                        if (gamingControl.Text == "Clip my games") gamingClip = gamingControl;
+                        if (gamingControl.Text == "Save big moments") gamingMoments = gamingControl;
+                        if (gamingControl.Text == "Fast hands in games") gamingHands = gamingControl;
+                        if (gamingControl.Text == "Her HUD reacts to your game until you close it.") gamingEnd = gamingControl;
+                    }
+                    if (gamingToggle == null || gamingCaption == null || gamingDisclaimer == null || gamingClip == null || gamingMoments == null || gamingHands == null || gamingEnd == null
+                        || !gamingCaption.Visible || !gamingDisclaimer.Visible
+                        || gamingToggle.Bottom > gamingEnd.Top || gamingEnd.Bottom > gamingCaption.Top || gamingCaption.Bottom > gamingDisclaimer.Top || gamingDisclaimer.Bottom > gamingClip.Top
+                        || gamingClip.Bottom > gamingMoments.Top || gamingMoments.Bottom > gamingHands.Top
+                        || !(gamingToggle.AccessibleName ?? "").Contains(gamingCaption.Text) || !(gamingToggle.AccessibleName ?? "").Contains(gamingDisclaimer.Text))
+                        throw new Exception("Gaming Mode captions or rows do not fit at " + size + "%.");
                 }
                 checks.Add("PASS BRAIN layout: every setting stays on its scrollable page at 100%, 125%, 150%, 175% and 200%, with no overlaps or controls poking out");
+                checks.Add("PASS Gaming Mode Settings: its three lines sit below the switch and above the other game rows, reach screen readers, and stay inside the page without overlaps at every Mainframe size");
             }
             finally { mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
         }

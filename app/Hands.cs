@@ -1511,6 +1511,7 @@ namespace CapriDesktop
             foreach (string attempt in tries)
                 if (Direct(attempt, out tool, out args) && !(tool == "routine" && args.Action == "run"))
                 {
+                    if (tool == "gaming_mode" && attempt != said && GamingMeaning.IsMatch(GamingLead.Replace(Asked(sentences[sentences.Length - 1]), ""))) continue;
                     if (tool == "media" && Regex.IsMatch(attempt, @"\b(keep|carry on|continue|go on) playing\b", RegexOptions.IgnoreCase) && GameOpen() != null) break;
                     return true;
                 }
@@ -1519,19 +1520,34 @@ namespace CapriDesktop
             return false;
         }
 
-        private const string GameModeWords = @"(?:(?:the|your|ur|my)\s+)?(?:gaming|game)[\s-]?mode";
+        private const string GameModeName = @"(?:(?:the|your|ur|my)\s+)?(?:gaming|game|gamer)[\s-]?";
+        private const string GameModeWords = GameModeName + @"(?:mode?|mood)";
         private const string HudWords = @"(?:(?:the|your|ur|my)\s+)?(?:hud|overlay)";
-        private static readonly Regex GamingOff = new Regex(@"^(?:(?:deactivate|turn\s+off|switch\s+off|shut\s+off|disable|stop|exit|leave|end|quit|close|get\s+out\s+of)\s+" + GameModeWords + @"|(?:turn|switch|shut|put)\s+" + GameModeWords + @"\s+off|" + GameModeWords + @"\s+(?:off|deactivated?|disabled?|stop|stopped|end|ended|over|done|finished))$", RegexOptions.IgnoreCase);
-        private static readonly Regex GamingOn = new Regex(@"^(?:(?:activate|turn\s+on|switch\s+on|enable|start|engage|enter|go\s+(?:in|into|to)|get\s+in(?:to)?|switch\s+to)\s+" + GameModeWords + @"|(?:turn|switch|put)\s+" + GameModeWords + @"\s+on|" + GameModeWords + @"(?:\s+(?:on|activated?|enabled?|engaged?|go))?)$", RegexOptions.IgnoreCase);
+        private static readonly Regex GamingOff = new Regex(@"^(?:(?:deactivate|turn\s+off|switch\s+off|shut\s+off|disable|stop(?:\s+using)?|exit|leave|end|quit|close|cancel|kill|(?:get|come)\s+out\s+of)\s+" + GameModeWords + @"|(?:turn|switch|shut|put)\s+" + GameModeWords + @"\s+off|" + GameModeWords + @"\s+(?:off|deactivated?|disabled?|stop|stopped|end|ended|over|done|finished))$", RegexOptions.IgnoreCase);
+        private static readonly Regex GamingOn = new Regex(@"^(?:(?:activate|turn\s+on|switch\s+on|enable|start(?:\s+up)?|engage|enter|open|launch|run|use|begin|initiate|(?:boot|fire)\s+up|put\s+(?:on|yourself\s+in)|go(?:\s+(?:in|into|to))?|get\s+in(?:to)?|switch\s+to|time\s+for)\s+" + GameModeWords + @"|(?:turn|switch|put)\s+" + GameModeWords + @"\s+on|" + GameModeWords + @"\s+(?:on|activated?|enabled?|engaged?|go))$", RegexOptions.IgnoreCase);
+        private static readonly Regex GamingOtherOn = new Regex(@"^(?:(?:activa|enciende) (?:el )?modo (?:de )?juego|(?:active|activez) (?:le )?mode jeu|aktiviere (?:den )?spielmodus|schalte (?:den )?spielmodus (?:an|ein)|(?:ativa|ative|liga|ligue) (?:o )?modo (?:de )?jogo|(?:attiva|avvia) (?:la )?modalit[aà] (?:di )?gioco|w[łl][ąa]cz tryb gry|(?:zet|schakel) (?:de )?gamemodus (?:aan|in)|(?:включи|активируй) игровой режим|(?:увімкни|ввімкни|активуй) ігровий режим|oyun modunu a[çc]|(?:aktifkan|nyalakan|hidupkan) mode (?:game|permainan)|ゲームモードを(?:オンにして|有効にして)(?:ください)?|(?:请|請)?(?:打开|打開|开启|開啟)(?:游戏|遊戲)模式|게임\s*모드(?:를)?\s*켜\s*(?:줘|줘요|주세요)?)$", RegexOptions.IgnoreCase);
+        private static readonly Regex GamingOtherOff = new Regex(@"^(?:(?:desactiva|apaga) (?:el )?modo (?:de )?juego|d[ée]sactive(?:z)? (?:le )?mode jeu|deaktiviere (?:den )?spielmodus|schalte (?:den )?spielmodus aus|(?:desativa|desative|desliga|desligue) (?:o )?modo (?:de )?jogo|disattiva (?:la )?modalit[aà] (?:di )?gioco|wy[łl][ąa]cz tryb gry|(?:zet|schakel) (?:de )?gamemodus uit|(?:выключи|отключи) игровой режим|вимкни ігровий режим|oyun modunu kapat|(?:nonaktifkan|matikan) mode (?:game|permainan)|ゲームモードを(?:オフにして|無効にして)(?:ください)?|(?:请|請)?(?:关闭|關閉)(?:游戏|遊戲)模式|게임\s*모드(?:를)?\s*꺼\s*(?:줘|줘요|주세요)?)$", RegexOptions.IgnoreCase);
+        private static readonly Regex GamingLead = new Regex(@"^(?:(?:just|go ahead and|i (?:want|need|would like) you to|i'd like you to|let'?s)\s+)+", RegexOptions.IgnoreCase);
+        private static readonly Regex GamingMeaning = new Regex(@"^(?:no|not|never|cannot|[\w'-]*n'?t|how|what|what's|whats|why|when|where|who|whom|whose|which|if|unless|until|whether|can|could|would|should|will|shall|do|does|did|is|are|was|were|am|have|has|had|i|i'm|im|i'd|id|you|u|he|she|it|we|they|me|him|her|us|them|my|your|our|their|this|that|these|those|to|and|or|but|then|maybe|perhaps|only|always|sometimes|usually|rather|stop|avoid|help)\b", RegexOptions.IgnoreCase);
         private static readonly Regex HudMove = new Regex(@"^(?:(?:move|put|shift|nudge|slide|bring|push)\s+" + HudWords + @"\s+(?:(?:a\s+(?:bit|little)|further|more)\s+)?(?<way>up|down|left|right|higher|lower)|(?<way>raise|lower)\s+" + HudWords + @"|" + HudWords + @"\s+(?<way>up|down|left|right|higher|lower)|(?<way>reset)\s+" + HudWords + @"(?:\s+position)?|(?:put|move)\s+" + HudWords + @"\s+(?<way>back))(?:\s+(?:a\s+)?(?:bit|little))?$", RegexOptions.IgnoreCase);
 
         // "Activate gaming mode", "game mode on", "gaming mode off", "move the hud down". Her name gets misheard as any word
-        // ("Recovery, activate, game mode"), so one word before a comma doesn't count, and neither do the commas.
+        // ("Recovery, activate, game mode"), so one extra word before a verb can be her name, but questions and negatives aren't.
         internal static string GamingFor(string text)
         {
-            string plain = Regex.Replace(Regex.Replace(text ?? "", @"^[\w'-]+,\s*(?=\w)", ""), @"[\s,]+", " ").Trim();
-            if (GamingOff.IsMatch(plain)) return "off";
-            if (GamingOn.IsMatch(plain)) return "on";
+            string plain = Regex.Replace(Regex.Replace(text ?? "", @"[\s,]+capri$", "", RegexOptions.IgnoreCase), @"[\s,]+", " ").Trim();
+            plain = GamingLead.Replace(plain, "");
+            if (GamingOff.IsMatch(plain) || GamingOtherOff.IsMatch(plain)) return "off";
+            if (GamingOn.IsMatch(plain) || GamingOtherOn.IsMatch(plain) || Regex.IsMatch(plain, "^" + GameModeName + "mode$", RegexOptions.IgnoreCase)) return "on";
+            Match called = Regex.Match(plain, @"^[\w'-]+\s+(?<order>.+)$");
+            if (called.Success && !GamingMeaning.IsMatch(plain))
+            {
+                string order = called.Groups["order"].Value;
+                bool verb = !Regex.IsMatch(order, "^(?:" + GameModeWords + @"|time\s+for\b)", RegexOptions.IgnoreCase);
+                if (verb && GamingOff.IsMatch(order)) return "off";
+                if (verb && GamingOn.IsMatch(order)) return "on";
+                if (Regex.IsMatch(order, @"^(?:move|put|shift|nudge|slide|bring|push|raise|lower|reset)\b", RegexOptions.IgnoreCase)) plain = order;
+            }
             Match moved = HudMove.Match(plain);
             if (!moved.Success) return null;
             string way = moved.Groups["way"].Value.ToLowerInvariant();
