@@ -1789,6 +1789,7 @@ namespace CapriDesktop
             if (!testing) FindBrain();
             if (!testing) DefaultStartup(Installed());
             if (!testing) GreetSoon();
+            if (!testing) ListenSoon();
             if (!testing && FreeChatOn) { GetFreeVoice(); GetFreeEars(); }
             // An update can move her HD voice to a new engine: the old pack goes, and with HD on, the new one comes down.
             if (!testing) ThreadPool.QueueUserWorkItem(delegate { qwen.Tidy(); });
@@ -2244,7 +2245,7 @@ namespace CapriDesktop
 
         private bool RestFree(double now)
         {
-            return preferences.Motion && !hidden && !quitting && !dragging && !pressed && !riding && !onPanel && !chatting && !pushing && !transcribing && !GamingOn
+            return preferences.Motion && !hidden && !quitting && !dragging && !pressed && !riding && !onPanel && !InChat && !pushing && !transcribing && !GamingOn
                 && !typer.Visible && !menu.Visible && !SleepBusy && speech == null && talkState == TalkState.Off && now >= voiceUntil && !speaker.Busy && !musicOn && !danceAsked && watchAlong == null;
         }
 
@@ -2836,7 +2837,7 @@ namespace CapriDesktop
 
         private void Stroke(Point cursor)
         {
-            if (preferences.NoHeadPats || pressed || dragging || riding || hidden || chatting || working != null || frame == null || !Solid(PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
+            if (preferences.NoHeadPats || pressed || dragging || riding || hidden || InChat || working != null || frame == null || !Solid(PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
             int dx = cursor.X - petX;
             if (Math.Abs(dx) < 6) return;
             long now = clock.ElapsedMilliseconds;
@@ -2904,7 +2905,7 @@ namespace CapriDesktop
         {
             string[] holiday = Brain.Holiday(now);
             if (holiday == null || now.Date == holidaySaid || !greetTried) return;
-            if (quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || chatting || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || FullScreen()) return;
+            if (quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || FullScreen()) return;
             holidaySaid = now.Date;
             Remark("holiday", holiday[random.Next(holiday.Length)]);
         }
@@ -2920,7 +2921,7 @@ namespace CapriDesktop
 
         private void PetLine(int ticket)
         {
-            if (ticket != petTicket || hidden || chatting || speech != null || talkState != TalkState.Off || typer.Visible) return;
+            if (ticket != petTicket || hidden || InChat || speech != null || talkState != TalkState.Off || typer.Visible) return;
             heard = "pets you";
             box.Prompt = "> sys: ";
             // Pat lines use the same voice as everything else she says: their ElevenLabs voice and model when they've set one.
@@ -3179,7 +3180,7 @@ namespace CapriDesktop
 
         private void CheckPopIn(double now, long quiet)
         {
-            if (popOut >= 0 && (clicks != popClicks || chatting || typer.Visible || talkState != TalkState.Off)) EndPopIn(false);
+            if (popOut >= 0 && (clicks != popClicks || InChat || typer.Visible || talkState != TalkState.Off)) EndPopIn(false);
             if (popOut >= 0 && now >= popOut && speech == null) EndPopIn(true);
             if (!preferences.CheckIns || Hushed) { nextPopIn = -1; return; }
             if (nextPopIn < 0) nextPopIn = now + PopGap();
@@ -3191,7 +3192,7 @@ namespace CapriDesktop
 
         private bool PopFree(double now, long quiet)
         {
-            return quiet <= 60000 && !Hushed && !quitting && !dragging && !pressed && !chatting && !typer.Visible && !menu.Visible && speech == null
+            return quiet <= 60000 && !Hushed && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null
                 && talkState == TalkState.Off && outro == null && !onPanel && popOut < 0 && !docked && working == null && job == null
                 && !pushing && !transcribing && !speaker.Busy && now >= voiceUntil && !FullScreen();
         }
@@ -4434,7 +4435,7 @@ namespace CapriDesktop
             get
             {
                 if (job != null) return "On a job";
-                if (chatting) return "Voice chatting";
+                if (InChat) return "Voice chatting";
                 if (gaming.State == GameDock.Stage.Docked) return "Gaming";
                 if (hidden) return "Taking a break";
                 if (typer.Visible || speech != null) return "Chatting";
@@ -5102,7 +5103,7 @@ namespace CapriDesktop
         {
             if (seat != null && seat.Window == player.Handle) return true;
             bool settled = talkState == TalkState.Off || (talkState == TalkState.Talking && replyDone >= 0 && clock.Elapsed.TotalSeconds - replyDone > 8);
-            if (!preferences.Wander || preferences.NoSitting || napAsked || napping || hidden || dragging || pressed || riding || onPanel || falling || hanging || walking || chatting || typer.Visible || menu.Visible || speech != null || !settled || (seat != null && seat.Free) || outro != null || (clip != idle && clip != perch && clip != dance && clip != perchDance)) return false;
+            if (!preferences.Wander || preferences.NoSitting || napAsked || napping || hidden || dragging || pressed || riding || onPanel || falling || hanging || walking || InChat || typer.Visible || menu.Visible || speech != null || !settled || (seat != null && seat.Free) || outro != null || (clip != idle && clip != perch && clip != dance && clip != perchDance)) return false;
             Rectangle plate = player.Plate;
             int x = plate.Left + (int)(plate.Width * MiniPlayer.Perch);
             Ledge spot = Around().Find(ledge => ledge.Window == player.Handle && ledge.Left <= x && x <= ledge.Right);
@@ -8391,14 +8392,38 @@ namespace CapriDesktop
 
         internal bool ListenCapriOn { get { return preferences.ListenCapri; } }
 
+        // Listen for Capri's ears stay open while she runs, and that isn't a conversation, so she carries on as usual around it.
+        private bool InChat { get { return chatting && !(local && preferences.ListenCapri); } }
+
+        // With Listen for Capri on her ears open when she does, once her hello's out of the way.
+        private void ListenSoon(int tries = 0)
+        {
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                Thread.Sleep(tries == 0 ? GreetPause + 500 : 1000);
+                Post(delegate
+                {
+                    if (!preferences.ListenCapri || chatting || quitting || IsDisposed) return;
+                    if ((talkState != TalkState.Off || speech != null) && tries < 30) { ListenSoon(tries + 1); return; }
+                    ToggleChat();
+                });
+            });
+        }
+
         internal void ToggleListenCapri()
         {
             preferences.ListenCapri = !preferences.ListenCapri;
             nameOver = false;
             SavePreferences();
             mainframe.Sync();
-            if (!chatting) return;
+            if (!chatting)
+            {
+                // Turning it on is them asking her to listen, so there's no key to press as well (Lachy, 31 Oct).
+                if (preferences.ListenCapri && !testing) ToggleChat();
+                return;
+            }
             if (preferences.ListenCapri && !local) { StopChat(); StartLocal(); return; }
+            if (!preferences.ListenCapri && local && !testing) { StopChat(); return; }
             pill.ListenForName = preferences.ListenCapri;
             if (earsReady) EarsReady(false);
         }
@@ -10162,7 +10187,7 @@ namespace CapriDesktop
 
         private void DesktopWindowChecks(System.Collections.Generic.List<string> checks)
         {
-            if (GamingOn || docked || chatting || working != null || dragging || riding || walking || falling || onPanel || outro != null || speech != null || talkState != TalkState.Off)
+            if (GamingOn || docked || InChat || working != null || dragging || riding || walking || falling || onPanel || outro != null || speech != null || talkState != TalkState.Off)
             {
                 checks.Add("LIMIT desktop visibility and paint checks: her smoke scene is busy");
                 return;

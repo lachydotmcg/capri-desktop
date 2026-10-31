@@ -4154,7 +4154,7 @@ namespace CapriDesktop
                 Extra(0, "Watch my screen", "She glances at your screen and comments. Costs a little on a paid brain.", small, delegate { owner.capri.ToggleWatch(); });
                 Extra(1, "Comment on my games", "She reacts when things happen in your game. Costs a little on a paid brain.", small, delegate { owner.capri.SetCommentPace(toggles[1].Checked ? 1 : 0); owner.Sync(); });
                 Extra(2, "Clip my games", "Keeps the last two minutes of your game in memory. Say clip that to save it.", small, delegate { owner.capri.ToggleClips(); });
-                Extra(3, "Listen for Capri", "In voice chat, she only answers when you say her name.", small, delegate { owner.capri.ToggleListenCapri(); });
+                Extra(3, "Listen for Capri", "She keeps listening and answers when you say her name.", small, delegate { owner.capri.ToggleListenCapri(); });
                 Key done = new Key();
                 done.Text = "Done";
                 done.Font = Type(9f * zoom, true);
