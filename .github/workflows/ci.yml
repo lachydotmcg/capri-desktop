@@ -22,6 +22,27 @@ jobs:
       - name: Build and smoke test
         shell: pwsh
         run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 180
+      - name: Verify portable source integration
+        shell: pwsh
+        run: ./portable/Verify-Portable.ps1
+      - name: Assemble portable USB package
+        shell: pwsh
+        run: |
+          $package = Join-Path $PWD 'out/windows/CAPRI-Portable'
+          New-Item -ItemType Directory -Force -Path $package,(Join-Path $package 'portable') | Out-Null
+          Copy-Item 'out/windows/Capri.exe' (Join-Path $package 'Capri.exe')
+          Copy-Item 'Start-Capri-Portable.cmd' (Join-Path $package 'Start-Capri-Portable.cmd')
+          Copy-Item 'portable/Start-Capri-Portable.ps1' (Join-Path $package 'portable/Start-Capri-Portable.ps1')
+          Copy-Item 'portable/README.md' (Join-Path $package 'portable/README.md')
+          if (-not (Test-Path (Join-Path $package 'Capri.exe'))) { throw 'Portable package is missing Capri.exe' }
+          if (-not (Select-String -Path (Join-Path $package 'portable/Start-Capri-Portable.ps1') -Pattern 'OLLAMA_MODELS' -Quiet)) { throw 'Portable launcher does not configure USB model storage' }
+          Compress-Archive -Path (Join-Path $package '*') -DestinationPath 'out/windows/CAPRI-Portable.zip' -Force
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capri-portable-usb-windows
+          path: out/windows/CAPRI-Portable.zip
+          if-no-files-found: warn
       - uses: actions/upload-artifact@v4
         if: always()
         with:
