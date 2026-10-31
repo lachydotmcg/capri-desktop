@@ -13348,15 +13348,15 @@ namespace CapriDesktop
                 Brain written = new Brain { Model = "written", Remote = new Cloud(Brain.LocalPort(address), "written") };
                 int acted = 0;
                 written.Act = delegate(string name, ToolArguments arguments) { if (name != "media" || arguments.Action != "next") throw new Exception("The written tool changed."); acted++; return "Skipped to the next track."; };
-                written.Ask("search YouTube for combos");
-                written.Ask("search YouTube for parkour");
+                written.Ask("search the web for combos");
+                written.Ask("bring up combos");
                 if (acted != 2 || asked.Count != 5 || asked[0].IndexOf("\"tools\":", StringComparison.Ordinal) < 0 || asked[1].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || asked[3].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || asked[1].IndexOf("To use one, reply with only the call", StringComparison.Ordinal) < 0) throw new Exception("Local written tools did not fall back and stay working.");
                 Action haltedWas = Computer.Halted;
                 Computer.Halted = delegate { };
                 try
                 {
                     written.Act = delegate(string name, ToolArguments arguments) { Computer.Arm(); Computer.Interrupt("Dropped it."); return "Dropped it."; };
-                    string stoppedReply = written.Ask("search YouTube for drift");
+                    string stoppedReply = written.Ask("search the web for drift");
                     if (stoppedReply != "Dropped it." || asked.Count != 6) throw new Exception("Her brain retold a job they stopped: " + stoppedReply);
                     checks.Add("PASS a job they stopped is said as it is, with no brain call to retell it");
                 }
@@ -16904,7 +16904,7 @@ namespace CapriDesktop
                                 handy.Model = "gemma3:1b";
                                 string plain = handy.Ask("open my notes thing");
                                 string again = handy.Ask("still there?");
-                                string textTool = handy.Ask("search YouTube for parkour");
+                                string textTool = handy.Ask("search the web for parkour");
                                 string credited = handy.Ask("open spotify");
                                 string[] brainSent;
                                 lock (brainAsked) brainSent = brainAsked.ToArray();
@@ -18731,7 +18731,7 @@ namespace CapriDesktop
                                         { "close it", "", "true" },
                                         { "minimise word", "app_window|word|minimize|", "true" },
                                         { "switch to roblox", "app_window|roblox|switch_to|", "true" },
-                                        { "search YouTube for Valorant tips", "", "true" },
+                                        { "search the web for Valorant tips", "", "true" },
                                         { "google how to fix ping", "open_website|google||", "true" },
                                         { "what's on my screen?", "look_at_screen|||", "true" },
                                         { "can you see what im doing?", "look_at_screen|||", "true" },
@@ -19156,7 +19156,7 @@ namespace CapriDesktop
                                         Brain split = new Brain();
                                         split.Model = "split-test";
                                         split.Act = delegate(string name, ToolArguments args) { acted++; return "Opened Spotify."; };
-                                        if (split.Ask("search YouTube for combos") != "What game?") throw new Exception("The chat sentinel became the reply.");
+                                        if (split.Ask("search the web for combos") != "What game?") throw new Exception("The chat sentinel became the reply.");
                                         Brain idleBrain = new Brain();
                                         idleBrain.Model = "split-test";
                                         if (idleBrain.Ask("hey") != "Still here.") throw new Exception("A chat-only brain lost its reply.");
@@ -19174,7 +19174,7 @@ namespace CapriDesktop
                                         try { split.Ask("hey"); }
                                         catch (BrainException) { leakedChat = true; }
                                         if (!invalidCall || !leakedChat || acted != 2 || split.Ask("hello") != "Let's chat.") throw new Exception("Invalid calls or the chat sentinel escaped.");
-                                        if (handy.Ask("search YouTube for parkour") != "Fresh backend.") throw new Exception("A new backend did not answer.");
+                                        if (handy.Ask("search the web for parkour") != "Fresh backend.") throw new Exception("A new backend did not answer.");
                                         string[] splitSent;
                                         lock (splitAsked) splitSent = splitAsked.ToArray();
                                         if (splitSent.Length != 15 || splitSent[0].IndexOf("Project Capricorn", StringComparison.Ordinal) >= 0 || splitSent[1].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || splitSent[1].IndexOf("only the word: chat", StringComparison.Ordinal) >= 0 || splitSent[1].IndexOf("No tools ran for this message.", StringComparison.Ordinal) < 0) throw new Exception("Reach instructions reached persona chat or chat lost its action status.");
