@@ -19901,7 +19901,7 @@ namespace CapriDesktop
                                 if (File.Exists(notesFile)) File.Delete(notesFile);
                                 if (File.Exists(Brain.MemoriesPath)) File.Delete(Brain.MemoriesPath);
                                 if (Directory.Exists(Brain.TranscriptPath)) Directory.Delete(Brain.TranscriptPath, true);
-                                if (Brain.Notes() != "" || Brain.Remembered() != "") throw new Exception("Empty notes still put something in her prompt.");
+                                if (Brain.Notes() != "" || Brain.Remembered() != "") throw new Exception("Empty notes still put something in her prompt: " + Brain.Remembered());
                                 if (!Hands.Heard("Capri, remember that I love Hollow Knight.", out shortTool, out shortArgs) || shortTool != "remember" || shortArgs.Action != null || shortArgs.Text != "I love Hollow Knight") throw new Exception("Remember was heard wrong: " + shortTool + " / " + shortArgs.Text);
                                 string savedNote = Hands.Do(shortTool, shortArgs);
                                 string savedAgain = Hands.Do("remember", new ToolArguments { Text = "they love Hollow Knight" });
