@@ -1259,7 +1259,7 @@ namespace CapriDesktop
         internal static string DefaultCloudModel(string kind, List<string> models)
         {
             if (models == null || models.Count == 0) return null;
-            if (kind == "anthropic") return models.Contains("claude-opus-5-5") ? "claude-opus-5-5" : models[0];
+            if (kind == "anthropic") return models.Contains(Fastest) ? Fastest : models[0];
             if (kind == "deepseek") return models.Contains("deepseek-flash") ? "deepseek-flash" : models[0];
             if (kind == "nvidia") { foreach (string id in NvidiaPicks) if (models.Contains(id)) return id; return models[0]; }
             foreach (string id in models) if (id.StartsWith("gpt-", StringComparison.Ordinal) && id.EndsWith("-mini", StringComparison.Ordinal)) return id;

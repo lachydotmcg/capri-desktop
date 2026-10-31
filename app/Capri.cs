@@ -342,8 +342,8 @@ namespace CapriDesktop
         [DataMember] public bool HasPlayerSpot;
         // Set once she has her tuned voice, or kept theirs because they'd already moved a voice slider.
         [DataMember] public bool VoiceTuned;
-
         [DataMember] public bool VoiceRetuned;
+
         // A new install: she starts in the PC's own language when she speaks it, and with her tuned voice.
         internal static Preferences Fresh()
         {
@@ -365,8 +365,8 @@ namespace CapriDesktop
             LayerPitch2 = VoiceFx.Layering.LowerPitch;
             LayerDelay2 = VoiceFx.Layering.Behind;
             VoiceTuned = true;
-        }
             VoiceRetuned = true;
+        }
 
         // Settings from before her tuned voice get it once if every voice slider is still where it started (Layer 1 started at
         // +1.5); 0.7.7's unchanged tuned voice gets the retune once too. Anyone who moved one keeps theirs.
@@ -379,8 +379,8 @@ namespace CapriDesktop
                 && LayerPitch1 == VoiceFx.Layering.HigherPitch && LayerDelay1 == VoiceFx.Layering.Behind && LayerPitch2 == VoiceFx.Layering.LowerPitch && LayerDelay2 == VoiceFx.Layering.Behind;
             if (untouched || tuned) Tune();
             VoiceTuned = true;
-        }
             VoiceRetuned = true;
+        }
 
         [OnDeserializing]
         private void Defaults(StreamingContext context)
@@ -19326,8 +19326,15 @@ namespace CapriDesktop
                                     Brain.Nvidia = cloudUrl;
                                     if (Cloud.KindOf("sk-ant-api03-x") != "anthropic" || Cloud.KindOf("nvapi-x") != "nvidia" || Cloud.KindOf("sk-" + "0123456789abcdef0123456789abcdef") != "deepseek" || Cloud.KindOf("sk-proj-x") != "openai" || Cloud.KindOf("sk-AbCdEf0123456789abcdef0123456789T3Blbk" + "FJ0123456789ab") != "openai" || Cloud.KindOf("hello") != null) throw new Exception("API keys were sorted wrong.");
                                     System.Collections.Generic.List<string> claudeModels = Brain.CloudModels("sk-ant-test");
-                                    if (string.Join(",", claudeModels.ToArray()) != "claude-haiku-5-5,claude-opus-5-5" || Brain.DefaultCloudModel("anthropic", claudeModels) != "claude-opus-5-5") throw new Exception("Claude models were read wrong: " + string.Join(",", claudeModels.ToArray()));
+                                    if (string.Join(",", claudeModels.ToArray()) != "claude-haiku-5-5,claude-opus-5-5" || Brain.DefaultCloudModel("anthropic", claudeModels) != Brain.Fastest) throw new Exception("Claude models were read wrong: " + string.Join(",", claudeModels.ToArray()));
+                                    if (Brain.DefaultCloudModel("anthropic", new System.Collections.Generic.List<string> { "claude-opus-5-5", Brain.Fastest }) != Brain.Fastest
+                                        || Brain.DefaultCloudModel("anthropic", new System.Collections.Generic.List<string> { "claude-sonnet-5-5", "claude-opus-5-5" }) != "claude-sonnet-5-5"
+                                        || Brain.DefaultCloudModel("anthropic", new System.Collections.Generic.List<string>()) != null || Brain.DefaultCloudModel("anthropic", null) != null)
+                                        throw new Exception("Claude's default did not pick Haiku when available or keep the first-model fallback.");
                                     Brain cloudy = new Brain();
+                                    cloudy.Remote = new Cloud("sk-ant-test", Brain.DefaultCloudModel("anthropic", claudeModels));
+                                    if (cloudy.Advises) throw new Exception("The default Claude brain offered an advisor on Haiku.");
+                                    checks.Add("PASS a new Claude key picks Haiku 5.5 wherever it is in the model list, falls back to the first available model when Haiku is absent, and has no advisor on Haiku");
                                     cloudy.Act = Hands.Do;
                                     cloudy.Remote = new Cloud("sk-ant-test", "claude-opus-5-5");
                                     cloudy.Model = "claude-opus-5-5";
@@ -22556,6 +22563,20 @@ namespace CapriDesktop
                                 if (Solid(body, true)) throw new Exception("A window over her still counted as her for the pill.");
                             }
                             checks.Add("PASS the pill only wakes for her body when no window covers her");
+                            TalkState pillStateWas = talkState;
+                            bool pillChatWas = chatting;
+                            Ledge pillSeatWas = seat;
+                            try
+                            {
+                                chatting = false;
+                                talkState = TalkState.Talking;
+                                seat = null;
+                                if (PillHeld(false) || !PillHeld(true)) throw new Exception("A reply held the pill without a hover, or hovering stopped holding it.");
+                                seat = new Ledge { Window = new IntPtr(1) };
+                                if (PillHeld(false) || !PillHeld(true)) throw new Exception("A seated reply held the pill without a hover, or hovering stopped holding it.");
+                            }
+                            finally { talkState = pillStateWas; chatting = pillChatWas; seat = pillSeatWas; }
+                            checks.Add("PASS her reply does not hold the talk pill with the cursor off her and the pill, sitting on a window or not; hovering still holds it");
                             pillUntil = clock.Elapsed.TotalSeconds + 30;
                             UpdatePill(clock.Elapsed.TotalSeconds);
                             if (!pill.Visible || pill.Top < Bottom - 60 || Math.Abs(pill.Left + pill.Width / 2 - (Left + Width / 2)) > Width / 2) throw new Exception("Talk pill is not under her.");
@@ -22581,20 +22602,6 @@ namespace CapriDesktop
                             backdrop.Bounds = new Rectangle(area.Left + Math.Max(0, (area.Width - 920) / 2), area.Top + Math.Max(0, (area.Height - 560) / 2), Math.Min(920, area.Width), Math.Min(560, area.Height));
                             backdrop.BackColor = Color.FromArgb(237, 239, 242);
                             backdrop.TopMost = true;
-                            TalkState pillStateWas = talkState;
-                            bool pillChatWas = chatting;
-                            Ledge pillSeatWas = seat;
-                            try
-                            {
-                                chatting = false;
-                                talkState = TalkState.Talking;
-                                seat = null;
-                                if (PillHeld(false) || !PillHeld(true)) throw new Exception("A reply held the pill without a hover, or hovering stopped holding it.");
-                                seat = new Ledge { Window = new IntPtr(1) };
-                                if (PillHeld(false) || !PillHeld(true)) throw new Exception("A seated reply held the pill without a hover, or hovering stopped holding it.");
-                            }
-                            finally { talkState = pillStateWas; chatting = pillChatWas; seat = pillSeatWas; }
-                            checks.Add("PASS her reply does not hold the talk pill with the cursor off her and the pill, sitting on a window or not; hovering still holds it");
                             backdrop.Paint += delegate(object sender, PaintEventArgs paint)
                             {
                                 using (Pen line = new Pen(Color.FromArgb(225, 228, 232)))
@@ -22948,13 +22955,6 @@ namespace CapriDesktop
                             checks.Add("PASS bubbles follow Always on top: with it off her reply bubble, pill and typing box sit with her behind other windows");
                             Speak = null;
                             CloseTalk();
-                            StandInDictation lateStart = new StandInDictation();
-                            lateStart.Late = true;
-                            Dictation.Make = delegate { return lateStart; };
-                            StartLocal();
-                            CheckEars(clock.Elapsed.TotalSeconds);
-                            if (!chatting || !local || earsReady || !earsShut || !lateStart.Started || reply != "One sec, opening my ears.") throw new Exception("Opening Windows speech looked ready to listen: " + reply);
-                            if (lateStart.Language != preferences.Language || lateStart.Language != "English") throw new Exception("Windows speech didn't open in her picked language: " + lateStart.Language);
                             bool freeToldWas = preferences.FreeChatTold;
                             bool? quietOwnWas = ownEarsTest;
                             Func<Dictation> quietMakeWas = Dictation.Make;
@@ -22998,6 +22998,13 @@ namespace CapriDesktop
                                 Dictation.Make = quietMakeWas;
                             }
                             checks.Add("PASS free voice chat's opening and ready notices stay in the Mainframe after the first ready bubble, with Windows speech or her own ears, leave her current reply alone, and still show when she promised to say when her ears landed");
+                            StandInDictation lateStart = new StandInDictation();
+                            lateStart.Late = true;
+                            Dictation.Make = delegate { return lateStart; };
+                            StartLocal();
+                            CheckEars(clock.Elapsed.TotalSeconds);
+                            if (!chatting || !local || earsReady || !earsShut || !lateStart.Started || reply != "One sec, opening my ears.") throw new Exception("Opening Windows speech looked ready to listen: " + reply);
+                            if (lateStart.Language != preferences.Language || lateStart.Language != "English") throw new Exception("Windows speech didn't open in her picked language: " + lateStart.Language);
                             replyDone = clock.Elapsed.TotalSeconds - 120;
                             UpdateTalk(clock.Elapsed.TotalSeconds);
                             if (box.Leaving >= 0) throw new Exception("The opening-ears message faded before Windows speech started.");
@@ -24403,7 +24410,7 @@ namespace CapriDesktop
                         }
                         else if (step == 18)
                         {
-                            if (talkState != TalkState.Dormant || reply != "That model sent thoughts without an answer. Pick another model in Capri Mainframe." || errorVoice != 0 || !double.IsNaN(thinkingSince)) throw new Exception("An explained cloud error stayed blank or waited for voice.");
+                            if (talkState != TalkState.Dormant || reply != "That model sent thoughts without an answer. Pick another model in Capri Mainframe." || errorVoice != 0 || !double.IsNaN(thinkingSince)) throw new Exception("An explained cloud error stayed blank or waited for voice: " + talkState + " | " + reply + " | " + errorVoice + " | " + thinkingSince);
                             Think = delegate { throw new WebException("late", WebExceptionStatus.Timeout); };
                             cloudModels = null;
                             stalled.Clear();
