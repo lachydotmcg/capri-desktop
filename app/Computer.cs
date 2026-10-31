@@ -2643,14 +2643,16 @@ namespace CapriDesktop
                 bool seen = Look();
                 talk.Add("{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":" + Voice.Quote(Computer.Opening(Task, Computer.Glimpse(), seen ? shown : null)) + "}" + (seen ? Latest() : "") + "]}");
             }
+            bool resuming = false;
             while (true)
             {
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 turns++;
                 Show("Thinking");
-                // What they just said rides on the last turn, after its tool results.
-                string fresh = Heard();
-                string turned = Changed();
+                // What they just said rides on the last turn, after its tool results. A turn that's resuming goes back exactly as it
+                // came, so it waits for the next one.
+                string fresh = resuming ? null : Heard();
+                string turned = resuming ? "" : Changed();
                 if (fresh != null || turned.Length > 0)
                 {
                     string directed = ((fresh != null ? "While you work, they just said " + fresh + ". If that's something for you to do, do it now, then carry on with their job where you left off. If not, just carry on." : "") + turned).Trim();
@@ -2659,11 +2661,11 @@ namespace CapriDesktop
                     talk[talk.Count - 1] = last.Substring(0, last.Length - 2) + ",{\"type\":\"text\",\"text\":" + Voice.Quote(directed) + "}]}";
                 }
                 if (!Playing && !Ink.ScreenRequest(Task) && Computer.GameWindow(Computer.Glimpse())) Playing = true;
-                if (talk.Count >= Computer.LongTalk) Fold();
-                if (Computer.Streaming && turns % Computer.ChatEvery == 1) ShowChat();
+                if (!resuming && talk.Count >= Computer.LongTalk) Fold();
+                if (!resuming && Computer.Streaming && turns % Computer.ChatEvery == 1) ShowChat();
                 ClaudeReply reply;
                 Stopwatch turnClock = Stopwatch.StartNew();
-                try { reply = Drive(Computer.Allowing(Computer.Seeing) + (Computer.Streaming ? Computer.StreamNote : "") + Briefed(), Computer.Toolset, Conversation()); }
+                try { reply = Drive(Computer.Allowing(Computer.Seeing) + (Computer.Streaming ? Computer.StreamNote : "") + Briefed(), Computer.Toolset, Conversation(resuming)); }
                 catch (System.Runtime.Serialization.SerializationException) { return End("failed", "Got a reply from my brain I couldn't read. Try again."); }
                 // Their Esc cut the turn off while it was still thinking.
                 catch (System.Net.WebException error)
@@ -2702,7 +2704,14 @@ namespace CapriDesktop
                 Traced(turnClock, reply);
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
                 if (reply.StopReason == "refusal") return End("failed", "I can't do that one.");
-                talk.Add("{\"role\":\"assistant\",\"content\":" + reply.Raw + "}");
+                // The rest of a turn that was left hanging belongs to that same turn.
+                if (!resuming) talk.Add("{\"role\":\"assistant\",\"content\":" + reply.Raw + "}");
+                else if (reply.Content != null && reply.Content.Length > 0)
+                {
+                    string open = talk[talk.Count - 1];
+                    talk[talk.Count - 1] = open.Substring(0, open.Length - 2) + "," + reply.Raw.TrimStart().Substring(1) + "}";
+                }
+                resuming = Hanging(reply);
                 List<ClaudeBlock> calls = new List<ClaudeBlock>();
                 StringBuilder said = new StringBuilder();
                 bool asked = false;
@@ -2718,6 +2727,7 @@ namespace CapriDesktop
                     consulted = turns;
                     advisorDown = reply.Raw.IndexOf("\"advisor_tool_result_error\"", StringComparison.Ordinal) >= 0;
                 }
+                if (resuming) continue;
                 if (calls.Count == 0)
                 {
                     string words = Clean(said.ToString(), "");
@@ -2758,6 +2768,16 @@ namespace CapriDesktop
                 stopped = Batch(false);
                 if (stopped != null) return stopped;
             }
+        }
+
+        // The advisor hadn't answered when this reply stopped: the API paused the turn, or it ran out of room right there. Sent back
+        // as it is, the server carries on from where it stopped. Anything added after it is refused with a 400, which is what ended
+        // her overnight stream on 1 Nov.
+        private static bool Hanging(ClaudeReply reply)
+        {
+            if (reply.StopReason == "pause_turn") return true;
+            ClaudeBlock end = reply.Content == null || reply.Content.Length == 0 ? null : reply.Content[reply.Content.Length - 1];
+            return end != null && end.Type == "server_tool_use";
         }
 
         // Older turns of a long job go into a note to itself, and it carries on from a fresh look with that note.
@@ -3161,7 +3181,7 @@ namespace CapriDesktop
 
         // The talk so far as Claude's messages, with only the newest pictures. They go three at a time, so the turns before
         // stay the same and Claude's cache holds all of it: a turn costs about half as much that way.
-        private string Conversation()
+        private string Conversation(bool resuming = false)
         {
             if (pictures.Count == 4 || pictures.Count - pictureFloor > 5) pictureFloor = pictures.Count - 3;
             int oldest = pictureFloor;
@@ -3171,7 +3191,7 @@ namespace CapriDesktop
                 int index = int.Parse(found.Groups[1].Value);
                 return index < oldest ? "{\"type\":\"text\",\"text\":\"[Image omitted]\"}" : "{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"" + Convert.ToBase64String(pictures[index]) + "\"}}";
             });
-            return sent.Substring(0, sent.Length - 4) + ",\"cache_control\":{\"type\":\"ephemeral\"}}]}]";
+            return resuming ? sent : sent.Substring(0, sent.Length - 4) + ",\"cache_control\":{\"type\":\"ephemeral\"}}]}]";
         }
 
         private string End(string outcome, string said)

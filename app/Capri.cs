@@ -21399,6 +21399,27 @@ namespace CapriDesktop
                                     int resultAt = heardLast.IndexOf("\"tool_result\"", StringComparison.Ordinal);
                                     if (heardRun != "Installed it." || heardAt < 0 || resultAt < 0 || resultAt > heardAt || heardTurns[0].Contains("spotify"))
                                         throw new Exception("What they said mid-job didn't reach her next turn: " + heardRun + " / " + heardTurns.Count + " turns");
+                                    // The advisor can leave a turn hanging. It goes back as it came, with nothing after it, and the rest joins that same turn (Lachy's stream, 1 Nov).
+                                    Job driveResumed = new Job("install capri");
+                                    System.Collections.Generic.List<string> resumedTurns = new System.Collections.Generic.List<string>();
+                                    driveResumed.Drive = delegate(string driveSys, string driveToolset, string driveMessages)
+                                    {
+                                        resumedTurns.Add(driveMessages);
+                                        if (resumedTurns.Count == 1)
+                                        {
+                                            driveResumed.Tell("hurry up");
+                                            return Brain.Parsed("{\"id\":\"r1\",\"content\":[{\"type\":\"text\",\"text\":\"Asking.\"},{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_1\",\"name\":\"advisor\",\"input\":{}}],\"stop_reason\":\"pause_turn\"}");
+                                        }
+                                        if (resumedTurns.Count == 2) return Brain.Parsed("{\"id\":\"r2\",\"content\":[{\"type\":\"advisor_tool_result\",\"tool_use_id\":\"srvtoolu_1\",\"content\":{\"type\":\"advisor_redacted_result\",\"encrypted_content\":\"abc\"}},{\"type\":\"tool_use\",\"id\":\"r2t\",\"name\":\"screenshot\",\"toolset_name\":\"computer\",\"input\":{}}],\"stop_reason\":\"tool_use\"}");
+                                        return Brain.Parsed("{\"id\":\"r3\",\"content\":[{\"type\":\"text\",\"text\":\"Installed it.\"}],\"stop_reason\":\"end_turn\"}");
+                                    };
+                                    string resumedRun = driveResumed.Run();
+                                    bool resumedAsCame = resumedTurns.Count == 3 && resumedTurns[1].EndsWith("\"name\":\"advisor\",\"input\":{}}]}]", StringComparison.Ordinal) && resumedTurns[1].IndexOf("hurry up", StringComparison.Ordinal) < 0;
+                                    int resumedAsked = resumedAsCame ? resumedTurns[2].IndexOf("\"server_tool_use\"", StringComparison.Ordinal) : -1;
+                                    int resumedAnswer = resumedAsCame ? resumedTurns[2].IndexOf("\"advisor_tool_result\"", StringComparison.Ordinal) : -1;
+                                    if (resumedRun != "Installed it." || resumedAsked < 0 || resumedAnswer < resumedAsked || resumedTurns[2].Substring(resumedAsked, resumedAnswer - resumedAsked).Contains("\"role\"") || resumedTurns[2].IndexOf("hurry up", StringComparison.Ordinal) < 0)
+                                        throw new Exception("A turn the advisor left hanging didn't resume as it came: " + resumedRun + " / " + resumedTurns.Count + " turns");
+                                    checks.Add("PASS a turn the advisor leaves hanging goes back exactly as it came, with nothing added after it, and carries on as one turn");
                                     checks.Add("PASS mid-job words: what they say while a job runs rides on her next turn after its tool results, so she does it and carries on");
                                     // A game job thinks harder and gets her game lines, from its words or once a game's window is in front (Lachy, 30 Oct).
                                     if (!Computer.Gaming("play bedwars on roblox and answer chat") || !Computer.Gaming("go play minecraft") || !Computer.Gaming("hop on fortnite for a bit") || !Computer.Gaming("keep playing")

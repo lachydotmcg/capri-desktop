@@ -2359,8 +2359,8 @@ namespace CapriDesktop
             Cloud remote = Remote;
             if (remote == null || !remote.Claude) throw new BrainException(Offline);
             string model = fast && !noFastest ? Fastest : remote.Model;
-            // A job that's had an answer from the advisor has to keep offering it, or the request is refused.
-            bool answered = Regex.IsMatch(messages, "\"type\"\\s*:\\s*\"advisor_tool_result\""), advising = answered || (fast && model == Fastest && Advises);
+            // A job that's asked the advisor has to keep offering it, or the request is refused.
+            bool answered = Regex.IsMatch(messages, "\"type\"\\s*:\\s*\"(advisor_tool_result|server_tool_use)\""), advising = answered || (fast && model == Fastest && Advises);
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
             // Her hands keep only the newest three pictures, which changes earlier turns. These models bind each thinking block to
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
