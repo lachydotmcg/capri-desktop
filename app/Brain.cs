@@ -831,6 +831,10 @@ namespace CapriDesktop
             });
         }
 
+        // A fold has nothing waiting on it and needs no working out. On Nemotron Super its reasoning used up the whole reply or ran
+        // past her wait, so her memories never updated (matty.02, 31 Oct).
+        private bool unhurried;
+
         // One call to the picked brain: memories.md plus the lines waiting in, the new memories.md out. Returns what went wrong, or null.
         internal string Fold()
         {
@@ -852,7 +856,7 @@ namespace CapriDesktop
             if (shared.Count > 0)
             {
                 // A brain of its own, so talking to her doesn't cancel the fold.
-                Brain folder = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
+                Brain folder = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, unhurried = true };
                 List<ChatMessage> messages = new List<ChatMessage>
                 {
                     new ChatMessage("system", FoldRules + Now()),
@@ -1951,15 +1955,16 @@ namespace CapriDesktop
             {
                 bool openAi = remote.Kind == "openai";
                 bool brief = remote.Kind == "nvidia" && remote.Model == "google/gemma-4-31b-it";
-                bool screen = parts != null && remote.Kind == "nvidia";
-                bool super = screen && !job && !routing && remote.Model == "nvidia/nemotron-3.5-super-vl-120b-a12b";
+                bool screen = (parts != null || unhurried) && remote.Kind == "nvidia";
+                bool super = screen && (!job || unhurried) && !routing && remote.Model == "nvidia/nemotron-3.5-super-vl-120b-a12b";
+                int headroom = unhurried ? 8000 : 2000;
                 string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi, super ? "none" : null);
                 OpenAiRequest body = new OpenAiRequest
                 {
                     Model = remote.Model,
                     Messages = messages.ToArray(),
-                    Limit = openAi ? ReplyLimit(2000, job || routing) : (int?)null,
-                    Tokens = openAi ? (int?)null : ReplyLimit(brief ? Math.Max(256, limit) : 2000, job || routing),
+                    Limit = openAi ? ReplyLimit(headroom, job || routing) : (int?)null,
+                    Tokens = openAi ? (int?)null : ReplyLimit(brief ? Math.Max(256, limit) : headroom, job || routing),
                     Effort = effort,
                     Thinking = remote.Kind == "deepseek" ? new CloudThinking() : null,
                     Template = brief ? new CloudTemplate() : null,

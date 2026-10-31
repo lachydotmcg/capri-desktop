@@ -23174,6 +23174,22 @@ namespace CapriDesktop
                                         if (dropped == null || File.ReadAllText(Brain.MemoriesPath) != longMemory || File.ReadAllLines(queueFile).Length != 1) throw new Exception("A fold that lost most of her memories replaced them: " + dropped);
                                         string newDayOnly = folder.Fold();
                                         if (newDayOnly != null || File.ReadAllText(Brain.MemoriesPath) != longMemory + "## Thursday 29 October 2026\n- They like games, apparently.\n" || File.ReadAllText(queueFile) != "") throw new Exception("A fold that sent back only the new day lost the older ones: " + newDayOnly + " / " + File.ReadAllText(Brain.MemoriesPath));
+                                        // On Nemotron Super a fold streams with its reasoning off, like a look at the screen, and has room to finish.
+                                        string memoriesKept = File.ReadAllText(Brain.MemoriesPath), nvidiaKept = Brain.Nvidia;
+                                        System.Collections.Generic.List<string> superAsked = new System.Collections.Generic.List<string>();
+                                        System.Net.Sockets.TcpListener superFake = null;
+                                        Brain.Nvidia = FakeServer(new[] { "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"## Friday 30 October 2026\\n- They like games.\"}}]}" }, superAsked, out superFake);
+                                        File.WriteAllText(queueFile, "2026-10-31 14:14 You: I like games\n");
+                                        Brain superFolder = new Brain();
+                                        superFolder.Remote = new Cloud("nvapi-test", "nvidia/nemotron-3.5-super-vl-120b-a12b");
+                                        superFolder.Model = superFolder.Remote.Model;
+                                        string superFolded = superFolder.Fold();
+                                        superFake.Stop();
+                                        Brain.Nvidia = nvidiaKept;
+                                        File.WriteAllText(Brain.MemoriesPath, memoriesKept);
+                                        string superSent;
+                                        lock (superAsked) superSent = string.Join("\n", superAsked.ToArray());
+                                        if (superFolded != null || superSent.IndexOf("\"reasoning_effort\":\"none\"", StringComparison.Ordinal) < 0 || superSent.IndexOf("\"stream\":true", StringComparison.Ordinal) < 0 || superSent.IndexOf("\"max_tokens\":8000", StringComparison.Ordinal) < 0) throw new Exception("A fold on Nemotron Super kept its reasoning on: " + superFolded + " / " + superSent);
                                         File.WriteAllText(Path.Combine(Brain.TranscriptPath, "2026-10-20.md"), "# Capri and you, Tuesday 20 October 2026\n> Kept on this PC only, never uploaded.\n\n**21:04 You:** We beat the Hornet fight in Silksong!\n**21:05 Capri:** Took you long enough.\n**21:30 You:** going to bed\n");
                                         string recalled = Brain.Recalled("remember when we beat Hornet?");
                                         if (recalled.IndexOf("- 2026-10-20 21:04 You: We beat the Hornet fight in Silksong!\n- 2026-10-20 21:05 Capri: Took you long enough.", StringComparison.Ordinal) < 0 || recalled.IndexOf("going to bed", StringComparison.Ordinal) >= 0 || Brain.Recalled("how's it going?") != "" || Brain.Recalled("remember when we did stuff?") != "" || Brain.Recalled("remember my address on Carrington Street?") != "") throw new Exception("Remember when didn't find the right lines, or found an address: " + recalled);
