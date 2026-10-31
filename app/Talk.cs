@@ -24,6 +24,8 @@ namespace CapriDesktop
         internal static readonly Color Dim = Color.FromArgb(122, 128, 138);
 
         internal static readonly Color Pink = Color.FromArgb(255, 46, 136);
+        private static readonly PrivateFontCollection fonts = new PrivateFontCollection();
+        private static IntPtr fontMemory;
         private static readonly FontFamily embedded = Embedded("Capri.Font.Mono.ttf");
         private static Cursor pointer;
 
@@ -97,21 +99,45 @@ namespace CapriDesktop
         }
 
         [DllImport("gdi32.dll")] private static extern IntPtr AddFontMemResourceEx(IntPtr font, uint length, IntPtr reserved, ref uint count);
+        [DllImport("gdi32.dll")] private static extern bool RemoveFontMemResourceEx(IntPtr font);
 
         private static FontFamily Embedded(string name)
         {
-            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+            IntPtr memory = IntPtr.Zero, resource = IntPtr.Zero;
+            try
             {
-                if (stream == null) return null;
-                byte[] data = new byte[stream.Length];
-                stream.Read(data, 0, data.Length);
-                IntPtr memory = Marshal.AllocCoTaskMem(data.Length);
-                Marshal.Copy(data, 0, memory, data.Length);
-                uint count = 0;
-                AddFontMemResourceEx(memory, (uint)data.Length, IntPtr.Zero, ref count);
-                PrivateFontCollection collection = new PrivateFontCollection();
-                collection.AddMemoryFont(memory, data.Length);
-                return collection.Families.Length > 0 ? collection.Families[0] : null;
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
+                {
+                    if (stream == null) return null;
+                    byte[] data = new byte[stream.Length];
+                    int read = 0;
+                    while (read < data.Length)
+                    {
+                        int took = stream.Read(data, read, data.Length - read);
+                        if (took == 0) return null;
+                        read += took;
+                    }
+                    memory = Marshal.AllocCoTaskMem(data.Length);
+                    Marshal.Copy(data, 0, memory, data.Length);
+                    uint count = 0;
+                    resource = AddFontMemResourceEx(memory, (uint)data.Length, IntPtr.Zero, ref count);
+                    if (resource == IntPtr.Zero || count == 0) return null;
+                    fonts.AddMemoryFont(memory, data.Length);
+                    if (fonts.Families.Length == 0) return null;
+                    fontMemory = memory;
+                    return fonts.Families[0];
+                }
+            }
+            catch (ArgumentException) { return null; }
+            catch (ExternalException) { return null; }
+            catch (IOException) { return null; }
+            finally
+            {
+                if (memory != IntPtr.Zero && memory != fontMemory)
+                {
+                    if (resource != IntPtr.Zero) RemoveFontMemResourceEx(resource);
+                    Marshal.FreeCoTaskMem(memory);
+                }
             }
         }
 
@@ -126,6 +152,11 @@ namespace CapriDesktop
         internal static Font Mono(float size, FontStyle style, GraphicsUnit unit = GraphicsUnit.Pixel, string text = null)
         {
             if (embedded != null && Drawable(text)) return new Font(embedded, size, embedded.IsStyleAvailable(style) ? style : FontStyle.Regular, unit);
+            return FallbackMono(size, style, unit);
+        }
+
+        internal static Font FallbackMono(float size, FontStyle style, GraphicsUnit unit)
+        {
             foreach (string family in new[] { "Cascadia Mono", "Consolas", "Courier New" })
             {
                 Font font = new Font(family, size, style, unit);

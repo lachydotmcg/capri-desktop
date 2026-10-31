@@ -429,6 +429,14 @@ namespace CapriDesktop
             CaughtUp = true;
         }
 
+        internal static int FrameSize(int size)
+        {
+            return size == 100 || size == 125 || size == 150 || size == 175 || size == 200 ? size : 0;
+        }
+
+        [OnDeserialized]
+        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); }
+
         internal bool CareOn(CareKind kind)
         {
             switch (kind)
@@ -4159,11 +4167,11 @@ namespace CapriDesktop
             SavePreferences();
         }
 
-        internal int MainframeSize { get { return preferences.MainframeSize; } }
+        internal int MainframeSize { get { return Preferences.FrameSize(preferences.MainframeSize); } }
 
         internal void SetMainframeSize(int size)
         {
-            preferences.MainframeSize = size <= 0 ? 0 : Math.Max(100, Math.Min(200, size));
+            preferences.MainframeSize = Preferences.FrameSize(size);
             SavePreferences();
         }
 
@@ -13826,6 +13834,16 @@ namespace CapriDesktop
         {
             bool wasSettings = mainframe.SettingsShown;
             int wasSize = preferences.MainframeSize;
+            foreach (int storedSize in new[] { 0, 100, 125, 150, 175, 200, -1, 50, 110, 250, int.MaxValue })
+            {
+                Preferences upgraded;
+                string storedJson = "{\"MainframeSize\":" + storedSize + "}";
+                using (MemoryStream storedFrame = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(storedJson))) upgraded = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(storedFrame);
+                if (upgraded.MainframeSize != Preferences.FrameSize(storedSize)) throw new Exception("An old Mainframe size did not become a supported choice.");
+            }
+            using (MemoryStream missingFrame = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}")))
+                if (((Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(missingFrame)).MainframeSize != 0) throw new Exception("Settings from before Mainframe size did not start on Auto.");
+            checks.Add("PASS Mainframe size upgrades: missing and unsupported saved sizes become Auto, and every supported size is kept");
             try
             {
                 mainframe.ShowSettings(true);
@@ -13854,8 +13872,27 @@ namespace CapriDesktop
                 }
                 checks.Add("PASS BRAIN layout: every setting stays on its scrollable page at 100%, 125%, 150%, 175% and 200%, with no overlaps or controls poking out");
                 checks.Add("PASS Gaming Mode Settings: its three lines sit below the switch and above the other game rows, reach screen readers, and stay inside the page without overlaps at every Mainframe size");
+                foreach (bool frameFallback in new[] { false, true })
+                    foreach (int frameDpi in new[] { 96, 120, 144, 168, 192, 96 })
+                        foreach (int frameText in new[] { 100, 150, 225 })
+                            foreach (int framePercent in new[] { 0, 100, 125, 150, 175, 200, 100 })
+                            {
+                                mainframe.LayoutScale(frameDpi, frameText, frameFallback);
+                                mainframe.SizeMainframe(framePercent);
+                                foreach (bool framePage in new[] { false, true })
+                                {
+                                    mainframe.ShowSettings(framePage);
+                                    int frameWidth = (int)Math.Round((framePage ? 760 : 380) * frameDpi / 96f * frameText / 100f * mainframe.Zoom);
+                                    string frameProblem = mainframe.TextFits() ?? mainframe.Overlap() ?? (framePage && mainframe.ClientSize.Width == frameWidth ? mainframe.Outside() : null);
+                                    bool frameWidthFits = frameWidth > SystemInformation.MaxWindowTrackSize.Width || mainframe.ClientSize.Width == frameWidth;
+                                    if (frameProblem != null || !frameWidthFits) throw new Exception("Mainframe layout at " + frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? "Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
+                                }
+                            }
+                checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at every size and simulated 100%, 125%, 150%, 175% and 200% DPI with 100%, 150% and 225% text and fallback fonts; returning to 100% keeps the original scale");
+                checks.Add("LIMIT Mainframe display scaling: simulated pixel layouts do not confirm Windows text-setting notifications, real monitor moves, or high-DPI rendering; Windows may constrain simulated windows wider than this desktop, so those check text and overlaps without the viewport-edge check");
             }
-            finally { mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
+            catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT Mainframe text measurement: Windows text rendering is unavailable on this desktop"); }
+            finally { mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
         }
 
         private static void SmokeOpening(System.Collections.Generic.List<string> checks)

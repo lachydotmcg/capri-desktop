@@ -284,8 +284,7 @@ namespace CapriDesktop
             ShowInTaskbar = true;
             FormBorderStyle = FormBorderStyle.None;
             StartPosition = FormStartPosition.CenterScreen;
-            AutoScaleMode = AutoScaleMode.Dpi;
-            AutoScaleDimensions = new SizeF(96, 96);
+            AutoScaleMode = AutoScaleMode.None;
             Font = Type(9.5f);
             BackColor = Ground;
             ForeColor = White;
@@ -680,6 +679,7 @@ namespace CapriDesktop
             Controls.Add(bottomRim);
             topRim.BringToFront();
             bottomRim.BringToFront();
+            RememberLayout(this);
             Searching();
             Sync();
             Application.AddMessageFilter(this);
@@ -1040,13 +1040,29 @@ namespace CapriDesktop
 
         protected override void WndProc(ref Message message)
         {
+            if (message.Msg == 0x02E0 && loaded)
+            {
+                monitorDpi = (int)(message.WParam.ToInt64() & 0xFFFF);
+                Rezoom(Wanted());
+                ShowFrameSize();
+                message.Result = IntPtr.Zero;
+                return;
+            }
             base.WndProc(ref message);
             if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
+            if (message.Msg == 0x001A && loaded) { Rezoom(Wanted()); ShowFrameSize(); }
+        }
+
+        protected override void OnLocationChanged(EventArgs e)
+        {
+            base.OnLocationChanged(e);
+            if (loaded && !sizing) { Rezoom(Wanted()); ShowFrameSize(); }
         }
 
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+            monitorDpi = (int)Math.Round(DeviceScale() * 96);
             loaded = true;
             Rezoom(Wanted());
             ShowFrameSize();
@@ -1073,22 +1089,138 @@ namespace CapriDesktop
             frameSizeName.Text = frameSize.Value == 0 && auto != 100 ? "Auto · " + auto + "%" : FrameSizeNames[frameSize.Value];
         }
 
-        // Sizes everything on her Mainframe to a new zoom: every font, then every control's place and size, then each page where
-        // it belongs. Her SECURITY and layers windows pick it up the next time they open.
+        // Bounds and fonts start from the same 96 DPI layout every time. Pixel fonts already include the monitor and text
+        // scales, so Windows must not scale either them or the controls again.
         private void Rezoom(float next)
         {
-            if (!loaded || Math.Abs(next - zoom) < 0.005f) return;
-            float factor = next / zoom;
-            ScrollPage(0);
+            float nextUnit = DeviceScale() * TextScale() * next;
+            if (!loaded || sizing || (Math.Abs(nextUnit - unit) < 0.005f && Math.Abs(next - zoom) < 0.005f && shownFallback == layoutFallback)) return;
+            sizing = true;
             SuspendLayout();
-            Grow(this, factor);
-            foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu }) menu.Font = Font;
-            Scale(new SizeF(factor, factor));
-            zoom = next;
-            ResumeLayout(false);
-            Place();
-            Arrange(expanded);
-            Shape();
+            try
+            {
+                ScrollPage(0);
+                zoom = next;
+                unit = nextUnit;
+                foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
+                shownFallback = layoutFallback;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu }) menu.Font = Font;
+                foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
+                freeVoices.Width = Scaled(freeReady && !yoursShown ? 328 : 196);
+                customVoice.Width = Scaled(freeReady ? 328 : 196);
+                Place();
+                Arrange(expanded);
+                foreach (Control control in Controls) control.PerformLayout();
+                Shape();
+            }
+            finally { ResumeLayout(true); sizing = false; }
+        }
+
+        private readonly List<LayoutItem> layout = new List<LayoutItem>();
+        private bool sizing;
+        private float unit;
+        private int layoutDpi;
+        private int layoutText;
+        private int monitorDpi;
+        private bool layoutFallback;
+        private bool shownFallback;
+
+        private void RememberLayout(Control control)
+        {
+            layout.Add(new LayoutItem(control));
+            foreach (Control child in control.Controls) RememberLayout(child);
+        }
+
+        private sealed class LayoutItem : IDisposable
+        {
+            private readonly Control control;
+            private readonly Rectangle bounds;
+            private readonly Size maximum;
+            private readonly Font font;
+            private readonly Font hint;
+            private readonly Font flag;
+            private Font scaledFont, scaledHint, scaledFlag;
+
+            internal LayoutItem(Control control)
+            {
+                this.control = control;
+                bounds = control.Bounds;
+                maximum = control.MaximumSize;
+                font = control.Font;
+                Rung rung = control as Rung;
+                Toggle toggle = control as Toggle;
+                hint = rung != null ? rung.HintFont : toggle != null ? toggle.HintFont : null;
+                flag = rung != null ? rung.FlagFont : null;
+            }
+
+            internal void Apply(float scale, bool fallback)
+            {
+                Font oldFont = scaledFont, oldHint = scaledHint, oldFlag = scaledFlag;
+                scaledFont = Pixels(font, scale, fallback);
+                scaledHint = Pixels(hint, scale, fallback);
+                scaledFlag = Pixels(flag, scale, fallback);
+                control.Font = scaledFont;
+                Rung rung = control as Rung;
+                Toggle toggle = control as Toggle;
+                if (rung != null) { rung.HintFont = scaledHint; rung.FlagFont = scaledFlag; }
+                if (toggle != null) toggle.HintFont = scaledHint;
+                control.MaximumSize = new Size(At(maximum.Width, scale), At(maximum.Height, scale));
+                if (!(control is Form))
+                {
+                    Label label = control as Label;
+                    if (label != null && label.AutoSize) control.Location = new Point(At(bounds.X, scale), At(bounds.Y, scale));
+                    else control.Bounds = new Rectangle(At(bounds.X, scale), At(bounds.Y, scale), At(bounds.Width, scale), At(bounds.Height, scale));
+                }
+                if (oldFont != null) oldFont.Dispose();
+                if (oldHint != null) oldHint.Dispose();
+                if (oldFlag != null) oldFlag.Dispose();
+            }
+
+            private static int At(int value, float scale) { return (int)Math.Round(value * scale); }
+
+            private static Font Pixels(Font original, float scale, bool fallback)
+            {
+                if (original == null) return null;
+                float points = original.SizeInPoints;
+                FontStyle style = original.Style;
+                if (fallback)
+                {
+                    bool face = original.Name.StartsWith("Bahnschrift", StringComparison.OrdinalIgnoreCase);
+                    if (face) { points -= points >= 15 ? 3f : 0.5f; style = FontStyle.Regular; }
+                    return Look.FallbackMono(points * 96f / 72f * scale, style, GraphicsUnit.Pixel);
+                }
+                return new Font(original.FontFamily, points * 96f / 72f * scale, style, GraphicsUnit.Pixel);
+            }
+
+            public void Dispose()
+            {
+                if (scaledFont != null) scaledFont.Dispose();
+                if (scaledHint != null) scaledHint.Dispose();
+                if (scaledFlag != null) scaledFlag.Dispose();
+            }
+        }
+
+        private float TextScale()
+        {
+            if (layoutText > 0) return layoutText / 100f;
+            try
+            {
+                object value = Microsoft.Win32.Registry.GetValue(@"HKEY_CURRENT_USER\Software\Microsoft\Accessibility", "TextScaleFactor", 100);
+                int percent = value is int ? (int)value : 100;
+                return percent >= 100 && percent <= 225 ? percent / 100f : 1f;
+            }
+            catch (System.Security.SecurityException) { return 1f; }
+            catch (UnauthorizedAccessException) { return 1f; }
+            catch (System.IO.IOException) { return 1f; }
+        }
+
+        internal void LayoutScale(int dpi, int text, bool fallback = false)
+        {
+            layoutDpi = dpi;
+            layoutText = text;
+            layoutFallback = fallback;
+            Rezoom(Wanted());
+            ShowFrameSize();
         }
 
         // Her Mainframe's zoom, and picking its size as they would, for the smoke test.
@@ -1289,13 +1421,27 @@ namespace CapriDesktop
             return Narrow != null ? new Font(Narrow, points, FontStyle.Regular, GraphicsUnit.Point) : Look.Mono(points - 3f, FontStyle.Bold, GraphicsUnit.Point);
         }
 
-        private float DeviceScale() { return CurrentAutoScaleDimensions.Width / 96f; }
+        private float DeviceScale()
+        {
+            if (layoutDpi > 0) return layoutDpi / 96f;
+            if (monitorDpi > 0) return monitorDpi / 96f;
+            try
+            {
+                if (IsHandleCreated)
+                {
+                    int dpi = Native.GetDpiForWindow(Handle);
+                    if (dpi > 0) return dpi / 96f;
+                }
+            }
+            catch (EntryPointNotFoundException) { }
+            using (Graphics screen = Graphics.FromHwnd(IntPtr.Zero)) return screen.DpiX / 96f;
+        }
 
         // Her Mainframe size on top of the screen's own scale: 1 unless a bigger size is picked, or Auto finds a desktop
         // bigger than the panel showing it.
         private float zoom = 1f;
 
-        private float Unit() { return DeviceScale() * zoom; }
+        private float Unit() { return unit > 0 ? unit : 1f; }
 
         // The scale of whichever of her windows a control is on: the Mainframe, their voice server's panel or her SECURITY
         // window, which the smoke test also draws at 150% and 200%.
@@ -1304,9 +1450,10 @@ namespace CapriDesktop
             Form form = control.FindForm();
             if (form == null) return 1f;
             Mainframe main = form as Mainframe;
+            if (main != null) return main.Unit();
             SecuritySheet guarded = form as SecuritySheet;
             LayersSheet layers = form as LayersSheet;
-            float zoom = main != null ? main.zoom : guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : 1f;
+            float zoom = guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : 1f;
             return form.CurrentAutoScaleDimensions.Width / 96f * zoom;
         }
 
@@ -1358,6 +1505,7 @@ namespace CapriDesktop
         {
             if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); }
             base.Dispose(disposing);
+            if (disposing) foreach (LayoutItem item in layout) item.Dispose();
         }
 
         internal void Restore()
@@ -1539,6 +1687,124 @@ namespace CapriDesktop
                     if (!a.Visible || !b.Visible || (a is Label && a.Text.Length == 0) || (b is Label && b.Text.Length == 0)) continue;
                     if (a.Bounds.IntersectsWith(b.Bounds)) return a.Text + " / " + b.Text;
                 }
+            return null;
+        }
+
+        internal string TextFits()
+        {
+            using (Bitmap paper = new Bitmap(1, 1))
+            using (Graphics graphics = Graphics.FromImage(paper)) return TextFits(graphics);
+        }
+
+        private string TextFits(Graphics graphics)
+        {
+            List<KeyValuePair<string, Rectangle>> text = new List<KeyValuePair<string, Rectangle>>();
+            foreach (Control control in Controls)
+            {
+                if (Hidden(control)) continue;
+                string problem = CheckText(graphics, control, Point.Empty, text, control.Visible);
+                if (problem != null) return problem;
+            }
+            for (int first = 0; first < text.Count; first++)
+                for (int second = first + 1; second < text.Count; second++)
+                    if (text[first].Value.IntersectsWith(text[second].Value)) return text[first].Key + " overlaps " + text[second].Key;
+            return null;
+        }
+
+        private static string CheckText(Graphics graphics, Control control, Point origin, List<KeyValuePair<string, Rectangle>> text, bool shown)
+        {
+            Point at = new Point(origin.X + control.Left, origin.Y + control.Top);
+            string name = control.GetType().Name + " at " + at.X + "," + at.Y;
+            List<KeyValuePair<string, Rectangle>> visible = shown ? text : null;
+            TextFormatFlags flags = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding;
+            Rectangle area = control.ClientRectangle;
+            float scale = ScaleOf(control);
+            string problem = null;
+            Entry entry = control as Entry;
+            Rung rung = control as Rung;
+            Toggle toggle = control as Toggle;
+            Slider slider = control as Slider;
+            Key key = control as Key;
+            Label label = control as Label;
+            TextBox box = control as TextBox;
+            if (entry != null)
+            {
+                problem = FitsText(graphics, entry.Cue, entry.Box.Font, entry.Box.Bounds, flags, at, name + " cue", visible);
+            }
+            else if (box != null)
+            {
+                Size line = TextRenderer.MeasureText(graphics, "Mg", box.Font, Size.Empty, flags);
+                if (line.Height > box.Height || !box.Parent.ClientRectangle.Contains(box.Bounds)) problem = name + " clips the input line";
+            }
+            else if (rung != null)
+            {
+                int left = (int)(24 * scale);
+                problem = FitsText(graphics, rung.Text, rung.Font, new Rectangle(left, 0, rung.Width - left, rung.Height), flags, at, name + " name", visible);
+                int rungAfter = left + TextRenderer.MeasureText(graphics, rung.Text, rung.Font, Size.Empty, flags).Width + (int)(8 * scale);
+                if (problem == null) problem = FitsText(graphics, rung.Hint, rung.HintFont ?? rung.Font, new Rectangle(rungAfter, 0, Math.Max(0, rung.Width - rungAfter), rung.Height), flags, at, name + " hint", visible);
+                if (problem == null) problem = FitsText(graphics, rung.Flag, rung.FlagFont ?? rung.Font, new Rectangle(0, 0, rung.Width - (int)(6 * scale), rung.Height), flags | TextFormatFlags.Right, at, name + " flag", visible);
+            }
+            else if (toggle != null)
+            {
+                problem = FitsText(graphics, toggle.Text, toggle.Font, new Rectangle(0, 0, toggle.NameRoom, toggle.Height), flags, at, name + " name", visible);
+                float line = Math.Max(1f, scale), wide = toggle.Switch * scale, gap = 4 * scale, half = (wide - gap) / 2, start = toggle.Width - wide;
+                using (Font small = toggle.SmallFont())
+                {
+                    if (problem == null) problem = FitsText(graphics, "OFF", small, Rectangle.Round(new RectangleF(start + line / 2, line / 2, half - line, toggle.Height - line)), flags | TextFormatFlags.HorizontalCenter, at, name + " off", visible);
+                    if (problem == null) problem = FitsText(graphics, "ON", small, Rectangle.Round(new RectangleF(start + half + gap + line / 2, line / 2, half - line, toggle.Height - line)), flags | TextFormatFlags.HorizontalCenter, at, name + " on", visible);
+                }
+                if (toggle.Hint != null && problem == null)
+                {
+                    int toggleAfter = TextRenderer.MeasureText(graphics, toggle.Text, toggle.Font, Size.Empty, flags).Width + (int)(10 * scale);
+                    Font hintFont = toggle.HintFont ?? toggle.Font;
+                    if (toggleAfter + TextRenderer.MeasureText(graphics, toggle.Hint, hintFont, Size.Empty, flags).Width <= toggle.NameRoom)
+                        problem = FitsText(graphics, toggle.Hint, hintFont, new Rectangle(toggleAfter, 0, toggle.NameRoom - toggleAfter, toggle.Height), flags, at, name + " hint", visible);
+                }
+            }
+            else if (slider != null)
+            {
+                int reach = slider.Stepper ? (int)(26 * scale) : 0;
+                area = new Rectangle(reach, 0, slider.Width - 2 * reach, slider.Stepper ? (int)(slider.Height - 4 * scale) : slider.Height);
+                problem = FitsText(graphics, slider.Shown, slider.Font, area, flags | TextFormatFlags.HorizontalCenter, at, name, visible);
+                foreach (string choice in slider.Choices)
+                {
+                    if (problem != null) break;
+                    problem = FitsText(graphics, choice, slider.Font, area, flags, at, name + " choice", null);
+                }
+            }
+            else if (key != null)
+            {
+                if (key.Chevron) area = new Rectangle((int)(10 * scale), 0, key.Width - (int)(32 * scale), key.Height);
+                problem = FitsText(graphics, key.Text, key.Font, area, flags | (key.Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter), at, name, visible);
+            }
+            else if (label != null)
+            {
+                Head head = label as Head;
+                string words = head != null ? head.Shown : label.Text;
+                TextFormatFlags labelFlags = TextFormatFlags.NoPrefix | (head != null ? TextFormatFlags.SingleLine | TextFormatFlags.VerticalCenter : TextFormatFlags.WordBreak);
+                if (label.TextAlign == ContentAlignment.MiddleRight) labelFlags |= TextFormatFlags.Right | TextFormatFlags.VerticalCenter;
+                problem = FitsText(graphics, words, label.Font, area, labelFlags, at, name, visible);
+            }
+            if (problem != null) return problem;
+            foreach (Control child in control.Controls)
+            {
+                problem = CheckText(graphics, child, at, text, shown && child.Visible);
+                if (problem != null) return problem;
+            }
+            return null;
+        }
+
+        private static string FitsText(Graphics graphics, string words, Font font, Rectangle area, TextFormatFlags flags, Point origin, string name, List<KeyValuePair<string, Rectangle>> text)
+        {
+            if (string.IsNullOrEmpty(words)) return null;
+            Size proposed = (flags & TextFormatFlags.WordBreak) != 0 ? new Size(Math.Max(1, area.Width), int.MaxValue) : Size.Empty;
+            Size measured = TextRenderer.MeasureText(graphics, words, font, proposed, flags);
+            if (measured.Width > area.Width || measured.Height > area.Height) return name + " needs " + measured.Width + "x" + measured.Height + " in " + area.Width + "x" + area.Height;
+            int x = area.X, y = area.Y;
+            if ((flags & TextFormatFlags.Right) != 0) x += area.Width - measured.Width;
+            else if ((flags & TextFormatFlags.HorizontalCenter) != 0) x += (area.Width - measured.Width) / 2;
+            if ((flags & TextFormatFlags.VerticalCenter) != 0) y += (area.Height - measured.Height) / 2;
+            if (text != null) text.Add(new KeyValuePair<string, Rectangle>(name, new Rectangle(origin.X + x, origin.Y + y, measured.Width, measured.Height)));
             return null;
         }
 
@@ -2599,7 +2865,7 @@ namespace CapriDesktop
 
             internal RectangleF Band(float s) { return new RectangleF(Left - 14 * s, Top - 5 * s, Span * s, 24 * s); }
 
-            private string Shown { get { return Text.EndsWith(" >", StringComparison.Ordinal) ? Text.Substring(0, Text.Length - 2) : Text; } }
+            internal string Shown { get { return Text.EndsWith(" >", StringComparison.Ordinal) ? Text.Substring(0, Text.Length - 2) : Text; } }
 
             public override Size GetPreferredSize(Size proposed)
             {
@@ -2715,7 +2981,7 @@ namespace CapriDesktop
                 }
                 if (Chevron) Drop(graphics, Width - 19 * s, y, s, Enabled ? Cyan : ink, hot);
                 Rectangle area = Chevron ? new Rectangle((int)(10 * s), 0, Width - (int)(32 * s), Height) : ClientRectangle;
-                TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis | (Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter);
+                TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | (Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter);
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
             }
         }
@@ -3993,7 +4259,9 @@ namespace CapriDesktop
 
             internal Color Ink { get { return ink.IsEmpty ? Cyan : ink; } set { ink = value; Invalidate(); } }
 
-            private bool Stepper { get { return labels.Length <= 7; } }
+            internal bool Stepper { get { return labels.Length <= 7; } }
+
+            internal string[] Choices { get { return labels; } }
 
             private void Place(int wanted)
             {
@@ -4089,7 +4357,7 @@ namespace CapriDesktop
                 float line = Math.Max(1f, s);
                 RectangleF box = new RectangleF(line / 2, line / 2, Width - line, Height - line);
                 Color rim = Focused && ShowFocusCues ? Cyan : hot || sliding ? Color.FromArgb(156, 40, 56) : Edge;
-                TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis;
+                TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 if (Stepper)
                 {
                     using (GraphicsPath plate = Cut(box, 0, 5 * s, 5 * s, 0))
@@ -4193,11 +4461,11 @@ namespace CapriDesktop
                 if (Checked) using (Brush mark = new SolidBrush(Cyan)) graphics.FillPolygon(mark, diamond);
                 else using (Pen pen = new Pen(lit ? Cyan : Faint, 1.2f * s)) graphics.DrawPolygon(pen, diamond);
                 int left = (int)(24 * s);
-                TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
+                TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
                 TextRenderer.DrawText(graphics, Text, Font, new Rectangle(left, 0, Width - left, Height), Checked ? Cyan : White, flags);
                 int after = left + TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, flags).Width + (int)(8 * s);
                 if (Hint != null) TextRenderer.DrawText(graphics, Hint, HintFont ?? Font, new Rectangle(after, 0, Math.Max(0, Width - after), Height), Faint, flags);
-                if (Flag != null) TextRenderer.DrawText(graphics, Flag, FlagFont ?? Font, new Rectangle(0, 0, Width - (int)(6 * s), Height), Look.Yellow, TextFormatFlags.VerticalCenter | TextFormatFlags.Right | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+                if (Flag != null) TextRenderer.DrawText(graphics, Flag, FlagFont ?? Font, new Rectangle(0, 0, Width - (int)(6 * s), Height), Look.Yellow, TextFormatFlags.VerticalCenter | TextFormatFlags.Right | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
             }
         }
 
@@ -4224,6 +4492,8 @@ namespace CapriDesktop
 
             // The width its name has before the pair, in px.
             internal int NameRoom { get { return Width - (int)Math.Ceiling((Switch + 10) * ScaleOf(this)); } }
+
+            internal Font SmallFont() { return Font.Unit == GraphicsUnit.Pixel ? new Font(Font.FontFamily, Font.Size * 8.75f / 9.5f, Font.Style, GraphicsUnit.Pixel) : Type(Font.SizeInPoints - 0.75f, true); }
 
             private int Part(int x)
             {
@@ -4267,7 +4537,7 @@ namespace CapriDesktop
                 Graphics graphics = e.Graphics;
                 Backdrop(graphics, this, s);
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                if (small == null) small = Type(Font.SizeInPoints - 0.75f, true);
+                if (small == null) small = SmallFont();
                 float line = Math.Max(1f, s), wide = Switch * s, gap = 4 * s, half = (wide - gap) / 2, start = Width - wide;
                 RectangleF off = new RectangleF(start + line / 2, line / 2, half - line, Height - line);
                 RectangleF on = new RectangleF(start + half + gap + line / 2, line / 2, half - line, Height - line);
@@ -4290,7 +4560,7 @@ namespace CapriDesktop
                     onInk = over == 1 ? Color.FromArgb(110, 210, 216) : Color.FromArgb(28, 68, 72);
                 }
                 if (!Enabled) { offFill = onFill = Field; offRim = onRim = Color.FromArgb(52, 22, 32); offInk = onInk = Color.FromArgb(112, 94, 104); }
-                TextFormatFlags centre = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
+                TextFormatFlags centre = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
                 using (GraphicsPath plate = Cut(off, 0, 0, 0, 5 * s))
                 {
                     using (Brush fill = new SolidBrush(offFill)) graphics.FillPath(fill, plate);
@@ -4307,11 +4577,11 @@ namespace CapriDesktop
                     using (GraphicsPath around = Cut(new RectangleF(start - 2 * s, line / 2, wide + 2 * s - line / 2, Height - line), 0, 0, 5 * s, 0))
                     using (Pen pen = new Pen(Cyan, line))
                         graphics.DrawPath(pen, around);
-                TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.EndEllipsis;
+                TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 int room = NameRoom;
                 TextRenderer.DrawText(graphics, Text, Font, new Rectangle(0, 0, room, Height), Enabled ? Rose : Faint, flags);
                 if (Hint == null) return;
-                TextFormatFlags measure = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix;
+                TextFormatFlags measure = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
                 int after = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, measure).Width + (int)(10 * s);
                 Font hint = HintFont ?? Font;
                 if (after + TextRenderer.MeasureText(graphics, Hint, hint, Size.Empty, measure).Width <= room) TextRenderer.DrawText(graphics, Hint, hint, new Rectangle(after, 0, room - after, Height), Faint, flags);
