@@ -47,7 +47,7 @@ namespace CapriDesktop
     // openedai-speech, LocalAI or Piper and Qwen3-TTS behind one. It takes no key, and only ever gets the words she says.
     internal sealed class LocalSpeaker : ISpeaker
     {
-        internal const string Address = "http://localhost:8880/v1";
+        internal const string Default = "http://localhost:8880/v1";
         internal const string Wav = "wav";
         internal const string Pcm = "pcm";
         // OpenAI's raw pcm is 24 kHz 16-bit mono with no header.
@@ -65,10 +65,13 @@ namespace CapriDesktop
         {
             get
             {
-                try { Endpoint(Url); return true; }
+                try { Endpoint(Address); return true; }
                 catch (VoiceException) { return false; }
             }
         }
+
+        // Their address, or Kokoro-FastAPI's usual one when they haven't set any, so the server most people run just works.
+        internal string Address { get { string url = Url; return string.IsNullOrWhiteSpace(url) ? Default : url; } }
 
         internal static string Known(string format) { return format == Pcm ? Pcm : Wav; }
 
@@ -80,7 +83,7 @@ namespace CapriDesktop
             if (!Regex.IsMatch(typed, "^[a-z][a-z0-9+.-]*://", RegexOptions.IgnoreCase)) typed = "http://" + typed;
             Uri parsed;
             if (!Uri.TryCreate(typed, UriKind.Absolute, out parsed) || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps) || parsed.Host.Length == 0)
-                throw new VoiceException("Your local voice server's address doesn't work. Try " + Address + ".");
+                throw new VoiceException("Your local voice server's address doesn't work. Try " + Default + ".");
             string path = parsed.AbsolutePath.TrimEnd('/');
             if (path.Length == 0) path = "/v1";
             if (!path.EndsWith("/audio/speech", StringComparison.OrdinalIgnoreCase)) path += "/audio/speech";
@@ -94,7 +97,7 @@ namespace CapriDesktop
 
         public byte[] Speak(string text)
         {
-            string url = Url, model = Model, speaker = Speaker, format = Known(Format);
+            string url = Address, model = Model, speaker = Speaker, format = Known(Format);
             int patience = Math.Max(1000, Patience);
             Uri endpoint = Endpoint(url);
             StringBuilder body = new StringBuilder("{");

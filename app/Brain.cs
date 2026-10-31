@@ -291,6 +291,9 @@ namespace CapriDesktop
         internal volatile string Model;
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
+        // A server they run themselves that speaks OpenAI's chat API, like llama.cpp's llama-server, LM Studio, vLLM or
+        // Hugging Face's TGI, at its address without /v1. It thinks instead of Ollama, with Model as its model.
+        internal volatile string Server;
         internal Func<string, ToolArguments, string> Act;
         private volatile string toolless;
         private volatile string thinker;
@@ -739,7 +742,7 @@ namespace CapriDesktop
             if (shared.Count > 0)
             {
                 // A brain of its own, so talking to her doesn't cancel the fold.
-                Brain folder = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick };
+                Brain folder = new Brain { Model = model, Remote = Remote, Local = Local, LocalPick = LocalPick, Server = Server };
                 List<ChatMessage> messages = new List<ChatMessage>
                 {
                     new ChatMessage("system", FoldRules + Now()),
@@ -984,6 +987,42 @@ namespace CapriDesktop
             if (other < 0 || other >= moments.Count || moments[other].On != moments[i].On) return -1;
             Match answer = TalkLine.Match(moments[other].Line);
             return answer.Success && answer.Groups[1].Value.StartsWith("You", StringComparison.Ordinal) != theirs ? other : -1;
+        }
+
+        // A server's address as typed, without /v1 or /chat/completions on the end: http:// when it has no scheme.
+        internal static string ServerAddress(string typed)
+        {
+            string address = (typed ?? "").Trim().TrimEnd('/');
+            if (address.Length == 0) return null;
+            if (!Regex.IsMatch(address, "^[a-z][a-z0-9+.-]*://", RegexOptions.IgnoreCase)) address = "http://" + address;
+            address = Regex.Replace(address, @"(/v1)?(/chat/completions)?/?$", "", RegexOptions.IgnoreCase);
+            Uri parsed;
+            if (!Uri.TryCreate(address, UriKind.Absolute, out parsed) || (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps) || parsed.Host.Length == 0) return null;
+            return address;
+        }
+
+        // The models a server lists at /v1/models.
+        internal static string[] ServerModels(string address)
+        {
+            HttpWebRequest request = Create(address + "/v1/models", 5000);
+            using (WebResponse response = request.GetResponse())
+            using (Stream body = response.GetResponseStream())
+            {
+                CloudModelPage page = (CloudModelPage)new DataContractJsonSerializer(typeof(CloudModelPage)).ReadObject(body);
+                List<string> names = new List<string>();
+                if (page.Models != null) foreach (CloudModel model in page.Models) if (model != null && !string.IsNullOrEmpty(model.Id) && model.Id.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Id);
+                return names.ToArray();
+            }
+        }
+
+        // What to ask Ollama to download for a name they typed: an Ollama tag like qwen3:4b, or a Hugging Face GGUF repo as
+        // hf.co/user/repo, huggingface.co/user/repo or its link, with an optional :quant like :Q4_K_M. Null when it's neither.
+        internal static string PullName(string typed)
+        {
+            string name = (typed ?? "").Trim();
+            Match hub = Regex.Match(name, @"^(?:https?://)?(?:www\.)?(?:hf\.co|huggingface\.co)/([\w.-]+/[\w.-]+?)(?:/(?:tree|blob|resolve)/\S*)?(:[\w.-]+)?/?$", RegexOptions.IgnoreCase);
+            if (hub.Success) return "hf.co/" + hub.Groups[1].Value + hub.Groups[2].Value;
+            return Regex.IsMatch(name, @"^[a-z0-9][\w.-]*(/[\w.-]+)?(:[\w.-]+)?$", RegexOptions.IgnoreCase) ? name : null;
         }
 
         internal static string[] InstalledModels()
@@ -1258,7 +1297,7 @@ namespace CapriDesktop
         private string Reach(string model, string text, List<ChatMessage> recent, List<KeyValuePair<string, ToolArguments>> calls, int ticket)
         {
             Cloud remote = Remote;
-            string source = remote != null ? remote.Kind + "|" + remote.Model : Local != null ? "local|" + model : Ollama + "|" + model;
+            string source = remote != null ? remote.Kind + "|" + remote.Model : Server != null ? Server + "|" + model : Local != null ? "local|" + model : Ollama + "|" + model;
             bool native = toolless != source;
             List<ChatMessage> asking = new List<ChatMessage>();
             asking.Add(new ChatMessage("system", native ? Hands.Prompt : Hands.Prompt + Hands.Listing));
@@ -1294,7 +1333,7 @@ namespace CapriDesktop
             string data = Convert.ToBase64String(jpeg);
             string parts = null;
             if (remote != null && remote.Claude) parts = "[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"" + data + "\"}},{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "}]";
-            else if (remote != null || Local != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + data + "\"}}]";
+            else if (remote != null || Local != null || Server != null) parts = "[{\"type\":\"text\",\"text\":" + Voice.Quote(instruction) + "},{\"type\":\"image_url\",\"image_url\":{\"url\":\"data:image/jpeg;base64," + data + "\"}}]";
             ChatMessage asked = new ChatMessage("user", parts != null ? Parts : instruction);
             if (parts == null) asked.Images = new[] { data };
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), asked };
@@ -1329,7 +1368,7 @@ namespace CapriDesktop
             string model = Model;
             if (model == null) throw new BrainException(Offline);
             Cloud remote = Remote;
-            string source = remote != null ? remote.Kind + "|" + remote.Model : Local != null ? "local|" + model : Ollama + "|" + model;
+            string source = remote != null ? remote.Kind + "|" + remote.Model : Server != null ? Server + "|" + model : Local != null ? "local|" + model : Ollama + "|" + model;
             List<ChatMessage> messages = new List<ChatMessage> { new ChatMessage("system", system), new ChatMessage("user", user) };
             if (toolless != source)
             {
@@ -1390,6 +1429,8 @@ namespace CapriDesktop
                 if (routing && Stopped(reply)) return CutShort(Said(reply), Whole(reply), calls);
                 return Read(reply, calls);
             }
+            string server = Server;
+            if (server != null) return Complete(server, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, model);
             Engine local = Local;
             if (local != null)
             {
@@ -1471,11 +1512,12 @@ namespace CapriDesktop
             return sent != null && Regex.IsMatch(error, @"unrecognized|unknown (parameter|argument|field)|not (supported|allowed|permitted)|unsupported (parameter|argument)|extra (inputs?|fields?)", RegexOptions.IgnoreCase) ? "" : null;
         }
 
-        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null)
+        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null, string named = null)
         {
             string thinking = address + "|" + model;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
             CompletionRequest asking = new CompletionRequest { Messages = messages.ToArray(), Limit = thinker == thinking ? limit + 2048 : limit };
+            if (named != null) asking.Model = named;
             CompletionReply reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, null, parts, ticket);
             CompletionChoice choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             CompletionMessage message = choice != null ? choice.Message : null;
@@ -1743,6 +1785,7 @@ namespace CapriDesktop
             {
                 Engine local = Local;
                 if (local != null) local.Ensure(LocalPick);
+                else if (Server != null) return;
                 else Send<ChatReply>(Ollama + "/api/chat", new ChatRequest { Model = model, Messages = new ChatMessage[0] }, 180000);
             }
             catch (WebException) { } catch (BrainException) { } catch (IOException) { } catch (SerializationException) { }
