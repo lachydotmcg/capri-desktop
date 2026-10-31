@@ -93,7 +93,8 @@ namespace CapriDesktop
                 if (Step(now))
                 {
                     step++;
-                    stepStart = now;
+                    // Fresh on the next tick: now is from before this step ran, and a long step isn't the next one's fault.
+                    stepStart = -1;
                 }
             }
             catch (Exception error) { Finish(error.Message); }

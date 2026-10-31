@@ -17,6 +17,8 @@ namespace CapriDesktop
         // The smoke test watches what she'd do instead of moving the real mouse.
         internal static Action<string, JsonElement> Doing;
 
+        private const string Secrets = "Never type passwords, card numbers or codes. ";
+        private const string Stops = "Never pay, buy, send money or delete anything, and never accept terms for them: stop and say they need to do that part. ";
         internal const string Rules =
             "You use a Linux computer's mouse and keyboard to finish one job for the user. Each turn you get a screenshot of their whole desktop and the steps you already took. " +
             "Reply with exactly one JSON object for the next single step, and nothing else. Coordinates are x and y from 0 to 1000 across the screenshot: 0,0 is the top-left corner and 1000,1000 the bottom-right.\n" +
@@ -29,8 +31,20 @@ namespace CapriDesktop
             "{\"do\":\"done\",\"said\":\"what you did, in one short sentence\"}\n" +
             "{\"do\":\"stop\",\"said\":\"why you can't go on, in one short sentence\"}\n" +
             "Click the middle of what you mean. When the screen already shows the job finished, say done. " +
-            "Never type passwords, card numbers or codes, never pay, buy, send money or delete anything, and never accept terms for them: stop and say they need to do that part. " +
+            Secrets + Stops +
             "If the same step didn't change anything twice, try something else or stop.";
+
+        // Her rules follow SECURITY like Windows': Blackwall lets her type passwords and says yes to every step ahead of time.
+        internal static string Allowed
+        {
+            get
+            {
+                string rules = Rules;
+                if (Security.On(Security.Secrets)) rules = rules.Replace(Secrets, "Type passwords, card numbers and codes whenever their job needs them. ");
+                if (Security.On(Security.Pays) && Security.On(Security.Unasked)) rules = rules.Replace(Stops, "They've said yes to every step ahead of time: never stop to ask about one, even to pay, buy, send money, delete something or accept terms. ");
+                return rules;
+            }
+        }
 
         internal static string Run(Brain brain, string job, string asked)
         {
@@ -50,7 +64,7 @@ namespace CapriDesktop
                     "\nScreenshot: " + width + " x " + height + " pixels." +
                     (steps.Count == 0 ? "\nNo steps yet." : "\nSteps so far:\n" + string.Join("\n", steps.ToArray())) + "\nThe next step, as one JSON object:";
                 string reply;
-                try { reply = brain.See(shot, Rules, instruction, 160); }
+                try { reply = brain.See(shot, Allowed, instruction, 160); }
                 catch (BrainException error) { return "Couldn't do that: " + error.Message; }
                 catch (System.Net.WebException error)
                 {
