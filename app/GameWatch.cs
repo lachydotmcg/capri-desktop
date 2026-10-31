@@ -32,12 +32,14 @@ namespace CapriDesktop
             FrameGrab grab = null;
             Rectangle watched = Rectangle.Empty;
             int listening = 0;
+            IntPtr watchedWindow = IntPtr.Zero;
             byte[] before = null, after = null;
             Stopwatch watch = Stopwatch.StartNew();
             double kept = 0, checkedFront = -1;
             bool live = false;
             sense.Noticed += delegate(string kind, double strength)
             {
+                if (watchedWindow == IntPtr.Zero || Native.GetForegroundWindow() != watchedWindow) return;
                 string moment = WatchKind(kind);
                 if (moment == "hit")
                 {
@@ -65,11 +67,16 @@ namespace CapriDesktop
                             live = owner > 0;
                             if (live)
                             {
+                                if (watchedWindow != front.Window) { before = after = null; sense.Reset(); }
+                                watchedWindow = front.Window;
                                 if (owner != listening)
                                 {
+                                    before = after = null;
+                                    sense.Reset();
                                     if (ears != null) ears.Dispose();
                                     ears = new GameEars(owner);
-                                    ears.Loud += delegate(double level) { Commentary.Trigger("sound", null, before, after); };
+                                    int soundOwner = owner;
+                                    ears.Loud += delegate(double level) { if (listening == soundOwner && watchedWindow != IntPtr.Zero && Native.GetForegroundWindow() == watchedWindow) Commentary.Trigger("sound", null, before, after); };
                                     ears.Start();
                                     listening = owner;
                                 }
@@ -79,6 +86,7 @@ namespace CapriDesktop
                                 }
                                 else if (grab == null || front.Bounds != watched)
                                 {
+                                    before = after = null;
                                     if (grab != null) grab.Dispose();
                                     grab = new FrameGrab();
                                     grab.Open(front.Bounds);
@@ -88,6 +96,8 @@ namespace CapriDesktop
                             }
                             else
                             {
+                                watchedWindow = IntPtr.Zero;
+                                before = after = null;
                                 if (ears != null) { ears.Dispose(); ears = null; listening = 0; }
                                 if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
                                 sense.Reset();
@@ -98,16 +108,17 @@ namespace CapriDesktop
                             Thread.Sleep(1000);
                             continue;
                         }
-                        Bitmap seen = grab == null ? clips.Glimpse() : grab.Next(120) ? grab.Copy(480) : null;
+                        bool keepFrame = watch.Elapsed.TotalSeconds - kept >= 1;
+                        Bitmap seen = grab == null ? clips.Glimpse() : grab.Next(120) ? grab.Copy(keepFrame ? 1280 : 480) : null;
                         if (seen != null)
                             using (Bitmap frame = seen)
                             {
                                 byte[] pixels = GameSense.Bgra(frame, WatchWidth, WatchHeight);
-                                if (watch.Elapsed.TotalSeconds - kept >= 1)
+                                if (keepFrame)
                                 {
                                     kept = watch.Elapsed.TotalSeconds;
                                     before = after;
-                                    after = Jpeg(frame, 480);
+                                    after = Jpeg(frame, 1280);
                                 }
                                 if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
                             }
@@ -117,6 +128,8 @@ namespace CapriDesktop
                     {
                         if (error.Message != failedWith) Brain.Log("game watch", -1, error.GetType().Name + ": " + error.Message);
                         failedWith = error.Message;
+                        watchedWindow = IntPtr.Zero;
+                        before = after = null;
                         live = false;
                         listening = 0;
                         watched = Rectangle.Empty;

@@ -287,6 +287,9 @@ namespace CapriDesktop
     internal sealed class BrainException : Exception
     {
         internal readonly bool Told;
+        internal int Status;
+        internal string Detail;
+        internal DateTime RetryAt;
         internal BrainException(string message, bool told = false) : base(told ? message : Brain.Plain(message) ?? message) { Told = told || Brain.Plain(message) != null; }
     }
 
@@ -316,6 +319,7 @@ namespace CapriDesktop
         internal const string Down = "Their servers failed. Pick another model or retry.";
         internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
         internal const string Blind = "DeepSeek can't see your screen. In Capri Mainframe, press Free key and connect a free NVIDIA key instead.";
+        internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
         internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : "."); }
         private const string Parts = "@capri-image@";
@@ -342,6 +346,18 @@ namespace CapriDesktop
         internal volatile Cloud Remote;
         internal volatile string Unsighted;
         internal int CloudWait = 45000;
+        private Cloud waitingRemote;
+        private string waitingSource;
+        private BrainException waiting;
+
+        internal double ScreenWait
+        {
+            get
+            {
+                Cloud current = Remote;
+                lock (gate) return current != null && current == waitingRemote && waiting != null && waitingSource == current.Source ? Math.Max(0, (waiting.RetryAt - DateTime.UtcNow).TotalSeconds) : 0;
+            }
+        }
 
         // Who she is. It's fixed in code: personality.md is gone (Lachy, 30 Oct), so her character and safety lines stay as one.
         // Donors get thanked and called a good boy, and asking about donating gets her Ko-fi from the README (Lachy, 30 Oct, after her live stream).
@@ -1476,7 +1492,8 @@ namespace CapriDesktop
                 }
                 else
 #endif
-                if (pulled != null) raw = pulled;
+                if (calls.Count == 1 && calls[0].Key == "look_at_screen" && !Looked(results[0])) raw = results[0];
+                else if (pulled != null) raw = pulled;
                 else if (stopped || results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !calls.Exists(call => call.Key == "look_at_screen" || call.Key == "listen"))) raw = done;
                 else
                 {
@@ -1590,7 +1607,7 @@ namespace CapriDesktop
             try { raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), parts, limit, ticket, false, null, null, job); }
             catch (BrainException error)
             {
-                if (remote == null || !Regex.IsMatch(error.Message, "multimodal|image|vision", RegexOptions.IgnoreCase)) throw;
+                if (remote == null || !NoVision(error)) throw;
                 Unsighted = remote.Sight;
                 throw new BrainException(Sightless(remote));
             }
@@ -1610,7 +1627,20 @@ namespace CapriDesktop
         internal string Looker(string model)
         {
             if (Remote != null || Local != null || LocalSees(model)) return model;
-            return LocalEyes() ?? model;
+            string eyes = LocalEyes();
+            if (eyes == null) throw new BrainException(NoEyes, true);
+            return eyes;
+        }
+
+        // Whether a look_at_screen result is what she saw. Anything else tells them how to give her eyes, so it goes out word for word.
+        internal static bool Looked(string result) { return (result ?? "").StartsWith("You looked at their screen.", StringComparison.Ordinal); }
+
+        internal static bool NoVision(BrainException error)
+        {
+            if (error.Status != 400 && error.Status != 422) return false;
+            string reason = error.Detail ?? error.Message;
+            if (Regex.IsMatch(reason, @"\b(size|dimensions?|resolution|format|mime|base64|decode|decoding|too large|too many|invalid)\b", RegexOptions.IgnoreCase)) return false;
+            return Regex.IsMatch(reason, @"image_url.{0,40}only supported|(?:does not|doesn't|cannot|can't) support (?:\w+ ){0,2}(?:images?|vision|multimodal)|(?:images?|vision|multimodal)(?: inputs?| content| messages?| processing)? (?:is |are )?(?:not supported|unsupported|not enabled)|(?:not a|is not a) (?:vision|multimodal) model|(?:only supports? text|text.only model)", RegexOptions.IgnoreCase);
         }
 
         internal static Func<string> LocalEyes = OllamaEyes;
@@ -1705,7 +1735,7 @@ namespace CapriDesktop
             }
             catch (BrainException error)
             {
-                if (remote == null || pictures.Count == 0 || !Regex.IsMatch(error.Message, "multimodal|image|vision", RegexOptions.IgnoreCase)) throw;
+                if (remote == null || pictures.Count == 0 || !NoVision(error)) throw;
                 Unsighted = remote.Sight;
                 throw new BrainException(Sightless(remote));
             }
@@ -1762,7 +1792,9 @@ namespace CapriDesktop
             {
                 bool openAi = remote.Kind == "openai";
                 bool brief = remote.Kind == "nvidia" && remote.Model == "google/gemma-4-31b-it";
-                string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi);
+                bool screen = parts != null && remote.Kind == "nvidia";
+                bool super = screen && !job && !routing && remote.Model == "nvidia/nemotron-3.5-super-vl-120b-a12b";
+                string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi, super ? "none" : null);
                 OpenAiRequest body = new OpenAiRequest
                 {
                     Model = remote.Model,
@@ -1772,11 +1804,11 @@ namespace CapriDesktop
                     Effort = effort,
                     Thinking = remote.Kind == "deepseek" ? new CloudThinking() : null,
                     Template = brief ? new CloudTemplate() : null,
-                    Stream = remote.Kind == "local" && unstreamed != remote.Source
+                    Stream = (screen || remote.Kind == "local") && unstreamed != remote.Source
                 };
                 string address = remote.Kind == "local" ? remote.Host + "/v1/chat/completions" : Address(remote.Kind, "/chat/completions");
                 Action<HttpWebRequest> sign = remote.Kind == "local" ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, remote.Key, false); });
-                int wait = remote.Kind == "local" ? 180000 : CloudWait;
+                int wait = remote.Kind == "local" || screen ? Math.Max(180000, CloudWait) : CloudWait;
                 CompletionReply reply;
                 try { reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket); }
                 catch (BrainException error)
@@ -1873,11 +1905,11 @@ namespace CapriDesktop
         private static readonly Dictionary<string, string> efforts = new Dictionary<string, string>();
         private static readonly string[] EffortLevels = { "none", "minimal", "low", "medium", "high", "xhigh" };
 
-        internal static string Effort(string model, bool openAi)
+        internal static string Effort(string model, bool openAi, string first = null)
         {
             string taken;
             lock (efforts) if (efforts.TryGetValue(model, out taken)) return taken.Length == 0 ? null : taken;
-            return openAi && Regex.IsMatch(model, @"^(gpt-5|o\d)") ? "low" : null;
+            return first ?? (openAi && Regex.IsMatch(model, @"^(gpt-5|o\d)") ? "low" : null);
         }
 
         // The reasoning_effort an error says the model takes instead of what was sent, like "set reasoning_effort to 'none'"
@@ -2582,6 +2614,12 @@ namespace CapriDesktop
 
         private T Send<T>(string url, object body, int timeout, string tools = null, Action<HttpWebRequest> sign = null, string parts = null, int ticket = -1) where T : class
         {
+            Cloud sending = Remote;
+            lock (gate)
+            {
+                Check(ticket);
+                if (parts != null && sending != null && sending == waitingRemote && waiting != null && waitingSource == sending.Source && DateTime.UtcNow < waiting.RetryAt) throw waiting;
+            }
             HttpWebRequest request = Create(url, timeout);
             request.Method = "POST";
             request.ContentType = "application/json";
@@ -2623,8 +2661,11 @@ namespace CapriDesktop
                 catch (WebException error)
                 {
                     if (error.Response == null) throw;
-                    Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode);
-                    throw Problem(error, sign != null);
+                    Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode + (sending == null ? "" : " model " + sending.Model) + " body " + payload.Length + " bytes");
+                    BrainException problem = Problem(error, sign != null);
+                    if (sending != null && problem.RetryAt != default(DateTime))
+                        lock (gate) { waitingRemote = sending; waitingSource = sending.Source; waiting = problem; }
+                    throw problem;
                 }
             }
             catch (Exception error)
@@ -2708,14 +2749,52 @@ namespace CapriDesktop
             string text;
             string url = error.Response.ResponseUri.AbsoluteUri;
             int status = (int)((HttpWebResponse)error.Response).StatusCode;
+            string retry = error.Response.Headers["Retry-After"];
             using (WebResponse response = error.Response)
             using (StreamReader incoming = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) text = incoming.ReadToEnd();
-            Match found = Regex.Match(text, "\"(message|error|detail)\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
-            string said = found.Success ? Unescape(found.Groups[2].Value) : error.Message;
+            string said = ProblemText(text);
+            if (string.IsNullOrWhiteSpace(said)) said = error.Message;
             Log(url, -1, said);
-            if (!remote) return new BrainException(said);
-            string meaning = Meaning(status, text);
-            return meaning != null ? new BrainException(meaning, true) : new BrainException(said);
+            string meaning = remote ? Meaning(status, text) : null;
+            BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
+            problem.Status = status;
+            problem.Detail = said;
+            if (status == 429 && Meaning(status, text) == Busy) problem.RetryAt = RetryTime(retry, DateTime.UtcNow);
+            return problem;
+        }
+
+        internal static DateTime RetryTime(string header, DateTime now)
+        {
+            double seconds;
+            if (double.TryParse(header, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out seconds) && !double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds >= 0 && seconds < (DateTime.MaxValue - now).TotalSeconds) return now.AddSeconds(Math.Max(1, seconds));
+            DateTime when;
+            if (DateTime.TryParse(header, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out when)) return when > now ? when : now.AddSeconds(1);
+            return now.AddSeconds(60);
+        }
+
+        internal static string ProblemText(string body)
+        {
+            Match found = Regex.Match(body ?? "", "\"(message|error|detail|msg)\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"");
+            if (found.Success) return Redacted(Unescape(found.Groups[2].Value));
+            // A plain sentence is worth showing; a gateway's HTML page isn't.
+            string plain = (body ?? "").Trim();
+            return plain.Length == 0 || plain.Length > 200 || plain[0] == '<' ? null : Redacted(plain);
+        }
+
+        internal static string Redacted(string text)
+        {
+            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-)[A-Za-z0-9_-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token)[""']?\s*[:=]\s*[""']?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
+        }
+
+        internal static string ScreenProblem(Exception error, string provider)
+        {
+            BrainException problem = error as BrainException;
+            if (problem != null && problem.RetryAt != default(DateTime)) return provider + " is rate-limited. I'll try the screen again in " + Math.Max(1, Math.Ceiling((problem.RetryAt - DateTime.UtcNow).TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture) + " seconds.";
+            WebException web = error as WebException;
+            if (web != null && web.Status == WebExceptionStatus.Timeout) return provider + " took too long to answer. I'll try the screen again.";
+            if (problem != null) return Redacted(problem.Message);
+            return "Couldn't read the screen: " + Redacted(error.Message);
         }
 
         // A JSON string's escapes, so an error that quotes a value with \" keeps it.
@@ -2756,7 +2835,7 @@ namespace CapriDesktop
             {
                 Uri where;
                 string place = Uri.TryCreate(url, UriKind.Absolute, out where) ? where.Host + where.AbsolutePath : url;
-                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + place + " | " + (took < 0 ? "-" : took + " ms") + " | " + (what ?? "").Replace("\r", " ").Replace("\n", " ");
+                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + place + " | " + (took < 0 ? "-" : took + " ms") + " | " + Redacted(what).Replace("\r", " ").Replace("\n", " ");
                 lock (typeof(Brain))
                 {
                     List<string> lines = File.Exists(path) ? new List<string>(File.ReadAllLines(path)) : new List<string>();
@@ -2914,7 +2993,7 @@ namespace CapriDesktop
     // and spotting a line that brings back one she already said.
     internal static class Glances
     {
-        internal const string Line = "(You glance at their screen while they do their thing. Reply in two parts, with the labels SAW: and SAY: written exactly like that. SAW: what's on their screen, in under 20 plain words: the game or app and what's happening. SAY: your reaction in one short line, in character, to one specific thing you can see: tease them, gloat, wince or cheer them on, and don't ask what they're doing. A game scene, scoreboard, inventory or quiet moment is enough. Don't invent action from a still image, and never guess who a person is; name someone only if their name is written on screen. If nothing's worth a line, still give the SAW part and make it SAY: SKIP. For a blank screen, a bare desktop or a loading screen, reply with just SKIP.)";
+        internal const string Line = "(You glance at their screen while they do their thing. Only this picture counts: your instructions, old chats and memories aren't evidence of what's open, so never take a game from them. Reply in two parts, with the labels SAW: and SAY: written exactly like that. SAW: only what you can clearly see, in under 20 plain words: the game or app and what's happening. SAY: your reaction in one short line, in character, to one specific thing you can see: tease them, gloat, wince or cheer them on, and don't ask what they're doing. A game scene, scoreboard, inventory or quiet moment is enough, but a document or code editor is work, not a game. Don't invent action from a still image, and never guess who a person is; name someone only if their name is written on screen. If you aren't sure what you're seeing, reply with just SKIP. If nothing's worth a line, still give the SAW part and make it SAY: SKIP. For a blank screen, a bare desktop or a loading screen, reply with just SKIP.)";
         // Her glance lines from the last hour count as already said.
         internal const double Memory = 3600;
 
@@ -2947,6 +3026,14 @@ namespace CapriDesktop
             for (int i = 0; i < shown; i++) foreach (string key in Keys(said[i], Brain.Nickname)) if (older.Count < 12) Key(older, key);
             if (older.Count > 0) ask += "\nEarlier you also brought up: " + string.Join(", ", older.ToArray()) + ".";
             return ask + "\nDon't bring any of it up again: no character, move, item, place, number, name or joke from those lines. Pick something new and specific, or make it SAY: SKIP.)";
+        }
+
+        // A look she isn't sure of stays unsaid: small brains guess a game from a blurry picture (MiritO, 31 Oct).
+        internal static string Watched(string raw, out string saw)
+        {
+            string line = Reply(raw, out saw);
+            if (saw != null && Regex.IsMatch(saw, @"\b(maybe|perhaps|probably|possibly|unclear|uncertain|not sure|can't (?:see|tell|read)|cannot (?:see|tell|read))\b", RegexOptions.IgnoreCase)) { saw = null; return ""; }
+            return line;
         }
 
         // True when a glance line brings back a name, number or phrase from one she already said, or mostly the same words.

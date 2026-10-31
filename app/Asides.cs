@@ -275,7 +275,8 @@ namespace CapriDesktop
         // A question about the screen gets the newest picture her hands took, or a fresh one for a brain that reads buttons.
         private void AsideScreen(string text, ToolArguments args, Job running)
         {
-            if (Unseeing() != null) { AsideSay("I can't see the screen on this brain.", running, text); return; }
+            string unseen = Unseeing();
+            if (unseen != null) { AsideSay(unseen, running, text); return; }
             byte[] shot = running.Frame;
             if (shot == null)
             {

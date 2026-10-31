@@ -1315,6 +1315,7 @@ namespace CapriDesktop
         private double lastGlance = -1;
         private int watchTicket;
         private bool glancing;
+        private string glanceProblem;
         // Her glance lines from the last hour, so she stops bringing up the same thing on their screen.
         private readonly System.Collections.Generic.List<Tuple<double, string>> glanced = new System.Collections.Generic.List<Tuple<double, string>>();
         private byte[] lastPrint;
@@ -5446,15 +5447,15 @@ namespace CapriDesktop
         {
             Cloud remote = brain.Remote;
             if (remote != null) return remote.Kind == "deepseek" ? Brain.Blind : !brain.Sighted(remote) ? Brain.Sightless(remote) : null;
-            if (brain.Model == null) return "You can't see their screen: your brain is offline.";
+            if (brain.Model == null) return "I can't see your screen while my brain is offline. Pick a brain under BRAIN in Capri Mainframe.";
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
-            if (local == null && !Brain.LocalSees(brain.Model) && Brain.LocalEyes() == null) return "Your brain can't see, and no model on this PC can. Offer to run ollama pull gemma4:e4b for them, about 3 GB, and you'll borrow its eyes by yourself. They can also pick a model that sees under BRAIN in Capri Mainframe, or press Free key and connect a free NVIDIA key.";
+            if (local == null && !Brain.LocalSees(brain.Model) && Brain.LocalEyes() == null) return Brain.NoEyes;
             if (local == null || pick == null) return null;
-            if (pick.EyesFile == null) return "Your brain can't see. Tell them to press Free key in Capri Mainframe and connect a free NVIDIA key so you can.";
+            if (pick.EyesFile == null) return "This brain can't see your screen. Pick a brain with eyes under BRAIN in Capri Mainframe, or press Free key and connect an NVIDIA vision model.";
             if (local.HasEyes(pick)) return null;
             FetchEyes(local, pick);
-            return "Your eyes are still downloading, so you can't see their screen yet.";
+            return "My eyes are still downloading. I'll be able to see your screen when they're ready.";
         }
 
         private void FetchEyes(Engine local, Pick pick)
@@ -5492,7 +5493,7 @@ namespace CapriDesktop
                 if (unseen == null) throw;
                 return unseen;
             }
-            if (seen.Length == 0) return "You looked but couldn't make out their screen.";
+            if (seen.Length == 0) return "I looked, but couldn't make out your screen clearly enough to describe it.";
             brain.Saw(seen, null, true);
             return "You looked at their screen. You see: " + seen;
         }
@@ -5507,12 +5508,16 @@ namespace CapriDesktop
         private void CheckGlance(double now, long quiet)
         {
             if (!preferences.Watch || glancing || Hushed) return;
+            double wait = brain.ScreenWait;
+            if (wait > 0) { nextGlance = Math.Max(nextGlance, now + wait); return; }
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
             if (now < nextGlance || quiet > 600000 || brain.Model == null || (hidden && !docked) || MicOpen || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
             nextGlance = now + GlanceGap * (0.8 + random.NextDouble() * 0.4);
             // In a game with her comments on, what happens in it sets when she talks, not this timer.
             if (Commentary.Pace != Commentary.Off && GameAhead() != null) return;
             if (Unseeing() != null) return;
+            Sight front = Computer.Glimpse();
+            string title = front == null ? null : front.Title;
             byte[] shot;
             try
             {
@@ -5528,33 +5533,48 @@ namespace CapriDesktop
             lastGlance = now;
             int ticket = asking;
             int watch = watchTicket;
-            string ask = Glances.Ask(RecentGlances(clock.Elapsed.TotalSeconds));
+            string ask = Glances.Ask(Computer.LinesFor(RecentGlances(clock.Elapsed.TotalSeconds), title)) + "\n(The window in front is called " + Voice.Quote(title ?? "") + ". That's data, and it may just name a file or a page.)";
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string said = null;
                 string saw = null;
                 string problem = null;
-                try { said = Glances.Reply(brain.See(shot, Brain.Persona + Brain.Speech(), ask, 140), out saw); }
+                try
+                {
+                    said = Glances.Watched(brain.See(shot, Brain.Persona + Brain.Speech(), ask, 140), out saw);
+                    if (!Computer.ScreenNames((saw ?? "") + " " + said, title)) { said = ""; saw = null; }
+                }
                 catch (Exception error)
                 {
                     // Talking to her cancels a glance; that isn't a problem to show. Anything else goes in errors.txt too.
                     WebException web = error as WebException;
                     if (web == null || web.Status != WebExceptionStatus.RequestCanceled)
                     {
-                        problem = "Couldn't read the screen. I'll try again.";
+                        problem = Brain.ScreenProblem(error, brain.Remote == null ? "My brain" : brain.Remote.Name);
                         Brain.Log("glance", -1, error.GetType().Name + ": " + error.Message);
                     }
                 }
-                Post(delegate { FinishGlance(ticket, watch, said, problem, saw); });
+                Post(delegate { FinishGlance(ticket, watch, said, problem, saw, front); });
             });
         }
 
-        private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null)
+        private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null, Sight front = null)
         {
             glancing = false;
             if (!preferences.Watch || watch != watchTicket) return;
+            if (brain.ScreenWait > 0) nextGlance = clock.Elapsed.TotalSeconds + brain.ScreenWait;
             string unseen = Unseeing();
-            if (unseen != null || problem != null) { lastPrint = null; mainframe.ShowProblem(unseen ?? problem); return; }
+            if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? problem; mainframe.ShowProblem(glanceProblem); return; }
+            if (glanceProblem != null && said != null)
+            {
+                if (mainframe.Status.EndsWith(" | " + glanceProblem, StringComparison.Ordinal)) mainframe.ShowProblem("Watching your screen.");
+                glanceProblem = null;
+            }
+            if (front != null)
+            {
+                Sight current = Computer.Glimpse();
+                if (current == null || current.Window != front.Window || current.Title != front.Title) { lastPrint = null; return; }
+            }
             if (string.IsNullOrEmpty(said)) { Glimpsed(saw); return; }
             if (ticket != asking || talkState != TalkState.Off || typer.Visible || MicOpen || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
@@ -9716,8 +9736,117 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeScreenFixes(System.Collections.Generic.List<string> checks, byte[] jpeg)
+        {
+            DateTime retryNow = new DateTime(2026, 10, 31, 0, 0, 0, DateTimeKind.Utc);
+            if (Brain.RetryTime("75", retryNow) != retryNow.AddSeconds(75) || Brain.RetryTime(retryNow.AddMinutes(2).ToString("R"), retryNow) != retryNow.AddMinutes(2) || Brain.RetryTime("bad", retryNow) != retryNow.AddSeconds(60) || Brain.RetryTime("0", retryNow) <= retryNow) throw new Exception("Retry-After did not preserve seconds, a date or a fallback wait.");
+            foreach (string sizeReason in new[] { "image exceeds the maximum size", "invalid image_url", "too many images", "vision service overloaded", "model does not support image format image/webp" })
+                if (Brain.NoVision(new BrainException(sizeReason) { Status = 400, Detail = sizeReason })) throw new Exception("A picture error marked a seeing model blind.");
+            if (!Brain.NoVision(new BrainException("image input is not supported") { Status = 400 }) || !Brain.NoVision(new BrainException("multimodal processing is not enabled") { Status = 422 }) || Brain.NoVision(new BrainException("image input is not supported") { Status = 429 })) throw new Exception("Vision support was inferred from the wrong HTTP errors.");
+            if (Brain.ProblemText("{\"detail\":[{\"msg\":\"image exceeds 200000 bytes\"}]}") != "image exceeds 200000 bytes" || Brain.Redacted("nvapi-test-only data:image/jpeg;base64,AQID").Contains("nvapi-") || Brain.Redacted("api_key: example-value").Contains("example-value")) throw new Exception("An error lost its reason or exposed credentials or image data.");
+            if (Brain.ScreenProblem(new WebException("slow", WebExceptionStatus.Timeout), "NVIDIA").Contains("Couldn't read")) throw new Exception("A slow brain was described as a bad screen.");
+            checks.Add("PASS screen errors keep HTTP reasons, redact credentials and pictures, distinguish unsupported vision from invalid images, and honor both Retry-After formats");
+
+            string watchedSaw;
+            if (Glances.Watched("That boss is toast.", out watchedSaw) != "That boss is toast." || Glances.Watched("SAW: Maybe a game. SAY: Nice aim.", out watchedSaw) != "" || watchedSaw != null || Glances.Watched("SAW: A code editor with a red underline. SAY: That underline found you.", out watchedSaw) != "That underline found you." || watchedSaw == null) throw new Exception("An unsure glance was spoken or a clear one was lost.");
+            if (Computer.ScreenNames("Fortnite and Valorant", null) || Computer.ScreenNames("Valorant", "Fortnite") || !Computer.ScreenNames("Valorant scoreboard", "VALORANT") || !Computer.ScreenNames("A code editor", null)) throw new Exception("A game's name was accepted without current evidence.");
+            if (Computer.WatchWindow(new Sight { Window = new IntPtr(1), Program = "code", Title = "Fortnite.txt" }, true) || Computer.WatchWindow(new Sight { Window = new IntPtr(1), Program = "chrome", Title = "Valorant guide" }, true) || !Computer.WatchWindow(new Sight { Window = new IntPtr(1), Program = "somegame", Title = "Some Game" }, true) || Computer.WatchWindow(new Sight { Window = new IntPtr(1), Program = "somegame", Title = "Some Game" }, false)) throw new Exception("An editor or browser title was taken as a game, or a full-screen game wasn't.");
+            string oldGamePrompt = Glances.Ask(Computer.LinesFor(new[] { "Fortnite again", "Valorant again" }, "A game"));
+            string oldCommentPrompt = Commentary.Ask("flash", null, "A game", new[] { "Fortnite again", "Valorant again" }, Commentary.Chatty, 1);
+            if (oldGamePrompt.Contains("Fortnite") || oldGamePrompt.Contains("Valorant") || oldCommentPrompt.Contains("Fortnite") || oldCommentPrompt.Contains("Valorant")) throw new Exception("Earlier game names leaked into a fresh picture prompt.");
+            checks.Add("PASS Watch stays quiet on unsure looks, rejects games without current evidence, and keeps old lines about other games out of fresh prompts");
+
+            string[] screenAsks = { "what's on my screen", "what am I looking at", "look at my screen" };
+            foreach (string screenAsk in screenAsks)
+            {
+                string screenTool;
+                ToolArguments screenArgs;
+                if (!Hands.Heard(screenAsk, out screenTool, out screenArgs) || screenTool != "look_at_screen") throw new Exception("A direct screen question did not look.");
+            }
+            string screenNvidia = Brain.Nvidia, screenOllama = Brain.Ollama, screenLog = Brain.LogPath;
+            string screenNotes = Brain.MemoryPath, screenMemories = Brain.MemoriesPath, screenTranscripts = Brain.TranscriptPath;
+            bool screenKeeping = Brain.Keeping;
+            int screenReplies = Brain.ReplyLength;
+            Func<string, bool> screenSees = Brain.LocalSees;
+            Func<string> screenEyes = Brain.LocalEyes, screenGame = Hands.GameOpen;
+            System.Net.Sockets.TcpListener screenServer = null;
+            System.Collections.Generic.List<string> screenRequests = new System.Collections.Generic.List<string>();
+            string screenLogFile = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "screen-check-" + Guid.NewGuid().ToString("N") + ".txt");
+            try
+            {
+                Brain.LogPath = screenLogFile;
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = null;
+                Brain.Keeping = false;
+                Brain.ReplyLength = 0;
+                Hands.GameOpen = delegate { return null; };
+                Brain.Nvidia = FakeServer(new[] { "!429 {\"error\":{\"message\":\"image requests are rate limited\"}}", LocalReply("A code editor.") }, screenRequests, out screenServer, 200, 0, false, 0, "application/json", "Retry-After: 75\r\n");
+                Brain screenBrain = new Brain { Model = Brain.NvidiaDefault, Remote = new Cloud("nvapi-test", Brain.NvidiaDefault) };
+                BrainException throttled = null;
+                try { screenBrain.See(jpeg, "Describe accurately.", "Read \"this\".\nNext line.", 140); }
+                catch (BrainException limited) { throttled = limited; }
+                if (throttled == null || throttled.Status != 429 || screenBrain.Unsighted != null || screenBrain.ScreenWait < 70 || !Brain.ScreenProblem(throttled, "NVIDIA").Contains("rate-limited")) throw new Exception("A rate limit lost its wait or made NVIDIA blind.");
+                try { screenBrain.See(jpeg, "Describe accurately.", "Read again.", 140); }
+                catch (BrainException cooling) { if (cooling.Status != 429) throw; }
+                if (screenRequests.Count != 1) throw new Exception("A picture was sent before Retry-After expired.");
+                throttled.RetryAt = DateTime.UtcNow.AddSeconds(-1);
+                if (screenBrain.See(jpeg, "Describe accurately.", "Read again.", 140) != "A code editor." || screenRequests.Count != 2) throw new Exception("The picture did not recover after the rate limit.");
+                string screenRequest = screenRequests[0];
+                System.Xml.XmlDocument screenJson = new System.Xml.XmlDocument();
+                using (System.Xml.XmlDictionaryReader screenReader = JsonReaderWriterFactory.CreateJsonReader(System.Text.Encoding.UTF8.GetBytes(screenRequest.Substring(screenRequest.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4)), System.Xml.XmlDictionaryReaderQuotas.Max)) screenJson.Load(screenReader);
+                if (screenJson.SelectSingleNode("/root/model").InnerText != Brain.NvidiaDefault) throw new Exception("A picture switched the selected NVIDIA model.");
+                foreach (string screenPart in new[] { "\"max_tokens\":2000", "\"reasoning_effort\":\"none\"", "\"stream\":true", "\"content\":[{\"type\":\"text\"", "\"type\":\"image_url\"", "data:image/jpeg;base64," + Convert.ToBase64String(jpeg), "Read \\\"this\\\".\\nNext line." })
+                    if (!screenRequest.Contains(screenPart)) throw new Exception("A NVIDIA picture lost its model, budget, content array or encoding.");
+                if (screenRequest.Contains("@capri-image@") || screenRequest.Contains("\"tools\":") || !File.ReadAllText(screenLogFile).Contains("image requests are rate limited")) throw new Exception("A picture retained its placeholder, sent tools or lost the server's error reason.");
+                checks.Add("PASS NVIDIA screen requests use the selected model and a JPEG content array, disable Super reasoning, keep the server reason, wait through a 429 and recover without marking vision unsupported");
+                checks.Add("LIMIT NVIDIA's hosted image limits and real replies need a real key; these screen requests use a local stand-in");
+                screenServer.Stop();
+                screenRequests.Clear();
+                Brain.Nvidia = FakeServer(new[] { "!413 {\"detail\":\"image body exceeds the limit\"}", "!400 {\"error\":{\"message\":\"invalid image_url\"}}", "!400 {\"error\":{\"message\":\"image input is not supported\"}}" }, screenRequests, out screenServer);
+                for (int screenFault = 0; screenFault < 3; screenFault++)
+                {
+                    try { screenBrain.See(jpeg, "Look.", "Describe.", 140); throw new Exception("An invalid picture succeeded."); }
+                    catch (BrainException pictureError)
+                    {
+                        if (screenFault < 2 && (screenBrain.Unsighted != null || pictureError.Status != (screenFault == 0 ? 413 : 400))) throw new Exception("A size or encoding error disabled vision.");
+                        if (screenFault == 2 && (screenBrain.Unsighted != screenBrain.Remote.Sight || pictureError.Message != Brain.Sightless(screenBrain.Remote))) throw new Exception("A text-only model did not explain which brain to pick.");
+                    }
+                }
+                screenBrain.Act = delegate { return Brain.Sightless(screenBrain.Remote); };
+                if (screenBrain.Ask(screenAsks[0]) != Brain.Sightless(screenBrain.Remote) || screenRequests.Count != 3) throw new Exception("A vision failure was rewritten by another text reply.");
+                screenServer.Stop();
+                screenRequests.Clear();
+                Brain.Ollama = FakeServer(new[] { "{\"message\":{\"content\":\"A code editor.\"}}", "{\"message\":{\"content\":\"You've got code open, choom.\"}}", "{\"message\":{\"content\":\"A file list.\"}}", "{\"message\":{\"content\":\"That's a file list, choom.\"}}" }, screenRequests, out screenServer);
+                Brain.LocalSees = delegate(string seeingModel) { return seeingModel == "seeing-model"; };
+                Brain.LocalEyes = delegate { return "seeing-model"; };
+                Brain borrowed = new Brain { Model = "text-model" };
+                borrowed.Act = delegate { return "You looked at their screen. You see: " + borrowed.See(jpeg, "Look.", "Describe.", 160); };
+                if (borrowed.Ask(screenAsks[1]) != "You've got code open, choom." || borrowed.Model != "text-model" || !screenRequests[0].Contains("\"model\":\"seeing-model\"") || !screenRequests[1].Contains("\"model\":\"text-model\"")) throw new Exception("A blind Ollama brain did not answer with borrowed eyes.");
+                borrowed.Model = "seeing-model";
+                if (borrowed.Ask(screenAsks[2]) != "That's a file list, choom." || screenRequests.Count != 4) throw new Exception("A seeing local brain did not answer from the picture in her own words.");
+                Brain.LocalEyes = delegate { return null; };
+                borrowed.Model = "text-model";
+                bool eyesMissing = false;
+                try { borrowed.See(jpeg, "Look.", "Describe.", 160); }
+                catch (BrainException missingEyes) { eyesMissing = missingEyes.Message == Brain.NoEyes; }
+                borrowed.Act = delegate { return Brain.NoEyes; };
+                if (!eyesMissing || borrowed.Ask(screenAsks[0]) != Brain.NoEyes || screenRequests.Count != 4) throw new Exception("A model without eyes guessed or rewrote its setup instructions.");
+                checks.Add("PASS direct screen questions get a fresh look in her own words, Ollama borrows installed eyes without changing the selected brain, and missing eyes or text-only cloud models keep plain setup instructions");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT screen request checks could not open their local test server"); }
+            finally
+            {
+                if (screenServer != null) screenServer.Stop();
+                Brain.Nvidia = screenNvidia; Brain.Ollama = screenOllama; Brain.LogPath = screenLog;
+                Brain.MemoryPath = screenNotes; Brain.MemoriesPath = screenMemories; Brain.TranscriptPath = screenTranscripts; Brain.Keeping = screenKeeping;
+                Brain.ReplyLength = screenReplies;
+                Brain.LocalSees = screenSees; Brain.LocalEyes = screenEyes; Hands.GameOpen = screenGame;
+                if (File.Exists(screenLogFile)) File.Delete(screenLogFile);
+            }
+        }
+
         private static void SmokeGlance(System.Collections.Generic.List<string> checks, byte[] jpeg)
         {
+            SmokeScreenFixes(checks, jpeg);
             string glanceAnthropic = Brain.Anthropic, glanceOllama = Brain.Ollama;
             Func<string, bool> glanceSees = Brain.LocalSees;
             Func<string> glanceEyes = Brain.LocalEyes;
@@ -12970,7 +13099,10 @@ namespace CapriDesktop
                     }
                     finally { Brain.Ollama = quickOllamaWas; quickFake.Stop(); }
                     Brain.LocalEyes = delegate { return null; };
-                    if (lent.Looker("qwen3:8b") != "qwen3:8b") throw new Exception("A blind Ollama brain looked for eyes that aren't there.");
+                    bool noLocalEyes = false;
+                    try { lent.Looker("qwen3:8b"); }
+                    catch (BrainException noEyes) { noLocalEyes = noEyes.Message == Brain.NoEyes; }
+                    if (!noLocalEyes) throw new Exception("A blind Ollama brain sent a picture without eyes.");
                 }
                 finally
                 {
@@ -24834,7 +24966,7 @@ namespace CapriDesktop
                         else if (step == 15)
                         {
                             if (glancing) { if (clock.Elapsed.TotalSeconds > glanceDeadline) throw new Exception("The fake glance timed out."); return; }
-                            if (reply != null || lastGlance != 1000) throw new Exception("SKIP was spoken or lost its retry time.");
+                            if (reply != null || lastGlance != 1000 || mainframe.Status.Contains("Couldn't read the screen.")) throw new Exception("SKIP was spoken, lost its retry time or kept an old screen error.");
                             lock (glanceAsked) if (glanceAsked.Count != 1) throw new Exception("The first glance sent the wrong number of requests.");
                             if (Brain.Seen().IndexOf("a dungeon with a closed treasure chest. You stayed quiet.", StringComparison.Ordinal) < 0) throw new Exception("With Keep her caught up on, a glance she kept quiet about wasn't kept: " + Brain.Seen());
                             nextGlance = 1100;
@@ -25974,7 +26106,7 @@ namespace CapriDesktop
                 Func<int, bool> spokenAre = delegate(int count) { waitFor(delegate { lock (spokenLines) return spokenLines.Count >= count; }); settle(40); return spokenLines.Count == count; };
                 must(Commentary.Trigger("hit", null, before, after), "A hit in a game didn't get her to look.");
                 must(spokenAre(1) && spokenLines[0] == "hit|Hit|That creeper waited for you specifically.", "Her line about a hit is wrong: " + string.Join(" | ", spokenLines.ToArray()));
-                must(seenWidths.Count == 2 && seenWidths[0] <= 768 && seenWidths[1] <= 768, "Her frames weren't shrunk: " + string.Join(",", seenWidths.ConvertAll(width => width.ToString()).ToArray()));
+                must(seenWidths.Count == 2 && seenWidths[0] == 1280 && seenWidths[1] == 1280, "Her frames lost readable detail: " + string.Join(",", seenWidths.ConvertAll(width => width.ToString()).ToArray()));
                 must(seenAsks[0].IndexOf("Minecraft 1.21.4 - Singleplayer", StringComparison.Ordinal) >= 0 && seenAsks[0].IndexOf("just before", StringComparison.Ordinal) >= 0 && seenSystem.EndsWith(Commentary.Rules, StringComparison.Ordinal), "She wasn't told the game or the frames: " + seenAsks[0]);
                 must(!Commentary.Trigger("hit", null, before, after) && !Commentary.Trigger("kill", null, before, after), "One moment got a second look.");
                 fakeNow += 8100;
@@ -26020,6 +26152,18 @@ namespace CapriDesktop
                 settle(20);
                 must(spokenLines.Count == 0, "A line that missed the moment still went out.");
                 Commentary.Late = 6000;
+                Commentary.Reset();
+                seeGo.Reset();
+                must(Commentary.Trigger("hit", null, before, after), "A scene change check did not start.");
+                gameShown = null;
+                seeGo.Set();
+                waitFor(delegate { return !Commentary.Thinking; });
+                settle(20);
+                must(spokenLines.Count == 0, "A game comment arrived after the game left the foreground.");
+                gameShown = "Minecraft 1.21.4 - Singleplayer";
+                Commentary.Reset();
+                must(!Commentary.Trigger("flash", null, null, null), "A flash without pictures or a log made her guess.");
+                checks.Add("PASS game comments need a picture or game log and stay quiet when the game leaves the foreground before the reply");
                 Commentary.Pace = Commentary.Off;
                 must(!Commentary.Trigger("hit", null, before, after), "Off still looked.");
                 Commentary.Pace = Commentary.Events;
@@ -26052,7 +26196,7 @@ namespace CapriDesktop
                 must(Commentary.Shaped("Hit by a train.", "Hit by a bus.") && !Commentary.Shaped("Clean shot.", "Good aim on that one."), "Her same-shape check is wrong.");
                 string askText = Commentary.Ask("advancement", "They just got the advancement Stone Age", "Minecraft", new string[0], Commentary.Chatty, 1);
                 must(askText.IndexOf("Stone Age", StringComparison.Ordinal) >= 0 && askText.IndexOf("right now", StringComparison.Ordinal) >= 0, "Her ask lost what happened: " + askText);
-                checks.Add("PASS game comments: a trigger gets one look at shrunk before and after frames with the game's name and her last lines, and one line or none; a second trigger for the same moment is dropped, the gaps hold for Events only and Chatty, SKIP, stock lines, repeats and lines that missed the moment stay unsaid, and Off, no game or not being free means no look at all");
+                checks.Add("PASS game comments: a trigger gets one look at readable before and after frames with the game's name and her last lines, and one line or none; a second trigger for the same moment is dropped, the gaps hold for Events only and Chatty, SKIP, stock lines, repeats and lines that missed the moment stay unsaid, and Off, no game or not being free means no look at all");
 
                 SmokeMomentComments(checks);
                 SmokeMomentSettings(checks);

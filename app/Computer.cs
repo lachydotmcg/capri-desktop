@@ -882,6 +882,29 @@ namespace CapriDesktop
             return (GameTitles.IsMatch((sight.Title ?? "") + " " + (sight.Program ?? "")) && !Watching.IsMatch(sight.Title ?? "")) || GameExe(sight.Window);
         }
 
+        // Whether every game a line names is in the window's title. A line about Fortnite with Fortnite nowhere on screen is made up.
+        internal static bool ScreenNames(string text, string title)
+        {
+            foreach (Match named in GameTitles.Matches(text ?? ""))
+                if (!Regex.IsMatch(title ?? "", @"(?<!\w)" + Regex.Escape(named.Value) + @"(?!\w)", RegexOptions.IgnoreCase)) return false;
+            return true;
+        }
+
+        // Her past lines, minus any that name a game this window isn't, so a small brain can't take an old line for what's on screen.
+        internal static List<string> LinesFor(IEnumerable<string> lines, string title)
+        {
+            List<string> kept = new List<string>();
+            foreach (string line in lines) if (ScreenNames(line, title)) kept.Add(line);
+            return kept;
+        }
+
+        // Whether the front window's a game to comment on. A game's name in an editor's or a browser's title doesn't make it one.
+        internal static bool WatchWindow(Sight sight, bool fills)
+        {
+            if (sight == null || sight.Window == IntPtr.Zero || Documents.IsMatch(sight.Program ?? "") || Browsers.IsMatch(sight.Program ?? "")) return false;
+            return GameWindow(sight) || fills;
+        }
+
         // Typing or writing something somewhere means sending it; only an explicit draft or "don't send" keeps it in the box.
         internal static bool Unsent(string task) { return Unsending.IsMatch(task ?? "") || (Drafty.IsMatch(task ?? "") && !Sending.IsMatch(task ?? "")); }
 
