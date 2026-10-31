@@ -169,6 +169,7 @@ namespace CapriDesktop
         private bool yoursShown;
         private ServerSheet sheet;
         private SecuritySheet guard;
+        private ExtrasSheet extras;
         private LayersSheet layered;
         private Key layersKey;
         private Label styleNote;
@@ -1645,6 +1646,7 @@ namespace CapriDesktop
             security.Text = "Security: " + Security.PresetName;
             blackwallNote.Text = Security.Short;
             if (guard != null && !guard.IsDisposed) guard.Sync();
+            if (extras != null && !extras.IsDisposed) extras.Sync();
             watch.Checked = capri.Watching;
             caughtUp.Checked = capri.CaughtUp;
             followUps.Checked = capri.FollowUps;
@@ -2490,6 +2492,16 @@ namespace CapriDesktop
             guard.Activate();
         }
 
+        // Her EXTRAS window, over the Mainframe like SECURITY. Only a new install's first launch opens it.
+        internal void ShowExtras()
+        {
+            if (extras != null && !extras.IsDisposed && extras.Zoom != zoom) extras.Close();
+            if (extras == null || extras.IsDisposed) extras = new ExtrasSheet(this, zoom);
+            extras.Sync();
+            if (!extras.Visible) extras.Show(this);
+            extras.Activate();
+        }
+
         // Her VOICE LAYERS window, over the Mainframe like SECURITY.
         private void OpenLayers()
         {
@@ -2575,6 +2587,14 @@ namespace CapriDesktop
         internal void TapSecurity(int preset) { guard.Tap(preset); }
 
         internal void CloseSecurity() { if (guard != null && !guard.IsDisposed) guard.Close(); }
+
+        internal string ExtrasShown { get { return extras == null || extras.IsDisposed || !extras.Visible ? null : extras.Showing; } }
+
+        internal void FlipExtra(int row) { extras.Flip(row); }
+
+        internal void CloseExtras() { if (extras != null && !extras.IsDisposed) extras.Close(); }
+
+        internal string ExtrasCrowded { get { return extras == null || extras.IsDisposed ? "not open" : extras.Crowded(); } }
 
         internal string SecurityCrowded { get { return guard == null || guard.IsDisposed ? "not open" : guard.Crowded(); } }
 
@@ -4048,6 +4068,173 @@ namespace CapriDesktop
             }
 
             // Over the Mainframe, like their voice server's panel, and on the screen.
+            protected override void OnLoad(EventArgs e)
+            {
+                base.OnLoad(e);
+                Rectangle area = Screen.FromControl(owner).WorkingArea;
+                int x = owner.Left + (owner.Width - Width) / 2, y = owner.Top + (int)(48 * ScaleOf(this));
+                Location = new Point(Math.Max(area.Left, Math.Min(area.Right - Width, x)), Math.Max(area.Top, Math.Min(area.Bottom - Height, y)));
+            }
+
+            protected override void OnSizeChanged(EventArgs e)
+            {
+                base.OnSizeChanged(e);
+                float s = ScaleOf(this);
+                Clip(this, s);
+                Invalidate(true);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                float s = ScaleOf(this);
+                Graphics graphics = e.Graphics;
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Backdrop(graphics, this, s);
+                Edging(graphics, this, s);
+            }
+
+            // Esc closes it.
+            protected override void OnKeyDown(KeyEventArgs e)
+            {
+                if (e.KeyCode == Keys.Escape) { e.Handled = true; Close(); return; }
+                base.OnKeyDown(e);
+            }
+
+            // Dragged by any spot that isn't a control, like the Mainframe.
+            protected override void WndProc(ref Message message)
+            {
+                base.WndProc(ref message);
+                if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
+            }
+        }
+
+        // Her EXTRAS window, in SECURITY's look, over the Mainframe on a new install's first launch (Lachy, 31 Oct: so many cool
+        // ones were off with nothing pointing at them). Each costs something or uses the mic, so they start off and it's their
+        // pick, and all four are in Settings too.
+        private sealed class ExtrasSheet : Form
+        {
+            internal const int Wide = 600, Tall = 366;
+            internal readonly float Zoom;
+            private readonly Mainframe owner;
+            private readonly Toggle[] toggles = new Toggle[4];
+            private bool syncing;
+
+            internal ExtrasSheet(Mainframe owner, float zoom)
+            {
+                this.owner = owner;
+                Zoom = zoom;
+                Text = "Extras";
+                Icon = owner.Icon;
+                ShowInTaskbar = false;
+                // She's always on top, and on a new install she arrives in the middle of the screen, right where this opens.
+                TopMost = true;
+                FormBorderStyle = FormBorderStyle.None;
+                StartPosition = FormStartPosition.Manual;
+                AutoScaleMode = AutoScaleMode.Dpi;
+                AutoScaleDimensions = new SizeF(96, 96);
+                Font = Type(9f * zoom);
+                BackColor = Ground;
+                ForeColor = White;
+                DoubleBuffered = true;
+                KeyPreview = true;
+                ClientSize = new Size(Z(Wide), Z(Tall));
+                Font small = Look.Mono(8.5f * zoom, FontStyle.Regular, GraphicsUnit.Point);
+                Heading(this, "EXTRAS >", new Point(Z(24), Z(15)), Display(15f * zoom), Rose, 0);
+                Key shut = new Key();
+                shut.Bounds = Box(Wide - 54, 20, 26, 22);
+                shut.Glyph = 2;
+                shut.AccessibleName = "Close";
+                shut.Click += delegate { Close(); };
+                Controls.Add(shut);
+                Caption("These start off. Turn on what you want. They're all in Settings too.", 28, 52, small, Faint);
+                Extra(0, "Watch my screen", "She glances at your screen and comments. Costs a little on a paid brain.", small, delegate { owner.capri.ToggleWatch(); });
+                Extra(1, "Comment on my games", "She reacts when things happen in your game. Costs a little on a paid brain.", small, delegate { owner.capri.SetCommentPace(toggles[1].Checked ? 1 : 0); owner.Sync(); });
+                Extra(2, "Clip my games", "Keeps the last two minutes of your game in memory. Say clip that to save it.", small, delegate { owner.capri.ToggleClips(); });
+                Extra(3, "Listen for Capri", "In voice chat, she only answers when you say her name.", small, delegate { owner.capri.ToggleListenCapri(); });
+                Key done = new Key();
+                done.Text = "Done";
+                done.Font = Type(9f * zoom, true);
+                done.Accent = Cyan;
+                done.Loud = true;
+                done.Bounds = Box(Wide - 128, Tall - 44, 100, 26);
+                done.Click += delegate { Close(); };
+                Controls.Add(done);
+                Sync();
+            }
+
+            private void Extra(int row, string name, string line, Font small, Action changed)
+            {
+                int y = 84 + 58 * row;
+                Toggle box = new Toggle();
+                box.Text = name;
+                box.Font = Font;
+                box.Switch = 96;
+                box.Bounds = Box(28, y, Wide - 56, 22);
+                box.AccessibleName = name + ". " + line;
+                box.CheckedChanged += delegate { if (!syncing) changed(); };
+                Controls.Add(box);
+                toggles[row] = box;
+                Caption(line, 28, y + 24, small, Faint);
+            }
+
+            private int Z(int value) { return (int)Math.Round(value * Zoom); }
+
+            private Rectangle Box(int x, int y, int width, int height) { return new Rectangle(Z(x), Z(y), Z(width), Z(height)); }
+
+            private void Caption(string text, int x, int y, Font font, Color colour)
+            {
+                Label label = new Note();
+                label.Text = text;
+                label.Font = font;
+                label.ForeColor = colour;
+                label.BackColor = Ground;
+                label.AutoSize = true;
+                label.Location = new Point(Z(x), Z(y));
+                Controls.Add(label);
+            }
+
+            internal void Sync()
+            {
+                syncing = true;
+                toggles[0].Checked = owner.capri.Watching;
+                toggles[1].Checked = owner.capri.CommentPace > 0;
+                toggles[2].Checked = owner.capri.ClipsOn;
+                toggles[3].Checked = owner.capri.ListenCapriOn;
+                syncing = false;
+            }
+
+            // Each toggle as 1 or 0, and a click on one as they'd do it, for the smoke test.
+            internal string Showing
+            {
+                get
+                {
+                    System.Text.StringBuilder bits = new System.Text.StringBuilder();
+                    foreach (Toggle box in toggles) bits.Append(box.Checked ? '1' : '0');
+                    return bits.ToString();
+                }
+            }
+
+            internal void Flip(int row) { toggles[row].Checked = !toggles[row].Checked; }
+
+            // Anything that overlaps, pokes out of the window or doesn't fit its own text, or null.
+            internal string Crowded()
+            {
+                float s = ScaleOf(this);
+                for (int i = 0; i < Controls.Count; i++)
+                {
+                    Control a = Controls[i];
+                    if (!a.Visible) continue;
+                    if (!ClientRectangle.Contains(a.Bounds) || a.Right > ClientSize.Width - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
+                    Toggle box = a as Toggle;
+                    if (box != null && TextRenderer.MeasureText(box.Text, box.Font).Width > box.NameRoom) return "doesn't fit: " + box.Text;
+                    for (int j = i + 1; j < Controls.Count; j++)
+                        if (Controls[j].Visible && a.Bounds.IntersectsWith(Controls[j].Bounds)) return "overlap: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " / " + (Controls[j].Text.Length > 0 ? Controls[j].Text : Controls[j].AccessibleName);
+                }
+                return null;
+            }
+
+            // Over the Mainframe, like SECURITY, and on the screen.
             protected override void OnLoad(EventArgs e)
             {
                 base.OnLoad(e);

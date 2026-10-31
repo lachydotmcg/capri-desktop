@@ -1754,11 +1754,13 @@ namespace CapriDesktop
             }
         }
 
-        // A new install only (Lachy, 31 Oct): she wanders now and then, after her usual wait rather than as soon as she arrives.
+        // A new install only (Lachy, 31 Oct): she wanders now and then, after her usual wait rather than as soon as she arrives,
+        // and EXTRAS offers what costs something or uses the mic.
         private void FirstLaunch()
         {
             SetWanderLevel(1);
             nextWander = -1;
+            mainframe.ShowExtras();
         }
 
         protected override void OnShown(EventArgs e)
@@ -12247,7 +12249,8 @@ namespace CapriDesktop
                 { "how do I save a routine?", "Routines" },
                 { "how does your wake word work?", "Listen for \"Hey Capri\"" },
                 { "how do I turn off head pats?", "Head pats" },
-                { "where did my settings go?", "Advanced Settings" }
+                { "where did my settings go?", "Advanced Settings" },
+                { "what is the extras window?", "Extras" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
             {
@@ -23628,9 +23631,17 @@ namespace CapriDesktop
                             SetWanderLevel(0);
                             FirstLaunch();
                             bool launchRarely = WanderLevel == 1 && mainframe.WanderShown == "Rarely" && nextWander < 0 && LoadPreferences().Wander;
+                            string launchCrowd = mainframe.ExtrasCrowded, launchOff = mainframe.ExtrasShown;
+                            for (int launchRow = 0; launchRow < 4; launchRow++) mainframe.FlipExtra(launchRow);
+                            bool launchOn = preferences.Watch && preferences.CommentPace == 1 && mainframe.CommentsShown == "Events only" && preferences.ClipGames && preferences.ListenCapri && mainframe.ExtrasShown == "1111";
+                            for (int launchBack = 0; launchBack < 4; launchBack++) mainframe.FlipExtra(launchBack);
+                            bool launchOffAgain = !preferences.Watch && preferences.CommentPace == 0 && !preferences.ClipGames && !preferences.ListenCapri && mainframe.ExtrasShown == "0000";
+                            mainframe.CloseExtras();
+                            bool launchClosed = mainframe.ExtrasShown == null;
                             SetWanderLevel(launchWander);
                             if (!launchRarely) throw new Exception("A new install did not start her on Rarely: level " + WanderLevel + ", next " + nextWander);
-                            checks.Add("PASS a new install: she starts on Wander Rarely, saved, and doesn't set off as soon as she arrives; anyone updating keeps what they had");
+                            if (launchCrowd != null || launchOff != "0000" || !launchOn || !launchOffAgain || !launchClosed) throw new Exception("EXTRAS went wrong: crowded " + launchCrowd + ", opened " + launchOff + ", on " + launchOn + ", off " + launchOffAgain + ", closed " + launchClosed);
+                            checks.Add("PASS a new install: she starts on Wander Rarely, saved, and doesn't set off as soon as she arrives, and EXTRAS opens with all four off, each switch works both ways, and nothing overlaps; anyone updating keeps what they had");
                             ToggleHeadPats();
                             if (HeadPats || mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them off.");
                             ToggleHeadPats();
