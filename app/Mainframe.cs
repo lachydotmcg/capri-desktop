@@ -139,6 +139,7 @@ namespace CapriDesktop
         private readonly Toggle clipGames;
         private readonly Toggle clipMoments;
         private readonly Toggle fastHands;
+        private readonly Toggle gameMute;
         private readonly Label voiceHead;
         // OFF, PREBUILT LOCAL (her own voices), CUSTOM LOCAL (a voice model they set up on their PC) and CLOUD VOICE.
         private readonly Rung[] voiceRungs = new Rung[4];
@@ -705,6 +706,8 @@ namespace CapriDesktop
             fastHands = Switch("Fast hands in games", 0, 1102, delegate { if (!syncing) capri.ToggleFastHands(); });
             int gamesTo = Controls.Count;
             hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
+            gameMute = Switch("Mute her", 0, 1130, delegate { if (!syncing) capri.ToggleShush(); });
+            gameMute.AccessibleName = "Mute her. She stops talking on her own and only answers when you talk to her, the same as her Quiet key";
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
@@ -1603,6 +1606,7 @@ namespace CapriDesktop
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
             fastHands.Checked = capri.FastHandsOn;
+            gameMute.Checked = capri.Shushed;
             frameSize.Value = Math.Max(0, Array.IndexOf(FrameSizes, capri.MainframeSize));
             ShowFrameSize();
             VoiceTier();
