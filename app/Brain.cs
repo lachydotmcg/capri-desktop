@@ -1591,8 +1591,7 @@ namespace CapriDesktop
                 }
                 else
 #endif
-                if (calls.Count == 1 && calls[0].Key == "look_at_screen" && !Looked(results[0])) raw = results[0];
-                else if (pulled != null) raw = pulled;
+                if (pulled != null) raw = pulled;
                 else if (stopped || results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !calls.Exists(call => call.Key == "look_at_screen" || call.Key == "listen"))) raw = done;
                 else
                 {
@@ -1730,9 +1729,6 @@ namespace CapriDesktop
             if (eyes == null) throw new BrainException(NoEyes, true);
             return eyes;
         }
-
-        // Whether a look_at_screen result is what she saw. Anything else tells them how to give her eyes, so it goes out word for word.
-        internal static bool Looked(string result) { return (result ?? "").StartsWith("You looked at their screen.", StringComparison.Ordinal); }
 
         internal static bool NoVision(BrainException error)
         {

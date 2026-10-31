@@ -1716,7 +1716,7 @@ namespace CapriDesktop
             return true;
         }
 
-        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^(Which app|What should I play|No app called|More than one|That didn't work|Couldn't|There's no|That isn't a website|Which job|Should I |Got lost|Ran out of steps|You pressed Esc|You grabbed the mouse|Using the mouse and keyboard isn't)|isn't open\.$|but (couldn't|it's still open)"); }
+        internal static bool Failed(string result) { return Regex.IsMatch(result ?? "", @"^([^.]* can't see (?:your screen|screens)\b|My eyes are still downloading|I looked, but|Which app|What should I play|No app called|More than one|That didn't work|Couldn't|There's no|That isn't a website|Which job|Should I |Got lost|Ran out of steps|You pressed Esc|You grabbed the mouse|Using the mouse and keyboard isn't)|isn't open\.$|but (couldn't|it's still open)"); }
 
         private static bool Planned(string said, out string tool, out ToolArguments args)
         {

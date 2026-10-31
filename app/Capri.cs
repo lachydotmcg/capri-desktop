@@ -4996,7 +4996,7 @@ namespace CapriDesktop
             foreach (Ledge ledge in Around())
             {
                 if (!ledge.Icon.IsEmpty || ledge.Right - ledge.Left < preferences.Size / 2) continue;
-                if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor && (ledge.Window != IntPtr.Zero || (ledge.Left == seat.Left && ledge.Right == seat.Right && ledge.Y == seat.Y))) continue;
+                if (seat != null && ledge.Window == seat.Window && ledge.Floor == seat.Floor) continue;
                 if (ledge.Y - room < Screen.FromPoint(new Point(ledge.Left, ledge.Y)).Bounds.Top) continue;
                 spots.Add(ledge);
             }
