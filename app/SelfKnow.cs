@@ -258,7 +258,7 @@ namespace CapriDesktop
             if (text.Length == 0 || !Question.IsMatch(text)) return null;
             if (Regex.IsMatch(text, @"\b(favou?rite|pretty|beautiful|cute|lovely|opinion|do you like|do you love|think of|think about|feel about)\b")) return null;
             string game = text;
-            foreach (string setting in new[] { "fast hands in games", "player over games", "gaming mode", "game mode", "gamer mode", "gaming mod", "game mod", "gaming mood", "free voice in games", "your game comments", "game commentary setting", "your gaming hud", "your game overlay", "clip my games", "clip my game", "clip a game", "game clips", "record my games", "mini games", "mini game", "game break", "open apps games and sites", "shortcuts screenshots game bar captions discord mute" })
+            foreach (string setting in new[] { "fast hands in games", "player over games", "gaming mode", "game mode", "gamer mode", "gaming mod", "game mod", "gaming mood", "free voice in games", "your game comments", "game commentary setting", "your gaming hud", "your game overlay", "clip my games", "clip my game", "clip a game", "game clips", "record my games", "mini games", "mini game", "game break", "chess setting", "chess with you", "your chess", "chess difficulty", "open apps games and sites", "shortcuts screenshots game bar captions discord mute" })
                 game = (" " + game + " ").Replace(" " + setting + " ", " ").Trim();
             if (Game.IsMatch(game)) return null;
             if (Walkthrough.IsMatch(text)) return "Tutorial:\n" + Tutorial;
