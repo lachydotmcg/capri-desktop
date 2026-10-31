@@ -1807,7 +1807,7 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - She's floating in mid-air: Sit on windows is off. Right-click her > Move > Sit on windows.
 - She won't sit on my window: she doesn't sit on maximized or full-screen windows.
 - She's hidden behind a game: switch the game to borderless or windowed. Check Always on top is on (Mainframe > Settings > CAPRI).
-- She doesn't dance: Dance to music must be on, and the app must show up as music in Windows.
+- She doesn't dance: Dance to music must be on, and the app must show up as music in Windows. AIMP, foobar2000, Winamp, MusicBee, Clementine, Strawberry and MediaMonkey count whenever they're making sound.
 - She dances but her head isn't on the beat yet: give it a few seconds. Quiet songs, talking and very slow songs are harder for her to follow.
 - The mini player doesn't show: Settings > Mini player must be on, and the song has to show in Windows' volume flyout with its name. If you pressed its X, it's back once nothing has played for 10 seconds. It hides during full-screen games and videos.
 - She doesn't sit on the mini player: she only hops on as it comes up with Wander on, and not while she's talking, sleeping or busy. Drag her onto it any time.

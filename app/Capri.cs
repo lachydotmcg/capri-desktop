@@ -4993,9 +4993,45 @@ namespace CapriDesktop
             return null;
         }
 
-        internal static Func<bool> MusicPlaying = MediaPlaying;
+        internal static Func<bool> MusicPlaying = delegate { return MediaPlaying() || PlayerLoud(); };
         private static Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager media;
         private static bool mediaMissing;
+        private static readonly string[] SilentPlayers = { "AIMP", "foobar2000", "winamp", "MusicBee", "Clementine", "strawberry", "MediaMonkey" };
+        private static GameEars playerEars;
+        private static int playerOpen, playerLooked, playerHeard;
+
+        // AIMP and players like it don't tell Windows what's on, so she goes by whether one is making sound. A gap between songs doesn't count.
+        private static bool PlayerLoud()
+        {
+            lock (SilentPlayers)
+            {
+                if (playerLooked == 0 || unchecked(Environment.TickCount - playerLooked) >= 10000)
+                {
+                    playerLooked = Environment.TickCount;
+                    int found = 0;
+                    foreach (string name in SilentPlayers)
+                    {
+                        Process[] running = Process.GetProcessesByName(name);
+                        if (found == 0 && running.Length > 0) found = running[0].Id;
+                        foreach (Process each in running) each.Dispose();
+                    }
+                    if (found != playerOpen)
+                    {
+                        if (playerEars != null) playerEars.Dispose();
+                        playerEars = null;
+                        playerOpen = found;
+                        if (found != 0)
+                        {
+                            playerEars = new GameEars(found);
+                            playerEars.Start();
+                        }
+                    }
+                }
+                if (playerEars == null) return false;
+                if (playerEars.Level > 0.01) playerHeard = Environment.TickCount;
+                return playerHeard != 0 && unchecked(Environment.TickCount - playerHeard) < 4000;
+            }
+        }
 
         private static bool MediaPlaying()
         {
@@ -18032,6 +18068,7 @@ namespace CapriDesktop
                                 if (seat == null || Hip().Y != shelf.Top) throw new Exception("She did not stay on the window after walking.");
                                 checks.Add("PASS walking: she stands up, walks along the window she sits on with a little wisp trailing behind her, keeps up when it moves, and sits back down on it");
                                 Func<bool> musicWas = MusicPlaying;
+                                if (PlayerLoud()) throw new Exception("She heard a music player that isn't running.");
                                 bool musicReal = false;
                                 Thread musicCheck = new Thread(delegate() { MediaPlaying(); musicReal = true; });
                                 musicCheck.IsBackground = true;
