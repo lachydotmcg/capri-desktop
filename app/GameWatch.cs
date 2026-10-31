@@ -59,8 +59,7 @@ namespace CapriDesktop
                         if (watch.Elapsed.TotalSeconds - checkedFront >= 1)
                         {
                             checkedFront = watch.Elapsed.TotalSeconds;
-                            // Gaming Mode is them asking her to watch, so she reacts at least when something happens.
-                            Commentary.Pace = Math.Max(CommentPace, docked ? Commentary.Events : Commentary.Off);
+                            Commentary.Pace = GamePace;
                             Sight front = Commentary.Pace != Commentary.Off || job != null ? (GameAhead() != null ? Computer.Glimpse() : null) : null;
                             int owner = 0;
                             if (front != null && front.Window != IntPtr.Zero) Native.GetWindowThreadProcessId(front.Window, out owner);

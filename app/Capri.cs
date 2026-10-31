@@ -4435,7 +4435,7 @@ namespace CapriDesktop
             {
                 if (job != null) return "On a job";
                 if (chatting) return "Voice chatting";
-                if (docked) return "Gaming";
+                if (gaming.State == GameDock.Stage.Docked) return "Gaming";
                 if (hidden) return "Taking a break";
                 if (typer.Visible || speech != null) return "Chatting";
                 if (clip == dance || clip == perchDance) return musicOn ? "Dancing to music" : "Dancing";
@@ -15634,6 +15634,25 @@ namespace CapriDesktop
                 Location = anchor;
                 if (!untouched || !armedRight || !stillArmed || !dockedRight || !heldDocked || !routed || !thought || !jobbed || !replied || !cleared || !listening || !liveWords || !quieted || !moved || !reset || !mooded || !offRight || again != "Gaming Mode's already off." || !onAtOnce || twice != "Gaming Mode's already on." || !waited || !ended || !launcherHeld || !swapped || !warnedOnce || !restored || !hiddenOut || !hiddenIn || !stayedHidden || !keyOn || !keyOff || !jobNoGame || !jobIn || !jobStayedOff || !jobKept)
                     throw new Exception("Gaming Mode went wrong: untouched " + untouched + ", armed " + armedRight + "/" + stillArmed + ", docked " + dockedRight + "/" + heldDocked + ", routed " + routed + ", thought " + thought + ", job " + jobbed + ", replied " + replied + ", cleared " + cleared + ", listening " + listening + "/" + liveWords + ", quiet " + quieted + ", moved " + moved + "/" + reset + ", mood " + mooded + ", off " + offRight + "/" + again + ", on " + onAtOnce + "/" + twice + ", exit " + waited + "/" + ended + ", launcher " + launcherHeld + "/" + swapped + ", exclusive " + warnedOnce + ", restored " + restored + ", hide " + hiddenOut + "/" + hiddenIn + "/" + stayedHidden + ", key " + keyOn + "/" + keyOff + ", game job " + jobNoGame + "/" + jobIn + "/" + jobStayedOff + "/" + jobKept);
+                // The path everyone's on for now (Lachy, 31 Oct): no HUD, her body stays, and she still reacts to the game.
+                gaming.Hud = delegate { return false; };
+                int plainPaceWas = preferences.CommentPace;
+                preferences.CommentPace = 0;
+                running = true;
+                exclusive = false;
+                said.Clear();
+                string plainArmed = GamingMode("on");
+                front = game;
+                gaming.Check(9000);
+                bool plainStayed = plainArmed == "Gaming Mode's armed. I'll watch as soon as a game's up." && GamingOn && !docked && !hidden && !GameHud.Showing && GamePace == Commentary.Events && Doing == "Gaming" && said.Count == 1 && said[0] == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game.";
+                string plainMove = GamingMode("down");
+                GamingMode("off");
+                front = null;
+                bool plainOff = !GamingOn && !docked && !hidden && GamePace == Commentary.Off;
+                gaming.Hud = delegate { return testing; };
+                preferences.CommentPace = plainPaceWas;
+                if (!plainStayed || !plainOff || plainMove != "My HUD isn't up right now.") throw new Exception("Gaming Mode without the HUD went wrong: stayed " + plainStayed + ", off " + plainOff + ", move " + plainMove + ", armed " + plainArmed + ", said " + string.Join(" / ", said.ToArray()) + ", doing " + Doing);
+                checks.Add("PASS Gaming Mode without the HUD, as it is for now: her body stays, no HUD window opens, she reacts at least when something happens with Comments off, her status says Gaming, and turning it off puts comments back to their setting");
                 checks.Add("PASS Gaming Mode: her words reach it and chat about it doesn't; with no game she stays armed and docks when one comes up; docked her body and bubble are gone, the HUD is click-through and never active, and it shows what she says, THINKING, a job's status, LISTENING with live words and her quiet key; the HUD moves per game and starts under Cyberpunk's health bar; turning it off, or the game exiting, puts her back where she was; a launcher's game takes over; exclusive full screen is mentioned once; the hide key and her tray icon end it; and a game job docks her once the game's in front, moves its panel to the HUD, and stays off when it's turned off");
             }
             finally

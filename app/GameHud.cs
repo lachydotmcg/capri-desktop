@@ -833,6 +833,7 @@ namespace CapriDesktop
         // while to open a window, and it's the short stays that are launchers.
         private const double GoneWait = 3, LauncherWait = 20, LauncherLife = 120;
         private const string ArmedLine = "Gaming Mode's armed. I'll dock as soon as a game's up.";
+        private const string ArmedOut = "Gaming Mode's armed. I'll watch as soon as a game's up.";
         private readonly HashSet<string> warned = new HashSet<string>();
         private double dockedAt, goneAt = -1;
         internal Stage State { get; private set; }
@@ -854,7 +855,7 @@ namespace CapriDesktop
             if (found != null) return Land(found, now);
             State = Stage.Armed;
             Changed();
-            return ArmedLine;
+            return Hud() ? ArmedLine : ArmedOut;
         }
 
         internal string Off()
@@ -932,6 +933,9 @@ namespace CapriDesktop
         private string dockTalk, dockWords = "";
 
         internal bool GamingOn { get { return gaming.State != GameDock.Stage.Off; } }
+
+        // Gaming Mode is them asking her to watch, so she reacts at least when something happens, HUD or no HUD.
+        private int GamePace { get { return Math.Max(CommentPace, GamingOn ? Commentary.Events : Commentary.Off); } }
 
         internal string GameKeyName { get { return KeyName(preferences.GameMods, preferences.GameVk); } }
 
