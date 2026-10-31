@@ -23628,7 +23628,10 @@ namespace CapriDesktop
                             mainframe.ShowSettings(true);
                             if (simpleCrowd != null || simpleTall >= mainframe.ClientSize.Height) throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height);
                             checks.Add("PASS Simple Settings: the main rows only, shorter than Advanced Settings, with nothing overlapping or poking out");
+                            // A new install has them all off, and steps before this one leave Watch my screen on.
                             int launchWander = WanderLevel;
+                            bool launchWatching = preferences.Watch;
+                            if (launchWatching) ToggleWatch();
                             SetWanderLevel(0);
                             FirstLaunch();
                             bool launchRarely = WanderLevel == 1 && mainframe.WanderShown == "Rarely" && nextWander < 0 && LoadPreferences().Wander;
@@ -23640,6 +23643,7 @@ namespace CapriDesktop
                             mainframe.CloseExtras();
                             bool launchClosed = mainframe.ExtrasShown == null;
                             SetWanderLevel(launchWander);
+                            if (launchWatching) ToggleWatch();
                             if (!launchRarely) throw new Exception("A new install did not start her on Rarely: level " + WanderLevel + ", next " + nextWander);
                             if (launchCrowd != null || launchOff != "0000" || !launchOn || !launchOffAgain || !launchClosed) throw new Exception("EXTRAS went wrong: crowded " + launchCrowd + ", opened " + launchOff + ", on " + launchOn + ", off " + launchOffAgain + ", closed " + launchClosed);
                             checks.Add("PASS a new install: she starts on Wander Rarely, saved, and doesn't set off as soon as she arrives, and EXTRAS opens with all four off, each switch works both ways, and nothing overlaps; anyone updating keeps what they had");
