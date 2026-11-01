@@ -1119,11 +1119,19 @@ namespace CapriDesktop
         private static readonly Regex Unknown = new Regex(@"\b(can'?t|cannot|can not|unable to|don'?t have|no way to|not able to)\b[^.!?]{0,40}\b(check|browse|look|search|google|access|know|tell|real[- ]?time|live|internet|web|online|current|up[- ]to[- ]date|forecast)\b|\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to)|gonna|i gotta|i have to|i need to)\s+(\w+\s+){0,2}(search|google|look (it |that |this )?up|check)\b|\b(you('ll)? (might|may|will|would)? ?(need|want|have) to|maybe (you can|try)|you (gotta|got to|could|can|should)|try)\s+(\w+\s+){0,3}(look|check|search|google)\b|\bcheck (a|the|your) (\w+\s+){0,2}(weather|news|app|site|feed|forecast|website)\b|\bcrystal ball\b", RegexOptions.IgnoreCase);
         private static readonly Regex Question = new Regex(@"\?\s*$|^(what|what's|whats|how|how's|when|where|who|which|why|is|are|was|were|will|does|do|did|can|could|would|tell me|check|look up|google|search|any idea)\b", RegexOptions.IgnoreCase);
 
+        // "What time is it?" and "what's the date?" are on the PC's own clock, so they never go to Google. "What time is it in Tokyo?" still does (Lachy, 1 Nov).
+        private static readonly Regex ClockAsk = new Regex(@"^(?:(?:do|can|could|would) (?:you|u) (?:know |have |tell me |give me )?|tell me |got )?(?:what(?:'?s| is) (?:the |today'?s? )?(?:current |exact )?(?:time|date|day)|what (?:time|date|day|month|year) (?:is it|it is)|the (?:current |exact )?(?:time|date|day)|time)(?: (?:today|now|right now|rn|at the moment))?$", RegexOptions.IgnoreCase);
+        private static readonly Regex ClockSaid = new Regex(@"\d|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b|\b(?:noon|midnight)\b", RegexOptions.IgnoreCase);
+
+        internal static bool ClockDodged(string said, string reply) { return ClockAsk.IsMatch(Asked(said)) && !ClockSaid.IsMatch(reply ?? ""); }
+
+        internal static string ClockLine(DateTime now) { return "It's " + now.ToString("h:mm tt 'on' dddd d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture) + "."; }
+
         internal static ToolArguments Lookup(string said, string reply)
         {
             string text = Asked(said);
             string plain = Regex.Replace(text, @"^(do|did) (you|u) (know|have any idea)\b|\byou know\b|^(tell|show|get|find) me\b|\b(near me|where i (am|live)|in my (area|city|town|suburb))\b", "", RegexOptions.IgnoreCase);
-            if (text.Length < 4 || !Question.IsMatch((said ?? "").Trim()) || !Unknown.IsMatch((reply ?? "").Replace('’', '\'')) || Regex.IsMatch(plain, @"\b(screen|song|playing|track|you|your|yourself|u|ur|capri|me|my|i|i'm|im)\b", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"\bscreen\b", RegexOptions.IgnoreCase)) return null;
+            if (text.Length < 4 || ClockAsk.IsMatch(text) || !Question.IsMatch((said ?? "").Trim()) || !Unknown.IsMatch((reply ?? "").Replace('’', '\'')) || Regex.IsMatch(plain, @"\b(screen|song|playing|track|you|your|yourself|u|ur|capri|me|my|i|i'm|im)\b", RegexOptions.IgnoreCase) || Regex.IsMatch(reply ?? "", @"\bscreen\b", RegexOptions.IgnoreCase)) return null;
             return new ToolArguments { Site = "google", Search = text };
         }
 

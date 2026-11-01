@@ -1596,6 +1596,8 @@ namespace CapriDesktop
             }
             if (calls.Count == 0 && !fileChat)
             {
+                // A brain that hedges on "what time is it?" gets her clock's answer, before anything below takes the hedge for a search to run.
+                if (Hands.ClockDodged(text, Clean(raw))) raw = Hands.ClockLine(DateTime.Now);
                 ToolArguments lookup = act != null ? Hands.Lookup(text, Clean(raw)) : null;
                 bool hesitant = act != null && Hands.Hesitant(Clean(raw), request);
                 bool refused = act != null && !reached && Hands.Refused(Clean(raw)) && Hands.Requested(request);
@@ -2719,7 +2721,7 @@ namespace CapriDesktop
             return null;
         }
 
-        internal static string Now() { return "\nRight now it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are."; }
+        internal static string Now() { return "\nRight now it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so answer the time or date from this line without searching for it."; }
 
         internal const string Gibberish = "My brain sent gibberish. Pick another model in Capri Mainframe.";
         private static readonly Regex Junk = new Regex(@"<(unused\d+|pad|mask|unk|eos|bos|start_of_(turn|image|audio)|end_of_(turn|image|audio))>", RegexOptions.IgnoreCase);
