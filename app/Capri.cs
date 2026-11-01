@@ -8517,7 +8517,8 @@ namespace CapriDesktop
         private void KeepListening(double now)
         {
             // Quiet only turns ElevenLabs off, so Fish Audio and her own voices listen too (Lachy, 31 Oct: "hey capri is basically unusable").
-            if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || hidden || quitting || talkState != TalkState.Off || speech != null) return;
+            // A job holds her talk state for as long as it runs and a stream runs for hours, and Gaming Mode hides her window, so neither keeps her ears shut (Lachy, 1 Nov).
+            if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || (hidden && !docked) || quitting || (talkState != TalkState.Off && working == null) || speech != null) return;
             listenAt = now + 60;
             ToggleChat();
         }
@@ -29005,6 +29006,15 @@ namespace CapriDesktop
                 KeepListening(2);
                 bool cameBack = chatting && local;
                 CloseTalk();
+                StopChat();
+                talkState = TalkState.Thinking;
+                working = "Working.";
+                listenAt = 0;
+                KeepListening(2);
+                bool jobListened = chatting && local;
+                working = null;
+                talkState = TalkState.Off;
+                CloseTalk();
                 preferences.ListenCapri = false;
                 bool chatCounts = InChat;
                 preferences.ListenCapri = true;
@@ -29014,7 +29024,7 @@ namespace CapriDesktop
                 ToggleListenCapri();
                 bool switchOpens = !earsClosed && listenAt == 0;
                 CloseTalk();
-                if (!closedHeld || !hiddenHeld || !quietHeld || !openedAlone || !retryHeld || !cameBack || !chatCounts || !shutAgain || !switchOpens) throw new Exception("Listen for Capri's ears did not look after themselves: closed " + closedHeld + ", hidden " + hiddenHeld + ", quiet " + quietHeld + ", opened " + openedAlone + ", retry " + retryHeld + ", back " + cameBack + ", chat " + chatCounts + ", shut " + shutAgain + ", switch " + switchOpens);
+                if (!closedHeld || !hiddenHeld || !quietHeld || !openedAlone || !retryHeld || !cameBack || !jobListened || !chatCounts || !shutAgain || !switchOpens) throw new Exception("Listen for Capri's ears did not look after themselves: closed " + closedHeld + ", hidden " + hiddenHeld + ", quiet " + quietHeld + ", opened " + openedAlone + ", retry " + retryHeld + ", back " + cameBack + ", chat " + chatCounts + ", shut " + shutAgain + ", switch " + switchOpens);
                 checks.Add("PASS Listen for Capri opens her ears with no key, brings them back after anything but the talk key, waits while she's hidden, listens the same with ElevenLabs off, doesn't count as a conversation, and its switch reopens them");
                 checks.Add("LIMIT Listen for Capri's real microphone, how each recogniser spells her name, and ElevenLabs credit billing need a live voice check");
             }
