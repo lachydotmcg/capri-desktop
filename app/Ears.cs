@@ -1098,7 +1098,7 @@ namespace CapriDesktop
             File.Delete(tarball);
         }
 
-        internal static bool SystemBzip = true;
+        internal static bool SystemBzip = false;
 
         // Windows 10 and 11 ship bsdtar, but only Windows 11's reads bzip2. When tar can't, she unpacks the bzip2 layer herself and tar gets the plain archive.
         // The checksum was already matched, so this is the known archive.
@@ -1132,7 +1132,11 @@ namespace CapriDesktop
             using (Process unpacking = Process.Start(start))
             {
                 string problem = unpacking.StandardError.ReadToEnd();
-                unpacking.WaitForExit();
+                if (!unpacking.WaitForExit(120000))
+                {
+                    try { unpacking.Kill(); } catch (Exception) { }
+                    return "Extraction timed out.";
+                }
                 return unpacking.ExitCode == 0 ? null : problem.Trim();
             }
         }
