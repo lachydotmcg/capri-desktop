@@ -501,7 +501,7 @@ Mainframe's CAPRI heading has a Support button. It opens Lachy's Ko-fi (ko-fi.co
 ### Simple and Advanced Settings
 Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which one you left it on.
 
-### Clones
+### Clones (beta)
 Tell her "clone yourself" or "activate chaos mode" and a copy of her glitches in and keeps multiplying, with no limit. "Make 5 clones" makes exactly 5. They wander around your screen, leave a glitch trail, talk to each other out loud, steal your cursor and drag notes in. Some notes are fake deletes: a bar fills up on something scary, then she says "jk". They never touch your files.
 Hold Esc for a moment to clear them, or say "get rid of the clones". Hiding or closing her clears them too. Their talking uses her brain and voice the same as any other reply. Windows only for now. Insulting her can set them off too: see Chaos when upset switch.
 
