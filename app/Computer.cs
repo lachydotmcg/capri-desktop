@@ -31,6 +31,8 @@ namespace CapriDesktop
     internal sealed class Picture
     {
         internal byte[] Jpeg;
+        // The same picture bigger, for reading its words. Null when she already sends it at full size.
+        internal byte[] Sharp;
         internal Size Size;
         internal Rectangle Area;
 
@@ -49,7 +51,7 @@ namespace CapriDesktop
         internal static Picture Of(Bitmap shot, Rectangle area)
         {
             double scale = Math.Min(1.0, (double)Computer.Longest / Math.Max(shot.Width, shot.Height));
-            return new Picture { Jpeg = Companion.Jpeg(shot, Computer.Longest), Size = new Size(Math.Max(1, (int)Math.Round(shot.Width * scale)), Math.Max(1, (int)Math.Round(shot.Height * scale))), Area = area };
+            return new Picture { Jpeg = Companion.Jpeg(shot, Computer.Longest), Sharp = scale < 1 ? Companion.Jpeg(shot, Computer.Sharpest) : null, Size = new Size(Math.Max(1, (int)Math.Round(shot.Width * scale)), Math.Max(1, (int)Math.Round(shot.Height * scale))), Area = area };
         }
     }
 
@@ -119,6 +121,7 @@ namespace CapriDesktop
         // Two looks at an unchanged screen get a nudge to check whether the job is done. It's a hint, not a stop.
         internal const int Unmoved = 2;
         internal const int Longest = 1280;
+        internal const int Sharpest = 2560;
         // A game job with fewer moves than this has nothing to think over.
         internal const int WorthThinking = 6;
         // A Claude job folds what it's done so far once its talk is this long (two entries a turn), so it can run for hours.

@@ -15570,6 +15570,17 @@ namespace CapriDesktop
             ToolArguments gone = new ToolArguments { Text = "Multiplayer" };
             Computer.Planned("click", gone, shown, onScreen, out member);
             if (gone.Coordinate != null) throw new Exception("Words that aren't on screen were clicked anyway.");
+            System.Collections.Generic.List<ReadWord> menuRow = new System.Collections.Generic.List<ReadWord> { new ReadWord { Text = "ZRYW", Box = new Rectangle(488, 73, 26, 8) }, new ReadWord { Text = "UPROSZCZONY", Box = new Rectangle(533, 73, 65, 8) }, new ReadWord { Text = "DEATHMATCH", Box = new Rectangle(616, 73, 61, 8) }, new ReadWord { Text = "WYSCIG", Box = new Rectangle(695, 73, 36, 8) }, new ReadWord { Text = "ZBROJEN", Box = new Rectangle(735, 73, 40, 8) } };
+            System.Collections.Generic.List<ReadWord> menuLabels = Ocr.Labels("ZRYW UPROSZCZONY DEATHMATCH WYSCIG ZBROJEN", menuRow);
+            if (menuLabels.Count != 4 || menuLabels[2].Text != "DEATHMATCH" || menuLabels[3].Text != "WYSCIG ZBROJEN" || menuLabels[3].Box != new Rectangle(695, 73, 80, 8)) throw new Exception("A menu's row wasn't split into its buttons.");
+            System.Collections.Generic.List<ReadWord> plainLine = new System.Collections.Generic.List<ReadWord> { new ReadWord { Text = "Thanks", Box = new Rectangle(10, 10, 60, 20) }, new ReadWord { Text = "a", Box = new Rectangle(76, 10, 10, 20) }, new ReadWord { Text = "lot", Box = new Rectangle(92, 10, 30, 20) } };
+            if (Ocr.Labels("Thanks a lot", plainLine).Count != 1) throw new Exception("A plain sentence was split as if it were a menu.");
+            ToolArguments menuClick = new ToolArguments { Text = "deathmatch" };
+            Computer.Planned("click", menuClick, shown, menuLabels, out member);
+            if (menuClick.Coordinate == null || menuClick.Coordinate[0] != 646.5 || menuClick.Text != null) throw new Exception("A click on one button of a row missed it, or its words stayed behind as keys to hold.");
+            ToolArguments partClick = new ToolArguments { Text = "zbrojen" };
+            Computer.Planned("click", partClick, shown, menuLabels, out member);
+            if (partClick.Coordinate == null || partClick.Coordinate[0] != 755) throw new Exception("A click on one word of a phrase landed beside it.");
             Func<Rectangle?, Picture> shootWas = Computer.Shoot;
             Func<Sight> glimpseWas = Computer.Glimpse;
             Func<Target> focusWas = Computer.Focus;

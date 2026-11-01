@@ -19,6 +19,8 @@ namespace CapriDesktop
     {
         internal string Text;
         internal Rectangle Box;
+        // The words inside a phrase, each with its own box.
+        internal List<ReadWord> Parts;
     }
 
     internal static class Ocr
@@ -157,7 +159,7 @@ namespace CapriDesktop
                 foreach (ReadLine sorted in ordered)
                 {
                     found.Lines.Add(sorted.Text);
-                    found.Phrases.Add(new ReadWord { Text = sorted.Text, Box = sorted.Box });
+                    found.Phrases.AddRange(Labels(sorted.Text, sorted.Words));
                     found.Words.AddRange(sorted.Words);
                 }
                 return found;
@@ -169,6 +171,33 @@ namespace CapriDesktop
                 catch (Exception) { }
                 finally { if (entered) gate.Release(); }
             }
+        }
+
+        // A gap this many word heights wide ends a label.
+        private const double LabelGap = 1.2;
+
+        // The reader calls a whole row of a menu one line, so a row splits at its wide gaps and each button gets its own place (SoChi, 1 Nov).
+        internal static List<ReadWord> Labels(string line, List<ReadWord> words)
+        {
+            List<int> heights = words.ConvertAll(read => read.Box.Height);
+            heights.Sort();
+            double gap = heights.Count == 0 ? 0 : heights[heights.Count / 2] * LabelGap;
+            List<ReadWord> labels = new List<ReadWord>();
+            foreach (ReadWord word in words)
+            {
+                ReadWord open = labels.Count == 0 ? null : labels[labels.Count - 1];
+                if (open == null || word.Box.Left - open.Box.Right > gap)
+                {
+                    labels.Add(new ReadWord { Text = word.Text, Box = word.Box, Parts = new List<ReadWord> { word } });
+                    continue;
+                }
+                open.Text += " " + word.Text;
+                open.Box = Rectangle.Union(open.Box, word.Box);
+                open.Parts.Add(word);
+            }
+            // A line that stays whole keeps the reader's own spacing, which some languages need.
+            if (labels.Count == 1) labels[0].Text = line;
+            return labels;
         }
 
         private static Rectangle Original(Windows.Foundation.Rect box, Size scaled, Size frame, double angle)

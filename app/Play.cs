@@ -291,6 +291,8 @@ namespace CapriDesktop
                         y = named.Box.Y + named.Box.Height / 2.0;
                     }
                     if (placed) args.Coordinate = new[] { x, y };
+                    // Those words said where to click. Left in, her hands read them as keys to hold down and refuse the click (SoChi, 1 Nov).
+                    if (placed) args.Text = null;
                     if (move != "scroll") return move == "click" ? "left_click" : move;
                     args.Way = args.Direction ?? args.Way;
                     if (!args.Amount.HasValue) args.Amount = 5;
@@ -342,7 +344,25 @@ namespace CapriDesktop
                 int apart = have.IndexOf(want, StringComparison.Ordinal) >= 0 ? have.Length == want.Length ? 0 : 1 : Apart(want, have);
                 if (apart < nearest) { nearest = apart; best = spot; }
             }
-            return best;
+            return best == null ? null : Narrowed(best, want);
+        }
+
+        // Only the words of a phrase that make up what's wanted, so a click on one of them doesn't land between them.
+        private static ReadWord Narrowed(ReadWord spot, string want)
+        {
+            if (spot.Parts == null) return spot;
+            for (int first = spot.Parts.Count - 1; first >= 0; first--)
+            {
+                string joined = "";
+                Rectangle box = spot.Parts[first].Box;
+                for (int last = first; last < spot.Parts.Count; last++)
+                {
+                    joined += Letters(spot.Parts[last].Text);
+                    box = Rectangle.Union(box, spot.Parts[last].Box);
+                    if (joined.IndexOf(want, StringComparison.Ordinal) >= 0) return new ReadWord { Text = spot.Text, Box = box };
+                }
+            }
+            return spot;
         }
 
         internal static bool Same(byte[] a, byte[] b)
@@ -350,6 +370,30 @@ namespace CapriDesktop
             if (a == null || b == null || a.Length != b.Length) return false;
             for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
             return true;
+        }
+
+        private static Rectangle Shrunk(Rectangle box, double across, double down)
+        {
+            return Rectangle.FromLTRB((int)Math.Floor(box.Left * across), (int)Math.Floor(box.Top * down), (int)Math.Ceiling(box.Right * across), (int)Math.Ceiling(box.Bottom * down));
+        }
+
+        // The words in a picture with their boxes in its own pixels, read off the sharp copy when it has one. On SoChi's CS2 menu that read nearly twice the buttons.
+        private static List<ReadWord> Phrases(Picture picture, Bitmap shot)
+        {
+            if (picture.Sharp == null) return Ocr.Phrases(shot, 1, 1500);
+            using (System.IO.MemoryStream read = new System.IO.MemoryStream(picture.Sharp))
+            using (Bitmap loaded = new Bitmap(read))
+            using (Bitmap sharp = new Bitmap(loaded))
+            {
+                double across = (double)shot.Width / sharp.Width, down = (double)shot.Height / sharp.Height;
+                List<ReadWord> phrases = Ocr.Phrases(sharp, 1, 2500);
+                foreach (ReadWord phrase in phrases)
+                {
+                    phrase.Box = Shrunk(phrase.Box, across, down);
+                    if (phrase.Parts != null) foreach (ReadWord part in phrase.Parts) part.Box = Shrunk(part.Box, across, down);
+                }
+                return phrases.Count > 0 ? phrases : Ocr.Phrases(shot, 1, 1500);
+            }
         }
 
         // Adds the words on screen to what she can read, each as something to click, for windows that show a brain nothing else.
@@ -366,7 +410,7 @@ namespace CapriDesktop
                 {
                     int number = 0;
                     foreach (Target known in sight.Targets) number = Math.Max(number, known.Number);
-                    foreach (ReadWord line in Ocr.Phrases(shot, 1, 1500))
+                    foreach (ReadWord line in Phrases(picture, shot))
                     {
                         if (number >= MostTargets || Regex.Matches(line.Text, @"\p{L}|\p{N}").Count < 2) continue;
                         Point corner = picture.ToScreen(line.Box.Left, line.Box.Top), across = picture.ToScreen(line.Box.Right, line.Box.Bottom);
@@ -392,13 +436,13 @@ namespace CapriDesktop
                 using (Bitmap shot = new Bitmap(loaded))
                 {
                     List<string> listed = new List<string>();
-                    foreach (ReadWord line in Ocr.Phrases(shot, 1, 1500))
+                    foreach (ReadWord line in Phrases(picture, shot))
                     {
                         if (Regex.Matches(line.Text, @"\p{L}|\p{N}").Count < 2) continue;
                         Point wordCorner = picture.ToScreen(line.Box.Left, line.Box.Top), wordAcross = picture.ToScreen(line.Box.Right, line.Box.Bottom);
                         if (InkWord(Rectangle.FromLTRB(wordCorner.X, wordCorner.Y, wordAcross.X, wordAcross.Y), line.Text)) continue;
                         spots.Add(line);
-                        if (listed.Count < 40) listed.Add(Voice.Quote(line.Text) + " at " + (line.Box.X + line.Box.Width / 2) * 100 / shot.Width + "," + (line.Box.Y + line.Box.Height / 2) * 100 / shot.Height);
+                        if (listed.Count < 60) listed.Add(Voice.Quote(line.Text) + " at " + (line.Box.X + line.Box.Width / 2) * 100 / shot.Width + "," + (line.Box.Y + line.Box.Height / 2) * 100 / shot.Height);
                     }
                     if (listed.Count > 0) words = "\nWords on screen, each with its x,y:\n" + string.Join("\n", listed.ToArray());
                     using (Graphics paint = Graphics.FromImage(shot))
