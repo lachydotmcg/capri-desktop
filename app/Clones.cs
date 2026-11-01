@@ -365,6 +365,11 @@ namespace CapriDesktop
         private readonly Dictionary<IntPtr, Point> placed = new Dictionary<IntPtr, Point>();
         private readonly List<IntPtr> stuck = new List<IntPtr>();
         private double allowedAt;
+        // A file of the windows they've moved, kept up to date while they drag, so a start after a crash or a kill can put them
+        // back. It's gone once they're put away.
+        internal static string Marker;
+        private double markAt;
+        private bool unsaved;
         internal int Frames;
 
         internal CloneWindow(Rectangle area, Stopwatch time, Clip idling, Clip walking, Clip grinning, Clip glitching, int herSize, int herCanvas, int seed) : base("Capri clones")
@@ -506,6 +511,12 @@ namespace CapriDesktop
             Point? dragged = Swarm.Tick(now, passed, took < SlowTick, handsFree, new Point(cursor.X - room.X, cursor.Y - room.Y), handsFree && !Mousing());
             if (dragged != null) Cursor.Position = new Point(room.X + dragged.Value.X, room.Y + dragged.Value.Y);
             foreach (CloneHaul haul in Swarm.Hauls) if (haul.Holding) Carry(haul);
+            if (unsaved && now >= markAt)
+            {
+                unsaved = false;
+                markAt = now + 0.25;
+                Mark();
+            }
             Render(now);
             took = busy.ElapsedMilliseconds;
             Frames++;
@@ -575,6 +586,7 @@ namespace CapriDesktop
             placed[haul.Window] = to;
             Rectangle path;
             reach[haul.Window] = reach.TryGetValue(haul.Window, out path) ? Rectangle.Union(path, new Rectangle(to, new Size(1, 1))) : new Rectangle(to, new Size(1, 1));
+            unsaved = true;
         }
 
         // Still somewhere they put it: anywhere along its way, give or take 24 px (scaled) for an app that's slow to catch up or
@@ -582,7 +594,11 @@ namespace CapriDesktop
         private bool Theirs(IntPtr window, Point at)
         {
             Rectangle path;
-            if (!reach.TryGetValue(window, out path)) return false;
+            return reach.TryGetValue(window, out path) && OnPath(window, path, at);
+        }
+
+        private static bool OnPath(IntPtr window, Rectangle path, Point at)
+        {
             int slack = 24 * Ledges.Dpi(window) / 96;
             path.Inflate(slack, slack);
             return path.Contains(at);
@@ -596,20 +612,93 @@ namespace CapriDesktop
             foreach (KeyValuePair<IntPtr, Rectangle> home in homes)
             {
                 Point last;
-                Rectangle outer;
-                if (!placed.TryGetValue(home.Key, out last) || !Ledges.Alive(home.Key) || Ledges.FullSize(home.Key)) continue;
-                if (!Ledges.OnScreen(new Point(home.Value.X + home.Value.Width / 2, home.Value.Y + 20))) continue;
-                if (Ledges.Minimised(home.Key))
-                {
-                    if (!Ledges.Frozen(home.Key)) Ledges.MoveRestored(home.Key, home.Value.X - last.X, home.Value.Y - last.Y);
-                    continue;
-                }
-                if (!Ledges.Outer(home.Key, out outer) || !Theirs(home.Key, outer.Location)) continue;
-                Native.SetWindowPos(home.Key, IntPtr.Zero, home.Value.X, home.Value.Y, 0, 0, 0x4000 | 0x0010 | 0x0004 | 0x0001);
+                Rectangle path;
+                if (placed.TryGetValue(home.Key, out last) && reach.TryGetValue(home.Key, out path)) PutOneBack(home.Key, home.Value, path, last);
             }
             homes.Clear();
             reach.Clear();
             placed.Clear();
+            unsaved = false;
+            Unmark();
+        }
+
+        private static bool PutOneBack(IntPtr window, Rectangle home, Rectangle path, Point last)
+        {
+            Rectangle outer;
+            if (!Ledges.Alive(window) || Ledges.FullSize(window) || !Ledges.OnScreen(new Point(home.X + home.Width / 2, home.Y + 20))) return false;
+            if (Ledges.Minimised(window))
+            {
+                if (Ledges.Frozen(window)) return false;
+                Ledges.MoveRestored(window, home.X - last.X, home.Y - last.Y);
+                return true;
+            }
+            if (!Ledges.Outer(window, out outer) || !OnPath(window, path, outer.Location)) return false;
+            return Native.SetWindowPos(window, IntPtr.Zero, home.X, home.Y, 0, 0, 0x4000 | 0x0010 | 0x0004 | 0x0001);
+        }
+
+        // One line a window: its handle, its program, where it started, everywhere it's been (with room for the last quarter of a
+        // second, which may not be saved yet) and where it was last put.
+        internal static string MarkLine(IntPtr window, int program, Rectangle home, Rectangle path, Point last)
+        {
+            path.Inflate(40, 40);
+            long[] values = { window.ToInt64(), program, home.X, home.Y, home.Width, home.Height, path.X, path.Y, path.Width, path.Height, last.X, last.Y };
+            string[] words = new string[values.Length];
+            for (int i = 0; i < values.Length; i++) words[i] = values[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return string.Join(" ", words);
+        }
+
+        private void Mark()
+        {
+            if (Marker == null) return;
+            System.Text.StringBuilder lines = new System.Text.StringBuilder();
+            foreach (KeyValuePair<IntPtr, Rectangle> home in homes)
+            {
+                Point last;
+                Rectangle path;
+                int program;
+                if (!placed.TryGetValue(home.Key, out last) || !reach.TryGetValue(home.Key, out path)) continue;
+                Native.GetWindowThreadProcessId(home.Key, out program);
+                lines.AppendLine(MarkLine(home.Key, program, home.Value, path, last));
+            }
+            try { System.IO.File.WriteAllText(Marker, lines.ToString()); }
+            catch (System.IO.IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        private static void Unmark()
+        {
+            if (Marker == null) return;
+            try { System.IO.File.Delete(Marker); }
+            catch (System.IO.IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        // A crash or a kill mid-drag would leave windows where her clones dropped them, so her next start puts back each one that's
+        // still in the same program and still somewhere they had it. One closed or moved by hand since is left alone.
+        internal static int Recover()
+        {
+            if (Marker == null || !System.IO.File.Exists(Marker)) return 0;
+            string[] lines;
+            try { lines = System.IO.File.ReadAllLines(Marker); }
+            catch (System.IO.IOException) { return 0; }
+            catch (UnauthorizedAccessException) { return 0; }
+            int back = 0;
+            foreach (string line in lines)
+            {
+                string[] words = line.Split(' ');
+                long[] values = new long[12];
+                bool read = words.Length == values.Length;
+                for (int i = 0; read && i < values.Length; i++) read = long.TryParse(words[i], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out values[i]);
+                if (!read) continue;
+                IntPtr window = new IntPtr(values[0]);
+                int program;
+                if (!Ledges.Alive(window)) continue;
+                Native.GetWindowThreadProcessId(window, out program);
+                if (program != values[1]) continue;
+                if (PutOneBack(window, new Rectangle((int)values[2], (int)values[3], (int)values[4], (int)values[5]), new Rectangle((int)values[6], (int)values[7], (int)values[8], (int)values[9]), new Point((int)values[10], (int)values[11]))) back++;
+            }
+            Unmark();
+            return back;
         }
 
         private Bitmap Cell(Clip clip, int which, int cell, bool left)
