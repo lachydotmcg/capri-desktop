@@ -216,7 +216,9 @@ namespace CapriDesktop
             byte[] bytes = Encoding.UTF8.GetBytes(text);
             lock (sending)
             {
-                try { socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, stop.Token).Wait(); }
+                // A link that stops taking what she sends is dropped after a few seconds, so it can't hold up her window, which
+                // sends from its own thread. Dropping it ends the voice link the way a lost connection does.
+                try { if (!socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, stop.Token).Wait(5000)) socket.Abort(); }
                 catch (Exception) { }
             }
         }

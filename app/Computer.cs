@@ -1651,9 +1651,22 @@ namespace CapriDesktop
         // Whether Esc is down right now. The smoke test presses it without a keyboard.
         internal static Func<bool> Escape = delegate { return (GetAsyncKeyState(0x1B) & 0x8000) != 0; };
 
+        // Her right-click or tray menu is open. Bringing the game to the front closes it, so mid-job Quit could never be clicked
+        // (Mika, 1 Nov: "QUITTING DOESNT WORK"). Her hands wait for it to close before their next step, up to a minute, unless
+        // they're on her UI thread, which the menu needs.
+        internal static volatile bool MenuOpen;
+
+        internal static void MenuWait()
+        {
+            if (System.Windows.Forms.Application.MessageLoop) return;
+            Stopwatch open = Stopwatch.StartNew();
+            while (MenuOpen && !interrupted && open.ElapsedMilliseconds < 60000) Thread.Sleep(30);
+        }
+
         internal static string Do(string tool, ToolArguments args, Sight sight)
         {
             if (args == null) args = new ToolArguments();
+            MenuWait();
             if (tool == "draw")
             {
                 ToolArguments drawing = args.Copy();

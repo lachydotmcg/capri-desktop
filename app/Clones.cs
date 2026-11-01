@@ -230,8 +230,16 @@ namespace CapriDesktop
         private readonly SolidBrush barBack = new SolidBrush(Color.FromArgb(238, 16, 14, 24));
         private readonly Font font = new Font("Consolas", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
         private Native.Surface surface;
-        private double last, escFrom = -1;
+        private double last, hintUntil = -1;
         private long took;
+        // Esc is read on a thread of its own every 30 ms in real time, so slow frames with hundreds out can't miss a tap or
+        // stretch the hold, and a tap shows how to clear them (Ashy, 1 Nov: "pressing escape didnt do much").
+        private System.Threading.Thread escWatch;
+        private volatile bool closing, tapped;
+        private volatile int heldMs = -1;
+        private bool cleared;
+        private Bitmap hint;
+        internal const string Hint = "hold esc to clear us";
         internal readonly Swarm Swarm;
         internal Action Cleared, Failed;
         internal Action<double> Ticked;
@@ -288,6 +296,51 @@ namespace CapriDesktop
             Show();
             Native.SetWindowPos(Handle, new IntPtr(-1), room.X, room.Y, room.Width, room.Height, 0x0010);
             ticks.Start();
+            escWatch = new System.Threading.Thread(WatchEsc);
+            escWatch.IsBackground = true;
+            escWatch.Name = "Capri clone Esc";
+            escWatch.Priority = System.Threading.ThreadPriority.Highest;
+            escWatch.Start();
+        }
+
+        internal bool Hinting { get { return hintUntil > last; } }
+
+        private void WatchEsc()
+        {
+            Stopwatch held = new Stopwatch();
+            while (!closing)
+            {
+                bool down;
+                try { down = EscDown(); }
+                catch (Exception) { down = false; }
+                if (down)
+                {
+                    if (!held.IsRunning) held.Start();
+                    heldMs = (int)held.ElapsedMilliseconds;
+                    if (held.ElapsedMilliseconds >= EscHold * 1000)
+                    {
+                        try { BeginInvoke(new Action(Clear)); }
+                        catch (InvalidOperationException) { }
+                        return;
+                    }
+                }
+                else if (held.IsRunning)
+                {
+                    tapped = true;
+                    held.Reset();
+                    heldMs = -1;
+                }
+                System.Threading.Thread.Sleep(30);
+            }
+        }
+
+        private void Clear()
+        {
+            if (cleared || IsDisposed) return;
+            cleared = true;
+            ticks.Stop();
+            Action done = Cleared;
+            if (done != null) done();
         }
 
         internal void Spawn(int count, Point at, bool multiplying)
@@ -314,18 +367,7 @@ namespace CapriDesktop
         {
             double passed = Math.Max(0, Math.Min(0.25, now - last));
             last = now;
-            if (!EscDown()) escFrom = -1;
-            else
-            {
-                if (escFrom < 0) escFrom = now;
-                if (now - escFrom >= EscHold)
-                {
-                    ticks.Stop();
-                    Action cleared = Cleared;
-                    if (cleared != null) cleared();
-                    return;
-                }
-            }
+            if (tapped) { tapped = false; hintUntil = now + 3; }
             Stopwatch busy = Stopwatch.StartNew();
             Point cursor = Cursor.Position;
             Point? dragged = Swarm.Tick(now, passed, took < SlowTick, HandsFree(), new Point(cursor.X - room.X, cursor.Y - room.Y));
@@ -426,16 +468,29 @@ namespace CapriDesktop
                     int cardX = Math.Max(4, Math.Min(room.Width - body.LineCard.Width - 4, (int)body.X - body.LineCard.Width / 2));
                     graphics.DrawImage(body.LineCard, cardX, Math.Max(4, (int)body.Y - size / 2 - body.LineCard.Height), body.LineCard.Width, body.LineCard.Height);
                 }
-                if (escFrom >= 0) graphics.FillRectangle(barInk, 14, 14, (int)(180 * Math.Min(1, (now - escFrom) / EscHold)), 8);
+                // The hold fills a bar at the top middle, and a tap shows how to clear them under it.
+                int holding = heldMs;
+                if (holding >= 0)
+                {
+                    graphics.FillRectangle(barBack, room.Width / 2 - 124, 20, 248, 14);
+                    graphics.FillRectangle(barInk, room.Width / 2 - 120, 24, (int)(240 * Math.Min(1, holding / (EscHold * 1000))), 6);
+                }
+                if (now < hintUntil)
+                {
+                    if (hint == null) hint = Card(Hint);
+                    graphics.DrawImage(hint, room.Width / 2 - hint.Width / 2, 40, hint.Width, hint.Height);
+                }
             }
             surface.Show(Handle, room.Location);
         }
 
         protected override void Dispose(bool disposing)
         {
+            closing = true;
             if (disposing)
             {
                 ticks.Dispose();
+                if (hint != null) { hint.Dispose(); hint = null; }
                 foreach (Bitmap cell in cells.Values) cell.Dispose();
                 cells.Clear();
                 foreach (CloneNote note in Swarm.Notes) if (note.Card != null) note.Card.Dispose();

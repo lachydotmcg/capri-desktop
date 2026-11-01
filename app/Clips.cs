@@ -479,9 +479,10 @@ namespace CapriDesktop
                 finishing = writer;
                 Clear();
             }
-            if (ending != null) ending.Join();
-            if (finishing != null) finishing.Join();
-            changed.Dispose();
+            // Quitting waits a little for a clip that's saving, but never for good (Mika, 1 Nov: "QUITTING DOESNT WORK").
+            bool ended = ending == null || ending.Join(2000);
+            bool finished = finishing == null || finishing.Join(5000);
+            if (ended && finished) changed.Dispose();
         }
     }
 

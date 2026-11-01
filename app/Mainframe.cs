@@ -2086,6 +2086,7 @@ namespace CapriDesktop
 
         private void LocalMenu(string chosen, Cloud remote)
         {
+            menuRemote = null;
             modelMenu.Items.Clear();
             foreach (string name in lastInstalled ?? new string[0])
             {
@@ -2108,6 +2109,10 @@ namespace CapriDesktop
 
         internal void PickBrain(int index) { ((ToolStripMenuItem)modelMenu.Items[index]).PerformClick(); }
 
+        // The cloud brain and list her model menu was last built from.
+        private Cloud menuRemote;
+        private string[] menuModels;
+
         internal void ShowCloud(Cloud remote, List<string> found)
         {
             brainName.Text = remote.Name + " · " + remote.Model;
@@ -2116,11 +2121,34 @@ namespace CapriDesktop
             models.Visible = true;
             hint.Visible = false;
             if (remote.Kind == "local") { LocalMenu(null, remote); Arrange(false); return; }
-            modelMenu.Items.Clear();
-            foreach (string name in found ?? new List<string> { remote.Model })
+            // OpenRouter lists hundreds of models and NVIDIA over a hundred, and adding them one at a time laid the whole menu out
+            // again for each: about 20 s frozen on every OpenRouter pick (NoxEterna, 1 Nov), and seconds after a slow NVIDIA reply,
+            // which shows this again (Mika). The same list only moves its tick, and a new one goes in all at once.
+            string[] listed = (found ?? new List<string> { remote.Model }).ToArray();
+            if (remote == menuRemote && menuModels != null && modelMenu.Items.Count == listed.Length && System.Linq.Enumerable.SequenceEqual(menuModels, listed))
             {
-                string pick = name;
-                modelMenu.Items.Add(Choice(Brain.Shown(remote.Kind, name), name == remote.Model, delegate { capri.ChooseModel(pick); ShowCloud(remote, found); }));
+                foreach (ToolStripItem shown in modelMenu.Items)
+                {
+                    ToolStripMenuItem ticked = shown as ToolStripMenuItem;
+                    if (ticked != null) ticked.Checked = (ticked.Tag as string) == remote.Model;
+                }
+            }
+            else
+            {
+                ToolStripItem[] choices = new ToolStripItem[listed.Length];
+                for (int i = 0; i < listed.Length; i++)
+                {
+                    string pick = listed[i];
+                    ToolStripMenuItem choice = Choice(Brain.Shown(remote.Kind, pick), pick == remote.Model, delegate { capri.ChooseModel(pick); ShowCloud(remote, found); });
+                    choice.Tag = pick;
+                    choices[i] = choice;
+                }
+                modelMenu.SuspendLayout();
+                modelMenu.Items.Clear();
+                modelMenu.Items.AddRange(choices);
+                modelMenu.ResumeLayout();
+                menuRemote = remote;
+                menuModels = listed;
             }
             Arrange(false);
         }

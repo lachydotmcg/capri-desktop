@@ -49,7 +49,10 @@ namespace CapriDesktop
                         File.WriteAllText(Path.Combine(args[1], "failure.txt"), "Another smoke test holds Capri's test lock. This run did not start.");
                         return 1;
                     }
-                    Native.AllowSetForegroundWindow(-1); restore.Set(); return 0;
+                    Native.AllowSetForegroundWindow(-1); restore.Set();
+                    // A stuck Capri ends herself when she's opened again, and this launch takes her place.
+                    if (!Heartbeat.TakeOver(mutex)) return 0;
+                    restore.Reset();
                 }
                 try
                 {
@@ -175,6 +178,218 @@ namespace CapriDesktop
                 Brain.Log("crash", -1, at);
                 if (++shown == 4) break;
             }
+        }
+    }
+
+    // Her window answers a ping four times a second. When it stops, something has her UI thread stuck, and she can't be clicked,
+    // dragged or quit (Mika, 1 Nov: "SHES STUCK ON MMY SCREEN", "QUITTING DOESNT WORK"). Ten seconds stuck goes in errors.txt
+    // with where in her code it's stuck. Stuck and opened again, stuck closing, or stuck for a minute, she ends herself, and her
+    // input helper lets go of any key or button she held. A minute's freeze starts her again, at most once every ten minutes.
+    internal sealed class Heartbeat
+    {
+        internal int LogAfter = 10000, EndAfter = 60000, CloseFor = 15000, ReopenAfter = 2000, Grace = 2000;
+        // How long a second launch waits for a stuck Capri to end, before it leaves her be.
+        internal const int Handover = 8000;
+        private const string Restarted = "CAPRI_RESTARTED";
+        private readonly Control window;
+        private readonly EventWaitHandle reopened;
+        private readonly Thread ui;
+        private readonly Stopwatch clock = Stopwatch.StartNew();
+        private volatile bool stopped;
+        private int sent, answered;
+        private long sentAt, closingAt = -1;
+        // What she was up to, for the line in errors.txt. Read on the heartbeat's thread, so it only reads fields.
+        internal Func<string> Doing;
+        internal Action<string> Note = delegate(string line) { Brain.Log("frozen", -1, line); };
+        // Ends her, starting her again when asked. The smoke test swaps it for one that only counts.
+        internal Action<bool> End = Stop;
+
+        internal Heartbeat(Control window, EventWaitHandle reopened)
+        {
+            this.window = window;
+            this.reopened = reopened;
+            ui = Thread.CurrentThread;
+        }
+
+        internal void Start()
+        {
+            Thread beat = new Thread(Watch);
+            beat.IsBackground = true;
+            beat.Name = "Capri heartbeat";
+            // It wakes for a moment four times a second, so it can sit above a busy game and still see her stuck.
+            beat.Priority = ThreadPriority.Highest;
+            beat.Start();
+        }
+
+        internal void Halt() { stopped = true; }
+
+        // Quit was pressed or her window got closed. Whatever holds her up after this, she's gone in CloseFor.
+        internal void Closing() { Interlocked.CompareExchange(ref closingAt, clock.ElapsedMilliseconds, -1); }
+
+        private void Ping(long now)
+        {
+            int number = Volatile.Read(ref sent) + 1;
+            try { window.BeginInvoke(new Action(delegate { Volatile.Write(ref answered, number); })); }
+            catch (InvalidOperationException) { return; }
+            Interlocked.Exchange(ref sentAt, now);
+            Volatile.Write(ref sent, number);
+        }
+
+        // Nothing in here may take her down: a heartbeat that breaks just stops.
+        private void Watch()
+        {
+            try { Beat(); }
+            catch (Exception error) { stopped = true; Noted("Her heartbeat stopped: " + error.GetType().Name + ": " + error.Message); }
+        }
+
+        private void Beat()
+        {
+            long last = clock.ElapsedMilliseconds, frozeAt = -1;
+            while (true)
+            {
+                Thread.Sleep(250);
+                if (stopped) return;
+                long now = clock.ElapsedMilliseconds;
+                // A PC waking from sleep jumps a long way at once, and the ping waiting counts from then.
+                if (now - last > 5000) Interlocked.Exchange(ref sentAt, now);
+                last = now;
+                if (Debugger.IsAttached) continue;
+                long closing = Interlocked.Read(ref closingAt);
+                if (closing >= 0 && now - closing >= CloseFor)
+                {
+                    Noted("She was still closing " + (now - closing) / 1000 + " s after Quit, so she ended herself." + Where());
+                    Ended(false);
+                    return;
+                }
+                if (Volatile.Read(ref answered) == Volatile.Read(ref sent))
+                {
+                    if (frozeAt >= 0) Noted("Her window answered again after " + (now - frozeAt) / 1000 + " s.");
+                    frozeAt = -1;
+                    Ping(now);
+                    continue;
+                }
+                long stuck = now - Interlocked.Read(ref sentAt);
+                if (stuck >= LogAfter && frozeAt < 0)
+                {
+                    frozeAt = Interlocked.Read(ref sentAt);
+                    Func<string> doing = Doing;
+                    string what = doing == null ? "" : doing();
+                    Noted("Her window stopped answering for " + stuck / 1000 + " s" + (what.Length == 0 ? "." : ", " + what + ".") + Where());
+                }
+                if (stuck >= ReopenAfter && Reopened())
+                {
+                    // Opened again while stuck. A window that answers after all gets it back to show herself as usual.
+                    Stopwatch grace = Stopwatch.StartNew();
+                    while (grace.ElapsedMilliseconds < Grace && Volatile.Read(ref answered) != Volatile.Read(ref sent)) Thread.Sleep(50);
+                    if (Volatile.Read(ref answered) == Volatile.Read(ref sent)) { try { reopened.Set(); } catch (ObjectDisposedException) { } continue; }
+                    Noted("She was stuck for " + (clock.ElapsedMilliseconds - Interlocked.Read(ref sentAt)) / 1000 + " s and got opened again, so she ended herself for the new one.");
+                    Ended(false);
+                    return;
+                }
+                // A window that never answered at all is still starting, and starting again would only get stuck again.
+                if (stuck >= EndAfter && Volatile.Read(ref answered) > 0)
+                {
+                    bool again = MayRestart();
+                    Noted("Her window was stuck for " + stuck / 1000 + " s, so she " + (again ? "started again." : "closed. She froze twice in ten minutes, so she didn't start again."));
+                    Ended(again);
+                    return;
+                }
+            }
+        }
+
+        // Her window can be closed and the signal gone by the time a quit's last ping goes unanswered.
+        private bool Reopened()
+        {
+            try { return reopened != null && reopened.WaitOne(0); }
+            catch (ObjectDisposedException) { return false; }
+        }
+
+        // errors.txt is written on a thread of its own, so a stuck file can't hold up the rest.
+        private void Noted(string line)
+        {
+            Action<string> note = Note;
+            Thread writer = new Thread(delegate() { note(line); });
+            writer.IsBackground = true;
+            writer.Start();
+            writer.Join(2000);
+        }
+
+        private void Ended(bool again)
+        {
+            stopped = true;
+            Action<bool> end = End;
+            end(again);
+        }
+
+        // Where her UI thread is stuck, read by pausing it for a moment on a thread of its own. Empty if it can't be read.
+        private string Where()
+        {
+            StackTrace trace = null;
+            Thread reader = new Thread(delegate()
+            {
+                bool paused = false;
+#pragma warning disable 618
+                try
+                {
+                    ui.Suspend();
+                    paused = true;
+                    trace = new StackTrace(ui, false);
+                }
+                catch (Exception) { }
+                finally { if (paused) { try { ui.Resume(); } catch (Exception) { } } }
+#pragma warning restore 618
+            });
+            reader.IsBackground = true;
+            reader.Start();
+            if (!reader.Join(3000) || trace == null) return "";
+            // The two frames on top say what it waits on, and her own code under them says what asked.
+            System.Collections.Generic.List<string> frames = new System.Collections.Generic.List<string>();
+            int ours = 0;
+            for (int i = 0; i < trace.FrameCount && ours < 4; i++)
+            {
+                MethodBase method = trace.GetFrame(i).GetMethod();
+                if (method == null) continue;
+                Type type = method.DeclaringType;
+                bool mine = type != null && type.Namespace == typeof(Heartbeat).Namespace;
+                if (!mine && i >= 2) continue;
+                if (mine) ours++;
+                frames.Add((type == null ? "" : type.Name + ".") + method.Name);
+            }
+            return frames.Count == 0 ? "" : " Stuck at: " + string.Join(" < ", frames.ToArray());
+        }
+
+        private static bool MayRestart()
+        {
+            string was = Environment.GetEnvironmentVariable(Restarted);
+            long ticks;
+            return was == null || !long.TryParse(was, out ticks) || DateTime.UtcNow.Ticks - ticks > TimeSpan.FromMinutes(10).Ticks;
+        }
+
+        private static void Stop(bool again)
+        {
+            HerCursor.Off();
+            if (again)
+            {
+                try
+                {
+                    System.Collections.Generic.List<string> passed = new System.Collections.Generic.List<string>();
+                    string[] given = Environment.GetCommandLineArgs();
+                    for (int i = 1; i < given.Length; i++) passed.Add(given[i].IndexOf(' ') >= 0 ? "\"" + given[i] + "\"" : given[i]);
+                    ProcessStartInfo start = new ProcessStartInfo(Application.ExecutablePath, string.Join(" ", passed.ToArray())) { UseShellExecute = false };
+                    start.EnvironmentVariables[Restarted] = DateTime.UtcNow.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    Process.Start(start);
+                }
+                catch (Exception error) { Brain.Log("frozen", -1, "She couldn't start again: " + error.Message); }
+            }
+            Process.GetCurrentProcess().Kill();
+        }
+
+        // A second launch waits here for a stuck Capri to end herself, then takes her place. One that's fine keeps going, and
+        // this launch leaves her be.
+        internal static bool TakeOver(Mutex held)
+        {
+            try { return held.WaitOne(Handover); }
+            catch (AbandonedMutexException) { return true; }
         }
     }
 
@@ -1179,7 +1394,10 @@ namespace CapriDesktop
         private double outroAt;
         private bool dropAfter;
         private bool spawnFall;
-        private bool quitting;
+        private bool quitting, leavingForGood;
+        private Heartbeat heartbeat;
+        // When her last job ended, for the line a freeze leaves in errors.txt (Mika, 1 Nov: she freezes "after doing a task").
+        private int jobEndedAt = -1;
         private bool instant;
         private bool musicOn;
         private bool musicBusy;
@@ -1621,6 +1839,8 @@ namespace CapriDesktop
             }
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }));
+            menu.Opened += delegate { Computer.MenuOpen = true; };
+            menu.Closed += delegate { Computer.MenuOpen = false; };
             playerMenu = new ContextMenuStrip();
             playerMenu.Renderer = menu.Renderer;
             playerMenu.ForeColor = menu.ForeColor;
@@ -1806,6 +2026,7 @@ namespace CapriDesktop
                 SavePreferences();
                 FirstLaunch();
             }
+            if (!testing) StartHeartbeat();
             if (!testing) FindBrain();
             if (!testing) DefaultStartup(Installed());
             if (!testing) GreetSoon();
@@ -1854,7 +2075,7 @@ namespace CapriDesktop
             base.OnFormClosing(e);
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && e.CloseReason != CloseReason.WindowsShutDown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
-            if (!e.Cancel) { quitting = true; ClonesOff(); CheckKeepAwake(); Computer.Close(); }
+            if (!e.Cancel) { quitting = true; if (heartbeat != null) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); }
         }
 
         private void Tick()
@@ -4161,6 +4382,10 @@ namespace CapriDesktop
 
         private void GlitchOut(Action then, bool everywhere = true)
         {
+            // Once Quit has her leaving, nothing else takes over her way out. A hop, a move or hiding mid-leave used to replace
+            // the close, and Quit did nothing (Mika, 1 Nov: "QUITTING DOESNT WORK").
+            if (leavingForGood) return;
+            if (quitting) leavingForGood = true;
             if (instant || hidden || !IsHandleCreated || !preferences.Motion) { then(); return; }
             EndWalk();
             falling = false;
@@ -4176,7 +4401,27 @@ namespace CapriDesktop
             frames.Start();
         }
 
-        internal void Quit() { quitting = true; CheckKeepAwake(); GlitchOut(Close); }
+        internal void Quit() { quitting = true; if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); GlitchOut(Close); }
+
+        private void StartHeartbeat()
+        {
+            heartbeat = new Heartbeat(this, restore);
+            // Fields only: this is read on the heartbeat's thread while hers is stuck.
+            heartbeat.Doing = delegate
+            {
+                System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
+                Job running = job;
+                if (running != null) parts.Add(Computer.Streaming ? "on stream" : running.Playing ? "playing a game" : "on a job");
+                int ended = jobEndedAt;
+                if (running == null && ended != -1) parts.Add("her last job ended " + unchecked(Environment.TickCount - ended) / 1000 + " s before");
+                if (cloneWindow != null) parts.Add("clones out");
+                if (chatting) parts.Add(local ? "free voice chat on" : "voice chat on");
+                if (hidden) parts.Add("hidden");
+                if (quitting) parts.Add("quitting");
+                return string.Join(", ", parts.ToArray());
+            };
+            heartbeat.Start();
+        }
 
         private void Halt()
         {
@@ -6634,6 +6879,7 @@ namespace CapriDesktop
             {
                 // However it ended, a held button is let go and their mouse handed back.
                 Computer.Finish();
+                jobEndedAt = Environment.TickCount;
                 if (job == running && !running.Asking) job = null;
                 string outcome = running.Outcome ?? "failed";
                 Post(delegate { JobOff(running, outcome, result); });
@@ -10673,10 +10919,25 @@ namespace CapriDesktop
                 clonesShown.Swarm.Notes.Add(new CloneNote { X = 300, Y = 300, Text = "capri.exe has duplicated" });
                 clonesShown.Advance(clonesNow + 0.15);
                 clonesShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "clones.png"), ImageFormat.Png);
-                clonesShown.EscDown = delegate { return true; };
-                clonesShown.Advance(clonesNow + 0.2);
-                clonesShown.Advance(clonesNow + 0.3 + CloneWindow.EscHold);
-                if (cloneWindow != null || clonesShown.Visible) throw new Exception("Holding Esc didn't clear her clones.");
+                // Esc is read in real time on its own thread: a tap only says to hold it, and a hold clears hundreds of them on time.
+                bool clonesEsc = false;
+                clonesShown.EscDown = delegate { return clonesEsc; };
+                clonesEsc = true;
+                Stopwatch clonesTap = Stopwatch.StartNew();
+                while (clonesTap.ElapsedMilliseconds < 150) { Application.DoEvents(); Thread.Sleep(5); }
+                clonesEsc = false;
+                while (clonesTap.ElapsedMilliseconds < 400) { Application.DoEvents(); Thread.Sleep(5); }
+                clonesShown.Advance(clock.Elapsed.TotalSeconds);
+                if (cloneWindow != clonesShown || !clonesShown.Hinting) throw new Exception("Tapping Esc cleared her clones or didn't say to hold it.");
+                clonesShown.Spawn(400, new Point(clonesShown.Left + clonesShown.Width / 2, clonesShown.Top + clonesShown.Height / 2), false);
+                for (int clonesFill = 0; clonesFill < 200 && clonesShown.Swarm.Pending > 0; clonesFill++) clonesShown.Swarm.Tick(clock.Elapsed.TotalSeconds, 0, true, false, Point.Empty);
+                int clonesCrowd = clonesShown.Swarm.Bodies.Count;
+                clonesEsc = true;
+                Stopwatch clonesHeld = Stopwatch.StartNew();
+                while (cloneWindow != null && clonesHeld.ElapsedMilliseconds < 6000) { Application.DoEvents(); Thread.Sleep(5); }
+                long clonesTook = clonesHeld.ElapsedMilliseconds;
+                if (cloneWindow != null || clonesShown.Visible || clonesCrowd < 400 || clonesTook < CloneWindow.EscHold * 1000 - 100 || clonesTook > CloneWindow.EscHold * 1000 + 3000)
+                    throw new Exception("Holding Esc didn't clear " + clonesCrowd + " clones on time: " + clonesTook + " ms.");
                 if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
                 Func<string> upsetOpenWas = Computer.GameOpen;
                 try
@@ -10707,7 +10968,7 @@ namespace CapriDesktop
                     ClonesOff();
                 }
                 finally { Computer.GameOpen = upsetOpenWas; preferences.NoUpsetChaos = false; Computer.Streaming = false; working = null; hidden = false; ClonesOff(); }
-                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor, and holding Esc clears them; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
+                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor; Esc is read in real time, so a tap says to hold it and a 0.7 s hold clears 400 of them on time; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
                 napReset();
                 Play(sleep);
                 napping = true;
@@ -13305,6 +13566,134 @@ namespace CapriDesktop
                 Hearing.Run = listenHearingWas;
                 chatting = listenChatWas;
             }
+        }
+
+        // A stuck window goes in errors.txt with where it's stuck, and opening her again, a long freeze or a Quit that stalls
+        // ends her. Here the ending only counts, and her UI thread is held up on purpose.
+        private void SmokeHeartbeat(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<string> beatNotes = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<bool> beatEnds = new System.Collections.Generic.List<bool>();
+            Func<bool> beatSettled = delegate
+            {
+                Stopwatch beatWait = Stopwatch.StartNew();
+                while (beatWait.ElapsedMilliseconds < 3000)
+                {
+                    Application.DoEvents();
+                    Thread.Sleep(10);
+                    lock (beatNotes) if (beatNotes.Exists(line => line.StartsWith("Her window answered again", StringComparison.Ordinal))) return true;
+                }
+                return false;
+            };
+            using (EventWaitHandle beatOpened = new EventWaitHandle(false, EventResetMode.AutoReset))
+            {
+                Heartbeat stuckBeat = new Heartbeat(this, beatOpened) { LogAfter = 600 };
+                stuckBeat.Doing = delegate { return "on a job"; };
+                stuckBeat.Note = delegate(string line) { lock (beatNotes) beatNotes.Add(line); };
+                stuckBeat.End = delegate(bool again) { lock (beatEnds) beatEnds.Add(again); };
+                stuckBeat.Start();
+                Stopwatch beatWarm = Stopwatch.StartNew();
+                while (beatWarm.ElapsedMilliseconds < 600) { Application.DoEvents(); Thread.Sleep(10); }
+                Thread.Sleep(1600);
+                bool beatBack = beatSettled();
+                stuckBeat.Halt();
+                string beatStuck;
+                lock (beatNotes) beatStuck = beatNotes.Count == 0 ? "" : beatNotes[0];
+                if (!beatBack || !beatStuck.StartsWith("Her window stopped answering for ", StringComparison.Ordinal) || beatStuck.IndexOf(", on a job.", StringComparison.Ordinal) < 0 || beatEnds.Count != 0)
+                    throw new Exception("A stuck window wasn't written down once and then cleared: " + string.Join(" / ", beatNotes.ToArray()));
+                if (beatStuck.IndexOf("SmokeHeartbeat", StringComparison.Ordinal) < 0) throw new Exception("A stuck window's line didn't say where it was stuck: " + beatStuck);
+
+                beatNotes.Clear();
+                Heartbeat reopenBeat = new Heartbeat(this, beatOpened) { ReopenAfter = 300, Grace = 500 };
+                reopenBeat.Note = stuckBeat.Note;
+                reopenBeat.End = stuckBeat.End;
+                reopenBeat.Start();
+                beatWarm.Restart();
+                while (beatWarm.ElapsedMilliseconds < 600) { Application.DoEvents(); Thread.Sleep(10); }
+                beatOpened.Set();
+                Thread.Sleep(2500);
+                bool reopenEnded;
+                lock (beatEnds) reopenEnded = beatEnds.Count == 1 && !beatEnds[0];
+                if (!reopenEnded || beatOpened.WaitOne(0)) throw new Exception("Opening her again while stuck didn't end her for the new one: " + string.Join(" / ", beatNotes.ToArray()));
+
+                beatEnds.Clear();
+                Heartbeat fineBeat = new Heartbeat(this, beatOpened) { ReopenAfter = 300, Grace = 500 };
+                fineBeat.Note = stuckBeat.Note;
+                fineBeat.End = stuckBeat.End;
+                fineBeat.Start();
+                beatOpened.Set();
+                beatWarm.Restart();
+                while (beatWarm.ElapsedMilliseconds < 1500) { Application.DoEvents(); Thread.Sleep(10); }
+                fineBeat.Halt();
+                if (beatEnds.Count != 0 || !beatOpened.WaitOne(0)) throw new Exception("Opening her again while she was fine ended her or ate the signal to show herself.");
+
+                Heartbeat longBeat = new Heartbeat(this, beatOpened) { EndAfter = 800 };
+                longBeat.Note = stuckBeat.Note;
+                longBeat.End = stuckBeat.End;
+                longBeat.Start();
+                beatWarm.Restart();
+                while (beatWarm.ElapsedMilliseconds < 600) { Application.DoEvents(); Thread.Sleep(10); }
+                Thread.Sleep(2000);
+                bool longEnded;
+                lock (beatEnds) longEnded = beatEnds.Count == 1 && beatEnds[0];
+                if (!longEnded) throw new Exception("A long freeze didn't end her and start her again: " + string.Join(" / ", beatNotes.ToArray()));
+
+                beatEnds.Clear();
+                Heartbeat quitBeat = new Heartbeat(this, beatOpened) { CloseFor = 300 };
+                quitBeat.Note = stuckBeat.Note;
+                quitBeat.End = stuckBeat.End;
+                quitBeat.Start();
+                quitBeat.Closing();
+                beatWarm.Restart();
+                while (beatWarm.ElapsedMilliseconds < 1200) { Application.DoEvents(); Thread.Sleep(10); }
+                bool quitEnded;
+                lock (beatEnds) quitEnded = beatEnds.Count == 1 && !beatEnds[0];
+                if (!quitEnded) throw new Exception("A Quit that stalled didn't end her.");
+            }
+            checks.Add("PASS a stuck window: 10 s stuck goes in errors.txt with what she was doing and where her code is stuck, and the line after says when it answered; stuck and opened again, she ends herself for the new one, and fine she shows herself as usual; a minute stuck ends her and starts her again; Quit that stalls ends her");
+        }
+
+        // Her hands wait while her menu is open, so Quit can be clicked mid-job, and her UI thread never waits on it.
+        private static void SmokeMenuWait(System.Collections.Generic.List<string> checks)
+        {
+            Computer.Arm();
+            try
+            {
+                Computer.MenuOpen = true;
+                Stopwatch menuUi = Stopwatch.StartNew();
+                Computer.MenuWait();
+                long menuUiTook = menuUi.ElapsedMilliseconds;
+                using (ManualResetEvent menuDone = new ManualResetEvent(false))
+                {
+                    Thread menuHands = new Thread(delegate() { Computer.MenuWait(); menuDone.Set(); }) { IsBackground = true };
+                    menuHands.Start();
+                    bool menuHeld = !menuDone.WaitOne(400);
+                    Computer.MenuOpen = false;
+                    bool menuLet = menuDone.WaitOne(1000);
+                    if (menuUiTook > 100 || !menuHeld || !menuLet) throw new Exception("Her hands didn't wait for her menu, or her UI thread did: " + menuUiTook + " ms, held " + menuHeld + ", let go " + menuLet + ".");
+                }
+            }
+            finally { Computer.MenuOpen = false; }
+            checks.Add("PASS her hands wait while her right-click or tray menu is open, so Quit can be clicked mid-job, and her UI thread never waits on it");
+        }
+
+        // Over a game she gives way with everything but her window's thread, which stays level with the game's.
+        private static void SmokeGivingWay(System.Collections.Generic.List<string> checks)
+        {
+            try
+            {
+                Native.Lower(true);
+                ProcessPriorityClass wayClass;
+                using (Process wayOwn = Process.GetCurrentProcess()) wayClass = wayOwn.PriorityClass;
+                ThreadPriority wayThread = Thread.CurrentThread.Priority;
+                Native.Lower(false);
+                ProcessPriorityClass backClass;
+                using (Process backOwn = Process.GetCurrentProcess()) backClass = backOwn.PriorityClass;
+                if (wayClass != ProcessPriorityClass.BelowNormal || wayThread != ThreadPriority.Highest || backClass != ProcessPriorityClass.Normal || Thread.CurrentThread.Priority != ThreadPriority.Normal)
+                    throw new Exception("Over a game her window's thread didn't stay level with it: " + wayClass + " / " + wayThread + ", then " + backClass + " / " + Thread.CurrentThread.Priority + ".");
+            }
+            finally { Native.Lower(false); }
+            checks.Add("PASS over a game she gives way below normal, but her window's thread stays level with the game's, so a game on every core can't freeze her");
         }
 
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
@@ -17587,6 +17976,9 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
                             Section(checks, delegate { SmokeClips(checks); });
+                            Section(checks, delegate { SmokeHeartbeat(checks); });
+                            Section(checks, delegate { SmokeMenuWait(checks); });
+                            Section(checks, delegate { SmokeGivingWay(checks); });
                             Section(checks, delegate { SmokeListen(checks); });
                             Section(checks, delegate { SmokeTalkLogic(checks); });
                             Section(checks, delegate { SmokeTalkSettings(checks); });
@@ -23371,6 +23763,19 @@ namespace CapriDesktop
                                         if (!mainframe.TextStatus.Contains(panelBrain.Name + " · " + panelBrain.Model) || !mainframe.TextStatus.Contains("Using your " + panelBrain.Company + " key") || !mainframe.TextStatus.EndsWith("Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("A new provider's BRAIN label, key box or note didn't fit.");
                                     }
                                     checks.Add("PASS BRAIN offers Gemini and OpenRouter under Cloud API keys with readable provider names and fitting tier labels and notes");
+                                    // OpenRouter's hundreds of models go in at once, and showing the same list again only moves the tick.
+                                    System.Collections.Generic.List<string> routerModels = new System.Collections.Generic.List<string>();
+                                    for (int routerIndex = 0; routerIndex < 400; routerIndex++) routerModels.Add("vendor/model-" + routerIndex);
+                                    Cloud routerBrain = new Cloud("sk-or-test", "vendor/model-0");
+                                    Stopwatch routerTime = Stopwatch.StartNew();
+                                    mainframe.ShowCloud(routerBrain, routerModels);
+                                    routerBrain.Model = "vendor/model-7";
+                                    mainframe.ShowCloud(routerBrain, routerModels);
+                                    long routerTook = routerTime.ElapsedMilliseconds;
+                                    string routerMenu = mainframe.ModelChoices;
+                                    if (mainframe.BrainChoices.Length != 400 || routerMenu.IndexOf("vendor/model-7 (picked)", StringComparison.Ordinal) < 0 || routerMenu.IndexOf("vendor/model-0 (picked)", StringComparison.Ordinal) >= 0 || routerTook > 3000)
+                                        throw new Exception("A long model list didn't go into her menu at once or move its tick: " + mainframe.BrainChoices.Length + " models, " + routerTook + " ms.");
+                                    checks.Add("PASS a model list of hundreds goes into her model menu at once, and showing the same list again only moves the tick");
                                     mainframe.ShowCloud(new Cloud("sk-ant-test", "claude-opus-5-5"), claudeModels);
                                     mainframe.ShowTiers(2, null, "test");
                                     if (mainframe.TextStatus != "tier 2 | Claude · claude-opus-5-5 | Using your Anthropic key | Key saved, ends test | Forget" || !mainframe.TiersFit) throw new Exception("The Mainframe did not show the API brain: " + mainframe.TextStatus);
@@ -30257,6 +30662,11 @@ namespace CapriDesktop
             try { using (Process own = Process.GetCurrentProcess()) own.PriorityClass = game ? ProcessPriorityClass.BelowNormal : ProcessPriorityClass.Normal; }
             catch (System.ComponentModel.Win32Exception) { }
             catch (InvalidOperationException) { }
+            // Her window's thread stays level with the game's, so only her other work gives way to it. Below it, a game that uses
+            // every core left her window almost no time, and she froze on screen and couldn't be quit (Mika, one stick of RAM,
+            // 1 Nov: she freezes "after doing a task").
+            try { Thread.CurrentThread.Priority = game ? ThreadPriority.Highest : ThreadPriority.Normal; }
+            catch (ThreadStateException) { }
         }
 
         private static Guid displayState = new Guid("6FE69556-704A-47A0-8F24-C28D936FDA47");
