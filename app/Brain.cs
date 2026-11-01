@@ -304,7 +304,8 @@ namespace CapriDesktop
         internal static string KindOf(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
-            if (key.StartsWith("AIza", StringComparison.Ordinal)) return "google";
+            // Google AI Studio gives out keys that start AQ. now (Senshy, Echo, ALASTOR and lluvia.flac, 1 Nov).
+            if (key.StartsWith("AIza", StringComparison.Ordinal) || key.StartsWith("AQ.", StringComparison.Ordinal)) return "google";
             if (key.StartsWith("sk-or-", StringComparison.Ordinal)) return "openrouter";
             if (key.StartsWith("sk-nous-", StringComparison.Ordinal)) return null;
             if (key.StartsWith("sk-ant-", StringComparison.Ordinal)) return "anthropic";
@@ -1309,6 +1310,7 @@ namespace CapriDesktop
                 if (error.Response != null)
                 {
                     BrainException failure = Problem(error, true);
+                    if (OtherDoor(key, failure)) return CloudModels(key);
                     if (failure.Message == Gone) throw new BrainException(Cloud.CompanyOf(kind) + " couldn't find its model list. Try Refresh.", true);
                     throw failure;
                 }
@@ -1444,10 +1446,23 @@ namespace CapriDesktop
             return models[0];
         }
 
+        // Some of Google's AQ. keys get turned away as a Bearer token, and x-goog-api-key is their other way in: one try, then it's kept.
+        private static readonly HashSet<string> headerKeys = new HashSet<string>();
+
+        private static bool OtherDoor(string key, BrainException error)
+        {
+            if (key == null || !key.StartsWith("AQ.", StringComparison.Ordinal) || (error.Status != 400 && error.Status != 401 && error.Status != 403)) return false;
+            if (!Regex.IsMatch(error.Detail ?? "", @"credential|authenticat|ACCESS_TOKEN|API key", RegexOptions.IgnoreCase)) return false;
+            lock (headerKeys) return headerKeys.Add(key);
+        }
+
         private static void Sign(HttpWebRequest request, string key, bool claude)
         {
             request.AllowAutoRedirect = false;
             if (Cloud.KindOf(key) == "openrouter") request.Headers["X-Title"] = "Capri";
+            bool headerKey;
+            lock (headerKeys) headerKey = headerKeys.Contains(key);
+            if (headerKey) { request.Headers["x-goog-api-key"] = key; return; }
             if (!claude) { request.Headers["Authorization"] = "Bearer " + key; return; }
             request.Headers["x-api-key"] = key;
             request.Headers["anthropic-version"] = "2026-10-21";
@@ -2026,6 +2041,7 @@ namespace CapriDesktop
                         body.Stream = false;
                         reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
                     }
+                    else if (OtherDoor(remote.Key, error)) reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
                     else
                     {
                         // A model that turns down its reasoning_effort, like gpt-6-luna with tools, gets the value its error names, once, and keeps it.
@@ -3016,7 +3032,7 @@ namespace CapriDesktop
 
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza)[A-Za-z0-9_-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza)[A-Za-z0-9_-]+|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
             return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token)[""']?\s*[:=]\s*[""']?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
         }
 

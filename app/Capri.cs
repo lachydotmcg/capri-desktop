@@ -16133,7 +16133,7 @@ namespace CapriDesktop
 
         private static void SmokeCloudBrains(System.Collections.Generic.List<string> checks)
         {
-            if (Cloud.KindOf("AIza-test") != "google" || Cloud.KindOf("sk-or-test") != "openrouter" || Cloud.KindOf("sk-nous-test") != null || Cloud.KindOf(null) != null || Cloud.KindOf("sk-proj-test") != "openai") throw new Exception("New brain keys reached the wrong provider.");
+            if (Cloud.KindOf("AIza-test") != "google" || Cloud.KindOf("AQ.Ab8-test") != "google" || Cloud.KindOf("sk-or-test") != "openrouter" || Cloud.KindOf("sk-nous-test") != null || Cloud.KindOf(null) != null || Cloud.KindOf("sk-proj-test") != "openai") throw new Exception("New brain keys reached the wrong provider.");
             if (Brain.Address("google", "/models") != "https://generativelanguage.googleapis.com/v1beta/openai/models" || Brain.Address("openrouter", "/chat/completions") != "https://openrouter.ai/api/v1/chat/completions") throw new Exception("A new brain has the wrong address.");
             bool unknownAddress = false;
             try { Brain.Address(null, "/models"); } catch (BrainException) { unknownAddress = true; }
@@ -16208,6 +16208,31 @@ namespace CapriDesktop
                 Brain.Google = savedGoogle; Brain.OpenRouter = savedRouter;
                 if (googleFake != null) googleFake.Stop();
                 if (routerFake != null) routerFake.Stop();
+            }
+            // A key Google turns away as a Bearer token gets its other way in, once, for the model list and for chat.
+            System.Net.Sockets.TcpListener doorFake = null;
+            try
+            {
+                System.Collections.Generic.List<string> doorAsked = new System.Collections.Generic.List<string>();
+                string twoKeys = "!400 {\"error\":{\"message\":\"Multiple authentication credentials received. Please pass only one.\",\"status\":\"INVALID_ARGUMENT\"}}";
+                Brain.Google = FakeServer(new[] { twoKeys, googleCatalog, googleCatalog, twoKeys, LocalReply("Through the other door.") }, doorAsked, out doorFake) + "/v1beta/openai";
+                Brain.CloudModels("AQ.list-test");
+                Brain.CloudModels("AQ.chat-test");
+                Brain doorBrain = new Brain { Remote = new Cloud("AQ.chat-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
+                string doorReply = doorBrain.Ask("Hello");
+                string[] doorSent;
+                lock (doorAsked) doorSent = doorAsked.ToArray();
+                bool doorRight = doorReply == "Through the other door." && doorSent.Length == 5 && doorSent[0].Contains("Authorization: Bearer AQ.list-test") && doorSent[1].Contains("x-goog-api-key: AQ.list-test") && !doorSent[1].Contains("Authorization:")
+                    && doorSent[3].Contains("Authorization: Bearer AQ.chat-test") && doorSent[4].Contains("x-goog-api-key: AQ.chat-test") && !doorSent[4].Contains("Authorization:");
+                if (!doorRight) throw new Exception("A Gemini AQ. key didn't get Google's other way in: " + doorReply + " / " + doorSent.Length + " requests");
+                if (Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e") != "bad key [redacted]") throw new Exception("An AQ. key wasn't redacted: " + Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e"));
+                checks.Add("PASS Gemini keys that start AQ. connect, stay out of her logs, and one Google turns away as a Bearer token goes in as x-goog-api-key, once, for the model list and chat");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT Gemini AQ. keys: loopback sockets unavailable"); }
+            finally
+            {
+                Brain.Google = savedGoogle;
+                if (doorFake != null) doorFake.Stop();
             }
             int checkedLimits = 0;
             foreach (string limitedKey in new[] { "AIza-test", "sk-or-test" })

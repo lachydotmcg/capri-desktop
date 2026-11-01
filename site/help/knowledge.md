@@ -639,7 +639,7 @@ Mainframe > Settings > BRAIN > Replies chooses Short, Medium or Long. Max reply 
 Auto follows Replies. Picking a bigger Max reply doesn't make every answer long; ask for the detail you want too. Jobs keep extra room when they need it. Bubble changes how long the words stay up, not how much she says.
 
 ### Gemini and OpenRouter keys
-Paste a Gemini or OpenRouter key into the same brain key box as the others.
+Paste a Gemini or OpenRouter key into the same brain key box as the others. Gemini keys from Google AI Studio start with AQ. or AIza, and both work (AQ. keys need Capri 0.7.9 or newer).
 
 ---
 
