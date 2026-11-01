@@ -3037,7 +3037,8 @@ namespace CapriDesktop
         {
             if (IsDisposed) return;
             Ledges.Invalidate();
-            BeginInvoke((Action)delegate { if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); });
+            // Her clones' room was the old screen, so they go, and the windows they had go back if their spots are still on a screen.
+            BeginInvoke((Action)delegate { if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); if (cloneWindow != null) ClonesOff(); });
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -10939,73 +10940,6 @@ namespace CapriDesktop
                 if (cloneWindow != null || clonesShown.Visible || clonesCrowd < 400 || clonesTook < CloneWindow.EscHold * 1000 - 100 || clonesTook > CloneWindow.EscHold * 1000 + 3000)
                     throw new Exception("Holding Esc didn't clear " + clonesCrowd + " clones on time: " + clonesTook + " ms.");
                 if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
-                Swarm haulRun = new Swarm(1200, 800, 9, 0);
-                haulRun.Pending = 3;
-                haulRun.SpawnX = 200;
-                haulRun.SpawnY = 600;
-                int haulOffers = 0;
-                haulRun.Windows = delegate { haulOffers++; return new System.Collections.Generic.List<CloneHaul> { new CloneHaul { Window = new IntPtr(42), X = 600, Y = 200, Width = 420, Height = 300 } }; };
-                double haulFarthest = 0;
-                bool haulStrayed = false, haulTalked = false;
-                for (int haulStep = 1; haulStep <= 400; haulStep++)
-                {
-                    haulRun.Tick(haulStep * 0.1, 0.1, true, false, Point.Empty, true);
-                    foreach (CloneHaul haulHeld in haulRun.Hauls)
-                    {
-                        haulTalked |= haulHeld.By.Line != null;
-                        if (!haulHeld.Holding) continue;
-                        haulFarthest = Math.Max(haulFarthest, Math.Abs(haulHeld.X - 600) + Math.Abs(haulHeld.Y - 200));
-                        haulStrayed |= haulHeld.Y < 0 || haulHeld.Y > 800 - 140 + 4 || haulHeld.X < -141 || haulHeld.X > 1200 - 280 + 1;
-                    }
-                }
-                if (haulOffers < 2 || haulFarthest < 150 || haulStrayed || !haulTalked) throw new Exception("Her clones didn't haul windows around her screen properly: " + haulOffers + " grabs, " + (int)haulFarthest + " px at most, strayed " + haulStrayed + ", talked " + haulTalked);
-                haulRun.HaulAt = 0;
-                for (int haulStep = 401; haulStep <= 460 && !haulRun.Hauls.Exists(delegate(CloneHaul haulOne) { return haulOne.Holding; }); haulStep++) haulRun.Tick(haulStep * 0.1, 0.1, true, false, Point.Empty, true);
-                bool haulHadOne = haulRun.Hauls.Count > 0;
-                haulRun.Tick(46.1, 0.1, true, false, Point.Empty, false);
-                if (!haulHadOne || haulRun.Hauls.Count != 0 || haulRun.Bodies.Exists(delegate(CloneBody haulBody) { return haulBody.Hauling != null; })) throw new Exception("Her clones didn't let go of a window when the mouse went down.");
-                using (Form haulTarget = new Form())
-                {
-                    Rectangle haulScreen = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).Bounds;
-                    haulTarget.Text = "Capri haul check";
-                    haulTarget.ShowInTaskbar = false;
-                    haulTarget.StartPosition = FormStartPosition.Manual;
-                    haulTarget.Bounds = new Rectangle(Math.Max(haulScreen.Left + 10, Math.Min(haulScreen.Right - 530, anchor.X + Width / 2 - 260)), Math.Max(haulScreen.Top + 10, Math.Min(haulScreen.Bottom - 370, anchor.Y + Height / 2 - 200)), 520, 360);
-                    haulTarget.Show();
-                    Point haulHome = haulTarget.Location;
-                    int haulOwn;
-                    using (Process haulSelf = Process.GetCurrentProcess()) haulOwn = haulSelf.Id;
-                    bool haulListed = Ledges.Haulable(-1).Exists(delegate(System.Collections.Generic.KeyValuePair<IntPtr, Rectangle> haulSeen) { return haulSeen.Key == haulTarget.Handle; });
-                    bool haulOwnSkipped = !Ledges.Haulable(haulOwn).Exists(delegate(System.Collections.Generic.KeyValuePair<IntPtr, Rectangle> haulMine) { return haulMine.Key == haulTarget.Handle; });
-                    Clone("spawn", 3);
-                    CloneWindow haulShown = cloneWindow;
-                    Func<string> haulGameWas = Computer.GameOpen;
-                    System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>> haulOverGame;
-                    try
-                    {
-                        Computer.GameOpen = delegate { return "Roblox"; };
-                        haulOverGame = haulShown.Grabbable();
-                    }
-                    finally { Computer.GameOpen = haulGameWas; }
-                    haulShown.HandsFree = delegate { return true; };
-                    haulShown.Mousing = delegate { return false; };
-                    haulShown.Grabbable = delegate
-                    {
-                        Rectangle haulFrame;
-                        return Ledges.Haulable(haulTarget.Handle, out haulFrame) ? new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>> { new System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>(haulTarget.Handle, haulFrame) } : null;
-                    };
-                    double haulNow = clock.Elapsed.TotalSeconds + 1;
-                    int haulMoved = 0;
-                    for (int haulTick = 0; haulTick < 60 && haulMoved < 120; haulTick++)
-                    {
-                        if (haulShown.Swarm.Hauls.Count == 0) haulShown.Swarm.HaulAt = 0;
-                        haulShown.Advance(haulNow + haulTick * 0.1);
-                        haulMoved = Math.Abs(haulTarget.Left - haulHome.X) + Math.Abs(haulTarget.Top - haulHome.Y);
-                    }
-                    ClonesOff();
-                    Point haulAfter = haulTarget.Location;
-                    if (haulOverGame != null || !haulListed || !haulOwnSkipped || haulMoved < 120 || haulAfter != haulHome) throw new Exception("Her clones didn't grab a window and put it back: over a game " + (haulOverGame != null) + ", listed " + haulListed + ", own skipped " + haulOwnSkipped + ", moved " + haulMoved + " px, back at " + haulAfter + " from " + haulHome);
-                }
                 Func<string> upsetOpenWas = Computer.GameOpen;
                 try
                 {
@@ -11036,7 +10970,6 @@ namespace CapriDesktop
                 }
                 finally { Computer.GameOpen = upsetOpenWas; preferences.NoUpsetChaos = false; Computer.Streaming = false; working = null; hidden = false; ClonesOff(); }
                 checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor; Esc is read in real time, so a tap says to hold it and a 0.7 s hold clears 400 of them on time; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
-                checks.Add("PASS clones grab windows: one runs to a window's title bar, says a line and drags it across her screen with its top kept on screen, lets go when the mouse goes down, skips her own windows and every window while a game is open, and putting them away puts the window back");
                 napReset();
                 Play(sleep);
                 napping = true;
@@ -11349,6 +11282,102 @@ namespace CapriDesktop
                     checks.Add("PASS OCR reads a 12 px monospace HUD, white with a dark shadow on noise, after sharpening at scale 4: " + readHud);
                 }
             }
+        }
+
+        // Her clones and your windows (lance, 1 Nov: chaos mode "need more... OUMF"). A section of its own, since it needs a real
+        // window on a real screen, and a problem there mustn't leave the checks after it in a muddle.
+        private void SmokeHaul(System.Collections.Generic.List<string> checks)
+        {
+            Swarm haulRun = new Swarm(1200, 800, 9, 0);
+            haulRun.Pending = 3;
+            haulRun.SpawnX = 200;
+            haulRun.SpawnY = 600;
+            int haulOffers = 0;
+            haulRun.Windows = delegate { haulOffers++; return new System.Collections.Generic.List<CloneHaul> { new CloneHaul { Window = new IntPtr(42), X = 600, Y = 200, Width = 420, Height = 300 } }; };
+            double haulFarthest = 0;
+            bool haulStrayed = false, haulTalked = false;
+            for (int haulStep = 1; haulStep <= 400; haulStep++)
+            {
+                haulRun.Tick(haulStep * 0.1, 0.1, true, false, Point.Empty, true);
+                foreach (CloneHaul haulHeld in haulRun.Hauls)
+                {
+                    haulTalked |= haulHeld.By.Line != null;
+                    if (!haulHeld.Holding) continue;
+                    haulFarthest = Math.Max(haulFarthest, Math.Abs(haulHeld.X - 600) + Math.Abs(haulHeld.Y - 200));
+                    haulStrayed |= haulHeld.Y < 0 || haulHeld.Y > 800 - 140 + 4 || haulHeld.X < -141 || haulHeld.X > 1200 - 280 + 1;
+                }
+            }
+            if (haulOffers < 2 || haulFarthest < 150 || haulStrayed || !haulTalked) throw new Exception("Her clones didn't haul windows around her screen properly: " + haulOffers + " grabs, " + (int)haulFarthest + " px at most, strayed " + haulStrayed + ", talked " + haulTalked);
+            haulRun.HaulAt = 0;
+            for (int haulStep = 401; haulStep <= 460 && !haulRun.Hauls.Exists(delegate(CloneHaul haulOne) { return haulOne.Holding; }); haulStep++) haulRun.Tick(haulStep * 0.1, 0.1, true, false, Point.Empty, true);
+            bool haulHadOne = haulRun.Hauls.Count > 0;
+            haulRun.Tick(46.1, 0.1, true, false, Point.Empty, false);
+            if (!haulHadOne || haulRun.Hauls.Count != 0 || haulRun.Bodies.Exists(delegate(CloneBody haulBody) { return haulBody.Hauling != null; })) throw new Exception("Her clones didn't let go of a window when the mouse went down.");
+            Swarm haulLow = new Swarm(1200, 800, 9, 0);
+            haulLow.WorkTop = 60;
+            haulLow.WorkBottom = 700;
+            haulLow.Pending = 3;
+            haulLow.SpawnX = 200;
+            haulLow.SpawnY = 600;
+            haulLow.Windows = delegate { return new System.Collections.Generic.List<CloneHaul> { new CloneHaul { Window = new IntPtr(42), X = 600, Y = 200, Width = 420, Height = 300, Keep = 210 } }; };
+            bool haulUnder = false;
+            for (int haulStep = 1; haulStep <= 400; haulStep++)
+            {
+                haulLow.Tick(haulStep * 0.1, 0.1, true, false, Point.Empty, true);
+                foreach (CloneHaul haulHeld in haulLow.Hauls) if (haulHeld.Holding) haulUnder |= haulHeld.Y < 60 || haulHeld.Y > 700 - 210 + 4;
+            }
+            if (haulUnder) throw new Exception("Her clones dragged a window's top under the taskbar, or less of it on a scaled screen than it keeps.");
+            int haulOwn;
+            using (Process haulSelf = Process.GetCurrentProcess()) haulOwn = haulSelf.Id;
+            for (int haulRound = 0; haulRound < 2; haulRound++)
+            {
+                // The second time it's minimised before they're put away, and comes back where it was when it's restored.
+                bool haulFolded = haulRound == 1;
+                using (Form haulTarget = new Form())
+                {
+                    Rectangle haulScreen = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+                    haulTarget.Text = "Capri haul check";
+                    haulTarget.StartPosition = FormStartPosition.Manual;
+                    haulTarget.Bounds = new Rectangle(Math.Max(haulScreen.Left + 10, Math.Min(haulScreen.Right - 530, anchor.X + Width / 2 - 260)), Math.Max(haulScreen.Top + 10, Math.Min(haulScreen.Bottom - 370, anchor.Y + Height / 2 - 200)), 520, 360);
+                    haulTarget.Show();
+                    Application.DoEvents();
+                    Point haulHome = haulTarget.Location;
+                    bool haulListed = Ledges.Haulable(-1).Exists(delegate(System.Collections.Generic.KeyValuePair<IntPtr, Rectangle> haulSeen) { return haulSeen.Key == haulTarget.Handle; });
+                    bool haulOwnSkipped = !Ledges.Haulable(haulOwn).Exists(delegate(System.Collections.Generic.KeyValuePair<IntPtr, Rectangle> haulMine) { return haulMine.Key == haulTarget.Handle; });
+                    Func<string> haulGameWas = Computer.GameOpen;
+                    System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>> haulOverGame = null;
+                    int haulMoved = 0;
+                    try
+                    {
+                        Clone("spawn", 3);
+                        CloneWindow haulShown = cloneWindow;
+                        Computer.GameOpen = delegate { return "Roblox"; };
+                        haulOverGame = haulShown.Grabbable();
+                        Computer.GameOpen = haulGameWas;
+                        haulShown.HandsFree = delegate { return true; };
+                        haulShown.Mousing = delegate { return false; };
+                        haulShown.Allowed = delegate { return true; };
+                        haulShown.Grabbable = delegate
+                        {
+                            Rectangle haulFrame;
+                            return Ledges.Haulable(haulTarget.Handle, out haulFrame) ? new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>> { new System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>(haulTarget.Handle, haulFrame) } : null;
+                        };
+                        double haulNow = clock.Elapsed.TotalSeconds + 1;
+                        for (int haulTick = 0; haulTick < 60 && haulMoved < 120; haulTick++)
+                        {
+                            if (haulShown.Swarm.Hauls.Count == 0) haulShown.Swarm.HaulAt = 0;
+                            haulShown.Advance(haulNow + haulTick * 0.1);
+                            haulMoved = Math.Abs(haulTarget.Left - haulHome.X) + Math.Abs(haulTarget.Top - haulHome.Y);
+                        }
+                        if (haulFolded) { haulTarget.WindowState = FormWindowState.Minimized; Application.DoEvents(); }
+                    }
+                    finally { Computer.GameOpen = haulGameWas; ClonesOff(); }
+                    if (haulFolded) { haulTarget.WindowState = FormWindowState.Normal; Application.DoEvents(); }
+                    Point haulAfter = haulTarget.Location;
+                    if (haulOverGame != null || !haulListed || !haulOwnSkipped || haulMoved < 120 || haulAfter != haulHome) throw new Exception("Her clones didn't grab a window and put it back" + (haulFolded ? " after it was minimised" : "") + ": over a game " + (haulOverGame != null) + ", listed " + haulListed + ", own skipped " + haulOwnSkipped + ", moved " + haulMoved + " px, back at " + haulAfter + " from " + haulHome);
+                }
+            }
+            checks.Add("PASS clones grab windows: one runs to a window's title bar, says a line and drags it across her screen with its top kept on screen and clear of the taskbar, lets go when the mouse goes down, skips her own windows and every window while a game is open, and putting them away puts the window back, even one minimised since");
         }
 
         private static void SmokeGameKeys(System.Collections.Generic.List<string> checks)
@@ -18047,6 +18076,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeHeartbeat(checks); });
                             Section(checks, delegate { SmokeMenuWait(checks); });
                             Section(checks, delegate { SmokeGivingWay(checks); });
+                            Section(checks, delegate { SmokeHaul(checks); });
                             Section(checks, delegate { SmokeListen(checks); });
                             Section(checks, delegate { SmokeTalkLogic(checks); });
                             Section(checks, delegate { SmokeTalkSettings(checks); });
