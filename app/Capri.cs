@@ -23763,6 +23763,19 @@ namespace CapriDesktop
                                         if (!mainframe.TextStatus.Contains(panelBrain.Name + " · " + panelBrain.Model) || !mainframe.TextStatus.Contains("Using your " + panelBrain.Company + " key") || !mainframe.TextStatus.EndsWith("Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("A new provider's BRAIN label, key box or note didn't fit.");
                                     }
                                     checks.Add("PASS BRAIN offers Gemini and OpenRouter under Cloud API keys with readable provider names and fitting tier labels and notes");
+                                    // OpenRouter's hundreds of models go in at once, and showing the same list again only moves the tick.
+                                    System.Collections.Generic.List<string> routerModels = new System.Collections.Generic.List<string>();
+                                    for (int routerIndex = 0; routerIndex < 400; routerIndex++) routerModels.Add("vendor/model-" + routerIndex);
+                                    Cloud routerBrain = new Cloud("sk-or-test", "vendor/model-0");
+                                    Stopwatch routerTime = Stopwatch.StartNew();
+                                    mainframe.ShowCloud(routerBrain, routerModels);
+                                    routerBrain.Model = "vendor/model-7";
+                                    mainframe.ShowCloud(routerBrain, routerModels);
+                                    long routerTook = routerTime.ElapsedMilliseconds;
+                                    string routerMenu = mainframe.ModelChoices;
+                                    if (mainframe.BrainChoices.Length != 400 || routerMenu.IndexOf("vendor/model-7 (picked)", StringComparison.Ordinal) < 0 || routerMenu.IndexOf("vendor/model-0 (picked)", StringComparison.Ordinal) >= 0 || routerTook > 3000)
+                                        throw new Exception("A long model list didn't go into her menu at once or move its tick: " + mainframe.BrainChoices.Length + " models, " + routerTook + " ms.");
+                                    checks.Add("PASS a model list of hundreds goes into her model menu at once, and showing the same list again only moves the tick");
                                     mainframe.ShowCloud(new Cloud("sk-ant-test", "claude-opus-5-5"), claudeModels);
                                     mainframe.ShowTiers(2, null, "test");
                                     if (mainframe.TextStatus != "tier 2 | Claude · claude-opus-5-5 | Using your Anthropic key | Key saved, ends test | Forget" || !mainframe.TiersFit) throw new Exception("The Mainframe did not show the API brain: " + mainframe.TextStatus);
