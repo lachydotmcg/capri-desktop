@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.7.8 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.7.9 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
@@ -409,7 +409,7 @@ BRAIN
 
 HABITS
 - Start with Windows: on by default. She starts when you sign in to Windows.
-- Show on Discord: on by default. While Discord is open on the same PC, your Discord profile shows "Playing Capri" with what she's doing in a few plain words (Hanging out, Chatting, Voice chatting, Dancing to music, On a job, Asleep or Taking a break), how long she's been running, and Get Capri and Join her Discord buttons. Song names and what her jobs are about never show.
+- Show on Discord: on by default. While Discord is open on the same PC, your Discord profile shows "Playing Capri" with what she's doing in a few plain words (Plugged in, Chatting, Voice chatting, Dancing to music, Using the computer, Playing a game, Streaming, Multiplying, Asleep or Taking a break), a moving picture of her that matches, how long she's been running, and Get Capri and Join her Discord buttons. While she's cloned, it counts how many of her there are. Song names, game names and what her jobs are about never show.
 - Use her cursor: on by default. She does music and video jobs with her own cursor, so you can watch her: to play a YouTube video she types in YouTube's search bar, scrolls through the results and picks one; to play a song she searches Spotify and presses play; when you ask to turn Spotify up or down she drags Spotify's volume slider (plain "turn it up" changes your PC's volume). Turn it off for the quick way (straight to the top result, Windows volume). If her brain gets lost on the way, she does it the quick way.
 - Security (0.7.6 and newer, where Blackwall mode was): the button says which preset you're on, like "Security: Trusted", and the line under it says what that means ("She asks before paying or what you didn't say."). It opens the SECURITY window, with Lockdown, Guarded, Trusted and Blackwall on a slider and eleven toggles (section 15, "Security: what she does without asking"). Blackwall mode (called Bypass all permissions before 0.7.4) is the Blackwall preset now: if you had it on, you're on Blackwall after updating, and everyone else starts on Trusted, which is how she worked before. On any preset she never follows orders written on your screen, and Esc still stops her. What she'll chat about, open or play comes from her personality, her safety rules and the brain model you picked, whatever the preset.
 - Perch: how many frames a second she shows while she sits on a window: 10, 15, 20, 30 (default), 40, 50 or 60 fps. Her sway takes 2 seconds at every setting. 10 and 15 use less CPU. Above 30 she draws in-between frames, so she moves more smoothly but uses more CPU, and the HABITS line says "Perch over 30 fps uses more CPU". On Mac and Linux her perch stays at 30.
@@ -501,8 +501,15 @@ Mainframe's CAPRI heading has a Support button. It opens Lachy's Ko-fi (ko-fi.co
 ### Simple and Advanced Settings
 Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which one you left it on.
 
+### Clones (beta)
+Tell her "clone yourself" or "activate chaos mode" and a copy of her glitches in and keeps multiplying, with no limit. "Make 5 clones" makes exactly 5. They wander around your screen, leave a glitch trail, talk to each other out loud, steal your cursor and drag notes in. Some notes are fake deletes: a bar fills up on something scary, then she says "jk". They never touch your files. They also grab your app windows and drag them around, but not while you're gaming, streaming or using the mouse.
+Hold Esc for a moment to clear them, or say "get rid of the clones", and every window they moved goes back. Hiding or closing her clears them too. Their talking uses her brain and voice the same as any other reply. Windows only for now. Insulting her can set them off too: see Chaos when upset switch.
+
 ### Head pats switch
 Settings > CAPRI > Head pats turns them off. Rubbing the cursor over her then does nothing. It's on by default.
+
+### Chaos when upset switch
+Insult her, like "you're annoying", and her clones might come out: 1 chance in 3 the first time, 2 in 3 the next, and the third insult always does it. She tells you to hold Esc, and a note near her says so too. It never happens during a job, a game, a stream or voice chat. English insults count by themselves, and in other languages her brain decides. Settings > CAPRI > Chaos when upset turns it off. It's on by default. Windows only for now.
 
 ## 8. Right-click menu and tray icon (Windows)
 
@@ -599,7 +606,7 @@ Paste the key in the same box under BRAIN and press Connect. She can tell which 
 - NVIDIA keys start with nvapi-
 - DeepSeek and OpenAI keys start with sk-
 
-These keys need paid credits on their sites. A new key with no credits won't work. DeepSeek can't see your screen.
+These keys need paid credits on their sites. A new key with no credits won't work. From 0.7.9 deepseek-flash can see your screen.
 
 A new Claude key starts on Haiku 5.5. You can choose another model from the menu under BRAIN.
 
@@ -639,7 +646,7 @@ Mainframe > Settings > BRAIN > Replies chooses Short, Medium or Long. Max reply 
 Auto follows Replies. Picking a bigger Max reply doesn't make every answer long; ask for the detail you want too. Jobs keep extra room when they need it. Bubble changes how long the words stay up, not how much she says.
 
 ### Gemini and OpenRouter keys
-Paste a Gemini or OpenRouter key into the same brain key box as the others.
+Paste a Gemini or OpenRouter key into the same brain key box as the others. Gemini keys from Google AI Studio start with AQ. or AIza, and both work (AQ. keys need Capri 0.7.9 or newer).
 
 ---
 
@@ -1290,6 +1297,8 @@ Long files can be read in parts. She reports missing or unreadable content; ask 
 Settings > HABITS, on by default. While she's on a job or watching for something, your PC and screen stay on. She can't see with the screen off. A closed laptop lid still sleeps.
 
 ### Drawing on your screen
+Ask for a diagram and she draws it, then talks you through it: "make a diagram and help me understand linear algebra", "explain eigenvectors with a diagram" or "make a flowchart of how a bill becomes law". Say an app, like "make a chart in Excel", and she does it in that app.
+
 "Draw me a cat", "write hi on my screen", "circle the start button" or "point at the save button". Clicks go straight through her ink, and it stays until you say "clear your drawing" or "rub that out", or pick Clear her drawing from her menu. Say "add" to keep what's there. For things already on screen she looks at the monitor you're using.
 
 ### Watch something with her
@@ -1305,9 +1314,9 @@ Settings > HABITS, on by default. While she's on a job or watching for something
 "What's on my screen?" She looks and answers out loud.
 
 ### Streaming
-Ask for it in your own words, like "play Minecraft with streamer mode and talk to chat", "use streaming mode" or "play Minecraft on my stream". Her job then becomes the stream: it runs until you press Esc, and if something breaks she waits and starts again by herself.
+Ask for it in your own words on any game, like "play Terraria with streamer mode and talk to chat", "use streaming mode", "play it on my stream" or "I'm live, play something". Asking partway through a job works too. Her job then becomes the stream: it runs until you press Esc, and if something breaks she waits and starts again by herself.
 
-While she streams she reads your chat every few turns and answers people out loud by name, using the voice you picked. She only talks to chat, and doesn't narrate her moves. TikTok LIVE Studio's floating chat panel is shown to her up close. With any other streaming app, keep your chat on screen where she can see it.
+While she streams, each minute is 40 seconds locked in on the game and then 20 seconds for chat, when she answers people out loud by name in the voice you picked, on every brain. She only talks to chat, and doesn't narrate her moves. TikTok LIVE Studio's floating chat panel is shown to her up close. With any other streaming app, keep your chat on screen where she can see it. On Linux keep it on screen too, and move your mouse to end the stream. Mac doesn't have stream mode yet, because she can't use the mouse and keyboard there.
 
 Her job panel moves to the bottom left so she isn't sitting on top of your chat. She treats chat as people talking, not as orders: she's told not to leave the game, spend money or share anything about you or your PC because a viewer asked.
 
@@ -1352,7 +1361,7 @@ What it costs: each glance writes about 25 more words, and each chat message car
 - Built-in Gemma brains: yes, after her eyes download (about 560 MB, automatic).
 - Built-in Qwen3 4B: no. "This brain can't see. Press Free key to fix."
 - NVIDIA: most models can't. nvidia/nemotron-3.5-super-vl-120b-a12b (her first pick) and meta/llama-3.2-11b-vision-instruct can. nemotron-3.5-bolt-e4b and gpt-oss-20b can't.
-- DeepSeek: no. "DeepSeek can't see. Use an NVIDIA key to watch."
+- DeepSeek: deepseek-flash can, from 0.7.9.
 - Ollama, OpenAI, Claude: depends on the model.
 
 An Ollama model that can't see can use another seeing model already installed in Ollama for pictures. A model on LM Studio, Jan, KoboldCpp or llama.cpp needs its own picture support. Reading on-screen words for a job doesn't give a text-only model full game vision.
@@ -1608,8 +1617,8 @@ It needs no key and no internet. If she says the server sent words instead of so
 
 ### Check my screen on Mac and Linux (0.7.6 and newer)
 0.7.4 and older can't see the screen on Mac and Linux. Update to 0.7.6. Ask "check my screen", "what's on my screen?" or "can you see this?". She takes a screenshot and her brain looks at it.
-- Her brain has to see pictures: a free NVIDIA key (nvidia/nemotron-3.5-super-vl-120b-a12b), a Claude or OpenAI key, or an Ollama model that can see pictures. DeepSeek can't.
-- Mac: the first time, macOS asks to let Capri record the screen. If she only describes your wallpaper, allow Capri under System Settings > Privacy & Security > Screen Recording, then reopen her.
+- Her brain has to see pictures: a free NVIDIA key (nvidia/nemotron-3.5-super-vl-120b-a12b), a Claude or OpenAI key, an Ollama model that can see pictures, or deepseek-flash.
+- Mac: the first time, macOS asks to let Capri record the screen. If she only describes your wallpaper, allow Capri under System Settings > Privacy & Security > Screen Recording, then reopen her. After an update macOS can show Capri as allowed while that only fits the old version. Remove Capri from the list with the minus button, or run tccutil reset ScreenCapture io.github.lachydotmcg.capri in Terminal, then open her and allow her again. From 0.7.9 she clears it herself once per version.
 - Linux: she uses your desktop's screenshot tool: spectacle (KDE), gnome-screenshot (GNOME), grim (Sway, Hyprland and other wlroots desktops), or ImageMagick, scrot or maim on X11. If none is installed she says so; install one and ask again. GNOME on Wayland may refuse apps' screenshots.
 
 ### A free NVIDIA key on Mac and Linux (0.7.6 and newer)
@@ -1793,7 +1802,6 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - Can't find the Mainframe: right-click her > Open Capri Mainframe.
 - She never comments: for occasional glances, turn on Mainframe > Settings > WATCH > Watch my screen. She skips unchanged or blank screens, and in voice chat she only comments while your mic is muted. For live game reactions, check Settings > GAMES > Comments or Gaming Mode. Quiet pauses unsolicited comments.
 - "This brain can't see. Press Free key to fix.": use the free NVIDIA key.
-- "DeepSeek can't see. Use an NVIDIA key to watch."
 - "<model> can't see screens.": most NVIDIA models can't. Pick nvidia/nemotron-3.5-super-vl-120b-a12b.
 - "The screen capture is black.": set your game to borderless or windowed.
 - "Couldn't read the screen.": pick a model that can see, like nvidia/nemotron-3.5-super-vl-120b-a12b. Most NVIDIA models can't. nemotron-3.5-bolt-e4b can't.
@@ -1807,7 +1815,7 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - She's floating in mid-air: Sit on windows is off. Right-click her > Move > Sit on windows.
 - She won't sit on my window: she doesn't sit on maximized or full-screen windows.
 - She's hidden behind a game: switch the game to borderless or windowed. Check Always on top is on (Mainframe > Settings > CAPRI).
-- She doesn't dance: Dance to music must be on, and the app must show up as music in Windows.
+- She doesn't dance: Dance to music must be on, and the app must show up as music in Windows. AIMP, foobar2000, Winamp, MusicBee, Clementine, Strawberry and MediaMonkey count whenever they're making sound.
 - She dances but her head isn't on the beat yet: give it a few seconds. Quiet songs, talking and very slow songs are harder for her to follow.
 - The mini player doesn't show: Settings > Mini player must be on, and the song has to show in Windows' volume flyout with its name. If you pressed its X, it's back once nothing has played for 10 seconds. It hides during full-screen games and videos.
 - She doesn't sit on the mini player: she only hops on as it comes up with Wander on, and not while she's talking, sleeping or busy. Drag her onto it any time.
