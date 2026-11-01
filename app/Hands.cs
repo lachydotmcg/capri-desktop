@@ -791,6 +791,9 @@ namespace CapriDesktop
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd" };
         private delegate bool Visit(IntPtr window, IntPtr data);
         [DllImport("user32.dll")] private static extern bool EnumWindows(Visit visit, IntPtr data);
+        [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(int access, bool inherit, int process);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
+        [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
         [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);
         [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
@@ -3253,9 +3256,7 @@ namespace CapriDesktop
                 string program;
                 if (!programs.TryGetValue(id, out program))
                 {
-                    try { using (Process process = Process.GetProcessById(id)) program = process.ProcessName; }
-                    catch (ArgumentException) { program = ""; }
-                    catch (InvalidOperationException) { program = ""; }
+                    program = ProgramName(id);
                     programs[id] = program;
                 }
                 StringBuilder title = new StringBuilder(length + 1);
@@ -3266,6 +3267,30 @@ namespace CapriDesktop
             EnumWindows(visit, IntPtr.Zero);
             GC.KeepAlive(visit);
             return found;
+        }
+
+        internal static string ProgramName(int id)
+        {
+            string name = ImageName(id);
+            if (name.Length > 0) return name;
+            try { using (Process process = Process.GetProcessById(id)) return process.ProcessName; }
+            catch (ArgumentException) { return ""; }
+            catch (InvalidOperationException) { return ""; }
+        }
+
+        internal static string ImageName(int id)
+        {
+            IntPtr handle = OpenProcess(0x1000, false, id);
+            if (handle == IntPtr.Zero) return "";
+            try
+            {
+                StringBuilder path = new StringBuilder(1024);
+                int size = path.Capacity;
+                if (!QueryFullProcessImageName(handle, 0, path, ref size)) return "";
+                string name = Path.GetFileName(path.ToString());
+                return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+            }
+            finally { CloseHandle(handle); }
         }
 
         private static bool Apply(OpenWindow window, string action)

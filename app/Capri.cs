@@ -10201,6 +10201,10 @@ namespace CapriDesktop
                 || Native.Covers(new Rectangle(-1920, 0, 1920, 1040), desktopMonitor) || Native.Covers(new Rectangle(0, 0, 1920, 1080), desktopMonitor)) throw new Exception("Full screen did not follow the window's own monitor.");
             checks.Add("PASS full-screen geometry includes borderless windows on another monitor");
 
+            using (Process ownProcess = Process.GetCurrentProcess())
+                if (Hands.ImageName(ownProcess.Id) != ownProcess.ProcessName || Hands.ProgramName(ownProcess.Id) != ownProcess.ProcessName || Hands.ImageName(-1) != "" || Hands.ProgramName(-1) != "") throw new Exception("Her window list named a program differently from Windows.");
+            checks.Add("PASS her window list names a program from just its own process, the same name Windows gives it, and a gone process is blank");
+
             AwayInput desktopInput = new AwayInput();
             if (desktopInput.Quiet(100000, 60000) != 60000) throw new Exception("Away time was not seeded from Windows idle time.");
             desktopInput.Own(100010);
