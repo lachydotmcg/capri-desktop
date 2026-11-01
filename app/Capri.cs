@@ -1702,6 +1702,8 @@ namespace CapriDesktop
             // Smoke tests never touch the real Windows cursor.
             if (smoke) HerCursor.Apply = delegate(bool on) { cursorSwaps.Add(on); };
             HerCursor.Recover();
+            CloneWindow.Marker = Path.Combine(data, "moved-windows.txt");
+            CloneWindow.Recover();
             Computer.Track = herPointer.MoveTo;
             Computer.Tapped = delegate { Post(herPointer.Tap); };
             Computer.Lending = Lend;
@@ -11451,6 +11453,50 @@ namespace CapriDesktop
                 }
             }
             checks.Add("PASS clones grab windows: one runs to a window's title bar, says a line and drags it across her screen with its top kept on screen and clear of the taskbar, lets go when the mouse goes down, skips her own windows and every window while a game is open, and putting them away puts the window back, even one minimised since");
+            // After a crash or a kill mid-drag, her next start puts back a window that's still where they had it, and leaves one
+            // that's been moved by hand since, one that's closed and a line that's broken.
+            string recoverWas = CloneWindow.Marker, recoverFile = Path.Combine(Path.GetTempPath(), "capri-moved-windows-check-" + haulOwn + ".txt");
+            using (Form recoverLost = new Form(), recoverMoved = new Form())
+            {
+                try
+                {
+                    Rectangle recoverScreen = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+                    Form[] recoverForms = { recoverLost, recoverMoved };
+                    for (int recoverIndex = 0; recoverIndex < recoverForms.Length; recoverIndex++)
+                    {
+                        recoverForms[recoverIndex].Text = "Capri recover check";
+                        recoverForms[recoverIndex].StartPosition = FormStartPosition.Manual;
+                        recoverForms[recoverIndex].Bounds = new Rectangle(recoverScreen.Left + 40, recoverScreen.Top + 40 + recoverIndex * 260, 300, 200);
+                        recoverForms[recoverIndex].Show();
+                    }
+                    Application.DoEvents();
+                    Point lostHome = recoverLost.Location, movedHome = recoverMoved.Location;
+                    Point lostAt = new Point(lostHome.X + 150, lostHome.Y + 60), movedAt = new Point(movedHome.X + 150, movedHome.Y + 60);
+                    Point movedByHand = new Point(Math.Min(recoverScreen.Right - 310, movedHome.X + 460), Math.Min(recoverScreen.Bottom - 210, movedHome.Y + 200));
+                    recoverLost.Location = lostAt;
+                    recoverMoved.Location = movedByHand;
+                    Application.DoEvents();
+                    CloneWindow.Marker = recoverFile;
+                    File.WriteAllLines(recoverFile, new[]
+                    {
+                        CloneWindow.MarkLine(recoverLost.Handle, haulOwn, new Rectangle(lostHome, recoverLost.Size), Rectangle.Union(new Rectangle(lostHome, new Size(1, 1)), new Rectangle(lostAt, new Size(1, 1))), lostAt),
+                        CloneWindow.MarkLine(recoverMoved.Handle, haulOwn, new Rectangle(movedHome, recoverMoved.Size), Rectangle.Union(new Rectangle(movedHome, new Size(1, 1)), new Rectangle(movedAt, new Size(1, 1))), movedAt),
+                        CloneWindow.MarkLine(new IntPtr(0x7FFFFFF0), haulOwn, new Rectangle(lostHome, recoverLost.Size), new Rectangle(lostAt, new Size(1, 1)), lostAt),
+                        "9 9 9 9"
+                    });
+                    int recoverBack = CloneWindow.Recover();
+                    Application.DoEvents();
+                    if (recoverBack != 1 || recoverLost.Location != lostHome || recoverMoved.Location != movedByHand || File.Exists(recoverFile) || CloneWindow.Recover() != 0)
+                        throw new Exception("Her next start didn't put back the window her clones had, or moved the wrong one: " + recoverBack + " back, " + recoverLost.Location + " from " + lostHome + ", hand-moved one at " + recoverMoved.Location + " (left at " + movedByHand + ")");
+                }
+                finally
+                {
+                    CloneWindow.Marker = recoverWas;
+                    try { File.Delete(recoverFile); }
+                    catch (IOException) { }
+                }
+            }
+            checks.Add("PASS clones' windows after a crash: her next start puts back a window still where they had it, and leaves one moved by hand since, one that's closed and a broken line");
         }
 
         private static void SmokeGameKeys(System.Collections.Generic.List<string> checks)
