@@ -1545,6 +1545,11 @@ namespace CapriDesktop
             bool follows = !agreed && recent.Count == 2 && Hands.Follows(text, recent[0].Content, recent[1].Content);
             bool reached = false;
             string playing = act != null ? Hands.GameOpen() : null;
+            // A strong brain works the job out itself (F57), so set phrases only take what needs no thought.
+            bool planning = act != null && !fileChat && WorksOut(), planned = false;
+            string planText = null;
+            List<string> results = new List<string>();
+            List<string> facts = new List<string>();
             if (act != null && Hands.StreamAsked(request)) Hands.Streaming = true;
             // On stream, asking her to play starts her stream job however it's worded.
             if (act != null && Hands.Streaming && Hands.Streams(request))
@@ -1552,12 +1557,29 @@ namespace CapriDesktop
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && recent.Count == 2 && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(text.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = text }));
-            else if (act != null && Hands.Heard(request, out direct, out directArgs))
+            else if (act != null && Hands.Heard(request, out direct, out directArgs) && (!planning || Hands.Instant(direct)))
             {
                 // "Remember that" saves what they said just before, unless that was a question or one of her own glances.
                 string before = recent.Count == 2 ? recent[0].Content ?? "" : "";
                 if (direct == "remember" && directArgs.Action != "forget" && string.IsNullOrEmpty(directArgs.Text) && Hands.Back(request) && before.Length > 0 && !before.StartsWith("(", StringComparison.Ordinal) && !Regex.IsMatch(before, @"\?\s*$")) directArgs.Text = before;
                 calls.Add(new KeyValuePair<string, ToolArguments>(direct, directArgs));
+            }
+            else if (planning)
+            {
+                List<ChatMessage> working = new List<ChatMessage>(messages);
+                working[0] = new ChatMessage("system", steady + Seen() + Gap() + Hands.Note + Hands.WorkingOut + Hands.GameNote(playing) + Now() + selfGuide) { Steady = steady.Length };
+                try
+                {
+                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket);
+                    planned = true;
+                }
+                catch (BrainException error)
+                {
+                    // A brain that turns out not to take tools goes back to her hands' shortcuts, from this message on.
+                    if (calls.Count > 0 || !Toolless(error.Message)) throw;
+                    Cloud fallen = Remote;
+                    if (fallen != null) toolless = fallen.Source;
+                }
             }
             // With a game open, her hands see every message first: "kliknij deathmatch" or "keep going" mean something in it.
             else if (act != null && (agreed || Hands.Wants(request) || follows || playing != null || fileChat))
@@ -1572,7 +1594,8 @@ namespace CapriDesktop
                     if (calls.Count == 0 && (agreed || partly || Hands.Hesitant(handed, request) || (playing != null && Hands.Wants(request)))) calls.Add(Hands.Forced(request));
                 }
             }
-            if (calls.Count == 0)
+            if (planned && calls.Count == 0) raw = planText;
+            if (calls.Count == 0 && !planned)
             {
                 raw = Think(model, messages, false, new List<KeyValuePair<string, ToolArguments>>(), null, answerBudget, ticket);
                 // Her brain says "act" when this is a job, in whatever language they said it. Her hands find what to do, and if they
@@ -1600,10 +1623,11 @@ namespace CapriDesktop
                 upset = act != null && (Hands.Hurt(Thoughtless(raw)) || Hands.Insulted(request));
                 // A brain that hedges on "what time is it?" gets her clock's answer, before anything below takes the hedge for a search to run.
                 if (Hands.ClockDodged(text, Clean(raw))) raw = Hands.ClockLine(DateTime.Now);
-                ToolArguments lookup = act != null ? Hands.Lookup(text, Clean(raw)) : null;
-                bool hesitant = act != null && Hands.Hesitant(Clean(raw), request);
-                bool refused = act != null && !reached && Hands.Refused(Clean(raw)) && Hands.Requested(request);
-                bool denied = act != null && Hands.Denied(Clean(raw)) && Hands.Requested(request);
+                // A brain that worked it out itself already had its go with the tools, so none of these second guesses apply.
+                ToolArguments lookup = act != null && !planned ? Hands.Lookup(text, Clean(raw)) : null;
+                bool hesitant = act != null && !planned && Hands.Hesitant(Clean(raw), request);
+                bool refused = act != null && !planned && !reached && Hands.Refused(Clean(raw)) && Hands.Requested(request);
+                bool denied = act != null && !planned && Hands.Denied(Clean(raw)) && Hands.Requested(request);
                 // "I can't click for you" is never true: her hands get a go, and in a game or on a plain ask they do it whatever those
                 // make of it.
                 if (denied)
@@ -1617,9 +1641,9 @@ namespace CapriDesktop
                     if (calls.Count == 0) raw = Hands.Unpromised;
                 }
                 // "I can't see your screen" is never true: she looks instead.
-                else if (act != null && Hands.CantSee(Clean(raw))) calls.Add(new KeyValuePair<string, ToolArguments>("look_at_screen", new ToolArguments { Focus = request }));
+                else if (act != null && !planned && Hands.CantSee(Clean(raw))) calls.Add(new KeyValuePair<string, ToolArguments>("look_at_screen", new ToolArguments { Focus = request }));
                 else if (lookup != null && !refused) calls.Add(new KeyValuePair<string, ToolArguments>("open_website", lookup));
-                else if (act != null && (hesitant || Hands.Promised(Clean(raw))))
+                else if (act != null && !planned && (hesitant || Hands.Promised(Clean(raw))))
                 {
                     if (!reached)
                     {
@@ -1642,8 +1666,7 @@ namespace CapriDesktop
             string done = null;
             if (calls.Count > 0)
             {
-                List<string> results = new List<string>();
-                List<string> facts = new List<string>();
+                if (!planned)
                 foreach (KeyValuePair<string, ToolArguments> call in calls)
                 {
                     Check(ticket);
@@ -1682,6 +1705,8 @@ namespace CapriDesktop
                 else
 #endif
                 if (pulled != null) raw = pulled;
+                // Her own last line, from the brain that did the steps, unless it hands them the credit.
+                else if (planText != null && !teaching) raw = Hands.Credits(Clean(planText)) ? done : planText;
                 else if (stopped || results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !teaching && !calls.Exists(call => call.Key == "look_at_screen" || call.Key == "listen"))) raw = done;
                 else
                 {
@@ -1736,6 +1761,81 @@ namespace CapriDesktop
             Logged(text, said);
             followLine = after;
             return said;
+        }
+
+        // F57: on a strong brain she works jobs out herself. Her own brain turns this on; brains made for checks leave it off.
+        internal bool OwnSteps;
+        internal const int Rounds = 8;
+
+        // Cloud brains that take tools natively work jobs out themselves. Small local ones keep her hands' shortcuts.
+        internal bool WorksOut()
+        {
+            Cloud remote = Remote;
+            return OwnSteps && remote != null && remote.Kind != "local" && HasTools(remote) && toolless != remote.Source;
+        }
+
+        // The brain holds her tools beside her own prompt: it calls one, sees what it did, calls the next, and answers as herself once
+        // the job's done, for up to eight rounds. Saying it did something with no tool behind it gets one reminder, then her line that
+        // nothing's happened yet. Null means her usual reply from the results: SECURITY held a call, a job was stopped or the rounds ran out.
+        private string WorkOut(string model, List<ChatMessage> asking, string request, List<KeyValuePair<string, ToolArguments>> calls, List<string> results, List<string> facts, int budget, int ticket)
+        {
+            Func<string, ToolArguments, string> act = Act;
+            bool reminded = false;
+            for (int round = 0; round < Rounds; round++)
+            {
+                List<KeyValuePair<string, ToolArguments>> picked = new List<KeyValuePair<string, ToolArguments>>();
+                string raw = Think(model, asking, true, picked, null, Math.Max(budget, 200), ticket, true);
+                string said = Clean(raw), written;
+                ToolArguments writtenArgs;
+                // A brain copying the way its earlier calls are written below gets its calls read all the same.
+                List<KeyValuePair<string, ToolArguments>> several = picked.Count == 0 ? Hands.Written(raw) : null;
+                if (several != null && several.Count > 0) picked.AddRange(several);
+                else if (picked.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) picked.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
+                if (picked.Count == 0)
+                {
+                    if (calls.Count > 0 || !(Hands.Promised(said) || Hands.Handed(said))) return raw;
+                    if (reminded) return Hands.Unpromised;
+                    reminded = true;
+                    asking.Add(new ChatMessage("assistant", said));
+                    asking.Add(new ChatMessage("user", Hands.Unkept));
+                    continue;
+                }
+                List<string> did = new List<string>(), saw = new List<string>();
+                foreach (KeyValuePair<string, ToolArguments> call in picked)
+                {
+                    Check(ticket);
+                    ToolArguments args = call.Value ?? new ToolArguments();
+                    if (call.Key == "use_computer" && args.Asked == null) args.Asked = request;
+                    if (call.Key == "app_window") args.Asked = request;
+                    if (call.Key == "media") Hands.Aim(args, request);
+                    string result;
+                    if (!Hands.Valid(call.Key, args)) result = "That didn't work: that " + call.Key + " call was missing what it needs.";
+                    else if (call.Key == "gaming_mode" && !Hands.GamingTalk(request)) result = "That didn't run: Gaming Mode only changes when they ask for it by name.";
+#if !CROSS
+                    else if (call.Key == "read_file") result = ReadFile(args.Path, args.Page, args.Offset);
+#endif
+                    else result = act(call.Key, args);
+                    calls.Add(new KeyValuePair<string, ToolArguments>(call.Key, args));
+                    results.Add(result);
+                    facts.Add(call.Key + ": " + Voice.Quote(result ?? "No result."));
+                    did.Add(Written(call.Key, args));
+                    saw.Add(facts[facts.Count - 1]);
+                    if (Security.IsHold(result)) return null;
+#if !CROSS
+                    if (Computer.Stopped(result)) return null;
+#endif
+                }
+                asking.Add(new ChatMessage("assistant", (said.Length == 0 ? "" : said + "\n") + "(You called " + string.Join(", then ", did.ToArray()) + ")"));
+                asking.Add(new ChatMessage("user", Hands.Worked + string.Join("\n", saw.ToArray()) + Hands.WorkNext));
+            }
+            return null;
+        }
+
+        // A call written the way her text-only brains write them, without the empty fields: open_app{"name":"Steam"}.
+        private static string Written(string tool, ToolArguments args)
+        {
+            string json = Regex.Replace(Encoding.UTF8.GetString(Json(args)), "\"[a-z_]+\":null,?", "");
+            return tool + Regex.Replace(json, ",}$", "}");
         }
 
         private string Reach(string model, string text, List<ChatMessage> recent, List<KeyValuePair<string, ToolArguments>> calls, int ticket)

@@ -1886,6 +1886,7 @@ namespace CapriDesktop
             Hands.Remind = reminders.Remind;
             Hands.Routine = RoutineTool;
             brain.Act = DoTool;
+            brain.OwnSteps = !testing;
             Hands.Resume = ResumeJob;
             Hands.Rename = CallThem;
             Hands.Nap = NapTool;
@@ -15885,6 +15886,81 @@ namespace CapriDesktop
             }
         }
 
+        // F57: a strong brain works a job out itself. CS isn't open, so it opens it, hands the match to a job and only then says so;
+        // a promise with no tool behind it gets one reminder, then her line that nothing's happened yet; chat stays chat.
+        private static void SmokeWorkingOut(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+            Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake;
+            string openAiWas = Brain.OpenAi;
+            Func<string> openWas = Computer.GameOpen;
+            Brain.OpenAi = FakeServer(new string[]
+            {
+                calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), calls("use_computer", "{\"task\":\"start matchmaking\"}"), says("Queued you up, choom."),
+                says("On it, opening CS now!"), calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), says("CS is up."),
+                says("On it, opening Spotify!"), says("Opening it now!"),
+                says("Cyberpunk, obviously."),
+                says("open_app{\"name\":\"Steam\"}"), says("Steam's open.")
+            }, asked, out fake);
+            try
+            {
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Brain working = new Brain();
+                working.Remote = new Cloud("sk-proj-test", "gpt-5-mini");
+                working.Model = "gpt-5-mini";
+                working.Act = delegate(string name, ToolArguments args)
+                {
+                    did.Add(name + ":" + (args.Name ?? args.Task));
+                    return name == "open_app" ? "Opened " + args.Name + "." : name == "use_computer" ? "Job: clicked PLAY, then MATCHMAKING. Searching for a match." : "Done.";
+                };
+                Computer.GameOpen = delegate { return null; };
+                if (working.WorksOut() || new Brain { OwnSteps = true }.WorksOut()) throw new Exception("A brain worked jobs out itself with the switch off, or with no cloud brain.");
+                working.OwnSteps = true;
+                if (!working.WorksOut()) throw new Exception("A cloud brain with tools didn't work jobs out itself.");
+                string matched = working.Ask("start matchmaking in cs");
+                if (matched != "Queued you up, choom." || string.Join(",", did.ToArray()) != "open_app:Counter-Strike 2,use_computer:start matchmaking") throw new Exception("She didn't open CS and then start the match: " + matched + " / " + string.Join(",", did.ToArray()));
+                working.Forget();
+                string reminded = working.Ask("open cs");
+                if (reminded != "CS is up." || did.Count != 3 || did[2] != "open_app:Counter-Strike 2") throw new Exception("A promise with no tool behind it wasn't sent back for the tool: " + reminded + " / " + string.Join(",", did.ToArray()));
+                working.Forget();
+                string unkept = working.Ask("open spotify");
+                if (unkept != Hands.Unpromised || did.Count != 3) throw new Exception("Two promises with no tool still reached them as done: " + unkept);
+                working.Forget();
+                string chatted = working.Ask("what's your favourite game?");
+                if (chatted != "Cyberpunk, obviously." || did.Count != 3) throw new Exception("Chat turned into a job: " + chatted);
+                working.Forget();
+                string copied = working.Ask("get steam up");
+                if (copied != "Steam's open." || did.Count != 4 || did[3] != "open_app:Steam") throw new Exception("A call written out as text didn't run: " + copied + " / " + string.Join(",", did.ToArray()));
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (sent.Length != 11) throw new Exception("Working it out made " + sent.Length + " brain calls, not 11.");
+                string[][] wanted =
+                {
+                    new[] { "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"", "You hold these tools yourself", "start matchmaking in cs" },
+                    new[] { "\"tools\":[", "What your tools just did", "Opened Counter-Strike 2.", "You called open_app{" },
+                    new[] { "\"tools\":[", "Searching for a match.", "You called use_computer{" },
+                    new[] { "open cs" },
+                    new[] { "You said you'd do it, but no tool ran" },
+                    new[] { "Opened Counter-Strike 2." },
+                    new[] { "open spotify" },
+                    new[] { "You said you'd do it, but no tool ran" }
+                };
+                for (int i = 0; i < wanted.Length; i++)
+                    foreach (string part in wanted[i])
+                        if (sent[i].IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Brain call " + i + " is missing " + part + ": " + sent[i].Substring(0, Math.Min(400, sent[i].Length)));
+                foreach (string body in sent) if (body.IndexOf("You are the hands of Capri", StringComparison.Ordinal) >= 0 || body.IndexOf("only the word: act", StringComparison.Ordinal) >= 0) throw new Exception("A strong brain still went through her hands' one-shot pick.");
+                checks.Add("PASS a strong brain works jobs out itself: with CS closed, \"start matchmaking\" opens CS, sees it opened, then starts the match as a job; a promise with no tool gets one reminder and then \"I haven't actually done that yet\"; calls copied as text still run; chat stays chat; brains with the switch off or no cloud keep her hands' shortcuts");
+            }
+            finally
+            {
+                Brain.OpenAi = openAiWas;
+                Computer.GameOpen = openWas;
+                fake.Stop();
+            }
+        }
+
         private void SmokeGameWatch(System.Collections.Generic.List<string> checks)
         {
             Func<Sight> glimpseBefore = Computer.Glimpse;
@@ -18190,6 +18266,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeGameWindows(checks, findGame); });
                             Section(checks, delegate { SmokeGameHolds(checks); });
                             Section(checks, delegate { SmokeGameAsks(checks); });
+                            Section(checks, delegate { SmokeWorkingOut(checks); });
                             Section(checks, delegate { SmokeSighted(checks); });
                             Section(checks, delegate { SmokeGameNotes(checks); });
                             Section(checks, delegate { SmokeLongJob(checks); });
