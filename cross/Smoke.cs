@@ -1704,6 +1704,11 @@ namespace CapriDesktop
                 && last.IndexOf("image_url", StringComparison.Ordinal) > 0 && last.IndexOf("1280 x 720", StringComparison.Ordinal) > 0 && last.IndexOf("send hola qu", StringComparison.Ordinal) > 0
                 && last.IndexOf("4. fly", StringComparison.Ordinal) > 0 && last.IndexOf("\\\"model\\\"", StringComparison.Ordinal) < 0 && last.IndexOf("eyes-test", StringComparison.Ordinal) > 0);
             Security.Pick(Security.Blackwall);
+            List<string> streamLines = new List<string>();
+            Chores.Says = streamLines.Add;
+            string streamStep = Chores.Say("  Hi Milo!  ");
+            Chores.Says = null;
+            fail("her stream says lines out loud", streamLines.Count == 1 && streamLines[0] == "Hi Milo!" && streamStep.IndexOf("Hi Milo!", StringComparison.Ordinal) > 0 && Chores.StreamRules.IndexOf("\"do\":\"say\"", StringComparison.Ordinal) > 0);
             string blackwall = Chores.Allowed;
             Security.Pick(Security.Trusted);
             fail("rules follow SECURITY", Chores.Allowed == Chores.Rules && blackwall.IndexOf("Type passwords", StringComparison.Ordinal) > 0 && blackwall.IndexOf("Never", StringComparison.Ordinal) < 0);

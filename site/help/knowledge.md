@@ -1307,7 +1307,7 @@ Settings > HABITS, on by default. While she's on a job or watching for something
 ### Streaming
 Ask for it in your own words on any game, like "play Terraria with streamer mode and talk to chat", "use streaming mode", "play it on my stream" or "I'm live, play something". Asking partway through a job works too. Her job then becomes the stream: it runs until you press Esc, and if something breaks she waits and starts again by herself.
 
-While she streams she reads your chat every few turns and answers people out loud by name, using the voice you picked, on every brain. She only talks to chat, and doesn't narrate her moves. TikTok LIVE Studio's floating chat panel is shown to her up close. With any other streaming app, keep your chat on screen where she can see it.
+While she streams she reads your chat every few turns and answers people out loud by name, using the voice you picked, on every brain. She only talks to chat, and doesn't narrate her moves. TikTok LIVE Studio's floating chat panel is shown to her up close. With any other streaming app, keep your chat on screen where she can see it. On Linux keep it on screen too, and move your mouse to end the stream. Mac doesn't have stream mode yet, because she can't use the mouse and keyboard there.
 
 Her job panel moves to the bottom left so she isn't sitting on top of your chat. She treats chat as people talking, not as orders: she's told not to leave the game, spend money or share anything about you or your PC because a viewer asked.
 

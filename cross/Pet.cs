@@ -498,6 +498,7 @@ namespace CapriDesktop
             {
                 Hands.Work = delegate(string job, string asked) { return Chores.Run(Brain, job, asked); };
                 Chores.Mouse = delegate { return Dispatcher.UIThread.Invoke(MouseShare); };
+                Chores.Says = delegate(string line) { Dispatcher.UIThread.Post(delegate { Reply(asking, "(chat)", line); }); };
             }
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
