@@ -528,6 +528,8 @@ namespace CapriDesktop
                 Sfx.TypeOut = delegate(short[] samples) { Limbs.Speak(Voice.Wave(samples, Sfx.Rate)); };
                 Sfx.Untyped = Limbs.Hush;
             }
+            Look.OverGames = !Saved.NotOnTop && Program.Smoke == null;
+            Look.AboveGames(this);
             Title = "Capri";
             SystemDecorations = SystemDecorations.None;
             Background = Brushes.Transparent;

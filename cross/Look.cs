@@ -274,8 +274,38 @@ namespace CapriDesktop
             return takes;
         }
 
+        // On KDE an active full-screen window, like a game, goes over every "keep above" window, so she'd vanish under it.
+        // Windows keeps her over games, so here her windows say they're critical notifications: KWin keeps those over a
+        // full-screen window, where they stay put and still take clicks and typing. On only with Always on top, and only on
+        // KDE, since other desktops may not let a notification take the keyboard.
+        internal static bool OverGames;
+
+        internal static void AboveGames(Window window)
+        {
+            if (!OverGames || !OperatingSystem.IsLinux() || (Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "").IndexOf("KDE", StringComparison.OrdinalIgnoreCase) < 0) return;
+            try
+            {
+                IPlatformHandle handle = window.TryGetPlatformHandle();
+                if (handle == null) return;
+                IntPtr display = XOpenDisplay(IntPtr.Zero);
+                if (display == IntPtr.Zero) return;
+                IntPtr[] kinds = { XInternAtom(display, "_KDE_NET_WM_WINDOW_TYPE_CRITICAL_NOTIFICATION", false), XInternAtom(display, "_NET_WM_WINDOW_TYPE_NOTIFICATION", false) };
+                XChangeProperty(display, handle.Handle, XInternAtom(display, "_NET_WM_WINDOW_TYPE", false), XInternAtom(display, "ATOM", false), 32, 0, kinds, kinds.Length);
+                XFlush(display);
+                XCloseDisplay(display);
+            }
+            catch (Exception) { }
+        }
+
+        [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern IntPtr XOpenDisplay(IntPtr name);
+        [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern int XCloseDisplay(IntPtr display);
+        [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern int XFlush(IntPtr display);
+        [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern IntPtr XInternAtom(IntPtr display, string name, bool onlyIfExists);
+        [System.Runtime.InteropServices.DllImport("libX11.so.6")] private static extern int XChangeProperty(IntPtr display, IntPtr window, IntPtr property, IntPtr type, int format, int mode, IntPtr[] data, int count);
+
         internal static void Overlay(Window window, string title)
         {
+            AboveGames(window);
             window.Title = title;
             window.SystemDecorations = SystemDecorations.None;
             window.Background = Brushes.Transparent;
