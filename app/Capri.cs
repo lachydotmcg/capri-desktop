@@ -1656,6 +1656,8 @@ namespace CapriDesktop
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
+            Hands.Clone = CloneTool;
+            Hands.Cloning = delegate { return cloneWindow != null; };
             Hands.WatchAlong = WatchAlongTool;
             WatchAlong.Active = delegate { return watchAlong != null; };
             Hands.SaveClip = clips.Clip;
@@ -1846,7 +1848,7 @@ namespace CapriDesktop
             base.OnFormClosing(e);
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && e.CloseReason != CloseReason.WindowsShutDown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
-            if (!e.Cancel) { quitting = true; CheckKeepAwake(); Computer.Close(); }
+            if (!e.Cancel) { quitting = true; ClonesOff(); CheckKeepAwake(); Computer.Close(); }
         }
 
         private void Tick()
@@ -9417,7 +9419,7 @@ namespace CapriDesktop
 
         internal static bool WithoutBrain(string tool)
         {
-            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "gaming_mode" || tool == "watch_along";
+            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "clone" || tool == "gaming_mode" || tool == "watch_along";
         }
 
         private bool SwitchModel(Cloud remote)
@@ -10604,6 +10606,54 @@ namespace CapriDesktop
                 int patsOff = patRub();
                 preferences.NoHeadPats = false;
                 if (patsOff != 0) throw new Exception("Head pats stayed on with the switch off.");
+                string cloneTool;
+                ToolArguments cloneArgs;
+                if (!Hands.Heard("Hey Capri, clone yourself", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Action != "spawn" || cloneArgs.Count != null
+                    || !Hands.Heard("start multiplying", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Count != null
+                    || !Hands.Heard("make 5 clones of yourself", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Count != 5
+                    || !Hands.Heard("clone yourself 3 times", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Count != 3
+                    || !Hands.Heard("get rid of the clones", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Action != "stop"
+                    || (Hands.Heard("clone this repo", out cloneTool, out cloneArgs) && cloneTool == "clone") || (Hands.Heard("stop", out cloneTool, out cloneArgs) && cloneTool == "clone")
+                    || !Hands.Valid("clone", new ToolArguments { Action = "spawn" }) || Hands.Valid("clone", new ToolArguments { Action = "explode" })) throw new Exception("Asking for clones went the wrong way.");
+                Swarm cloneRun = new Swarm(1200, 800, 7, 0);
+                cloneRun.Multiplying = true;
+                cloneRun.Pending = 1;
+                cloneRun.SpawnX = 300;
+                cloneRun.SpawnY = 300;
+                for (int cloneStep = 1; cloneStep <= 240; cloneStep++) cloneRun.Tick(cloneStep * 0.5, 0.5, true, false, Point.Empty);
+                int cloneGrown = cloneRun.Bodies.Count;
+                if (cloneGrown < 8 || cloneRun.Notes.Count == 0 || cloneRun.Prints.Count == 0) throw new Exception("Her clones didn't multiply, walk and drag notes in: " + cloneGrown + " clones, " + cloneRun.Notes.Count + " notes, " + cloneRun.Prints.Count + " prints.");
+                for (int cloneStep = 241; cloneStep <= 300; cloneStep++) cloneRun.Tick(cloneStep * 0.5, 0.5, false, false, Point.Empty);
+                if (cloneRun.Bodies.Count != cloneGrown) throw new Exception("Her clones kept multiplying while the PC couldn't draw them.");
+                Swarm cloneSet = new Swarm(1200, 800, 8, 0);
+                cloneSet.Pending = 200;
+                bool cloneNabbed = false;
+                for (int cloneStep = 1; cloneStep <= 500; cloneStep++) cloneNabbed |= cloneSet.Tick(cloneStep * 0.1, 0.1, true, true, new Point(600, 400)) != null;
+                if (cloneSet.Bodies.Count != 200 || !cloneNabbed) throw new Exception("A set number of clones came out wrong or none stole the cursor: " + cloneSet.Bodies.Count + " / " + cloneNabbed);
+                if (CloneScript("1: who are you\ncapri 2: the real one\nnot a line").Count != 2 || CloneScript(null).Count != 0) throw new Exception("Her clones' lines were read wrong.");
+                string clonesSaid = Clone("spawn", 3);
+                CloneWindow clonesShown = cloneWindow;
+                if (clonesShown == null || !clonesShown.Visible || !clonesSaid.StartsWith("There's 3 more of me", StringComparison.Ordinal) || Hands.Pulled(clonesSaid) != clonesSaid || !Hands.Cloning()) throw new Exception("Her clones didn't open: " + clonesSaid);
+                double clonesNow = clock.Elapsed.TotalSeconds + 1;
+                clonesShown.Advance(clonesNow);
+                clonesShown.Advance(clonesNow + 0.1);
+                if (clonesShown.Swarm.Bodies.Count != 3 || clonesShown.Swarm.Multiplying || clonesShown.Frames < 2) throw new Exception("A set number of clones started multiplying.");
+                bool clonesDrawn = false;
+                CloneBody clonePainted = clonesShown.Swarm.Bodies[0];
+                for (int cloneY = Math.Max(0, (int)clonePainted.Y - 100); cloneY < Math.Min(clonesShown.Canvas.Height, (int)clonePainted.Y + 100) && !clonesDrawn; cloneY += 6)
+                    for (int cloneX = Math.Max(0, (int)clonePainted.X - 100); cloneX < Math.Min(clonesShown.Canvas.Width, (int)clonePainted.X + 100) && !clonesDrawn; cloneX += 6)
+                        clonesDrawn = clonesShown.Canvas.GetPixel(cloneX, cloneY).A > 0;
+                if (!clonesDrawn) throw new Exception("Her clones were drawn invisible.");
+                clonesShown.Say(clonesShown.Swarm.Bodies[1], "who let me out", clonesNow + 5);
+                clonesShown.Swarm.Notes.Add(new CloneNote { X = 300, Y = 300, Text = "capri.exe has duplicated" });
+                clonesShown.Advance(clonesNow + 0.15);
+                clonesShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "clones.png"), ImageFormat.Png);
+                clonesShown.EscDown = delegate { return true; };
+                clonesShown.Advance(clonesNow + 0.2);
+                clonesShown.Advance(clonesNow + 0.3 + CloneWindow.EscHold);
+                if (cloneWindow != null || clonesShown.Visible) throw new Exception("Holding Esc didn't clear her clones.");
+                if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
+                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in and steal the cursor, and holding Esc clears them");
                 napReset();
                 Play(sleep);
                 napping = true;

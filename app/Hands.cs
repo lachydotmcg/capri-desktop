@@ -35,6 +35,7 @@ namespace CapriDesktop
         [DataMember(Name = "description")] public string Description;
         [DataMember(Name = "path")] public string Path;
         [DataMember(Name = "page")] public int? Page;
+        [DataMember(Name = "count")] public int? Count;
         [DataMember(Name = "offset")] public long? Offset;
         [DataMember(Name = "when")] public string When;
         [DataMember(Name = "often")] public string Often;
@@ -575,6 +576,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which animation\",\"enum\":[\"idle\",\"glitch\",\"grin\",\"blink\",\"dance\",\"stop_dancing\"]}},\"required\":[\"name\"]}" },
 #if !CROSS
             { "draw", Ink.Description, Ink.Schema },
+            { "clone", "Make copies of yourself on their screen. They wander around, talk to each other, steal the cursor and drag notes in until they're cleared. Use it when they ask you to clone, copy, duplicate or multiply yourself, and when they ask you to get rid of your clones.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"spawn makes copies and stop removes them all\",\"enum\":[\"spawn\",\"stop\"]},\"count\":{\"type\":\"integer\",\"description\":\"How many copies to make. Leave it out and they keep multiplying by themselves until they're cleared\"}},\"required\":[\"action\"]}" },
             { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}" },
             { "gaming_mode", "Turn Gaming Mode on or off, only when they ask for Gaming Mode by name: you watch their game and react when something happens, until it closes.",
@@ -784,6 +787,15 @@ namespace CapriDesktop
         internal static Func<string, string, string> MoveSelf = delegate { return "Couldn't move just now."; };
         // Plays one of her animations by name, or starts or stops her dance, and says how it went. Her window sets it.
         internal static Func<string, string> Animate = delegate { return "Couldn't do that just now."; };
+#if !CROSS
+        // Makes her clones or clears them, and says how it went. Her window sets it.
+        internal static Func<string, int, string> Clone = delegate { return "Couldn't do that just now."; };
+        internal static Func<bool> Cloning = delegate { return false; };
+        // "Clone yourself", "make 5 clones", "start multiplying". A number makes that many, and no number lets them keep multiplying.
+        private static readonly Regex CloneOn = new Regex(@"^(?:start |begin |go ahead and |just )?(?:(?:clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|copy(?:ing)?) your ?self(?: (?<count>\d+) times?)?(?: as (?:many|much)(?: times)? as you (?:want|like|can))?|clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|(?:make|spawn|create|summon)(?: me)? (?:(?<count>\d+) |an? |some |more |lots of |a bunch of |as many )?(?:clones?|copies|duplicates?)(?: of (?:your ?self|you))?(?: as you (?:want|like|can))?)$", RegexOptions.IgnoreCase);
+        private static readonly Regex CloneOff = new Regex(@"^(?:(?:stop|end|kill|remove|delete|clear|get rid of|destroy|banish|no more|enough(?: of)?|turn off|put away|send away)(?: (?:all|of|the|your))* (?:clones?|copies|duplicates?|cloning|duplicating|multiplying)|clones? off)$", RegexOptions.IgnoreCase);
+        private static readonly Regex CloneEnough = new Regex(@"^(?:ok(?:ay)? )?(?:stop|enough|that'?s enough)$", RegexOptions.IgnoreCase);
+#endif
         // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
         internal static Func<string, string> GamingMode = delegate { return "Gaming Mode isn't on this PC yet."; };
         internal static Func<int, string> SaveClip = delegate { return "Turn on Clip my games in Settings > GAMES, then I can clip that."; };
@@ -901,6 +913,7 @@ namespace CapriDesktop
                 if (tool == "remember") return args.Action == "forget" ? Brain.Unnote(Theirs(args.Text)) : CallMe(args.Text) ?? Brain.Note(Theirs(args.Text));
 #if !CROSS
                 if (tool == "draw") return Draw(args);
+                if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
@@ -1153,7 +1166,7 @@ namespace CapriDesktop
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
-            if (Regex.IsMatch(result ?? "", @"^(Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
+            if (Regex.IsMatch(result ?? "", @"^(One of me wasn't|There's (?:two|\d+ more) of me|Got rid of|I don't have any clones|Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
             Match searched = Regex.Match(result ?? "", @"^Searched google\.com for (.+)\.$");
             return searched.Success ? "Pulled up \"" + searched.Groups[1].Value + "\" on Google for you, choom." : null;
         }
@@ -1856,6 +1869,18 @@ namespace CapriDesktop
             if (switched != null) { tool = "power"; args.Action = switched; args.Minutes = minutes; return true; }
             Match napped = Napping.Match(text);
             if (napped.Success) { tool = "nap"; args.Action = napped.Groups["wake"].Success ? "wake" : "sleep"; return true; }
+#if !CROSS
+            Match cloning = CloneOn.Match(text);
+            if (cloning.Success)
+            {
+                int copies;
+                tool = "clone";
+                args.Action = "spawn";
+                if (int.TryParse(cloning.Groups["count"].Value, out copies) && copies > 0) args.Count = copies;
+                return true;
+            }
+            if (CloneOff.IsMatch(text) || (CloneEnough.IsMatch(text) && Cloning())) { tool = "clone"; args.Action = "stop"; return true; }
+#endif
             string screen, window;
             string moved = MovingFor(text, out screen, out window);
             // A window they named only counts here while it's open, so "sit on my homework" stays chat for her brain.
@@ -2169,6 +2194,7 @@ namespace CapriDesktop
         {
 #if !CROSS
             if (tool == "draw") return Ink.Valid(args);
+            if (tool == "clone") return args != null && (args.Action == "spawn" || args.Action == "stop");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
             if (tool == "listen")
             {

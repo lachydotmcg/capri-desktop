@@ -501,6 +501,10 @@ Mainframe's CAPRI heading has a Support button. It opens Lachy's Ko-fi (ko-fi.co
 ### Simple and Advanced Settings
 Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which one you left it on.
 
+### Clones
+Tell her "clone yourself" and a copy of her glitches in and keeps multiplying, with no limit. "Make 5 clones" makes exactly 5. They wander around your screen, leave a glitch trail, talk to each other out loud, steal your cursor and drag notes in.
+Hold Esc for a moment to clear them, or say "get rid of the clones". Hiding or closing her clears them too. Their talking uses her brain and voice the same as any other reply. Windows only for now.
+
 ### Head pats switch
 Settings > CAPRI > Head pats turns them off. Rubbing the cursor over her then does nothing. It's on by default.
 
