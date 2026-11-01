@@ -10919,10 +10919,25 @@ namespace CapriDesktop
                 clonesShown.Swarm.Notes.Add(new CloneNote { X = 300, Y = 300, Text = "capri.exe has duplicated" });
                 clonesShown.Advance(clonesNow + 0.15);
                 clonesShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "clones.png"), ImageFormat.Png);
-                clonesShown.EscDown = delegate { return true; };
-                clonesShown.Advance(clonesNow + 0.2);
-                clonesShown.Advance(clonesNow + 0.3 + CloneWindow.EscHold);
-                if (cloneWindow != null || clonesShown.Visible) throw new Exception("Holding Esc didn't clear her clones.");
+                // Esc is read in real time on its own thread: a tap only says to hold it, and a hold clears hundreds of them on time.
+                bool clonesEsc = false;
+                clonesShown.EscDown = delegate { return clonesEsc; };
+                clonesEsc = true;
+                Stopwatch clonesTap = Stopwatch.StartNew();
+                while (clonesTap.ElapsedMilliseconds < 150) { Application.DoEvents(); Thread.Sleep(5); }
+                clonesEsc = false;
+                while (clonesTap.ElapsedMilliseconds < 400) { Application.DoEvents(); Thread.Sleep(5); }
+                clonesShown.Advance(clock.Elapsed.TotalSeconds);
+                if (cloneWindow != clonesShown || !clonesShown.Hinting) throw new Exception("Tapping Esc cleared her clones or didn't say to hold it.");
+                clonesShown.Spawn(400, new Point(clonesShown.Left + clonesShown.Width / 2, clonesShown.Top + clonesShown.Height / 2), false);
+                for (int clonesFill = 0; clonesFill < 200 && clonesShown.Swarm.Pending > 0; clonesFill++) clonesShown.Swarm.Tick(clock.Elapsed.TotalSeconds, 0, true, false, Point.Empty);
+                int clonesCrowd = clonesShown.Swarm.Bodies.Count;
+                clonesEsc = true;
+                Stopwatch clonesHeld = Stopwatch.StartNew();
+                while (cloneWindow != null && clonesHeld.ElapsedMilliseconds < 6000) { Application.DoEvents(); Thread.Sleep(5); }
+                long clonesTook = clonesHeld.ElapsedMilliseconds;
+                if (cloneWindow != null || clonesShown.Visible || clonesCrowd < 400 || clonesTook < CloneWindow.EscHold * 1000 - 100 || clonesTook > CloneWindow.EscHold * 1000 + 3000)
+                    throw new Exception("Holding Esc didn't clear " + clonesCrowd + " clones on time: " + clonesTook + " ms.");
                 if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
                 Func<string> upsetOpenWas = Computer.GameOpen;
                 try
@@ -10953,7 +10968,7 @@ namespace CapriDesktop
                     ClonesOff();
                 }
                 finally { Computer.GameOpen = upsetOpenWas; preferences.NoUpsetChaos = false; Computer.Streaming = false; working = null; hidden = false; ClonesOff(); }
-                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor, and holding Esc clears them; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
+                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor; Esc is read in real time, so a tap says to hold it and a 0.7 s hold clears 400 of them on time; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
                 napReset();
                 Play(sleep);
                 napping = true;
