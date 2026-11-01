@@ -84,6 +84,10 @@ namespace CapriDesktop
 
         internal bool Listening { get { return running; } }
 
+        // The mic is open but nothing has come from it for 5 s: unplugged, lost when the PC slept, or dropped by its driver.
+        internal bool Stalled { get { return running && Environment.TickCount - lastChunk > 5000; } }
+        private volatile int lastChunk;
+
         internal static List<Mic> List()
         {
             List<Mic> found = new List<Mic>();
@@ -199,6 +203,7 @@ namespace CapriDesktop
                 waveInPrepareHeader(device, headers[i], size);
                 waveInAddBuffer(device, headers[i], size);
             }
+            lastChunk = Environment.TickCount;
             running = true;
             waveInStart(device);
             worker = new Thread(Pump);
@@ -246,6 +251,7 @@ namespace CapriDesktop
                         IntPtr pointer = headers[next];
                         WaveHeader header = (WaveHeader)Marshal.PtrToStructure(pointer, typeof(WaveHeader));
                         if ((header.Flags & 1) == 0) break;
+                        lastChunk = Environment.TickCount;
                         short[] chunk = new short[header.Recorded / 2];
                         Marshal.Copy(header.Data, chunk, 0, chunk.Length);
                         Marshal.WriteInt32(pointer, flags, header.Flags & ~1);
@@ -256,7 +262,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            catch (Exception) { }
+            catch (Exception error) { if (running) Brain.Log("ears", -1, "Her mic stopped: " + error.Message); }
         }
 
         internal void Feed(short[] chunk)
