@@ -1172,7 +1172,7 @@ namespace CapriDesktop
             if (!Ready) throw new IOException("Her ears aren't in yet.");
             LocalVoice.Load(engine);
             List<IntPtr> held = new List<IntPtr>();
-            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = Utf8(value); held.Add(pointer); return pointer; };
+            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = Utf8(LocalVoice.Plain(value)); held.Add(pointer); return pointer; };
             // SherpaOnnxOfflineRecognizerConfig from sherpa-onnx 1.13.8 on 64-bit Windows, written by offset. Every field left at
             // zero takes the library's default: 16 kHz features, greedy search, no language model.
             IntPtr config = Marshal.AllocHGlobal(ConfigBytes);
@@ -2226,7 +2226,7 @@ namespace CapriDesktop
             if (!Ready) throw new IOException("Her wake word isn't in yet.");
             LocalVoice.Load(engine);
             List<IntPtr> kept = new List<IntPtr>();
-            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = LocalVoice.Utf8(value); kept.Add(pointer); return pointer; };
+            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = LocalVoice.Utf8(LocalVoice.Plain(value)); kept.Add(pointer); return pointer; };
             string tuning = " :" + Boost.ToString("0.###", CultureInfo.InvariantCulture) + " #" + Threshold.ToString("0.###", CultureInfo.InvariantCulture) + " @HEY_CAPRI";
             byte[] keywords = Encoding.UTF8.GetBytes(string.Join("\n", Array.ConvertAll(Phrases, delegate(string phrase) { return phrase + tuning; })));
             string folder = Folder;

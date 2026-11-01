@@ -2217,7 +2217,7 @@ namespace CapriDesktop
             Load(folder);
             Close();
             List<IntPtr> held = new List<IntPtr>();
-            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = Utf8(value); held.Add(pointer); return pointer; };
+            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = Utf8(Plain(value)); held.Add(pointer); return pointer; };
             try
             {
                 Config config = new Config();
@@ -2230,11 +2230,71 @@ namespace CapriDesktop
                 config.Model.Kokoro.Lexicon = keep(Path.Combine(folder, gb ? "lexicon-gb-en.txt" : "lexicon-us-en.txt"));
                 config.Model.Kokoro.Lang = keep(gb ? "en" : "en-us");
                 config.MaxSentences = 1;
-                tts = SherpaOnnxCreateOfflineTts(ref config);
+                // sherpa-onnx ends the process on a file it can't read, with no exception to catch. The marker only exists while it opens,
+                // so finding one means that's how she went down last time: it goes in errors.txt and she skips her free voice this once.
+                string opening = folder + ".opening";
+                if (File.Exists(opening))
+                {
+                    File.Delete(opening);
+                    Brain.Log("free voice", -1, "It closed her while it was opening last time, so she skipped it once.");
+                    throw new VoiceException("Her free voice closed me last time it started, so I'm staying quiet for now.");
+                }
+                File.WriteAllText(opening, "");
+                try { tts = SherpaOnnxCreateOfflineTts(ref config); }
+                finally { File.Delete(opening); }
             }
+            catch (IOException error) { throw new VoiceException(error.Message); }
             finally { foreach (IntPtr pointer in held) Marshal.FreeHGlobal(pointer); }
             if (tts == IntPtr.Zero) throw new VoiceException("Her free voice wouldn't start.");
             british = gb;
+        }
+
+        // sherpa-onnx takes a folder with a letter like ś for no folder at all and then ends the whole process, with nothing in
+        // errors.txt (Herbuś, 1 Nov, and tested on a folder named Ośka). A Windows user name like that puts everything of hers in one,
+        // so sherpa-onnx gets there through a plain-named junction.
+        private static readonly object plainGate = new object();
+        private static string plainRoot, plainAlias;
+
+        internal static string Plain(string value)
+        {
+            if (IsPlain(value)) return value;
+            string root = Path.GetDirectoryName(Brain.LogPath);
+            lock (plainGate)
+            {
+                if (plainRoot != root) { plainAlias = Junction(root); plainRoot = root; }
+                string plain = value.Replace(root, plainAlias);
+                if (!IsPlain(plain)) throw new IOException("Her voice files are in a folder with special letters in its name, and her voice can't read those.");
+                return plain;
+            }
+        }
+
+        private static bool IsPlain(string value)
+        {
+            foreach (char letter in value ?? "") if (letter > 126) return false;
+            return true;
+        }
+
+        private static string Junction(string root)
+        {
+            string name;
+            using (SHA1 hash = SHA1.Create()) name = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(root.ToLowerInvariant()))).Replace("-", "").Substring(0, 12);
+            foreach (string home in new[] { Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), Environment.GetEnvironmentVariable("PUBLIC") })
+            {
+                if (string.IsNullOrEmpty(home)) continue;
+                string alias = Path.Combine(Path.Combine(home, "Capri"), name);
+                if (Directory.Exists(alias)) return alias;
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(alias));
+                    ProcessStartInfo link = new ProcessStartInfo("cmd.exe", "/c mklink /J \"" + alias + "\" \"" + root + "\"") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+                    using (Process linking = Process.Start(link)) linking.WaitForExit(10000);
+                    if (Directory.Exists(alias)) return alias;
+                }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                catch (System.ComponentModel.Win32Exception) { }
+            }
+            throw new IOException("Her voice files are in a folder with special letters in its name, and her voice can't read those.");
         }
 
         // Her ears run on the same sherpa-onnx, so they load it from here too.
@@ -2583,7 +2643,7 @@ namespace CapriDesktop
             LocalVoice.Load(Engine);
             Close();
             List<IntPtr> held = new List<IntPtr>();
-            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = LocalVoice.Utf8(value); held.Add(pointer); return pointer; };
+            Func<string, IntPtr> keep = delegate(string value) { IntPtr pointer = LocalVoice.Utf8(LocalVoice.Plain(value)); held.Add(pointer); return pointer; };
             Func<string, string> inside = delegate(string name) { string at = Path.Combine(folder, name); return File.Exists(at) || Directory.Exists(at) ? at : ""; };
             try
             {
@@ -2639,6 +2699,7 @@ namespace CapriDesktop
                 try { tts = LocalVoice.SherpaOnnxCreateOfflineTts(ref config); }
                 catch (SEHException) { tts = IntPtr.Zero; }
             }
+            catch (IOException error) { throw new VoiceException(error.Message); }
             finally { foreach (IntPtr pointer in held) Marshal.FreeHGlobal(pointer); }
             if (tts == IntPtr.Zero) throw new VoiceException("That voice model wouldn't start. Check it's a Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx.");
             opened = key;

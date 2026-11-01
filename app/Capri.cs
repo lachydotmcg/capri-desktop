@@ -16233,6 +16233,17 @@ namespace CapriDesktop
                 Brain.Google = savedGoogle;
                 if (doorFake != null) doorFake.Stop();
             }
+            string plainLogWas = Brain.LogPath;
+            string accented = Path.Combine(Path.GetDirectoryName(plainLogWas), "O\u015Bka");
+            Directory.CreateDirectory(accented);
+            File.WriteAllText(Path.Combine(accented, "voice.txt"), "heard");
+            string plainFile;
+            Brain.LogPath = Path.Combine(accented, "errors.txt");
+            try { plainFile = LocalVoice.Plain(Path.Combine(accented, "voice.txt")); }
+            finally { Brain.LogPath = plainLogWas; }
+            if (LocalVoice.Plain("cpu") != "cpu" || plainFile.IndexOf('\u015B') >= 0 || File.ReadAllText(plainFile) != "heard") throw new Exception("A folder with a special letter didn't get a plain path: " + plainFile);
+            Directory.Delete(Path.GetDirectoryName(plainFile));
+            checks.Add("PASS a folder with a letter like \u015B reaches her voice library through a plain-named junction, because a path it can't read would end her with nothing logged");
             int checkedLimits = 0;
             foreach (string limitedKey in new[] { "AIza-test", "sk-or-test" })
             {
