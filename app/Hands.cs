@@ -1869,6 +1869,11 @@ namespace CapriDesktop
                 if (Regex.IsMatch(target, @"\s(and|then|&)\s|,\s*\S", RegexOptions.IgnoreCase)) return false;
                 if (Regex.IsMatch(target, @"^(your|ur|capri'?s|the capri)( own)? (web ?site|site|page|download page)$", RegexOptions.IgnoreCase)) { tool = "open_website"; args.Site = Home; return true; }
                 if (Installed(target)) { tool = "open_app"; args.Name = target; return true; }
+#if CROSS
+                // "Open minecraft from my modrinth launcher": her hands can't reach inside it here, so the launcher opens (Mako, 1 Nov).
+                Match launcher = Regex.Match(target, @"\s(?:from|in|on|with|through|using|via)\s+(?:(?:my|the)\s+)?(.+?)(?:\s+launcher)?$", RegexOptions.IgnoreCase);
+                if (launcher.Success && Installed(launcher.Groups[1].Value)) { tool = "open_app"; args.Name = launcher.Groups[1].Value; return true; }
+#endif
                 if (Site(target)) { tool = "open_website"; args.Site = target; return true; }
                 return false;
             }
@@ -2295,8 +2300,12 @@ namespace CapriDesktop
             if (name.StartsWith(want + " ", StringComparison.Ordinal)) return 3;
             if ((" " + name + " ").Contains(" " + want + " ")) return 2;
             if (want.Length >= 4 && name.Contains(want)) return 1;
+            if (name.Length >= 3 && want.StartsWith(name + " ", StringComparison.Ordinal) && AppKind.IsMatch(want.Substring(name.Length + 1))) return 1;
             return 0;
         }
+
+        // "Kate text editor": the app's name and then what kind of app it is (Mako, 1 Nov).
+        private static readonly Regex AppKind = new Regex(@"^(?:text editor|code editor|editor|web browser|browser|launcher|client|terminal|file manager|file explorer|music player|media player|video player|player)$");
 
         private static int Score(InstalledApp app, string want)
         {
