@@ -353,7 +353,7 @@ namespace CapriDesktop
         internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
         internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
-        internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : "."); }
+        internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : remote.Kind == "local" ? ", or turn pictures on in your server." : "."); }
         private const string Parts = "@capri-image@";
         internal const string Declined = "[SIGNAL CORRUPTED] Lost that one in the static. Ask me something else?";
         internal const string Stuck = " If you're stuck, just join the Discord, choom. It's under Help in my right-click menu.";
@@ -1834,8 +1834,10 @@ namespace CapriDesktop
 
         internal static bool NoVision(BrainException error)
         {
-            if (error.Status != 400 && error.Status != 422) return false;
             string reason = error.Detail ?? error.Message;
+            // A server with pictures turned off can say so with any status, even a 500, and a local server's errors reach her as they came (1 Nov).
+            if (Regex.IsMatch(reason, @"multimodal (?:data|processing)\b[^.]{0,60}\bnot enabled|--enable-multimodal", RegexOptions.IgnoreCase)) return true;
+            if (error.Status != 400 && error.Status != 422) return false;
             if (Regex.IsMatch(reason, @"\b(size|dimensions?|resolution|format|mime|base64|decode|decoding|too large|too many|invalid)\b", RegexOptions.IgnoreCase)) return false;
             return Regex.IsMatch(reason, @"image_url.{0,40}only supported|(?:does not|doesn't|cannot|can't) support (?:\w+ ){0,2}(?:images?|vision|multimodal)|(?:images?|vision|multimodal)(?: inputs?| content| messages?| processing)? (?:is |are )?(?:not supported|unsupported|not enabled)|(?:not a|is not a) (?:vision|multimodal) model|(?:only supports? text|text.only model)", RegexOptions.IgnoreCase);
         }
