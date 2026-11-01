@@ -10638,6 +10638,12 @@ namespace CapriDesktop
                 bool cloneNabbed = false;
                 for (int cloneStep = 1; cloneStep <= 500; cloneStep++) cloneNabbed |= cloneSet.Tick(cloneStep * 0.1, 0.1, true, true, new Point(600, 400)) != null;
                 if (cloneSet.Bodies.Count != 200 || !cloneNabbed) throw new Exception("A set number of clones came out wrong or none stole the cursor: " + cloneSet.Bodies.Count + " / " + cloneNabbed);
+                CloneNote cloneFake = new CloneNote { Text = "deleting system32", BarFrom = 50, BarFor = 1 };
+                cloneSet.Notes.Add(cloneFake);
+                cloneSet.Tick(50.5, 0.1, false, false, Point.Empty);
+                string cloneFilling = cloneFake.Text;
+                cloneSet.Tick(52, 0.1, false, false, Point.Empty);
+                if (cloneFilling != "deleting system32" || cloneFake.Text != Swarm.Owned || cloneFake.BarFrom >= 0 || !cloneFake.Stale) throw new Exception("A fake delete didn't fill up and own up: " + cloneFake.Text);
                 if (CloneScript("1: who are you\ncapri 2: the real one\nnot a line").Count != 2 || CloneScript(null).Count != 0) throw new Exception("Her clones' lines were read wrong.");
                 string clonesSaid = Clone("spawn", 3);
                 CloneWindow clonesShown = cloneWindow;
@@ -10661,7 +10667,7 @@ namespace CapriDesktop
                 clonesShown.Advance(clonesNow + 0.3 + CloneWindow.EscHold);
                 if (cloneWindow != null || clonesShown.Visible) throw new Exception("Holding Esc didn't clear her clones.");
                 if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
-                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in and steal the cursor, and holding Esc clears them");
+                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor, and holding Esc clears them");
                 napReset();
                 Play(sleep);
                 napping = true;

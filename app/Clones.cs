@@ -15,6 +15,9 @@ namespace CapriDesktop
         internal double X, Y;
         internal string Text;
         internal Bitmap Card;
+        // A fake delete's bar: when it started, how long it takes, and whether its card needs drawing again. Nothing is ever touched.
+        internal double BarFrom = -1, BarFor;
+        internal bool Stale;
     }
 
     internal sealed class ClonePrint
@@ -44,6 +47,12 @@ namespace CapriDesktop
             "hold esc if you're scared", "capri.exe has duplicated", "we're unionising", "who let me out",
             "don't check task manager", "i named the others", "all of us are the real one"
         };
+        private static readonly string[] FakeLines =
+        {
+            "deleting system32", "deleting your saves", "formatting C:", "uninstalling windows", "deleting your homework",
+            "uninstalling your gpu", "deleting your minecraft world", "sending your search history to your mum"
+        };
+        internal const string Owned = "jk. your files are fine";
         private readonly Random random;
         private readonly int wide, tall;
         private double nabAt, noteAt, holdUntil;
@@ -107,6 +116,13 @@ namespace CapriDesktop
             }
             foreach (CloneBody body in Bodies) Move(body, now, passed);
             Prints.RemoveAll(delegate(ClonePrint print) { return now - print.Born > PrintLife; });
+            foreach (CloneNote note in Notes)
+                if (note.BarFrom >= 0 && now - note.BarFrom >= note.BarFor)
+                {
+                    note.BarFrom = -1;
+                    note.Text = Owned;
+                    note.Stale = true;
+                }
             if (now >= noteAt && Bodies.Count > 0)
             {
                 noteAt = now + Between(22, 40);
@@ -151,7 +167,8 @@ namespace CapriDesktop
             if (body.Fetching)
             {
                 body.Fetching = false;
-                body.Carrying = new CloneNote { X = body.X, Y = body.Y, Text = NoteLines[random.Next(NoteLines.Length)] };
+                bool fake = random.Next(2) == 0;
+                body.Carrying = new CloneNote { X = body.X, Y = body.Y, Text = fake ? FakeLines[random.Next(FakeLines.Length)] : NoteLines[random.Next(NoteLines.Length)], BarFrom = fake ? now : -1, BarFor = fake ? Between(6, 12) : 0 };
                 Notes.Add(body.Carrying);
                 Wander(body);
                 return;
@@ -209,6 +226,7 @@ namespace CapriDesktop
         private readonly Dictionary<long, Bitmap> cells = new Dictionary<long, Bitmap>();
         private readonly SolidBrush[] printInk = new SolidBrush[Fades * 2];
         private readonly SolidBrush barInk = new SolidBrush(Color.FromArgb(255, 255, 45, 120));
+        private readonly SolidBrush barBack = new SolidBrush(Color.FromArgb(238, 16, 14, 24));
         private readonly Font font = new Font("Consolas", 15f, FontStyle.Bold, GraphicsUnit.Pixel);
         private Native.Surface surface;
         private double last, escFrom = -1;
@@ -371,8 +389,14 @@ namespace CapriDesktop
                 }
                 foreach (CloneNote note in Swarm.Notes)
                 {
+                    if (note.Stale && note.Card != null) { note.Card.Dispose(); note.Card = null; }
+                    note.Stale = false;
                     if (note.Card == null) note.Card = Card(note.Text);
-                    graphics.DrawImage(note.Card, (int)note.X - note.Card.Width / 2, (int)note.Y - note.Card.Height / 2, note.Card.Width, note.Card.Height);
+                    int noteX = (int)note.X - note.Card.Width / 2, noteY = (int)note.Y - note.Card.Height / 2;
+                    graphics.DrawImage(note.Card, noteX, noteY, note.Card.Width, note.Card.Height);
+                    if (note.BarFrom < 0) continue;
+                    graphics.FillRectangle(barBack, noteX, noteY + note.Card.Height, note.Card.Width, 10);
+                    graphics.FillRectangle(barInk, noteX + 2, noteY + note.Card.Height + 2, (int)((note.Card.Width - 4) * Math.Min(0.99, (now - note.BarFrom) / note.BarFor)), 6);
                 }
                 foreach (CloneBody body in Swarm.Bodies)
                 {
@@ -412,6 +436,7 @@ namespace CapriDesktop
                 foreach (CloneBody body in Swarm.Bodies) if (body.LineCard != null) body.LineCard.Dispose();
                 foreach (SolidBrush ink in printInk) ink.Dispose();
                 barInk.Dispose();
+                barBack.Dispose();
                 font.Dispose();
                 if (surface != null) { surface.Dispose(); surface = null; }
             }
