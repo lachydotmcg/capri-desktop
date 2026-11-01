@@ -1561,6 +1561,7 @@ namespace CapriDesktop
         private volatile bool local;
         private volatile bool earsShut;
         private volatile bool transcribing;
+        private volatile int transcribingAt;
         private volatile bool earsReady;
         private int earsNotice = -1;
         private string earsLead = "";
@@ -6108,7 +6109,7 @@ namespace CapriDesktop
         internal void ToggleSpeaking()
         {
             preferences.Quiet = !preferences.Quiet;
-            if (preferences.Quiet) { voice.Stop(); if (chatting) StopChat(); }
+            if (preferences.Quiet) { voice.Stop(); LeaveCall(); }
             SavePreferences();
             mainframe.Sync();
             if (voice.Key == null || hidden || IsDisposed) return;
@@ -6124,7 +6125,7 @@ namespace CapriDesktop
             preferences.Silent = true;
             voice.Stop();
             qwen.Stop();
-            if (chatting && !local) StopChat();
+            LeaveCall();
             SavePreferences();
             mainframe.Sync();
             ShowVoice();
@@ -7607,6 +7608,16 @@ namespace CapriDesktop
                 earsRetryAt = -1;
                 if (chatting && local) GetFreeEars(true);
             }
+            // A line her ears never hand back would keep them shut for good, so after 30 s she lets it go and listens again.
+            if (transcribing && chatting && local && Environment.TickCount - transcribingAt > 30000)
+            {
+                Brain.Log("ears", -1, "A line took over 30 s to turn into words, so she listened again.");
+                transcribing = false;
+                nameOver = false;
+                CheckEars(now);
+            }
+            // A mic that stopped sending, unplugged, lost in sleep or dropped by its driver, is opened again, like Hey Capri's.
+            if (chatting && ears.Stalled) ReopenMic(now);
             if (!chatting || !local || !earsReady || ears.Muted || micHeard || micWarned) { micQuietFrom = -1; return; }
             if (micQuietFrom < 0) micQuietFrom = now;
             else if (now - micQuietFrom >= MicQuietWait && talkState != TalkState.Thinking && now - earsWarned >= 8)
@@ -7614,6 +7625,26 @@ namespace CapriDesktop
                 micWarned = true;
                 Missed(MicSilent, true);
             }
+        }
+
+        internal const string MicStopped = "Your mic keeps cutting out. Pick it again under VOICE, or check it in Windows sound settings.";
+        private double micReopened = -100;
+
+        // Twice in a minute is more than a blip, so she says so.
+        private void ReopenMic(double now)
+        {
+            Brain.Log("ears", -1, "Her mic sent nothing for 5 s, so she opened it again.");
+            ears.Stop();
+            try { if (!testing) ears.Start(); }
+            catch (VoiceException error)
+            {
+                StopChat();
+                EarsNote(error.Message, true);
+                return;
+            }
+            bool again = now - micReopened < 60;
+            micReopened = now;
+            if (again) Missed(MicStopped, true);
         }
 
         private void HeardLevel(double value)
@@ -8062,6 +8093,7 @@ namespace CapriDesktop
                 preferences.Quiet = true;
                 voice.Stop();
             }
+            LeaveCall();
             SavePreferences();
             // A model file runs on her free voice's engine, and her free voice fills in for a server that's down.
             if (wasSilent || api == VoiceServer.Files) GetFreeVoice();
@@ -8923,6 +8955,7 @@ namespace CapriDesktop
                 }
                 if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds)) { nameOver = false; return; }
                 transcribing = true;
+                transcribingAt = Environment.TickCount;
                 Post(delegate { Transcribe(taken, ticket, request, wake); });
             }
         }
@@ -9009,6 +9042,7 @@ namespace CapriDesktop
             if (request != asking || ears.Muted) { if (!preferences.ListenCapri) mainframe.VoiceNote(LocalListening, false); return; }
             if (problem != null)
             {
+                if (!testing) Brain.Log("ears", -1, problem);
                 Missed("I couldn't hear that. Try again, or check your mic under VOICE.", true);
                 mainframe.VoiceNote(problem, true);
                 return;
@@ -9408,6 +9442,15 @@ namespace CapriDesktop
             box.Leaving = -1;
             pace = Agent.Pace;
             Say(null);
+        }
+
+        // A call only speaks in ElevenLabs' voice, so her voice moving off ElevenLabs mid-call hands the mic to her own ears
+        // instead of shutting it (Lachy, 1 Nov: his mic stopped working after he switched her voice with voice chat on).
+        private void LeaveCall()
+        {
+            if (!chatting || local) return;
+            StopChat();
+            if (ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, voice.Key != null)) StartLocal();
         }
 
         private void StopChat()
@@ -29110,6 +29153,7 @@ namespace CapriDesktop
                             checks.Add("PASS her right-click menu, with Move open, and her type box, with a draft in it, are drawn for her-menu.png and type-box.png");
                             TalkChecks(checks);
                             ListenCapriChecks(output, checks);
+                            VoiceSwitchChecks(output, checks);
                             GamingChecks(output, checks);
                             checks.Add("LIMIT handler-driven integration test; physical mouse input and tray UI require a manual check");
                             checks.Add("PASS quit menu requested application exit");
@@ -29713,6 +29757,195 @@ namespace CapriDesktop
                 Commentary.Stage = stageWas;
                 mainframe.Sync();
                 mainframe.ShowSettings(pageWas);
+                SavePreferences();
+            }
+        }
+
+        // Switching her voice mid-chat keeps her ears on: each row under VOICE with Listen for Capri on, and an ElevenLabs call that
+        // her voice leaves, which hands the mic to her own ears. A fake voice server answers every row, and a stand-in hears every line.
+        private void VoiceSwitchChecks(string output, System.Collections.Generic.List<string> checks)
+        {
+            bool listenWas = preferences.ListenCapri, quietWas = preferences.Quiet, silentWas = preferences.Silent, servedWas = preferences.ServerVoice, freeChatWas = FreeChatOn;
+            string urlWas = preferences.ServerUrl, apiWas = preferences.ServerApi, modelWas = preferences.ServerModel, speakerWas = preferences.ServerSpeaker, keyWas = preferences.ServerKey;
+            string asideUrlWas = preferences.AsideUrl, asideApiWas = preferences.AsideApi, asideModelWas = preferences.AsideModel, asideSpeakerWas = preferences.AsideSpeaker, asideKeyWas = preferences.AsideKey;
+            string cloudWas = preferences.CloudVoice, voiceKeyWas = voice.Key, transcriptWas = Brain.TranscriptPath;
+            bool? ownWas = ownEarsTest;
+            Func<string, string> thinkWas = Think;
+            Func<string, byte[]> speakWas = Speak, freeSpeakWas = FreeSpeak;
+            Func<short[], string> hearingWas = Hearing.Run;
+            int switchCalls = 0;
+            short[] switchTone = new short[YourVoice.Rate * 3 / 10];
+            for (int toneAt = 0; toneAt < switchTone.Length; toneAt++) switchTone[toneAt] = (short)(Math.Sin(toneAt * 0.05) * 8000);
+            byte[] switchWav = Voice.Wave(switchTone, YourVoice.Rate);
+            System.Net.Sockets.TcpListener switchServer = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+            switchServer.Start();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try
+                {
+                    while (true)
+                    {
+                        System.Net.Sockets.TcpClient switchClient = switchServer.AcceptTcpClient();
+                        try
+                        {
+                            System.Net.Sockets.NetworkStream switchStream = switchClient.GetStream();
+                            MemoryStream switchGot = new MemoryStream();
+                            byte[] switchBuffer = new byte[65536];
+                            while (true)
+                            {
+                                int switchRead = switchStream.Read(switchBuffer, 0, switchBuffer.Length);
+                                if (switchRead <= 0) break;
+                                switchGot.Write(switchBuffer, 0, switchRead);
+                                string switchRequest = System.Text.Encoding.UTF8.GetString(switchGot.ToArray());
+                                int switchEnd = switchRequest.IndexOf("\r\n\r\n", StringComparison.Ordinal);
+                                if (switchEnd < 0) continue;
+                                System.Text.RegularExpressions.Match switchLength = System.Text.RegularExpressions.Regex.Match(switchRequest, @"Content-Length:\s*(\d+)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                if (switchGot.Length >= switchEnd + 4 + (switchLength.Success ? int.Parse(switchLength.Groups[1].Value) : 0)) break;
+                            }
+                            byte[] switchHead = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: audio/wav\r\nContent-Length: " + switchWav.Length + "\r\nConnection: close\r\n\r\n");
+                            switchStream.Write(switchHead, 0, switchHead.Length);
+                            switchStream.Write(switchWav, 0, switchWav.Length);
+                        }
+                        catch (IOException) { }
+                        finally { switchClient.Close(); }
+                    }
+                }
+                catch (Exception) { }
+            });
+            int switchPort = ((IPEndPoint)switchServer.LocalEndpoint).Port;
+            string switchA = "http://127.0.0.1:" + switchPort + "/a/v1", switchB = "http://127.0.0.1:" + switchPort + "/b/v1";
+            Func<int, short[]> switchWave = delegate(int amplitude)
+            {
+                short[] waveSamples = new short[Ears.Chunk];
+                for (int waveAt = 0; waveAt < waveSamples.Length; waveAt++) waveSamples[waveAt] = (short)(Math.Sin(waveAt * Math.PI / 40) * amplitude);
+                return waveSamples;
+            };
+            Action<Func<bool>, int> switchPump = delegate(Func<bool> done, int limit)
+            {
+                Stopwatch switchWaited = Stopwatch.StartNew();
+                while (!done() && switchWaited.ElapsedMilliseconds < limit) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            Func<string> switchState = delegate
+            {
+                return "chatting " + chatting + ", local " + local + ", ears ready " + earsReady + ", shut " + earsShut + ", transcribing " + transcribing + ", muted " + ears.Muted
+                    + ", talk " + talkState + ", quiet " + preferences.Quiet + ", server " + preferences.ServerVoice + ", note " + mainframe.VoiceNoteText;
+            };
+            // She says her check line through each new voice first, so each line waits for it to finish.
+            Action<string> switchHeard = delegate(string what)
+            {
+                switchPump(delegate { return false; }, 1500);
+                int before = switchCalls;
+                for (int lineAt = 0; lineAt < 4; lineAt++) Gather(switchWave(0));
+                for (int lineAt = 0; lineAt < 8; lineAt++) Gather(switchWave(lineAt % 2 == 0 ? 14000 : 20000));
+                for (int lineAt = 0; lineAt < 12; lineAt++) Gather(switchWave(0));
+                switchPump(delegate { return switchCalls > before; }, 5000);
+                if (switchCalls == before) throw new Exception("Her ears stopped hearing after " + what + ": " + switchState());
+            };
+            try
+            {
+                StopChat();
+                CloseTalk();
+                job = null;
+                working = null;
+                Brain.TranscriptPath = Path.Combine(output, "voice-switch");
+                Directory.CreateDirectory(Brain.TranscriptPath);
+                preferences.ListenCapri = true;
+                preferences.Silent = false;
+                FreeChatOn = true;
+                ownEarsTest = true;
+                voice.Key = "sk_test_capri_switch";
+                Speak = delegate { return switchWav; };
+                FreeSpeak = delegate { return switchWav; };
+                Think = delegate { Interlocked.Increment(ref switchCalls); return "Yeah, choom."; };
+                Hearing.Run = delegate { return "capri can you hear me"; };
+                UseVoiceServer(switchA, "kokoro", "af_heart", null, VoiceServer.OpenAi);
+                switchPump(delegate { return false; }, 1500);
+                CloseTalk();
+                ToggleChat();
+                switchHeard("opening");
+                UseVoiceServer(switchB, "kokoro", "af_bella", null, VoiceServer.OpenAi);
+                switchHeard("another voice server");
+                mainframe.PickVoice(true);
+                switchHeard("ElevenLabs");
+                UseSavedServer(false);
+                switchHeard("ElevenLabs back to the saved server");
+                mainframe.PickVoice(true);
+                switchPump(delegate { return false; }, 1500);
+                UsePrebuilt();
+                if (!chatting || !local || !earsReady) throw new Exception("ElevenLabs to her own voices shut Listen for Capri's ears: " + switchState());
+                switchHeard("ElevenLabs to her own voices");
+                checks.Add("PASS switching her voice with Listen for Capri on keeps her ears open: another voice server, ElevenLabs, back to the saved server, and ElevenLabs to her own voices each still hear the next line");
+
+                StopChat();
+                CloseTalk();
+                preferences.ListenCapri = false;
+                mainframe.PickVoice(true);
+                switchPump(delegate { return false; }, 1500);
+                CloseTalk();
+                chatting = true;
+                local = false;
+                agent = new Agent();
+                UseVoiceServer(switchA, "kokoro", "af_heart", null, VoiceServer.OpenAi);
+                if (!chatting || !local || agent != null) throw new Exception("Switching to a voice server mid-call left the ElevenLabs call open: " + switchState());
+                switchHeard("a voice server mid-call");
+                StopChat();
+                CloseTalk();
+                mainframe.PickVoice(true);
+                switchPump(delegate { return false; }, 1500);
+                CloseTalk();
+                chatting = true;
+                local = false;
+                agent = new Agent();
+                UsePrebuilt();
+                if (!chatting || !local || agent != null) throw new Exception("Switching to her own voices mid-call didn't hand the mic to her ears: " + switchState());
+                switchHeard("her own voices mid-call");
+                checks.Add("PASS switching her voice off ElevenLabs mid-call hands the mic to her own ears, which hear the next line, for a voice server and her own voices");
+
+                transcribing = true;
+                transcribingAt = Environment.TickCount - 31000;
+                CheckHearing(clock.Elapsed.TotalSeconds);
+                bool released = !transcribing;
+                double reopenAt = clock.Elapsed.TotalSeconds;
+                micReopened = -100;
+                ReopenMic(reopenAt);
+                bool firstQuiet = mainframe.VoiceNoteText != MicStopped;
+                ReopenMic(reopenAt + 10);
+                if (!released || !firstQuiet || mainframe.VoiceNoteText != MicStopped) throw new Exception("A stuck line or a mic that cut out twice went unhandled: released " + released + ", first quiet " + firstQuiet + ", note " + mainframe.VoiceNoteText);
+                checks.Add("PASS a line her ears never hand back is let go after 30 s, and a mic that cuts out twice in a minute is reopened and said");
+                checks.Add("LIMIT a real mic that stops sending and real speech through each voice need a live check");
+            }
+            finally
+            {
+                StopChat();
+                CloseTalk();
+                switchServer.Stop();
+                micReopened = -100;
+                preferences.ListenCapri = listenWas;
+                preferences.Quiet = quietWas;
+                preferences.Silent = silentWas;
+                preferences.ServerVoice = servedWas;
+                preferences.ServerUrl = urlWas;
+                preferences.ServerApi = apiWas;
+                preferences.ServerModel = modelWas;
+                preferences.ServerSpeaker = speakerWas;
+                preferences.ServerKey = keyWas;
+                preferences.AsideUrl = asideUrlWas;
+                preferences.AsideApi = asideApiWas;
+                preferences.AsideModel = asideModelWas;
+                preferences.AsideSpeaker = asideSpeakerWas;
+                preferences.AsideKey = asideKeyWas;
+                preferences.CloudVoice = cloudWas;
+                LoadServer();
+                FreeChatOn = freeChatWas;
+                ownEarsTest = ownWas;
+                voice.Key = voiceKeyWas;
+                Think = thinkWas;
+                Speak = speakWas;
+                FreeSpeak = freeSpeakWas;
+                Hearing.Run = hearingWas;
+                Brain.TranscriptPath = transcriptWas;
+                mainframe.Sync();
+                ShowVoice();
                 SavePreferences();
             }
         }
