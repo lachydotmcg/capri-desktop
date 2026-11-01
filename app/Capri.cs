@@ -10618,6 +10618,9 @@ namespace CapriDesktop
                     || !Hands.Heard("make 5 clones of yourself", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Count != 5
                     || !Hands.Heard("clone yourself 3 times", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Count != 3
                     || !Hands.Heard("get rid of the clones", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Action != "stop"
+                    || !Hands.Heard("Capri, activate chaos mode", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Action != "spawn" || cloneArgs.Count != null
+                    || !Hands.Heard("chaos mode", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Action != "spawn"
+                    || !Hands.Heard("turn off chaos mode", out cloneTool, out cloneArgs) || cloneTool != "clone" || cloneArgs.Action != "stop"
                     || (Hands.Heard("clone this repo", out cloneTool, out cloneArgs) && cloneTool == "clone") || (Hands.Heard("stop", out cloneTool, out cloneArgs) && cloneTool == "clone")
                     || !Hands.Valid("clone", new ToolArguments { Action = "spawn" }) || Hands.Valid("clone", new ToolArguments { Action = "explode" })) throw new Exception("Asking for clones went the wrong way.");
                 Swarm cloneRun = new Swarm(1200, 800, 7, 0);
@@ -10625,10 +10628,10 @@ namespace CapriDesktop
                 cloneRun.Pending = 1;
                 cloneRun.SpawnX = 300;
                 cloneRun.SpawnY = 300;
-                for (int cloneStep = 1; cloneStep <= 240; cloneStep++) cloneRun.Tick(cloneStep * 0.5, 0.5, true, false, Point.Empty);
+                for (int cloneStep = 1; cloneStep <= 60; cloneStep++) cloneRun.Tick(cloneStep * 0.5, 0.5, true, false, Point.Empty);
                 int cloneGrown = cloneRun.Bodies.Count;
                 if (cloneGrown < 8 || cloneRun.Notes.Count == 0 || cloneRun.Prints.Count == 0) throw new Exception("Her clones didn't multiply, walk and drag notes in: " + cloneGrown + " clones, " + cloneRun.Notes.Count + " notes, " + cloneRun.Prints.Count + " prints.");
-                for (int cloneStep = 241; cloneStep <= 300; cloneStep++) cloneRun.Tick(cloneStep * 0.5, 0.5, false, false, Point.Empty);
+                for (int cloneStep = 61; cloneStep <= 120; cloneStep++) cloneRun.Tick(cloneStep * 0.5, 0.5, false, false, Point.Empty);
                 if (cloneRun.Bodies.Count != cloneGrown) throw new Exception("Her clones kept multiplying while the PC couldn't draw them.");
                 Swarm cloneSet = new Swarm(1200, 800, 8, 0);
                 cloneSet.Pending = 200;
