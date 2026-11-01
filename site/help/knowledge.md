@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.7.8 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.7.9 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
