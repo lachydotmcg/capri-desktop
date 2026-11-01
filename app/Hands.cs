@@ -520,7 +520,11 @@ namespace CapriDesktop
             "Questions about their current screen or song need a tool too. If the target is unclear, pick the closest match yourself. For chat, negated or hypothetical requests, call no tool and reply with only the word: chat";
 
         internal const string Chat =
-            "\nNo tools ran for this message. Answer as yourself, with your own opinions and tastes. Don't claim you opened, played or looked at anything. You keep notes about them in me.md, saved whenever they ask you to remember something, so never say you can't remember things or keep memories; if they asked you to and nothing was saved, ask what they want you to remember. You can search Google for them: if they ask something you don't know or that changes, like the weather, news, scores or prices, say you'll look it up instead of guessing or saying you can't. You can always see their screen and use their mouse and keyboard, and you play games on their PC yourself, so never say you can't, never ask them to show you their screen, and never offer to talk them through something instead of doing it. If they want anything done on their PC or in a game, in any language, like opening something, sending something, playing a game, drawing something on their screen or clicking something, never ask whether to: reply with only the word: act";
+            "\nNo tools ran for this message. Answer as yourself, with your own opinions and tastes. Don't claim you opened, played or looked at anything. You keep notes about them in me.md, saved whenever they ask you to remember something, so never say you can't remember things or keep memories; if they asked you to and nothing was saved, ask what they want you to remember. You can search Google for them: if they ask something you don't know or that changes, like the weather, news, scores or prices, say you'll look it up instead of guessing or saying you can't. You can always see their screen and use their mouse and keyboard, and you play games on their PC yourself, so never say you can't, never ask them to show you their screen, and never offer to talk them through something instead of doing it." +
+#if !CROSS
+            " When they insult you personally, in any language, like calling you annoying, useless or dumb, start your reply with the tag [hurt] and then answer in character. Never use the tag for teasing about anything else or when they're sad." +
+#endif
+            " If they want anything done on their PC or in a game, in any language, like opening something, sending something, playing a game, drawing something on their screen or clicking something, never ask whether to: reply with only the word: act";
 
         // Chat when her brain said "act" but her hands found nothing to do: she just answers.
         internal static string ChatOnly { get { return Chat.Substring(0, Chat.LastIndexOf(" If they want anything done", StringComparison.Ordinal)); } }
@@ -1174,6 +1178,21 @@ namespace CapriDesktop
         // A diagram's result lists what's written on it. Mac and Linux have no ink, so it never comes up there.
         internal static bool Diagrammed(string result) { return Regex.IsMatch(result ?? "", @"^(?:Drew on your screen|Added to my drawing): "); }
         internal const string Teaching = "You've just drawn this on their screen, and the results list what's written on it. Help them understand it: explain it clearly in a few sentences, in your own voice, going by what's on screen. ";
+
+        // Being mean to her can set her clones off. Her brain tags its reply when it's her they're insulting, in any language,
+        // and plain English insults count by themselves, so "you're annoying" always does.
+        internal static Func<bool> Upset = delegate { return false; };
+        internal const string SorryLine = "Hold Esc when you're sorry.";
+        private const string Very = @"(?:(?:so|such|really|very|being|kinda|kind of|pretty|too|fucking|freaking|effing|literally|just|actually|honestly|truly|absolutely|damn|bloody|real|super|mega|extremely|incredibly|insanely|a|an|the|most|complete|total|little|stupid|dumb)\s+)*";
+        private const string Mean = @"(?:annoying|irritating|useless|stupid|dumb|idiot(?:ic)?|moron(?:ic)?|trash|garbage|rubbish|terrible|awful|horrible|pathetic|worthless|boring|cringe|lame|worst)\b";
+        private static readonly Regex Insult = new Regex(
+            @"\b(?:you(?:'re| are|re)|ur|u r|u are)\s+" + Very + Mean +
+            @"|\byou\s+" + Very + @"(?:idiot|moron|useless|stupid|dumb|annoying|pathetic)\b" +
+            @"|^your\s+" + Very + Mean +
+            @"|\b(?:you suck|i hate you|i can'?t stand you|screw you|fuck you(?! (?:doing|mean|talking|saying|want)))\b", RegexOptions.IgnoreCase);
+
+        internal static bool Insulted(string said) { return Insult.IsMatch(Asked(said)); }
+        internal static bool Hurt(string reply) { return (reply ?? "").IndexOf("[hurt]", StringComparison.OrdinalIgnoreCase) >= 0; }
 
         internal const string Unpromised = "I haven't actually done that yet. Tell me what to open or click and I'll do it.";
         private static readonly Regex Promise = new Regex(@"\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to|about to)|gonna|on it,?)[\s—–-]+(\w+[\s,—–-]+){0,2}(open|launch|load|boot|fire|pull|bring|search|google|look up|click|type|close|switch|head|install|download|play(?!\s+(along|around|with|nice|fair|dumb|it (cool|safe)|((a|some|the|this|that|any|your|my)\s+)?(games?|round|match)\b|devil))|put on|queue|blast|spin|mute|unmute|deafen|undeafen|send(?!\s+(you|u|ya)\b)|message(?!\s+(you|u)\b)|text(?!\s+(you|u)\b)|dm|ping|reply|post|hang up|(end|leave|join) (the|your|this|that) (call|vc|meeting))\b" +

@@ -1594,8 +1594,10 @@ namespace CapriDesktop
                     }
                 }
             }
+            bool upset = false;
             if (calls.Count == 0 && !fileChat)
             {
+                upset = act != null && (Hands.Hurt(Thoughtless(raw)) || Hands.Insulted(request));
                 // A brain that hedges on "what time is it?" gets her clock's answer, before anything below takes the hedge for a search to run.
                 if (Hands.ClockDodged(text, Clean(raw))) raw = Hands.ClockLine(DateTime.Now);
                 ToolArguments lookup = act != null ? Hands.Lookup(text, Clean(raw)) : null;
@@ -1719,6 +1721,11 @@ namespace CapriDesktop
             if (said.Length == 0 && after.Length > 0) { said = after; after = ""; }
             if (said.Length == 0 && done != null) said = done;
             if (said.Length == 0) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+            if (upset && calls.Count == 0)
+            {
+                Check(ticket);
+                if (Hands.Upset() && Language == null) said = said + " " + Hands.SorryLine;
+            }
             lock (gate)
             {
                 Check(ticket);
@@ -2747,7 +2754,9 @@ namespace CapriDesktop
             return longest >= 8 || (words.Count >= 24 && seen.Count * 10 < words.Count * 3);
         }
 
-        internal static string Visible(string text)
+        internal static string Visible(string text) { return Regex.Replace(Thoughtless(text), @"\[hurt\]\s*", "", RegexOptions.IgnoreCase); }
+
+        private static string Thoughtless(string text)
         {
             text = Junk.Replace(text ?? "", " ");
             text = Regex.Replace(text, "<think>.*?(</think>|$)", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase);

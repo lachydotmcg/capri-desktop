@@ -53,6 +53,7 @@ namespace CapriDesktop
             "uninstalling your gpu", "deleting your minecraft world", "sending your search history to your mum"
         };
         internal const string Owned = "jk. your files are fine";
+        internal const string Sorry = "hold esc if you're sorry";
         private readonly Random random;
         private readonly int wide, tall;
         private double nabAt, noteAt, holdUntil;
@@ -297,6 +298,11 @@ namespace CapriDesktop
             Swarm.Multiplying |= multiplying;
         }
 
+        internal void Pin(string text, Point at)
+        {
+            Swarm.Notes.Add(new CloneNote { X = Math.Max(160, Math.Min(room.Width - 160, at.X - room.X)), Y = Math.Max(40, at.Y - room.Y), Text = text });
+        }
+
         internal void Say(CloneBody body, string line, double until)
         {
             if (body.LineCard != null) { body.LineCard.Dispose(); body.LineCard = null; }
@@ -453,7 +459,30 @@ namespace CapriDesktop
         private int cloneTurn;
         private string cloneLast;
 
+        private int upsets;
+
         private string CloneTool(string action, int count) { return InvokeRequired ? (string)Invoke(new Func<string, int, string>(Clone), action, count) : Clone(action, count); }
+
+        private bool UpsetTool()
+        {
+            if (testing) return false;
+            Func<bool> upset = delegate { return Upset(random.Next(3)); };
+            try { return InvokeRequired ? (bool)Invoke(upset) : upset(); }
+            catch (InvalidOperationException) { return false; }
+        }
+
+        // An insult sets her clones off 1 time in 3, then 2 in 3, and always by the third. Never over a job, a game or a stream,
+        // and the note near her tells anyone who's never met them how to stop it.
+        internal bool Upset(int roll)
+        {
+            if (preferences.NoUpsetChaos || working != null || hidden || cloneWindow != null || InChat || Computer.Streaming || Computer.GameOpen() != null) return false;
+            upsets++;
+            if (roll >= upsets) return false;
+            upsets = 0;
+            Clone("spawn", 0);
+            if (cloneWindow != null) cloneWindow.Pin(Swarm.Sorry, new Point(anchor.X + Width / 2, anchor.Y - 24));
+            return true;
+        }
 
         // A number makes exactly that many. No number makes one that keeps multiplying until they stop it.
         internal string Clone(string action, int count)

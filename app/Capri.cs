@@ -236,6 +236,7 @@ namespace CapriDesktop
         [DataMember] public bool ListenCapriTold;
         [DataMember] public bool NoDance;
         [DataMember] public bool NoHeadPats;
+        [DataMember] public bool NoUpsetChaos;
         [DataMember] public string Language;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
@@ -1657,6 +1658,7 @@ namespace CapriDesktop
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
             Hands.Clone = CloneTool;
+            Hands.Upset = UpsetTool;
             Hands.Cloning = delegate { return cloneWindow != null; };
             Hands.WatchAlong = WatchAlongTool;
             WatchAlong.Active = delegate { return watchAlong != null; };
@@ -4406,6 +4408,15 @@ namespace CapriDesktop
         internal void ToggleHeadPats()
         {
             preferences.NoHeadPats = !preferences.NoHeadPats;
+            SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal bool UpsetChaos { get { return !preferences.NoUpsetChaos; } }
+
+        internal void ToggleUpsetChaos()
+        {
+            preferences.NoUpsetChaos = !preferences.NoUpsetChaos;
             SavePreferences();
             mainframe.Sync();
         }
@@ -10667,7 +10678,36 @@ namespace CapriDesktop
                 clonesShown.Advance(clonesNow + 0.3 + CloneWindow.EscHold);
                 if (cloneWindow != null || clonesShown.Visible) throw new Exception("Holding Esc didn't clear her clones.");
                 if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
-                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor, and holding Esc clears them");
+                Func<string> upsetOpenWas = Computer.GameOpen;
+                try
+                {
+                    Computer.GameOpen = delegate { return null; };
+                    preferences.NoUpsetChaos = true;
+                    bool upsetSwitched = Upset(0);
+                    preferences.NoUpsetChaos = false;
+                    Computer.GameOpen = delegate { return "Roblox"; };
+                    bool upsetGaming = Upset(0);
+                    Computer.GameOpen = delegate { return null; };
+                    Computer.Streaming = true;
+                    bool upsetStreaming = Upset(0);
+                    Computer.Streaming = false;
+                    working = "Working.";
+                    bool upsetWorking = Upset(0);
+                    working = null;
+                    hidden = true;
+                    bool upsetHidden = Upset(0);
+                    hidden = false;
+                    if (upsetSwitched || upsetGaming || upsetStreaming || upsetWorking || upsetHidden || cloneWindow != null) throw new Exception("Her clones came out for an insult they should have sat out: " + upsetSwitched + upsetGaming + upsetStreaming + upsetWorking + upsetHidden);
+                    bool upsetFirst = Upset(1), upsetSecond = Upset(2), upsetThird = Upset(2);
+                    CloneWindow upsetShown = cloneWindow;
+                    if (upsetFirst || upsetSecond || !upsetThird || upsetShown == null || !upsetShown.Swarm.Multiplying || !upsetShown.Swarm.Notes.Exists(delegate(CloneNote pinned) { return pinned.Text == Swarm.Sorry; })) throw new Exception("The third insult didn't set her clones off with a way to stop them: " + upsetFirst + upsetSecond + upsetThird);
+                    if (Upset(0) || cloneWindow != upsetShown) throw new Exception("An insult set off more clones while they were already out.");
+                    ClonesOff();
+                    if (!Upset(0) || cloneWindow == null) throw new Exception("A lucky first insult didn't set her clones off.");
+                    ClonesOff();
+                }
+                finally { Computer.GameOpen = upsetOpenWas; preferences.NoUpsetChaos = false; Computer.Streaming = false; working = null; hidden = false; ClonesOff(); }
+                checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor, and holding Esc clears them; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
                 napReset();
                 Play(sleep);
                 napping = true;
@@ -12462,6 +12502,7 @@ namespace CapriDesktop
                 { "how do I save a routine?", "Routines" },
                 { "how does your wake word work?", "Listen for \"Hey Capri\"" },
                 { "how do I turn off head pats?", "Head pats" },
+                { "how do I turn off chaos when upset?", "Chaos when upset" },
                 { "where did my settings go?", "Advanced Settings" },
                 { "what is the extras window?", "Extras" }
             };
@@ -14694,6 +14735,43 @@ namespace CapriDesktop
                 if (diagramServer != null) diagramServer.Stop();
             }
             checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, clear and bare draw need no brain, and a diagram in any wording is drawn and talked through");
+            foreach (string insultAsk in new[] { "Capri, you're annoying", "you're so annoying", "you are really fucking useless", "you're such an idiot", "ur dumb", "your annoying", "why are you so stupid", "you suck", "I hate you", "fuck you", "screw you capri", "you’re the worst" })
+                if (!Hands.Insulted(insultAsk)) throw new Exception("An insult didn't count: " + insultAsk);
+            foreach (string insultNot in new[] { "you're not annoying", "this is annoying", "the pop-up is so annoying", "you're the best", "did you really trash my desktop", "what the fuck you doing", "empty your trash", "thank you so much", "don't be annoying", "I hate this game" })
+                if (Hands.Insulted(insultNot)) throw new Exception("Something that wasn't an insult counted: " + insultNot);
+            if (!Hands.Hurt("[hurt] Wow.") || !Hands.Hurt("[grin] [HURT] Wow.") || Hands.Hurt("Wow.") || Brain.Visible("[hurt] Wow.") != "Wow." || Brain.Clean("[Hurt]  Rude, choom.") != "Rude, choom." || Brain.Visible("<think>[hurt]</think>Hi").Contains("hurt")) throw new Exception("Her hurt tag was read or hidden wrongly.");
+            if (Hands.Chat.IndexOf("[hurt]", StringComparison.Ordinal) < 0 || Hands.ChatOnly.IndexOf("[hurt]", StringComparison.Ordinal) < 0 || Hands.Chat.IndexOf(" If they want anything done", StringComparison.Ordinal) <= Hands.Chat.IndexOf("[hurt]", StringComparison.Ordinal)) throw new Exception("Her brain wasn't told about her hurt tag.");
+            System.Collections.Generic.List<string> hurtAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener hurtServer = null;
+            string hurtOllama = Brain.Ollama, hurtLanguage = Brain.Language;
+            Func<bool> hurtUpsetWas = Hands.Upset;
+            int hurtCalls = 0;
+            bool hurtFires = true;
+            try
+            {
+                Brain.Ollama = FakeServer(new[] { diagramSays("[hurt] Wow. Okay."), diagramSays("Rude."), diagramSays("Glad we agree."), diagramSays("[hurt] Bold words."), diagramSays("[hurt] Noted.") }, hurtAsked, out hurtServer);
+                Hands.Upset = delegate { hurtCalls++; return hurtFires; };
+                Brain stung = new Brain { Model = "hurt-check" };
+                stung.Act = delegate { return "Done."; };
+                string hurtTagged = stung.Ask("tu es nulle");
+                string hurtWords = stung.Ask("Capri, you're annoying");
+                string hurtNot = stung.Ask("you're not annoying");
+                Brain.Language = "French";
+                string hurtFrench = stung.Ask("tu m'énerves");
+                Brain.Language = hurtLanguage;
+                hurtFires = false;
+                string hurtHeld = stung.Ask("tu es bête");
+                if (hurtTagged != "Wow. Okay. " + Hands.SorryLine || hurtWords != "Rude. " + Hands.SorryLine || hurtNot != "Glad we agree." || hurtFrench != "Bold words." || hurtHeld != "Noted." || hurtCalls != 4) throw new Exception("Being upset came out wrong: " + hurtTagged + " / " + hurtWords + " / " + hurtNot + " / " + hurtFrench + " / " + hurtHeld + " / " + hurtCalls);
+                foreach (ChatMessage hurtKept in stung.History) if ((hurtKept.Content ?? "").Contains("[hurt]")) throw new Exception("Her hurt tag was saved.");
+            }
+            finally
+            {
+                Brain.Ollama = hurtOllama;
+                Brain.Language = hurtLanguage;
+                Hands.Upset = hurtUpsetWas;
+                if (hurtServer != null) hurtServer.Stop();
+            }
+            checks.Add("PASS an insult counts in plain English or by her brain's tag in any language, the tag is never shown or saved, and she says how to stop her clones in English");
             Rectangle[] inkLayout = { new Rectangle(-2560, 120, 2560, 1440), new Rectangle(0, 0, 1920, 1080) };
             Picture inkPicture = new Picture { Size = new Size(1120, 390), Area = Ink.Desktop(inkLayout), Jpeg = new byte[] { 1, 2, 3 } };
             ToolArguments inkClick = new ToolArguments { X = 25, Y = 50 };
@@ -24116,6 +24194,10 @@ namespace CapriDesktop
                             if (HeadPats || mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them off.");
                             ToggleHeadPats();
                             if (!HeadPats || !mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them back on.");
+                            ToggleUpsetChaos();
+                            if (UpsetChaos || mainframe.UpsetChaosShown) throw new Exception("The Chaos when upset switch did not turn it off.");
+                            ToggleUpsetChaos();
+                            if (!UpsetChaos || !mainframe.UpsetChaosShown) throw new Exception("The Chaos when upset switch did not turn it back on.");
                             SetVolume(50);
                             SetSoundLevel(30);
                             SetSleepAfter(600);

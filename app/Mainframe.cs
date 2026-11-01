@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1368;
+        private const int PageTall = 1396;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -103,6 +103,7 @@ namespace CapriDesktop
         private readonly Toggle checkIns;
         private readonly Toggle onTop;
         private readonly Toggle headPats;
+        private readonly Toggle upsetChaos;
         private readonly Toggle startup;
         private readonly Toggle discord;
         private readonly Toggle cursor;
@@ -236,12 +237,12 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1048, 1100 }, new[] { 1128, 1184 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 344, 726 }, new[] { 922, 2000 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 372, 754 }, new[] { 950, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
-        private const int SimpleTall = 528;
+        private const int SimpleTall = 556;
         private int wheel;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
@@ -609,6 +610,8 @@ namespace CapriDesktop
             frameSize.Released += delegate { if (!syncing) { capri.SetMainframeSize(FrameSizes[frameSize.Value]); Rezoom(Wanted()); ShowFrameSize(); } };
             headPats = Switch("Head pats", c, 194, delegate { if (!syncing) capri.ToggleHeadPats(); });
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
+            upsetChaos = Switch("Chaos when upset", c, 222, delegate { if (!syncing) capri.ToggleUpsetChaos(); });
+            upsetChaos.AccessibleName = "Chaos when upset. Insulting her can set her clones off until you hold Esc";
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
             watch = Switch("Watch my screen", c, 232, delegate { if (!syncing) capri.ToggleWatch(); });
@@ -731,9 +734,9 @@ namespace CapriDesktop
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
-            // Head pats took a row under Mainframe size, so the rest of this column sits one lower.
+            // Head pats and Chaos when upset took two rows under Mainframe size, so the rest of this column sits two lower.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 2;
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
             underVoice.Add(new KeyValuePair<Control, int>(gameMute, gameMute.Top));
             for (int i = first; i < Controls.Count; i++)
@@ -980,6 +983,7 @@ namespace CapriDesktop
         internal bool DiscordShown { get { return discord.Checked; } }
 
         internal bool HeadPatsShown { get { return headPats.Checked; } }
+        internal bool UpsetChaosShown { get { return upsetChaos.Checked; } }
 
         internal string WanderShown { get { return wanderName.Text; } }
 
@@ -1710,6 +1714,7 @@ namespace CapriDesktop
             popsName.Text = PopNames[pops.Value];
             dance.Checked = capri.Dancing;
             headPats.Checked = capri.HeadPats;
+            upsetChaos.Checked = capri.UpsetChaos;
             bubble.Value = capri.BubbleTime;
             bubbleName.Text = BubbleNames[bubble.Value];
             comments.Value = capri.CommentPace;

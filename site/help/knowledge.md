@@ -503,10 +503,13 @@ Settings opens on the main settings. The Advanced Settings button at the top, ne
 
 ### Clones
 Tell her "clone yourself" or "activate chaos mode" and a copy of her glitches in and keeps multiplying, with no limit. "Make 5 clones" makes exactly 5. They wander around your screen, leave a glitch trail, talk to each other out loud, steal your cursor and drag notes in. Some notes are fake deletes: a bar fills up on something scary, then she says "jk". They never touch your files.
-Hold Esc for a moment to clear them, or say "get rid of the clones". Hiding or closing her clears them too. Their talking uses her brain and voice the same as any other reply. Windows only for now.
+Hold Esc for a moment to clear them, or say "get rid of the clones". Hiding or closing her clears them too. Their talking uses her brain and voice the same as any other reply. Windows only for now. Insulting her can set them off too: see Chaos when upset switch.
 
 ### Head pats switch
 Settings > CAPRI > Head pats turns them off. Rubbing the cursor over her then does nothing. It's on by default.
+
+### Chaos when upset switch
+Insult her, like "you're annoying", and her clones might come out: 1 chance in 3 the first time, 2 in 3 the next, and the third insult always does it. She tells you to hold Esc, and a note near her says so too. It never happens during a job, a game, a stream or voice chat. English insults count by themselves, and in other languages her brain decides. Settings > CAPRI > Chaos when upset turns it off. It's on by default. Windows only for now.
 
 ## 8. Right-click menu and tray icon (Windows)
 
