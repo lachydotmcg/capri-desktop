@@ -116,13 +116,65 @@ namespace CapriDesktop
 
         internal static string Tail(string key) { return key == null || key.Length < 4 ? "" : key.Substring(key.Length - 4); }
 
-        internal static string Spoken(string said)
+        internal static string Spoken(string said) { return Spoken(said, false); }
+
+        // cues keeps her emotion cues in, for a Fish Audio voice to say. Every other bracket still comes off.
+        internal static string Spoken(string said, bool cues)
         {
 #if !CROSS
             said = FileFinder.Spoken(said);
 #endif
+            if (cues) said = Cue.Replace(said ?? "", delegate(Match cue) { return "" + cue.Groups["cue"].Value.ToLowerInvariant() + ""; });
             string words = Regex.Replace(Regex.Replace(said ?? "", @"\[[^\]]*\]", " ").Replace("*", ""), @"\s+", " ").Trim();
-            return Regex.IsMatch(words, @"[\p{L}\p{Nd}]") ? words : "";
+            if (cues) words = words.Replace('', '[').Replace('', ']');
+            return Regex.IsMatch(Uncued(words), @"[\p{L}\p{Nd}]") ? words : "";
+        }
+
+        // Her emotion cues (F54, NoxEterna): a Fish Audio voice says "[laughing] No way!" laughing. A cue is one of Fish Audio's
+        // own names, or a sound a brain tends to write, maybe after "very" or "slightly" and with a word or two more, like
+        // "[whispers sweetly]". Fish Audio's old s1 took its names in round brackets, so "(sad)" is one too. Anything else in
+        // brackets is just text.
+        internal const string Feelings = "happy|sad|angry|excited|calm|nervous|confident|surprised|satisfied|delighted|scared|worried|upset|frustrated|depressed|empathetic|embarrassed|disgusted|moved|proud|relaxed|grateful|curious|sarcastic|disdainful|unhappy|anxious|hysterical|indifferent|uncertain|doubtful|confused|disappointed|regretful|guilty|ashamed|jealous|envious|hopeful|optimistic|pessimistic|nostalgic|lonely|bored|contemptuous|sympathetic|compassionate|determined|resigned|in a hurry tone|shouting|screaming|whispering|soft tone|laughing|chuckling|sobbing|crying loudly|sighing|groaning|panting";
+        private const string Sounds = "emphasis|gasping|yawning|snoring|clear throat|clears throat|long-break|break|laughs?|giggl(?:e|es|ing)|chuckles?|sighs?|gasps?|whispers?|sobs?|cr(?:ying|ies)|sniffl(?:e|es|ing)|groans?|yawns?|scoff(?:s|ing)?|snorts?|hum(?:s|ming)?|pauses?|teasing(?:ly)?|playful(?:ly)?|smug(?:ly)?|flirt(?:y|atious|atiously)|sweetly|softly|warm(?:ly)?|cheerful(?:ly)?|mischievous(?:ly)?|annoyed|pout(?:s|ing)?|gentl(?:e|y)|shy(?:ly)?|sleepy|tired|dramatic(?:ally)?|mock(?:ing|ingly)?|sing(?:s|ing)|cheeky|deadpan|quietly|loudly|evil";
+        internal static readonly Regex Cue = new Regex(@"\[\s*(?<cue>(?:(?:very|slightly|extremely|really|super|so|quite|a bit|a little|kind of|kinda)\s+)?(?:" + Feelings + "|" + Sounds + @")(?:[\s-]+[a-z']+){0,3})\s*\](?!\()|\(\s*(?<cue>(?!moved\b)(?:" + Feelings + @"))\s*\)", RegexOptions.IgnoreCase);
+
+        // What she says without its cues: her bubble, her history and every voice but Fish Audio's. A cue takes the space after
+        // it, or the one before it when it ends a sentence, so the words around it close up.
+        internal static string Uncued(string text)
+        {
+            if (string.IsNullOrEmpty(text) || !Cue.IsMatch(text)) return text ?? "";
+            string plain = Cue.Replace(text, "");
+            plain = Regex.Replace(plain, @"[ \t]*(?:[ \t]*)*[ \t]*(?=[.,!?…;:]|$)", "", RegexOptions.Multiline);
+            return Regex.Replace(plain, @"[ \t]*", "").Trim();
+        }
+
+        // Her reply's cues put back into the same words cleaned up for her bubble: each goes in front of the words it came
+        // before, if they're still there, in Fish Audio's square brackets. One that ended her reply ends this too.
+        internal static string Recued(string raw, string plain)
+        {
+            if (string.IsNullOrEmpty(plain)) return plain ?? "";
+            StringBuilder cued = new StringBuilder();
+            string last = "";
+            int at = 0;
+            foreach (Match cue in Cue.Matches(raw ?? ""))
+            {
+                string name = "[" + cue.Groups["cue"].Value.ToLowerInvariant() + "]";
+                MatchCollection next = Regex.Matches(Uncued(raw.Substring(cue.Index + cue.Length)), @"[\p{L}\p{Nd}]+");
+                if (next.Count == 0) { last += " " + name; continue; }
+                int found = -1;
+                // The three words after it find its place, or two, or one, never before the cue ahead of it.
+                for (int count = Math.Min(3, next.Count); count > 0 && found < 0; count--)
+                {
+                    string[] words = new string[count];
+                    for (int i = 0; i < count; i++) words[i] = Regex.Escape(next[i].Value);
+                    Match spot = new Regex(@"(?<![\p{L}\p{Nd}])" + string.Join(@"[^\p{L}\p{Nd}]+", words) + @"(?![\p{L}\p{Nd}])", RegexOptions.IgnoreCase).Match(plain, at);
+                    if (spot.Success) found = spot.Index;
+                }
+                if (found < 0) continue;
+                cued.Append(plain, at, found - at).Append(name).Append(' ');
+                at = found;
+            }
+            return cued.Append(plain, at, plain.Length - at).Append(last).ToString();
         }
 
         private static readonly string[,] Respelled = { { "chooms", "chewms" }, { "choom", "chewm" }, { "preem", "preme" }, { "yezzirrr", "yessirrr" } };
@@ -3416,6 +3468,17 @@ namespace CapriDesktop
 
         private static string Slow(string name) { return name + " took over " + (Patience / 1000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " s to answer."; }
 
+        // Fish Audio's old s1 reads only its own names, in round brackets.
+        internal static string Rounded(string text)
+        {
+            string rounded = Voice.Cue.Replace(text ?? "", delegate(Match cue)
+            {
+                string name = cue.Groups["cue"].Value.ToLowerInvariant();
+                return Regex.IsMatch(name, "^(?:" + Voice.Feelings + ")$") ? "(" + name + ")" : "";
+            });
+            return Regex.Replace(rounded, @"[ \t]{2,}", " ").Trim();
+        }
+
         internal byte[] Speak(string text)
         {
             string url, api, model, speaker, key;
@@ -3428,6 +3491,9 @@ namespace CapriDesktop
                 key = Key;
             }
             bool fish = api == Fish;
+            // Only Fish Audio says her emotion cues, and its old s1 takes its own names in round brackets.
+            if (!fish) text = Voice.Uncued(text);
+            else if (string.Equals(model, "s1", StringComparison.OrdinalIgnoreCase)) text = Rounded(text);
             string name = Name(url, api);
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.ServerRobot, glitch = VoiceFx.ServerGlitch;
             VoiceFx.Layering layers = VoiceFx.Layers;
@@ -3607,7 +3673,7 @@ namespace CapriDesktop
                     noted = problem;
                     trouble(problem);
                 }
-                return fallback(words);
+                return fallback(Voice.Uncued(words));
             };
         }
     }

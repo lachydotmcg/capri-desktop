@@ -9708,6 +9708,8 @@ namespace CapriDesktop
             box.Leaving = -1;
             UpdateAnimation();
             bool quiet = preferences.Quiet;
+            Func<string, byte[]> cueFree;
+            brain.Cues = FishCues(PickVoice(quiet, out cueFree), cueFree);
             Cloud remote = brain.Remote;
             if (!testing && (voice.Key == null || quiet || voiceBroke) && kokoro.Installed && !preferences.Quiet && !preferences.Silent) ThreadPool.QueueUserWorkItem(delegate { try { kokoro.Warm(); } catch (Exception) { } });
             if (!testing && preferences.HdVoice && (voice.Key == null || quiet || voiceBroke || preferences.Quiet) && !preferences.Silent && qwen.Installed && !qwen.Awake && clock.Elapsed.TotalSeconds >= hdRest && !HdStepsAside()) WakeHd();
@@ -9765,7 +9767,9 @@ namespace CapriDesktop
             voiceUntil = 0;
             Func<string, byte[]> free;
             Func<string, byte[]> speak = PickVoice(quiet, out free);
-            string words = Voice.Spoken((said ?? "").Replace(Computer.Dots, "the password"));
+            // Her Fish Audio voice says her reply's emotion cues (F54). Her bubble and every other voice never see them.
+            bool cued = FishCues(speak, free);
+            string words = Voice.Spoken((cued ? Brain.Cued(said ?? "") : said ?? "").Replace(Computer.Dots, "the password"), cued);
             if (speak == null || words.Length == 0 || state == TalkState.Dormant) { Begin(ticket, said, state, null); return; }
             answerVoice = ticket;
             reply = null;
@@ -9799,6 +9803,8 @@ namespace CapriDesktop
                 });
             });
         }
+
+        private bool FishCues(Func<string, byte[]> speak, Func<string, byte[]> free) { return speak != null && speak == free && preferences.ServerVoice && server.Api == VoiceServer.Fish; }
 
         private Func<string, byte[]> PickVoice(bool quiet, out Func<string, byte[]> free, bool fallback = true)
         {
@@ -15436,7 +15442,43 @@ namespace CapriDesktop
                 if (hurtServer != null) hurtServer.Stop();
             }
             checks.Add("PASS an insult counts in plain English or by her brain's tag in any language, the tag is never shown or saved, and she says how to stop her clones in English");
-            Rectangle[] inkLayout = { new Rectangle(-2560, 120, 2560, 1440), new Rectangle(0, 0, 1920, 1080) };
+            // Her emotion cues (F54): never shown or saved, and kept in front of the same words for a Fish Audio voice.
+            string cueShown = Voice.Uncued("[excited] We won! [laughing] Ha ha!") + " | " + Voice.Uncued("It's fine [sighing].") + " | " + Voice.Uncued("(sad)(whispering) I miss you") + " | "
+                + Voice.Uncued("[Google](https://g.co), [1] and (happy to help)") + " | " + Brain.Visible("[hurt] [Sighing] Wow.") + " | " + Brain.Clean("[whispers sweetly] Rude, choom.");
+            string cueBack = Voice.Recued("[excited] We won, choom! [laughing] Ha ha!", "We won! Ha ha!") + " | " + Voice.Recued("Ha [laughing]", "Ha") + " | " + Voice.Spoken("[excited] We won! [GLITCH] Ha *ha*!", true) + " | "
+                + Voice.Spoken("[excited] We won!") + " | " + VoiceServer.Rounded("[laughing] Hey choom, [whispers sweetly] this is Fish.");
+            if (cueShown != "We won! Ha ha! | It's fine. | I miss you | [Google](https://g.co), [1] and (happy to help) | Wow. | Rude, choom."
+                || cueBack != "[excited] We won! [laughing] Ha ha! | Ha [laughing] | [excited] We won! Ha ha! | We won! | (laughing) Hey choom, this is Fish.")
+                throw new Exception("Her emotion cues came off or went back wrong: " + cueShown + " / " + cueBack);
+            System.Collections.Generic.List<string> cueAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener cueServer = null;
+            string cueOllama = Brain.Ollama;
+            try
+            {
+                Brain.Ollama = FakeServer(new[] { diagramSays("[laughing] No way, choom! [sighing] Fine."), diagramSays("Okay.") }, cueAsked, out cueServer);
+                Brain cuer = new Brain { Model = "cue-check", Cues = true };
+                cuer.Act = delegate { return "Done."; };
+                string cueSaid = cuer.Ask("haha you're funny");
+                cuer.Cues = false;
+                string cuePlain = cuer.Ask("what's up");
+                string cueVoiced = Brain.Cued(cueSaid);
+                bool cueKept = false, cueTold, cueUntold;
+                foreach (ChatMessage cueMessage in cuer.History) if ((cueMessage.Content ?? "").Contains("[")) cueKept = true;
+                lock (cueAsked)
+                {
+                    cueTold = cueAsked.Count >= 2 && cueAsked[0].Contains("Your voice acts out cues");
+                    cueUntold = cueAsked.Count >= 2 && !cueAsked[cueAsked.Count - 1].Contains("Your voice acts out cues");
+                }
+                if (cueSaid != "No way, choom! Fine." || cueVoiced != "[laughing] No way, choom! [sighing] Fine." || cuePlain != "Okay." || cueKept || !cueTold || !cueUntold)
+                    throw new Exception("Her emotion cues came out wrong: " + cueSaid + " / " + cueVoiced + " / " + cuePlain + " / kept " + cueKept + " / told " + cueTold + " " + cueUntold);
+            }
+            finally
+            {
+                Brain.Ollama = cueOllama;
+                if (cueServer != null) cueServer.Stop();
+            }
+            checks.Add("PASS her emotion cues are never shown or saved, she's told about them only for a Fish Audio voice, and her voice gets them in front of the same words");
+            Rectangle[] inkLayout ={ new Rectangle(-2560, 120, 2560, 1440), new Rectangle(0, 0, 1920, 1080) };
             Picture inkPicture = new Picture { Size = new Size(1120, 390), Area = Ink.Desktop(inkLayout), Jpeg = new byte[] { 1, 2, 3 } };
             ToolArguments inkClick = new ToolArguments { X = 25, Y = 50 };
             bool inkMember;
@@ -26772,6 +26814,20 @@ namespace CapriDesktop
                                 || vsBody.IndexOf("\r\nAuthorization: Bearer fish-test-4321\r\n", StringComparison.Ordinal) < 0 || vsBody.IndexOf("\r\nmodel: " + VoiceServer.FishFree + "\r\n", StringComparison.Ordinal) < 0
                                 || !vsBody.EndsWith("\r\n\r\n{\"text\":\"Hey chewm, this is Fish.\",\"reference_id\":\"0123456789abcdef0123456789abcdef\",\"format\":\"wav\",\"sample_rate\":24000}", StringComparison.Ordinal))
                                 throw new Exception("Fish Audio's API got the wrong request: " + string.Join(" / ", vsNotes.ToArray()) + " / " + vsFished.Length + " samples / " + vsBody);
+                            // Her emotion cues (F54) go to Fish Audio as they are, to its old s1 in round brackets, and to other voices not at all.
+                            vsOff(vsFish.Or(vsFree, vsNoted), "[laughing] Hey choom, [whispers sweetly] this is Fish.");
+                            lock (vsAsked) vsBody = vsAsked[vsAsked.Count - 1];
+                            string vsCued = vsBody.Substring(vsBody.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4);
+                            vsFish.Model = "s1";
+                            vsOff(vsFish.Or(vsFree, vsNoted), "[laughing] Hey choom, [whispers sweetly] this is Fish.");
+                            lock (vsAsked) vsBody = vsAsked[vsAsked.Count - 1];
+                            string vsCuedOld = vsBody.Substring(vsBody.IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4);
+                            vsFish.Model = VoiceServer.FishFree;
+                            vsOff(vsBare.Or(vsFree, vsNoted), "[laughing] Just the words.");
+                            lock (vsAsked) vsBody = vsAsked[vsAsked.Count - 1];
+                            if (vsNotes.Count != 0 || !vsCued.StartsWith("{\"text\":\"[laughing] Hey chewm, [whispers sweetly] this is Fish.\"", StringComparison.Ordinal)
+                                || !vsCuedOld.StartsWith("{\"text\":\"(laughing) Hey chewm, this is Fish.\"", StringComparison.Ordinal) || !vsBody.EndsWith("\r\n\r\n{\"input\":\"Just the words.\",\"response_format\":\"wav\"}", StringComparison.Ordinal))
+                                throw new Exception("Her emotion cues went to the wrong voices: " + string.Join(" / ", vsNotes.ToArray()) + " / " + vsCued + " / " + vsCuedOld + " / " + vsBody);
                             // Voice model files: what a folder holds, its name on her button, and archives unpacked into her models folder.
                             string vsModels = Path.Combine(Path.GetDirectoryName(settingsPath), "models-test");
                             if (Directory.Exists(vsModels)) Directory.Delete(vsModels, true);
@@ -27115,6 +27171,24 @@ namespace CapriDesktop
                                 vsBackRows = mainframe.VoiceTierStatus;
                                 asking++;
                                 CloseTalk();
+                                // Her reply's emotion cues (F54) reach a Fish Audio voice server with it, and never her bubble.
+                                UseVoiceServer(vsUrl, VoiceServer.FishFree, "", "", VoiceServer.Fish);
+                                asking++;
+                                CloseTalk();
+                                Brain.Cue("[laughing] Hey choom, cues work.", "Hey choom, cues work.");
+                                vsAskedBefore = vsCount();
+                                string vsCueBody = "";
+                                Answer(++asking, "Hey choom, cues work.", TalkState.Talking);
+                                vsPump(delegate
+                                {
+                                    lock (vsAsked) for (int vsAt = vsAskedBefore; vsAt < vsAsked.Count; vsAt++) if (vsAsked[vsAt].Contains("cues work")) vsCueBody = vsAsked[vsAt];
+                                    return vsCueBody.Length > 0 && reply == "Hey choom, cues work.";
+                                });
+                                string vsCueShown = reply;
+                                asking++;
+                                CloseTalk();
+                                if (vsCueBody.IndexOf("{\"text\":\"[laughing] Hey chewm, cues work.\"", StringComparison.Ordinal) < 0 || vsCueShown != "Hey choom, cues work.")
+                                    throw new Exception("Her Fish Audio voice didn't get her reply's cues: " + vsCueBody + " / " + vsCueShown);
                                 // A key saved for one server never goes to another: Test there sends none, and Use there drops it.
                                 UseVoiceServer(vsUrl, "kokoro", "af_heart", "sk-host-test-5555", VoiceServer.OpenAi);
                                 asking++;

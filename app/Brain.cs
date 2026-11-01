@@ -1500,7 +1500,7 @@ namespace CapriDesktop
             int answerBudget = self == null ? Budget : Math.Max(Budget, 360);
             List<ChatMessage> messages = new List<ChatMessage>();
             string secondThought = followUps ? Replies.Instruction : "";
-            string steady = Character + secondThought + WrittenDown();
+            string steady = Character + (Cues ? Cueing : "") + secondThought + WrittenDown();
             messages.Add(new ChatMessage("system", steady + Seen() + Gap() + (act != null ? fileChat ? Hands.ChatOnly : Hands.Chat + Hands.MiniBoard() : "") + Now() + selfGuide) { Steady = steady.Length });
             List<ChatMessage> recent;
             List<string> chat;
@@ -1758,6 +1758,9 @@ namespace CapriDesktop
                 history.Add(new ChatMessage("assistant", said));
                 Kept();
             }
+            string cuedRaw = Unhurt(Thoughtless(raw ?? ""));
+            Cue(cuedRaw, said);
+            Cue(cuedRaw, after);
             Logged(text, said);
             followLine = after;
             return said;
@@ -1765,6 +1768,10 @@ namespace CapriDesktop
 
         // F57: on a strong brain she works jobs out herself. Her own brain turns this on; brains made for checks leave it off.
         internal bool OwnSteps;
+
+        // F54: her voice is Fish Audio, which acts out emotion cues, so she's told she can use them.
+        internal volatile bool Cues;
+        internal const string Cueing = "\nYour voice acts out cues in square brackets, so when a feeling fits, start the sentence with one of these: [laughing], [chuckling], [giggling], [sighing], [whispering], [soft tone], [excited], [happy], [sad], [nervous], [surprised], [sarcastic], [teasing], [playful] or [gasping]. At most one per sentence.";
         internal const int Rounds = 8;
 
         // Cloud brains that take tools natively work jobs out themselves. Small local ones keep her hands' shortcuts.
@@ -2856,7 +2863,34 @@ namespace CapriDesktop
             return longest >= 8 || (words.Count >= 24 && seen.Count * 10 < words.Count * 3);
         }
 
-        internal static string Visible(string text) { return Regex.Replace(Thoughtless(text), @"\[hurt\]\s*", "", RegexOptions.IgnoreCase); }
+        internal static string Visible(string text) { return Voice.Uncued(Unhurt(Thoughtless(text))); }
+
+        private static string Unhurt(string text) { return Regex.Replace(text, @"\[hurt\]\s*", "", RegexOptions.IgnoreCase); }
+
+        // Each reply's cued copy, for her Fish Audio voice (F54). Cues never show or go in her history, so her voice finds them
+        // here by the words she says.
+        private static readonly List<KeyValuePair<string, string>> cuedLately = new List<KeyValuePair<string, string>>();
+
+        internal static string Cued(string said)
+        {
+            lock (cuedLately)
+                for (int i = cuedLately.Count - 1; i >= 0; i--)
+                    if (cuedLately[i].Key == said) return cuedLately[i].Value;
+            return said;
+        }
+
+        // raw is her reply as her brain wrote it, and said what's left of it once it's cleaned up.
+        internal static void Cue(string raw, string said)
+        {
+            if (string.IsNullOrEmpty(said) || !Voice.Cue.IsMatch(raw ?? "")) return;
+            string cued = Voice.Recued(raw, said);
+            if (cued == said) return;
+            lock (cuedLately)
+            {
+                cuedLately.Add(new KeyValuePair<string, string>(said, cued));
+                if (cuedLately.Count > 8) cuedLately.RemoveAt(0);
+            }
+        }
 
         private static string Thoughtless(string text)
         {
