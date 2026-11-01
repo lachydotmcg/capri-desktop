@@ -937,7 +937,9 @@ She won't save personal things like full names, addresses, schools, passwords, p
 "My notes are full. Clear some out in me.md first." means the file is too long. Open it and delete some lines.
 
 ### Who she is: her personality and safety rules
-Her personality and safety rules are fixed in her code, the same Capri for everyone. Since 0.7.6 there's no personality.md to edit, no Edit personality button and no Reset; an old personality.md on your PC is simply not used any more.
+Her default personality and her safety rules are in her code. Since 0.8.0 you can rewrite her personality in personality.md: Settings > YOU > Her personality > Edit personality.md opens it in Notepad, starting from her default. Save it and her next reply uses it. The key says Your personality while yours is in use, and Reset to her default puts her back and keeps yours as personality.backup.md. On Mac and Linux it's under Settings in her right-click menu. A personality.md you edited in 0.7.4 or 0.7.5 is used again.
+
+- personality.md never changes her safety rules. They stay in her code and always come after it, and lines in it that try to talk her out of them are skipped (the menu says how many).
 
 - Her safety rules are part of who she is, so they're fixed in her code right after her personality: games, songs and jokes are make-believe so she plays along, she talks you out of real-life risks, points you to a helpline if you really mean you want to hurt yourself, and keeps to her lines (nothing sexual or romantic, no swearing, slurs or gore, no help with hacking or anything illegal, and she never asks for your real name, address, school, passwords or photos).
 - If someone builds on Capri, the team asks them to keep her safety rules as they are, out of respect for her character.

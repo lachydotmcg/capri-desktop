@@ -148,7 +148,7 @@ For a Capri-style voice in Fish Audio or ElevenLabs, paste the [voice prompt fro
 
 ## Make her yours
 
-Pick what she calls you, her language, her voice and what she does on your PC from the Capri Mainframe. Who she is stays the same for everyone, and since 0.7.6 there's no `personality.md` to rewrite.
+Pick what she calls you, her language, her voice and what she does on your PC from the Capri Mainframe. To change who she is and how she talks, rewrite `personality.md`: Settings > YOU > Her personality > Edit personality.md. It starts as her default, and Reset to her default puts her back.
 
 - **Her safety rules are part of who she is.** They're fixed in her code, in `Safety` in [app/Brain.cs](app/Brain.cs), right after her personality. If you build on her, please keep them as they are, out of respect for Capri's character
 - Her personality is `DefaultPersonality` in [app/Brain.cs](app/Brain.cs), so a pull request can suggest a change for everyone
@@ -166,6 +166,7 @@ Pick what she calls you, her language, her voice and what she does on your PC fr
 - [x] Check in on me (on by default): every so often she glitches in on whatever you're doing
 - [x] With Check in on me on, she asks for your attention now and then when you ignore her
 - [x] Her personality and safety rules fixed in her code, the same Capri for everyone (0.7.6)
+- [x] `personality.md` is back, and her safety rules stay in her code right after it (0.8.0)
 - [ ] A charm meter: how fond of you she is, growing as you spend time with her
 - [ ] Mischief mode: screen glitches, stealing your cursor, "you've been hacked" notes
 

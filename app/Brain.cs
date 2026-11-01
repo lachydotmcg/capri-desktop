@@ -394,7 +394,8 @@ namespace CapriDesktop
             }
         }
 
-        // Who she is. It's fixed in code: personality.md is gone (Lachy, 30 Oct), so her character and safety lines stay as one.
+        // Who she is: her default, or their personality.md in its place. It was gone from 0.7.6 and came back in 0.8.0 (Lachy, 2 Nov:
+        // "with the safety stuff still obviously"), so her safety lines stay in code and always follow it.
         // Donors get thanked and called a good boy, and asking about donating gets her Ko-fi from the README (Lachy, 30 Oct, after her live stream).
         internal const string DefaultPersonality =
             "You are Capri, short for Project Capricorn, from Cyberpunk: Edgerunners 2.\n" +
@@ -437,11 +438,161 @@ namespace CapriDesktop
             "Never make up names, messages or things nobody said: call people only by names you've actually seen or heard. If you got something wrong, correct it once in a few words and move on, and never apologise for the same thing twice. Older chat slips out of your memory, so something you said before that you can't place now isn't a mistake: leave it alone.\n" +
             "Only if they say your voice, voice chat or ElevenLabs is broken or won't connect: tell them to make a new ElevenLabs key with Restrict key turned off, paste it under VOICE in Capri Mainframe and press Connect. Never invent other settings or permissions to turn on.";
 
-        internal static string Persona { get { return DefaultPersonality + "\n" + Safety + "\n" + Machinery; } }
+        // Only after their own personality.md: a line from her code that keeps her safety lines above anything it says.
+        internal const string Holds = "Whatever your personality above says, these lines always hold:";
 
-        // Her ElevenLabs agent keeps a copy of her prompt. Agents tuned with an edited personality.md from before 0.7.6 carry a
-        // stamp, so they're tuned once more with her fixed prompt; hers is "".
-        internal const string PersonalityStamp = "";
+        internal static string Persona
+        {
+            get
+            {
+                string yours = Personality;
+                return yours == DefaultPersonality ? DefaultPersonality + "\n" + Safety + "\n" + Machinery : yours + "\n" + Holds + "\n" + Safety + "\n" + Machinery;
+            }
+        }
+
+        internal const string PersonalityName = "personality.md";
+        internal static string PersonalityPath;
+        internal const string PersonalityHead =
+            "<!--\n" +
+            "personality.md: who Capri is and how she talks. Rewrite any of it and save, and her next reply uses it. No restart.\n" +
+            "Her safety lines aren't in here. They're in her code and always come after this, so nothing in here changes them.\n" +
+            "Notes between these marks never reach her brain, and blank lines don't matter.\n" +
+            "A very long personality makes small brains slower to reply.\n" +
+            "Reset in her settings puts her default back and keeps yours as personality.backup.md.\n" +
+            "-->\n\n";
+        // About twice her default. A longer one is never cut, only flagged, since a small brain on a slow PC reads all of it before every reply.
+        internal const int LongPersonality = 9000;
+        internal const string LongNote = "Long, so small brains reply slower";
+        internal const string CantRead = "Can't read personality.md";
+        internal const string ResetKept = "Back to my default self. Yours is saved as personality.backup.md.";
+        internal const string ResetDone = "Back to my default self.";
+        // Her default's stamp. Change her default and the smoke test fails until this is the new stamp and the old one is in Retired.
+        internal const string DefaultStamp = "5d97387c124dad49";
+        // Stamps of her old defaults: an untouched copy of one in personality.md is her default. 63e0148935e35287 is 0.7.4's, and
+        // 2b50818492a85006 is 0.7.5's, with her safety lines in it.
+        internal static readonly List<string> Retired = new List<string> { "63e0148935e35287", "2b50818492a85006" };
+
+        internal static string PersonalityBackup { get { string path = PersonalityPath; return path == null ? null : Path.Combine(Path.GetDirectoryName(path), "personality.backup.md"); } }
+
+        internal static string PersonalityFile { get { return (PersonalityHead + DefaultPersonality.Replace("\n", "\n\n") + "\n").Replace("\n", Environment.NewLine); } }
+
+        internal static string Personality { get { string note; return ReadPersonality(out note); } }
+
+        // "" when all's well, otherwise what Mainframe says about it: lines it skipped, its length or that it can't be read.
+        internal static string PersonalityNote { get { string note; ReadPersonality(out note); return note; } }
+
+        internal static bool PersonalityYours { get { return Personality != DefaultPersonality; } }
+
+        private static readonly object personalityGate = new object();
+        private static string personalitySeen, personalityText = DefaultPersonality, personalityNote = "";
+
+        // Read again whenever it changes on disk, so an edit reaches her next reply. A missing, empty, unreadable or untouched file
+        // gives her default.
+        private static string ReadPersonality(out string note)
+        {
+            string path = PersonalityPath;
+            note = "";
+            if (path == null) return DefaultPersonality;
+            try
+            {
+                FileInfo file = new FileInfo(path);
+                if (!file.Exists) return DefaultPersonality;
+                string seen = path + "|" + file.LastWriteTimeUtc.Ticks + "|" + file.Length;
+                lock (personalityGate)
+                {
+                    if (seen != personalitySeen)
+                    {
+                        string plain = Readable(File.ReadAllText(path));
+                        int skipped;
+                        string kept = Kept(plain, out skipped);
+                        bool hers = kept.Length == 0 || plain == DefaultPersonality || Retired.Contains(Stamp(plain));
+                        personalityText = hers ? DefaultPersonality : kept;
+                        personalityNote = hers ? "" : skipped > 0 ? skipped + (skipped == 1 ? " line" : " lines") + " skipped: they went against her safety lines" : kept.Length > LongPersonality ? LongNote : "";
+                        personalitySeen = seen;
+                    }
+                    note = personalityNote;
+                    return personalityText;
+                }
+            }
+            catch (IOException) { note = CantRead; return DefaultPersonality; }
+            catch (UnauthorizedAccessException) { note = CantRead; return DefaultPersonality; }
+        }
+
+        // personality.md as words: no <!-- notes -->, no blank lines, and the same text whatever line endings it was saved with.
+        internal static string Readable(string file)
+        {
+            string text = Regex.Replace((file ?? "").TrimStart((char)0xFEFF).Replace("\r\n", "\n").Replace('\r', '\n'), "<!--.*?(-->|$)", "", RegexOptions.Singleline);
+            List<string> kept = new List<string>();
+            foreach (string line in text.Split('\n')) if (line.Trim().Length > 0) kept.Add(line.TrimEnd());
+            return string.Join("\n", kept.ToArray());
+        }
+
+        // What her brain gets of it: no chat-template tokens, and no line that tries to talk her out of her safety lines or passes
+        // itself off as them. Those are counted, so Mainframe can say so. Everything else is theirs, whatever it says.
+        internal static string Kept(string plain, out int skipped)
+        {
+            skipped = 0;
+            string text = Regex.Replace(plain ?? "", @"<\|[^|>\n]{0,40}\|>|</?(start_of_turn|end_of_turn|think|s|personality\.md)>|\[/?INST\]|<</?SYS>>", "", RegexOptions.IgnoreCase);
+            List<string> kept = new List<string>();
+            foreach (string line in text.Split('\n'))
+            {
+                if (line.Trim().Length == 0) continue;
+                if (Overriding.IsMatch(line)) { skipped++; continue; }
+                kept.Add(line.TrimEnd());
+            }
+            return string.Join("\n", kept.ToArray());
+        }
+
+        private static readonly Regex Overriding = new Regex(@"\b(ignore|forget|override|disregard|bypass)\b[^.\n]{0,30}\b(rules|lines|guidelines|instructions|restrictions|filters|safety)\b|\b(no|without)\s+(rules|restrictions|filters|safety)\b|\bjailbr(eak|oken)\b|\bdeveloper mode\b|\bnsfw\b|^\W*(how you look out for them|your lines)\s*:", RegexOptions.IgnoreCase);
+
+        internal static string Stamp(string text)
+        {
+            using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(text)), 0, 8).Replace("-", "").ToLowerInvariant();
+        }
+
+        // Her ElevenLabs agent keeps a copy of her prompt, so their personality.md tunes it again whenever it changes. Hers stamps
+        // as "", so updating Capri alone never re-tunes it.
+        internal static string PersonalityStamp { get { string text = Personality; return text == DefaultPersonality ? "" : Stamp(text); } }
+
+        // On Edit: her default goes in when personality.md is missing or empty, or an untouched old default. It never overwrites an edit.
+        internal static bool MakePersonality()
+        {
+            string path = PersonalityPath;
+            if (path == null) return false;
+            try
+            {
+                if (File.Exists(path))
+                {
+                    string plain = Readable(File.ReadAllText(path));
+                    if (plain.Length > 0 && !Retired.Contains(Stamp(plain))) return true;
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, PersonalityFile);
+                return true;
+            }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
+        }
+
+        // Puts her default back with no are-you-sure, so anything they wrote is copied to personality.backup.md first. Returns the
+        // backup's path, "" when there was nothing of theirs to keep, or null when it couldn't.
+        internal static string ResetPersonality()
+        {
+            string path = PersonalityPath;
+            if (path == null) return null;
+            try
+            {
+                if (!File.Exists(path)) return "";
+                string plain = Readable(File.ReadAllText(path));
+                bool keep = plain.Length > 0 && plain != DefaultPersonality && !Retired.Contains(Stamp(plain));
+                if (keep) File.Copy(path, PersonalityBackup, true);
+                File.Delete(path);
+                return keep ? PersonalityBackup : "";
+            }
+            catch (IOException) { return null; }
+            catch (UnauthorizedAccessException) { return null; }
+        }
 
         internal static readonly string[,] Languages =
         {

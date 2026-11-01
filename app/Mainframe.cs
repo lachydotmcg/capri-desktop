@@ -173,6 +173,8 @@ namespace CapriDesktop
         private ExtrasSheet extras;
         private LayersSheet layered;
         private Key layersKey;
+        private Key personalityKey;
+        private ContextMenuStrip personalityMenu;
         private Label styleNote;
         private readonly Slider gap;
         private readonly Readout gapName;
@@ -482,6 +484,11 @@ namespace CapriDesktop
             advancedKey.Loud = true;
             Section("YOU >", 0, 58);
             Make("Open her notes", 236, 55, 120, 20, delegate { capri.OpenNotes(); }).AccessibleName = "Open her notes: me.md, her notes about you";
+            // Their personality.md (back in 0.8.0): the key says whose personality she's using, and its menu edits or resets it.
+            personalityMenu = Dropdown();
+            personalityKey = Make("Her personality", 92, 55, 136, 20, delegate { ShowPersonalityMenu(); });
+            personalityKey.Chevron = true;
+            personalityKey.AccessibleName = "Her personality: edit personality.md, or put her default back";
             Named("Language", 0, 82);
             languageMenu = Dropdown();
             for (int i = 0; i < Brain.Languages.GetLength(0); i++)
@@ -1675,6 +1682,7 @@ namespace CapriDesktop
                 careTimes[careSync].Text = CareTimeName(careSetting, capri.CareTime(careSetting));
                 careTimes[careSync].AccessibleName = Care.Names[careSync] + (careSetting == CareKind.Late ? " after " : " every ") + careTimes[careSync].Text;
             }
+            ShowPersonality();
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
             fastHands.Checked = capri.FastHandsOn;
@@ -2984,6 +2992,52 @@ namespace CapriDesktop
             connect.Text = forget ? "Forget" : "Connect";
             connect.Accent = forget ? Hot : Rose;
             connect.Invalidate();
+        }
+
+        // Says whose personality she's using: theirs once personality.md has something of theirs in it. Skipped lines or a file
+        // she can't read turn the key hot.
+        internal void ShowPersonality()
+        {
+            string note = Brain.PersonalityNote;
+            personalityKey.Text = Brain.PersonalityYours ? "Your personality" : "Her personality";
+            personalityKey.Accent = note.Length > 0 && note != Brain.LongNote ? Hot : Brain.PersonalityYours ? Cyan : Rose;
+            personalityKey.Invalidate();
+        }
+
+        private void ShowPersonalityMenu()
+        {
+            personalityMenu.Items.Clear();
+            personalityMenu.Items.Add(Choice("Edit personality.md", false, delegate { capri.OpenPersonality(); }));
+            ToolStripMenuItem reset = Choice("Reset to her default", false, delegate { capri.ResetPersonality(); });
+            reset.Enabled = Brain.PersonalityPath != null && System.IO.File.Exists(Brain.PersonalityPath);
+            personalityMenu.Items.Add(reset);
+            string note = Brain.PersonalityNote;
+            if (note.Length > 0)
+            {
+                ToolStripMenuItem told = Choice(note, false, null);
+                told.Enabled = false;
+                personalityMenu.Items.Add(told);
+            }
+            personalityMenu.Show(personalityKey, new Point(0, personalityKey.Height));
+        }
+
+        internal string PersonalityShown { get { return personalityKey.Text + (Brain.PersonalityNote.Length > 0 ? " | " + Brain.PersonalityNote : ""); } }
+
+        // Clicks its menu item that starts with this text, as they would. False if it isn't there or can't be clicked.
+        internal bool PickPersonality(string text)
+        {
+            ShowPersonalityMenu();
+            foreach (ToolStripItem item in personalityMenu.Items)
+                if (item.Text.StartsWith(text, StringComparison.Ordinal) && item.Enabled) { personalityMenu.Close(); item.PerformClick(); return true; }
+            personalityMenu.Close();
+            return false;
+        }
+
+        // Back from editing personality.md in Notepad, her personality key catches up.
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+            ShowPersonality();
         }
 
         private static ToolStripMenuItem Choice(string text, bool chosen, EventHandler click)
