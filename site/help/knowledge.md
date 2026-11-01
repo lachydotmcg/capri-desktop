@@ -1352,7 +1352,7 @@ What it costs: each glance writes about 25 more words, and each chat message car
 - Built-in Gemma brains: yes, after her eyes download (about 560 MB, automatic).
 - Built-in Qwen3 4B: no. "This brain can't see. Press Free key to fix."
 - NVIDIA: most models can't. nvidia/nemotron-3.5-super-vl-120b-a12b (her first pick) and meta/llama-3.2-11b-vision-instruct can. nemotron-3.5-bolt-e4b and gpt-oss-20b can't.
-- DeepSeek: no. "DeepSeek can't see. Use an NVIDIA key to watch."
+- DeepSeek: deepseek-flash can, from 0.7.9.
 - Ollama, OpenAI, Claude: depends on the model.
 
 An Ollama model that can't see can use another seeing model already installed in Ollama for pictures. A model on LM Studio, Jan, KoboldCpp or llama.cpp needs its own picture support. Reading on-screen words for a job doesn't give a text-only model full game vision.
@@ -1608,7 +1608,7 @@ It needs no key and no internet. If she says the server sent words instead of so
 
 ### Check my screen on Mac and Linux (0.7.6 and newer)
 0.7.4 and older can't see the screen on Mac and Linux. Update to 0.7.6. Ask "check my screen", "what's on my screen?" or "can you see this?". She takes a screenshot and her brain looks at it.
-- Her brain has to see pictures: a free NVIDIA key (nvidia/nemotron-3.5-super-vl-120b-a12b), a Claude or OpenAI key, or an Ollama model that can see pictures. DeepSeek can't.
+- Her brain has to see pictures: a free NVIDIA key (nvidia/nemotron-3.5-super-vl-120b-a12b), a Claude or OpenAI key, an Ollama model that can see pictures, or deepseek-flash.
 - Mac: the first time, macOS asks to let Capri record the screen. If she only describes your wallpaper, allow Capri under System Settings > Privacy & Security > Screen Recording, then reopen her. After an update macOS can show Capri as allowed while that only fits the old version. Remove Capri from the list with the minus button, or run tccutil reset ScreenCapture io.github.lachydotmcg.capri in Terminal, then open her and allow her again. From 0.7.9 she clears it herself once per version.
 - Linux: she uses your desktop's screenshot tool: spectacle (KDE), gnome-screenshot (GNOME), grim (Sway, Hyprland and other wlroots desktops), or ImageMagick, scrot or maim on X11. If none is installed she says so; install one and ask again. GNOME on Wayland may refuse apps' screenshots.
 
@@ -1793,7 +1793,6 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - Can't find the Mainframe: right-click her > Open Capri Mainframe.
 - She never comments: for occasional glances, turn on Mainframe > Settings > WATCH > Watch my screen. She skips unchanged or blank screens, and in voice chat she only comments while your mic is muted. For live game reactions, check Settings > GAMES > Comments or Gaming Mode. Quiet pauses unsolicited comments.
 - "This brain can't see. Press Free key to fix.": use the free NVIDIA key.
-- "DeepSeek can't see. Use an NVIDIA key to watch."
 - "<model> can't see screens.": most NVIDIA models can't. Pick nvidia/nemotron-3.5-super-vl-120b-a12b.
 - "The screen capture is black.": set your game to borderless or windowed.
 - "Couldn't read the screen.": pick a model that can see, like nvidia/nemotron-3.5-super-vl-120b-a12b. Most NVIDIA models can't. nemotron-3.5-bolt-e4b can't.
