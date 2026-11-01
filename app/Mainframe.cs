@@ -487,7 +487,6 @@ namespace CapriDesktop
             // Their personality.md (back in 0.8.0): the key says whose personality she's using, and its menu edits or resets it.
             personalityMenu = Dropdown();
             personalityKey = Make("Her personality", 92, 55, 136, 20, delegate { ShowPersonalityMenu(); });
-            personalityKey.Chevron = true;
             personalityKey.AccessibleName = "Her personality: edit personality.md, or put her default back";
             Named("Language", 0, 82);
             languageMenu = Dropdown();
