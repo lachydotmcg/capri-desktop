@@ -1759,6 +1759,7 @@ namespace CapriDesktop
             if (several != null && several.Count > 1) calls.AddRange(several);
             else if (calls.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) calls.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
             if (calls.Exists(call => !Hands.Valid(call.Key, call.Value))) { calls.Clear(); throw new BrainException("Couldn't read that tool call. Try again."); }
+            if (!Hands.GamingTalk(text) && !recent.Exists(spoken => Hands.GamingTalk(spoken.Content))) calls.RemoveAll(stray => stray.Key == "gaming_mode");
             return raw;
         }
 

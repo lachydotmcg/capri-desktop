@@ -577,7 +577,7 @@ namespace CapriDesktop
             { "draw", Ink.Description, Ink.Schema },
             { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}" },
-            { "gaming_mode", "Turn Gaming Mode on or off: you watch their game and react when something happens, until it closes.",
+            { "gaming_mode", "Turn Gaming Mode on or off, only when they ask for Gaming Mode by name: you watch their game and react when something happens, until it closes.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}" },
             { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
               "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}" },
@@ -1684,6 +1684,12 @@ namespace CapriDesktop
             if (!both.Success || Regex.IsMatch(both.Groups["lead"].Value, @"\b(?:don'?t|do not|never|how|why|what|when)\b", RegexOptions.IgnoreCase)) return null;
             return both.Groups["rest"].Value.Trim();
         }
+
+        // A brain's Gaming Mode call only counts when the talk is about games or her HUD. Each call is her whole reply and turns the
+        // setting back on, so gpt-6-luna reaching for it on every message left her saying nothing else, switch off or not (Limpan, 1 Nov).
+        private static readonly Regex GamingWords = new Regex(@"gam|hud|overlay|juego|jogo|jeu|spiel|gioco|\bgr[ay]\b|oyun|spel|peli|j[aá]t[eé]k|игр|ゲーム|游戏|遊戲|게임|لعب|खेल|गेम", RegexOptions.IgnoreCase);
+
+        internal static bool GamingTalk(string text) { return GamingWords.IsMatch(text ?? ""); }
 
         private static readonly Regex GamingThen = new Regex(@"^(?<lead>(?:[\w'-]+[,.!]?\s+){0,4}?)(?:activate|enter|start|turn on|switch on|go into|go in|put on|get in|get into)\s+(?:the\s+)?(?:gaming|game)\s+mode(?:\s+on)?\s*(?:,\s*)?(?:\.\s*)?(?:and then|and|then)?\s+(?:then\s+)?(?<rest>\S.+)$", RegexOptions.IgnoreCase);
 

@@ -23059,6 +23059,27 @@ namespace CapriDesktop
                                         && Brain.Effort("gpt-5-mini", true) == "low" && Brain.Effort("gpt-6-luna", true) == "none" && Brain.Effort("deepseek-flash", false) == null && Brain.Unescape("set it to \\\"none\\\" \\u00e9") == "set it to \"none\" é";
                                     if (!lunaRight || !effortsRead) throw new Exception("gpt-6-luna's reasoning_effort wasn't fixed: " + lunaSkipped + " / " + lunaChat + " / " + lunaSent.Length + " requests / errors read " + effortsRead + (lunaSent.Length > 1 ? " / " + lunaSent[1] : ""));
                                     checks.Add("PASS gpt-6-luna and newer OpenAI models: when OpenAI turns down the reasoning_effort, like gpt-6-luna with tools, she asks again once with the value its error names, keeps it for that model, and reads errors with quoted values whole");
+                                    // A brain reaching for Gaming Mode with nobody asking gets dropped and she answers. Asked for, it still runs.
+                                    System.Collections.Generic.List<string> strayAsked = new System.Collections.Generic.List<string>(), straySwitched = new System.Collections.Generic.List<string>();
+                                    System.Net.Sockets.TcpListener strayFake;
+                                    string strayCall = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"g1\",\"type\":\"function\",\"function\":{\"name\":\"gaming_mode\",\"arguments\":\"{\\\"action\\\":\\\"on\\\"}\"}}]}}]}";
+                                    Brain.OpenAi = FakeServer(new string[] { strayCall, "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Doing fine, choom.\"}}]}", strayCall }, strayAsked, out strayFake);
+                                    Func<string> strayGame = Hands.GameOpen;
+                                    Func<string, string> straySwitch = Hands.GamingMode;
+                                    Hands.GameOpen = delegate { return "Roblox"; };
+                                    Hands.GamingMode = delegate(string action) { straySwitched.Add(action); return "Gaming Mode on, choom."; };
+                                    cloudy.Forget();
+                                    string strayChat = cloudy.Ask("how's your day going");
+                                    int strayTurned = straySwitched.Count;
+                                    cloudy.Forget();
+                                    string strayAsk = cloudy.Ask("bring your game overlay up");
+                                    Hands.GameOpen = strayGame;
+                                    Hands.GamingMode = straySwitch;
+                                    strayFake.Stop();
+                                    cloudy.Forget();
+                                    if (strayChat != "Doing fine, choom." || strayTurned != 0 || straySwitched.Count != 1 || straySwitched[0] != "on" || strayAsk != "Gaming Mode on, choom." || !Hands.GamingTalk("mets le mode jeu") || Hands.GamingTalk("how's your day going"))
+                                        throw new Exception("A brain's Gaming Mode call wasn't held to what was asked: " + strayChat + " / " + strayTurned + " / " + strayAsk);
+                                    checks.Add("PASS a brain's Gaming Mode call needs talk of games or her HUD: anything else gets her answer, and the setting stays as it was");
                                     if (!mainframe.TextStatus.StartsWith("tier 0 | ", StringComparison.Ordinal) || !mainframe.TextStatus.EndsWith("| no key row", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("The brain tiers are wrong with no key: " + mainframe.TextStatus);
                                     mainframe.ShowTiers(1, null, null);
                                     if (!mainframe.TextStatus.EndsWith("| Paste your free NVIDIA key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("HIGHER without a key is wrong: " + mainframe.TextStatus);
