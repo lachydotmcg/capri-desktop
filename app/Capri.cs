@@ -13307,6 +13307,25 @@ namespace CapriDesktop
             }
         }
 
+        // Over a game she gives way with everything but her window's thread, which stays level with the game's.
+        private static void SmokeGivingWay(System.Collections.Generic.List<string> checks)
+        {
+            try
+            {
+                Native.Lower(true);
+                ProcessPriorityClass wayClass;
+                using (Process wayOwn = Process.GetCurrentProcess()) wayClass = wayOwn.PriorityClass;
+                ThreadPriority wayThread = Thread.CurrentThread.Priority;
+                Native.Lower(false);
+                ProcessPriorityClass backClass;
+                using (Process backOwn = Process.GetCurrentProcess()) backClass = backOwn.PriorityClass;
+                if (wayClass != ProcessPriorityClass.BelowNormal || wayThread != ThreadPriority.Highest || backClass != ProcessPriorityClass.Normal || Thread.CurrentThread.Priority != ThreadPriority.Normal)
+                    throw new Exception("Over a game her window's thread didn't stay level with it: " + wayClass + " / " + wayThread + ", then " + backClass + " / " + Thread.CurrentThread.Priority + ".");
+            }
+            finally { Native.Lower(false); }
+            checks.Add("PASS over a game she gives way below normal, but her window's thread stays level with the game's, so a game on every core can't freeze her");
+        }
+
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
         {
             using (ClipBuffer aged = new ClipBuffer(2, 8192))
@@ -17587,6 +17606,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
                             Section(checks, delegate { SmokeClips(checks); });
+                            Section(checks, delegate { SmokeGivingWay(checks); });
                             Section(checks, delegate { SmokeListen(checks); });
                             Section(checks, delegate { SmokeTalkLogic(checks); });
                             Section(checks, delegate { SmokeTalkSettings(checks); });
@@ -30257,6 +30277,11 @@ namespace CapriDesktop
             try { using (Process own = Process.GetCurrentProcess()) own.PriorityClass = game ? ProcessPriorityClass.BelowNormal : ProcessPriorityClass.Normal; }
             catch (System.ComponentModel.Win32Exception) { }
             catch (InvalidOperationException) { }
+            // Her window's thread stays level with the game's, so only her other work gives way to it. Below it, a game that uses
+            // every core left her window almost no time, and she froze on screen and couldn't be quit (Mika, one stick of RAM,
+            // 1 Nov: she freezes "after doing a task").
+            try { Thread.CurrentThread.Priority = game ? ThreadPriority.Highest : ThreadPriority.Normal; }
+            catch (ThreadStateException) { }
         }
 
         private static Guid displayState = new Guid("6FE69556-704A-47A0-8F24-C28D936FDA47");
