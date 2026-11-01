@@ -5949,8 +5949,7 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
-            if (remote != null && remote.Kind == "deepseek") mainframe.ShowProblem("DeepSeek can't see. Use an NVIDIA key to watch.");
-            else if (remote == null && local != null && pick != null)
+            if (remote == null && local != null && pick != null)
             {
                 if (pick.EyesFile == null) mainframe.ShowProblem("This brain can't see. Press Free key to fix.");
                 else if (!local.HasEyes(pick)) FetchEyes(local, pick);
@@ -5978,7 +5977,7 @@ namespace CapriDesktop
         private string Unseeing()
         {
             Cloud remote = brain.Remote;
-            if (remote != null) return remote.Kind == "deepseek" ? Brain.Blind : !brain.Sighted(remote) ? Brain.Sightless(remote) : null;
+            if (remote != null) return !brain.Sighted(remote) ? Brain.Sightless(remote) : null;
             if (brain.Model == null) return "I can't see your screen while my brain is offline. Pick a brain under BRAIN in Capri Mainframe.";
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
@@ -23289,12 +23288,23 @@ namespace CapriDesktop
                                     eyes.Remote = null;
                                     eyes.Model = "gemma4:e4b";
                                     string ollamaSaw = eyes.See(picture, "Plain.", "What is this?", 160);
+                                    string deepBefore = Brain.DeepSeek;
+                                    System.Collections.Generic.List<string> deepAsked = new System.Collections.Generic.List<string>();
+                                    System.Net.Sockets.TcpListener deepFake;
+                                    Brain.DeepSeek = FakeServer(new[] { LocalReply("DeepSeek sees a crate."), "!400 {\"error\":{\"message\":\"This model does not support image\"}}" }, deepAsked, out deepFake);
                                     eyes.Remote = new Cloud("sk-" + "0123456789abcdef0123456789abcdef", "deepseek-flash");
                                     eyes.Model = "deepseek-flash";
-                                    string deepSaw = null;
+                                    string deepSaw = eyes.See(picture, "Plain.", "What is this?", 160);
+                                    Cloud deepPro = new Cloud("sk-" + "0123456789abcdef0123456789abcdef", "deepseek-pro");
+                                    eyes.Remote = deepPro;
+                                    eyes.Model = "deepseek-pro";
+                                    string deepBlind = null;
                                     try { eyes.See(picture, "Plain.", "What is this?", 160); }
-                                    catch (BrainException error) { deepSaw = error.Message; }
-                                    if (claudeSaw != "A crate menu in a space game." || nvidiaSaw != "Gemma sees a crate." || ollamaSaw != "Ollama sees a crate." || deepSaw != Brain.Blind) throw new Exception("Vision replies were wrong: " + claudeSaw + " / " + nvidiaSaw + " / " + ollamaSaw + " / " + deepSaw);
+                                    catch (BrainException error) { deepBlind = error.Message; }
+                                    deepFake.Stop();
+                                    Brain.DeepSeek = deepBefore;
+                                    eyes.Unsighted = null;
+                                    if (claudeSaw != "A crate menu in a space game." || nvidiaSaw != "Gemma sees a crate." || ollamaSaw != "Ollama sees a crate." || deepSaw != "DeepSeek sees a crate." || deepBlind != Brain.Sightless(deepPro)) throw new Exception("Vision replies were wrong: " + claudeSaw + " / " + nvidiaSaw + " / " + ollamaSaw + " / " + deepSaw);
                                     System.Net.Sockets.TcpListener textOnly = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
                                     textOnly.Start();
                                     ThreadPool.QueueUserWorkItem(delegate
@@ -23341,8 +23351,10 @@ namespace CapriDesktop
                                     brain.Model = "google/gemma-4-31b-it";
                                     string looked = Hands.Do("look_at_screen", new ToolArguments { Focus = "the crate" });
                                     brain.Remote = new Cloud("sk-" + "0123456789abcdef0123456789abcdef", "deepseek-flash");
+                                    brain.Unsighted = brain.Remote.Sight;
                                     string blindly = Hands.Do("look_at_screen", new ToolArguments());
-                                    if (looked != "You looked at their screen. You see: A level 26 player opening a salvage crate." || blindly != Brain.Blind) throw new Exception("The look tool was wrong: " + looked + " / " + blindly);
+                                    brain.Unsighted = null;
+                                    if (looked != "You looked at their screen. You see: A level 26 player opening a salvage crate." || blindly != Brain.Sightless(brain.Remote)) throw new Exception("The look tool was wrong: " + looked + " / " + blindly);
                                     string[] seeSent;
                                     lock (seeAsked) seeSent = seeAsked.ToArray();
                                     if (seeSent.Length != 4) throw new Exception("Vision made " + seeSent.Length + " requests.");

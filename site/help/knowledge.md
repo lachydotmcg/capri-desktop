@@ -599,7 +599,7 @@ Paste the key in the same box under BRAIN and press Connect. She can tell which 
 - NVIDIA keys start with nvapi-
 - DeepSeek and OpenAI keys start with sk-
 
-These keys need paid credits on their sites. A new key with no credits won't work. DeepSeek can't see your screen.
+These keys need paid credits on their sites. A new key with no credits won't work. From 0.7.9 deepseek-flash can see your screen.
 
 A new Claude key starts on Haiku 5.5. You can choose another model from the menu under BRAIN.
 
