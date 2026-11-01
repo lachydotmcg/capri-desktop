@@ -1839,6 +1839,8 @@ namespace CapriDesktop
             }
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Quit Capri", null, delegate { Quit(); }));
+            menu.Opened += delegate { Computer.MenuOpen = true; };
+            menu.Closed += delegate { Computer.MenuOpen = false; };
             playerMenu = new ContextMenuStrip();
             playerMenu.Renderer = menu.Renderer;
             playerMenu.ForeColor = menu.ForeColor;
@@ -13636,6 +13638,30 @@ namespace CapriDesktop
             checks.Add("PASS a stuck window: 10 s stuck goes in errors.txt with what she was doing and where her code is stuck, and the line after says when it answered; stuck and opened again, she ends herself for the new one, and fine she shows herself as usual; a minute stuck ends her and starts her again; Quit that stalls ends her");
         }
 
+        // Her hands wait while her menu is open, so Quit can be clicked mid-job, and her UI thread never waits on it.
+        private static void SmokeMenuWait(System.Collections.Generic.List<string> checks)
+        {
+            Computer.Arm();
+            try
+            {
+                Computer.MenuOpen = true;
+                Stopwatch menuUi = Stopwatch.StartNew();
+                Computer.MenuWait();
+                long menuUiTook = menuUi.ElapsedMilliseconds;
+                using (ManualResetEvent menuDone = new ManualResetEvent(false))
+                {
+                    Thread menuHands = new Thread(delegate() { Computer.MenuWait(); menuDone.Set(); }) { IsBackground = true };
+                    menuHands.Start();
+                    bool menuHeld = !menuDone.WaitOne(400);
+                    Computer.MenuOpen = false;
+                    bool menuLet = menuDone.WaitOne(1000);
+                    if (menuUiTook > 100 || !menuHeld || !menuLet) throw new Exception("Her hands didn't wait for her menu, or her UI thread did: " + menuUiTook + " ms, held " + menuHeld + ", let go " + menuLet + ".");
+                }
+            }
+            finally { Computer.MenuOpen = false; }
+            checks.Add("PASS her hands wait while her right-click or tray menu is open, so Quit can be clicked mid-job, and her UI thread never waits on it");
+        }
+
         // Over a game she gives way with everything but her window's thread, which stays level with the game's.
         private static void SmokeGivingWay(System.Collections.Generic.List<string> checks)
         {
@@ -17936,6 +17962,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeCare(checks); });
                             Section(checks, delegate { SmokeClips(checks); });
                             Section(checks, delegate { SmokeHeartbeat(checks); });
+                            Section(checks, delegate { SmokeMenuWait(checks); });
                             Section(checks, delegate { SmokeGivingWay(checks); });
                             Section(checks, delegate { SmokeListen(checks); });
                             Section(checks, delegate { SmokeTalkLogic(checks); });
