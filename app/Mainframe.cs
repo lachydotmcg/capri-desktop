@@ -2832,7 +2832,7 @@ namespace CapriDesktop
         }
 
         // Push to talk is the one key she can do without.
-        private void ClearPush()
+        internal void ClearPush()
         {
             if (capturing != Companion.PushSlot + 1) return;
             capri.SetHotkey(Companion.PushSlot, 0, 0);
@@ -2852,6 +2852,9 @@ namespace CapriDesktop
         }
 
         internal bool ConfirmReady { get { return confirmKeys.Visible && confirmKeys.Enabled; } }
+
+        // Off shows only while the push-to-talk key is being picked.
+        internal bool OffShown { get { return capturing == Companion.PushSlot + 1; } }
 
         private Control PickedKey { get { return capturing == 1 ? talkKeys : capturing == 2 ? muteKeys : capturing == 3 ? typeKeys : capturing == 4 ? hideKeys : capturing == 5 ? quietKeys : capturing == 6 ? gameKeys : capturing == 7 ? pushKeys : null; } }
 
@@ -2902,7 +2905,7 @@ namespace CapriDesktop
             gameKeys.Text = capturing == 6 ? PickingText("Gaming Mode: ") : "Gaming Mode: " + gameName + (gameReady ? "" : " (taken)");
             pushKeys.Text = capturing == 7 ? PickingText("Push to talk: ") : "Push to talk: " + pushName;
             confirmKeys.Visible = cancelKeys.Visible = capturing != 0;
-            clearKeys.Visible = capturing == 6;
+            clearKeys.Visible = OffShown;
             confirmKeys.Enabled = pendingMods >= 0;
             confirmKeys.Invalidate();
         }

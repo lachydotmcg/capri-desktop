@@ -30596,6 +30596,18 @@ namespace CapriDesktop
                 mainframe.TakeKeys(Keys.ShiftKey | Keys.Shift);
                 mainframe.ConfirmKeys();
                 must(preferences.PushVk == 0x10 && mainframe.PushKeyShown == "Push to talk: Shift", "Shift alone didn't bind for push to talk: " + mainframe.PushKeyShown);
+                // Off belongs to push to talk alone: picking Gaming Mode's key doesn't offer it, and it does nothing there.
+                int gameVkWas = preferences.GameVk, gameModsWas = preferences.GameMods;
+                mainframe.PickKeys(5);
+                bool offForGame = mainframe.OffShown;
+                mainframe.ClearPush();
+                bool gameKept = mainframe.Picking && preferences.PushVk == 0x10 && preferences.GameVk == gameVkWas && preferences.GameMods == gameModsWas;
+                mainframe.CancelKeys();
+                mainframe.PickKeys(PushSlot);
+                bool offForPush = mainframe.OffShown;
+                mainframe.ClearPush();
+                must(!offForGame && gameKept && offForPush && !mainframe.OffShown && !mainframe.Picking && preferences.PushVk == 0 && preferences.PushMods == 0 && PushKeyName == "not set" && mainframe.PushKeyShown == "Push to talk: not set", "Her push-to-talk Off button went wrong: game " + offForGame + "/" + gameKept + ", push " + offForPush + ", " + mainframe.PushKeyShown);
+                checks.Add("PASS her push-to-talk Off button shows while that key is picked and not while Gaming Mode's is, does nothing there, and turns push to talk off to \"not set\"");
                 must(SetPushKey(0, 0x06) == null && preferences.PushVk == 0x06 && PushKeyName != "not set", "Her push-to-talk didn't take a mouse button: " + PushKeyName);
                 must(SetPushKey(0, 0) == null && preferences.PushVk == 0 && PushKeyName == "not set", "Her push-to-talk didn't turn off.");
                 checks.Add("PASS push to talk: holding her key, any key or mouse button with or without modifiers, stops her and opens her ears, letting go sends what was said to the running job, a tap goes nowhere, her other keys can't be taken, and it reads the key rather than taking it, so it works with a game in front");
