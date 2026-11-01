@@ -96,7 +96,7 @@ namespace CapriDesktop
         {
             if (keepingUp)
             {
-                for (int waiting = Math.Min(Pending, 1 + Bodies.Count / 6); waiting > 0; waiting--, Pending--) Spawn(SpawnX + Between(-90, 90), SpawnY + Between(-70, 70), now);
+                for (int waiting = Math.Min(Pending, 4 + Bodies.Count / 6); waiting > 0; waiting--, Pending--) Spawn(SpawnX + Between(-90, 90), SpawnY + Between(-70, 70), now);
                 if (Multiplying)
                     for (int i = Bodies.Count - 1; i >= 0; i--)
                     {

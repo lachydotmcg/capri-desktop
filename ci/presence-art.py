@@ -97,12 +97,8 @@ def controller(scale=4):
     return art.resize((320, 214), Image.LANCZOS)
 
 
-def cursor(scale=4):
-    wide, tall = 160 * scale, 220 * scale
-    art = Image.new('RGBA', (wide, tall), (0, 0, 0, 0))
-    points = [(14, 10), (14, 178), (56, 138), (84, 206), (118, 192), (90, 126), (146, 126)]
-    ImageDraw.Draw(art).polygon([(x * scale, y * scale) for x, y in points], fill=(22, 19, 34, 255), outline=PINK + (255,), width=8 * scale)
-    return art.resize((160, 220), Image.LANCZOS)
+def cursor():
+    return Image.open(ROOT / 'assets' / 'cursor.png').convert('RGBA')
 
 
 def floating(picture, width, spot, count, seed, push=5, bands=3, every=1):
@@ -192,9 +188,9 @@ card('dancing', 'perch_music', 60, 4, 130, 3)
 card('asleep', 'laydown_sleep', 60, 4, 170, 4, every=15)
 card('voice', 'laydown_talk', 60, 4, 130, 5)
 card('break', 'dangle', 24, 2, 130, 6)
-card('computer', 'perch', 60, 4, 130, 7, every=5, above=floating(arrow, 104, (146, 118), 15, 70, every=2))
+card('computer', 'perch', 60, 4, 130, 7, every=5, above=floating(arrow, 124, (126, 124), 15, 70, every=2))
 card('game', 'perch', 60, 4, 130, 8, every=6, above=floating(pad, 176, (40, 136), 15, 80))
 card('live', 'perch_talk', 60, 4, 130, 9, every=6, above=floating(pad, 150, (96, 150), 15, 90), tagged=True)
 crowd('clones', 120, 10)
 badge('controller', pad, 220, 11)
-badge('cursor', arrow, 130, 12)
+badge('cursor', arrow, 176, 12)
