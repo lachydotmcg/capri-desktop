@@ -536,7 +536,8 @@ namespace CapriDesktop
         // On a strong brain she works a job out herself (F57, a tester, 1 Nov: "start matchmaking" should open the game first, then
         // start it). She has the tools, so she decides, one step at a time, and sees what each step did before the next.
         internal const string WorkingOut =
-            "\nYou hold these tools yourself, so you decide what to do with them. When they want something done, work out every step it needs and take the steps one tool call at a time: you'll see what each one did before you pick the next. If something has to be open first, open it, then carry on. To start a match in a game that isn't open, call open_app for the game, then use_computer for the rest, which waits for the game to load and clicks through its menus. Use use_computer for anything that needs clicking or typing inside an app, a game or a site, with the whole job in their words. " +
+            "\nYou hold these tools yourself, so you decide what to do with them. They won't always spell it out: \"i want some lofi\" means play it, \"i can't hear it\" means turn it up, and \"get discord up\" means open it. When what they say means they want something done, do it with your tools instead of only talking about it. " +
+            "Work out every step it needs and take the steps one tool call at a time: you'll see what each one did before you pick the next. If something has to be open first, open it, then carry on. To start a match in a game that isn't open, call open_app for the game, then use_computer for the rest, which waits for the game to load and clicks through its menus. Use use_computer for anything that needs clicking or typing inside an app, a game or a site, with the whole job in their words. " +
             "Never say you did, started or are doing something unless one of your tools did it this turn, and don't stop at a step that only gets part of the way. If a tool fails, try another way once, then tell them plainly what didn't work. When they're just chatting, answer as yourself without tools. Once the job's done, or can't go any further, reply to them in one short line as yourself." + Hurting;
 
         private const string Hurting =
@@ -555,6 +556,9 @@ namespace CapriDesktop
         internal static bool Instant(string tool) { return tool == "media" || tool == "nap" || tool == "clip" || tool == "animate" || tool == "move_yourself" || tool == "remember"; }
 
         // What her hands get told about a game that's open, so "click deathmatch" or "keep going" land in it.
+        // Working a job out, she needs to know a game they name isn't open yet, so it gets opened first.
+        internal const string NoGame = "\nNo game is open on their PC right now, so a game they want to play or do something in has to be opened with open_app first.";
+
         internal static string GameNote(string game)
         {
             return string.IsNullOrEmpty(game) ? "" : "\nThe game open on their PC right now is " + Voice.Quote(game) + ". If they want you to play, or want anything done in it, like starting a match, picking a mode, opening or closing its map or menus, or clicking something, call use_computer with their words, and don't open it again.";
@@ -1235,7 +1239,14 @@ namespace CapriDesktop
         // "I'm sending you the biggest hug" is warmth, not a message she owes them. Warmth sent to someone by name still counts.
         private static readonly Regex Warmth = new Regex(@"\b(send(s|ing)?|sent)\s+((you|u|ya|y'all)\s+)?((a|an|the|my|some|all|so|much|many|lots|of|this|big|bigger|biggest|huge|massive|giant|tight|warm|warmest|virtual|good|positive|happy|healing|cozy|cosy|little|tiny|extra|more|mega|super|best|sweet|soft|gentle|digital|cyber|neon)\s+)*(hugs?|huggies|squeezes?|kiss(es)?|love|xoxo|vibes?|energy|thoughts|wishes|prayers?|luck|cuddles?|smooches?|hearts?|sunshine|strength|support|positivity|juju|blessings?|regards|cheers|kudos|props|high[- ]?fives?|fist[- ]?bumps?|headpats?|pats)\b(?!\s+(to|over to)\s+(?!(you|u|ya|y'all|yourself)\b)\w)", RegexOptions.IgnoreCase);
 
-        internal static bool Promised(string said) { return Promise.IsMatch(Warmth.Replace((said ?? "").Replace('’', '\''), "")); }
+        internal static bool Promised(string said)
+        {
+            string plain = Warmth.Replace((said ?? "").Replace('’', '\''), "");
+            return Promise.IsMatch(plain) || Offered.IsMatch(plain);
+        }
+
+        // "Play some lofi for you" said in place of playing it: how a small brain claims a job with no tool behind it.
+        private static readonly Regex Offered = new Regex(@"^\W*(play|put on|queue up|open|launch|pull up|bring up)\s+(some|the|a|an|your)\b[^.!?\n]{0,40}\bfor (you|ya|u)\b", RegexOptions.IgnoreCase);
 
         private static readonly Regex Credit = new Regex(@"\b(you|ya|u)('ve| have)?\s+(just\s+|already\s+|finally\s+|actually\s+)?(opened|typed|launched|sent|closed|played|paused|skipped|muted|unmuted|deafened|undeafened|clicked|searched|posted|messaged|texted|dmed|dm'd|replied|wrote|pulled up|fired up|booted up|hung up|ended|left|joined)\b", RegexOptions.IgnoreCase);
 
@@ -2367,6 +2378,31 @@ namespace CapriDesktop
         {
             string said = Regex.Replace(Plain(wanted), @"^the | (app|game)$", "");
             for (int i = 0; i < Nicknames.GetLength(0); i++) if (said == Nicknames[i, 0]) return Nicknames[i, 1];
+            return null;
+        }
+
+        // The installed game a job is in, like cs in "start matchmaking in cs", when it isn't open yet: a brain that goes straight
+        // to use_computer gets it opened first (F57). Null when the job names none, or it's open already.
+        internal static string Unopened(string job)
+        {
+            if (!Playable.IsMatch(job ?? "")) return null;
+            try
+            {
+                List<InstalledApp> apps = Apps();
+                // Each "in", "on" or "into" in turn, and the most words after it that name a game they have: "hop on bedwars in
+                // roblox for me" is roblox.
+                foreach (Match place in Regex.Matches(Plain(job), @"\b(?:in|on|into)\s+(?:the\s+)?(?=([\p{L}\p{Nd}]+(?: [\p{L}\p{Nd}]+){0,3}))"))
+                {
+                    string[] words = place.Groups[1].Value.Split(' ');
+                    for (int count = words.Length; count > 0; count--)
+                    {
+                        string named = string.Join(" ", words, 0, count);
+                        string wanted = Nickname(named) ?? named;
+                        if (wanted.Length >= 3 && apps.Exists(app => Score(app, wanted) >= 2)) return Showing(wanted) ? null : wanted;
+                    }
+                }
+            }
+            catch (Exception) { }
             return null;
         }
 

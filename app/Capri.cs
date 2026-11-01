@@ -16035,7 +16035,8 @@ namespace CapriDesktop
                 says("On it, opening CS now!"), calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), says("CS is up."),
                 says("On it, opening Spotify!"), says("Opening it now!"),
                 says("Cyberpunk, obviously."),
-                says("open_app{\"name\":\"Steam\"}"), says("Steam's open.")
+                says("open_app{\"name\":\"Steam\"}"), says("Steam's open."),
+                calls("use_computer", "{\"task\":\"start ranked in valorant for me\"}"), calls("use_computer", "{\"task\":\"start ranked in valorant for me\"}"), says("Queued ranked, choom.")
             }, asked, out fake);
             try
             {
@@ -16066,12 +16067,33 @@ namespace CapriDesktop
                 working.Forget();
                 string copied = working.Ask("get steam up");
                 if (copied != "Steam's open." || did.Count != 4 || did[3] != "open_app:Steam") throw new Exception("A call written out as text didn't run: " + copied + " / " + string.Join(",", did.ToArray()));
+                // A brain that goes straight to use_computer in a game that isn't open gets the game opened first.
+                Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+                Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
+                string ranked;
+                try
+                {
+                    Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("VALORANT", "valorant-id") }; };
+                    Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                    Hands.Forget();
+                    working.Forget();
+                    ranked = working.Ask("start ranked in val");
+                }
+                finally
+                {
+                    Hands.Catalog = catalogWas;
+                    Hands.Windows = windowsWas;
+                    Hands.Forget();
+                }
+                if (ranked != "Queued ranked, choom." || did.Count != 6 || did[4] != "open_app:valorant" || did[5] != "use_computer:start ranked in valorant for me")
+                    throw new Exception("A game that wasn't open wasn't opened before the job, or the same job ran twice: " + ranked + " / " + string.Join(",", did.ToArray()));
+                if (!Hands.Promised("Play some lofi for you while you study.") || Hands.Promised("Play the long game, it's worth it.")) throw new Exception("\"Play some lofi for you\" with no tool behind it wasn't caught as a promise, or chat was.");
                 string[] sent;
                 lock (asked) sent = asked.ToArray();
-                if (sent.Length != 11) throw new Exception("Working it out made " + sent.Length + " brain calls, not 11.");
+                if (sent.Length != 14) throw new Exception("Working it out made " + sent.Length + " brain calls, not 14.");
                 string[][] wanted =
                 {
-                    new[] { "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"", "You hold these tools yourself", "start matchmaking in cs" },
+                    new[] { "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"", "You hold these tools yourself", "They won't always spell it out", "No game is open on their PC right now", "start matchmaking in cs" },
                     new[] { "\"tools\":[", "What your tools just did", "Opened Counter-Strike 2.", "You called open_app{" },
                     new[] { "\"tools\":[", "Searching for a match.", "You called use_computer{" },
                     new[] { "open cs" },
@@ -16084,7 +16106,7 @@ namespace CapriDesktop
                     foreach (string part in wanted[i])
                         if (sent[i].IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Brain call " + i + " is missing " + part + ": " + sent[i].Substring(0, Math.Min(400, sent[i].Length)));
                 foreach (string body in sent) if (body.IndexOf("You are the hands of Capri", StringComparison.Ordinal) >= 0 || body.IndexOf("only the word: act", StringComparison.Ordinal) >= 0) throw new Exception("A strong brain still went through her hands' one-shot pick.");
-                checks.Add("PASS a strong brain works jobs out itself: with CS closed, \"start matchmaking\" opens CS, sees it opened, then starts the match as a job; a promise with no tool gets one reminder and then \"I haven't actually done that yet\"; calls copied as text still run; chat stays chat; brains with the switch off or no cloud keep her hands' shortcuts");
+                checks.Add("PASS a strong brain works jobs out itself: with CS closed, \"start matchmaking\" opens CS, sees it opened, then starts the match as a job; a promise with no tool gets one reminder and then \"I haven't actually done that yet\"; calls copied as text still run; chat stays chat; a brain that goes straight to the job in a game that isn't open gets the game opened first, and the same job called twice runs once; \"play some lofi for you\" with no tool behind it counts as a promise; brains with the switch off or no cloud keep her hands' shortcuts");
             }
             finally
             {

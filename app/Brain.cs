@@ -1718,7 +1718,7 @@ namespace CapriDesktop
             else if (planning)
             {
                 List<ChatMessage> working = new List<ChatMessage>(messages);
-                working[0] = new ChatMessage("system", steady + Seen() + Gap() + Hands.Note + Hands.WorkingOut + Hands.GameNote(playing) + Now() + selfGuide) { Steady = steady.Length };
+                working[0] = new ChatMessage("system", steady + Seen() + Gap() + Hands.Note + Hands.WorkingOut + (playing == null ? Hands.NoGame : Hands.GameNote(playing)) + Now() + selfGuide) { Steady = steady.Length };
                 try
                 {
                     planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket);
@@ -1966,6 +1966,28 @@ namespace CapriDesktop
                     if (call.Key == "use_computer" && args.Asked == null) args.Asked = request;
                     if (call.Key == "app_window") args.Asked = request;
                     if (call.Key == "media") Hands.Aim(args, request);
+                    // The same job or app twice runs once: a small brain can call a job again that it thinks is still going. Media
+                    // can go twice, like skipping two songs.
+                    int again = call.Key == "use_computer" || call.Key == "open_app" ? calls.FindIndex(done => done.Key == call.Key && Written(done.Key, done.Value) == Written(call.Key, args)) : -1;
+                    if (again >= 0)
+                    {
+                        did.Add(Written(call.Key, args));
+                        saw.Add(call.Key + ": " + Voice.Quote("Already done this turn, and this is what it did: " + (results[again] ?? "No result.")));
+                        continue;
+                    }
+                    // A brain that goes straight to use_computer in a game that isn't open gets the game opened first (F57).
+                    string unopened = call.Key == "use_computer" && !calls.Exists(done => done.Key == "open_app") ? Hands.Unopened(args.Task ?? request) : null;
+                    if (unopened != null)
+                    {
+                        ToolArguments opening = new ToolArguments { Name = unopened };
+                        string opened = act("open_app", opening);
+                        calls.Add(new KeyValuePair<string, ToolArguments>("open_app", opening));
+                        results.Add(opened);
+                        facts.Add("open_app: " + Voice.Quote(opened ?? "No result."));
+                        did.Add(Written("open_app", opening));
+                        saw.Add(facts[facts.Count - 1]);
+                        if (Security.IsHold(opened)) return null;
+                    }
                     string result;
                     if (!Hands.Valid(call.Key, args)) result = "That didn't work: that " + call.Key + " call was missing what it needs.";
                     else if (call.Key == "gaming_mode" && !Hands.GamingTalk(request)) result = "That didn't run: Gaming Mode only changes when they ask for it by name.";
