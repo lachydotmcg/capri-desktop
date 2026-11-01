@@ -3443,8 +3443,9 @@ namespace CapriDesktop
 
         private void CheckPopIn(double now, long quiet)
         {
-            if (popOut >= 0 && (clicks != popClicks || InChat || typer.Visible || talkState != TalkState.Off)) EndPopIn(false);
-            if (popOut >= 0 && now >= popOut && speech == null) EndPopIn(true);
+            // Her own hello in her bubble isn't them stopping her, and she goes once it's done.
+            if (popOut >= 0 && (clicks != popClicks || InChat || typer.Visible || (talkState != TalkState.Off && remarkTicket != asking))) EndPopIn(false);
+            if (popOut >= 0 && now >= popOut && speech == null && talkState == TalkState.Off) EndPopIn(true);
             if (!preferences.CheckIns || Hushed) { nextPopIn = -1; return; }
             if (nextPopIn < 0) nextPopIn = now + PopGap();
             if (now < nextPopIn) return;
@@ -3460,6 +3461,15 @@ namespace CapriDesktop
                 && !pushing && !transcribing && !speaker.Busy && now >= voiceUntil && !FullScreen();
         }
 
+        // A line she says on her own, like a check-in, a nudge, a pop-in hello or a cheer: in her bubble and her voice, the way a
+        // reminder is. Say alone only moves her mouth, which is how her check-ins went unseen and unheard in 0.7.8 and 0.7.9
+        // (Ashy, 2 Nov). Docked over a game, her HUD shows it.
+        private void SayOwn(string shown, string line)
+        {
+            if (docked) { Say(line); return; }
+            Remark(shown, line, InChat || Hushed || (preferences.Quiet && !preferences.ServerVoice) || FullScreen());
+        }
+
         private void CheckCare(double now, long quiet)
         {
             if (preferences.CareGame && quiet <= Care.Away && now >= careGameAt)
@@ -3471,7 +3481,7 @@ namespace CapriDesktop
             if (line == null) return;
             if (care.Said == CareKind.Bored) AskedForAttention(now, true);
             if (care.Said == CareKind.Late) SavePreferences();
-            Say(line);
+            SayOwn("check-in", line);
         }
 
         internal bool CareOn(CareKind kind) { return preferences.CareOn(kind); }
@@ -3507,7 +3517,7 @@ namespace CapriDesktop
             if (!wasHidden && (!preferences.Wander || riding || hanging || (seat != null && seat.Free)))
             {
                 if (IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
-                Say(line);
+                SayOwn("", line);
                 popOut = preferences.OnTop ? -1 : clock.Elapsed.TotalSeconds + 6;
                 popClicks = clicks;
                 popHide = false;
@@ -3525,7 +3535,7 @@ namespace CapriDesktop
                 ShowHidden(false);
                 DropSoon();
                 if (IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
-                Say(line);
+                SayOwn("", line);
                 popOut = wasHidden || !preferences.OnTop ? clock.Elapsed.TotalSeconds + 6 : -1;
                 popClicks = clicks;
                 popHide = wasHidden;
@@ -3602,7 +3612,8 @@ namespace CapriDesktop
         {
             if (quiet > Care.Away) { noticed = -1; nudgeOut = -1; nudgeGap = NudgeGap; boredAsk = false; return; }
             if (boredAsk && !preferences.CareBored) { nudgeOut = -1; boredAsk = false; }
-            bool attending = clicks != noticedClicks || dragging || pressed || InChat || typer.Visible || menu.Visible || talkState != TalkState.Off || onPanel;
+            // Her own bubble isn't them noticing her: their clicks, typing and menus are.
+            bool attending = clicks != noticedClicks || dragging || pressed || InChat || typer.Visible || menu.Visible || (talkState != TalkState.Off && remarkTicket != asking) || onPanel;
             if (noticed < 0 || attending) { noticed = now; noticedClicks = clicks; }
             if (nudgeOut >= 0)
             {
@@ -3610,7 +3621,9 @@ namespace CapriDesktop
                 {
                     nudgeOut = -1;
                     nudgeGap = NudgeGap;
-                    if (PopFree(now, quiet)) Say(boredAsk ? careLines.Pick("Bored noticed") : Lines.Pick(NoticedLines));
+                    // A click while her ask is still up gets her happy line in its place.
+                    if (talkState != TalkState.Off && remarkTicket == asking) CloseTalk();
+                    if (PopFree(now, quiet)) SayOwn("check-in", boredAsk ? careLines.Pick("Bored noticed") : Lines.Pick(NoticedLines));
                     boredAsk = false;
                 }
                 else if (now >= nudgeOut && speech == null)
@@ -3618,7 +3631,7 @@ namespace CapriDesktop
                     nudgeOut = -1;
                     nudgeGap = Math.Min(nudgeGap * 2, NudgeGap * 4);
                     noticed = now;
-                    if (quiet < 20000 && !hidden && PopFree(now, quiet)) Say(boredAsk ? careLines.Pick("Bored ignored") : Lines.Pick(SnubbedLines));
+                    if (quiet < 20000 && !hidden && PopFree(now, quiet)) SayOwn("check-in", boredAsk ? careLines.Pick("Bored ignored") : Lines.Pick(SnubbedLines));
                     boredAsk = false;
                 }
                 return;
@@ -3654,7 +3667,7 @@ namespace CapriDesktop
                     popClicks = clicks;
                     popHide = false;
                 }
-                Say(line);
+                SayOwn("check-in", line);
             };
             // With Wander off, or on a Sit here spot, she asks from where she is.
             if (!preferences.Wander || (seat != null && seat.Free) || (area.Contains(hip) && Math.Abs(hip.X - cursor.X) <= Math.Max(300, Width * 2))) { ask(); return; }
@@ -5235,7 +5248,7 @@ namespace CapriDesktop
                     homeBusy = false;
                     bool free = preferences.CheckIns && !Hushed && (!hidden || docked) && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null;
                     string line = Cheer(game, song, clock.Elapsed.TotalSeconds, free);
-                    if (line != null) Say(line);
+                    if (line != null) SayOwn("", line);
                 });
             });
         }
@@ -5251,7 +5264,7 @@ namespace CapriDesktop
             lagTotal = total;
             bool free = preferences.CheckIns && !Hushed && !hidden && !quitting && !dragging && !pressed && !InChat && !typer.Visible && !menu.Visible && speech == null && talkState == TalkState.Off && !onPanel && outro == null && !Native.Gaming();
             string line = Lagging(busy, now, free);
-            if (line != null) Say(line);
+            if (line != null) SayOwn("", line);
         }
 
         // Her joke once the CPU has been over 90% busy four checks in a row, about a minute, while she's free, or null.
@@ -13378,10 +13391,15 @@ namespace CapriDesktop
                 voiceUntil = 0;
                 CheckCare(careNow, 0);
                 careMust(speech == "Bored" && noticed == careNow && nudgeOut == careNow + 20 && boredAsk, "boredom did not count as an attention ask.");
-                speech = null;
+                // She says it in her bubble, not only with her mouth, and her own bubble isn't them noticing her.
+                UpdateTalk(clock.Elapsed.TotalSeconds);
+                careMust(reply == "Bored" && talkState == TalkState.Talking && remarkTicket == asking && heard == "check-in" && box.Visible, "her check-in didn't show in her bubble.");
+                CheckNudge(careNow + 1, 0);
+                careMust(nudgeOut == careNow + 20 && boredAsk && noticed == careNow, "her own bubble counted as them noticing her.");
+                CloseTalk();
                 CheckNudge(careNow + 21, 0);
                 if (careFiles) careMust(speech == "Edited sulk.", "a boredom follow-up ignored check-ins.md.");
-                speech = null;
+                CloseTalk();
                 careNow = 7200;
                 CheckNudge(careNow, 0);
                 CheckCare(careNow, 0);
@@ -13389,13 +13407,13 @@ namespace CapriDesktop
                 careNow = 10821;
                 CheckCare(careNow, 0);
                 careMust(speech == "Bored", "boredom did not return after the longer wait.");
-                speech = null;
+                // Clicked while her ask is still up, her happy line takes its place.
                 noticedClicks = clicks - 1;
                 careNow++;
                 CheckNudge(careNow, 0);
-                if (careFiles) careMust(speech == "Edited hello.", "noticing her ignored the edited reply.");
+                if (careFiles) careMust(speech == "Edited hello." && reply == "Edited hello.", "noticing her ignored the edited reply.");
                 careMust(nudgeGap == NudgeGap && nudgeOut < 0 && noticed == careNow, "noticing her did not reset the attention wait.");
-                speech = null;
+                CloseTalk();
                 CheckCare(careNow, 0);
                 careNow += 3599;
                 CheckCare(careNow, 0);
@@ -13403,16 +13421,17 @@ namespace CapriDesktop
                 careNow++;
                 CheckCare(careNow, 0);
                 careMust(speech == "Bored", "attention left boredom on the old longer wait.");
-                speech = null;
+                CloseTalk();
                 CheckNudge(careNow, Care.Away + 1);
                 careMust(noticed < 0 && nudgeOut < 0, "idle did not reset the shared attention clock.");
                 CheckNudge(careNow + 1, 0);
                 careMust(noticed == careNow + 1, "attention did not restart on return.");
                 checks.Add("PASS care attention: boredom shares the attention clock and editable sulk, backs off when ignored, resets on idle and never doubles up with the old two-hour ask");
-                checks.Add("PASS care delivery: care and pop-ins share quiet, full-screen and voice-chat holds; jobs, speech and voice audio are left alone");
+                checks.Add("PASS care delivery: check-ins show in her bubble, care and pop-ins share quiet, full-screen and voice-chat holds; jobs, speech and voice audio are left alone");
             }
             finally
             {
+                CloseTalk();
                 preferences = carePreferencesWas;
                 care = careWas;
                 careLines = careLinesWas;
@@ -20276,7 +20295,7 @@ namespace CapriDesktop
                             double popAt = clock.Elapsed.TotalSeconds;
                             PopIn(popAt);
                             bool poppedUp = !hidden && speech != null && Array.IndexOf(PopLines, speech) >= 0 && popOut > popAt && popHide;
-                            speech = null;
+                            CloseTalk();
                             CheckPopIn(popOut + 0.1, 0);
                             bool poppedBack = hidden && popOut < 0;
                             ShowHidden(false);
@@ -20284,7 +20303,7 @@ namespace CapriDesktop
                             preferences.Wander = true;
                             PopIn(clock.Elapsed.TotalSeconds);
                             bool stayedOut = !hidden && !popHide && speech != null;
-                            speech = null;
+                            CloseTalk();
                             CheckPopIn(clock.Elapsed.TotalSeconds + 7, 0);
                             bool keptOut = !hidden;
                             // With Wander off she says hi from where she is: no glitch and no new spot.
@@ -20293,7 +20312,7 @@ namespace CapriDesktop
                             Point stillAt = Location, stillAnchor = anchor;
                             PopIn(clock.Elapsed.TotalSeconds);
                             bool stayedPut = !hidden && !popHide && speech != null && Array.IndexOf(PopLines, speech) >= 0 && Location == stillAt && anchor == stillAnchor && outro == null;
-                            speech = null;
+                            CloseTalk();
                             popOut = -1;
                             preferences.Wander = wanderWas;
                             if (preferences.CheckIns != popsWere) ToggleCheckIns();
@@ -20313,7 +20332,7 @@ namespace CapriDesktop
                             double nudgeGlance = lastGlance, nudgeAt = clock.Elapsed.TotalSeconds;
                             preferences.CheckIns = true;
                             lastGlance = -1;
-                            speech = null;
+                            CloseTalk();
                             noticed = nudgeAt;
                             noticedClicks = clicks;
                             nudgeGap = NudgeGap;
@@ -20323,21 +20342,21 @@ namespace CapriDesktop
                             bool nudgeWaited = speech == null && nudgeOut < 0;
                             CheckNudge(nudgeAt + NudgeGap + 1, 0);
                             bool nudged = speech != null && Array.IndexOf(NudgeLines, speech) >= 0 && nudgeOut > nudgeAt && !hidden;
-                            speech = null;
+                            CloseTalk();
                             popOut = -1;
                             React();
                             CheckNudge(nudgeAt + NudgeGap + 3, 0);
                             bool nudgeThanked = speech != null && Array.IndexOf(NoticedLines, speech) >= 0 && nudgeOut < 0 && nudgeGap == NudgeGap;
-                            speech = null;
+                            CloseTalk();
                             Play(seat != null ? perch : idle);
                             double nudgeAgain = nudgeAt + NudgeGap * 2 + 4;
                             CheckNudge(nudgeAgain, 0);
                             bool nudgedAgain = speech != null && Array.IndexOf(NudgeLines, speech) >= 0 && nudgeOut > nudgeAgain;
-                            speech = null;
+                            CloseTalk();
                             popOut = -1;
                             CheckNudge(nudgeOut + 1, 5000);
                             bool nudgeSulked = speech != null && Array.IndexOf(SnubbedLines, speech) >= 0 && nudgeOut < 0 && nudgeGap == NudgeGap * 2;
-                            speech = null;
+                            CloseTalk();
                             Play(seat != null ? perch : idle);
                             CheckNudge(noticed + NudgeGap + 1, 0);
                             bool nudgeBackedOff = speech == null && nudgeOut < 0;
