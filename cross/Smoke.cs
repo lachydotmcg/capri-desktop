@@ -656,7 +656,7 @@ namespace CapriDesktop
                 bool discordOff = pet.Saved.NoDiscord && !pet.DiscordShown;
                 pet.SetDiscord(true);
                 bool discordOn = !pet.Saved.NoDiscord && pet.DiscordShown;
-                if (!ipcNames.Contains(Path.Combine(ipcFolder, "discord-ipc-3")) || !discordOff || !discordOn || Array.IndexOf(new[] { "Hanging out", "Chatting", "Dancing to music", "Taking a break" }, pet.Doing) < 0)
+                if (!ipcNames.Contains(Path.Combine(ipcFolder, "discord-ipc-3")) || !discordOff || !discordOn || Array.IndexOf(new[] { "Plugged in", "Chatting", "Dancing to music", "Taking a break" }, pet.Doing) < 0)
                     throw new Exception("Her Discord status went wrong: " + string.Join(", ", ipcNames) + " / off " + discordOff + " / on " + discordOn + " / " + pet.Doing);
                 checks.Add("PASS Discord status: Settings > Show on Discord turns it off and on, she says what she's doing in plain words, and she finds Discord's socket in its temp folder");
                 string details = pet.ErrorDetails();

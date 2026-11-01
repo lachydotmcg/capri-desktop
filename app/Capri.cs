@@ -1734,7 +1734,11 @@ namespace CapriDesktop
                 if (!testing) CheckNudge(signalNow, signalIdle);
                 if (!testing) CheckCare(signalNow, signalIdle);
                 if (!testing) CheckHoliday(DateTime.Now, signalIdle);
-                if (!testing) presence.Show(preferences.NoDiscord ? null : Doing);
+                if (!testing)
+                {
+                    presence.Crowd = cloneWindow == null ? 0 : cloneWindow.Swarm.Bodies.Count + 1;
+                    presence.Show(preferences.NoDiscord ? null : Doing);
+                }
                 if (!testing) CheckHd(clock.Elapsed.TotalSeconds);
                 StayOnTop();
                 CheckSeat(clock.Elapsed.TotalSeconds);
@@ -4451,14 +4455,15 @@ namespace CapriDesktop
         {
             get
             {
-                if (job != null) return "On a job";
+                if (job != null) return Computer.Streaming ? "Streaming" : job.Playing ? "Playing a game" : "Using the computer";
+                if (cloneWindow != null) return "Multiplying";
                 if (InChat) return "Voice chatting";
                 if (gaming.State == GameDock.Stage.Docked) return "Gaming";
                 if (hidden) return "Taking a break";
                 if (typer.Visible || speech != null) return "Chatting";
                 if (clip == dance || clip == perchDance) return musicOn ? "Dancing to music" : "Dancing";
                 if (Asleep) return "Asleep";
-                return "Hanging out";
+                return "Plugged in";
             }
         }
 
@@ -19837,6 +19842,8 @@ namespace CapriDesktop
                                 string discordPipeWas = Presence.PipeName, discordAppWas = Presence.AppId;
                                 Presence.PipeName = "capri-smoke-" + Process.GetCurrentProcess().Id + "-ipc-";
                                 Presence.AppId = "1431234567890123456";
+                                Func<bool> discordArtWas = Presence.ArtLive;
+                                Presence.ArtLive = delegate { return false; };
                                 Presence discordStatus = new Presence("9.9.9");
                                 string discordHello = null, discordLine = null, discordSeen = null;
                                 int discordHelloOp = -1, discordLineOp = -1;
@@ -19875,6 +19882,43 @@ namespace CapriDesktop
                                 if (discordHelloOp != 0 || discordHello == null || discordHello.IndexOf("\"client_id\":\"1431234567890123456\"", StringComparison.Ordinal) < 0 || discordHello.IndexOf("\"v\":1", StringComparison.Ordinal) < 0) throw new Exception("Her Discord hello was wrong: " + discordHelloOp + " " + discordHello);
                                 if (discordLineOp != 1 || discordLine == null || discordLine.IndexOf("\"cmd\":\"SET_ACTIVITY\"", StringComparison.Ordinal) < 0 || discordLine.IndexOf("\"details\":\"Dancing to music\"", StringComparison.Ordinal) < 0 || discordLine.IndexOf("\"large_image\":\"capri\"", StringComparison.Ordinal) < 0 || discordLine.IndexOf("\"pid\":" + discordPid, StringComparison.Ordinal) < 0 || discordLine.IndexOf("\"start\":", StringComparison.Ordinal) < 0 || discordLine.IndexOf("\"label\":\"Get Capri\"", StringComparison.Ordinal) < 0) throw new Exception("Her Discord status line was wrong: " + discordLineOp + " " + discordLine);
                                 if (discordSeen != "Showing: Dancing to music" || !discordHungUp) throw new Exception("Her Discord status didn't settle or hang up: " + discordSeen + ", hung up " + discordHungUp);
+                                if (Presence.Look("Plugged in") != "plugged" || Presence.Look("Playing a game") != "game" || Presence.Look("Streaming") != "live" || Presence.Look("Using the computer") != "computer" || Presence.Look("Multiplying") != "clones"
+                                    || Presence.Badge("Using the computer") != "cursor" || Presence.Badge("Playing a game") != "controller" || Presence.Badge("Plugged in") != null || Presence.Header("Voice chatting") != 2 || Presence.Header("Plugged in") != 0
+                                    || Presence.Flickered("Plugged in", 0) != "Plugged in" || Presence.Flickered("Plugged in", 1) == "Plugged in" || Presence.Flickered("Plugged in", 1).Length != 10) throw new Exception("Her Discord looks were picked wrong.");
+                                string discordMoving = null, discordFellBack = null;
+                                Presence.PipeName = "capri-smoke-moving-" + Process.GetCurrentProcess().Id + "-ipc-";
+                                Presence.AppId = "1431234567890123456";
+                                Presence.ArtLive = delegate { return true; };
+                                Presence discordMovingStatus = new Presence("9.9.9");
+                                try
+                                {
+                                    using (System.IO.Pipes.NamedPipeServerStream movingPipe = new System.IO.Pipes.NamedPipeServerStream(Presence.PipeName + "0", System.IO.Pipes.PipeDirection.InOut, 1, System.IO.Pipes.PipeTransmissionMode.Byte, System.IO.Pipes.PipeOptions.Asynchronous))
+                                    {
+                                        IAsyncResult movingJoined = movingPipe.BeginWaitForConnection(null, null);
+                                        discordMovingStatus.Crowd = 14;
+                                        discordMovingStatus.Show("Playing a game");
+                                        if (!movingJoined.AsyncWaitHandle.WaitOne(8000)) throw new Exception("Her moving Discord status never called the pipe.");
+                                        movingPipe.EndWaitForConnection(movingJoined);
+                                        byte[] movingHead = Presence.Take(movingPipe, 8, 5000);
+                                        Presence.Take(movingPipe, BitConverter.ToInt32(movingHead, 4), 5000);
+                                        Presence.Send(movingPipe, 1, "{\"cmd\":\"DISPATCH\",\"evt\":\"READY\",\"data\":{\"v\":1}}");
+                                        movingHead = Presence.Take(movingPipe, 8, 5000);
+                                        discordMoving = System.Text.Encoding.UTF8.GetString(Presence.Take(movingPipe, BitConverter.ToInt32(movingHead, 4), 5000));
+                                        Presence.Send(movingPipe, 1, "{\"cmd\":\"SET_ACTIVITY\",\"evt\":\"ERROR\",\"data\":{\"code\":4000,\"message\":\"No thanks\"}}");
+                                        movingHead = Presence.Take(movingPipe, 8, 6000);
+                                        discordFellBack = System.Text.Encoding.UTF8.GetString(Presence.Take(movingPipe, BitConverter.ToInt32(movingHead, 4), 5000));
+                                        discordMovingStatus.Show(null);
+                                    }
+                                }
+                                finally
+                                {
+                                    discordMovingStatus.Dispose();
+                                    Presence.PipeName = discordPipeWas;
+                                    Presence.AppId = discordAppWas;
+                                    Presence.ArtLive = discordArtWas;
+                                }
+                                if (discordMoving == null || discordMoving.IndexOf("assets\\/presence\\/game.gif", StringComparison.Ordinal) < 0 || discordMoving.IndexOf("assets\\/presence\\/controller.gif", StringComparison.Ordinal) < 0 || discordMoving.IndexOf("\"size\":[14,9999]", StringComparison.Ordinal) < 0) throw new Exception("Her moving Discord status was wrong: " + discordMoving);
+                                if (discordFellBack == null || discordFellBack.IndexOf("\"large_image\":\"capri\"", StringComparison.Ordinal) < 0 || discordFellBack.IndexOf("\"party\"", StringComparison.Ordinal) >= 0 || discordFellBack.IndexOf("\"details\":\"Playing a game\"", StringComparison.Ordinal) < 0) throw new Exception("Her status didn't go back to the plain line when Discord said no: " + discordFellBack);
                                 Clip discordClipWas = clip;
                                 Job discordJobWas = job;
                                 string discordSpeechWas = speech;
@@ -19900,7 +19944,7 @@ namespace CapriDesktop
                                 speech = discordSpeechWas;
                                 chatting = discordChattingWas;
                                 hidden = discordHiddenWas;
-                                if (discordIdle != "Hanging out" || discordDance != "Dancing to music" || discordAskedDance != "Dancing" || discordAsleep != "Asleep" || discordCall != "Voice chatting") throw new Exception("Her Discord states were wrong: " + discordIdle + ", " + discordDance + ", " + discordAskedDance + ", " + discordAsleep + ", " + discordCall);
+                                if (discordIdle != "Plugged in" || discordDance != "Dancing to music" || discordAskedDance != "Dancing" || discordAsleep != "Asleep" || discordCall != "Voice chatting") throw new Exception("Her Discord states were wrong: " + discordIdle + ", " + discordDance + ", " + discordAskedDance + ", " + discordAsleep + ", " + discordCall);
                                 bool discordOffWas = preferences.NoDiscord;
                                 preferences.NoDiscord = false;
                                 mainframe.Sync();
@@ -19912,7 +19956,7 @@ namespace CapriDesktop
                                 preferences.NoDiscord = discordOffWas;
                                 mainframe.Sync();
                                 if (new Preferences().NoDiscord || !discordShownOn || !discordTurnedOff || !discordBackOn) throw new Exception("The Show on Discord switch went wrong: shown " + discordShownOn + ", off " + discordTurnedOff + ", back on " + discordBackOn);
-                                checks.Add("PASS Discord status: on by default, a pretend Discord hears her hello with the app's id and 'Dancing to music' with her picture, start time and Get Capri button, she hangs up when it's turned off, her states read Hanging out, Dancing to music, Dancing (asked, with no music), Asleep and Voice chatting, and the Mainframe switch turns it off and back on");
+                                checks.Add("PASS Discord status: on by default, a pretend Discord hears her hello with the app's id and 'Dancing to music' with her picture, start time and Get Capri button, she hangs up when it's turned off, her moving art, glitch controller and clone count go out and fall back to the plain line if Discord says no, her states read Plugged in, Dancing to music, Dancing (asked, with no music), Asleep and Voice chatting, and the Mainframe switch turns it off and back on");
                             }
                             Clip[] strips = { idle, blink, blinkGlitch, grin, glitch, dangle, sleep, wake, perch, perchBlink, perchBlinkGlitch, perchGlitch, idle };
                             int[] cells = { 0, 1, 1, 0, 1, 3, 0, 4, 8, 1, 1, 1, 0 };

@@ -797,7 +797,7 @@ namespace CapriDesktop
                 if (!Talk.Quiet) return "Chatting";
                 if (clip == dance || clip == perchDance) return musicOn ? "Dancing to music" : "Dancing";
                 if (clip == sleep) return "Asleep";
-                return "Hanging out";
+                return "Plugged in";
             }
         }
 

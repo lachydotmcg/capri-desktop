@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Net;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
@@ -20,6 +21,9 @@ namespace CapriDesktop
         internal const string Picture = "capri";
         private const string Site = "https://lachydotmcg.github.io/capri-desktop/";
         private const string Server = "https://discord.gg/F4fDHfGtFk";
+        // Discord only animates pictures at a public link, so her moving art sits on her site. Until it's there, or while the
+        // site's down, her still picture shows.
+        private const string Art = Site + "assets/presence/";
         private const int Wait = 5000;
         private const int Retry = 30000;
         private const int Refused = 600000;
@@ -27,6 +31,9 @@ namespace CapriDesktop
         private const int Spacing = 4000;
         // Sending the same line again now and then is how she notices Discord quit and came back.
         private const int Refresh = 60000;
+        // Her line flickers on this beat, inside Discord's limit.
+        private const int Flicker = 6000;
+        internal static Func<bool> ArtLive = OnSite;
 
         private readonly object gate = new object();
         private readonly AutoResetEvent nudge = new AutoResetEvent(false);
@@ -38,6 +45,9 @@ namespace CapriDesktop
         private Thread worker;
         private volatile bool closing;
         private volatile string status = "Off";
+        private bool plain;
+        // How many of her there are while she's cloned, for Discord's party count.
+        internal volatile int Crowd;
 
         internal Presence(string version) { this.version = version; }
 
@@ -166,40 +176,102 @@ namespace CapriDesktop
             int op;
             string said = Receive(pipe, out op);
             if (op != 1) { Note("Discord refused her: " + Reason(said)); return Refused; }
+            bool moving = ArtLive();
             string sent = null;
-            int last = unchecked(Environment.TickCount - Refresh);
+            int last = unchecked(Environment.TickCount - Refresh), beat = 0;
             while (!closing)
             {
                 string doing = Wanted();
                 if (doing == null) return 0;
                 int since = unchecked(Environment.TickCount - last);
-                if (doing == sent && since < Refresh) { nudge.WaitOne(Refresh - since); continue; }
+                int next = plain ? Refresh : Flicker;
+                if (doing == sent && since < next) { nudge.WaitOne(next - since); continue; }
                 if (since < Spacing) { nudge.WaitOne(Spacing - since); continue; }
-                Send(pipe, 1, Json(Activity(doing)));
+                beat = doing == sent ? beat + 1 : 0;
+                Send(pipe, 1, Json(Activity(doing, beat, moving)));
                 last = Environment.TickCount;
                 sent = doing;
                 if (Answer(pipe)) status = "Showing: " + doing;
+                else if (!plain) { plain = true; sent = null; }
             }
             return 0;
         }
 
-        private DiscordCommand Activity(string doing)
+        // Her artist's animation for what she's doing.
+        internal static string Look(string doing)
         {
-            return new DiscordCommand
+            switch (doing)
             {
-                Nonce = Guid.NewGuid().ToString(),
-                Args = new DiscordArgs
-                {
-                    Pid = pid,
-                    Activity = new DiscordActivity
-                    {
-                        Details = doing,
-                        Times = new DiscordTimes { Start = started },
-                        Assets = new DiscordAssets { Image = Picture, Text = "Capri " + version },
-                        Buttons = new[] { new DiscordButton { Label = "Get Capri", Url = Site }, new DiscordButton { Label = "Join her Discord", Url = Server } }
-                    }
-                }
+                case "Chatting": return "chatting";
+                case "Dancing": case "Dancing to music": return "dancing";
+                case "Asleep": return "asleep";
+                case "Voice chatting": return "voice";
+                case "Taking a break": return "break";
+                case "Using the computer": return "computer";
+                case "Playing a game": case "Gaming": return "game";
+                case "Streaming": return "live";
+                case "Multiplying": return "clones";
+                default: return "plugged";
+            }
+        }
+
+        // The little picture in the corner: a glitch cursor or a glitch controller.
+        internal static string Badge(string doing)
+        {
+            return doing == "Using the computer" ? "cursor" : doing == "Playing a game" || doing == "Gaming" || doing == "Streaming" ? "controller" : null;
+        }
+
+        // Voice chat reads "Listening to Capri" and Gaming Mode "Watching Capri". The rest stay "Playing Capri".
+        internal static int Header(string doing) { return doing == "Voice chatting" ? 2 : doing == "Gaming" ? 3 : 0; }
+
+        // Every third update knocks a couple of letters out of her line, so it glitches on their profile.
+        internal static string Flickered(string words, int beat)
+        {
+            if (string.IsNullOrEmpty(words) || beat % 3 != 1) return words;
+            char[] letters = words.ToCharArray();
+            letters[beat * 7 % letters.Length] = '\u2588';
+            letters[(beat * 3 + 1) % letters.Length] = '\u2592';
+            return new string(letters);
+        }
+
+        private static bool OnSite()
+        {
+            try
+            {
+                HttpWebRequest asking = (HttpWebRequest)WebRequest.Create(Art + "plugged.gif");
+                asking.Method = "HEAD";
+                asking.Timeout = Wait;
+                using (HttpWebResponse answer = (HttpWebResponse)asking.GetResponse()) return answer.StatusCode == HttpStatusCode.OK;
+            }
+            catch (WebException) { return false; }
+            catch (IOException) { return false; }
+        }
+
+        private DiscordCommand Activity(string doing, int beat, bool moving)
+        {
+            DiscordActivity activity = new DiscordActivity
+            {
+                Details = doing,
+                Times = new DiscordTimes { Start = started },
+                Assets = new DiscordAssets { Image = Picture, Text = "Capri " + version },
+                Buttons = new[] { new DiscordButton { Label = "Get Capri", Url = Site }, new DiscordButton { Label = "Join her Discord", Url = Server } }
             };
+            // If Discord turns any of the extras down, she goes back to the plain line for the rest of this run.
+            if (!plain)
+            {
+                int crowd = Crowd;
+                string badge = Badge(doing);
+                activity.Details = Flickered(doing, beat);
+                activity.Type = Header(doing);
+                if (crowd > 1) activity.Party = new DiscordParty { Id = "capri-clones", Size = new[] { crowd, Math.Max(crowd, 9999) } };
+                if (moving) activity.Assets.Image = Art + Look(doing) + ".gif";
+                if (moving && badge != null)
+                {
+                    activity.Assets.Small = Art + badge + ".gif";
+                    activity.Assets.SmallText = doing;
+                }
+            }
+            return new DiscordCommand { Nonce = Guid.NewGuid().ToString(), Args = new DiscordArgs { Pid = pid, Activity = activity } };
         }
 
         // Discord answers every command. A ping gets its pong, and an error goes in errors.txt once.
@@ -315,6 +387,8 @@ namespace CapriDesktop
     internal sealed class DiscordActivity
     {
         [DataMember(Name = "details")] public string Details;
+        [DataMember(Name = "type", EmitDefaultValue = false)] public int Type;
+        [DataMember(Name = "party", EmitDefaultValue = false)] public DiscordParty Party;
         [DataMember(Name = "timestamps")] public DiscordTimes Times;
         [DataMember(Name = "assets")] public DiscordAssets Assets;
         [DataMember(Name = "buttons")] public DiscordButton[] Buttons;
@@ -331,6 +405,15 @@ namespace CapriDesktop
     {
         [DataMember(Name = "large_image")] public string Image;
         [DataMember(Name = "large_text")] public string Text;
+        [DataMember(Name = "small_image", EmitDefaultValue = false)] public string Small;
+        [DataMember(Name = "small_text", EmitDefaultValue = false)] public string SmallText;
+    }
+
+    [DataContract]
+    internal sealed class DiscordParty
+    {
+        [DataMember(Name = "id")] public string Id;
+        [DataMember(Name = "size")] public int[] Size;
     }
 
     [DataContract]
