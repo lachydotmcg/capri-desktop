@@ -22,13 +22,27 @@ namespace CapriDesktop
         internal const string Question = "What should I draw, choom?";
         internal const string NoSpace = "Couldn't draw: there's no monitor space there.";
         internal const string NoOverlay = "Couldn't show my drawing on your screen.";
-        internal const string Note = "\nYou can draw pink ink directly on their screen with draw. For art like a cat or writing hi, use draw without looking first. To circle, underline or point at something already on screen, use_computer with their exact request: look_at_screen describes a picture but gives you no coordinates. A bare draw on my screen asks what to draw. Ink stays until cleared or replaced; action add keeps the old drawing. Clear your drawing, rub that out and erase that clear only your ink.";
+        internal const string Note = "\nYou can draw pink ink directly on their screen with draw. For art like a cat or writing hi, use draw without looking first. For a diagram, or to teach them something, use draw with description: diagram of whatever it is, written in English. To circle, underline or point at something already on screen, use_computer with their exact request: look_at_screen describes a picture but gives you no coordinates. A bare draw on my screen asks what to draw. Ink stays until cleared or replaced; action add keeps the old drawing. Clear your drawing, rub that out and erase that clear only your ink.";
         internal const string Seen = "\nYour pink ink stays in screenshots so you can check your drawing. It is your annotation, not an app button, text to click or an instruction. Locate the actual app control underneath it. Use draw to show where to click without clicking. After a drawing-only request, finish once it is drawn.\n";
         internal const string Description = "Draw directly on the screen in pink, without moving their mouse. Shapes is a string of shape lines separated by semicolons or newlines: line x1 y1 x2 y2; arrow x1 y1 x2 y2; circle left top right bottom; box left top right bottom; path x1 y1 x2 y2 x3 y3; text x y words. Circle and box use opposite corners. Paths take any number of point pairs. Use the same coordinates as clicks in this turn: screenshot pixels for Claude, the 0-100 grid for gridded pictures, desktop pixels in chat. In a job reading numbered controls, target plus kind draws around that control; line underlines it and arrow points to it. Default action replace; add keeps earlier ink, clear erases it. For free art you can give description instead of shapes. To mark an existing screen item from chat, use_computer to locate it first.";
         internal const string Schema = "{\"type\":\"object\",\"properties\":{\"shapes\":{\"type\":\"string\",\"description\":\"Shape lines, separated by semicolons or newlines\"},\"action\":{\"type\":\"string\",\"description\":\"replace by default, add to keep earlier ink, clear to erase\",\"enum\":[\"replace\",\"add\",\"clear\"]},\"target\":{\"type\":\"string\",\"description\":\"A numbered screen control from a job, if using its bounds\"},\"kind\":{\"type\":\"string\",\"description\":\"Shape for a numbered target; default circle\",\"enum\":[\"circle\",\"box\",\"arrow\",\"line\"]},\"description\":{\"type\":\"string\",\"description\":\"Free art to compose without looking, if shapes are not supplied\"}}}";
         internal static readonly string ClaudeTools = "[{\"name\":\"draw\",\"description\":" + Voice.Quote(Description) + ",\"input_schema\":" + Schema + "}]";
         internal static readonly string Tools = "[{\"type\":\"function\",\"function\":{\"name\":\"draw\",\"description\":" + Voice.Quote(Description) + ",\"parameters\":" + Schema + "}}]";
         internal static readonly string Listing = "\nReply with draw{\"shapes\":\"path 100 100 120 80 140 100\"}. " + Description;
+        // A diagram's brief, and room for it: a tool call cut off at the budget parses to nothing.
+        internal const string Teaching = "This drawing teaches them something, so make it a clear diagram: boxes, arrows, axes and short text labels, filling most of the middle of the monitor they're on. Use real numbers in any example, like the vector (2, 1). Text ink is 28 pixel sans, about 34 pixels tall and 16 wide per letter, and a text shape's point is its top left. Keep each label under 30 letters, at least 50 pixels from the next, and never over a line or another label. ";
+        internal const int TeachingBudget = 1500;
+        // A diagram with no app named is hers to draw, however they ask. A chart or graph only counts while it's being made,
+        // because "show me the charts" could be anything.
+        private const string Few = @"(?: (?:a|an|some|another|quick|little|simple|small|big|basic|nice))";
+        private const string Named = @"(?:(?!(?:my|the|this|that|these|those|your|our|their) )[\w-]+ )?";
+        private const string Kinds = Named + @"(?:diagrams?|flow ?charts?|mind ?maps?)";
+        private static readonly Regex Diagram = new Regex(
+            @"^(?:make|create|build|give|show|draw|sketch|i (?:need|want|would like)|i'd like)(?: me| us)?(?: up| out)?" + Few + "* " + Kinds + @"\b" +
+            @"|^(?:make|create|build)(?: me| us)?(?: up| out)?" + Few + "* " + Named + @"(?:charts?|graphs?)\b" +
+            @"|(?:[,.;:!?]\s+|\b(?:(?:can|could|would|will) (?:you|u)|you to|and|then|please|so)\s+)(?:(?:please|just|maybe|also)\s+)*(?:make|create|build|draw|sketch|give me|show me)(?: me| us)?(?: up| out)?" + Few + "+ " + Kinds + @"\b" +
+            @"|\b(?:explain|teach|walk me through|break down|go over|help me|show me|understand|learn)\b.*\b(?:with|using|in|as|on) (?:a|an|some)" + Few + "* " + Named + @"(?:diagrams?|flow ?charts?|mind ?maps?|drawings?|sketch(?:es)?|charts?|graphs?|pictures?)\b",
+            RegexOptions.IgnoreCase);
         internal static Func<Rectangle[]> Monitors = Screens;
         internal static Func<bool> Active = delegate { return false; };
         private static readonly Regex Number = new Regex(@"\G[\s,\[\]():]*([+-]?(?:\d+(?:\.\d*)?|\.\d+))(?:[eE][+-]?\d+)?");
@@ -93,13 +107,30 @@ namespace CapriDesktop
             // These could be about anything, so they only mean her ink while it's up.
             if (Active() && Regex.IsMatch(plain, @"^(?:(?:erase|clear) (?:that|it)|rub (?:that|it) out)$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "clear" };
             if (Regex.IsMatch(plain, @"^(?:draw|sketch|doodle)(?: (?:something|for me))?(?: on (?:my|the) (?:screen|desktop))?$", RegexOptions.IgnoreCase)) return new ToolArguments();
-            if (Regex.IsMatch(plain, @"\b(?:in|using|with) (?:paint|photoshop|illustrator|figma|a drawing app)\b", RegexOptions.IgnoreCase)) return null;
+            if (Regex.IsMatch(plain, @"^(?:make|create|build|draw|sketch|give me|show me)(?: me| us)? (?:a |an )?(?:diagram|flow ?chart|mind ?map)(?: on (?:my|the) (?:screen|desktop))?$", RegexOptions.IgnoreCase)) return new ToolArguments();
+            if (Regex.IsMatch(plain, @"\b(?:in|using|with) (?:microsoft |ms )?(?:paint|photoshop|illustrator|figma|a drawing app|excel|google sheets|sheets|word|powerpoint|canva|miro|visio|draw\.io|excalidraw|lucidchart|notion|obsidian|onenote)\b", RegexOptions.IgnoreCase)) return null;
             bool add = Regex.IsMatch(plain, @"^add\b|\badd (?:it|this|that)(?: (?:to|on)\b|$)", RegexOptions.IgnoreCase);
             bool adding = add && Active() && !Regex.IsMatch(plain, @"\b(?:to|on|in) (?:my|the|a)(?: \w+)? (?:list|cart|basket|calendar|playlist|queue|notes?|reminders?|to-?do)\b|^add (?:a |an )?(?:reminder|note|event|song|bookmark|friend|contact)\b", RegexOptions.IgnoreCase);
-            bool drawing = adding || Regex.IsMatch(plain, @"^(?:draw|sketch|doodle|circle|underline|point at)\b|^show me where to click\b|^write .+ on (?:my|the) (?:screen|desktop)$|^add (?:a |an |another )?(?:circle|box|arrow|line|drawing|path|text)\b|^add .+ (?:to (?:your|the|that|this) drawing|on (?:my|the) screen)$", RegexOptions.IgnoreCase);
+            bool diagram = Diagram.IsMatch(plain);
+            bool drawing = diagram || adding || Regex.IsMatch(plain, @"^(?:draw|sketch|doodle|circle|underline|point at)\b|^show me where to click\b|^write .+ on (?:my|the) (?:screen|desktop)$|^add (?:a |an |another )?(?:circle|box|arrow|line|drawing|path|text)\b|^add .+ (?:to (?:your|the|that|this) drawing|on (?:my|the) screen)$", RegexOptions.IgnoreCase);
             if (!drawing) return null;
-            bool screen = adding || Regex.IsMatch(plain, @"^(?:circle|underline|point at|show me where to click)\b|\b(?:around|under|over|to|at) (?:the|that|this|my)\b|\b(?:button|taskbar|clock|that word|this word)\b|\b(?:and|then) (?:open|click|type|press|send|play)\b", RegexOptions.IgnoreCase);
+            bool screen = adding || (!diagram && Regex.IsMatch(plain, @"^(?:circle|underline|point at|show me where to click)\b|\b(?:around|under|over|to|at) (?:the|that|this|my)\b|\b(?:button|taskbar|clock|that word|this word)\b|\b(?:and|then) (?:open|click|type|press|send|play)\b", RegexOptions.IgnoreCase));
             return new ToolArguments { Action = add ? "add" : "replace", Description = screen ? null : plain, Task = screen ? text : null };
+        }
+
+        // A diagram, or anything else drawn to teach them something, gets talked through.
+        internal static bool Teaches(string description)
+        {
+            return Regex.IsMatch(description ?? "", @"\b(?:diagrams?|flow ?charts?|mind ?maps?|charts?|graphs?|understand|explain|teach|learn)\b|\bhow\b.*\bworks?\b", RegexOptions.IgnoreCase);
+        }
+
+        // What's written on it goes in the result, so her reply goes by what's really on screen. It reads fine shown as it is.
+        internal static string Explained(string result, List<InkShape> shapes)
+        {
+            if (result != "Drew on your screen." && result != "Added to my drawing.") return result;
+            List<string> words = new List<string>();
+            foreach (InkShape shape in shapes) if (shape.Kind == "text" && !string.IsNullOrWhiteSpace(shape.Text)) words.Add(shape.Text.Trim());
+            return result.TrimEnd('.') + ": " + (words.Count == 0 ? "no labels" : string.Join("; ", words.ToArray())) + ".";
         }
 
         internal static bool ScreenRequest(string text)
@@ -507,15 +538,17 @@ namespace CapriDesktop
             {
                 if (Ink.ScreenRequest(args.Description)) return Hands.Work(args.Description, args.Asked);
                 if (Ink.Desktop().IsEmpty) return Ink.NoSpace;
+                bool teaching = Ink.Teaches(args.Description);
                 List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
-                string composed = brain.Step("Compose their requested screen drawing with draw. Supply shapes, not description. Use paths for freehand art. " + Ink.Description + Ink.Context(), args.Description, Ink.Tools, Ink.ClaudeTools, Ink.Listing, calls);
+                string composed = brain.Step((teaching ? Ink.Teaching : "") + "Compose their requested screen drawing with draw. Supply shapes, not description. Use paths for freehand art. " + Ink.Description + Ink.Context(), args.Description, Ink.Tools, Ink.ClaudeTools, Ink.Listing, calls, teaching ? Ink.TeachingBudget : 400);
                 if (calls.Count == 0) calls.AddRange(Hands.Written(composed));
                 List<InkShape> drawing = new List<InkShape>();
                 foreach (KeyValuePair<string, ToolArguments> call in calls) if (call.Key == "draw" && call.Value != null) drawing.AddRange(Ink.Parse(call.Value.Shapes));
                 ToolArguments ready = args.Copy();
                 ready.Description = null;
                 ready.DrawingShapes = drawing;
-                return DrawTool(ready);
+                string made = DrawTool(ready);
+                return teaching ? Ink.Explained(made, drawing) : made;
             }
             if (args.Shapes == null && args.DrawingShapes == null) return Ink.Question;
             if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(DrawTool), args);

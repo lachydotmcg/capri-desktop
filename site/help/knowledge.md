@@ -1294,6 +1294,8 @@ Long files can be read in parts. She reports missing or unreadable content; ask 
 Settings > HABITS, on by default. While she's on a job or watching for something, your PC and screen stay on. She can't see with the screen off. A closed laptop lid still sleeps.
 
 ### Drawing on your screen
+Ask for a diagram and she draws it, then talks you through it: "make a diagram and help me understand linear algebra", "explain eigenvectors with a diagram" or "make a flowchart of how a bill becomes law". Say an app, like "make a chart in Excel", and she does it in that app.
+
 "Draw me a cat", "write hi on my screen", "circle the start button" or "point at the save button". Clicks go straight through her ink, and it stays until you say "clear your drawing" or "rub that out", or pick Clear her drawing from her menu. Say "add" to keep what's there. For things already on screen she looks at the monitor you're using.
 
 ### Watch something with her

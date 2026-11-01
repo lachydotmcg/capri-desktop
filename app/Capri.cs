@@ -14662,7 +14662,38 @@ namespace CapriDesktop
                 if (Hands.Manners("draw me a cat", out inkPlease) != "draw me a cat" || inkPlease || Hands.Manners("clear your drawing", out inkPlease) != "clear your drawing" || inkPlease) throw new Exception("Ink added a please step.");
             }
             finally { Hands.PleaseRoll = inkPleaseWas; }
-            checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, and clear and bare draw need no brain");
+            foreach (string diagramAsk in new[] { "Capri, can you make a diagram and help me understand linear algebra?", "make me a diagram of how neural networks work", "make a diagram of a vector", "show me a diagram of gradient descent", "draw me a diagram of a matrix", "explain eigenvectors with a diagram", "help me understand linear algebra with a diagram", "help me understand vectors and make a diagram", "make a flowchart of how a bill becomes law", "make me a mind map of machine learning", "create a bar chart of the planets by size", "make a diagram of how data gets to the model", "I'm learning machine learning, can you make a diagram of a neuron?", "so like capri can you make a diagram and help me understand linear algebra" })
+            {
+                string diagramTool;
+                ToolArguments diagramArgs;
+                if (!Hands.Heard(diagramAsk, out diagramTool, out diagramArgs) || diagramTool != "draw" || diagramArgs.Task != null || !Ink.Teaches(diagramArgs.Description) || !Hands.Wants(diagramAsk)) throw new Exception("A diagram ask didn't reach her ink: " + diagramAsk + " (" + diagramTool + ")");
+            }
+            foreach (string notDiagram in new[] { "send the diagram to John", "what's a diagram", "open my diagram", "find the diagram in my downloads", "look at this diagram", "show me the charts", "show me my diagram", "make a diagram in excel", "draw a flowchart in visio", "make a chart in google sheets", "do diagrams help people learn", "help me with this diagram" })
+                if (Ink.Request(Hands.Asked(notDiagram)) != null) throw new Exception("Her ink took something that wasn't a diagram to draw: " + notDiagram);
+            ToolArguments diagramBare = Ink.Request("make a diagram");
+            if (diagramBare == null || diagramBare.Description != null || diagramBare.Task != null) throw new Exception("A bare diagram ask didn't ask what to draw.");
+            if (Ink.Teaches("a cat") || Ink.Teaches("write hi") || !Ink.Teaches("diagram of a vector") || !Ink.Teaches("show how a neuron works")) throw new Exception("Her ink told teaching from art wrongly.");
+            System.Collections.Generic.List<InkShape> diagramShapes = Ink.Parse("box 10 10 60 60; text 20 20 vector v; text 20 90 matrix A");
+            string diagramResult = Ink.Explained("Drew on your screen.", diagramShapes), diagramFailed = Ink.Explained("Couldn't read any shapes to draw.", diagramShapes);
+            if (diagramResult != "Drew on your screen: vector v; matrix A." || !Hands.Diagrammed(diagramResult) || Hands.Pulled(diagramResult) != null || diagramFailed != "Couldn't read any shapes to draw." || Hands.Diagrammed(diagramFailed) || Hands.Diagrammed("Drew on your screen.")) throw new Exception("A diagram's result read wrong: " + diagramResult);
+            Func<string, string> diagramSays = delegate(string text) { return "{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "},\"done_reason\":\"stop\"}"; };
+            System.Collections.Generic.List<string> diagramAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener diagramServer = null;
+            string diagramOllama = Brain.Ollama;
+            try
+            {
+                Brain.Ollama = FakeServer(new[] { diagramSays("A vector is an arrow, and the matrix moves it. See how v lands on Av?") }, diagramAsked, out diagramServer);
+                Brain teacher = new Brain { Model = "teach-check" };
+                teacher.Act = delegate(string name, ToolArguments args) { return name == "draw" && args.Description != null ? diagramResult : "Wrong tool: " + name; };
+                string taught = teacher.Ask("Capri, can you make a diagram and help me understand linear algebra?");
+                if (taught != "A vector is an arrow, and the matrix moves it. See how v lands on Av?" || diagramAsked.Count != 1 || diagramAsked[0].IndexOf("Help them understand it", StringComparison.Ordinal) < 0 || diagramAsked[0].IndexOf("one short sentence", StringComparison.Ordinal) >= 0 || diagramAsked[0].IndexOf("vector v; matrix A", StringComparison.Ordinal) < 0) throw new Exception("Her reply didn't talk a diagram through: " + taught);
+            }
+            finally
+            {
+                Brain.Ollama = diagramOllama;
+                if (diagramServer != null) diagramServer.Stop();
+            }
+            checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, clear and bare draw need no brain, and a diagram in any wording is drawn and talked through");
             Rectangle[] inkLayout = { new Rectangle(-2560, 120, 2560, 1440), new Rectangle(0, 0, 1920, 1080) };
             Picture inkPicture = new Picture { Size = new Size(1120, 390), Area = Ink.Desktop(inkLayout), Jpeg = new byte[] { 1, 2, 3 } };
             ToolArguments inkClick = new ToolArguments { X = 25, Y = 50 };
