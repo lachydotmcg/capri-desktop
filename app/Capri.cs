@@ -1179,7 +1179,7 @@ namespace CapriDesktop
         private double outroAt;
         private bool dropAfter;
         private bool spawnFall;
-        private bool quitting;
+        private bool quitting, leavingForGood;
         private bool instant;
         private bool musicOn;
         private bool musicBusy;
@@ -4161,6 +4161,10 @@ namespace CapriDesktop
 
         private void GlitchOut(Action then, bool everywhere = true)
         {
+            // Once Quit has her leaving, nothing else takes over her way out. A hop, a move or hiding mid-leave used to replace
+            // the close, and Quit did nothing (Mika, 1 Nov: "QUITTING DOESNT WORK").
+            if (leavingForGood) return;
+            if (quitting) leavingForGood = true;
             if (instant || hidden || !IsHandleCreated || !preferences.Motion) { then(); return; }
             EndWalk();
             falling = false;
