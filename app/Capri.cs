@@ -1394,7 +1394,8 @@ namespace CapriDesktop
         private double outroAt;
         private bool dropAfter;
         private bool spawnFall;
-        private bool quitting, leavingForGood;
+        private bool quitting;
+        private Action quitClose;
         private Heartbeat heartbeat;
         // When her last job ended, for the line a freeze leaves in errors.txt (Mika, 1 Nov: she freezes "after doing a task").
         private int jobEndedAt = -1;
@@ -4382,10 +4383,9 @@ namespace CapriDesktop
 
         private void GlitchOut(Action then, bool everywhere = true)
         {
-            // Once Quit has her leaving, nothing else takes over her way out. A hop, a move or hiding mid-leave used to replace
-            // the close, and Quit did nothing (Mika, 1 Nov: "QUITTING DOESNT WORK").
-            if (leavingForGood) return;
-            if (quitting) leavingForGood = true;
+            // While Quit's way out is under way, nothing else takes it over. A hop, a move or hiding mid-leave used to replace the
+            // close, and Quit did nothing (Mika, 1 Nov: "QUITTING DOESNT WORK").
+            if (quitting && outro != null && outro == quitClose) return;
             if (instant || hidden || !IsHandleCreated || !preferences.Motion) { then(); return; }
             EndWalk();
             falling = false;
@@ -4401,7 +4401,7 @@ namespace CapriDesktop
             frames.Start();
         }
 
-        internal void Quit() { quitting = true; if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); GlitchOut(Close); }
+        internal void Quit() { quitting = true; if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); quitClose = Close; GlitchOut(quitClose); }
 
         private void StartHeartbeat()
         {
@@ -18932,12 +18932,15 @@ namespace CapriDesktop
                                 LetGo();
                                 for (int i = 0; i < 60 && falling; i++) Tumble(fallStep + 0.033);
                                 Quit();
+                                GlitchOut(delegate { }, false);
+                                bool quitKept = outro == quitClose;
                                 ShowHidden(false);
                                 bool quitHeld = outro != null && quitting;
                                 outro = null;
                                 quitting = false;
                                 instant = true;
                                 if (!quitHeld) throw new Exception("Showing her cancelled a quit.");
+                                if (!quitKept) throw new Exception("A hop while she glitched out replaced her quit.");
                                 seat = null;
                                 anchor = Seated(shelf.Left + 220, shelf.Top - 12);
                                 Play(arrive);
