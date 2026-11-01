@@ -866,6 +866,16 @@ namespace CapriDesktop
         // Her job is a live stream right now.
         internal static bool Streaming;
 
+        // Each minute of a stream: 40 seconds locked in on the game, then 20 with chat up close (Lachy, 1 Nov: "every minute 40 of those
+        // should be spent playing, 20 seconds can be chat"). Times are seconds into the job, and a long turn only moves chat along.
+        internal sealed class StreamMinute
+        {
+            internal const double Playing = 40, Chatting = 20;
+            private double next = Playing, until;
+            internal bool Due(double now) { if (now < next) return false; until = now + Chatting; next = now + Playing + Chatting; return true; }
+            internal bool Open(double now) { return now < until; }
+        }
+
         // On stream, asking her to play starts her stream job however it's worded.
         internal static bool Streams(string said) { return Regex.IsMatch(said ?? "", @"\b(play|playing|game|gaming|stream|streaming|streamer|live|chat|viewers|audience)\b", RegexOptions.IgnoreCase); }
 
