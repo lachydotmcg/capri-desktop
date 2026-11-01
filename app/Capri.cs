@@ -2059,6 +2059,8 @@ namespace CapriDesktop
             lastForeground = foreground;
             topTicks = 0;
             if (player.Visible) Native.SetWindowPos(player.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            // Her panel goes first so she stays above it. A game that's always on top covered it and left her sitting on nothing (Lachy, 1 Nov).
+            if (taskPanel.Visible) Native.SetWindowPos(taskPanel.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             foreach (Form above in new Form[] { pill, box, typer }) if (above.Visible) Native.SetWindowPos(above.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
         }
