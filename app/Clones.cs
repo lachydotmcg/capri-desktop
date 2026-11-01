@@ -84,7 +84,7 @@ namespace CapriDesktop
 
         private void Spawn(double x, double y, double now)
         {
-            CloneBody body = new CloneBody { X = x, Y = y, PrintX = x, PrintY = y, Born = now, Phase = random.NextDouble() * 4, RestUntil = now + GlitchIn, SplitAt = now + Between(14, 30) };
+            CloneBody body = new CloneBody { X = x, Y = y, PrintX = x, PrintY = y, Born = now, Phase = random.NextDouble() * 4, RestUntil = now + GlitchIn, SplitAt = now + Between(10, 20) };
             Wander(body);
             Bodies.Add(body);
         }
@@ -101,8 +101,8 @@ namespace CapriDesktop
                     for (int i = Bodies.Count - 1; i >= 0; i--)
                     {
                         if (now < Bodies[i].SplitAt) continue;
-                        Bodies[i].SplitAt = now + Between(14, 30);
-                        if (random.Next(3) > 0) Spawn(Bodies[i].X + Between(-70, 70), Bodies[i].Y + Between(-50, 50), now);
+                        Bodies[i].SplitAt = now + Between(10, 20);
+                        Spawn(Bodies[i].X + Between(-70, 70), Bodies[i].Y + Between(-50, 50), now);
                     }
             }
             foreach (CloneBody body in Bodies) Move(body, now, passed);
