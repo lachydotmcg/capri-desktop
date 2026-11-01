@@ -459,6 +459,7 @@ namespace CapriDesktop
             if (title.Length > 100) title = title.Substring(0, 100);
             string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Capri Clips");
             Directory.CreateDirectory(directory);
+            ClipMedia.Tidy(directory);
             string path = Path.Combine(directory, title + " " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss-fff") + " " + Guid.NewGuid().ToString("N").Substring(0, 6) + ".mp4");
             ClipResult result = Save(path, seconds).GetAwaiter().GetResult();
             saved = result.Problem == null;
@@ -599,6 +600,25 @@ namespace CapriDesktop
         private static readonly Guid Stride = new Guid("644b4e48-1e02-4516-b0eb-c01ca9d49ac6");
         private const int FirstVideo = unchecked((int)0xfffffffc);
         private const int FirstAudio = unchecked((int)0xfffffffd);
+
+        // A quit that stops waiting on a clip still saving leaves its half-written file. The next clip clears any that are over
+        // an hour old, so one saving right now stays.
+        internal static void Tidy(string directory)
+        {
+            try
+            {
+                foreach (string left in Directory.GetFiles(directory, ".capri-*.mp4"))
+                {
+                    string name = Path.GetFileName(left);
+                    if (!name.StartsWith(".capri-", StringComparison.OrdinalIgnoreCase) || !name.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)) continue;
+                    try { if (DateTime.UtcNow - File.GetLastWriteTimeUtc(left) > TimeSpan.FromHours(1)) File.Delete(left); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
 
         internal static ClipResult Save(ClipSave save)
         {

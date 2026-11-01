@@ -40,6 +40,7 @@ namespace CapriDesktop
             bool first;
             using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : bench ? ".Bench" : ""), out first))
             using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
+            using (EventWaitHandle shown = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\Capri.Shown." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
             {
                 if (!first)
                 {
@@ -49,9 +50,10 @@ namespace CapriDesktop
                         File.WriteAllText(Path.Combine(args[1], "failure.txt"), "Another smoke test holds Capri's test lock. This run did not start.");
                         return 1;
                     }
-                    Native.AllowSetForegroundWindow(-1); restore.Set();
-                    // A stuck Capri ends herself when she's opened again, and this launch takes her place.
-                    if (!Heartbeat.TakeOver(mutex)) return 0;
+                    Native.AllowSetForegroundWindow(-1); shown.Reset(); restore.Set();
+                    // A stuck Capri ends herself when she's opened again, and this launch takes her place. One that's fine shows
+                    // herself and sends this launch away, so quitting her straight after can't bring her back.
+                    if (!Heartbeat.TakeOver(mutex, shown)) return 0;
                     restore.Reset();
                 }
                 try
@@ -69,7 +71,7 @@ namespace CapriDesktop
                         StartedFresh = Starting(data);
                     }
                     else Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
-                    using (Companion app = new Companion(data, restore, smoke))
+                    using (Companion app = new Companion(data, restore, shown, smoke))
                     {
                         if (smoke) app.StartSmokeTest(data);
                         if (bench) app.StartBench(data);
@@ -187,9 +189,10 @@ namespace CapriDesktop
     // input helper lets go of any key or button she held. A minute's freeze starts her again, at most once every ten minutes.
     internal sealed class Heartbeat
     {
-        internal int LogAfter = 10000, EndAfter = 60000, CloseFor = 15000, ReopenAfter = 2000, Grace = 2000;
-        // How long a second launch waits for a stuck Capri to end, before it leaves her be.
-        internal const int Handover = 8000;
+        internal int LogAfter = 10000, EndAfter = 60000, CloseFor = 15000, ReopenAfter = 2000, Grace = 2000, SettleAfter = 15000;
+        // How long a second launch waits for a stuck Capri to end, before it leaves her be. Writing down where she's stuck
+        // can take her about 10 s, and a stalled Quit 15 s.
+        internal const int Handover = 20000;
         private const string Restarted = "CAPRI_RESTARTED";
         private readonly Control window;
         private readonly EventWaitHandle reopened;
@@ -276,7 +279,9 @@ namespace CapriDesktop
                     string what = doing == null ? "" : doing();
                     Noted("Her window stopped answering for " + stuck / 1000 + " s" + (what.Length == 0 ? "." : ", " + what + ".") + Where());
                 }
-                if (stuck >= ReopenAfter && Reopened())
+                // A start is left be: a window that never answered, or is in its first 15 s, is still starting, and ending it
+                // then would count as a start that never finished (two in a row move settings.json aside).
+                if (stuck >= ReopenAfter && Volatile.Read(ref answered) > 0 && now >= SettleAfter && Reopened())
                 {
                     // Opened again while stuck. A window that answers after all gets it back to show herself as usual.
                     Stopwatch grace = Stopwatch.StartNew();
@@ -310,6 +315,8 @@ namespace CapriDesktop
             Action<string> note = Note;
             Thread writer = new Thread(delegate() { note(line); });
             writer.IsBackground = true;
+            // Level with the heartbeat, so a game on every core can't hold it up while she's lowered.
+            writer.Priority = ThreadPriority.Highest;
             writer.Start();
             writer.Join(2000);
         }
@@ -340,6 +347,7 @@ namespace CapriDesktop
 #pragma warning restore 618
             });
             reader.IsBackground = true;
+            reader.Priority = ThreadPriority.Highest;
             reader.Start();
             if (!reader.Join(3000) || trace == null) return "";
             // The two frames on top say what it waits on, and her own code under them says what asked.
@@ -370,6 +378,9 @@ namespace CapriDesktop
             HerCursor.Off();
             if (again)
             {
+                // Over a game she runs below normal, and a copy started from her would start there too and stay there.
+                try { using (Process own = Process.GetCurrentProcess()) own.PriorityClass = ProcessPriorityClass.Normal; }
+                catch (Exception) { }
                 try
                 {
                     System.Collections.Generic.List<string> passed = new System.Collections.Generic.List<string>();
@@ -384,11 +395,11 @@ namespace CapriDesktop
             Process.GetCurrentProcess().Kill();
         }
 
-        // A second launch waits here for a stuck Capri to end herself, then takes her place. One that's fine keeps going, and
-        // this launch leaves her be.
-        internal static bool TakeOver(Mutex held)
+        // A second launch waits here for a stuck Capri to end herself, then takes her place. One that's fine shows herself and
+        // says so, and this launch leaves her be. Shown comes first, so it wins over a Quit that lands at the same moment.
+        internal static bool TakeOver(Mutex held, WaitHandle shown)
         {
-            try { return held.WaitOne(Handover); }
+            try { return WaitHandle.WaitAny(new WaitHandle[] { shown, held }, Handover) == 1; }
             catch (AbandonedMutexException) { return true; }
         }
     }
@@ -1273,7 +1284,7 @@ namespace CapriDesktop
         private double lagAt = -LagGap, lagSaid = -LagGap;
         private readonly System.Windows.Forms.Timer frames;
         private readonly System.Windows.Forms.Timer signals;
-        private readonly EventWaitHandle restore;
+        private readonly EventWaitHandle restore, shown;
         private readonly string settingsPath;
         private readonly bool testing;
         private readonly Stopwatch clock = Stopwatch.StartNew();
@@ -1673,7 +1684,7 @@ namespace CapriDesktop
         internal bool TestFinished;
         internal string TestStep = "startup";
 
-        internal Companion(string data, EventWaitHandle signal, bool smoke)
+        internal Companion(string data, EventWaitHandle signal, EventWaitHandle shownSignal, bool smoke)
         {
             groove = new Groove(delegate { return clock.Elapsed.TotalSeconds; });
             dance = new Clip(idle);
@@ -1685,6 +1696,7 @@ namespace CapriDesktop
             effects = new Speaker(smoke) { Plain = true };
             typist = new Speaker(smoke) { Plain = true };
             restore = signal;
+            shown = shownSignal;
             settingsPath = Path.Combine(data, "settings.json");
             HerCursor.Marker = Path.Combine(data, "her-cursor.on");
             // Smoke tests never touch the real Windows cursor.
@@ -1938,7 +1950,8 @@ namespace CapriDesktop
                 if (!testing) CheckForeground(signalNow);
                 if (!testing) CheckExplore(signalNow);
                 if (preferences.ExploreAway) signalIdle = awayInput.Quiet();
-                if (restore.WaitOne(0)) { RestoreAtCursor(); mainframe.Restore(); }
+                // Showing herself sends the new launch away. While she's quitting it waits, and takes her place once she's gone.
+                if (restore.WaitOne(0)) { RestoreAtCursor(); mainframe.Restore(); if (!quitting) shown.Set(); }
                 if (startMarker != null && clock.Elapsed.TotalSeconds >= 15) Settled();
                 CheckVoiceReady();
                 if (!testing) CheckFollowUp(signalNow);
@@ -2077,7 +2090,8 @@ namespace CapriDesktop
             base.OnFormClosing(e);
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && e.CloseReason != CloseReason.WindowsShutDown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
-            if (!e.Cancel) { quitting = true; if (heartbeat != null) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); }
+            // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock.
+            if (!e.Cancel) { quitting = true; if (heartbeat != null && e.CloseReason != CloseReason.WindowsShutDown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); }
         }
 
         private void Tick()
@@ -13647,7 +13661,7 @@ namespace CapriDesktop
                 if (beatStuck.IndexOf("SmokeHeartbeat", StringComparison.Ordinal) < 0) throw new Exception("A stuck window's line didn't say where it was stuck: " + beatStuck);
 
                 beatNotes.Clear();
-                Heartbeat reopenBeat = new Heartbeat(this, beatOpened) { ReopenAfter = 300, Grace = 500 };
+                Heartbeat reopenBeat = new Heartbeat(this, beatOpened) { ReopenAfter = 300, Grace = 500, SettleAfter = 0 };
                 reopenBeat.Note = stuckBeat.Note;
                 reopenBeat.End = stuckBeat.End;
                 reopenBeat.Start();
@@ -13669,6 +13683,24 @@ namespace CapriDesktop
                 while (beatWarm.ElapsedMilliseconds < 1500) { Application.DoEvents(); Thread.Sleep(10); }
                 fineBeat.Halt();
                 if (beatEnds.Count != 0 || !beatOpened.WaitOne(0)) throw new Exception("Opening her again while she was fine ended her or ate the signal to show herself.");
+
+                // A start is left be: a window that never answered, and one in its first 15 s. The signal stays for her to show herself.
+                Heartbeat startingBeat = new Heartbeat(this, beatOpened) { ReopenAfter = 300, Grace = 500, SettleAfter = 0 };
+                startingBeat.Note = stuckBeat.Note;
+                startingBeat.End = stuckBeat.End;
+                startingBeat.Start();
+                beatOpened.Set();
+                Thread.Sleep(1500);
+                startingBeat.Halt();
+                Heartbeat settlingBeat = new Heartbeat(this, beatOpened) { ReopenAfter = 300, Grace = 500 };
+                settlingBeat.Note = stuckBeat.Note;
+                settlingBeat.End = stuckBeat.End;
+                settlingBeat.Start();
+                beatWarm.Restart();
+                while (beatWarm.ElapsedMilliseconds < 600) { Application.DoEvents(); Thread.Sleep(10); }
+                Thread.Sleep(1500);
+                settlingBeat.Halt();
+                if (beatEnds.Count != 0 || !beatOpened.WaitOne(0)) throw new Exception("Opening her again while she was still starting ended her or ate the signal to show herself.");
 
                 Heartbeat longBeat = new Heartbeat(this, beatOpened) { EndAfter = 800 };
                 longBeat.Note = stuckBeat.Note;
@@ -13693,7 +13725,29 @@ namespace CapriDesktop
                 lock (beatEnds) quitEnded = beatEnds.Count == 1 && !beatEnds[0];
                 if (!quitEnded) throw new Exception("A Quit that stalled didn't end her.");
             }
-            checks.Add("PASS a stuck window: 10 s stuck goes in errors.txt with what she was doing and where her code is stuck, and the line after says when it answered; stuck and opened again, she ends herself for the new one, and fine she shows herself as usual; a minute stuck ends her and starts her again; Quit that stalls ends her");
+
+            // A second launch leaves once she's shown herself, and takes her place once she's gone without letting go.
+            using (Mutex takeHeld = new Mutex(false))
+            using (EventWaitHandle takeShown = new EventWaitHandle(false, EventResetMode.ManualReset))
+            using (ManualResetEvent takeOwned = new ManualResetEvent(false))
+            using (ManualResetEvent takeGone = new ManualResetEvent(false))
+            {
+                Thread takeHolder = new Thread(delegate() { takeHeld.WaitOne(); takeOwned.Set(); takeGone.WaitOne(); }) { IsBackground = true };
+                takeHolder.Start();
+                takeOwned.WaitOne(2000);
+                Thread takeShower = new Thread(delegate() { Thread.Sleep(200); takeShown.Set(); }) { IsBackground = true };
+                takeShower.Start();
+                Stopwatch takeTime = Stopwatch.StartNew();
+                bool takeLeft = !Heartbeat.TakeOver(takeHeld, takeShown);
+                long takeLeftMs = takeTime.ElapsedMilliseconds;
+                takeShown.Reset();
+                takeGone.Set();
+                takeHolder.Join(2000);
+                bool takeTook = Heartbeat.TakeOver(takeHeld, takeShown);
+                if (takeTook) takeHeld.ReleaseMutex();
+                if (!takeLeft || takeLeftMs > 3000 || !takeTook) throw new Exception("A second launch didn't leave once she showed herself, or didn't take her place once she was gone: left " + takeLeft + " after " + takeLeftMs + " ms, took over " + takeTook + ".");
+            }
+            checks.Add("PASS a stuck window: 10 s stuck goes in errors.txt with what she was doing and where her code is stuck, and the line after says when it answered; stuck and opened again, she ends herself for the new one, never while she's still starting, and fine she shows herself and sends the new one away; a minute stuck ends her and starts her again; Quit that stalls ends her");
         }
 
         // Her hands wait while her menu is open, so Quit can be clicked mid-job, and her UI thread never waits on it.
@@ -13789,6 +13843,24 @@ namespace CapriDesktop
                 if (focusClips.Frames != 0 || focusClips.Bytes != 0) throw new Exception("Clips kept history after being switched off.");
             }
             checks.Add("PASS clips retain frames and sound across focus and title changes, and clear them for another game or the off switch");
+            // A half-written clip a quit left behind goes once it's an hour old; one still saving and her saved clips stay.
+            string tidyFolder = Path.Combine(Path.GetTempPath(), "Capri-tidy-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                Directory.CreateDirectory(tidyFolder);
+                string tidyOld = Path.Combine(tidyFolder, ".capri-" + Guid.NewGuid().ToString("N") + ".mp4");
+                string tidyNew = Path.Combine(tidyFolder, ".capri-" + Guid.NewGuid().ToString("N") + ".mp4");
+                string tidyClip = Path.Combine(tidyFolder, "Game 2026-11-01 23-00-00-000 abc123.mp4");
+                foreach (string tidyFile in new[] { tidyOld, tidyNew, tidyClip }) File.WriteAllBytes(tidyFile, new byte[16]);
+                File.SetLastWriteTimeUtc(tidyOld, DateTime.UtcNow.AddHours(-2));
+                File.SetLastWriteTimeUtc(tidyClip, DateTime.UtcNow.AddHours(-2));
+                ClipMedia.Tidy(tidyFolder);
+                if (File.Exists(tidyOld) || !File.Exists(tidyNew) || !File.Exists(tidyClip)) throw new Exception("Tidying her clips folder didn't clear only an old half-written clip.");
+                checks.Add("PASS a half-written clip a quit left behind is cleared once it's an hour old, and a clip still saving and her saved clips stay");
+            }
+            catch (UnauthorizedAccessException) { checks.Add("LIMIT clip tidy check: temporary storage is not writable"); }
+            catch (IOException) { checks.Add("LIMIT clip tidy check: temporary storage is unavailable"); }
+            finally { try { Directory.Delete(tidyFolder, true); } catch (Exception) { } }
             try
             {
                 using (ManualResetEvent savingStarted = new ManualResetEvent(false))
