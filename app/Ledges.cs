@@ -183,6 +183,16 @@ namespace CapriDesktop
             SetWindowPlacement(window, ref placement);
         }
 
+        // Where Windows will put a minimised window back when it's restored.
+        internal static bool RestoreSpot(IntPtr window, out Point spot)
+        {
+            Placement placement = new Placement();
+            placement.Length = Marshal.SizeOf(typeof(Placement));
+            bool found = GetWindowPlacement(window, ref placement);
+            spot = found ? new Point(placement.Left, placement.Top) : Point.Empty;
+            return found;
+        }
+
         // Dots per inch on the window's screen, 96 at 100%.
         internal static int Dpi(IntPtr window)
         {

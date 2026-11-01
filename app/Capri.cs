@@ -11331,8 +11331,10 @@ namespace CapriDesktop
             using (Process haulSelf = Process.GetCurrentProcess()) haulOwn = haulSelf.Id;
             for (int haulRound = 0; haulRound < 2; haulRound++)
             {
-                // The second time it's minimised before they're put away, and comes back where it was when it's restored.
+                // The second time it's minimised before they're put away, and Windows is told to restore it where it was. (A
+                // WinForms window like this one puts itself back where it was minimised, so the check reads what Windows was told.)
                 bool haulFolded = haulRound == 1;
+                Point haulLast = Point.Empty, haulSpotBefore = Point.Empty, haulSpotAfter = Point.Empty;
                 using (Form haulTarget = new Form())
                 {
                     Rectangle haulScreen = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
@@ -11369,12 +11371,24 @@ namespace CapriDesktop
                             haulShown.Advance(haulNow + haulTick * 0.1);
                             haulMoved = Math.Abs(haulTarget.Left - haulHome.X) + Math.Abs(haulTarget.Top - haulHome.Y);
                         }
-                        if (haulFolded) { haulTarget.WindowState = FormWindowState.Minimized; Application.DoEvents(); }
+                        if (haulFolded)
+                        {
+                            haulLast = haulTarget.Location;
+                            haulTarget.WindowState = FormWindowState.Minimized;
+                            Application.DoEvents();
+                            Ledges.RestoreSpot(haulTarget.Handle, out haulSpotBefore);
+                        }
                     }
                     finally { Computer.GameOpen = haulGameWas; ClonesOff(); }
-                    if (haulFolded) { haulTarget.WindowState = FormWindowState.Normal; Application.DoEvents(); }
                     Point haulAfter = haulTarget.Location;
-                    if (haulOverGame != null || !haulListed || !haulOwnSkipped || haulMoved < 120 || haulAfter != haulHome) throw new Exception("Her clones didn't grab a window and put it back" + (haulFolded ? " after it was minimised" : "") + ": over a game " + (haulOverGame != null) + ", listed " + haulListed + ", own skipped " + haulOwnSkipped + ", moved " + haulMoved + " px, back at " + haulAfter + " from " + haulHome);
+                    bool haulBack = haulAfter == haulHome;
+                    if (haulFolded)
+                    {
+                        Ledges.RestoreSpot(haulTarget.Handle, out haulSpotAfter);
+                        haulBack = haulSpotAfter.X - haulSpotBefore.X == haulHome.X - haulLast.X && haulSpotAfter.Y - haulSpotBefore.Y == haulHome.Y - haulLast.Y;
+                        haulAfter = new Point(haulLast.X + haulSpotAfter.X - haulSpotBefore.X, haulLast.Y + haulSpotAfter.Y - haulSpotBefore.Y);
+                    }
+                    if (haulOverGame != null || !haulListed || !haulOwnSkipped || haulMoved < 120 || !haulBack) throw new Exception("Her clones didn't grab a window and put it back" + (haulFolded ? " after it was minimised" : "") + ": over a game " + (haulOverGame != null) + ", listed " + haulListed + ", own skipped " + haulOwnSkipped + ", moved " + haulMoved + " px, back at " + haulAfter + " from " + haulHome);
                 }
             }
             checks.Add("PASS clones grab windows: one runs to a window's title bar, says a line and drags it across her screen with its top kept on screen and clear of the taskbar, lets go when the mouse goes down, skips her own windows and every window while a game is open, and putting them away puts the window back, even one minimised since");
