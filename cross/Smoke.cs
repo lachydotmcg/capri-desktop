@@ -1439,6 +1439,14 @@ namespace CapriDesktop
             fakeVoice.Stop();
             Voice.Host = hostWas;
             fail("ElevenLabs still asks with its own key", Voice.Seconds(elevenSaid) > 0.99 && elevenAsked.StartsWith("POST /v1/text-to-speech/v1?output_format=wav_24000 good-key-1234 {\"text\":\"Hey chewm.\",\"model_id\":\"eleven_v4_turbo\"}", StringComparison.Ordinal));
+            Settings older;
+            using (MemoryStream saved = new MemoryStream(Encoding.UTF8.GetBytes("{\"VoiceId\":\"v9\",\"Model\":\"qwen3:4b\"}")))
+                older = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(saved);
+            Pet.NewSettings newer = Pet.Newest(new Settings { VoiceProvider = Speakers.Local, LocalVoiceUrl = "localhost:8880", LocalVoiceName = "af_heart", BrainServer = "http://localhost:8080", ServerModel = "qwen" });
+            Settings back078 = Pet.Kept(older, newer);
+            Settings kept078 = Pet.Kept(new Settings { VoiceProvider = Speakers.ElevenLabs }, newer);
+            fail("settings survive a trip through 0.7.6 or 0.7.7", back078.VoiceProvider == Speakers.Local && back078.LocalVoiceUrl == "localhost:8880" && back078.LocalVoiceName == "af_heart" && back078.BrainServer == "http://localhost:8080" && back078.ServerModel == "qwen" && back078.Model == "qwen3:4b" && back078.VoiceId == "v9"
+                && kept078.VoiceProvider == Speakers.ElevenLabs && kept078.LocalVoiceUrl == null && Pet.Kept(older, null) == older);
             pet.SetVoiceProvider(Speakers.Local);
             fail("an unset address is Kokoro's usual one", pet.Speaks && pet.VoiceStatus == "local localhost:8880 | server's voice | speaking" && pet.VoiceMenu == "Provider: Local server | - | *Speak replies | - | Server: " + LocalSpeaker.Default + " (Kokoro's usual)... | Model: server's default... | Voice: server's default... | Format: WAV | - | Test voice");
             fail("a bad address isn't kept", !pet.SetLocalVoice("url", "ftp://nope") && pet.VoiceStatus.StartsWith("local localhost:8880", StringComparison.Ordinal));
@@ -1531,7 +1539,7 @@ namespace CapriDesktop
             pet.SetLocalVoice("model", "");
             pet.SetLocalVoice("voice", "");
             if (wrong.Count > 0) throw new Exception("Local voice went wrong: " + string.Join(", ", wrong) + " / " + json + " / " + mp3 + " / " + broken + " / " + missing + " / " + empty + " / " + slow + " (" + waited.ElapsedMilliseconds + " ms) / " + down + " / " + pet.VoiceStatus + " / " + asked);
-            checks.Add("PASS local voice: Settings > Voice > Provider picks ElevenLabs, a local server or Off, apart from Use ElevenLabs and Speak replies; settings from before it stay ElevenLabs and the local server's address, model, voice and format save and load; an unset address means Kokoro's usual localhost:8880; she asks POST /v1/audio/speech with no key, reads its 16-bit, float, stereo, streamed WAV or raw pcm into the 16-bit mono her style and speakers take, and says plainly when it sends words, MP3, nothing, HTTP 404 or 500, takes too long or is down");
+            checks.Add("PASS local voice: Settings > Voice > Provider picks ElevenLabs, a local server or Off, apart from Use ElevenLabs and Speak replies; settings from before it stay ElevenLabs, a trip through 0.7.6 or 0.7.7 keeps them in cross-new.json, and the local server's address, model, voice and format save and load; an unset address means Kokoro's usual localhost:8880; she asks POST /v1/audio/speech with no key, reads its 16-bit, float, stereo, streamed WAV or raw pcm into the 16-bit mono her style and speakers take, and says plainly when it sends words, MP3, nothing, HTTP 404 or 500, takes too long or is down");
         }
 
         // Her own brain server, like llama-server, LM Studio or vLLM: its address as typed, its /v1/models, a chat through
@@ -1700,12 +1708,37 @@ namespace CapriDesktop
             fail("a job run", result == "Did it. Sent it." && string.Join(" | ", done.ToArray()) == "click 640,360 | type hola qué tal | key enter | fly" && replied == 5
                 && last.IndexOf("image_url", StringComparison.Ordinal) > 0 && last.IndexOf("1280 x 720", StringComparison.Ordinal) > 0 && last.IndexOf("send hola qu", StringComparison.Ordinal) > 0
                 && last.IndexOf("4. fly", StringComparison.Ordinal) > 0 && last.IndexOf("\\\"model\\\"", StringComparison.Ordinal) < 0 && last.IndexOf("eyes-test", StringComparison.Ordinal) > 0);
+            // Her own pointer, like Windows': it glides on a human path to the target while their mouse stays put, and parks
+            // when the job ends.
+            List<double[]> path = Chores.Path(0.1, 0.9, 0.8, 0.2, 7);
+            double[] end = path[path.Count - 1];
+            fail("her pointer's path", path.Count >= 9 && path.Count <= 61 && end[0] == 0.8 && end[1] == 0.2 && Chores.Path(0.5, 0.5, 0.5, 0.5, 1).Count == 1);
+            List<double[]> glided = new List<double[]>();
+            int parked = 0;
+            Action<double, double> trackWas = Chores.Track;
+            Action parkedWas = Chores.Parked;
+            Func<double[]> mouseWas = Chores.Mouse;
+            Chores.Track = delegate(double x, double y) { glided.Add(new[] { x, y }); };
+            Chores.Parked = delegate { parked++; };
+            Chores.Mouse = delegate { return new[] { 0.25, 0.25 }; };
+            try
+            {
+                Chores.Glide(0.75, 0.6);
+                Chores.Run(new Brain { Server = "http://127.0.0.1:9", Model = "nobody" }, "anything", null);
+            }
+            finally
+            {
+                Chores.Track = trackWas;
+                Chores.Parked = parkedWas;
+                Chores.Mouse = mouseWas;
+            }
+            fail("her pointer glides and parks", glided.Count >= 8 && glided[glided.Count - 1][0] == 0.75 && glided[glided.Count - 1][1] == 0.6 && Math.Abs(glided[0][0] - 0.25) < 0.2 && parked == 1);
             Security.Pick(Security.Blackwall);
             string blackwall = Chores.Allowed;
             Security.Pick(Security.Trusted);
             fail("rules follow SECURITY", Chores.Allowed == Chores.Rules && blackwall.IndexOf("Type passwords", StringComparison.Ordinal) > 0 && blackwall.IndexOf("Never", StringComparison.Ordinal) < 0);
             if (wrong.Count > 0) throw new Exception("Her mouse and keyboard jobs went wrong: " + string.Join(", ", wrong) + " / " + result + " / " + string.Join(" | ", done.ToArray()) + " / " + replied);
-            checks.Add("PASS mouse and keyboard jobs: on Linux use_computer sends her brain the screenshot and the steps so far, takes one JSON step back even wrapped in words, clicks, types and presses keys through her own uinput mouse and keyboard until the brain says done, and never types a card number");
+            checks.Add("PASS mouse and keyboard jobs: on Linux use_computer sends her brain the screenshot and the steps so far, takes one JSON step back even wrapped in words, clicks, types and presses keys through her own uinput mouse and keyboard until the brain says done, and never types a card number; her own pointer, her artist's cursor with electricity like Windows', glides on a human path to each target while their mouse stays put, borrowing it only for the click, and parks when the job ends");
         }
 
         private void ServeSpeech(NetworkStream stream)
