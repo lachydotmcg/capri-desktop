@@ -6,6 +6,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCompany("Capri fan project")]
 [assembly: AssemblyProduct("Capri")]
 [assembly: AssemblyCopyright("Copyright 2026 Lachy")]
-[assembly: AssemblyVersion("0.7.8")]
-[assembly: AssemblyFileVersion("0.7.8")]
+[assembly: AssemblyVersion("0.7.9")]
+[assembly: AssemblyFileVersion("0.7.9")]
 [assembly: ComVisible(false)]
