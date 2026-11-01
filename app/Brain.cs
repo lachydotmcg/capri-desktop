@@ -304,7 +304,9 @@ namespace CapriDesktop
         internal static string KindOf(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
-            if (key.StartsWith("AIza", StringComparison.Ordinal)) return "google";
+            if (key.StartsWith("AIza", StringComparison.Ordinal) ||
+				key.StartsWith("AQ.", StringComparison.Ordinal))
+				return "google";
             if (key.StartsWith("sk-or-", StringComparison.Ordinal)) return "openrouter";
             if (key.StartsWith("sk-nous-", StringComparison.Ordinal)) return null;
             if (key.StartsWith("sk-ant-", StringComparison.Ordinal)) return "anthropic";
@@ -1330,6 +1332,7 @@ namespace CapriDesktop
             List<CloudModel> found = new List<CloudModel>();
             foreach (CloudModel model in page.Models)
             {
+				if (kind == "google" && model != null && model.Id != null && model.Id.StartsWith("models/", StringComparison.Ordinal)) model.Id = model.Id.Substring(7);
                 if (model == null || string.IsNullOrWhiteSpace(model.Id) || !Chats(kind, model.Id) || found.Exists(knownModel => knownModel.Id == model.Id)) continue;
                 if (kind == "nvidia" && Array.IndexOf(NvidiaDead, model.Id) >= 0) continue;
                 if (kind == "openrouter" && model.Architecture != null && model.Architecture.Input != null && Array.IndexOf(model.Architecture.Input, "text") < 0) continue;
@@ -3016,7 +3019,7 @@ namespace CapriDesktop
 
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza)[A-Za-z0-9_-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|AQ\.)[A-Za-z0-9._-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
             return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token)[""']?\s*[:=]\s*[""']?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
         }
 
