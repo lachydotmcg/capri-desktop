@@ -11364,7 +11364,9 @@ namespace CapriDesktop
                             Rectangle haulFrame;
                             return Ledges.Haulable(haulTarget.Handle, out haulFrame) ? new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>> { new System.Collections.Generic.KeyValuePair<IntPtr, Rectangle>(haulTarget.Handle, haulFrame) } : null;
                         };
-                        double haulNow = clock.Elapsed.TotalSeconds + 1;
+                        // Their time here runs from 7 s ago, so when her own ticks carry on in real time while the window is
+                        // minimised, time only moves forward for them, as it always does outside the test.
+                        double haulNow = clock.Elapsed.TotalSeconds - 7;
                         for (int haulTick = 0; haulTick < 60 && haulMoved < 120; haulTick++)
                         {
                             if (haulShown.Swarm.Hauls.Count == 0) haulShown.Swarm.HaulAt = 0;
