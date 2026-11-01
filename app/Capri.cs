@@ -6522,7 +6522,13 @@ namespace CapriDesktop
 
         private string RunJob(string task, string asked)
         {
-            if (!Computer.Streaming) return Work(new Job(task, asked));
+            if (Hands.StreamAsked(task) || Hands.StreamAsked(asked)) Computer.Streaming = true;
+            if (!Computer.Streaming)
+            {
+                Job plain = new Job(task, asked);
+                string finished = Work(plain);
+                if (!Computer.Streaming || plain.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return finished; }
+            }
             // On stream only their Esc ends it (Lachy, 30 Oct: "play for hours ... while im asleep"). Anything else that stops
             // her, like a brain error or a run of turns without a move, starts the stream again after a breather, a longer one
             // each time it breaks again within two minutes, up to eight minutes.
@@ -9305,6 +9311,8 @@ namespace CapriDesktop
                 // "Play Minecraft" alone only opens it; said with Gaming Mode it means her hands on the game.
                 text = afterGaming.StartsWith("play ", StringComparison.OrdinalIgnoreCase) ? afterGaming.TrimEnd('.', '!', ' ') + " yourself" : afterGaming;
             }
+            // Asked for partway through a job or further into a long message than her brain reads, it still counts.
+            if (Hands.StreamAsked(text)) Computer.Streaming = true;
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
             if (text.Length > 240 && planned.Key == null && !fileMessage) text = text.Substring(0, 240);
@@ -15750,10 +15758,18 @@ namespace CapriDesktop
                 // On by default, so her key's first press turns it off, and that holds until the next.
                 if (Hands.AfterGaming("Capri, activate gaming mode and play Minecraft") != "play Minecraft" || Hands.AfterGaming("Hey Capri, enter gaming mode and craft me a pickaxe") != "craft me a pickaxe" || Hands.AfterGaming("don't enter gaming mode and play Minecraft") != null || Hands.AfterGaming("activate gaming mode") != null) throw new Exception("Gaming Mode with a job after it was read wrong.");
                 if (Computer.StreamNote.IndexOf("in the same turn as your next moves", StringComparison.Ordinal) < 0 || !Hands.Streams("Hey Capri, play Minecraft with streamer mode and talk to chat") || Hands.Streams("what's the time") || !Hands.ChatPanel().IsEmpty && Hands.ChatPanel().Width < 200) throw new Exception("Her stream note or chat panel was wrong.");
-                if (!Hands.StreamAsked("Hey Capri, play Minecraft with streamer mode and talk to chat") || !Hands.StreamAsked("Capri, use streaming mode and play minecraft while talking to chat") || !Hands.StreamAsked("play minecraft on my stream") || Hands.StreamAsked("play minecraft") || Hands.StreamAsked("how does streamer mode work") || Hands.StreamAsked("turn off streaming mode")) throw new Exception("A stream asked for in words was read wrong.");
+                if (!Hands.StreamAsked("Hey Capri, play Minecraft with streamer mode and talk to chat") || !Hands.StreamAsked("Capri, use streaming mode and play minecraft while talking to chat") || !Hands.StreamAsked("play minecraft on my stream") || !Hands.StreamAsked("Enter Gaming Mode and use Computer Use to play Bloons TD 6. I'm also live streaming so occasionally talk to chat for me") || !Hands.StreamAsked("play terraria, I'm live") || !Hands.StreamAsked("don't stop playing and talk to chat") || !Hands.StreamAsked("can you read my tiktok chat") || Hands.StreamAsked("I'm streaming tonight") || Hands.StreamAsked("don't talk to chat") || Hands.StreamAsked("stop talking to chat") || Hands.StreamAsked("is streaming mode on") || Hands.StreamAsked("play minecraft") || Hands.StreamAsked("how does streamer mode work") || Hands.StreamAsked("turn off streaming mode")) throw new Exception("A stream asked for in words was read wrong.");
                 Computer.Streaming = true;
                 bool quietDropped = Computer.PlayingNow.IndexOf("keep playing quietly", StringComparison.Ordinal) < 0;
+                System.Collections.Generic.List<string> streamTalk = new System.Collections.Generic.List<string>();
+                Job streamJob = new Job("play Terraria") { Says = streamTalk.Add };
+                streamJob.Spoken(" Hi Milo, thanks for the follow! ");
+                streamJob.Spoken("And right after it, another line for chat.");
+                bool streamHeard = streamTalk.Count == 2 && streamTalk[0] == "Hi Milo, thanks for the follow!";
+                bool streamTold = streamJob.Prompted(Computer.Sees).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 && streamJob.Prompted(Computer.Prompt).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 && streamJob.Prompted(Computer.Seeing).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0;
+                bool streamChat = streamJob.ChatWords().IndexOf("out loud with say", StringComparison.Ordinal) >= 0 && streamJob.ChatWords().Length == 0;
                 Computer.Streaming = false;
+                if (!streamHeard || !streamTold || !streamChat || streamJob.Prompted(Computer.Sees).IndexOf(Computer.StreamNote, StringComparison.Ordinal) >= 0 || streamJob.ChatWords().Length != 0) throw new Exception("Her stream didn't reach every brain the same way.");
                 if (!quietDropped || Computer.PlayingNow.IndexOf("keep playing quietly", StringComparison.Ordinal) < 0) throw new Exception("Her stream kept the game prompt's keep playing quietly, or a normal game lost it.");
                 preferences.NoGaming = false;
                 ToggleGaming();

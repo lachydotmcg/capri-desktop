@@ -849,14 +849,25 @@ namespace CapriDesktop
             return found;
         }
 
-        // "Play Minecraft with streamer mode and talk to chat": a stream asked for in words, whatever build she started on.
-        internal static bool StreamAsked(string said) { return Regex.IsMatch(said ?? "", @"\b(stream(?:er|ing)? mode|talk(?:ing)? to (?:the |my )?(?:chat|viewers)|(?:reply|replying|respond|responding|answer|answering) (?:to )?(?:the |my )?(?:chat|viewers)|(?:play|playing)\b.*\b(?:on|for) (?:the |my )?stream)\b", RegexOptions.IgnoreCase) && !Regex.IsMatch(said ?? "", @"\b(?:don'?t|do not|stop|end|turn off|never|how|why|what)\b", RegexOptions.IgnoreCase); }
+        // A stream asked for in words, on any game and whatever build she started on: "streamer mode", "talk to chat", or saying they're
+        // live with something to play, so "I'm streaming tonight" can still just come up in conversation (Lachy, 1 Nov).
+        private static readonly Regex StreamMode = new Regex(@"\b(?:stream(?:er|ing)? mode|(?:(?:talk|talking|chat|chatting|speak|speaking|interact|interacting|engage|engaging)(?: back)? (?:to|with)|(?:read|reading|reply|replying|respond|responding|answer|answering)(?: to)?) (?:(?:people|everyone|anyone) (?:in|on) )?(?:(?:the|my|your) )?(?:(?:stream|tiktok|twitch|youtube|kick|live) )?(?:chat|viewers|audience))\b", RegexOptions.IgnoreCase);
+        private static readonly Regex StreamLive = new Regex(@"\b(?:(?:i'?m|i am|we'?re|we are)\b.{0,20}\b(?:live|streaming)|live[ -]?stream\w*|(?:on|for) (?:(?:the|my|your) )?(?:stream|viewers|chat|live))\b", RegexOptions.IgnoreCase);
+        private static readonly Regex StreamGame = new Regex(@"\b(?:play|playing|game|gaming|speedrun)\b", RegexOptions.IgnoreCase);
+        // Asking about it, or asking her to stop. "Don't stop talking to chat" still asks for it.
+        private static readonly Regex StreamNot = new Regex(@"^\W*(?:how|why|what|what'?s|whats|when|where|who|does|did|is|are|do you)\b|\b(?:how|what|why|where|when)\b[^.!?,]*\bstream(?:er|ing)? mode\b|(?<!\b(?:don'?t|do not|never) )\b(?:stop|stopping|end|ending|quit|exit|leave|disable|cancel|turn off|switch off)\s+(?:\w+\s+){0,2}?(?:stream|streaming|streamer|live|chat|viewers)\b|\b(?:turn|switch)\s+(?:\w+\s+){1,3}off\b|\b(?:don'?t|do not|never|no need to|not)\s+(?!stop\b|quit\b)(?:\w+\s+)?(?:talk|talking|reply|replying|respond|responding|answer|answering|speak|speaking|chat|chatting|read|reading|stream|streaming|streamer|live)\b", RegexOptions.IgnoreCase);
+
+        internal static bool StreamAsked(string said)
+        {
+            string words = Asked(said);
+            return (StreamMode.IsMatch(words) || (StreamLive.IsMatch(words) && StreamGame.IsMatch(words))) && !StreamNot.IsMatch(words);
+        }
 
         // Her job is a live stream right now.
         internal static bool Streaming;
 
         // On stream, asking her to play starts her stream job however it's worded.
-        internal static bool Streams(string said) { return Regex.IsMatch(said ?? "", @"\b(play|playing|game|gaming|minecraft|stream|streaming|streamer|live|chat)\b", RegexOptions.IgnoreCase); }
+        internal static bool Streams(string said) { return Regex.IsMatch(said ?? "", @"\b(play|playing|game|gaming|stream|streaming|streamer|live|chat|viewers|audience)\b", RegexOptions.IgnoreCase); }
 
         internal static string Do(string tool, ToolArguments args)
         {

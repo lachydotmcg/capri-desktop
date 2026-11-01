@@ -2278,6 +2278,14 @@ namespace CapriDesktop
             say(line);
         }
 
+        // Her say move. On stream every line goes out as it is, to chat, on any brain.
+        internal void Spoken(string words)
+        {
+            Action<string> says = Says;
+            if (!Computer.Streaming) Narrate(words);
+            else if (says != null && !string.IsNullOrWhiteSpace(words)) says(words.Trim());
+        }
+
         private DateTime flinchedAt = DateTime.MinValue;
         // A hit stops her at most once every 12 seconds: enough to notice a fight, and a game full of flashes can't block every move.
         internal void Hurt()
@@ -2431,6 +2439,9 @@ namespace CapriDesktop
         // A game job gets her game lines, what kind of game this is and what she's learned about it before.
         private string Briefed() { return Playing ? Computer.PlayingNow + (Consults ? Computer.Consulting : "") + GameNotes.Brief(Game()) : ""; }
 
+        // Her hands' prompt for a turn. A stream gets its note on every brain, so she talks to chat whichever one she's on (Lachy, 1 Nov).
+        internal string Prompted(string hands) { return Computer.Allowing(hands) + (Computer.Streaming ? Computer.StreamNote : "") + Briefed(); }
+
         // A game job that ran a while thinks over how it went, off to the side, and keeps what it found out for next time.
         private void Reflect(string outcome, string said)
         {
@@ -2559,7 +2570,7 @@ namespace CapriDesktop
                 string fresh = Heard();
                 if (fresh != null) asides += "\nWhile you worked they also said " + fresh + ": if that's something for you to do, do it, then finish their job.";
                 asides += Changed();
-                try { written = Think(Computer.Allowing(Computer.Prompt) + Briefed(), Computer.Brief(Task, Steps, sight, notes, earlier) + asides + (lost > 0 ? "\nYour last reply had no tool call. Reply with only one tool call, or call done." : "") + nudged, calls); }
+                try { written = Think(Prompted(Computer.Prompt), Computer.Brief(Task, Steps, sight, notes, earlier) + asides + ChatWords() + (lost > 0 ? "\nYour last reply had no tool call. Reply with only one tool call, or call done." : "") + nudged, calls); }
                 catch (System.Runtime.Serialization.SerializationException) { written = ""; calls.Clear(); }
                 // Their stop cut the turn off while it was still thinking.
                 catch (System.Net.WebException) { if (!Computer.Interrupted) throw; return End("stopped", Computer.Why); }
@@ -2665,7 +2676,7 @@ namespace CapriDesktop
                 if (!resuming && Computer.Streaming && turns % Computer.ChatEvery == 1) ShowChat();
                 ClaudeReply reply;
                 Stopwatch turnClock = Stopwatch.StartNew();
-                try { reply = Drive(Computer.Allowing(Computer.Seeing) + (Computer.Streaming ? Computer.StreamNote : "") + Briefed(), Computer.Toolset, Conversation(resuming)); }
+                try { reply = Drive(Prompted(Computer.Seeing), Computer.Toolset, Conversation(resuming)); }
                 catch (System.Runtime.Serialization.SerializationException) { return End("failed", "Got a reply from my brain I couldn't read. Try again."); }
                 // Their Esc cut the turn off while it was still thinking.
                 catch (System.Net.WebException error)
@@ -2844,7 +2855,7 @@ namespace CapriDesktop
                 Show("Thinking");
                 string reply;
                 Stopwatch turnClock = Stopwatch.StartNew();
-                try { reply = Seer(picture, Computer.Allowing(Computer.Sees) + Briefed(), Computer.Seen(Task, Steps, words) + asides + results + "\n\nWhat are your next moves?"); }
+                try { reply = Seer(picture, Prompted(Computer.Sees), Computer.Seen(Task, Steps, words) + asides + ChatWords() + results + "\n\nWhat are your next moves?"); }
                 catch (System.Net.WebException) { if (!Computer.Interrupted) throw; return End("stopped", Computer.Why); }
                 catch (BrainException error)
                 {
@@ -3067,6 +3078,21 @@ namespace CapriDesktop
             return true;
         }
 
+        // The stream's chat as words every few turns, for brains that get one picture of the screen or none.
+        private int chatTurns;
+
+        internal string ChatWords()
+        {
+            if (!Computer.Streaming || chatTurns++ % Computer.ChatEvery != 0) return "";
+            Rectangle panel = Hands.ChatPanel();
+            Picture chat = panel.IsEmpty ? null : Computer.Shoot(panel);
+            string unread;
+            List<ReadWord> lines = new List<ReadWord>();
+            if (chat != null) Computer.Gridded(chat, out unread, out lines);
+            string answer = "Answer anyone new out loud with say, by name, in the same turn as your next moves. Skip anyone you already answered.";
+            return lines.Count == 0 ? "\nLook at the stream's chat on screen now. " + answer : "\nThe stream's chat right now, newest at the bottom:\n" + string.Join("\n", lines.ConvertAll(line => Voice.Quote(line.Text)).ToArray()) + "\n" + answer;
+        }
+
         // The newest picture, as a mark Conversation swaps for the image.
         private string Latest() { return ",{\"@picture\":" + (pictures.Count - 1) + "}"; }
 
@@ -3146,13 +3172,8 @@ namespace CapriDesktop
             if (name == "draw") args.Drawing = shown;
             if (name == "say")
             {
-                Action<string> says = Says;
-                if (!Computer.Streaming) Narrate(args.Text);
-                else if (says != null && !string.IsNullOrWhiteSpace(args.Text))
-                {
-                    says(args.Text.Trim());
-                    Mark(new JobStep { Tool = name, Label = "Said " + Voice.Quote(args.Text.Trim()) });
-                }
+                Spoken(args.Text);
+                if (Computer.Streaming && !string.IsNullOrWhiteSpace(args.Text)) Mark(new JobStep { Tool = name, Label = "Said " + Voice.Quote(args.Text.Trim()) });
                 return "Said.";
             }
             Computer.KeysOk = approved.Contains("keys");
@@ -3221,7 +3242,7 @@ namespace CapriDesktop
         {
             if (tool == "say")
             {
-                Narrate(args.Text);
+                Spoken(args.Text);
                 Steps.Add("Said " + Voice.Quote(args.Text ?? ""));
                 return "Said.";
             }
