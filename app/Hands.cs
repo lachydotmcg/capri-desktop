@@ -1127,10 +1127,17 @@ namespace CapriDesktop
             if (!asked.Success) return false;
             string target = asked.Groups[1].Value;
             if (Regex.IsMatch(target, @"\b(songs?|tracks?|tunes?|albums?|playlists?|music|soundtrack|ost|theme|remix|spotify|youtube|by)\b", RegexOptions.IgnoreCase)) return false;
+            if (ByHand(target)) return true;
             if (Regex.IsMatch(target, @"^(this|that)$", RegexOptions.IgnoreCase)) return Plain(song ?? "") == Plain(target);
             bool pointed = Regex.IsMatch(target, @"^(this|that|these|those|my|our)\b", RegexOptions.IgnoreCase);
             bool joined = Regex.IsMatch(target, @"\b(with|against)\s+(me|us|you)$", RegexOptions.IgnoreCase);
-            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target);
+            return (pointed && joined) || ((pointed || joined) && Playable.IsMatch(target)) || PlainGame.IsMatch(target) || Nickname(target) != null;
+        }
+
+        // "Play gmod yourself" is how Gaming Mode hands on what came after it: her hands on a game whatever it's called, not a song to search for (Dante, 1 Nov).
+        private static bool ByHand(string target)
+        {
+            return Regex.IsMatch(target, @"\s(?:yourself|urself)$", RegexOptions.IgnoreCase) && !Regex.IsMatch(target, @"\b(?:songs?|tracks?|tunes?|albums?|playlists?|music)\b", RegexOptions.IgnoreCase);
         }
 
         private static readonly Regex Unknown = new Regex(@"\b(can'?t|cannot|can not|unable to|don'?t have|no way to|not able to)\b[^.!?]{0,40}\b(check|browse|look|search|google|access|know|tell|real[- ]?time|live|internet|web|online|current|up[- ]to[- ]date|forecast)\b|\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to)|gonna|i gotta|i have to|i need to)\s+(\w+\s+){0,2}(search|google|look (it |that |this )?up|check)\b|\b(you('ll)? (might|may|will|would)? ?(need|want|have) to|maybe (you can|try)|you (gotta|got to|could|can|should)|try)\s+(\w+\s+){0,3}(look|check|search|google)\b|\bcheck (a|the|your) (\w+\s+){0,2}(weather|news|app|site|feed|forecast|website)\b|\bcrystal ball\b", RegexOptions.IgnoreCase);
@@ -1962,7 +1969,9 @@ namespace CapriDesktop
             {
                 string target = found.Groups[1].Value.Trim();
                 if (Regex.IsMatch(target, @"^(the|this|that|my|our) (game|match|round|level|map)\b", RegexOptions.IgnoreCase)) return false;
-                if (!found.Groups[3].Success && Installed(target)) { tool = "open_app"; args.Name = target; return true; }
+                if (!found.Groups[3].Success && ByHand(target)) return false;
+                target = Regex.Replace(target, @"\s+(?:yourself|urself)$", "", RegexOptions.IgnoreCase);
+                if (!found.Groups[3].Success && (Installed(target) || Installed(Nickname(target)))) { tool = "open_app"; args.Name = target; return true; }
                 if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|this$|that$|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
                 // "play the wasd minigame" is a game, not a song to search Spotify for (a tester, 30 Oct), and so is a game that's open.
                 if (!found.Groups[3].Success && (Playable.IsMatch(target) || PlainGame.IsMatch(target) || Nickname(target) != null || Showing(target))) return false;
@@ -2331,7 +2340,7 @@ namespace CapriDesktop
         private static readonly Regex Playable = new Regex(@"\b(games?|mini ?games?|obby|obbies|levels?|rounds?|match(es)?|matchmaking|ranked|deathmatch|map|mode|bedwars|skywars|roblox|minecraft|fortnite|valorant|counter[- ]?strike|wasd)\b", RegexOptions.IgnoreCase);
 
         // What players call their games, for when nothing installed goes by the name they said ("open cs", a tester, 30 Oct).
-        private static readonly string[,] Nicknames = { { "cs", "counter strike" }, { "cs2", "counter strike 2" }, { "csgo", "counter strike" }, { "cs go", "counter strike" }, { "val", "valorant" }, { "valo", "valorant" }, { "mc", "minecraft" }, { "gta", "grand theft auto" }, { "gta 5", "grand theft auto v" }, { "gta v", "grand theft auto v" }, { "lol", "league of legends" }, { "r6", "rainbow six" }, { "cod", "call of duty" }, { "ow", "overwatch" }, { "rl", "rocket league" }, { "fn", "fortnite" }, { "tf2", "team fortress 2" }, { "dbd", "dead by daylight" } };
+        private static readonly string[,] Nicknames = { { "cs", "counter strike" }, { "cs2", "counter strike 2" }, { "csgo", "counter strike" }, { "cs go", "counter strike" }, { "val", "valorant" }, { "valo", "valorant" }, { "mc", "minecraft" }, { "gta", "grand theft auto" }, { "gta 5", "grand theft auto v" }, { "gta v", "grand theft auto v" }, { "lol", "league of legends" }, { "r6", "rainbow six" }, { "cod", "call of duty" }, { "ow", "overwatch" }, { "rl", "rocket league" }, { "fn", "fortnite" }, { "tf2", "team fortress 2" }, { "dbd", "dead by daylight" }, { "gmod", "garry s mod" }, { "g mod", "garry s mod" } };
 
         internal static string Nickname(string wanted)
         {
