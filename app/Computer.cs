@@ -824,10 +824,7 @@ namespace CapriDesktop
                 {
                     if (process != pickedProcess || pickedProgram == null)
                     {
-                        pickedProgram = "";
-                        try { using (Process owner = Process.GetProcessById(process)) pickedProgram = owner.ProcessName; }
-                        catch (ArgumentException) { }
-                        catch (InvalidOperationException) { }
+                        pickedProgram = Hands.ProgramName(process);
                         pickedProcess = process;
                     }
                     program = pickedProgram;
