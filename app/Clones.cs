@@ -33,14 +33,28 @@ namespace CapriDesktop
         internal string Line;
         internal Bitmap LineCard;
         internal CloneNote Carrying;
+        internal CloneHaul Hauling;
+    }
+
+    // A window one of them is after or has hold of: its frame in their room, the spot on it she grabs, and when she gives up.
+    internal sealed class CloneHaul
+    {
+        internal IntPtr Window;
+        internal double X, Y, Width, Height, GrabX, GrabY, Until;
+        internal bool Holding, Raised;
+        internal CloneBody By;
     }
 
     // Her copies on the desktop, after Desktop Goose: they wander, leave a trail, steal the cursor and drag notes in (Lachy, 1 Nov).
     // There's no limit on how many. A new one only waits while the PC is still drawing the last frame, so Esc always gets through.
     internal sealed class Swarm
     {
-        internal const double Pace = 170, Dash = 560, PrintGap = 36, PrintLife = 6, GlitchIn = 0.7;
-        private const int Margin = 90;
+        internal const double Pace = 170, Dash = 560, Heavy = 120, PrintGap = 36, PrintLife = 6, GlitchIn = 0.7, HaulReach = 6;
+        private const int Margin = 90, KeepShowing = 140;
+        private static readonly string[] HaulLines =
+        {
+            "mine now", "you weren't using this", "redecorating", "this goes over here now", "borrowing this", "i'm taking this one", "stop clicking it"
+        };
         private static readonly string[] NoteLines =
         {
             "there are more of me now", "i live here", "nice files", "we voted. you lost.", "your mouse is mine",
@@ -61,10 +75,13 @@ namespace CapriDesktop
         internal readonly List<CloneBody> Bodies = new List<CloneBody>();
         internal readonly List<CloneNote> Notes = new List<CloneNote>();
         internal readonly List<ClonePrint> Prints = new List<ClonePrint>();
+        internal readonly List<CloneHaul> Hauls = new List<CloneHaul>();
         internal CloneBody Nabber;
         internal int Pending;
         internal bool Multiplying;
-        internal double SpawnX, SpawnY;
+        internal double SpawnX, SpawnY, HaulAt;
+        // The windows they could grab right now, in their room. None unless her window hands them some.
+        internal Func<List<CloneHaul>> Windows = delegate { return new List<CloneHaul>(); };
 
         internal Swarm(int width, int height, int seed, double now)
         {
@@ -73,6 +90,7 @@ namespace CapriDesktop
             random = new Random(seed);
             nabAt = now + 8;
             noteAt = now + 5;
+            HaulAt = now + 6;
         }
 
         internal bool Holding { get { return holding; } }
@@ -102,7 +120,7 @@ namespace CapriDesktop
         internal bool Walking(CloneBody body, double now) { return now >= body.RestUntil && (body.X != body.ToX || body.Y != body.ToY); }
 
         // Moves them all a step and says where the cursor should go, while one of them has hold of it.
-        internal Point? Tick(double now, double passed, bool keepingUp, bool handsFree, Point cursor)
+        internal Point? Tick(double now, double passed, bool keepingUp, bool handsFree, Point cursor, bool hauling = false)
         {
             if (keepingUp)
             {
@@ -128,20 +146,24 @@ namespace CapriDesktop
             {
                 noteAt = now + Between(22, 40);
                 CloneBody porter = Bodies[random.Next(Bodies.Count)];
-                if (porter != Nabber && !porter.Fetching && porter.Carrying == null)
+                if (porter != Nabber && !porter.Fetching && porter.Carrying == null && porter.Hauling == null)
                 {
                     porter.Fetching = true;
                     porter.RestUntil = 0;
                     Edge(porter);
                 }
             }
+            Haul(now, hauling);
             return Nab(now, handsFree, cursor);
         }
+
+        // They run at the cursor or a window they're after, and slow down hauling one.
+        private double Speed(CloneBody body) { return body == Nabber || (body.Hauling != null && !body.Hauling.Holding) ? Dash : body.Hauling != null ? Heavy : Pace; }
 
         private void Move(CloneBody body, double now, double passed)
         {
             if (now < body.RestUntil) return;
-            double dx = body.ToX - body.X, dy = body.ToY - body.Y, far = Math.Sqrt(dx * dx + dy * dy), step = (body == Nabber ? Dash : Pace) * passed;
+            double dx = body.ToX - body.X, dy = body.ToY - body.Y, far = Math.Sqrt(dx * dx + dy * dy), step = Speed(body) * passed;
             if (far <= step)
             {
                 body.X = body.ToX;
@@ -164,7 +186,7 @@ namespace CapriDesktop
 
         private void Arrived(CloneBody body, double now)
         {
-            if (body == Nabber) return;
+            if (body == Nabber || body.Hauling != null) return;
             if (body.Fetching)
             {
                 body.Fetching = false;
@@ -187,7 +209,7 @@ namespace CapriDesktop
                 if (!handsFree || now < nabAt || Bodies.Count == 0 || cursor.X < 0 || cursor.Y < 0 || cursor.X >= wide || cursor.Y >= tall) return null;
                 CloneBody chosen = Bodies[random.Next(Bodies.Count)];
                 nabAt = now + Between(18, 40);
-                if (chosen.Fetching || chosen.Carrying != null) return null;
+                if (chosen.Fetching || chosen.Carrying != null || chosen.Hauling != null) return null;
                 Nabber = chosen;
                 Nabber.RestUntil = 0;
                 holding = false;
@@ -211,6 +233,87 @@ namespace CapriDesktop
             holdUntil = now + 1.8;
             Wander(Nabber);
             return null;
+        }
+
+        // Lachy, 1 Nov: "I want her to actually take your applications". One of them runs to a window, grabs its title bar and
+        // drags it somewhere else on her screen. More of them out means more windows on the move, up to three at once.
+        private void Haul(double now, bool hauling)
+        {
+            for (int i = Hauls.Count - 1; i >= 0; i--)
+            {
+                CloneHaul haul = Hauls[i];
+                CloneBody hauler = haul.By;
+                bool there = hauler.X == hauler.ToX && hauler.Y == hauler.ToY;
+                if (hauling && now < haul.Until && !(haul.Holding && there))
+                {
+                    if (!haul.Holding && there)
+                    {
+                        haul.Holding = true;
+                        haul.Until = now + Between(3, 6);
+                        Drag(haul);
+                    }
+                    else if (!haul.Holding)
+                    {
+                        hauler.ToX = haul.X + haul.GrabX;
+                        hauler.ToY = haul.Y + haul.GrabY;
+                    }
+                    if (haul.Holding)
+                    {
+                        haul.X = hauler.X - haul.GrabX;
+                        haul.Y = Math.Max(0, hauler.Y - haul.GrabY + Math.Sin((now + hauler.Phase) * 9) * 3);
+                    }
+                    continue;
+                }
+                Hauls.RemoveAt(i);
+                hauler.Hauling = null;
+                hauler.RestUntil = now + 1;
+                Wander(hauler);
+            }
+            if (!hauling || now < HaulAt || Bodies.Count == 0 || Hauls.Count >= Math.Min(3, 1 + Bodies.Count / 15)) return;
+            HaulAt = now + 3;
+            CloneBody chosen = null;
+            for (int tries = 0; tries < 4 && chosen == null; tries++)
+            {
+                CloneBody body = Bodies[random.Next(Bodies.Count)];
+                if (body != Nabber && !body.Fetching && body.Carrying == null && body.Hauling == null && now - body.Born >= GlitchIn) chosen = body;
+            }
+            if (chosen == null) return;
+            // Looking for windows costs a little, so with nothing to grab, like over a game, they look again less often.
+            HaulAt = now + 8;
+            List<CloneHaul> windows = Windows() ?? new List<CloneHaul>();
+            windows.RemoveAll(delegate(CloneHaul window) { return Hauls.Exists(delegate(CloneHaul held) { return held.Window == window.Window; }); });
+            if (windows.Count == 0) return;
+            HaulAt = now + Between(8, 16);
+            CloneHaul taken = windows[random.Next(windows.Count)];
+            taken.By = chosen;
+            taken.GrabX = taken.Width * Between(0.3, 0.7);
+            taken.GrabY = Math.Min(16, taken.Height / 4);
+            taken.Until = now + HaulReach;
+            chosen.Hauling = taken;
+            chosen.RestUntil = 0;
+            chosen.ToX = taken.X + taken.GrabX;
+            chosen.ToY = taken.Y + taken.GrabY;
+            if (chosen.Line == null)
+            {
+                chosen.Line = HaulLines[random.Next(HaulLines.Length)];
+                chosen.LineUntil = now + 2.5;
+            }
+            Hauls.Add(taken);
+        }
+
+        // Somewhere it can be got back from: never above the top, at least its top 140 px on screen, at most a third off a side,
+        // and far enough from where it was that they see it go.
+        private void Drag(CloneHaul haul)
+        {
+            double x = haul.X, y = haul.Y;
+            for (int tries = 0; tries < 6 && Math.Abs(x - haul.X) + Math.Abs(y - haul.Y) < 300; tries++)
+            {
+                bool side = random.Next(3) == 0;
+                x = side ? (random.Next(2) == 0 ? -haul.Width / 3 : wide - haul.Width * 2 / 3) : Between(0, Math.Max(1, wide - haul.Width));
+                y = Between(0, Math.Max(1, tall - KeepShowing));
+            }
+            haul.By.ToX = x + haul.GrabX;
+            haul.By.ToY = y + haul.GrabY;
         }
     }
 
@@ -245,6 +348,12 @@ namespace CapriDesktop
         internal Action<double> Ticked;
         internal Func<bool> HandsFree = delegate { return false; };
         internal Func<bool> EscDown = delegate { return (Native.GetAsyncKeyState(0x1B) & 0x8000) != 0; };
+        // Windows on her screen they may grab, with their frames on screen. Null means none, like over a game.
+        internal Func<List<KeyValuePair<IntPtr, Rectangle>>> Grabbable = delegate { return null; };
+        internal Func<bool> Mousing = delegate { return (Native.GetAsyncKeyState(0x01) & 0x8000) != 0; };
+        // Where each window they moved started and where they last put it, so clearing them puts it back.
+        private readonly Dictionary<IntPtr, Point> homes = new Dictionary<IntPtr, Point>(), placed = new Dictionary<IntPtr, Point>();
+        private readonly List<IntPtr> stuck = new List<IntPtr>();
         internal int Frames;
 
         internal CloneWindow(Rectangle area, Stopwatch time, Clip idling, Clip walking, Clip grinning, Clip glitching, int herSize, int herCanvas, int seed) : base("Capri clones")
@@ -258,6 +367,7 @@ namespace CapriDesktop
             size = herSize;
             canvas = herCanvas;
             Swarm = new Swarm(area.Width, area.Height, seed, time.Elapsed.TotalSeconds);
+            Swarm.Windows = Offered;
             for (int i = 0; i < Fades; i++)
             {
                 int alpha = 200 - i * 200 / Fades;
@@ -370,13 +480,76 @@ namespace CapriDesktop
             if (tapped) { tapped = false; hintUntil = now + 3; }
             Stopwatch busy = Stopwatch.StartNew();
             Point cursor = Cursor.Position;
-            Point? dragged = Swarm.Tick(now, passed, took < SlowTick, HandsFree(), new Point(cursor.X - room.X, cursor.Y - room.Y));
+            bool handsFree = HandsFree();
+            foreach (CloneHaul haul in Swarm.Hauls) if (!haul.Holding) Track(haul);
+            Point? dragged = Swarm.Tick(now, passed, took < SlowTick, handsFree, new Point(cursor.X - room.X, cursor.Y - room.Y), handsFree && !Mousing());
             if (dragged != null) Cursor.Position = new Point(room.X + dragged.Value.X, room.Y + dragged.Value.Y);
+            foreach (CloneHaul haul in Swarm.Hauls) if (haul.Holding) Carry(haul);
             Render(now);
             took = busy.ElapsedMilliseconds;
             Frames++;
             Action<double> ticked = Ticked;
             if (ticked != null) ticked(now);
+        }
+
+        private List<CloneHaul> Offered()
+        {
+            List<CloneHaul> offered = new List<CloneHaul>();
+            List<KeyValuePair<IntPtr, Rectangle>> windows = Grabbable();
+            if (windows == null) return offered;
+            foreach (KeyValuePair<IntPtr, Rectangle> window in windows)
+            {
+                Rectangle frame = window.Value;
+                if (stuck.Contains(window.Key) || !room.Contains(frame.X + frame.Width / 2, frame.Y + frame.Height / 2)) continue;
+                offered.Add(new CloneHaul { Window = window.Key, X = frame.X - room.X, Y = frame.Y - room.Y, Width = frame.Width, Height = frame.Height });
+            }
+            return offered;
+        }
+
+        // Where a window they're running to is now. They let go of one that's closed, shrunk down, full size or frozen.
+        private void Track(CloneHaul haul)
+        {
+            Rectangle frame;
+            if (!Ledges.Haulable(haul.Window, out frame)) { haul.Until = 0; return; }
+            haul.X = frame.X - room.X;
+            haul.Y = frame.Y - room.Y;
+            haul.Width = frame.Width;
+            haul.Height = frame.Height;
+        }
+
+        // The window goes where its hauler is. The move is posted to the window's own program, so a frozen app can't hold her up,
+        // and a window she isn't allowed to move, like an admin one, is let go and never picked again.
+        private void Carry(CloneHaul haul)
+        {
+            Rectangle frame, outer;
+            if (!Ledges.Haulable(haul.Window, out frame) || !Ledges.Outer(haul.Window, out outer)) { haul.Until = 0; return; }
+            Point to = new Point(room.X + (int)Math.Round(haul.X) + outer.X - frame.X, room.Y + (int)Math.Round(haul.Y) + outer.Y - frame.Y);
+            Point last;
+            if (!haul.Raised && (!placed.TryGetValue(haul.Window, out last) || Math.Abs(outer.X - last.X) > 24 || Math.Abs(outer.Y - last.Y) > 24)) homes[haul.Window] = outer.Location;
+            if (!Native.SetWindowPos(haul.Window, IntPtr.Zero, to.X, to.Y, 0, 0, 0x4000 | 0x0010 | 0x0001 | (haul.Raised ? 0x0004 : 0)))
+            {
+                stuck.Add(haul.Window);
+                if (!placed.ContainsKey(haul.Window)) homes.Remove(haul.Window);
+                haul.Until = 0;
+                return;
+            }
+            haul.Raised = true;
+            placed[haul.Window] = to;
+        }
+
+        // Every window they moved goes back where it was, unless it's since been moved by hand, closed, shrunk down or made full size.
+        internal void PutBack()
+        {
+            foreach (KeyValuePair<IntPtr, Point> home in homes)
+            {
+                Point last;
+                Rectangle frame, outer;
+                if (!placed.TryGetValue(home.Key, out last) || !Ledges.Haulable(home.Key, out frame) || !Ledges.Outer(home.Key, out outer)) continue;
+                if (Math.Abs(outer.X - last.X) > 24 || Math.Abs(outer.Y - last.Y) > 24) continue;
+                Native.SetWindowPos(home.Key, IntPtr.Zero, home.Value.X, home.Value.Y, 0, 0, 0x4000 | 0x0010 | 0x0004 | 0x0001);
+            }
+            homes.Clear();
+            placed.Clear();
         }
 
         private Bitmap Cell(Clip clip, int which, int cell, bool left)
@@ -449,7 +622,7 @@ namespace CapriDesktop
                 foreach (CloneBody body in Swarm.Bodies)
                 {
                     double age = now - body.Born;
-                    bool grinning = body == Swarm.Nabber && Swarm.Holding;
+                    bool grinning = (body == Swarm.Nabber && Swarm.Holding) || (body.Hauling != null && body.Hauling.Holding);
                     Clip clip = age < Swarm.GlitchIn ? glitch : grinning ? grin : Swarm.Walking(body, now) ? walk : idle;
                     int which = clip == glitch ? 0 : clip == grin ? 1 : clip == walk ? 2 : 3;
                     int cell = clip == glitch ? Math.Min(clip.Count - 1, (int)(age * clip.Fps)) : (int)((now + body.Phase) * clip.Fps) % clip.Count;
@@ -556,6 +729,9 @@ namespace CapriDesktop
                 opened.Failed = ClonesOff;
                 opened.Cleared = ClonesCleared;
                 opened.HandsFree = delegate { return !testing && working == null && !dragging && !pressed; };
+                int own;
+                using (Process self = Process.GetCurrentProcess()) own = self.Id;
+                opened.Grabbable = delegate { return Computer.Streaming || Computer.GameOpen() != null ? null : Ledges.Haulable(own); };
                 opened.Ticked = CloneTalk;
                 cloneWindow = opened;
                 cloneTalkAt = now + 3;
@@ -575,7 +751,10 @@ namespace CapriDesktop
             cloneTalking = false;
             CloneWindow closing = cloneWindow;
             cloneWindow = null;
-            if (closing != null) closing.Close();
+            if (closing == null) return;
+            try { closing.PutBack(); }
+            catch (Exception problem) { Brain.Log("clones", -1, problem.Message); }
+            closing.Close();
         }
 
         private void ClonesCleared()

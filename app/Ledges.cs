@@ -35,6 +35,8 @@ namespace CapriDesktop
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string type, string title);
         [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out Box value, int size);
         [DllImport("dwmapi.dll")] private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
+        [DllImport("user32.dll")] private static extern bool IsHungAppWindow(IntPtr window);
+        [DllImport("user32.dll")] private static extern int GetWindowTextLength(IntPtr window);
         // Outside her tests the list of windows is kept for a second, because a few things a second ask for it.
         internal static bool Enabled;
         private static int scannedAt;
@@ -44,6 +46,8 @@ namespace CapriDesktop
         internal static void Invalidate() { lock (windowLock) windows = null; }
 
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd", "#32768", "tooltips_class32" };
+        // Windows' own pop-ups, like Start, search and Alt+Tab, which her clones leave alone.
+        private static readonly string[] Flyouts = { "Windows.UI.Core.CoreWindow", "XamlExplorerHostIslandWindow", "Shell_InputSwitchTopLevelWindow", "NotifyIconOverflowWindow", "TaskListThumbnailWnd" };
         private const int IconInset = 2;
         // Her mini player is a layered tool window like her bubbles, which the checks below pass over, yet she sits on it like a
         // window. Its plate, without the glow around it, is the edge.
@@ -95,6 +99,43 @@ namespace CapriDesktop
         }
 
         internal static bool Alive(IntPtr window) { return IsWindow(window); }
+
+        // A window her clones may grab and drag off: an app's own main window on screen, not full size or filling the screen,
+        // not always on top, and not frozen, since a frozen one would never answer the move.
+        internal static bool Haulable(IntPtr window, out Rectangle bounds)
+        {
+            if (!Showing(window, out bounds) || IsZoomed(window) || IsHungAppWindow(window) || Native.GetWindow(window, 4) != IntPtr.Zero) return false;
+            if (Array.IndexOf(Flyouts, Kind(window)) >= 0) return false;
+            int extended = Native.GetWindowLong(window, -20);
+            if ((extended & 0x08) != 0 || ((extended & 0x80) != 0 && (extended & 0x40000) == 0)) return false;
+            return bounds.Width >= 200 && bounds.Height >= 120 && !bounds.Contains(Screen.FromRectangle(bounds).Bounds);
+        }
+
+        // Every window her clones may grab, front first, leaving out the program with id skip (her own).
+        internal static List<KeyValuePair<IntPtr, Rectangle>> Haulable(int skip)
+        {
+            List<KeyValuePair<IntPtr, Rectangle>> found = new List<KeyValuePair<IntPtr, Rectangle>>();
+            Visit visit = delegate(IntPtr window, IntPtr data)
+            {
+                int process;
+                Rectangle bounds;
+                Native.GetWindowThreadProcessId(window, out process);
+                if (process != skip && Haulable(window, out bounds) && GetWindowTextLength(window) > 0) found.Add(new KeyValuePair<IntPtr, Rectangle>(window, bounds));
+                return true;
+            };
+            EnumWindows(visit, IntPtr.Zero);
+            GC.KeepAlive(visit);
+            return found;
+        }
+
+        // The whole window, invisible borders and all, which is what moving it goes by.
+        internal static bool Outer(IntPtr window, out Rectangle bounds)
+        {
+            Box box;
+            bool found = GetWindowRect(window, out box);
+            bounds = found ? Rectangle.FromLTRB(box.Left, box.Top, box.Right, box.Bottom) : Rectangle.Empty;
+            return found;
+        }
 
         private static bool Solid(IntPtr window, Rectangle bounds)
         {
