@@ -622,7 +622,8 @@ namespace CapriDesktop
                 if (updateAgain != null || updateKept != "Get Capri 99.1.0" || draftChoice != null || oddPage != "https://github.com/lachydotmcg/capri-desktop/releases/latest" || olderChoice != null || pet.UpdateChoice != null || !oddTags) throw new Exception("The update notice went wrong: " + updateAgain + " | " + updateKept + " | " + draftChoice + " | " + oddPage + " | " + olderChoice + " | " + pet.UpdateChoice + " | " + oddTags);
                 checks.Add("PASS updates: a newer GitHub release puts Get Capri X in her right-click menu and she says so once; older releases, drafts, odd tags and other sites don't");
                 // Check my screen: the right screenshot tool for the desktop, shrunk to a JPEG, and a plain answer when no tool works.
-                bool toolsRight = Eyes.Tools(true, null, null)[0][0] == "screencapture" && Eyes.Tools(false, "x11", "XFCE")[0][0] == "import" && Eyes.Tools(false, "wayland", "KDE")[0][0] == "spectacle"
+                bool toolsRight = Eyes.FreshAsk(null, "0.7.9.0") && Eyes.FreshAsk("0.7.8.0\n", "0.7.9.0") && !Eyes.FreshAsk("0.7.9.0\n", "0.7.9.0")
+                    && Eyes.Tools(true, null, null)[0][0] == "screencapture" && Eyes.Tools(false, "x11", "XFCE")[0][0] == "import" && Eyes.Tools(false, "wayland", "KDE")[0][0] == "spectacle"
                     && Eyes.Tools(false, "wayland", "ubuntu:GNOME")[0][0] == "gnome-screenshot" && Eyes.Tools(false, "wayland", "Hyprland")[0][0] == "grim" && Eyes.Tools(false, "wayland", "Hyprland").Count == 3;
                 byte[] wideShot;
                 using (SkiaSharp.SKBitmap wide = new SkiaSharp.SKBitmap(2000, 1000))

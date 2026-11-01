@@ -20,7 +20,7 @@ namespace CapriDesktop
             get
             {
                 return OperatingSystem.IsMacOS()
-                    ? "I can't watch your screen yet. Allow Capri under System Settings > Privacy & Security > Screen Recording, then open me again."
+                    ? "I can't watch your screen yet. Allow Capri under System Settings > Privacy & Security > Screen Recording, then open me again. If I'm already on that list, remove me with the minus button first."
                     : "I can't watch your screen quietly here: this desktop's screenshots flash or ask first. I'll still look whenever you ask me to check your screen. On X11, installing scrot or maim fixes it.";
             }
         }
@@ -40,17 +40,37 @@ namespace CapriDesktop
                 if (CGPreflightScreenCaptureAccess()) return true;
                 if (askedToRecord) return false;
                 askedToRecord = true;
+                try { ForgetOldBuild(); }
+                catch (Exception) { }
                 return CGRequestScreenCaptureAccess();
             }
             catch (Exception) { return true; }
         }
+
+        // Each release is signed on its own, so macOS keeps showing Capri as allowed while that only fits the version they allowed,
+        // and deleting her doesn't clear it (ASAP, 31 Oct: "7.6 is the only one that can watch my screen"). Clearing it once per
+        // version lets Mac ask again.
+        private static void ForgetOldBuild()
+        {
+            string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri");
+            string marker = Path.Combine(folder, "screen-asked.txt");
+            string version = typeof(Eyes).Assembly.GetName().Version.ToString();
+            if (!FreshAsk(File.Exists(marker) ? File.ReadAllText(marker) : null, version)) return;
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(marker, version);
+            ProcessStartInfo reset = new ProcessStartInfo("tccutil") { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+            foreach (string word in new[] { "reset", "ScreenCapture", "io.github.lachydotmcg.capri" }) reset.ArgumentList.Add(word);
+            using (Process clearing = Process.Start(reset)) clearing.WaitForExit(5000);
+        }
+
+        internal static bool FreshAsk(string asked, string version) { return (asked ?? "").Trim() != version; }
 
         internal static string Missing
         {
             get
             {
                 return OperatingSystem.IsMacOS()
-                    ? "You couldn't take a screenshot. Tell them to allow Capri under System Settings > Privacy & Security > Screen Recording, then open you again."
+                    ? "You couldn't take a screenshot. Tell them to allow Capri under System Settings > Privacy & Security > Screen Recording, then open you again. If Capri is already on that list, they should remove it with the minus button first."
                     : "You couldn't take a screenshot. Tell them to install grim (Wayland), scrot (X11) or gnome-screenshot (GNOME), then ask again.";
             }
         }

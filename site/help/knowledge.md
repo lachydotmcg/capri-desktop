@@ -1609,7 +1609,7 @@ It needs no key and no internet. If she says the server sent words instead of so
 ### Check my screen on Mac and Linux (0.7.6 and newer)
 0.7.4 and older can't see the screen on Mac and Linux. Update to 0.7.6. Ask "check my screen", "what's on my screen?" or "can you see this?". She takes a screenshot and her brain looks at it.
 - Her brain has to see pictures: a free NVIDIA key (nvidia/nemotron-3.5-super-vl-120b-a12b), a Claude or OpenAI key, or an Ollama model that can see pictures. DeepSeek can't.
-- Mac: the first time, macOS asks to let Capri record the screen. If she only describes your wallpaper, allow Capri under System Settings > Privacy & Security > Screen Recording, then reopen her.
+- Mac: the first time, macOS asks to let Capri record the screen. If she only describes your wallpaper, allow Capri under System Settings > Privacy & Security > Screen Recording, then reopen her. After an update macOS can show Capri as allowed while that only fits the old version. Remove Capri from the list with the minus button, or run tccutil reset ScreenCapture io.github.lachydotmcg.capri in Terminal, then open her and allow her again. From 0.7.9 she clears it herself once per version.
 - Linux: she uses your desktop's screenshot tool: spectacle (KDE), gnome-screenshot (GNOME), grim (Sway, Hyprland and other wlroots desktops), or ImageMagick, scrot or maim on X11. If none is installed she says so; install one and ask again. GNOME on Wayland may refuse apps' screenshots.
 
 ### A free NVIDIA key on Mac and Linux (0.7.6 and newer)
