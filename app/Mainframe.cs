@@ -44,7 +44,8 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1600;
+        // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
+        private const int PageTall = 1672;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -104,6 +105,7 @@ namespace CapriDesktop
         private readonly Toggle onTop;
         private readonly Toggle headPats;
         private readonly Toggle upsetChaos;
+        private readonly Toggle hologram;
         private readonly Toggle startup;
         private readonly Toggle discord;
         private readonly Toggle cursor;
@@ -258,12 +260,13 @@ namespace CapriDesktop
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 588, 1065 }, new[] { 1176, 1228 }, new[] { 1228, 1256 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 372, 754 }, new[] { 950, 2000 } };
+        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
-        private const int SimpleTall = 808;
+        // The same for Simple Settings, with its hidden rows taken out.
+        private const int SimpleTall = 890;
         private int wheel;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
@@ -628,7 +631,7 @@ namespace CapriDesktop
             voiceInMic.AccessibleName = "Her voice in your mic. Your mic and her voice go into VB-CABLE, so friends in Discord or Roblox hear you both";
             voiceInMicNote = Caption("Pick CABLE Output as your mic in Discord or Roblox.", 28, MixAt + 26, small, Faint);
             voiceInMicState = Caption("", 28, MixAt + 50, small, Faint);
-            cableKey = Make("Get VB-CABLE", 264, MixAt + 47, 92, 20, delegate { capri.OpenCablePage(); });
+            cableKey = Make("Get VB-CABLE", 264, MixAt + 47, 92, 20, delegate { capri.OpenCablePage(); }, "Her voice in your mic");
             cableKey.AccessibleName = "Get VB-CABLE: opens its page in your browser. It's free";
             cableKey.Visible = false;
             int afterVoice = Controls.Count;
@@ -699,10 +702,13 @@ namespace CapriDesktop
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
             upsetChaos = Switch("Chaos when upset", c, 222, delegate { if (!syncing) capri.ToggleUpsetChaos(); });
             upsetChaos.AccessibleName = "Chaos when upset. Insulting her can set her clones off until you hold Esc";
+            // Hologram stays reversible here even while clicks pass through her body (Lachy, 2 Nov).
+            hologram = Switch("Hologram", c, 250, delegate { if (!syncing) capri.ToggleHologram(); });
+            hologram.AccessibleName = "Hologram. Clicks pass through her body, talk pill and bubble. Turn this off to give her clicks back";
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
             watch = Switch("Watch my screen", c, 232, delegate { if (!syncing) capri.ToggleWatch(); });
-            watch.AccessibleName = "Watch my screen. She comments now and then";
+            watch.AccessibleName = "Watch my screen. She comments now and then about the desktop. Game comments have their own Comments setting under GAMES";
             caughtUp = Switch("Remember what she sees", c, 260, delegate { if (!syncing) capri.ToggleCaughtUp(); });
             caughtUp.AccessibleName = "Remember what she sees. What she saw on your screen stays in her memory for three hours even when she said nothing about it, which uses a little more of your API";
             gap = Setting("Every", GapNames, c, 288, "Time between glances");
@@ -801,7 +807,7 @@ namespace CapriDesktop
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
             // What she says about a game they're playing, from what happens in it rather than on a timer.
-            comments = Setting("Comments", Commentary.PaceNames, 0, 938, "How much she says about a game you're playing: off, only when something happens, or chatty");
+            comments = Setting("Comments", Commentary.PaceNames, 0, 938, "Game comments run separately from Watch my screen and Gaming Mode. Off stops them; Events only and Chatty let her watch your game");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
             // Her live reactions (F67), on by default, under Comments since they only run while her comments do.
@@ -842,9 +848,9 @@ namespace CapriDesktop
             int gamesTo = Controls.Count;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
-            // Head pats and Chaos when upset took two rows under Mainframe size, so the rest of this column sits two lower.
+            // Head pats, Chaos when upset and Hologram each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 2;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 3;
             // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
             {
@@ -1962,6 +1968,7 @@ namespace CapriDesktop
             dance.Checked = capri.Dancing;
             headPats.Checked = capri.HeadPats;
             upsetChaos.Checked = capri.UpsetChaos;
+            hologram.Checked = capri.HologramOn;
             bubble.Value = capri.BubbleTime;
             bubbleName.Text = BubbleNames[bubble.Value];
             comments.Value = capri.CommentPace;
