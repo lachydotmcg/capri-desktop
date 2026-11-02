@@ -3450,7 +3450,25 @@ namespace CapriDesktop
             dragging = false;
         }
 
-        protected override void OnMouseCaptureChanged(EventArgs e) { base.OnMouseCaptureChanged(e); if (!Capture) pressed = false; }
+        // Windows can take the mouse off her mid-drag: a game grabbing it, her window hiding for Gaming Mode or full screen, or a
+        // system prompt. That only cleared the press, so she kept dangling from a cursor that was gone, frozen and flailing until
+        // the next click (Lachy, 2 Nov). It lets go of her now like a release, with no throw: she drops, or falls if caught mid-air.
+        protected override void OnMouseCaptureChanged(EventArgs e)
+        {
+            base.OnMouseCaptureChanged(e);
+            if (Capture || !pressed) return;
+            pressed = false;
+            bool wasDragging = dragging, wasCaught = caught;
+            dragging = false;
+            caught = false;
+            if (wasDragging)
+            {
+                pendingClick = false;
+                clickDelay.Stop();
+                if (!onPanel && !Drop()) SavePreferences();
+            }
+            else if (wasCaught && !preferences.NoSitting) Fall();
+        }
 
         protected override void WndProc(ref Message message)
         {
@@ -23570,8 +23588,15 @@ namespace CapriDesktop
                             if (anchor == before || pendingClick || riding) throw new Exception("Drag did not change position or did not cancel click.");
                             RenderFrame();
                             if (clip != idle) throw new Exception("Drop did not return to idle: dangle " + (clip == dangle) + ", perch " + (clip == perch) + ", glitch " + (clip == glitch) + ", blink " + (clip == blink) + ", grin " + (clip == grin) + ", falling " + falling + ", hanging " + hanging + ", seat " + (seat != null) + ", dragging " + dragging + ".");
+                            // Windows taking the mouse mid-drag lets go of her, rather than leaving her dangling until the next click.
+                            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+                            MovePointer(new Point(pointerStart.X + 40, pointerStart.Y + 20));
+                            Capture = false;
+                            if (pressed) OnMouseCaptureChanged(EventArgs.Empty);
+                            RenderFrame();
+                            if (pressed || dragging || pendingClick || clip != idle) throw new Exception("Losing the mouse mid-drag left her held: pressed " + pressed + ", dragging " + dragging + ", dangle " + (clip == dangle) + ".");
                             preferences.NoSitting = sittingWas;
-                            checks.Add("PASS drag handler changed position, dangled and settled");
+                            checks.Add("PASS drag handler changed position, dangled and settled, and a drag that loses the mouse lets go of her");
                             int previous = clicks;
                             OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
                             OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
