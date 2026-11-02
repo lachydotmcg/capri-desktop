@@ -256,6 +256,7 @@ namespace CapriDesktop
         private string WatchWith(string action)
         {
             if (action == "stop") { EndWatchAlong(); return "Done watching with you."; }
+            if (CallModeOn) return "Call mode is conversation only. Turn it off before watching PC audio with me.";
             if (watchAlong != null) return "I'm watching with you.";
             StopExplore();
             followUp.Drop();
@@ -299,7 +300,7 @@ namespace CapriDesktop
 
         private void WatchHeard(WatchAlong watching, string line)
         {
-            if (watchAlong != watching) return;
+            if (CallModeOn || watchAlong != watching) return;
             KeepWatchFold(watching, watching.Memory.Add(line));
         }
 
@@ -325,6 +326,7 @@ namespace CapriDesktop
 
         private void CheckWatchAlong(double now)
         {
+            if (CallModeOn) { if (watchAlong != null) EndWatchAlong(); return; }
             WatchAlong watching = watchAlong;
             if (watching == null) return;
             if (!preferences.CaughtUp) watching.Folds.Clear();

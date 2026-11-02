@@ -425,6 +425,7 @@ namespace CapriDesktop
         [DataMember] public bool NoSitting;
         [DataMember] public bool NvidiaGlm;
         [DataMember] public string VoiceKey;
+        [DataMember] public bool CallMode;
         [DataMember] public string VoiceId;
         [DataMember] public string VoiceModel;
         [DataMember] public string AgentId;
@@ -1941,6 +1942,11 @@ namespace CapriDesktop
             getWakePack = FetchWake;
             box.Dismissed += delegate { if (box.Leaving < 0) box.Leaving = clock.Elapsed.TotalSeconds; };
             typer.Submitted += Hear;
+            callSession.Change(preferences.CallMode);
+            PcEars.CanListen = delegate { return !CallModeOn; };
+            PcEars.Generation = delegate { return callSession.Generation; };
+            typer.CallMode = CallModeOn;
+            typer.CallModeChanged += ToggleCallMode;
             typer.VisibleChanged += delegate { if (!typer.Visible && replyDone >= 0 && remarkTicket != asking) replyDone = clock.Elapsed.TotalSeconds; };
             frames = new System.Windows.Forms.Timer();
             frames.Interval = 33;
@@ -8623,7 +8629,7 @@ namespace CapriDesktop
             earsClosed = false;
             WakeRest(true);
             // Listen for Capri needs her own ears; otherwise voice chat follows the VOICE pick.
-            if (ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, voice.Key != null)) { StartLocal(); return; }
+            if (CallModeOn || ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, voice.Key != null)) { StartLocal(); return; }
             if ((preferences.Quiet || preferences.Silent) && voice.Key != null)
             {
                 heard = "(voice)";
@@ -8850,6 +8856,7 @@ namespace CapriDesktop
         private void HeardDictation(string text)
         {
             if (!chatting || !local || !earsReady || ears.Muted) return;
+            if (CallModeOn) { if (!earsShut) HearCall(Hearing.Clean(text)); return; }
             text = Hearing.Clean(text);
             if (watchAlong != null && WatchAlong.Request(text) == "stop" && StopWatchAlong(text)) return;
             if (preferences.ListenCapri && !pushing && clock.Elapsed.TotalSeconds < voiceUntil && !nameOver && !VoiceStop(text) && !(PcEars.Active && StopWords(text))) return;
@@ -8920,7 +8927,7 @@ namespace CapriDesktop
             if (earsReady) EarsReady(false);
         }
 
-        private string LocalListening { get { return preferences.ListenCapri ? "Listening for Capri." : "Free voice chat on. Talk and I'll type back."; } }
+        private string LocalListening { get { return CallModeOn ? "Call mode (beta). Voice is conversation only." : preferences.ListenCapri ? "Listening for Capri." : "Free voice chat on. Talk and I'll type back."; } }
 
         private bool VoiceForHer(string text)
         {
@@ -9130,6 +9137,7 @@ namespace CapriDesktop
                 return;
             }
             if (string.IsNullOrEmpty(text)) { Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
+            if (CallModeOn) { HearCall(text); return; }
             if (!VoiceForHer(text)) return;
             if (preferences.ListenCapri && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy))
             {
@@ -9142,6 +9150,8 @@ namespace CapriDesktop
 
         private void OpenLink()
         {
+            if (CallModeOn) return;
+            int callVersion = callSession.Generation;
             mainframe.VoiceNote("Opening voice chat...", false);
             int ticket = ++chatTicket;
             string key = voice.Key;
@@ -9184,7 +9194,7 @@ namespace CapriDesktop
                 catch (Exception error) { problem = Voice.Short("Voice chat failed: " + error.Message); }
                 Post(delegate
                 {
-                    if (ticket != chatTicket || !chatting) return;
+                    if (ticket != chatTicket || !chatting || CallModeOn || !callSession.Current(callVersion)) return;
                     if (problem != null) { ChatFailed(problem); return; }
                     if (preferences.AgentId != agentId || preferences.AgentVersion != Agent.Version || preferences.AgentPolyglot != polyglot || (preferences.AgentPersonality ?? "") != stamp) { preferences.AgentId = agentId; preferences.AgentVersion = Agent.Version; preferences.AgentPolyglot = polyglot; preferences.AgentPersonality = stamp; SavePreferences(); }
                     Connect(url, voiceId, language);
@@ -9194,9 +9204,11 @@ namespace CapriDesktop
 
         private void Connect(string url, string voiceId, string language = "en")
         {
+            if (CallModeOn) return;
+            int callVersion = callSession.Generation;
             Agent opened = new Agent();
             opened.Language = language;
-            opened.Act = delegate(string tool, ToolArguments args) { return AgentAct(opened, tool, args); };
+            opened.Act = delegate(string tool, ToolArguments args) { return CallModeOn || !callSession.Current(callVersion) ? "That voice call has ended." : AgentAct(opened, tool, args); };
             opened.Opened += delegate(int rate) { Post(delegate { if (agent == opened) ChatOpened(rate); }); };
             opened.Heard += delegate(string text) { Post(delegate { if (agent == opened) ChatHeard(text); }); };
             opened.Replied += delegate(string text) { Post(delegate { if (agent == opened) ChatReplied(text); }); };
@@ -9391,6 +9403,7 @@ namespace CapriDesktop
         // A tool call from voice chat. A call SECURITY holds is asked about at once instead of waiting its turn on the mouse.
         private string AgentAct(Agent opened, string tool, ToolArguments args)
         {
+            if (CallModeOn) return "I can only talk in call mode.";
             stirred = Environment.TickCount;
             lock (shortcutGate)
             {
@@ -9437,6 +9450,7 @@ namespace CapriDesktop
 
         private void ChatHeard(string text)
         {
+            if (CallModeOn) return;
             if (!chatting || !VoiceForHer(text)) return;
             WakeRest(!SleepBusy);
             agentComment = false;
@@ -9502,6 +9516,7 @@ namespace CapriDesktop
 
         private void ChatReplied(string text)
         {
+            if (CallModeOn) return;
             if (!chatting) return;
             checkedIn = !spoke;
             spoke = false;
@@ -9876,7 +9891,7 @@ namespace CapriDesktop
             free = preferences.Quiet && !FreeChatOn ? null : preferences.ServerVoice ? Served(fallback ? own : null) : FreeSpeak ?? (testing ? null : Hd(fallback || !preferences.HdVoice ? own : null));
             if (!fallback && voiceBroke && !quiet && !preferences.Quiet && (Speak != null || voice.Key != null)) return null;
             // Free chat stays free. A job's lines and Listen for Capri share its ears but keep the voice they picked.
-            bool freeOnly = quiet || (fallback && local && !jobEars && !preferences.ListenCapri);
+            bool freeOnly = quiet || (fallback && local && !jobEars && !preferences.ListenCapri && !CallModeOn);
             Func<string, byte[]> picked = preferences.Quiet || freeOnly || voiceBroke ? null : Speak;
             if (picked == null && !freeOnly && !voiceBroke && !testing && voice.Ready && !preferences.Quiet) picked = voice.Speak;
             if (picked == null && (voice.Key == null || freeOnly || voiceBroke || preferences.Quiet)) picked = free;
@@ -18590,6 +18605,8 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
                             Section(checks, delegate { SmokeClips(checks); });
+                            Section(checks, delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
+                            Section(checks, delegate { SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
                             Section(checks, delegate { SmokeHeartbeat(checks); });
                             Section(checks, delegate { SmokeMenuWait(checks); });
                             Section(checks, delegate { SmokeGivingWay(checks); });

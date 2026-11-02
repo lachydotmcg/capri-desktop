@@ -1640,6 +1640,26 @@ namespace CapriDesktop
             request.Headers["anthropic-version"] = "2026-10-21";
         }
 
+#if !CROSS
+        // This transport never enters Ask's tools, memory, file or job routes. Call history is never promoted to normal chat.
+        internal string AskCall(string text, CallSession session, int version)
+        {
+            string model = Model;
+            if (model == null) throw new BrainException(Offline);
+            List<ChatMessage> messages = session.Request(version, Persona + Speech() + (Cues ? Cueing : ""), text);
+            if (messages == null) return null;
+            int ticket;
+            lock (gate) ticket = cancelled;
+            List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>>();
+            string raw = Think(model, messages, false, calls, null, Budget, ticket);
+            Check(ticket);
+            string said = calls.Count == 0 ? Clean(raw) : "I can only talk in call mode.";
+            if (!session.Keep(version, text, said, Recall)) return null;
+            Cue(raw, said);
+            return said;
+        }
+#endif
+
         internal string Ask(string text) { string after; return Ask(text, false, out after); }
 
         internal string Ask(string text, bool followUps, out string followLine)
