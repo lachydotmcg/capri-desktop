@@ -695,7 +695,7 @@ namespace CapriDesktop
                 sightings.Add(new Sighting { At = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture), Saw = text, Said = string.IsNullOrEmpty(said) ? null : said, Asked = asked });
                 if (sightings.Count > 30) sightings.RemoveRange(0, sightings.Count - 30);
             }
-            Transcribe(null, (watched ? "She watched with you: " : asked ? "She looked at your screen: " : "She glanced at your screen: ") + text.TrimEnd('.') + (string.IsNullOrEmpty(said) && !asked && !watched ? ". She stayed quiet." : "."));
+            Transcribe(null, (watched ? "She watched with you: " : asked ? "She looked at your screen: " : "She glanced at your screen: ") + text.TrimEnd('.') + (string.IsNullOrEmpty(said) && !asked && !watched ? ". She stayed quiet." : "."), asked || watched || FoldsGlances);
             lock (gate) Save();
         }
 
@@ -725,6 +725,9 @@ namespace CapriDesktop
         internal static string MemoriesPath;
         internal static volatile bool Keeping = true;
         internal static volatile Brain Keeper;
+        // Mac and Linux turn this off: their screenshots show her and her bubble, so a glance can take her for part of their
+        // screen, and that mustn't become a memory. Her glances still go in the transcript.
+        internal static bool FoldsGlances = true;
         private static readonly object writing = new object();
         private static int folding;
         private static long foldWait;
@@ -743,8 +746,9 @@ namespace CapriDesktop
 
         private static string QueuePath { get { string folder = TranscriptPath; return folder == null ? null : Path.Combine(folder, "unfolded.txt"); } }
 
-        // Who is "You" or "Capri" (with " (voice)" in voice chat), or null for something she did, like a glance or a job.
-        internal static void Transcribe(string who, string text)
+        // Who is "You" or "Capri" (with " (voice)" in voice chat), or null for something she did, like a glance or a job. A line
+        // that isn't folded stays out of memories.md.
+        internal static void Transcribe(string who, string text, bool folded = true)
         {
             string folder = TranscriptPath;
             text = Regex.Replace(text ?? "", @"\s+", " ").Trim();
@@ -759,7 +763,7 @@ namespace CapriDesktop
                     string day = Path.Combine(folder, now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md");
                     if (!File.Exists(day)) File.WriteAllText(day, "# Capri and you, " + now.ToString("dddd d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture) + "\n> Kept on this PC only, never uploaded. Delete a line or the whole file whenever you like.\n\n");
                     File.AppendAllText(day, (who == null ? "*" + clock + " " + text + "*" : "**" + clock + " " + who + ":** " + text) + "\n");
-                    File.AppendAllText(QueuePath, now.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) + " " + (who == null ? text : who + ": " + text) + "\n");
+                    if (folded) File.AppendAllText(QueuePath, now.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) + " " + (who == null ? text : who + ": " + text) + "\n");
                 }
                 catch (IOException) { return; }
                 catch (UnauthorizedAccessException) { return; }
@@ -773,7 +777,7 @@ namespace CapriDesktop
         private static void Logged(string asked, string said)
         {
             if (!(asked ?? "").StartsWith("(", StringComparison.Ordinal)) Transcribe("You", asked);
-            Transcribe("Capri", said);
+            Transcribe("Capri", said, FoldsGlances || !(asked ?? "").StartsWith("(You glanced", StringComparison.Ordinal));
         }
 
         internal static string Memories()
@@ -3315,7 +3319,13 @@ namespace CapriDesktop
     // and spotting a line that brings back one she already said.
     internal static class Glances
     {
-        internal const string Line = "(You glance at their screen while they do their thing. Only this picture counts: your instructions, old chats and memories aren't evidence of what's open, so never take a game from them. Reply in two parts, with the labels SAW: and SAY: written exactly like that. SAW: only what you can clearly see, in under 20 plain words: the game or app and what's happening. SAY: your reaction in one short line, in character, to one specific thing you can see: tease them, gloat, wince or cheer them on, and don't ask what they're doing. A game scene, scoreboard, inventory or quiet moment is enough, but a document or code editor is work, not a game. A fight, match, stream or video is something they're watching: react as a viewer next to them, and never as if they're the one fighting or playing. Don't invent action from a still image, and never guess who a person is; name someone only if their name is written on screen. If you aren't sure what you're seeing, reply with just SKIP. If nothing's worth a line, still give the SAW part and make it SAY: SKIP. For a blank screen, a bare desktop or a loading screen, reply with just SKIP.)";
+#if CROSS
+        // Mac and Linux screenshots show her and her bubble too, so she once took herself for their anime wallpaper (a Bazzite user).
+        private const string Mirror = "The small red-haired anime girl with a speech bubble is you, Capri, not part of their screen, so leave her out. ";
+#else
+        private const string Mirror = "";
+#endif
+        internal const string Line = "(You glance at their screen while they do their thing. Only this picture counts: your instructions, old chats and memories aren't evidence of what's open, so never take a game from them. " + Mirror + "Reply in two parts, with the labels SAW: and SAY: written exactly like that. SAW: only what you can clearly see, in under 20 plain words: the game or app and what's happening. SAY: your reaction in one short line, in character, to one specific thing you can see: tease them, gloat, wince or cheer them on, and don't ask what they're doing. A game scene, scoreboard, inventory or quiet moment is enough, but a document or code editor is work, not a game. A fight, match, stream or video is something they're watching: react as a viewer next to them, and never as if they're the one fighting or playing. Don't invent action from a still image, and never guess who a person is; name someone only if their name is written on screen. If you aren't sure what you're seeing, reply with just SKIP. If nothing's worth a line, still give the SAW part and make it SAY: SKIP. For a blank screen, a bare desktop or a loading screen, reply with just SKIP.)";
         // Only SAY is said out loud, so only it goes in their language: SAW, the labels and SKIP are read back in English.
         internal const string Tongue = "(Write the SAY line in {0}. Keep SAW in English, and the labels SAW: and SAY: and the word SKIP exactly as written.)";
         // Her glance lines from the last hour count as already said.

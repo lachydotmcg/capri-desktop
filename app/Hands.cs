@@ -444,7 +444,7 @@ namespace CapriDesktop
         internal static bool HeardName(string words) { return Regex.IsMatch(words ?? "", SpokenName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant); }
 
         // Her chat and voice chat line about her tools, with SECURITY's line after it while one of her tools' toggles is off.
-        internal static string Note { get { return Noted + Security.Note + MiniNote + MiniBoard() + DrawingNote; } }
+        internal static string Note { get { return Here(Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote; } }
 
 #if CROSS
         private const string MiniNote = "";
@@ -490,7 +490,21 @@ namespace CapriDesktop
 
         // Her hands' prompt. While one of her tools' toggles is off in SECURITY, its line goes in after "Call the tool.", so she
         // still calls it and Capri asks them.
-        internal static string Prompt { get { string note = Security.Note; return (note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote; } }
+        internal static string Prompt { get { string note = Security.Note; return Here(note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote; } }
+
+#if CROSS
+        // What her prompts call this computer, their Mac or their PC, since it isn't a Windows PC. Limbs sets it.
+        internal static string ThisComputer = "PC";
+#endif
+
+        private static string Here(string prompt)
+        {
+#if CROSS
+            return prompt.Replace("the user's Windows PC", "the user's " + ThisComputer).Replace("change Windows settings", "change their " + ThisComputer + "'s settings");
+#else
+            return prompt;
+#endif
+        }
 
         private const string Handing =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You don't chat.\n" +
@@ -795,9 +809,14 @@ namespace CapriDesktop
         // Makes her clones or clears them, and says how it went. Her window sets it.
         internal static Func<string, int, string> Clone = delegate { return "Couldn't do that just now."; };
         internal static Func<bool> Cloning = delegate { return false; };
+#else
+        // Mac and Linux have no clones yet, so asking for them gets this straight away instead of a joke from her brain.
+        internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
+#endif
         // "Clone yourself", "make 5 clones", "start multiplying". A number makes that many, and no number lets them keep multiplying.
         private static readonly Regex CloneOn = new Regex(@"^(?:start |begin |go ahead and |just )?(?:(?:clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|copy(?:ing)?) your ?self(?: (?<count>\d+) times?)?(?: as (?:many|much)(?: times)? as you (?:want|like|can))?|clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|(?:make|spawn|create|summon)(?: me)? (?:(?<count>\d+) |an? |some |more |lots of |a bunch of |as many )?(?:clones?|copies|duplicates?)(?: of (?:your ?self|you))?(?: as you (?:want|like|can))?|(?:(?:activate|enable|start|begin|turn on|enter|go into|switch to)(?: the)? )?chaos mode(?: on)?|(?:unleash|cause) (?:the )?chaos)$", RegexOptions.IgnoreCase);
         private static readonly Regex CloneOff = new Regex(@"^(?:(?:stop|end|kill|remove|delete|clear|get rid of|destroy|banish|no more|enough(?: of)?|turn off|put away|send away)(?: (?:all|of|the|your))* (?:clones?|copies|duplicates?|cloning|duplicating|multiplying)|clones? off|chaos mode off|(?:stop|end|deactivate|disable|turn off|exit|leave)(?: the)? chaos(?: mode)?)$", RegexOptions.IgnoreCase);
+#if !CROSS
         private static readonly Regex CloneEnough = new Regex(@"^(?:ok(?:ay)? )?(?:stop|enough|that'?s enough)$", RegexOptions.IgnoreCase);
 #endif
         // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
@@ -922,6 +941,8 @@ namespace CapriDesktop
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
+#else
+                if (tool == "clone") return NoClones;
 #endif
                 if (tool == "remind") return Remind(args);
                 if (tool == "routine") return Routine(args);
@@ -1179,6 +1200,8 @@ namespace CapriDesktop
         {
 #if !CROSS
             if (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.") return result;
+#else
+            if (result == NoClones) return result;
 #endif
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser because |but (it's behind|I couldn't bring) )")) return result;
@@ -1918,6 +1941,8 @@ namespace CapriDesktop
                 return true;
             }
             if (CloneOff.IsMatch(text) || (CloneEnough.IsMatch(text) && Cloning())) { tool = "clone"; args.Action = "stop"; return true; }
+#else
+            if (CloneOn.IsMatch(text) || CloneOff.IsMatch(text)) { tool = "clone"; return true; }
 #endif
             string screen, window;
             string moved = MovingFor(text, out screen, out window);
@@ -2288,17 +2313,18 @@ namespace CapriDesktop
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube");
         }
 
-        // "Open Discord and Spotify" opens both, so nobody has to ask for each app on its own. Anything she doesn't know goes to her brain.
+        // "Open Discord and Spotify" opens both, so nobody has to ask for each app on its own, and so does "open steam and then
+        // spotify" (a Bazzite user). Anything she doesn't know goes to her brain.
         internal static bool Several(string said, List<KeyValuePair<string, ToolArguments>> calls)
         {
             Match found = Regex.Match(Asked(said), @"^(?:open|launch|start|run|load up|boot up|fire up)\s+(?:up\s+)?(.+)$", RegexOptions.IgnoreCase);
             if (!found.Success) return false;
-            string[] parts = Regex.Split(found.Groups[1].Value.Trim(), @"\s*,\s*(?:and\s+|&\s*)?|\s+and\s+|\s*&\s*", RegexOptions.IgnoreCase);
+            string[] parts = Regex.Split(found.Groups[1].Value.Trim(), @"\s*,\s*(?:and\s+|&\s*)?|\s+and\s+|\s*&\s*|\s+then\s+", RegexOptions.IgnoreCase);
             if (parts.Length < 2) return false;
             List<KeyValuePair<string, ToolArguments>> opening = new List<KeyValuePair<string, ToolArguments>>();
             foreach (string part in parts)
             {
-                string target = Regex.Replace(part.Trim(), @"^(?:open|launch|start|run)\s+", "", RegexOptions.IgnoreCase);
+                string target = Regex.Replace(part.Trim(), @"^(?:(?:and\s+)?then\s+)?(?:(?:open|launch|start|run)\s+)?", "", RegexOptions.IgnoreCase);
                 if (Installed(target)) opening.Add(new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = target }));
                 else if (Site(target)) opening.Add(new KeyValuePair<string, ToolArguments>("open_website", new ToolArguments { Site = target }));
                 else return false;
@@ -2405,7 +2431,14 @@ namespace CapriDesktop
         private static int Score(InstalledApp app, string want)
         {
             string name = AppName(app);
-            return name.Length == 0 ? 0 : Math.Max(Score(name, want), Score(Plain(app.Name), want));
+            if (name.Length == 0) return 0;
+            int score = Math.Max(Score(name, want), Score(Plain(app.Name), want));
+#if CROSS
+            // Mac and Linux list every .app and .desktop name, so part of a word doesn't count there: "minecraft" can't open an app
+            // that merely has it inside a longer name (a Bazzite user).
+            if (score == 1 && name.Contains(want)) return 0;
+#endif
+            return score;
         }
 
         private static string AppName(InstalledApp app)

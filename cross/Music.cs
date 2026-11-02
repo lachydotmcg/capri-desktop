@@ -30,18 +30,38 @@ namespace CapriDesktop
             return false;
         }
 
+        // Any MPRIS player playing something with a title or an artist, so browsers, VLC, mpv and Haruna count too (a Bazzite
+        // user). Without dbus-send, glib's gdbus asks instead.
         internal static bool Linux()
         {
+            bool glib = false;
             string names = Run("dbus-send", new[] { "--session", "--print-reply", "--dest=org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus.ListNames" });
+            if (names == null)
+            {
+                glib = true;
+                names = Run("gdbus", new[] { "call", "--session", "--dest", "org.freedesktop.DBus", "--object-path", "/org/freedesktop/DBus", "--method", "org.freedesktop.DBus.ListNames" });
+            }
             if (names == null) return false;
             HashSet<string> asked = new HashSet<string>();
-            foreach (Match player in Players.Matches(names))
+            foreach (Match player in Regex.Matches(names, @"org\.mpris\.MediaPlayer2\.[\w.\-]+"))
             {
                 if (!asked.Add(player.Value)) continue;
-                string state = Run("dbus-send", new[] { "--session", "--print-reply", "--dest=" + player.Value, "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties.Get", "string:org.mpris.MediaPlayer2.Player", "string:PlaybackStatus" });
-                if (state != null && state.Contains("\"Playing\"")) return true;
+                string state = Property(player.Value, "PlaybackStatus", glib);
+                if (state != null && Regex.IsMatch(state, "[\"']Playing[\"']") && Titled(Property(player.Value, "Metadata", glib))) return true;
             }
             return false;
+        }
+
+        private static string Property(string player, string name, bool glib)
+        {
+            if (glib) return Run("gdbus", new[] { "call", "--session", "--dest", player, "--object-path", "/org/mpris/MediaPlayer2", "--method", "org.freedesktop.DBus.Properties.Get", "'org.mpris.MediaPlayer2.Player'", "'" + name + "'" });
+            return Run("dbus-send", new[] { "--session", "--print-reply", "--dest=" + player, "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties.Get", "string:org.mpris.MediaPlayer2.Player", "string:" + name });
+        }
+
+        // Whether a Metadata reply, from dbus-send or gdbus, names a title or an artist.
+        internal static bool Titled(string data)
+        {
+            return data != null && Regex.IsMatch(data, "\"xesam:(?:title|artist)\"\\s*variant\\s*(?:array \\[\\s*)?string \"[^\"]|'xesam:(?:title|artist)': <\\[?(?:'[^']|\"[^\"])");
         }
 
         // What's playing right now, as "artist - title", for her Night City cheer: Spotify and Music on Mac (only when they're
