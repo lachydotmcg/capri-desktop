@@ -488,6 +488,133 @@ namespace CapriDesktop
             }
         }
 
+        // One app's own volume in a pretend volume mixer: Spotify, two Discord processes, a game, a muted Chrome and an app that
+        // ignores changes. Each change is read back from the mixer, and nothing touches their real apps' sound (Lachy, 3 Nov: "turn
+        // the game down" works for a brain that works jobs out).
+        private static void SmokeAppVolume(List<string> checks)
+        {
+            Func<List<AppSound>> soundsWas = Hands.Sounds;
+            Func<int, float?, bool?, bool> setWas = Hands.SetSound;
+            Func<string, string, bool> runningWas = Hands.Running;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            TcpListener fake = null;
+            try
+            {
+                List<AppSound> mixer = new List<AppSound>
+                {
+                    new AppSound { App = "Spotify.exe", Id = 10, Level = 0.5f, Playing = true }, new AppSound { App = "Discord.exe", Id = 20, Level = 1f },
+                    new AppSound { App = "Discord.exe", Id = 21, Level = 1f, Playing = true }, new AppSound { App = "FortniteClient-Win64-Shipping.exe", Id = 30, Level = 0.8f, Playing = true },
+                    new AppSound { App = "chrome.exe", Id = 40, Level = 0.6f, Muted = true }, new AppSound { App = "Stuck.exe", Id = 50, Level = 0.3f }
+                };
+                List<string> changed = new List<string>();
+                bool readable = true;
+                // Fresh copies each read, the way each read of the real mixer is.
+                Hands.Sounds = delegate
+                {
+                    if (!readable) return null;
+                    return mixer.ConvertAll(delegate(AppSound sound) { return new AppSound { App = sound.App, Id = sound.Id, Level = sound.Level, Muted = sound.Muted, Playing = sound.Playing }; });
+                };
+                Hands.SetSound = delegate(int id, float? level, bool? muted)
+                {
+                    changed.Add(id + (level.HasValue ? " " + Math.Round(level.Value * 100) : "") + (muted.HasValue ? (muted.Value ? " muted" : " unmuted") : ""));
+                    if (id == 50) return true;
+                    foreach (AppSound sound in mixer)
+                    {
+                        if (sound.Id != id) continue;
+                        if (level.HasValue) sound.Level = level.Value;
+                        if (muted.HasValue) sound.Muted = muted.Value;
+                    }
+                    return true;
+                };
+                Hands.Running = delegate(string name, string id) { return name == "steam"; };
+                Func<string, string, string, string> mix = delegate(string action, string name, string level) { return Hands.Do("app_volume", new ToolArguments { Action = action, Name = name, Level = level }); };
+                string[,] asks =
+                {
+                    { "now", null, null, "In the volume mixer: Spotify 50%, playing now; Discord 100%, playing now; FortniteClient-Win64-Shipping 80%, playing now; Chrome 60%, muted; Stuck 30%." },
+                    { "now", "spotify", null, "Spotify is at 50% in the volume mixer." }, { "now", "chrome", null, "Chrome is at 60% in the volume mixer, and it's muted." },
+                    { "down", "fortnite", null, "Turned FortniteClient-Win64-Shipping down to 60% in the volume mixer." }, { "down", "FortniteClient-Win64-Shipping.exe", "10", "Turned FortniteClient-Win64-Shipping down to 50% in the volume mixer." },
+                    { "set", "Discord", "40", "Set Discord to 40% in the volume mixer." }, { "up", "spotify", "30", "Turned Spotify up to 80% in the volume mixer." },
+                    { "up", "chrome", null, "Turned Chrome up to 80% in the volume mixer." }, { "mute", "spotify", null, "Muted Spotify in the volume mixer." },
+                    { "mute", "Spotify", null, "Spotify is already muted in the volume mixer." }, { "down", "spotify", null, "Turned Spotify down to 60% in the volume mixer, but it's muted." },
+                    { "unmute", "spotify", null, "Unmuted Spotify: it's at 60% in the volume mixer." }, { "unmute", "spotify", null, "Spotify isn't muted: it's at 60% in the volume mixer." },
+                    { "set", "spotify", "0", "Set Spotify to 0% in the volume mixer." }, { "down", "spotify", null, "Spotify is already at 0% in the volume mixer." },
+                    { "set", "discord", "100", "Set Discord to 100% in the volume mixer." }, { "up", "discord", null, "Discord is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume with media, can still go up." },
+                    { "set", "stuck", "80", "Couldn't set Stuck's volume: it's still at 30%." }, { "set", "spotify", "150", "Couldn't set Spotify's volume: it goes from 0 to 100." },
+                    { "now", "steam", null, "steam hasn't made any sound since it opened, so it has no volume of its own in the mixer yet." },
+                    { "set", "steam", "50", "Couldn't change steam's volume: it hasn't made any sound since it opened, so it has no volume of its own in the mixer yet." },
+                    { "now", "minecraft", null, "minecraft isn't open, or it has another name in the mixer: list_windows names its program." }, { "up", null, null, "Which app, choom?" }
+                };
+                List<string> wrong = new List<string>();
+                for (int i = 0; i < asks.GetLength(0); i++)
+                {
+                    string got = mix(asks[i, 0], asks[i, 1], asks[i, 2]);
+                    if (got != asks[i, 3]) wrong.Add(asks[i, 0] + " " + asks[i, 1] + " " + asks[i, 2] + " said \"" + got + "\"");
+                }
+                if (wrong.Count > 0) throw new Exception("Her app volume didn't say where each app ended up: " + string.Join(" / ", wrong.ToArray()));
+                string moves = string.Join(",", changed.ToArray());
+                if (!moves.StartsWith("30 60,30 50,20 40,21 40,10 80,40 80 unmuted,10 muted,10 60,10 unmuted,10 0,20 100,21 100,50 80", StringComparison.Ordinal))
+                    throw new Exception("Her app volume moved the wrong sounds: " + moves);
+                if (!Hands.Failed(mix("set", "stuck", "80")) || !Hands.Failed(mix("set", "steam", "50")) || Hands.Failed(mix("now", "steam", null)) || Hands.Failed(mix("now", "spotify", null)))
+                    throw new Exception("A change that didn't happen wasn't read as one.");
+                readable = false;
+                string unread = mix("now", null, null);
+                readable = true;
+                if (unread != "Couldn't read the volume mixer just now.") throw new Exception("An unreadable mixer wasn't said: " + unread);
+                // Reading it never asks first and stays out of her transcript; changing it is Music, media and volume, like the PC's volume.
+                ToolArguments quieter = new ToolArguments { Action = "down", Name = "fortnite" };
+                if (!Hands.Valid("app_volume", new ToolArguments { Action = "now" }) || !Hands.Valid("app_volume", quieter) || !Hands.Valid("app_volume", new ToolArguments { Action = "up", Name = "spotify", Level = "30" })
+                    || Hands.Valid("app_volume", new ToolArguments { Action = "set", Name = "spotify" }) || Hands.Valid("app_volume", new ToolArguments { Action = "set", Name = "spotify", Level = "loud" })
+                    || Hands.Valid("app_volume", new ToolArguments { Action = "mute" }) || Hands.Valid("app_volume", new ToolArguments { Action = "blast", Name = "spotify" })
+                    || !Hands.Checking("app_volume", new ToolArguments { Action = "now" }) || Hands.Checking("app_volume", quieter)
+                    || Security.Needs("app_volume", new ToolArguments { Action = "now" }) != -1 || Security.Needs("app_volume", quieter) != Security.Media
+                    || Security.Asking("app_volume", quieter) != "turn fortnite down" || Security.Asking("app_volume", new ToolArguments { Action = "set", Name = "Spotify", Level = "30" }) != "set Spotify to 30%")
+                    throw new Exception("Her app volume's calls weren't checked.");
+                // Only a brain that works jobs out gets it: her one-shot hands and voice chat keep the tools they had.
+                Hands.Kit kit = Hands.KitFor();
+                bool voiced = false;
+                for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "app_volume") voiced = true;
+                if (!kit.WorkTools.Contains("\"name\":\"app_volume\"") || kit.Tools.Contains("app_volume") || voiced || !Hands.WorkingOut.Contains("is app_volume; the whole PC's is media"))
+                    throw new Exception("Her app volume reached her one-shot hands or voice chat, or a planner doesn't get it.");
+                // A brain that works jobs out reads the mixer, turns the game down, and hears where it ended up.
+                List<string> asked = new List<string>();
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                foreach (AppSound sound in mixer) if (sound.Id == 30) sound.Level = 0.8f;
+                changed.Clear();
+                Brain.OpenAi = FakeServer(new[] { calls("app_volume", "{\"action\":\"now\"}"), calls("app_volume", "{\"action\":\"down\",\"name\":\"fortnite\",\"level\":\"40\"}"), says("Turned Fortnite down to 40%, choom. Discord's at full.") }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                List<string> did = new List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + args.Action + ":" + args.Name); return Hands.Do(name, args); };
+                string reply = planner.Ask("the game's way too loud, I can't hear my friends on discord");
+                string[] heard;
+                lock (asked) heard = asked.ToArray();
+                if (reply != "Turned Fortnite down to 40%, choom. Discord's at full." || string.Join(",", did.ToArray()) != "app_volume:now:,app_volume:down:fortnite" || heard.Length != 3
+                    || !heard[0].Contains("\"name\":\"app_volume\"") || !heard[1].Contains("FortniteClient-Win64-Shipping 80%, playing now") || !heard[2].Contains("Turned FortniteClient-Win64-Shipping down to 40% in the volume mixer.") || string.Join(",", changed.ToArray()) != "30 40")
+                    throw new Exception("Her planner didn't read the mixer or hear where the game ended up: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + heard.Length + " calls");
+                // Windows' own mixer answers on this PC; only reading it here, so nothing of theirs gets louder or quieter.
+                List<AppSound> real = Mixer.Sounds();
+                if (real == null) throw new Exception("Windows' volume mixer couldn't be read on this PC.");
+                checks.Add("PASS her app volume reads and changes one app's own volume in the mixer apart from the PC's: lists every app with a sound and which are playing, sets, steps up and down, mutes and unmutes Spotify, both Discord processes, a game by its program and a muted Chrome, reads each back, says when one is already as far as it goes, when an app ignores the change, hasn't made a sound yet or isn't open, and when the mixer can't be read; reading never asks first, changing it is Music, media and volume; only a planner gets it, and it turns the game down after reading the mixer; Windows' mixer read here: " + real.Count + " sounds");
+                checks.Add("LIMIT app volume on their own apps: a game, Discord and Spotify each show in Windows' mixer once they've made sound; ask \"turn the game down a bit\" with a game and Discord both playing");
+            }
+            finally
+            {
+                Hands.Sounds = soundsWas;
+                Hands.SetSound = setWas;
+                Hands.Running = runningWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         // What she knows about herself and her help page cover her window tool, the settings she can change herself, pausing and
         // timers, in the house style: exact menu names, short lines.
         private static void SmokeHelpForTools(List<string> checks)
@@ -497,7 +624,7 @@ namespace CapriDesktop
                 { "how do I move a window to my other monitor?", "Arrange windows:" }, { "can you snap my window to the left?", "Arrange windows:" },
                 { "what settings can you change yourself?", "Settings she can change:" }, { "can you make yourself bigger?", "Settings she can change:" },
                 { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" },
-                { "can you set a timer?", "Reminders:" }
+                { "can you set a timer?", "Reminders:" }, { "can you turn the game down?", "App volume:" }, { "can you use the volume mixer?", "App volume:" }
             };
             for (int i = 0; i < asks.GetLength(0); i++)
             {
@@ -523,11 +650,11 @@ namespace CapriDesktop
                 return;
             }
             string help = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "site", "help", "knowledge.md"));
-            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
+            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
                 if (help.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page is missing: " + part);
             int from = help.IndexOf("### Move, snap and resize windows (0.8.0)", StringComparison.Ordinal), to = help.IndexOf("### Discord and Windows shortcuts", from, StringComparison.Ordinal);
             if (to < from || help.Substring(from, to - from).IndexOf('\u2014') >= 0) throw new Exception("Her help page's new sections are out of place or use an em dash.");
-            checks.Add("PASS self knowledge and her help page cover her window tool, the settings she can change herself, pausing only what's playing, timers and Close and switch apps and tabs, with exact menu names");
+            checks.Add("PASS self knowledge and her help page cover her window tool, the settings she can change herself, pausing only what's playing, timers, one app's own volume and Close and switch apps and tabs, with exact menu names");
         }
 
         // Her settings tool's sliders and everyday switches on pretend settings: a step by name, by number or one step up or down,

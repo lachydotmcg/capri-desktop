@@ -244,6 +244,7 @@ namespace CapriDesktop
                 case "play_music": return Media;
                 case "shortcut": return Shortcuts;
                 case "app_window": return Windows;
+                case "app_volume": return action == "now" ? -1 : Media;
                 case "power": return action == "cancel" ? -1 : Power;
                 case "use_computer": return Mouse;
                 default: return -1;
@@ -380,6 +381,17 @@ namespace CapriDesktop
                         case "mute": return "mute your PC";
                         case "unmute": return "unmute your PC";
                         default: return "control what's playing";
+                    }
+                case "app_volume":
+                    string sounding = Plain(a.Name, "that app");
+                    switch (a.Action)
+                    {
+                        case "up": return "turn " + sounding + " up";
+                        case "down": return "turn " + sounding + " down";
+                        case "set": return "set " + sounding + " to " + Plain(a.Level, "that") + (Regex.IsMatch(a.Level ?? "", @"^\s*\d+\s*$") ? "%" : "");
+                        case "mute": return "mute " + sounding;
+                        case "unmute": return "unmute " + sounding;
+                        default: return "check how loud " + sounding + " is";
                     }
                 case "play_music": return "play " + Plain(a.Song, "some music") + (a.App == "spotify" ? " on Spotify" : a.App == "youtube" ? " on YouTube" : "");
                 case "shortcut":
@@ -604,7 +616,7 @@ namespace CapriDesktop
             "";
 #else
             "To arrange a window, use app_window: maximize, restore, snap it to half a monitor, move_to_screen for another monitor, or move and resize it. list_windows names their monitors, and with a name says where that app's window is and how big, so check it before a move or resize by pixels. Its result says where the window really ended up, so tell them that, like an app that won't go any smaller. " +
-            "media goes by what Windows says is playing, so pausing never starts the music, and now_playing says what any player has on, paused or not. A timer is a reminder: for set a timer for 10 minutes, call remind with when in 10 minutes. ";
+            "media goes by what Windows says is playing, so pausing never starts the music, and now_playing says what any player has on, paused or not. A timer is a reminder: for set a timer for 10 minutes, call remind with when in 10 minutes. One app's own volume, like turning the game down so they can hear Discord, is app_volume; the whole PC's is media. ";
 #endif
 
         // Her own settings, which only her Windows window can switch so far.
@@ -743,12 +755,14 @@ namespace CapriDesktop
 #if !CROSS
             { "capri_settings", "Read or change your own Capri settings when they ask: list says how each is set right now, on or off with a name switches one, and set with a name and a level moves one of your sliders, and each says how it's set afterwards. They're yours, not their PC's: Windows settings like Bluetooth or Wi-Fi are use_computer jobs, their PC's volume is media, and their Discord mic is the shortcut tool's discord_mute. Switches: voice is you talking out loud (off means you type instead); quiet is your Quiet mode, with no pop-ins, comments or check-ins until it's off; mic is your ears in voice chat, only while voice chat is on; check_ins is Check in on me; wander is you walking around their screens by yourself; dance_to_music is you dancing when music plays; head_pats lets them pat your head with the cursor; chaos_when_upset lets an insult set your clones off; sit_on_windows is you sitting on their windows' top edges; always_on_top keeps you above their windows; mini_player is your music player; typing_sound is your typing noise while you write; follow_ups is your second thought after an answer; hide_in_full_screen hides you while a full screen app is up; glitch_in is your entrance when Capri starts; clip_my_games keeps their game's video for clips; save_big_moments clips big moments by itself; live_reactions is your quick reactions over their games; gaming_mode only changes when they ask for Gaming Mode by name; hologram lets clicks pass through you; watch_my_screen is your timed glances at their screen; game_comments is what you say about a game they're playing, which runs apart from watch_my_screen and check_ins, so when they want no comments at all, both go off (on picks only when something happens). Sliders, with their steps from the bottom: size is how big you are (Tiny, Small, Small+, Medium, Medium+, Large, Large+, Huge, Huge+, Giant); wander is how much you wander (Off, Rarely, Sometimes, Often, Restless); pop_ins is how often you pop in (Rarely, Sometimes, Often); sleep is how long a quiet PC takes to send you to sleep (Never, 1 min, 2 min, 5 min, 10 min, 30 min); volume is your own voice's volume (Mute, 10% to 100% in tens, 125%, 150%); voice_speed is how fast you talk (0.7x, 0.8x, 0.9x, Normal, 1.1x to 1.5x); replies is how long your replies are (Short, Medium, Long); bubble is how long your replies stay up (Quick, Normal, Long). Keys, brains, your voice service, SECURITY, Hey Capri and what you remember aren't here and stay in Capri Mainframe.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"list, on or off for the switch in name, or set for the slider in name\",\"enum\":[\"list\",\"on\",\"off\",\"set\"]},\"name\":{\"type\":\"string\",\"description\":\"Which switch for on or off, or which slider for set\",\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"dance_to_music\",\"head_pats\",\"chaos_when_upset\",\"sit_on_windows\",\"always_on_top\",\"mini_player\",\"typing_sound\",\"follow_ups\",\"hide_in_full_screen\",\"glitch_in\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\",\"watch_my_screen\",\"game_comments\",\"size\",\"pop_ins\",\"sleep\",\"volume\",\"voice_speed\",\"replies\",\"bubble\"]},\"level\":{\"type\":\"string\",\"description\":\"For set: one of the slider's steps, like Large, Often, 5 min, 60% or 1.2x, or up, down, bigger, smaller, louder, quieter, faster, slower, more or less for one step, or max or min\"}},\"required\":[\"action\"]}" },
+            { "app_volume", "Read or change one app's own volume in Windows' volume mixer, apart from their PC's volume (media): like turning the game down so they can hear Discord, turning Spotify down, or muting Chrome. now with a name says how loud that app is and whether it's muted, and now with no name lists every app with a sound and which are playing. An app only has a volume of its own once it has made sound since it opened. For a game, use its program from list_windows. Each change says where it ended up. Their Discord mic is the shortcut tool's discord_mute, and your own voice's volume is capri_settings.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"now to read, set to a level, up or down a step, mute or unmute\",\"enum\":[\"now\",\"set\",\"up\",\"down\",\"mute\",\"unmute\"]},\"name\":{\"type\":\"string\",\"description\":\"The app, like spotify, discord or chrome, or a game's program\"},\"level\":{\"type\":\"string\",\"description\":\"For set, its volume from 0 to 100. For up or down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}" },
 #endif
         };
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set"); }
+        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now"); }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1104,6 +1118,7 @@ namespace CapriDesktop
                 if (tool == "check_app") return CheckApp(args.Name);
 #if !CROSS
                 if (tool == "capri_settings") return Settings(args);
+                if (tool == "app_volume") return AppVolume(args);
                 if (tool == "draw") return Draw(args);
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
                 if (tool == "hologram") return Hologram(args.Action);
@@ -3122,6 +3137,12 @@ namespace CapriDesktop
             if (tool == "list_windows") return true;
 #if !CROSS
             if (tool == "capri_settings") return args.Action == "list" || (args.Action == "on" || args.Action == "off") && OwnRow(args.Name) >= 0 || args.Action == "set" && LevelRow(args.Name) >= 0 && Named(args.Level);
+            if (tool == "app_volume")
+            {
+                int volume;
+                bool leveled = int.TryParse(args.Level, out volume) && volume >= 0 && volume <= 100;
+                return args.Action == "now" || Regex.IsMatch(args.Action ?? "", @"\A(set|up|down|mute|unmute)\z") && Named(args.Name) && (args.Action == "set" ? leveled : string.IsNullOrEmpty(args.Level) || leveled);
+            }
 #endif
             if (tool == "open_website") return Named(args.Site) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
             if (tool == "look_at_screen") return true;
@@ -4758,6 +4779,117 @@ namespace CapriDesktop
             finally { foreach (Process process in all) process.Dispose(); }
             return false;
         }
+
+#if !CROSS
+        // Each app's sounds in Windows' volume mixer, and setting one process's, swapped for stand-ins in the checks.
+        internal static Func<List<AppSound>> Sounds = Mixer.Sounds;
+        internal static Func<int, float?, bool?, bool> SetSound = Mixer.Set;
+
+        // One app's own volume in the mixer, apart from the PC's: how loud it is, or set, a step up or down, mute or unmute, each
+        // read back from the mixer afterwards so her brain hears where it really ended up.
+        private static string AppVolume(ToolArguments args)
+        {
+            string action = string.IsNullOrEmpty(args.Action) ? "now" : args.Action;
+            string wanted = (args.Name ?? "").Trim();
+            List<AppSound> all = MixerNow();
+            if (all == null) return "Couldn't read the volume mixer just now.";
+            if (wanted.Length == 0) return action == "now" ? Mixed(all) : "Which app, choom?";
+            List<AppSound> mine = SoundsOf(all, wanted);
+            if (mine.Count == 0)
+            {
+                bool running;
+                try { running = Running(wanted, null); }
+                catch (Exception) { running = false; }
+                string why = running ? "hasn't made any sound since it opened, so it has no volume of its own in the mixer yet" : "isn't open, or it has another name in the mixer: list_windows names its program";
+                return action == "now" ? wanted + " " + why + "." : "Couldn't change " + wanted + "'s volume: it " + why + ".";
+            }
+            string name = Tunes.AppName(mine[0].App);
+            int now = MixerPercent(Loudest(mine)), level;
+            bool muted = AllMuted(mine), leveled = int.TryParse(args.Level, out level) && level >= 0 && level <= 100;
+            if (action == "now") return name + " is at " + now + "% in the volume mixer" + (muted ? ", and it's muted." : ".");
+            if (action == "mute" || action == "unmute")
+            {
+                bool muting = action == "mute";
+                if (muted == muting) return muting ? name + " is already muted in the volume mixer." : name + " isn't muted: it's at " + now + "% in the volume mixer.";
+                foreach (int id in SoundIds(mine)) SetSound(id, null, muting);
+                List<AppSound> heard = SoundsOf(MixerNow() ?? new List<AppSound>(), wanted);
+                if (heard.Count == 0 || AllMuted(heard) != muting) return "Couldn't " + action + " " + name + ": it's still " + (muting ? "on" : "muted") + ".";
+                return muting ? "Muted " + name + " in the volume mixer." : "Unmuted " + name + ": it's at " + MixerPercent(Loudest(heard)) + "% in the volume mixer.";
+            }
+            int target;
+            if (action == "set")
+            {
+                if (!leveled) return "Couldn't set " + name + "'s volume: it goes from 0 to 100.";
+                target = level;
+            }
+            else if (action == "up" || action == "down")
+            {
+                if (action == "up" && now >= 100 && !muted) return name + " is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume with media, can still go up.";
+                if (action == "down" && now <= 0) return name + " is already at 0% in the volume mixer.";
+                int step = leveled && level > 0 ? level : 20;
+                target = Math.Max(0, Math.Min(100, action == "up" ? now + step : now - step));
+            }
+            else return "There's no app_volume action called " + action + ".";
+            // Turning one up or setting it above nothing unmutes it too, the way moving its slider in the mixer does.
+            bool unmute = muted && target > 0 && action != "down";
+            foreach (int id in SoundIds(mine)) SetSound(id, target / 100f, unmute ? false : (bool?)null);
+            List<AppSound> read = SoundsOf(MixerNow() ?? new List<AppSound>(), wanted);
+            int ended = read.Count == 0 ? -1 : MixerPercent(Loudest(read));
+            if (ended < 0 || Math.Abs(ended - target) > 1)
+                return "Couldn't " + (action == "set" ? "set " + name + "'s volume" : "turn " + name + " " + action) + ": it's " + (ended < 0 ? "gone from the mixer" : "still at " + ended + "%") + ".";
+            return (action == "set" ? "Set " + name + " to " : "Turned " + name + " " + action + " to ") + ended + "% in the volume mixer" + (AllMuted(read) ? ", but it's muted." : ".");
+        }
+
+        private static List<AppSound> MixerNow()
+        {
+            try { return Sounds(); }
+            catch (Exception) { return null; }
+        }
+
+        // Every app with a sound in the mixer, each once, with which are playing right now.
+        private static string Mixed(List<AppSound> all)
+        {
+            List<string> seen = new List<string>(), parts = new List<string>();
+            foreach (AppSound sound in all)
+            {
+                string name = Tunes.AppName(sound.App);
+                if (seen.Contains(name.ToLowerInvariant())) continue;
+                seen.Add(name.ToLowerInvariant());
+                List<AppSound> mine = all.FindAll(delegate(AppSound other) { return string.Equals(Tunes.AppName(other.App), name, StringComparison.OrdinalIgnoreCase); });
+                parts.Add(name + " " + MixerPercent(Loudest(mine)) + "%" + (AllMuted(mine) ? ", muted" : "") + (mine.Exists(delegate(AppSound one) { return one.Playing; }) ? ", playing now" : ""));
+            }
+            return parts.Count == 0 ? "No app has made any sound since it opened, so the volume mixer is empty." : "In the volume mixer: " + string.Join("; ", parts.ToArray()) + ".";
+        }
+
+        // An app's sounds by its name or its program's, like spotify, discord, chrome or a game's FortniteClient.
+        private static List<AppSound> SoundsOf(List<AppSound> all, string wanted)
+        {
+            string want = Plain(Regex.Replace(wanted, @"^(?:the|my|their)\s+|\.exe$", "", RegexOptions.IgnoreCase)).Replace(" ", "");
+            return all.FindAll(delegate(AppSound sound)
+            {
+                string program = Plain(Regex.Replace(sound.App ?? "", @"\.exe$", "", RegexOptions.IgnoreCase)).Replace(" ", ""), shown = Plain(Tunes.AppName(sound.App)).Replace(" ", "");
+                return want.Length > 0 && (program == want || shown == want || want.Length >= 4 && (program.StartsWith(want, StringComparison.Ordinal) || shown.StartsWith(want, StringComparison.Ordinal)));
+            });
+        }
+
+        private static float Loudest(List<AppSound> sounds)
+        {
+            float most = 0;
+            foreach (AppSound sound in sounds) most = Math.Max(most, sound.Level);
+            return most;
+        }
+
+        private static bool AllMuted(List<AppSound> sounds) { return sounds.Count > 0 && sounds.TrueForAll(delegate(AppSound sound) { return sound.Muted; }); }
+
+        private static int MixerPercent(float level) { return (int)Math.Round(level * 100); }
+
+        private static List<int> SoundIds(List<AppSound> sounds)
+        {
+            List<int> ids = new List<int>();
+            foreach (AppSound sound in sounds) if (!ids.Contains(sound.Id)) ids.Add(sound.Id);
+            return ids;
+        }
+#endif
 
 #if !CROSS
         // Her own switches her settings tool reads and flips: the name her brain uses and what she calls it. Keys, brains and

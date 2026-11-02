@@ -1115,6 +1115,7 @@ If her reply says she can't open, play or access something she can do (like "I d
 - "Pause", "next", "previous", "turn it up", "turn it down", "mute", "unmute", and other ways of saying them: "turn up the volume a bit", "it's too loud", "set the volume to 50%", "turn on the volume", "turn mute off", "skip to the next song". Spanish and French work too ("sube el volumen", "baisse le son").
 - These work on every brain, straight away, and even before you've set one up.
 - Volume means your PC's volume. She only drags Spotify's own slider when you say Spotify ("turn Spotify up").
+- One app's own volume (0.8.0), with a cloud brain: "turn the game down", "set Discord to 50%", "mute Chrome", "what's making noise?". She changes it in Windows' volume mixer and says where it ended up. An app shows there once it has made sound.
 - "What's playing?" covers Spotify, a YouTube tab or any player Windows shows in its volume flyout, and says when it's paused.
 - From 0.8.0, pause and play go by what Windows says is playing: "pause" with nothing playing doesn't start your music ("Nothing's playing: Spotify is already paused on Consume by Chase Atlantic."), and "resume" with music on says it's already playing. "Next" and "previous" name the song they landed on.
 - "Play something": she picks from the Cyberpunk 2077 and Edgerunners soundtracks.
@@ -1207,7 +1208,7 @@ The presets:
 
 The toggles, in order:
 1. Open apps, games and sites
-2. Music, media and volume
+2. Music, media and volume. It covers one app's own volume too.
 3. Shortcuts (screenshots, Game Bar, captions, Discord mute)
 4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too.
 5. Shut down, restart, sleep, lock and sign out

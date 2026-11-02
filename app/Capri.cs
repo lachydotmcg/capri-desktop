@@ -23468,6 +23468,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSettingsTool", delegate { SmokeSettingsTool(checks); });
             Section(checks, "SmokeOwnSliders", delegate { SmokeOwnSliders(checks); });
             Section(checks, "SmokeEverydayAsks", delegate { SmokeEverydayAsks(checks); });
+            Section(checks, "SmokeAppVolume", delegate { SmokeAppVolume(checks); });
             Section(checks, "SmokeHelpForTools", delegate { SmokeHelpForTools(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
