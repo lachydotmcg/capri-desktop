@@ -1749,7 +1749,7 @@ namespace CapriDesktop
         {
             if (!SmokeRun.EnterSection(name)) return;
             string before = SmokeState();
-            bool mainframeShown = mainframe.Visible, onTop = preferences.OnTop;
+            bool mainframeShown = mainframe.Visible, onTop = preferences.OnTop, topWas = NativeTop;
             FormWindowState mainframeState = mainframe.WindowState;
             try { run(); }
             catch (Exception problem) { TestFailed = true; checks.Add("FAIL section " + name + ": " + problem.Message); }
@@ -1765,6 +1765,8 @@ namespace CapriDesktop
                     if (menu.Visible) menu.Close();
                     if (playerMenu != null && playerMenu.Visible) playerMenu.Close();
                     if (preferences.OnTop != onTop) { preferences.OnTop = onTop; TopMost = onTop; Layer(); }
+                    // WinForms keeps its own TopMost, so a window that lost Windows' topmost bit behind its back is told again directly.
+                    if (NativeTop != topWas && IsHandleCreated) { Native.SetWindowPos(Handle, new IntPtr(topWas ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); Layer(); }
                     if (!mainframeShown) { if (mainframe.Visible) mainframe.Hide(); }
                     else
                     {
@@ -1780,8 +1782,12 @@ namespace CapriDesktop
         {
             return "Mainframe " + (mainframe.Visible ? mainframe.WindowState.ToString() : "hidden") + ", her " + (hidden ? "hidden" : "shown")
                 + ", her menu " + (menu.Visible ? "open" : "closed") + ", the player's menu " + (playerMenu != null && playerMenu.Visible ? "open" : "closed")
-                + ", Always on top " + preferences.OnTop;
+                + ", Always on top " + preferences.OnTop + ", topmost in Windows " + NativeTop;
         }
+
+        // Windows' own topmost bit on her window. An owned window made not-topmost takes its owner down with it, which WinForms'
+        // TopMost never hears about (the mini player above her at smoke step 0).
+        private bool NativeTop { get { return IsHandleCreated && (Native.GetWindowLong(Handle, -20) & 0x8) != 0; } }
         internal bool TestFinished;
         internal string TestStep = "startup";
 
