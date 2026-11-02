@@ -1559,6 +1559,9 @@ namespace CapriDesktop
         private bool earsAwaited;
         internal bool SettingUpVoice;
         private readonly Ears ears = new Ears();
+        private Ears micTest;
+        private Action<double> micTestLevel;
+        private double micTestUntil, micTestPeak;
         private readonly Speaker speaker;
         private readonly Speaker effects;
         private readonly Speaker typist;
@@ -1583,6 +1586,8 @@ namespace CapriDesktop
         private bool resting;
         private int loudRun;
         private Dictation dictation;
+        private string dictationMic;
+        private double dictationMicAt;
         private volatile bool local;
         private volatile bool earsShut;
         private volatile bool transcribing;
@@ -7573,6 +7578,7 @@ namespace CapriDesktop
 
         internal void ChooseMic(string id)
         {
+            StopMicTest(false);
             preferences.Mic = string.IsNullOrEmpty(id) ? null : id;
             ears.Chosen = preferences.Mic;
             SavePreferences();
@@ -7740,6 +7746,20 @@ namespace CapriDesktop
         // Free voice chat checks two things: a failed ears download gets another go, and a mic that sends only silence gets a warning.
         private void CheckHearing(double now)
         {
+            CheckMicTest(now);
+            if (chatting && local && dictation != null && earsReady && now >= dictationMicAt)
+            {
+                dictationMicAt = now + 2;
+                string current = Dictation.DefaultMic();
+                if (current != null && !string.Equals(current, dictationMic, StringComparison.OrdinalIgnoreCase))
+                {
+                    Brain.Log("ears", -1, "Windows default mic changed from " + dictationMic + " to " + current + "; reopening Windows speech.");
+                    dictation.Dispose();
+                    dictation = null;
+                    earsReady = false;
+                    ListenLocally();
+                }
+            }
             KeepListening(now);
             if (earsRetryAt >= 0 && now >= earsRetryAt)
             {
@@ -7771,7 +7791,7 @@ namespace CapriDesktop
         // Twice in a minute is more than a blip, so she says so.
         private void ReopenMic(double now)
         {
-            Brain.Log("ears", -1, "Her mic sent nothing for 5 s, so she opened it again.");
+            Brain.Log("ears", -1, "Her mic stopped sending or Windows changed the input, so she opened it again.");
             ears.Stop();
             try { if (!testing) ears.Start(); }
             catch (VoiceException error)
@@ -7806,7 +7826,7 @@ namespace CapriDesktop
         private bool WakeReady { get { return wakeReadyTest ?? heyCapri.Ready; } }
 
         // Voice chat has the mic, or they muted it (her mute or Windows'), or pressed her quiet key.
-        private bool WakePaused { get { return chatting || ears.Muted || shushed || wakeMicMuted; } }
+        private bool WakePaused { get { return chatting || micTest != null || ears.Muted || shushed || wakeMicMuted; } }
 
         // "Hey Capri" listens on its own mic while the setting is on. The first turn-on gets her free voice, which brings
         // sherpa-onnx, if it isn't in, then the wake word's pack. Anything that pauses it closes the mic; while she talks the
@@ -8156,6 +8176,56 @@ namespace CapriDesktop
 
         internal const string TestLine = "Voice link online. Miss me, choom?";
         internal const string SilentNote = "Her voice is OFF. Pick another row under VOICE to hear her.";
+
+        internal void TestMic()
+        {
+            if (micTest != null) { StopMicTest(true); return; }
+            if (wakeOpen) CloseWake();
+            Ears input = ears.Listening ? ears : new Ears();
+            micTest = input;
+            input.Chosen = preferences.Mic;
+            micTestUntil = clock.Elapsed.TotalSeconds + 10;
+            micTestPeak = 0;
+            micTestLevel = delegate(double value)
+            {
+                Post(delegate
+                {
+                    if (micTest != input) return;
+                    micTestPeak = Math.Max(micTestPeak, value);
+                    mainframe.ShowMicTest(true, value, input.Muted);
+                });
+            };
+            input.Level += micTestLevel;
+            mainframe.ShowMicTest(true, 0, input.Muted);
+            try { if (!testing) input.Start(); }
+            catch (VoiceException error) { StopMicTest(false); mainframe.VoiceNote(error.Message, true); }
+        }
+
+        private void CheckMicTest(double now)
+        {
+            if (micTest == null) return;
+            if (micTest.Stalled)
+            {
+                StopMicTest(false);
+                mainframe.VoiceNote("Your mic stopped or changed during the test. Pick it under VOICE and test again.", true);
+            }
+            else if (now >= micTestUntil) StopMicTest(true);
+        }
+
+        private void StopMicTest(bool report)
+        {
+            Ears input = micTest;
+            if (input == null) return;
+            micTest = null;
+            input.Level -= micTestLevel;
+            micTestLevel = null;
+            if (input != ears) input.Dispose();
+            mainframe.ShowMicTest(false, 0, false);
+            if (!report) return;
+            string result = input.Muted ? "Your mic is muted. Unmute it to test." : micTestPeak == 0 ? MicSilent : micTestPeak < QuietWake ? "Your mic is very quiet. Raise its input volume in Windows sound settings." : "Mic test finished. Sound is reaching Capri.";
+            mainframe.VoiceNote(result, input.Muted || micTestPeak < QuietWake);
+            Brain.Log("ears", -1, "Mic test: peak RMS " + (micTestPeak <= 0 ? "silence" : (20 * Math.Log10(micTestPeak)).ToString("0.0") + " dBFS") + ". " + result);
+        }
 
         // Her voice landed by itself, so the check that says so waits its turn: it would cancel anything they've just asked.
         private void CheckVoiceReady()
@@ -8715,6 +8785,7 @@ namespace CapriDesktop
 
         private void StartLocal(bool credits = false)
         {
+            StopMicTest(false);
             WakeRest(true);
             chatTicket++;
             chatting = true;
@@ -8816,9 +8887,11 @@ namespace CapriDesktop
             catch (VoiceException) { }
             earsReady = true;
             dictation.Hold(ears.Muted);
+            dictationMic = Dictation.DefaultMic();
+            dictationMicAt = clock.Elapsed.TotalSeconds + 2;
             CheckEars(clock.Elapsed.TotalSeconds);
             string chosen = MicName(preferences.Mic);
-            string other = chosen == null || ears.Muted ? null : Dictation.OtherMic(preferences.Mic, chosen, Dictation.DefaultMic());
+            string other = chosen == null || ears.Muted ? null : Dictation.OtherMic(preferences.Mic, chosen, dictationMic);
             if (other != null)
             {
                 EarsNote(earsLead + "Free voice chat on, but Windows speech only hears your default mic, not " + chosen + ". The fix is under VOICE.", false);
@@ -8835,6 +8908,7 @@ namespace CapriDesktop
             if (closing != null) closing.Dispose();
             if (!chatting || !local) return;
             earsReady = false;
+            if (problem == Dictation.MicBlocked) { StopChat(); EarsNote(problem, true); return; }
             if (OwnEars) ListenOwn();
             else HearLater(problem);
         }
@@ -9320,6 +9394,7 @@ namespace CapriDesktop
 
         private void ChatOpened(int rate)
         {
+            StopMicTest(false);
             chatRate = rate;
             chatTail.Stop();
             chatFx = null;
@@ -9611,6 +9686,7 @@ namespace CapriDesktop
         private void StopChat()
         {
             if (!chatting) return;
+            StopMicTest(false);
             agentComment = false;
             bool wasLocal = local;
             chatting = false;
@@ -10481,6 +10557,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            StopMicTest(false);
             EndWatchAlong();
             followUp.Drop();
             Hands.Finder.Stop();
@@ -18702,6 +18779,237 @@ namespace CapriDesktop
             }
         }
 
+        private static IntPtr MicFormat(int rate, int channels, int bits, bool floating, bool extensible)
+        {
+            IntPtr format = Marshal.AllocCoTaskMem(extensible ? 40 : 18);
+            Marshal.Copy(new byte[extensible ? 40 : 18], 0, format, extensible ? 40 : 18);
+            int align = channels * (bits / 8);
+            Marshal.StructureToPtr(new WaveFormat { Tag = extensible ? unchecked((short)0xFFFE) : (short)(floating ? 3 : 1), Channels = (short)channels, SampleRate = rate, BytesPerSecond = rate * align, Align = (short)align, Bits = (short)bits, Extra = (short)(extensible ? 22 : 0) }, format, false);
+            if (extensible)
+            {
+                Marshal.WriteInt16(format, 18, (short)(bits == 32 && !floating ? 24 : bits));
+                Marshal.StructureToPtr(new Guid(floating ? "00000003-0000-0010-8000-00aa00389b71" : "00000001-0000-0010-8000-00aa00389b71"), IntPtr.Add(format, 24), false);
+            }
+            return format;
+        }
+
+        private static byte[] MicSamples(int rate, int channels, int bits, bool floating)
+        {
+            int width = bits / 8;
+            byte[] bytes = new byte[rate * channels * width];
+            for (int frame = 0; frame < rate; frame++) for (int side = 0; side < channels; side++)
+            {
+                double value = side == channels - 1 ? (frame < rate / 2 ? 0.25 : -0.25) : channels == 2 ? (frame < rate / 2 ? -0.25 : 0.25) : 0;
+                int offset = (frame * channels + side) * width;
+                byte[] sample = floating ? BitConverter.GetBytes((float)value) : bits == 8 ? new[] { (byte)(128 + value * 128) } : bits == 16 ? BitConverter.GetBytes((short)(value * 32768)) : BitConverter.GetBytes((int)(value * 2147483648.0));
+                Buffer.BlockCopy(sample, bits == 24 ? 1 : 0, bytes, offset, width);
+            }
+            return bytes;
+        }
+
+        private sealed class MicCheck : ISoundClient, ISoundCapture, IDisposable
+        {
+            internal int Failure;
+            internal string Fail;
+            internal volatile bool Empty;
+            internal int Starts, Stops, Released;
+            private readonly IntPtr audio;
+            private int at, held;
+
+            internal MicCheck()
+            {
+                byte[] bytes = MicSamples(48000, 6, 32, true);
+                audio = Marshal.AllocHGlobal(bytes.Length);
+                Marshal.Copy(bytes, 0, audio, bytes.Length);
+            }
+
+            private int Result(string operation) { return Fail == operation ? Failure : 0; }
+            public int Initialize(int mode, int flags, long duration, long period, IntPtr format, IntPtr session)
+            {
+                WaveFormat wave = (WaveFormat)Marshal.PtrToStructure(format, typeof(WaveFormat));
+                if (mode != 0 || flags != 0 || period != 0 || wave.SampleRate != 48000 || wave.Channels != 6 || wave.Bits != 32) throw new Exception("Mic fallback didn't use the shared native format.");
+                at = held = 0;
+                return Result("initialize");
+            }
+            public int GetBufferSize(out int frames) { frames = 4800; return 0; }
+            public int GetStreamLatency(out long latency) { latency = 0; return 0; }
+            public int GetCurrentPadding(out int frames) { frames = 0; return 0; }
+            public int IsFormatSupported(int mode, IntPtr format, out IntPtr closest) { closest = IntPtr.Zero; return 0; }
+            public int GetMixFormat(out IntPtr format) { format = MicFormat(48000, 6, 32, true, true); return 0; }
+            public int GetDevicePeriod(out long normal, out long shortest) { normal = shortest = 100000; return 0; }
+            public int Start() { Starts++; return Result("start"); }
+            public int Stop() { Stops++; return 0; }
+            public int Reset() { return 0; }
+            public int SetEventHandle(IntPtr handle) { return 0; }
+            public int GetService(ref Guid id, out object service) { service = this; return 0; }
+            public int GetNextPacketSize(out int frames) { frames = Empty ? 0 : Math.Min(137, 9600 - at); return Result("packet size"); }
+            public int GetBuffer(out IntPtr data, out int frames, out int flags, out long position, out long time)
+            {
+                frames = held = Math.Min(137, 9600 - at); data = IntPtr.Add(audio, at * 24); flags = 0; position = at; time = 0;
+                return Result("get buffer");
+            }
+            public int ReleaseBuffer(int frames)
+            {
+                if (frames != held) throw new Exception("Mic packet was released with the wrong length.");
+                at += frames; Interlocked.Add(ref Released, frames); held = 0;
+                return Result("release buffer");
+            }
+            public void Dispose() { Marshal.FreeHGlobal(audio); }
+        }
+
+        private static void SmokeMicSources(System.Collections.Generic.List<string> checks, string output)
+        {
+            string logWas = Brain.LogPath;
+            string log = Path.Combine(output, "mic-check.txt");
+            try
+            {
+                Brain.LogPath = log;
+                File.WriteAllText(log, "");
+                foreach (int rate in new[] { 16000, 44100, 48000, 96000 }) foreach (int channels in new[] { 1, 2, 6 }) foreach (int kind in new[] { 8, 16, 24, 32, 3 })
+                {
+                    bool floating = kind == 3;
+                    int bits = floating ? 32 : kind;
+                    byte[] bytes = MicSamples(rate, channels, bits, floating);
+                    IntPtr data = Marshal.AllocHGlobal(bytes.Length);
+                    IntPtr format = MicFormat(rate, channels, bits, floating, channels > 2 || bits > 16);
+                    try
+                    {
+                        Marshal.Copy(bytes, 0, data, bytes.Length);
+                        MicPcm whole = new MicPcm(format), split = new MicPcm(format);
+                        System.Collections.Generic.List<short> all = new System.Collections.Generic.List<short>(), pieces = new System.Collections.Generic.List<short>();
+                        whole.Read(data, rate, false, all.AddRange);
+                        for (int at = 0; at < rate; at += 137) split.Read(IntPtr.Add(data, at * channels * (bits / 8)), Math.Min(137, rate - at), false, pieces.AddRange);
+                        if (all.Count != Ears.Rate || pieces.Count != all.Count || Math.Abs((int)all[0]) != 8192 || Math.Abs((int)all[all.Count - 1]) != 8192 || all[0] != -all[all.Count - 1]) throw new Exception("Mic conversion lost time, polarity or level: " + whole.Format);
+                        for (int i = 0; i < all.Count; i++) if (all[i] != pieces[i]) throw new Exception("Mic conversion changed across packet boundaries: " + whole.Format);
+                    }
+                    finally { Marshal.FreeHGlobal(data); Marshal.FreeCoTaskMem(format); }
+                }
+                checks.Add("PASS mic PCM and float conversion at 16, 44.1, 48 and 96 kHz: mono, opposite-phase stereo and six-channel input, 8/16/24/32-bit PCM and float32, extensible 24-in-32, preserved levels and packet boundaries");
+                IntPtr floatingFormat = MicFormat(16000, 1, 32, true, false);
+                IntPtr floatingData = Marshal.AllocHGlobal(Ears.Chunk * 4);
+                try
+                {
+                    float[] values = new float[Ears.Chunk]; values[0] = float.NaN; values[1] = float.PositiveInfinity; values[2] = 2; values[3] = -2;
+                    Marshal.Copy(values, 0, floatingData, values.Length);
+                    short[] converted = null;
+                    new MicPcm(floatingFormat).Read(floatingData, values.Length, false, delegate(short[] chunk) { converted = chunk; });
+                    if (converted == null || converted[0] != 0 || converted[1] != 0 || converted[2] != 32767 || converted[3] != -32768) throw new Exception("Mic float conversion didn't clamp or discard invalid samples.");
+                    converted = null;
+                    new MicPcm(floatingFormat).Read(IntPtr.Zero, Ears.Chunk, true, delegate(short[] chunk) { converted = chunk; });
+                    if (converted == null || Speaker.Loudness(converted, 0, converted.Length) != 0) throw new Exception("WASAPI's silent flag didn't produce silence.");
+                    Marshal.WriteInt16(floatingFormat, 0, 6);
+                    bool rejected = false;
+                    try { new MicPcm(floatingFormat); } catch (VoiceException) { rejected = true; }
+                    if (!rejected) throw new Exception("A compressed mic format was treated as PCM.");
+                }
+                finally { Marshal.FreeHGlobal(floatingData); Marshal.FreeCoTaskMem(floatingFormat); }
+                checks.Add("PASS mic silent packets need no pointer; nonfinite float samples become zero, clipping is bounded, and unsupported formats are rejected");
+                System.Collections.Generic.List<Mic> available = new System.Collections.Generic.List<Mic> { new Mic("picked", "Fake mic", 7) };
+                if (Ears.Find("picked", available).Index != 7 || Ears.Find("gone", available) != null) throw new Exception("Mic selection confused the WaveIn device index with its position in the list.");
+                string current = "default-one";
+                System.Collections.Generic.List<MicCheck> inputs = new System.Collections.Generic.List<MicCheck>();
+                System.Collections.Generic.List<string> opened = new System.Collections.Generic.List<string>();
+                int heard = 0;
+                double level = 0;
+                try
+                {
+                    using (Ears input = new Ears(delegate(string id, Action<short[]> hear)
+                    {
+                        MicCheck capture = new MicCheck(); inputs.Add(capture); opened.Add(id);
+                        return new SoundIn(id, hear, capture, capture);
+                    }, delegate(string chosen) { Mic picked = Ears.Find(chosen, available); return picked == null ? current : picked.Id; }, delegate { return false; }))
+                    {
+                        input.Chosen = "gone";
+                        input.Heard += delegate(short[] chunk) { if (chunk.Length != Ears.Chunk) throw new Exception("Wrong mic chunk size."); Interlocked.Add(ref heard, chunk.Length); };
+                        input.Level += delegate(double value) { level = value; };
+                        input.Start();
+                        WaitSound(delegate { return Interlocked.CompareExchange(ref heard, 0, 0) >= Ears.Chunk * 2; }, "Fake WASAPI mic produced no converted audio.");
+                        if (opened[0] != "default-one" || Math.Abs(level - 0.25) > 0.001 || input.DeviceChanged) throw new Exception("A missing mic didn't capture the default at its original level.");
+                        current = "default-two";
+                        if (!input.DeviceChanged) throw new Exception("A changed default mic was ignored while audio still arrived.");
+                        input.Stop(); input.Start();
+                        if (opened[1] != "default-two") throw new Exception("Reopening kept the old Windows default mic.");
+                        input.Stop(); input.Chosen = "picked"; input.Start(); current = "default-three";
+                        if (input.DeviceChanged || opened[2] != "picked") throw new Exception("A fixed mic followed the Windows default.");
+                        input.Muted = true;
+                        short[] muted = null;
+                        input.Heard += delegate(short[] chunk) { muted = chunk; };
+                        short[] loud = new short[Ears.Chunk];
+                        for (int i = 0; i < loud.Length; i++) loud[i] = 12000;
+                        input.Feed(loud);
+                        if (muted == null || muted[0] != 0 || level != 0) throw new Exception("Fallback mic bypassed mute.");
+                        inputs[2].Failure = unchecked((int)0x88890004); inputs[2].Fail = "packet size";
+                        WaitSound(delegate { return input.Stalled; }, "A failed WASAPI input stayed healthy.");
+                    }
+                    foreach (MicCheck input in inputs) if (input.Stops != 1) throw new Exception("Stopping a fake mic didn't release its stream.");
+                }
+                finally { foreach (MicCheck input in inputs) input.Dispose(); }
+                checks.Add("PASS fake WASAPI mic: unavailable saved device falls back to default, a running default change reopens, a fixed pick stays fixed, mute is preserved, capture failure is detected and every stream stops");
+                foreach (int failure in new[] { unchecked((int)0x80070005), unchecked((int)0x8889000A) })
+                {
+                    using (MicCheck capture = new MicCheck { Failure = failure, Fail = "initialize" })
+                    using (Ears input = new Ears(delegate(string id, Action<short[]> hear) { return new SoundIn(id, hear, capture, capture); }, delegate { return "fake-blocked"; }, delegate { return false; }))
+                    {
+                        bool explained = false;
+                        try { input.Start(); } catch (VoiceException error) { explained = error.Message.IndexOf(Ears.Problem(failure), StringComparison.Ordinal) >= 0; }
+                        if (!explained || input.Listening || capture.Starts != 0) throw new Exception("A blocked or exclusively held mic didn't explain why it couldn't open.");
+                    }
+                }
+                bool openedBlocked = false;
+                using (Ears input = new Ears(delegate(string id, Action<short[]> hear) { openedBlocked = true; return null; }, delegate { return "fake"; }, delegate { return true; }))
+                {
+                    try { input.Start(); } catch (VoiceException error) { if (error.Message != Dictation.MicBlocked) throw; }
+                    if (openedBlocked || input.Listening) throw new Exception("Mic privacy denial attempted capture.");
+                }
+                if (!Ears.Denied("Deny", "Allow") || !Ears.Denied("Allow", "Deny") || Ears.Denied(null, null) || Ears.Denied("Allow", "Allow")) throw new Exception("Mic privacy values were interpreted incorrectly.");
+                string logged = File.ReadAllText(log);
+                if (logged.IndexOf("Saved mic gone is unavailable", StringComparison.Ordinal) < 0 || logged.IndexOf("WASAPI opened default-one", StringComparison.Ordinal) < 0 || logged.IndexOf("48000 Hz, 6 channels, 32-bit float -> 16000 Hz", StringComparison.Ordinal) < 0 || logged.IndexOf("0x80070005", StringComparison.Ordinal) < 0 || logged.IndexOf("0x8889000A", StringComparison.Ordinal) < 0) throw new Exception("Mic logs lost the device, conversion format or Windows failure code.");
+                checks.Add("PASS mic privacy denial and exclusive-use errors explain the fix; logs name the input, native and converted formats, saved-device fallback and HRESULTs; all sources are fake");
+            }
+            finally { Brain.LogPath = logWas; }
+        }
+
+        private void SmokeMicTest(System.Collections.Generic.List<string> checks)
+        {
+            if (chatting) StopChat();
+            TestMic();
+            Ears input = micTest;
+            short[] quiet = new short[Ears.Chunk];
+            for (int i = 0; i < quiet.Length; i++) quiet[i] = 64;
+            input.Feed(quiet);
+            Application.DoEvents();
+            if (!mainframe.MicTesting || mainframe.VoiceNoteText.IndexOf("-54 dB", StringComparison.Ordinal) < 0 || chatting || dictation != null || input.Listening) throw new Exception("Mic Test didn't show the fake live input level without starting recognition or hardware.");
+            CheckMicTest(micTestUntil + 1);
+            if (micTest != null || mainframe.MicTesting || mainframe.VoiceNoteText.IndexOf("very quiet", StringComparison.Ordinal) < 0) throw new Exception("A quiet mic test didn't finish with input-volume advice.");
+            TestMic(); TestMic();
+            if (micTest != null || mainframe.MicTesting || mainframe.VoiceNoteText != MicSilent) throw new Exception("Stopping a silent test didn't explain the missing input.");
+            checks.Add("PASS Mainframe mic Test shows a live level from fake audio without recognition or voice setup, stops on click or after ten seconds, and explains silence or low input volume");
+            Func<Dictation> makeWas = Dictation.Make;
+            Func<string> defaultWas = Dictation.DefaultMic;
+            bool? ownWas = ownEarsTest;
+            bool? comingWas = earsComingTest;
+            try
+            {
+                string current = "first-fake-default";
+                System.Collections.Generic.List<StandInDictation> opened = new System.Collections.Generic.List<StandInDictation>();
+                ownEarsTest = false;
+                Dictation.DefaultMic = delegate { return current; };
+                Dictation.Make = delegate { StandInDictation made = new StandInDictation(); opened.Add(made); return made; };
+                StartLocal();
+                current = "second-fake-default";
+                CheckHearing(dictationMicAt + 1);
+                if (opened.Count != 2 || !opened[0].Disposed || !opened[1].Started || dictation != opened[1] || !earsReady || dictationMic != current) throw new Exception("Windows speech kept listening to its old default mic.");
+                checks.Add("PASS a Windows default input change closes and restarts Windows speech using stand-in recognizers; no device is opened");
+                StopChat();
+                earsComingTest = true;
+                Dictation.Make = delegate { return new StandInDictation { Problem = Dictation.MicBlocked }; };
+                StartLocal();
+                if (chatting || earsReady || dictation != null || mainframe.VoiceNoteText != Dictation.MicBlocked) throw new Exception("Mic privacy denial was hidden behind a pending ears download.");
+                checks.Add("PASS Windows mic privacy denial stays visible while her ears download instead of falling back to another blocked recognizer");
+            }
+            finally { StopChat(); Dictation.Make = makeWas; Dictation.DefaultMic = defaultWas; ownEarsTest = ownWas; earsComingTest = comingWas; }
+        }
+
         private sealed class SoundCheck : ISoundClient, ISoundRender, ISoundVolume, IDisposable
         {
             internal volatile string Fail;
@@ -19006,6 +19314,8 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeVoiceWaits(checks); });
                             Section(checks, delegate { SmokeVault(checks); });
                             Section(checks, delegate { SmokeSound(checks, output); });
+                            Section(checks, delegate { SmokeMicSources(checks, output); });
+                            Section(checks, delegate { SmokeMicTest(checks); });
                             Section(checks, delegate { SmokeLocalBrains(checks); });
                             Section(checks, delegate { SmokeCloudBrains(checks); });
                             Section(checks, delegate { SmokeBrainBodies(checks); });

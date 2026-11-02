@@ -212,6 +212,7 @@ namespace CapriDesktop
         private bool gameReady = true;
         private readonly Label muteShortcut;
         private readonly Key mics;
+        private readonly Key micTest;
         private readonly ContextMenuStrip micMenu;
         private bool keySaved;
         private readonly Entry textEntry;
@@ -456,7 +457,8 @@ namespace CapriDesktop
             mics = Lower(Make("Mic: default", 28, 382, 244, 28, delegate { ShowMics(); }));
             mics.Chevron = true;
             mics.AccessibleName = "Microphone";
-            Lower(Make("Test", 280, 382, 76, 28, delegate { capri.TestVoice(); }));
+            micTest = Lower(Make("Test", 280, 382, 76, 28, delegate { capri.TestMic(); }));
+            micTest.AccessibleName = "Test microphone input";
             muteShortcut = Lower(Caption("Ctrl + Alt + N mutes mic", 28, 417, small, Faint));
             muteShortcut.Cursor = Cursors.Hand;
             muteShortcut.Click += delegate { ShowSettings(true); PickKeys(1); };
@@ -3068,12 +3070,24 @@ namespace CapriDesktop
             mics.Invalidate();
         }
 
+        internal void ShowMicTest(bool listening, double level, bool muted)
+        {
+            micTest.Text = listening ? "Stop" : "Test";
+            double db = level <= 0 ? -96 : Math.Max(-96, 20 * Math.Log10(level));
+            micTest.Meter = listening ? (db + 96) / 96 : -1;
+            micTest.AccessibleName = listening ? "Stop microphone test. " + (muted ? "Mic muted" : "Input level " + db.ToString("0") + " dB") : "Test microphone input";
+            micTest.Invalidate();
+            if (listening) VoiceNote(muted ? "Your mic is muted. Unmute it to test." : "Mic level: " + (level <= 0 ? "silence" : db.ToString("0") + " dB") + ". Speak now; click Stop when done.", false);
+        }
+
+        internal bool MicTesting { get { return micTest.Text == "Stop" && micTest.Meter >= 0; } }
+
         private void ShowMics()
         {
             string chosen = capri.MicId;
             List<Mic> found = Ears.List();
             micMenu.Items.Clear();
-            micMenu.Items.Add(Choice("Windows default", string.IsNullOrEmpty(chosen), delegate { capri.ChooseMic(null); }));
+            micMenu.Items.Add(Choice("Windows default", Ears.Find(chosen, found) == null, delegate { capri.ChooseMic(null); }));
             if (found.Count > 0) micMenu.Items.Add(new ToolStripSeparator());
             foreach (Mic mic in found)
             {
@@ -3319,6 +3333,7 @@ namespace CapriDesktop
             internal bool Picked;
             internal bool Chevron;
             internal int Glyph;
+            internal double Meter = -1;
             private bool hot;
             private bool down;
 
@@ -3377,6 +3392,7 @@ namespace CapriDesktop
                 Rectangle area = Chevron ? new Rectangle((int)(10 * s), 0, Width - (int)(32 * s), Height) : ClientRectangle;
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | (Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter);
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
+                if (Meter >= 0) using (Brush meter = new SolidBrush(Cyan)) graphics.FillRectangle(meter, 3 * s, Height - 4 * s, (float)((Width - 6 * s) * Math.Max(0, Math.Min(1, Meter))), 2 * s);
             }
         }
 
