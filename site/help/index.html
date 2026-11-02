@@ -91,7 +91,7 @@
         <ol class="moves">
           <li>She glitches in and drops onto a window or the taskbar</li>
           <li>The <b>Capri Mainframe</b> opens by itself</li>
-          <li><b>NORMAL</b> → <b>Set up her brain</b>. Slow PC? <b>HIGHER</b> → <b>Free key</b></li>
+          <li><b>NORMAL</b> → <b>Set up her brain</b>. Slow PC? <b>MEDIUM INTELLIGENCE</b> → <b>Free key</b></li>
           <li>She talks with her free voice. Another voice: <b>CLOUD VOICE</b> → <b>Fish Audio</b> under VOICE, free tier</li>
         </ol>
         <dl class="keys">
@@ -111,14 +111,17 @@
         <p class="note">Pick one. Only one brain runs at a time. Each row keeps its own key.</p>
         <dl class="keys">
           <dt>NORMAL</dt><dd>free, local model. Start with this!</dd>
-          <dt>HIGHER</dt><dd>free NVIDIA key</dd>
-          <dt>MAX INTELLIGENCE</dt><dd>ChatGPT or Claude key, needs credits</dd>
-          <dt>Model menu</dt><dd>pick another model. On HIGHER, Nemotron Super and Nemotron's reasoning model are marked recommended, at the top</dd>
+          <dt>MEDIUM INTELLIGENCE</dt><dd>free: NVIDIA, Google AI Studio (Gemini) or OpenRouter key</dd>
+          <dt>MAX INTELLIGENCE</dt><dd>Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key; full model list, including paid models</dd>
+          <dt>Model menu</dt><dd>pick another model. On MEDIUM INTELLIGENCE, OpenRouter only lists <code>:free</code> models</dd>
           <dt>Refresh</dt><dd>look for her brain again, like after opening Ollama</dd>
           <dt>Set up her brain</dt><dd>download her built-in brain</dd>
-          <dt>Key box</dt><dd>on HIGHER and MAX: paste a key → <b>Connect</b></dd>
+          <dt>Key box</dt><dd>on MEDIUM INTELLIGENCE and MAX INTELLIGENCE: paste a key → <b>Connect</b></dd>
+          <dt>Move to MAX</dt><dd>OpenAI, Claude or DeepSeek key under MEDIUM INTELLIGENCE? <b>Move to MAX</b> connects it there</dd>
           <dt>Forget</dt><dd>red when the box is empty: removes that row's key</dd>
-          <dt>Free key</dt><dd>opens NVIDIA to make a free key</dd>
+          <dt>Free key</dt><dd>opens NVIDIA by default</dd>
+          <dt>Warning</dt><dd>Free keys can be rate limited and slow.</dd>
+          <dt>Used HIGHER?</dt><dd>now <b>MEDIUM INTELLIGENCE</b>. Your key and model are kept</dd>
         </dl>
 
         <h3>VOICE</h3>
@@ -203,12 +206,12 @@
         <h2>Her brain</h2>
         <dl class="keys">
           <dt>Most PCs</dt><dd><b>NORMAL</b> → <b>Set up her brain</b>: free, private, offline after the download</dd>
-          <dt>Slow PC</dt><dd><b>HIGHER</b> → <b>Free key</b>: fast, nothing to download, needs internet</dd>
+          <dt>Slow PC</dt><dd><b>MEDIUM INTELLIGENCE</b> → <b>Free key</b>: nothing to download, needs internet</dd>
           <dt>Ollama</dt><dd><b>NORMAL</b>, open it → <b>Refresh</b></dd>
-          <dt>Smartest</dt><dd><b>MAX INTELLIGENCE</b>: OpenAI, Claude or DeepSeek key with credits</dd>
+          <dt>Smartest</dt><dd><b>MAX INTELLIGENCE</b>: Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek; includes paid models</dd>
         </dl>
         <p class="note">She uses the row you picked. NORMAL runs Ollama if it's open, else her built-in brain. A row without its key uses NORMAL until you connect one.</p>
-        <img class="shot" src="../assets/guide-brain.png" alt="Capri Mainframe with the Set up her brain button and the three brain rows: NORMAL, HIGHER with the Free key button, and MAX INTELLIGENCE" width="380" height="385" loading="lazy">
+        <img class="shot" src="../assets/guide-brain.png" alt="Capri Mainframe with the Set up her brain button, three brain rows and the Free key button" width="380" height="385" loading="lazy">
 
         <h3>Built-in brain <small>picked for your PC</small></h3>
         <dl class="keys">
@@ -218,14 +221,24 @@
         </dl>
         <p class="note">Stopped downloads pick up where they left off. Her “eyes” (about 560 MB) download the first time she watches your screen.</p>
 
-        <h3 id="free-key">Free NVIDIA key</h3>
+        <h3 id="free-key">Free brain keys</h3>
+        <dl class="keys">
+          <dt>Free providers</dt><dd>NVIDIA, Google AI Studio (Gemini) or OpenRouter</dd>
+          <dt>OpenRouter</dt><dd>MEDIUM INTELLIGENCE: <code>:free</code> models only</dd>
+          <dt>Warning</dt><dd>Free keys can be rate limited and slow.</dd>
+          <dt>Free key</dt><dd>opens NVIDIA by default. NVIDIA's steps:</dd>
+        </dl>
         <ol class="moves">
-          <li>Mainframe → <b>Free key</b>, or <a href="https://build.nvidia.com/settings/api-keys" target="_blank" rel="noopener noreferrer">build.nvidia.com</a></li>
+          <li>Mainframe → <b>MEDIUM INTELLIGENCE</b> → <b>Free key</b>, or <a href="https://build.nvidia.com/settings/api-keys" target="_blank" rel="noopener noreferrer">build.nvidia.com</a></li>
           <li>Sign in or make a free account. NVIDIA may ask to verify your phone</li>
           <li><b>Generate API Key</b>, copy it. It starts with <code>nvapi-</code></li>
-          <li>Pick <b>HIGHER</b>, paste it in the box → <b>Connect</b></li>
+          <li>Pick <b>MEDIUM INTELLIGENCE</b>, paste your key in the box → <b>Connect</b></li>
         </ol>
-        <p class="note">She starts on <code>nvidia/nemotron-3.5-super-vl-120b-a12b</code>. It can see your screen. Most NVIDIA models can't. If a model doesn't answer, she switches to another for that reply. Your pick stays.</p>
+        <dl class="keys">
+          <dt>NVIDIA</dt><dd>NVIDIA's free API is often slow, especially at busy times.</dd>
+          <dt>Screen</dt><dd>most NVIDIA models can't see it. Her first pick, <code>nvidia/nemotron-3.5-super-vl-120b-a12b</code>, can</dd>
+          <dt>No answer</dt><dd><b>Stay on my model</b> off? She tries another NVIDIA model for that reply. Your pick stays</dd>
+        </dl>
 
         <h3>RAM and storage</h3>
         <dl class="stuck">
