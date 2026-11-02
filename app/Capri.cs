@@ -14823,6 +14823,19 @@ namespace CapriDesktop
                     Hands.Rescue(filed[0], picked);
                     if (picked.Count != 1 || picked[0].Key != filed[2]) throw new Exception("\"" + filed[0] + "\" filed under music as \"" + filed[1] + "\" ended up as " + (picked.Count == 0 ? "nothing" : picked[0].Key) + ".");
                 }
+                // A brain that opens Spotify's web player for someone with the app gets the app (Bende, 3 Nov).
+                foreach (string[] spotifyWeb in new[]
+                {
+                    new[] { "can you open spotify for me", "https://open.spotify.com", "", "open_app" },
+                    new[] { "i wanna listen to lofi beats on my spotify app", "open.spotify.com", "lofi beats", "play_music" },
+                    new[] { "search the spotify website for lofi beats", "https://open.spotify.com/", "lofi beats", "open_website" }
+                })
+                {
+                    picked.Clear();
+                    picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_website", new ToolArguments { Site = spotifyWeb[1], Search = spotifyWeb[2].Length == 0 ? null : spotifyWeb[2] }));
+                    Hands.Rescue(spotifyWeb[0], picked);
+                    if (picked.Count != 1 || picked[0].Key != spotifyWeb[3]) throw new Exception("\"" + spotifyWeb[0] + "\" with Spotify's web player picked ended up as " + (picked.Count == 0 ? "nothing" : picked[0].Key) + ".");
+                }
                 string musicResult = Hands.Do("use_computer", new ToolArguments { Task = "play Blinding Lights on spotify" });
                 if (!musicResult.StartsWith("Playing ", StringComparison.Ordinal) || launches.Count != 1 || launches[0] != "spotify:track:0VjIjW4GlUZAMYd2vXMi3b" || playClicks != 0) throw new Exception("A known track clicked or opened a browser.");
                 int beforePrivate = musicFetches;
@@ -17863,6 +17876,7 @@ namespace CapriDesktop
             Action<Point> putWas = Computer.PutCursor;
             Func<Point> cursorWas = Computer.CursorAt;
             Func<bool> hiddenWas = Computer.CursorHidden;
+            Func<Point, bool> gameUnderWas = Computer.GameUnder;
             Func<bool> escapeWas = Computer.Escape;
             Action haltedWas = Computer.Halted;
             Action<int, int> mouseWas = Computer.SendMouse;
@@ -17890,10 +17904,17 @@ namespace CapriDesktop
                 if (real != new Point(50, 50)) throw new Exception("Steering a game's cursor didn't hand the real one back.");
                 moves = 0;
                 Computer.CursorHidden = delegate { return false; };
+                Computer.GameUnder = delegate { return false; };
                 Computer.Borrow(new Point(300, 300));
                 Computer.GiveBack();
                 if (moves != 0) throw new Exception("She rocked the mouse with the real cursor showing.");
-                checks.Add("PASS her clicks reach a game that draws its own cursor, and leave the real cursor where it was");
+                // Like Roblox: the real cursor shows, but the game only goes by real movement.
+                Point roblox = new Point(900, 400);
+                Computer.GameUnder = delegate(Point at) { return at == roblox; };
+                Computer.Borrow(roblox);
+                if (moves == 0 || Math.Abs(game.X - roblox.X) > 2 || game.Y != roblox.Y || real != roblox) throw new Exception("Her click didn't reach a game that shows the real cursor but goes by real movement, like Roblox: it saw " + game + ".");
+                Computer.GiveBack();
+                checks.Add("PASS her clicks reach a game that draws its own cursor or only goes by real movement, like Roblox, and leave the real cursor where it was");
                 int stoppedPresses = 0;
                 Computer.SendMouse = delegate(int flags, int amount) { if ((flags & 0x002A) != 0) stoppedPresses++; };
                 Computer.CursorHidden = delegate { return true; };
@@ -17926,6 +17947,7 @@ namespace CapriDesktop
                 Computer.PutCursor = putWas;
                 Computer.CursorAt = cursorWas;
                 Computer.CursorHidden = hiddenWas;
+                Computer.GameUnder = gameUnderWas;
             }
         }
 

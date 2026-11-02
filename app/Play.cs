@@ -111,8 +111,20 @@ namespace CapriDesktop
         }
 
         // Some games, like Cyberpunk 2077, hide the real cursor and draw their own, and only look at where the real one is when mouse
-        // movement comes in. Placing it moves nothing they can see, so she rocks it a couple of counts, which cancel out.
+        // movement comes in. Placing it moves nothing they can see, so she rocks it a couple of counts, which cancel out. Roblox
+        // shows the real cursor but still goes by real movement (a tester's clicks and hovers missed in a Roblox game), so any game's
+        // window under her press gets the rock too.
         private static bool steered;
+
+        // Whether the window under a spot is a game's, by its title or its program's folder, like Roblox.
+        internal static Func<Point, bool> GameUnder = delegate(Point at)
+        {
+            IntPtr window = WindowAt(at);
+            if (window == IntPtr.Zero) return false;
+            StringBuilder title = new StringBuilder(256);
+            GetWindowText(window, title, title.Capacity);
+            return (GameTitles.IsMatch(title.ToString()) && !Watching.IsMatch(title.ToString())) || GameExe(window);
+        };
 
         [StructLayout(LayoutKind.Sequential)]
         private struct CursorState { internal int Size, Flags; internal IntPtr Handle; internal Point At; }
@@ -124,9 +136,9 @@ namespace CapriDesktop
             return GetCursorInfo(ref state) && state.Flags == 0;
         };
 
-        private static void Steer()
+        private static void Steer(Point at)
         {
-            steered = CursorHidden();
+            steered = CursorHidden() || GameUnder(at);
             if (!steered) return;
             foreach (int counts in new[] { 2, -2, 1, -1 })
             {

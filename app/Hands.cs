@@ -1861,8 +1861,15 @@ namespace CapriDesktop
 #if !CROSS
                 if (Websites != null && Websites.Nickname(args.Site) != null) continue;
 #endif
-                string name = Regex.Replace(args.Site.Trim(), @"^(https?://)?(www\.)?|\.[a-z.]+(/.*)?$", "", RegexOptions.IgnoreCase);
-                if (Regex.IsMatch(text, @"\b" + Regex.Escape(name) + @"\b", RegexOptions.IgnoreCase) && Installed(name) && string.IsNullOrEmpty(args.Search)) calls[i] = new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = name });
+                // The site's own name, like "spotify" in https://open.spotify.com/search, which used to come out as "open".
+                string[] labels = Regex.Replace(args.Site.Trim(), @"^(https?://)?(www\.)?|[/?#].*$", "", RegexOptions.IgnoreCase).Split('.');
+                string name = labels.Length >= 2 ? labels[labels.Length - 2] : labels[0];
+                if (!Regex.IsMatch(text, @"\b" + Regex.Escape(name) + @"\b", RegexOptions.IgnoreCase) || !Installed(name)) continue;
+                if (string.IsNullOrEmpty(args.Search)) calls[i] = new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = name });
+                // Music searched for on Spotify's web player plays in the app they have (Bende, 3 Nov: the web player kept opening
+                // when they'd asked for the app on their PC).
+                else if (name == "spotify" && Regex.IsMatch(text, @"\b(play|put on|listen|music|songs?|playlist|album)\b", RegexOptions.IgnoreCase))
+                    calls[i] = new KeyValuePair<string, ToolArguments>("play_music", new ToolArguments { Song = args.Search.Trim(), App = "spotify" });
             }
             return false;
         }

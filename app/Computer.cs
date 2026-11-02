@@ -1985,7 +1985,7 @@ namespace CapriDesktop
             if (!lent) Lending(true);
             lent = true;
             PutCursor(at);
-            Steer();
+            Steer(at);
             leftAt = at;
             Thread.Sleep(10);
         }
