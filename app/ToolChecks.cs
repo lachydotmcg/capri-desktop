@@ -647,6 +647,83 @@ namespace CapriDesktop
             }
         }
 
+        // How their PC is doing on a pretend PC that's busy with a game, Chrome and OBS: the processor, memory, the apps using the
+        // most, one app by name, drives and a laptop's battery, read only. Then a real read of this PC, which changes nothing
+        // (Lachy, 3 Nov: "my game's lagging" gets an answer from what's really using it).
+        private static void SmokePcStatus(List<string> checks)
+        {
+            Func<PcUse> useWas = Hands.Use;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            TcpListener fake = null;
+            try
+            {
+                const long Gigabyte = 1073741824;
+                PcUse busy = new PcUse { Cpu = 87.4, MemoryUsed = (long)(24.6 * Gigabyte), MemoryTotal = (long)(31.9 * Gigabyte) };
+                string[] names = { "FortniteClient-Win64-Shipping", "chrome", "Discord", "obs64", "MsMpEng", "Spotify", "Teams", "explorer" };
+                double[] cpu = { 41.2, 18.6, 3.2, 9.5, 7.9, 0.4, 0, 1.0 }, memory = { 6.3, 3.1, 0.9, 0.7, 0.3, 0.4, 1.2, 0.2 };
+                for (int i = 0; i < names.Length; i++) busy.Apps.Add(new AppUse { App = names[i], Cpu = cpu[i], Memory = (long)(memory[i] * Gigabyte) });
+                busy.Drives.Add("C: 45 GB free of 931 GB");
+                busy.Drives.Add("D: 1.2 TB free of 1.8 TB");
+                bool readable = true;
+                Hands.Use = delegate { return readable ? busy : null; };
+                const string Totals = "Their PC right now: the processor is 87% busy, and 25 GB of its 32 GB of memory is in use (77%).";
+                string all = Hands.Do("pc_status", new ToolArguments()), chrome = Hands.Do("pc_status", new ToolArguments { Name = "chrome" }), game = Hands.Do("pc_status", new ToolArguments { Name = "Fortnite" });
+                string absent = Hands.Do("pc_status", new ToolArguments { Name = "valorant" });
+                busy.Battery = "54%, on battery";
+                string laptop = Hands.Do("pc_status", new ToolArguments());
+                readable = false;
+                string unread = Hands.Do("pc_status", new ToolArguments());
+                readable = true;
+                string wanted = Totals + " Using the most: FortniteClient-Win64-Shipping 41% of the processor and 6.3 GB; chrome 19% of the processor and 3.1 GB; obs64 10% of the processor and 0.7 GB; MsMpEng 8% of the processor and 0.3 GB; "
+                    + "Discord 3% of the processor and 0.9 GB; Teams 1.2 GB of memory; Spotify 0.4 GB of memory; explorer 0.2 GB of memory. Drives: C: 45 GB free of 931 GB; D: 1.2 TB free of 1.8 TB.";
+                if (all != wanted || chrome != "chrome is using 19% of the processor and 3.1 GB of memory. " + Totals || game != "FortniteClient-Win64-Shipping is using 41% of the processor and 6.3 GB of memory. " + Totals
+                    || absent != "Nothing called valorant is running. " + Totals || laptop != wanted + " Battery 54%, on battery." || unread != "Couldn't read how their PC is doing just now."
+                    || Usage.Size(45 * Gigabyte) != "45 GB" || Usage.Size((long)(1.2 * 1024 * Gigabyte)) != "1.2 TB" || Usage.Size(Gigabyte / 2) != "0.5 GB")
+                    throw new Exception("Her PC check didn't say how it's doing: " + all + " / " + chrome + " / " + game + " / " + absent + " / " + laptop + " / " + unread);
+                // A check: it never asks first, stays out of her transcript, and only a brain that works jobs out gets it.
+                Hands.Kit kit = Hands.KitFor();
+                bool voiced = false;
+                for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "pc_status") voiced = true;
+                if (!Hands.Valid("pc_status", new ToolArguments()) || !Hands.Checking("pc_status", new ToolArguments()) || Security.Needs("pc_status", new ToolArguments()) != -1
+                    || !kit.WorkTools.Contains("\"name\":\"pc_status\"") || kit.Tools.Contains("pc_status") || voiced || !Hands.WorkingOut.Contains("pc_status says how busy it is and what's using it"))
+                    throw new Exception("Her PC check asked first, or reached her one-shot hands or voice chat.");
+                // A brain that works jobs out finds out what's using the PC before it says why a game is stuttering.
+                List<string> asked = new List<string>();
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                busy.Battery = null;
+                Brain.OpenAi = FakeServer(new[] { calls("pc_status", "{}"), says("Your CPU's at 87%, choom. Chrome and OBS are eating a chunk next to Fortnite.") }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                List<string> did = new List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name); return Hands.Do(name, args); };
+                string reply = planner.Ask("my game keeps stuttering, what's going on with my pc");
+                string[] heard;
+                lock (asked) heard = asked.ToArray();
+                if (reply != "Your CPU's at 87%, choom. Chrome and OBS are eating a chunk next to Fortnite." || string.Join(",", did.ToArray()) != "pc_status" || heard.Length != 2
+                    || !heard[0].Contains("\"name\":\"pc_status\"") || !heard[1].Contains("FortniteClient-Win64-Shipping 41% of the processor and 6.3 GB"))
+                    throw new Exception("Her planner didn't read the PC before answering: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + heard.Length + " calls");
+                // This PC, read for real over half a second; nothing about it goes in this line.
+                PcUse real = Usage.Read();
+                if (real == null || real.Cpu < 0 || real.Cpu > 100 || real.MemoryTotal <= 0 || real.MemoryUsed <= 0 || real.Apps.Count == 0 || real.Drives.Count == 0)
+                    throw new Exception("This PC couldn't be read: " + (real == null ? "nothing" : real.Cpu + "% / " + real.MemoryTotal + " / " + real.Apps.Count + " apps / " + real.Drives.Count + " drives"));
+                checks.Add("PASS her PC check says how busy the processor and memory are, the five apps using the most processor and the three using the most memory besides, one app by name, each drive's free space and a laptop's battery, and when it can't read them; it never asks first, only a planner gets it, and a planner reads it before saying why a game stutters; this PC read for real: " + real.Apps.Count + " apps, " + real.Drives.Count + " drives");
+            }
+            finally
+            {
+                Hands.Use = useWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         // What she knows about herself and her help page cover her window tool, the settings she can change herself, pausing and
         // timers, in the house style: exact menu names, short lines.
         private static void SmokeHelpForTools(List<string> checks)
@@ -657,7 +734,7 @@ namespace CapriDesktop
                 { "what settings can you change yourself?", "Settings she can change:" }, { "can you make yourself bigger?", "Settings she can change:" },
                 { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" },
                 { "can you set a timer?", "Reminders:" }, { "can you turn discord down?", "App volume:" }, { "can you use the volume mixer?", "App volume:" },
-                { "can you see my other monitor?", "Look at another monitor:" }
+                { "can you see my other monitor?", "Look at another monitor:" }, { "why is my pc lagging?", "How your PC is doing:" }
             };
             for (int i = 0; i < asks.GetLength(0); i++)
             {
@@ -683,11 +760,11 @@ namespace CapriDesktop
                 return;
             }
             string help = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "site", "help", "knowledge.md"));
-            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "With more than one monitor (0.8.0), she looks at the one with the window you're using.", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
+            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "With more than one monitor (0.8.0), she looks at the one with the window you're using.", "### How your PC is doing (0.8.0)", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
                 if (help.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page is missing: " + part);
             int from = help.IndexOf("### Move, snap and resize windows (0.8.0)", StringComparison.Ordinal), to = help.IndexOf("### Discord and Windows shortcuts", from, StringComparison.Ordinal);
             if (to < from || help.Substring(from, to - from).IndexOf('\u2014') >= 0) throw new Exception("Her help page's new sections are out of place or use an em dash.");
-            checks.Add("PASS self knowledge and her help page cover her window tool, the settings she can change herself, pausing only what's playing, timers, one app's own volume, looking at the monitor they name and Close and switch apps and tabs, with exact menu names");
+            checks.Add("PASS self knowledge and her help page cover her window tool, the settings she can change herself, pausing only what's playing, timers, one app's own volume, looking at the monitor they name, how their PC is doing and Close and switch apps and tabs, with exact menu names");
         }
 
         // Her settings tool's sliders and everyday switches on pretend settings: a step by name, by number or one step up or down,

@@ -616,7 +616,7 @@ namespace CapriDesktop
             "";
 #else
             "To arrange a window, use app_window: maximize, restore, snap it to half a monitor, move_to_screen for another monitor, or move and resize it. list_windows names their monitors, and with a name says where that app's window is and how big, so check it before a move or resize by pixels. Its result says where the window really ended up, so tell them that, like an app that won't go any smaller. " +
-            "media goes by what Windows says is playing, so pausing never starts the music, and now_playing says what any player has on, paused or not. A timer is a reminder: for set a timer for 10 minutes, call remind with when in 10 minutes. One app's own volume, like turning the game down so they can hear Discord, is app_volume; the whole PC's is media. ";
+            "media goes by what Windows says is playing, so pausing never starts the music, and now_playing says what any player has on, paused or not. A timer is a reminder: for set a timer for 10 minutes, call remind with when in 10 minutes. One app's own volume, like turning the game down so they can hear Discord, is app_volume; the whole PC's is media. When their PC or a game is slow or lagging, pc_status says how busy it is and what's using it. ";
 #endif
 
         // Her own settings, which only her Windows window can switch so far.
@@ -770,12 +770,14 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"list, on or off for the switch in name, or set for the slider in name\",\"enum\":[\"list\",\"on\",\"off\",\"set\"]},\"name\":{\"type\":\"string\",\"description\":\"Which switch for on or off, or which slider for set\",\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"dance_to_music\",\"head_pats\",\"chaos_when_upset\",\"sit_on_windows\",\"always_on_top\",\"mini_player\",\"typing_sound\",\"follow_ups\",\"hide_in_full_screen\",\"glitch_in\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\",\"watch_my_screen\",\"game_comments\",\"size\",\"pop_ins\",\"sleep\",\"volume\",\"voice_speed\",\"replies\",\"bubble\"]},\"level\":{\"type\":\"string\",\"description\":\"For set: one of the slider's steps, like Large, Often, 5 min, 60% or 1.2x, or up, down, bigger, smaller, louder, quieter, faster, slower, more or less for one step, or max or min\"}},\"required\":[\"action\"]}" },
             { "app_volume", "Read or change one app's own volume in Windows' volume mixer, apart from their PC's volume (media): like turning the game down so they can hear Discord, turning Spotify down, or muting Chrome. now with a name says how loud that app is and whether it's muted, and now with no name lists every app with a sound and which are playing. An app only has a volume of its own once it has made sound since it opened. For a game, use its program from list_windows. Each change says where it ended up. Their Discord mic is the shortcut tool's discord_mute, and your own voice's volume is capri_settings.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"now to read, set to a level, up or down a step, mute or unmute\",\"enum\":[\"now\",\"set\",\"up\",\"down\",\"mute\",\"unmute\"]},\"name\":{\"type\":\"string\",\"description\":\"The app, like spotify, discord or chrome, or a game's program\"},\"level\":{\"type\":\"string\",\"description\":\"For set, its volume from 0 to 100. For up or down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}" },
+            { "pc_status", "See how their PC is doing right now, read over half a second: how busy its processor is, how much memory is in use, the apps using the most of either, each drive's free space, and the battery on a laptop. Use it when they say their PC or a game is slow, laggy or stuttering, or ask what's using their CPU, memory or disk space, before guessing why. Give name to see one app's use. It only reads; it changes nothing.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Only this app, if they asked about one, like chrome or a game's program\"}}}" },
 #endif
         };
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now"); }
+        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status"; }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1134,6 +1136,7 @@ namespace CapriDesktop
 #if !CROSS
                 if (tool == "capri_settings") return Settings(args);
                 if (tool == "app_volume") return AppVolume(args);
+                if (tool == "pc_status") return PcStatus(args.Name);
                 if (tool == "draw") return Draw(args);
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
                 if (tool == "hologram") return Hologram(args.Action);
@@ -3160,6 +3163,7 @@ namespace CapriDesktop
             if (tool == "list_windows") return true;
 #if !CROSS
             if (tool == "capri_settings") return args.Action == "list" || (args.Action == "on" || args.Action == "off") && OwnRow(args.Name) >= 0 || args.Action == "set" && LevelRow(args.Name) >= 0 && Named(args.Level);
+            if (tool == "pc_status") return true;
             if (tool == "app_volume")
             {
                 int volume;
@@ -4911,6 +4915,52 @@ namespace CapriDesktop
             List<int> ids = new List<int>();
             foreach (AppSound sound in sounds) if (!ids.Contains(sound.Id)) ids.Add(sound.Id);
             return ids;
+        }
+
+        // How their PC is doing right now, swapped for a stand-in in the checks.
+        internal static Func<PcUse> Use = Usage.Read;
+
+        // How busy their PC is, for "my game's lagging" or "what's eating my memory": the processor and memory in use, the apps
+        // using the most of either, or the one they asked about, each drive's free space, and a laptop's battery.
+        private static string PcStatus(string name)
+        {
+            PcUse use;
+            try { use = Use(); }
+            catch (Exception) { use = null; }
+            if (use == null) return "Couldn't read how their PC is doing just now.";
+            string said = "Their PC right now: the processor is " + (int)Math.Round(use.Cpu) + "% busy" + (use.MemoryTotal > 0 ? ", and " + Usage.Size(use.MemoryUsed) + " of its " + Usage.Size(use.MemoryTotal) + " of memory is in use (" + (int)Math.Round(100.0 * use.MemoryUsed / use.MemoryTotal) + "%)." : ".");
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                string want = Plain(Regex.Replace(name.Trim(), @"\.exe$", "", RegexOptions.IgnoreCase)).Replace(" ", "");
+                List<AppUse> asked = use.Apps.FindAll(delegate(AppUse app)
+                {
+                    string program = Plain(app.App).Replace(" ", "");
+                    return want.Length > 0 && (program == want || want.Length >= 4 && program.StartsWith(want, StringComparison.Ordinal));
+                });
+                if (asked.Count == 0) return "Nothing called " + name.Trim() + " is running. " + said;
+                List<string> each = new List<string>();
+                foreach (AppUse app in asked) each.Add(app.App + " is using " + (int)Math.Round(app.Cpu) + "% of the processor and " + Usage.Size(app.Memory) + " of memory");
+                return string.Join("; ", each.ToArray()) + ". " + said;
+            }
+            List<AppUse> busiest = use.Apps.FindAll(delegate(AppUse app) { return app.Cpu >= 1; });
+            busiest.Sort(delegate(AppUse a, AppUse b) { return b.Cpu.CompareTo(a.Cpu); });
+            if (busiest.Count > 5) busiest.RemoveRange(5, busiest.Count - 5);
+            List<AppUse> heaviest = new List<AppUse>(use.Apps);
+            heaviest.Sort(delegate(AppUse a, AppUse b) { return b.Memory.CompareTo(a.Memory); });
+            List<string> named = new List<string>();
+            foreach (AppUse app in busiest) named.Add(app.App + " " + (int)Math.Round(app.Cpu) + "% of the processor and " + Usage.Size(app.Memory));
+            int added = 0;
+            foreach (AppUse app in heaviest)
+            {
+                if (added == 3) break;
+                if (busiest.Contains(app)) continue;
+                named.Add(app.App + " " + Usage.Size(app.Memory) + " of memory");
+                added++;
+            }
+            if (named.Count > 0) said += " Using the most: " + string.Join("; ", named.ToArray()) + ".";
+            if (use.Drives.Count > 0) said += " Drives: " + string.Join("; ", use.Drives.ToArray()) + ".";
+            if (use.Battery != null) said += " Battery " + use.Battery + ".";
+            return said;
         }
 #endif
 
