@@ -13229,6 +13229,97 @@ namespace CapriDesktop
             }
         }
 
+        // 0.8.0: she knows which of her tools work here. On this PC with a brain that can see, her tool lists and prompts are what
+        // they always were. A brain that can't see pictures has no look_at_screen, is told why, and says so instead of looking,
+        // and her help lists what she can do from the tools she has, mini games and chess included.
+        private static void SmokeToolKit(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<string> openAiTools = new System.Collections.Generic.List<string>(), claudeTools = new System.Collections.Generic.List<string>();
+            System.Text.StringBuilder listing = new System.Text.StringBuilder("\nYour tools:");
+            for (int i = 0; i < Hands.Count; i++)
+            {
+                openAiTools.Add("{\"type\":\"function\",\"function\":{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"parameters\":" + Hands.Schema(i) + "}}");
+                claudeTools.Add("{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"input_schema\":" + Hands.Schema(i) + "}");
+                System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
+                foreach (Match key in Regex.Matches(Hands.Schema(i), @"""(\w+)"":\{""type"":""string"",""description"":""[^""]*""(?:,""enum"":\[([^\]]*)\])?"))
+                    keys.Add("\"" + key.Groups[1].Value + "\": \"" + (key.Groups[2].Success ? key.Groups[2].Value.Replace("\"", "").Replace(",", "|") : "...") + "\"");
+                foreach (Match number in Regex.Matches(Hands.Schema(i), @"""(\w+)"":\{""type"":""integer""")) keys.Add("\"" + number.Groups[1].Value + "\": " + (number.Groups[1].Value == "page" ? "1" : "0"));
+                listing.Append("\n- " + Hands.Name(i) + "{" + string.Join(", ", keys.ToArray()) + "}: " + Hands.Description(i));
+                if (Hands.Unable(Hands.Name(i), new ToolArguments()) != null) throw new Exception("A tool said it can't work on this PC: " + Hands.Name(i));
+            }
+            listing.Append("\nChoose one value from each | choice and omit unused fields.\nTo use one, reply with only the call, like: open_app{\"name\": \"Spotify\"}");
+            Hands.Kit kit = Hands.KitFor();
+            if (Hands.Tools != "[" + string.Join(",", openAiTools.ToArray()) + "]" || Hands.ClaudeTools != "[" + string.Join(",", claudeTools.ToArray()) + "]" || Hands.Listing != listing.ToString()
+                || kit.Missing.Count != 0 || kit.NotHere.Length != 0 || !ReferenceEquals(kit, Hands.KitFor(false)) || Hands.Note != Hands.NoteFor(kit) || Hands.Prompt != Hands.PromptFor(kit)
+                || Hands.Note.IndexOf("Not on this", StringComparison.Ordinal) >= 0 || Hands.Prompt.IndexOf("Not on this", StringComparison.Ordinal) >= 0 || Hands.Chat.IndexOf("Not on this", StringComparison.Ordinal) >= 0)
+                throw new Exception("Her tool lists or prompts on this PC changed with all her tools here, or weren't kept.");
+            System.Collections.Generic.List<string> unfound = Hands.Unfound();
+            if (unfound.Count > 0) throw new Exception("A missing tool's prompt edit no longer matches her prompts: " + unfound[0]);
+            Hands.Kit blind = Hands.KitFor(true);
+            const string blindLine = "Not on this PC: looking at their screen (this brain can't see pictures).";
+            if (!ReferenceEquals(blind, Hands.KitFor(true)) || blind.Has("look_at_screen") || blind.NotHere != blindLine
+                || blind.Tools.Contains("\"name\":\"look_at_screen\"") || blind.ClaudeTools.Contains("\"name\":\"look_at_screen\"") || blind.Listing.Contains("look_at_screen{")
+                || !blind.Tools.Contains("\"name\":\"use_computer\"") || !blind.Listing.Contains("mini_game{") || blind.Tools.Length >= Hands.Tools.Length
+                || blind.Chat.Contains("You can always see their screen") || !blind.Chat.Contains(blindLine) || blind.Chat.IndexOf(blindLine, StringComparison.Ordinal) > blind.Chat.IndexOf(" If they want anything done", StringComparison.Ordinal)
+                || !blind.ChatOnly.Contains(blindLine) || blind.ChatOnly.Contains(": act") || !Hands.PromptFor(blind).Contains(blindLine + " If they ask for one of these, call no tool") || Hands.PromptFor(blind).Contains("look at their screen when asked")
+                || !Hands.NoteFor(blind).Contains(blindLine) || Hands.NoteFor(blind).Contains("Look at their screen when they ask") || Hands.NoteFor(blind).Contains("look at their screen, and use their mouse"))
+                throw new Exception("A brain that can't see still had look_at_screen or wasn't told why: " + blind.NotHere);
+            string doing = SelfKnow.Matching("what can you do?") ?? "", doingBlind = SelfKnow.Matching("what can you do?", blind) ?? "", pressing = SelfKnow.Matching("what keyboard shortcuts can you press?") ?? "", cloning = SelfKnow.Matching("can you clone yourself?") ?? "";
+            if (!doing.StartsWith("What she can do:", StringComparison.Ordinal) || !doing.Contains("mini games") || !doing.Contains("chess") || !doing.Contains("look at your screen;") || doing.Contains("Not here right now")
+                || !doingBlind.Contains("mini games") || doingBlind.Contains("look at your screen;") || !doingBlind.Contains("Not here right now: looking at your screen (this brain can't see pictures).")
+                || !pressing.StartsWith("Shortcuts she can press:", StringComparison.Ordinal) || !pressing.Contains("take a screenshot") || !pressing.Contains("open the Game Bar")
+                || !cloning.StartsWith("Clones and chaos mode:", StringComparison.Ordinal) || !cloning.Contains("Hold Esc"))
+                throw new Exception("Her help didn't say what she can do from her tools: " + doing + " / " + pressing + " / " + cloning);
+            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            Brain keeperWas = Brain.Keeper;
+            Brain.OpenAi = FakeServer(new[] { says("I can't see your screen, choom."), says("I can't see your screen with this brain, choom."), says("I can't see your screen, choom."), says("Looks sick, choom.") }, asked, out fake);
+            try
+            {
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Func<string, ToolArguments, string> act = delegate(string name, ToolArguments args) { did.Add(name); return name == "look_at_screen" ? "You see a code editor." : "Done."; };
+                Brain eyeless = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = act };
+                Brain sighted = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = act };
+                if (eyeless.Blind) throw new Exception("A cloud brain counted as blind before it was found not to see.");
+                eyeless.Unsighted = eyeless.Remote.Sight;
+                if (!eyeless.Blind || sighted.Blind) throw new Exception("A brain that can't see wasn't counted as blind, or one that can was.");
+                string honest = eyeless.Ask("do you like what I'm working on?");
+                eyeless.OwnSteps = true;
+                string planned = eyeless.Ask("what's on my screen right now?");
+                string looked = sighted.Ask("do you like what I'm working on?");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (honest != "I can't see your screen, choom." || looked != "Looks sick, choom." || string.Join(",", did.ToArray()) != "look_at_screen" || sent.Length != 4)
+                    throw new Exception("A brain that can't see was sent to look, or one that can didn't: " + honest + " / " + planned + " / " + looked + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                if (!sent[0].Contains(blindLine) || sent[0].Contains("You can always see their screen") || !sent[1].Contains("\"tools\":[") || sent[1].Contains("\"name\":\"look_at_screen\"") || !sent[1].Contains(blindLine)
+                    || sent[2].Contains(blindLine) || !sent[2].Contains("You can always see their screen"))
+                    throw new Exception("Her brain's prompts didn't follow what it can see.");
+                Brain.Keeper = eyeless;
+                string voiceBlind = Agent.Prompt;
+                Brain.Keeper = sighted;
+                string voiceSighted = Agent.Prompt;
+                Brain.Keeper = keeperWas;
+                if (!voiceBlind.Contains(blindLine) || voiceSighted.Contains(blindLine)) throw new Exception("Voice chat wasn't told her brain can't see.");
+            }
+            finally
+            {
+                Brain.Keeper = keeperWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                fake.Stop();
+            }
+            checks.Add("PASS her tools here: with everything on this PC her tool lists and prompts are unchanged and kept for each set of missing tools; a brain that can't see pictures has no look_at_screen, is told \"" + blindLine + "\" in chat, hands, planner and voice chat, answers \"I can't see your screen\" without being sent to look while a seeing brain still looks; what she can do lists her tools with mini games and chess, the shortcuts she can press and her clones");
+        }
+
         private void SmokeCare(System.Collections.Generic.List<string> checks)
         {
             double careNow = 0;
@@ -18561,6 +18652,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeLookout(checks); });
                             Section(checks, delegate { SmokeGameSense(checks); });
                             Section(checks, delegate { SmokeSelfKnow(checks); });
+                            Section(checks, delegate { SmokeToolKit(checks); });
                             Section(checks, delegate { SmokeFiles(checks); });
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });

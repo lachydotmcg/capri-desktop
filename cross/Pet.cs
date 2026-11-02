@@ -460,6 +460,7 @@ namespace CapriDesktop
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
             fingers = Program.Smoke == null && Fingers.Problem == null;
             Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers); };
+            Hands.OwnHands = fingers;
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
             LoginFile = Program.Smoke != null ? Path.Combine(Program.Smoke, OperatingSystem.IsMacOS() ? "capri.plist" : "capri.desktop") : Limbs.LoginFile();
@@ -2007,12 +2008,11 @@ namespace CapriDesktop
         internal bool Napping { get { return napping; } }
 
         // Her own moves, like on Windows: "teleport here" glitches her over to their mouse, "go to my other monitor" to the same
-        // spot on another screen, and she sits, stands, hangs, hides and comes back. Riding the cursor and the Mainframe are
-        // Windows-only so far.
+        // spot on another screen, and she sits, stands, hangs, hides and comes back. Sitting on a window they name, lying down,
+        // walking or wandering off when asked, riding the cursor and the Mainframe are Windows-only so far, and her hands say so
+        // before they get here.
         internal string MoveSelf(string action, string screen)
         {
-            if (action == "move_mainframe") return "My Mainframe is only on Windows so far. Here my settings are in my right-click menu.";
-            if (action == "ride_cursor" || action == "hop_off") return "Riding your cursor is only on Windows so far.";
             if (action == "hide")
             {
                 if (away) return "Already hidden.";
@@ -3394,8 +3394,9 @@ namespace CapriDesktop
             bool noted;
             try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
-            // Clones and chaos mode are Windows-only: she says so herself, brain or no brain, instead of her brain joking about them.
-            if (noted || tool == "clone")
+            // Something that can't work here, like clones and chaos mode, which are Windows-only: she says so herself and why,
+            // brain or no brain, instead of her brain joking about it.
+            if (noted || (tool != null && Hands.Unable(tool, args) != null))
             {
                 string done = Hands.Do(tool, args);
                 Brain.Remember(text, done);

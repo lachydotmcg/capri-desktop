@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -14,6 +15,8 @@ namespace CapriDesktop
             internal readonly string Facts;
             internal readonly string File;
             internal readonly string Label;
+            // Facts made from her tools here, for topics about what she can do.
+            private readonly Func<Hands.Kit, string> made;
 
             internal Topic(string name, string words, string facts, string file, string label)
             {
@@ -24,14 +27,22 @@ namespace CapriDesktop
                 File = file;
                 Label = label;
             }
+
+            internal Topic(string name, string words, Func<Hands.Kit, string> made, string file, string label) : this(name, words, (string)null, file, label) { this.made = made; }
+
+            internal string FactsFor(Hands.Kit kit) { return made == null ? Facts : made(kit); }
         }
 
         internal static readonly Topic[] Topics =
         {
             new Topic("Mainframe", "your settings|her settings|open your settings|mainframe|settings window",
                 "Right-click Capri or her tray icon and choose Open Capri Mainframe. Its main page has BRAIN, VOICE and CAPRI; Settings at the top opens the settings page, and changes are saved as you make them.", "Capri.cs", "Open Capri Mainframe"),
-            new Topic("What she can do", "what can you do|what do you do|what can capri do|your features|your capabilities",
-                "Talk by hovering over Capri and pressing TYPE or TALK, or use the keys in Mainframe > Settings > KEYS. She chats, speaks, keeps notes, opens apps and sites, plays music, looks at the screen and does mouse and keyboard jobs you ask for. Ask in plain words; Esc stops a running job.", "Hands.cs", "use_computer"),
+            new Topic("What she can do", "what can you do|what do you do|what can capri do|your features|your capabilities|what are your tools|what tools do you have|your tools|everything you can do|what else can you do",
+                delegate(Hands.Kit kit) { return "Talk by hovering over Capri and pressing TYPE or TALK, or use the keys in Mainframe > Settings > KEYS. She chats and speaks, and with her tools she can " + kit.Abilities + ". Ask in plain words; Esc stops a running job." + (kit.Absent.Length == 0 ? "" : " Not here right now: " + Regex.Replace(kit.Absent, @"\btheir\b", "your") + "."); }, "Hands.cs", "use_computer"),
+            new Topic("Clones and chaos mode", "your clones|clone yourself|chaos mode|make clones|copies of yourself|copy yourself|multiply yourself|duplicate yourself",
+                "Ask clone yourself, make 5 clones or activate chaos mode. Her clones wander around, talk to each other, steal the cursor, drag notes in and grab windows; with no number they keep multiplying until they're cleared. Hold Esc, or say get rid of your clones or chaos mode off, to clear them, and windows they moved go back. Mainframe > Settings > CAPRI > Chaos when upset can set them off when you insult her. It's Windows only for now.", "Hands.cs", "clone"),
+            new Topic("Shortcuts she can press", "shortcuts can you press|shortcuts you can press|shortcuts do you press|shortcuts do you know|press shortcuts|press a shortcut|press keyboard shortcuts",
+                delegate(Hands.Kit kit) { return "Ask in plain words and she presses it for you: she can " + Pressed(kit) + ". Mainframe > Settings > HABITS > Security > Shortcuts sets whether she asks first. Her own hotkeys, like Talk and Quiet, are under Mainframe > Settings > KEYS."; }, "Hands.cs", "shortcut"),
             new Topic("Brain", "your brain|her brain|brain setup|set up her brain|normal brain|higher brain|max intelligence|ollama|local brain|built in brain",
                 "In Mainframe > BRAIN, NORMAL uses a local brain: press Set up her brain to download one, or open Ollama and press Refresh. HIGHER uses a free NVIDIA key; MAX INTELLIGENCE accepts Google AI (Gemini), OpenRouter, OpenAI, Claude or DeepSeek keys, and only the selected tier runs. Pick a model from the model menu; a brain key and a voice key do different jobs.", "Mainframe.cs", "NORMAL"),
             new Topic("Free key", "free key|nvidia key|nvidia api|connect a key|connect my key|connect an api key|brain key|api keys",
@@ -268,7 +279,16 @@ namespace CapriDesktop
             return (" " + text + " ").IndexOf(" " + words + " ", StringComparison.Ordinal) >= 0;
         }
 
-        internal static string Matching(string asked)
+        // The shortcuts she can press here, the way she'd ask to press them: "take a screenshot, open Task Manager and ...".
+        private static string Pressed(Hands.Kit kit)
+        {
+            List<string> doing = new List<string>();
+            foreach (string name in kit.Keys) doing.Add(Security.Asking("shortcut", new ToolArguments { Name = name }));
+            return doing.Count < 2 ? string.Join("", doing.ToArray()) : string.Join(", ", doing.GetRange(0, doing.Count - 1).ToArray()) + " and " + doing[doing.Count - 1];
+        }
+
+        // Facts about the topics they asked about. What she can do comes from her tools here, and a brain that can't see leaves out looking.
+        internal static string Matching(string asked, Hands.Kit kit = null)
         {
             string text = Plain(asked);
             if (text.Length == 0 || !Question.IsMatch(text)) return null;
@@ -303,7 +323,7 @@ namespace CapriDesktop
                     if (scores[scoreAt] > 0 && (best < 0 || scores[scoreAt] > scores[best])) best = scoreAt;
                 if (best < 0) break;
                 if (found.Length > 0) found.Append('\n');
-                found.Append(Topics[best].Name).Append(": ").Append(Topics[best].Facts);
+                found.Append(Topics[best].Name).Append(": ").Append(Topics[best].FactsFor(kit ?? Hands.KitFor()));
                 scores[best] = 0;
             }
             // On the same line: a setting named here can be one Simple Settings hides, and the help must still say where it is.
