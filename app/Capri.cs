@@ -1775,7 +1775,11 @@ namespace CapriDesktop
                     if (playerMenu != null && playerMenu.Visible) playerMenu.Close();
                     if (preferences.OnTop != onTop) { preferences.OnTop = onTop; TopMost = onTop; Layer(); }
                     // WinForms keeps its own TopMost, so a window that lost Windows' topmost bit behind its back is told again directly.
-                    if (NativeTop != topWas && IsHandleCreated) { Native.SetWindowPos(Handle, new IntPtr(topWas ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); Layer(); }
+                    if (NativeTop != topWas && IsHandleCreated)
+                    {
+                        if (topWas) LiftTop(); else Native.SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+                        Layer();
+                    }
                     if (!mainframeShown) { if (mainframe.Visible) mainframe.Hide(); }
                     else
                     {
@@ -2473,7 +2477,7 @@ namespace CapriDesktop
             if (player.Visible) Native.SetWindowPos(player.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             // Her panel goes first so she stays above it. A game that's always on top covered it and left her sitting on nothing (Lachy, 1 Nov).
             if (taskPanel.Visible) Native.SetWindowPos(taskPanel.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
-            Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            LiftTop();
             foreach (Form above in new Form[] { pill, box, typer }) if (above.Visible) Native.SetWindowPos(above.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
         }
 
@@ -7389,10 +7393,23 @@ namespace CapriDesktop
                 if (above.Owner != this) above.Owner = this;
                 if (above.IsHandleCreated) Native.SetWindowPos(above.Handle, new IntPtr(preferences.OnTop ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             }
+            if (preferences.OnTop) LiftTop();
             player.Above = preferences.OnTop;
             if (!player.IsHandleCreated) return;
             Native.SetWindowPos(player.Handle, new IntPtr(preferences.OnTop ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
             if (player.Visible) PlayerLayer(true);
+        }
+
+        // Puts her in the topmost band. After Always on top went off and on, with her mini player's window made, Windows took
+        // TOPMOST on her as done and left her where she was, under the boards and the player (smoke step 0, 2 Nov). From the top
+        // of the normal band it takes.
+        private void LiftTop()
+        {
+            if (!IsHandleCreated) return;
+            Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            if (NativeTop) return;
+            Native.SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+            Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
         }
 
         internal void FindBrain()
@@ -17950,8 +17967,8 @@ namespace CapriDesktop
                 brain.Model = brainWas; headTest = headWas; Speak = speakWas; FreeSpeak = freeWas; asideTest = asideWas;
                 talkState = talkWas; preferences.OnTop = topWas; escAsk = escWas; voiceUntil = voiceWas;
                 // Turning Always on top off made her pill, box and typer not-topmost, and Windows takes their owner, her, down with them.
-                // Putting them back up doesn't lift her, so she goes back up herself first.
-                if (IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(topWas ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
+                // Putting them back up doesn't lift her, so Layer lifts her herself.
+                if (!topWas && IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(-2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
                 Layer();
             }
         }
