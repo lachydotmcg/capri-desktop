@@ -599,7 +599,8 @@ namespace CapriDesktop
 #if CROSS
             "";
 #else
-            "To arrange a window, use app_window: maximize, restore, snap it to half a monitor, move_to_screen for another monitor, or move and resize it. list_windows names their monitors, and with a name says where that app's window is and how big, so check it before a move or resize by pixels. Its result says where the window really ended up, so tell them that, like an app that won't go any smaller. ";
+            "To arrange a window, use app_window: maximize, restore, snap it to half a monitor, move_to_screen for another monitor, or move and resize it. list_windows names their monitors, and with a name says where that app's window is and how big, so check it before a move or resize by pixels. Its result says where the window really ended up, so tell them that, like an app that won't go any smaller. " +
+            "media goes by what Windows says is playing, so pausing never starts the music, and now_playing says what any player has on, paused or not. A timer is a reminder: for set a timer for 10 minutes, call remind with when in 10 minutes. ";
 #endif
 
         // Her own settings, which only her Windows window can switch so far.
@@ -2532,11 +2533,14 @@ namespace CapriDesktop
             return false;
         }
 
-        // A model's media call squared with what they said: unmute isn't mute, and only saying Spotify means Spotify's own volume.
+        // A model's media call squared with what they said: unmute isn't mute, only saying Spotify means Spotify's own volume, and
+        // play_pause for "pause it" or "unpause it" only pauses or only plays, so it can't flip the music the wrong way.
         internal static void Aim(ToolArguments args, string said)
         {
             if (args == null) return;
             if (args.Action == "mute" && Regex.IsMatch(said ?? "", @"\bun-?mute\b|\bmute off\b|\boff (of )?mute\b|\b(sound|volume|audio) (back )?on\b|\bturn on (the )?(sound|volume|audio)\b", RegexOptions.IgnoreCase)) args.Action = "unmute";
+            if (args.Action == "play_pause" && Regex.IsMatch(said ?? "", @"\bun-?pause\b|\bresume\b|\bcontinue (?:the |my )?(?:music|song|video|playing)\b|\bkeep (?:it )?playing\b|\bplay (?:it |the (?:music|song|video) )?again\b", RegexOptions.IgnoreCase)) args.Action = "resume";
+            else if (args.Action == "play_pause" && Regex.IsMatch(said ?? "", @"(?<!\bplay ?[/-]? ?)\bpause\b|\bstop (?:the |my |this |that )?(?:music|song|video|podcast|playback|playing)\b", RegexOptions.IgnoreCase)) args.Action = "pause";
             if (args.App == null && (args.Action == "volume_up" || args.Action == "volume_down") && Regex.IsMatch(said ?? "", @"\bspotify\b", RegexOptions.IgnoreCase)) args.App = "spotify";
         }
 
@@ -3846,8 +3850,16 @@ namespace CapriDesktop
         {
             string action = args.Action;
             if (action == "play_pause" || action == "pause" || action == "resume") return Toggle(action);
-            if (action == "next") { Press(0xB0); return "Skipped to the next track."; }
-            if (action == "previous") { Press(0xB1); return "Went back a track."; }
+            if (action == "next" || action == "previous")
+            {
+#if !CROSS
+                string skipped = Skipped(action == "next");
+                if (skipped != null) return skipped;
+#endif
+                if (action == "next") { Press(0xB0); return "Skipped to the next track."; }
+                Press(0xB1);
+                return "Went back a track.";
+            }
             int level;
             bool leveled = int.TryParse(args.Level, out level) && level >= 0 && level <= 100;
             // Each volume key moves Windows' volume 2%, and shows its volume bar.
@@ -3924,6 +3936,11 @@ namespace CapriDesktop
 
         private static string Playing()
         {
+#if !CROSS
+            // Windows' media session knows what any player has on, Spotify, a browser tab or anything else, and whether it's paused.
+            Tune heard = Sounding(Sessions());
+            if (heard != null) return Tunes.AppName(heard.App) + (heard.Playing ? " is playing " : " is paused on ") + Song(heard) + ".";
+#endif
             string title = NowPlaying();
             if (TrackTitle(title))
             {
@@ -3941,6 +3958,10 @@ namespace CapriDesktop
 
         private static string Toggle(string action)
         {
+#if !CROSS
+            string sure = Paused(action);
+            if (sure != null) return sure;
+#endif
             string before = NowPlaying();
             Press(0xB3);
             for (int i = 0; i < 6 && before.Length > 0; i++)
@@ -3953,6 +3974,74 @@ namespace CapriDesktop
             }
             return action == "pause" ? "Pressed pause." : action == "resume" ? "Pressed play." : "Pressed play/pause.";
         }
+
+#if !CROSS
+        // Windows' media sessions, the one it puts first leading, or null where they can't be read, and a press sent to one of
+        // them, true when it went through. Her window sets both outside the smoke test, so no check reads or presses their own
+        // player.
+        internal static Func<List<Tune>> Sessions = delegate { return null; };
+        internal static Func<Tune, string, bool> SessionPress = delegate { return false; };
+
+        // The player that's playing, or the first paused one with something on, or null when there's neither.
+        private static Tune Sounding(List<Tune> tunes)
+        {
+            if (tunes == null) return null;
+            Tune paused = null;
+            foreach (Tune tune in tunes)
+            {
+                if (tune.Title.Length == 0) continue;
+                if (tune.Playing) return tune;
+                if (paused == null) paused = tune;
+            }
+            return paused;
+        }
+
+        // The same player's session after a press, or null when it's gone.
+        private static Tune Again(Tune tune)
+        {
+            List<Tune> tunes = Sessions();
+            if (tunes == null) return null;
+            foreach (Tune now in tunes) if (now.App == tune.App) return now;
+            return null;
+        }
+
+        private static string Song(Tune tune) { return tune.Title + (tune.Artist.Length > 0 ? " by " + tune.Artist : ""); }
+
+        // Pause and play by what Windows says is playing, so pause never starts the music and play never stops it, and she says
+        // what the player did afterwards. Null when there's no player to go by.
+        private static string Paused(string action)
+        {
+            Tune tune = Sounding(Sessions());
+            if (tune == null) return null;
+            string app = Tunes.AppName(tune.App);
+            bool pausing = action == "pause" || action != "resume" && tune.Playing;
+            if (pausing && !tune.Playing) return "Nothing's playing: " + app + " is already paused on " + Song(tune) + ".";
+            if (!pausing && tune.Playing) return app + " is already playing " + Song(tune) + ".";
+            if (!SessionPress(tune, pausing ? "pause" : "play")) return "Couldn't reach " + app + " to " + (pausing ? "pause" : "play") + " it.";
+            for (int i = 0; i < 10; i++)
+            {
+                Thread.Sleep(150);
+                Tune now = Again(tune);
+                if (now == null ? pausing : now.Playing != pausing) return pausing ? "Paused " + app + "." : app + " is playing " + Song(now ?? tune) + " again.";
+            }
+            return pausing ? "Couldn't pause " + app + ": it still says it's playing." : "Couldn't play " + app + ": it still says it's paused.";
+        }
+
+        // Next and previous on the player that's playing, and the song it moved to once it says. Null when there's no player.
+        private static string Skipped(bool next)
+        {
+            Tune tune = Sounding(Sessions());
+            if (tune == null) return null;
+            if (!SessionPress(tune, next ? "next" : "previous")) return "Couldn't reach " + Tunes.AppName(tune.App) + " to skip.";
+            for (int i = 0; i < 10; i++)
+            {
+                Thread.Sleep(150);
+                Tune now = Again(tune);
+                if (now != null && now.Title.Length > 0 && now.Key != tune.Key) return (next ? "Skipped to the next track: " : "Went back a track: ") + Song(now) + ".";
+            }
+            return next ? "Skipped to the next track." : "Went back a track.";
+        }
+#endif
 
         // Each shortcut: its name, Discord's or not, its keys, what she says after, what her prompts call it and what it does in
         // her tool's description, for where only some of them work.
@@ -4406,7 +4495,7 @@ namespace CapriDesktop
             wanted = wanted.Trim();
             int best;
             List<OpenWindow> top = Best(want, out best, action == "close", asked);
-            if (top.Count == 0) return Unlisted() ?? wanted + " isn't open.";
+            if (top.Count == 0) return Unlisted() ?? Windowless(wanted, want, action);
             // When several apps match, the one whose own name matches goes first, then the one nearest the front.
             OpenWindow first = top.Find(window => Score(Plain(window.Program), want) == best) ?? top[0];
             top = top.FindAll(window => window.Program == first.Program);
@@ -4428,6 +4517,18 @@ namespace CapriDesktop
         }
 
         internal const string ArrangeLine = "Moving, resizing and snapping windows is only on Windows so far, choom.";
+
+        // No window of it is open. An app still running with no window, like Discord in the tray, says so instead of "isn't open",
+        // so closing it isn't taken as done and switching to it knows to open it again.
+        private static string Windowless(string wanted, string want, string action)
+        {
+            bool running;
+            try { running = Running(want, null); }
+            catch (Exception) { running = false; }
+            if (!running) return wanted + " isn't open.";
+            string verb = action == "switch_to" ? "switch to" : action.StartsWith("snap_", StringComparison.Ordinal) ? "snap" : action == "move_to_screen" ? "move" : action;
+            return "Couldn't " + verb + " " + wanted + ": it has no window open, but it's running in the background, maybe in the tray." + (action == "close" ? " Quit it from its tray icon." : " Opening it should bring its window back.");
+        }
 
         // The open windows whose program or title matches best, front first.
         internal static int CloseScore(OpenWindow window, string want, string asked)

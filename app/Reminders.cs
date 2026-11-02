@@ -211,6 +211,14 @@ namespace CapriDesktop
                 @"^erinnere mich\s+(.+)$", @"^przypomnij mi\s+(.+)$", @"^(?:lembra[- ]me|lembre[- ]me|me lembre|me lembra)\s+(.+)$"
             };
             DateTime now = Now();
+            // A timer is a reminder that says it's done: "set a timer for 10 minutes", "timer 30 seconds" or "start a 5 minute timer".
+            const string Starting = @"^(?:(?:set|start|make|put on|put|give me)\s+(?:me\s+|up\s+)?(?:a\s+|an\s+)?)?";
+            Match timer = Regex.Match(text, Starting + @"timer\s+(?:for\s+)?(.+?)$", RegexOptions.IgnoreCase);
+            Match sized = Regex.Match(text, Starting + @"(\S+(?:\s+and\s+a\s+half)?)[\s-](minutes?|mins?|hours?|hrs?|seconds?|secs?)\s+timer$", RegexOptions.IgnoreCase);
+            string span = timer.Success ? timer.Groups[1].Value.Trim() : sized.Success ? sized.Groups[1].Value + " " + sized.Groups[2].Value : null;
+            DateTime timerDue;
+            if (span != null && Parse("in " + span, now, out timerDue))
+                return Call("remind", new ToolArguments { Text = "your " + Regex.Replace(Regex.Replace(span, @"^an? ", "1 ", RegexOptions.IgnoreCase), @"(minute|hour|second|min|hr|sec)s\b", "$1", RegexOptions.IgnoreCase) + " timer is done", When = "in " + span });
             foreach (string starter in starters)
             {
                 Match ask = Regex.Match(text, starter, RegexOptions.IgnoreCase);
@@ -281,13 +289,14 @@ namespace CapriDesktop
         {
             when = now;
             string plain = Fold(text).TrimEnd('.', ',', '!', '?');
-            Match relative = Regex.Match(plain, @"^(?:in|en|dans|za|em|dentro de|daqui a)\s+(.*?)\s*(minutes?|mins?|minutos?|minuten|minut(?:e|y|a)?|hours?|hrs?|horas?|heures?|stunden?|godzin(?:e|y|a)?)$");
+            Match relative = Regex.Match(plain, @"^(?:in|en|dans|za|em|dentro de|daqui a)\s+(.*?)\s*(minutes?|mins?|minutos?|minuten|minut(?:e|y|a)?|hours?|hrs?|horas?|heures?|stunden?|godzin(?:e|y|a)?|seconds?|secs?|segundos?|secondes?|sekunden?|sekund(?:e|y|a)?)$");
             if (relative.Success)
             {
                 string amount = relative.Groups[1].Value.Trim().TrimEnd('-');
                 double count = amount.Length == 0 ? 1 : Number(amount);
                 if (count <= 0) return false;
-                double minutes = count * (Regex.IsMatch(relative.Groups[2].Value, @"^(?:h|stund|godzin)") ? 60 : 1);
+                // Seconds are for timers, like a 30 second one.
+                double minutes = Regex.IsMatch(relative.Groups[2].Value, @"^(?:h|stund|godzin)") ? count * 60 : Regex.IsMatch(relative.Groups[2].Value, @"^(?:sec|seg|sek)") ? count / 60 : count;
                 try { when = now.AddMinutes(minutes); return when > now; }
                 catch (ArgumentOutOfRangeException) { return false; }
             }

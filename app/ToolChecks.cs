@@ -35,6 +35,7 @@ namespace CapriDesktop
             Func<OpenWindow, bool> minimizedWas = Hands.Minimized, gameyWas = Hands.Gamey;
             Func<OpenWindow, string> screenWas = Hands.ScreenOf;
             Func<OpenWindow, string, bool> steerWas = Hands.Steer;
+            Func<string, string, bool> runningWas = Hands.Running;
             bool windowsOn = Security.On(Security.Windows);
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
@@ -48,6 +49,8 @@ namespace CapriDesktop
                     new Arrange.Display { Bounds = new Rectangle(3000, 0, 2560, 1440), Work = new Rectangle(3000, 0, 2560, 1392), Number = 3, Dpi = 144 }
                 };
                 Arrange.Named(desk);
+                // Nothing on this desk runs without a window.
+                Hands.Running = delegate { return false; };
                 Dictionary<IntPtr, PretendWindow> pretend = new Dictionary<IntPtr, PretendWindow>();
                 pretend[new IntPtr(31)] = new PretendWindow { Edges = new Rectangle(1990, -220, 940, 800), Least = new Size(940, 500) };
                 pretend[new IntPtr(32)] = new PretendWindow { Edges = new Rectangle(0, 0, 1920, 1032), Normal = new Rectangle(320, 180, 1280, 720), Maximized = true };
@@ -247,6 +250,7 @@ namespace CapriDesktop
                 Hands.Gamey = gameyWas;
                 Hands.ScreenOf = screenWas;
                 Hands.Steer = steerWas;
+                Hands.Running = runningWas;
                 Security.Drop();
                 Security.Set(Security.Windows, windowsOn);
                 Brain.OpenAi = openAiWas;
@@ -306,6 +310,158 @@ namespace CapriDesktop
             {
                 if (pane != null && pane.IsHandleCreated) pane.BeginInvoke(new MethodInvoker(delegate { pane.Close(); }));
                 owner.Join(5000);
+            }
+        }
+
+        // Everyday asks said truthfully, on a pretend player and desk: pause never starts the music and play never stops it, a skip
+        // says the song it landed on, what's playing covers any player, an app in the tray isn't "not open", and a timer is a
+        // reminder on every brain (Lachy, 3 Nov: "check state before acting, report truthfully").
+        private void SmokeEverydayAsks(List<string> checks)
+        {
+            Func<List<Tune>> sessionsWas = Hands.Sessions;
+            Func<Tune, string, bool> sendWas = Hands.SessionPress;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string> unlistedWas = Hands.Unlisted, nowPlayingWas = Hands.NowPlaying;
+            Func<string, string, bool> runningWas = Hands.Running;
+            Action<byte> keysWas = Hands.Press;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            TcpListener fake = null;
+            try
+            {
+                string app = "Spotify.exe", title = "Consume", artist = "Chase Atlantic";
+                bool playing = true, stuck = false, present = true;
+                List<string> sent = new List<string>();
+                List<byte> keys = new List<byte>();
+                // Each read is a fresh copy, the way Windows' sessions are read again after a press.
+                Hands.Sessions = delegate
+                {
+                    List<Tune> tunes = new List<Tune>();
+                    if (present) tunes.Add(new Tune { App = app, Title = title, Artist = artist, Playing = playing });
+                    return tunes;
+                };
+                Hands.SessionPress = delegate(Tune tune, string what)
+                {
+                    sent.Add(what);
+                    if (stuck) return true;
+                    if (what == "pause" || what == "play") playing = what == "play";
+                    else title = what == "next" ? "Swim" : "Consume";
+                    return true;
+                };
+                Hands.Press = delegate(byte key) { keys.Add(key); };
+                Func<string, string> media = delegate(string action) { return Hands.Do("media", new ToolArguments { Action = action }); };
+                string[,] asks =
+                {
+                    { "now_playing", "Spotify is playing Consume by Chase Atlantic." }, { "pause", "Paused Spotify." },
+                    { "pause", "Nothing's playing: Spotify is already paused on Consume by Chase Atlantic." }, { "now_playing", "Spotify is paused on Consume by Chase Atlantic." },
+                    { "resume", "Spotify is playing Consume by Chase Atlantic again." }, { "resume", "Spotify is already playing Consume by Chase Atlantic." },
+                    { "play_pause", "Paused Spotify." }, { "play_pause", "Spotify is playing Consume by Chase Atlantic again." },
+                    { "next", "Skipped to the next track: Swim by Chase Atlantic." }, { "previous", "Went back a track: Consume by Chase Atlantic." }
+                };
+                List<string> wrong = new List<string>();
+                for (int i = 0; i < asks.GetLength(0); i++)
+                {
+                    string got = media(asks[i, 0]);
+                    if (got != asks[i, 1]) wrong.Add(asks[i, 0] + " said \"" + got + "\"");
+                }
+                if (wrong.Count > 0 || string.Join(",", sent.ToArray()) != "pause,play,pause,play,next,previous" || keys.Count != 0)
+                    throw new Exception("Her media tool didn't go by what's playing: " + string.Join(" / ", wrong.ToArray()) + " / pressed " + string.Join(",", sent.ToArray()));
+                // A player that ignores the press is said plainly, a browser tab is named by its browser, and with no player to go by
+                // she presses the key the way she always has.
+                stuck = true;
+                string ignored = media("pause");
+                stuck = false;
+                app = "Chrome";
+                title = "lofi hip hop radio";
+                artist = "Lofi Girl";
+                string tab = media("now_playing");
+                present = false;
+                Hands.NowPlaying = delegate { return ""; };
+                string blind = media("pause");
+                if (ignored != "Couldn't pause Spotify: it still says it's playing." || !Hands.Failed(ignored) || tab != "Chrome is playing lofi hip hop radio by Lofi Girl." || blind != "Pressed pause." || keys.Count != 1 || keys[0] != 0xB3)
+                    throw new Exception("Her media tool didn't say what the player did: " + ignored + " / " + tab + " / " + blind);
+                // A brain's play_pause for "pause it" only pauses, and for "unpause it" only plays.
+                string[,] aims = { { "pause the music", "pause" }, { "can you unpause it", "resume" }, { "resume my song", "resume" }, { "stop the music", "pause" }, { "play it again", "resume" }, { "play/pause", "play_pause" }, { "hit play pause", "play_pause" } };
+                for (int i = 0; i < aims.GetLength(0); i++)
+                {
+                    ToolArguments aimed = new ToolArguments { Action = "play_pause" };
+                    Hands.Aim(aimed, aims[i, 0]);
+                    if (aimed.Action != aims[i, 1]) throw new Exception("\"" + aims[i, 0] + "\" aimed play_pause at " + aimed.Action);
+                }
+                // An app running in the tray with no window isn't "not open".
+                Hands.Windows = delegate { return new List<OpenWindow> { new OpenWindow(new IntPtr(41), "notes.txt - Notepad", "notepad") }; };
+                Hands.Unlisted = delegate { return null; };
+                Hands.Running = delegate(string name, string id) { return name == "discord"; };
+                string closed = Hands.Do("app_window", new ToolArguments { Name = "Discord", Action = "close" }), front = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "switch_to" });
+                string snapped = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "snap_left" }), absent = Hands.Do("app_window", new ToolArguments { Name = "minecraft", Action = "close" });
+                if (closed != "Couldn't close Discord: it has no window open, but it's running in the background, maybe in the tray. Quit it from its tray icon."
+                    || front != "Couldn't switch to discord: it has no window open, but it's running in the background, maybe in the tray. Opening it should bring its window back."
+                    || snapped != "Couldn't snap discord: it has no window open, but it's running in the background, maybe in the tray. Opening it should bring its window back."
+                    || absent != "minecraft isn't open." || !Hands.Failed(closed) || !Hands.Failed(front) || !Hands.Failed(absent))
+                    throw new Exception("An app in the tray was called not open: " + closed + " / " + front + " / " + snapped + " / " + absent);
+                // A timer is a reminder that says it's done, set straight away on every brain, seconds too.
+                string[,] timers =
+                {
+                    { "set a timer for 10 minutes", "your 10 minute timer is done", "in 10 minutes" }, { "timer 30 seconds", "your 30 second timer is done", "in 30 seconds" },
+                    { "start a 5 minute timer", "your 5 minute timer is done", "in 5 minute" }, { "set me a timer for an hour", "your 1 hour timer is done", "in an hour" }
+                };
+                for (int i = 0; i < timers.GetLength(0); i++)
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (!Hands.Heard(timers[i, 0], out tool, out args) || tool != "remind" || args.Text != timers[i, 1] || args.When != timers[i, 2])
+                        throw new Exception("\"" + timers[i, 0] + "\" didn't set a timer: " + tool + " " + (args == null ? "" : args.Text + " / " + args.When));
+                }
+                foreach (string loose in new[] { "set a timer", "set a timer for my pizza", "what's a timer" })
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (Hands.Heard(loose, out tool, out args) && tool == "remind") throw new Exception("\"" + loose + "\" set a timer.");
+                }
+                DateTime clock = new DateTime(2026, 11, 3, 1, 0, 0), due;
+                if (!Reminders.Parse("in 30 seconds", clock, out due) || (due - clock).TotalSeconds != 30 || !Reminders.Parse("in 2 hours", clock, out due) || (due - clock).TotalHours != 2)
+                    throw new Exception("A timer in seconds wasn't understood.");
+                // A brain that works jobs out pauses only when something plays, and hears what the player said.
+                List<string> asked = new List<string>();
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                app = "Spotify.exe";
+                title = "Consume";
+                artist = "Chase Atlantic";
+                playing = false;
+                present = true;
+                sent.Clear();
+                Brain.OpenAi = FakeServer(new[] { calls("media", "{\"action\":\"play_pause\"}"), says("It's already paused, choom.") }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                List<string> did = new List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + args.Action); return Hands.Do(name, args); };
+                string reply = planner.Ask("ugh pause whatever's playing, I'm about to jump on a call");
+                string[] heard;
+                lock (asked) heard = asked.ToArray();
+                if (reply != "It's already paused, choom." || string.Join(",", did.ToArray()) != "media:pause" || sent.Count != 0 || heard.Length != 2
+                    || !heard[0].Contains("A timer is a reminder") || !heard[0].Contains("pausing never starts the music") || !heard[1].Contains("Nothing's playing: Spotify is already paused on Consume by Chase Atlantic."))
+                    throw new Exception("Her planner's pause flipped the music or didn't hear the player: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + heard.Length + " calls");
+                checks.Add("PASS everyday asks go by what's there: pause only pauses and play only plays by what Windows says is playing, a player that ignores the press is said plainly, next and previous name the song they landed on, what's playing covers Spotify, a browser tab or anything else, a brain's play_pause for pause or unpause can't flip the music the wrong way, with no player to read the keys work as before; an app in the tray says so instead of not open; set a timer for 10 minutes, 30 seconds or a 5 minute timer is a reminder on every brain");
+                checks.Add("LIMIT pause, play and skip on their own players: Spotify, a YouTube tab and a game's music each report through Windows' media session in their own way");
+            }
+            finally
+            {
+                Hands.Sessions = sessionsWas;
+                Hands.SessionPress = sendWas;
+                Hands.Windows = windowsWas;
+                Hands.Unlisted = unlistedWas;
+                Hands.NowPlaying = nowPlayingWas;
+                Hands.Running = runningWas;
+                Hands.Press = keysWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
             }
         }
 

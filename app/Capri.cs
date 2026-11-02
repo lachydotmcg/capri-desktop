@@ -2056,6 +2056,13 @@ namespace CapriDesktop
             Hands.SetSetting = SetSetting;
             Hands.LevelOf = LevelOf;
             Hands.SetLevel = SetLevel;
+            // Pause, play, skip and what's playing go by Windows' media session. The smoke test keeps its own, so no check reads or
+            // presses their real player.
+            if (!testing)
+            {
+                Hands.Sessions = delegate { return Tunes.Shared(); };
+                Hands.SessionPress = delegate(Tune tune, string what) { return Tunes.Send(tune, what); };
+            }
             Hands.Gamey = Computer.IsGame;
             Hands.Icons = IconTool;
             Hands.Upset = UpsetTool;
@@ -23381,6 +23388,7 @@ namespace CapriDesktop
             Section(checks, "SmokeWindowReal", delegate { SmokeWindowReal(checks); });
             Section(checks, "SmokeSettingsTool", delegate { SmokeSettingsTool(checks); });
             Section(checks, "SmokeOwnSliders", delegate { SmokeOwnSliders(checks); });
+            Section(checks, "SmokeEverydayAsks", delegate { SmokeEverydayAsks(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
             Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
