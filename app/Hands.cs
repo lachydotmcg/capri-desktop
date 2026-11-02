@@ -2398,7 +2398,14 @@ namespace CapriDesktop
         private static int Score(InstalledApp app, string want)
         {
             string name = AppName(app);
-            return name.Length == 0 ? 0 : Math.Max(Score(name, want), Score(Plain(app.Name), want));
+            if (name.Length == 0) return 0;
+            int score = Math.Max(Score(name, want), Score(Plain(app.Name), want));
+#if CROSS
+            // Mac and Linux list every .app and .desktop name, so part of a word doesn't count there: "minecraft" can't open an app
+            // that merely has it inside a longer name (a Bazzite user).
+            if (score == 1 && name.Contains(want)) return 0;
+#endif
+            return score;
         }
 
         private static string AppName(InstalledApp app)

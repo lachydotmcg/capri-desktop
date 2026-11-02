@@ -545,6 +545,11 @@ namespace CapriDesktop
                     Hands.Forget();
                 }
                 checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, each one in \"open spotify and then youtube.com\", skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, and key-press shortcuts say they're Windows-only");
+                // An app only opens when its name has the whole word they said (a Bazzite user).
+                List<InstalledApp> lookalikes = new List<InstalledApp> { new InstalledApp("Minecraftle", "exec:minecraftle"), new InstalledApp("Kate", "exec:kate") };
+                if (Hands.Match(lookalikes, "minecraft").Count != 0 || Hands.Match(lookalikes, "minecraftle").Count != 1 || Hands.Match(lookalikes, "kate").Count != 1 || Hands.Match(lookalikes, "Kate text editor").Count != 1)
+                    throw new Exception("An app was opened by part of a word: " + Hands.Match(lookalikes, "minecraft").Count);
+                checks.Add("PASS whole words: an app opens only when its name has the whole word they said, so \"open minecraft\" never opens Minecraftle, and \"Kate text editor\" still opens Kate");
                 SecurityChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
