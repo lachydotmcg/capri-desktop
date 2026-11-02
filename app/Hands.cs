@@ -4103,7 +4103,7 @@ namespace CapriDesktop
         private static readonly Regex Moon = new Regex(@"\bwish\s+(?:we|i|you\s+and\s+i|me\s+and\s+you)\s+could\s+(?:go|fly|get|run\s+away)\s+to\s+the\s+moon\b", RegexOptions.IgnoreCase);
         internal const string MoonSong = "I Really Want to Stay at Your House";
 
-        internal const string Home = "lachydotmcg.github.io/capri-desktop";
+        internal const string Home = "capriai.app";
 
         private static string PlayMusic(string song, string app, string kind)
         {

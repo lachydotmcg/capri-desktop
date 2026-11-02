@@ -14,7 +14,7 @@ She sits on your windows, talks back, plays your games and gets into everything.
 <a href="https://github.com/lachydotmcg/capri-desktop/releases"><img src="https://img.shields.io/github/downloads/lachydotmcg/capri-desktop/total?color=05d9e8&style=flat-square" alt="Downloads"></a>
 <a href="https://discord.gg/F4fDHfGtFk"><img src="https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Discord"></a>
 
-[Setup guide](https://lachydotmcg.github.io/capri-desktop/setup/) · [Website](https://lachydotmcg.github.io/capri-desktop/) · [Help](https://lachydotmcg.github.io/capri-desktop/help/) · [Support](#support)
+[Setup guide](https://capriai.app/setup/) · [Website](https://capriai.app/) · [Help](https://capriai.app/help/) · [Support](#support)
 
 <sub>Inspired by jpartnma_'s TikTok video.</sub>
 
@@ -70,7 +70,7 @@ Beware that Capri may try to take over your human CPU. We take no responsibility
 
 **Zero telemetry.** The app sends us nothing. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
 
-Stuck? The [setup guide](https://lachydotmcg.github.io/capri-desktop/setup/) walks through it, or ask in the [Discord](https://discord.gg/F4fDHfGtFk). [Windows or your antivirus may warn you](SECURITY.md#windows-or-your-antivirus-warned-me) because she's a new app. All the code is here.
+Stuck? The [setup guide](https://capriai.app/setup/) walks through it, or ask in the [Discord](https://discord.gg/F4fDHfGtFk). [Windows or your antivirus may warn you](SECURITY.md#windows-or-your-antivirus-warned-me) because she's a new app. All the code is here.
 
 <details>
 <summary><b>What your PC needs</b></summary>
@@ -139,7 +139,7 @@ Just ask her for things, like "open Spotify", "play Blinding Lights", "pause", "
 | **CUSTOM LOCAL** | A voice model you run: a Piper, Kokoro, Kitten or Pocket TTS file, or your own Kokoro-FastAPI, Fish Speech or Qwen3-TTS server |
 | **CLOUD VOICE** | Fish Audio (free tier), ElevenLabs or OpenAI, with your own key |
 
-For a Capri-style voice in Fish Audio or ElevenLabs, paste the [voice prompt from the setup guide](https://lachydotmcg.github.io/capri-desktop/setup/#voice) into their Voice Design.
+For a Capri-style voice in Fish Audio or ElevenLabs, paste the [voice prompt from the setup guide](https://capriai.app/setup/#voice) into their Voice Design.
 
 > [!IMPORTANT]
 > Our project-provided synthetic voice is in Capri's Mainframe and runs on your PC. You may connect third-party text-to-speech services, but we don't provide guides for voice cloning tools. Our only voice-design help is a text prompt for making a synthetic voice.

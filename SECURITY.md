@@ -60,7 +60,7 @@ Her Windows builds aren't code signed, and each new release starts with no reput
 
 Antivirus apps can flag her too. Taking screenshots, moving the mouse, pressing keys, listening to the mic and starting apps are her job, and they look a lot like what malware does. That usually means a false alarm, but an alert alone can't tell you a file is safe, so check it:
 
-1. Only download her from the [official release page](https://github.com/lachydotmcg/capri-desktop/releases/latest) or the [official website](https://lachydotmcg.github.io/capri-desktop/).
+1. Only download her from the [official release page](https://github.com/lachydotmcg/capri-desktop/releases/latest) or the [official website](https://capriai.app/).
 2. In PowerShell, from your download folder, run:
 
    ```powershell

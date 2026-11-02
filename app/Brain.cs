@@ -1525,6 +1525,8 @@ namespace CapriDesktop
             List<CloudModel> found = new List<CloudModel>();
             foreach (CloudModel model in page.Models)
             {
+                // Google's list can name its models the way its own API does, "models/gemini-...", but a chat takes the bare name.
+                if (kind == "google" && model != null && model.Id != null && model.Id.StartsWith("models/", StringComparison.Ordinal)) model.Id = model.Id.Substring(7);
                 if (model == null || string.IsNullOrWhiteSpace(model.Id) || !Chats(kind, model.Id) || found.Exists(knownModel => knownModel.Id == model.Id)) continue;
                 if (kind == "nvidia" && Array.IndexOf(NvidiaDead, model.Id) >= 0) continue;
                 if (kind == "openrouter" && model.Architecture != null && model.Architecture.Input != null && Array.IndexOf(model.Architecture.Input, "text") < 0) continue;
