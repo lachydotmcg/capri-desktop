@@ -147,7 +147,10 @@ namespace CapriDesktop
     // much from her first moments and after that only counts what's well over that share and loud enough for a voice.
     internal sealed class TalkOver
     {
-        private const int Learning = 3;
+        // Her first 600 ms of sound. Speakers start a few hundred ms after her clock does (Bluetooth ones later still), and a
+        // share learned before her voice reaches the mic is far too small, so her own echo then counts as them talking over
+        // her a couple of words in (ticket 35, GHISA with Hey Capri on: "speech stops after two words while text continues").
+        private const int Learning = 6;
         private const int Held = 2;
         private const double Margin = 2.5;
         private const double Fading = 0.93;
