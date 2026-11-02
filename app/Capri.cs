@@ -1540,7 +1540,7 @@ namespace CapriDesktop
         private int hdSpeaking = -1;
         private long voiceGot, voiceTotal, earsGot, earsTotal, hdGot, hdTotal;
         private double hdRest = -1, hdUsed = -1, hdChecked = -1;
-        private const double HdRest = 600;
+        private const double HdRest = 600, HdShortRest = 60;
         private bool balloonMainframe;
         private bool? ownEarsTest;
         private readonly System.Collections.Generic.List<bool> cursorSwaps = new System.Collections.Generic.List<bool>();
@@ -1968,6 +1968,7 @@ namespace CapriDesktop
                 if (!testing) CheckHome(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckLag(clock.Elapsed.TotalSeconds);
                 CheckGame(clock.Elapsed.TotalSeconds);
+                if (!testing) CheckInkEsc(signalNow);
                 if (!testing) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(signalNow, signalIdle);
                 if (!testing) CheckReminders(DateTime.Now);
@@ -5298,7 +5299,6 @@ namespace CapriDesktop
         }
 
         internal static Func<bool> MusicPlaying = delegate { return MediaPlaying() || PlayerLoud(); };
-        private static Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager media;
         private static bool mediaMissing;
         private static readonly string[] SilentPlayers = { "AIMP", "foobar2000", "winamp", "MusicBee", "Clementine", "strawberry", "MediaMonkey" };
         private static GameEars playerEars;
@@ -5312,12 +5312,12 @@ namespace CapriDesktop
                 if (playerLooked == 0 || unchecked(Environment.TickCount - playerLooked) >= 10000)
                 {
                     playerLooked = Environment.TickCount;
-                    int found = 0;
-                    foreach (string name in SilentPlayers)
+                    // One list of what's running, not one per player: each list is a snapshot of every process on the PC.
+                    int found = 0, rank = SilentPlayers.Length;
+                    foreach (Process each in Process.GetProcesses())
                     {
-                        Process[] running = Process.GetProcessesByName(name);
-                        if (found == 0 && running.Length > 0) found = running[0].Id;
-                        foreach (Process each in running) each.Dispose();
+                        for (int i = 0; i < rank; i++) if (string.Equals(each.ProcessName, SilentPlayers[i], StringComparison.OrdinalIgnoreCase)) { rank = i; found = each.Id; break; }
+                        each.Dispose();
                     }
                     if (found != playerOpen)
                     {
@@ -5337,32 +5337,24 @@ namespace CapriDesktop
             }
         }
 
+        // Read from the same look at Windows' sessions as her mini player's.
         private static bool MediaPlaying()
         {
             if (mediaMissing) return false;
             try
             {
-                if (media == null) media = Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager.RequestAsync().AsTask().Result;
-                foreach (Windows.Media.Control.GlobalSystemMediaTransportControlsSession session in media.GetSessions())
+                System.Collections.Generic.List<Tune> sessions = Tunes.Shared();
+                if (sessions == null) return false;
+                foreach (Tune tune in sessions)
                 {
-                    Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackInfo info = session.GetPlaybackInfo();
-                    if (info == null || info.PlaybackStatus != Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing) continue;
-                    Windows.Media.MediaPlaybackType? type = info.PlaybackType;
-                    if (type.HasValue && type.Value == Windows.Media.MediaPlaybackType.Video) continue;
-                    if (IsMusicApp(session.SourceAppUserModelId)) return true;
-                    if (!type.HasValue || type.Value != Windows.Media.MediaPlaybackType.Music) continue;
-                    try
-                    {
-                        Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties song = session.TryGetMediaPropertiesAsync().AsTask().Result;
-                        Windows.Media.Control.GlobalSystemMediaTransportControlsSessionTimelineProperties line = session.GetTimelineProperties();
-                        if (song != null && IsSong(song.Title, song.Artist, line != null ? line.EndTime - line.StartTime : TimeSpan.Zero)) return true;
-                    }
-                    catch (Exception) { }
+                    if (!tune.Playing || tune.Changing || tune.Video) continue;
+                    if (IsMusicApp(tune.App)) return true;
+                    if (tune.Music && IsSong(tune.Title, tune.Artist, TimeSpan.FromSeconds(tune.Length))) return true;
                 }
                 return false;
             }
             catch (TypeLoadException) { mediaMissing = true; return false; }
-            catch (Exception) { media = null; return false; }
+            catch (Exception) { return false; }
         }
 
         internal static bool IsMusicApp(string id) { return id != null && Regex.IsMatch(id, @"spotify|zunemusic|applemusic|itunes|amazonmusic|tidal|deezer|foobar|musicbee|winamp|aimp|soundcloud|pandora", RegexOptions.IgnoreCase); }
@@ -8014,14 +8006,20 @@ namespace CapriDesktop
             if (!preferences.HdVoice || preferences.Silent || !qwen.Installed || clock.Elapsed.TotalSeconds < hdRest) return fallback;
             if (HdStepsAside()) { qwen.Stop(); return fallback; }
             hdUsed = clock.Elapsed.TotalSeconds;
-            if (!qwen.Awake) { WakeHd(); return fallback; }
-            return qwen.Or(fallback, delegate(string problem) { Post(delegate { HdTrouble(problem); }); });
+            Action<string> trouble = delegate(string problem) { Post(delegate { HdTrouble(problem); }); };
+            if (qwen.Awake) return qwen.Or(fallback, trouble);
+            WakeHd();
+            // A line with no free voice to hand on to, like one of a job's, still doesn't wait.
+            return fallback == null ? null : qwen.Waiting(fallback, trouble, delegate { return wakingHd; });
         }
+
+        // Out of memory, her HD voice rests 10 minutes so a game can have the graphics card. Anything else rests it a minute (2 Nov).
+        internal static double HdBreak(string problem) { return (problem ?? "").StartsWith(QwenVoice.MemoryFull, StringComparison.Ordinal) ? HdRest : HdShortRest; }
 
         private void HdTrouble(string problem, bool tell = true)
         {
             qwen.Stop();
-            hdRest = clock.Elapsed.TotalSeconds + HdRest;
+            hdRest = clock.Elapsed.TotalSeconds + HdBreak(problem);
             if (!tell) return;
             if (!testing) Brain.Log("HD voice", -1, problem);
             mainframe.VoiceNote(problem, true);
@@ -15425,18 +15423,23 @@ namespace CapriDesktop
             try
             {
                 Ink.Active = delegate { return true; };
-                foreach (string inkClear in new[] { "clear your drawing", "rub that out", "erase that", "Hey Capri, can you clear your drawing please?" })
+                foreach (string inkClear in new[] { "clear your drawing", "rub that out", "erase that", "Hey Capri, can you clear your drawing please?", "remove it", "get rid of that", "clear my screen", "delete the diagram", "remove the art from my screen", "take it off my screen", "erase everything", "Capri, can you get rid of the drawing please?" })
                 {
                     string inkClearTool;
                     ToolArguments inkClearArgs;
-                    if (!Hands.Heard(inkClear, out inkClearTool, out inkClearArgs) || inkClearTool != "draw" || inkClearArgs.Action != "clear" || inkClearArgs.Description != null || Asides.Plain(inkClear, out inkClearTool, out inkClearArgs) != AsideKind.Tool) throw new Exception("Clearing ink needed a brain.");
+                    if (!Hands.Heard(inkClear, out inkClearTool, out inkClearArgs) || inkClearTool != "draw" || inkClearArgs.Action != "clear" || inkClearArgs.Description != null || Asides.Plain(inkClear, out inkClearTool, out inkClearArgs) != AsideKind.Tool) throw new Exception("Clearing ink needed a brain: " + inkClear);
+                }
+                foreach (string inkKept in new[] { "remove the song from my playlist", "delete it from my downloads", "clear my history", "get rid of the virus", "take it off", "remove him from the call" })
+                {
+                    ToolArguments inkKeptArgs = Ink.Request(Hands.Asked(inkKept));
+                    if (inkKeptArgs != null && inkKeptArgs.Action == "clear") throw new Exception("Her ink took a wipe that wasn't about it: " + inkKept);
                 }
                 ToolArguments inkAdd = Ink.Request("add a dog");
                 if (inkAdd == null || inkAdd.Action != "add" || inkAdd.Task == null) throw new Exception("Adding to an existing drawing did not look at its placement.");
                 if (Ink.Request("add milk to my shopping list") != null || Ink.Request("add a reminder for 5") != null) throw new Exception("Her ink took an add that wasn't about it.");
             }
             finally { Ink.Active = inkActiveWas; }
-            if (Ink.Request("erase that") != null || Ink.Request("rub it out") != null || Ink.Request("clear your drawing") == null) throw new Exception("Erase took a request with nothing drawn, or clear your drawing stopped working.");
+            if (Ink.Request("erase that") != null || Ink.Request("rub it out") != null || Ink.Request("remove it") != null || Ink.Request("get rid of that") != null || Ink.Request("clear your drawing") == null) throw new Exception("Erase took a request with nothing drawn, or clear your drawing stopped working.");
             Func<int> inkPleaseWas = Hands.PleaseRoll;
             try
             {
@@ -15476,7 +15479,32 @@ namespace CapriDesktop
                 Brain.Ollama = diagramOllama;
                 if (diagramServer != null) diagramServer.Stop();
             }
-            checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, clear and bare draw need no brain, and a diagram in any wording is drawn and talked through");
+            foreach (string inkClaim in new[] { "Done, wiped it!", "Cleared it, choom.", "Cleared!", "Poof, all gone. I erased your drawing.", "I've removed the diagram from your screen.", "Got rid of it!", "On it, clearing it now.", "Let me wipe that off your screen.", "Okay choom, I just deleted the drawing." })
+                if (!Hands.Promised(inkClaim)) throw new Exception("She claimed a wipe no tool did and it slipped through: " + inkClaim);
+            foreach (string inkTalk in new[] { "Let me clear that up for you.", "Deleted scenes are the best part.", "Cleared for takeoff, choom!", "Wiped out, choom. Long day.", "I'll remove all doubt: pineapple wins.", "Erasing history is a villain move." })
+                if (Hands.Promised(inkTalk)) throw new Exception("Plain chat counted as a wipe: " + inkTalk);
+            System.Collections.Generic.List<string> wipeAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener wipeServer = null;
+            string wipeOllama = Brain.Ollama;
+            Func<string> wipeGameWas = Computer.GameOpen;
+            try
+            {
+                // Her brain says it wiped the ink with no tool call, so her hands get a go and clear it for real.
+                Brain.Ollama = FakeServer(new[] { diagramSays("Done, wiped it clean, choom!"), "{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"draw\",\"arguments\":{\"action\":\"clear\"}}}]},\"done_reason\":\"stop\"}" }, wipeAsked, out wipeServer);
+                Computer.GameOpen = delegate { return null; };
+                System.Collections.Generic.List<string> wipeDid = new System.Collections.Generic.List<string>();
+                Brain wiper = new Brain { Model = "wipe-check" };
+                wiper.Act = delegate(string name, ToolArguments args) { wipeDid.Add(name + ":" + args.Action); return name == "draw" && args.Action == "clear" ? "Cleared my drawing." : "Wrong tool: " + name; };
+                string wipedReply = wiper.Ask("make it go away");
+                if (wipeDid.Count != 1 || wipeDid[0] != "draw:clear" || wipedReply != "Cleared my drawing." || wipeAsked.Count != 2) throw new Exception("A brain saying it wiped her ink didn't get her hands to clear it: " + wipedReply + " / " + string.Join(",", wipeDid.ToArray()));
+            }
+            finally
+            {
+                Brain.Ollama = wipeOllama;
+                Computer.GameOpen = wipeGameWas;
+                if (wipeServer != null) wipeServer.Stop();
+            }
+            checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, clear and bare draw need no brain, \"remove it\", \"get rid of that\" and \"clear my screen\" wipe her ink only while it's up, a brain that says it wiped the ink gets her hands to clear it, and a diagram in any wording is drawn and talked through");
             foreach (string insultAsk in new[] { "Capri, you're annoying", "you're so annoying", "you are really fucking useless", "you're such an idiot", "ur dumb", "your annoying", "why are you so stupid", "you suck", "I hate you", "fuck you", "screw you capri", "you’re the worst" })
                 if (!Hands.Insulted(insultAsk)) throw new Exception("An insult didn't count: " + insultAsk);
             foreach (string insultNot in new[] { "you're not annoying", "this is annoying", "the pop-up is so annoying", "you're the best", "did you really trash my desktop", "what the fuck you doing", "empty your trash", "thank you so much", "don't be annoying", "I hate this game" })
@@ -15631,14 +15659,35 @@ namespace CapriDesktop
             }
             string inkMenuResult = DrawTool(new ToolArguments { Shapes = "line " + (Screen.PrimaryScreen.Bounds.Left + 25) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) + " " + (Screen.PrimaryScreen.Bounds.Left + 75) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) });
             if (inkMenuResult == Ink.NoOverlay || inkMenuResult == Ink.NoSpace) { checks.Add("LIMIT ink tray item: " + inkMenuResult); return; }
+            Func<bool> inkEscWas = Ink.EscDown;
             try
             {
                 if (!clearInkItem.Available || clearInkItem.Text != "Clear her drawing") throw new Exception("Drawn ink had no clear item.");
                 clearInkItem.PerformClick();
                 if (ink.Has || clearInkItem.Available) throw new Exception("The tray item did not clear her drawing.");
+                DrawTool(new ToolArguments { Shapes = "line " + (Screen.PrimaryScreen.Bounds.Left + 25) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) + " " + (Screen.PrimaryScreen.Bounds.Left + 75) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) });
+                // Her signals read Esc every quarter second: a tap between two holds, and a hold short of EscHold, leave her ink.
+                bool inkEscHeld = true;
+                Ink.EscDown = delegate { return inkEscHeld; };
+                inkEscFrom = -1;
+                CheckInkEsc(100);
+                CheckInkEsc(100.25);
+                inkEscHeld = false;
+                CheckInkEsc(100.5);
+                inkEscHeld = true;
+                CheckInkEsc(100.75);
+                CheckInkEsc(101.25);
+                if (!ink.Has || !clearInkItem.Available) throw new Exception("A tap of Esc, or a hold under " + Ink.EscHold + " s, wiped her drawing.");
+                CheckInkEsc(101.5);
+                if (ink.Has || clearInkItem.Available) throw new Exception("Holding Esc didn't wipe her drawing.");
             }
-            finally { DrawTool(new ToolArguments { Action = "clear" }); }
-            checks.Add("PASS ink is layered, topmost, click-through, absent from Alt-Tab and never activates; it settles, adds, replaces and clears");
+            finally
+            {
+                Ink.EscDown = inkEscWas;
+                inkEscFrom = -1;
+                DrawTool(new ToolArguments { Action = "clear" });
+            }
+            checks.Add("PASS ink is layered, topmost, click-through, absent from Alt-Tab and never activates; it settles, adds, replaces and clears, and holding Esc wipes it while a tap leaves it");
         }
 
         private void SmokeMinis(System.Collections.Generic.List<string> checks)
@@ -19091,6 +19140,35 @@ namespace CapriDesktop
                                 if (!musicCheck.Join(8000) || !musicReal) throw new Exception("Checking Windows for music hung.");
                                 if (!IsMusicApp("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify") || !IsMusicApp("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic") || IsMusicApp("Chrome") || IsMusicApp(null)) throw new Exception("Music apps were spotted wrong.");
                                 if (!IsSong("Blinding Lights", "The Weeknd", TimeSpan.FromSeconds(200)) || IsSong("Episode 4", "", TimeSpan.FromMinutes(58)) || IsSong("A film", "Warner Bros.", TimeSpan.FromMinutes(166)) || IsSong("Some clip", "", TimeSpan.FromMinutes(4)) || IsSong(null, null, TimeSpan.Zero) || !IsSong("lofi hip hop radio - beats to relax/study to", "Lofi Girl", TimeSpan.Zero) || !IsSong("Never Gonna Give You Up (Official Music Video)", "", TimeSpan.FromMinutes(70))) throw new Exception("Songs and films in a browser were told apart wrong.");
+                                Func<System.Collections.Generic.List<Tune>> sessionsWas = Tunes.Sessions;
+                                int sessionReads = 0;
+                                System.Collections.Generic.List<Tune> sessionsNow = new System.Collections.Generic.List<Tune>
+                                {
+                                    new Tune { App = "Discord", Playing = true },
+                                    new Tune { App = "Spotify.exe", Title = "Starboy", Artist = "The Weeknd" },
+                                    new Tune { App = "Chrome", Title = "A film", Playing = true, Video = true },
+                                    new Tune { App = "Chrome", Title = "Episode 4", Playing = true, Music = true, Length = 3480 },
+                                    new Tune { App = "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", Title = "Blinding Lights", Artist = "The Weeknd", Playing = true, Changing = true }
+                                };
+                                Tunes.Sessions = delegate { sessionReads++; return new System.Collections.Generic.List<Tune>(sessionsNow); };
+                                try
+                                {
+                                    Tunes.Forget();
+                                    Tune sessionShown = Tunes.Read();
+                                    bool sessionQuiet = !MediaPlaying();
+                                    if (sessionReads != 1 || sessionShown == null || sessionShown.Title != "A film" || !ReferenceEquals(Tunes.Shared(), Tunes.Shared())) throw new Exception("Her mini player and her dancing read Windows' media " + sessionReads + " times instead of sharing one read.");
+                                    Tunes.Pressed();
+                                    Tunes.Shared();
+                                    if (sessionReads != 2) throw new Exception("A read from before a press on her mini player was shared after it.");
+                                    sessionsNow.Add(new Tune { App = "Chrome", Title = "Blinding Lights", Artist = "The Weeknd", Playing = true, Music = true, Length = 200 });
+                                    Tunes.Forget();
+                                    if (!sessionQuiet || !MediaPlaying()) throw new Exception("Her dancing counted a call, a paused song, a film, a long show or a song changing over as music, or missed a song in a browser.");
+                                }
+                                finally
+                                {
+                                    Tunes.Sessions = sessionsWas;
+                                    Tunes.Forget();
+                                }
                                 clipStart -= 2;
                                 RenderFrame();
                                 musicOn = true;
@@ -19266,7 +19344,7 @@ namespace CapriDesktop
                                 CheckMusic(clock.Elapsed.TotalSeconds);
                                 if (clip != perch) throw new Exception("She kept dancing after the music stopped.");
                                 MusicPlaying = musicWas;
-                                checks.Add("PASS dancing: she dances on her seat while music plays, stops to talk, stops when it ends, and the menu turns it off; a film in a browser tab isn't music, a song or a lofi radio is");
+                                checks.Add("PASS dancing: she dances on her seat while music plays, stops to talk, stops when it ends, and the menu turns it off; a film in a browser tab isn't music, a song or a lofi radio is, and her dancing and her mini player share one read of what's playing until a press");
                                 instant = false;
                                 Ledge hopFrom = seat;
                                 Wander();
@@ -21382,25 +21460,44 @@ namespace CapriDesktop
                                 Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
                                 Func<OpenWindow, string, bool> steerWas = Hands.Steer;
                                 Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+                                Func<IntPtr> foregroundWas = Hands.Foreground;
+                                Func<IntPtr, bool> typableWas = Hands.Typable;
                                 System.Collections.Generic.List<string> pressLog = new System.Collections.Generic.List<string>();
                                 try
                                 {
-                                    Hands.Chord = delegate(byte[] keys) { pressLog.Add("keys " + BitConverter.ToString(keys)); };
+                                    int focusChecks = 0;
+                                    System.Collections.Generic.List<int> pressedAfter = new System.Collections.Generic.List<int>();
+                                    Hands.Chord = delegate(byte[] keys) { pressLog.Add("keys " + BitConverter.ToString(keys)); pressedAfter.Add(focusChecks); };
                                     Hands.Steer = delegate(OpenWindow window, string action) { pressLog.Add(action + " " + window.Handle); return true; };
                                     Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow> { new OpenWindow(new IntPtr(41), "Friends - Discord", "Discord") }; };
+                                    // Discord comes forward from another window and its page takes the keyboard on the third look, so the keys wait for that.
+                                    Hands.Foreground = delegate { return new IntPtr(7); };
+                                    Hands.Typable = delegate(IntPtr window) { return window == new IntPtr(41) && ++focusChecks >= 3; };
                                     string muted = Hands.Do("shortcut", new ToolArguments { Name = "discord_mute" });
                                     string snipped = Hands.Do("shortcut", new ToolArguments { Name = "screenshot" });
                                     string captions = Hands.Do("shortcut", new ToolArguments { Name = "live_captions" });
+                                    int focusedBy = focusChecks;
+                                    // Already in front, Discord gets them at once.
+                                    Hands.Foreground = delegate { return new IntPtr(41); };
+                                    string deafened = Hands.Do("shortcut", new ToolArguments { Name = "discord_deafen" });
+                                    // A page that never takes the keyboard still gets the keys once FocusWait is up.
+                                    Hands.Foreground = delegate { return new IntPtr(7); };
+                                    Hands.Typable = delegate { return false; };
+                                    Stopwatch unfocused = Stopwatch.StartNew();
+                                    string stillMuted = Hands.Do("shortcut", new ToolArguments { Name = "discord_mute" });
+                                    long unfocusedMs = unfocused.ElapsedMilliseconds;
                                     Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
                                     Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(); };
                                     Hands.Forget();
                                     string missing = Hands.Do("shortcut", new ToolArguments { Name = "discord_deafen" });
                                     string pressed = string.Join(" | ", pressLog.ToArray());
-                                    if (muted != "Toggled their mic mute in Discord (Ctrl + Shift + M)." || !pressed.StartsWith("switch_to 41 | keys 11-10-4D", StringComparison.Ordinal) || snipped.IndexOf("Win + Shift + S", StringComparison.Ordinal) < 0 || pressed.IndexOf("keys 5B-10-53", StringComparison.Ordinal) < 0 || !missing.StartsWith("Discord isn't open", StringComparison.Ordinal)
+                                    if (muted != "Toggled their mic mute in Discord (Ctrl + Shift + M)." || !pressed.StartsWith("switch_to 41 | keys 11-10-4D | switch_to 7", StringComparison.Ordinal) || snipped.IndexOf("Win + Shift + S", StringComparison.Ordinal) < 0 || pressed.IndexOf("keys 5B-10-53", StringComparison.Ordinal) < 0 || !missing.StartsWith("Discord isn't open", StringComparison.Ordinal)
                                         || captions != "Turned Live Captions on or off (Win + Ctrl + L)." || pressed.IndexOf("keys 5B-11-4C", StringComparison.Ordinal) < 0) throw new Exception("Shortcuts pressed the wrong keys: " + muted + " / " + snipped + " / " + captions + " / " + missing + " / " + pressed);
+                                    if (focusedBy != 3 || pressedAfter.Count != 5 || pressedAfter[0] != 3 || focusChecks != 3 || deafened != "Toggled deafen in Discord (Ctrl + Shift + D)." || pressed.IndexOf("switch_to 41 | keys 11-10-44 | switch_to 41 | keys 11-10-4D", StringComparison.Ordinal) < 0
+                                        || stillMuted != muted || unfocusedMs < Hands.FocusWait || unfocusedMs > 5000) throw new Exception("Discord's keys didn't wait for its page to take the keyboard: " + focusedBy + " looks, keys after " + string.Join(",", pressedAfter) + ", " + deafened + ", " + unfocusedMs + " ms / " + pressed);
                                 }
-                                finally { Hands.Chord = chordWas; Hands.Windows = windowsWas; Hands.Steer = steerWas; Hands.Catalog = catalogWas; Hands.Forget(); }
-                                checks.Add("PASS shortcuts: mute my mic and deafen me press Discord's keys in Discord and switch back, screenshots, clips, recording, Live Captions, Narrator, Magnifier, colour filters, voice typing, Quick Settings and more press Windows keys, and chat about muting or captions doesn't");
+                                finally { Hands.Chord = chordWas; Hands.Windows = windowsWas; Hands.Steer = steerWas; Hands.Catalog = catalogWas; Hands.Foreground = foregroundWas; Hands.Typable = typableWas; Hands.Forget(); }
+                                checks.Add("PASS shortcuts: mute my mic and deafen me press Discord's keys in Discord and switch back, waiting up to 400 ms for its page to take the keyboard when it wasn't in front, screenshots, clips, recording, Live Captions, Narrator, Magnifier, colour filters, voice typing, Quick Settings and more press Windows keys, and chat about muting or captions doesn't");
                                 string steamRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "steam-test");
                                 Func<System.Collections.Generic.List<InstalledApp>> catalogBefore = Hands.Catalog;
                                 try
@@ -23999,6 +24096,16 @@ namespace CapriDesktop
                                 }
                                 System.Collections.Generic.List<OpenWindow> live = Hands.Windows();
                                 if (live.Exists(window => window.Handle == Handle || window.Handle == mainframe.Handle)) throw new Exception("Capri listed her own window as an app to close.");
+                                foreach (OpenWindow window in live)
+                                {
+                                    int liveId;
+                                    Native.GetWindowThreadProcessId(window.Handle, out liveId);
+                                    string liveName = null;
+                                    try { using (Process liveProcess = Process.GetProcessById(liveId)) liveName = liveProcess.ProcessName; }
+                                    catch (ArgumentException) { }
+                                    catch (InvalidOperationException) { }
+                                    if (liveName != null && liveName != window.Program) throw new Exception("Her window list called " + liveName + " \"" + window.Program + "\".");
+                                }
                                 System.Collections.Generic.List<string> cloudAsked = new System.Collections.Generic.List<string>();
                                 System.Net.Sockets.TcpListener cloudFake;
                                 string cloudUrl = FakeServer(new string[]
@@ -26398,7 +26505,7 @@ namespace CapriDesktop
                             short[] hdWave = new short[9600];
                             for (int i = 0; i < hdWave.Length; i++) hdWave[i] = (short)Math.Round(16383 * Math.Sin(i * 0.07));
                             byte[] hdSpoken = Voice.Wave(hdWave, 24000), hdRegistered = System.Text.Encoding.ASCII.GetBytes("{\"name\":\"capri\",\"status\":\"registered\"}");
-                            int hdMemoryMode = 0, hdMemoryAfter = 0;
+                            int hdMemoryMode = 0, hdMemoryAfter = 0, hdSlowMs = 0;
                             System.Collections.Generic.List<string> hdAsked = new System.Collections.Generic.List<string>();
                             System.Net.Sockets.TcpListener hdServer = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
                             hdServer.Start();
@@ -26429,6 +26536,7 @@ namespace CapriDesktop
                                             string path = words.Length > 1 ? words[1] : "";
                                             bool hdSpeech = path.EndsWith("/v1/audio/speech", StringComparison.Ordinal), hdVoices = path.EndsWith("/v1/audio/voices", StringComparison.Ordinal);
                                             int hdReplyMode = hdSpeech && Thread.VolatileRead(ref hdMemoryMode) != 0 && Interlocked.Decrement(ref hdMemoryAfter) < 0 ? Thread.VolatileRead(ref hdMemoryMode) : 0;
+                                            if (hdSpeech && Thread.VolatileRead(ref hdSlowMs) > 0) Thread.Sleep(Thread.VolatileRead(ref hdSlowMs));
                                             byte[] answer = hdSpeech ? hdSpoken : hdVoices ? hdRegistered : path.EndsWith(".zip", StringComparison.Ordinal) ? hdZip : path.EndsWith("codec.gguf", StringComparison.Ordinal) ? hdCodec : hdModel;
                                             if (hdReplyMode != 0) answer = System.Text.Encoding.UTF8.GetBytes("{\"error\":{\"type\":\"server_error\",\"message\":\"" + new string('x', 120) + (hdReplyMode == 3 ? " synthesis failed" : " VK_ERROR_OUT_OF_DEVICE_MEMORY: allocation failed") + "\"}}");
                                             byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 " + (hdReplyMode == 1 ? "502 Bad Gateway" : hdReplyMode == 3 ? "500 Internal Server Error" : "200 OK") + "\r\nContent-Type: " + (hdReplyMode != 0 || hdVoices ? "application/json" : hdSpeech ? "audio/wav" : "application/octet-stream") + "\r\nContent-Length: " + answer.Length + "\r\nConnection: close\r\n\r\n");
@@ -26597,6 +26705,47 @@ namespace CapriDesktop
                             CloseTalk();
                             if (hdSpeaking != -1 || reply != null) throw new Exception("Dismissing a pending HD line didn't cancel its display.");
                             checks.Add("PASS HD voice waiting: an old text reply stays open while HD or its fallback is being made, can expire once speech finishes, and can still be dismissed");
+                            // Asleep with a wake under way, a line waits for her HD voice instead of going straight to her free voice. A wake that
+                            // failed hands it on at once, and so does one still loading at WakeWait. A slow line stays in HD and only goes in her log.
+                            int hdWakeWas = QwenVoice.WakeWait;
+                            double hdSlowWas = QwenVoice.SlowSeconds;
+                            try
+                            {
+                                bool hdWaking = true;
+                                Func<bool> hdStillWaking = delegate { return hdWaking; };
+                                Func<string, byte[]> hdFree = delegate(string words) { return hdTone; };
+                                hdVoice.Stop();
+                                ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(300); hdVoice.Attach(hdPort); });
+                                Stopwatch hdWaited = Stopwatch.StartNew();
+                                byte[] hdWoke = hdVoice.Waiting(hdFree, hdNoted, hdStillWaking)("Hey choom.");
+                                long hdWokeMs = hdWaited.ElapsedMilliseconds;
+                                hdVoice.Stop();
+                                hdWaking = false;
+                                hdWaited = Stopwatch.StartNew();
+                                byte[] hdFailed = hdVoice.Waiting(hdFree, hdNoted, hdStillWaking)("Hey choom.");
+                                long hdFailedMs = hdWaited.ElapsedMilliseconds;
+                                hdWaking = true;
+                                QwenVoice.WakeWait = 300;
+                                hdWaited = Stopwatch.StartNew();
+                                byte[] hdLate = hdVoice.Waiting(hdFree, hdNoted, hdStillWaking)("Hey choom.");
+                                long hdLateMs = hdWaited.ElapsedMilliseconds;
+                                if (hdWoke == hdTone || hdWokeMs < 250 || hdFailed != hdTone || hdFailedMs > 1000 || hdLate != hdTone || hdLateMs < 300 || hdTrouble != null)
+                                    throw new Exception("A line didn't wait for her HD voice to wake: " + (hdWoke == hdTone ? "free" : "HD") + " after " + hdWokeMs + " ms, a failed wake handed on after " + hdFailedMs + " ms, one still loading after " + hdLateMs + " ms / " + hdTrouble);
+                                hdVoice.Attach(hdPort);
+                                QwenVoice.SlowSeconds = 0;
+                                Interlocked.Exchange(ref hdSlowMs, 800);
+                                byte[] hdSlow = hdVoice.Or(hdFree, hdNoted)("Hey choom.");
+                                if (hdSlow == hdTone || hdTrouble != null) throw new Exception("A slow HD line went to her free voice or started a break: " + hdTrouble);
+                                if (HdBreak(hdVoice.Failure(QwenVoice.MemoryFull)) != 600 || HdBreak(hdVoice.Failure("Her HD voice stopped answering.")) != 60 || HdBreak(null) != 60) throw new Exception("HD rested the wrong time: " + HdBreak(hdVoice.Failure(QwenVoice.MemoryFull)) + " s out of memory, " + HdBreak(hdVoice.Failure("Her HD voice stopped answering.")) + " s otherwise.");
+                            }
+                            finally
+                            {
+                                QwenVoice.WakeWait = hdWakeWas;
+                                QwenVoice.SlowSeconds = hdSlowWas;
+                                Interlocked.Exchange(ref hdSlowMs, 0);
+                                hdVoice.Attach(hdPort);
+                            }
+                            checks.Add("PASS HD voice wake: a line waits up to 15 s for her HD voice while it's waking and speaks in HD once it's up, a failed wake or one still loading hands the line to her free voice, a slow line stays in HD and only goes in her log, and only running out of memory rests HD for 10 minutes; anything else rests it a minute");
                             // Their clip went out with every line above. Shelved, she has no clip to copy, so the line goes to her free voice and she says she needs one.
                             YourVoice.Shelve(hdVoice.Folder);
                             byte[] hdNoClip = hdVoice.Or(delegate(string words) { return hdTone; }, hdNoted)("Hey choom.");

@@ -3078,6 +3078,11 @@ namespace CapriDesktop
             catch (IOException) { throw new VoiceException(MemoryFailed() ? MemoryFull : "Her HD voice stopped answering."); }
         }
 
+        // A line slower than this, and than its own speech, goes in her log. Tests lower it.
+        internal static double SlowSeconds = 6;
+        // How long a line waits for her HD voice to wake before her free voice takes it. Tests shorten it.
+        internal static int WakeWait = 15000;
+
         internal Func<string, byte[]> Or(Func<string, byte[]> fallback, Action<string> trouble)
         {
             return delegate(string words)
@@ -3087,7 +3092,8 @@ namespace CapriDesktop
                 {
                     byte[] wav = Speak(words);
                     lock (gate) { noted = null; memoryFailed = false; }
-                    if (!CpuOnly && (Hardware == null || !Smaller(Hardware)) && took.Elapsed.TotalSeconds > Math.Max(6, Voice.Seconds(wav) * 1.2)) trouble("Her HD voice is running slowly right now, so she's using her free voice for a bit.");
+                    // A slow line still played in HD, so it only goes in her log. Resting HD for one put her next lines in her free voice (2 Nov).
+                    if (!CpuOnly && (Hardware == null || !Smaller(Hardware)) && took.Elapsed.TotalSeconds > Math.Max(SlowSeconds, Voice.Seconds(wav) * 1.2)) Brain.Log("HD voice", took.ElapsedMilliseconds, "slow, " + Voice.Seconds(wav).ToString("0.0") + " s of speech");
                     return wav;
                 }
                 catch (VoiceException error)
@@ -3097,6 +3103,19 @@ namespace CapriDesktop
                     if (NewProblem(problem)) trouble(problem);
                     return fallback(words);
                 }
+            };
+        }
+
+        // Asleep while a wake is under way, her HD voice gets WakeWait to come up before her free voice takes the line, so the first
+        // line after a quiet spell isn't in another voice (2 Nov). A wake that ends without her up hands it on at once.
+        internal Func<string, byte[]> Waiting(Func<string, byte[]> fallback, Action<string> trouble, Func<bool> waking)
+        {
+            Func<string, byte[]> hd = Or(fallback, trouble);
+            return delegate(string words)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!Awake && waking() && waited.ElapsedMilliseconds < WakeWait) Thread.Sleep(100);
+                return Awake ? hd(words) : fallback(words);
             };
         }
 

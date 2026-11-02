@@ -797,6 +797,10 @@ namespace CapriDesktop
         // Puts dots over a password she typed into a password box, wherever it would show or be saved.
         internal static Func<string, string> Hush = delegate(string text) { return text; };
         internal static Action<byte[]> Chord = PressChord;
+        // Discord drops keys pressed before its page has the keyboard, a moment after it comes to the front (deafen took two tries, 2 Nov).
+        internal static Func<IntPtr, bool> Typable = PageFocused;
+        internal const int FocusWait = 400;
+        private const int KeyGap = 20;
         internal static Func<string, int, bool> Power = Switch;
         // Puts her to sleep (true) or wakes her (false), and says how it went. Her window sets it.
         internal static Func<bool, string> Nap = delegate { return "Couldn't nap just now."; };
@@ -845,7 +849,14 @@ namespace CapriDesktop
         [DllImport("kernel32.dll")] private static extern int GetCurrentThreadId();
         [StructLayout(LayoutKind.Sequential)] private struct Message { internal IntPtr Window; internal uint Id; internal UIntPtr WParam; internal IntPtr LParam; internal uint Time; internal int X, Y; internal uint Private; }
         [DllImport("user32.dll")] private static extern bool PeekMessage(out Message message, IntPtr window, uint first, uint last, uint flags);
-        private static readonly Regex Junk = new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
+        [StructLayout(LayoutKind.Sequential)] private struct ThreadFocus { internal int Size, Flags; internal IntPtr Active, Focus, Capture, MenuOwner, MoveSize, Caret; internal WindowEdges CaretEdges; }
+        [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(int thread, ref ThreadFocus focus);
+        [DllImport("user32.dll")] private static extern bool IsChild(IntPtr parent, IntPtr window);
+        [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code, uint kind);
+        [DllImport("kernel32.dll")] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
+        [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
+        private static readonly Regex Junk =new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
         private static readonly string[,] Searches =
         {
             { "youtube", "https://www.youtube.com/results?search_query=" },
@@ -1233,6 +1244,9 @@ namespace CapriDesktop
         internal static bool Hurt(string reply) { return (reply ?? "").IndexOf("[hurt]", StringComparison.OrdinalIgnoreCase) >= 0; }
 
         internal const string Unpromised = "I haven't actually done that yet. Tell me what to open or click and I'll do it.";
+        // What she says she wiped: her drawing by any name, it, that or everything, or nothing after the word at all.
+        // "Clear that up" is explaining and "wiped out" is tired.
+        private const string Wiped = @"((\s+(away|off|out))?\s+(it|that|this|them|everything|all of (it|them)|((the|my|your|that|this|those|these|all the)\s+)?(whole\s+)?(drawings?|diagrams?|art|artwork|ink|doodles?|sketch(es)?|annotations?|scribbles?|lines|arrows|circles|screen))\b(?!\s+up\b)|\s*([.!]|$))";
         private static readonly Regex Promise = new Regex(@"\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to|about to)|gonna|on it,?)[\s—–-]+(\w+[\s,—–-]+){0,2}(open|launch|load|boot|fire|pull|bring|search|google|look up|click|type|close|switch|head|install|download|play(?!\s+(along|around|with|nice|fair|dumb|it (cool|safe)|((a|some|the|this|that|any|your|my)\s+)?(games?|round|match)\b|devil))|put on|queue|blast|spin|mute|unmute|deafen|undeafen|send(?!\s+(you|u|ya)\b)|message(?!\s+(you|u)\b)|text(?!\s+(you|u)\b)|dm|ping|reply|post|hang up|(end|leave|join) (the|your|this|that) (call|vc|meeting))\b" +
             @"|^((sure|ok|okay|alright|bet|got it|on it|say less|yessir+|yezzir+)[,.!\s—–-]+)?((choom|chooms)[,.!\s—–-]+)?(opening|launching|loading|pulling up|bringing up|firing up|booting up|heading to|searching|clicking|typing|closing|switching|playing|putting on|queuing|queueing|blasting|spinning|muting|unmuting|deafening|sending|messaging|texting|dming|replying|posting|hanging up|ending (the|your) call|leaving (the|your) (call|vc)|joining (the|your) (call|vc)|disconnecting)\b" +
             @"|\bi'?m\s+(now\s+)?(sending|messaging|texting|dming|opening(?!\s+up\b)|launching|closing|muting|unmuting|deafening|hanging up|posting|replying)\b" +
@@ -1240,7 +1254,11 @@ namespace CapriDesktop
             // The same promise in her other big languages ("Otwieram YouTube!" with nothing opened, a Polish tester, 30 Oct).
             @"|^\W*((ok|okej|okay|jasne|dobra|spoko|już|juz|sure|vale|claro|vamos|d'accord|ok[eé]|alles klar|klar|certo|va bene|хорошо|ладно|окей|сейчас)[,.!\s—–-]+)*((choom|chooms|\p{Lu}[\p{L}\p{N}_]{1,23})[,.!\s—–-]+)?(otwieram|odpalam|odpalamy|otwieramy|włączamy|wlaczamy|uruchamiamy|włączam|wlaczam|uruchamiam|puszczam|zamykam|wysyłam|wysylam|otworzę|otworze|włączę|wlacze|odpalę|odpale|puszczę|puszcze|uruchomię|uruchomie|otworzyłam|otworzylam|włączyłam|wlaczylam|odpaliłam|odpalilam|puściłam|puscilam|uruchomiłam|uruchomilam" +
             @"|abriendo|abro|pongo|reproduciendo|abr[ií]|puse|te abro|te pongo|j'ouvre|je lance|je mets|j'ai ouvert|j'ai lanc[ée]|ich [öo]ffne|ich starte|ich spiele|ich habe (\w+\s+){0,3}(ge[öo]ffnet|gestartet)|abrindo|vou abrir|abri|coloquei|apro|metto|ho aperto|открываю|включаю|запускаю|открыла|включила|запустила)(?!\w)" +
-            @"|^((done|sorted|there|boom|bet|ok|okay|alright)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(opened|launched|closed|sent(?!\s+(you|u|ya)\b)|messaged|texted|dmed|dm'd|posted|replied|muted|unmuted|deafened|undeafened|hung up|(ended|left|joined) (the|your|this|that) (call|vc|meeting|server|channel))\b", RegexOptions.IgnoreCase);
+            @"|^((done|sorted|there|boom|bet|ok|okay|alright)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(opened|launched|closed|sent(?!\s+(you|u|ya)\b)|messaged|texted|dmed|dm'd|posted|replied|muted|unmuted|deafened|undeafened|hung up|(ended|left|joined) (the|your|this|that) (call|vc|meeting|server|channel))\b" +
+            // Wiping her drawing too: "Done, wiped it!" left the ink up with no tool behind it (Nemotron, 2 Nov).
+            @"|^((done|sorted|there|boom|bet|ok|okay|alright|sure|poof|gone|all gone|all clear|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(cleared|erased|wiped|removed|deleted|rubbed|got rid of|clearing|erasing|wiping|removing|deleting|rubbing|getting rid of)" + Wiped +
+            @"|\bi('ve| have)?\s+(just\s+)?(cleared|erased|wiped|removed|deleted|rubbed|got rid of)" + Wiped +
+            @"|\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to|about to)|gonna|on it,?)[\s—–-]+(\w+[\s,—–-]+){0,2}(clear|erase|wipe|remove|delete|rub|get rid of)" + Wiped, RegexOptions.IgnoreCase);
 
         // "I'm sending you the biggest hug" is warmth, not a message she owes them. Warmth sent to someone by name still counts.
         private static readonly Regex Warmth = new Regex(@"\b(send(s|ing)?|sent)\s+((you|u|ya|y'all)\s+)?((a|an|the|my|some|all|so|much|many|lots|of|this|big|bigger|biggest|huge|massive|giant|tight|warm|warmest|virtual|good|positive|happy|healing|cozy|cosy|little|tiny|extra|more|mega|super|best|sweet|soft|gentle|digital|cyber|neon)\s+)*(hugs?|huggies|squeezes?|kiss(es)?|love|xoxo|vibes?|energy|thoughts|wishes|prayers?|luck|cuddles?|smooches?|hearts?|sunshine|strength|support|positivity|juju|blessings?|regards|cheers|kudos|props|high[- ]?fives?|fist[- ]?bumps?|headpats?|pats)\b(?!\s+(to|over to)\s+(?!(you|u|ya|y'all|yourself)\b)\w)", RegexOptions.IgnoreCase);
@@ -2967,8 +2985,13 @@ namespace CapriDesktop
                 for (int i = 0; i < 20 && discord == null; i++) { Thread.Sleep(250); discord = FindDiscord(); }
                 if (discord == null) return "Opened Discord, but its window didn't show up in time. Ask again in a sec.";
             }
-            IntPtr before = Native.GetForegroundWindow();
+            IntPtr before = Foreground();
             if (!Steer(discord, "switch_to")) return "Couldn't bring Discord to the front to press its shortcut.";
+            if (before != discord.Handle)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < FocusWait && !Typable(discord.Handle)) Thread.Sleep(20);
+            }
             Chord(keys);
             Thread.Sleep(150);
             if (before != IntPtr.Zero && before != discord.Handle) Steer(new OpenWindow(before, "", ""), "switch_to");
@@ -3073,10 +3096,30 @@ namespace CapriDesktop
             catch (System.ComponentModel.Win32Exception) { return false; }
         }
 
+        // A beat apart and with their scan codes, so an app that reads either one, like Discord's page, gets the whole chord.
         private static void PressChord(byte[] keys)
         {
-            foreach (byte key in keys) Native.keybd_event(key, 0, key == 0x5B ? 0x1 : 0, UIntPtr.Zero);
-            for (int i = keys.Length - 1; i >= 0; i--) Native.keybd_event(keys[i], 0, (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (i > 0) Thread.Sleep(KeyGap);
+                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), keys[i] == 0x5B ? 0x1 : 0, UIntPtr.Zero);
+            }
+            for (int i = keys.Length - 1; i >= 0; i--)
+            {
+                Thread.Sleep(KeyGap);
+                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+            }
+        }
+
+        // Discord's page has the keyboard: it's in front, not minimised, and its focus is on one of its own child windows.
+        private static bool PageFocused(IntPtr window)
+        {
+            int ignored;
+            if (Native.GetForegroundWindow() != window || IsIconic(window)) return false;
+            ThreadFocus focus = new ThreadFocus();
+            focus.Size = Marshal.SizeOf(typeof(ThreadFocus));
+            int thread = GetWindowThreadProcessId(window, out ignored);
+            return thread != 0 && GetGUIThreadInfo(thread, ref focus) && focus.Focus != IntPtr.Zero && IsChild(window, focus.Focus);
         }
 
         private static void Tap(byte key)
@@ -3396,9 +3439,7 @@ namespace CapriDesktop
                 string program;
                 if (!programs.TryGetValue(id, out program))
                 {
-                    try { using (Process process = Process.GetProcessById(id)) program = process.ProcessName; }
-                    catch (ArgumentException) { program = ""; }
-                    catch (InvalidOperationException) { program = ""; }
+                    program = ProgramName(id);
                     programs[id] = program;
                 }
                 StringBuilder title = new StringBuilder(length + 1);
@@ -3409,6 +3450,30 @@ namespace CapriDesktop
             EnumWindows(visit, IntPtr.Zero);
             GC.KeepAlive(visit);
             return found;
+        }
+
+        // A program's name as Process has it, chrome or soffice.bin, or "". Process took a snapshot of every process and thread on
+        // the PC for each one, and her windows are read every second or so.
+        internal static string ProgramName(int id)
+        {
+            IntPtr handle = OpenProcess(0x1000, false, id);
+            if (handle != IntPtr.Zero)
+            {
+                try
+                {
+                    StringBuilder path = new StringBuilder(1024);
+                    int size = path.Capacity;
+                    if (QueryFullProcessImageName(handle, 0, path, ref size))
+                    {
+                        string full = path.ToString(), name = full.Substring(full.LastIndexOf('\\') + 1);
+                        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+                    }
+                }
+                finally { CloseHandle(handle); }
+            }
+            try { using (Process process = Process.GetProcessById(id)) return process.ProcessName; }
+            catch (ArgumentException) { return ""; }
+            catch (InvalidOperationException) { return ""; }
         }
 
         private static bool Apply(OpenWindow window, string action)

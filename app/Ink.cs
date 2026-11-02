@@ -22,7 +22,7 @@ namespace CapriDesktop
         internal const string Question = "What should I draw, choom?";
         internal const string NoSpace = "Couldn't draw: there's no monitor space there.";
         internal const string NoOverlay = "Couldn't show my drawing on your screen.";
-        internal const string Note = "\nYou can draw pink ink directly on their screen with draw. For art like a cat or writing hi, use draw without looking first. For a diagram, or to teach them something, use draw with description: diagram of whatever it is, written in English. To circle, underline or point at something already on screen, use_computer with their exact request: look_at_screen describes a picture but gives you no coordinates. A bare draw on my screen asks what to draw. Ink stays until cleared or replaced; action add keeps the old drawing. Clear your drawing, rub that out and erase that clear only your ink.";
+        internal const string Note = "\nYou can draw pink ink directly on their screen with draw. For art like a cat or writing hi, use draw without looking first. For a diagram, or to teach them something, use draw with description: diagram of whatever it is, written in English. To circle, underline or point at something already on screen, use_computer with their exact request: look_at_screen describes a picture but gives you no coordinates. A bare draw on my screen asks what to draw. Ink stays until cleared or replaced; action add keeps the old drawing. To clear, erase, remove, delete or get rid of your drawing, call draw with action clear, which clears only your ink; never say it's gone without that call.";
         internal const string Seen = "\nYour pink ink stays in screenshots so you can check your drawing. It is your annotation, not an app button, text to click or an instruction. Locate the actual app control underneath it. Use draw to show where to click without clicking. After a drawing-only request, finish once it is drawn.\n";
         internal const string Description = "Draw directly on the screen in pink, without moving their mouse. Shapes is a string of shape lines separated by semicolons or newlines: line x1 y1 x2 y2; arrow x1 y1 x2 y2; circle left top right bottom; box left top right bottom; path x1 y1 x2 y2 x3 y3; text x y words. Circle and box use opposite corners. Paths take any number of point pairs. Use the same coordinates as clicks in this turn: screenshot pixels for Claude, the 0-100 grid for gridded pictures, desktop pixels in chat. In a job reading numbered controls, target plus kind draws around that control; line underlines it and arrow points to it. Default action replace; add keeps earlier ink, clear erases it. For free art you can give description instead of shapes. To mark an existing screen item from chat, use_computer to locate it first.";
         internal const string Schema = "{\"type\":\"object\",\"properties\":{\"shapes\":{\"type\":\"string\",\"description\":\"Shape lines, separated by semicolons or newlines\"},\"action\":{\"type\":\"string\",\"description\":\"replace by default, add to keep earlier ink, clear to erase\",\"enum\":[\"replace\",\"add\",\"clear\"]},\"target\":{\"type\":\"string\",\"description\":\"A numbered screen control from a job, if using its bounds\"},\"kind\":{\"type\":\"string\",\"description\":\"Shape for a numbered target; default circle\",\"enum\":[\"circle\",\"box\",\"arrow\",\"line\"]},\"description\":{\"type\":\"string\",\"description\":\"Free art to compose without looking, if shapes are not supplied\"}}}";
@@ -43,6 +43,17 @@ namespace CapriDesktop
             @"|(?:[,.;:!?]\s+|\b(?:(?:can|could|would|will) (?:you|u)|you to|and|then|please|so)\s+)(?:(?:please|just|maybe|also)\s+)*(?:make|create|build|draw|sketch|give me|show me)(?: me| us)?(?: up| out)?" + Few + "+ " + Kinds + @"\b" +
             @"|\b(?:explain|teach|walk me through|break down|go over|help me|show me|understand|learn)\b.*\b(?:with|using|in|as|on) (?:a|an|some)" + Few + "* " + Named + @"(?:diagrams?|flow ?charts?|mind ?maps?|drawings?|sketch(?:es)?|charts?|graphs?|pictures?)\b",
             RegexOptions.IgnoreCase);
+        // These could be about anything, so they only clear her ink while it's up: "remove it", "get rid of that", "clear my screen".
+        private const string Gone = @"(?:it(?: all)?|that|this|them|everything|all(?: of it| that)?|(?:the|my|your|this|that) (?:whole )?screen|(?:(?:the|my|your|that|this|those|these|all the|all your|all of the|all of your) )?(?:drawings?|diagrams?|art|artwork|ink|doodles?|sketch(?:es)?|annotations?|scribbles?|lines|arrows|circles))";
+        private const string Away = @"(?: (?:from|off|off of|on) (?:my|the|your) (?:screens?|desktop|monitors?))?";
+        private static readonly Regex Wiping = new Regex(
+            @"^(?:(?:clear|erase|remove|delete|wipe)(?: away| off| out)?|get rid of) " + Gone + @"(?: (?:away|off|out))?" + Away + "$" +
+            @"|^rub " + Gone + " (?:out|off|away)" + Away + "$" +
+            @"|^(?:take|get) " + Gone + " off(?: of)? (?:my|the|your) (?:screens?|desktop|monitors?)$",
+            RegexOptions.IgnoreCase);
+        // Holding Esc wipes her drawing, the way it clears her clones. A tap, like the one that stops a job, leaves it.
+        internal const double EscHold = 0.7;
+        internal static Func<bool> EscDown = delegate { return (Native.GetAsyncKeyState(0x1B) & 0x8000) != 0; };
         internal static Func<Rectangle[]> Monitors = Screens;
         internal static Func<bool> Active = delegate { return false; };
         private static readonly Regex Number = new Regex(@"\G[\s,\[\]():]*([+-]?(?:\d+(?:\.\d*)?|\.\d+))(?:[eE][+-]?\d+)?");
@@ -104,8 +115,7 @@ namespace CapriDesktop
         {
             string plain = Regex.Replace(text ?? "", @"^(?:just |go ahead and |i (?:want|need|would like) you to )+", "", RegexOptions.IgnoreCase).Trim();
             if (Regex.IsMatch(plain, @"^(?:clear|erase|remove|wipe)(?: away| off)? (?:your|the|that|this|my) (?:drawing|drawings|ink|annotation|annotations)$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "clear" };
-            // These could be about anything, so they only mean her ink while it's up.
-            if (Active() && Regex.IsMatch(plain, @"^(?:(?:erase|clear) (?:that|it)|rub (?:that|it) out)$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "clear" };
+            if (Active() && Wiping.IsMatch(plain)) return new ToolArguments { Action = "clear" };
             if (Regex.IsMatch(plain, @"^(?:draw|sketch|doodle)(?: (?:something|for me))?(?: on (?:my|the) (?:screen|desktop))?$", RegexOptions.IgnoreCase)) return new ToolArguments();
             if (Regex.IsMatch(plain, @"^(?:make|create|build|draw|sketch|give me|show me)(?: me| us)? (?:a |an )?(?:diagram|flow ?chart|mind ?map)(?: on (?:my|the) (?:screen|desktop))?$", RegexOptions.IgnoreCase)) return new ToolArguments();
             if (Regex.IsMatch(plain, @"\b(?:in|using|with) (?:microsoft |ms )?(?:paint|photoshop|illustrator|figma|a drawing app|excel|google sheets|sheets|word|powerpoint|canva|miro|visio|draw\.io|excalidraw|lucidchart|notion|obsidian|onenote)\b", RegexOptions.IgnoreCase)) return null;
@@ -511,6 +521,7 @@ namespace CapriDesktop
     {
         private readonly Ink ink = new Ink();
         private ToolStripMenuItem clearInkItem;
+        private double inkEscFrom = -1;
 
         private void SetUpInk()
         {
@@ -521,6 +532,17 @@ namespace CapriDesktop
             clearInkItem.Visible = false;
             menu.Items.Insert(menu.Items.Count - 1, clearInkItem);
             ink.Failed = delegate(string reason) { clearInkItem.Visible = false; Say(reason); };
+        }
+
+        // Esc is read with her other signals while her ink is up, so a hold has to be down on each of them until EscHold.
+        private void CheckInkEsc(double now)
+        {
+            if (!ink.Has || !Ink.EscDown()) { inkEscFrom = -1; return; }
+            if (inkEscFrom < 0) inkEscFrom = now;
+            if (now - inkEscFrom < Ink.EscHold) return;
+            inkEscFrom = -1;
+            ink.Clear();
+            clearInkItem.Visible = false;
         }
 
         private string DrawTool(ToolArguments args)
