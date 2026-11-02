@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace CapriDesktop
 {
-    internal sealed class Mainframe : Form, IMessageFilter
+    internal sealed partial class Mainframe : Form, IMessageFilter
     {
         // Her Mainframe's own look, after Cyberpunk 2077's settings screen (Lachy, 30 Oct): near black with a wine glow at the
         // top, sections on dark bands under a teal rule, setting names in red, values in cyan, and boxes with a dark red rim and
@@ -349,6 +349,7 @@ namespace CapriDesktop
             modelMenu = Dropdown();
             models = Make("", 28, 134, 244, 28, delegate { modelMenu.Show(models, new Point(0, models.Height)); });
             models.Chevron = true;
+            models.AccessibleName = "Brain model";
             refresh = Make("Refresh", 280, 134, 76, 28, delegate { capri.FindBrain(); });
             for (int i = 0; i < 3; i++) steps[i] = Caption("", 28, 138 + i * 22, Font, Faint);
             setup = Make("Set up her brain", 28, 226, 170, 28, delegate { if (capri.SettingUp) capri.CancelSetup(); else capri.SetUpBrain(); });
@@ -512,7 +513,7 @@ namespace CapriDesktop
             nickname.Cue = "Your name or a nickname";
             nickname.Box.AccessibleName = "What should she call you?";
             nickname.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseNickname(); } };
-            Make("Save", 280, 141, 76, 22, delegate { UseNickname(); });
+            Make("Save", 280, 141, 76, 22, delegate { UseNickname(); }, "What should she call you?");
             Section("VOICE >", 0, 180);
             styleNote = Caption("Applies to every voice", 88, 178, small, Faint);
             styleNote.AutoSize = false;
@@ -661,7 +662,7 @@ namespace CapriDesktop
             custom.Cue = "Custom model name";
             custom.Box.AccessibleName = "Custom model name";
             custom.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseCustom(); } };
-            Make("Use", 280 + c, 525, 76, 22, delegate { UseCustom(); });
+            Make("Use", 280 + c, 525, 76, 22, delegate { UseCustom(); }, "Custom model name");
             customNote = Caption("A model in Ollama, on your local server or on your key.", 28 + c, 554, small, Faint);
             customNote.AutoSize = false;
             customNote.AutoEllipsis = true;
@@ -671,7 +672,7 @@ namespace CapriDesktop
             localAddress.Cue = "http://127.0.0.1:1234";
             localAddress.Box.AccessibleName = "Local server address";
             localAddress.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; UseLocalAddress(); } };
-            Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); });
+            Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); }, "Local server address");
             Section("HABITS >", c, 656);
             Make("Obsidian vault", 104 + c, 653, 112, 20, delegate { ShowMemoryVault(); }).AccessibleName = "Obsidian vault: keep her notes in your Obsidian vault";
             Make("Open her memories", 220 + c, 653, 136, 20, delegate { capri.OpenMemories(); }).AccessibleName = "Open her memories: memories.md and her chat transcripts, kept on this PC";
@@ -782,6 +783,7 @@ namespace CapriDesktop
             Controls.Add(bottomRim);
             topRim.BringToFront();
             bottomRim.BringToFront();
+            PrepareHints();
             RememberLayout(this);
             Searching();
             Sync();
@@ -911,12 +913,13 @@ namespace CapriDesktop
         // A setting with a slider: its name on the left of its row and its value's box on the right.
         private Slider Setting(string name, string[] steps, int x, int y, string spoken)
         {
-            Named(name, x, y);
+            Label label = Named(name, x, y);
             Slider slider = new Slider(steps);
             slider.Font = Type(9.5f);
             slider.Bounds = new Rectangle(ValueAt + x, y + 3, ValueWide, 22);
             slider.AccessibleName = spoken;
             Controls.Add(slider);
+            Explain(slider, name, "Mainframe.cs", label);
             return slider;
         }
 
@@ -929,6 +932,7 @@ namespace CapriDesktop
             toggle.Bounds = new Rectangle(28 + x, y + 3, 328, 22);
             toggle.CheckedChanged += changed;
             Controls.Add(toggle);
+            Explain(toggle, name, Array.IndexOf(Care.Names, name) >= 0 ? "Care.cs" : "Mainframe.cs");
             return toggle;
         }
 
@@ -1042,6 +1046,7 @@ namespace CapriDesktop
 
         internal void ShowSettings(bool on)
         {
+            DismissHint();
             if (!on) CancelKeys();
             ScrollPage(0);
             paged = on;
@@ -1122,6 +1127,7 @@ namespace CapriDesktop
         // Moves the page and its header up by `to` px, as far as the page runs past the screen. Off Settings it's always 0.
         private void ScrollPage(int to)
         {
+            DismissHint();
             int next = paged ? Math.Max(0, Math.Min(PageNow - pageView, to)) : 0;
             if (next == pageScroll) return;
             if (pageScroll == 0) foreach (Control control in scrolled) tops[control] = control.Top;
@@ -1144,6 +1150,7 @@ namespace CapriDesktop
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
+            DismissHint();
             base.OnMouseWheel(e);
             if (!paged || pageView >= PageNow) return;
             wheel += e.Delta;
@@ -1223,6 +1230,7 @@ namespace CapriDesktop
 
         protected override void OnLocationChanged(EventArgs e)
         {
+            DismissHint();
             base.OnLocationChanged(e);
             if (loaded && !sizing) { Rezoom(Wanted()); ShowFrameSize(); }
         }
@@ -1264,6 +1272,7 @@ namespace CapriDesktop
         {
             float nextUnit = DeviceScale() * TextScale() * next;
             if (!loaded || sizing || (Math.Abs(nextUnit - unit) < 0.005f && Math.Abs(next - zoom) < 0.005f && shownFallback == layoutFallback)) return;
+            DismissHint();
             sizing = true;
             SuspendLayout();
             try
@@ -1282,6 +1291,7 @@ namespace CapriDesktop
                 Arrange(expanded);
                 foreach (Control control in Controls) control.PerformLayout();
                 Shape();
+                DescribeHints();
             }
             finally { ResumeLayout(true); sizing = false; }
         }
@@ -1691,6 +1701,7 @@ namespace CapriDesktop
 
         protected override void Dispose(bool disposing)
         {
+            if (disposing) DisposeHints();
             if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); }
             base.Dispose(disposing);
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();
@@ -2658,12 +2669,10 @@ namespace CapriDesktop
             layered.Activate();
         }
 
-        // The Layers button is lit while they're on and says so to a screen reader, and the window follows Settings' Pitch.
         private void ShowLayers()
         {
             bool on = capri.VoiceLayers.On;
-            layersKey.AccessibleDescription = on ? "On" : "Off";
-            if (layersKey.Picked != on) { layersKey.Picked = on; layersKey.Invalidate(); }
+            if (layersKey.Picked != on) layersKey.Pick(on);
             if (layered != null && !layered.IsDisposed) layered.Sync();
         }
 
@@ -2981,6 +2990,7 @@ namespace CapriDesktop
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
+            if ((keyData & Keys.KeyCode) == Keys.Escape) DismissHint();
             if (capturing == 0) return base.ProcessCmdKey(ref msg, keyData);
             TakeKeys(keyData, WinHeld());
             return true;
@@ -2991,6 +3001,7 @@ namespace CapriDesktop
         // While a key is being picked, middle click or a side mouse button anywhere on the Mainframe is picked like a key press.
         public bool PreFilterMessage(ref Message m)
         {
+            FilterHints(ref m);
             if (capturing == 0 || (m.Msg != 0x0207 && m.Msg != 0x0209 && m.Msg != 0x020B && m.Msg != 0x020D)) return false;
             Control over = Control.FromChildHandle(m.HWnd);
             if (over == null || over.FindForm() != this) return false;
@@ -3194,7 +3205,7 @@ namespace CapriDesktop
             return label;
         }
 
-        private Key Make(string text, int x, int y, int width, int height, EventHandler click)
+        private Key Make(string text, int x, int y, int width, int height, EventHandler click, string topic = null)
         {
             Key key = new Key();
             key.Text = text;
@@ -3202,6 +3213,7 @@ namespace CapriDesktop
             key.Bounds = new Rectangle(x, y, width, height);
             key.Click += click;
             Controls.Add(key);
+            Explain(key, topic ?? text);
             return key;
         }
 
@@ -3291,6 +3303,7 @@ namespace CapriDesktop
             internal Color Accent = Rose;
             internal bool Loud;
             internal bool Picked;
+            internal bool StateValue;
             internal bool Chevron;
             internal int Glyph;
             private bool hot;
@@ -3301,6 +3314,21 @@ namespace CapriDesktop
                 SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
                 BackColor = Ground;
                 Cursor = Cursors.Hand;
+            }
+
+            internal void Pick(bool on) { Picked = on; AccessibilityNotifyClients(AccessibleEvents.StateChange, -1); Invalidate(); }
+
+            protected override AccessibleObject CreateAccessibilityInstance() { return new KeyAccess(this); }
+
+            private sealed class KeyAccess : ControlAccessibleObject
+            {
+                private readonly Key key;
+
+                internal KeyAccess(Key owner) : base(owner) { key = owner; }
+
+                public override string Value { get { return key.StateValue ? key.Picked ? "On" : "Off" : base.Value; } set { base.Value = value; } }
+
+                public override AccessibleStates State { get { return base.State | (key.StateValue && key.Picked ? AccessibleStates.Checked : AccessibleStates.None); } }
             }
 
             protected override void OnMouseEnter(EventArgs e) { hot = true; Invalidate(); base.OnMouseEnter(e); }
@@ -4843,7 +4871,7 @@ namespace CapriDesktop
             }
 
             // The text in its box: its step's own name unless the Mainframe set another, like Robot's "40% · HD".
-            internal string Shown { get { return shown ?? labels[value]; } set { shown = value; Invalidate(); } }
+            internal string Shown { get { return shown ?? labels[value]; } set { shown = value; AccessibilityNotifyClients(AccessibleEvents.ValueChange, -1); Invalidate(); } }
 
             internal Color Ink { get { return ink.IsEmpty ? Cyan : ink; } set { ink = value; Invalidate(); } }
 
@@ -4856,8 +4884,19 @@ namespace CapriDesktop
                 int next = Math.Max(0, Math.Min(labels.Length - 1, wanted));
                 if (next == value) return;
                 value = next;
-                AccessibleDescription = labels[next];
+                AccessibilityNotifyClients(AccessibleEvents.ValueChange, -1);
                 Invalidate();
+            }
+
+            protected override AccessibleObject CreateAccessibilityInstance() { return new SliderAccess(this); }
+
+            private sealed class SliderAccess : ControlAccessibleObject
+            {
+                private readonly Slider slider;
+
+                internal SliderAccess(Slider owner) : base(owner) { slider = owner; }
+
+                public override string Value { get { return slider.Shown; } set { } }
             }
 
             private void Pick(int next)
