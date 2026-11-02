@@ -1309,7 +1309,11 @@ namespace CapriDesktop
                 if (error.Response != null)
                 {
                     BrainException failure = Problem(error, true);
-                    if (OtherDoor(key, failure)) return CloudModels(key);
+                    if (OtherDoor(key, request.RequestUri.AbsoluteUri, failure))
+                    {
+                        try { return CloudModels(key); }
+                        catch (BrainException) { ShutDoor(key, request.RequestUri.AbsoluteUri); throw; }
+                    }
                     if (failure.Message == Gone) throw new BrainException(Cloud.CompanyOf(kind) + " couldn't find its model list. Try Refresh.", true);
                     throw failure;
                 }
@@ -1445,22 +1449,27 @@ namespace CapriDesktop
             return models[0];
         }
 
-        // Some of Google's AQ. keys get turned away as a Bearer token, and x-goog-api-key is their other way in: one try, then it's kept.
+        // Some of Google's AQ. keys get turned away as a Bearer token at one address and let in at another, so x-goog-api-key is their
+        // other way in only where they were turned away: one try, kept until it's turned away too.
         private static readonly HashSet<string> headerKeys = new HashSet<string>();
 
-        private static bool OtherDoor(string key, BrainException error)
+        private static string Door(string key, string address) { return key + "|" + new Uri(address).AbsolutePath; }
+
+        private static bool OtherDoor(string key, string address, BrainException error)
         {
             if (key == null || !key.StartsWith("AQ.", StringComparison.Ordinal) || (error.Status != 400 && error.Status != 401 && error.Status != 403)) return false;
             if (!Regex.IsMatch(error.Detail ?? "", @"credential|authenticat|ACCESS_TOKEN|API key", RegexOptions.IgnoreCase)) return false;
-            lock (headerKeys) return headerKeys.Add(key);
+            lock (headerKeys) return headerKeys.Add(Door(key, address));
         }
+
+        private static void ShutDoor(string key, string address) { lock (headerKeys) headerKeys.Remove(Door(key, address)); }
 
         private static void Sign(HttpWebRequest request, string key, bool claude)
         {
             request.AllowAutoRedirect = false;
             if (Cloud.KindOf(key) == "openrouter") request.Headers["X-Title"] = "Capri";
             bool headerKey;
-            lock (headerKeys) headerKey = headerKeys.Contains(key);
+            lock (headerKeys) headerKey = headerKeys.Contains(Door(key, request.RequestUri.AbsoluteUri));
             if (headerKey) { request.Headers["x-goog-api-key"] = key; return; }
             if (!claude) { request.Headers["Authorization"] = "Bearer " + key; return; }
             request.Headers["x-api-key"] = key;
@@ -2051,7 +2060,11 @@ namespace CapriDesktop
                         body.Stream = false;
                         reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
                     }
-                    else if (OtherDoor(remote.Key, error)) reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
+                    else if (OtherDoor(remote.Key, address, error))
+                    {
+                        try { reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket); }
+                        catch (BrainException) { ShutDoor(remote.Key, address); throw; }
+                    }
                     else
                     {
                         // A model that turns down its reasoning_effort, like gpt-6-luna with tools, gets the value its error names, once, and keeps it.

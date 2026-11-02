@@ -17104,24 +17104,34 @@ namespace CapriDesktop
                 if (googleFake != null) googleFake.Stop();
                 if (routerFake != null) routerFake.Stop();
             }
-            // A key Google turns away as a Bearer token gets its other way in, once, for the model list and for chat.
+            // Google turns an AQ. key's Bearer token away at its model list but takes it for chat, so x-goog-api-key is only the model
+            // list's way in, and a way in that's turned away too is forgotten.
             System.Net.Sockets.TcpListener doorFake = null;
             try
             {
                 System.Collections.Generic.List<string> doorAsked = new System.Collections.Generic.List<string>();
                 string twoKeys = "!400 {\"error\":{\"message\":\"Multiple authentication credentials received. Please pass only one.\",\"status\":\"INVALID_ARGUMENT\"}}";
-                Brain.Google = FakeServer(new[] { twoKeys, googleCatalog, googleCatalog, twoKeys, LocalReply("Through the other door.") }, doorAsked, out doorFake) + "/v1beta/openai";
-                Brain.CloudModels("AQ.list-test");
-                Brain.CloudModels("AQ.chat-test");
-                Brain doorBrain = new Brain { Remote = new Cloud("AQ.chat-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
+                string noBearer = "!400 [{\"error\":{\"code\":400,\"message\":\"Missing Authorization header.\",\"status\":\"INVALID_ARGUMENT\"}}]";
+                Brain.Google = FakeServer(new[] { twoKeys, googleCatalog, LocalReply("Bearer still opens chat."), googleCatalog, twoKeys, noBearer, LocalReply("Back on Bearer.") }, doorAsked, out doorFake) + "/v1beta/openai";
+                Brain.CloudModels("AQ.door-test");
+                Brain doorBrain = new Brain { Remote = new Cloud("AQ.door-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
                 string doorReply = doorBrain.Ask("Hello");
+                Brain.CloudModels("AQ.door-test");
+                Brain shutBrain = new Brain { Remote = new Cloud("AQ.shut-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
+                bool shutFailed = false;
+                try { shutBrain.Ask("Hello"); } catch (BrainException) { shutFailed = true; }
+                string backReply = shutBrain.Ask("Hello again");
                 string[] doorSent;
                 lock (doorAsked) doorSent = doorAsked.ToArray();
-                bool doorRight = doorReply == "Through the other door." && doorSent.Length == 5 && doorSent[0].Contains("Authorization: Bearer AQ.list-test") && doorSent[1].Contains("x-goog-api-key: AQ.list-test") && !doorSent[1].Contains("Authorization:")
-                    && doorSent[3].Contains("Authorization: Bearer AQ.chat-test") && doorSent[4].Contains("x-goog-api-key: AQ.chat-test") && !doorSent[4].Contains("Authorization:");
-                if (!doorRight) throw new Exception("A Gemini AQ. key didn't get Google's other way in: " + doorReply + " / " + doorSent.Length + " requests");
+                bool doorRight = doorReply == "Bearer still opens chat." && shutFailed && backReply == "Back on Bearer." && doorSent.Length == 7
+                    && doorSent[0].StartsWith("GET /v1beta/openai/models ", StringComparison.Ordinal) && doorSent[0].Contains("Authorization: Bearer AQ.door-test") && doorSent[1].Contains("x-goog-api-key: AQ.door-test") && !doorSent[1].Contains("Authorization:")
+                    && doorSent[2].StartsWith("POST /v1beta/openai/chat/completions ", StringComparison.Ordinal) && doorSent[2].Contains("Authorization: Bearer AQ.door-test") && !doorSent[2].Contains("x-goog-api-key:")
+                    && doorSent[3].StartsWith("GET /v1beta/openai/models ", StringComparison.Ordinal) && doorSent[3].Contains("x-goog-api-key: AQ.door-test") && !doorSent[3].Contains("Authorization:")
+                    && doorSent[4].Contains("Authorization: Bearer AQ.shut-test") && doorSent[5].Contains("x-goog-api-key: AQ.shut-test") && !doorSent[5].Contains("Authorization:")
+                    && doorSent[6].Contains("Authorization: Bearer AQ.shut-test") && !doorSent[6].Contains("x-goog-api-key:");
+                if (!doorRight) throw new Exception("A Gemini AQ. key took the wrong way in: " + doorReply + " / " + backReply + " / " + doorSent.Length + " requests");
                 if (Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e") != "bad key [redacted]") throw new Exception("An AQ. key wasn't redacted: " + Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e"));
-                checks.Add("PASS Gemini keys that start AQ. connect, stay out of her logs, and one Google turns away as a Bearer token goes in as x-goog-api-key, once, for the model list and chat");
+                checks.Add("PASS Gemini keys that start AQ. stay out of her logs; one Google turns away as a Bearer token at the model list lists with x-goog-api-key from then on while chat keeps its Bearer token, and a way in that's turned away too is forgotten");
             }
             catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT Gemini AQ. keys: loopback sockets unavailable"); }
             finally
