@@ -1744,9 +1744,39 @@ namespace CapriDesktop
         private void Section(System.Collections.Generic.List<string> checks, string name, Action run)
         {
             if (!SmokeRun.EnterSection(name)) return;
+            string before = SmokeState();
+            bool mainframeShown = mainframe.Visible, onTop = preferences.OnTop;
+            FormWindowState mainframeState = mainframe.WindowState;
             try { run(); }
             catch (Exception problem) { TestFailed = true; checks.Add("FAIL section " + name + ": " + problem.Message); }
-            finally { SmokeRun.LeaveSection(name, checks); }
+            finally
+            {
+                // A section leaves her as it found her. One that doesn't fails by name and is put back, so the steps after it
+                // don't fail for it (her Mainframe left up once broke step 0 and everything after).
+                string after = SmokeState();
+                if (after != before)
+                {
+                    TestFailed = true;
+                    checks.Add("FAIL section " + name + " left her changed: " + before + " became " + after);
+                    if (menu.Visible) menu.Close();
+                    if (playerMenu != null && playerMenu.Visible) playerMenu.Close();
+                    if (preferences.OnTop != onTop) { preferences.OnTop = onTop; TopMost = onTop; Layer(); }
+                    if (!mainframeShown) { if (mainframe.Visible) mainframe.Hide(); }
+                    else
+                    {
+                        if (!mainframe.Visible) mainframe.Show();
+                        if (mainframe.WindowState != mainframeState) mainframe.WindowState = mainframeState;
+                    }
+                }
+                SmokeRun.LeaveSection(name, checks);
+            }
+        }
+
+        private string SmokeState()
+        {
+            return "Mainframe " + (mainframe.Visible ? mainframe.WindowState.ToString() : "hidden") + ", her " + (hidden ? "hidden" : "shown")
+                + ", her menu " + (menu.Visible ? "open" : "closed") + ", the player's menu " + (playerMenu != null && playerMenu.Visible ? "open" : "closed")
+                + ", Always on top " + preferences.OnTop;
         }
         internal bool TestFinished;
         internal string TestStep = "startup";
