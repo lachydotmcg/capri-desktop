@@ -2280,17 +2280,18 @@ namespace CapriDesktop
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube");
         }
 
-        // "Open Discord and Spotify" opens both, so nobody has to ask for each app on its own. Anything she doesn't know goes to her brain.
+        // "Open Discord and Spotify" opens both, so nobody has to ask for each app on its own, and so does "open steam and then
+        // spotify" (a Bazzite user). Anything she doesn't know goes to her brain.
         internal static bool Several(string said, List<KeyValuePair<string, ToolArguments>> calls)
         {
             Match found = Regex.Match(Asked(said), @"^(?:open|launch|start|run|load up|boot up|fire up)\s+(?:up\s+)?(.+)$", RegexOptions.IgnoreCase);
             if (!found.Success) return false;
-            string[] parts = Regex.Split(found.Groups[1].Value.Trim(), @"\s*,\s*(?:and\s+|&\s*)?|\s+and\s+|\s*&\s*", RegexOptions.IgnoreCase);
+            string[] parts = Regex.Split(found.Groups[1].Value.Trim(), @"\s*,\s*(?:and\s+|&\s*)?|\s+and\s+|\s*&\s*|\s+then\s+", RegexOptions.IgnoreCase);
             if (parts.Length < 2) return false;
             List<KeyValuePair<string, ToolArguments>> opening = new List<KeyValuePair<string, ToolArguments>>();
             foreach (string part in parts)
             {
-                string target = Regex.Replace(part.Trim(), @"^(?:open|launch|start|run)\s+", "", RegexOptions.IgnoreCase);
+                string target = Regex.Replace(part.Trim(), @"^(?:(?:and\s+)?then\s+)?(?:(?:open|launch|start|run)\s+)?", "", RegexOptions.IgnoreCase);
                 if (Installed(target)) opening.Add(new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = target }));
                 else if (Site(target)) opening.Add(new KeyValuePair<string, ToolArguments>("open_website", new ToolArguments { Site = target }));
                 else return false;

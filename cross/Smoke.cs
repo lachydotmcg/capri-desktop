@@ -456,6 +456,9 @@ namespace CapriDesktop
                     Hands.Forget();
                     string opened = Hands.Do("open_app", new ToolArguments { Name = "spotify" });
                     string searched = Hands.Do("open_website", new ToolArguments { Site = "youtube", Search = "lofi beats" });
+                    // "Open spotify and then youtube.com" opens each one instead of turning into a mouse job (a Bazzite user).
+                    List<KeyValuePair<string, ToolArguments>> thens = new List<KeyValuePair<string, ToolArguments>>();
+                    bool eachOpened = Hands.Several("open spotify and then youtube.com", thens) && thens.Count == 2 && thens[0].Key == "open_app" && thens[0].Value.Name == "spotify" && thens[1].Key == "open_website" && thens[1].Value.Site == "youtube.com";
                     string skipped = Hands.Do("media", new ToolArguments { Action = "next" });
                     string snipped = Hands.Do("shortcut", new ToolArguments { Name = "screenshot" });
                     string clipped = Hands.Do("shortcut", new ToolArguments { Name = "clip_that" });
@@ -467,7 +470,7 @@ namespace CapriDesktop
                     string macSong = Limbs.Song(true);
                     string linuxSong = Limbs.Song(false);
                     string log = string.Join(" / ", did);
-                    if ((opened != "Opened Spotify." && opened != "Opened Spotify, but its window hasn't appeared yet.") || !log.Contains("launch /bin/sh -c spotify") || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats")) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / " + log);
+                    if ((opened != "Opened Spotify." && opened != "Opened Spotify, but its window hasn't appeared yet.") || !log.Contains("launch /bin/sh -c spotify") || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats") || !eachOpened) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / each " + eachOpened + " / " + log);
                     if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.Contains("only work on Windows")) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
                     if (!log.Contains("osascript -e tell application \"Spotify\" to next track") || !log.Contains("+ 2)") || !log.Contains("pactl set-sink-mute @DEFAULT_SINK@ toggle / amixer -q sset Master toggle")) throw new Exception("Mac or Linux media keys went wrong: " + log);
                     if (!log.Contains("play track \"spotify:track:2iyaHQlYrR8Eyr4wOmOT5D\"") || !log.Contains("OpenUri string:spotify:track:2iyaHQlYrR8Eyr4wOmOT5D") || log.Contains("launch open spotify:") || log.Contains("launch xdg-open spotify:")) throw new Exception("Spotify tracks didn't play directly: " + log);
@@ -541,7 +544,7 @@ namespace CapriDesktop
                     Hands.Catalog = catalogWas;
                     Hands.Forget();
                 }
-                checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, and key-press shortcuts say they're Windows-only");
+                checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, each one in \"open spotify and then youtube.com\", skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, and key-press shortcuts say they're Windows-only");
                 SecurityChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
