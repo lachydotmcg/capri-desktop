@@ -238,7 +238,8 @@ namespace CapriDesktop
         private int pageScroll;
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1048, 1100 }, new[] { 1128, 1184 } };
+        // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 478 }, new[] { 550, 1029 }, new[] { 1112, 1164 }, new[] { 1192, 1248 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 372, 754 }, new[] { 950, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
@@ -272,6 +273,14 @@ namespace CapriDesktop
         private readonly Toggle typing;
         private readonly Toggle listenCapri;
         private readonly Toggle hdGames;
+        // Her voice in your mic (F66): the switch, the line saying to pick CABLE Output, and a line under it that says when it
+        // needs VB-CABLE, beside a button to VB-CABLE's page, or what's wrong while it's on. They sit under Free voice in games.
+        private readonly Toggle voiceInMic;
+        private readonly Label voiceInMicNote;
+        private readonly Label voiceInMicState;
+        private readonly Key cableKey;
+        private const int MixAt = 478;
+        private const int MixRows = 64;
         private readonly Toggle miniPlayer;
         private readonly Readout sleepName;
         private readonly Readout soundsName;
@@ -551,6 +560,14 @@ namespace CapriDesktop
             hdGames = Switch("Free voice in games", 0, 450, delegate { if (!syncing) capri.ToggleHdGameRest(); });
             hdGames.AccessibleName = "Free voice in games: while a game or video is full screen, her free voice talks instead of her HD voice, so the game gets the graphics card";
             hdGames.Visible = false;
+            voiceInMic = Switch("Her voice in your mic", 0, MixAt, delegate { if (!syncing) capri.ToggleVoiceInMic(); });
+            voiceInMic.Switch = 68;
+            voiceInMic.AccessibleName = "Her voice in your mic. Your mic and her voice go into VB-CABLE, so friends in Discord or Roblox hear you both";
+            voiceInMicNote = Caption("Pick CABLE Output as your mic in Discord or Roblox.", 28, MixAt + 26, small, Faint);
+            voiceInMicState = Caption("", 28, MixAt + 44, small, Faint);
+            cableKey = Make("Get VB-CABLE", 264, MixAt + 41, 92, 20, delegate { capri.OpenCablePage(); });
+            cableKey.AccessibleName = "Get VB-CABLE: opens its page in your browser. It's free";
+            cableKey.Visible = false;
             int afterVoice = Controls.Count;
             Section("MOVES >", 0, 442);
             // Her mini player shows what's playing while music plays, with her perched on it.
@@ -599,9 +616,10 @@ namespace CapriDesktop
             keysNote.MaximumSize = new Size(328, 0);
             for (int i = afterVoice; i < Controls.Count; i++)
             {
-                Controls[i].Top += Row + 22;
+                Controls[i].Top += Row + 22 + MixRows;
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             }
+            foreach (Control mixRow in new Control[] { voiceInMic, voiceInMicNote, voiceInMicState, cableKey }) underVoice.Add(new KeyValuePair<Control, int>(mixRow, mixRow.Top));
             Section("CAPRI >", c, 58);
             sizeSlider = Setting("Size", SizeNames, c, 82, "Her size");
             sizeName = new Readout(sizeSlider);
@@ -743,6 +761,9 @@ namespace CapriDesktop
             // Head pats and Chaos when upset took two rows under Mainframe size, so the rest of this column sits two lower.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 2;
+            // Her voice in your mic's rows push GAMES down under KEYS too.
+            for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) Controls[gameRow].Top += MixRows;
+            gameMute.Top += MixRows;
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
             underVoice.Add(new KeyValuePair<Control, int>(gameMute, gameMute.Top));
             for (int i = first; i < Controls.Count; i++)
@@ -979,6 +1000,51 @@ namespace CapriDesktop
         // MOVES' and KEYS' controls with their tops as built, and how far up they've moved.
         private readonly List<KeyValuePair<Control, int>> underVoice = new List<KeyValuePair<Control, int>>();
         private int lifted;
+
+        // Without VB-CABLE the switch can't go on, and the line under it says it needs it, beside a button to its page. While it's
+        // on, that line says what's wrong, if anything. The switch still goes off if the cable went away while it was on.
+        internal void ShowVoiceInMic()
+        {
+            bool was = syncing, cable = capri.CableReady, on = capri.VoiceInMic;
+            string problem = capri.VoiceInMicProblem;
+            syncing = true;
+            voiceInMic.Checked = on;
+            voiceInMic.Enabled = cable || on;
+            syncing = was;
+            voiceInMicState.Text = !cable ? MicMix.Missing : on && problem != null ? problem : "";
+            voiceInMicState.ForeColor = cable ? Hot : Faint;
+            cableKey.Visible = !cable;
+            voiceInMic.Invalidate();
+            voiceInMicState.Invalidate();
+        }
+
+        // The switch, whether it can be clicked, the line under the note, the button and the note, for the smoke test.
+        internal string VoiceInMicStatus { get { return (voiceInMic.Checked ? "on" : "off") + " | " + (voiceInMic.Enabled ? "open" : "locked") + " | " + (voiceInMicState.Text.Length > 0 ? voiceInMicState.Text : "-") + " | " + (cableKey.Visible ? cableKey.Text : "-") + " | " + voiceInMicNote.Text; } }
+
+        internal void FlipVoiceInMic() { voiceInMic.Checked = !voiceInMic.Checked; }
+
+        internal void PressCable() { if (cableKey.Visible && cableKey.Enabled) InvokeOnClick(cableKey, EventArgs.Empty); }
+
+        // Her voice in your mic's rows fit the page with nothing over them: the switch's name in its room, the note and the line
+        // inside the column, the button clear of the line, and MOVES or GAMES below them all.
+        internal string VoiceInMicFits()
+        {
+            Rectangle page = PageArea;
+            int column = Scaled(356);
+            if (TextRenderer.MeasureText(voiceInMic.Text, voiceInMic.Font, Size.Empty, TextFormatFlags.NoPadding).Width > voiceInMic.NameRoom) return "the switch's name doesn't fit";
+            foreach (Control row in new Control[] { voiceInMic, voiceInMicNote, voiceInMicState, cableKey })
+                if (row.Visible && !(row is Label && row.Text.Length == 0) && (!page.Contains(row.Bounds) || row.Right > column)) return (row.Text.Length > 0 ? row.Text : row.AccessibleName) + " pokes out";
+            if (voiceInMicNote.Top < voiceInMic.Bottom || voiceInMicState.Top < voiceInMicNote.Bottom) return "the note or the line overlaps the row above it";
+            if (cableKey.Visible && (cableKey.Left < voiceInMicState.Right || cableKey.Top < voiceInMicNote.Bottom)) return "the button covers the line";
+            // Every line it can show fits: the missing-cable one beside the button, the rest inside the column.
+            foreach (string line in new[] { MicMix.Missing, MicMix.Unopened, MicMix.NoMic, MicMix.MicGone })
+                if (voiceInMicState.Left + TextRenderer.MeasureText(line, voiceInMicState.Font).Width > (line == MicMix.Missing ? cableKey.Left - Scaled(4) : column)) return "\"" + line + "\" doesn't fit";
+            int below = int.MaxValue;
+            foreach (KeyValuePair<Control, int> entry in underVoice)
+                if (entry.Key.Visible && entry.Key.Left < Scaled(Column) && !Folded(entry.Key) && entry.Key.Top > voiceInMic.Top && Array.IndexOf(new Control[] { voiceInMic, voiceInMicNote, voiceInMicState, cableKey }, entry.Key) < 0) below = Math.Min(below, entry.Key.Top);
+            int last = Math.Max(voiceInMicState.Bottom, cableKey.Visible ? cableKey.Bottom : 0);
+            return below - Scaled(5) < last ? "the next section starts on top of it" : null;
+        }
 
         internal bool PlayerShown { get { return miniPlayer.Checked; } }
 
@@ -1747,6 +1813,7 @@ namespace CapriDesktop
             typing.Checked = capri.TypingSound;
             listenCapri.Checked = capri.ListenCapriOn;
             ShowHdGames();
+            ShowVoiceInMic();
             miniPlayer.Checked = capri.PlayerOn;
             replies.Value = capri.Wordiness;
             repliesName.Text = Lengths[replies.Value];

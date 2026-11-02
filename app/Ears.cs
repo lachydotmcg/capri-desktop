@@ -37,11 +37,16 @@ namespace CapriDesktop
     {
         internal readonly string Id;
         internal readonly string Name;
+        // Its number in Windows' wave API, which waveInOpen takes.
+        internal readonly int Index;
 
-        internal Mic(string id, string name)
+        internal Mic(string id, string name) : this(id, name, -1) { }
+
+        internal Mic(string id, string name, int index)
         {
             Id = id;
             Name = name;
+            Index = index;
         }
     }
 
@@ -88,7 +93,13 @@ namespace CapriDesktop
         internal bool Stalled { get { return running && Environment.TickCount - lastChunk > 5000; } }
         private volatile int lastChunk;
 
-        internal static List<Mic> List()
+        // The mics they can pick: Windows' own list less VB-CABLE's output, which carries her voice while it's in their mic, so
+        // she never hears herself through it (F66).
+        internal static List<Mic> List() { return Pickable(All()); }
+
+        internal static List<Mic> Pickable(List<Mic> all) { return all.FindAll(delegate(Mic mic) { return !MicMix.IsCableOut(mic.Name); }); }
+
+        private static List<Mic> All()
         {
             List<Mic> found = new List<Mic>();
             int count = waveInGetNumDevs();
@@ -97,7 +108,7 @@ namespace CapriDesktop
                 MicCaps caps = new MicCaps();
                 if (waveInGetDevCaps(new IntPtr(i), ref caps, Marshal.SizeOf(typeof(MicCaps))) != 0) continue;
                 string id = Endpoint(i);
-                found.Add(new Mic(id ?? caps.Name, FullName(id) ?? caps.Name));
+                found.Add(new Mic(id ?? caps.Name, FullName(id) ?? caps.Name, i));
             }
             return found;
         }
@@ -111,13 +122,17 @@ namespace CapriDesktop
             return text.Length == 0 ? null : text.ToString();
         }
 
-        // Windows' own record of a mic, under its endpoint id.
+        // Windows' own record of a mic, or of speakers or a cable in, under its endpoint id. Render ids start {0.0.0.
         private static RegistryKey Properties(string id)
         {
             int cut = id == null ? -1 : id.LastIndexOf("}.{", StringComparison.Ordinal);
             if (cut < 0) return null;
-            return Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Capture\" + id.Substring(cut + 2) + @"\Properties");
+            string flow = id.StartsWith("{0.0.0.", StringComparison.Ordinal) ? "Render" : "Capture";
+            return Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\" + flow + @"\" + id.Substring(cut + 2) + @"\Properties");
         }
+
+        // An endpoint's full name, like "Microphone (Yeti)" or "CABLE Input (VB-Audio Virtual Cable)", or null.
+        internal static string EndpointName(string id) { return FullName(id); }
 
         private static string FullName(string id)
         {
@@ -135,10 +150,35 @@ namespace CapriDesktop
             catch (Exception) { return null; }
         }
 
-        // The mic Start opens for a pick: the picked one while it's plugged in, or Windows' default.
-        private static string Opens(string chosen)
+        // The mic Start opens for a pick, by endpoint id: the picked one while it's plugged in, or Windows' default, or when that's
+        // VB-CABLE's output, the first other mic. Null when there's none.
+        internal static string Opens(string chosen)
         {
-            if (Pick(chosen) >= 0) return chosen;
+            List<Mic> all = All();
+            int index = Opening(all, chosen, DefaultName());
+            if (index == -1) return DefaultId();
+            foreach (Mic mic in all) if (mic.Index == index) return mic.Id;
+            return null;
+        }
+
+        // Which wave API mic Start opens: the picked one while it's plugged in, else Windows' default (-1). Never VB-CABLE's
+        // output, which has her own voice in it while her voice is in their mic (F66): when Windows' default is the cable, the
+        // first other mic, or -2 when there's no other.
+        internal static int Opening(List<Mic> all, string chosen, string defaultName)
+        {
+            int first = -2;
+            foreach (Mic mic in all)
+            {
+                if (MicMix.IsCableOut(mic.Name)) continue;
+                if (!string.IsNullOrEmpty(chosen) && mic.Id == chosen) return mic.Index;
+                if (first == -2) first = mic.Index;
+            }
+            return MicMix.IsCableOut(defaultName) ? first : -1;
+        }
+
+        // Windows' default mic, the one the wave API's mapper opens, by endpoint id. Null when Windows won't say.
+        private static string DefaultId()
+        {
             ISoundDevices devices = null;
             ISoundDevice device = null;
             try
@@ -156,6 +196,11 @@ namespace CapriDesktop
             }
         }
 
+        // Windows' default mic's full name, to tell VB-CABLE's output apart. The smoke test points it at a stand-in.
+        internal static Func<string> DefaultName = delegate { return FullName(DefaultId()); };
+
+        internal const string OnlyCable = "Your only mic is VB-CABLE's, which has her own voice in it. Plug in a mic.";
+
         // A Bluetooth headset's mic is its hands-free side: while it's open the headset is on a call, and everything Windows
         // plays through it drops to phone-call quality. The mic's name when a pick would open one, else null.
         internal static string HandsFree(string chosen)
@@ -172,23 +217,19 @@ namespace CapriDesktop
             return FullName(id) ?? "Bluetooth headset";
         }
 
-        private static int Pick(string chosen)
-        {
-            if (string.IsNullOrEmpty(chosen)) return -1;
-            List<Mic> mics = List();
-            for (int i = 0; i < mics.Count; i++) if (mics[i].Id == chosen) return i;
-            return -1;
-        }
-
         internal void Start()
         {
             if (running) return;
             WaveFormat format = WaveFormat.Mono(Rate);
-            signal = new AutoResetEvent(false);
             int size = Marshal.SizeOf(typeof(WaveHeader));
-            int id = Pick(Chosen);
+            List<Mic> all = All();
+            string usual = DefaultName();
+            // The picked mic, or Windows' default. If the pick won't open she tries the default, and neither is ever VB-CABLE's output.
+            int id = Opening(all, Chosen, usual), fallback = Opening(all, null, usual);
+            if (id == -2) throw new VoiceException(OnlyCable);
+            signal = new AutoResetEvent(false);
             IntPtr wake = signal.SafeWaitHandle.DangerousGetHandle();
-            if (waveInOpen(out device, id, ref format, wake, IntPtr.Zero, 0x00050000) != 0 && (id == -1 || waveInOpen(out device, -1, ref format, wake, IntPtr.Zero, 0x00050000) != 0))
+            if (waveInOpen(out device, id, ref format, wake, IntPtr.Zero, 0x00050000) != 0 && (id == fallback || waveInOpen(out device, fallback, ref format, wake, IntPtr.Zero, 0x00050000) != 0))
             {
                 signal.Dispose();
                 signal = null;
@@ -376,8 +417,14 @@ namespace CapriDesktop
                 lock (levels) levels.Add(level);
             }
             leftover.RemoveRange(0, at);
+            if (!Plain)
+            {
+                samples = Voice.Louder(samples);
+                // Her voice in their mic (F66): everything she says goes into VB-CABLE too while the switch is on, at her volume.
+                // Her sound effects play through Plain speakers, so they stay out.
+                MicMix.Hear(this, samples, rate);
+            }
             if (silent || (device == IntPtr.Zero && modern == null)) return;
-            if (!Plain) samples = Voice.Louder(samples);
             if (modern != null) { modern.Write(samples); return; }
             int size = Marshal.SizeOf(typeof(WaveHeader));
             WaveHeader header = new WaveHeader { Data = Marshal.AllocHGlobal(samples.Length * 2), Length = samples.Length * 2 };
@@ -422,6 +469,7 @@ namespace CapriDesktop
         {
             if (device != IntPtr.Zero) waveOutReset(device);
             if (modern != null) modern.Clear();
+            MicMix.Hush(this);
             Sweep();
             shapes.Clear();
             leftover.Clear();
@@ -1556,7 +1604,8 @@ namespace CapriDesktop
         }
     }
 
-    // Windows' own mute on a mic: the picked one, or the default one when none is picked or it's gone. Null when Windows won't say.
+    // Windows' own mute on the mic her ears open: the picked one, or the default one when none is picked or it's gone, never
+    // VB-CABLE's output. Null when Windows won't say.
     internal static class Mics
     {
         internal static bool? Muted(string id)
@@ -1566,13 +1615,10 @@ namespace CapriDesktop
             object found = null;
             try
             {
+                string opens = Ears.Opens(id);
+                if (opens == null) return null;
                 devices = (ISoundDevices)new SoundDevices();
-                if (string.IsNullOrEmpty(id) || devices.GetDevice(id, out device) != 0 || device == null)
-                {
-                    if (device != null) Marshal.ReleaseComObject(device);
-                    device = null;
-                    if (devices.GetDefaultAudioEndpoint(1, 0, out device) != 0 || device == null) return null;
-                }
+                if (devices.GetDevice(opens, out device) != 0 || device == null) return null;
                 Guid volumeId = typeof(ISpeakerVolume).GUID;
                 if (device.Activate(ref volumeId, 23, IntPtr.Zero, out found) != 0 || found == null) return null;
                 bool muted;
