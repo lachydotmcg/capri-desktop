@@ -17087,12 +17087,13 @@ namespace CapriDesktop
                 for (int googleIndex = 0; googleIndex < googleAsked.Count; googleIndex++)
                 {
                     string googleRequest = googleAsked[googleIndex];
-                    if (!googleRequest.StartsWith(googleIndex == 0 ? "GET /v1beta/openai/models " : "POST /v1beta/openai/chat/completions ", StringComparison.Ordinal) || !googleRequest.Contains("Authorization: Bearer AIza-test") || googleRequest.Contains("sk-or-test") || googleRequest.Contains("X-Title:") || googleRequest.Contains("max_completion_tokens") || googleRequest.Contains("chat_template_kwargs")) throw new Exception("A Gemini request used another provider's route, key or settings.");
+                    if (!googleRequest.StartsWith(googleIndex == 0 ? "GET /v1beta/openai/models " : "POST /v1beta/openai/chat/completions ", StringComparison.Ordinal) || !googleRequest.Contains("Authorization: Bearer AIza-test") || googleRequest.Contains("sk-or-test") || googleRequest.Contains("X-Title:") || googleRequest.Contains("max_completion_tokens") || googleRequest.Contains("chat_template_kwargs")
+                        || (googleIndex > 0 && !googleRequest.Contains("\"reasoning_effort\":\"low\""))) throw new Exception("A Gemini request used another provider's route, key or settings.");
                 }
                 for (int routerIndex = 0; routerIndex < routerAsked.Count; routerIndex++)
                 {
                     string routerRequest = routerAsked[routerIndex];
-                    if (!routerRequest.StartsWith(routerIndex == 0 ? "GET /api/v1/models " : "POST /api/v1/chat/completions ", StringComparison.Ordinal) || !routerRequest.Contains("Authorization: Bearer sk-or-test") || !routerRequest.Contains("X-Title: Capri") || routerRequest.Contains("AIza-test") || routerRequest.Contains("Referer:") || routerRequest.Contains("max_completion_tokens") || routerRequest.Contains("chat_template_kwargs")) throw new Exception("An OpenRouter request used another provider's route, key or settings.");
+                    if (!routerRequest.StartsWith(routerIndex == 0 ? "GET /api/v1/models " : "POST /api/v1/chat/completions ", StringComparison.Ordinal) || !routerRequest.Contains("Authorization: Bearer sk-or-test") || !routerRequest.Contains("X-Title: Capri") || routerRequest.Contains("AIza-test") || routerRequest.Contains("Referer:") || routerRequest.Contains("max_completion_tokens") || routerRequest.Contains("chat_template_kwargs") || routerRequest.Contains("reasoning_effort")) throw new Exception("An OpenRouter request used another provider's route, key or settings.");
                 }
                 if (!googleAsked[2].Contains("\"tools\":") || !routerAsked[1].Contains("\"tools\":") || !googleAsked[3].Contains("data:image/jpeg;base64,AQID") || !routerAsked[2].Contains("data:image/jpeg;base64,AQID") || routerAsked[4].Contains("\"tools\":") || !routerAsked[5].Contains("\"tools\":") || routerAsked[6].Contains("\"tools\":") || routerAsked[7].Contains("\"tools\":")) throw new Exception("Pictures, advertised tools or the fallback after a rejected tool call were wrong.");
                 checks.Add("PASS Gemini and OpenRouter chat, tools, screenshots, asides and quick calls stay on their provider; only OpenRouter sends X-Title: Capri, and tool rejection falls back to written moves");
@@ -17273,11 +17274,12 @@ namespace CapriDesktop
                         local.Aside("Talk", "Hello", 90);
                         string body = SentBody(asked[asked.Count - 1]);
                         int replyExpected = length == 0 ? remote.Claude ? 16000 : 2000 : tokens[length];
+                        if (remote.Kind == "google") replyExpected = Math.Max(2048, replyExpected);
                         string field = remote.Kind == "openai" ? "max_completion_tokens" : "max_tokens";
-                        if (Brain.Field(body, field) != replyExpected.ToString() || Brain.Field(body, "num_ctx") != null || Brain.Field(body, "options") != null) throw new Exception("Reply or context settings reached " + remote.Kind + " incorrectly.");
+                        if (Brain.Field(body, field) != replyExpected.ToString() || Brain.Field(body, "num_ctx") != null || Brain.Field(body, "options") != null || (Brain.Field(body, "reasoning_effort") == "\"low\"") != (remote.Kind == "google")) throw new Exception("Reply or context settings reached " + remote.Kind + " incorrectly.");
                     }
                 }
-                checks.Add("PASS memory and reply request settings: all six memory choices reach Ollama num_ctx and the built-in -c argument; all four reply choices reach Ollama, built-in, local servers and every cloud kind, without sending context options to those servers or clouds");
+                checks.Add("PASS memory and reply request settings: all six memory choices reach Ollama num_ctx and the built-in -c argument; all four reply choices reach Ollama, built-in, local servers and every cloud kind, without sending context options to those servers or clouds; Gemini alone thinks low and never gets under 2048 tokens");
 
                 Brain.ReplyLength = 1;
                 local.Remote = null;

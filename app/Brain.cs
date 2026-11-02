@@ -2033,17 +2033,19 @@ namespace CapriDesktop
             if (remote != null)
             {
                 bool openAi = remote.Kind == "openai";
+                // Gemini thinks before every reply and its thoughts share max_tokens, so it thinks low and keeps room to answer.
+                bool google = remote.Kind == "google";
                 bool brief = remote.Kind == "nvidia" && remote.Model == "google/gemma-4-31b-it";
                 bool screen = (parts != null || unhurried) && remote.Kind == "nvidia";
                 bool super = screen && (!job || unhurried) && !routing && remote.Model == "nvidia/nemotron-3.5-super-vl-120b-a12b";
                 int headroom = unhurried ? 8000 : 2000;
-                string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi, super ? "none" : null);
+                string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi, super ? "none" : google ? "low" : null);
                 OpenAiRequest body = new OpenAiRequest
                 {
                     Model = remote.Model,
                     Messages = messages.ToArray(),
                     Limit = openAi ? ReplyLimit(headroom, job || routing) : (int?)null,
-                    Tokens = openAi ? (int?)null : ReplyLimit(brief ? Math.Max(256, limit) : headroom, job || routing),
+                    Tokens = openAi ? (int?)null : google ? Math.Max(2048, ReplyLimit(headroom, job || routing)) : ReplyLimit(brief ? Math.Max(256, limit) : headroom, job || routing),
                     Effort = effort,
                     Thinking = remote.Kind == "deepseek" ? new CloudThinking() : null,
                     Template = brief ? new CloudTemplate() : null,
