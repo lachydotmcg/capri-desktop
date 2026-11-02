@@ -409,6 +409,8 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code, uint type);
         [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out Box box);
         [DllImport("user32.dll")] private static extern int GetWindowThreadProcessId(IntPtr window, out int process);
+        [DllImport("advapi32.dll", SetLastError = true)] private static extern bool OpenProcessToken(IntPtr process, int access, out IntPtr token);
+        [DllImport("advapi32.dll", SetLastError = true)] private static extern bool GetTokenInformation(IntPtr token, int kind, out int value, int size, out int returned);
         [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, StringBuilder text, int size);
 
@@ -1341,12 +1343,49 @@ namespace CapriDesktop
         // A brain sometimes files one of her own tools under Claude's computer tools.
         internal static bool MemberCall(string toolset, string name) { return toolset == "computer" && Toolset.IndexOf("\"name\":\"" + name + "\"", StringComparison.Ordinal) < 0; }
 
+        internal const string AdminWindow = "Couldn't click or type there: that window runs as administrator, and Windows keeps other apps' clicks and keys out of it. Run Capri as administrator too, or do that part yourself.";
+
+        // Windows quietly keeps an app's clicks and keys out of a window that runs as administrator unless the app does too, so
+        // her cursor moved and nothing clicked (ticket 81; Task Manager runs as administrator on most PCs). Only a token that
+        // says so counts: a game's anti-cheat can hide its token, and that game still takes her input.
+        internal static Func<IntPtr, bool> AboveHer = delegate(IntPtr window)
+        {
+            if (window == IntPtr.Zero) return false;
+            if (selfElevated < 0) selfElevated = Elevated(Process.GetCurrentProcess().Id) ? 1 : 0;
+            if (selfElevated == 1) return false;
+            int id;
+            GetWindowThreadProcessId(window, out id);
+            return id != 0 && Elevated(id);
+        };
+        private static int selfElevated = -1;
+
+        private static bool Elevated(int id)
+        {
+            IntPtr process = OpenProcess(0x1000, false, id);
+            if (process == IntPtr.Zero) return false;
+            try
+            {
+                IntPtr token;
+                if (!OpenProcessToken(process, 0x0008, out token)) return false;
+                try
+                {
+                    int elevated, size;
+                    return GetTokenInformation(token, 20, out elevated, 4, out size) && elevated != 0;
+                }
+                finally { CloseHandle(token); }
+            }
+            finally { CloseHandle(process); }
+        }
+
+        private static IntPtr WindowAt(Point at) { return Native.GetAncestor(Native.WindowFromPoint(new Native.Point(at.X, at.Y)), 2); }
+
         internal static string Member(string name, ToolArguments args, Picture shown)
         {
             if (args == null) args = new ToolArguments();
             Point at;
             bool placed = Spot(args.Coordinate, shown, out at);
             if (args.Coordinate != null && !placed) return "That isn't on the screenshot" + (shown == null ? "." : ", which is " + shown.Size.Width + "x" + shown.Size.Height + ".");
+            if (name != "cursor_position" && name != "wait" && AboveHer(name == "type" || name == "key" || name == "hold_key" ? Native.GetForegroundWindow() : WindowAt(placed ? at : HerAt))) return AdminWindow;
             short[] held;
             switch (name)
             {
@@ -1696,6 +1735,7 @@ namespace CapriDesktop
             }
             if (tool == "wait_for") return WaitFor(args.Text, args.Seconds);
             if (sight == null || sight.Window == IntPtr.Zero || !IsWindow(sight.Window)) return "There's no app window to use. Open one first.";
+            if (AboveHer(sight.Window)) return AdminWindow;
             Target target = sight.Find(args.Target);
             if (!string.IsNullOrEmpty(args.Target) && target == null) return "There's no number " + args.Target + " on screen.";
             if (tool == "hold_and_press")

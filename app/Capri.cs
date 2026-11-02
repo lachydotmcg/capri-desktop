@@ -27792,6 +27792,19 @@ namespace CapriDesktop
                                     if (driveRefusals[0] != "Won't press ctrl+shift+esc." || driveRefusals[1] != "There's no key called hyper." || driveRefusals[2] != "That isn't on the screenshot, which is 1280x720." || !driveRefusals[3].StartsWith("Couldn't drag", StringComparison.Ordinal) || !driveRefusals[4].StartsWith("Couldn't scroll", StringComparison.Ordinal) || driveRefusals[5] != "There's no action called teleport.")
                                         throw new Exception("Claude's hands didn't refuse a bad action: " + string.Join(" / ", driveRefusals));
                                     foreach (string driveRefusal in driveRefusals) if (!Computer.Failed(driveRefusal)) throw new Exception("A refused action wasn't marked as failed: " + driveRefusal);
+                                    // A window running as administrator keeps her clicks and keys out, so she says so instead of "Clicked." (ticket 81).
+                                    Func<IntPtr, bool> adminWas = Computer.AboveHer;
+                                    string adminClick, adminKeys;
+                                    try
+                                    {
+                                        Computer.AboveHer = delegate { return true; };
+                                        adminClick = Computer.Member("left_click", new ToolArguments { Coordinate = new double[] { 10, 10 } }, driveFrame);
+                                        adminKeys = Computer.Member("type", new ToolArguments { Text = "hi" }, driveFrame);
+                                    }
+                                    finally { Computer.AboveHer = adminWas; }
+                                    if (adminClick != Computer.AdminWindow || adminKeys != Computer.AdminWindow || !Computer.Failed(adminClick) || Computer.AboveHer(IntPtr.Zero) || Computer.AboveHer(Handle))
+                                        throw new Exception("Her hands didn't say a window running as administrator keeps them out, or counted her own window: " + adminClick + " / " + adminKeys);
+                                    checks.Add("PASS a window running as administrator: her clicks and keys say Windows keeps them out instead of \"Clicked.\", and her own window and no window don't count");
                                     bool driveBlinded = false;
                                     Computer.Look = delegate { return new Sight { Window = new IntPtr(7), Title = "Shop", Program = "shop" }; };
                                     Computer.Front = delegate { return new IntPtr(7); };
