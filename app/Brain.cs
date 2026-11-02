@@ -1764,10 +1764,13 @@ namespace CapriDesktop
             else if (planning)
             {
                 List<ChatMessage> working = new List<ChatMessage>(messages);
-                working[0] = new ChatMessage("system", steady + Seen() + Gap() + Hands.NoteFor(kit) + Hands.WorkingOut + (playing == null ? Hands.NoGame : Hands.GameNote(playing)) + Now() + selfGuide) { Steady = steady.Length };
+                // She checks where things stand before her first step: what's open, what's in front and, for a job about their
+                // screen on a brain that sees, a glance at it (Lachy, 2 Nov: "Is it open? What is open currently?").
+                string glance = kit.Has("look_at_screen") && Hands.AboutScreen(request) ? act("look_at_screen", new ToolArguments { Focus = request }) : null;
+                working[0] = new ChatMessage("system", steady + Seen() + Gap() + Hands.NoteFor(kit) + Hands.WorkingOut + (playing == null ? Hands.NoGame : Hands.GameNote(playing)) + Hands.Status(glance) + Now() + selfGuide) { Steady = steady.Length };
                 try
                 {
-                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit);
+                    planText = WorkOut(model, working, request, calls, results, facts, answerBudget, ticket, kit, glance);
                     planned = true;
                 }
                 catch (BrainException error)
@@ -1990,7 +1993,7 @@ namespace CapriDesktop
         // The brain holds her tools beside her own prompt: it calls one, sees what it did, calls the next, and answers as herself once
         // the job's done, for up to eight rounds. Saying it did something with no tool behind it gets one reminder, then her line that
         // nothing's happened yet. Null means her usual reply from the results: SECURITY held a call, a job was stopped or the rounds ran out.
-        private string WorkOut(string model, List<ChatMessage> asking, string request, List<KeyValuePair<string, ToolArguments>> calls, List<string> results, List<string> facts, int budget, int ticket, Hands.Kit kit)
+        private string WorkOut(string model, List<ChatMessage> asking, string request, List<KeyValuePair<string, ToolArguments>> calls, List<string> results, List<string> facts, int budget, int ticket, Hands.Kit kit, string glance = null)
         {
             Func<string, ToolArguments, string> act = Act;
             bool reminded = false;
@@ -2046,6 +2049,8 @@ namespace CapriDesktop
                     string result;
                     if (!Hands.Valid(call.Key, args)) result = "That didn't work: that " + call.Key + " call was missing what it needs.";
                     else if (call.Key == "gaming_mode" && !Hands.GamingTalk(request)) result = "That didn't run: Gaming Mode only changes when they ask for it by name.";
+                    // Her glance before the first step is what a look would see, so her first look doesn't take another.
+                    else if (call.Key == "look_at_screen" && glance != null) { result = glance; glance = null; }
 #if !CROSS
                     else if (call.Key == "read_file") result = ReadFile(args.Path, args.Page, args.Offset);
 #endif

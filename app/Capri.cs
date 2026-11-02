@@ -16433,6 +16433,88 @@ namespace CapriDesktop
             }
         }
 
+        // Before her planner's first step she checks where things stand: the window in front and what else is open, titles trimmed,
+        // and for a job about their screen on a brain that sees, a glance that her first look then uses (Lachy, 2 Nov: "Is it open?
+        // What is open currently? What is on the screen?").
+        private static void SmokePlannerStatus(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+            Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+            Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<IntPtr> frontWas = Hands.Foreground;
+            Func<string> unlistedWas = Hands.Unlisted, openWas = Computer.GameOpen;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                System.Collections.Generic.List<OpenWindow> open = new System.Collections.Generic.List<OpenWindow>
+                {
+                    new OpenWindow(new IntPtr(11), "Spotify Premium", "Spotify"),
+                    new OpenWindow(new IntPtr(12), "#general | Capri Fans - Discord   with a title that runs on far too long", "Discord"),
+                    new OpenWindow(new IntPtr(13), "Counter-Strike 2", "cs2"),
+                    new OpenWindow(new IntPtr(14), "Spotify Premium", "Spotify")
+                };
+                Hands.Windows = delegate { return open; };
+                Hands.Foreground = delegate { return new IntPtr(12); };
+                Hands.Unlisted = delegate { return null; };
+                const string front = "in front is \"#general | Capri Fans - Discord with a title...\" (Discord); also open: \"Spotify Premium\" (Spotify), \"Counter-Strike 2\" (cs2).";
+                string status = Hands.Status(null), glanced = Hands.Status("A Discord chat.");
+                // While they type to her, her own window is in front and isn't listed, so the top window is the one they were in.
+                Hands.Foreground = delegate { return new IntPtr(99); };
+                string typing = Hands.Status(null);
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                string none = Hands.Status(null);
+                Hands.Unlisted = delegate { return "wmctrl isn't installed."; };
+                string unlisted = Hands.Status(null);
+                Hands.Windows = delegate { throw new InvalidOperationException("no desktop"); };
+                string broken = Hands.Status(null);
+                if (!status.EndsWith(front, StringComparison.Ordinal) || !status.StartsWith("\nWhat's open on their PC right now, checked before your first step: ", StringComparison.Ordinal) || status.Contains("far too long") || status.Contains("glanced")
+                    || glanced != status + "\nYou glanced at their screen just now and saw: A Discord chat." || !typing.Contains("in front is \"Spotify Premium\" (Spotify); also open: \"#general")
+                    || !none.EndsWith("no app windows are open.", StringComparison.Ordinal) || !unlisted.EndsWith("their windows couldn't be read: wmctrl isn't installed.", StringComparison.Ordinal) || !broken.EndsWith("their windows couldn't be read just now.", StringComparison.Ordinal))
+                    throw new Exception("Her planner's status didn't say what's open: " + status + " / " + typing + " / " + none + " / " + unlisted + " / " + broken);
+                if (!Hands.AboutScreen("what's on my screen?") || !Hands.AboutScreen("what game is this?") || !Hands.AboutScreen("is anyone talking on my screen?") || Hands.AboutScreen("open cs") || Hands.AboutScreen("what have I got open?") || Hands.AboutScreen("take a screenshot"))
+                    throw new Exception("A job about their screen was missed, or another one counted.");
+                Hands.Windows = delegate { return open; };
+                Hands.Foreground = delegate { return new IntPtr(12); };
+                Hands.Unlisted = unlistedWas;
+                Brain.OpenAi = FakeServer(new[] { says("You're in Discord, with Spotify and CS up too."), calls("look_at_screen", "{\"focus\":\"the chat\"}"), says("Your chat's quiet, choom."), calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), says("CS is up.") }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                Computer.GameOpen = delegate { return null; };
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + (args.Focus ?? args.Name)); return name == "look_at_screen" ? "A Discord chat with no new messages." : "Opened " + args.Name + "."; };
+                string whatsOpen = planner.Ask("what have I got open?");
+                string quiet = planner.Ask("is anyone talking on my screen?");
+                string opened = planner.Ask("open cs");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (whatsOpen != "You're in Discord, with Spotify and CS up too." || quiet != "Your chat's quiet, choom." || opened != "CS is up." || sent.Length != 5
+                    || string.Join(",", did.ToArray()) != "look_at_screen:is anyone talking on my screen?,open_app:Counter-Strike 2")
+                    throw new Exception("Her planner didn't check first, or looked twice: " + whatsOpen + " / " + quiet + " / " + opened + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                if (!sent[0].Contains("checked before your first step: in front is ") || !sent[0].Contains("Capri Fans - Discord with a title...") || !sent[0].Contains(" (Spotify), ") || sent[0].Contains("You glanced") || !sent[1].Contains("You glanced at their screen just now and saw: A Discord chat with no new messages.")
+                    || !sent[2].Contains("A Discord chat with no new messages.") || !sent[3].Contains("in front is ") || sent[3].Contains("You glanced"))
+                    throw new Exception("Her planner's first message didn't carry what's open, or the glance went to the wrong job.");
+                checks.Add("PASS her planner checks where things stand before its first step: the window in front, or the top one while she has focus, and the other open windows once each with long titles trimmed; empty, missing and failed window lists say so; a job about their screen gets a glance on a brain that sees, and her first look in that job uses it instead of looking twice");
+            }
+            finally
+            {
+                Hands.Windows = windowsWas;
+                Hands.Foreground = frontWas;
+                Hands.Unlisted = unlistedWas;
+                Computer.GameOpen = openWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         private void SmokeGameWatch(System.Collections.Generic.List<string> checks)
         {
             Func<Sight> glimpseBefore = Computer.Glimpse;
@@ -18759,6 +18841,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeGameHolds(checks); });
                             Section(checks, delegate { SmokeGameAsks(checks); });
                             Section(checks, delegate { SmokeWorkingOut(checks); });
+                            Section(checks, delegate { SmokePlannerStatus(checks); });
                             Section(checks, delegate { SmokeSighted(checks); });
                             Section(checks, delegate { SmokeGameNotes(checks); });
                             Section(checks, delegate { SmokeLongJob(checks); });

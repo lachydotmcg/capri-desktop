@@ -596,6 +596,60 @@ namespace CapriDesktop
             return string.IsNullOrEmpty(game) ? "" : "\nThe game open on their PC right now is " + Voice.Quote(game) + ". If they want you to play, or want anything done in it, like starting a match, picking a mode, opening or closing its map or menus, or clicking something, call use_computer with their words, and don't open it again.";
         }
 
+        // Where things stand before her planner's first step: the window in front, the other windows that are open with their
+        // titles trimmed, and her glance at their screen when the job is about it (Lachy, 2 Nov: "they would also check what
+        // their current status is first, right? Like 'Is it open? What is open currently? What is on the screen?'").
+        internal static string Status(string glance)
+        {
+            List<OpenWindow> open = null;
+            IntPtr front = IntPtr.Zero;
+            string unlisted = null;
+            try
+            {
+                open = Windows();
+                front = Foreground();
+                if (open == null || open.Count == 0) unlisted = Unlisted();
+            }
+            catch (Exception) { open = null; }
+            StringBuilder status = new StringBuilder("\nWhat's open on their " + ComputerName + " right now, checked before your first step: ");
+            if (open == null) status.Append("their windows couldn't be read just now.");
+            else if (open.Count == 0) status.Append(unlisted == null ? "no app windows are open." : "their windows couldn't be read: " + unlisted);
+            else
+            {
+                // Her own windows aren't listed, so while they type to her, the top window is the one they were in.
+                int top = Math.Max(0, open.FindIndex(window => window.Handle == front));
+                List<string> others = new List<string>(), seen = new List<string>();
+                seen.Add(Titled(open[top]));
+                for (int i = 0; i < open.Count && others.Count < 8; i++)
+                {
+                    string named = Titled(open[i]);
+                    if (i == top || seen.Contains(named)) continue;
+                    seen.Add(named);
+                    others.Add(named);
+                }
+                status.Append("in front is ").Append(seen[0]).Append(others.Count == 0 ? ", and nothing else is open." : "; also open: " + string.Join(", ", others.ToArray()) + ".");
+            }
+            if (!string.IsNullOrEmpty(glance)) status.Append("\nYou glanced at their screen just now and saw: ").Append(glance);
+            return status.ToString();
+        }
+
+        // A window as her planner sees it: its title, trimmed and quoted, and its program.
+        private static string Titled(OpenWindow window)
+        {
+            string title = Regex.Replace(window.Title ?? "", @"\s+", " ").Trim().Replace('"', '\'');
+            if (title.Length > 48) title = title.Substring(0, 45).TrimEnd() + "...";
+            return "\"" + title + "\"" + (string.IsNullOrEmpty(window.Program) ? "" : " (" + window.Program + ")");
+        }
+
+        // A job about what's on their screen, which her planner glances at first when her brain can see.
+        internal static bool AboutScreen(string said)
+        {
+            string text = Asked(said);
+            return ScreenAsk.IsMatch(text) || ScreenQuestion.IsMatch(text) || OnScreen.IsMatch(text);
+        }
+
+        private static readonly Regex OnScreen = new Regex(@"\b(?:screen|monitor|display|on here)\b|\bwhat i'?m (?:looking at|doing|playing|watching|reading|working on)\b", RegexOptions.IgnoreCase);
+
         private static readonly string[,] Specs =
         {
             { "open_app", "Open, launch or play an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
