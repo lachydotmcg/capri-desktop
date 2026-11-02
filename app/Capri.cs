@@ -1939,6 +1939,10 @@ namespace CapriDesktop
             Hands.Animate = AnimateTool;
             Hands.Clone = CloneTool;
             Hands.Hologram = HologramTool;
+            // Her brain reads and flips her own switches, and sees which open windows are games, only when it asks.
+            Hands.SettingOn = SettingOn;
+            Hands.SetSetting = SetSetting;
+            Hands.Gamey = Computer.IsGame;
             Hands.Icons = IconTool;
             Hands.Upset = UpsetTool;
             Hands.Cloning = delegate { return cloneWindow != null; };
@@ -3654,8 +3658,9 @@ namespace CapriDesktop
         private bool Hushed { get { return shushed || napAsked || napping || Asleep || ownNap; } }
 
         // Her quiet key, for when they focus or game: she stops what she's saying and talks only when they talk to her.
-        // Watch my screen and Check in on me keep their settings and pick up again on the next press.
-        internal void ToggleShush()
+        // Watch my screen and Check in on me keep their settings and pick up again on the next press. Her settings tool flips it
+        // without her line, since her brain says so.
+        internal void ToggleShush(bool say = true)
         {
             shushed = !shushed;
             nextPopIn = -1;
@@ -3665,7 +3670,7 @@ namespace CapriDesktop
             nextGlance = -1;
             if (shushed) voice.Stop();
             if (docked) GameHud.Status(!preferences.Silent, shushed);
-            Say(shushed ? "Going quiet. " + QuietKeyName + " when you want me back." : "I'm back, choom.");
+            if (say) Say(shushed ? "Going quiet. " + QuietKeyName + " when you want me back." : "I'm back, choom.");
         }
 
         // With Check in on me on, ignored for a while when they're at the PC, she comes over and asks for attention: a click gets a happy line, silence gets a sulk and a longer wait.
@@ -4351,8 +4356,9 @@ namespace CapriDesktop
             // A slider she couldn't reach still gets the volume keys, unless they stopped her.
             bool missed = task != null && (lost || (done != null && (done.Contains(Computer.Bigger) || (tool == "media" && Hands.Failed(done) && !done.StartsWith("You ", StringComparison.Ordinal)))));
             if (missed) done = Hands.Do(tool, args);
-            // A look is already in her transcript; anything else she did goes in as a job.
-            if (tool != "look_at_screen" && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
+            // A look is already in her transcript; anything else she did goes in as a job. A check of what's open, what's installed
+            // or how her settings are isn't something she did, and window titles stay out of her memories.
+            if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
             return done;
         }
 
@@ -6281,7 +6287,8 @@ namespace CapriDesktop
         }
 
         // OFF under VOICE: she never talks out loud, so no voice downloads and no ElevenLabs credits. Voice chat stays free voice chat and she types back.
-        internal void Silence()
+        // Her settings tool turns it off without her line, since her brain says so.
+        internal void Silence(bool say = true)
         {
             if (preferences.Silent) return;
             preferences.Silent = true;
@@ -6291,10 +6298,22 @@ namespace CapriDesktop
             SavePreferences();
             mainframe.Sync();
             ShowVoice();
-            if (hidden || IsDisposed) return;
+            if (!say || hidden || IsDisposed) return;
             heard = "settings";
             box.Prompt = "> sys: ";
             Answer(++asking, VoiceOffLine, TalkState.Talking, true);
+        }
+
+        // Her voice back on for her settings tool: the voice she had before OFF, the same way she starts up, which fetches her free
+        // voice if it isn't in yet.
+        private void Unsilence()
+        {
+            if (!preferences.Silent) return;
+            preferences.Silent = false;
+            SavePreferences();
+            mainframe.Sync();
+            ShowVoice();
+            if (FreeChatOn) GetFreeVoice();
         }
 
         // PREBUILT LOCAL (paid false) or ElevenLabs under CLOUD VOICE. Without a key she uses her free voice either way, so ElevenLabs
@@ -7282,6 +7301,49 @@ namespace CapriDesktop
             if (action != "on" && action != "off") return "Should hologram mode be on or off, choom?";
             SetHologram(action == "on");
             return preferences.Hologram ? "Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off." : "Hologram mode off. You can click me again.";
+        }
+
+        // Her own switches for her settings tool, read the way her Mainframe shows them. Her voice chat mic only has a setting while
+        // voice chat is on.
+        private bool? SettingOn(string name)
+        {
+            if (InvokeRequired) return (bool?)Invoke(new Func<string, bool?>(SettingOn), name);
+            switch (name)
+            {
+                case "voice": return !preferences.Silent;
+                case "quiet": return shushed;
+                case "mic": return chatting ? !ears.Muted : (bool?)null;
+                case "check_ins": return preferences.CheckIns;
+                case "wander": return preferences.Wander;
+                case "clip_my_games": return preferences.ClipGames;
+                case "save_big_moments": return preferences.ClipMoments;
+                case "live_reactions": return ReactionsOn;
+                case "gaming_mode": return GamingWanted;
+                case "hologram": return preferences.Hologram;
+                default: return null;
+            }
+        }
+
+        // Flips one of her switches the way its own switch in her Mainframe, menu or keys does, without her line about it, since her
+        // brain tells them what happened (Lachy, 2 Nov: "ensure they have the tools they need to perform everything themself").
+        private string SetSetting(string name, bool on)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, bool, string>(SetSetting), name, on);
+            if (SettingOn(name) == on) return null;
+            switch (name)
+            {
+                case "voice": if (on) Unsilence(); else Silence(false); return null;
+                case "quiet": ToggleShush(false); return null;
+                case "mic": ToggleMic(); return null;
+                case "check_ins": ToggleCheckIns(); return null;
+                case "wander": ToggleWander(); return null;
+                case "clip_my_games": ToggleClips(); return null;
+                case "save_big_moments": ToggleClipMoments(); return null;
+                case "live_reactions": ToggleReactions(); return null;
+                case "gaming_mode": return GamingMode(on ? "on" : "off");
+                case "hologram": return HologramTool(on ? "on" : "off");
+                default: return null;
+            }
         }
 
         private void SetHologram(bool on)
@@ -17302,7 +17364,7 @@ namespace CapriDesktop
                 if (sent.Length != 14) throw new Exception("Working it out made " + sent.Length + " brain calls, not 14.");
                 string[][] wanted =
                 {
-                    new[] { "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"", "You hold these tools yourself", "They won't always spell it out", "No game is open on their PC right now", "start matchmaking in cs" },
+                    new[] { "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"", "You hold these tools yourself", "They won't always spell it out", "Nobody tells you what's open on their PC", "{\"name\":\"list_windows\"", "start matchmaking in cs" },
                     new[] { "\"tools\":[", "What your tools just did", "Opened Counter-Strike 2.", "You called open_app{" },
                     new[] { "\"tools\":[", "Searching for a match.", "You called use_computer{" },
                     new[] { "open cs" },
@@ -17315,6 +17377,7 @@ namespace CapriDesktop
                     foreach (string part in wanted[i])
                         if (sent[i].IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Brain call " + i + " is missing " + part + ": " + sent[i].Substring(0, Math.Min(400, sent[i].Length)));
                 foreach (string body in sent) if (body.IndexOf("You are the hands of Capri", StringComparison.Ordinal) >= 0 || body.IndexOf("only the word: act", StringComparison.Ordinal) >= 0) throw new Exception("A strong brain still went through her hands' one-shot pick.");
+                foreach (string body in sent) if (body.IndexOf("No game is open", StringComparison.Ordinal) >= 0 || body.IndexOf("The game open on their PC right now", StringComparison.Ordinal) >= 0) throw new Exception("A strong brain was told about their game before it asked.");
                 checks.Add("PASS a strong brain works jobs out itself: with CS closed, \"start matchmaking\" opens CS, sees it opened, then starts the match as a job; a promise with no tool gets one reminder and then \"I haven't actually done that yet\"; calls copied as text still run; chat stays chat; a brain that goes straight to the job in a game that isn't open gets the game opened first, and the same job called twice runs once; \"play some lofi for you\" with no tool behind it counts as a promise; brains with the switch off or no cloud keep her hands' shortcuts");
             }
             finally
@@ -17325,77 +17388,214 @@ namespace CapriDesktop
             }
         }
 
-        // Before her planner's first step she checks where things stand: the window in front and what else is open, titles trimmed,
-        // and for a job about their screen on a brain that sees, a glance that her first look then uses (Lachy, 2 Nov: "Is it open?
-        // What is open currently? What is on the screen?").
-        private static void SmokePlannerStatus(System.Collections.Generic.List<string> checks)
+        // Her planner isn't told what's open: it asks. list_windows says what's open and what's in front, minimized, a game or on
+        // another monitor; check_app says whether an app is installed and running; capri_settings reads her own switches, flips one
+        // and reads it back. Nothing about their windows reaches a cloud brain until it asks, a brain on their own PC keeps her
+        // hands' game note, and her volume and minimize say what really happened (Lachy, 2 Nov: "can this be instead requested by
+        // the intelligent model instead of pre emptive? As part of tool use?").
+        private static void SmokePlannerChecks(System.Collections.Generic.List<string> checks)
         {
             Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
             Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
             Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
             Func<IntPtr> frontWas = Hands.Foreground;
-            Func<string> unlistedWas = Hands.Unlisted, openWas = Computer.GameOpen;
+            Func<string> unlistedWas = Hands.Unlisted, openWas = Computer.GameOpen, gameWas = Hands.GameOpen;
+            Func<OpenWindow, bool> minimizedWas = Hands.Minimized, gameyWas = Hands.Gamey;
+            Func<OpenWindow, string> screenWas = Hands.ScreenOf;
+            Func<string, string, bool> runningWas = Hands.Running;
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, bool> existsWas = Hands.Exists;
+            Func<string, bool?> settingWas = Hands.SettingOn;
+            Func<string, bool, string> setWas = Hands.SetSetting;
+            Action<byte> pressWas = Hands.Press;
+            Func<double?> volumeWas = Hands.VolumeNow;
+            Func<bool?> muteWas = Hands.MuteState;
+            Func<OpenWindow, string, bool> steerWas = Hands.Steer;
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
-            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>(), reached = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener fake = null;
             try
             {
+                OpenWindow discord = new OpenWindow(new IntPtr(12), "#general | Capri Fans - Discord   with a title that runs on far too long, and longer", "Discord");
                 System.Collections.Generic.List<OpenWindow> open = new System.Collections.Generic.List<OpenWindow>
                 {
-                    new OpenWindow(new IntPtr(11), "Spotify Premium", "Spotify"),
-                    new OpenWindow(new IntPtr(12), "#general | Capri Fans - Discord   with a title that runs on far too long", "Discord"),
-                    new OpenWindow(new IntPtr(13), "Counter-Strike 2", "cs2"),
-                    new OpenWindow(new IntPtr(14), "Spotify Premium", "Spotify")
+                    new OpenWindow(new IntPtr(11), "Spotify Premium", "Spotify"), discord, new OpenWindow(new IntPtr(13), "Counter-Strike 2", "cs2"),
+                    new OpenWindow(new IntPtr(14), "Spotify Premium", "Spotify"), new OpenWindow(new IntPtr(15), "notes.txt - Notepad", "notepad")
                 };
                 Hands.Windows = delegate { return open; };
                 Hands.Foreground = delegate { return new IntPtr(12); };
                 Hands.Unlisted = delegate { return null; };
-                const string front = "in front is \"#general | Capri Fans - Discord with a title...\" (Discord); also open: \"Spotify Premium\" (Spotify), \"Counter-Strike 2\" (cs2).";
-                string status = Hands.Status(null), glanced = Hands.Status("A Discord chat.");
+                Hands.Minimized = delegate(OpenWindow window) { return window.Handle == new IntPtr(15); };
+                Hands.Gamey = delegate(OpenWindow window) { return window.Program == "cs2"; };
+                Hands.ScreenOf = delegate(OpenWindow window) { return window.Handle == new IntPtr(13) ? "screen 2" : null; };
+                const string chat = "\"#general | Capri Fans - Discord with a title that runs on...\" (Discord)";
+                string listed = Hands.Do("list_windows", new ToolArguments());
+                string discordOnly = Hands.Do("list_windows", new ToolArguments { Name = "discord" }), spotifyOnly = Hands.ListWindows("Spotify"), missing = Hands.ListWindows("minecraft");
                 // While they type to her, her own window is in front and isn't listed, so the top window is the one they were in.
                 Hands.Foreground = delegate { return new IntPtr(99); };
-                string typing = Hands.Status(null);
+                string typing = Hands.ListWindows(null);
                 Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
-                string none = Hands.Status(null);
-                Hands.Unlisted = delegate { return "wmctrl isn't installed."; };
-                string unlisted = Hands.Status(null);
+                string none = Hands.ListWindows(null);
+                Hands.Unlisted = delegate { return "Couldn't list your windows: wmctrl isn't installed."; };
+                string unlisted = Hands.ListWindows(null);
                 Hands.Windows = delegate { throw new InvalidOperationException("no desktop"); };
-                string broken = Hands.Status(null);
-                if (!status.EndsWith(front, StringComparison.Ordinal) || !status.StartsWith("\nWhat's open on their PC right now, checked before your first step: ", StringComparison.Ordinal) || status.Contains("far too long") || status.Contains("glanced")
-                    || glanced != status + "\nYou glanced at their screen just now and saw: A Discord chat." || !typing.Contains("in front is \"Spotify Premium\" (Spotify); also open: \"#general")
-                    || !none.EndsWith("no app windows are open.", StringComparison.Ordinal) || !unlisted.EndsWith("their windows couldn't be read: wmctrl isn't installed.", StringComparison.Ordinal) || !broken.EndsWith("their windows couldn't be read just now.", StringComparison.Ordinal))
-                    throw new Exception("Her planner's status didn't say what's open: " + status + " / " + typing + " / " + none + " / " + unlisted + " / " + broken);
-                if (!Hands.AboutScreen("what's on my screen?") || !Hands.AboutScreen("what game is this?") || !Hands.AboutScreen("is anyone talking on my screen?") || Hands.AboutScreen("open cs") || Hands.AboutScreen("what have I got open?") || Hands.AboutScreen("take a screenshot"))
-                    throw new Exception("A job about their screen was missed, or another one counted.");
+                string broken = Hands.ListWindows(null);
+                if (listed != "In front: " + chat + ".\nAlso open, nearest the front first: \"Spotify Premium\" (Spotify); \"Counter-Strike 2\" (cs2), a game, on screen 2; \"notes.txt - Notepad\" (notepad), minimized."
+                    || discordOnly != "Windows of discord, nearest the front first: " + chat + ", in front." || spotifyOnly != "Windows of Spotify, nearest the front first: \"Spotify Premium\" (Spotify)." || missing != "No window of minecraft is open."
+                    || !typing.StartsWith("In front: \"Spotify Premium\" (Spotify).\nAlso open, nearest the front first: " + chat + "; ", StringComparison.Ordinal)
+                    || none != "No app windows are open on their PC." || unlisted != "Couldn't list your windows: wmctrl isn't installed." || broken != "Couldn't read their windows just now: no desktop")
+                    throw new Exception("list_windows didn't say what's open: " + listed + " / " + discordOnly + " / " + spotifyOnly + " / " + missing + " / " + typing + " / " + none + " / " + unlisted + " / " + broken);
                 Hands.Windows = delegate { return open; };
+                Hands.Unlisted = delegate { return null; };
+                Hands.Foreground = delegate { return new IntPtr(13); };
+                Hands.Exists = delegate { return false; };
+                Hands.Catalog = delegate
+                {
+                    return new System.Collections.Generic.List<InstalledApp>
+                    {
+                        new InstalledApp("Spotify", "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"), new InstalledApp("Counter-Strike 2", "steam://rungameid/730"),
+                        new InstalledApp("VALORANT", "\"C:\\Riot Games\\Riot Client\\RiotClientServices.exe\" --launch-product=valorant --launch-patchline=live"),
+                        new InstalledApp("Notepad", "notepad-id"), new InstalledApp("Steam", "steam-id")
+                    };
+                };
+                Hands.Running = delegate(string name, string id) { return name == "Steam"; };
+                Hands.Forget();
+                string inFront = Hands.Do("check_app", new ToolArguments { Name = "counter strike 2" }), behind = Hands.CheckApp("spotify"), tray = Hands.CheckApp("steam"), closed = Hands.CheckApp("val"), down = Hands.CheckApp("notepad"), absent = Hands.CheckApp("minecraft"), blank = Hands.CheckApp(" ");
+                if (inFront != "Counter-Strike 2 is installed through Steam and open: \"Counter-Strike 2\" (cs2) is in front." || behind != "Spotify is installed and open: \"Spotify Premium\" (Spotify) is open behind other windows."
+                    || tray != "Steam is installed and running in the background with no window open, maybe in the tray." || closed != "VALORANT is installed through the Riot Client and isn't running."
+                    || down != "Notepad is installed and open: \"notes.txt - Notepad\" (notepad) is minimized." || absent != "No app called minecraft is installed on this PC." || blank != "Which app, choom?")
+                    throw new Exception("check_app didn't say what's installed and running: " + inFront + " / " + behind + " / " + tray + " / " + closed + " / " + down + " / " + absent + " / " + blank);
+                // Her checks go to the brain that works jobs out, never to her hands' one-shot pick or her chat brain's short list.
+                Hands.Kit kit = Hands.KitFor(), blind = Hands.KitFor(true);
+                if (!kit.WorkTools.StartsWith(Hands.Tools.Substring(0, Hands.Tools.Length - 1) + ",{\"type\":\"function\",\"function\":{\"name\":\"list_windows\"", StringComparison.Ordinal) || !kit.WorkTools.Contains("\"name\":\"check_app\"") || !kit.WorkTools.Contains("\"name\":\"capri_settings\"")
+                    || !kit.WorkClaudeTools.Contains("{\"name\":\"list_windows\",\"description\":") || !blind.WorkTools.Contains("\"name\":\"list_windows\"") || blind.WorkTools.Contains("\"name\":\"look_at_screen\"")
+                    || Hands.Tools.Contains("list_windows") || Hands.ClaudeTools.Contains("check_app") || Hands.Listing.Contains("capri_settings") || kit.Brief.Contains("list_windows") || Hands.Prompt.Contains("list_windows"))
+                    throw new Exception("Her checks reached her hands' one-shot pick, or missed her planner's tools.");
+                string typedTool;
+                ToolArguments typedArgs;
+                if (Security.Needs("list_windows", null) != -1 || Security.Needs("check_app", new ToolArguments { Name = "Discord" }) != -1 || Security.Needs("capri_settings", new ToolArguments { Action = "off", Name = "voice" }) != -1
+                    || !Hands.Valid("list_windows", new ToolArguments()) || Hands.Valid("check_app", new ToolArguments()) || !Hands.Valid("capri_settings", new ToolArguments { Action = "list" }) || !Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = "clip_my_games" })
+                    || Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = "brain_key" }) || Hands.Valid("capri_settings", new ToolArguments { Action = "on" }) || Hands.Valid("capri_settings", new ToolArguments { Action = "toggle", Name = "voice" })
+                    || !Hands.Checking("list_windows", null) || !Hands.Checking("capri_settings", new ToolArguments { Action = "list" }) || Hands.Checking("capri_settings", new ToolArguments { Action = "off", Name = "voice" }) || Hands.Checking("open_app", null)
+                    || !Hands.Typed("check_app{\"name\": \"Discord\"}", out typedTool, out typedArgs) || typedTool != "check_app" || typedArgs.Name != "Discord")
+                    throw new Exception("Her checks asked first, took a setting she mustn't touch, or weren't read.");
+                // Her settings tool reads back what it changed, and says when something couldn't change.
+                System.Collections.Generic.Dictionary<string, bool?> state = new System.Collections.Generic.Dictionary<string, bool?>
+                {
+                    { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false }
+                };
+                System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
+                Hands.SettingOn = delegate(string name) { return state[name]; };
+                Hands.SetSetting = delegate(string name, bool on)
+                {
+                    flipped.Add(name + (on ? " on" : " off"));
+                    if (name != "wander") state[name] = on;
+                    return name == "gaming_mode" ? "Gaming Mode off." : null;
+                };
+                string settings = Hands.Do("capri_settings", new ToolArguments { Action = "list" });
+                string clipped = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "clip_my_games" }), again = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "clip_my_games" });
+                string silent = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "voice" }), deaf = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "mic" });
+                string stuck = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "wander" }), gaming = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "gaming_mode" });
+                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off."
+                    || clipped != "Turned Clip my games on." || again != "Clip my games was already on." || silent != "Turned my voice off." || deaf != "Couldn't change my voice chat mic: voice chat isn't on."
+                    || stuck != "Couldn't turn Wander on: it's still off." || gaming != "Turned Gaming Mode off. Gaming Mode off." || string.Join(",", flipped.ToArray()) != "clip_my_games on,voice off,wander on,gaming_mode off" || !Hands.Failed(stuck) || !Hands.Failed(deaf))
+                    throw new Exception("Her settings tool didn't read back what it changed: " + settings + " / " + clipped + " / " + again + " / " + silent + " / " + deaf + " / " + stuck + " / " + gaming + " / " + string.Join(",", flipped.ToArray()));
+                // The volume says where it ended up when it moved, and minimizing says when a window stayed up.
+                System.Collections.Generic.List<byte> pressed = new System.Collections.Generic.List<byte>();
+                Hands.Press = delegate(byte key) { pressed.Add(key); };
+                double before = 0.3, after = 0.4;
+                int reads = 0;
+                Hands.VolumeNow = delegate { return reads++ == 0 ? before : after; };
+                string louder = Hands.Do("media", new ToolArguments { Action = "volume_up" });
+                reads = 0;
+                before = 0.5;
+                after = 0.42;
+                string softer = Hands.Do("media", new ToolArguments { Action = "volume_down", Level = "8" });
+                Hands.VolumeNow = delegate { return 0.3; };
+                string unmoved = Hands.Do("media", new ToolArguments { Action = "volume_up" });
+                Hands.VolumeNow = delegate { return (double?)null; };
+                string unread = Hands.Do("media", new ToolArguments { Action = "volume_up" }), unknown = Hands.Do("media", new ToolArguments { Action = "volume_now" });
+                Hands.VolumeNow = delegate { return 0.35; };
+                Hands.MuteState = delegate { return true; };
+                string level = Hands.Do("media", new ToolArguments { Action = "volume_now" });
+                if (level != "The PC's volume is at 35%, and it's muted." || unknown != "Couldn't read the PC's volume just now." || Security.Needs("media", new ToolArguments { Action = "volume_now" }) != -1 || !Hands.Valid("media", new ToolArguments { Action = "volume_now" }))
+                    throw new Exception("Her volume check didn't say how loud the PC is: " + level + " / " + unknown);
+                bool minimizes = true;
+                Hands.Steer = delegate(OpenWindow window, string action) { return action != "minimize" || minimizes; };
+                string minimized = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "minimize" });
+                minimizes = false;
+                string stillUp = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "minimize" });
+                if (louder != "Turned the volume up to 40%." || softer != "Turned the volume down to 42%." || unmoved != "Turned the volume up." || unread != "Turned the volume up." || pressed.Count != 19
+                    || minimized != "Minimized discord." || stillUp != "Couldn't minimize discord: its window is still up." || !Hands.Failed(stillUp))
+                    throw new Exception("Her volume or minimize didn't say what really happened: " + louder + " / " + softer + " / " + unmoved + " / " + unread + " / " + pressed.Count + " keys / " + minimized + " / " + stillUp);
+                // Her planner's first message has nothing about their windows or their game; it asks, and gets them once it does.
                 Hands.Foreground = delegate { return new IntPtr(12); };
-                Hands.Unlisted = unlistedWas;
-                Brain.OpenAi = FakeServer(new[] { says("You're in Discord, with Spotify and CS up too."), calls("look_at_screen", "{\"focus\":\"the chat\"}"), says("Your chat's quiet, choom."), calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), says("CS is up.") }, asked, out fake);
+                Hands.GameOpen = delegate { return "Counter-Strike 2"; };
+                Computer.GameOpen = delegate { return "Counter-Strike 2"; };
+                Brain.OpenAi = FakeServer(new[]
+                {
+                    calls("list_windows", "{}"), says("You're in Discord, with Spotify and CS up too."),
+                    calls("check_app", "{\"name\":\"Counter-Strike 2\"}"), says("CS is running, choom."),
+                    calls("capri_settings", "{\"action\":\"off\",\"name\":\"gaming_mode\"}"), calls("capri_settings", "{\"action\":\"off\",\"name\":\"live_reactions\"}"), says("Live reactions are off.")
+                }, asked, out fake);
                 Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
                 Brain.Keeping = false;
-                Computer.GameOpen = delegate { return null; };
                 System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
                 Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
-                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + (args.Focus ?? args.Name)); return name == "look_at_screen" ? "A Discord chat with no new messages." : "Opened " + args.Name + "."; };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + (args.Name ?? args.Action)); return Hands.Do(name, args); };
+                flipped.Clear();
                 string whatsOpen = planner.Ask("what have I got open?");
-                string quiet = planner.Ask("is anyone talking on my screen?");
-                string opened = planner.Ask("open cs");
+                string running = planner.Ask("is cs running?");
+                string reactions = planner.Ask("turn off your live reactions");
                 string[] sent;
                 lock (asked) sent = asked.ToArray();
-                if (whatsOpen != "You're in Discord, with Spotify and CS up too." || quiet != "Your chat's quiet, choom." || opened != "CS is up." || sent.Length != 5
-                    || string.Join(",", did.ToArray()) != "look_at_screen:is anyone talking on my screen?,open_app:Counter-Strike 2")
-                    throw new Exception("Her planner didn't check first, or looked twice: " + whatsOpen + " / " + quiet + " / " + opened + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
-                if (!sent[0].Contains("checked before your first step: in front is ") || !sent[0].Contains("Capri Fans - Discord with a title...") || !sent[0].Contains(" (Spotify), ") || sent[0].Contains("You glanced") || !sent[1].Contains("You glanced at their screen just now and saw: A Discord chat with no new messages.")
-                    || !sent[2].Contains("A Discord chat with no new messages.") || !sent[3].Contains("in front is ") || sent[3].Contains("You glanced"))
-                    throw new Exception("Her planner's first message didn't carry what's open, or the glance went to the wrong job.");
-                checks.Add("PASS her planner checks where things stand before its first step: the window in front, or the top one while she has focus, and the other open windows once each with long titles trimmed; empty, missing and failed window lists say so; a job about their screen gets a glance on a brain that sees, and her first look in that job uses it instead of looking twice");
+                if (whatsOpen != "You're in Discord, with Spotify and CS up too." || running != "CS is running, choom." || reactions != "Live reactions are off." || sent.Length != 7
+                    || string.Join(",", did.ToArray()) != "list_windows:,check_app:Counter-Strike 2,capri_settings:live_reactions" || string.Join(",", flipped.ToArray()) != "live_reactions off")
+                    throw new Exception("Her planner didn't ask, or changed Gaming Mode unasked: " + whatsOpen + " / " + running + " / " + reactions + " / " + string.Join(",", did.ToArray()) + " / " + string.Join(",", flipped.ToArray()) + " / " + sent.Length + " calls");
+                foreach (string secret in new[] { "Capri Fans", "Spotify Premium", "notes.txt", "What's open on their", "No game is open", "The game open on their PC right now", "You glanced" })
+                    if (sent[0].Contains(secret) || sent[2].Contains(secret) || sent[4].Contains(secret)) throw new Exception("Her planner was told about their windows before it asked: " + secret);
+                if (!sent[0].Contains("\"name\":\"list_windows\"") || !sent[0].Contains("\"name\":\"capri_settings\"") || !sent[0].Contains("Nobody tells you what's open on their PC") || !sent[0].Contains("do it with capri_settings")
+                    || !sent[1].Contains("list_windows: ") || !sent[1].Contains("In front: ") || !sent[1].Contains("#general | Capri Fans - Discord with a title that runs on...") || !sent[1].Contains("You called list_windows{}") || !sent[3].Contains("Counter-Strike 2 is installed through Steam and open")
+                    || !sent[5].Contains("That didn't run: Gaming Mode only changes when they ask for it by name.") || !sent[6].Contains("Turned Live reactions off."))
+                    throw new Exception("Her planner didn't get what it asked for: " + sent[1].Substring(Math.Max(0, sent[1].Length - 600)));
+                fake.Stop();
+                fake = null;
+                // A brain on their own PC keeps her hands' game note; a cloud brain that can't ask isn't told.
+                string onPcAddress = FakeServer(new[] { calls("use_computer", "{\"task\":\"click deathmatch\"}"), says("Clicked it, choom."), calls("use_computer", "{\"task\":\"click deathmatch\"}"), says("Clicked it.") }, reached, out fake);
+                Brain.OpenAi = onPcAddress;
+                Brain onPc = new Brain { Model = "gemma", Remote = new Cloud(Brain.LocalPort(onPcAddress), "gemma") };
+                onPc.Act = delegate(string name, ToolArguments args) { did.Add(name); return "Clicked DEATHMATCH."; };
+                string localClick = onPc.Ask("click deathmatch");
+                Brain cloudHands = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini") };
+                cloudHands.Act = onPc.Act;
+                string cloudClick = cloudHands.Ask("click deathmatch");
+                string[] handed;
+                lock (reached) handed = reached.ToArray();
+                if (localClick != "Clicked it, choom." || cloudClick != "Clicked it." || handed.Length != 4 || !handed[0].Contains("The game open on their PC right now is \\\"Counter-Strike 2\\\"") || handed[2].Contains("The game open on their PC right now"))
+                    throw new Exception("Her game note went to the wrong brain: " + localClick + " / " + cloudClick + " / " + handed.Length + " calls");
+                checks.Add("PASS her planner asks instead of being told: its first message has no window titles and no game, list_windows gives the window in front, or the top one while she has focus, and the rest once each with long titles trimmed, games, minimized windows and other monitors marked, one app's windows, and empty, missing and failed lists; check_app says installed or not, through which launcher, and open in front, behind or minimized, in the tray, or not running; capri_settings lists her switches and reads one back after flipping it, Gaming Mode only by name; checks never ask first and stay out of her hands' one-shot pick; turning the volume up or down says where it ended up, how loud the PC is can be checked without asking first, and minimize says when a window stayed up; a brain on their PC keeps the game note and a cloud brain that can't ask doesn't get it");
+                checks.Add("LIMIT list_windows and check_app on a real desktop: minimized windows, the monitor each window is on, games, and apps running in the tray come from Windows itself; ask \"what have I got open?\" and \"is discord running?\" with Discord in the tray and a game minimized on a second monitor");
             }
             finally
             {
                 Hands.Windows = windowsWas;
                 Hands.Foreground = frontWas;
                 Hands.Unlisted = unlistedWas;
+                Hands.Minimized = minimizedWas;
+                Hands.Gamey = gameyWas;
+                Hands.ScreenOf = screenWas;
+                Hands.Running = runningWas;
+                Hands.Catalog = catalogWas;
+                Hands.Exists = existsWas;
+                Hands.SettingOn = settingWas;
+                Hands.SetSetting = setWas;
+                Hands.Press = pressWas;
+                Hands.VolumeNow = volumeWas;
+                Hands.MuteState = muteWas;
+                Hands.Steer = steerWas;
+                Hands.GameOpen = gameWas;
+                Hands.Forget();
                 Computer.GameOpen = openWas;
                 Brain.OpenAi = openAiWas;
                 Brain.MemoryPath = notesWas;
@@ -17404,6 +17604,54 @@ namespace CapriDesktop
                 Brain.LogPath = logWas;
                 Brain.Keeping = keepingWas;
                 if (fake != null) fake.Stop();
+            }
+        }
+
+        // Her settings tool flips her real switches the way her Mainframe, menu and keys do, and reads them back, without a line of
+        // her own that would cut off the reply her brain is writing.
+        private void SmokeOwnSettings(System.Collections.Generic.List<string> checks)
+        {
+            bool clipsWas = preferences.ClipGames, momentsWas = preferences.ClipMoments, reactionsWas = preferences.NoReactions, checkInsWas = preferences.CheckIns, wanderWas = preferences.Wander, silentWas = preferences.Silent, hologramWas = preferences.Hologram, shushWas = shushed;
+            int askingWas = asking;
+            try
+            {
+                preferences.ClipGames = preferences.ClipMoments = false;
+                if (preferences.NoReactions) ToggleReactions();
+                if (!preferences.CheckIns) ToggleCheckIns();
+                if (preferences.Wander) ToggleWander();
+                if (preferences.Silent) Unsilence();
+                if (preferences.Hologram) SetHologram(false);
+                if (shushed) ToggleShush(false);
+                askingWas = asking;
+                Func<string, string, string> set = delegate(string name, string way) { return Hands.Do("capri_settings", new ToolArguments { Action = way, Name = name }); };
+                string listed = Hands.Do("capri_settings", new ToolArguments { Action = "list" });
+                System.Collections.Generic.List<string> said = new System.Collections.Generic.List<string>();
+                foreach (string step in new[] { "clip_my_games on", "save_big_moments on", "clip_my_games off", "live_reactions off", "check_ins off", "wander on", "quiet on", "quiet off", "voice off", "voice on", "hologram on", "hologram off" })
+                    said.Add(set(step.Split(' ')[0], step.Split(' ')[1]));
+                // Her voice chat mic only has a setting during voice chat, which the smoke test isn't in.
+                bool calling = chatting;
+                if (!calling) said.Add(set("mic", "off"));
+                string wanted = "Turned Clip my games on. | Turned Save big moments on. | Turned Clip my games off. | Turned Live reactions off. | Turned Check in on me off. | Turned Wander on. | Turned Quiet on. | Turned Quiet off. | Turned my voice off. | Turned my voice on. | "
+                    + "Turned Hologram mode on. Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off. | Turned Hologram mode off. Hologram mode off. You can click me again." + (calling ? "" : " | Couldn't change my voice chat mic: voice chat isn't on.");
+                string joined = string.Join(" | ", said.ToArray());
+                if (listed != "How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off."
+                    || joined != wanted || preferences.ClipGames || preferences.ClipMoments || !preferences.NoReactions || preferences.CheckIns || !preferences.Wander || shushed || preferences.Silent || preferences.Hologram || asking != askingWas)
+                    throw new Exception("Her settings tool didn't flip her real switches quietly: " + listed + " / " + joined + " / asking moved " + (asking - askingWas));
+                checks.Add("PASS her settings tool flips Clip my games, Save big moments, live reactions, Check in on me, Wander, Quiet, her voice and hologram mode the way their own switches do, says her voice chat mic needs voice chat, reads each one back, and never cuts off the reply her brain is writing");
+            }
+            finally
+            {
+                preferences.ClipGames = clipsWas;
+                preferences.ClipMoments = momentsWas;
+                if (preferences.NoReactions != reactionsWas) ToggleReactions();
+                if (preferences.CheckIns != checkInsWas) ToggleCheckIns();
+                if (preferences.Wander != wanderWas) ToggleWander();
+                if (preferences.Silent != silentWas) { if (silentWas) Silence(false); else Unsilence(); }
+                if (preferences.Hologram != hologramWas) SetHologram(hologramWas);
+                if (shushed != shushWas) ToggleShush(false);
+                clips.Enable(!testing && preferences.ClipGames);
+                SavePreferences();
+                mainframe.Sync();
             }
         }
 
@@ -17421,13 +17669,16 @@ namespace CapriDesktop
                 { "We're watching it together now.", "watch_along" }, { "Here come my clones!", "clone" }, { "*dances* Let's go!", "animate" }, { "*grins* Nice one.", "" },
                 { "I'm going to sleep, night!", "nap" }, { "Are you going to sleep?", "" }, { "I'm on my way over.", "move_yourself" }, { "Clipped it!", "clip" },
                 { "I've circled the button.", "draw" }, { "Took a screenshot for you.", "shortcut" }, { "Gaming Mode activated!", "gaming_mode" }, { "Gaming Mode is on.", "" },
-                { "Routine saved.", "routine" }, { "Opened Spotify for you.", "" }, { "You should put that in your notes.", "" }
+                { "Routine saved.", "routine" }, { "Opened Spotify for you.", "" }, { "You should put that in your notes.", "" },
+                { "Turned off live reactions, choom.", "capri_settings" }, { "My voice is now off.", "capri_settings" }, { "I switched my voice off.", "capri_settings" }, { "Live reactions are on by default.", "" },
+                { "You can turn off live reactions in Settings.", "" }, { "Should I turn my voice off?", "" }
             };
             for (int i = 0; i < claims.GetLength(0); i++)
                 if ((Hands.Claimed(claims[i, 0], none) ?? "") != claims[i, 1]) throw new Exception("\"" + claims[i, 0] + "\" read as a claim for " + (Hands.Claimed(claims[i, 0], none) ?? "nothing") + " instead of " + (claims[i, 1].Length == 0 ? "nothing" : claims[i, 1]));
             if (Hands.Claimed("Got it, I'll remember that!", ran("remember")) != null || Hands.Claimed("Clipped it!", ran("shortcut")) != null || Hands.Claimed("Opened Spotify and set a reminder for 5.", ran("open_app")) != "remind"
                 || Hands.Unclaimed("Blue's elite. I'll remember that, choom.", none) != "Blue's elite." || Hands.Unclaimed("*dances* Let's go!", none) != "Let's go!" || Hands.Unclaimed("Reminder set!", none) != null
                 || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet, choom. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
+                || Hands.Claimed("Turned off live reactions.", ran("capri_settings")) != null || Hands.NotYet("capri_settings", Hands.KitFor()) != "That setting hasn't changed yet. It's in Capri Mainframe > Settings."
                 || !Hands.Admits("Couldn't open it, choom.") || Hands.Admits("Queued you up, choom."))
                 throw new Exception("Her claims weren't checked against the tools that ran.");
             System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
@@ -17467,7 +17718,7 @@ namespace CapriDesktop
                 if (saved != "Saved it, choom." || stripped != "Octopuses have three hearts." || opened != "Opened spotify." || discord != "Discord's up, choom." || failed != "No app called Spotify is installed on this PC."
                     || string.Join(",", did.ToArray()) != "remember,open_app,open_app,open_app" || sent.Length != 11 || !sent[8].Contains("You said you did something that needs remind"))
                     throw new Exception("A claim with no tool behind it reached them: " + saved + " / " + stripped + " / " + opened + " / " + discord + " / " + failed + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
-                checks.Add("PASS claims: \"I'll remember that\", reminders, watches, watching along, clones, dancing, naps, moving, clips, drawing, screenshots, Gaming Mode and routines count as claims, questions and chat don't; a claim with no tool gives her hands a go and comes out of her reply when they find nothing, a claim after other tools ran comes out too, her planner gets one reminder for it, and her planner's last line can't say a failed step worked");
+                checks.Add("PASS claims: \"I'll remember that\", reminders, watches, watching along, clones, dancing, naps, moving, clips, drawing, screenshots, Gaming Mode, routines and switching her own settings count as claims, questions, chat and how a setting starts out don't; a claim with no tool gives her hands a go and comes out of her reply when they find nothing, a claim after other tools ran comes out too, her planner gets one reminder for it, and her planner's last line can't say a failed step worked");
             }
             finally
             {
@@ -20797,7 +21048,8 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeGameHolds(checks); });
                             Section(checks, delegate { SmokeGameAsks(checks); });
                             Section(checks, delegate { SmokeWorkingOut(checks); });
-                            Section(checks, delegate { SmokePlannerStatus(checks); });
+                            Section(checks, delegate { SmokePlannerChecks(checks); });
+                            Section(checks, delegate { SmokeOwnSettings(checks); });
                             Section(checks, delegate { SmokeClaims(checks); });
                             Section(checks, delegate { SmokeSighted(checks); });
                             Section(checks, delegate { SmokeGameNotes(checks); });

@@ -201,13 +201,17 @@ namespace CapriDesktop
         // The game open on their PC by its window title, nearest the front first, or null.
         internal static Func<string> GameOpen = delegate
         {
-            foreach (OpenWindow window in Hands.Windows())
-            {
-                if (Browsers.IsMatch(window.Program ?? "") || Documents.IsMatch(window.Program ?? "") || Watching.IsMatch(window.Title ?? "")) continue;
-                if (GameTitles.IsMatch((window.Title ?? "") + " " + (window.Program ?? "")) || GameExe(window.Handle)) return window.Title;
-            }
+            foreach (OpenWindow window in Hands.Windows()) if (IsGame(window)) return window.Title;
             return null;
         };
+
+        // A window that's a game: a known game's title or program, or a program in a game library's folder, but not a browser, an
+        // office app or a video.
+        internal static bool IsGame(OpenWindow window)
+        {
+            if (Browsers.IsMatch(window.Program ?? "") || Documents.IsMatch(window.Program ?? "") || Watching.IsMatch(window.Title ?? "")) return false;
+            return GameTitles.IsMatch((window.Title ?? "") + " " + (window.Program ?? "")) || GameExe(window.Handle);
+        }
 
         // Fewer readable buttons than this and the window isn't telling her anything, so she looks at it instead.
         internal const int FewTargets = 4;
