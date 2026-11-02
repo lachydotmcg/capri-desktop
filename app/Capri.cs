@@ -17073,7 +17073,7 @@ namespace CapriDesktop
             if (!unknownAddress) throw new Exception("An unknown brain key fell through to OpenAI.");
             checks.Add("PASS Gemini and OpenRouter keys have their own endpoints, OpenRouter precedes sk-, and unconfirmed Nous keys never fall through to OpenAI");
 
-            string googleCatalog = "{\"data\":[null,{\"id\":\"gemini-90.2-flash\"},{\"id\":\"gemini-90.10-flash\"},{\"id\":\"gemini-91-flash-preview\"},{\"id\":\"gemini-90.10-flash-lite\"},{\"id\":\"gemini-91-pro\"},{\"id\":\"gemini-embedding-90\"},{\"id\":\"gemini-91-flash-image\"},{\"id\":\"gemini-91-live\"},{\"id\":\"gemini-91-flash-tts\"},{\"id\":\"gemini-91-native-audio\"},{\"id\":\"gemini-90.10-flash\"}]}";
+            string googleCatalog = "{\"data\":[null,{\"id\":\"gemini-90.2-flash\"},{\"id\":\"gemini-90.10-flash\"},{\"id\":\"gemini-91-flash-preview\"},{\"id\":\"gemini-90.10-flash-lite\"},{\"id\":\"gemini-91-pro\"},{\"id\":\"gemini-embedding-90\"},{\"id\":\"gemini-91-flash-image\"},{\"id\":\"gemini-91-live\"},{\"id\":\"gemini-91-flash-tts\"},{\"id\":\"gemini-91-native-audio\"},{\"id\":\"gemini-91.5-transcribe\"},{\"id\":\"gemini-nano-banana-91\"},{\"id\":\"gemini-omni-91-flash\"},{\"id\":\"gemini-90.10-flash\"}]}";
             string routerCatalog = "{\"data\":[{\"id\":\"example/vision-text:free\",\"architecture\":{\"input_modalities\":[\"text\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"google/gemini-90-flash\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"example/eyes:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"max_tokens\"]},{\"id\":\"example/vision:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\",\"max_tokens\"]},{\"id\":\"example/embedding\",\"architecture\":{\"output_modalities\":[\"embeddings\"]}},{\"id\":\"example/unknown:free\"}]}";
             System.Collections.Generic.List<string> googleModels = Brain.ReadCloudModels("google", googleCatalog);
             System.Collections.Generic.List<string> routerModels = Brain.ReadCloudModels("openrouter", routerCatalog);
@@ -17084,7 +17084,7 @@ namespace CapriDesktop
             if (googleBrain.Remote.Name != "Gemini" || googleBrain.Remote.Company != "Google AI" || routerBrain.Remote.Company != "OpenRouter" || !googleBrain.Sighted(googleBrain.Remote) || !routerBrain.Sighted(routerBrain.Remote) || googleBrain.Drives || routerBrain.Drives || !Brain.HasTools(routerBrain.Remote)) throw new Exception("The new brains have the wrong identity or job path.");
             if (routerBrain.Sighted(new Cloud("sk-or-test", "example/vision-text:free")) || routerBrain.Sighted(new Cloud("sk-or-test", "example/unknown:free")) || !routerBrain.Sighted(new Cloud("sk-or-test", "example/eyes:free")) || Brain.HasTools(new Cloud("sk-or-test", "example/eyes:free")) || Brain.HasTools(new Cloud("sk-or-test", "example/unknown:free"))) throw new Exception("OpenRouter guessed vision or tools from a model's name.");
             if (googleBrain.Looker(googleBrain.Model) != googleBrain.Model || routerBrain.Looker(routerBrain.Model) != routerBrain.Model) throw new Exception("A cloud brain borrowed another provider's eyes.");
-            checks.Add("PASS dynamic model defaults: stable Flash versions sort numerically, non-chat Gemini models stay out, and OpenRouter prefers free vision with tools using its advertised capabilities");
+            checks.Add("PASS dynamic model defaults: stable Flash versions sort numerically, non-chat Gemini models stay out (embedding, image, live, speech, transcription, Nano Banana and Omni), and OpenRouter prefers free vision with tools using its advertised capabilities");
             foreach (string brokenCatalog in new[] { "not json", "{}", "{\"data\":[]}" })
             {
                 bool explainedCatalog = false;
@@ -17103,7 +17103,7 @@ namespace CapriDesktop
                 string functionReply = "{\"choices\":[{\"message\":{\"tool_calls\":[{\"type\":\"function\",\"function\":{\"name\":\"done\",\"arguments\":\"{\\\"text\\\":\\\"Finished.\\\"}\"}}]}}]}";
                 Brain.Google = FakeServer(new[] { googleCatalog, LocalReply("Hello."), functionReply, LocalReply("A screen."), LocalReply("An aside."), LocalReply("Two frames.") }, googleAsked, out googleFake) + "/v1beta/openai";
                 Brain.OpenRouter = FakeServer(new[] { routerCatalog, functionReply, LocalReply("A screen."), LocalReply("An aside."), LocalReply("done{\"text\":\"Finished.\"}"), "!404 {\"error\":{\"message\":\"No endpoints found that support tool use\"}}", LocalReply("done{\"text\":\"Finished.\"}"), LocalReply("done{\"text\":\"Finished again.\"}"), LocalReply("Another provider's model.") }, routerAsked, out routerFake) + "/api/v1";
-                Brain.CloudModels("AIza-test");
+                if (Brain.CloudModels("AIza-test").Count != 5) throw new Exception("Gemini's model list kept models that can't chat.");
                 Brain.CloudModels("sk-or-test");
                 System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> googleCalls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
                 System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> routerCalls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
@@ -17125,12 +17125,13 @@ namespace CapriDesktop
                 for (int googleIndex = 0; googleIndex < googleAsked.Count; googleIndex++)
                 {
                     string googleRequest = googleAsked[googleIndex];
-                    if (!googleRequest.StartsWith(googleIndex == 0 ? "GET /v1beta/openai/models " : "POST /v1beta/openai/chat/completions ", StringComparison.Ordinal) || !googleRequest.Contains("Authorization: Bearer AIza-test") || googleRequest.Contains("sk-or-test") || googleRequest.Contains("X-Title:") || googleRequest.Contains("max_completion_tokens") || googleRequest.Contains("chat_template_kwargs")) throw new Exception("A Gemini request used another provider's route, key or settings.");
+                    if (!googleRequest.StartsWith(googleIndex == 0 ? "GET /v1beta/openai/models " : "POST /v1beta/openai/chat/completions ", StringComparison.Ordinal) || !googleRequest.Contains("Authorization: Bearer AIza-test") || googleRequest.Contains("sk-or-test") || googleRequest.Contains("X-Title:") || googleRequest.Contains("max_completion_tokens") || googleRequest.Contains("chat_template_kwargs")
+                        || (googleIndex > 0 && !googleRequest.Contains("\"reasoning_effort\":\"low\""))) throw new Exception("A Gemini request used another provider's route, key or settings.");
                 }
                 for (int routerIndex = 0; routerIndex < routerAsked.Count; routerIndex++)
                 {
                     string routerRequest = routerAsked[routerIndex];
-                    if (!routerRequest.StartsWith(routerIndex == 0 ? "GET /api/v1/models " : "POST /api/v1/chat/completions ", StringComparison.Ordinal) || !routerRequest.Contains("Authorization: Bearer sk-or-test") || !routerRequest.Contains("X-Title: Capri") || routerRequest.Contains("AIza-test") || routerRequest.Contains("Referer:") || routerRequest.Contains("max_completion_tokens") || routerRequest.Contains("chat_template_kwargs")) throw new Exception("An OpenRouter request used another provider's route, key or settings.");
+                    if (!routerRequest.StartsWith(routerIndex == 0 ? "GET /api/v1/models " : "POST /api/v1/chat/completions ", StringComparison.Ordinal) || !routerRequest.Contains("Authorization: Bearer sk-or-test") || !routerRequest.Contains("X-Title: Capri") || routerRequest.Contains("AIza-test") || routerRequest.Contains("Referer:") || routerRequest.Contains("max_completion_tokens") || routerRequest.Contains("chat_template_kwargs") || routerRequest.Contains("reasoning_effort")) throw new Exception("An OpenRouter request used another provider's route, key or settings.");
                 }
                 if (!googleAsked[2].Contains("\"tools\":") || !routerAsked[1].Contains("\"tools\":") || !googleAsked[3].Contains("data:image/jpeg;base64,AQID") || !routerAsked[2].Contains("data:image/jpeg;base64,AQID") || routerAsked[4].Contains("\"tools\":") || !routerAsked[5].Contains("\"tools\":") || routerAsked[6].Contains("\"tools\":") || routerAsked[7].Contains("\"tools\":")) throw new Exception("Pictures, advertised tools or the fallback after a rejected tool call were wrong.");
                 checks.Add("PASS Gemini and OpenRouter chat, tools, screenshots, asides and quick calls stay on their provider; only OpenRouter sends X-Title: Capri, and tool rejection falls back to written moves");
@@ -17142,24 +17143,42 @@ namespace CapriDesktop
                 if (googleFake != null) googleFake.Stop();
                 if (routerFake != null) routerFake.Stop();
             }
-            // A key Google turns away as a Bearer token gets its other way in, once, for the model list and for chat.
+            // Google turns an AQ. key's Bearer token away at its model list but takes it for chat, so x-goog-api-key is only the model
+            // list's way in, and a way in that's turned away too is forgotten.
             System.Net.Sockets.TcpListener doorFake = null;
             try
             {
                 System.Collections.Generic.List<string> doorAsked = new System.Collections.Generic.List<string>();
                 string twoKeys = "!400 {\"error\":{\"message\":\"Multiple authentication credentials received. Please pass only one.\",\"status\":\"INVALID_ARGUMENT\"}}";
-                Brain.Google = FakeServer(new[] { twoKeys, googleCatalog, googleCatalog, twoKeys, LocalReply("Through the other door.") }, doorAsked, out doorFake) + "/v1beta/openai";
-                Brain.CloudModels("AQ.list-test");
-                Brain.CloudModels("AQ.chat-test");
-                Brain doorBrain = new Brain { Remote = new Cloud("AQ.chat-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
+                string noBearer = "!400 [{\"error\":{\"code\":400,\"message\":\"Missing Authorization header.\",\"status\":\"INVALID_ARGUMENT\"}}]";
+                string nowhere = "!400 [{\"error\":{\"code\":400,\"message\":\"User location is not supported for the API use.\",\"status\":\"FAILED_PRECONDITION\"}}]";
+                string invalidKey = "!400 {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\"}}";
+                Brain.Google = FakeServer(new[] { twoKeys, googleCatalog, LocalReply("Bearer still opens chat."), googleCatalog, twoKeys, noBearer, LocalReply("Back on Bearer."), nowhere, invalidKey }, doorAsked, out doorFake) + "/v1beta/openai";
+                Brain.CloudModels("AQ.door-test");
+                Brain doorBrain = new Brain { Remote = new Cloud("AQ.door-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
                 string doorReply = doorBrain.Ask("Hello");
+                Brain.CloudModels("AQ.door-test");
+                Brain shutBrain = new Brain { Remote = new Cloud("AQ.shut-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
+                string shutLine = null;
+                try { shutBrain.Ask("Hello"); } catch (BrainException shut) { shutLine = shut.Told ? shut.Message : null; }
+                string backReply = shutBrain.Ask("Hello again");
+                Brain plainBrain = new Brain { Remote = new Cloud("AIza-door-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
+                string nowhereLine = null, invalidLine = null;
+                try { plainBrain.Ask("Hello"); } catch (BrainException unserved) { nowhereLine = unserved.Told ? unserved.Message : null; }
+                try { plainBrain.Ask("Hello"); } catch (BrainException rejected) { invalidLine = rejected.Told ? rejected.Message : null; }
+                if (shutLine != Brain.NewKey || invalidLine != Brain.NewKey || nowhereLine != Brain.Unserved) throw new Exception("Google's key and region errors reached her as: " + shutLine + " / " + invalidLine + " / " + nowhereLine);
                 string[] doorSent;
                 lock (doorAsked) doorSent = doorAsked.ToArray();
-                bool doorRight = doorReply == "Through the other door." && doorSent.Length == 5 && doorSent[0].Contains("Authorization: Bearer AQ.list-test") && doorSent[1].Contains("x-goog-api-key: AQ.list-test") && !doorSent[1].Contains("Authorization:")
-                    && doorSent[3].Contains("Authorization: Bearer AQ.chat-test") && doorSent[4].Contains("x-goog-api-key: AQ.chat-test") && !doorSent[4].Contains("Authorization:");
-                if (!doorRight) throw new Exception("A Gemini AQ. key didn't get Google's other way in: " + doorReply + " / " + doorSent.Length + " requests");
+                bool doorRight = doorReply == "Bearer still opens chat." && backReply == "Back on Bearer." && doorSent.Length == 9
+                    && doorSent[0].StartsWith("GET /v1beta/openai/models ", StringComparison.Ordinal) && doorSent[0].Contains("Authorization: Bearer AQ.door-test") && doorSent[1].Contains("x-goog-api-key: AQ.door-test") && !doorSent[1].Contains("Authorization:")
+                    && doorSent[2].StartsWith("POST /v1beta/openai/chat/completions ", StringComparison.Ordinal) && doorSent[2].Contains("Authorization: Bearer AQ.door-test") && !doorSent[2].Contains("x-goog-api-key:")
+                    && doorSent[3].StartsWith("GET /v1beta/openai/models ", StringComparison.Ordinal) && doorSent[3].Contains("x-goog-api-key: AQ.door-test") && !doorSent[3].Contains("Authorization:")
+                    && doorSent[4].Contains("Authorization: Bearer AQ.shut-test") && doorSent[5].Contains("x-goog-api-key: AQ.shut-test") && !doorSent[5].Contains("Authorization:")
+                    && doorSent[6].Contains("Authorization: Bearer AQ.shut-test") && !doorSent[6].Contains("x-goog-api-key:");
+                if (!doorRight) throw new Exception("A Gemini AQ. key took the wrong way in: " + doorReply + " / " + backReply + " / " + doorSent.Length + " requests");
                 if (Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e") != "bad key [redacted]") throw new Exception("An AQ. key wasn't redacted: " + Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e"));
-                checks.Add("PASS Gemini keys that start AQ. connect, stay out of her logs, and one Google turns away as a Bearer token goes in as x-goog-api-key, once, for the model list and chat");
+                checks.Add("PASS Gemini keys that start AQ. stay out of her logs; one Google turns away as a Bearer token at the model list lists with x-goog-api-key from then on while chat keeps its Bearer token, and a way in that's turned away too is forgotten");
+                checks.Add("PASS a Gemini key Google turns away for its credentials or a missing Authorization header says to make a new Google AI Studio key, and a place Google doesn't serve says so, instead of her brain couldn't answer");
             }
             catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT Gemini AQ. keys: loopback sockets unavailable"); }
             finally
@@ -17193,7 +17212,7 @@ namespace CapriDesktop
                     Brain limitedBrain = new Brain { Remote = new Cloud(limitedKey, "test"), Model = "test" };
                     try { limitedBrain.Aside("Chat", "Hello", 90); } catch (BrainException chatLimit) { if (chatLimit.Message == Brain.Busy && Brain.Stalled(chatLimit)) explainedLimits++; }
                     bool rejectedKey = false;
-                    try { Brain.CloudModels(limitedKey); } catch (BrainException badKey) { rejectedKey = badKey.Told && badKey.Message == "Key rejected. Press Forget, then paste it again."; }
+                    try { Brain.CloudModels(limitedKey); } catch (BrainException badKey) { rejectedKey = badKey.Told && badKey.Message == (limitedKey == "AIza-test" ? Brain.NewKey : "Key rejected. Press Forget, then paste it again."); }
                     bool scrubbedKey = false, missingList = false;
                     try { Brain.CloudModels(limitedKey); } catch (BrainException echoedKey) { scrubbedKey = echoedKey.Message.Contains("[redacted]") && !echoedKey.Message.Contains(limitedKey); }
                     try { Brain.CloudModels(limitedKey); } catch (BrainException missingModels) { missingList = missingModels.Told && missingModels.Message.Contains("couldn't find its model list"); }
@@ -17207,7 +17226,7 @@ namespace CapriDesktop
                     if (limitedFake != null) limitedFake.Stop();
                 }
             }
-            if (checkedLimits == 2) checks.Add("PASS new providers share NVIDIA's rate-limit message and retry handling, explain missing model lists and rejected keys, and scrub keys echoed in errors");
+            if (checkedLimits == 2) checks.Add("PASS new providers share NVIDIA's rate-limit message and retry handling, explain missing model lists and rejected keys (a Gemini one asks for a new Google AI Studio key), and scrub keys echoed in errors");
             System.Net.Sockets.TcpListener movedFake = null, redirectFake = null;
             try
             {
@@ -17293,11 +17312,12 @@ namespace CapriDesktop
                         local.Aside("Talk", "Hello", 90);
                         string body = SentBody(asked[asked.Count - 1]);
                         int replyExpected = length == 0 ? remote.Claude ? 16000 : 2000 : tokens[length];
+                        if (remote.Kind == "google") replyExpected = Math.Max(2048, replyExpected);
                         string field = remote.Kind == "openai" ? "max_completion_tokens" : "max_tokens";
-                        if (Brain.Field(body, field) != replyExpected.ToString() || Brain.Field(body, "num_ctx") != null || Brain.Field(body, "options") != null) throw new Exception("Reply or context settings reached " + remote.Kind + " incorrectly.");
+                        if (Brain.Field(body, field) != replyExpected.ToString() || Brain.Field(body, "num_ctx") != null || Brain.Field(body, "options") != null || (Brain.Field(body, "reasoning_effort") == "\"low\"") != (remote.Kind == "google")) throw new Exception("Reply or context settings reached " + remote.Kind + " incorrectly.");
                     }
                 }
-                checks.Add("PASS memory and reply request settings: all six memory choices reach Ollama num_ctx and the built-in -c argument; all four reply choices reach Ollama, built-in, local servers and every cloud kind, without sending context options to those servers or clouds");
+                checks.Add("PASS memory and reply request settings: all six memory choices reach Ollama num_ctx and the built-in -c argument; all four reply choices reach Ollama, built-in, local servers and every cloud kind, without sending context options to those servers or clouds; Gemini alone thinks low and never gets under 2048 tokens");
 
                 Brain.ReplyLength = 1;
                 local.Remote = null;
@@ -23901,7 +23921,10 @@ namespace CapriDesktop
                                     const string broke = "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
                                     if (Brain.Meaning(429, "{\"error\":{\"message\":\"You have no credits remaining. Add credits to continue using the API.\",\"type\":\"insufficient_quota\"}}") != broke || Brain.Meaning(402, "{\"error\":{\"message\":\"Insufficient Balance\"}}") != broke
                                         || Brain.Meaning(400, "{\"type\":\"error\",\"error\":{\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}") != broke || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != "Too many requests. Wait a minute, or watch slower."
-                                        || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null) throw new Exception("Cloud errors were explained wrong.");
+                                        || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null
+                                        || Brain.Meaning(403, "{\"error\":{\"message\":\"Method doesn't allow unregistered callers\",\"status\":\"PERMISSION_DENIED\"}}", true) != Brain.NewKey || Brain.Meaning(400, "{\"error\":{\"message\":\"API key not valid.\"}}") != null
+                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.Unserved
+                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != broke || Brain.Meaning(400, "{\"error\":{\"message\":\"contents is not specified\",\"status\":\"INVALID_ARGUMENT\"}}", true) != null) throw new Exception("Cloud errors were explained wrong.");
                                     System.Collections.Generic.List<string> directAsked = new System.Collections.Generic.List<string>();
                                     System.Net.Sockets.TcpListener directFake;
                                     string ollamaUrl = Brain.Ollama;
