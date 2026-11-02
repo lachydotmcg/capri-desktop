@@ -17924,6 +17924,9 @@ namespace CapriDesktop
                 CloseMinis(); miniScores.Remove("chess");
                 brain.Model = brainWas; headTest = headWas; Speak = speakWas; FreeSpeak = freeWas; asideTest = asideWas;
                 talkState = talkWas; preferences.OnTop = topWas; escAsk = escWas; voiceUntil = voiceWas;
+                // Turning Always on top off made her pill, box and typer not-topmost, and Windows takes their owner, her, down with them.
+                // Putting them back up doesn't lift her, so she goes back up herself first.
+                if (IsHandleCreated) Native.SetWindowPos(Handle, new IntPtr(topWas ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
                 Layer();
             }
         }
