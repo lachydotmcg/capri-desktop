@@ -1,0 +1,84 @@
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Threading.Tasks;
+
+namespace CapriDesktop
+{
+    // Their connection right now: the links that are up, like Ethernet or Wi-Fi, how a few pings to a public address went, and
+    // whether web addresses look up.
+    internal sealed class NetUse
+    {
+        internal List<string> Links = new List<string>();
+        internal string Pinged;
+        internal int Sent, Lost;
+        internal long Fastest, Average;
+        internal bool? Names;
+    }
+
+    // Reads their connection the way they'd check it themselves, a few pings and a name lookup, without changing anything
+    // (Lachy, 3 Nov: "ensure they have the tools they need to perform everything themself").
+    internal static class Network
+    {
+        // Pings the address they gave, or two public ones, the second only when the first never answers.
+        internal static NetUse Read(string address)
+        {
+            NetUse use = new NetUse();
+            use.Links.AddRange(Links());
+            if (use.Links.Count == 0) return use;
+            string asked = (address ?? "").Trim();
+            Uri site;
+            if (asked.Length > 0 && Uri.TryCreate(asked.Contains("://") ? asked : "http://" + asked, UriKind.Absolute, out site)) asked = site.Host;
+            foreach (string host in asked.Length > 0 ? new[] { asked } : new[] { "1.1.1.1", "8.8.8.8" })
+            {
+                use.Pinged = host;
+                use.Sent = 0;
+                use.Lost = 0;
+                long total = 0;
+                use.Fastest = 0;
+                using (Ping ping = new Ping())
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        use.Sent++;
+                        try
+                        {
+                            PingReply reply = ping.Send(host, 1000);
+                            if (reply == null || reply.Status != IPStatus.Success) { use.Lost++; continue; }
+                            total += reply.RoundtripTime;
+                            if (use.Fastest == 0 || reply.RoundtripTime < use.Fastest) use.Fastest = reply.RoundtripTime;
+                        }
+                        catch (Exception) { use.Lost++; }
+                    }
+                }
+                use.Average = use.Sent > use.Lost ? total / (use.Sent - use.Lost) : 0;
+                if (use.Lost < use.Sent) break;
+            }
+            string named = asked.Length > 0 && Uri.CheckHostName(asked) == UriHostNameType.Dns ? asked : "www.google.com";
+            Task<IPAddress[]> lookup = Task.Factory.StartNew(delegate { return Dns.GetHostAddresses(named); });
+            try { use.Names = lookup.Wait(2500) ? (bool?)(lookup.Result.Length > 0) : false; }
+            catch (Exception) { use.Names = false; }
+            return use;
+        }
+
+        // The network links that are up, Ethernet or Wi-Fi, never virtual or VPN ones.
+        internal static List<string> Links()
+        {
+            List<string> links = new List<string>();
+            try
+            {
+                foreach (NetworkInterface link in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (link.OperationalStatus != OperationalStatus.Up) continue;
+                    string described = (link.Description + " " + link.Name).ToLowerInvariant();
+                    if (described.Contains("virtual") || described.Contains("vpn") || described.Contains("hyper-v") || described.Contains("vmware") || described.Contains("virtualbox") || described.Contains("loopback") || described.Contains("bluetooth")) continue;
+                    string kind = link.NetworkInterfaceType == NetworkInterfaceType.Wireless80211 ? "Wi-Fi" : link.NetworkInterfaceType == NetworkInterfaceType.Ethernet || link.NetworkInterfaceType == NetworkInterfaceType.GigabitEthernet || link.NetworkInterfaceType == NetworkInterfaceType.FastEthernetT ? "Ethernet" : null;
+                    if (kind != null && !links.Contains(kind)) links.Add(kind);
+                }
+            }
+            catch (Exception) { }
+            return links;
+        }
+    }
+}

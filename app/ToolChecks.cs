@@ -751,6 +751,81 @@ namespace CapriDesktop
             }
         }
 
+        // Their internet on pretend connections: working, dropping out, down, a name lookup that fails and no network at all, with
+        // nothing pinged from the checks; only this PC's own links are read for real (Lachy, 3 Nov: "is my internet down" or "what's
+        // my ping" answered from the connection itself).
+        private static void SmokeInternetStatus(List<string> checks)
+        {
+            Func<string, NetUse> netWas = Hands.Net;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            TcpListener fake = null;
+            try
+            {
+                NetUse now = null;
+                List<string> pinged = new List<string>();
+                Hands.Net = delegate(string address) { pinged.Add(address ?? ""); return now; };
+                Func<NetUse, string, string> check = delegate(NetUse use, string address) { now = use; return Hands.Do("internet_status", new ToolArguments { Address = address }); };
+                NetUse working = new NetUse { Pinged = "1.1.1.1", Sent = 4, Lost = 0, Average = 14, Fastest = 12, Names = true };
+                working.Links.Add("Ethernet");
+                NetUse dropping = new NetUse { Pinged = "1.1.1.1", Sent = 4, Lost = 2, Average = 180, Fastest = 150, Names = true };
+                dropping.Links.Add("Wi-Fi");
+                NetUse down = new NetUse { Pinged = "8.8.8.8", Sent = 4, Lost = 4, Names = false };
+                down.Links.Add("Wi-Fi");
+                NetUse unnamed = new NetUse { Pinged = "1.1.1.1", Sent = 4, Lost = 0, Average = 20, Fastest = 18, Names = false };
+                unnamed.Links.Add("Ethernet");
+                unnamed.Links.Add("Wi-Fi");
+                string fine = check(working, null), drops = check(dropping, null), dead = check(down, null), dns = check(unnamed, null), unplugged = check(new NetUse(), null), unread = check(null, null), site = check(working, "google.com");
+                if (fine != "Their internet is working, over Ethernet: pings to 1.1.1.1 took 14 ms on average, 12 ms at best, and web addresses look up fine."
+                    || drops != "Their internet is dropping out, over Wi-Fi: 2 of 4 pings to 1.1.1.1 were lost, and the rest took 180 ms on average, 150 ms at best, and web addresses look up fine."
+                    || dead != "Their PC is connected over Wi-Fi, but nothing answered: all 4 pings to 8.8.8.8 were lost, and web addresses don't look up either, so the internet looks down."
+                    || dns != "Their internet is working, over Ethernet and Wi-Fi: pings to 1.1.1.1 took 20 ms on average, 18 ms at best, but web addresses don't look up, so sites won't load: their DNS is the problem."
+                    || unplugged != "Their PC isn't connected to any network: no Ethernet or Wi-Fi is up." || unread != "Couldn't check their internet just now."
+                    || site != fine || string.Join(",", pinged.ToArray()) != ",,,,,,google.com")
+                    throw new Exception("Her internet check didn't say how the connection is: " + fine + " / " + drops + " / " + dead + " / " + dns + " / " + unplugged + " / " + unread + " / " + string.Join(",", pinged.ToArray()));
+                // A check: it never asks first, stays out of her transcript, and only a brain that works jobs out gets it.
+                Hands.Kit kit = Hands.KitFor();
+                bool voiced = false;
+                for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "internet_status") voiced = true;
+                if (!Hands.Valid("internet_status", new ToolArguments()) || !Hands.Checking("internet_status", new ToolArguments()) || Security.Needs("internet_status", new ToolArguments()) != -1
+                    || !kit.WorkTools.Contains("\"name\":\"internet_status\"") || kit.Tools.Contains("internet_status") || voiced || !Hands.WorkingOut.Contains("internet_status says whether their connection is the problem"))
+                    throw new Exception("Her internet check asked first, or reached her one-shot hands or voice chat.");
+                // A brain that works jobs out checks the connection before it blames the game.
+                List<string> asked = new List<string>();
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                now = dropping;
+                Brain.OpenAi = FakeServer(new[] { calls("internet_status", "{}"), says("It's your Wi-Fi, choom: half your pings are getting lost.") }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                List<string> did = new List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name); return Hands.Do(name, args); };
+                string reply = planner.Ask("is it my internet or is valorant just lagging");
+                string[] heard;
+                lock (asked) heard = asked.ToArray();
+                if (reply != "It's your Wi-Fi, choom: half your pings are getting lost." || string.Join(",", did.ToArray()) != "internet_status" || heard.Length != 2
+                    || !heard[0].Contains("\"name\":\"internet_status\"") || !heard[1].Contains("2 of 4 pings to 1.1.1.1 were lost"))
+                    throw new Exception("Her planner didn't check the connection before answering: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + heard.Length + " calls");
+                // This PC's links, read for real without pinging anything.
+                List<string> links = Network.Links();
+                if (links == null) throw new Exception("This PC's network links couldn't be read.");
+                checks.Add("PASS her internet check says whether their connection works, is dropping out, is down or can't look names up, which link they're on, and pings an address they name; it never asks first, only a planner gets it, and a planner checks the connection before blaming a game; this PC's links read for real: " + links.Count);
+                checks.Add("LIMIT her internet check's pings and name lookups on their own connection: the checks never ping out; ask \"is my internet down?\" and \"what's my ping to google?\"");
+            }
+            finally
+            {
+                Hands.Net = netWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         // What she knows about herself and her help page cover her window tool, the settings she can change herself, pausing and
         // timers, in the house style: exact menu names, short lines.
         private static void SmokeHelpForTools(List<string> checks)
@@ -761,7 +836,7 @@ namespace CapriDesktop
                 { "what settings can you change yourself?", "Settings she can change:" }, { "can you make yourself bigger?", "Settings she can change:" },
                 { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" },
                 { "can you set a timer?", "Reminders:" }, { "can you turn discord down?", "App volume:" }, { "can you use the volume mixer?", "App volume:" },
-                { "can you see my other monitor?", "Look at another monitor:" }, { "why is my pc lagging?", "How your PC is doing:" }
+                { "can you see my other monitor?", "Look at another monitor:" }, { "why is my pc lagging?", "How your PC is doing:" }, { "is my internet down?", "How your PC is doing:" }
             };
             for (int i = 0; i < asks.GetLength(0); i++)
             {
@@ -787,7 +862,7 @@ namespace CapriDesktop
                 return;
             }
             string help = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "site", "help", "knowledge.md"));
-            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "With more than one monitor (0.8.0), she looks at the one with the window you're using.", "### How your PC is doing (0.8.0)", "\"Keep Discord on top\" keeps it above your other windows until you say \"Unpin Discord\".", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
+            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "With more than one monitor (0.8.0), she looks at the one with the window you're using.", "### How your PC is doing (0.8.0)", "Ask \"is my internet down?\" or \"what's my ping?\" and she checks your connection too", "\"Keep Discord on top\" keeps it above your other windows until you say \"Unpin Discord\".", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
                 if (help.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page is missing: " + part);
             int from = help.IndexOf("### Move, snap and resize windows (0.8.0)", StringComparison.Ordinal), to = help.IndexOf("### Discord and Windows shortcuts", from, StringComparison.Ordinal);
             if (to < from || help.Substring(from, to - from).IndexOf('\u2014') >= 0) throw new Exception("Her help page's new sections are out of place or use an em dash.");

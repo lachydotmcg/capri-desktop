@@ -1124,7 +1124,7 @@ If her reply says she can't open, play or access something she can do (like "I d
 - "Couldn't find X to play, so Spotify is open on a search for it." Pick the song from the search.
 
 ### How your PC is doing (0.8.0)
-With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how much RAM is Chrome using?" or "how much space is left?". She checks how busy the processor and memory are, which apps use the most, each drive's free space and a laptop's battery, then answers. She only reads them. Windows only.
+With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how much RAM is Chrome using?" or "how much space is left?". She checks how busy the processor and memory are, which apps use the most, each drive's free space and a laptop's battery, then answers. Ask "is my internet down?" or "what's my ping?" and she checks your connection too: Ethernet or Wi-Fi, a few pings, and whether sites look up. She only reads them. Windows only.
 
 ### Switch, minimize or close apps
 - "Switch to Discord", "Minimize Chrome", "Close Discord"

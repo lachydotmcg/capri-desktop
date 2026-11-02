@@ -56,6 +56,7 @@ namespace CapriDesktop
         [DataMember(Name = "top")] public string Top;
         [DataMember(Name = "width")] public string Width;
         [DataMember(Name = "height")] public string Height;
+        [DataMember(Name = "address")] public string Address;
         [DataMember(Name = "coordinate")] public double[] Coordinate;
         [DataMember(Name = "start_coordinate")] public double[] From;
         [DataMember(Name = "region")] public double[] Region;
@@ -618,7 +619,7 @@ namespace CapriDesktop
             "";
 #else
             "To arrange a window, use app_window: maximize, restore, snap it to half a monitor, move_to_screen for another monitor, or move and resize it. list_windows names their monitors, and with a name says where that app's window is and how big, so check it before a move or resize by pixels. Its result says where the window really ended up, so tell them that, like an app that won't go any smaller. " +
-            "media goes by what Windows says is playing, so pausing never starts the music, and now_playing says what any player has on, paused or not. A timer is a reminder: for set a timer for 10 minutes, call remind with when in 10 minutes. One app's own volume, like turning the game down so they can hear Discord, is app_volume; the whole PC's is media. When their PC or a game is slow or lagging, pc_status says how busy it is and what's using it. ";
+            "media goes by what Windows says is playing, so pausing never starts the music, and now_playing says what any player has on, paused or not. A timer is a reminder: for set a timer for 10 minutes, call remind with when in 10 minutes. One app's own volume, like turning the game down so they can hear Discord, is app_volume; the whole PC's is media. When their PC or a game is slow or lagging, pc_status says how busy it is and what's using it, and internet_status says whether their connection is the problem. ";
 #endif
 
         // Her own settings, which only her Windows window can switch so far.
@@ -774,12 +775,14 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"now to read, set to a level, up or down a step, mute or unmute\",\"enum\":[\"now\",\"set\",\"up\",\"down\",\"mute\",\"unmute\"]},\"name\":{\"type\":\"string\",\"description\":\"The app, like spotify, discord or chrome, or a game's program\"},\"level\":{\"type\":\"string\",\"description\":\"For set, its volume from 0 to 100. For up or down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}" },
             { "pc_status", "See how their PC is doing right now, read over half a second: how busy its processor is, how much memory is in use, the apps using the most of either, each drive's free space, and the battery on a laptop. Use it when they say their PC or a game is slow, laggy or stuttering, or ask what's using their CPU, memory or disk space, before guessing why. Give name to see one app's use. It only reads; it changes nothing.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Only this app, if they asked about one, like chrome or a game's program\"}}}" },
+            { "internet_status", "Check their internet right now: whether they're on Ethernet or Wi-Fi, how four pings to a public address went, how long they took and how many were lost, and whether web addresses look up. Use it when they ask if their internet is down, why a site won't load, or what their ping is, and with pc_status when a game lags, to tell their PC from their connection. Give address to ping a site or server they named instead. It only reads.",
+              "{\"type\":\"object\",\"properties\":{\"address\":{\"type\":\"string\",\"description\":\"A site or server to ping instead, only if they named one, like google.com\"}}}" },
 #endif
         };
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status"; }
+        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1139,6 +1142,7 @@ namespace CapriDesktop
                 if (tool == "capri_settings") return Settings(args);
                 if (tool == "app_volume") return AppVolume(args);
                 if (tool == "pc_status") return PcStatus(args.Name);
+                if (tool == "internet_status") return InternetStatus(args.Address);
                 if (tool == "draw") return Draw(args);
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
                 if (tool == "hologram") return Hologram(args.Action);
@@ -3167,7 +3171,7 @@ namespace CapriDesktop
             if (tool == "list_windows") return true;
 #if !CROSS
             if (tool == "capri_settings") return args.Action == "list" || (args.Action == "on" || args.Action == "off") && OwnRow(args.Name) >= 0 || args.Action == "set" && LevelRow(args.Name) >= 0 && Named(args.Level);
-            if (tool == "pc_status") return true;
+            if (tool == "pc_status" || tool == "internet_status") return true;
             if (tool == "app_volume")
             {
                 int volume;
@@ -4923,6 +4927,26 @@ namespace CapriDesktop
 
         // How their PC is doing right now, swapped for a stand-in in the checks.
         internal static Func<PcUse> Use = Usage.Read;
+        // Their connection right now, swapped for a stand-in in the checks so nothing pings out from them.
+        internal static Func<string, NetUse> Net = Network.Read;
+
+        // Whether their internet works and how well, for "is my internet down" or "what's my ping": the link they're on, a few
+        // pings and a name lookup, said plainly so her brain can tell their connection from their PC.
+        private static string InternetStatus(string address)
+        {
+            NetUse net;
+            try { net = Net(address); }
+            catch (Exception) { net = null; }
+            if (net == null) return "Couldn't check their internet just now.";
+            if (net.Links.Count == 0) return "Their PC isn't connected to any network: no Ethernet or Wi-Fi is up.";
+            string over = "over " + string.Join(" and ", net.Links.ToArray());
+            if (net.Sent == 0) return "Their PC is connected " + over + ", but couldn't ping anything just now.";
+            if (net.Lost == net.Sent) return "Their PC is connected " + over + ", but nothing answered: all " + net.Sent + " pings to " + net.Pinged + " were lost" + (net.Names == true ? ", though web addresses still look up." : net.Names == false ? ", and web addresses don't look up either, so the internet looks down." : ".");
+            string said = (net.Lost == 0 ? "Their internet is working, " + over + ": " : "Their internet is dropping out, " + over + ": " + net.Lost + " of " + net.Sent + " pings to " + net.Pinged + " were lost, and the rest ")
+                + (net.Lost == 0 ? "pings to " + net.Pinged + " took " : "took ") + net.Average + " ms on average, " + net.Fastest + " ms at best";
+            if (net.Names == false) return said + ", but web addresses don't look up, so sites won't load: their DNS is the problem.";
+            return said + (net.Names == true ? ", and web addresses look up fine." : ".");
+        }
 
         // How busy their PC is, for "my game's lagging" or "what's eating my memory": the processor and memory in use, the apps
         // using the most of either, or the one they asked about, each drive's free space, and a laptop's battery.
