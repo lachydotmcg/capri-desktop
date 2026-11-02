@@ -752,6 +752,21 @@ namespace CapriDesktop
                     || dugBoss.IndexOf("earlier moments that may connect", StringComparison.Ordinal) < 0 || dugBoss.IndexOf("You: we finally beat the smoke boss", StringComparison.Ordinal) < 0 || dugShown.IndexOf("we finally beat the smoke boss", StringComparison.Ordinal) >= 0 || dugSmall != "")
                     throw new Exception("Remember our chats went wrong: " + transcribed + " | " + rememberedOn + " | " + stoppedWriting + " | " + recalledBoss + " | " + dugBoss + " | " + dugShown + " | " + dugSmall);
                 checks.Add("PASS remember our chats: on by default here too, a chat line goes in today's transcript, \"remember when\" finds it, talking about it again digs it up unasked unless it's already in her chat, small talk digs up nothing, off writes nothing, and Open her memories makes memories.md");
+                // Screenshots here show her and her bubble, so her glance and look prompts say she isn't part of their screen, and her
+                // glances go in the transcript but never into memories.md (a Bazzite user).
+                string unfolded = Path.Combine(Brain.TranscriptPath, "unfolded.txt");
+                Brain glancer = new Brain();
+                glancer.Saw("an anime wallpaper with a red-haired girl", null);
+                glancer.Remember("(You glanced at their screen and saw: an anime wallpaper)", "Cute wallpaper, choom.");
+                glancer.Saw("a code editor with a red error on line 12", null, true);
+                Brain.Unsee();
+                string logged = File.ReadAllText(today), queued = File.Exists(unfolded) ? File.ReadAllText(unfolded) : "";
+                bool glancesKept = !Brain.FoldsGlances && logged.Contains("She glanced at your screen: an anime wallpaper with a red-haired girl. She stayed quiet.") && logged.Contains("Capri:** Cute wallpaper, choom.")
+                    && !queued.Contains("anime wallpaper") && !queued.Contains("Cute wallpaper") && queued.Contains("You: we finally beat the smoke boss") && queued.Contains("She looked at your screen: a code editor with a red error on line 12.");
+                bool toldMirror = Glances.Line.IndexOf("The small red-haired anime girl with a speech bubble is you, Capri, not part of their screen", StringComparison.Ordinal) > 0
+                    && Pet.LookAsk.IndexOf("The small red-haired anime girl with a speech bubble is Capri, the desktop companion, not part of their screen", StringComparison.Ordinal) > 0;
+                if (!glancesKept || !toldMirror) throw new Exception("Her own sprite in screenshots went wrong: kept " + glancesKept + ", told " + toldMirror + " | " + queued.Replace("\n", " | "));
+                checks.Add("PASS her own sprite: her glance and check-my-screen prompts say the red-haired anime girl with the speech bubble is her, not part of their screen, and her glances go in the transcript but never into memories.md, while a look they asked for still does");
                 bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
                 if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
                 checks.Add("PASS her personality: fixed in code with her safety lines right after it and her reply rules last, with no personality.md to edit");
