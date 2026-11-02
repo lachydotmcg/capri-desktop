@@ -431,6 +431,7 @@ namespace CapriDesktop
         [DataMember] public string AgentId;
         [DataMember] public int AgentVersion;
         [DataMember] public string Mic;
+        [DataMember] public int Hearing;
         [DataMember] public string TextKey;
         [DataMember] public string TextModel;
         [DataMember] public string NvidiaKey;
@@ -1651,9 +1652,6 @@ namespace CapriDesktop
         private const double MicAlive = 0.0005;
         private const double MicQuietWait = 20;
         internal const string MicSilent = "I can't hear anything from your mic. Pick the right one under VOICE, or let desktop apps use your mic in Windows Settings > Privacy & security > Microphone.";
-        private double micQuietFrom = -1;
-        private bool micHeard;
-        private bool micWarned;
         private volatile bool noiseHold;
         private System.Collections.Generic.List<short[]> utterance;
         private int quietRun;
@@ -2014,6 +2012,7 @@ namespace CapriDesktop
             voice.Model = string.IsNullOrEmpty(preferences.VoiceModel) ? null : preferences.VoiceModel;
             ShowVoice();
             mainframe.ShowMic(MicName(preferences.Mic));
+            StartHearingStatus();
             pill.Typing += OpenTyper;
             pill.Voice += ToggleChat;
             pill.Mute += ToggleMic;
@@ -2022,6 +2021,7 @@ namespace CapriDesktop
             WireCommentary();
             WireLookout();
             ears.Level += delegate(double value) { Post(delegate { HeardLevel(value); }); };
+            ears.Changed += delegate(string problem) { OnUi(delegate { HearingCaptureFailed(problem, false); }); };
             heyCapri.Heard += delegate { Post(HeardHeyCapri); };
             HeyCapriChanged += WakeChanged;
             getWakeVoice = delegate { SetUpFreeVoice(true); };
@@ -3378,6 +3378,7 @@ namespace CapriDesktop
 
         protected override void WndProc(ref Message message)
         {
+            if ((message.Msg == 0x0219 || message.Msg == 0x001A) && mainframe != null) RefreshHearingDevices();
             if (message.Msg == 0x0218 && message.WParam.ToInt64() == 0x8013) screenOff = Native.ScreenOff(message.LParam);
             if (message.Msg == 0x0084 && frame != null)
             {
@@ -8128,15 +8129,16 @@ namespace CapriDesktop
             ears.Chosen = preferences.Mic;
             SavePreferences();
             mainframe.ShowMic(MicName(preferences.Mic));
-            micHeard = micWarned = false;
-            micQuietFrom = -1;
+            hearingCaptureProblem = null;
+            ResetHearingSignal();
+            RefreshHearingDevices();
             // "Hey Capri" opens the new mic on its next check.
             if (wakeOpen) CloseWake();
             wakeMuteAt = -1;
             if (!ears.Listening) return;
             ears.Stop();
             try { ears.Start(); }
-            catch (VoiceException error) { mainframe.VoiceNote(error.Message, true); StopChat(); }
+            catch (VoiceException error) { StopChat(); HearingCaptureFailed(error.Message, true); }
         }
 
         internal void OpenKeyPage() { OpenPage(GuidePage); Tell("get a key", GuideLine); }
@@ -8220,6 +8222,7 @@ namespace CapriDesktop
         {
             string was = parakeet.Model;
             parakeet.Language = Listening(preferences.Language, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+            UpdateHearing();
             if (parakeet.Model == was || !chatting || !local) return;
             Dictation closing = dictation;
             dictation = null;
@@ -8237,8 +8240,9 @@ namespace CapriDesktop
         private void GetFreeEars(bool retry = false)
         {
             // It downloads alongside her free voice; they work once both are in.
-            if (testing || settingUpEars || !FreeChatOn || parakeet.Installed || !parakeet.Fits) return;
+            if (testing || HearingChoice == 2 || settingUpEars || !FreeChatOn || parakeet.Installed || !parakeet.Fits) return;
             settingUpEars = true;
+            hearingInstallProblem = null;
             parakeet.Cancel = false;
             earsGot = earsTotal = 0;
             ShowInstall();
@@ -8277,13 +8281,13 @@ namespace CapriDesktop
         // In free voice chat she says the download failed and tries again after 30 seconds, then 1, 2 and 4 minutes, then every 5.
         private void EarsFailed(string problem)
         {
-            if (problem == "Cancelled." || !chatting || !local) { mainframe.VoiceNote("Her own ears didn't download: " + problem, true); return; }
+            hearingInstallProblem = problem;
+            if (problem == "Cancelled." || !chatting || !local) { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Text, true); return; }
             earsFailures++;
             int wait = EarsRetryWait(earsFailures);
             earsRetryAt = clock.Elapsed.TotalSeconds + wait;
-            string again = " I'll try again in " + (wait < 60 ? wait + " seconds" : wait == 60 ? "a minute" : wait / 60 + " minutes") + ".";
-            if (earsAwaited && earsFailures == 1) EarsNote(earsLead + "My ears didn't download, so type to me for now. " + problem + again, true);
-            else mainframe.VoiceNote("Her own ears didn't download: " + problem + again, true);
+            if (earsAwaited && earsFailures == 1) HearingNote();
+            else { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Text, true); }
         }
 
         internal static int EarsRetryWait(int failures) { return Math.Min(300, 30 << Math.Max(0, Math.Min(4, failures - 1))); }
@@ -8292,6 +8296,7 @@ namespace CapriDesktop
         private void CheckHearing(double now)
         {
             CheckMicTest(now);
+            CheckHearingSignal(now);
             if (chatting && local && dictation != null && earsReady && now >= dictationMicAt)
             {
                 dictationMicAt = now + 2;
@@ -8321,13 +8326,6 @@ namespace CapriDesktop
             }
             // A mic that stopped sending, unplugged, lost in sleep or dropped by its driver, is opened again, like Hey Capri's.
             if (chatting && ears.Stalled) ReopenMic(now);
-            if (!chatting || !local || !earsReady || ears.Muted || micHeard || micWarned) { micQuietFrom = -1; return; }
-            if (micQuietFrom < 0) micQuietFrom = now;
-            else if (now - micQuietFrom >= MicQuietWait && talkState != TalkState.Thinking && now - earsWarned >= 8)
-            {
-                micWarned = true;
-                Missed(MicSilent, true);
-            }
         }
 
         internal const string MicStopped = "Your mic keeps cutting out. Pick it again under VOICE, or check it in Windows sound settings.";
@@ -8342,7 +8340,7 @@ namespace CapriDesktop
             catch (VoiceException error)
             {
                 StopChat();
-                EarsNote(error.Message, true);
+                HearingCaptureFailed(error.Message, true);
                 return;
             }
             bool again = now - micReopened < 60;
@@ -8352,7 +8350,7 @@ namespace CapriDesktop
 
         private void HeardLevel(double value)
         {
-            if (value >= MicAlive) micHeard = true;
+            HearingLevel(value);
             double level = local && (preferences.ListenCapri && !pushing || earsShut || transcribing || noiseHold || !earsReady) ? 0 : value;
             pill.SetLevel(level);
             if (docked) DockLevel(level);
@@ -8558,6 +8556,7 @@ namespace CapriDesktop
         // One row under VOICE, with the brain setup's dotted bar, for whichever of her free voice, ears and HD voice is downloading.
         private void ShowInstall()
         {
+            UpdateHearing();
             bool voicing = SettingUpVoice, hearing = settingUpEars, hd = settingUpHd;
             if (!voicing && !hearing && !hd) { mainframe.HideInstall(); return; }
             long done = (voicing ? voiceGot : 0) + (hearing ? earsGot : 0) + (hd ? hdGot : 0);
@@ -8741,9 +8740,10 @@ namespace CapriDesktop
                 });
             };
             input.Level += micTestLevel;
+            if (input != ears) input.Changed += delegate(string problem) { OnUi(delegate { HearingCaptureFailed(problem, false); }); };
             mainframe.ShowMicTest(true, 0, input.Muted);
             try { if (!testing) input.Start(); }
-            catch (VoiceException error) { StopMicTest(false); mainframe.VoiceNote(error.Message, true); }
+            catch (VoiceException error) { StopMicTest(false); HearingCaptureFailed(error.Message, false); mainframe.VoiceNote(error.Message, true); }
         }
 
         private void CheckMicTest(double now)
@@ -8767,6 +8767,11 @@ namespace CapriDesktop
             if (input != ears) input.Dispose();
             mainframe.ShowMicTest(false, 0, false);
             if (!report) return;
+            hearingTestSilent = micTestPeak == 0 && !input.Muted;
+            hearingSilent = false;
+            hearingQuiet = micTestPeak > 0 && micTestPeak < QuietWake && !input.Muted;
+            hearingCaptureProblem = null;
+            UpdateHearing();
             string result = input.Muted ? "Your mic is muted. Unmute it to test." : micTestPeak == 0 ? MicSilent : micTestPeak < QuietWake ? "Your mic is very quiet. Raise its input volume in Windows sound settings." : "Mic test finished. Sound is reaching Capri.";
             mainframe.VoiceNote(result, input.Muted || micTestPeak < QuietWake);
             Brain.Log("ears", -1, "Mic test: peak RMS " + (micTestPeak <= 0 ? "silence" : (20 * Math.Log10(micTestPeak)).ToString("0.0") + " dBFS") + ". " + result);
@@ -9178,6 +9183,7 @@ namespace CapriDesktop
             mainframe.ShowVoice(voice.Key == null ? null : Voice.Tail(voice.Key), voice.VoiceId, voice.Model, voices);
             bool hd = preferences.HdVoice, yours = YourVoice.Active(qwen.Folder), served = preferences.ServerVoice;
             mainframe.ShowFree(ready, hd ? QwenVoice.Style : served ? VoiceServer.Style : kokoro.Style.Name, SettingUpVoice, HdMachine, yours, YourVoice.Saved(qwen.Folder), served && !hd ? VoiceServer.Label(server.Url, server.Api) : null);
+            UpdateHearing();
             if (!note) return;
             if (hd && voice.Key == null && !served && !settingUpHd && (preferences.HdCpu || QwenVoice.Warn(HdMachine))) { mainframe.VoiceNote(preferences.HdCpu ? "HD on your CPU: slower, and 16 GB of RAM is best." : QwenVoice.Advice(HdMachine), !preferences.HdCpu || HdMachine.Ram < QwenVoice.RamRecommended); return; }
             if (chatting && local && preferences.ListenCapri && earsReady) { mainframe.VoiceNote(ears.Muted ? "Listening for Capri; mic muted." : LocalListening, false); return; }
@@ -9321,6 +9327,10 @@ namespace CapriDesktop
             }
             chatting = true;
             ears.Muted = false;
+            hearingSaid = null;
+            hearingCaptureProblem = hearingSpeechProblem = null;
+            ResetHearingSignal();
+            RefreshHearingDevices();
             if (!testing && !muteKey) muteKey = ByMouse(preferences.MuteVk) || Native.RegisterHotKey(Handle, MuteKeyId, preferences.MuteMods | 0x4000, preferences.MuteVk);
             pill.SetChat(true, false);
             pillUntil = clock.Elapsed.TotalSeconds + PillPop;
@@ -9332,6 +9342,10 @@ namespace CapriDesktop
         private void StartLocal(bool credits = false)
         {
             StopMicTest(false);
+            hearingSaid = null;
+            hearingCaptureProblem = hearingSpeechProblem = null;
+            ResetHearingSignal();
+            RefreshHearingDevices();
             WakeRest(true);
             chatTicket++;
             chatting = true;
@@ -9342,8 +9356,6 @@ namespace CapriDesktop
             earsWarned = -10;
             earsFailures = 0;
             earsRetryAt = -1;
-            micHeard = micWarned = false;
-            micQuietFrom = -1;
             ears.Muted = false;
             if (!testing && !muteKey) muteKey = ByMouse(preferences.MuteVk) || Native.RegisterHotKey(Handle, MuteKeyId, preferences.MuteMods | 0x4000, preferences.MuteVk);
             pill.SetChat(true, false);
@@ -9373,6 +9385,7 @@ namespace CapriDesktop
         // Free voice chat is listening. How it works gets said the first time and after that only shows under VOICE, unless she promised to say when she can hear them.
         private void EarsReady(bool promised)
         {
+            if (HearingNote()) return;
             if (preferences.ListenCapri)
             {
                 pill.ListenForName = true;
@@ -9406,23 +9419,28 @@ namespace CapriDesktop
 
         private void ListenLocally()
         {
+            hearingOffline = false;
+            hearingSpeechProblem = null;
             nameOver = false;
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
-            if (OwnEars) { ListenOwn(); return; }
+            if (HearingStatus.Own(HearingChoice, OwnEars)) { ListenOwn(); return; }
+            if (HearingChoice == 1) { if (parakeet.Fits) AwaitEars(null); else HearingNote(); return; }
             Hearing.Own = null;
             GetFreeEars();
             Dictation opened;
             try { opened = Dictation.Make(); }
-            catch (Exception error) { HearLater("Windows speech recognition isn't on this PC: " + Voice.Short(error.Message)); return; }
+            catch (Exception error) { hearingSpeechProblem = "Windows speech recognition isn't on this PC: " + Voice.Short(error.Message); HearLater(hearingSpeechProblem); return; }
             opened.Language = preferences.Language;
             dictation = opened;
             opened.Heard = delegate(string text) { OnUi(delegate { if (dictation == opened) HeardDictation(text); }); };
-            opened.Partial = delegate(string words) { OnUi(delegate { if (dictation == opened) DockWords(words); }); };
+            opened.Partial = delegate(string words) { OnUi(delegate { if (dictation == opened) { if (!string.IsNullOrEmpty(words)) HearingResult(null, true); DockWords(words); } }); };
             opened.Lost = delegate(string problem) { OnUi(delegate { if (dictation == opened) DictationLost(problem); }); };
+            opened.Rejected = delegate(string problem) { OnUi(delegate { if (dictation == opened && !ears.Muted) HearingResult(problem, false); }); };
             if ((preferences.ListenCapri || preferences.FreeChatTold) && earsLead.Length == 0) mainframe.VoiceNote("One sec, opening my ears.", false);
             else EarsNote(earsLead + "One sec, opening my ears.", false);
             opened.Start(delegate(string problem) { OnUi(delegate { if (dictation == opened) Dictated(problem); }); });
+            UpdateHearing();
         }
 
         private void Dictated(string problem)
@@ -9430,7 +9448,7 @@ namespace CapriDesktop
             if (!chatting || !local) return;
             if (problem != null) { DictationLost(problem); return; }
             try { if (!testing && !ears.Listening) ears.Start(); }
-            catch (VoiceException) { }
+            catch (VoiceException error) { HearingCaptureFailed(error.Message, false); }
             earsReady = true;
             dictation.Hold(ears.Muted);
             dictationMic = Dictation.DefaultMic();
@@ -9440,8 +9458,7 @@ namespace CapriDesktop
             string other = chosen == null || ears.Muted ? null : Dictation.OtherMic(preferences.Mic, chosen, dictationMic);
             if (other != null)
             {
-                EarsNote(earsLead + "Free voice chat on, but Windows speech only hears your default mic, not " + chosen + ". The fix is under VOICE.", false);
-                mainframe.VoiceNote(other, true);
+                HearingNote();
                 return;
             }
             EarsReady(false);
@@ -9454,14 +9471,15 @@ namespace CapriDesktop
             if (closing != null) closing.Dispose();
             if (!chatting || !local) return;
             earsReady = false;
-            if (problem == Dictation.MicBlocked) { StopChat(); EarsNote(problem, true); return; }
-            if (OwnEars) ListenOwn();
+            hearingSpeechProblem = problem;
+            if (problem == Dictation.MicBlocked || problem == Dictation.NoMic) { StopChat(); HearingNote(); return; }
+            if (HearingStatus.Own(HearingChoice, OwnEars)) ListenOwn();
             else HearLater(problem);
         }
 
         private void HearLater(string why)
         {
-            if (EarsComing) AwaitEars(why);
+            if (HearingChoice != 2 && EarsComing) AwaitEars(why);
             else ListenOffline(why);
         }
 
@@ -9475,14 +9493,14 @@ namespace CapriDesktop
             if (why != null) Brain.Log("ears", -1, "waiting for her own ears: " + why);
             GetFreeVoice();
             GetFreeEars();
-            string got = settingUpEars && earsTotal > 0 && earsGot > 0 ? " (" + earsGot * 100 / earsTotal + "% done)" : "";
-            EarsNote(earsLead + "My ears are still downloading" + got + ", so type to me for now. I'll say when I can hear you.", false);
+            HearingNote(true);
         }
 
         // Her ears work once the ears and the voice pack are both in, whichever lands last.
         private bool EarsArrived()
         {
-            if (!chatting || !local || !OwnEars || (dictation == null && !earsAwaited)) return false;
+            UpdateHearing();
+            if (HearingChoice == 2 || !chatting || !local || !OwnEars || (dictation == null && !earsAwaited)) return false;
             if (dictation != null) DictationLost(null);
             else ListenOwn();
             return true;
@@ -9491,6 +9509,8 @@ namespace CapriDesktop
         // Her own Parakeet ears hear the picked mic offline, about as well as Windows' online speech, so no warning.
         private void ListenOwn()
         {
+            hearingOffline = false;
+            hearingSpeechProblem = null;
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             bool promised = earsAwaited;
             earsAwaited = false;
@@ -9499,7 +9519,7 @@ namespace CapriDesktop
             catch (VoiceException error)
             {
                 StopChat();
-                EarsNote(error.Message, true);
+                HearingCaptureFailed(error.Message, true);
                 return;
             }
             earsReady = true;
@@ -9510,17 +9530,21 @@ namespace CapriDesktop
 
         private void ListenOffline(string why)
         {
+            hearingOffline = true;
+            hearingSpeechProblem = why;
+            Hearing.Own = null;
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
             try { if (!testing && !ears.Listening) ears.Start(); }
             catch (VoiceException error)
             {
                 StopChat();
-                EarsNote(error.Message, true);
+                HearingCaptureFailed(error.Message, true);
                 return;
             }
             earsReady = true;
             CheckEars(clock.Elapsed.TotalSeconds);
+            if (HearingNote()) return;
             if (preferences.ListenCapri)
             {
                 EarsReady(false);
@@ -9534,6 +9558,7 @@ namespace CapriDesktop
         private void HeardDictation(string text)
         {
             if (!chatting || !local || !earsReady || ears.Muted) return;
+            HearingResult(null, true);
             if (CallModeOn) { if (!earsShut) HearCall(Hearing.Clean(text)); return; }
             text = Hearing.Clean(text);
             if (watchAlong != null && WatchAlong.Request(text) == "stop" && StopWatchAlong(text)) return;
@@ -9809,12 +9834,14 @@ namespace CapriDesktop
             if (request != asking || ears.Muted) { if (!preferences.ListenCapri) mainframe.VoiceNote(LocalListening, false); return; }
             if (problem != null)
             {
+                HearingResult(problem, false);
                 if (!testing) Brain.Log("ears", -1, problem);
                 Missed("I couldn't hear that. Try again, or check your mic under VOICE.", true);
                 mainframe.VoiceNote(problem, true);
                 return;
             }
-            if (string.IsNullOrEmpty(text)) { Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
+            if (string.IsNullOrEmpty(text)) { HearingResult(null, false); Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
+            HearingResult(null, true);
             if (CallModeOn) { HearCall(text); return; }
             if (!VoiceForHer(text)) return;
             if (preferences.ListenCapri && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy))
@@ -9957,7 +9984,12 @@ namespace CapriDesktop
                 speaker.Open(rate);
                 if (!testing) ears.Start();
             }
-            catch (VoiceException error) { ChatFailed(error.Message); return; }
+            catch (VoiceException error)
+            {
+                if (hearingCaptureProblem != null) { StopChat(); HearingNote(); }
+                else ChatFailed(error.Message);
+                return;
+            }
             spoke = false;
             checkedIn = false;
             quietSince = -1;
@@ -9970,7 +10002,7 @@ namespace CapriDesktop
                 if (backlog != null) foreach (short[] held in backlog) agent.Send(held);
                 backlog = null;
             }
-            mainframe.VoiceNote(muteKey ? "Voice chat on. " + MuteKeyName + " mutes your mic." : "Voice chat on. Talk to her.", false);
+            if (!HearingNote()) mainframe.VoiceNote(muteKey ? "Voice chat on. " + MuteKeyName + " mutes your mic." : "Voice chat on. Talk to her.", false);
         }
 
         private void ChatFailed(string problem)
@@ -10250,7 +10282,6 @@ namespace CapriDesktop
             earsReady = false;
             earsAwaited = false;
             earsRetryAt = -1;
-            micQuietFrom = -1;
             if (muteKey && !ByMouse(preferences.MuteVk)) Native.UnregisterHotKey(Handle, MuteKeyId);
             muteKey = false;
             chatTicket++;
@@ -10282,6 +10313,7 @@ namespace CapriDesktop
                 if (asking == earsNotice) CloseTalk();
                 mainframe.VoiceNote("Free voice chat off. Click the wave to listen again.", false);
             }
+            UpdateHearing();
         }
 
         private void CheckChat(double now)
@@ -10323,6 +10355,8 @@ namespace CapriDesktop
         {
             if (!chatting) return;
             ears.Muted = !ears.Muted;
+            ResetHearingSignal();
+            UpdateHearing();
             if (ears.Muted) nameOver = false;
             if (dictation != null && earsReady) dictation.Hold(ears.Muted);
             pill.SetChat(true, ears.Muted);
@@ -11167,6 +11201,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            if (hearingWatch != null) hearingWatch.Dispose();
             StopMicTest(false);
             EndWatchAlong();
             followUp.Drop();
@@ -21574,15 +21609,17 @@ namespace CapriDesktop
                         input.Chosen = "gone";
                         input.Heard += delegate(short[] chunk) { if (chunk.Length != Ears.Chunk) throw new Exception("Wrong mic chunk size."); Interlocked.Add(ref heard, chunk.Length); };
                         input.Level += delegate(double value) { level = value; };
+                        int changes = 0;
+                        input.Changed += delegate(string problem) { if (problem != null) throw new Exception("A successful fake input reported a failure."); changes++; };
                         input.Start();
                         WaitSound(delegate { return Interlocked.CompareExchange(ref heard, 0, 0) >= Ears.Chunk * 2; }, "Fake WASAPI mic produced no converted audio.");
-                        if (opened[0] != "default-one" || Math.Abs(level - 0.25) > 0.001 || input.DeviceChanged) throw new Exception("A missing mic didn't capture the default at its original level.");
+                        if (opened[0] != "default-one" || Math.Abs(level - 0.25) > 0.001 || input.DeviceChanged || input.OpenedId != "default-one" || changes != 1) throw new Exception("A missing mic didn't capture the default at its original level or announce its actual input.");
                         current = "default-two";
                         if (!input.DeviceChanged) throw new Exception("A changed default mic was ignored while audio still arrived.");
                         input.Stop(); input.Start();
                         if (opened[1] != "default-two") throw new Exception("Reopening kept the old Windows default mic.");
                         input.Stop(); input.Chosen = "picked"; input.Start(); current = "default-three";
-                        if (input.DeviceChanged || opened[2] != "picked") throw new Exception("A fixed mic followed the Windows default.");
+                        if (input.DeviceChanged || opened[2] != "picked" || changes != 3) throw new Exception("A fixed mic followed the Windows default or missed an open notification.");
                         input.Muted = true;
                         short[] muted = null;
                         input.Heard += delegate(short[] chunk) { muted = chunk; };
@@ -21603,8 +21640,10 @@ namespace CapriDesktop
                     using (Ears input = new Ears(delegate(string id, Action<short[]> hear) { return new SoundIn(id, hear, capture, capture); }, delegate { return "fake-blocked"; }, delegate { return false; }))
                     {
                         bool explained = false;
+                        string announced = null;
+                        input.Changed += delegate(string problem) { announced = problem; };
                         try { input.Start(); } catch (VoiceException error) { explained = error.Message.IndexOf(Ears.Problem(failure), StringComparison.Ordinal) >= 0; }
-                        if (!explained || input.Listening || capture.Starts != 0) throw new Exception("A blocked or exclusively held mic didn't explain why it couldn't open.");
+                        if (!explained || input.Listening || capture.Starts != 0 || announced == null || announced.IndexOf(Ears.Problem(failure), StringComparison.Ordinal) < 0) throw new Exception("A blocked or exclusively held mic didn't explain and announce why it couldn't open.");
                     }
                 }
                 bool openedBlocked = false;
@@ -21656,7 +21695,7 @@ namespace CapriDesktop
                 earsComingTest = true;
                 Dictation.Make = delegate { return new StandInDictation { Problem = Dictation.MicBlocked }; };
                 StartLocal();
-                if (chatting || earsReady || dictation != null || mainframe.VoiceNoteText != Dictation.MicBlocked) throw new Exception("Mic privacy denial was hidden behind a pending ears download.");
+                if (chatting || earsReady || dictation != null || mainframe.VoiceNoteText != "Windows is blocking the mic" || reply != mainframe.HearingText) throw new Exception("Mic privacy denial was hidden behind a pending ears download.");
                 checks.Add("PASS Windows mic privacy denial stays visible while her ears download instead of falling back to another blocked recognizer");
             }
             finally { StopChat(); Dictation.Make = makeWas; Dictation.DefaultMic = defaultWas; ownEarsTest = ownWas; earsComingTest = comingWas; }
@@ -21971,6 +22010,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeSound(checks, output); });
                             Section(checks, delegate { SmokeMicSources(checks, output); });
                             Section(checks, delegate { SmokeMicTest(checks); });
+                            Section(checks, delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
                             Section(checks, delegate { SmokeLocalBrains(checks); });
                             Section(checks, delegate { SmokeCloudBrains(checks); });
                             Section(checks, delegate { SmokeCloudPicker(checks); });
@@ -31801,11 +31841,11 @@ namespace CapriDesktop
                             StartLocal();
                             ToggleMic();
                             mutedStart.Pending(null);
-                            if (!earsReady || !ears.Muted || !pill.Muted || !earsShut || !mutedStart.Held || reply != "Free voice chat is ready; your mic is muted.") throw new Exception("Windows speech starting unmuted the mic or claimed it was listening.");
+                            if (!earsReady || !ears.Muted || !pill.Muted || !earsShut || !mutedStart.Held || reply != "Mic muted" || reply != mainframe.HearingText) throw new Exception("Windows speech starting unmuted the mic or claimed it was listening.");
                             ToggleMic();
                             if (earsShut || mutedStart.Held || mainframe.VoiceStatus.IndexOf("Free voice chat on.", StringComparison.Ordinal) != 0) throw new Exception("Unmuting did not restore the ready status.");
                             mutedStart.Lost("Windows speech recognition lost its internet connection.");
-                            if (!mutedStart.Disposed || dictation != null || !local || !earsReady || earsShut || reply.IndexOf("Free voice chat on, but I'm hearing offline", StringComparison.Ordinal) != 0 || reply.IndexOf("under VOICE", StringComparison.Ordinal) < 0 || mainframe.VoiceStatus.IndexOf("Windows speech recognition lost its internet connection.", StringComparison.Ordinal) != 0) throw new Exception("Losing Windows speech did not fall back to offline hearing: " + reply + " / " + mainframe.VoiceStatus);
+                            if (!mutedStart.Disposed || dictation != null || !local || !earsReady || earsShut || reply != "Windows speech failed: Windows speech recognition lost its internet connection" || mainframe.HearingText != reply || mainframe.VoiceNoteText != reply) throw new Exception("Losing Windows speech did not fall back to offline hearing: " + reply + " / " + mainframe.VoiceStatus);
                             for (int i = 0; i < 3; i++) ears.Feed(setupNoise);
                             if (utterance == null) throw new Exception("Offline hearing did not gather sound after Windows speech was lost.");
                             StopChat();
@@ -31813,17 +31853,17 @@ namespace CapriDesktop
                             privacyOff.Problem = Dictation.PrivacyOff;
                             Dictation.Make = delegate { return privacyOff; };
                             StartLocal();
-                            if (!privacyOff.Disposed || dictation != null || !local || !earsReady || reply.IndexOf("Turn on Online speech recognition in Windows Settings", StringComparison.Ordinal) < 0 || mainframe.VoiceStatus.IndexOf(Dictation.PrivacyOff, StringComparison.Ordinal) != 0) throw new Exception("Online speech recognition being off did not explain the switch: " + reply);
+                            if (!privacyOff.Disposed || dictation != null || !local || !earsReady || reply != "Online speech recognition is off" || mainframe.HearingText != reply || mainframe.VoiceNoteText != reply) throw new Exception("Online speech recognition being off did not explain the switch: " + reply);
                             System.Collections.Generic.List<string> speechOpened = new System.Collections.Generic.List<string>();
                             Action<string> browseBefore = Browse;
                             Browse = speechOpened.Add;
                             try { OpenSpeechSettings(); }
                             finally { Browse = browseBefore; }
-                            if (!mainframe.SpeechFixShown || speechOpened.Count != 1 || speechOpened[0] != SpeechSettings) throw new Exception("The Online speech recognition note didn't open Windows' Speech page: " + mainframe.VoiceStatus);
+                            if (mainframe.HearingButtons.IndexOf("Open speech settings", StringComparison.Ordinal) < 0 || speechOpened.Count != 1 || speechOpened[0] != SpeechSettings) throw new Exception("The Online speech recognition note didn't open Windows' Speech page: " + mainframe.VoiceStatus);
                             StopChat();
                             Dictation.Make = delegate { throw new TypeLoadException("Test missing WinRT."); };
                             StartLocal();
-                            if (!local || !earsReady || mainframe.VoiceStatus.IndexOf("Windows speech recognition isn't on this PC", StringComparison.Ordinal) != 0 || mainframe.SpeechFixShown) throw new Exception("A PC without Windows speech did not fall back to offline hearing: " + mainframe.VoiceStatus);
+                            if (!local || !earsReady || !mainframe.HearingText.StartsWith("Windows speech failed: Windows speech recognition isn't on this PC", StringComparison.Ordinal) || mainframe.VoiceNoteText != mainframe.HearingText) throw new Exception("A PC without Windows speech did not fall back to offline hearing: " + mainframe.VoiceStatus);
                             StopChat();
                             if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
@@ -31838,7 +31878,7 @@ namespace CapriDesktop
                                 ChooseMic(pickable[0].Id);
                                 Dictation.DefaultMic = delegate { return @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{some-other-mic}#{2eef81be}"; };
                                 StartLocal();
-                                bool warned = reply == "Free voice chat on, but Windows speech only hears your default mic, not " + pickable[0].Name + ". The fix is under VOICE." && mainframe.VoiceStatus.IndexOf("Windows speech only hears your default mic, not " + pickable[0].Name + ".", StringComparison.Ordinal) == 0;
+                                bool warned = reply == "Windows speech hears a different mic: Windows default" && mainframe.HearingText == reply && mainframe.VoiceNoteText == reply;
                                 StopChat();
                                 Dictation.DefaultMic = delegate { return @"\\?\SWD#MMDEVAPI#" + pickable[0].Id + "#{2eef81be}"; };
                                 StartLocal();
@@ -31876,7 +31916,7 @@ namespace CapriDesktop
                             Dictation.Make = delegate { return noOnline; };
                             StartLocal();
                             for (int i = 0; i < 3; i++) ears.Feed(setupNoise);
-                            bool earsWaited = noOnline.Disposed && dictation == null && local && !earsReady && earsAwaited && Hearing.Own == null && utterance == null && reply == "My ears are still downloading, so type to me for now. I'll say when I can hear you.";
+                            bool earsWaited = noOnline.Disposed && dictation == null && local && !earsReady && earsAwaited && Hearing.Own == null && utterance == null && reply == "Online speech recognition is off" && reply == mainframe.HearingText;
                             bool tooEarly = !EarsArrived() && earsAwaited;
                             ownEarsTest = true;
                             bool earsLanded = EarsArrived() && !earsAwaited && earsReady && Hearing.Own == parakeet && reply == "Free voice chat on. Talk and I'll type back.";
@@ -31896,10 +31936,10 @@ namespace CapriDesktop
                             StartLocal();
                             double failedAt = clock.Elapsed.TotalSeconds;
                             EarsFailed("Test download failure.");
-                            bool failTold = reply == "My ears didn't download, so type to me for now. Test download failure. I'll try again in 30 seconds." && earsRetryAt >= failedAt + 29 && earsRetryAt <= failedAt + 31;
+                            bool failTold = reply == "Her ears didn't download: Test download failure" && reply == mainframe.HearingText && earsRetryAt >= failedAt + 29 && earsRetryAt <= failedAt + 31;
                             int askedBeforeRetry = asking;
                             EarsFailed("Test download failure.");
-                            bool failQuiet = asking == askedBeforeRetry && mainframe.VoiceStatus.IndexOf("Her own ears didn't download: Test download failure. I'll try again in a minute.", StringComparison.Ordinal) == 0;
+                            bool failQuiet = asking == askedBeforeRetry && mainframe.VoiceNoteText == "Her ears didn't download: Test download failure";
                             CheckHearing(earsRetryAt + 1);
                             bool retryRan = earsRetryAt < 0;
                             EarsFailed("Test download failure.");
@@ -31917,7 +31957,7 @@ namespace CapriDesktop
                             CheckHearing(quietFrom + 19);
                             bool micPatient = reply == "Free voice chat on. Talk and I'll type back.";
                             CheckHearing(quietFrom + 21);
-                            bool micToldSilent = reply == MicSilent && mainframe.VoiceStatus.IndexOf(MicSilent, StringComparison.Ordinal) == 0;
+                            bool micToldSilent = reply == "Silent for 20 s: is the right mic picked?" && reply == mainframe.HearingText && mainframe.VoiceNoteText == reply;
                             int askedAfterSilent = asking;
                             CheckHearing(quietFrom + 80);
                             bool micToldOnce = asking == askedAfterSilent;
@@ -31925,7 +31965,7 @@ namespace CapriDesktop
                             StartLocal();
                             HeardLevel(0.01);
                             CheckHearing(quietFrom);
-                            CheckHearing(quietFrom + 30);
+                            CheckHearing(clock.Elapsed.TotalSeconds + 1);
                             bool micLive = reply == "Free voice chat on. Talk and I'll type back.";
                             StopChat();
                             StartLocal();
@@ -31933,9 +31973,9 @@ namespace CapriDesktop
                             CheckHearing(quietFrom);
                             CheckHearing(quietFrom + 30);
                             ToggleMic();
-                            CheckHearing(quietFrom + 31);
-                            CheckHearing(quietFrom + 40);
-                            bool micMutedQuiet = reply == "Free voice chat on. Talk and I'll type back." && micQuietFrom == quietFrom + 31;
+                            CheckHearing(clock.Elapsed.TotalSeconds + 1);
+                            CheckHearing(clock.Elapsed.TotalSeconds + 10);
+                            bool micMutedQuiet = reply == "Free voice chat on. Talk and I'll type back." && !hearingSilent && !hearingQuiet;
                             StopChat();
                             ownEarsTest = null;
                             if (!micPatient || !micToldSilent || !micToldOnce || !micLive || !micMutedQuiet) throw new Exception("The silent mic check went wrong: patient " + micPatient + ", told " + micToldSilent + ", once " + micToldOnce + ", live mic quiet " + micLive + ", muted quiet " + micMutedQuiet + " / " + reply);

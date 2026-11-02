@@ -23,6 +23,7 @@ namespace CapriDesktop
         // What it thinks they've said so far, while they're still saying it.
         internal Action<string> Partial;
         internal Action<string> Lost;
+        internal Action<string> Rejected;
         // The language picked in Settings, English included, or null to listen in Windows' own speech language.
         internal string Language;
 
@@ -194,9 +195,14 @@ namespace CapriDesktop
         private void Result(SpeechContinuousRecognitionSession session, SpeechContinuousRecognitionResultGeneratedEventArgs args)
         {
             SpeechRecognitionResult result = args.Result;
-            if (result.Status != SpeechRecognitionResultStatus.Success || result.Confidence == SpeechRecognitionConfidence.Rejected) return;
             string text = (result.Text ?? "").Trim();
-            lock (gate) if (closed || held || text.Length == 0) return;
+            lock (gate) if (closed || held) return;
+            if (result.Status != SpeechRecognitionResultStatus.Success || result.Confidence == SpeechRecognitionConfidence.Rejected || text.Length == 0)
+            {
+                Action<string> rejected = Rejected;
+                if (rejected != null) rejected("No words came back");
+                return;
+            }
             Action<string> heard = Heard;
             if (heard != null) heard(text);
         }

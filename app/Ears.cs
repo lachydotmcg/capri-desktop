@@ -54,6 +54,8 @@ namespace CapriDesktop
         private const int Buffers = 4;
         internal event Action<short[]> Heard;
         internal event Action<double> Level;
+        internal event Action<string> Changed;
+        internal string OpenedId { get { return openedId; } }
         internal volatile bool Muted;
         internal volatile string Chosen;
         private IntPtr device;
@@ -257,6 +259,7 @@ namespace CapriDesktop
             if (blocked())
             {
                 Brain.Log("ears", -1, Dictation.MicBlocked);
+                if (Changed != null) Changed(Dictation.MicBlocked);
                 throw new VoiceException(Dictation.MicBlocked);
             }
             string previous = openedId;
@@ -290,6 +293,7 @@ namespace CapriDesktop
                     worker = new Thread(Pump) { IsBackground = true, Name = "Capri ears" };
                     worker.Start();
                     Brain.Log("ears", -1, "WaveIn opened " + name + " [" + openedId + "]: 16000 Hz, 1 channel, 16-bit PCM.");
+                    if (Changed != null) Changed(null);
                     return;
                 }
                 catch (Exception error)
@@ -306,11 +310,13 @@ namespace CapriDesktop
                 running = true;
                 modern = open(openedId, Receive);
                 Brain.Log("ears", -1, "WASAPI opened " + name + " [" + openedId + "]: " + modern.Format + " -> 16000 Hz, 1 channel, 16-bit PCM.");
+                if (Changed != null) Changed(null);
             }
             catch (Exception error)
             {
                 running = false;
                 Brain.Log("ears", -1, "WASAPI couldn't open " + name + " [" + openedId + "]: " + error.Message);
+                if (Changed != null) Changed(error.Message);
                 throw new VoiceException(error.Message);
             }
         }
@@ -1762,6 +1768,8 @@ namespace CapriDesktop
         [PreserveSig] int EnumAudioEndpoints(int flow, int states, out IntPtr devices);
         [PreserveSig] int GetDefaultAudioEndpoint(int flow, int role, out ISoundDevice device);
         [PreserveSig] int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string id, out ISoundDevice device);
+        [PreserveSig] int RegisterEndpointNotificationCallback(IHearingChanges changes);
+        [PreserveSig] int UnregisterEndpointNotificationCallback(IHearingChanges changes);
     }
 
     [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
