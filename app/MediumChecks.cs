@@ -82,6 +82,9 @@ namespace CapriDesktop
             List<string> wasModels = cloudModels;
             Func<string, string> wasThink = Think;
             bool wasFinding = finding, wasSettings = mainframe.SettingsShown;
+            bool wasShown = mainframe.Visible;
+            FormWindowState wasState = mainframe.WindowState;
+            Point wasAt = mainframe.Location;
             string wasNvidia = Brain.Nvidia, wasGoogle = Brain.Google, wasRouter = Brain.OpenRouter, wasOpenAi = Brain.OpenAi, wasAnthropic = Brain.Anthropic, wasDeepSeek = Brain.DeepSeek;
             int wasSize = preferences.MainframeSize;
             List<TcpListener> servers = new List<TcpListener>();
@@ -97,6 +100,7 @@ namespace CapriDesktop
             string routerCatalog = "{\"data\":[{\"id\":\"paid/vision\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"a/text:free\"},{\"id\":\"z/vision:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]}]}";
             try
             {
+                mainframe.Restore();
                 Think = delegate { return "Connected."; };
                 finding = true;
                 mainframe.ShowSettings(false);
@@ -280,6 +284,9 @@ namespace CapriDesktop
                 ShowTiers();
                 if (wasRemote != null) mainframe.ShowCloud(wasRemote, wasModels); else mainframe.Searching();
                 SavePreferences();
+                mainframe.Location = wasAt;
+                mainframe.WindowState = wasState;
+                if (!wasShown) mainframe.Hide();
             }
         }
     }

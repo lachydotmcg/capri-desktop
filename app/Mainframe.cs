@@ -224,6 +224,7 @@ namespace CapriDesktop
         private readonly Entry textEntry;
         private readonly Key textConnect;
         private readonly Key freeKey;
+        private readonly ContextMenuStrip freeKeyMenu;
         private readonly Label freeWarning;
         private readonly Label paidNote;
         private readonly Key movePaid;
@@ -386,7 +387,20 @@ namespace CapriDesktop
             }
             rungs[0].Flag = "Start with this!";
             rungs[0].FlagFont = Type(9f);
-            freeKey = Make("Free key", 266, 209, 90, 22, delegate { capri.OpenFreeKeyPage(); });
+            freeKeyMenu = Dropdown();
+            freeKeyMenu.AccessibleName = "Free key providers";
+            ToolStripMenuItem nvidiaKey = Choice("NVIDIA · free · often slow at busy times", false, delegate { capri.OpenFreeKeyPage(); });
+            nvidiaKey.AccessibleName = "NVIDIA";
+            freeKeyMenu.Items.Add(nvidiaKey);
+            ToolStripMenuItem geminiKey = Choice("Google AI Studio (Gemini) · free tier · rate limited", false, delegate { capri.OpenGeminiKeyPage(); });
+            geminiKey.AccessibleName = "Google AI Studio (Gemini)";
+            freeKeyMenu.Items.Add(geminiKey);
+            ToolStripMenuItem routerKey = Choice("OpenRouter · free models only here", false, delegate { capri.OpenRouterKeyPage(); });
+            routerKey.AccessibleName = "OpenRouter";
+            freeKeyMenu.Items.Add(routerKey);
+            freeKey = Make("Free key", 266, 209, 90, 22, delegate { ShowFreeKeys(); });
+            freeKey.Chevron = true;
+            freeKey.AccessibleName = "Free key: NVIDIA, Google AI Studio (Gemini) or OpenRouter";
             textEntry = Input(28, 262, 244);
             textEntry.Box.UseSystemPasswordChar = true;
             textEntry.Box.AccessibleName = "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key";
@@ -1042,6 +1056,21 @@ namespace CapriDesktop
 
         internal bool SettingsShown { get { return paged; } }
 
+        internal void ShowFreeKeys()
+        {
+            DismissHint();
+            freeKeyMenu.Show(freeKey, new Point(freeKey.Width, freeKey.Height), ToolStripDropDownDirection.BelowLeft);
+            freeKeyMenu.Items[0].Select();
+        }
+
+        internal bool FreeKeysShown { get { return freeKeyMenu.Visible; } }
+
+        internal int FreeKeyChoices { get { return freeKeyMenu.Items.Count; } }
+
+        internal void PickFreeKey(int index) { ((ToolStripMenuItem)freeKeyMenu.Items[index]).PerformClick(); freeKeyMenu.Close(); }
+
+        internal void CloseFreeKeys() { freeKeyMenu.Close(); }
+
         internal string SizeStatus { get { return sizeName.Text; } }
 
         internal bool TypingShown { get { return typing.Checked; } }
@@ -1332,7 +1361,7 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu }) menu.Font = Font;
                 foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
                 CloseGaps();
                 freeVoices.Width = Scaled(freeReady && !yoursShown ? 328 : 196);
@@ -1758,7 +1787,7 @@ namespace CapriDesktop
         protected override void Dispose(bool disposing)
         {
             if (disposing) DisposeHints();
-            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); }
+            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); }
             base.Dispose(disposing);
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();
         }
