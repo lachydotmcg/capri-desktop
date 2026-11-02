@@ -216,20 +216,23 @@ namespace CapriDesktop
             }
         }
 
+        // A quiet mic is far more often them not talking than a broken one, and a noise gate or noise suppression sends nothing at
+        // all between lines. So silence, a quiet mic and lines with no words only show on the hearing line under VOICE, with its
+        // Test and Pick buttons, and she never says them (Lachy, 2 Nov: warned after a quiet spell, while talking, and over her).
         private void CheckHearingSignal(double now)
         {
             if (!chatting || !(local ? earsReady : ears.Listening) || ears.Muted || talkState == TalkState.Thinking) return;
             if (local && hearingSignalSeconds >= 3 && now - hearingWordsAt >= MicQuietWait && hearingResultProblem == null)
             {
                 hearingResultProblem = "No words came back";
-                HearingNote();
+                UpdateHearing();
             }
             bool silent = now - hearingSoundAt >= MicQuietWait;
             bool quiet = !silent && now - hearingLoudAt >= MicQuietWait;
             if (silent == hearingSilent && quiet == hearingQuiet) return;
             hearingSilent = silent;
             hearingQuiet = quiet;
-            HearingNote();
+            UpdateHearing();
         }
 
         private void HearingResult(string problem, bool success)
@@ -429,12 +432,12 @@ namespace CapriDesktop
                 StartLocal();
                 double now = clock.Elapsed.TotalSeconds;
                 hearingSoundAt = hearingLoudAt = now - 21;
+                int said = asking;
                 CheckHearingSignal(now);
                 expect("Silent for 20 s: is the right mic picked?", true, "Test mic | Pick another mic");
-                if (reply != mainframe.HearingText || mainframe.VoiceNoteText != reply) throw new Exception("Silent chat note and hearing line disagree.");
-                int said = asking;
+                if (asking != said || reply == mainframe.HearingText) throw new Exception("A silent mic was said out loud; it belongs on the hearing line.");
                 CheckHearingSignal(now + 1);
-                if (asking != said) throw new Exception("The hearing problem was said twice.");
+                if (asking != said) throw new Exception("A silent mic was said out loud on a later check.");
                 preview("silent");
                 mainframe.PressHearing(0);
                 if (!mainframe.MicTesting || micTest == null || micTest.Listening) throw new Exception("Test action didn't use the smoke-mode input.");
@@ -448,8 +451,25 @@ namespace CapriDesktop
                 expect("Mic is too quiet: raise its input volume", true, "Test mic | Pick another mic");
                 HeardLevel(0.03);
                 expect("Hearing: Windows speech · default mic (Realtek) · working", false, "");
+                // A real problem while she's still saying a line shows under VOICE, waits for her to finish, then is said once if it's
+                // still the problem.
+                talkState = TalkState.Talking;
+                int midLine = asking;
+                EarsNote("Mic failed: test", true);
+                if (asking != midLine || mainframe.VoiceNoteText != "Mic failed: test") throw new Exception("A hearing problem cut into her line.");
+                talkState = TalkState.Online;
+                voiceUntil = 0;
+                SayHeldEarsNote();
+                if (asking == midLine || reply != "Mic failed: test") throw new Exception("A hearing problem held for her line was never said.");
+                talkState = TalkState.Talking;
+                midLine = asking;
+                EarsNote("Mic failed: gone", true);
+                mainframe.VoiceNote("Hearing: her own ears · mic · working", false);
+                talkState = TalkState.Online;
+                SayHeldEarsNote();
+                if (asking != midLine) throw new Exception("A hearing problem that cleared while she talked was still said.");
                 StopChat();
-                checks.Add("PASS hearing: working own ears and Windows default mic, route changes, no mic, blocked, silent and quiet show their exact words and only fitting accessible actions; Sound, privacy, type, test and picker actions use stand-ins; silence recovery and one shared chat note are checked");
+                checks.Add("PASS hearing: working own ears and Windows default mic, route changes, no mic, blocked, silent and quiet show their exact words and only fitting accessible actions; Sound, privacy, type, test and picker actions use stand-ins; silence shows on the hearing line without being said and recovers; a problem never cuts into her line and is said after it only while it's still the problem");
 
                 Dictation.Make = delegate { return new StandInDictation { Problem = Dictation.PrivacyOff }; };
                 StartLocal();

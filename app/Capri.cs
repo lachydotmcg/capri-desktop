@@ -8535,6 +8535,7 @@ namespace CapriDesktop
         {
             CheckMicTest(now);
             CheckHearingSignal(now);
+            SayHeldEarsNote();
             if (chatting && local && dictation != null && earsReady && now >= dictationMicAt)
             {
                 dictationMicAt = now + 2;
@@ -8566,6 +8567,8 @@ namespace CapriDesktop
             if (chatting && ears.Stalled) ReopenMic(now);
         }
 
+        // What she says when her ears' engine fails on a line. It isn't the mic, and the reason shows on the hearing line.
+        internal const string EarsGlitched = "My ears glitched on that. Say it again?";
         internal const string MicStopped = "Your mic keeps cutting out. Pick it again under VOICE, or check it in Windows sound settings.";
         private double micReopened = -100;
 
@@ -9637,10 +9640,27 @@ namespace CapriDesktop
         {
             mainframe.VoiceNote(text, problem);
             if (talkState == TalkState.Thinking) return;
+            // A note about her ears never cuts into a line she's still saying (Lachy, 2 Nov). A problem waits for her to finish.
+            if (StillSaying) { if (problem) earsHeld = text; return; }
+            earsHeld = null;
             heard = "(voice)";
             box.Prompt = "> you: ";
             earsNotice = ++asking;
             Begin(earsNotice, text, TalkState.Talking, null);
+        }
+
+        private string earsHeld;
+
+        // Her words are still coming out, or her voice is still playing them.
+        private bool StillSaying { get { return talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || hdSpeaking == asking; } }
+
+        // A problem held while she finished her line is said now, if it's still what VOICE shows.
+        private void SayHeldEarsNote()
+        {
+            if (earsHeld == null || StillSaying || talkState == TalkState.Thinking) return;
+            string held = earsHeld;
+            earsHeld = null;
+            if (mainframe.VoiceNoteText == held || mainframe.VoiceNoteText == held + Mainframe.OpenSpeech) EarsNote(held, true);
         }
 
         // Free voice chat is listening. How it works gets said the first time and after that only shows under VOICE, unless she promised to say when she can hear them.
@@ -10102,7 +10122,7 @@ namespace CapriDesktop
             {
                 HearingResult(problem, false);
                 if (!testing) Brain.Log("ears", -1, problem);
-                Missed("I couldn't hear that. Try again, or check your mic under VOICE.", true);
+                Missed(EarsGlitched, true);
                 mainframe.VoiceNote(problem, true);
                 return;
             }
@@ -33517,11 +33537,11 @@ namespace CapriDesktop
                             CheckHearing(quietFrom);
                             CheckHearing(quietFrom + 19);
                             bool micPatient = reply == "Free voice chat on. Talk and I'll type back.";
+                            int askedBeforeSilent = asking;
                             CheckHearing(quietFrom + 21);
-                            bool micToldSilent = reply == "Silent for 20 s: is the right mic picked?" && reply == mainframe.HearingText && mainframe.VoiceNoteText == reply;
-                            int askedAfterSilent = asking;
+                            bool micToldSilent = mainframe.HearingText == "Silent for 20 s: is the right mic picked?" && asking == askedBeforeSilent && reply == "Free voice chat on. Talk and I'll type back.";
                             CheckHearing(quietFrom + 80);
-                            bool micToldOnce = asking == askedAfterSilent;
+                            bool micToldOnce = asking == askedBeforeSilent;
                             StopChat();
                             StartLocal();
                             HeardLevel(0.01);
@@ -33540,7 +33560,7 @@ namespace CapriDesktop
                             StopChat();
                             ownEarsTest = null;
                             if (!micPatient || !micToldSilent || !micToldOnce || !micLive || !micMutedQuiet) throw new Exception("The silent mic check went wrong: patient " + micPatient + ", told " + micToldSilent + ", once " + micToldOnce + ", live mic quiet " + micLive + ", muted quiet " + micMutedQuiet + " / " + reply);
-                            checks.Add("PASS silent mic: after 20 s of free voice chat with nothing at all from the mic she says so once, with the fixes; a mic with any sound, or a muted one, gets no warning, and unmuting restarts the wait");
+                            checks.Add("PASS silent mic: after 20 s of free voice chat with nothing at all from the mic, the hearing line says so with the fixes and she doesn't say it; a mic with any sound, or a muted one, gets no warning, and unmuting restarts the wait");
                             StandInDictation beforeSwitch = new StandInDictation();
                             Dictation.Make = delegate { return beforeSwitch; };
                             ownEarsTest = false;
@@ -34383,7 +34403,7 @@ namespace CapriDesktop
                         else if (step == 12)
                         {
                             if (transcribing) return;
-                            if (!local || earsShut || reply != "I couldn't hear that. Try again, or check your mic under VOICE." || mainframe.VoiceStatus.IndexOf("Test ears failure.", StringComparison.Ordinal) != 0) throw new Exception("An offline hearing failure did not show a retry and keep free chat listening.");
+                            if (!local || earsShut || reply != EarsGlitched || mainframe.VoiceStatus.IndexOf("Test ears failure.", StringComparison.Ordinal) != 0) throw new Exception("An offline hearing failure did not show a retry and keep free chat listening.");
                             Hearing.Run = delegate(short[] samples) { return " Salut Capri, \u00e7a va ? "; };
                             Think = delegate(string words) { lock (earsLog) earsLog.Add("French " + words); return "Salut, choom."; };
                             foreach (short[] piece in earLine) ears.Feed(piece);
