@@ -217,8 +217,9 @@ namespace CapriDesktop
             int testLimit;
             if (Fault("HANG", step) && int.TryParse(Environment.GetEnvironmentVariable("CAPRI_SMOKE_TEST_SECONDS"), out testLimit) && testLimit > 0 && testLimit <= 60) return testLimit;
             // Step 0 exercises many UI/render paths and two media joins. Step 1 includes four 60 s transcode waits,
-            // a 30 s fake voice-server wait, and the Mainframe/voice integration checks.
-            return step == 0 ? 180 : step == 1 ? 600 : 60;
+            // a 30 s fake voice-server wait, and the Mainframe/voice integration checks. Step 22 runs the talk, Listen for
+            // Capri, voice switch and gaming checks, each waiting on her voice, which took over 60 s on a busy PC.
+            return step == 0 ? 180 : step == 1 ? 600 : step == 22 ? 180 : 60;
         }
 
         // 0-13 exchange asynchronous chat/voice results. Glances (14) and screen/cloud checks (17) have their own fixtures.

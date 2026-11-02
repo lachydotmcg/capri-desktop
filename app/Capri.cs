@@ -35827,10 +35827,12 @@ namespace CapriDesktop
                     + ", ears on " + ears.Listening + ", hearing " + (hearingStatus == null ? "-" : hearingStatus.Text) + ", cloud " + preferences.CloudVoice + ", calls " + switchCalls
                     + ", windows speech " + (dictation != null) + ", noise hold " + noiseHold + ", room " + room.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + ", asking " + asking + ", chat ticket " + chatTicket;
             };
-            // She says her check line through each new voice first, so each line waits for it to finish.
+            // She says her check line through each new voice first, so each line waits for it to finish. On GitHub's runner the
+            // line can start after the first 1.5 s, and talking over it is a different check.
             Action<string> switchHeard = delegate(string what)
             {
                 switchPump(delegate { return false; }, 1500);
+                switchPump(delegate { return talkState != TalkState.Thinking && !StillSaying; }, 6000);
                 int before = switchCalls;
                 for (int lineAt = 0; lineAt < 4; lineAt++) Gather(switchWave(0));
                 for (int lineAt = 0; lineAt < 8; lineAt++) Gather(switchWave(lineAt % 2 == 0 ? 14000 : 20000));
