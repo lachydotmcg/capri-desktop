@@ -80,6 +80,10 @@ namespace CapriDesktop
             text = (text ?? "").Trim();
             if (!CallModeOn || text.Length == 0 || ears.Muted && !pushedLine) return;
             int version = callSession.Generation;
+            LogVoiceInterruption("explicit input", audioTurn, false);
+            CancelAnswerAudio();
+            voice.Stop();
+            voiceUntil = 0;
             int ticket = ++asking;
             callAnswer = ticket;
             heard = text;
