@@ -1606,7 +1606,7 @@ namespace CapriDesktop
         // Her glance lines from the last hour, so she stops bringing up the same thing on their screen.
         private readonly System.Collections.Generic.List<Tuple<double, string>> glanced = new System.Collections.Generic.List<Tuple<double, string>>();
         private byte[] lastPrint;
-        private const double GlanceTalkGap = 60;
+        private double GlanceTalkGap { get { return Math.Min(60, GlanceGap * 2); } }
         private Rectangle lastArea;
         private volatile bool fetchingEyes;
         private double thinkingSince = double.NaN;
@@ -4265,6 +4265,8 @@ namespace CapriDesktop
         {
             // Esc ends the whole ask: once it stops a job, the rest of that ask's tools and jobs don't run.
             if (ticket == escAsk) return "";
+            // A please on the end of a message job stays out of the message, however her brain wrote the job.
+            if (tool == "use_computer" && args != null) args.Task = Hands.Unpleased(args.Task);
             ToolArguments musicArgs;
             if (tool == "use_computer" && args != null && Hands.MusicJob(args.Task, out musicArgs)) { tool = "play_music"; args = musicArgs; }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
@@ -6335,8 +6337,9 @@ namespace CapriDesktop
             return "You looked at their screen. You see: " + seen;
         }
 
-        // Voice chat pauses her glances only while their mic is on. Muted, she keeps commenting on their screen.
-        private bool MicOpen { get { return chatting && !ears.Muted; } }
+        // Voice chat pauses her glances only while their mic is on. Muted, she keeps commenting on their screen, and Listen for
+        // Capri's open ears aren't a chat, so they don't pause her either.
+        private bool MicOpen { get { return InChat && !ears.Muted; } }
 
         // While she plays a game for them she keeps quiet about the screen, since her glances would be a running commentary on
         // her own play (Lachy, 30 Oct: "they were constantly yapping to chat").
@@ -6419,7 +6422,8 @@ namespace CapriDesktop
             if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(clock.Elapsed.TotalSeconds), Brain.Nickname)) { Glimpsed(saw); return; }
-            // She can look every 10 seconds, but talking that often wears on people (Lachy, 31 Oct), so a look this soon after her last line stays to herself.
+            // She can look every 10 seconds, but talking that often wears on people (Lachy, 31 Oct), so a look within twice her Every gap
+            // of her last line, and never more than a minute, stays to herself.
             if (glanced.Count > 0 && clock.Elapsed.TotalSeconds - glanced[glanced.Count - 1].Item1 < GlanceTalkGap) { Glimpsed(saw); return; }
             glanced.Add(Tuple.Create(clock.Elapsed.TotalSeconds, said));
             brain.Saw(saw, said);
@@ -11697,6 +11701,24 @@ namespace CapriDesktop
             }
             finally { Hands.WatchFor = watchToolWas; }
             checks.Add("PASS several watches share one look, list names them, stop cancels one or all, and the tool honestly adds nothing when she cannot see");
+
+            // Her alert line follows her language while NONE and the numbers stay as written. English adds nothing.
+            string tongueRules = null;
+            Lookout tongueWatch = new Lookout { Automatic = false, Clock = delegate { return lookoutNow; }, Shot = delegate { return lookoutStill; }, Speak = delegate { },
+                See = delegate(string tongueSystem, string tongueAsk, byte[] tongueJpeg) { tongueRules = tongueSystem; return "NONE"; } };
+            string lookoutTongueWas = Brain.Language;
+            Brain.Language = "Spanish";
+            tongueWatch.Run(new ToolArguments { Text = "low health" });
+            tongueWatch.Tick();
+            string spanishRules = tongueRules;
+            Brain.Language = null;
+            tongueRules = null;
+            tongueWatch.Run(new ToolArguments { Text = "download finishes" });
+            tongueWatch.Tick();
+            Brain.Language = lookoutTongueWas;
+            if (spanishRules == null || !spanishRules.EndsWith("1: \"low health\"\n\nWrite the short line after the colon in Spanish. Keep NONE and the numbers exactly as written.", StringComparison.Ordinal)
+                || tongueRules == null || !tongueRules.EndsWith("2: \"download finishes\"\n", StringComparison.Ordinal) || tongueRules.IndexOf("Write the short line", StringComparison.Ordinal) >= 0) throw new Exception("Lookout's alert didn't follow her language: " + spanishRules + " / " + tongueRules);
+            checks.Add("PASS lookout language: with Spanish picked, her watch rules ask for the alert line in Spanish with NONE and the numbers kept as written; English adds nothing");
 
             int failedLooks = 0, failedLogs = 0;
             lookoutNow = 0;
@@ -24691,6 +24713,18 @@ namespace CapriDesktop
                                     string glanceAsking = Glances.Ask(glanceLines);
                                     if (Glances.Ask(new System.Collections.Generic.List<string>()) != Glances.Line || !glanceAsking.StartsWith(Glances.Line, StringComparison.Ordinal) || glanceAsking.IndexOf("\n- Nice dodge.\n", StringComparison.Ordinal) < 0 || glanceAsking.IndexOf("\n- " + curses, StringComparison.Ordinal) >= 0 || glanceAsking.IndexOf("Earlier you also brought up: king of curses, malevolent shrine", StringComparison.Ordinal) < 0 || !glanceAsking.EndsWith("make it SAY: SKIP.)", StringComparison.Ordinal)) throw new Exception("The glance prompt lost her recent lines or older topics: " + glanceAsking);
                                     checks.Add("PASS glance repeats: names, numbers and phrases she already brought up count as a repeat, lowercased or at a sentence start; new lines, their nickname and glitch tags don't; the brain sees her last six lines and older topics");
+                                    // Her SAY line follows her language while SAW, the labels and SKIP stay as written. English adds nothing.
+                                    string glanceTongueWas = Brain.Language;
+                                    string spanishSay = "\n(Write the SAY line in Spanish. Keep SAW in English, and the labels SAW: and SAY: and the word SKIP exactly as written.)";
+                                    Brain.Language = "Spanish";
+                                    string spanishFirst = Glances.Ask(new System.Collections.Generic.List<string>()), spanishLater = Glances.Ask(glanceLines);
+                                    string spanishWatch = WatchAlong.Ask(new System.Collections.Generic.List<string>(), "Video", "The train left.", true), spanishWatchLater = WatchAlong.Ask(glanceLines, "Video", "The train left.", true);
+                                    Brain.Language = null;
+                                    string glanceEnglish = Glances.Ask(new System.Collections.Generic.List<string>()), watchEnglish = WatchAlong.Ask(new System.Collections.Generic.List<string>(), "Video", "The train left.", true);
+                                    Brain.Language = glanceTongueWas;
+                                    if (spanishFirst != Glances.Line + spanishSay || !spanishLater.EndsWith("make it SAY: SKIP.)" + spanishSay, StringComparison.Ordinal) || spanishWatch.IndexOf(spanishSay, StringComparison.Ordinal) < 0 || spanishWatchLater.IndexOf(spanishSay, StringComparison.Ordinal) < 0
+                                        || glanceEnglish != Glances.Line || watchEnglish.IndexOf("Write the SAY line", StringComparison.Ordinal) >= 0) throw new Exception("Her glance or watch-along ask didn't follow her language: " + spanishFirst + " / " + spanishWatch);
+                                    checks.Add("PASS glance language: with Spanish picked, her glance and watch-along asks, with or without her past lines, tell her to write the SAY line in Spanish and keep SAW, the labels and SKIP as written; English adds nothing");
                                     lastPrint = null;
                                     using (Bitmap wide = new Bitmap(2560, 1440))
                                     using (MemoryStream read = new MemoryStream(Jpeg(wide, 1280)))
@@ -25052,7 +25086,7 @@ namespace CapriDesktop
                             bool asksPlease, keptAsking, politeAsked, chatAsked, droppedAsked, forgotAsked;
                             Hands.Manners("open spotify", out asksPlease);
                             string pleaseIn = Hands.Manners("please", out keptAsking);
-                            bool heldRequest = asksPlease && !keptAsking && pleaseIn == "open spotify please";
+                            bool heldRequest = asksPlease && !keptAsking && pleaseIn == "open spotify";
                             Hands.Manners("open spotify please", out politeAsked);
                             Hands.Manners("how was your day", out chatAsked);
                             Hands.Manners("open spotify", out asksPlease);
@@ -25084,9 +25118,21 @@ namespace CapriDesktop
                             bool georgianFirst, georgianKept;
                             Hands.Manners("გახსენი Spotify", out georgianFirst);
                             string gtkhov = Hands.Manners("გთხოვ", out georgianKept);
-                            bool anyLanguage = germanAsked && !germanKept && bitte == "öffne Spotify please" && !germanPolite && !japanesePolite && !hindiPolite && !turkishPolite && arabicAsked && minFadlak == "افتح سبوتيفاي please" && !arabicKept
-                                && spellings && spelledFirst && !spelledKept && porfavor == "abre Spotify please" && burmeseFirst && !burmeseKept && kyayZuPyuPi == "Spotify ဖွင့်ပေး please"
-                                && georgianFirst && !georgianKept && gtkhov == "გახსენი Spotify please";
+                            bool anyLanguage = germanAsked && !germanKept && bitte == "öffne Spotify" && !germanPolite && !japanesePolite && !hindiPolite && !turkishPolite && arabicAsked && minFadlak == "افتح سبوتيفاي" && !arabicKept
+                                && spellings && spelledFirst && !spelledKept && porfavor == "abre Spotify" && burmeseFirst && !burmeseKept && kyayZuPyuPi == "Spotify ဖွင့်ပေး"
+                                && georgianFirst && !georgianKept && gtkhov == "გახსენი Spotify";
+                            // A misspelt please runs what she held as they said it, counts as manners in a request, and stays out of a message job.
+                            bool misspelt = true;
+                            foreach (string typo in new[] { "plsease", "pleas", "pls", "plz", "Pleeease!" })
+                            {
+                                bool typoFirst, typoKept;
+                                Hands.Manners("text hi to my alt on discord", out typoFirst);
+                                if (!typoFirst || Hands.Manners(typo, out typoKept) != "text hi to my alt on discord" || typoKept) misspelt = false;
+                            }
+                            bool typoPolite;
+                            Hands.Manners("text hi to my alt plsease", out typoPolite);
+                            bool unpleased = Hands.Unpleased("text hi to my alt on discord plsease") == "text hi to my alt on discord" && Hands.Unpleased("text my alt hi, pls!") == "text my alt hi" && Hands.Unpleased("dm him gg please capri") == "dm him gg"
+                                && Hands.Unpleased("text him meet me at the plaza") == "text him meet me at the plaza" && Hands.Unpleased("open spotify please") == "open spotify please" && Hands.Unpleased(null) == null;
                             Hear("open spotify");
                             bool askedInChat = reply == Hands.SayPlease;
                             CloseTalk();
@@ -25094,8 +25140,8 @@ namespace CapriDesktop
                             Hands.Manners("never mind", out droppedAsked);
                             bool rareAsked;
                             Hands.Manners("open spotify", out rareAsked);
-                            if (!heldRequest || politeAsked || chatAsked || !letGo || !askedInChat || rareAsked || !anyLanguage) throw new Exception("Say please went wrong: held " + heldRequest + ", polite " + politeAsked + ", chat " + chatAsked + ", let go " + letGo + ", asked in chat " + askedInChat + ", other rolls " + rareAsked + ", other languages " + anyLanguage);
-                            checks.Add("PASS say please: on a 1 in 10 roll a request without please gets Say please, a reply of please in any of her languages (bitte, من فضلك) runs the request, polite asks in any of her languages and plain chat never get it, and moving on drops the held request");
+                            if (!heldRequest || politeAsked || chatAsked || !letGo || !askedInChat || rareAsked || !anyLanguage || !misspelt || typoPolite || !unpleased) throw new Exception("Say please went wrong: held " + heldRequest + ", polite " + politeAsked + ", chat " + chatAsked + ", let go " + letGo + ", asked in chat " + askedInChat + ", other rolls " + rareAsked + ", other languages " + anyLanguage + ", misspelt " + misspelt + ", misspelt polite " + typoPolite + ", out of messages " + unpleased);
+                            checks.Add("PASS say please: on a 1 in 10 roll a request without please gets Say please, a reply of please in any of her languages (bitte, من فضلك) or misspelt (plsease, pleas, pls, plz) runs the request as they said it, polite asks in any of her languages and plain chat never get it, moving on drops the held request, and a please on the end of a message job stays out of the message");
                             SetVolume(150);
                             if (Voice.Louder(new short[] { 30000 })[0] != 32767) throw new Exception("A loud voice was not clipped.");
                             SetVolume(100);
@@ -29007,6 +29053,16 @@ namespace CapriDesktop
                             ears.Muted = false;
                             if (captures != 1) throw new Exception("A voice chat with the mic muted stopped her glancing.");
                             captures = 0;
+                            // Listen for Capri's open ears aren't a chat, so they don't pause her glances.
+                            bool glanceListenWas = preferences.ListenCapri, glanceLocalWas = local;
+                            nextGlance = 1000;
+                            chatting = local = preferences.ListenCapri = true;
+                            CheckGlance(1000, 130000);
+                            chatting = false;
+                            local = glanceLocalWas;
+                            preferences.ListenCapri = glanceListenWas;
+                            if (captures != 1) throw new Exception("Listen for Capri's open ears stopped her glancing.");
+                            captures = 0;
                             nextGlance = 1000;
                             Play(sleep);
                             CheckGlance(1000, 130000);
@@ -29046,7 +29102,7 @@ namespace CapriDesktop
                             lastPrint = new byte[64 * 36 * 3];
                             FinishGlance(asking, watchTicket, null, "Couldn't read the screen. I'll try again.");
                             if (reply != null || lastPrint != null || mainframe.Status.IndexOf("Couldn't read the screen.", StringComparison.Ordinal) < 0) throw new Exception("A failed vision request did not allow a retry or show its reason.");
-                            checks.Add("PASS glance gates: watch, busy, hidden, dragging, typing, voice chat with the mic on, a game she's playing, talk states, unsighted models and 10 minutes away pause capture; her sleep pose and a muted voice chat do not; black frames stay local; failures retry; stopped or interrupted glances stay silent");
+                            checks.Add("PASS glance gates: watch, busy, hidden, dragging, typing, voice chat with the mic on, a game she's playing, talk states, unsighted models and 10 minutes away pause capture; her sleep pose, a muted voice chat and Listen for Capri's open ears do not; black frames stay local; failures retry; stopped or interrupted glances stay silent");
                             Grab = delegate(Rectangle place)
                             {
                                 Bitmap shot = new Bitmap(place.Width, place.Height, PixelFormat.Format24bppRgb);
@@ -29109,6 +29165,38 @@ namespace CapriDesktop
                             if (!System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a dungeon with a closed treasure chest\. She stayed quiet\.\*\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a treasure chest next to their character\.\*\n\*\*\d\d:\d\d Capri:\*\* Don't skip that chest\.\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She looked at your screen: A code editor with a red error on line 12\.\*\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a world map with three quest markers\. She stayed quiet\.\*\n") || glanceDay.IndexOf("a settings menu", StringComparison.Ordinal) >= 0) throw new Exception("Her glances and looks didn't reach her transcript the right way: " + glanceDay);
                             Brain.Unsee();
                             checks.Add("PASS screen memory: a spoken glance goes in her chat as what she saw plus her line, a look they asked for is kept too, and Remember what she sees (on by default, saved) decides whether glances she stays quiet about are kept");
+                            // Her spoken glances follow Every: twice its gap apart and never more than a minute, with Listen for Capri's ears open too.
+                            CloseTalk();
+                            double gapNow = clock.Elapsed.TotalSeconds;
+                            bool gapListenWas = preferences.ListenCapri, gapLocalWas = local;
+                            preferences.GlanceGap = 10;
+                            glanced.Clear();
+                            glanced.Add(Tuple.Create(gapNow - 15, "That chest is bait."));
+                            FinishGlance(asking, watchTicket, "Those lava pools look nasty.", null);
+                            bool gapHeld = glanced.Count == 1;
+                            glanced[0] = Tuple.Create(gapNow - 21, "That chest is bait.");
+                            chatting = local = preferences.ListenCapri = true;
+                            FinishGlance(asking, watchTicket, "Those lava pools look nasty.", null);
+                            chatting = false;
+                            local = gapLocalWas;
+                            preferences.ListenCapri = gapListenWas;
+                            bool gapSaid = glanced.Count == 2 && glanced[1].Item2 == "Those lava pools look nasty." && heard == "watching";
+                            CloseTalk();
+                            preferences.GlanceGap = 600;
+                            glanced.Clear();
+                            glanced.Add(Tuple.Create(gapNow - 59, "That chest is bait."));
+                            FinishGlance(asking, watchTicket, "A bridge over the lava, finally.", null);
+                            bool minuteHeld = glanced.Count == 1;
+                            glanced[0] = Tuple.Create(gapNow - 61, "That chest is bait.");
+                            FinishGlance(asking, watchTicket, "A bridge over the lava, finally.", null);
+                            bool minuteSaid = glanced.Count == 2;
+                            CloseTalk();
+                            preferences.GlanceGap = 15;
+                            bool fifteenGap = GlanceTalkGap == 30;
+                            preferences.GlanceGap = 0;
+                            bool unsetGap = GlanceTalkGap == 60;
+                            if (!gapHeld || !gapSaid || !minuteHeld || !minuteSaid || !fifteenGap || !unsetGap) throw new Exception("Her spoken glances didn't follow Every: held at 15 s " + gapHeld + ", said at 21 s with Listen for Capri on " + gapSaid + ", held at 59 s on 10 min " + minuteHeld + ", said at 61 s " + minuteSaid + ", 15 s " + fifteenGap + ", unset " + unsetGap);
+                            checks.Add("PASS glance talk gap: on Every 10 s a glance 15 s after her last line stays quiet and one 21 s after is said, Listen for Capri's ears open; on 10 min she waits a minute, not longer; 15 s spaces lines 30 s and unset a minute");
                             resetGlance();
                             resetGlance = null;
                             heard = "Hello Capri.";
