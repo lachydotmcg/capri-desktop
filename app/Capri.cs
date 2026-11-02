@@ -463,7 +463,9 @@ namespace CapriDesktop
         [DataMember] public bool ListenCapriTold;
         [DataMember] public bool NoDance;
         [DataMember] public bool NoHeadPats;
-        [DataMember] public bool NoUpsetChaos;
+        // Off until they turn it on (Lachy, 2 Nov: "Chaos when upset can be off by default"). It replaced NoUpsetChaos, which
+        // was on by default, so everyone starts with it off.
+        [DataMember] public bool UpsetChaos;
         [DataMember] public string Language;
         [DataMember] public string Nickname;
         [DataMember] public int Wordiness;
@@ -4784,11 +4786,11 @@ namespace CapriDesktop
             mainframe.Sync();
         }
 
-        internal bool UpsetChaos { get { return !preferences.NoUpsetChaos; } }
+        internal bool UpsetChaos { get { return preferences.UpsetChaos; } }
 
         internal void ToggleUpsetChaos()
         {
-            preferences.NoUpsetChaos = !preferences.NoUpsetChaos;
+            preferences.UpsetChaos = !preferences.UpsetChaos;
             SavePreferences();
             mainframe.Sync();
         }
@@ -11181,12 +11183,13 @@ namespace CapriDesktop
                     throw new Exception("Holding Esc didn't clear " + clonesCrowd + " clones on time: " + clonesTook + " ms.");
                 if (Clone("stop", 0) != "I don't have any clones out.") throw new Exception("Clearing no clones said the wrong thing.");
                 Func<string> upsetOpenWas = Computer.GameOpen;
+                bool upsetChaosWas = preferences.UpsetChaos;
                 try
                 {
                     Computer.GameOpen = delegate { return null; };
-                    preferences.NoUpsetChaos = true;
+                    preferences.UpsetChaos = false;
                     bool upsetSwitched = Upset(0);
-                    preferences.NoUpsetChaos = false;
+                    preferences.UpsetChaos = true;
                     Computer.GameOpen = delegate { return "Roblox"; };
                     bool upsetGaming = Upset(0);
                     Computer.GameOpen = delegate { return null; };
@@ -11208,7 +11211,7 @@ namespace CapriDesktop
                     if (!Upset(0) || cloneWindow == null) throw new Exception("A lucky first insult didn't set her clones off.");
                     ClonesOff();
                 }
-                finally { Computer.GameOpen = upsetOpenWas; preferences.NoUpsetChaos = false; Computer.Streaming = false; working = null; hidden = false; ClonesOff(); }
+                finally { Computer.GameOpen = upsetOpenWas; preferences.UpsetChaos = upsetChaosWas; Computer.Streaming = false; working = null; hidden = false; ClonesOff(); }
                 checks.Add("PASS clones: \"clone yourself\" multiplies with no set limit, a number makes exactly that many, growth waits while the PC can't draw, they walk, drag notes in, fake a delete and own up, and steal the cursor; Esc is read in real time, so a tap says to hold it and a 0.7 s hold clears 400 of them on time; an insult sets them off by the third time, never with the switch off or over a job, a game, a stream or while she's hidden");
                 napReset();
                 Play(sleep);
@@ -25623,10 +25626,16 @@ namespace CapriDesktop
                             if (HeadPats || mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them off.");
                             ToggleHeadPats();
                             if (!HeadPats || !mainframe.HeadPatsShown) throw new Exception("The Head pats switch did not turn them back on.");
+                            // Chaos when upset starts off, even for settings saved back when it was on by default (Lachy, 2 Nov).
+                            Preferences upsetOld;
+                            using (MemoryStream upsetSaved = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"NoUpsetChaos\":false}")))
+                                upsetOld = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(upsetSaved);
+                            if (new Preferences().UpsetChaos || upsetOld.UpsetChaos) throw new Exception("Chaos when upset didn't start off.");
+                            bool upsetWas = UpsetChaos;
                             ToggleUpsetChaos();
-                            if (UpsetChaos || mainframe.UpsetChaosShown) throw new Exception("The Chaos when upset switch did not turn it off.");
+                            if (UpsetChaos == upsetWas || mainframe.UpsetChaosShown == upsetWas) throw new Exception("The Chaos when upset switch did not flip.");
                             ToggleUpsetChaos();
-                            if (!UpsetChaos || !mainframe.UpsetChaosShown) throw new Exception("The Chaos when upset switch did not turn it back on.");
+                            if (UpsetChaos != upsetWas || mainframe.UpsetChaosShown != upsetWas) throw new Exception("The Chaos when upset switch did not flip back.");
                             SetVolume(50);
                             SetSoundLevel(30);
                             SetSleepAfter(600);

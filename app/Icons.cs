@@ -503,6 +503,7 @@ namespace CapriDesktop
         private IconMischief iconChaos;
         private readonly Timer iconTimer = new Timer();
         private double iconActAt = -1;
+        private bool iconFirst;
 
         private void IconTick(object sender, EventArgs e)
         {
@@ -519,16 +520,20 @@ namespace CapriDesktop
             IconChaosTick(now);
         }
 
-        // One of chaos mode's random acts: now and then while her clones are out, she scatters or vanishes the desktop icons.
+        // One of chaos mode's random acts while her clones are out. Her first go comes about 5 seconds in, every time, and slides
+        // some icons about (Lachy, 2 Nov: "start stealing icons after like 5 seconds"). After that she has a 1 in 3 chance every
+        // 30 to 70 seconds to scatter or vanish them. Every icon still goes back.
         private void IconChaosTick(double now)
         {
             if (testing || cloneWindow == null || iconChaos != null) return;
             if (working != null || hidden || Computer.Streaming || Computer.GameOpen() != null) return;
-            if (iconActAt < 0) { iconActAt = now + 22 + random.NextDouble() * 26; return; }
+            if (iconActAt < 0) { iconActAt = now + 4 + random.NextDouble() * 2; iconFirst = true; return; }
             if (now < iconActAt) return;
             iconActAt = now + 30 + random.NextDouble() * 40;
-            if (random.Next(3) != 0) return;
-            StartIconChaos(random.Next(3) == 0);
+            bool first = iconFirst;
+            iconFirst = false;
+            if (!first && random.Next(3) != 0) return;
+            StartIconChaos(!first && random.Next(3) == 0);
         }
 
         private bool StartIconChaos(bool hideOnly)
@@ -549,7 +554,7 @@ namespace CapriDesktop
             IconMischief gag = iconChaos;
             iconChaos = null;
             iconTimer.Stop();
-            // The next chaos session gets its own 22 to 48 second wait before her first go at the icons.
+            // The next chaos session gets its own first go at the icons, about 5 seconds in.
             iconActAt = -1;
             if (gag != null) { try { gag.PutBack(); } catch (Exception problem) { Brain.Log("icons", -1, problem.Message); } }
         }
