@@ -144,6 +144,9 @@ namespace CapriDesktop
                 return new HearingStatus(IntPtr.Size == 8 ? "Her ears don't know this language yet" : "Her ears need 64-bit Windows", true, HearingAction.Windows);
             if (!HearingLink && HearingChoice != 2 && hearingInstallProblem != null && !OwnEars && !settingUpEars)
                 return new HearingStatus("Her ears didn't download: " + HearingStatus.Reason(hearingInstallProblem), true, HearingAction.Own, HearingAction.Windows);
+            // VB-CABLE's output as Windows' default mic isn't Windows speech failing: she hears their real mic offline, and VOICE
+            // gives the whole reason. The line names the cable, so they know which default to change.
+            if (!HearingLink && hearingSpeechProblem == CableDefault) return new HearingStatus("Hearing offline: your default mic is CABLE Output", false, HearingAction.Sound);
             if (!HearingLink && hearingSpeechProblem != null)
             {
                 if (hearingSpeechProblem == Dictation.PrivacyOff)

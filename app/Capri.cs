@@ -2040,6 +2040,7 @@ namespace CapriDesktop
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             voice.Key = Voice.Unprotect(preferences.VoiceKey);
             Hands.Look = LookAt;
+            Hands.LookOn = LookAt;
             Hands.ReadFile = brain.ReadFile;
             Hands.Work = RunJob;
             Hands.Plan = reminders.Route;
@@ -2057,6 +2058,15 @@ namespace CapriDesktop
             // Her brain reads and flips her own switches, and sees which open windows are games, only when it asks.
             Hands.SettingOn = SettingOn;
             Hands.SetSetting = SetSetting;
+            Hands.LevelOf = LevelOf;
+            Hands.SetLevel = SetLevel;
+            // Pause, play, skip and what's playing go by Windows' media session. The smoke test keeps its own, so no check reads or
+            // presses their real player.
+            if (!testing)
+            {
+                Hands.Sessions = delegate { return Tunes.Shared(); };
+                Hands.SessionPress = delegate(Tune tune, string what) { return Tunes.Send(tune, what); };
+            }
             Hands.Gamey = Computer.IsGame;
             Hands.Icons = IconTool;
             Hands.Upset = UpsetTool;
@@ -7164,12 +7174,23 @@ namespace CapriDesktop
             });
         }
 
-        private string LookAt(string focus)
+        private string LookAt(string focus) { return LookAt(focus, null); }
+
+        // A look at the monitor they named, or with none named, the one with their window in front (Lachy, 3 Nov: three monitors).
+        private string LookAt(string focus, string which)
         {
             string blind = Unseeing();
             if (blind != null) return blind;
+            Rectangle area = Rectangle.Empty;
+            string named = null;
+            if (!string.IsNullOrWhiteSpace(which))
+            {
+                IntPtr front = Native.GetForegroundWindow();
+                string missing = Arrange.LookArea(which, front != IntPtr.Zero && Control.FromHandle(front) == null ? front : IntPtr.Zero, out area, out named);
+                if (missing != null) return missing;
+            }
             byte[] shot;
-            using (Bitmap screen = InvokeRequired ? (Bitmap)Invoke(new Func<Bitmap>(CaptureScreen)) : CaptureScreen())
+            using (Bitmap screen = !area.IsEmpty ? (InvokeRequired ? (Bitmap)Invoke(new Func<Rectangle, Bitmap>(CaptureScreen), area) : CaptureScreen(area)) : InvokeRequired ? (Bitmap)Invoke(new Func<Bitmap>(CaptureScreen)) : CaptureScreen())
             {
                 if (screen == null) return BlackScreen;
                 shot = Jpeg(screen, 1280);
@@ -7187,7 +7208,7 @@ namespace CapriDesktop
             }
             if (seen.Length == 0) return "I looked, but couldn't make out your screen clearly enough to describe it.";
             brain.Saw(seen, null, true);
-            return "You looked at their screen. You see: " + seen;
+            return "You looked at " + (named ?? "their screen") + ". You see: " + seen;
         }
 
         // Voice chat pauses her glances only while their mic is on. Muted, she keeps commenting on their screen, and Listen for
@@ -8057,6 +8078,16 @@ namespace CapriDesktop
                 case "hologram": return preferences.Hologram;
                 case "watch_my_screen": return preferences.Watch;
                 case "game_comments": return CommentPace != Commentary.Off;
+                case "dance_to_music": return Dancing;
+                case "head_pats": return HeadPats;
+                case "chaos_when_upset": return UpsetChaos;
+                case "sit_on_windows": return Sitting;
+                case "always_on_top": return OnTop;
+                case "mini_player": return PlayerOn;
+                case "typing_sound": return TypingSound;
+                case "follow_ups": return FollowUps;
+                case "hide_in_full_screen": return HideFullScreen;
+                case "glitch_in": return Intro;
                 default: return null;
             }
         }
@@ -8081,8 +8112,69 @@ namespace CapriDesktop
                 case "hologram": return HologramTool(on ? "on" : "off");
                 case "watch_my_screen": ToggleWatch(); return null;
                 case "game_comments": SetCommentPace(on ? Commentary.Events : Commentary.Off); mainframe.Sync(); return null;
+                case "dance_to_music": ToggleDance(); return null;
+                case "head_pats": ToggleHeadPats(); return null;
+                case "chaos_when_upset": ToggleUpsetChaos(); return null;
+                case "sit_on_windows": ToggleSitting(); return null;
+                case "always_on_top": ToggleOnTop(); return null;
+                case "mini_player": TogglePlayer(); return null;
+                case "typing_sound": ToggleTyping(); return null;
+                case "follow_ups": ToggleFollowUps(); return null;
+                case "hide_in_full_screen": ToggleHideFullScreen(); return null;
+                case "glitch_in": ToggleIntro(); return null;
                 default: return null;
             }
+        }
+
+        // Her sliders' steps for her settings tool, the same ones her Mainframe's sliders stop on.
+        internal static readonly int[] OwnSizes = { 140, 170, 200, 240, 280, 320, 380, 440, 500, 560 };
+        internal static readonly int[] OwnSleeps = { 0, 60, 120, 300, 600, 1800 };
+        internal static readonly int[] OwnVolumes = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+        internal static readonly int[] OwnPaces = { 70, 80, 90, 100, 110, 120, 130, 140, 150 };
+
+        private static int Nearest(int[] steps, int value)
+        {
+            int near = 0;
+            for (int i = 0; i < steps.Length; i++) if (Math.Abs(steps[i] - value) < Math.Abs(steps[near] - value)) near = i;
+            return near;
+        }
+
+        // Which step one of her sliders is on, read the way her Mainframe shows it.
+        private int LevelOf(string name)
+        {
+            if (InvokeRequired) return (int)Invoke(new Func<string, int>(LevelOf), name);
+            switch (name)
+            {
+                case "size": return Nearest(OwnSizes, CharacterSize);
+                case "wander": return WanderLevel;
+                case "pop_ins": return Math.Max(0, Math.Min(2, PopPace));
+                case "sleep": return Nearest(OwnSleeps, SleepAfter);
+                case "volume": return Nearest(OwnVolumes, Volume);
+                case "voice_speed": return Nearest(OwnPaces, VoiceSpeed);
+                case "replies": return Wordiness;
+                case "bubble": return BubbleTime;
+                default: return -1;
+            }
+        }
+
+        // Moves one of her sliders the way the slider in her Mainframe does, and shows it there, without her line about it.
+        private string SetLevel(string name, int step)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, int, string>(SetLevel), name, step);
+            switch (name)
+            {
+                case "size": SetCharacterSize(OwnSizes[Math.Max(0, Math.Min(OwnSizes.Length - 1, step))]); break;
+                case "wander": SetWanderLevel(step); break;
+                case "pop_ins": SetPopPace(step); break;
+                case "sleep": SetSleepAfter(OwnSleeps[Math.Max(0, Math.Min(OwnSleeps.Length - 1, step))]); break;
+                case "volume": SetVolume(OwnVolumes[Math.Max(0, Math.Min(OwnVolumes.Length - 1, step))]); break;
+                case "voice_speed": SetVoiceSpeed(OwnPaces[Math.Max(0, Math.Min(OwnPaces.Length - 1, step))]); break;
+                case "replies": SetWordiness(step); break;
+                case "bubble": SetBubbleTime(step); break;
+                default: return null;
+            }
+            if (mainframe != null) mainframe.Sync();
+            return null;
         }
 
         internal bool HologramOn { get { return preferences.Hologram; } }
@@ -19065,16 +19157,20 @@ namespace CapriDesktop
             Func<string, bool> existsWas = Hands.Exists;
             Func<string, bool?> settingWas = Hands.SettingOn;
             Func<string, bool, string> setWas = Hands.SetSetting;
+            Func<string, int> levelWas = Hands.LevelOf;
             Action<byte> pressWas = Hands.Press;
             Func<double?> volumeWas = Hands.VolumeNow;
             Func<bool?> muteWas = Hands.MuteState;
             Func<OpenWindow, string, bool> steerWas = Hands.Steer;
+            Func<string> monitorsWas = Hands.Monitors;
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
             System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>(), reached = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener fake = null;
             try
             {
+                // Their monitors have their own check (SmokeWindowTool), so this desk has one.
+                Hands.Monitors = delegate { return ""; };
                 OpenWindow discord = new OpenWindow(new IntPtr(12), "#general | Capri Fans - Discord   with a title that runs on far too long, and longer", "Discord");
                 System.Collections.Generic.List<OpenWindow> open = new System.Collections.Generic.List<OpenWindow>
                 {
@@ -19142,10 +19238,13 @@ namespace CapriDesktop
                 System.Collections.Generic.Dictionary<string, bool?> state = new System.Collections.Generic.Dictionary<string, bool?>
                 {
                     { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false },
-                    { "watch_my_screen", false }, { "game_comments", true }
+                    { "watch_my_screen", false }, { "game_comments", true },
+                    { "dance_to_music", true }, { "head_pats", true }, { "chaos_when_upset", false }, { "sit_on_windows", true }, { "always_on_top", true }, { "mini_player", true }, { "typing_sound", false }, { "follow_ups", true }, { "hide_in_full_screen", false }, { "glitch_in", true }
                 };
                 System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
                 Hands.SettingOn = delegate(string name) { return state[name]; };
+                // Her sliders have their own check (SmokeSettingsTool); here each sits on a fixed step.
+                Hands.LevelOf = delegate(string name) { return Array.IndexOf(new[] { "pop_ins", "replies", "bubble" }, name) >= 0 ? 1 : name == "size" ? 3 : name == "wander" ? 0 : name == "sleep" ? 3 : name == "volume" ? 8 : name == "voice_speed" ? 5 : -1; };
                 Hands.SetSetting = delegate(string name, bool on)
                 {
                     flipped.Add(name + (on ? " on" : " off"));
@@ -19157,7 +19256,9 @@ namespace CapriDesktop
                 string silent = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "voice" }), deaf = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "mic" });
                 string stuck = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "wander" }), gaming = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "gaming_mode" });
                 string uncommented = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
-                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; Watch my screen off; Game comments on."
+                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; Watch my screen off; Game comments on; "
+                    + "Dance to music on; Head pats on; Chaos when upset off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; "
+                    + "my size: Medium; Wander: Off; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal."
                     || uncommented != "Turned Game comments off."
                     || clipped != "Turned Clip my games on." || again != "Clip my games was already on." || silent != "Turned my voice off." || deaf != "Couldn't change my voice chat mic: voice chat isn't on."
                     || stuck != "Couldn't turn Wander on: it's still off." || gaming != "Turned Gaming Mode off. Gaming Mode off." || string.Join(",", flipped.ToArray()) != "clip_my_games on,voice off,wander on,gaming_mode off,game_comments off" || !Hands.Failed(stuck) || !Hands.Failed(deaf))
@@ -19251,10 +19352,12 @@ namespace CapriDesktop
                 Hands.Exists = existsWas;
                 Hands.SettingOn = settingWas;
                 Hands.SetSetting = setWas;
+                Hands.LevelOf = levelWas;
                 Hands.Press = pressWas;
                 Hands.VolumeNow = volumeWas;
                 Hands.MuteState = muteWas;
                 Hands.Steer = steerWas;
+                Hands.Monitors = monitorsWas;
                 Hands.GameOpen = gameWas;
                 Hands.Forget();
                 Computer.GameOpen = openWas;
@@ -19295,8 +19398,9 @@ namespace CapriDesktop
                 string wanted = "Turned Clip my games on. | Turned Save big moments on. | Turned Clip my games off. | Turned Live reactions off. | Turned Check in on me off. | Turned Wander on. | Turned Quiet on. | Turned Quiet off. | Turned my voice off. | Turned my voice on. | "
                     + "Turned Hologram mode on. Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off. | Turned Hologram mode off. Hologram mode off. You can click me again." + (calling ? "" : " | Couldn't change my voice chat mic: voice chat isn't on.");
                 string joined = string.Join(" | ", said.ToArray());
-                if (listed != "How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off; Watch my screen " + (preferences.Watch ? "on" : "off") + "; Game comments " + (CommentPace != Commentary.Off ? "on" : "off") + "."
-                    || joined != wanted || preferences.ClipGames || preferences.ClipMoments || !preferences.NoReactions || preferences.CheckIns || !preferences.Wander || shushed || preferences.Silent || preferences.Hologram || asking != askingWas)
+                // Her other switches and sliders have their own check (SmokeOwnSliders).
+                if (!listed.StartsWith("How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off; Watch my screen " + (preferences.Watch ? "on" : "off") + "; Game comments " + (CommentPace != Commentary.Off ? "on" : "off") + "; ", StringComparison.Ordinal)
+                    || !listed.Contains("; Wander: Off; ") || !listed.EndsWith(".", StringComparison.Ordinal) || joined != wanted || preferences.ClipGames || preferences.ClipMoments || !preferences.NoReactions || preferences.CheckIns || !preferences.Wander || shushed || preferences.Silent || preferences.Hologram || asking != askingWas)
                     throw new Exception("Her settings tool didn't flip her real switches quietly: " + listed + " / " + joined + " / asking moved " + (asking - askingWas));
                 checks.Add("PASS her settings tool flips Clip my games, Save big moments, live reactions, Check in on me, Wander, Quiet, her voice and hologram mode the way their own switches do, says her voice chat mic needs voice chat, reads each one back, and never cuts off the reply her brain is writing");
             }
@@ -23558,6 +23662,16 @@ namespace CapriDesktop
             Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
             Section(checks, "SmokePlannerChecks", delegate { SmokePlannerChecks(checks); });
             Section(checks, "SmokeOwnSettings", delegate { SmokeOwnSettings(checks); });
+            Section(checks, "SmokeWindowTool", delegate { SmokeWindowTool(checks); });
+            Section(checks, "SmokeWindowReal", delegate { SmokeWindowReal(checks); });
+            Section(checks, "SmokeSettingsTool", delegate { SmokeSettingsTool(checks); });
+            Section(checks, "SmokeOwnSliders", delegate { SmokeOwnSliders(checks); });
+            Section(checks, "SmokeEverydayAsks", delegate { SmokeEverydayAsks(checks); });
+            Section(checks, "SmokeAppVolume", delegate { SmokeAppVolume(checks); });
+            Section(checks, "SmokePcStatus", delegate { SmokePcStatus(checks); });
+            Section(checks, "SmokeInternetStatus", delegate { SmokeInternetStatus(checks); });
+            Section(checks, "SmokeOpensOnce", delegate { SmokeOpensOnce(checks); });
+            Section(checks, "SmokeHelpForTools", delegate { SmokeHelpForTools(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
             Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
@@ -33754,14 +33868,16 @@ namespace CapriDesktop
                                 Func<string> cableNameWas = Ears.DefaultName;
                                 int cableDictations = 0;
                                 bool cableSkipped;
-                                string cableStatus;
+                                string cableStatus, cableHearing;
                                 try
                                 {
                                     Ears.DefaultName = delegate { return "CABLE Output (VB-Audio Virtual Cable)"; };
                                     Dictation.Make = delegate { cableDictations++; return new StandInDictation(); };
                                     StartLocal();
                                     cableStatus = mainframe.VoiceStatus;
-                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0;
+                                    cableHearing = hearingStatus.Text;
+                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0
+                                        && !hearingStatus.Problem && cableHearing.IndexOf("CABLE Output", StringComparison.Ordinal) >= 0;
                                     StopChat();
                                     Ears.DefaultName = delegate { return "Microphone (stand-in)"; };
                                     StartLocal();
@@ -33773,8 +33889,8 @@ namespace CapriDesktop
                                     Ears.DefaultName = cableNameWas;
                                     if (chatting) StopChat();
                                 }
-                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus);
-                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why; any other default opens it as before");
+                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus + " / " + cableHearing);
+                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why under VOICE, and her hearing line names the cable without calling it a failure; any other default opens it as before");
                             });
                             if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
@@ -34708,6 +34824,9 @@ namespace CapriDesktop
                             if (!failedEars) throw new Exception("An offline hearing failure was swallowed.");
                             checks.Add("PASS offline hearing: it gets the mic's raw 16 kHz samples and passes failures on");
                             Hearing.Run = delegate(short[] samples) { lock (earsLog) earsLog.Add("empty " + samples.Length / Ears.Chunk); return "  "; };
+                            // A note about her ears never cuts into a reply she's still saying, so the typed reply above ends first,
+                            // as it would have by then. On GitHub's runner it was sometimes still typing when the empty result came.
+                            CloseTalk();
                             earsWarned = -10;
                             ears.Feed(hush);
                             ears.Feed(talk);
@@ -34723,7 +34842,8 @@ namespace CapriDesktop
                             if (transcribing) return;
                             string log;
                             lock (earsLog) log = string.Join(" | ", earsLog.ToArray());
-                            if (log != "think What's up, choom? | empty 15" || !local || earsShut || reply != "I couldn't make out any words. Try again closer to the mic." || mainframe.VoiceStatus.IndexOf("I couldn't make out any words.", StringComparison.Ordinal) != 0) throw new Exception("An empty transcript vanished or reached her brain: " + log);
+                            if (log != "think What's up, choom? | empty 15" || !local || earsShut || reply != "I couldn't make out any words. Try again closer to the mic." || mainframe.VoiceStatus.IndexOf("I couldn't make out any words.", StringComparison.Ordinal) != 0)
+                                throw new Exception("An empty transcript vanished or reached her brain: " + log + " / local " + local + ", shut " + earsShut + ", talk " + talkState + ", reply " + reply + ", voice " + mainframe.VoiceStatus);
                             int notice = asking;
                             Missed("I couldn't make out any words. Try again closer to the mic.", false);
                             if (asking != notice) throw new Exception("Repeated noise kept restarting her warning bubble.");
@@ -36070,17 +36190,19 @@ namespace CapriDesktop
                     + ", windows speech " + (dictation != null) + ", noise hold " + noiseHold + ", room " + room.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + ", asking " + asking + ", chat ticket " + chatTicket;
             };
             // She says her check line through each new voice first, so each line waits for it to finish. On GitHub's runner the
-            // line can start after the first 1.5 s, and talking over it is a different check.
+            // line can start after the first 1.5 s, and talking over it is a different check. Her ears stay shut until the next
+            // tick after her voice ends, so the line waits for that too.
             Action<string> switchHeard = delegate(string what)
             {
                 switchPump(delegate { return false; }, 1500);
-                switchPump(delegate { return talkState != TalkState.Thinking && !StillSaying; }, 6000);
+                switchPump(delegate { return talkState != TalkState.Thinking && !StillSaying && !earsShut; }, 6000);
+                bool shutAtLine = earsShut;
                 int before = switchCalls;
                 for (int lineAt = 0; lineAt < 4; lineAt++) Gather(switchWave(0));
                 for (int lineAt = 0; lineAt < 8; lineAt++) Gather(switchWave(lineAt % 2 == 0 ? 14000 : 20000));
                 for (int lineAt = 0; lineAt < 12; lineAt++) Gather(switchWave(0));
                 switchPump(delegate { return switchCalls > before; }, 5000);
-                if (switchCalls == before) throw new Exception("Her ears stopped hearing after " + what + ": " + switchState());
+                if (switchCalls == before) throw new Exception("Her ears stopped hearing after " + what + ": shut at the line " + shutAtLine + ", " + switchState());
             };
             try
             {
