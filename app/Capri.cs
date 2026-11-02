@@ -15927,6 +15927,14 @@ namespace CapriDesktop
                 if (sent[0].Contains("draw a star") || !sent[1].Contains("draw a star and open Spotify") || !sent[1].Contains("drawing on their screen") || sent[1].Contains("\"name\":\"draw\"") || !sent[1].Contains("\"name\":\"open_app\""))
                     throw new Exception("Her hands were handed what she can't do, or her planner didn't get all of it with the missing tools left out.");
                 checks.Add("PASS a mixed ask where something isn't here, like \"draw a star and open Spotify\" on a Mac, opens Spotify and then says drawing is Windows-only: her hands only get the part she can do, a brain that works jobs out gets all of it with drawing left out of its tools, the bits that ask for nothing stay with their ask, and an ask for something missing on its own, or only for missing things, still gets her line up front");
+                // A small brain writing the same call over and over until it runs out of room opens it once (Bende, 3 Nov: YouTube
+                // opened about 20 times), and media's next can still go twice.
+                string playCall = "play_music{\"song\":\"Numb\",\"app\":\"youtube\"}", siteCall = "open_website{\"site\":\"https://open.spotify.com\"}", nextCall = "media{\"action\":\"next\"}";
+                var repeated = Hands.Written(string.Join("\n", new[] { playCall, playCall, nextCall, playCall, siteCall, nextCall, siteCall }));
+                Brain.Once(repeated);
+                string kept = string.Join(",", repeated.ConvertAll(repeatedCall => repeatedCall.Key).ToArray());
+                if (kept != "play_music,media,open_website,media") throw new Exception("A call written over and over ran more than once, or media's repeats were dropped: " + kept);
+                checks.Add("PASS a brain that writes the same play_music or open_website call over and over runs it once, and media's next can still go twice");
             }
             finally
             {

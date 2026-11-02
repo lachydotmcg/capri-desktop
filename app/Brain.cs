@@ -2106,9 +2106,9 @@ namespace CapriDesktop
                     if (call.Key == "use_computer" && args.Asked == null) args.Asked = request;
                     if (call.Key == "app_window") args.Asked = request;
                     if (call.Key == "media") Hands.Aim(args, request);
-                    // The same job, app, site or song twice runs once: a small brain can call a job again that it thinks is still going,
-                    // and one stuck repeating itself can call the same open over and over. Media can go twice, like skipping two songs.
-                    int again = call.Key == "use_computer" || Opens(call.Key) ? calls.FindIndex(done => done.Key == call.Key && Written(done.Key, done.Value).ToLowerInvariant() == Written(call.Key, args).ToLowerInvariant()) : -1;
+                    // The same job, app, site or song twice runs once, whatever its case: a small brain can call a job again that it
+                    // thinks is still going, or write the same call over and over. Media can go twice, like skipping two songs.
+                    int again = OpensOnce(call.Key) ? calls.FindIndex(done => done.Key == call.Key && Written(done.Key, done.Value).ToLowerInvariant() == Written(call.Key, args).ToLowerInvariant()) : -1;
                     if (again >= 0)
                     {
                         did.Add(Written(call.Key, args));
@@ -2167,29 +2167,30 @@ namespace CapriDesktop
             else unable = kit.Unable("use_computer", null);
         }
 
-        // A call written the way her text-only brains write them, without the empty fields: open_app{"name":"Steam"}.
-        private static string Written(string tool, ToolArguments args)
-        {
-            string json = Regex.Replace(Encoding.UTF8.GetString(Json(args)), "\"[a-z_]+\":null,?", "");
-            return tool + Regex.Replace(json, ",}$", "}");
-        }
+        // A small brain can write the same call over and over until it runs out of room (Bende, 3 Nov: YouTube opened about
+        // 20 times). Opening the same job, app, site or song twice in one turn is never wanted, so an exact repeat runs once.
+        internal static bool OpensOnce(string tool) { return tool == "use_computer" || tool == "open_app" || tool == "open_website" || tool == "play_music"; }
 
-        // A call that opens something: an app, a site or a song.
-        private static bool Opens(string tool) { return tool == "open_app" || tool == "open_website" || tool == "play_music"; }
-
-        // Keeps the first call that opens each app, site or song and drops its repeats, in order. Every other call stays, so media
-        // can still skip two songs.
+        // Keeps the first of each and drops its repeats, in order, whatever their case ("Spotify" then "spotify"). Every other call
+        // stays, so media can still skip two songs.
         internal static void Once(List<KeyValuePair<string, ToolArguments>> calls)
         {
             List<string> seen = new List<string>();
             calls.RemoveAll(delegate(KeyValuePair<string, ToolArguments> call)
             {
-                if (!Opens(call.Key)) return false;
+                if (!OpensOnce(call.Key)) return false;
                 string written = Written(call.Key, call.Value ?? new ToolArguments()).ToLowerInvariant();
                 if (seen.Contains(written)) return true;
                 seen.Add(written);
                 return false;
             });
+        }
+
+        // A call written the way her text-only brains write them, without the empty fields: open_app{"name":"Steam"}.
+        private static string Written(string tool, ToolArguments args)
+        {
+            string json = Regex.Replace(Encoding.UTF8.GetString(Json(args)), "\"[a-z_]+\":null,?", "");
+            return tool + Regex.Replace(json, ",}$", "}");
         }
 
         private string Reach(string model, string text, List<ChatMessage> recent, List<KeyValuePair<string, ToolArguments>> calls, int ticket, Hands.Kit kit)
