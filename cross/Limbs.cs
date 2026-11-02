@@ -102,20 +102,24 @@ namespace CapriDesktop
             Hands.Unlisted = delegate { return Blind; };
             Hands.Presses = false;
             Hands.ThisComputer = OnMac ? "Mac" : "PC";
+            Hands.OnMac = OnMac;
             Hands.Instead = delegate(string name) { return Shortcut(name, OnMac); };
             Hands.SetVolume = delegate(double level) { return SetLevel(level, OnMac); };
             Hands.VolumeNow = delegate { return Level(OnMac); };
             Hands.MuteState = delegate { return Muted(OnMac); };
             Hands.SetMute = delegate(bool on) { return Mute(on, OnMac); };
             Hands.Chord = delegate { throw new PlatformNotSupportedException("keyboard shortcuts only work on Windows for now"); };
-            // A look is already in her transcript; anything else she did goes in as a job, like on Windows. A toggle switched
-            // off in Security holds the call so she asks first, and their yes runs it.
+            // A look is already in her transcript; anything else she did goes in as a job, like on Windows, except a check of what's
+            // open or installed. Something that can't work here gets her line saying why before Security could ask about it. A toggle
+            // switched off in Security holds the call so she asks first, and their yes runs it.
             brain.Act = delegate(string tool, ToolArguments args)
             {
+                string unable = Hands.Unable(tool, args);
+                if (unable != null) return unable;
                 string held = Security.Gate(tool, args);
                 if (held != null) return held;
                 string done = Hands.Do(tool, args);
-                if (tool != "look_at_screen" && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
+                if (tool != "look_at_screen" && !Hands.Checking(tool, args) && !string.IsNullOrEmpty(done)) Brain.Transcribe(null, "Job: " + done);
                 return done;
             };
             Hands.Resume = delegate(string text) { return Security.Resume(text, brain.Act); };

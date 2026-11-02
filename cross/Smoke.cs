@@ -830,6 +830,20 @@ namespace CapriDesktop
                     && toolsNote.IndexOf("Windows", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0;
                 if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows);
                 checks.Add("PASS Windows-only: asking for clones or chaos mode, or to get rid of clones, gets \"" + Hands.NoClones + "\" straight away, with or without a brain, and her hands' prompts call this computer their " + computer + ", not a Windows PC");
+                foreach (bool withBrain in new[] { false, true })
+                {
+                    bool hologramAsked = false;
+                    pet.Think = withBrain ? delegate(string words) { hologramAsked = true; return "wrong reply"; } : (Func<string, string>)null;
+                    foreach (string words in new[] { "hologram mode on", "hologram on", "go hologram", "hologram off", "stop being a hologram", "turn hologram mode off" })
+                    {
+                        pet.Hear(words);
+                        if (pet.Talk.Reply != Hands.NoHologram || hologramAsked) throw new Exception("Hologram did not explain Windows-only locally: " + words);
+                        pet.Talk.Dismiss();
+                    }
+                }
+                for (int hologramTool = 0; hologramTool < Hands.Count; hologramTool++) if (Hands.Name(hologramTool) == "hologram") throw new Exception("Hologram tool was exposed on Mac or Linux.");
+                if (Hands.Do("hologram", new ToolArguments { Action = "on" }) != Hands.NoHologram || Hands.Do("hologram", new ToolArguments { Action = "off" }) != Hands.NoHologram || Hands.Pulled(Hands.NoHologram) != Hands.NoHologram) throw new Exception("Hologram tool failed its Windows-only guard.");
+                checks.Add("PASS hologram on and off explain Windows-only immediately with or without a brain, and the tool stays Windows-only");
                 pet.Think = delegate(string words) { return words == "hey" ? "Just vibing, choom." : "wrong words"; };
                 pet.Talk.Pill.Press(1);
                 if (!pet.Talk.Typing) throw new Exception("The pencil didn't open the typing box.");

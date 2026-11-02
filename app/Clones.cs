@@ -852,7 +852,7 @@ namespace CapriDesktop
         // and the note near her tells anyone who's never met them how to stop it.
         internal bool Upset(int roll)
         {
-            if (preferences.NoUpsetChaos || working != null || hidden || cloneWindow != null || InChat || Computer.Streaming || Computer.GameOpen() != null) return false;
+            if (!preferences.UpsetChaos || working != null || hidden || cloneWindow != null || InChat || Computer.Streaming || Computer.GameOpen() != null) return false;
             upsets++;
             if (roll >= upsets) return false;
             upsets = 0;
@@ -877,13 +877,15 @@ namespace CapriDesktop
                 CloneWindow opened = new CloneWindow(Screen.FromPoint(centre).Bounds, clock, idle, walk, grin, glitch, preferences.Size, Width, random.Next());
                 opened.Failed = ClonesOff;
                 opened.Cleared = ClonesCleared;
-                opened.HandsFree = delegate { return !testing && working == null && !dragging && !pressed; };
+                opened.HandsFree = delegate { return !testing && chaosScreen == null && working == null && !dragging && !pressed; };
                 int own;
                 using (Process self = Process.GetCurrentProcess()) own = self.Id;
                 opened.Grabbable = delegate { return Computer.Streaming || Computer.GameOpen() != null ? null : Ledges.Haulable(own); };
-                opened.Allowed = delegate { return !Computer.Streaming && Computer.GameOpen() == null; };
-                opened.Ticked = CloneTalk;
+                opened.Allowed = delegate { return chaosScreen == null && !Computer.Streaming && Computer.GameOpen() == null; };
+                opened.Ticked = delegate(double tick) { if (cloneWindow != opened) return; CloneTick(tick); ChaosTick(tick); };
                 cloneWindow = opened;
+                chaosScreenAt = now + 40 + random.NextDouble() * 80;
+                chaosScreenUsed = false;
                 cloneTalkAt = now + 3;
                 opened.Open(now);
             }
@@ -897,8 +899,10 @@ namespace CapriDesktop
 
         internal void ClonesOff()
         {
+            ClearIcons();
             cloneTurn++;
             cloneTalking = false;
+            ChaosOff();
             CloneWindow closing = cloneWindow;
             cloneWindow = null;
             if (closing == null) return;

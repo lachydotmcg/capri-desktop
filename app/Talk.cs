@@ -594,6 +594,7 @@ namespace CapriDesktop
 
     internal class Overlay : Form
     {
+        internal bool ClickThrough;
         private Bitmap shown;
         internal bool Above = true;
 
@@ -613,7 +614,7 @@ namespace CapriDesktop
             get
             {
                 CreateParams value = base.CreateParams;
-                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000 | (Above ? 0x00000008 : 0);
+                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000 | (Above ? 0x00000008 : 0) | (ClickThrough ? 0x20 : 0);
                 return value;
             }
         }
@@ -894,7 +895,7 @@ namespace CapriDesktop
 
         // A plate with cut corners: a soft glow, the black fill with faint scan lines, a cyan wash where it's hovered, and a neon
         // edge from one colour to the other, inside the box so its straight edges land on whole pixels.
-        private static void Plate(Graphics graphics, Rectangle box, float s, Rectangle lit, Color from, Color to)
+        internal static void Plate(Graphics graphics, Rectangle box, float s, Rectangle lit, Color from, Color to)
         {
             int cut = Cut(s);
             int edge = EdgeWidth(s);
@@ -2837,8 +2838,12 @@ namespace CapriDesktop
     internal sealed class TypeBox : Form
     {
         internal event Action<string> Submitted;
+        internal event Action CallModeChanged;
         private readonly TextBox input;
         private readonly Label prompt;
+        private readonly Button callMode;
+        private readonly Label callNote;
+        private bool calling;
         private float scale = 1;
         private Font typed;
         private Font label;
@@ -2873,10 +2878,48 @@ namespace CapriDesktop
             };
             Controls.Add(prompt);
             Controls.Add(input);
+            callMode = new Button { FlatStyle = FlatStyle.Flat, BackColor = Neon.Well, ForeColor = Neon.Cyan, Text = "Call mode (beta): off", AccessibleName = "Call mode beta. Voice is conversation only when enabled", TabIndex = 1 };
+            callMode.FlatAppearance.BorderColor = Neon.Edge;
+            callMode.Click += delegate { if (CallModeChanged != null) CallModeChanged(); };
+            callNote = new Label { Text = CallSession.Reminder, ForeColor = Neon.White, BackColor = Neon.Well, UseMnemonic = false, Visible = false };
+            Controls.Add(callMode);
+            Controls.Add(callNote);
             Deactivate += delegate { Hide(); };
         }
 
         internal string Draft { get { return input.Text; } set { input.Text = value; } }
+
+        internal bool CallMode
+        {
+            get { return calling; }
+            set
+            {
+                calling = value;
+                callMode.Text = value ? "Call mode (beta): on" : "Call mode (beta): off";
+                callNote.Visible = value;
+                if (typed != null)
+                {
+                    Arrange();
+                    Rectangle area = Screen.FromControl(this).WorkingArea;
+                    Top = Math.Max(area.Top, Math.Min(Top, area.Bottom - Height));
+                }
+            }
+        }
+
+        private void Arrange()
+        {
+            float s = scale;
+            Height = (int)((calling ? 122 : 76) * s);
+            prompt.Location = new Point((int)(24 * s), ((int)(44 * s) - prompt.PreferredHeight) / 2);
+            input.Location = new Point(prompt.Right + (int)(10 * s), ((int)(44 * s) - input.PreferredHeight) / 2 + (int)s);
+            input.Width = Width - input.Left - (int)(16 * s);
+            callMode.SetBounds((int)(24 * s), (int)(44 * s), Width - (int)(48 * s), (int)(26 * s));
+            callNote.SetBounds((int)(24 * s), (int)(76 * s), Width - (int)(48 * s), (int)(38 * s));
+            callMode.Font = label;
+            callNote.Font = label;
+            Neon.Clip(this, 10 * s, 4 * s);
+            Invalidate();
+        }
 
         internal void Open(Point head, Point feet, Rectangle area, float s, Rectangle above)
         {
@@ -2892,16 +2935,13 @@ namespace CapriDesktop
                 if (oldTyped != null) { oldTyped.Dispose(); oldLabel.Dispose(); }
             }
             int width = (int)SpeechBox.PanelWidth(s);
-            int height = (int)(44 * s);
+            int height = (int)((calling ? 122 : 76) * s);
             bool below = head.Y - height - 20 * s < area.Top;
             int left = Math.Max(area.Left, Math.Min(area.Right - width, (int)(head.X - width * 0.7f)));
             int top = below ? feet.Y + (int)(8 * s) : head.Y - height - (int)(18 * s);
-            Bounds = new Rectangle(left, top, width, height);
+            Bounds = new Rectangle(left, Math.Max(area.Top, Math.Min(top, area.Bottom - height)), width, height);
+            Arrange();
             if (!above.IsEmpty) Follow(above, area);
-            prompt.Location = new Point((int)(24 * s), (height - prompt.PreferredHeight) / 2);
-            input.Location = new Point(prompt.Right + (int)(10 * s), (height - input.PreferredHeight) / 2 + (int)s);
-            input.Width = width - input.Left - (int)(16 * s);
-            Neon.Clip(this, 10 * s, 4 * s);
             Show();
             Activate();
             input.Focus();
@@ -2912,6 +2952,7 @@ namespace CapriDesktop
         {
             int top = above.Top - Height - (int)(16 * scale);
             if (top < area.Top) top = above.Bottom + (int)(8 * scale);
+            top = Math.Max(area.Top, Math.Min(top, area.Bottom - Height));
             Point target = new Point(above.Left, top);
             if (Location != target) Location = target;
         }

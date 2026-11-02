@@ -46,17 +46,28 @@
           <li>Wait for the download. She says hi when it's done</li>
         </ol>
         <p class="note">Already use Ollama? Open it, then press <b>Refresh</b>.</p>
-        <img class="shot" src="../assets/guide-brain.png" alt="Capri Mainframe with the Set up her brain button and the three brain rows: NORMAL, HIGHER with the Free key button, and MAX INTELLIGENCE" width="380" height="385" loading="lazy">
+        <img class="shot" src="../assets/guide-brain.png" alt="Capri Mainframe with the Set up her brain button, three brain rows and the Free key button" width="380" height="385" loading="lazy">
 
         <h3 id="free-key">Slow PC, or the download fails?</h3>
-        <p class="note">Pick <b>HIGHER</b>: a free NVIDIA key. Nothing to download, and her replies are fast. Most NVIDIA models can't see your screen. Her first pick can.</p>
+        <dl class="keys">
+          <dt>Free brain</dt><dd><b>MEDIUM INTELLIGENCE</b>: NVIDIA, Google AI Studio (Gemini) or OpenRouter key. Nothing to download, needs internet</dd>
+          <dt>OpenRouter</dt><dd>MEDIUM INTELLIGENCE: <code>:free</code> models only</dd>
+          <dt>Warning</dt><dd>Free keys can be rate limited and slow.</dd>
+          <dt>Free key</dt><dd>opens NVIDIA by default. NVIDIA's steps:</dd>
+        </dl>
         <ol class="moves">
-          <li>Mainframe → <b>HIGHER</b> → <b>Free key</b>, or open <a href="https://build.nvidia.com/settings/api-keys" target="_blank" rel="noopener noreferrer">build.nvidia.com</a></li>
+          <li>Mainframe → <b>MEDIUM INTELLIGENCE</b> → <b>Free key</b>, or open <a href="https://build.nvidia.com/settings/api-keys" target="_blank" rel="noopener noreferrer">build.nvidia.com</a></li>
           <li>Sign in or make a free account. NVIDIA may ask to verify your phone</li>
           <li><b>Generate API Key</b>, then copy it. It starts with nvapi-</li>
-          <li>Paste it in the box under HIGHER → <b>Connect</b></li>
+          <li>Paste your key in the box under <b>MEDIUM INTELLIGENCE</b> → <b>Connect</b></li>
         </ol>
-        <p class="note">Have an OpenAI, Claude or DeepSeek key with credits? Pick <b>MAX INTELLIGENCE</b> and paste it there.</p>
+        <dl class="keys">
+          <dt>NVIDIA</dt><dd>NVIDIA's free API is often slow, especially at busy times.</dd>
+          <dt>Screen</dt><dd>most NVIDIA models can't see your screen. Her first pick can</dd>
+          <dt>All models</dt><dd><b>MAX INTELLIGENCE</b>: Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key; includes paid models</dd>
+          <dt>Move to MAX</dt><dd>OpenAI, Claude or DeepSeek key under MEDIUM INTELLIGENCE? <b>Move to MAX</b> connects it there</dd>
+          <dt>Used HIGHER?</dt><dd>now <b>MEDIUM INTELLIGENCE</b>. Your key and model are kept</dd>
+        </dl>
       </section>
 
       <section id="voice" class="step">

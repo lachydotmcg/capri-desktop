@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -19,15 +20,15 @@ namespace CapriDesktop
 
     internal sealed class FileFinder
     {
-        internal const string Description = "Find files or folders on this PC by a plain description of their names. Returns whole paths, best match first. Use action show to select the first result in File Explorer, or stop to cancel a search. Searches names only, not file contents.";
-        internal const string Schema = "{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\",\"description\":\"What file or folder to find, in their words\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; search by default\",\"enum\":[\"search\",\"show\",\"stop\"]}}}";
+        internal const string Description = "Find files or folders on this PC by name. Give the name in its original language, keeping any extension, without command words or a location. Returns whole paths, best match first. Use action show to select the first result in File Explorer, or stop to cancel a search. Searches names only, not file contents.";
+        internal const string Schema = "{\"type\":\"object\",\"properties\":{\"description\":{\"type\":\"string\",\"description\":\"The file or folder name to match, in its original language; quote a literal name\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; search by default\",\"enum\":[\"search\",\"show\",\"stop\"]}}}";
         private readonly object gate = new object();
         private CancellationTokenSource searching;
         private List<FileMatch> last = new List<FileMatch>();
         private DateTime foundAt;
         internal Func<IEnumerable<string>> Roots = Places;
         internal Func<IEnumerable<string>> Wider = Everywhere;
-        internal Action<string> Reveal = Show;
+        internal Func<string, bool> Reveal = Show;
         internal bool Busy { get { lock (gate) return searching != null; } }
         internal bool Found { get { lock (gate) return last.Count > 0 && DateTime.UtcNow - foundAt < TimeSpan.FromMinutes(10); } }
 
@@ -42,8 +43,11 @@ namespace CapriDesktop
                 lock (gate) first = last.Count == 0 ? null : last[0].Path;
                 if (first == null) return "Find a file or folder first, then I can show it to you.";
                 if (!Directory.Exists(first) && !File.Exists(first)) return "That path is no longer there: " + first;
-                Reveal(first);
-                return "Selected " + first + " in File Explorer.";
+                try { if (Reveal(first)) return "Selected " + first + " in File Explorer."; }
+                catch (Win32Exception) { }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                return "Couldn't select that in File Explorer. Here's the path:\n" + first;
             }
             if (string.IsNullOrWhiteSpace(args.Description)) return "What file or folder should I find?";
             CancellationTokenSource request = new CancellationTokenSource();
@@ -91,10 +95,15 @@ namespace CapriDesktop
 
         private static string Plain(string text) { return Regex.Replace((text ?? "").ToLowerInvariant(), @"[^\p{L}\p{N}]+", " ").Trim(); }
 
+        private static readonly Regex Quoted = new Regex("(?:^|\\s)[\"'\u201c](?<name>.+?)[\"'\u201d](?=\\s|$)");
+
         // The words that name it. "My photos" keeps photos, because there's nothing else to go on.
         private static string Wanted(string description)
         {
-            string plain = Regex.Replace(Plain(description), @"\b(?:the|my|a|an|some|please|called|named|for|of|to|on|pc|computer)\b", " ");
+            Match quoted = Quoted.Match(description ?? "");
+            if (quoted.Success) return Plain(quoted.Groups["name"].Value);
+            string words = Regex.Replace(description ?? "", @"\b(?:by\s+name|with\s+(?:the\s+)?name)\s+", "", RegexOptions.IgnoreCase);
+            string plain = Regex.Replace(Plain(words), @"\b(?:the|my|a|an|some|please|called|named|for|of|to|on|pc|computer)\b", " ");
             string named = Regex.Replace(plain, @"\b(?:game|file|files|folder|folders|directory|directories|document|documents|photo|photos|picture|pictures|video|videos)\b", " ");
             return Regex.Replace(named.Trim().Length > 0 ? named : plain, @"\s+", " ").Trim();
         }
@@ -123,25 +132,54 @@ namespace CapriDesktop
             return Regex.IsMatch(name, @"^(?:Windows|WinSxS|node_modules|bower_components|\.git|\.svn|\.hg|\.cache|\.nuget|\.npm|\.pnpm-store|__pycache__|\.venv|venv|\$Recycle\.Bin|System Volume Information|Recovery|Config\.Msi)$", RegexOptions.IgnoreCase);
         }
 
-        // Each place is walked a level at a time and stops at the level it finds something, and what matched isn't gone into, so a library of big games answers as soon as the folder turns up.
-        internal static List<FileMatch> Search(string description, IEnumerable<string> roots, Func<bool> stopped, HashSet<string> seen = null)
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct FindData
+        {
+            internal uint Attributes;
+            internal System.Runtime.InteropServices.ComTypes.FILETIME Created, Accessed, Written;
+            internal uint SizeHigh, SizeLow, Tag, Reserved;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] internal string Name;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 14)] internal string ShortName;
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern IntPtr FindFirstFile(string path, out FindData data);
+        [DllImport("kernel32.dll")] private static extern bool FindClose(IntPtr handle);
+
+        private static uint ReparseTag(string path)
+        {
+            FindData data;
+            IntPtr handle = FindFirstFile(path, out data);
+            if (handle == new IntPtr(-1)) return 0;
+            try { return data.Tag; }
+            finally { FindClose(handle); }
+        }
+
+        // Cloud placeholders keep names below them; junctions and symlinks can loop back (john_sandevistan, B88).
+        internal static bool Follow(FileAttributes attributes, uint tag)
+        {
+            return (attributes & FileAttributes.ReparsePoint) == 0 || (tag != 0 && (tag & 0x20000000) == 0);
+        }
+
+        // Check each likely place at the same depth, so a big Desktop can't hold up a name sitting in Downloads (B88).
+        internal static List<FileMatch> Search(string description, IEnumerable<string> roots, Func<bool> stopped, HashSet<string> seen = null, Func<FileSystemInfo, bool> follow = null)
         {
             List<FileMatch> matches = new List<FileMatch>();
             if (seen == null) seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            bool folders = Regex.IsMatch(description ?? "", @"\b(?:folders?|directory|directories)\b", RegexOptions.IgnoreCase);
+            string kind = Quoted.Replace(description ?? "", " ");
+            bool folders = Regex.IsMatch(kind, @"\b(?:folders?|directory|directories)\b", RegexOptions.IgnoreCase);
+            bool files = !folders && Regex.IsMatch(kind, @"\bfiles?\b", RegexOptions.IgnoreCase);
             string wanted = Wanted(description);
+            List<string> level = new List<string>();
             foreach (string root in roots)
             {
                 if (stopped()) break;
-                int before = matches.Count;
-                List<string> level = new List<string>();
                 try
                 {
                     if (string.IsNullOrWhiteSpace(root)) continue;
                     string start = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar);
                     if (start.EndsWith(":", StringComparison.Ordinal)) start += Path.DirectorySeparatorChar;
                     if (!Directory.Exists(start) || !seen.Add(start)) continue;
-                    int found = Score(Path.GetFileName(start), wanted);
+                    int found = files ? 0 : Score(Path.GetFileName(start), wanted);
                     if (found > 0) matches.Add(new FileMatch { Path = start, Score = found, Order = matches.Count });
                     else level.Add(start);
                 }
@@ -150,32 +188,35 @@ namespace CapriDesktop
                 catch (System.Security.SecurityException) { continue; }
                 catch (ArgumentException) { continue; }
                 catch (NotSupportedException) { continue; }
-                while (level.Count > 0 && matches.Count == before && !stopped())
+            }
+            bool firstLevel = true;
+            while (level.Count > 0 && (matches.Count == 0 || firstLevel) && !stopped())
+            {
+                firstLevel = false;
+                List<string> deeper = new List<string>();
+                foreach (string folder in level)
                 {
-                    List<string> deeper = new List<string>();
-                    foreach (string folder in level)
+                    if (stopped()) break;
+                    try
                     {
-                        if (stopped()) break;
-                        try
+                        foreach (FileSystemInfo entry in new DirectoryInfo(folder).EnumerateFileSystemInfos())
                         {
-                            foreach (FileSystemInfo entry in new DirectoryInfo(folder).EnumerateFileSystemInfos())
-                            {
-                                if (stopped()) break;
-                                bool directory = (entry.Attributes & FileAttributes.Directory) != 0;
-                                if (directory && !seen.Add(entry.FullName)) continue;
-                                int score = !folders || directory ? Score(entry.Name, wanted) : 0;
-                                if (score > 0) matches.Add(new FileMatch { Path = entry.FullName, Score = score, Order = matches.Count });
-                                else if (directory && (entry.Attributes & FileAttributes.ReparsePoint) == 0 && !Skip(entry.FullName)) deeper.Add(entry.FullName);
-                            }
+                            if (stopped()) break;
+                            FileAttributes attributes = entry.Attributes;
+                            bool directory = (attributes & FileAttributes.Directory) != 0;
+                            if (directory && !seen.Add(entry.FullName)) continue;
+                            int score = (folders ? directory : !files || !directory) ? Score(entry.Name, wanted) : 0;
+                            if (score > 0) matches.Add(new FileMatch { Path = entry.FullName, Score = score, Order = matches.Count });
+                            else if (directory && !Skip(entry.FullName) && (follow != null ? follow(entry) : Follow(attributes, (attributes & FileAttributes.ReparsePoint) == 0 ? 0 : ReparseTag(entry.FullName)))) deeper.Add(entry.FullName);
                         }
-                        catch (IOException) { }
-                        catch (UnauthorizedAccessException) { }
-                        catch (System.Security.SecurityException) { }
-                        catch (ArgumentException) { }
-                        catch (NotSupportedException) { }
                     }
-                    level = deeper;
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                    catch (System.Security.SecurityException) { }
+                    catch (ArgumentException) { }
+                    catch (NotSupportedException) { }
                 }
+                level = deeper;
             }
             matches.Sort(delegate(FileMatch left, FileMatch right) { int ranked = right.Score.CompareTo(left.Score); return ranked != 0 ? ranked : left.Order.CompareTo(right.Order); });
             return matches;
@@ -285,7 +326,30 @@ namespace CapriDesktop
         }
 
         internal static ProcessStartInfo Explorer(string path) { return new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true }; }
-        private static void Show(string path) { using (Process.Start(Explorer(path))) { } }
+
+        [DllImport("ole32.dll")] private static extern int CoInitializeEx(IntPtr reserved, uint mode);
+        [DllImport("ole32.dll")] private static extern void CoUninitialize();
+        [DllImport("shell32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)] private static extern int SHParseDisplayName(string name, IntPtr context, out IntPtr item, uint attributes, IntPtr foundAttributes);
+        [DllImport("shell32.dll")] private static extern int SHOpenFolderAndSelectItems(IntPtr item, uint count, IntPtr children, uint flags);
+
+        // The Shell says whether selecting it worked, which a launched Explorer can't (B88). If the Shell won't from this thread,
+        // Explorer's own /select still opens the folder on it, the way it always did.
+        private static bool Show(string path)
+        {
+            int initialized = CoInitializeEx(IntPtr.Zero, 0);
+            IntPtr item = IntPtr.Zero;
+            try
+            {
+                if (SHParseDisplayName(path, IntPtr.Zero, out item, 0, IntPtr.Zero) == 0 && item != IntPtr.Zero && SHOpenFolderAndSelectItems(item, 0, IntPtr.Zero, 0) == 0) return true;
+            }
+            finally
+            {
+                if (item != IntPtr.Zero) Marshal.FreeCoTaskMem(item);
+                if (initialized >= 0) CoUninitialize();
+            }
+            using (Process.Start(Explorer(path))) { }
+            return true;
+        }
 
         internal static string Spoken(string text)
         {

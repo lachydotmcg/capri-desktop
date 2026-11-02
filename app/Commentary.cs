@@ -96,9 +96,21 @@ namespace CapriDesktop
 
         internal static void Trigger(string kind, byte[] frameBefore, byte[] frameAfter) { Trigger(kind, null, frameBefore, frameAfter); }
 
+        // A moment her game watching noticed, or the game's own log told her about (F67): her live reactions get it first, with a
+        // quick line right away, then her brain gets its look. While they're on, her brain's line has to land as fast as a
+        // reaction does, and it goes up in the feed even while she can't talk.
+        internal static bool Moment(string kind, string detail, byte[] frameBefore, byte[] frameAfter)
+        {
+            bool live = Reactions.KindOf(kind) != null && Reactions.Running;
+            if (live) Reactions.React(kind);
+            return Trigger(kind, detail, frameBefore, frameAfter, live);
+        }
+
         // True when she's going to look. One moment gets one look: while she's thinking, or too soon after her last line or
         // the last trigger like it, another trigger is the same moment and is dropped.
-        internal static bool Trigger(string kind, string detail, byte[] frameBefore, byte[] frameAfter)
+        internal static bool Trigger(string kind, string detail, byte[] frameBefore, byte[] frameAfter) { return Trigger(kind, detail, frameBefore, frameAfter, false); }
+
+        private static bool Trigger(string kind, string detail, byte[] frameBefore, byte[] frameAfter, bool live)
         {
             int pace = Pace;
             if (pace == Off || string.IsNullOrEmpty(kind)) return false;
@@ -115,8 +127,10 @@ namespace CapriDesktop
                 if (thinking || !Due(kind, pace, now)) return false;
             }
             string game = Game();
-            if (game == null || !Free()) return false;
+            if (game == null || !(live ? Reactions.Running : Free())) return false;
             if (frameBefore == null && frameAfter == null && string.IsNullOrWhiteSpace(detail)) return false;
+            // A brain that's been too slow for her reactions only gets a look now and then, unless it's judging moments to clip.
+            if (live && !Moments() && !Reactions.Asking(now)) return false;
             string[] recent;
             int died;
             lock (gate)
@@ -127,8 +141,9 @@ namespace CapriDesktop
                 recent = said.ToArray();
                 died = kind == "death" ? deaths : 0;
             }
+            if (live) Reactions.Asked(now);
             Stopwatch took = Stopwatch.StartNew();
-            ThreadPool.QueueUserWorkItem(delegate { Comment(kind, detail, game, frameBefore, frameAfter, recent, pace, died, took); });
+            ThreadPool.QueueUserWorkItem(delegate { Comment(kind, detail, game, frameBefore, frameAfter, recent, pace, died, took, live); });
             return true;
         }
 
@@ -141,10 +156,10 @@ namespace CapriDesktop
             return !noticed.TryGetValue(kind, out seen) || unchecked(now - seen) >= gap;
         }
 
-        private static void Comment(string kind, string detail, string game, byte[] before, byte[] after, string[] recent, int pace, int died, Stopwatch took)
+        private static void Comment(string kind, string detail, string game, byte[] before, byte[] after, string[] recent, int pace, int died, Stopwatch took, bool live)
         {
             string line = "";
-            bool flagged = false, moments = false;
+            bool flagged = false, moments = false, broke = false;
             try
             {
                 List<byte[]> frames = new List<byte[]>();
@@ -162,10 +177,15 @@ namespace CapriDesktop
                 if (failed != null) failed("comment failed: " + line);
                 line = "";
                 flagged = false;
+                broke = true;
             }
-            bool current = took.ElapsedMilliseconds <= Late && Pace != Off && Free() && Game() == game;
+            // A live moment's line has missed it after 2.5 s; a clip of the moment is still worth saving for the usual 6.
+            long spent = took.ElapsedMilliseconds;
+            if (live) Reactions.Looked(broke ? long.MaxValue : spent);
+            bool here = Pace != Off && Game() == game && (live ? Reactions.Running : Free());
+            bool current = spent <= (live ? Reactions.BrainLate : Late) && here;
             bool keep = line.Length > 0 && current;
-            bool moment = flagged && moments && current && Moments();
+            bool moment = flagged && moments && spent <= Late && here && Moments();
             Func<string> save = null;
             Action<string> trace = Trace;
             if (trace != null) trace("comment " + kind + " " + took.ElapsedMilliseconds + " ms " + (keep ? "said" : "dropped") + ": " + line);
@@ -240,6 +260,9 @@ namespace CapriDesktop
                 case "hit": case "damage": case "health": return "They may have just taken a hit; check the pictures.";
                 case "death": return "They may have just died; check the pictures.";
                 case "kill": return "They may have just taken something down; check the pictures.";
+                case "win": return "They may have just won; check the pictures.";
+                case "loss": return "They may have just lost; check the pictures.";
+                case "dark": return "The screen just went dark; check the pictures for why.";
                 case "sound": case "noise": return "There was a big burst of sound in the game.";
                 case "flash": return "The screen just went bright for a moment; check the pictures for why.";
                 case "motion": return "Something on screen just moved fast.";
@@ -253,8 +276,8 @@ namespace CapriDesktop
         {
             switch (kind)
             {
-                case "hit": case "damage": case "health": case "red": case "death": return GameMood.Hit;
-                case "kill": case "advancement": return GameMood.Happy;
+                case "hit": case "damage": case "health": case "red": case "death": case "loss": return GameMood.Hit;
+                case "kill": case "advancement": case "win": return GameMood.Happy;
                 case "scene": case "chat": return GameMood.Talk;
                 default: return GameMood.Surprise;
             }
@@ -330,7 +353,7 @@ namespace CapriDesktop
                 if (happened.Count > 0 && Regex.IsMatch(Game() ?? "", "minecraft", RegexOptions.IgnoreCase))
                 {
                     byte[] screen = Shot();
-                    foreach (GameEvent one in happened) Trigger(one.Kind, one.Detail, null, screen);
+                    foreach (GameEvent one in happened) Moment(one.Kind, one.Detail, null, screen);
                 }
                 if (Pace == Chatty && LookDue(Clock()) && Game() != null && Free()) Trigger("scene", null, null, Shot());
             }
@@ -463,6 +486,9 @@ namespace CapriDesktop
             if (!found.Success) return null;
             bool theirs = found.Groups["name"].Value == player;
             if (!theirs && !head.Groups["chat"].Success && line.IndexOf("[Server thread/", StringComparison.Ordinal) < 0) return null;
+            // Someone else's death at their hands is their kill (F67).
+            if (!theirs && player != null && Regex.IsMatch(text, @"\b(?:by|fighting|escape) " + Regex.Escape(player) + @"(?![A-Za-z0-9_])"))
+                return new GameEvent { Kind = "kill", Detail = "They took down " + found.Groups["name"].Value + ": " + text };
             return new GameEvent { Kind = theirs || player == null ? "death" : "chat", Detail = text };
         }
     }
@@ -482,10 +508,11 @@ namespace CapriDesktop
             Commentary.Speak = delegate(string line, string kind, GameMood mood) { Post(delegate { CommentSay(line, kind, mood); }); };
             Commentary.Shot = CommentShot;
             Commentary.Moments = delegate { return preferences.ClipMoments && clips.Enabled; };
+            WireReactions();
             Commentary.Keep = delegate
             {
                 bool saved;
-                string result = clips.Clip(30, out saved);
+                string result = clips.Clip(0, out saved);
                 return saved ? null : result;
             };
             if (!testing) Commentary.Start();
@@ -533,7 +560,16 @@ namespace CapriDesktop
         private void CommentSay(string line, string kind, GameMood mood)
         {
             string game = Commentary.Game();
-            if (!CommentFree() || game == null || !Computer.ScreenNames(line, game)) return;
+            if (game == null || !Computer.ScreenNames(line, game)) return;
+            // With her live reactions on, every game line of hers goes up in their feed over the game, as text even while she
+            // can't talk (F67).
+            if (Reactions.Running)
+            {
+                brain.Remember("(Something happened in their game: " + kind + ".)", line);
+                Reactions.Post(line, true);
+                return;
+            }
+            if (!CommentFree()) return;
             Commentary.Stage.Mood(mood);
             Commentary.Stage.Say(line);
             Action<string> test = commentTest;
