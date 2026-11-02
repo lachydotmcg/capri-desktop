@@ -82,7 +82,8 @@ namespace CapriDesktop
 
         internal static bool Wants(string name)
         {
-            if (options.Steps) return false;
+            // --steps runs the steps alone, with the sections inside them.
+            if (options.Steps) return kind == "step";
             bool wanted = options.Only.Length == 0 || (selected.Count != 0 && selected.Peek());
             foreach (string item in options.Only)
                 if (string.Equals(name, item.Trim(), StringComparison.OrdinalIgnoreCase)) { matched.Add(item); wanted = true; }
