@@ -265,7 +265,7 @@ namespace CapriDesktop
                 long closing = Interlocked.Read(ref closingAt);
                 if (closing >= 0 && now - closing >= CloseFor)
                 {
-                    Noted("She was still closing " + (now - closing) / 1000 + " s after Quit, so she ended herself." + Where());
+                    Noted("She was still closing " + (now - closing) / 1000 + " s after Quit, so she ended herself." + Where(ui));
                     Ended(false);
                     return;
                 }
@@ -282,7 +282,7 @@ namespace CapriDesktop
                     frozeAt = Interlocked.Read(ref sentAt);
                     Func<string> doing = Doing;
                     string what = doing == null ? "" : doing();
-                    Noted("Her window stopped answering for " + stuck / 1000 + " s" + (what.Length == 0 ? "." : ", " + what + ".") + Where());
+                    Noted("Her window stopped answering for " + stuck / 1000 + " s" + (what.Length == 0 ? "." : ", " + what + ".") + Where(ui));
                 }
                 // A start is left be: a window that never answered, or is in its first 15 s, is still starting, and ending it
                 // then would count as a start that never finished (two in a row move settings.json aside).
@@ -334,7 +334,7 @@ namespace CapriDesktop
         }
 
         // Where her UI thread is stuck, read by pausing it for a moment on a thread of its own. Empty if it can't be read.
-        private string Where()
+        internal static string Where(Thread ui)
         {
             StackTrace trace = null;
             Thread reader = new Thread(delegate()
