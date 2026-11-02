@@ -1538,7 +1538,7 @@ namespace CapriDesktop
         private int hdSpeaking = -1;
         private long voiceGot, voiceTotal, earsGot, earsTotal, hdGot, hdTotal;
         private double hdRest = -1, hdUsed = -1, hdChecked = -1;
-        private const double HdRest = 600;
+        private const double HdRest = 600, HdShortRest = 60;
         private bool balloonMainframe;
         private bool? ownEarsTest;
         private readonly System.Collections.Generic.List<bool> cursorSwaps = new System.Collections.Generic.List<bool>();
@@ -7999,14 +7999,20 @@ namespace CapriDesktop
             if (!preferences.HdVoice || preferences.Silent || !qwen.Installed || clock.Elapsed.TotalSeconds < hdRest) return fallback;
             if (HdStepsAside()) { qwen.Stop(); return fallback; }
             hdUsed = clock.Elapsed.TotalSeconds;
-            if (!qwen.Awake) { WakeHd(); return fallback; }
-            return qwen.Or(fallback, delegate(string problem) { Post(delegate { HdTrouble(problem); }); });
+            Action<string> trouble = delegate(string problem) { Post(delegate { HdTrouble(problem); }); };
+            if (qwen.Awake) return qwen.Or(fallback, trouble);
+            WakeHd();
+            // A line with no free voice to hand on to, like one of a job's, still doesn't wait.
+            return fallback == null ? null : qwen.Waiting(fallback, trouble, delegate { return wakingHd; });
         }
+
+        // Out of memory, her HD voice rests 10 minutes so a game can have the graphics card. Anything else rests it a minute (2 Nov).
+        internal static double HdBreak(string problem) { return (problem ?? "").StartsWith(QwenVoice.MemoryFull, StringComparison.Ordinal) ? HdRest : HdShortRest; }
 
         private void HdTrouble(string problem, bool tell = true)
         {
             qwen.Stop();
-            hdRest = clock.Elapsed.TotalSeconds + HdRest;
+            hdRest = clock.Elapsed.TotalSeconds + HdBreak(problem);
             if (!tell) return;
             if (!testing) Brain.Log("HD voice", -1, problem);
             mainframe.VoiceNote(problem, true);
@@ -26340,7 +26346,7 @@ namespace CapriDesktop
                             short[] hdWave = new short[9600];
                             for (int i = 0; i < hdWave.Length; i++) hdWave[i] = (short)Math.Round(16383 * Math.Sin(i * 0.07));
                             byte[] hdSpoken = Voice.Wave(hdWave, 24000), hdRegistered = System.Text.Encoding.ASCII.GetBytes("{\"name\":\"capri\",\"status\":\"registered\"}");
-                            int hdMemoryMode = 0, hdMemoryAfter = 0;
+                            int hdMemoryMode = 0, hdMemoryAfter = 0, hdSlowMs = 0;
                             System.Collections.Generic.List<string> hdAsked = new System.Collections.Generic.List<string>();
                             System.Net.Sockets.TcpListener hdServer = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
                             hdServer.Start();
@@ -26371,6 +26377,7 @@ namespace CapriDesktop
                                             string path = words.Length > 1 ? words[1] : "";
                                             bool hdSpeech = path.EndsWith("/v1/audio/speech", StringComparison.Ordinal), hdVoices = path.EndsWith("/v1/audio/voices", StringComparison.Ordinal);
                                             int hdReplyMode = hdSpeech && Thread.VolatileRead(ref hdMemoryMode) != 0 && Interlocked.Decrement(ref hdMemoryAfter) < 0 ? Thread.VolatileRead(ref hdMemoryMode) : 0;
+                                            if (hdSpeech && Thread.VolatileRead(ref hdSlowMs) > 0) Thread.Sleep(Thread.VolatileRead(ref hdSlowMs));
                                             byte[] answer = hdSpeech ? hdSpoken : hdVoices ? hdRegistered : path.EndsWith(".zip", StringComparison.Ordinal) ? hdZip : path.EndsWith("codec.gguf", StringComparison.Ordinal) ? hdCodec : hdModel;
                                             if (hdReplyMode != 0) answer = System.Text.Encoding.UTF8.GetBytes("{\"error\":{\"type\":\"server_error\",\"message\":\"" + new string('x', 120) + (hdReplyMode == 3 ? " synthesis failed" : " VK_ERROR_OUT_OF_DEVICE_MEMORY: allocation failed") + "\"}}");
                                             byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 " + (hdReplyMode == 1 ? "502 Bad Gateway" : hdReplyMode == 3 ? "500 Internal Server Error" : "200 OK") + "\r\nContent-Type: " + (hdReplyMode != 0 || hdVoices ? "application/json" : hdSpeech ? "audio/wav" : "application/octet-stream") + "\r\nContent-Length: " + answer.Length + "\r\nConnection: close\r\n\r\n");
@@ -26539,6 +26546,47 @@ namespace CapriDesktop
                             CloseTalk();
                             if (hdSpeaking != -1 || reply != null) throw new Exception("Dismissing a pending HD line didn't cancel its display.");
                             checks.Add("PASS HD voice waiting: an old text reply stays open while HD or its fallback is being made, can expire once speech finishes, and can still be dismissed");
+                            // Asleep with a wake under way, a line waits for her HD voice instead of going straight to her free voice. A wake that
+                            // failed hands it on at once, and so does one still loading at WakeWait. A slow line stays in HD and only goes in her log.
+                            int hdWakeWas = QwenVoice.WakeWait;
+                            double hdSlowWas = QwenVoice.SlowSeconds;
+                            try
+                            {
+                                bool hdWaking = true;
+                                Func<bool> hdStillWaking = delegate { return hdWaking; };
+                                Func<string, byte[]> hdFree = delegate(string words) { return hdTone; };
+                                hdVoice.Stop();
+                                ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(300); hdVoice.Attach(hdPort); });
+                                Stopwatch hdWaited = Stopwatch.StartNew();
+                                byte[] hdWoke = hdVoice.Waiting(hdFree, hdNoted, hdStillWaking)("Hey choom.");
+                                long hdWokeMs = hdWaited.ElapsedMilliseconds;
+                                hdVoice.Stop();
+                                hdWaking = false;
+                                hdWaited = Stopwatch.StartNew();
+                                byte[] hdFailed = hdVoice.Waiting(hdFree, hdNoted, hdStillWaking)("Hey choom.");
+                                long hdFailedMs = hdWaited.ElapsedMilliseconds;
+                                hdWaking = true;
+                                QwenVoice.WakeWait = 300;
+                                hdWaited = Stopwatch.StartNew();
+                                byte[] hdLate = hdVoice.Waiting(hdFree, hdNoted, hdStillWaking)("Hey choom.");
+                                long hdLateMs = hdWaited.ElapsedMilliseconds;
+                                if (hdWoke == hdTone || hdWokeMs < 250 || hdFailed != hdTone || hdFailedMs > 1000 || hdLate != hdTone || hdLateMs < 300 || hdTrouble != null)
+                                    throw new Exception("A line didn't wait for her HD voice to wake: " + (hdWoke == hdTone ? "free" : "HD") + " after " + hdWokeMs + " ms, a failed wake handed on after " + hdFailedMs + " ms, one still loading after " + hdLateMs + " ms / " + hdTrouble);
+                                hdVoice.Attach(hdPort);
+                                QwenVoice.SlowSeconds = 0;
+                                Interlocked.Exchange(ref hdSlowMs, 800);
+                                byte[] hdSlow = hdVoice.Or(hdFree, hdNoted)("Hey choom.");
+                                if (hdSlow == hdTone || hdTrouble != null) throw new Exception("A slow HD line went to her free voice or started a break: " + hdTrouble);
+                                if (HdBreak(hdVoice.Failure(QwenVoice.MemoryFull)) != 600 || HdBreak(hdVoice.Failure("Her HD voice stopped answering.")) != 60 || HdBreak(null) != 60) throw new Exception("HD rested the wrong time: " + HdBreak(hdVoice.Failure(QwenVoice.MemoryFull)) + " s out of memory, " + HdBreak(hdVoice.Failure("Her HD voice stopped answering.")) + " s otherwise.");
+                            }
+                            finally
+                            {
+                                QwenVoice.WakeWait = hdWakeWas;
+                                QwenVoice.SlowSeconds = hdSlowWas;
+                                Interlocked.Exchange(ref hdSlowMs, 0);
+                                hdVoice.Attach(hdPort);
+                            }
+                            checks.Add("PASS HD voice wake: a line waits up to 15 s for her HD voice while it's waking and speaks in HD once it's up, a failed wake or one still loading hands the line to her free voice, a slow line stays in HD and only goes in her log, and only running out of memory rests HD for 10 minutes; anything else rests it a minute");
                             // Their clip went out with every line above. Shelved, she has no clip to copy, so the line goes to her free voice and she says she needs one.
                             YourVoice.Shelve(hdVoice.Folder);
                             byte[] hdNoClip = hdVoice.Or(delegate(string words) { return hdTone; }, hdNoted)("Hey choom.");
