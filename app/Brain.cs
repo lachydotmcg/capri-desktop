@@ -1396,7 +1396,7 @@ namespace CapriDesktop
 
         private static bool Chats(string kind, string id)
         {
-            if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal) && !Regex.IsMatch(id, @"embed|image|audio|tts|live|robotics|computer-use|aqa", RegexOptions.IgnoreCase);
+            if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal) && !Regex.IsMatch(id, @"embed|image|audio|tts|live|robotics|computer-use|aqa|transcribe|banana|omni", RegexOptions.IgnoreCase);
             if (kind == "openai") return Regex.IsMatch(id, @"^(gpt-|o\d)") && !Regex.IsMatch(id, @"audio|realtime|tts|transcribe|image|search|embed|instruct|codex|moderation|-\d{4}-\d{2}-\d{2}$");
             if (kind == "nvidia") return Regex.IsMatch(id, @"instruct|chat|-it\b|-it-|gpt-oss|kimi|glm|deepseek|qwen|qwq|llama|gemma|mistral|mixtral|magistral|ministral|nemotron|phi-|granite|minimax|hermes|seed|jamba|falcon|solar|olmo|exaone", RegexOptions.IgnoreCase)
                 && !Regex.IsMatch(id, @"embed|rerank|reward|guard|safety|topic-control|parse|clip|retriev|translate|deplot|kosmos|vila|fuyu|neva|calibration|cod|chatqa|palmyra|cosmos|riva|diffusion|recurrent|llama2|-2b$|detect|synthetic|video|ocr|asr|tts|speech|audio|image|segment|depth|pose|classif", RegexOptions.IgnoreCase);
