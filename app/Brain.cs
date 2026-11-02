@@ -1642,7 +1642,7 @@ namespace CapriDesktop
 
 #if !CROSS
         // This transport never enters Ask's tools, memory, file or job routes. Call history is never promoted to normal chat.
-        internal string AskCall(string text, CallSession session, int version)
+        internal string AskCall(string text, CallSession session, int version, Func<bool> current = null)
         {
             string model = Model;
             if (model == null) throw new BrainException(Offline);
@@ -1654,7 +1654,7 @@ namespace CapriDesktop
             string raw = Think(model, messages, false, calls, null, Budget, ticket);
             Check(ticket);
             string said = calls.Count == 0 ? Clean(raw) : "I can only talk in call mode.";
-            if (!session.Keep(version, text, said, Recall)) return null;
+            if (!session.Keep(version, text, said, Recall, current)) return null;
             Cue(raw, said);
             return said;
         }

@@ -39,11 +39,11 @@ namespace CapriDesktop
             }
         }
 
-        internal bool Keep(int version, string text, string said, int recall)
+        internal bool Keep(int version, string text, string said, int recall, Func<bool> current = null)
         {
             lock (gate)
             {
-                if (!enabled || generation != version) return false;
+                if (!enabled || generation != version || current != null && !current()) return false;
                 history.Add(new ChatMessage("user", text));
                 history.Add(new ChatMessage("assistant", said));
                 while (history.Count > Math.Max(2, recall)) history.RemoveRange(0, 2);
@@ -98,7 +98,7 @@ namespace CapriDesktop
             {
                 string said = null;
                 TalkState state = TalkState.Talking;
-                try { said = brain.AskCall(text, callSession, version); }
+                try { said = brain.AskCall(text, callSession, version, delegate { return ticket == Volatile.Read(ref asking); }); }
                 catch (Exception error) { said = error is BrainException ? error.Message : "My brain couldn't answer that call turn."; state = TalkState.Dormant; }
                 Post(delegate
                 {
@@ -125,6 +125,23 @@ namespace CapriDesktop
             if (session.Current(first) || session.Keep(first, "late speech", "late answer", 8) || session.Request(first, "Capri", "late speech") != null || session.Request(session.Generation, "Capri", "fresh").Count != 2) throw new Exception("An old call survived its mode change.");
             checks.Add("PASS call mode sessions: off by default, separate history, fresh on every toggle, and late speech and replies are discarded");
 
+            foreach (bool newestFirst in new[] { false, true })
+            {
+                CallSession overlap = new CallSession();
+                overlap.Change(true);
+                int version = overlap.Generation, current = 2;
+                Func<bool> older = delegate { return 1 == Volatile.Read(ref current); };
+                Func<bool> newer = delegate { return 2 == Volatile.Read(ref current); };
+                if (newestFirst && !overlap.Keep(version, "new turn", "new answer", 8, newer)) throw new Exception("The newest call reply was rejected.");
+                if (overlap.Keep(version, "superseded turn", "unseen answer", 8, older)) throw new Exception("A superseded call reply entered history.");
+                if (!newestFirst && !overlap.Keep(version, "new turn", "new answer", 8, newer)) throw new Exception("The newest call reply was rejected.");
+                List<ChatMessage> kept = overlap.Request(version, "Capri", "next");
+                if (kept.Count != 4 || kept[1].Content != "new turn" || kept[2].Content != "new answer") throw new Exception("Call history included an undelivered reply.");
+                current++;
+                if (overlap.Keep(version, "outdated after another UI turn", "unseen too", 8, newer)) throw new Exception("A call reply ignored the UI's newer ticket.");
+            }
+            checks.Add("PASS superseded call turns never enter history in either completion order, including supersession by another UI turn");
+
             Func<bool> canListenWas = PcEars.CanListen, speakingWas = PcEars.Speaking;
             Func<int> generationWas = PcEars.Generation;
             Func<int, Func<bool>, PcSound> captureWas = PcEars.Capture;
@@ -148,6 +165,7 @@ namespace CapriDesktop
 
             string memoryWas = Brain.MemoryPath, transcriptWas = Brain.TranscriptPath, personalityWas = Brain.PersonalityPath;
             Func<string> gameWas = Hands.GameOpen;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
             TcpListener listener = null;
             try
             {
@@ -157,6 +175,8 @@ namespace CapriDesktop
                 Brain.PersonalityPath = null;
                 Brain.TranscriptPath = null;
                 Hands.GameOpen = delegate { return null; };
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Calculator", "fake-calculator") }; };
+                Hands.Forget();
                 int actions = 0;
                 List<string> requests = new List<string>();
                 string address = FakeServer(new[] { LocalReply("Just chatting."), LocalReply("Still just chatting."), "{\"choices\":[{\"message\":{\"content\":\"\",\"tool_calls\":[{\"id\":\"fake-call\",\"type\":\"function\",\"function\":{\"name\":\"open_app\",\"arguments\":\"{\\\"app\\\":\\\"calculator\\\"}\"}}]}}]}" }, requests, out listener);
@@ -179,6 +199,36 @@ namespace CapriDesktop
                 direct.Remote = new Cloud(0, "fake-call-brain", address);
                 string late = "not finished";
                 Exception failed = null;
+                int currentTurn = 1;
+                using (ManualResetEvent done = new ManualResetEvent(false))
+                {
+                    ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        try { late = direct.AskCall("superseded call", session, version, delegate { return Volatile.Read(ref currentTurn) == 1; }); }
+                        catch (Exception error) { failed = error; }
+                        finally { done.Set(); }
+                    });
+                    DateTime until = DateTime.UtcNow.AddSeconds(5);
+                    while (true)
+                    {
+                        lock (requests) if (requests.Count > 0) break;
+                        if (DateTime.UtcNow >= until) throw new Exception("The fake call did not arrive.");
+                        Thread.Sleep(5);
+                    }
+                    currentTurn = 2;
+                    if (!session.Keep(version, "newer call", "delivered answer", 8, delegate { return Volatile.Read(ref currentTurn) == 2; })) throw new Exception("The newer call did not commit.");
+                    if (!done.WaitOne(5000) || failed != null || late != null) throw new Exception("An in-flight superseded call returned its answer.");
+                    foreach (ChatMessage message in session.Request(version, "Capri", "next"))
+                        if (message.Content == "superseded call" || message.Content == "Too late.") throw new Exception("An in-flight superseded call entered history.");
+                }
+                checks.Add("PASS an in-flight call response from the fake brain is discarded with its history when a newer turn wins");
+
+                listener.Stop(); listener = null;
+                requests.Clear();
+                address = FakeServer(new[] { LocalReply("Too late.") }, requests, out listener, 200, 250);
+                direct.Remote = new Cloud(0, "fake-call-brain", address);
+                late = "not finished";
+                failed = null;
                 using (ManualResetEvent done = new ManualResetEvent(false))
                 {
                     ThreadPool.QueueUserWorkItem(delegate
@@ -214,6 +264,8 @@ namespace CapriDesktop
                 Brain.TranscriptPath = transcriptWas;
                 Brain.PersonalityPath = personalityWas;
                 Hands.GameOpen = gameWas;
+                Hands.Catalog = catalogWas;
+                Hands.Forget();
             }
         }
 

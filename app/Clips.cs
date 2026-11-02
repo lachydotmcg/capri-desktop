@@ -42,6 +42,10 @@ namespace CapriDesktop
         private long recentAt, session, recentSession;
         private int recentSeconds;
         private ClipSettings recentSettings;
+        internal Func<IntPtr, string> MonitorOf = delegate(IntPtr window)
+        {
+            return (window == IntPtr.Zero ? System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position) : System.Windows.Forms.Screen.FromHandle(window)).DeviceName;
+        };
 
         internal void Configure(ClipSettings chosen) { lock (gate) settings = chosen; changed.Set(); }
         internal ClipSettings Settings { get { lock (gate) return settings; } }
@@ -400,6 +404,7 @@ namespace CapriDesktop
             {
                 List<ClipPart> frames, audio;
                 long start, end, capturedSession;
+                string monitor;
                 lock (gate)
                 {
                     chosen = chosen ?? settings;
@@ -417,11 +422,12 @@ namespace CapriDesktop
                     start = Math.Max(cutoff, first.Value.At);
                     frames = new List<ClipPart>(Since(first));
                     audio = new List<ClipPart>(Heard(start, end));
+                    monitor = MonitorOf(game == null ? IntPtr.Zero : game.Window);
                 }
                 ClipSave save = pending;
                 try
                 {
-                    if (save == null) save = new ClipSave { Path = path, Start = start, End = end, Settings = chosen, Session = capturedSession };
+                    if (save == null) save = new ClipSave { Path = path, Start = start, End = end, Settings = chosen, Session = capturedSession, Monitor = monitor };
                     else { save.Merged = true; save.Start = Math.Min(save.Start, start); save.End = Math.Max(save.End, end); }
                     save.Pictures.Merge(frames);
                     save.Sounds.Merge(audio);
@@ -465,12 +471,13 @@ namespace CapriDesktop
                 finally { save.Dispose(); }
                 result.Path = save.Path;
                 result.Merged = save.Merged;
+                result.Monitor = save.Monitor;
                 save.Done.SetResult(result);
             }
         }
 
         // After a clip saves, off the UI thread: its path, how many seconds, and the game.
-        internal Action<string, double, string> Saved;
+        internal Action<string, double, string, string> Saved;
 
         // Where clips go: Videos\Capri Clips, wherever Windows keeps their Videos.
         internal static string Folder { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Capri Clips"); } }
@@ -513,8 +520,8 @@ namespace CapriDesktop
             saved = result.Problem == null;
             if (saved)
             {
-                Action<string, double, string> told = Saved;
-                if (told != null && result.Announce()) told(result.Path, result.Seconds, open);
+                Action<string, double, string, string> told = Saved;
+                if (told != null && result.Announce()) told(result.Path, result.Seconds, open, result.Monitor);
             }
             return result.Problem ?? "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + open + (result.Sound ? "" : " without sound") + ": " + result.Path + (result.Merged ? " Merged your clip requests into this clip." : "");
         }
@@ -623,6 +630,7 @@ namespace CapriDesktop
     {
         internal ClipSettings Settings = new ClipSettings();
         internal string Path;
+        internal string Monitor;
         internal long Start, End;
         internal long Session;
         internal bool Merged;
@@ -1322,7 +1330,7 @@ namespace CapriDesktop
         private void Render()
         {
             Bitmap old = plate;
-            plate = Draw(scale, seconds, game, hovered);
+            plate = Draw(scale, seconds, game, hovered, saved);
             if (old != null) old.Dispose();
         }
 
@@ -1352,7 +1360,7 @@ namespace CapriDesktop
 
         // Her talk pill's plate, wider: a red dot and CLIP SAVED in pink with the length on the right, the game under it, and
         // where it went, which turns cyan when hovered.
-        internal static Bitmap Draw(float s, double seconds, string game, bool hovered)
+        internal static Bitmap Draw(float s, double seconds, string game, bool hovered, string clip = null)
         {
             Size size = Measure(s);
             Bitmap image = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppPArgb);
@@ -1378,9 +1386,21 @@ namespace CapriDesktop
                 using (Brush dim = new SolidBrush(Look.Dim)) graphics.DrawString(length, title, dim, right - wide, top, StringFormat.GenericTypographic);
                 using (Brush ink = new SolidBrush(Look.Ink)) graphics.DrawString(game, name, ink, new RectangleF(left, top + 19 * s, right - left, 18 * s), trim);
                 using (Brush caption = new SolidBrush(hovered ? Look.Cyan : TalkPill.Caption))
-                    graphics.DrawString(hovered ? "Show it in Videos\\Capri Clips" : "Videos\\Capri Clips  /  click to see it", small, caption, left, top + 42 * s, StringFormat.GenericTypographic);
+                    graphics.DrawString(Caption(graphics, small, clip, hovered, right - left), small, caption, new RectangleF(left, top + 42 * s, right - left, 18 * s), trim);
             }
             return image;
+        }
+
+        internal static string Caption(Graphics graphics, Font font, string clip, bool hovered, float width)
+        {
+            string folder = clip == null ? "clips folder" : Path.GetDirectoryName(clip);
+            string name = Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            if (name.Length > 0) folder = name;
+            string prefix = hovered ? "Show in " : "", suffix = hovered ? "" : " / click to see it";
+            string caption = prefix + folder + suffix;
+            for (int length = folder.Length - 1; length > 0 && graphics.MeasureString(caption, font, PointF.Empty, StringFormat.GenericTypographic).Width > width; length--)
+                caption = prefix + folder.Substring(0, length).TrimEnd() + "\u2026" + suffix;
+            return caption;
         }
 
         // 30 seconds reads 0:30, two minutes 2:00.
@@ -1477,6 +1497,7 @@ namespace CapriDesktop
         private int announced;
         internal bool Announce() { return Interlocked.CompareExchange(ref announced, 1, 0) == 0; }
         internal string Problem, Path;
+        internal string Monitor;
         internal bool Sound, Unavailable, Merged;
         internal double Seconds;
     }

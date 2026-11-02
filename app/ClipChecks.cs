@@ -96,6 +96,30 @@ namespace CapriDesktop
             checks.Add("PASS repeated clip requests share the active or just-finished save and notify once; later requests, different durations, settings, sessions and retries still save");
             using (ManualResetEvent began = new ManualResetEvent(false))
             using (ManualResetEvent release = new ManualResetEvent(false))
+            using (ClipBuffer buffer = new ClipBuffer(120, 8192, delegate(ClipSave save)
+            {
+                began.Set();
+                if (!release.WaitOne(3000)) throw new Exception("The fake encoder timed out.");
+                return new ClipResult();
+            }))
+            try
+            {
+                IntPtr gameWindow = new IntPtr(42), captured = IntPtr.Zero;
+                string monitor = "game monitor at request";
+                buffer.MonitorOf = delegate(IntPtr window) { captured = window; return monitor; };
+                buffer.Follow(new GameSeen { Window = gameWindow, Process = 123, Name = "Fake game" });
+                buffer.Keep(new byte[64], 0, 0, true);
+                Task<ClipResult> saving = buffer.Save("monitor.mp4", 30);
+                if (!began.WaitOne(3000)) throw new Exception("The fake monitor encoder did not begin.");
+                monitor = "other monitor at completion";
+                buffer.Follow(new GameSeen { Window = new IntPtr(43), Process = 123, Name = "Fake game" });
+                release.Set();
+                if (saving.GetAwaiter().GetResult().Monitor != "game monitor at request" || captured != gameWindow) throw new Exception("A clip used the completion-time foreground monitor instead of its game's requested monitor.");
+            }
+            finally { release.Set(); }
+            checks.Add("PASS clip saves carry the game's monitor from the request through delayed encoding even when the game window and current monitor change before completion");
+            using (ManualResetEvent began = new ManualResetEvent(false))
+            using (ManualResetEvent release = new ManualResetEvent(false))
             {
                 List<ClipSettings> encoded = new List<ClipSettings>();
                 using (ClipBuffer buffer = new ClipBuffer(120, 8192, delegate(ClipSave save)
@@ -230,6 +254,26 @@ namespace CapriDesktop
                 string customFolder = Path.Combine(output, "clips-folder-with-a-long-name-to-check-the-path-ellipsis");
                 Directory.CreateDirectory(customFolder);
                 if (SetClipFolder(customFolder) != null || clips.Settings.Folder != customFolder || ClipSettings.Read(LoadPreferences()).Folder != customFolder) throw new Exception("The clips folder did not save and reach the recorder.");
+                if (Directory.GetFiles(customFolder, ".capri-write-*.tmp").Length != 0) throw new Exception("The clips folder write check left a temporary file.");
+                Action<string> checkFolderWas = ClipSettings.CheckFolder;
+                try
+                {
+                    foreach (bool create in new[] { true, false })
+                    {
+                        bool tested = false;
+                        ClipSettings.CheckFolder = delegate(string chosen)
+                        {
+                            tested = chosen == Path.GetFullPath(output);
+                            if (create) throw new UnauthorizedAccessException("fake create denied");
+                            throw new IOException("fake delete denied");
+                        };
+                        string refused = SetClipFolder(output);
+                        if (!tested || refused != "Couldn't save clips in that folder. Pick a folder you can write to." || preferences.ClipFolder != customFolder
+                            || clips.Settings.Folder != customFolder || ClipSettings.Read(LoadPreferences()).Folder != customFolder) throw new Exception("An unwritable clips folder replaced the previous saved folder or had no plain explanation.");
+                    }
+                }
+                finally { ClipSettings.CheckFolder = checkFolderWas; }
+                checks.Add("PASS clips folders pass a real create-and-delete probe before saving; fake create and delete failures explain the problem and preserve the old preference and recorder folder");
                 OpenClips();
                 foreach (bool basic in new[] { false, true })
                 foreach (int zoom in new[] { 100, 150, 200 })

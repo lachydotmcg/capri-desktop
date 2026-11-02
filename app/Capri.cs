@@ -1718,9 +1718,10 @@ namespace CapriDesktop
             CloneWindow.Marker = Path.Combine(data, "moved-windows.txt");
             CloneWindow.Recover();
             IconMischief.Marker = Path.Combine(data, "scattered-icons.txt");
+            iconRecoveryTimer.Tick += IconRecoveryTick;
             // Smoke tests never touch the real desktop: point her icon prank at nothing until a check hands it a fake list view.
             if (smoke) DesktopIcons.Target = delegate { return IntPtr.Zero; };
-            else IconMischief.Recover();
+            else BeginIconRecovery();
             iconTimer.Interval = 120;
             iconTimer.Tick += IconTick;
             Computer.Track = herPointer.MoveTo;
@@ -1923,7 +1924,7 @@ namespace CapriDesktop
             Hands.WatchAlong = WatchAlongTool;
             WatchAlong.Active = delegate { return watchAlong != null; };
             Hands.SaveClip = clips.Clip;
-            clips.Saved = delegate(string saved, double seconds, string game) { Post(delegate { Clipped(saved, seconds, game); }); };
+            clips.Saved = delegate(string saved, double seconds, string game, string monitor) { Post(delegate { Clipped(saved, seconds, game, monitor); }); };
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
             clips.Configure(ClipOptions);
             clips.Enable(!testing && preferences.ClipGames);
@@ -4555,7 +4556,7 @@ namespace CapriDesktop
         // Shows memories.md in File Explorer, beside her transcripts folder.
         // A saved clip chimes and pops up CLIP SAVED at the top right of the game's screen, like Medal, so clipping is never
         // silent and it's clear where clips go. If they hid her themselves it only chimes (Lachy, 2 Nov).
-        private void Clipped(string saved, double seconds, string game)
+        private void Clipped(string saved, double seconds, string game, string monitor)
         {
             clipsChimed++;
             if (!testing) ClipToast.Ring();
@@ -4566,15 +4567,14 @@ namespace CapriDesktop
                 clipToast.Open += delegate(string chosen) { OpenClips(chosen); };
             }
             clipToast.Motion = preferences.Motion;
-            clipToast.Pop(saved, seconds, game, ClipArea());
+            clipToast.Pop(saved, seconds, game, ClipArea(monitor));
         }
 
-        // The work area of the screen the game, or whatever is in front, is on.
-        private Rectangle ClipArea()
+        // Resolve the game's saved screen against today's layout, in case its work area or DPI changed while saving.
+        private Rectangle ClipArea(string monitor)
         {
-            Sight front = Computer.Glimpse();
-            Screen screen = front != null && front.Window != IntPtr.Zero ? Screen.FromHandle(front.Window) : Screen.FromPoint(Cursor.Position);
-            return screen.WorkingArea;
+            foreach (Screen screen in Screen.AllScreens) if (screen.DeviceName == monitor) return screen.WorkingArea;
+            return Screen.FromPoint(Cursor.Position).WorkingArea;
         }
 
         // Their clips in Explorer, from Settings > CLIPS or the CLIP SAVED popup, which picks out its clip (Lachy, 2 Nov:
@@ -10540,6 +10540,8 @@ namespace CapriDesktop
                 frames.Dispose();
                 chatTail.Dispose();
                 signals.Dispose();
+                iconTimer.Dispose();
+                iconRecoveryTimer.Dispose();
                 tray.Dispose();
                 menu.Dispose();
                 pill.Dispose();
@@ -11813,6 +11815,7 @@ namespace CapriDesktop
                     System.Collections.Generic.Dictionary<string, Point> afterLive = map();
                     if (afterLive[hijacked] != grabbed) throw new Exception("She didn't leave the icon a hand grabbed mid-scatter alone: " + afterLive[hijacked] + " vs " + grabbed);
                     if (afterLive[kept] != before[kept]) throw new Exception("She didn't put the icon she scattered back home: " + afterLive[kept] + " vs " + before[kept]);
+                    SmokeIconFailures(checks, iconsList, iconsFile);
                 }
                 finally
                 {
@@ -14446,8 +14449,25 @@ namespace CapriDesktop
         // The CLIP SAVED popup and chime, and clips opening from it and from Settings (Lachy, 2 Nov).
         private void SmokeClipPopup(System.Collections.Generic.List<string> checks, string output)
         {
-            using (Bitmap popupPlain = ClipToast.Draw(1.5f, 30, "VALORANT", false))
-            using (Bitmap popupHovered = ClipToast.Draw(1.5f, 30, "VALORANT", true))
+            string popupSaved = Path.Combine(output, "Clips", "fake.mp4");
+            foreach (float scale in new[] { 1f, 1.5f })
+            {
+                using (Bitmap probe = new Bitmap(1, 1))
+                using (Graphics graphics = Graphics.FromImage(probe))
+                using (Font font = Look.Mono(8.5f * scale, FontStyle.Regular))
+                foreach (bool hovered in new[] { false, true })
+                {
+                    float width = ClipToast.Measure(scale).Width - 34 * scale;
+                    string caption = ClipToast.Caption(graphics, font, popupSaved, hovered, width);
+                    if (!caption.Contains("Clips") || caption.Contains("Videos") || graphics.MeasureString(caption, font, PointF.Empty, StringFormat.GenericTypographic).Width > width) throw new Exception("The clip popup did not name its actual short folder within its width.");
+                    string longSaved = Path.Combine(output, "Custom-clips-folder-with-a-very-long-name-that-needs-shortening", "fake.mp4");
+                    string shortened = ClipToast.Caption(graphics, font, longSaved, hovered, width);
+                    if (!shortened.Contains("Custom") || !shortened.Contains("\u2026") || graphics.MeasureString(shortened, font, PointF.Empty, StringFormat.GenericTypographic).Width > width) throw new Exception("A long custom clip folder overflowed the popup caption.");
+                }
+            }
+            checks.Add("PASS normal and hovered clip popup captions name the saved file's real folder and shorten long custom names to fit at 100 and 150 percent");
+            using (Bitmap popupPlain = ClipToast.Draw(1.5f, 30, "VALORANT", false, popupSaved))
+            using (Bitmap popupHovered = ClipToast.Draw(1.5f, 30, "VALORANT", true, popupSaved))
             using (Bitmap popupSheet = new Bitmap(popupPlain.Width + 48, popupPlain.Height * 2 + 72, PixelFormat.Format32bppArgb))
             {
                 using (Graphics sheet = Graphics.FromImage(popupSheet))
@@ -14474,15 +14494,16 @@ namespace CapriDesktop
             try
             {
                 string popupClip = Path.Combine(ClipBuffer.Folder, "Synthetic Game 2026-11-02 14-00-00-000 abc123.mp4");
+                string popupMonitor = Screen.PrimaryScreen.DeviceName;
                 preferences.Motion = true;
                 manualHidden = true;
-                Clipped(popupClip, 30, "Synthetic Game");
+                Clipped(popupClip, 30, "Synthetic Game", popupMonitor);
                 if (clipsChimed != popupChimesWas + 1 || (clipToast != null && clipToast.Visible)) throw new Exception("Hidden by hand, a saved clip popped up or didn't chime.");
                 manualHidden = false;
-                Clipped(popupClip, 30, "Synthetic Game");
+                Clipped(popupClip, 30, "Synthetic Game", popupMonitor);
                 if (clipsChimed != popupChimesWas + 2 || clipToast == null || !clipToast.Visible || clipToast.Saved != popupClip) throw new Exception("A saved clip didn't chime and pop up.");
                 clipToast.Age(ClipToast.Slide + ClipToast.Step);
-                Rectangle popupArea = ClipArea();
+                Rectangle popupArea = ClipArea(popupMonitor);
                 float popupScale = ClipToast.ScaleOf(popupArea);
                 int popupStyle = Native.GetWindowLong(clipToast.Handle, -20);
                 if (clipToast.Location != ClipToast.Corner(popupArea, popupScale) || clipToast.Size != ClipToast.Measure(popupScale) || !popupArea.Contains(clipToast.Bounds)
@@ -14496,7 +14517,7 @@ namespace CapriDesktop
                 if (!clipToast.Visible) throw new Exception("The clip popup left without fading.");
                 clipToast.Age(ClipToast.Fade);
                 if (clipToast.Visible) throw new Exception("The clip popup stayed past its time.");
-                Clipped(popupClip, 120, "Synthetic Game");
+                Clipped(popupClip, 120, "Synthetic Game", popupMonitor);
                 clipToast.Choose();
                 if (clipToast.Visible || clipsOpened.Count != 1 || clipsOpened[0] != popupClip) throw new Exception("Clicking the clip popup didn't show its clip.");
                 OpenClips();
