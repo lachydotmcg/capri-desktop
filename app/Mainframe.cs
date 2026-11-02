@@ -628,11 +628,13 @@ namespace CapriDesktop
             hdGames.Visible = false;
             voiceInMic = Switch("Her voice in your mic", 0, MixAt, delegate { if (!syncing) capri.ToggleVoiceInMic(); });
             voiceInMic.Switch = 68;
-            voiceInMic.AccessibleName = "Her voice in your mic. Your mic and her voice go into VB-CABLE, so friends in Discord or Roblox hear you both";
-            voiceInMicNote = Caption("Pick CABLE Output as your mic in Discord or Roblox.", 28, MixAt + 26, small, Faint);
+            voiceInMic.AccessibleName = "Her voice in your mic. Your mic and her voice go into a virtual mic, VB-CABLE or Steam's, so friends in Discord or Roblox hear you both";
+            voiceInMicNote = Caption(MicMix.PickLine(MicMix.CableEnd), 28, MixAt + 26, small, Faint);
+            // Without a cable the note credits VB-CABLE, and opens its page, where they can donate.
+            voiceInMicNote.Click += delegate { if (voiceInMicNote.Text == CableSetup.Credit) capri.OpenCablePage(); };
             voiceInMicState = Caption("", 28, MixAt + 50, small, Faint);
-            cableKey = Make("Get VB-CABLE", 264, MixAt + 47, 92, 20, delegate { capri.OpenCablePage(); }, "Her voice in your mic");
-            cableKey.AccessibleName = "Get VB-CABLE: opens its page in your browser. It's free";
+            cableKey = Make("Set up", 264, MixAt + 47, 92, 20, delegate { capri.SetUpCable(); }, "Her voice in your mic");
+            cableKey.AccessibleName = "Set up VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC. VB-CABLE is donationware from vb-cable.com";
             cableKey.Visible = false;
             int afterVoice = Controls.Count;
             Section("MOVES >", 0, 442);
@@ -1129,20 +1131,25 @@ namespace CapriDesktop
         private readonly List<KeyValuePair<Control, int>> underVoice = new List<KeyValuePair<Control, int>>();
         private int lifted;
 
-        // Without VB-CABLE the switch can't go on, and the line under it says it needs it, beside a button to its page. While it's
-        // on, that line says what's wrong, if anything. The switch still goes off if the cable went away while it was on.
+        // Without a cable the switch can't go on: the note credits VB-CABLE with a link to its page, and the line under it says it's
+        // needed, beside Set up, then where VB-Audio's setup is at. With one, the note says which mic to pick in Discord or Roblox,
+        // VB-CABLE's or Steam's, and the line says to turn it on when Windows has it off, or while it's on what's wrong, if
+        // anything. The switch still goes off if the cable went away while it was on.
         internal void ShowVoiceInMic()
         {
             bool was = syncing, cable = capri.CableReady, on = capri.VoiceInMic;
-            string problem = capri.VoiceInMicProblem;
+            string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine;
             syncing = true;
             voiceInMic.Checked = on;
             voiceInMic.Enabled = cable || on;
             syncing = was;
-            voiceInMicState.Text = !cable ? MicMix.Missing : on && problem != null ? problem : "";
+            voiceInMicNote.Text = cable ? MicMix.PickLine(capri.CableEnd) : CableSetup.Credit;
+            voiceInMicNote.Cursor = cable ? Cursors.Default : Cursors.Hand;
+            voiceInMicState.Text = !cable ? setup ?? MicMix.Missing : on && problem != null ? problem : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
-            cableKey.Visible = !cable;
+            cableKey.Visible = !cable && !capri.CableSetupOpen;
             voiceInMic.Invalidate();
+            voiceInMicNote.Invalidate();
             voiceInMicState.Invalidate();
         }
 
@@ -1152,6 +1159,8 @@ namespace CapriDesktop
         internal void FlipVoiceInMic() { voiceInMic.Checked = !voiceInMic.Checked; }
 
         internal void PressCable() { if (cableKey.Visible && cableKey.Enabled) InvokeOnClick(cableKey, EventArgs.Empty); }
+
+        internal void PressCableCredit() { InvokeOnClick(voiceInMicNote, EventArgs.Empty); }
 
         // Her voice in your mic's rows fit the page with nothing over them: the switch's name in its room, the note and the line
         // inside the column, the button clear of the line, and MOVES or GAMES below them all.
@@ -1164,9 +1173,12 @@ namespace CapriDesktop
                 if (row.Visible && !(row is Label && row.Text.Length == 0) && (!page.Contains(row.Bounds) || row.Right > column)) return (row.Text.Length > 0 ? row.Text : row.AccessibleName) + " pokes out";
             if (voiceInMicNote.Top < voiceInMic.Bottom || voiceInMicState.Top < voiceInMicNote.Bottom) return "the note or the line overlaps the row above it";
             if (cableKey.Visible && (cableKey.Left < voiceInMicState.Right || cableKey.Top < voiceInMicNote.Bottom)) return "the button covers the line";
-            // Every line it can show fits: the missing-cable one beside the button, the rest inside the column.
-            foreach (string line in new[] { MicMix.Missing, MicMix.Unopened, MicMix.NoMic, MicMix.MicGone })
-                if (voiceInMicState.Left + TextRenderer.MeasureText(line, voiceInMicState.Font).Width > (line == MicMix.Missing ? cableKey.Left - Scaled(4) : column)) return "\"" + line + "\" doesn't fit";
+            // Every line it can show fits: the ones without a cable beside the button, the rest inside the column. So does every note.
+            string[] beside = { MicMix.Missing, CableSetup.Finish, CableSetup.Declined, CableSetup.Failed };
+            foreach (string line in new[] { MicMix.Missing, CableSetup.Finish, CableSetup.Declined, CableSetup.Failed, CableSetup.Running, MicMix.Unopened, MicMix.NoMic, MicMix.MicGone, MicMix.MutedLine(MicMix.CableEnd), MicMix.MutedLine(MicMix.SteamEnd), MicMix.OffLine(MicMix.CableEnd), MicMix.OffLine(MicMix.SteamEnd) })
+                if (voiceInMicState.Left + TextRenderer.MeasureText(line, voiceInMicState.Font).Width > (Array.IndexOf(beside, line) >= 0 ? cableKey.Left - Scaled(4) : column)) return "\"" + line + "\" doesn't fit";
+            foreach (string note in new[] { MicMix.PickLine(MicMix.CableEnd), MicMix.PickLine(MicMix.SteamEnd), CableSetup.Credit })
+                if (voiceInMicNote.Left + TextRenderer.MeasureText(note, voiceInMicNote.Font).Width > column) return "\"" + note + "\" doesn't fit";
             int below = int.MaxValue;
             foreach (KeyValuePair<Control, int> entry in underVoice)
                 if (entry.Key.Visible && entry.Key.Left < Scaled(Column) && !Folded(entry.Key) && entry.Key.Top > voiceInMic.Top && Array.IndexOf(new Control[] { voiceInMic, voiceInMicNote, voiceInMicState, cableKey }, entry.Key) < 0) below = Math.Min(below, entry.Key.Top);
