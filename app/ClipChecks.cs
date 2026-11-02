@@ -174,7 +174,7 @@ namespace CapriDesktop
                             throw new Exception("The encoded clip ignored its chosen size or changed irregular timestamps: " + decoded.Size + ", seconds " + length);
                     }
                 }
-                checks.Add("PASS synthetic clips negotiate480p15/2Mbps and1080p60/20Mbps, reopen at the selected size and retain original uneven sample times");
+                checks.Add("PASS synthetic clips negotiate 480p 15 fps at 2 Mbps and 1080p 60 fps at 20 Mbps, reopen at the selected size and retain original uneven sample times");
             }
             finally { foreach (string file in Directory.GetFiles(folder)) File.Delete(file); Directory.Delete(folder); }
         }
@@ -210,6 +210,8 @@ namespace CapriDesktop
             string folder = preferences.ClipFolder;
             int scale = preferences.MainframeSize;
             bool page = mainframe.SettingsShown, simpleWas = simpleTest, visible = mainframe.Visible;
+            // The step checks after this expect Mainframe back in the taskbar the way it was, minimized.
+            System.Windows.Forms.FormWindowState state = mainframe.WindowState;
             try
             {
                 simpleTest = false;
@@ -250,8 +252,9 @@ namespace CapriDesktop
                 mainframe.Sync();
                 mainframe.ShowSettings(page);
                 if (!visible) mainframe.Hide();
+                else mainframe.WindowState = state;
             }
-            checks.Add("PASS CLIPS has its own Mainframe section in Simple and Advanced Settings at100/150/200percent; recording controls and folder changes save and apply without overlaps");
+            checks.Add("PASS CLIPS has its own Mainframe section in Simple and Advanced Settings at 100, 150 and 200%; recording controls and folder changes save and apply without overlaps");
             checks.Add("PASS fullscreen Mainframe reuses cached panel scaling or defers a cold driver query, including after display-cache invalidation");
             checks.Add("LIMIT live clips: verify the chosen FPS, resolution, bitrate, sound and fullscreen transitions in a real game; no real desktop or audio devices changed by these fixtures");
         }
