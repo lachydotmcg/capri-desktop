@@ -512,7 +512,8 @@ namespace CapriDesktop
         }
     }
 
-    internal enum Cue { Arrive, Leave, Hop, Click }
+    // Bonk is her thud when she's thrown into an edge of her screen or the taskbar.
+    internal enum Cue { Arrive, Leave, Hop, Click, Bonk }
 
     internal static class Sfx
     {
@@ -585,6 +586,7 @@ namespace CapriDesktop
                 case Cue.Arrive: return Sweep(0.42, 330, 990, 0.03, level);
                 case Cue.Leave: return Sweep(0.36, 880, 250, 0.012, level);
                 case Cue.Hop: return Sweep(0.16, 520, 1240, 0.008, level);
+                case Cue.Bonk: return Sweep(0.13, 420, 120, 0.002, level * 4 / 5);
                 default: return Sweep(0.05, 1600, 1350, 0.003, level * 3 / 4);
             }
         }
