@@ -306,6 +306,9 @@ namespace CapriDesktop
             return false;
         }
 
+        // The desktop's icon list view, for her icon prank. Same lookup her ledge-finding already does.
+        internal static IntPtr DesktopListView() { return DesktopList(); }
+
         private static IntPtr DesktopList()
         {
             IntPtr view = FindWindowEx(FindWindow("Progman", null), IntPtr.Zero, "SHELLDLL_DefView", null);

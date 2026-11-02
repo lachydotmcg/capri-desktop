@@ -1706,6 +1706,12 @@ namespace CapriDesktop
             HerCursor.Recover();
             CloneWindow.Marker = Path.Combine(data, "moved-windows.txt");
             CloneWindow.Recover();
+            IconMischief.Marker = Path.Combine(data, "scattered-icons.txt");
+            // Smoke tests never touch the real desktop: point her icon prank at nothing until a check hands it a fake list view.
+            if (smoke) DesktopIcons.Target = delegate { return IntPtr.Zero; };
+            else IconMischief.Recover();
+            iconTimer.Interval = 120;
+            iconTimer.Tick += IconTick;
             Computer.Track = herPointer.MoveTo;
             Computer.Tapped = delegate { Post(herPointer.Tap); };
             Computer.Lending = Lend;
@@ -1900,6 +1906,7 @@ namespace CapriDesktop
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
             Hands.Clone = CloneTool;
+            Hands.Icons = IconTool;
             Hands.Upset = UpsetTool;
             Hands.Cloning = delegate { return cloneWindow != null; };
             Hands.WatchAlong = WatchAlongTool;
@@ -9808,7 +9815,7 @@ namespace CapriDesktop
 
         internal static bool WithoutBrain(string tool)
         {
-            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "clone" || tool == "gaming_mode" || tool == "watch_along";
+            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "clone" || tool == "desktop_icons" || tool == "gaming_mode" || tool == "watch_along";
         }
 
         private bool SwitchModel(Cloud remote)
@@ -11608,6 +11615,149 @@ namespace CapriDesktop
                 }
             }
             checks.Add("PASS clones' windows after a crash: her next start puts back a window still where they had it, and leaves one moved by hand since, one that's closed and a broken line");
+        }
+
+        // Her desktop icon prank (F72). It only ever runs against a fake list view this check makes, never the real desktop, and
+        // VirtualAllocEx on her own process walks the same path as reaching into Explorer's.
+        private void SmokeIcons(System.Collections.Generic.List<string> checks)
+        {
+            string iconsTool;
+            ToolArguments iconsArgs;
+            if (!Hands.Heard("mess up my icons", out iconsTool, out iconsArgs) || iconsTool != "desktop_icons" || iconsArgs.Action != "mess"
+                || !Hands.Heard("hide my icons", out iconsTool, out iconsArgs) || iconsTool != "desktop_icons" || iconsArgs.Action != "hide"
+                || !Hands.Heard("put my icons back", out iconsTool, out iconsArgs) || iconsTool != "desktop_icons" || iconsArgs.Action != "back"
+                || !Hands.Heard("shuffle my desktop icons", out iconsTool, out iconsArgs) || iconsTool != "desktop_icons" || iconsArgs.Action != "mess"
+                || !Hands.Heard("bring my shortcuts back", out iconsTool, out iconsArgs) || iconsTool != "desktop_icons" || iconsArgs.Action != "back"
+                || !Hands.Valid("desktop_icons", new ToolArguments { Action = "hide" }) || Hands.Valid("desktop_icons", new ToolArguments { Action = "nuke" }))
+                throw new Exception("Asking her to mess with the desktop icons went the wrong way.");
+
+            Func<IntPtr> targetWas = DesktopIcons.Target;
+            string markerWas = IconMischief.Marker;
+            int iconsPid;
+            using (Process iconsSelf = Process.GetCurrentProcess()) iconsPid = iconsSelf.Id;
+            string iconsFile = Path.Combine(Path.GetTempPath(), "capri-icons-check-" + iconsPid + ".txt");
+            using (Form iconsHost = new Form())
+            using (ListView iconsList = new ListView())
+            {
+                try
+                {
+                    iconsHost.Text = "Capri icon check";
+                    iconsHost.StartPosition = FormStartPosition.Manual;
+                    iconsHost.Bounds = new Rectangle(Screen.PrimaryScreen.WorkingArea.Left + 10, Screen.PrimaryScreen.WorkingArea.Top + 10, 1000, 560);
+                    iconsList.View = View.LargeIcon;
+                    iconsList.AutoArrange = false;
+                    iconsList.Dock = DockStyle.Fill;
+                    for (int i = 0; i < 6; i++) iconsList.Items.Add("icon" + i);
+                    iconsHost.Controls.Add(iconsList);
+                    iconsHost.Show();
+                    Application.DoEvents();
+                    for (int i = 0; i < 6; i++) iconsList.Items[i].Position = new Point(30 + i * 110, 30);
+                    Application.DoEvents();
+                    IntPtr iconsHandle = iconsList.Handle;
+                    DesktopIcons.Target = delegate { return iconsHandle; };
+                    IconMischief.Marker = iconsFile;
+
+                    Func<System.Collections.Generic.Dictionary<string, Point>> map = delegate
+                    {
+                        System.Collections.Generic.Dictionary<string, Point> spots = new System.Collections.Generic.Dictionary<string, Point>();
+                        foreach (IconSpot spot in DesktopIcons.Read(iconsHandle)) spots[spot.Name] = spot.At;
+                        return spots;
+                    };
+                    Func<string, int> indexOf = delegate(string name)
+                    {
+                        foreach (IconSpot spot in DesktopIcons.Read(iconsHandle)) if (spot.Name == name) return spot.Index;
+                        return -1;
+                    };
+
+                    System.Collections.Generic.Dictionary<string, Point> orig = map();
+                    if (orig.Count != 6 || !orig.ContainsKey("icon0") || !orig.ContainsKey("icon5")) throw new Exception("Her icon prank couldn't read the fake desktop's six icons by name and spot: " + orig.Count);
+
+                    // A scatter slides several icons, then puts every one back exactly.
+                    IconMischief shuffle = new IconMischief(DesktopIcons.Target, 1);
+                    if (!shuffle.Start(0, true) || shuffle.Vanishing || shuffle.Moves == 0) throw new Exception("Her icon scatter didn't start on a movable desktop.");
+                    double t = 0;
+                    while (shuffle.Active && shuffle.Sliding && t < 8) { t += 0.3; shuffle.Advance(t); }
+                    System.Collections.Generic.Dictionary<string, Point> messed = map();
+                    bool anyMoved = false;
+                    foreach (System.Collections.Generic.KeyValuePair<string, Point> was in orig) if (messed.ContainsKey(was.Key) && messed[was.Key] != was.Value) { anyMoved = true; break; }
+                    if (!anyMoved) throw new Exception("Her icon scatter didn't move a single icon.");
+                    while (shuffle.Active && t < 40) { t += 0.3; shuffle.Advance(t); }
+                    if (shuffle.Active) throw new Exception("Her icon scatter didn't finish and put them back on its own.");
+                    System.Collections.Generic.Dictionary<string, Point> back = map();
+                    foreach (System.Collections.Generic.KeyValuePair<string, Point> was in orig) if (!back.ContainsKey(was.Key) || back[was.Key] != was.Value) throw new Exception("Her icon scatter didn't put " + was.Key + " back exactly: " + (back.ContainsKey(was.Key) ? back[was.Key].ToString() : "gone") + " vs " + was.Value);
+
+                    // A vanish hides the whole list view and brings it back after 10 to 20 seconds.
+                    IconMischief vanish = new IconMischief(DesktopIcons.Target, 2);
+                    if (!vanish.Vanish(0) || !vanish.Vanishing || !DesktopIcons.Hidden(iconsHandle)) throw new Exception("Her icon vanish didn't hide the desktop list view.");
+                    vanish.Advance(9);
+                    if (!vanish.Active || !DesktopIcons.Hidden(iconsHandle)) throw new Exception("Her icon vanish brought the icons back before 10 seconds.");
+                    double tv = 9;
+                    while (vanish.Active && tv < 22) { tv += 1; vanish.Advance(tv); }
+                    if (vanish.Active || DesktopIcons.Hidden(iconsHandle)) throw new Exception("Her icon vanish didn't bring the icons back within 10 to 20 seconds.");
+
+                    // With Auto arrange on, moves won't stick, so she falls back to the vanish.
+                    iconsList.AutoArrange = true;
+                    Application.DoEvents();
+                    if (!DesktopIcons.AutoArrange(iconsHandle)) throw new Exception("Auto arrange wasn't detected on the fake list view.");
+                    IconMischief arrange = new IconMischief(DesktopIcons.Target, 3);
+                    if (!arrange.Start(0, true) || !arrange.Vanishing || arrange.Moves != 0 || !DesktopIcons.Hidden(iconsHandle)) throw new Exception("Auto arrange didn't make her fall back to the vanish.");
+                    arrange.PutBack();
+                    if (DesktopIcons.Hidden(iconsHandle)) throw new Exception("The Auto arrange fallback vanish didn't restore the list view.");
+                    iconsList.AutoArrange = false;
+                    Application.DoEvents();
+
+                    // The backup file puts a scatter right after a crash, matching by name, and leaves an icon moved by hand alone.
+                    System.Collections.Generic.Dictionary<string, Point> baseline = map();
+                    string crashMove = "icon3";
+                    string[] crashBack = { "icon0", "icon2", "icon4" };
+                    System.Collections.Generic.List<string> lines = new System.Collections.Generic.List<string>();
+                    lines.Add("shuffle");
+                    System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, Point>> leftAt = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, Point>>();
+                    foreach (string name in crashBack)
+                    {
+                        Point home = baseline[name];
+                        Point last = new Point(home.X + 130, home.Y + 90);
+                        lines.Add(IconMischief.MarkLine(name, home, last, false));
+                        leftAt.Add(new System.Collections.Generic.KeyValuePair<int, Point>(indexOf(name), last));
+                    }
+                    Point moveHome = baseline[crashMove];
+                    Point moveLast = new Point(moveHome.X + 130, moveHome.Y + 90);
+                    Point movedByHand = new Point(moveLast.X + 240, moveLast.Y + 170);
+                    lines.Add(IconMischief.MarkLine(crashMove, moveHome, moveLast, false));
+                    leftAt.Add(new System.Collections.Generic.KeyValuePair<int, Point>(indexOf(crashMove), movedByHand));
+                    DesktopIcons.MoveMany(iconsHandle, leftAt);
+                    File.WriteAllLines(iconsFile, lines.ToArray());
+                    int recovered = IconMischief.Recover();
+                    System.Collections.Generic.Dictionary<string, Point> afterCrash = map();
+                    foreach (string name in crashBack) if (afterCrash[name] != baseline[name]) throw new Exception("Her next start didn't put " + name + " back from the backup file: " + afterCrash[name] + " vs " + baseline[name]);
+                    if (afterCrash[crashMove] != movedByHand) throw new Exception("Her next start didn't leave a hand-moved icon where it was put: " + afterCrash[crashMove] + " vs " + movedByHand);
+                    if (recovered != crashBack.Length || File.Exists(iconsFile)) throw new Exception("Her backup recovery restored the wrong count or kept the file: " + recovered + " / " + File.Exists(iconsFile));
+
+                    // And in a live scatter, an icon someone drags off meanwhile stays put while the rest go home.
+                    System.Collections.Generic.Dictionary<string, Point> before = map();
+                    IconMischief live = new IconMischief(DesktopIcons.Target, 7);
+                    if (!live.Start(0, true) || live.Moves < 2) throw new Exception("Her live icon scatter needs two or more icons on the move.");
+                    double tl = 0;
+                    while (live.Active && live.Sliding && tl < 8) { tl += 0.3; live.Advance(tl); }
+                    string[] picked = live.Picked;
+                    string hijacked = picked[0], kept = picked[1];
+                    Point grabbed = new Point(map()[hijacked].X + 240, map()[hijacked].Y + 180);
+                    DesktopIcons.Move(iconsHandle, indexOf(hijacked), grabbed);
+                    live.PutBack();
+                    System.Collections.Generic.Dictionary<string, Point> afterLive = map();
+                    if (afterLive[hijacked] != grabbed) throw new Exception("She didn't leave the icon a hand grabbed mid-scatter alone: " + afterLive[hijacked] + " vs " + grabbed);
+                    if (afterLive[kept] != before[kept]) throw new Exception("She didn't put the icon she scattered back home: " + afterLive[kept] + " vs " + before[kept]);
+                }
+                finally
+                {
+                    DesktopIcons.Target = targetWas;
+                    IconMischief.Marker = markerWas;
+                    try { File.Delete(iconsFile); }
+                    catch (IOException) { }
+                }
+            }
+            checks.Add("PASS desktop icon chaos on a fake list view: reads icon names and spots through her own process the way she'd reach into Explorer's, a scatter slides several and puts every one back exactly, a vanish hides the list view and brings it back in 10 to 20 s, Auto arrange falls back to the vanish, the backup file restores a scatter after a simulated crash matched by name, and an icon moved by hand meanwhile is left where it was put");
+            checks.Add("LIMIT desktop icon chaos on the real desktop: the smoke test only ever runs against a fake list view it creates, so moving, hiding and restoring real Explorer icons is for Lachy to check live");
         }
 
         private static void SmokeGameKeys(System.Collections.Generic.List<string> checks)
@@ -18594,6 +18744,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeMenuWait(checks); });
                             Section(checks, delegate { SmokeGivingWay(checks); });
                             Section(checks, delegate { SmokeHaul(checks); });
+                            Section(checks, delegate { SmokeIcons(checks); });
                             Section(checks, delegate { SmokeListen(checks); });
                             Section(checks, delegate { SmokeTalkLogic(checks); });
                             Section(checks, delegate { SmokeTalkSettings(checks); });
