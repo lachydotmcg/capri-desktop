@@ -16847,13 +16847,17 @@ namespace CapriDesktop
                 if (Security.Gate("clip", new ToolArguments()) != null || !Hands.Typed("clip{\"seconds\":\"120\"}", out clipTool, out clipArgs)
                     || Hands.Do(clipTool, clipArgs) != "Saved 120 seconds of Synthetic Game: clip.mp4" || savedSeconds != 120)
                     throw new Exception("The clip tool didn't run locally with its duration.");
+                // With no game seen, "clip that" still saves on the spot rather than asking her brain; "save that" alone waits for a game.
                 Computer.GameOpen = delegate { return null; };
                 foreach (string noGameWords in clipWords)
-                    if (Hands.Heard(noGameWords, out clipTool, out clipArgs)) throw new Exception("A clip phrase ran a tool with no game open: " + noGameWords);
-                if (Hands.Heard("save that file", out clipTool, out clipArgs) || Hands.Heard("save that", out clipTool, out clipArgs)) throw new Exception("Clips intercepted saving a document.");
+                {
+                    bool clipRouted = Hands.Heard(noGameWords, out clipTool, out clipArgs);
+                    if (noGameWords == "save that" ? clipRouted : !clipRouted || clipTool != "clip") throw new Exception(noGameWords == "save that" ? "\"Save that\" took a tool with no game open." : "A clip phrase waited for a game to be seen: " + noGameWords);
+                }
+                if (Hands.Heard("save that file", out clipTool, out clipArgs)) throw new Exception("Clips intercepted saving a document.");
             }
             finally { Computer.GameOpen = clipGameWas; Hands.SaveClip = clipSaveWas; }
-            checks.Add("PASS clips route chat and voice phrases, keep the requested seconds, explain the off switch, and leave document saves and requests with no game alone");
+            checks.Add("PASS clips route chat and voice phrases locally with or without a game seen, keep the requested seconds, explain the off switch, and leave document saves alone");
 
             Preferences clipPreferences = new Preferences();
             if (clipPreferences.ClipGames) throw new Exception("Clip my games started on.");

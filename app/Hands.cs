@@ -2539,7 +2539,7 @@ namespace CapriDesktop
 
         internal static int ClipSeconds(string text)
         {
-            string plain = Regex.Replace(Asked(text), @"[\s,]+capri$", "", RegexOptions.IgnoreCase);
+            string plain = ClipPlain(text);
             if (Regex.IsMatch(plain, @"^(clip (that|it|this)|save that|(save|grab) (a |the )?clip)$", RegexOptions.IgnoreCase)) return -1;
             Match stretch = Regex.Match(plain, @"^clip the last (\d+|one|two|a) (seconds?|minutes?)$", RegexOptions.IgnoreCase);
             if (!stretch.Success) return 0;
@@ -2551,6 +2551,11 @@ namespace CapriDesktop
             long duration = (long)seconds * (stretch.Groups[2].Value.StartsWith("minute", StringComparison.OrdinalIgnoreCase) ? 60 : 1);
             return duration > 0 && duration <= int.MaxValue ? (int)duration : 0;
         }
+
+        private static string ClipPlain(string text) { return Regex.Replace(Asked(text), @"[\s,]+capri$", "", RegexOptions.IgnoreCase); }
+
+        // "Save that" alone could be a document, so it's only a clip with a game in front.
+        private static bool SaveThat(string text) { return Regex.IsMatch(ClipPlain(text), @"^save that$", RegexOptions.IgnoreCase); }
 
         // A screen watch in her lookout's own words. Mac and Linux use it too, to say she can't watch there yet.
         internal static ToolArguments WatchRequest(string text)
@@ -2591,8 +2596,10 @@ namespace CapriDesktop
             if (together != null) { tool = "watch_along"; args.Action = together; return true; }
             ToolArguments watchArgs = WatchRequest(text);
             if (watchArgs != null) { tool = "watch_for"; args = watchArgs; return true; }
+            // "Clip that" saves on the spot, with no brain asked first and no game check, which can miss a game for a moment and
+            // send it the long way round (Lachy, 2 Nov). The clip itself says when Clip my games is off or nothing's buffered.
             int clipSeconds = ClipSeconds(text);
-            if (clipSeconds != 0 && Computer.GameOpen() != null) { tool = "clip"; args.Seconds = clipSeconds < 0 ? null : clipSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return true; }
+            if (clipSeconds != 0 && (!SaveThat(text) || Computer.GameOpen() != null)) { tool = "clip"; args.Seconds = clipSeconds < 0 ? null : clipSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return true; }
 #endif
             string gaming = GamingFor(text);
             if (gaming != null) { tool = "gaming_mode"; args.Action = gaming; return true; }
