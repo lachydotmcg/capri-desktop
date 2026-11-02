@@ -15,6 +15,9 @@ namespace CapriDesktop
         private HintCard hintCard;
         private SettingHint waitingHint, overHint, dismissedHint;
         private bool mouseHint, nonClientHint;
+        // While the tips smoke runs, only the pointer moves it sends count: a real pointer resting over the Mainframe would open the
+        // tip under it instead.
+        private bool tipsDriven, tipSent;
         private IntPtr hintMouseWindow;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -216,6 +219,7 @@ namespace CapriDesktop
 
         private void FilterHints(ref Message message)
         {
+            if (tipsDriven && !tipSent && (message.Msg == 0x0200 || message.Msg == 0x00A0 || message.Msg == 0x02A3 || message.Msg == 0x02A2)) return;
             if (message.Msg == 0x0200 || message.Msg == 0x00A0)
             {
                 Control control = Control.FromChildHandle(message.HWnd);

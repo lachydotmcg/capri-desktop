@@ -804,16 +804,26 @@ namespace CapriDesktop
                         else
                         {
                             long end = following != null ? following.At : save.End;
+                            byte[] frame;
                             using (MemoryStream bytes = new MemoryStream(picture.Data, false))
                             using (Bitmap decoded = new Bitmap(bytes))
-                            using (Graphics drawing = Graphics.FromImage(canvas))
                             {
-                                drawing.Clear(Color.Black);
-                                double scale = Math.Min((double)width / decoded.Width, (double)height / decoded.Height);
-                                int across = (int)(decoded.Width * scale), down = (int)(decoded.Height * scale);
-                                drawing.DrawImage(decoded, new Rectangle((width - across) / 2, (height - down) / 2, across, down));
+                                // A frame already the clip's size is read as it is; drawing it onto the canvas first cost about 2.5 ms
+                                // more a frame, a couple of seconds on every 30 s clip.
+                                if (decoded.Width == width && decoded.Height == height) frame = Pixels(decoded);
+                                else
+                                {
+                                    using (Graphics drawing = Graphics.FromImage(canvas))
+                                    {
+                                        drawing.Clear(Color.Black);
+                                        double scale = Math.Min((double)width / decoded.Width, (double)height / decoded.Height);
+                                        int across = (int)(decoded.Width * scale), down = (int)(decoded.Height * scale);
+                                        drawing.DrawImage(decoded, new Rectangle((width - across) / 2, (height - down) / 2, across, down));
+                                    }
+                                    frame = Pixels(canvas);
+                                }
                             }
-                            WriteSample(sink, videoStream, Pixels(canvas), videoTime, Math.Max(1, end - save.Start - videoTime));
+                            WriteSample(sink, videoStream, frame, videoTime, Math.Max(1, end - save.Start - videoTime));
                             picture = following;
                             following = videoParts.MoveNext() ? videoParts.Current : null;
                         }

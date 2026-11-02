@@ -501,7 +501,7 @@ namespace CapriDesktop
             string doing = SelfKnow.Matching("what can you do?") ?? "", closing = SelfKnow.Matching("Explain the Close and switch apps and tabs setting") ?? "", sizing = SelfKnow.Matching("how do I make you bigger?") ?? "";
             string changing = SelfKnow.Matching("what settings can you change yourself?") ?? "", timing = SelfKnow.Matching("how do timers work?") ?? "";
             if (!doing.Contains("maximize, snap, move, resize") || !doing.Contains("changes her own settings when you ask") || !closing.Contains("maximizing, snapping, moving and resizing windows")
-                || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Keys, brains, her voice service, SECURITY, Watch my screen, Comments, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
+                || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Hologram, Watch my screen and game Comments, plus Size") || !changing.Contains("Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
                 throw new Exception("Self knowledge didn't say what her tools do now: " + doing + " / " + closing + " / " + changing);
             string root = null;
             foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
@@ -581,17 +581,19 @@ namespace CapriDesktop
                     || Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = "size" }) || !Hands.Valid("capri_settings", new ToolArguments { Action = "off", Name = "sit_on_windows" }) || Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = "watch_my_screen", Level = "on" })
                     || Hands.Checking("capri_settings", bigger) || Security.Needs("capri_settings", bigger) != -1)
                     throw new Exception("Her settings tool's calls weren't checked.");
-                // Nothing she mustn't touch is in reach: keys, brains, her voice service, SECURITY, watching, comments, memories or "Hey Capri".
+                // Nothing she mustn't touch is in reach: keys, brains, her voice service, SECURITY, memories or "Hey Capri". Watch my screen and
+                // game comments are switches she turns off when asked (Lachy, 2 Nov), and nothing else that watches or comments is.
                 string tools = Hands.KitFor().WorkTools;
                 int at = tools.IndexOf("\"name\":\"capri_settings\"", StringComparison.Ordinal);
                 string spec = at < 0 ? "" : tools.Substring(at, tools.IndexOf("}}", tools.IndexOf("\"level\"", at), StringComparison.Ordinal) - at);
                 string names = spec.Length == 0 ? "" : spec.Substring(spec.IndexOf("\"enum\":[\"voice\"", StringComparison.Ordinal));
                 names = names.Substring(0, names.IndexOf(']') + 1);
+                string others = names.Replace("\"watch_my_screen\",", "").Replace("\"game_comments\",", "");
                 foreach (string never in new[] { "key", "brain", "model", "elevenlabs", "service", "security", "blackwall", "preset", "watch", "comment", "remember", "memor", "listen", "hey", "startup", "start_with", "discord", "cursor", "password", "bypass" })
-                    if (names.IndexOf(never, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Her settings tool reached something she mustn't touch: " + never + " in " + names);
-                if (names != "\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"dance_to_music\",\"head_pats\",\"chaos_when_upset\",\"sit_on_windows\",\"always_on_top\",\"mini_player\",\"typing_sound\",\"follow_ups\",\"hide_in_full_screen\",\"glitch_in\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\",\"size\",\"pop_ins\",\"sleep\",\"volume\",\"voice_speed\",\"replies\",\"bubble\"]")
+                    if (others.IndexOf(never, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Her settings tool reached something she mustn't touch: " + never + " in " + names);
+                if (names != "\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"dance_to_music\",\"head_pats\",\"chaos_when_upset\",\"sit_on_windows\",\"always_on_top\",\"mini_player\",\"typing_sound\",\"follow_ups\",\"hide_in_full_screen\",\"glitch_in\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\",\"watch_my_screen\",\"game_comments\",\"size\",\"pop_ins\",\"sleep\",\"volume\",\"voice_speed\",\"replies\",\"bubble\"]")
                     throw new Exception("Her settings tool's names didn't match her switches and sliders: " + names);
-                foreach (string name in new[] { "voice", "quiet", "mic", "check_ins", "wander", "dance_to_music", "head_pats", "chaos_when_upset", "sit_on_windows", "always_on_top", "mini_player", "typing_sound", "follow_ups", "hide_in_full_screen", "glitch_in", "clip_my_games", "save_big_moments", "live_reactions", "gaming_mode", "hologram" })
+                foreach (string name in new[] { "voice", "quiet", "mic", "check_ins", "wander", "dance_to_music", "head_pats", "chaos_when_upset", "sit_on_windows", "always_on_top", "mini_player", "typing_sound", "follow_ups", "hide_in_full_screen", "glitch_in", "clip_my_games", "save_big_moments", "live_reactions", "gaming_mode", "hologram", "watch_my_screen", "game_comments" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = name })) throw new Exception("Her settings tool's switch " + name + " wasn't taken.");
                 foreach (string name in new[] { "size", "wander", "pop_ins", "sleep", "volume", "voice_speed", "replies", "bubble" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = name, Level = "up" })) throw new Exception("Her settings tool's slider " + name + " wasn't taken.");

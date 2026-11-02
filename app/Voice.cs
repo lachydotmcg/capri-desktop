@@ -261,6 +261,8 @@ namespace CapriDesktop
         internal const string RejectedNew = "ElevenLabs rejected that key. Copy it again from ElevenLabs and paste it.";
 
         internal const string Restricted = "ElevenLabs has restricted your account, so her voice can't connect. Sign in at elevenlabs.io to see why, or pick PREBUILT LOCAL in the Mainframe.";
+        // ElevenLabs' "Access restricted" page, or a 451: their country or network is turned away, whatever the key (Void, in Russia).
+        internal const string Blocked = "ElevenLabs is blocked where you are, so a new key won't help. Pick PREBUILT LOCAL in the Mainframe for her free voice.";
 
         internal static string Unsaved(string problem) { return problem == Rejected ? RejectedNew : problem; }
 
@@ -275,6 +277,7 @@ namespace CapriDesktop
             detail = detail ?? "";
             if (detail.Contains("quota_exceeded")) return "Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe.";
             if (detail.Contains("account_restricted")) return Restricted;
+            if (status == 451 || status == 403 && Regex.IsMatch(detail, @"access restricted|unsupported[_ ]country|(not available|not supported|unavailable) in your (country|region|location)", RegexOptions.IgnoreCase)) return Blocked;
             if (detail.Contains("missing_permissions")) return "Key is missing permissions. Make a new ElevenLabs key with Restrict key turned off.";
             if (detail.Contains("voice_not_found")) return "Voice not found. Add it to your ElevenLabs voices.";
             // Voices other people shared in the Voice Library only work outside ElevenLabs' site on paid plans; a fresh clone may still be training.
@@ -3568,12 +3571,37 @@ namespace CapriDesktop
                     if (!string.IsNullOrEmpty(speaker)) body.Append(",\"voice\":").Append(Voice.Quote(speaker));
                     body.Append(",\"response_format\":\"wav\"}");
                 }
-                said.AddRange(Ask(endpoint, key, fish ? model : null, body.ToString(), name));
+                short[] made = Ask(endpoint, key, fish ? model : null, body.ToString(), name);
+                // A piece far shorter than its words could take was cut off on their side, which sounds like her voice stopping
+                // mid-reply while the text goes on (Mika on Fish Audio). It's asked for once more and the longer one kept.
+                if (Clipped(piece, made.Length))
+                {
+                    short[] again = Ask(endpoint, key, fish ? model : null, body.ToString(), name);
+                    Brain.Log(name, -1, "Sound for " + Letters(piece) + " letters came back as " + (made.Length / (double)YourVoice.Rate).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
+                        + " s, so she asked again and got " + (again.Length / (double)YourVoice.Rate).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s.");
+                    if (again.Length > made.Length) made = again;
+                }
+                said.AddRange(made);
             }
             short[] samples = said.ToArray();
             if (samples.Length == 0) throw new VoiceException(name + " sent back no sound.");
             if (!VoiceFx.Plain(pitch, speed, robot, glitch, layers)) samples = VoiceFx.Restyled(samples, YourVoice.Rate, pitch, speed, robot, glitch, VoiceFx.Seed(text), layers);
             return Voice.Wave(samples, YourVoice.Rate);
+        }
+
+        // Sound for a piece is cut off when it's quicker than 20 letters a second, faster than anyone talks. Pieces under 40
+        // letters are left alone, since a few words can be said quickly.
+        internal static bool Clipped(string piece, int samples)
+        {
+            int letters = Letters(piece);
+            return letters >= 40 && samples < (long)letters * YourVoice.Rate / 20;
+        }
+
+        private static int Letters(string piece)
+        {
+            int count = 0;
+            foreach (char c in Voice.Uncued(piece ?? "")) if (char.IsLetterOrDigit(c)) count++;
+            return count;
         }
 
         // `model` goes in a header, where Fish Audio's API takes it. `name` is what her notes call the server.
