@@ -392,6 +392,27 @@ namespace CapriDesktop
             return Hands.PickScreen(x, y, numbers, Primary(screens), current, pointed < 0 ? current : pointed, said);
         }
 
+        // The monitor they named for her to look at, from the one with their window in front, or the one their mouse is on: all of
+        // it, and what to call it. When there's no such monitor, what to say instead.
+        internal static string LookArea(string which, IntPtr front, out Rectangle area, out string named)
+        {
+            area = Rectangle.Empty;
+            named = null;
+            List<Display> screens;
+            try { screens = Displays(); }
+            catch (Exception) { screens = null; }
+            if (screens == null || screens.Count == 0) return "Couldn't find their monitors just now.";
+            Spot spot = null;
+            try { if (front != IntPtr.Zero) spot = Read(front); }
+            catch (Exception) { spot = null; }
+            int current = spot != null && !spot.Gone && !spot.Minimized ? Under(spot.Edges, screens) : Under(new Rectangle(Mouse(), new Size(1, 1)), screens);
+            int picked = screens.Count < 2 ? 0 : Pick(which, current, screens);
+            if (picked < 0) return Unknown(which, screens);
+            area = screens[picked].Bounds;
+            named = screens.Count < 2 ? "their screen" : The(screens[picked]);
+            return null;
+        }
+
         private static string The(Display screen) { return screen.Primary ? "the main screen" : screen.Name; }
 
         private static string Unknown(string which, List<Display> screens)

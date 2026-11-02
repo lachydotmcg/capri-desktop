@@ -668,6 +668,19 @@ namespace CapriDesktop
         // Her window tool's arranging (Lachy, 2 Nov): what its description and schema say about it, which come out where windows
         // can't be arranged yet.
         private const string Arranging = " Or arrange its window: maximize it, restore it from minimized or maximized, snap it to the left, right, top or bottom half of its monitor, send it to another monitor with move_to_screen, move it to a spot or to left and top, or resize it. Sizes and places are in the monitor's own pixels.";
+        // Which of their monitors to look at, on Windows, where she can tell them apart.
+        private const string LookingAt =
+#if CROSS
+            "";
+#else
+            " It looks at the monitor they're using, or the one they name.";
+#endif
+        private const string LookPlace =
+#if CROSS
+            "";
+#else
+            ",\"screen\":{\"type\":\"string\",\"description\":\"Another monitor to look at, only if they named one: left, right, main, portrait, other, or a number like 2\"}";
+#endif
         private const string Placing = ",\"screen\":{\"type\":\"string\",\"description\":\"For move_to_screen, or to snap, maximize, move or resize it onto another monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, portrait, or a number like 2\"}"
             + ",\"position\":{\"type\":\"string\",\"description\":\"For move, a spot on its monitor\",\"enum\":[\"center\",\"top_left\",\"top_right\",\"bottom_left\",\"bottom_right\"]}"
             + ",\"left\":{\"type\":\"string\",\"description\":\"For move: its left edge in pixels from its monitor's left, a percent like 25%, or +100 or -100 to nudge it\"}"
@@ -687,8 +700,8 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}},\"required\":[\"site\"]}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
             { "media", "Control the music or video playing on their PC, the PC's volume (up, down, set to a level, mute or unmute), or check what song is playing or what the volume is at.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"next\",\"previous\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\",\"volume_now\"]},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, the volume from 0 to 100. For volume_up or volume_down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}", "control your music and your PC's volume", "play, pause, skip and set the volume" },
-            { "look_at_screen", "Take a screenshot of their screen and look at it right now: what they're doing, playing or showing you. Use it whenever they ask you to check, look at or see their screen, or ask what something on it is. You can always look, so never say you can't see their screen.",
-              "{\"type\":\"object\",\"properties\":{\"focus\":{\"type\":\"string\",\"description\":\"What to look at, if they said\"}}}", "look at your screen", "look at their screen" },
+            { "look_at_screen", "Take a screenshot of their screen and look at it right now: what they're doing, playing or showing you. Use it whenever they ask you to check, look at or see their screen, or ask what something on it is. You can always look, so never say you can't see their screen." + LookingAt,
+              "{\"type\":\"object\",\"properties\":{\"focus\":{\"type\":\"string\",\"description\":\"What to look at, if they said\"}" + LookPlace + "}}", "look at your screen", "look at their screen" },
             { "play_music", "Play a song, playlist, album or artist they name, on Spotify or YouTube, including open Spotify and play requests. Only for things to listen to: a game, match or board is never this, even when they say play. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
               "{\"type\":\"object\",\"properties\":{\"song\":{\"type\":\"string\",\"description\":\"What to play, like a song and its artist or a playlist's name\"},\"kind\":{\"type\":\"string\",\"description\":\"What it is\",\"enum\":[\"song\",\"playlist\",\"album\",\"artist\"]},\"app\":{\"type\":\"string\",\"description\":\"Where to play it, if they said\",\"enum\":[\"spotify\",\"youtube\"]}},\"required\":[\"song\"]}", "play songs, playlists, albums and artists on Spotify or YouTube", "play songs on Spotify or YouTube" },
             { "app_window", "Switch to, minimize or close an app or game that's open on their PC, found by its name or a word in its window's title. Naming a site closes that browser tab." + Arranging,
@@ -923,6 +936,8 @@ namespace CapriDesktop
         internal static Func<IntPtr> Foreground = Native.GetForegroundWindow;
         internal static Action<byte> Press = Tap;
         internal static Func<string, string> Look = delegate { return "You can't see their screen right now."; };
+        // A look at the monitor they named; where she can't tell their monitors apart, the usual look.
+        internal static Func<string, string, string> LookOn = delegate(string focus, string screen) { return Look(focus); };
 #if !CROSS
         internal static Func<string, int?, long?, string> ReadFile = delegate { return "I don't have a file you handed me at that path."; };
         internal static Websites Websites;
@@ -1102,7 +1117,7 @@ namespace CapriDesktop
                 if (tool == "open_app") return OpenApp(args.Name);
                 if (tool == "open_website") return OpenSite(args.Site, args.Search, args.Browser);
                 if (tool == "media") return Media(args);
-                if (tool == "look_at_screen") return Look(args.Focus);
+                if (tool == "look_at_screen") return string.IsNullOrWhiteSpace(args.Screen) ? Look(args.Focus) : LookOn(args.Focus, args.Screen);
                 if (tool == "play_music") return PlayMusic(args.Song, args.App, args.Kind);
                 if (tool == "app_window") return Window(args);
                 if (tool == "use_computer")
@@ -2111,6 +2126,10 @@ namespace CapriDesktop
         // "Check my screen", "can you see this?", "what game is this?": she takes a screenshot and looks, every time.
         private static readonly Regex ScreenAsk = new Regex(@"^(?:(?:can|could|would|will|do|did) (?:you|u) )?(?:(?:take a |have a |quick )?(?:look|peek|peep|glance)(?: at)?|check(?: out)?|see|watch|read|scan|view|look over|screenshot)(?: on)? (?:my|the|our|this|ur|your) (?:screen|monitor|display|desktop|pc|computer|stream|window|tab)s?$|^(?:(?:can|could|would|will|do|did) (?:you|u) )?(?:see|look at|check(?: out)?|peep|watch) (?:this|that|what i'?m (?:doing|playing|watching|looking at|working on|seeing))$|^(?:look at|check out|check|peep|watch) (?:this|that)(?: (?:out|real quick|quick))?$|^(?:take a|have a|quick) (?:look|peek|glance)(?: at (?:this|that|it|my screen|the screen))?$|^what(?:'s| is) on (?:my|the|our) (?:screen|monitor|display|desktop|pc)\b|^what (?:do|can|did) (?:you|u) see\b|^what are (?:you|u) (?:seeing|looking at)$|^what am i (?:doing|playing|watching|looking at|working on|reading)(?: (?:on my (?:screen|pc|computer)|rn|right now|now))?$|^regardes? (?:mon [ée]cran|[çc]a)$|^(?:tu )?(?:peux )?(?:voir|vois) mon [ée]cran$|^tu vois (?:mon [ée]cran|[çc]a)$|^qu'est-ce que (?:je fais|tu vois)$|^qu'est-ce qu'il y a sur mon [ée]cran$|^(?:mira|revisa|checa|chequea|ve|ver|mirar|revisar|checar) (?:mi pantalla|esto|eso)$|^(?:ves|puedes ver) (?:mi pantalla|esto|eso)$|^qu[ée] (?:ves|estoy haciendo)(?: en (?:mi|la) pantalla)?$|^qu[ée] hay en (?:mi|la) pantalla$", RegexOptions.IgnoreCase);
         private static readonly Regex ScreenQuestion = new Regex(@"^what(?:'s| is) this(?: (?:game|app|thing|site|website|show|anime|movie|video|error|bug|code|program|word|map|level|boss|character|item|guy))?$|^what(?:'s| is) that (?:game|app|thing|site|website|show|anime|movie|video|error|bug|code|program|word|map|level|boss|character|item|guy)$|^what (?:game|app|anime|show|movie|video|website|site|error|program|level|map|boss|character|item) is (?:this|that)$|^who is this(?: (?:guy|character|boss))?$|^(?:how does|does) this look(?: (?:good|ok|okay|right|alright))?$|^what do (?:you|u) think (?:of|about) (?:this|my (?:screen|setup|build|base|drawing|art|design|avatar|character|thumbnail|outfit|fit|skin))$|^(?:look at|check out|peep|read) (?:this|that) \w+(?: \w+)?$|^rate (?:this|my (?:setup|desktop|wallpaper|screen|build|base|drawing|art|design|avatar|character|thumbnail|outfit|fit|skin))$", RegexOptions.IgnoreCase);
+#if !CROSS
+        // A look at one of their monitors by name: "what's on my second monitor", "look at my left screen", "check the portrait one".
+        private static readonly Regex MonitorLook = new Regex(@"^(?:(?:can|could|would|will) (?:you|u) )?(?:(?:take a |have a |quick )?(?:look|peek|peep|glance)(?: at)?|check(?: out)?|see|read|scan) (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display|one)$|^what(?:'s| is) on (?:my|the|our|ur|your) (?<which>left|right|main|primary|portrait|vertical|other|second|third|fourth|first|1st|2nd|3rd|4th|[1-4]|top|bottom) (?:screen|monitor|display)$", RegexOptions.IgnoreCase);
+#endif
         // A reply that says she can't see their screen means she should look instead.
         private static readonly Regex Unseen = new Regex(@"\b(can'?t|cannot|can not|don'?t|do not|unable to|not able to|no way to|have no way to)\s+(\w+\s+){0,4}(see|look at|view|access|check|read)\s+(your|ur|the|their)\s+(screen|monitor|display|desktop)\b|\b(no|without)\s+(access to|way to see|eyes on)\s+(your|ur|the)\s+screen\b|\b(share|show)\s+(me\s+)?(your|ur)\s+screen\b|\bi('m| am)\s+(blind|not looking at (your|the) screen)\b", RegexOptions.IgnoreCase);
 
@@ -2784,6 +2803,10 @@ namespace CapriDesktop
             string pressed = ShortcutFor(text);
             if (pressed != null) { tool = "shortcut"; args.Name = pressed; return true; }
             if (ScreenAsk.IsMatch(text) || ScreenQuestion.IsMatch(text)) { tool = "look_at_screen"; args.Focus = ScreenQuestion.IsMatch(text) ? text : null; return true; }
+#if !CROSS
+            Match lookedAt = MonitorLook.Match(text);
+            if (lookedAt.Success) { tool = "look_at_screen"; args.Screen = Regex.Replace(lookedAt.Groups["which"].Value.ToLowerInvariant(), @"^(?:other|another)$", "next"); return true; }
+#endif
             bool question = Regex.IsMatch((said ?? "").Trim(), @"\?\s*$");
             // "Can you remember that I main Jett?" asks her to save it; "remember when we played?" is chat.
             bool polite = Regex.IsMatch(Opener.Replace((said ?? "").Trim(), ""), @"^((hey|yo|ok|okay)[\s,]+)?(capri[\s,]+)?(can|could|would|will) (you|u)\b", RegexOptions.IgnoreCase);

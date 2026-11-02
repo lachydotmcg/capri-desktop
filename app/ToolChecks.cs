@@ -36,6 +36,8 @@ namespace CapriDesktop
             Func<OpenWindow, string> screenWas = Hands.ScreenOf;
             Func<OpenWindow, string, bool> steerWas = Hands.Steer;
             Func<string, string, bool> runningWas = Hands.Running;
+            Func<string, string> lookWas = Hands.Look;
+            Func<string, string, string> lookOnWas = Hands.LookOn;
             bool windowsOn = Security.On(Security.Windows);
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
@@ -220,6 +222,34 @@ namespace CapriDesktop
                 if (voiced == null || !voiced.Contains("\"move_to_screen\"") || !voiced.Contains("\"position\"") || !voiced.Contains("Or arrange its window")
                     || System.Text.RegularExpressions.Regex.IsMatch(voiced, "\"\\w+\":\\{\"type\":\"(?:string|number|integer|boolean)\"(?![^{}]*\"description\":\"[^\"])") || !Agent.Stale(32, Brain.PersonalityStamp))
                     throw new Exception("Her voice chat's window tool is missing its moves, or her agent wouldn't be tuned again for them: " + voiced);
+                // She looks at the monitor they name, from the one they're on, and says which one she saw.
+                string[,] looks = { { "2", "screen 2" }, { "portrait", "screen 2" }, { "right", "screen 2" }, { "main", "the main screen" }, { "third", "screen 3" }, { "next", "screen 2" } };
+                for (int i = 0; i < looks.GetLength(0); i++)
+                {
+                    Rectangle area;
+                    string named, missing = Arrange.LookArea(looks[i, 0], IntPtr.Zero, out area, out named);
+                    if (missing != null || named != looks[i, 1] || area != desk.Find(delegate(Arrange.Display one) { return one.Name == looks[i, 1].Replace("the ", ""); }).Bounds)
+                        throw new Exception("Looking at the " + looks[i, 0] + " monitor found " + named + " " + area + " / " + missing);
+                }
+                Rectangle none;
+                string noName, absentScreen = Arrange.LookArea("5", IntPtr.Zero, out none, out noName);
+                if (absentScreen != "There's no screen 5. Your monitors are the main screen, screen 2 and screen 3." || noName != null || !none.IsEmpty)
+                    throw new Exception("A monitor that isn't there wasn't said: " + absentScreen);
+                string[,] lookAsks = { { "what's on my second monitor", "second" }, { "look at my left screen", "left" }, { "check the portrait one", "portrait" }, { "can you look at my other monitor", "next" }, { "look at my screen", "" } };
+                for (int i = 0; i < lookAsks.GetLength(0); i++)
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (!Hands.Heard(lookAsks[i, 0], out tool, out args) || tool != "look_at_screen" || (args.Screen ?? "") != lookAsks[i, 1])
+                        throw new Exception("\"" + lookAsks[i, 0] + "\" didn't look at the monitor they named: " + tool + " " + (args == null ? "" : args.Screen));
+                }
+                List<string> looked = new List<string>();
+                Hands.Look = delegate(string focus) { looked.Add("here"); return "You looked at their screen."; };
+                Hands.LookOn = delegate(string focus, string which) { looked.Add(which); return "You looked at screen 2."; };
+                Hands.Do("look_at_screen", new ToolArguments { Screen = "left" });
+                Hands.Do("look_at_screen", new ToolArguments { Focus = "the error" });
+                if (string.Join(",", looked.ToArray()) != "left,here" || !kit.WorkTools.Contains("\"screen\":{\"type\":\"string\",\"description\":\"Another monitor to look at") || !kit.WorkTools.Contains("It looks at the monitor they're using, or the one they name."))
+                    throw new Exception("Her look didn't go to the monitor they named: " + string.Join(",", looked.ToArray()));
                 // A brain that works jobs out checks where the window is, moves it, and hears where it really ended up.
                 List<string> asked = new List<string>();
                 Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
@@ -238,7 +268,7 @@ namespace CapriDesktop
                     || !sent[0].Contains("\"move_to_screen\"") || !sent[0].Contains("To arrange a window, use app_window") || !sent[1].Contains("Monitors, left to right: main screen 1920 x 1080; screen 2 1080 x 1920, portrait")
                     || !sent[1].Contains("940 x 800 at 70, 200") || !sent[2].Contains("Snapped discord to the left half of screen 2, but it stayed 940 x 1872: that's as small as it goes."))
                     throw new Exception("Her planner didn't check where the window was, or didn't hear where it really went: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
-                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; a planner checks where the window is before moving it and hears where it ended up");
+                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up");
             }
             finally
             {
@@ -255,6 +285,8 @@ namespace CapriDesktop
                 Hands.Minimized = minimizedWas;
                 Hands.Gamey = gameyWas;
                 Hands.ScreenOf = screenWas;
+                Hands.Look = lookWas;
+                Hands.LookOn = lookOnWas;
                 Hands.Steer = steerWas;
                 Hands.Running = runningWas;
                 Security.Drop();
@@ -624,7 +656,8 @@ namespace CapriDesktop
                 { "how do I move a window to my other monitor?", "Arrange windows:" }, { "can you snap my window to the left?", "Arrange windows:" },
                 { "what settings can you change yourself?", "Settings she can change:" }, { "can you make yourself bigger?", "Settings she can change:" },
                 { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" },
-                { "can you set a timer?", "Reminders:" }, { "can you turn the game down?", "App volume:" }, { "can you use the volume mixer?", "App volume:" }
+                { "can you set a timer?", "Reminders:" }, { "can you turn the game down?", "App volume:" }, { "can you use the volume mixer?", "App volume:" },
+                { "can you see my other monitor?", "Look at another monitor:" }
             };
             for (int i = 0; i < asks.GetLength(0); i++)
             {
@@ -650,11 +683,11 @@ namespace CapriDesktop
                 return;
             }
             string help = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "site", "help", "knowledge.md"));
-            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
+            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "With more than one monitor (0.8.0), she looks at the one with the window you're using.", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
                 if (help.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page is missing: " + part);
             int from = help.IndexOf("### Move, snap and resize windows (0.8.0)", StringComparison.Ordinal), to = help.IndexOf("### Discord and Windows shortcuts", from, StringComparison.Ordinal);
             if (to < from || help.Substring(from, to - from).IndexOf('\u2014') >= 0) throw new Exception("Her help page's new sections are out of place or use an em dash.");
-            checks.Add("PASS self knowledge and her help page cover her window tool, the settings she can change herself, pausing only what's playing, timers, one app's own volume and Close and switch apps and tabs, with exact menu names");
+            checks.Add("PASS self knowledge and her help page cover her window tool, the settings she can change herself, pausing only what's playing, timers, one app's own volume, looking at the monitor they name and Close and switch apps and tabs, with exact menu names");
         }
 
         // Her settings tool's sliders and everyday switches on pretend settings: a step by name, by number or one step up or down,

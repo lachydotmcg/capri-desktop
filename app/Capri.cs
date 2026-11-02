@@ -2040,6 +2040,7 @@ namespace CapriDesktop
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             voice.Key = Voice.Unprotect(preferences.VoiceKey);
             Hands.Look = LookAt;
+            Hands.LookOn = LookAt;
             Hands.ReadFile = brain.ReadFile;
             Hands.Work = RunJob;
             Hands.Plan = reminders.Route;
@@ -7082,12 +7083,23 @@ namespace CapriDesktop
             });
         }
 
-        private string LookAt(string focus)
+        private string LookAt(string focus) { return LookAt(focus, null); }
+
+        // A look at the monitor they named, or with none named, the one with their window in front (Lachy, 3 Nov: three monitors).
+        private string LookAt(string focus, string which)
         {
             string blind = Unseeing();
             if (blind != null) return blind;
+            Rectangle area = Rectangle.Empty;
+            string named = null;
+            if (!string.IsNullOrWhiteSpace(which))
+            {
+                IntPtr front = Native.GetForegroundWindow();
+                string missing = Arrange.LookArea(which, front != IntPtr.Zero && Control.FromHandle(front) == null ? front : IntPtr.Zero, out area, out named);
+                if (missing != null) return missing;
+            }
             byte[] shot;
-            using (Bitmap screen = InvokeRequired ? (Bitmap)Invoke(new Func<Bitmap>(CaptureScreen)) : CaptureScreen())
+            using (Bitmap screen = !area.IsEmpty ? (InvokeRequired ? (Bitmap)Invoke(new Func<Rectangle, Bitmap>(CaptureScreen), area) : CaptureScreen(area)) : InvokeRequired ? (Bitmap)Invoke(new Func<Bitmap>(CaptureScreen)) : CaptureScreen())
             {
                 if (screen == null) return BlackScreen;
                 shot = Jpeg(screen, 1280);
@@ -7105,7 +7117,7 @@ namespace CapriDesktop
             }
             if (seen.Length == 0) return "I looked, but couldn't make out your screen clearly enough to describe it.";
             brain.Saw(seen, null, true);
-            return "You looked at their screen. You see: " + seen;
+            return "You looked at " + (named ?? "their screen") + ". You see: " + seen;
         }
 
         // Voice chat pauses her glances only while their mic is on. Muted, she keeps commenting on their screen, and Listen for

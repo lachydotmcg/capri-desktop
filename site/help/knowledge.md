@@ -1370,6 +1370,8 @@ Mainframe > Settings > WATCH > Watch my screen. The Every slider sets how often 
 ### Check my screen
 Any time, ask "check my screen", "what's on my screen?", "can you see this?", "look at this error" or "rate my build". She takes a screenshot right then and answers about it. Watch my screen doesn't need to be on.
 
+With more than one monitor (0.8.0), she looks at the one with the window you're using. Name another: "what's on my second monitor?", "look at my left screen", "check the portrait one". Monitors are named like her window moves name them: the main screen, screen 2, screen 3. Windows only.
+
 ### Why doesn't she comment much?
 She skips a look when:
 - your screen hasn't changed
