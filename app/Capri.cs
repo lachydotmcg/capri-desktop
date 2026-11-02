@@ -1678,7 +1678,7 @@ namespace CapriDesktop
         private double nextGlance = -1;
         private double lastGlance = -1;
         // When the glance in flight started on her own clock, and how long a look takes before she spaces them out.
-        private double glanceStart = -1;
+        private double glanceStart = double.NaN;
         private const double SlowGlance = 20;
         private int watchTicket;
         private bool glancing;
@@ -7169,8 +7169,8 @@ namespace CapriDesktop
             glancing = false;
             // A slow look, like a brain on a busy PC, waits twice as long as it took before the next one, so their chats aren't
             // stuck behind her glances (ticket 88, Void: 180 s timeouts with Watch every 10 s on a local Gemma).
-            double took = glanceStart < 0 ? 0 : clock.Elapsed.TotalSeconds - glanceStart;
-            glanceStart = -1;
+            double took = double.IsNaN(glanceStart) ? 0 : clock.Elapsed.TotalSeconds - glanceStart;
+            glanceStart = double.NaN;
             if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, clock.Elapsed.TotalSeconds + took * 2);
             if (watch != watchTicket || (awayWatch >= 0 ? !exploring || awayWatch != exploreTicket || !ExploreFree() || Native.GetForegroundWindow() != exploreWindow || awayInput.Quiet() < (long)ExploreAfter * 1000 : !preferences.Watch)) return;
             if (brain.ScreenWait > 0) nextGlance = clock.Elapsed.TotalSeconds + brain.ScreenWait;
@@ -9673,8 +9673,9 @@ namespace CapriDesktop
         {
             mainframe.VoiceNote(text, problem);
             if (talkState == TalkState.Thinking) return;
-            // A note about her ears never cuts into a line she's still saying (Lachy, 2 Nov). A problem waits for her to finish.
-            if (StillSaying) { if (problem) earsHeld = text; return; }
+            // A note about her ears never cuts into a reply she's still saying (Lachy, 2 Nov). A problem waits for her to finish.
+            // Her own last ears note can be followed straight away, like "One sec, opening my ears." by that they're ready.
+            if (StillSaying && asking != earsNotice) { if (problem) earsHeld = text; return; }
             earsHeld = null;
             heard = "(voice)";
             box.Prompt = "> you: ";
@@ -32284,12 +32285,12 @@ namespace CapriDesktop
                                 if (vsFailed != null) throw vsFailed;
                                 return vsHeard;
                             };
-                            int vsRate;
                             // A long piece that came back in a second was cut off; a short line or a long piece at talking speed wasn't.
                             const string vsLong = "This line is long enough that it takes a good few seconds to say out loud, choom, every time.";
                             if (!VoiceServer.Clipped(vsLong, YourVoice.Rate) || VoiceServer.Clipped(vsLong, YourVoice.Rate * 6) || VoiceServer.Clipped("Hey choom, this is your server.", 2400)
                                 || VoiceServer.Clipped("[laughing] [excited] Ha ha ha ha ha ha ha ha ha ha ha ha ha!", YourVoice.Rate * 2))
                                 throw new Exception("A cut-off voice server piece was read wrong.");
+                            int vsRate;
                             const string vsLine = "Hey choom, this is your server.";
                             byte[] vsSaid = vsOff(vsVoice.Or(vsFree, vsNoted), vsLine);
                             short[] vsSamples = Voice.Samples(vsSaid, out vsRate);
@@ -34635,7 +34636,7 @@ namespace CapriDesktop
                             glanceStart = clock.Elapsed.TotalSeconds - 2;
                             nextGlance = slowFrom;
                             FinishGlance(asking, oldWatch, null, null);
-                            if (slowNext < 59 || slowNext > 61 || nextGlance != slowFrom || glanceStart != -1) throw new Exception("A 30 s glance didn't wait a minute before the next, or a quick one waited: " + slowNext + " / " + (nextGlance - slowFrom));
+                            if (slowNext < 59 || slowNext > 61 || nextGlance != slowFrom || !double.IsNaN(glanceStart)) throw new Exception("A 30 s glance didn't wait a minute before the next, or a quick one waited: " + slowNext + " / " + (nextGlance - slowFrom));
                             nextGlance = slowFrom;
                             checks.Add("PASS slow glances: a look that took 30 s waits a minute before the next one, so a slow brain has room for chat, and quick looks keep their timer");
                             lastPrint = new byte[64 * 36 * 3];
@@ -35808,7 +35809,8 @@ namespace CapriDesktop
                 return "chatting " + chatting + ", local " + local + ", ears ready " + earsReady + ", shut " + earsShut + ", transcribing " + transcribing + ", muted " + ears.Muted
                     + ", talk " + talkState + ", quiet " + preferences.Quiet + ", server " + preferences.ServerVoice + ", note " + mainframe.VoiceNoteText
                     + ", voice for " + (voiceUntil - clock.Elapsed.TotalSeconds).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s, busy " + speaker.Busy + ", name over " + nameOver
-                    + ", ears on " + ears.Listening + ", hearing " + (hearingStatus == null ? "-" : hearingStatus.Text) + ", cloud " + preferences.CloudVoice + ", calls " + switchCalls;
+                    + ", ears on " + ears.Listening + ", hearing " + (hearingStatus == null ? "-" : hearingStatus.Text) + ", cloud " + preferences.CloudVoice + ", calls " + switchCalls
+                    + ", windows speech " + (dictation != null) + ", noise hold " + noiseHold + ", room " + room.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + ", asking " + asking + ", chat ticket " + chatTicket;
             };
             // She says her check line through each new voice first, so each line waits for it to finish.
             Action<string> switchHeard = delegate(string what)
