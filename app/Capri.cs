@@ -18901,12 +18901,15 @@ namespace CapriDesktop
             Func<double?> volumeWas = Hands.VolumeNow;
             Func<bool?> muteWas = Hands.MuteState;
             Func<OpenWindow, string, bool> steerWas = Hands.Steer;
+            Func<string> monitorsWas = Hands.Monitors;
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
             System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>(), reached = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener fake = null;
             try
             {
+                // Their monitors have their own check (SmokeWindowTool), so this desk has one.
+                Hands.Monitors = delegate { return ""; };
                 OpenWindow discord = new OpenWindow(new IntPtr(12), "#general | Capri Fans - Discord   with a title that runs on far too long, and longer", "Discord");
                 System.Collections.Generic.List<OpenWindow> open = new System.Collections.Generic.List<OpenWindow>
                 {
@@ -19084,6 +19087,7 @@ namespace CapriDesktop
                 Hands.VolumeNow = volumeWas;
                 Hands.MuteState = muteWas;
                 Hands.Steer = steerWas;
+                Hands.Monitors = monitorsWas;
                 Hands.GameOpen = gameWas;
                 Hands.Forget();
                 Computer.GameOpen = openWas;
@@ -23292,6 +23296,8 @@ namespace CapriDesktop
             Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
             Section(checks, "SmokePlannerChecks", delegate { SmokePlannerChecks(checks); });
             Section(checks, "SmokeOwnSettings", delegate { SmokeOwnSettings(checks); });
+            Section(checks, "SmokeWindowTool", delegate { SmokeWindowTool(checks); });
+            Section(checks, "SmokeWindowReal", delegate { SmokeWindowReal(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
             Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });

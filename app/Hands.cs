@@ -51,6 +51,11 @@ namespace CapriDesktop
         [DataMember(Name = "side")] public string Side;
         [DataMember(Name = "screen")] public string Screen;
         [DataMember(Name = "window")] public string Window;
+        [DataMember(Name = "position")] public string Position;
+        [DataMember(Name = "left")] public string Left;
+        [DataMember(Name = "top")] public string Top;
+        [DataMember(Name = "width")] public string Width;
+        [DataMember(Name = "height")] public string Height;
         [DataMember(Name = "coordinate")] public double[] Coordinate;
         [DataMember(Name = "start_coordinate")] public double[] From;
         [DataMember(Name = "region")] public double[] Region;
@@ -395,7 +400,21 @@ namespace CapriDesktop
                         case "quick_settings": return "open Quick Settings";
                         default: return "press that shortcut";
                     }
-                case "app_window": return (a.Action == "close" ? "close " : a.Action == "minimize" ? "minimize " : "switch to ") + Plain(a.Name, "that app");
+                case "app_window":
+                    string windowName = Plain(a.Name, "that app"), monitor = Plain(a.Screen, "other").ToLowerInvariant();
+                    monitor = Regex.IsMatch(monitor, @"^\d$") ? "screen " + monitor : "your " + Regex.Replace(Regex.Replace(monitor, @"^(?:the|my|your) |\s*(?:monitor|screen|display)$", ""), "^(?:next|another)$", "other") + " screen";
+                    switch (a.Action)
+                    {
+                        case "close": return "close " + windowName;
+                        case "minimize": return "minimize " + windowName;
+                        case "maximize": return "maximize " + windowName;
+                        case "restore": return "restore " + windowName;
+                        case "snap_left": case "snap_right": case "snap_top": case "snap_bottom": return "snap " + windowName + " to the " + a.Action.Substring(5) + " half of its screen";
+                        case "move_to_screen": return "move " + windowName + " to " + monitor;
+                        case "move": return "move " + windowName;
+                        case "resize": return "resize " + windowName;
+                        default: return "switch to " + windowName;
+                    }
                 case "power":
                     string when = Regex.IsMatch(a.Minutes ?? "", @"^\s*\d+\s*$") && a.Minutes.Trim() != "0" ? " in " + a.Minutes.Trim() + (a.Minutes.Trim() == "1" ? " minute" : " minutes") : "";
                     switch (a.Action)
@@ -471,7 +490,7 @@ namespace CapriDesktop
         }
 
         private const string Noted =
-            "\nYou have tools for their PC: open (launch, play) their apps and games, switch to, minimize or close apps that are open, play songs or videos they name, open websites or search them, control their music and volume, look at their screen, and use their mouse and keyboard for jobs inside apps and sites. " +
+            "\nYou have tools for their PC: open (launch, play) their apps and games, switch to, minimize, maximize, snap, move, resize or close apps that are open, on any of their monitors, play songs or videos they name, open websites or search them, control their music and volume, look at their screen, and use their mouse and keyboard for jobs inside apps and sites. " +
             "Use a tool whenever they ask you to do something like that, and never say you did or are doing it without one. Look at their screen when they ask what you see or what you think of something on it. Only close an app when they ask you to. " +
             "Your own website, where people download you, is " + Home + ". " +
             "They've already given you permission for anything they ask you to do on their PC, so do all of it straight away: never ask which option they meant, never ask if they're sure, never make them confirm or ask for things one at a time, and when they leave the choice to you, like which song, video or game, pick one yourself. " +
@@ -521,7 +540,7 @@ namespace CapriDesktop
 
         private const string Handing =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You don't chat.\n" +
-            "Act only on their latest request. Earlier messages are context for names, not commands to repeat. Call one tool for each thing they ask for, however many there are (open Discord, Spotify and Steam is three open_app calls): open an app, game or website, search a site, play music, control media or volume, check the current song, switch to, minimize or close an app, or look at their screen when asked about it. Use the names they gave.\n" +
+            "Act only on their latest request. Earlier messages are context for names, not commands to repeat. Call one tool for each thing they ask for, however many there are (open Discord, Spotify and Steam is three open_app calls): open an app, game or website, search a site, play music, control media or volume, check the current song, switch to, minimize, maximize, restore, snap, move, resize or close an app's window, or look at their screen when asked about it. Use the names they gave.\n" +
             "For music, including open Spotify and play a song or playlist, always call play_music once. It opens the music directly; don't turn it into a clicking job or call media play_pause afterwards.\n" +
             "Suggestions to do something, like let's watch YouTube or we should open Spotify, are requests to do it. Answering questions on their screen is a normal use_computer job.\n" +
             "If the job needs clicking, typing or more than one step, like opening an app and then searching, going somewhere or making something in it, call use_computer once with the whole job in their words.\n" +
@@ -571,8 +590,17 @@ namespace CapriDesktop
             "\nYou hold these tools yourself, so you decide what to do with them. They won't always spell it out: \"i want some lofi\" means play it, \"i can't hear it\" means turn it up, and \"get discord up\" means open it. When what they say means they want something done, do it with your tools instead of only talking about it. " +
             "Work out every step it needs and take the steps one tool call at a time: you'll see what each one did before you pick the next. " +
             "Nobody tells you what's open on their PC, so when it matters, find out first: list_windows shows their open windows and which one is in front, and check_app says whether an app or game is installed and running. If something has to be open first, open it, then carry on. To start a match in a game, check it's running; if it isn't, call open_app for the game, then use_computer for the rest, which waits for the game to load and clicks through its menus. Use use_computer for anything that needs clicking or typing inside an app, a game or a site, with the whole job in their words. " +
-            "When it matters whether a step worked, like a window opening, closing or coming to the front, check again before you say it did. " + OwnSettings +
+            "When it matters whether a step worked, like a window opening, closing or coming to the front, check again before you say it did. " + WindowNote + OwnSettings +
             "Never say you did, started or are doing something unless one of your tools did it this turn, and don't stop at a step that only gets part of the way. If a tool fails, try another way once, then tell them plainly what didn't work. When they're just chatting, answer as yourself without tools. Once the job's done, or can't go any further, reply to them in one short line as yourself." + Hurting;
+
+        // Arranging their windows, which only Windows has so far: app_window says where a window really ended up, and list_windows
+        // names their monitors and says where one app's window is (Lachy, 2 Nov).
+        private const string WindowNote =
+#if CROSS
+            "";
+#else
+            "To arrange a window, use app_window: maximize, restore, snap it to half a monitor, move_to_screen for another monitor, or move and resize it. list_windows names their monitors, and with a name says where that app's window is and how big, so check it before a move or resize by pixels. Its result says where the window really ended up, so tell them that, like an app that won't go any smaller. ";
+#endif
 
         // Her own settings, which only her Windows window can switch so far.
         private const string OwnSettings =
@@ -620,6 +648,16 @@ namespace CapriDesktop
             return "\"" + title + "\"" + (string.IsNullOrEmpty(window.Program) ? "" : " (" + window.Program + ")");
         }
 
+        // Her window tool's arranging (Lachy, 2 Nov): what its description and schema say about it, which come out where windows
+        // can't be arranged yet.
+        private const string Arranging = " Or arrange its window: maximize it, restore it from minimized or maximized, snap it to the left, right, top or bottom half of its monitor, send it to another monitor with move_to_screen, move it to a spot or to left and top, or resize it. Sizes and places are in the monitor's own pixels.";
+        private const string Placing = ",\"screen\":{\"type\":\"string\",\"description\":\"For move_to_screen, or to snap, maximize, move or resize it onto another monitor, only if they said: next, left, right, up, down, main, here for the one their mouse is on, portrait, or a number like 2\"}"
+            + ",\"position\":{\"type\":\"string\",\"description\":\"For move, a spot on its monitor\",\"enum\":[\"center\",\"top_left\",\"top_right\",\"bottom_left\",\"bottom_right\"]}"
+            + ",\"left\":{\"type\":\"string\",\"description\":\"For move: its left edge in pixels from its monitor's left, a percent like 25%, or +100 or -100 to nudge it\"}"
+            + ",\"top\":{\"type\":\"string\",\"description\":\"For move: its top edge, the same way as left\"}"
+            + ",\"width\":{\"type\":\"string\",\"description\":\"For resize: pixels like 1280, a percent of its monitor like 50%, or +20% or -200 from its size now\"}"
+            + ",\"height\":{\"type\":\"string\",\"description\":\"For resize: the same way as width\"}";
+
         private static readonly string[,] Specs =
         {
             { "open_app", "Open, launch or play an app or game installed on their PC, like Spotify, Discord, Steam or Roblox. Give its full name, not a nickname: Counter-Strike 2 for cs, Valorant for val. If it's already open and they want something done in it, like a mode, a match or accepting a match, call use_computer instead of opening it again.",
@@ -636,8 +674,9 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"focus\":{\"type\":\"string\",\"description\":\"What to look at, if they said\"}}}", "look at your screen", "look at their screen" },
             { "play_music", "Play a song, playlist, album or artist they name, on Spotify or YouTube, including open Spotify and play requests. Only for things to listen to: a game, match or board is never this, even when they say play. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
               "{\"type\":\"object\",\"properties\":{\"song\":{\"type\":\"string\",\"description\":\"What to play, like a song and its artist or a playlist's name\"},\"kind\":{\"type\":\"string\",\"description\":\"What it is\",\"enum\":[\"song\",\"playlist\",\"album\",\"artist\"]},\"app\":{\"type\":\"string\",\"description\":\"Where to play it, if they said\",\"enum\":[\"spotify\",\"youtube\"]}},\"required\":[\"song\"]}", "play songs, playlists, albums and artists on Spotify or YouTube", "play songs on Spotify or YouTube" },
-            { "app_window", "Switch to, minimize or close an app or game that's open on their PC. Naming a site closes that browser tab.",
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"close\"]}},\"required\":[\"name\",\"action\"]}", "switch to, minimize or close your apps and browser tabs", "switch to, minimize or close their windows" },
+            { "app_window", "Switch to, minimize or close an app or game that's open on their PC, found by its name or a word in its window's title. Naming a site closes that browser tab." + Arranging,
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name or a word from its window's title, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"maximize\",\"restore\",\"close\",\"snap_left\",\"snap_right\",\"snap_top\",\"snap_bottom\",\"move_to_screen\",\"move\",\"resize\"]}" + Placing + "},\"required\":[\"name\",\"action\"]}",
+              "switch to, minimize, maximize, snap, move, resize or close your apps' windows and browser tabs, on any of your monitors", "switch to, minimize, maximize, snap, move, resize or close their windows" },
             { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it, or in a game: picking a mode, queueing for a match, or waiting for one and accepting it while they're away. You always have their mouse and keyboard through this tool.",
               "{\"type\":\"object\",\"properties\":{\"task\":{\"type\":\"string\",\"description\":\"The whole job in their exact words, including any message to send\"}},\"required\":[\"task\"]}", "do mouse and keyboard jobs in your apps, sites and games, like sending messages, changing settings or playing a game herself", "mouse and keyboard jobs in their apps, sites and games" },
             { "shortcut", "Press a keyboard shortcut for them: mute or unmute their mic in Discord (discord_mute), deafen or undeafen in Discord (discord_deafen), take a screenshot, clip the last 30 seconds, start or stop recording, open the Game Bar, show the desktop, open Task Manager, clipboard history or the emoji picker, start voice typing, turn Live Captions, Narrator or colour filters on or off, zoom in with Magnifier or close it, or open Quick Settings.",
@@ -692,7 +731,7 @@ namespace CapriDesktop
         // one-shot pick for smaller brains doesn't get them, so those keep the shortcuts they had.
         private static readonly string[,] Checks =
         {
-            { "list_windows", "See what's open on their PC right now: each open window's title, trimmed, and its program, which one is in front, which are minimized or games, and which monitor each is on when they have more than one. Give name to see only one app's windows. Call it before you act when what's open matters, and after, to check a window opened, closed or came to the front.",
+            { "list_windows", "See what's open on their PC right now: each open window's title, trimmed, and its program, which one is in front, which are minimized or games, and which monitor each is on when they have more than one, with their monitors named left to right and their sizes in pixels. Give name to see only one app's windows, with how big each is and where its top left corner is on its monitor, before you move or resize one. Call it before you act when what's open matters, and after, to check a window opened, closed, moved or came to the front.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Only this app's or game's windows, if you want one\"}}}" },
             { "check_app", "Check whether an app or game is installed on their PC, by the name open_app would open, and whether it's running: with a window open, in front or minimized, or in the background with no window, like Discord in the tray. Use it before opening something that might already be open, and after opening or closing one to check it worked.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's or game's name\"}},\"required\":[\"name\"]}" },
@@ -1046,7 +1085,7 @@ namespace CapriDesktop
                 if (tool == "media") return Media(args);
                 if (tool == "look_at_screen") return Look(args.Focus);
                 if (tool == "play_music") return PlayMusic(args.Song, args.App, args.Kind);
-                if (tool == "app_window") return Window(args.Name, args.Action, args.Asked);
+                if (tool == "app_window") return Window(args);
                 if (tool == "use_computer")
                 {
                     if (string.IsNullOrWhiteSpace(args.Task)) return "Which job, choom?";
@@ -1240,6 +1279,8 @@ namespace CapriDesktop
         // Her moves that only Windows has so far.
         private static readonly string[] WindowsMoves = { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off", "move_mainframe" };
         private static readonly string[] WindowsTools = { "find_file", "website_nickname", "read_file", "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" };
+        // Her window tool's arranging, which only Windows has so far.
+        private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize" };
 #endif
 
         // What can't work here, as a tool or "tool:choice" and why, in the order her line about it lists them. A brain that can't
@@ -1259,6 +1300,7 @@ namespace CapriDesktop
             for (int i = 0; i < Shortcuts.GetLength(0); i++)
                 if (Array.IndexOf(OnMac ? MacPresses : LinuxPresses, Shortcuts[i, 0]) < 0) missing.Add(new[] { "shortcut:" + Shortcuts[i, 0], OnlyWindows });
             foreach (string move in WindowsMoves) missing.Add(new[] { "move_yourself:" + move, OnlyWindows });
+            foreach (string arrange in WindowsArranging) missing.Add(new[] { "app_window:" + arrange, OnlyWindows });
             foreach (string tool in WindowsTools) missing.Add(new[] { tool, OnlyWindows });
 #endif
             return missing;
@@ -1294,6 +1336,15 @@ namespace CapriDesktop
             { "move_yourself:ride_cursor", "riding their cursor", "Riding your cursor is only on Windows so far." },
             { "move_yourself:hop_off", "", "Riding your cursor is only on Windows so far." },
             { "move_yourself:move_mainframe", "moving your Mainframe window", "My Mainframe is only on Windows so far. Here my settings are in my right-click menu." },
+            { "app_window:maximize", "maximizing, snapping, moving and resizing their windows", ArrangeLine },
+            { "app_window:restore", "", ArrangeLine },
+            { "app_window:snap_left", "", ArrangeLine },
+            { "app_window:snap_right", "", ArrangeLine },
+            { "app_window:snap_top", "", ArrangeLine },
+            { "app_window:snap_bottom", "", ArrangeLine },
+            { "app_window:move_to_screen", "", ArrangeLine },
+            { "app_window:move", "", ArrangeLine },
+            { "app_window:resize", "", ArrangeLine },
             { "find_file", "finding files", "Finding files is only on Windows for now, choom." },
             { "website_nickname", "website nicknames", "Website nicknames are only on Windows for now, choom." },
             { "read_file", "reading files", "Reading files is only on Windows for now, choom." },
@@ -1367,14 +1418,20 @@ namespace CapriDesktop
             { "move_yourself:move_mainframe", ", which also moves your Capri Mainframe window to another monitor", "" },
             { "move_yourself:move_mainframe", "; moving your Mainframe window to a monitor is move_yourself too", "" },
             { "move_yourself:move_mainframe", "move_mainframe moves your Capri Mainframe window to another monitor, or to the one their mouse is on. ", "" },
-            { "move_yourself:move_mainframe", "For other_screen or move_mainframe, which monitor", "For other_screen, which monitor" }
+            { "move_yourself:move_mainframe", "For other_screen or move_mainframe, which monitor", "For other_screen, which monitor" },
+            { "app_window:maximize", Arranging, "" },
+            { "app_window:maximize", Placing, "" },
+            { "app_window:maximize", "switch to, minimize, maximize, snap, move, resize or close apps that are open, on any of their monitors,", "switch to, minimize or close apps that are open," },
+            { "app_window:maximize", "switch to, minimize, maximize, restore, snap, move, resize or close an app's window,", "switch to, minimize or close an app," },
+            { "app_window:maximize", "switch to, minimize, maximize, snap, move, resize or close your apps' windows and browser tabs, on any of your monitors", "switch to, minimize or close your apps and browser tabs" },
+            { "app_window:maximize", "switch to, minimize, maximize, snap, move, resize or close their windows", "switch to, minimize or close their windows" }
         };
 
         // The finds above that are in none of her prompts, tool descriptions or schemas, so a reworded prompt can't leave one behind.
         internal static List<string> Unfound()
         {
             StringBuilder all = new StringBuilder(Noted + Handing + Chatting);
-            for (int i = 0; i < Specs.GetLength(0); i++) all.Append(Specs[i, 1]).Append(Specs[i, 2]);
+            for (int i = 0; i < Specs.GetLength(0); i++) all.Append(Specs[i, 1]).Append(Specs[i, 2]).Append(Specs[i, 3]).Append(Specs[i, 4]);
             string said = all.ToString(), edited = said;
             List<string> unfound = new List<string>();
             for (int i = 0; i < Unsaid.GetLength(0); i++)
@@ -1413,9 +1470,9 @@ namespace CapriDesktop
                 foreach (string gap in kit.Missing.Keys)
                     if (gap.StartsWith(tool + ":", StringComparison.Ordinal)) schema = Without(schema, gap.Substring(tool.Length + 1));
                 specs.Add(new[] { tool, description, schema });
-                abilities.Add(tool == "shortcut" && someKeys ? "press shortcuts: " + Joined(named, "and") : Specs[i, 3]);
+                abilities.Add(tool == "shortcut" && someKeys ? "press shortcuts: " + Joined(named, "and") : Unsaying(kit, Specs[i, 3]));
                 bool switchedOff = kit.Off.TryGetValue(tool, out how);
-                brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : Specs[i, 4]) + (switchedOff ? " (off right now: " + how + ")" : ""));
+                brief.Add("- " + tool + ": " + (tool == "shortcut" && someKeys ? "press " + Joined(named, "and") + " shortcuts" : Unsaying(kit, Specs[i, 4])) + (switchedOff ? " (off right now: " + how + ")" : ""));
                 if (switchedOff) switched.Add(Gap(tool, 1) + " (" + how + ")");
             }
             kit.Tools = Render(specs, false);
@@ -1516,7 +1573,7 @@ namespace CapriDesktop
 
         private static string Cannot(Kit kit, string tool, ToolArguments args)
         {
-            string choice = args == null ? null : tool == "shortcut" ? args.Name : tool == "move_yourself" ? args.Action : null;
+            string choice = args == null ? null : tool == "shortcut" ? args.Name : tool == "move_yourself" || tool == "app_window" ? args.Action : null;
             string key = !kit.Has(tool) ? tool : choice != null && !kit.Has(tool + ":" + choice) ? tool + ":" + choice : null;
             return key == null ? null : Line(kit, key);
         }
@@ -2238,6 +2295,23 @@ namespace CapriDesktop
             Bidding + @"(?:lie|lay)(?: (?:yourself|urself))?(?: back)?(?: down)? (?:on|onto|on top of|along|across) " + OnWindow + @"(?: window| app| game| tab)?" + Hers, "lie_down"
         };
 
+        // Her window tool's moves in words, for a window that's open now (Lachy, 2 Nov): "maximize chrome", "restore discord", "snap
+        // chrome to the left", "put spotify on the bottom half", "send discord to my other monitor", "move it to screen 2", "center
+        // notepad", "put discord in the top right corner". "Move to my other monitor" with no app is her own move, above.
+        private const string Owned = @"(?:(?:the|my|that|this|our)\s+)?(?<n>.+?)(?:'s)?(?:\s+(?:window|app))?";
+        private const string WindowScreens = @"(?<s>other|next|another|second|2nd|third|3rd|fourth|4th|first|1st|left|right|top|bottom|upper|lower|main|primary|previous|last|portrait|vertical|landscape|horizontal)(?: one)? ?(?:monitor|screen|display)|(?:monitor|screen|display) (?:number |no\.? ?|#)?(?<s>\d|one|two|three|four)";
+        private const string OfScreen = @"(?:\s+of\s+(?:the|my|this|your)\s+(?:screen|monitor|display))?";
+        private static readonly string[] ArrangeWords =
+        {
+            @"^(?:maximi[sz]e|max out)\s+" + Owned + "$", "maximize",
+            @"^(?:un-?maximi[sz]e|un-?minimi[sz]e|restore)\s+" + Owned + "$", "restore",
+            @"^(?:snap|put|move|throw|stick|dock|drag|shove|push|send|slide)\s+" + Owned + @"\s+(?:over\s+)?(?:to|on|onto|into|in)\s+(?:the\s+)?(?:(?<side>left|right)(?:\s+(?:half|side|part))?|(?<side>top|bottom)\s+(?:half|part))" + OfScreen + "$", "snap",
+            @"^snap\s+" + Owned + @"\s+(?:to\s+the\s+)?(?<side>left|right|up|down|top|bottom)$", "snap",
+            @"^(?:move|send|put|throw|drag|take|shift|bring|push|toss|slide)\s+" + Owned + @"\s+(?:over\s+|back\s+|across\s+)?(?:to|onto|on|into|over to)\s+(?:the\s+|my\s+|your\s+|our\s+)?(?:" + WindowScreens + ")$", "move_to_screen",
+            @"^(?:move|put|throw|stick|send|drag|shove|push|slide)\s+" + Owned + @"\s+(?:to|in|into|on)\s+(?:the\s+)?(?<v>top|bottom)[ -]?(?<h>left|right)(?:\s+corner)?" + OfScreen + "$", "corner",
+            @"^cent(?:er|re)\s+" + Owned + @"(?:\s+on\s+(?:the|my|this|your)\s+(?:screen|monitor|display))?$|^(?:move|put|throw|stick|drag|shove|push|slide)\s+" + Owned + @"\s+(?:to|in|into)\s+the\s+(?:middle|cent(?:er|re))" + OfScreen + "$", "center"
+        };
+
         // Her animations by name: "dance", "stop dancing", "do your glitch", "smile", "blink", "play your idle animation".
         private static readonly string[] AnimationWords =
         {
@@ -2753,6 +2827,23 @@ namespace CapriDesktop
                 tool = "play_music";
                 return true;
             }
+            for (int i = 0; i < ArrangeWords.Length; i += 2)
+            {
+                found = Regex.Match(text, ArrangeWords[i], RegexOptions.IgnoreCase);
+                if (!found.Success) continue;
+                string named = found.Groups["n"].Value.Trim();
+                if (Regex.IsMatch(named, @"^(?:it|this|that|them|this one|that one|everything|all|all of (?:it|them)|windows?|apps?|screen|stuff)$", RegexOptions.IgnoreCase) || !Showing(named)) return false;
+                string how = ArrangeWords[i + 1];
+                tool = "app_window";
+                args.Name = named;
+                args.Asked = said;
+                string side = found.Groups["side"].Value.ToLowerInvariant();
+                args.Action = how == "snap" ? "snap_" + (side == "up" ? "top" : side == "down" ? "bottom" : side) : how == "corner" || how == "center" ? "move" : how;
+                if (how == "corner") args.Position = found.Groups["v"].Value.ToLowerInvariant() + "_" + found.Groups["h"].Value.ToLowerInvariant();
+                if (how == "center") args.Position = "center";
+                if (how == "move_to_screen") args.Screen = Regex.IsMatch(found.Groups["s"].Value, "^(?:other|another|next)$", RegexOptions.IgnoreCase) ? "next" : found.Groups["s"].Value.ToLowerInvariant();
+                return true;
+            }
             found = Regex.Match(text, @"^end (?:the )?task(?: (?:for )?(.+))?$", RegexOptions.IgnoreCase);
             if (found.Success)
             {
@@ -3032,7 +3123,11 @@ namespace CapriDesktop
                 if (args.Action == "volume_set") return leveled;
                 return Regex.IsMatch(args.Action ?? "", @"\A(play_pause|pause|resume|next|previous|volume_up|volume_down|mute|unmute|now_playing|volume_now)\z") && (string.IsNullOrEmpty(args.Level) || leveled);
             }
-            if (tool == "app_window") return Named(args.Name) && Regex.IsMatch(args.Action ?? "", @"\A(switch_to|minimize|close)\z");
+            if (tool == "app_window")
+                return Named(args.Name) && Array.IndexOf(WindowActions, args.Action) >= 0
+                    && (args.Action != "move" || Named(args.Position) || Named(args.Left) || Named(args.Top) || Named(args.Screen))
+                    && (args.Action != "resize" || Named(args.Width) || Named(args.Height))
+                    && (string.IsNullOrEmpty(args.Position) || Regex.IsMatch(args.Position, @"\A(?:center|centre|(?:top|bottom)[ _](?:left|right))\z", RegexOptions.IgnoreCase));
             if (tool == "use_computer") return Named(args.Task);
             if (tool == "shortcut") return Regex.IsMatch(args.Name ?? "", @"\A(discord_mute|discord_deafen|screenshot|clip_that|record|game_bar|show_desktop|task_manager|clipboard|emoji|voice_typing|live_captions|narrator|magnifier|magnifier_off|color_filters|quick_settings)\z");
             if (tool == "remember") return Named(args.Text) && (string.IsNullOrEmpty(args.Action) || args.Action == "remember" || args.Action == "forget");
@@ -4296,9 +4391,14 @@ namespace CapriDesktop
             catch (IOException) { return ""; }
         }
 
-        private static string Window(string wanted, string action, string asked)
+        // Her window tool: switch to, minimize and close every window of the app they named, or arrange the one nearest the front,
+        // where Windows lets her (Lachy, 2 Nov: move, resize, maximize, minimize, restore, snap and send to another monitor).
+        private static readonly string[] WindowActions = { "switch_to", "minimize", "close", "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize" };
+
+        private static string Window(ToolArguments args)
         {
-            if (action != "switch_to" && action != "minimize" && action != "close") return "There's no window action called " + action + ".";
+            string wanted = args.Name, action = args.Action, asked = args.Asked;
+            if (Array.IndexOf(WindowActions, action) < 0) return "There's no window action called " + action + ".";
             wanted = Regex.Replace(wanted ?? "", @"^end (?:the )?task(?: for)?(?:\s+|$)", "", RegexOptions.IgnoreCase);
             string want = Regex.Replace(Plain(Regex.Replace(wanted, @"\.exe$", "", RegexOptions.IgnoreCase)), @"^the |( app| application| game| tab| window)$", "");
             if (want.Length == 0) return "Which app, choom?";
@@ -4313,11 +4413,21 @@ namespace CapriDesktop
             if (action == "switch_to") return Steer(top[0], action) ? "Switched to " + wanted + "." : "Couldn't bring " + wanted + " to the front.";
             if (action == "close" && Array.IndexOf(Browsers, top[0].Program.ToLowerInvariant()) >= 0 && Score(Plain(top[0].Program), want) == 0)
                 return Steer(top[0], "close_tab") ? "Closed the " + wanted + " tab." : "Couldn't reach the " + wanted + " tab to close it.";
-            bool all = true;
-            foreach (OpenWindow window in top) all &= Steer(window, action);
-            if (action == "minimize") return all ? "Minimized " + wanted + "." : "Couldn't minimize " + wanted + ": its window is still up.";
-            return all ? "Closed " + wanted + "." : "Asked " + wanted + " to close, but it's still open. It might be asking you to save.";
+            if (action == "minimize" || action == "close")
+            {
+                bool all = true;
+                foreach (OpenWindow window in top) all &= Steer(window, action);
+                if (action == "minimize") return all ? "Minimized " + wanted + "." : "Couldn't minimize " + wanted + ": its window is still up.";
+                return all ? "Closed " + wanted + "." : "Asked " + wanted + " to close, but it's still open. It might be asking you to save.";
+            }
+#if CROSS
+            return ArrangeLine;
+#else
+            return Arrange.Do(top[0], wanted, args);
+#endif
         }
+
+        internal const string ArrangeLine = "Moving, resizing and snapping windows is only on Windows so far, choom.";
 
         // The open windows whose program or title matches best, front first.
         internal static int CloseScore(OpenWindow window, string want, string asked)
@@ -4422,14 +4532,31 @@ namespace CapriDesktop
                 foreach (OpenWindow window in order) best = Math.Max(best, Math.Max(Score(Plain(window.Program), want), Score(Plain(window.Title), want)));
                 List<OpenWindow> theirs = best == 0 ? new List<OpenWindow>() : order.FindAll(window => Math.Max(Score(Plain(window.Program), want), Score(Plain(window.Title), want)) == best);
                 if (theirs.Count == 0) return "No window of " + named.Trim() + " is open.";
-                return "Windows of " + named.Trim() + ", nearest the front first: " + string.Join("; ", Described(theirs, open[top], 15).ToArray()) + ".";
+                return "Windows of " + named.Trim() + ", nearest the front first: " + string.Join("; ", Described(theirs, open[top], 15, true).ToArray()) + "." + Monitored();
             }
             List<string> all = Described(order, null, 16);
-            return "In front: " + all[0] + "." + (all.Count == 1 ? " Nothing else is open." : "\nAlso open, nearest the front first: " + string.Join("; ", all.GetRange(1, all.Count - 1).ToArray()) + ".");
+            return "In front: " + all[0] + "." + (all.Count == 1 ? " Nothing else is open." : "\nAlso open, nearest the front first: " + string.Join("; ", all.GetRange(1, all.Count - 1).ToArray()) + ".") + Monitored();
         }
 
-        // Each window once, as her brain reads it, up to `most` and then how many more, with the window they're in said so.
-        private static List<string> Described(List<OpenWindow> windows, OpenWindow front, int most)
+        // Their monitors, for arranging windows on them: a line naming each when there's more than one, and for one app's windows
+        // where each sits and how big it is (Lachy, 2 Nov: three monitors, one of them portrait). Mac and Linux can't tell yet.
+#if CROSS
+        internal static Func<string> Monitors = delegate { return ""; };
+        internal static Func<OpenWindow, string> PlaceOf = delegate { return null; };
+#else
+        internal static Func<string> Monitors = Arrange.Monitors;
+        internal static Func<OpenWindow, string> PlaceOf = Arrange.Placed;
+#endif
+
+        private static string Monitored()
+        {
+            try { return Monitors() ?? ""; }
+            catch (Exception) { return ""; }
+        }
+
+        // Each window once, as her brain reads it, up to `most` and then how many more, with the window they're in said so, and
+        // where each sits when they asked about one app.
+        private static List<string> Described(List<OpenWindow> windows, OpenWindow front, int most, bool placed = false)
         {
             List<string> said = new List<string>(), seen = new List<string>();
             int more = 0;
@@ -4440,8 +4567,13 @@ namespace CapriDesktop
                 seen.Add(named);
                 if (said.Count >= most) { more++; continue; }
                 bool minimized = Minimized(window);
-                string screen = minimized ? null : ScreenOf(window);
-                said.Add(named + (Gamey(window) ? ", a game" : "") + (minimized ? ", minimized" : "") + (screen == null ? "" : ", on " + screen) + (window == front ? ", in front" : ""));
+                string screen = minimized ? null : ScreenOf(window), spot = null;
+                if (placed && !minimized)
+                {
+                    try { spot = PlaceOf(window); }
+                    catch (Exception) { spot = null; }
+                }
+                said.Add(named + (Gamey(window) ? ", a game" : "") + (minimized ? ", minimized" : "") + (screen == null ? "" : ", on " + screen) + (spot == null ? "" : ", " + spot) + (window == front ? ", in front" : ""));
             }
             if (more > 0) said.Add("and " + more + " more");
             return said;
