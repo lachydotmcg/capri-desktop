@@ -33,14 +33,16 @@ namespace CapriDesktop
             try { Native.SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { Native.SetProcessDPIAware(); }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            bool smoke = args.Length == 2 && args[0] == "--smoke-test";
+            bool smoke = args.Length >= 2 && args[0] == "--smoke-test";
+            if (smoke && !SmokeRun.Worker) return SmokeRun.Run(args);
+            SmokeOptions smokeOptions = smoke ? SmokeOptions.Parse(args) : null;
             bool bench = args.Length == 2 && args[0] == "--bench";
             if (args.Length == 1 && args[0] == "--stream") Computer.Streaming = Computer.StreamingAlways = true;
             string identity = WindowsIdentity.GetCurrent().User.Value;
             bool first;
-            using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : bench ? ".Bench" : ""), out first))
-            using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
-            using (EventWaitHandle shown = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\Capri.Shown." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
+            using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test.Worker" : bench ? ".Bench" : ""), out first))
+            using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test.Worker" : bench ? ".Bench" : "")))
+            using (EventWaitHandle shown = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\Capri.Shown." + identity + (smoke ? ".Test.Worker" : bench ? ".Bench" : "")))
             {
                 if (!first)
                 {
@@ -71,9 +73,9 @@ namespace CapriDesktop
                         StartedFresh = Starting(data);
                     }
                     else Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
-                    using (Companion app = new Companion(data, restore, shown, smoke))
+                    using (Companion app = new Companion(smoke ? Environment.GetEnvironmentVariable("CAPRI_SMOKE_DATA") ?? data : data, restore, shown, smoke))
                     {
-                        if (smoke) app.StartSmokeTest(data);
+                        if (smoke) app.StartSmokeTest(data, smokeOptions);
                         if (bench) app.StartBench(data);
                         Application.Run(app);
                         HerCursor.Off();
@@ -1737,14 +1739,14 @@ namespace CapriDesktop
         internal static readonly int[] PerchRates = { 10, 15, 20, 30, 40, 50, 60 };
         internal bool TestFailed;
 
-        // GitHub's Windows machine sets this. There a section that fails is a FAIL line and the rest still run, so one run shows everything.
         internal static bool OnGitHub { get { return Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true"; } }
 
-        private void Section(System.Collections.Generic.List<string> checks, Action run)
+        private void Section(System.Collections.Generic.List<string> checks, string name, Action run)
         {
-            if (!OnGitHub) { run(); return; }
+            if (!SmokeRun.EnterSection(name)) return;
             try { run(); }
-            catch (Exception problem) { TestFailed = true; checks.Add("FAIL " + problem.Message); }
+            catch (Exception problem) { TestFailed = true; checks.Add("FAIL section " + name + ": " + problem.Message); }
+            finally { SmokeRun.LeaveSection(name, checks); }
         }
         internal bool TestFinished;
         internal string TestStep = "startup";
@@ -12424,19 +12426,19 @@ namespace CapriDesktop
         // grudge, with a stand-in cursor and her sounds kept off the speakers.
         private void SmokeThrows(System.Collections.Generic.List<string> checks)
         {
-            Section(checks, delegate { SmokeThrowReads(checks); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowSlow); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowFast); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowUp); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowSlam); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowStanding); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowCatch); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowCalm); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowGrudge); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowDodges); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowSorry); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowPat); });
-            Section(checks, delegate { ThrowCheck(checks, SmokeThrowAlone); });
+            Section(checks, "SmokeThrowReads", delegate { SmokeThrowReads(checks); });
+            Section(checks, "SmokeThrowSlow", delegate { ThrowCheck(checks, SmokeThrowSlow); });
+            Section(checks, "SmokeThrowFast", delegate { ThrowCheck(checks, SmokeThrowFast); });
+            Section(checks, "SmokeThrowUp", delegate { ThrowCheck(checks, SmokeThrowUp); });
+            Section(checks, "SmokeThrowSlam", delegate { ThrowCheck(checks, SmokeThrowSlam); });
+            Section(checks, "SmokeThrowStanding", delegate { ThrowCheck(checks, SmokeThrowStanding); });
+            Section(checks, "SmokeThrowCatch", delegate { ThrowCheck(checks, SmokeThrowCatch); });
+            Section(checks, "SmokeThrowCalm", delegate { ThrowCheck(checks, SmokeThrowCalm); });
+            Section(checks, "SmokeThrowGrudge", delegate { ThrowCheck(checks, SmokeThrowGrudge); });
+            Section(checks, "SmokeThrowDodges", delegate { ThrowCheck(checks, SmokeThrowDodges); });
+            Section(checks, "SmokeThrowSorry", delegate { ThrowCheck(checks, SmokeThrowSorry); });
+            Section(checks, "SmokeThrowPat", delegate { ThrowCheck(checks, SmokeThrowPat); });
+            Section(checks, "SmokeThrowAlone", delegate { ThrowCheck(checks, SmokeThrowAlone); });
             checks.Add("LIMIT throwing her for real: how a flick off a real mouse feels, her tumble, bounces, tear and dizzy sway on a real screen, her thud on real speakers, and her hopping away from a real cursor need a person at the desk");
         }
 
@@ -18539,15 +18541,15 @@ namespace CapriDesktop
         // follows only in time; Mute her, her quiet key and reduced motion are kept; the switch is saved; banners are read.
         private void SmokeReactions(System.Collections.Generic.List<string> checks)
         {
-            Section(checks, delegate { ReactCheck(checks, SmokeReactQuick); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactFeed); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactFade); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactMoods); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactBrain); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactVoice); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactMotion); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactSwitch); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactBanners); });
+            Section(checks, "SmokeReactQuick", delegate { ReactCheck(checks, SmokeReactQuick); });
+            Section(checks, "SmokeReactFeed", delegate { ReactCheck(checks, SmokeReactFeed); });
+            Section(checks, "SmokeReactFade", delegate { ReactCheck(checks, SmokeReactFade); });
+            Section(checks, "SmokeReactMoods", delegate { ReactCheck(checks, SmokeReactMoods); });
+            Section(checks, "SmokeReactBrain", delegate { ReactCheck(checks, SmokeReactBrain); });
+            Section(checks, "SmokeReactVoice", delegate { ReactCheck(checks, SmokeReactVoice); });
+            Section(checks, "SmokeReactMotion", delegate { ReactCheck(checks, SmokeReactMotion); });
+            Section(checks, "SmokeReactSwitch", delegate { ReactCheck(checks, SmokeReactSwitch); });
+            Section(checks, "SmokeReactBanners", delegate { ReactCheck(checks, SmokeReactBanners); });
         }
 
         // The stand-ins her live reactions' checks share: a full-screen game she doesn't know by name, a clock moved by hand, a
@@ -20289,7 +20291,7 @@ namespace CapriDesktop
             {
                 Think = delegate { return "Connected."; };
                 finding = true;
-                Section(checks, delegate
+                Section(checks, "SmokePickerRejectedKeys", delegate
                 {
                     foreach (string key in new[] { "AIza-picker-test", "AQ.picker-test" })
                     {
@@ -20312,7 +20314,7 @@ namespace CapriDesktop
                     if (!mainframe.Status.Contains("Still using your OpenAI key.")) throw new Exception("An unrecognised replacement hid which key is still in use.");
                     checks.Add("PASS rejected and unrecognised replacement keys keep the old models and explicitly say the old provider key is still in use");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerGemini", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
@@ -20329,7 +20331,7 @@ namespace CapriDesktop
                     if (!Brain.ModelFits("openai", "gpt-90-mini-2090-11-02") || !Brain.ModelFits("openai", "chatgpt-90-latest") || !Brain.ModelFits("openrouter", "google/gemini-90-pro") || !Brain.ModelFits("nvidia", "openai/gpt-oss-20b") || Brain.ModelFits("anthropic", "gpt-90-mini") || Brain.ModelFits("deepseek", "gemini-90-pro")) throw new Exception("Model validation discarded pinned or routed models, or accepted another provider's model.");
                     checks.Add("PASS a Gemini replacement, its model choices and custom model entry keep Google's name, key, saved model and Gemini-only menu");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerClears", delegate
                 {
                     foreach (string action in new[] { "NORMAL", "empty HIGHER", "empty MAX", "Forget" })
                     {
@@ -20342,7 +20344,7 @@ namespace CapriDesktop
                     }
                     checks.Add("PASS NORMAL, tiers without keys and Forget clear the old cloud menu and model while local discovery is pending, then show the local brain");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerSavedGemini", delegate
                 {
                     use("nvapi-picker-test", "openai/gpt-oss-20b");
                     preferences.PaidKey = Voice.Protect("AIza-picker-saved");
@@ -20357,7 +20359,7 @@ namespace CapriDesktop
                     if (mainframe.BrainChoices.Length != 0 || !mainframe.Status.StartsWith("Gemini |", StringComparison.Ordinal)) throw new Exception("Local discovery restored another provider's menu.");
                     checks.Add("PASS a saved Gemini key with no model clears the previous tier's identity and menu even when its list fails or local discovery finishes");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerQueuedChoices", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     ContextMenuStrip menu = (ContextMenuStrip)typeof(Mainframe).GetField("modelMenu", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(mainframe);
@@ -20374,7 +20376,7 @@ namespace CapriDesktop
                     if (brain.Model != "gemini-90-pro" || mainframe.BrainChoices.Length != 1) throw new Exception("A removed menu choice restored an old model list.");
                     checks.Add("PASS queued model choices from an old key or an earlier model list cannot restore its models or provider identity");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerLegacyKeys", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     preferences.Tiered = false;
@@ -20401,7 +20403,7 @@ namespace CapriDesktop
                 });
                 foreach (string action in new[] { "new key", "unrecognised key", "tier", "forget", "local" })
                 {
-                    Section(checks, delegate
+                    Section(checks, "SmokePickerPending-" + action.Replace(' ', '-'), delegate
                     {
                         use("sk-proj-picker-test", "gpt-90-mini");
                         ManualResetEvent release = new ManualResetEvent(false);
@@ -20440,7 +20442,7 @@ namespace CapriDesktop
                         finally { release.Set(); settle(); }
                     });
                 }
-                Section(checks, delegate
+                Section(checks, "SmokePickerRefresh", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     ManualResetEvent release = new ManualResetEvent(false);
@@ -20461,7 +20463,7 @@ namespace CapriDesktop
                     }
                     finally { release.Set(); settle(); }
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerOldRefresh", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     ManualResetEvent release = new ManualResetEvent(false);
@@ -21892,13 +21894,139 @@ namespace CapriDesktop
             }
         }
 
-        internal void StartSmokeTest(string output)
+        private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
+        {
+            Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
+            Section(checks, "SmokeReportedLogic", delegate { SmokeReportedLogic(checks); });
+            Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
+            Section(checks, "SmokeOpening", delegate { SmokeOpening(checks); });
+            Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
+            Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
+            Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
+            Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
+            Section(checks, "SmokeMicSources", delegate { SmokeMicSources(checks, output); });
+            Section(checks, "SmokeMicTest", delegate { SmokeMicTest(checks); });
+            Section(checks, "SmokeHearingStatus", delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
+            Section(checks, "SmokeLocalBrains", delegate { SmokeLocalBrains(checks); });
+            Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
+            Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
+            Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
+            Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
+            Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
+            Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
+            Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
+            Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
+            Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
+            Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
+            Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
+            Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
+            Section(checks, "SmokePlannerStatus", delegate { SmokePlannerStatus(checks); });
+            Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
+            Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
+            Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
+            Section(checks, "SmokeLongJob", delegate { SmokeLongJob(checks); });
+            Section(checks, "SmokeLooseCalls", delegate { SmokeLooseCalls(checks); });
+            Section(checks, "SmokeFrames", delegate { SmokeFrames(checks); });
+            Section(checks, "SmokeGameKeys", delegate { SmokeGameKeys(checks); });
+            Section(checks, "SmokeReminders", delegate { SmokeReminders(checks); });
+            Section(checks, "SmokeLookout", delegate { SmokeLookout(checks); });
+            Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
+            Section(checks, "SmokeSelfKnow", delegate { SmokeSelfKnow(checks); });
+            Section(checks, "SmokeToolKit", delegate { SmokeToolKit(checks); });
+            Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
+            Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
+            Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
+            Section(checks, "SmokeRequests", delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
+            Section(checks, "SmokeCare", delegate { SmokeCare(checks); });
+            Section(checks, "SmokeClips", delegate { SmokeClips(checks); });
+            Section(checks, "SmokeClipOptions", delegate { SmokeClipOptions(checks); });
+            Section(checks, "SmokeClipPanel", delegate { SmokeClipPanel(checks, output); });
+            Section(checks, "SmokeClipPopup", delegate { SmokeClipPopup(checks, output); });
+            Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
+            Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
+            Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
+            Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
+            Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
+            Section(checks, "SmokeHaul", delegate { SmokeHaul(checks); });
+            Section(checks, "SmokeIcons", delegate { SmokeIcons(checks); });
+            Section(checks, "SmokeListen", delegate { SmokeListen(checks); });
+            Section(checks, "SmokeTalkLogic", delegate { SmokeTalkLogic(checks); });
+            Section(checks, "SmokeTalkSettings", delegate { SmokeTalkSettings(checks); });
+            Section(checks, "SmokeTalkBrain", delegate { SmokeTalkBrain(checks, Path.Combine(output, "talk-checks")); });
+            Section(checks, "SmokeClipToggle", delegate { SmokeClipToggle(checks); });
+            Section(checks, "SmokeGameEars", delegate { SmokeGameEars(checks); });
+            Section(checks, "SmokeMinis", delegate { SmokeMinis(checks); });
+            Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
+        }
+
+        private void SmokeClipToggle(System.Collections.Generic.List<string> checks)
+        {
+            bool clipsWereOn = preferences.ClipGames;
+            mainframe.FlipClips();
+            if (preferences.ClipGames == clipsWereOn || mainframe.ClipsShown != preferences.ClipGames || LoadPreferences().ClipGames != preferences.ClipGames) throw new Exception("Clip my games didn't switch, show and save from HABITS.");
+            mainframe.FlipClips();
+            if (preferences.ClipGames != clipsWereOn || mainframe.ClipsShown != clipsWereOn || LoadPreferences().ClipGames != clipsWereOn) throw new Exception("Clip my games didn't switch back from HABITS.");
+            checks.Add("PASS Clip my games switches and saves from GAMES and shows its saved state");
+        }
+
+        private static byte[] SmokeTone()
+        {
+            using (MemoryStream raw = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(raw))
+            {
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+                writer.Write(-1);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
+                writer.Write(16);
+                writer.Write((short)1);
+                writer.Write((short)1);
+                writer.Write(16000);
+                writer.Write(32000);
+                writer.Write((short)2);
+                writer.Write((short)16);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("LIST"));
+                writer.Write(4);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("INFOdata"));
+                writer.Write(-1);
+                for (int i = 0; i < 16000; i++) writer.Write((short)(i < 8000 ? 0 : Math.Sin(i * 0.2) * (2000 + 14000 * Math.Abs(Math.Sin(i / 1300.0)))));
+                writer.Flush();
+                return Voice.Clean(raw.ToArray());
+            }
+        }
+
+        private static Form SmokeBackdrop()
+        {
+            Form backdrop = new Form();
+            backdrop.Text = "Capri clean test desktop";
+            backdrop.FormBorderStyle = FormBorderStyle.None;
+            backdrop.ShowInTaskbar = false;
+            backdrop.StartPosition = FormStartPosition.Manual;
+            Rectangle area = Screen.PrimaryScreen.WorkingArea;
+            backdrop.Bounds = new Rectangle(area.Left + Math.Max(0, (area.Width - 920) / 2), area.Top + Math.Max(0, (area.Height - 560) / 2), Math.Min(920, area.Width), Math.Min(560, area.Height));
+            backdrop.BackColor = Color.FromArgb(237, 239, 242);
+            backdrop.TopMost = true;
+            backdrop.Paint += delegate(object sender, PaintEventArgs paint)
+            {
+                using (Pen line = new Pen(Color.FromArgb(225, 228, 232)))
+                    for (int x = 32; x < backdrop.Width; x += 32) for (int y = 32; y < backdrop.Height; y += 32) paint.Graphics.DrawEllipse(line, x, y, 1, 1);
+                using (Font label = new Font("Segoe UI", 10))
+                using (Brush ink = new SolidBrush(Color.FromArgb(110, 116, 125)))
+                    paint.Graphics.DrawString("CAPRI  /  WINDOWS DESKTOP COMPANION", label, ink, 32, 28);
+                using (Brush bar = new SolidBrush(Color.FromArgb(249, 250, 251))) paint.Graphics.FillRectangle(bar, 0, backdrop.Height - 42, backdrop.Width, 42);
+                using (Font label = new Font("Segoe UI", 9))
+                using (Brush ink = new SolidBrush(Color.FromArgb(126, 131, 139)))
+                    paint.Graphics.DrawString("Clean test desktop · actual native app", label, ink, 24, backdrop.Height - 29);
+            };
+            backdrop.Show();
+            return backdrop;
+        }
+
+        internal void StartSmokeTest(string output, SmokeOptions options)
         {
             // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
             Native.FakedGaming = false;
             Directory.CreateDirectory(output);
-            File.Delete(Path.Combine(output, "failure.txt"));
-            File.Delete(Path.Combine(output, "smoke-test.txt"));
+            SmokeRun.Start(output, options);
             Action<string> smokeStep = delegate(string name) { TestStep = name; File.WriteAllText(Path.Combine(output, "smoke-step.txt"), name); };
             smokeStep("startup");
             SmokeInput smokeInput = new SmokeInput();
@@ -21911,7 +22039,8 @@ namespace CapriDesktop
             Brain.LocalSees = delegate { return true; };
             Shown += delegate
             {
-                System.Threading.Tasks.Task<System.Collections.Generic.List<string>> ocrCheck = System.Threading.Tasks.Task.Run(delegate
+                System.Threading.Tasks.Task<System.Collections.Generic.List<string>> ocrCheck = null;
+                if (SmokeRun.EnterSection("CheckOcr")) ocrCheck = System.Threading.Tasks.Task.Run(delegate
                 {
                     System.Collections.Generic.List<string> ocrResults = new System.Collections.Generic.List<string>();
                     try { CheckOcr(ocrResults, output); }
@@ -21920,7 +22049,7 @@ namespace CapriDesktop
                 });
                 System.Windows.Forms.Timer test = new System.Windows.Forms.Timer();
                 test.Interval = 500;
-                int step = 0;
+                int step = SmokeRun.NextStep;
                 int thoughts = 0;
                 byte[] tone = null;
                 string voiced = null;
@@ -21960,7 +22089,8 @@ namespace CapriDesktop
                 double glanceDeadline = 0;
                 double linkDeadline = 0;
                 short[][] earLine = null;
-                System.Collections.Generic.List<string> checks = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<string> checks = SmokeRun.Checks();
+                bool sectionsRun = false;
                 FormClosed += delegate
                 {
                     agentStop.Cancel();
@@ -21979,19 +22109,48 @@ namespace CapriDesktop
                         if (ocrCheck != null)
                         {
                             if (!ocrCheck.IsCompleted) return;
-                            checks.AddRange(ocrCheck.GetAwaiter().GetResult());
-                            ocrCheck = null;
-                            using (Bitmap uiOcr = new Bitmap(400, 200))
-                            using (Font uiFont = new Font("Arial", 28, FontStyle.Regular, GraphicsUnit.Pixel))
+                            try
                             {
-                                using (Graphics uiDrawing = Graphics.FromImage(uiOcr)) { uiDrawing.Clear(Color.White); uiDrawing.DrawString("Capri", uiFont, Brushes.Black, 30, 40); }
-                                Stopwatch uiTime = Stopwatch.StartNew();
-                                bool uiReady = Ocr.Ready;
-                                if (Ocr.Words(uiOcr, 1, 10000).Count != 0 || Ocr.Lines(uiOcr, 1, 10000).Count != 0 || Ocr.Sharpened(uiOcr, new Rectangle(Point.Empty, uiOcr.Size), 4) != null || uiTime.ElapsedMilliseconds > 250)
-                                    throw new Exception("OCR waited or processed a bitmap on the UI thread.");
-                                checks.Add("PASS OCR runs on a worker; its synchronous calls return immediately on the UI thread (engine ready: " + uiReady + ")");
+                                checks.AddRange(ocrCheck.GetAwaiter().GetResult());
+                                using (Bitmap uiOcr = new Bitmap(400, 200))
+                                using (Font uiFont = new Font("Arial", 28, FontStyle.Regular, GraphicsUnit.Pixel))
+                                {
+                                    using (Graphics uiDrawing = Graphics.FromImage(uiOcr)) { uiDrawing.Clear(Color.White); uiDrawing.DrawString("Capri", uiFont, Brushes.Black, 30, 40); }
+                                    Stopwatch uiTime = Stopwatch.StartNew();
+                                    bool uiReady = Ocr.Ready;
+                                    if (Ocr.Words(uiOcr, 1, 10000).Count != 0 || Ocr.Lines(uiOcr, 1, 10000).Count != 0 || Ocr.Sharpened(uiOcr, new Rectangle(Point.Empty, uiOcr.Size), 4) != null || uiTime.ElapsedMilliseconds > 250)
+                                        throw new Exception("OCR waited or processed a bitmap on the UI thread.");
+                                    checks.Add("PASS OCR runs on a worker; its synchronous calls return immediately on the UI thread (engine ready: " + uiReady + ")");
+                                }
                             }
+                            catch (Exception error) { TestFailed = true; checks.Add("FAIL section CheckOcr: " + error.Message); }
+                            finally { ocrCheck = null; SmokeRun.LeaveSection("CheckOcr", checks); }
                         }
+                        if (!sectionsRun)
+                        {
+                            RunSmokeSections(checks, output, findGame);
+                            SmokeRun.ValidateSelection(checks);
+                            sectionsRun = true;
+                        }
+                        if (!options.RunSteps || step > 22)
+                        {
+                            TestFailed = checks.Exists(delegate(string line) { return line.StartsWith("FAIL ", StringComparison.Ordinal); });
+                            TestFinished = true;
+                            test.Stop();
+                            SmokeRun.Complete(checks);
+                            Close();
+                            return;
+                        }
+                        int needed = SmokeRun.Needs(step);
+                        if (needed >= 0)
+                        {
+                            checks.Add("SKIP step " + step + ": needs step " + needed);
+                            SmokeRun.StepDone(step, false, checks);
+                            step++;
+                            return;
+                        }
+                        SmokeRun.Begin("step", step.ToString(System.Globalization.CultureInfo.InvariantCulture), SmokeRun.StepSeconds(step));
+                        SmokeRun.Inject(step);
                         if (TestStep != "step " + step && !(step == 5 && !agentStarted)) smokeStep("step " + step);
                         if (step >= 5 && step <= 9)
                         {
@@ -22000,71 +22159,6 @@ namespace CapriDesktop
                         if (step == 0)
                         {
                             if (OnGitHub) checks.Add("LIMIT Mainframe's Auto size: GitHub's virtual screen has no real panel to compare its desktop with, so Auto stays at 100% there");
-                            Section(checks, delegate { HologramChecks(checks, output); });
-                            Section(checks, delegate { SmokeReportedLogic(checks); });
-                            Section(checks, delegate { SmokeComments(checks); });
-                            Section(checks, delegate { SmokeOpening(checks); });
-                            Section(checks, delegate { SmokeVoiceWaits(checks); });
-                            Section(checks, delegate { SmokeAnswerVoice(checks, output); });
-                            Section(checks, delegate { SmokeVault(checks); });
-                            Section(checks, delegate { SmokeSound(checks, output); });
-                            Section(checks, delegate { SmokeMicSources(checks, output); });
-                            Section(checks, delegate { SmokeMicTest(checks); });
-                            Section(checks, delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
-                            Section(checks, delegate { SmokeLocalBrains(checks); });
-                            Section(checks, delegate { SmokeCloudBrains(checks); });
-                            Section(checks, delegate { SmokeCloudPicker(checks); });
-                            Section(checks, delegate { SmokeBrainBodies(checks); });
-                            Section(checks, delegate { SmokeCamera(checks); });
-                            Section(checks, delegate { SmokeSteering(checks); });
-                            Section(checks, delegate { SmokeGameWatch(checks); });
-                            Section(checks, delegate { SmokeReactions(checks); });
-                            Section(checks, delegate { SmokeGameWindows(checks, findGame); });
-                            Section(checks, delegate { SmokeGameHolds(checks); });
-                            Section(checks, delegate { SmokeGameAsks(checks); });
-                            Section(checks, delegate { SmokeWorkingOut(checks); });
-                            Section(checks, delegate { SmokePlannerStatus(checks); });
-                            Section(checks, delegate { SmokeClaims(checks); });
-                            Section(checks, delegate { SmokeSighted(checks); });
-                            Section(checks, delegate { SmokeGameNotes(checks); });
-                            Section(checks, delegate { SmokeLongJob(checks); });
-                            Section(checks, delegate { SmokeLooseCalls(checks); });
-                            Section(checks, delegate { SmokeFrames(checks); });
-                            Section(checks, delegate { SmokeGameKeys(checks); });
-                            Section(checks, delegate { SmokeReminders(checks); });
-                            Section(checks, delegate { SmokeLookout(checks); });
-                            Section(checks, delegate { SmokeGameSense(checks); });
-                            Section(checks, delegate { SmokeSelfKnow(checks); });
-                            Section(checks, delegate { SmokeToolKit(checks); });
-                            Section(checks, delegate { SmokeStores(checks, output); });
-                            Section(checks, delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
-                            Section(checks, delegate { SmokeFiles(checks); });
-                            Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
-                            Section(checks, delegate { SmokeCare(checks); });
-                            Section(checks, delegate { SmokeClips(checks); });
-                            Section(checks, delegate { SmokeClipOptions(checks); });
-                            Section(checks, delegate { SmokeClipPanel(checks, output); });
-                            Section(checks, delegate { SmokeClipPopup(checks, output); });
-                            Section(checks, delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
-                            Section(checks, delegate { SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
-                            Section(checks, delegate { SmokeHeartbeat(checks); });
-                            Section(checks, delegate { SmokeMenuWait(checks); });
-                            Section(checks, delegate { SmokeGivingWay(checks); });
-                            Section(checks, delegate { SmokeHaul(checks); });
-                            Section(checks, delegate { SmokeIcons(checks); });
-                            Section(checks, delegate { SmokeListen(checks); });
-                            Section(checks, delegate { SmokeTalkLogic(checks); });
-                            Section(checks, delegate { SmokeTalkSettings(checks); });
-                            Section(checks, delegate { SmokeTalkBrain(checks, Path.Combine(output, "talk-checks")); });
-                            bool clipsWereOn = preferences.ClipGames;
-                            mainframe.FlipClips();
-                            if (preferences.ClipGames == clipsWereOn || mainframe.ClipsShown != preferences.ClipGames || LoadPreferences().ClipGames != preferences.ClipGames) throw new Exception("Clip my games didn't switch, show and save from HABITS.");
-                            mainframe.FlipClips();
-                            if (preferences.ClipGames != clipsWereOn || mainframe.ClipsShown != clipsWereOn || LoadPreferences().ClipGames != clipsWereOn) throw new Exception("Clip my games didn't switch back from HABITS.");
-                            checks.Add("PASS Clip my games switches and saves from GAMES and shows its saved state");
-                            Section(checks, delegate { SmokeGameEars(checks); });
-                            Section(checks, delegate { SmokeMinis(checks); });
-                            Section(checks, delegate { SmokeInk(checks); });
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
                             if (!mainframe.Visible || !mainframe.ShowInTaskbar || mainframe.WindowState != FormWindowState.Minimized) throw new Exception("Mainframe did not start minimized in the taskbar.");
@@ -23576,7 +23670,6 @@ namespace CapriDesktop
                                 checks.Add("PASS dropped above a window she fell, sat on its top edge, rode along when it moved, ignored popups and windows passing over, stood up where she sat when a window parked over her or it closed, and can sit on top of her own Mainframe without it knocking her off anything else");
                             }
                             checks.Add("PASS ledge covering math; desktop icons read: " + Ledges.Icons().Count);
-                            SmokeThrows(checks);
                             {
                                 Point faceAnchor = anchor;
                                 Ledge faceSeat = seat;
@@ -29461,27 +29554,7 @@ namespace CapriDesktop
                             if (Voice.Explain(403, "<html><head><title>Access denied | api.elevenlabs.io used Cloudflare to restrict access</title></head></html>") != Voice.Refused || Voice.Explain(403, "{\"detail\":{\"message\":\"You do not have access to this voice.\"}}") != "You do not have access to this voice."
                                 || Voice.Explain(403, "{\"detail\":{\"message\":\"The API key you used does not have access to this workspace.\"}}").IndexOf("Key can't do that", StringComparison.Ordinal) < 0) throw new Exception("A 403 blamed the key when ElevenLabs didn't: " + Voice.Explain(403, "<html></html>"));
                             checks.Add("PASS voice 403s: only an answer about the key gets the key line; other 403s show ElevenLabs' own words, or say it gave no reason");
-                            using (MemoryStream raw = new MemoryStream())
-                            using (BinaryWriter writer = new BinaryWriter(raw))
-                            {
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-                                writer.Write(-1);
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
-                                writer.Write(16);
-                                writer.Write((short)1);
-                                writer.Write((short)1);
-                                writer.Write(16000);
-                                writer.Write(32000);
-                                writer.Write((short)2);
-                                writer.Write((short)16);
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("LIST"));
-                                writer.Write(4);
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("INFOdata"));
-                                writer.Write(-1);
-                                for (int i = 0; i < 16000; i++) writer.Write((short)(i < 8000 ? 0 : Math.Sin(i * 0.2) * (2000 + 14000 * Math.Abs(Math.Sin(i / 1300.0)))));
-                                writer.Flush();
-                                tone = Voice.Clean(raw.ToArray());
-                            }
+                            tone = SmokeTone();
                             int toneRate;
                             if (Voice.Samples(tone, out toneRate).Length != 16000 || toneRate != 16000 || BitConverter.ToInt32(tone, 40) != 32000 || Math.Abs(Voice.Seconds(tone) - 1) > 0.001 || Voice.Samples(new byte[] { 82, 73, 70, 70, 0, 0, 0, 0, 87, 65, 86, 69, 102, 109, 116, 32, 248, 255, 255, 255 }, out toneRate).Length != 0) throw new Exception("WAV cleanup failed.");
                             int[] shapes = Voice.Mouths(tone, MouthRate);
@@ -31389,28 +31462,7 @@ namespace CapriDesktop
                             if (!box.Visible || box.State != TalkState.Thinking) throw new Exception("Speech box did not open on THINKING.");
                             typer.Hide();
                             checks.Add("PASS pill under her, pencil opens the typing box above her head, Enter sends, THINKING shows and the typing box stays open");
-                            backdrop = new Form();
-                            backdrop.Text = "Capri clean test desktop";
-                            backdrop.FormBorderStyle = FormBorderStyle.None;
-                            backdrop.ShowInTaskbar = false;
-                            backdrop.StartPosition = FormStartPosition.Manual;
-                            Rectangle area = Screen.PrimaryScreen.WorkingArea;
-                            backdrop.Bounds = new Rectangle(area.Left + Math.Max(0, (area.Width - 920) / 2), area.Top + Math.Max(0, (area.Height - 560) / 2), Math.Min(920, area.Width), Math.Min(560, area.Height));
-                            backdrop.BackColor = Color.FromArgb(237, 239, 242);
-                            backdrop.TopMost = true;
-                            backdrop.Paint += delegate(object sender, PaintEventArgs paint)
-                            {
-                                using (Pen line = new Pen(Color.FromArgb(225, 228, 232)))
-                                    for (int x = 32; x < backdrop.Width; x += 32) for (int y = 32; y < backdrop.Height; y += 32) paint.Graphics.DrawEllipse(line, x, y, 1, 1);
-                                using (Font label = new Font("Segoe UI", 10))
-                                using (Brush ink = new SolidBrush(Color.FromArgb(110, 116, 125)))
-                                    paint.Graphics.DrawString("CAPRI  /  WINDOWS DESKTOP COMPANION", label, ink, 32, 28);
-                                using (Brush bar = new SolidBrush(Color.FromArgb(249, 250, 251))) paint.Graphics.FillRectangle(bar, 0, backdrop.Height - 42, backdrop.Width, 42);
-                                using (Font label = new Font("Segoe UI", 9))
-                                using (Brush ink = new SolidBrush(Color.FromArgb(126, 131, 139)))
-                                    paint.Graphics.DrawString("Clean test desktop · actual native app", label, ink, 24, backdrop.Height - 29);
-                            };
-                            backdrop.Show();
+                            backdrop = SmokeBackdrop();
                             anchor = new Point(backdrop.Left + backdrop.Width / 2 - Width / 2 + 150, backdrop.Top + backdrop.Height / 2 - Height / 2 + 20);
                             Location = anchor;
                             lastForeground = new IntPtr(-1);
@@ -33084,6 +33136,19 @@ namespace CapriDesktop
                         }
                         else if (step == 17)
                         {
+                            if (backdrop == null)
+                            {
+                                tone = SmokeTone();
+                                backdrop = SmokeBackdrop();
+                                anchor = new Point(backdrop.Left + backdrop.Width / 2 - Width / 2 + 150, backdrop.Top + backdrop.Height / 2 - Height / 2 + 20);
+                                Location = anchor;
+                                brain.Model = "google/gemma-4-31b-it";
+                                heard = "Hello Capri.";
+                                Answer(++asking, "Hey choom! Net's been quiet, too quiet. Time to stir up some trouble.", TalkState.Talking);
+                                replyStart -= 10;
+                                speechStart = replyStart;
+                                RenderFrame();
+                            }
                             bool captured;
                             using (Bitmap capture = new Bitmap(backdrop.Width, backdrop.Height))
                             using (Graphics graphics = Graphics.FromImage(capture))
@@ -33467,29 +33532,14 @@ namespace CapriDesktop
                             backdrop.Close();
                             ((ToolStripMenuItem)menu.Items[menu.Items.Count - 1]).PerformClick();
                         }
+                        SmokeRun.StepDone(step, true, checks);
+                        if (step == 22) SmokeRun.Complete(checks);
                         step++;
                     }
                     catch (Exception error)
                     {
-                        if (OnGitHub && step < 22)
-                        {
-                            TestFailed = true;
-                            checks.Add("FAIL step " + step + ": " + error.Message);
-                            File.WriteAllLines(Path.Combine(output, "smoke-test.txt"), checks);
-                            File.AppendAllText(Path.Combine(output, "failure.txt"), error + Environment.NewLine);
-                            step++;
-                            return;
-                        }
-                        agentStop.Cancel();
-                        if (fakeAgent != null) { fakeAgent.Close(); fakeAgent = null; }
-                        if (resetGlance != null) resetGlance();
                         TestFailed = true;
-                        File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString());
-                        if (OnGitHub) File.WriteAllLines(Path.Combine(output, "smoke-test.txt"), checks);
-                        test.Stop();
-                        test.Dispose();
-                        if (backdrop != null) backdrop.Close();
-                        Close();
+                        SmokeRun.StepFailed(step, error, checks);
                     }
                     finally { stepping = false; }
                 };
