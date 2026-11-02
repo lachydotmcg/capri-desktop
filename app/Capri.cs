@@ -20308,7 +20308,114 @@ namespace CapriDesktop
             }
         }
 
-        // A brain with no computer tools plays a game from pictures, written moves and all.
+        private static void SmokeClickStops(System.Collections.Generic.List<string> checks)
+        {
+            if (!Computer.Failed(Computer.NoClick) || !Hands.Failed(Computer.NoClick)) throw new Exception("The reply after missed coordinates wasn't kept as a failure.");
+            Picture scaled;
+            using (Bitmap screen = new Bitmap(2560, 1440, PixelFormat.Format24bppRgb))
+            {
+                using (Graphics paint = Graphics.FromImage(screen)) paint.Clear(Color.SteelBlue);
+                scaled = Picture.Of(screen, new Rectangle(-2560, -180, 2560, 1440));
+            }
+            using (MemoryStream read = new MemoryStream(scaled.Jpeg))
+            using (Bitmap sent = new Bitmap(read))
+                if (sent.Size != scaled.Size || sent.Size != new Size(1280, 720)) throw new Exception("The sent screenshot and its coordinate size differ.");
+            ToolArguments center = new ToolArguments { Coordinate = new double[] { 640, 360 } };
+            if (Computer.Landing(center, scaled) != new Point(-1280, 540)) throw new Exception("A scaled screenshot lost its screen point or monitor offset.");
+            bool member;
+            ToolArguments gridPoint = new ToolArguments { X = 75, Y = 25 };
+            if (Computer.Planned("click", gridPoint, scaled, new System.Collections.Generic.List<ReadWord>(), out member) != "left_click" || !member || Computer.Landing(gridPoint, scaled) != new Point(-640, 180)) throw new Exception("A grid coordinate in a scaled screenshot landed on the wrong screen point.");
+            checks.Add("PASS scaled screenshots: the JPEG and coordinate size agree, and pixel and grid coordinates keep the monitor's screen offset");
+            Func<Rectangle?, Picture> shootWas = Computer.Shoot;
+            Func<Sight> glimpseWas = Computer.Glimpse, lookWas = Computer.Look;
+            Func<Target> focusWas = Computer.Focus;
+            Func<Point, Target> underWas = Computer.Under;
+            Func<string, ToolArguments, Picture, string> useWas = Computer.Use;
+            Func<IntPtr> frontWas = Computer.Front;
+            Func<string> gameWas = Computer.GameOpen;
+            Picture shownWas = Computer.Shown;
+            bool streamWas = Computer.Streaming;
+            try
+            {
+                Computer.Shoot = delegate { return new Picture { Jpeg = new byte[] { 1, 2, 3 }, Size = scaled.Size, Area = scaled.Area }; };
+                Computer.Glimpse = Computer.Look = delegate { return new Sight { Window = new IntPtr(7), Title = "Minecraft", Program = "javaw", Bounds = scaled.Area }; };
+                Computer.Front = delegate { return new IntPtr(7); };
+                Computer.Focus = delegate { return null; };
+                Computer.Under = delegate { return null; };
+                Computer.GameOpen = delegate { return null; };
+                System.Collections.Generic.List<Point> clicks = new System.Collections.Generic.List<Point>();
+                int misses = 0;
+                Computer.Use = delegate(string name, ToolArguments args, Picture picture)
+                {
+                    Point? at = Computer.Landing(args, picture);
+                    if (args.Coordinate != null && !at.HasValue) { misses++; return Computer.Member(name, args, picture); }
+                    if (args.Coordinate != null) clicks.Add(at.Value);
+                    return "Clicked.";
+                };
+                foreach (bool grid in new[] { false, true })
+                {
+                    foreach (bool stream in new[] { false, true })
+                    {
+                        Computer.Streaming = stream;
+                        int turns = 0, delivered = 0;
+                        misses = 0;
+                        clicks.Clear();
+                        Job stuck = new Job("play minecraft and click Play");
+                        if (grid)
+                            stuck.Seer = delegate(byte[] picture, string system, string user)
+                            {
+                                if (++turns > 2) throw new Exception("A grid brain kept clicking outside the screenshot.");
+                                if (turns == 2 && (!user.Contains("Use x and y from 0 to 100 on the grid.") || user.Contains("which is 1280x720"))) throw new Exception("A grid brain got pixel limits after an invalid coordinate.");
+                                return "click{\"x\":200,\"y\":50}\nclick{\"x\":50,\"y\":50}";
+                            };
+                        else
+                            stuck.Drive = delegate(string system, string tools, string messages)
+                            {
+                                if (++turns > 2) throw new Exception("A computer brain kept clicking outside the screenshot.");
+                                delivered = Math.Max(delivered, Regex.Matches(messages, Regex.Escape(Computer.OffScreen)).Count);
+                                return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"miss\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[5000,10]}},{\"type\":\"tool_use\",\"id\":\"later\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":[640,360]}}],\"stop_reason\":\"tool_use\"}");
+                            };
+                        string reply = stuck.Run();
+                        if (reply != Computer.NoClick || stuck.Outcome != "stopped" || turns != 2 || misses != 2 || clicks.Count != 0 || stuck.Report().Failed != 2 || (!grid && delivered != 1)) throw new Exception("Two off-screenshot coordinates didn't stop the ask with a reply: " + reply + " / " + turns + " turns / " + misses + " misses.");
+                        if (stuck.Run() != Computer.NoClick || turns != 2 || misses != 2) throw new Exception("An ask that couldn't see where to click started clicking again.");
+                    }
+                    Computer.Streaming = false;
+                    misses = 0;
+                    clicks.Clear();
+                    int recoveryTurns = 0;
+                    Job recovered = new Job("play minecraft and click Play");
+                    if (grid)
+                        recovered.Seer = delegate(byte[] picture, string system, string user)
+                        {
+                            if (++recoveryTurns > 4) throw new Exception("A grid brain didn't finish after a valid coordinate.");
+                            return new[] { "click{\"x\":200,\"y\":50}", "click{\"x\":50,\"y\":50}", "click{\"x\":200,\"y\":50}", "done{\"text\":\"Left it there.\"}" }[recoveryTurns - 1];
+                        };
+                    else
+                        recovered.Drive = delegate(string system, string tools, string messages)
+                        {
+                            if (++recoveryTurns > 4) throw new Exception("A computer brain didn't finish after a valid coordinate.");
+                            if (recoveryTurns == 4) return Brain.Parsed("{\"content\":[{\"type\":\"text\",\"text\":\"Left it there.\"}],\"stop_reason\":\"end_turn\"}");
+                            return Brain.Parsed("{\"content\":[{\"type\":\"tool_use\",\"id\":\"try\",\"name\":\"left_click\",\"toolset_name\":\"computer\",\"input\":{\"coordinate\":" + (recoveryTurns == 2 ? "[640,360]" : "[5000,10]") + "}}],\"stop_reason\":\"tool_use\"}");
+                        };
+                    if (recovered.Run() != "Left it there." || recovered.Outcome != "done" || recoveryTurns != 4 || misses != 2 || clicks.Count != 1 || clicks[0] != new Point(-1280, 540)) throw new Exception("A valid coordinate didn't reset the misses, or a new ask kept the old ask's misses.");
+                }
+                checks.Add("PASS off-screenshot clicks: computer and grid brains stop after two consecutive misses with a plain reply, skip later clicks, stay stopped on stream, and reset after a valid coordinate or a new ask");
+            }
+            finally
+            {
+                Computer.Shoot = shootWas;
+                Computer.Glimpse = glimpseWas;
+                Computer.Look = lookWas;
+                Computer.Focus = focusWas;
+                Computer.Under = underWas;
+                Computer.Use = useWas;
+                Computer.Front = frontWas;
+                Computer.GameOpen = gameWas;
+                Computer.Shown = shownWas;
+                Computer.Streaming = streamWas;
+            }
+        }
+
         private static void SmokeSighted(System.Collections.Generic.List<string> checks)
         {
             System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> written = Computer.Moves("Sure!\nlook{\"x\": 75, \"y\": 50}\nwalk{\"keys\": \"w\", \"seconds\": 1}\nclick{x: 50, y: 48}\n<think>click{\"x\": 1, \"y\": 1}</think>");
@@ -23788,6 +23895,7 @@ namespace CapriDesktop
             Section(checks, "SmokeHelpForTools", delegate { SmokeHelpForTools(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
+            Section(checks, "SmokeClickStops", delegate { SmokeClickStops(checks); });
             Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
             Section(checks, "SmokeLongJob", delegate { SmokeLongJob(checks); });
             Section(checks, "SmokeLooseCalls", delegate { SmokeLooseCalls(checks); });

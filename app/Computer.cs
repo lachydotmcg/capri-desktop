@@ -130,6 +130,8 @@ namespace CapriDesktop
         internal const string Bigger = "Bigger brain models handle jobs like this better. Pick one under BRAIN in Capri Mainframe.";
         internal const string Confused = "Got lost before I could start that job. " + Bigger;
         internal const string Stalled = "Got stuck on that one. " + Bigger;
+        internal const string OffScreen = "That isn't on the screenshot";
+        internal const string NoClick = "Couldn't see where to click, so I stopped.";
         internal const string Exact = "\nTheir exact words: ";
         // Blackwall mode (Bypass all permissions before 0.7.4) is now toggles 8 to 10 of her SECURITY window: with all three on
         // she never stops to check, even to buy or delete, and nothing here refuses a step. True while they're all on. Setting
@@ -1384,7 +1386,7 @@ namespace CapriDesktop
             if (args == null) args = new ToolArguments();
             Point at;
             bool placed = Spot(args.Coordinate, shown, out at);
-            if (args.Coordinate != null && !placed) return "That isn't on the screenshot" + (shown == null ? "." : ", which is " + shown.Size.Width + "x" + shown.Size.Height + ".");
+            if (args.Coordinate != null && !placed) return OffScreen + (shown == null ? "." : ", which is " + shown.Size.Width + "x" + shown.Size.Height + ".");
             if (name != "cursor_position" && name != "wait" && AboveHer(name == "type" || name == "key" || name == "hold_key" ? Native.GetForegroundWindow() : WindowAt(placed ? at : HerAt))) return AdminWindow;
             short[] held;
             switch (name)
@@ -2381,6 +2383,7 @@ namespace CapriDesktop
         private int turns;
         private int skips;
         private int streamNudges;
+        private int misses;
         private Picture shown;
         private IntPtr looked;
         private string typed;
@@ -2566,6 +2569,7 @@ namespace CapriDesktop
 
         private string Running()
         {
+            if (misses >= 2) return End("stopped", Computer.NoClick);
             if (Ink.ScreenRequest(Task) && Ink.Desktop().IsEmpty) return End("failed", Ink.NoSpace);
             Computer.Arm();
             if (talk.Count > 0 || (Drive != null && !Asking))
@@ -2887,6 +2891,7 @@ namespace CapriDesktop
                 if (risk != null) approved.Add(risk);
                 Step(waiting.Key, waiting.Value, waitingMember, waitingTarget);
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
+                if (misses >= 2) return End("stopped", Computer.NoClick);
             }
             int lost = 0;
             string results = "";
@@ -2996,6 +3001,7 @@ namespace CapriDesktop
                     if (trace != null) trace("  " + tool + " -> " + result);
                     results += "\n" + move.Key + ": " + result;
                     if (Computer.Interrupted) return End("stopped", Computer.Why);
+                    if (misses >= 2) return End("stopped", Computer.NoClick);
                     if (Computer.Failed(result)) break;
                 }
                 if (results.Length > 0 && !results.StartsWith("\nYou asked", StringComparison.Ordinal)) results = "\nWhat your last moves did:" + results;
@@ -3068,6 +3074,7 @@ namespace CapriDesktop
                 answer.Error = Computer.Failed(answer.Text) || Computer.Interrupted;
                 answers.Add(answer);
                 if (Computer.Interrupted) return End("stopped", Computer.Why);
+                if (misses >= 2) return End("stopped", Computer.NoClick);
                 if (answer.Error) broken = true;
             }
             // A fresh look rides on the batch's last answer, unless it was a look that ran.
@@ -3242,6 +3249,12 @@ namespace CapriDesktop
             string result;
             try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, Computer.Glimpse()); }
             catch (Exception error) { result = "That didn't work: " + error.Message; }
+            if (result != null && result.StartsWith(Computer.OffScreen, StringComparison.Ordinal))
+            {
+                misses++;
+                if (sighted) result = Computer.OffScreen + ". Use x and y from 0 to 100 on the grid.";
+            }
+            else if (member && args.Coordinate != null) misses = 0;
             if (secret) result = Hush(result, args.Text);
             if (Playing && !secret) played.Add(name + " " + Computer.Traced(args) + ": " + result);
             bool failed = Computer.Failed(result) || Computer.Interrupted;
