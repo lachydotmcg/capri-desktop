@@ -9677,7 +9677,7 @@ namespace CapriDesktop
             if (talkState == TalkState.Thinking) return;
             // A note about her ears never cuts into a reply she's still saying (Lachy, 2 Nov). A problem waits for her to finish.
             // Her own last ears note can be followed straight away, like "One sec, opening my ears." by that they're ready.
-            if (StillSaying && asking != earsNotice) { if (problem) earsHeld = text; return; }
+            if (StillSaying && asking != earsNotice) { if (problem) { earsHeld = text; earsHeldMended = earsMended; } return; }
             earsHeld = null;
             heard = "(voice)";
             box.Prompt = "> you: ";
@@ -9686,17 +9686,20 @@ namespace CapriDesktop
         }
 
         private string earsHeld;
+        // Counts her hearing going from a problem back to working (UpdateHearing), so a held note can tell it's out of date.
+        private int earsHeldMended, earsMended;
 
         // Her words are still coming out, or her voice is still playing them.
         private bool StillSaying { get { return talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || hdSpeaking == asking; } }
 
-        // A problem held while she finished her line is said now, if it's still what VOICE shows.
+        // A problem held while she finished her line is said now, unless her hearing has recovered since. What VOICE shows
+        // can't tell: a glitch's details replace its "Say it again?" there, and a mic that's found again leaves it (Codex review, 3 Nov).
         private void SayHeldEarsNote()
         {
             if (earsHeld == null || StillSaying || talkState == TalkState.Thinking) return;
             string held = earsHeld;
             earsHeld = null;
-            if (mainframe.VoiceNoteText == held || mainframe.VoiceNoteText == held + Mainframe.OpenSpeech) EarsNote(held, true);
+            if (earsHeldMended == earsMended) EarsNote(held, true);
         }
 
         // Free voice chat is listening. How it works gets said the first time and after that only shows under VOICE, unless she promised to say when she can hear them.
