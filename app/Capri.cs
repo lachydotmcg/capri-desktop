@@ -1844,10 +1844,6 @@ namespace CapriDesktop
             screenItem = new ToolStripMenuItem("Go to the next screen", null, delegate { MoveSelf("other_screen", null); });
             moves.DropDownItems.Add(screenItem);
             menu.Items.Add(moves);
-            // After Move, so the items above keep their places.
-            ToolStripMenuItem clipsItem = new ToolStripMenuItem("Open clips folder", null, delegate { OpenClips(); });
-            menu.Items.Add(clipsItem);
-            menu.Opening += delegate { clipsItem.Visible = preferences.ClipGames || Directory.Exists(ClipOptions.Folder); };
             menu.Opening += delegate { if (ownRest) WakeRest(!SleepBusy); sitHereItem.Text = seat != null && seat.Free ? "Stand up" : "Sit here"; hangHereItem.Text = hanging ? "Let go" : "Hang here"; lieItem.Text = lying ? "Sit up" : "Lie down"; lieItem.Enabled = lying || (clip == perch && LieWay() != null); sleepItem.Text = napAsked || Asleep ? "Wake up" : "Go to sleep"; danceNowItem.Checked = danceAsked; screenItem.Visible = Screen.AllScreens.Length > 1; };
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
@@ -4566,7 +4562,7 @@ namespace CapriDesktop
             return screen.WorkingArea;
         }
 
-        // Their clips in Explorer, from Settings > CLIPS, her menu or the CLIP SAVED popup, which picks out its clip (Lachy, 2 Nov:
+        // Their clips in Explorer, from Settings > CLIPS or the CLIP SAVED popup, which picks out its clip (Lachy, 2 Nov:
         // "I want you to be able to just click to open capri clipping folder to watch the clips").
         internal void OpenClips(string saved = null)
         {
@@ -14139,7 +14135,7 @@ namespace CapriDesktop
             checks.Add("PASS over a game she gives way below normal, but her window's thread stays level with the game's, so a game on every core can't freeze her");
         }
 
-        // The CLIP SAVED popup and chime, and clips opening from it, her menu and Settings (Lachy, 2 Nov).
+        // The CLIP SAVED popup and chime, and clips opening from it and from Settings (Lachy, 2 Nov).
         private void SmokeClipPopup(System.Collections.Generic.List<string> checks, string output)
         {
             using (Bitmap popupPlain = ClipToast.Draw(1.5f, 30, "VALORANT", false))
@@ -14199,7 +14195,7 @@ namespace CapriDesktop
                 if (clipsOpened.Count != 2 || clipsOpened[1] != null || !mainframe.ClipsFolderShown) throw new Exception("Open clips folder is missing or didn't open the folder.");
             }
             finally { manualHidden = popupHiddenWas; preferences.Motion = popupMotionWas; if (clipToast != null) clipToast.Hide(); }
-            checks.Add("PASS a saved clip chimes and pops up CLIP SAVED at the top right of the game's screen without taking focus, holds while hovered, fades after 4 s and shows its clip when clicked, and only chimes if she's hidden by hand; Open clips folder is in Settings > CLIPS and her menu, and she says how long a clip is instead of reading its path");
+            checks.Add("PASS a saved clip chimes and pops up CLIP SAVED at the top right of the game's screen without taking focus, holds while hovered, fades after 4 s and shows its clip when clicked, and only chimes if she's hidden by hand; Open clips folder is in Settings > CLIPS, and she says how long a clip is instead of reading its path");
         }
 
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
@@ -20754,7 +20750,6 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            tops.Remove("Open clips folder");
                             if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,Hide Capri,Size,Move,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
