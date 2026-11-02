@@ -2106,9 +2106,9 @@ namespace CapriDesktop
                     if (call.Key == "use_computer" && args.Asked == null) args.Asked = request;
                     if (call.Key == "app_window") args.Asked = request;
                     if (call.Key == "media") Hands.Aim(args, request);
-                    // The same job, app, site or song twice runs once, whatever its case: a small brain can call a job again that it
-                    // thinks is still going, or write the same call over and over. Media can go twice, like skipping two songs.
-                    int again = OpensOnce(call.Key) ? calls.FindIndex(done => done.Key == call.Key && Written(done.Key, done.Value).ToLowerInvariant() == Written(call.Key, args).ToLowerInvariant()) : -1;
+                    // The same job, app, site or song twice runs once: a small brain can call a job again that it thinks is still
+                    // going, or write the same call over and over. Media can go twice, like skipping two songs.
+                    int again = OpensOnce(call.Key) ? calls.FindIndex(done => done.Key == call.Key && OnceKey(done.Key, done.Value) == OnceKey(call.Key, args)) : -1;
                     if (again >= 0)
                     {
                         did.Add(Written(call.Key, args));
@@ -2171,15 +2171,22 @@ namespace CapriDesktop
         // 20 times). Opening the same job, app, site or song twice in one turn is never wanted, so an exact repeat runs once.
         internal static bool OpensOnce(string tool) { return tool == "use_computer" || tool == "open_app" || tool == "open_website" || tool == "play_music"; }
 
-        // Keeps the first of each and drops its repeats, in order, whatever their case ("Spotify" then "spotify"). Every other call
-        // stays, so media can still skip two songs.
+        // A call that opens something, as its repeats are told apart: an app, site or song whatever its case ("Spotify" then
+        // "spotify"), but a job word for word, since typing "USD" and then "usd" are two jobs.
+        private static string OnceKey(string tool, ToolArguments args)
+        {
+            string written = Written(tool, args ?? new ToolArguments());
+            return tool == "use_computer" ? written : written.ToLowerInvariant();
+        }
+
+        // Keeps the first of each and drops its repeats, in order. Every other call stays, so media can still skip two songs.
         internal static void Once(List<KeyValuePair<string, ToolArguments>> calls)
         {
             List<string> seen = new List<string>();
             calls.RemoveAll(delegate(KeyValuePair<string, ToolArguments> call)
             {
                 if (!OpensOnce(call.Key)) return false;
-                string written = Written(call.Key, call.Value ?? new ToolArguments()).ToLowerInvariant();
+                string written = OnceKey(call.Key, call.Value);
                 if (seen.Contains(written)) return true;
                 seen.Add(written);
                 return false;

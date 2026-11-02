@@ -1866,9 +1866,9 @@ namespace CapriDesktop
                 string name = labels.Length >= 2 ? labels[labels.Length - 2] : labels[0];
                 if (!Regex.IsMatch(text, @"\b" + Regex.Escape(name) + @"\b", RegexOptions.IgnoreCase) || !Installed(name)) continue;
                 if (string.IsNullOrEmpty(args.Search)) calls[i] = new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = name });
-                // Music searched for on Spotify's web player plays in the app they have (Bende, 3 Nov: the web player kept opening
-                // when they'd asked for the app on their PC).
-                else if (name == "spotify" && Regex.IsMatch(text, @"\b(play|put on|listen|music|songs?|playlist|album)\b", RegexOptions.IgnoreCase))
+                // Music they asked to hear, searched for on Spotify's web player, plays in the app they have (Bende, 3 Nov: the web
+                // player kept opening when they'd asked for the app on their PC). A search of the website they asked for stays one.
+                else if (name == "spotify" && Regex.IsMatch(text, @"\b(play|put on|listen to)\b", RegexOptions.IgnoreCase) && !Regex.IsMatch(text, @"\b(search|website|site|web|browser)\b", RegexOptions.IgnoreCase))
                     calls[i] = new KeyValuePair<string, ToolArguments>("play_music", new ToolArguments { Song = args.Search.Trim(), App = "spotify" });
             }
             return false;
@@ -2598,8 +2598,11 @@ namespace CapriDesktop
         {
             if (args == null) return;
             if (args.Action == "mute" && Regex.IsMatch(said ?? "", @"\bun-?mute\b|\bmute off\b|\boff (of )?mute\b|\b(sound|volume|audio) (back )?on\b|\bturn on (the )?(sound|volume|audio)\b", RegexOptions.IgnoreCase)) args.Action = "unmute";
-            if (args.Action == "play_pause" && Regex.IsMatch(said ?? "", @"\bun-?pause\b|\bresume\b|\bcontinue (?:the |my )?(?:music|song|video|playing)\b|\bkeep (?:it )?playing\b|\bplay (?:it |the (?:music|song|video) )?again\b", RegexOptions.IgnoreCase)) args.Action = "resume";
-            else if (args.Action == "play_pause" && Regex.IsMatch(said ?? "", @"(?<!\bplay ?[/-]? ?)\bpause\b|\bstop (?:the |my |this |that )?(?:music|song|video|podcast|playback|playing)\b", RegexOptions.IgnoreCase)) args.Action = "pause";
+            // An ask that goes both ways, like "pause it for ten seconds and then resume it", can't say which call is which, so each
+            // play_pause stays as the brain wrote it.
+            bool resuming = Regex.IsMatch(said ?? "", @"\bun-?pause\b|\bresume\b|\bcontinue (?:the |my )?(?:music|song|video|playing)\b|\bkeep (?:it )?playing\b|\bplay (?:it |the (?:music|song|video) )?again\b", RegexOptions.IgnoreCase);
+            bool pausing = Regex.IsMatch(said ?? "", @"(?<!\bun-)(?<!\bplay ?[/-]? ?)\bpause\b|\bstop (?:the |my |this |that )?(?:music|song|video|podcast|playback|playing)\b", RegexOptions.IgnoreCase);
+            if (args.Action == "play_pause" && resuming != pausing) args.Action = resuming ? "resume" : "pause";
             if (args.App == null && (args.Action == "volume_up" || args.Action == "volume_down") && Regex.IsMatch(said ?? "", @"\bspotify\b", RegexOptions.IgnoreCase)) args.App = "spotify";
         }
 
@@ -4853,11 +4856,12 @@ namespace CapriDesktop
             if (action == "now") return name + " is at " + now + "% in the volume mixer" + (muted ? ", and it's muted." : ".");
             if (action == "mute" || action == "unmute")
             {
+                // An app can play on two outputs with one of them muted: unmuting goes ahead until none of them is.
                 bool muting = action == "mute";
-                if (muted == muting) return muting ? name + " is already muted in the volume mixer." : name + " isn't muted: it's at " + now + "% in the volume mixer.";
+                if (muting ? muted : !AnyMuted(mine)) return muting ? name + " is already muted in the volume mixer." : name + " isn't muted: it's at " + now + "% in the volume mixer.";
                 foreach (int id in SoundIds(mine)) SetSound(id, null, muting);
                 List<AppSound> heard = SoundsOf(MixerNow() ?? new List<AppSound>(), wanted);
-                if (heard.Count == 0 || AllMuted(heard) != muting) return "Couldn't " + action + " " + name + ": it's still " + (muting ? "on" : "muted") + ".";
+                if (heard.Count == 0 || (muting ? !AllMuted(heard) : AnyMuted(heard))) return "Couldn't " + action + " " + name + ": it's still " + (muting ? "on" : "muted") + ".";
                 return muting ? "Muted " + name + " in the volume mixer." : "Unmuted " + name + ": it's at " + MixerPercent(Loudest(heard)) + "% in the volume mixer.";
             }
             int target;
@@ -4924,6 +4928,8 @@ namespace CapriDesktop
         }
 
         private static bool AllMuted(List<AppSound> sounds) { return sounds.Count > 0 && sounds.TrueForAll(delegate(AppSound sound) { return sound.Muted; }); }
+
+        private static bool AnyMuted(List<AppSound> sounds) { return sounds.Exists(delegate(AppSound sound) { return sound.Muted; }); }
 
         private static int MixerPercent(float level) { return (int)Math.Round(level * 100); }
 

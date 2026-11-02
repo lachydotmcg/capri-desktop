@@ -79,6 +79,15 @@ namespace CapriDesktop
                 if (action == "move_to_screen" && to == on) return label + " is already on " + The(screens[to]) + ".";
             }
             if (action == "maximize" && (on >= 0 ? to == on : !named)) return Maximize(handle, label, was, on, on, screens);
+            // A monitor that isn't there, or a place or size that isn't one, is turned down before the window comes up or down.
+            if (named && on < 0)
+            {
+                bool there = false;
+                for (int candidate = 0; candidate < screens.Count && !there; candidate++) there = Pick(args.Screen, candidate, screens) >= 0;
+                if (!there) return Unknown(args.Screen, screens);
+            }
+            string unread = Unread(action, label, args);
+            if (unread != null) return unread;
             // Moving it means its normal size first: a minimized window comes back up and a maximized one comes down.
             bool maximized = was.Maximized && !was.Minimized;
             Spot now = Unfold(handle, was);
@@ -113,7 +122,7 @@ namespace CapriDesktop
             {
                 Size size = to == on ? now.Edges.Size : Scaled(now.Edges.Size, screens[on], screens[to]);
                 size = new Size(Math.Min(size.Width, work.Width), Math.Min(size.Height, work.Height));
-                string spot = (args.Position ?? "").Trim().ToLowerInvariant().Replace(' ', '_').Replace("centre", "center");
+                string spot = SpotOf(args.Position);
                 bool spotted = Array.IndexOf(Spots, spot) >= 0, measured = !string.IsNullOrWhiteSpace(args.Left) || !string.IsNullOrWhiteSpace(args.Top);
                 Point corner;
                 if (spotted) corner = Corner(work, size, spot);
@@ -121,7 +130,7 @@ namespace CapriDesktop
                 {
                     Rectangle from = to == on ? now.Edges : Carried(now.Edges, screens[on], screens[to]);
                     int? left = Measure(args.Left, from.Left - work.Left, work.Width, true), top = Measure(args.Top, from.Top - work.Top, work.Height, true);
-                    if (!left.HasValue || !top.HasValue) return "Couldn't move " + label + ": " + (left.HasValue ? args.Top : args.Left) + " isn't a place on the screen. Use pixels like 200, a percent like 25%, or +100 to nudge it.";
+                    if (!left.HasValue || !top.HasValue) return Unread(action, label, args);
                     corner = new Point(work.Left + left.Value, work.Top + top.Value);
                 }
                 else if (to != on)
@@ -138,13 +147,27 @@ namespace CapriDesktop
             {
                 Rectangle from = to == on ? now.Edges : Carried(now.Edges, screens[on], screens[to]);
                 int? width = Measure(args.Width, from.Width, work.Width, false), height = Measure(args.Height, from.Height, work.Height, false);
-                if (!width.HasValue || !height.HasValue) return "Couldn't resize " + label + ": " + (width.HasValue ? args.Height : args.Width) + " isn't a size. Use pixels like 1280, a percent like 50%, or +20% to grow it.";
+                if (!width.HasValue || !height.HasValue) return Unread(action, label, args);
                 Size size = new Size(Math.Max(Smallest, Math.Min(width.Value, work.Width)), Math.Max(Smallest, Math.Min(height.Value, work.Height)));
                 Point middle = new Point(from.Left + from.Width / 2, from.Top + from.Height / 2);
                 wanted = Inside(new Rectangle(middle.X - size.Width / 2, middle.Y - size.Height / 2, size.Width, size.Height), work);
                 done = "Resized " + label + " to " + size.Width + " x " + size.Height + (to != on ? " on " + The(screens[to]) : "");
             }
             return Place(handle, label, verb, now.Edges, wanted, done, screens);
+        }
+
+        // A spot her brain named, the way Spots writes it: "top right" or "centre" is top_right or center.
+        private static string SpotOf(string position) { return (position ?? "").Trim().ToLowerInvariant().Replace(' ', '_').Replace("centre", "center"); }
+
+        // What's wrong with a place or size her brain gave for a move or resize, or null when they read. A place is only read when
+        // there's no spot.
+        private static string Unread(string action, string label, ToolArguments args)
+        {
+            if (action == "move" && Array.IndexOf(Spots, SpotOf(args.Position)) < 0 && (Measure(args.Left, 0, 1, true) == null || Measure(args.Top, 0, 1, true) == null))
+                return "Couldn't move " + label + ": " + (Measure(args.Left, 0, 1, true) == null ? args.Left : args.Top) + " isn't a place on the screen. Use pixels like 200, a percent like 25%, or +100 to nudge it.";
+            if (action == "resize" && (Measure(args.Width, 0, 1, false) == null || Measure(args.Height, 0, 1, false) == null))
+                return "Couldn't resize " + label + ": " + (Measure(args.Width, 0, 1, false) == null ? args.Width : args.Height) + " isn't a size. Use pixels like 1280, a percent like 50%, or +20% to grow it.";
+            return null;
         }
 
         // "maximize", "snap" or "move", for her lines.
@@ -164,7 +187,11 @@ namespace CapriDesktop
         private static string Pinning(IntPtr handle, string label, bool pin)
         {
             if (Pinned(handle) == pin) return pin ? label + " is already kept on top of your other windows." : label + " isn't kept on top, so it's already in among your other windows.";
-            if (!Pin(handle, pin) || Pinned(handle) != pin)
+            // The app takes the ask in its own time, so she watches for it a moment.
+            bool asked = Pin(handle, pin);
+            Stopwatch waited = Stopwatch.StartNew();
+            while (asked && Pinned(handle) != pin && waited.ElapsedMilliseconds < Patience) Thread.Sleep(50);
+            if (!asked || Pinned(handle) != pin)
                 return Refused(handle, pin ? "pin" : "unpin", label) ?? "Couldn't " + (pin ? "keep " + label + " on top" : "stop keeping " + label + " on top") + ": Windows didn't let me.";
             return pin ? "Kept " + label + " on top of your other windows. Say unpin " + label + " to let it go." : label + " isn't kept on top any more.";
         }
@@ -218,7 +245,7 @@ namespace CapriDesktop
         private static string Place(IntPtr handle, string label, string verb, Rectangle before, Rectangle wanted, string done, List<Display> screens)
         {
             bool taken = Shape(handle, "place", wanted);
-            Spot now = Read(handle);
+            Spot now = Settle(handle, delegate(Spot spot) { return Near(spot.Edges, wanted, 6) || !Near(spot.Edges, before, 2); });
             if (now == null || now.Gone) return "Couldn't " + verb + " " + label + ": its window closed.";
             Rectangle edges = now.Edges;
             if (Near(edges, wanted, 6)) return done + ".";
@@ -568,7 +595,8 @@ namespace CapriDesktop
                     int left = edges.Left - outer.Left, top = edges.Top - outer.Top, right = outer.Right - edges.Right, bottom = outer.Bottom - edges.Bottom;
                     if (left >= 0 && top >= 0 && right >= 0 && bottom >= 0 && left < 40 && top < 40 && right < 40 && bottom < 40) padded = Rectangle.FromLTRB(wanted.Left - left, wanted.Top - top, wanted.Right + right, wanted.Bottom + bottom);
                 }
-                if (!SetWindowPos(window, IntPtr.Zero, padded.Left, padded.Top, padded.Width, padded.Height, 0x0004 | 0x0010 | 0x0200)) return false;
+                // Asked without waiting on the app, so a busy one can't hold her up; where it went is read afterwards.
+                if (!SetWindowPos(window, IntPtr.Zero, padded.Left, padded.Top, padded.Width, padded.Height, 0x0004 | 0x0010 | 0x0200 | 0x4000)) return false;
                 Thread.Sleep(80);
                 if (Near(Visible(window), wanted, 1)) break;
             }
@@ -608,7 +636,7 @@ namespace CapriDesktop
         [StructLayout(LayoutKind.Sequential)] private struct Spotted { internal int X, Y; }
         private static bool OnTop(IntPtr window) { return (GetWindowLong(window, -20) & 0x8) != 0; }
 
-        private static bool KeepOnTop(IntPtr window, bool pin) { return SetWindowPos(window, new IntPtr(pin ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); }
+        private static bool KeepOnTop(IntPtr window, bool pin) { return SetWindowPos(window, new IntPtr(pin ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010 | 0x4000); }
 
         [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr window, int index);
         [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);

@@ -14828,7 +14828,8 @@ namespace CapriDesktop
                 {
                     new[] { "can you open spotify for me", "https://open.spotify.com", "", "open_app" },
                     new[] { "i wanna listen to lofi beats on my spotify app", "open.spotify.com", "lofi beats", "play_music" },
-                    new[] { "search the spotify website for lofi beats", "https://open.spotify.com/", "lofi beats", "open_website" }
+                    new[] { "search the spotify website for lofi beats", "https://open.spotify.com/", "lofi beats", "open_website" },
+                    new[] { "search the spotify website for the song blinding lights", "https://open.spotify.com", "Blinding Lights", "open_website" }
                 })
                 {
                     picked.Clear();
@@ -15947,7 +15948,11 @@ namespace CapriDesktop
                 Brain.Once(repeated);
                 string kept = string.Join(",", repeated.ConvertAll(repeatedCall => repeatedCall.Key).ToArray());
                 if (kept != "play_music,media,open_website,media") throw new Exception("A call written over and over ran more than once, or media's repeats were dropped: " + kept);
-                checks.Add("PASS a brain that writes the same play_music or open_website call over and over runs it once, and media's next can still go twice");
+                // Typing "USD" and then "usd" are two jobs, whatever an app's name in another case would be.
+                var typed = Hands.Written("use_computer{\"task\":\"Type USD in Notepad\"}\nuse_computer{\"task\":\"Type usd in Notepad\"}\nuse_computer{\"task\":\"Type usd in Notepad\"}");
+                Brain.Once(typed);
+                if (typed.Count != 2 || typed[0].Value.Task != "Type USD in Notepad" || typed[1].Value.Task != "Type usd in Notepad") throw new Exception("Two jobs that differ only in case ran as one, or a repeated job ran twice: " + typed.Count + " left.");
+                checks.Add("PASS a brain that writes the same play_music or open_website call over and over runs it once, a job that differs only in case still runs, and media's next can still go twice");
             }
             finally
             {

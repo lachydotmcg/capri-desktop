@@ -30,8 +30,16 @@ namespace CapriDesktop
             string asked = (address ?? "").Trim();
             Uri site;
             if (asked.Length > 0 && Uri.TryCreate(asked.Contains("://") ? asked : "http://" + asked, UriKind.Absolute, out site)) asked = site.Host;
+            // A name is looked up once, for at most 2.5 seconds, before any ping: a ping to a name looks it up again with no time
+            // limit of its own, so a DNS server that stopped answering could hold the check up.
+            string named = asked.Length > 0 && Uri.CheckHostName(asked) == UriHostNameType.Dns ? asked : "www.google.com";
+            IPAddress[] found = Lookup(named);
+            use.Names = found != null && found.Length > 0;
             foreach (string host in asked.Length > 0 ? new[] { asked } : new[] { "1.1.1.1", "8.8.8.8" })
             {
+                IPAddress target;
+                if (!IPAddress.TryParse(host, out target))
+                    target = host == named && use.Names == true ? Array.Find(found, one => one.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) ?? found[0] : null;
                 use.Pinged = host;
                 use.Sent = 0;
                 use.Lost = 0;
@@ -43,9 +51,10 @@ namespace CapriDesktop
                     for (int i = 0; i < 4 && !(i == 2 && use.Lost == 2); i++)
                     {
                         use.Sent++;
+                        if (target == null) { use.Lost++; continue; }
                         try
                         {
-                            PingReply reply = ping.Send(host, 1000);
+                            PingReply reply = ping.Send(target, 1000);
                             if (reply == null || reply.Status != IPStatus.Success) { use.Lost++; continue; }
                             total += reply.RoundtripTime;
                             if (use.Fastest == 0 || reply.RoundtripTime < use.Fastest) use.Fastest = reply.RoundtripTime;
@@ -56,11 +65,15 @@ namespace CapriDesktop
                 use.Average = use.Sent > use.Lost ? total / (use.Sent - use.Lost) : 0;
                 if (use.Lost < use.Sent) break;
             }
-            string named = asked.Length > 0 && Uri.CheckHostName(asked) == UriHostNameType.Dns ? asked : "www.google.com";
-            Task<IPAddress[]> lookup = Task.Factory.StartNew(delegate { return Dns.GetHostAddresses(named); });
-            try { use.Names = lookup.Wait(2500) ? (bool?)(lookup.Result.Length > 0) : false; }
-            catch (Exception) { use.Names = false; }
             return use;
+        }
+
+        // A name's addresses, or null when it doesn't look up within 2.5 seconds.
+        private static IPAddress[] Lookup(string name)
+        {
+            Task<IPAddress[]> lookup = Task.Factory.StartNew(delegate { return Dns.GetHostAddresses(name); });
+            try { return lookup.Wait(2500) ? lookup.Result : null; }
+            catch (Exception) { return null; }
         }
 
         // The network links that are up, Ethernet or Wi-Fi, never virtual or VPN ones.

@@ -159,6 +159,15 @@ namespace CapriDesktop
                     throw new Exception("Her window tool's windows didn't end up where she said: discord " + discordNow + ", chrome " + chromeNormal + ", spotify " + spotifyNow);
                 if (!Hands.Failed(said[7]) || !Hands.Failed(said[8]) || !Hands.Failed(said[12]) || !Hands.Failed(said[15]) || Hands.Failed(said[1]) || Hands.Failed(said[0]))
                     throw new Exception("Her window tool's failures didn't read as failures to her brain, or a move that worked did.");
+                // A monitor that isn't there, or a size that isn't one, is turned down before a minimized or maximized window comes
+                // up or down.
+                pretend[new IntPtr(33)].Edges = new Rectangle(-32000, -32000, 160, 28);
+                pretend[new IntPtr(33)].Minimized = true;
+                string nowhere = Hands.Do("app_window", new ToolArguments { Name = "notepad", Action = "move_to_screen", Screen = "screen 7" });
+                string unsized = Hands.Do("app_window", new ToolArguments { Name = "chrome", Action = "resize", Width = "huge" });
+                if (nowhere != "There's no screen 7. Your monitors are the main screen, screen 2 and screen 3." || !pretend[new IntPtr(33)].Minimized
+                    || !unsized.StartsWith("Couldn't resize chrome: huge isn't a size.", StringComparison.Ordinal) || !pretend[new IntPtr(32)].Maximized)
+                    throw new Exception("A move her window tool turned down still brought a window up or down: " + nowhere + " / " + unsized);
                 // A snapped half stays a half on the new monitor; anything else keeps its size, scaled for the monitor's scale.
                 Rectangle carriedHalf = Arrange.Carried(new Rectangle(1920, -420, 540, 1872), desk[1], desk[2]), carriedBox = Arrange.Carried(new Rectangle(100, 100, 800, 600), desk[0], desk[1]);
                 if (carriedHalf != new Rectangle(3000, 0, 1280, 1392) || carriedBox.Width != 800 || carriedBox.Height != 600 || !desk[1].Work.Contains(carriedBox)
@@ -445,8 +454,9 @@ namespace CapriDesktop
                 string blind = media("pause");
                 if (ignored != "Couldn't pause Spotify: it still says it's playing." || !Hands.Failed(ignored) || tab != "Chrome is playing lofi hip hop radio by Lofi Girl." || blind != "Pressed pause." || keys.Count != 1 || keys[0] != 0xB3)
                     throw new Exception("Her media tool didn't say what the player did: " + ignored + " / " + tab + " / " + blind);
-                // A brain's play_pause for "pause it" only pauses, and for "unpause it" only plays.
-                string[,] aims = { { "pause the music", "pause" }, { "can you unpause it", "resume" }, { "resume my song", "resume" }, { "stop the music", "pause" }, { "play it again", "resume" }, { "play/pause", "play_pause" }, { "hit play pause", "play_pause" } };
+                // A brain's play_pause for "pause it" only pauses, and for "unpause it" only plays. An ask that goes both ways keeps
+                // each call as the brain wrote it.
+                string[,] aims = { { "pause the music", "pause" }, { "can you unpause it", "resume" }, { "un-pause it", "resume" }, { "resume my song", "resume" }, { "stop the music", "pause" }, { "play it again", "resume" }, { "play/pause", "play_pause" }, { "hit play pause", "play_pause" }, { "pause the music for ten seconds and then resume it", "play_pause" } };
                 for (int i = 0; i < aims.GetLength(0); i++)
                 {
                     ToolArguments aimed = new ToolArguments { Action = "play_pause" };
@@ -616,6 +626,11 @@ namespace CapriDesktop
                     throw new Exception("Her app volume moved the wrong sounds: " + moves);
                 if (!Hands.Failed(mix("set", "stuck", "80")) || !Hands.Failed(mix("set", "steam", "50")) || Hands.Failed(mix("now", "steam", null)) || Hands.Failed(mix("now", "spotify", null)))
                     throw new Exception("A change that didn't happen wasn't read as one.");
+                // Discord playing on two outputs with only one of them muted still unmutes.
+                foreach (AppSound sound in mixer) if (sound.Id == 20) sound.Muted = true;
+                string halfMuted = mix("unmute", "discord", null);
+                if (halfMuted != "Unmuted Discord: it's at 100% in the volume mixer." || mixer.Exists(delegate(AppSound sound) { return sound.App == "Discord.exe" && sound.Muted; }))
+                    throw new Exception("An app muted on one of its two outputs stayed muted: " + halfMuted);
                 readable = false;
                 string unread = mix("now", null, null);
                 readable = true;
