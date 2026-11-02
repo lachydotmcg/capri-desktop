@@ -593,9 +593,9 @@ If your Ollama chat model can't see, she can use a seeing model you already have
 ### The free NVIDIA key
 - Free providers: NVIDIA, Google AI Studio (Gemini) or OpenRouter under MEDIUM INTELLIGENCE. OpenRouter lists only :free models here.
 - Warning: Free keys can be rate limited and slow.
-- Free key button: opens NVIDIA by default. NVIDIA's free API is often slow, especially at busy times.
+- Free key button: a menu of NVIDIA, Google AI Studio (Gemini) and OpenRouter. Each opens its key page, and she says what to do. NVIDIA's free API is often slow, especially at busy times.
 
-1. In the Mainframe, pick MEDIUM INTELLIGENCE under BRAIN and press Free key on that row. Or open https://build.nvidia.com/settings/api-keys.
+1. In the Mainframe, pick MEDIUM INTELLIGENCE under BRAIN, press Free key on that row and pick NVIDIA. Or open https://build.nvidia.com/settings/api-keys.
 2. Sign in, or make a free account. NVIDIA may ask to verify your phone number.
 3. Press Generate API Key and copy it. It starts with nvapi-
 4. Paste your key in the key box under MEDIUM INTELLIGENCE and press Connect.
