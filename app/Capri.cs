@@ -33527,14 +33527,16 @@ namespace CapriDesktop
                                 Func<string> cableNameWas = Ears.DefaultName;
                                 int cableDictations = 0;
                                 bool cableSkipped;
-                                string cableStatus;
+                                string cableStatus, cableHearing;
                                 try
                                 {
                                     Ears.DefaultName = delegate { return "CABLE Output (VB-Audio Virtual Cable)"; };
                                     Dictation.Make = delegate { cableDictations++; return new StandInDictation(); };
                                     StartLocal();
                                     cableStatus = mainframe.VoiceStatus;
-                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0;
+                                    cableHearing = hearingStatus.Text;
+                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0
+                                        && !hearingStatus.Problem && cableHearing.IndexOf("CABLE Output", StringComparison.Ordinal) >= 0;
                                     StopChat();
                                     Ears.DefaultName = delegate { return "Microphone (stand-in)"; };
                                     StartLocal();
@@ -33546,8 +33548,8 @@ namespace CapriDesktop
                                     Ears.DefaultName = cableNameWas;
                                     if (chatting) StopChat();
                                 }
-                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus);
-                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why; any other default opens it as before");
+                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus + " / " + cableHearing);
+                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why under VOICE, and her hearing line names the cable without calling it a failure; any other default opens it as before");
                             });
                             if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
