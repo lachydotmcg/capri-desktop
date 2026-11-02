@@ -17210,26 +17210,33 @@ namespace CapriDesktop
                 using (Bitmap overShot = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
                 using (Bitmap overStale = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
                 {
-                    using (Graphics overDraw = Graphics.FromImage(overShot)) overDraw.CopyFromScreen(overArea.Location, Point.Empty, overArea.Size);
-                    using (Graphics overDraw = Graphics.FromImage(overStale)) overDraw.Clear(Color.Blue);
-                    Color overBefore = overShot.GetPixel(160, 90);
-                    bool overHadIt = overBefore.R > 200 && overBefore.G < 80 && overBefore.B > 200, overCopied = false, overStaleCopied = true, overDone = false;
-                    // A window of someone else's in front of the game.
-                    overShot.SetPixel(20, 20, Color.Red);
-                    Thread overThread = new Thread(delegate()
+                    bool overScreen = true;
+                    try { using (Graphics overDraw = Graphics.FromImage(overShot)) overDraw.CopyFromScreen(overArea.Location, Point.Empty, overArea.Size); }
+                    // A desktop Windows isn't showing, like the hidden one smoke runs on, has no screen to copy ("The handle is invalid").
+                    catch (System.ComponentModel.Win32Exception) { overScreen = false; }
+                    if (!overScreen) checks.Add("LIMIT window copies: this desktop has no screen to copy from");
+                    else
                     {
-                        overCopied = Computer.WindowOver(overShot, overArea, underHandle, overHers);
-                        overStaleCopied = Computer.WindowOver(overStale, overArea, underHandle, overHers);
-                        overDone = true;
-                    });
-                    overThread.Start();
-                    while (!overDone) { Application.DoEvents(); Thread.Sleep(5); }
-                    Color overSeen = overShot.GetPixel(160, 90), overLeft = overStale.GetPixel(160, 90), overOther = overShot.GetPixel(20, 20);
-                    if (overStaleCopied || overLeft.B < 200) throw new Exception("A window copy that didn't look like the screen went over it.");
-                    if (!overHadIt) checks.Add("LIMIT window copies: the test window never got on top of the other one here");
-                    else if (!overCopied || overSeen.G < 200 || overSeen.R > 60) throw new Exception("She couldn't see through her own window: " + overCopied + " " + overSeen);
-                    else if (overOther.R < 200 || overOther.G > 60) throw new Exception("A window copy painted over something that isn't hers: " + overOther);
-                    else checks.Add("PASS window copies: a game's own window shows what's under anything of hers and nothing else, and a copy that doesn't match the screen is left out");
+                        using (Graphics overDraw = Graphics.FromImage(overStale)) overDraw.Clear(Color.Blue);
+                        Color overBefore = overShot.GetPixel(160, 90);
+                        bool overHadIt = overBefore.R > 200 && overBefore.G < 80 && overBefore.B > 200, overCopied = false, overStaleCopied = true, overDone = false;
+                        // A window of someone else's in front of the game.
+                        overShot.SetPixel(20, 20, Color.Red);
+                        Thread overThread = new Thread(delegate()
+                        {
+                            overCopied = Computer.WindowOver(overShot, overArea, underHandle, overHers);
+                            overStaleCopied = Computer.WindowOver(overStale, overArea, underHandle, overHers);
+                            overDone = true;
+                        });
+                        overThread.Start();
+                        while (!overDone) { Application.DoEvents(); Thread.Sleep(5); }
+                        Color overSeen = overShot.GetPixel(160, 90), overLeft = overStale.GetPixel(160, 90), overOther = overShot.GetPixel(20, 20);
+                        if (overStaleCopied || overLeft.B < 200) throw new Exception("A window copy that didn't look like the screen went over it.");
+                        if (!overHadIt) checks.Add("LIMIT window copies: the test window never got on top of the other one here");
+                        else if (!overCopied || overSeen.G < 200 || overSeen.R > 60) throw new Exception("She couldn't see through her own window: " + overCopied + " " + overSeen);
+                        else if (overOther.R < 200 || overOther.G > 60) throw new Exception("A window copy painted over something that isn't hers: " + overOther);
+                        else checks.Add("PASS window copies: a game's own window shows what's under anything of hers and nothing else, and a copy that doesn't match the screen is left out");
+                    }
                 }
                 overForm.Close();
                 underForm.Close();
@@ -19235,8 +19242,12 @@ namespace CapriDesktop
             Func<string> openWas = Computer.GameOpen;
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
             try
             {
+                // "Open spotify" goes to the app only where Spotify is installed, which GitHub's test machines don't have.
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Spotify", "spotify") }; };
+                Hands.Forget();
                 Brain.OpenAi = FakeServer(new[]
                 {
                     says("Blue's elite. I'll remember that, choom."), calls("remember", "{\"text\":\"Their favourite colour is blue.\"}"), says("Saved it, choom."),
@@ -19268,6 +19279,8 @@ namespace CapriDesktop
             }
             finally
             {
+                Hands.Catalog = catalogWas;
+                Hands.Forget();
                 Hands.Windows = windowsWas;
                 Computer.GameOpen = openWas;
                 Brain.OpenAi = openAiWas;
@@ -26513,7 +26526,7 @@ namespace CapriDesktop
                                 if (brainSent.Length != 9 || brainSent[0].IndexOf("\"tools\":[{\"type\":\"function\"", StringComparison.Ordinal) < 0 || brainSent[0].IndexOf("You are the hands of Capri", StringComparison.Ordinal) < 0 || brainSent[0].IndexOf("Project Capricorn", StringComparison.Ordinal) >= 0) throw new Exception("The request pass did not get the tool prompt alone: " + brainSent.Length);
                                 if (brainSent[1].IndexOf("The tools have already run: you did their job yourself", StringComparison.Ordinal) < 0 || brainSent[1].IndexOf("Project Capricorn", StringComparison.Ordinal) < 0 || brainSent[1].IndexOf("Right now it's " + DateTime.Now.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal) < 0) throw new Exception("Her result prompt lost the persona or time.");
                                 if (brainSent[1].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[1].IndexOf("open_app:", StringComparison.Ordinal) < 0 || brainSent[1].IndexOf("Opened Spotify.", StringComparison.Ordinal) < 0) throw new Exception("The follow-up did not pass the named tool result: " + brainSent[1]);
-                                if (brainSent[2].IndexOf("\"tools\":", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[3].IndexOf("To use one, reply with only the call", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("media{\\\"action\\\": \\\"play_pause|next|previous|volume_up|volume_down|volume_set|mute|unmute|now_playing\\\", \\\"level\\\": \\\"...\\\"}", StringComparison.Ordinal) < 0) throw new Exception("A model without tools did not get its tools as text: " + brainSent[3]);
+                                if (brainSent[2].IndexOf("\"tools\":", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[3].IndexOf("To use one, reply with only the call", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("media{\\\"action\\\": \\\"play_pause|next|previous|volume_up|volume_down|volume_set|mute|unmute|now_playing|volume_now\\\", \\\"level\\\": \\\"...\\\"}", StringComparison.Ordinal) < 0) throw new Exception("A model without tools did not get its tools as text: " + brainSent[3]);
                                 if (brainSent[4].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[4].IndexOf("Project Capricorn", StringComparison.Ordinal) < 0 || brainSent[5].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[5].IndexOf("You are the hands", StringComparison.Ordinal) >= 0) throw new Exception("Plain chat still went through the tool prompt.");
                                 if (!Hands.Wants("can you see what im doing?") || !Hands.Wants("play me some music") || !Hands.Wants("open notepad") || !Hands.Wants("go to youtube.com") || Hands.Wants("hey") || Hands.Wants("how was your day?") || Hands.Wants("still there?") || Hands.Wants("out of five playtesters, who's the best?")) throw new Exception("Requests and chat were told apart wrong.");
                                 if (!Hands.Wants("click the search bar") || !Hands.Wants("make a song in suno") || Hands.Wants("make a joke") || !Hands.Promised("Opening Comet now, choom!") || !Hands.Promised("Bet, I'll open it for you.") || Hands.Promised("I'll play a game with you anytime.") || Hands.Promised("Sure, I love that song.")
@@ -35426,7 +35439,7 @@ namespace CapriDesktop
                 string nameLayout = mainframe.Overlap() ?? mainframe.Outside();
                 if (nameLayout != null) throw new Exception("Listen for Capri crowded Settings: " + nameLayout);
                 ToggleChat();
-                if (!local || !chatting || agent != null || !earsReady || !pill.ListenForName || mainframe.VoiceNoteText != LocalListening + " Say my name anywhere in your sentence.") throw new Exception("Listen for Capri did not open its own ears and explain itself once.");
+                if (!local || !chatting || agent != null || !earsReady || !pill.ListenForName || mainframe.VoiceNoteText != LocalListening + " Say my name anywhere in your sentence.") throw new Exception("Listen for Capri did not open its own ears and explain itself once: local " + local + ", chatting " + chatting + ", agent " + (agent != null) + ", ears ready " + earsReady + ", pill " + pill.ListenForName + ", note " + mainframe.VoiceNoteText);
                 int onceAsked = asking;
                 string onceReply = reply;
                 EarsReady(false);

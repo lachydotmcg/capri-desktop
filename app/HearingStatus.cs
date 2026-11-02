@@ -81,6 +81,12 @@ namespace CapriDesktop
             hearingDownloadNotice = delegate(string text) { Notice.Tell(mainframe, text, "Her own ears", false); };
             hearingDownload = DownloadHearing;
             if (testing) hearingOnline = delegate { return null; };
+            // A test machine with no mic at all (GitHub's runners) gets a stand-in, or every hearing check there reads "No mic found".
+            if (testing && Ears.List().Count == 0)
+            {
+                hearingDevices = delegate { return new List<Mic> { new Mic("smoke-mic", "Microphone (stand-in)") }; };
+                hearingDefault = delegate { return "smoke-mic"; };
+            }
             RefreshHearingDevices();
             if (!testing) hearingWatch = new HearingWatch(delegate { Post(RefreshHearingDevices); });
         }
