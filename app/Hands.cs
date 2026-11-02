@@ -4530,6 +4530,8 @@ namespace CapriDesktop
             try { running = Running(want, null); }
             catch (Exception) { running = false; }
             if (!running) return wanted + " isn't open.";
+            // Minimizing it is done already: nothing of it is on screen.
+            if (action == "minimize") return wanted + " has no window up: it's running in the background, maybe in the tray.";
             string verb = action == "switch_to" ? "switch to" : action.StartsWith("snap_", StringComparison.Ordinal) ? "snap" : action == "move_to_screen" ? "move" : action;
             return "Couldn't " + verb + " " + wanted + ": it has no window open, but it's running in the background, maybe in the tray." + (action == "close" ? " Quit it from its tray icon." : " Opening it should bring its window back.");
         }

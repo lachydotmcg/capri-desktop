@@ -399,6 +399,10 @@ namespace CapriDesktop
                     || snapped != "Couldn't snap discord: it has no window open, but it's running in the background, maybe in the tray. Opening it should bring its window back."
                     || absent != "minecraft isn't open." || !Hands.Failed(closed) || !Hands.Failed(front) || !Hands.Failed(absent))
                     throw new Exception("An app in the tray was called not open: " + closed + " / " + front + " / " + snapped + " / " + absent);
+                // Minimizing an app that's only in the tray is already done, not a failure.
+                string tucked = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "minimize" });
+                if (tucked != "discord has no window up: it's running in the background, maybe in the tray." || Hands.Failed(tucked))
+                    throw new Exception("Minimizing an app in the tray failed: " + tucked);
                 // A timer is a reminder that says it's done, set straight away on every brain, seconds too.
                 string[,] timers =
                 {
@@ -418,6 +422,19 @@ namespace CapriDesktop
                     ToolArguments args;
                     if (Hands.Heard(loose, out tool, out args) && tool == "remind") throw new Exception("\"" + loose + "\" set a timer.");
                 }
+                // Cancelling one goes by the words its reminder says, "10 mins" or "10 minutes" alike.
+                string[,] stops = { { "cancel my timer", "timer" }, { "stop the 10 minute timer", "10 minute timer" }, { "cancel the 10 min timer", "10 minute timer" }, { "stop the timer", "timer" } };
+                for (int i = 0; i < stops.GetLength(0); i++)
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (!Hands.Heard(stops[i, 0], out tool, out args) || tool != "remind" || args.Action != "cancel" || args.Text != stops[i, 1])
+                        throw new Exception("\"" + stops[i, 0] + "\" didn't cancel a timer: " + tool + " " + (args == null ? "" : args.Action + " / " + args.Text));
+                }
+                string minced;
+                ToolArguments mincedArgs;
+                if (!Hands.Heard("set a timer for 10 mins", out minced, out mincedArgs) || mincedArgs.Text != "your 10 minute timer is done")
+                    throw new Exception("A 10 min timer isn't called a 10 minute one: " + (mincedArgs == null ? "" : mincedArgs.Text));
                 DateTime clock = new DateTime(2026, 11, 3, 1, 0, 0), due;
                 if (!Reminders.Parse("in 30 seconds", clock, out due) || (due - clock).TotalSeconds != 30 || !Reminders.Parse("in 2 hours", clock, out due) || (due - clock).TotalHours != 2)
                     throw new Exception("A timer in seconds wasn't understood.");
@@ -443,7 +460,7 @@ namespace CapriDesktop
                 if (reply != "It's already paused, choom." || string.Join(",", did.ToArray()) != "media:pause" || sent.Count != 0 || heard.Length != 2
                     || !heard[0].Contains("A timer is a reminder") || !heard[0].Contains("pausing never starts the music") || !heard[1].Contains("Nothing's playing: Spotify is already paused on Consume by Chase Atlantic."))
                     throw new Exception("Her planner's pause flipped the music or didn't hear the player: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + heard.Length + " calls");
-                checks.Add("PASS everyday asks go by what's there: pause only pauses and play only plays by what Windows says is playing, a player that ignores the press is said plainly, next and previous name the song they landed on, what's playing covers Spotify, a browser tab or anything else, a brain's play_pause for pause or unpause can't flip the music the wrong way, with no player to read the keys work as before; an app in the tray says so instead of not open; set a timer for 10 minutes, 30 seconds or a 5 minute timer is a reminder on every brain");
+                checks.Add("PASS everyday asks go by what's there: pause only pauses and play only plays by what Windows says is playing, a player that ignores the press is said plainly, next and previous name the song they landed on, what's playing covers Spotify, a browser tab or anything else, a brain's play_pause for pause or unpause can't flip the music the wrong way, with no player to read the keys work as before; an app in the tray says so instead of not open, and minimizing one is already done; set a timer for 10 minutes, 30 seconds or a 5 minute timer is a reminder on every brain, and cancel my timer or stop the 10 min timer cancels it");
                 checks.Add("LIMIT pause, play and skip on their own players: Spotify, a YouTube tab and a game's music each report through Windows' media session in their own way");
             }
             finally
@@ -473,7 +490,8 @@ namespace CapriDesktop
             {
                 { "how do I move a window to my other monitor?", "Arrange windows:" }, { "can you snap my window to the left?", "Arrange windows:" },
                 { "what settings can you change yourself?", "Settings she can change:" }, { "can you make yourself bigger?", "Settings she can change:" },
-                { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" }
+                { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" },
+                { "can you set a timer?", "Reminders:" }
             };
             for (int i = 0; i < asks.GetLength(0); i++)
             {
@@ -481,9 +499,9 @@ namespace CapriDesktop
                 if (!found.StartsWith(asks[i, 1], StringComparison.Ordinal)) throw new Exception("Self knowledge missed " + asks[i, 1] + " for: " + asks[i, 0] + " / " + found);
             }
             string doing = SelfKnow.Matching("what can you do?") ?? "", closing = SelfKnow.Matching("Explain the Close and switch apps and tabs setting") ?? "", sizing = SelfKnow.Matching("how do I make you bigger?") ?? "";
-            string changing = SelfKnow.Matching("what settings can you change yourself?") ?? "";
+            string changing = SelfKnow.Matching("what settings can you change yourself?") ?? "", timing = SelfKnow.Matching("how do timers work?") ?? "";
             if (!doing.Contains("maximize, snap, move, resize") || !doing.Contains("changes her own settings when you ask") || !closing.Contains("maximizing, snapping, moving and resizing windows")
-                || !sizing.Contains("make yourself bigger or smaller works too") || !changing.Contains("Keys, brains, her voice service, SECURITY, Watch my screen, Comments, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
+                || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Keys, brains, her voice service, SECURITY, Watch my screen, Comments, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
                 throw new Exception("Self knowledge didn't say what her tools do now: " + doing + " / " + closing + " / " + changing);
             string root = null;
             foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
@@ -499,7 +517,7 @@ namespace CapriDesktop
                 return;
             }
             string help = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "site", "help", "knowledge.md"));
-            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
+            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
                 if (help.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page is missing: " + part);
             int from = help.IndexOf("### Move, snap and resize windows (0.8.0)", StringComparison.Ordinal), to = help.IndexOf("### Discord and Windows shortcuts", from, StringComparison.Ordinal);
             if (to < from || help.Substring(from, to - from).IndexOf('\u2014') >= 0) throw new Exception("Her help page's new sections are out of place or use an em dash.");

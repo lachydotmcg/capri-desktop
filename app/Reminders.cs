@@ -187,6 +187,15 @@ namespace CapriDesktop
             finally { running.Remove(key); }
         }
 
+        // How a timer names itself, so "10 mins" and "10 minutes" are both a "10 minute" timer.
+        static string TimerSize(string span)
+        {
+            span = Regex.Replace(span.Trim(), @"^(?:an?|one) ", "1 ", RegexOptions.IgnoreCase);
+            span = Regex.Replace(span, @"\b(?:minutes|mins?)\b", "minute", RegexOptions.IgnoreCase);
+            span = Regex.Replace(span, @"\b(?:hours|hrs?)\b", "hour", RegexOptions.IgnoreCase);
+            return Regex.Replace(span, @"\b(?:seconds|secs?)\b", "second", RegexOptions.IgnoreCase);
+        }
+
         internal KeyValuePair<string, ToolArguments> Route(string said)
         {
             string text = Hands.Asked(said);
@@ -196,6 +205,9 @@ namespace CapriDesktop
             Match cancel = Regex.Match(text, @"^(?:cancel|remove|delete|forget)(?: the| my)? (.+?) reminder$", RegexOptions.IgnoreCase);
             if (!cancel.Success) cancel = Regex.Match(text, @"^(?:cancela (?:el )?recordatorio (?:de la |del |de )?|annule (?:le )?rappel (?:de |pour )?|(?:lösche|losche) (?:die )?erinnerung (?:an )?|anuluj przypomnienie (?:o )?|(?:cancele|cancela) (?:o )?lembrete (?:de |da |do )?)(.+)$", RegexOptions.IgnoreCase);
             if (cancel.Success && !Regex.IsMatch(Key(cancel.Groups[1].Value), @"^(?:the|my)$")) return Call("remind", new ToolArguments { Action = "cancel", Text = cancel.Groups[1].Value });
+            // "Cancel my timer" or "stop the 10 min timer": a timer is a reminder whose words say timer.
+            Match unset = Regex.Match(text, @"^(?:cancel|stop|remove|delete|forget|end|kill)(?: the| my)?((?: \S+)? (?:minutes?|mins?|hours?|hrs?|seconds?|secs?))? timer$", RegexOptions.IgnoreCase);
+            if (unset.Success) return Call("remind", new ToolArguments { Action = "cancel", Text = (TimerSize(unset.Groups[1].Value) + " timer").Trim() });
             Match forget = Regex.Match(text, @"^(?:forget|remove|delete)(?: the| my)? (.+?) routine$", RegexOptions.IgnoreCase);
             if (forget.Success && Steps(forget.Groups[1].Value) != null) return Call("routine", new ToolArguments { Action = "forget", Phrase = forget.Groups[1].Value });
             const string actions = @"(?:open|launch|start|run|play|turn|mute|unmute|pause|resume|close|switch|search|google|look|tell|send|write|type|press|click|take|show|set|remind|go|dance|shut|lock|join|leave|make|create|move)\b";
@@ -218,7 +230,7 @@ namespace CapriDesktop
             string span = timer.Success ? timer.Groups[1].Value.Trim() : sized.Success ? sized.Groups[1].Value + " " + sized.Groups[2].Value : null;
             DateTime timerDue;
             if (span != null && Parse("in " + span, now, out timerDue))
-                return Call("remind", new ToolArguments { Text = "your " + Regex.Replace(Regex.Replace(span, @"^an? ", "1 ", RegexOptions.IgnoreCase), @"(minute|hour|second|min|hr|sec)s\b", "$1", RegexOptions.IgnoreCase) + " timer is done", When = "in " + span });
+                return Call("remind", new ToolArguments { Text = "your " + TimerSize(span) + " timer is done", When = "in " + span });
             foreach (string starter in starters)
             {
                 Match ask = Regex.Match(text, starter, RegexOptions.IgnoreCase);

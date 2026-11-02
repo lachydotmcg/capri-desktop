@@ -1286,7 +1286,7 @@ She reacts as usual. A successful automatic save happens without a spoken announ
 ### Can she remind me later?
 Ask "remind me in 20 minutes to take the pizza out" or "remind me tomorrow at 9 to send the form". She uses your PC's local clock. Ask "list my reminders" or "cancel the pizza reminder" to manage them.
 
-Timers are reminders too (0.8.0): "set a timer for 10 minutes", "timer 30 seconds" or "start a 5 minute timer", and she says "Reminder: your 10 minute timer is done" when it's up.
+Timers are reminders too (0.8.0): "set a timer for 10 minutes", "timer 30 seconds" or "start a 5 minute timer", and she says "Reminder: your 10 minute timer is done" when it's up. "Cancel my timer" stops it.
 
 Reminders are saved in %LOCALAPPDATA%\Capri\reminders.json. Capri needs to be running to deliver them. If one became due while she was closed, she gives it as a late reminder when she starts again. Quiet, full-screen play and voice chat keep reminders as text. For regular water or stretch check-ins, use Settings > HABITS.
 
