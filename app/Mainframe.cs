@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1396;
+        private const int PageTall = 1544;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -133,6 +133,11 @@ namespace CapriDesktop
         private readonly Toggle stayOnModel;
         private readonly Toggle remembering;
         private readonly Toggle keepAwake, hideFullScreen, playerFullScreen, exploreAway;
+        private Key clipsFolder;
+        private Key clipChoose;
+        private Label clipPath;
+        private Head clipHead;
+        private Slider clipLength, clipRate, clipSize, clipBits;
         private readonly Slider exploreAfter;
         private readonly Readout exploreAfterName;
         private static readonly int[] AwayTimes = { 60, 120, 300, 600, 900, 1800 };
@@ -140,6 +145,7 @@ namespace CapriDesktop
         private readonly Toggle[] careToggles = new Toggle[7];
         private readonly Key[] careTimes = new Key[7];
         private readonly ContextMenuStrip careMenu;
+        private readonly Toggle liveReactions;
         private readonly Toggle clipGames;
         private readonly Toggle clipMoments;
         private readonly Toggle fastHands;
@@ -207,6 +213,7 @@ namespace CapriDesktop
         private bool gameReady = true;
         private readonly Label muteShortcut;
         private readonly Key mics;
+        private readonly Key micTest;
         private readonly ContextMenuStrip micMenu;
         private bool keySaved;
         private readonly Entry textEntry;
@@ -238,13 +245,13 @@ namespace CapriDesktop
         private int pageScroll;
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1048, 1100 }, new[] { 1128, 1184 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1076, 1128 }, new[] { 1128, 1156 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 372, 754 }, new[] { 950, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
-        private const int SimpleTall = 556;
+        private const int SimpleTall = 752;
         private int wheel;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
@@ -398,7 +405,7 @@ namespace CapriDesktop
                 rung.Font = Type(9.5f, true);
                 rung.HintFont = Type(9f);
                 rung.AccessibleName = voiceTiers[i, 0] + ", " + voiceTiers[i, 1];
-                rung.Bounds = new Rectangle(28, 208 + 24 * i, i >= 2 ? 246 : 328, 24);
+                rung.Bounds = new Rectangle(28, 208 + 24 * i, i >= 2 ? 246 : 328, 23);
                 rung.Click += delegate { if (syncing) return; PickRow(row); };
                 Controls.Add(rung);
                 voiceRungs[i] = Lower(rung);
@@ -451,7 +458,8 @@ namespace CapriDesktop
             mics = Lower(Make("Mic: default", 28, 382, 244, 28, delegate { ShowMics(); }));
             mics.Chevron = true;
             mics.AccessibleName = "Microphone";
-            Lower(Make("Test", 280, 382, 76, 28, delegate { capri.TestVoice(); }));
+            micTest = Lower(Make("Test", 280, 382, 76, 28, delegate { capri.TestMic(); }));
+            micTest.AccessibleName = "Test microphone input";
             muteShortcut = Lower(Caption("Ctrl + Alt + N mutes mic", 28, 417, small, Faint));
             muteShortcut.Cursor = Cursors.Hand;
             muteShortcut.Click += delegate { ShowSettings(true); PickKeys(1); };
@@ -723,28 +731,48 @@ namespace CapriDesktop
             comments = Setting("Comments", Commentary.PaceNames, 0, 938, "How much she says about a game you're playing: off, only when something happens, or chatty");
             commentsName = new Readout(comments);
             comments.Changed += delegate { if (syncing) return; commentsName.Text = Commentary.PaceNames[comments.Value]; capri.SetCommentPace(comments.Value); };
-            gamingMode = Switch("Gaming Mode", 0, 966, delegate { if (!syncing) capri.ToggleGaming(); });
+            // Her live reactions (F67), on by default, under Comments since they only run while her comments do.
+            liveReactions = Switch("Live reactions", 0, 966, delegate { if (!syncing) capri.ToggleReactions(); });
+            liveReactions.AccessibleName = "Live reactions. Quick lines on the right of a full-screen game when something happens, while her game comments run. Mute her keeps them as text";
+            gamingMode = Switch("Gaming Mode", 0, 994, delegate { if (!syncing) capri.ToggleGaming(); });
             gamingMode.AccessibleName = "Gaming Mode. She reacts to your game until you close it. \"Hey Capri, activate gaming mode\" turns it on. Works best on MAX INTELLIGENCE.";
-            Caption("She reacts to your game until you close it.", 28, 992, small, Faint);
-            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1008, small, Faint);
-            Caption("Works best on MAX INTELLIGENCE.", 28, 1024, small, Faint);
-            clipGames = Switch("Clip my games", 0, 1046, delegate { if (!syncing) capri.ToggleClips(); });
-            clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory; clips stay in Videos\\Capri Clips on this PC";
-            clipMoments = Switch("Save big moments", 0, 1074, delegate { if (!syncing) capri.ToggleClipMoments(); });
-            clipMoments.AccessibleName = "Save big moments. Turns on Clip my games and saves the last 30 seconds when her game comments spot something worth keeping";
-            fastHands = Switch("Fast hands in games", 0, 1102, delegate { if (!syncing) capri.ToggleFastHands(); });
-            int gamesTo = Controls.Count;
+            Caption("She reacts to your game until you close it.", 28, 1020, small, Faint);
+            Caption("\"Hey Capri, activate gaming mode\" turns it on.", 28, 1036, small, Faint);
+            Caption("Works best on MAX INTELLIGENCE.", 28, 1052, small, Faint);
+            fastHands = Switch("Fast hands in games", 0, 1074, delegate { if (!syncing) capri.ToggleFastHands(); });
             hdGames.Switch = intro.Switch = caughtUp.Switch = fastHands.Switch = 68;
-            gameMute = Switch("Mute her", 0, 1130, delegate { if (!syncing) capri.ToggleShush(); });
+            gameMute = Switch("Mute her", 0, 1102, delegate { if (!syncing) capri.ToggleShush(); });
             gameMute.AccessibleName = "Mute her. She stops talking on her own and only answers when you talk to her, the same as her Quiet key";
             fastHands.AccessibleName = "Fast hands in games. On a Claude key she plays games on Claude Haiku, which moves about three times faster and costs far less. When she's stuck she asks the brain you picked, or Claude Sonnet if that's Haiku, and chat stays on the brain you picked";
+            clipHead = Section("CLIPS >", 0, 1158);
+            clipGames = Switch("Clip my games", 0, 1182, delegate { if (!syncing) capri.ToggleClips(); });
+            clipGames.AccessibleName = "Clip my games. Keeps recent game video and PC sound in memory while the game is in front";
+            clipMoments = Switch("Save big moments", 0, 1210, delegate { if (!syncing) capri.ToggleClipMoments(); });
+            clipMoments.AccessibleName = "Save big moments. Turns on Clip my games; her game comments can save a clip using your default length";
+            Caption("Save folder", 28, 1242, Type(9.5f), Rose);
+            clipChoose = Make("Choose folder...", ValueAt, 1238, ValueWide, 22, delegate { PickClipFolder(); });
+            clipChoose.AccessibleName = "Choose the folder for future clips";
+            clipPath = Caption("", 28, 1266, small, Faint);
+            clipPath.AutoSize = false;
+            clipPath.AutoEllipsis = true;
+            clipPath.Bounds = new Rectangle(28, 1266, 328, 20);
+            clipsFolder = Make("Open clips folder", 28, 1294, 328, 22, delegate { capri.OpenClips(); });
+            clipsFolder.AccessibleName = "Open your selected clips folder";
+            clipLength = Setting("Default length", new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, 0, 1322, "Default duration for clip that and automatic clips");
+            clipRate = Setting("Frame rate", new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" }, 0, 1350, "Target capture frame rate; may drop under load or the memory budget");
+            clipSize = Setting("Resolution", new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, 0, 1378, "Maximum clip resolution, keeping the game's shape without upscaling");
+            clipBits = Setting("Video bitrate", new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, 0, 1406, "H.264 video bitrate target; higher values make larger files");
+            foreach (Slider recording in new[] { clipLength, clipRate, clipSize, clipBits }) recording.Changed += delegate { SaveClipOptions(); };
+            Label clipHint = Caption("FPS can drop under load or for longer clips.\nFolder changes apply to future clips.", 28, 1438, small, Faint);
+            clipHint.AutoSize = false;
+            clipHint.Bounds = new Rectangle(28, 1438, 328, 36);
+            int gamesTo = Controls.Count;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
             // Head pats and Chaos when upset took two rows under Mainframe size, so the rest of this column sits two lower.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 2;
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
-            underVoice.Add(new KeyValuePair<Control, int>(gameMute, gameMute.Top));
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -771,6 +799,25 @@ namespace CapriDesktop
             Button button = new Button { Text = text, Bounds = new Rectangle(x, y, width, 30), FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Look.Ink, UseVisualStyleBackColor = false };
             button.FlatAppearance.BorderColor = accent;
             return button;
+        }
+
+        private void SaveClipOptions()
+        {
+            if (syncing) return;
+            capri.SetClipOptions(ClipSettings.Lengths[clipLength.Value], ClipSettings.Rates[clipRate.Value], ClipSettings.Sizes[clipSize.Value], ClipSettings.Bitrates[clipBits.Value]);
+        }
+
+        private void PickClipFolder()
+        {
+            using (FolderBrowserDialog picker = new FolderBrowserDialog())
+            {
+                picker.Description = "Choose where future Capri clips are saved";
+                picker.SelectedPath = capri.ClipOptions.Folder;
+                picker.ShowNewFolderButton = true;
+                if (picker.ShowDialog(this) != DialogResult.OK) return;
+                string problem = capri.SetClipFolder(picker.SelectedPath);
+                if (problem != null) MessageBox.Show(this, problem, "Clips", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private static Label Heading(string text, int y) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, 18), ForeColor = Look.Yellow, Font = Look.Mono(9f, FontStyle.Bold, GraphicsUnit.Point) }; }
@@ -1166,6 +1213,7 @@ namespace CapriDesktop
 
         protected override void WndProc(ref Message message)
         {
+            if (message.Msg == 0x007E || message.Msg == 0x02E0) Panels.Forget();
             if (message.Msg == 0x02E0 && loaded)
             {
                 monitorDpi = (int)(message.WParam.ToInt64() & 0xFFFF);
@@ -1176,7 +1224,6 @@ namespace CapriDesktop
             }
             base.WndProc(ref message);
             if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
-            if (message.Msg == 0x007E || message.Msg == 0x02E0) Panels.Forget();
             if (message.Msg == 0x001A && loaded) { Rezoom(Wanted()); ShowFrameSize(); }
         }
 
@@ -1205,7 +1252,7 @@ namespace CapriDesktop
         private float Wanted()
         {
             // GitHub's virtual screen says its panel is narrower than the desktop her test needs, which isn't a shrunken monitor.
-            float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this));
+            float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this), restoringFullScreen || capri.FullScreenDisplay);
             autoZoom = Math.Max(1f, Math.Min(2f, (float)Math.Round(shrunk / DeviceScale() * 20) / 20));
             int picked = capri.MainframeSize;
             return picked > 0 ? picked / 100f : autoZoom;
@@ -1419,15 +1466,18 @@ namespace CapriDesktop
             // Asking the display driver about a panel while a game runs full screen on it may upset the game, and the answer
             // only changes with the displays, so each screen is asked once until they change (john_sandevistan, 2 Nov).
             private static readonly Dictionary<string, float> asked = new Dictionary<string, float>();
+            internal static Func<Screen, float> Read = Measure;
 
             internal static void Forget() { lock (asked) asked.Clear(); }
 
-            internal static float Shrink(Screen screen)
+            internal static float Shrink(Screen screen, bool busy)
             {
                 string key = screen.DeviceName + " " + screen.Bounds;
                 float known;
                 lock (asked) if (asked.TryGetValue(key, out known)) return known;
-                known = Measure(screen);
+                // Opening Mainframe over fullscreen must not make a cold display-driver query (john_sandevistan).
+                if (busy) return 1f;
+                known = Read(screen);
                 lock (asked) asked[key] = known;
                 return known;
             }
@@ -1652,11 +1702,19 @@ namespace CapriDesktop
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();
         }
 
+        private bool restoringFullScreen;
+
         internal void Restore()
         {
-            if (!Visible) Show();
-            if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
-            Activate();
+            bool busy = restoringFullScreen;
+            restoringFullScreen = busy || capri.FullScreenDisplay;
+            try
+            {
+                if (!Visible) Show();
+                if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+                Activate();
+            }
+            finally { restoringFullScreen = busy; }
         }
 
         internal void Sync()
@@ -1699,8 +1757,16 @@ namespace CapriDesktop
                 careTimes[careSync].AccessibleName = Care.Names[careSync] + (careSetting == CareKind.Late ? " after " : " every ") + careTimes[careSync].Text;
             }
             ShowPersonality();
+            liveReactions.Checked = capri.ReactionsOn;
             clipGames.Checked = capri.ClipsOn;
             clipMoments.Checked = capri.ClipMomentsOn;
+            ClipSettings recording = capri.ClipOptions;
+            clipLength.Value = Array.IndexOf(ClipSettings.Lengths, recording.Seconds);
+            clipRate.Value = Array.IndexOf(ClipSettings.Rates, recording.Fps);
+            clipSize.Value = Array.IndexOf(ClipSettings.Sizes, recording.Resolution);
+            clipBits.Value = Array.IndexOf(ClipSettings.Bitrates, recording.Mbps);
+            clipPath.Text = recording.Folder;
+            clipPath.AccessibleName = "Clips saved in " + recording.Folder;
             fastHands.Checked = capri.FastHandsOn;
             gameMute.Checked = capri.Shushed;
             frameSize.Value = Math.Max(0, Array.IndexOf(FrameSizes, capri.MainframeSize));
@@ -1840,7 +1906,61 @@ namespace CapriDesktop
 
         internal void FlipClips() { clipGames.Checked = !clipGames.Checked; }
 
+        internal bool ReactionsShown { get { return liveReactions.Checked; } }
+
+        internal void FlipReactions() { liveReactions.Checked = !liveReactions.Checked; }
+
         internal bool ClipMomentsShown { get { return clipMoments.Checked; } }
+
+        internal bool ClipsFolderShown { get { return clipsFolder != null && clipsFolder.Parent != null; } }
+
+        internal bool ClipsSectionShown { get { return paged && !Folded(clipHead) && !Folded(clipChoose) && clipHead.Left < Far; } }
+        internal bool SimpleGameControls { get { return !simple || (!Folded(gameMute) && Folded(fastHands)); } }
+
+        internal void CheckDisplayDeferral(Action<bool> fullscreen)
+        {
+            Func<Screen, float> readWas = Panels.Read;
+            int queries = 0;
+            FormWindowState state = WindowState;
+            bool restored = false;
+            Screen screen = Screen.FromControl(this);
+            EventHandler focused = delegate
+            {
+                if (WindowState != FormWindowState.Normal) return;
+                fullscreen(false);
+                Wanted();
+                if (!restoringFullScreen || Panels.Shrink(screen, restoringFullScreen || capri.FullScreenDisplay) != 1f || queries != 1)
+                    throw new Exception("Restoring Mainframe forgot the fullscreen game when focus changed.");
+                restored = true;
+            };
+            try
+            {
+                Panels.Forget();
+                Panels.Read = delegate { queries++; return 1.5f; };
+                if (Panels.Shrink(screen, true) != 1f || queries != 0) throw new Exception("Fullscreen Mainframe queried a cold display driver.");
+                if (Panels.Shrink(screen, false) != 1.5f || queries != 1 || Panels.Shrink(screen, true) != 1.5f || queries != 1) throw new Exception("Mainframe did not reuse its cached panel scale.");
+                Panels.Forget();
+                if (Panels.Shrink(screen, true) != 1f || queries != 1) throw new Exception("A display change queried the driver while fullscreen.");
+                fullscreen(true);
+                WindowState = FormWindowState.Minimized;
+                Resize += focused;
+                Restore();
+                Resize -= focused;
+                if (!restored || restoringFullScreen) throw new Exception("Mainframe did not hold and release its fullscreen restore guard.");
+                if (Panels.Shrink(screen, capri.FullScreenDisplay) != 1.5f || queries != 2) throw new Exception("Mainframe did not resume panel queries after restoring.");
+            }
+            finally { Resize -= focused; fullscreen(false); WindowState = state; Panels.Read = readWas; Panels.Forget(); }
+        }
+
+        internal void PickClipOptions(int seconds, int fps, int resolution, int mbps)
+        {
+            clipLength.Slide(Array.IndexOf(ClipSettings.Lengths, seconds));
+            clipRate.Slide(Array.IndexOf(ClipSettings.Rates, fps));
+            clipSize.Slide(Array.IndexOf(ClipSettings.Sizes, resolution));
+            clipBits.Slide(Array.IndexOf(ClipSettings.Bitrates, mbps));
+        }
+
+        internal void ShowClipSection() { ScrollPage(pageScroll + (int)Math.Floor((clipHead.Top - Scaled(12)) / Unit())); }
 
         internal void FlipClipMoments() { clipMoments.Checked = !clipMoments.Checked; }
 
@@ -1962,6 +2082,7 @@ namespace CapriDesktop
                 Head head = label as Head;
                 string words = head != null ? head.Shown : label.Text;
                 TextFormatFlags labelFlags = TextFormatFlags.NoPrefix | (head != null ? TextFormatFlags.SingleLine | TextFormatFlags.VerticalCenter : TextFormatFlags.WordBreak);
+                if (label.AutoEllipsis) labelFlags = TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis;
                 if (label.TextAlign == ContentAlignment.MiddleRight) labelFlags |= TextFormatFlags.Right | TextFormatFlags.VerticalCenter;
                 problem = FitsText(graphics, words, label.Font, area, labelFlags, at, name, visible);
             }
@@ -1977,8 +2098,9 @@ namespace CapriDesktop
         private static string FitsText(Graphics graphics, string words, Font font, Rectangle area, TextFormatFlags flags, Point origin, string name, List<KeyValuePair<string, Rectangle>> text)
         {
             if (string.IsNullOrEmpty(words)) return null;
-            Size proposed = (flags & TextFormatFlags.WordBreak) != 0 ? new Size(Math.Max(1, area.Width), int.MaxValue) : Size.Empty;
+            Size proposed = (flags & (TextFormatFlags.WordBreak | TextFormatFlags.EndEllipsis)) != 0 ? new Size(Math.Max(1, area.Width), int.MaxValue) : Size.Empty;
             Size measured = TextRenderer.MeasureText(graphics, words, font, proposed, flags);
+            if ((flags & TextFormatFlags.EndEllipsis) != 0) measured.Width = Math.Min(measured.Width, area.Width);
             if (measured.Width > area.Width || measured.Height > area.Height) return name + " needs " + measured.Width + "x" + measured.Height + " in " + area.Width + "x" + area.Height;
             int x = area.X, y = area.Y;
             if ((flags & TextFormatFlags.Right) != 0) x += area.Width - measured.Width;
@@ -2957,12 +3079,24 @@ namespace CapriDesktop
             mics.Invalidate();
         }
 
+        internal void ShowMicTest(bool listening, double level, bool muted)
+        {
+            micTest.Text = listening ? "Stop" : "Test";
+            double db = level <= 0 ? -96 : Math.Max(-96, 20 * Math.Log10(level));
+            micTest.Meter = listening ? (db + 96) / 96 : -1;
+            micTest.AccessibleName = listening ? "Stop microphone test. " + (muted ? "Mic muted" : "Input level " + db.ToString("0") + " dB") : "Test microphone input";
+            micTest.Invalidate();
+            if (listening) VoiceNote(muted ? "Your mic is muted. Unmute it to test." : "Mic level: " + (level <= 0 ? "silence" : db.ToString("0") + " dB") + ". Speak now; click Stop when done.", false);
+        }
+
+        internal bool MicTesting { get { return micTest.Text == "Stop" && micTest.Meter >= 0; } }
+
         private void ShowMics()
         {
             string chosen = capri.MicId;
             List<Mic> found = Ears.List();
             micMenu.Items.Clear();
-            micMenu.Items.Add(Choice("Windows default", string.IsNullOrEmpty(chosen), delegate { capri.ChooseMic(null); }));
+            micMenu.Items.Add(Choice("Windows default", Ears.Find(chosen, found) == null, delegate { capri.ChooseMic(null); }));
             if (found.Count > 0) micMenu.Items.Add(new ToolStripSeparator());
             foreach (Mic mic in found)
             {
@@ -3208,6 +3342,7 @@ namespace CapriDesktop
             internal bool Picked;
             internal bool Chevron;
             internal int Glyph;
+            internal double Meter = -1;
             private bool hot;
             private bool down;
 
@@ -3266,6 +3401,7 @@ namespace CapriDesktop
                 Rectangle area = Chevron ? new Rectangle((int)(10 * s), 0, Width - (int)(32 * s), Height) : ClientRectangle;
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | (Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter);
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
+                if (Meter >= 0) using (Brush meter = new SolidBrush(Cyan)) graphics.FillRectangle(meter, 3 * s, Height - 4 * s, (float)((Width - 6 * s) * Math.Max(0, Math.Min(1, Meter))), 2 * s);
             }
         }
 

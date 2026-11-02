@@ -39,13 +39,33 @@ namespace CapriDesktop
             catch (SerializationException) { }
         }
 
-        private static string Key(string name) { return Regex.Replace((name ?? "").Trim().Trim('"', '\'', '\u201c', '\u201d'), @"\s+", " ").ToLowerInvariant(); }
+        private static string Key(string name) { return Regex.Replace((name ?? "").Trim().Trim('"', '\'', '\u201c', '\u201d').Trim(), @"\s+", " ").ToLowerInvariant(); }
 
         internal string Find(string name)
         {
             string key = Key(name);
             lock (gate) foreach (Entry item in entries) if (item.Name == key) return item.Address;
             return null;
+        }
+
+        private static string Bare(string name) { return Key(Regex.Replace(Regex.Replace(Key(name), @"\s+(?:web\s?site|site)$", ""), @"^(?:my|the)\s+", "")); }
+
+        // Her saved name wins first; "my school website" can then mean "school" (john_sandevistan, B88).
+        internal string Nickname(string name)
+        {
+            string key = Key(name);
+            string withoutSite = Regex.Replace(key, @"\s+(?:web\s?site|site)$", "", RegexOptions.IgnoreCase);
+            foreach (string candidate in new[] { key, withoutSite, Regex.Replace(key, @"^(?:my|the)\s+", ""), Regex.Replace(withoutSite, @"^(?:my|the)\s+", "") })
+                if (Find(candidate) != null) return Key(candidate);
+            string bare = Bare(key), named = null;
+            lock (gate)
+                foreach (Entry item in entries)
+                    if (bare.Length > 0 && Bare(item.Name) == bare)
+                    {
+                        if (named != null && named != item.Name) return null;
+                        named = item.Name;
+                    }
+            return named;
         }
 
         internal static string Address(string text)
@@ -60,6 +80,7 @@ namespace CapriDesktop
         internal string Do(ToolArguments args)
         {
             string name = Key(args.Name);
+            if (args.Action == "forget") name = Nickname(name) ?? name;
             string address = args.Action == "list" || args.Action == "forget" ? null : Address(string.IsNullOrWhiteSpace(args.Site) ? Current() : args.Site);
             lock (gate)
             {
@@ -94,7 +115,7 @@ namespace CapriDesktop
             if (Regex.IsMatch(text, @"^(?:what websites do you know|list (?:my |the )?websites|show (?:me )?(?:my |the )?websites)$", RegexOptions.IgnoreCase)) return new ToolArguments { Action = "list" };
             Match current = Regex.Match(text, @"^(?:remember (?:this|the) (?:web)?site(?: that i(?:'m| am) (?:currently )?on)? as|call (?:this|the) (?:web)?site)\s+(.+)$", RegexOptions.IgnoreCase);
             if (current.Success) return new ToolArguments { Action = "save", Name = Key(current.Groups[1].Value) };
-            Match explicitSite = Regex.Match(text, @"^remember\s+(.+?)\s+is\s+(\S+)$", RegexOptions.IgnoreCase);
+            Match explicitSite = Regex.Match(text, @"^remember\s+(.+?)\s+(?:is|as)\s+(\S+)$", RegexOptions.IgnoreCase);
             // "Remember my score is 12.5" is a note about them, so an address has to look like one.
             if (explicitSite.Success && Regex.IsMatch(explicitSite.Groups[2].Value, @"[a-z]{2}(?:[/:?#]\S*)?$|^(?:https?://)?\d+\.\d+\.\d+\.\d+", RegexOptions.IgnoreCase) && Address(explicitSite.Groups[2].Value) != null) return new ToolArguments { Action = "save", Name = Key(explicitSite.Groups[1].Value), Site = Address(explicitSite.Groups[2].Value) };
             Match forgotten = Regex.Match(text, @"^forget (?:the )?(.+?) (?:web)?site$", RegexOptions.IgnoreCase);

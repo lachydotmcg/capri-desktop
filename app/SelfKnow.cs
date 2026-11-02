@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -14,6 +15,8 @@ namespace CapriDesktop
             internal readonly string Facts;
             internal readonly string File;
             internal readonly string Label;
+            // Facts made from her tools here, for topics about what she can do.
+            private readonly Func<Hands.Kit, string> made;
 
             internal Topic(string name, string words, string facts, string file, string label)
             {
@@ -24,14 +27,22 @@ namespace CapriDesktop
                 File = file;
                 Label = label;
             }
+
+            internal Topic(string name, string words, Func<Hands.Kit, string> made, string file, string label) : this(name, words, (string)null, file, label) { this.made = made; }
+
+            internal string FactsFor(Hands.Kit kit) { return made == null ? Facts : made(kit); }
         }
 
         internal static readonly Topic[] Topics =
         {
             new Topic("Mainframe", "your settings|her settings|open your settings|mainframe|settings window",
                 "Right-click Capri or her tray icon and choose Open Capri Mainframe. Its main page has BRAIN, VOICE and CAPRI; Settings at the top opens the settings page, and changes are saved as you make them.", "Capri.cs", "Open Capri Mainframe"),
-            new Topic("What she can do", "what can you do|what do you do|what can capri do|your features|your capabilities",
-                "Talk by hovering over Capri and pressing TYPE or TALK, or use the keys in Mainframe > Settings > KEYS. She chats, speaks, keeps notes, opens apps and sites, plays music, looks at the screen and does mouse and keyboard jobs you ask for. Ask in plain words; Esc stops a running job.", "Hands.cs", "use_computer"),
+            new Topic("What she can do", "what can you do|what do you do|what can capri do|your features|your capabilities|what are your tools|what tools do you have|your tools|everything you can do|what else can you do",
+                delegate(Hands.Kit kit) { return "Talk by hovering over Capri and pressing TYPE or TALK, or use the keys in Mainframe > Settings > KEYS. She chats and speaks, and with her tools she can " + kit.Abilities + ". Ask in plain words; Esc stops a running job." + (kit.Absent.Length == 0 ? "" : " Not here right now: " + Regex.Replace(kit.Absent, @"\btheir\b", "your") + ".") + (kit.Switched.Length == 0 ? "" : " Off right now: " + Regex.Replace(kit.Switched, @"\btheir\b", "your") + "."); }, "Hands.cs", "use_computer"),
+            new Topic("Clones and chaos mode", "your clones|clone yourself|chaos mode|make clones|copies of yourself|copy yourself|multiply yourself|duplicate yourself",
+                "Ask clone yourself, make 5 clones or activate chaos mode. Her clones wander around, talk to each other, steal the cursor, drag notes in and grab windows; with no number they keep multiplying until they're cleared. Hold Esc, or say get rid of your clones or chaos mode off, to clear them, and windows they moved go back. Mainframe > Settings > CAPRI > Chaos when upset can set them off when you insult her. It's Windows only for now.", "Hands.cs", "clone"),
+            new Topic("Shortcuts she can press", "shortcuts can you press|shortcuts you can press|shortcuts do you press|shortcuts do you know|press shortcuts|press a shortcut|press keyboard shortcuts",
+                delegate(Hands.Kit kit) { return "Ask in plain words and she presses it for you: she can " + Pressed(kit) + ". Mainframe > Settings > HABITS > Security > Shortcuts sets whether she asks first. Her own hotkeys, like Talk and Quiet, are under Mainframe > Settings > KEYS."; }, "Hands.cs", "shortcut"),
             new Topic("Brain", "your brain|her brain|brain setup|set up her brain|normal brain|higher brain|max intelligence|ollama|local brain|built in brain",
                 "In Mainframe > BRAIN, NORMAL uses a local brain: press Set up her brain to download one, or open Ollama and press Refresh. HIGHER uses a free NVIDIA key; MAX INTELLIGENCE accepts Google AI (Gemini), OpenRouter, OpenAI, Claude or DeepSeek keys, and only the selected tier runs. Pick a model from the model menu; a brain key and a voice key do different jobs.", "Mainframe.cs", "NORMAL"),
             new Topic("Free key", "free key|nvidia key|nvidia api|connect a key|connect my key|connect an api key|brain key|api keys",
@@ -55,11 +66,13 @@ namespace CapriDesktop
             new Topic("Head pats", "head pats|head pat|headpats|pat you|pet you|petting you",
                 "Mainframe > Settings > CAPRI > Head pats is on by default. Rub the cursor back and forth over her and she grins and says a line, at most once every 20 seconds, and a pat wakes her from a nap. Turned off, rubbing the cursor over her does nothing.", "Mainframe.cs", "Head pats"),
             new Topic("Chaos when upset", "chaos when upset|upset chaos|chaos when youre upset|why did your clones|clones when im rude",
-                "Mainframe > Settings > CAPRI > Chaos when upset is on by default. Insulting her can set her clones off: 1 chance in 3 the first time, 2 in 3 the next, and the third insult always does it. They keep multiplying until you hold Esc. It never happens during a job, a game, a stream or voice chat. Turned off, an insult only gets a reply. It's Windows only for now.", "Mainframe.cs", "Chaos when upset"),
+                "Mainframe > Settings > CAPRI > Chaos when upset is off by default. Turned on, insulting her can set her clones off: 1 chance in 3 the first time, 2 in 3 the next, and the third insult always does it. They keep multiplying until you hold Esc. It never happens during a job, a game, a stream or voice chat. Turned off, an insult only gets a reply. It's Windows only for now.", "Mainframe.cs", "Chaos when upset"),
+            new Topic("Desktop icon tricks", "mess up my icons|hide my icons|put my icons back|my icons moved|my icons are gone|where did my icons go|where are my icons|desktop icons|shortcuts moved|my shortcuts are gone",
+                "In chaos mode her first go at your desktop icons comes about 5 seconds after her clones appear, then now and then after that: she slides a few icons around or makes them all vanish, and puts every one back a few seconds later. Ask her to mess up my icons, hide my icons or put my icons back any time. She never touches a file, only moves or hides the icons. If she's closed mid-trick, her next start puts them back, and an icon you move yourself meanwhile stays where you put it. With Auto arrange icons on, she only makes them vanish. It's Windows only for now.", null, null),
             new Topic("Advanced Settings", "advanced settings|simple settings|more settings|all your settings|all the settings|cant find that setting|cant find the setting|where did that setting go|where did my settings go|where did the settings go|settings are missing",
                 "Mainframe > Settings opens on the main settings. The Advanced Settings button at the top, next to Back, shows every setting, and the same button then says Simple Settings to go back. She remembers which you left it on.", "Mainframe.cs", "Advanced Settings"),
             new Topic("Extras", "extras window|extras screen|your extras|first launch picker",
-                "On a new install's first launch she opens EXTRAS over the Mainframe with four switches, all off: Watch my screen, Comment on my games, Clip my games and Listen for Capri. Each costs something or uses the mic, so they're your pick, and Done closes it. All four are in Settings as well: WATCH, GAMES, GAMES and VOICE. Comment on my games is GAMES > Comments set to Chatty.", "Mainframe.cs", "EXTRAS >"),
+                "On a new install's first launch she opens EXTRAS over the Mainframe with four switches, all off: Watch my screen, Comment on my games, Clip my games and Listen for Capri. Each costs something or uses the mic, so they're your pick, and Done closes it. All four are in Settings as well: WATCH, GAMES, CLIPS and VOICE. Comment on my games is GAMES > Comments set to Chatty.", "Mainframe.cs", "EXTRAS >"),
             new Topic("Language", "your language|her language|change language|speak another language",
                 "Mainframe > Settings > YOU > Language chooses the language she replies in. Changing it starts a fresh recent chat.", "Mainframe.cs", "Language"),
             new Topic("What should she call you?", "your nickname|my nickname|change my name|what should she call you|what you call me",
@@ -161,7 +174,9 @@ namespace CapriDesktop
             new Topic("Edit check-in lines", "edit check in lines|check ins md|change check in lines|check in wording",
                 "Mainframe > Settings > HABITS > Edit check-in lines opens check-ins.md in Notepad. Edit the bullet lines under each heading and save; removing all bullets under a heading silences that check-in. The HABITS check-ins have their own switches and times, separate from CAPRI > Check in on me. Quiet or being busy postpones them, and more than ten minutes away resets their interval timers.", "Mainframe.cs", "Edit check-in lines"),
             new Topic("Comments", "your game comments|game commentary setting|comments setting",
-                "Mainframe > Settings > GAMES > Comments selects Off, only when something happens, or Chatty. Game commentary uses screen observations, sound levels and supported logs written by the game; it is separate from the timer under WATCH.", "Mainframe.cs", "Comments"),
+                "Mainframe > Settings > GAMES > Comments selects Off, only when something happens, or Chatty. Game commentary uses screen observations, sound levels and supported logs written by the game; it is separate from the timer under WATCH. With Live reactions on, her game lines show in their feed over the game instead of her bubble.", "Mainframe.cs", "Comments"),
+            new Topic("Live reactions", "live reactions|live reaction|reaction feed|reactions feed|hype lines|hype feed",
+                "Mainframe > Settings > GAMES > Live reactions is on by default, right under Comments. It runs while her game comments do: Comments on Events only or Chatty, or Gaming Mode on, which it is by default. When something happens in a full-screen game, like a kill, a death, a hit, a flash, a big sound, the screen changing or going dark, or a win or loss she can read on screen, a short line pops up on the right of the game's screen, a third of the way down. Up to four stack, newest at the bottom, and each fades after about 4 seconds. A line from her brain about what happened can follow if it comes within about 2.5 seconds. Each line sits on a dark plate in her Mainframe's look: quick lines read white beside a red bar, and her brain's own line rose beside a cyan one. She says at most one out loud every 8 seconds, never over herself or you; Mute her and her Quiet key keep them as text, and so does ElevenLabs voice chat. The feed never takes clicks or focus and works over borderless full screen; exclusive full screen can't show it. Turned off, her game lines go back to her bubble.", "Mainframe.cs", "Live reactions"),
             new Topic("Hide in full screen", "hide in full screen|hide in fullscreen|disappear in fullscreen|hide over videos",
                 "Mainframe > Settings > HABITS > Hide in full screen is off by default. When on, she hides while the foreground window fills its monitor and returns afterwards. A manual hide stays hidden. Speech and text follow her usual hidden behaviour. Gaming Mode takes priority while it is on.", "Mainframe.cs", "Hide in full screen"),
             new Topic("Mini player over full screen", "mini player over full screen|mini player over fullscreen|player over games|music over fullscreen",
@@ -173,11 +188,21 @@ namespace CapriDesktop
             new Topic("Gaming Mode", "gaming mode|game mode|gamer mode|gaming mod|game mod|gaming mood|your gaming hud|your game overlay|turn on the hud|activate the hud|enable the hud|start the hud|move the hud|move your hud|reset the hud|hud position|gaming mode key",
                 "Say \"Hey Capri, activate gaming mode\" and she enters Gaming Mode. Mainframe > Settings > GAMES also has the Gaming Mode switch; the default key is Ctrl + Alt + G. It's on by default: a game in front brings it up with nothing said, and turning it off keeps it off until you turn it back on. She stays on your desktop as usual, you can still drag her, and she reacts when something happens in the game until it closes. Her HUD is switched off for now, so there's nothing to move. It works best on MAX INTELLIGENCE and is weaker on other brains. Settings > KEYS changes that key; press it again to turn the mode off, or ask turn off gaming mode. Gaming Mode does not by itself ask her to play. When she plays a game herself as a job, she goes into Gaming Mode by herself once the game is in front; it stays up until the game closes, and turning it off keeps it off for that job.", "Mainframe.cs", "Gaming Mode"),
             new Topic("Clip my games", "clip my games|clip my game|clip a game|game clips|saved clips|clips saved|your clips|clip that|record my games",
-                "Mainframe > Settings > GAMES > Clip my games is off by default. When on, it keeps up to the last two minutes of a detected game's video and PC playback sound in memory while the game is in front. Say clip that to save the last 30 seconds, or clip the last two minutes for a longer clip of what is buffered. Clips are MP4 files in Videos\\Capri Clips on this PC; she tells you the saved path.", "Mainframe.cs", "Clip my games"),
+                "Mainframe > Settings > CLIPS > Clip my games is off by default. When on, it keeps up to the last two minutes of a detected game's video and PC playback sound in memory while the game is in front. Say clip that to use your default length, or name a length such as clip the last two minutes. CLIPS has a save-folder picker, default length from 15 seconds to 2 minutes, target frame rate from 15 to 60 fps, maximum resolution Auto/480p/720p/1080p and video bitrate Auto/2/4/8/12/20Mbps. Clips are MP4 files in your chosen folder, Videos\\Capri Clips by default. Folder changes affect future clips and do not move old files. FPS may drop under load or the 240 MB memory budget, especially in longer clips; Auto resolution may lower detail to stay smooth. Matching repeated requests within 8 seconds share one save and one notification. Each save chimes and pops up CLIP SAVED at the top right of the game's screen; click it to see the clip. Open clips folder in Settings > CLIPS opens them all.", "Mainframe.cs", "Clip my games"),
             new Topic("Save big moments", "save big moments|automatic clips|auto clips|automatic clipping|clip moments|big moments",
-                "Mainframe > Settings > GAMES > Save big moments is directly under Clip my games and off by default. Turning it on also turns Clip my games on; turning Clip my games off turns both off. With both on, her game commentary decides whether a moment is worth keeping and saves the last 30 seconds of buffered video and PC sound. Comments must be running: Gaming Mode runs them, but with Comments off outside Gaming Mode she judges and saves nothing automatically. She reacts as usual, then saves it with no spoken notice; failures stay in her log. Moments under 30 seconds apart do not extend a clip or save another. Clips go to Videos\\Capri Clips like any other clip and take up space the same way; there is no limit on how many she saves and she does not delete old clips.", "Mainframe.cs", "Save big moments"),
+                "Mainframe > Settings > CLIPS > Save big moments is directly under Clip my games and off by default. Turning it on also turns Clip my games on; turning Clip my games off turns both off. With both on, her game commentary decides whether a moment is worth keeping and saves your chosen default length of buffered video and PC sound. Comments must be running: Gaming Mode runs them, but with Comments off outside Gaming Mode she judges and saves nothing automatically. She reacts as usual, then saves it with no spoken notice; failures stay in her log. Moments under 30 seconds apart do not extend a clip or save another. Clips go to your chosen CLIPS folder (Videos\\Capri Clips by default) like any other clip and take up space the same way; there is no limit on how many she saves and she does not delete old clips.", "Mainframe.cs", "Save big moments"),
+            new Topic("Default length", "default length|clip length|clip duration|recording duration",
+                "Mainframe > Settings > CLIPS > Default length chooses 15, 30, 45, 60, 90 or 120 seconds for clip that and Save big moments. The default is 30 seconds. An explicit request such as clip the last two minutes overrides it, using only video already buffered.", "Mainframe.cs", "Default length"),
+            new Topic("Frame rate", "frame rate|clip fps|recording fps|clip frame rate",
+                "Mainframe > Settings > CLIPS > Frame rate targets 15, 24, 30 or 60 fps for future capture. 30 fps is the default. Slow capture or the 240 MB rolling memory budget can reduce the actual rate, especially for longer clips. It does not invent extra frames or change playback speed.", "Mainframe.cs", "Frame rate"),
+            new Topic("Resolution", "clip resolution|recording resolution|clip quality|resolution",
+                "Mainframe > Settings > CLIPS > Resolution chooses Auto or up to 480p, 720p or 1080p, preserving the game's shape without upscaling. Auto starts at up to 1080p and can lower it to stay smooth. New capture uses the chosen maximum; it cannot restore detail missing from older buffered frames.", "Mainframe.cs", "Resolution"),
+            new Topic("Video bitrate", "video bitrate|clip bitrate|recording bitrate|bitrate",
+                "Mainframe > Settings > CLIPS > Video bitrate chooses Auto or an H.264 average target of 2, 4, 8, 12 or 20 Mbps for future saves. Higher values make larger files. Auto uses the picture size, up to 12 Mbps; bitrate is not a guaranteed file-size or peak limit.", "Mainframe.cs", "Video bitrate"),
+            new Topic("Save folder", "clip folder|clips folder|save folder|clip destination|where are clips saved|where are clips stored",
+                "Mainframe > Settings > CLIPS > Choose folder picks an existing folder for future MP4s. Videos\\Capri Clips is the default. Existing clips stay where they were. Open clips folder opens the selected folder; clicking a CLIP SAVED popup reveals that particular file, including an older clip in its original folder.", "Mainframe.cs", "Save folder"),
             new Topic("Mute her", "mute her|mute capri|mute button|mute you|stop talking on your own",
-                "Mainframe > Settings > GAMES > Mute her stops her talking on her own, and she still answers when you talk to her. It's the same as her Quiet key, Ctrl + Alt + P.", "Mainframe.cs", "Mute her"),
+                "Mainframe > Settings > GAMES > Mute her stops her talking on her own, and she still answers when you talk to her. It's the same as her Quiet key, Ctrl + Alt + P. Her live reactions in games still show, as text.", "Mainframe.cs", "Mute her"),
             new Topic("Fast hands in games", "fast hands|haiku in games|games on haiku|play on haiku|why haiku|hands brain|cheaper games|faster in games",
                 "Mainframe > Settings > GAMES > Fast hands in games is on by default. On a Claude key, a job that plays a game runs on Claude Haiku 5.5, because a game doesn't wait: turns take about 3 seconds instead of 10 or more and cost a fraction. When she's stuck she asks the brain you picked what to do, or Claude Sonnet 5.5 if you picked Haiku, which costs a few cents a time. Chat stays on the brain you picked. Turn it off to play on your picked brain. Other brains aren't changed by it.", "Mainframe.cs", "Fast hands in games"),
             new Topic("Mini games", "mini games|mini game|minigames|tic tac toe|tictactoe|connect four|connect 4|rock paper scissors|desktop boards",
@@ -268,7 +293,16 @@ namespace CapriDesktop
             return (" " + text + " ").IndexOf(" " + words + " ", StringComparison.Ordinal) >= 0;
         }
 
-        internal static string Matching(string asked)
+        // The shortcuts she can press here, the way she'd ask to press them: "take a screenshot, open Task Manager and ...".
+        private static string Pressed(Hands.Kit kit)
+        {
+            List<string> doing = new List<string>();
+            foreach (string name in kit.Keys) doing.Add(Security.Asking("shortcut", new ToolArguments { Name = name }));
+            return doing.Count < 2 ? string.Join("", doing.ToArray()) : string.Join(", ", doing.GetRange(0, doing.Count - 1).ToArray()) + " and " + doing[doing.Count - 1];
+        }
+
+        // Facts about the topics they asked about. What she can do comes from her tools here, and a brain that can't see leaves out looking.
+        internal static string Matching(string asked, Hands.Kit kit = null)
         {
             string text = Plain(asked);
             if (text.Length == 0 || !Question.IsMatch(text)) return null;
@@ -303,7 +337,7 @@ namespace CapriDesktop
                     if (scores[scoreAt] > 0 && (best < 0 || scores[scoreAt] > scores[best])) best = scoreAt;
                 if (best < 0) break;
                 if (found.Length > 0) found.Append('\n');
-                found.Append(Topics[best].Name).Append(": ").Append(Topics[best].Facts);
+                found.Append(Topics[best].Name).Append(": ").Append(Topics[best].FactsFor(kit ?? Hands.KitFor()));
                 scores[best] = 0;
             }
             // On the same line: a setting named here can be one Simple Settings hides, and the help must still say where it is.

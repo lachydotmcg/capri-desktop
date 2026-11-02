@@ -519,6 +519,7 @@ namespace CapriDesktop
         private bool pushing;
         private bool pushOpened;
         private bool pushUnmuted;
+        private int pushCallVersion;
         private List<short[]> pushed;
 
         private bool PushHeld()
@@ -540,6 +541,7 @@ namespace CapriDesktop
 
         private void PushStart()
         {
+            pushCallVersion = callSession.Generation;
             pushing = true;
             nameOver = false;
             BargeIn();
@@ -564,6 +566,7 @@ namespace CapriDesktop
 
         private void PushDone()
         {
+            int callVersion = pushCallVersion;
             pushing = false;
             if (pushUnmuted) { pushUnmuted = false; ears.Muted = true; if (chatting) pill.SetChat(true, true); }
             List<short[]> taken;
@@ -585,12 +588,13 @@ namespace CapriDesktop
                 string problem = null;
                 try { text = Hearing.Text(samples); }
                 catch (Exception error) { problem = Voice.Short(error.Message); }
-                Post(delegate { PushHeard(text, problem); });
+                Post(delegate { if (callSession.Current(callVersion)) PushHeard(text, problem); });
             });
         }
 
         private void PushHeard(string text, string problem)
         {
+            if (CallModeOn) { if (problem == null) HearCall(text, true); else mainframe.VoiceNote(problem, true); return; }
             if (problem != null) { mainframe.VoiceNote(problem, true); return; }
             if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote("I couldn't make out any words. Try closer to the mic.", false); return; }
             mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);

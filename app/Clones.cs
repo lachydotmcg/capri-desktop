@@ -852,7 +852,7 @@ namespace CapriDesktop
         // and the note near her tells anyone who's never met them how to stop it.
         internal bool Upset(int roll)
         {
-            if (preferences.NoUpsetChaos || working != null || hidden || cloneWindow != null || InChat || Computer.Streaming || Computer.GameOpen() != null) return false;
+            if (!preferences.UpsetChaos || working != null || hidden || cloneWindow != null || InChat || Computer.Streaming || Computer.GameOpen() != null) return false;
             upsets++;
             if (roll >= upsets) return false;
             upsets = 0;
@@ -882,7 +882,7 @@ namespace CapriDesktop
                 using (Process self = Process.GetCurrentProcess()) own = self.Id;
                 opened.Grabbable = delegate { return Computer.Streaming || Computer.GameOpen() != null ? null : Ledges.Haulable(own); };
                 opened.Allowed = delegate { return !Computer.Streaming && Computer.GameOpen() == null; };
-                opened.Ticked = CloneTalk;
+                opened.Ticked = CloneTick;
                 cloneWindow = opened;
                 cloneTalkAt = now + 3;
                 opened.Open(now);
@@ -897,6 +897,7 @@ namespace CapriDesktop
 
         internal void ClonesOff()
         {
+            ClearIcons();
             cloneTurn++;
             cloneTalking = false;
             CloneWindow closing = cloneWindow;
