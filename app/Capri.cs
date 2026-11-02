@@ -4259,6 +4259,8 @@ namespace CapriDesktop
         {
             // Esc ends the whole ask: once it stops a job, the rest of that ask's tools and jobs don't run.
             if (ticket == escAsk) return "";
+            // A please on the end of a message job stays out of the message, however her brain wrote the job.
+            if (tool == "use_computer" && args != null) args.Task = Hands.Unpleased(args.Task);
             ToolArguments musicArgs;
             if (tool == "use_computer" && args != null && Hands.MusicJob(args.Task, out musicArgs)) { tool = "play_music"; args = musicArgs; }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
@@ -25023,7 +25025,7 @@ namespace CapriDesktop
                             bool asksPlease, keptAsking, politeAsked, chatAsked, droppedAsked, forgotAsked;
                             Hands.Manners("open spotify", out asksPlease);
                             string pleaseIn = Hands.Manners("please", out keptAsking);
-                            bool heldRequest = asksPlease && !keptAsking && pleaseIn == "open spotify please";
+                            bool heldRequest = asksPlease && !keptAsking && pleaseIn == "open spotify";
                             Hands.Manners("open spotify please", out politeAsked);
                             Hands.Manners("how was your day", out chatAsked);
                             Hands.Manners("open spotify", out asksPlease);
@@ -25055,9 +25057,21 @@ namespace CapriDesktop
                             bool georgianFirst, georgianKept;
                             Hands.Manners("გახსენი Spotify", out georgianFirst);
                             string gtkhov = Hands.Manners("გთხოვ", out georgianKept);
-                            bool anyLanguage = germanAsked && !germanKept && bitte == "öffne Spotify please" && !germanPolite && !japanesePolite && !hindiPolite && !turkishPolite && arabicAsked && minFadlak == "افتح سبوتيفاي please" && !arabicKept
-                                && spellings && spelledFirst && !spelledKept && porfavor == "abre Spotify please" && burmeseFirst && !burmeseKept && kyayZuPyuPi == "Spotify ဖွင့်ပေး please"
-                                && georgianFirst && !georgianKept && gtkhov == "გახსენი Spotify please";
+                            bool anyLanguage = germanAsked && !germanKept && bitte == "öffne Spotify" && !germanPolite && !japanesePolite && !hindiPolite && !turkishPolite && arabicAsked && minFadlak == "افتح سبوتيفاي" && !arabicKept
+                                && spellings && spelledFirst && !spelledKept && porfavor == "abre Spotify" && burmeseFirst && !burmeseKept && kyayZuPyuPi == "Spotify ဖွင့်ပေး"
+                                && georgianFirst && !georgianKept && gtkhov == "გახსენი Spotify";
+                            // A misspelt please runs what she held as they said it, counts as manners in a request, and stays out of a message job.
+                            bool misspelt = true;
+                            foreach (string typo in new[] { "plsease", "pleas", "pls", "plz", "Pleeease!" })
+                            {
+                                bool typoFirst, typoKept;
+                                Hands.Manners("text hi to my alt on discord", out typoFirst);
+                                if (!typoFirst || Hands.Manners(typo, out typoKept) != "text hi to my alt on discord" || typoKept) misspelt = false;
+                            }
+                            bool typoPolite;
+                            Hands.Manners("text hi to my alt plsease", out typoPolite);
+                            bool unpleased = Hands.Unpleased("text hi to my alt on discord plsease") == "text hi to my alt on discord" && Hands.Unpleased("text my alt hi, pls!") == "text my alt hi" && Hands.Unpleased("dm him gg please capri") == "dm him gg"
+                                && Hands.Unpleased("text him meet me at the plaza") == "text him meet me at the plaza" && Hands.Unpleased("open spotify please") == "open spotify please" && Hands.Unpleased(null) == null;
                             Hear("open spotify");
                             bool askedInChat = reply == Hands.SayPlease;
                             CloseTalk();
@@ -25065,8 +25079,8 @@ namespace CapriDesktop
                             Hands.Manners("never mind", out droppedAsked);
                             bool rareAsked;
                             Hands.Manners("open spotify", out rareAsked);
-                            if (!heldRequest || politeAsked || chatAsked || !letGo || !askedInChat || rareAsked || !anyLanguage) throw new Exception("Say please went wrong: held " + heldRequest + ", polite " + politeAsked + ", chat " + chatAsked + ", let go " + letGo + ", asked in chat " + askedInChat + ", other rolls " + rareAsked + ", other languages " + anyLanguage);
-                            checks.Add("PASS say please: on a 1 in 10 roll a request without please gets Say please, a reply of please in any of her languages (bitte, من فضلك) runs the request, polite asks in any of her languages and plain chat never get it, and moving on drops the held request");
+                            if (!heldRequest || politeAsked || chatAsked || !letGo || !askedInChat || rareAsked || !anyLanguage || !misspelt || typoPolite || !unpleased) throw new Exception("Say please went wrong: held " + heldRequest + ", polite " + politeAsked + ", chat " + chatAsked + ", let go " + letGo + ", asked in chat " + askedInChat + ", other rolls " + rareAsked + ", other languages " + anyLanguage + ", misspelt " + misspelt + ", misspelt polite " + typoPolite + ", out of messages " + unpleased);
+                            checks.Add("PASS say please: on a 1 in 10 roll a request without please gets Say please, a reply of please in any of her languages (bitte, من فضلك) or misspelt (plsease, pleas, pls, plz) runs the request as they said it, polite asks in any of her languages and plain chat never get it, moving on drops the held request, and a please on the end of a message job stays out of the message");
                             SetVolume(150);
                             if (Voice.Louder(new short[] { 30000 })[0] != 32767) throw new Exception("A loud voice was not clipped.");
                             SetVolume(100);

@@ -1015,9 +1015,11 @@ namespace CapriDesktop
         }
 
         internal const string SayPlease = "Say please.";
+        // Please however it's typed, like plz, pleas or plsease, but not plaza or pleases.
+        private const string Plea = @"pl(?!aza\b|eases\b)(?=[aeisz]*[sz])[aeisz]{1,6}\b";
         // Please and thanks in all her languages, so "öffne bitte Spotify" never gets Say please and "bitte" runs what was held.
         // Chinese, Japanese, Korean, Thai and the Indian scripts have no word breaks a \b can see, so they match anywhere.
-        private static readonly Regex Polite = new Regex(@"\b(please|pls|plz|pleas|thank you|thanks|por favor|porfavor|porfa|porfis|gracias|merci|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
+        private static readonly Regex Polite = new Regex(@"\b(please|pls|plz|pleas|" + Plea + @"|thank you|thanks|por favor|porfavor|porfa|porfis|gracias|merci|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
             @"|bitte|danke|per favore|perfavore|per piacere|grazie|pfv|obrigad[oa]|si us plau|sisplau|siusplau|gr[àa]cies|grazas|mesedez|eskerrik asko|alsjeblieft|alstublieft|a\.?u\.?b|dank je|dankjewel|bedankt|asseblief|dankie" +
             @"|snälla|snalla|tack|vær så snill|vennligst|venligst|takk|tak|vinsamlegast|ole hyvä|ole kiltti|kiitos|palun|aitäh|aitah|lūdzu|ludzu|paldies|prašau|prasau|ačiū|aciu" +
             @"|proszę|prosze|dzięki|dzieki|dziękuję|dziekuje|prosím|prosim|díky|diky|děkuji|dekuji|ďakujem|dakujem|kérlek|kerlek|légyszi|legyszi|köszi|koszi|köszönöm|hvala|molim|молим|хвала" +
@@ -1030,7 +1032,7 @@ namespace CapriDesktop
             @"|请|請|麻烦|麻煩|拜托|拜託|谢谢|謝謝|ください|下さい|お願い|おねがい|ありがとう|주세요|부탁|제발|고마워|감사|กรุณา|รบกวน|ขอบคุณ|ກະລຸນາ|ຂອບໃຈ|សូម|អរគុណ|ကျေးဇူးပြု၍|ကျေးဇူးပြုပြီး|ကျေးဇူးတင်|ကျေးဇူးပဲ|ပါ(ဦး|ဥ\u102Eး|နော်)?[။၊!?.\s]*$" +
             @"|कृपया|प्लीज़|प्लीज|प्लिज|धन्यवाद|शुक्रिया|দয়া করে|প্লিজ|প্লীজ|ধন্যবাদ|કૃપા કરીને|પ્લીઝ|આભાર|ਕਿਰਪਾ ਕਰਕੇ|ਪਲੀਜ਼|ਪਲੀਜ|ਧੰਨਵਾਦ" +
             @"|தயவுசெய்து|ப்ளீஸ்|பிளீஸ்|நன்றி|దయచేసి|ప్లీజ్|ధన్యవాదాలు|ದಯವಿಟ್ಟು|ಪ್ಲೀಸ್|ಧನ್ಯವಾದ|ദയവായി|പ്ലീസ്|നന്ദി", RegexOptions.IgnoreCase);
-        private static readonly Regex JustPlease = new Regex(@"^\W*((ok|okay|fine|sorry|vale|perd[oó]n|d[ée]sol[ée])\W+)?(pretty\s+)?(please+|pls|plz|pleas+e*|por favor|porfavor|porfa|porfis|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
+        private static readonly Regex JustPlease = new Regex(@"^\W*((ok|okay|fine|sorry|vale|perd[oó]n|d[ée]sol[ée])\W+)?(pretty\s+)?(please+|pls|plz|pleas+e*|" + Plea + @"|por favor|porfavor|porfa|porfis|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
             @"|bitte( sehr| schön)?|per favore|perfavore|per piacere|pfv|si us plau|sisplau|siusplau|mesedez|alsjeblieft|alstublieft|a\.?u\.?b\.?|asseblief|snälla|snalla|vær så snill|vennligst|venligst|vinsamlegast|ole hyvä|ole kiltti|palun|lūdzu|ludzu|prašau|prasau" +
             @"|proszę|prosze|prosím|prosim|kérlek|kerlek|légyszi|legyszi|molim( te| vas)?|молим( те)?|të lutem|te lutem|ju lutem|te rog|vă rog|va rog|le do thoil|plîs|plis|os gwelwch yn dda|jekk jogħġbok|jekk joghgbok" +
             @"|lütfen|lutfen|zəhmət olmasa|xahiş edirəm|iltimos|пожалуйста|пожалуста|плиз|плз|пж|будь ласка|калі ласка|моля|те молам|ве молам|өтінемін|гуйя|παρακαλώ|παρακαλω" +
@@ -1047,7 +1049,8 @@ namespace CapriDesktop
             askPlease = false;
             string held = heldForPlease;
             heldForPlease = null;
-            if (held != null && JustPlease.IsMatch(said ?? "")) return held + " please";
+            // Their please runs what she held as they said it. Added on the end, it went out as part of their message (a tester, 2 Nov).
+            if (held != null && JustPlease.IsMatch(said ?? "")) return held;
 #if !CROSS
             if (Ink.Request(Asked(said)) != null) return said;
 #endif
@@ -1056,6 +1059,11 @@ namespace CapriDesktop
             askPlease = true;
             return said;
         }
+
+        // A please on the end of a message job is manners, not part of the message: "text hi to my alt plsease" sends hi.
+        private static readonly Regex PleaseAfter = new Regex(@"[\s,]+(?:please+|" + Plea + @"|stp|s'il te pla[iî]t|sil te pla[iî]t|por favor|porfavor|porfa|porfis|bitte|per favore|perfavore|per piacere|proszę|prosze|пожалуйста|плз|пж|будь ласка|lütfen|lutfen|alsjeblieft|alstublieft)(?:\s+capri)?[\s.!?]*$", RegexOptions.IgnoreCase);
+
+        internal static string Unpleased(string task) { return task != null && Errand(task) ? PleaseAfter.Replace(task, "") : task; }
 
         internal static bool Wants(string said)
         {
