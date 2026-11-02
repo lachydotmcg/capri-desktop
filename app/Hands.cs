@@ -607,7 +607,7 @@ namespace CapriDesktop
 #if CROSS
             "";
 #else
-            "When they ask you to switch one of your own settings on or off, like your voice, Quiet, Clip my games or live reactions, do it with capri_settings instead of telling them where it is; capri_settings with action list says how they're set right now. ";
+            "When they ask you to change one of your own settings, like your voice, Quiet, Clip my games, live reactions, your size, wandering or dancing, do it with capri_settings instead of telling them where it is: on or off for a switch, set for a slider, like set size bigger for make yourself bigger, or wander off for stop wandering. capri_settings with action list says how they're set right now. ";
 #endif
 
         private const string Hurting =
@@ -736,14 +736,14 @@ namespace CapriDesktop
             { "check_app", "Check whether an app or game is installed on their PC, by the name open_app would open, and whether it's running: with a window open, in front or minimized, or in the background with no window, like Discord in the tray. Use it before opening something that might already be open, and after opening or closing one to check it worked.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's or game's name\"}},\"required\":[\"name\"]}" },
 #if !CROSS
-            { "capri_settings", "Read or change your own Capri settings when they ask: list says how each is set right now, and on or off with a name switches one and says how it's set afterwards. They're yours, not their PC's: Windows settings like Bluetooth or Wi-Fi are use_computer jobs, and their Discord mic is the shortcut tool's discord_mute. voice is you talking out loud (off means you type instead); quiet is your Quiet mode, with no pop-ins, comments or check-ins until it's off; mic is your ears in voice chat, only while voice chat is on; check_ins is Check in on me; wander is you walking around their screens by yourself; clip_my_games keeps their game's video for clips; save_big_moments clips big moments by itself; live_reactions is your quick reactions over their games; gaming_mode only changes when they ask for Gaming Mode by name; hologram lets clicks pass through you. Keys, brains and SECURITY settings aren't here and stay in Capri Mainframe.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"list, or on or off for the setting in name\",\"enum\":[\"list\",\"on\",\"off\"]},\"name\":{\"type\":\"string\",\"description\":\"Which setting, for on or off\",\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\"]}},\"required\":[\"action\"]}" },
+            { "capri_settings", "Read or change your own Capri settings when they ask: list says how each is set right now, on or off with a name switches one, and set with a name and a level moves one of your sliders, and each says how it's set afterwards. They're yours, not their PC's: Windows settings like Bluetooth or Wi-Fi are use_computer jobs, their PC's volume is media, and their Discord mic is the shortcut tool's discord_mute. Switches: voice is you talking out loud (off means you type instead); quiet is your Quiet mode, with no pop-ins, comments or check-ins until it's off; mic is your ears in voice chat, only while voice chat is on; check_ins is Check in on me; wander is you walking around their screens by yourself; dance_to_music is you dancing when music plays; head_pats lets them pat your head with the cursor; chaos_when_upset lets an insult set your clones off; sit_on_windows is you sitting on their windows' top edges; always_on_top keeps you above their windows; mini_player is your music player; typing_sound is your typing noise while you write; follow_ups is your second thought after an answer; hide_in_full_screen hides you while a full screen app is up; glitch_in is your entrance when Capri starts; clip_my_games keeps their game's video for clips; save_big_moments clips big moments by itself; live_reactions is your quick reactions over their games; gaming_mode only changes when they ask for Gaming Mode by name; hologram lets clicks pass through you. Sliders, with their steps from the bottom: size is how big you are (Tiny, Small, Small+, Medium, Medium+, Large, Large+, Huge, Huge+, Giant); wander is how much you wander (Off, Rarely, Sometimes, Often, Restless); pop_ins is how often you pop in (Rarely, Sometimes, Often); sleep is how long a quiet PC takes to send you to sleep (Never, 1 min, 2 min, 5 min, 10 min, 30 min); volume is your own voice's volume (Mute, 10% to 100% in tens, 125%, 150%); voice_speed is how fast you talk (0.7x, 0.8x, 0.9x, Normal, 1.1x to 1.5x); replies is how long your replies are (Short, Medium, Long); bubble is how long your replies stay up (Quick, Normal, Long). Keys, brains, your voice service, SECURITY, and what you watch, comment on or remember aren't here and stay in Capri Mainframe.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"list, on or off for the switch in name, or set for the slider in name\",\"enum\":[\"list\",\"on\",\"off\",\"set\"]},\"name\":{\"type\":\"string\",\"description\":\"Which switch for on or off, or which slider for set\",\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"dance_to_music\",\"head_pats\",\"chaos_when_upset\",\"sit_on_windows\",\"always_on_top\",\"mini_player\",\"typing_sound\",\"follow_ups\",\"hide_in_full_screen\",\"glitch_in\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\",\"size\",\"pop_ins\",\"sleep\",\"volume\",\"voice_speed\",\"replies\",\"bubble\"]},\"level\":{\"type\":\"string\",\"description\":\"For set: one of the slider's steps, like Large, Often, 5 min, 60% or 1.2x, or up, down, bigger, smaller, louder, quieter, faster, slower, more or less for one step, or max or min\"}},\"required\":[\"action\"]}" },
 #endif
         };
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off"); }
+        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set"); }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1970,7 +1970,7 @@ namespace CapriDesktop
                 "I haven't saved a routine yet. Say when I say, then what to do." },
 #if !CROSS
             // "Turned off live reactions" or "my voice is now off" with no settings tool behind it.
-            { "capri_settings", "capri_settings hologram", @"\b(?:turned|switched|flipped|toggled) (?:on|off) (?:my |the )?(?:voice|live reactions|reactions|clip my games|game clips|clipping|save big moments|check-?ins|wandering|quiet(?: mode)?|hologram(?: mode)?)\b|\b(?:turned|switched|flipped|toggled) (?:my |the )?(?:voice|live reactions|reactions|clip my games|game clips|clipping|save big moments|check-?ins|wandering|quiet mode|hologram(?: mode)?) (?:on|off|back on)\b|\b(?:my voice|live reactions|clip my games|save big moments|check-?ins|quiet mode|hologram mode)(?:'s| is| are) now (?:on|off)\b",
+            { "capri_settings", "capri_settings hologram", @"\b(?:turned|switched|flipped|toggled) (?:on|off) (?:my |the )?(?:voice|live reactions|reactions|clip my games|game clips|clipping|save big moments|check-?ins|wandering|quiet(?: mode)?|hologram(?: mode)?|dance to music|dancing to music|head ?pats|chaos when upset|sit(?:ting)? on (?:your )?windows|always on top|mini player|typing sounds?|follow-?ups?(?: messages)?|hide in full ?screen|glitch(?:-| )in(?: at startup)?)\b|\b(?:turned|switched|flipped|toggled) (?:my |the )?(?:voice|live reactions|reactions|clip my games|game clips|clipping|save big moments|check-?ins|wandering|quiet mode|hologram(?: mode)?|dance to music|dancing to music|head ?pats|chaos when upset|sit(?:ting)? on (?:your )?windows|always on top|mini player|typing sounds?|follow-?ups?(?: messages)?|hide in full ?screen|glitch(?:-| )in(?: at startup)?) (?:on|off|back on)\b|\b(?:my voice|live reactions|clip my games|save big moments|check-?ins|quiet mode|hologram mode|dance to music|head ?pats|chaos when upset|sit on windows|always on top|(?:the |my )?mini player|typing sound|follow-?ups|hide in full ?screen)(?:'s| is| are) now (?:on|off)\b|\b(?:made|set) myself (?:a (?:bit|little|lot) )?(?:bigger|smaller|larger|tinier|huge|giant|tiny)\b|\bshr[au]nk myself\b|\b(?:turned|set) my (?:voice(?:'s)? )?volume (?:up|down|to)\b|\b(?:set|changed|moved|switched) my (?:size|wander(?:ing)?|pop-?ins|sleep(?: timer)?|(?:voice|talking) speed|replies|bubble) to\b|\bi(?:'ve| have)? stopped wandering\b",
                 "That setting hasn't changed yet. It's in Capri Mainframe > Settings." }
 #endif
         };
@@ -3112,7 +3112,7 @@ namespace CapriDesktop
             if (tool == "open_app" || tool == "check_app") return Named(args.Name);
             if (tool == "list_windows") return true;
 #if !CROSS
-            if (tool == "capri_settings") return args.Action == "list" || (args.Action == "on" || args.Action == "off") && OwnRow(args.Name) >= 0;
+            if (tool == "capri_settings") return args.Action == "list" || (args.Action == "on" || args.Action == "off") && OwnRow(args.Name) >= 0 || args.Action == "set" && LevelRow(args.Name) >= 0 && Named(args.Level);
 #endif
             if (tool == "open_website") return Named(args.Site) && (string.IsNullOrEmpty(args.Browser) || BrowserName(args.Browser) != null);
             if (tool == "look_at_screen") return true;
@@ -4657,7 +4657,28 @@ namespace CapriDesktop
         private static readonly string[,] OwnSwitches =
         {
             { "voice", "my voice" }, { "quiet", "Quiet" }, { "mic", "my voice chat mic" }, { "check_ins", "Check in on me" }, { "wander", "Wander" },
-            { "clip_my_games", "Clip my games" }, { "save_big_moments", "Save big moments" }, { "live_reactions", "Live reactions" }, { "gaming_mode", "Gaming Mode" }, { "hologram", "Hologram mode" }
+            { "clip_my_games", "Clip my games" }, { "save_big_moments", "Save big moments" }, { "live_reactions", "Live reactions" }, { "gaming_mode", "Gaming Mode" }, { "hologram", "Hologram mode" },
+            { "dance_to_music", "Dance to music" }, { "head_pats", "Head pats" }, { "chaos_when_upset", "Chaos when upset" }, { "sit_on_windows", "Sit on windows" }, { "always_on_top", "Always on top" },
+            { "mini_player", "Mini player" }, { "typing_sound", "Typing sound" }, { "follow_ups", "Follow-up messages" }, { "hide_in_full_screen", "Hide in full screen" }, { "glitch_in", "Glitch in at startup" }
+        };
+
+        // Her own sliders her settings tool reads and moves: the name her brain uses and what she calls it, with their steps from the
+        // bottom up named the way her Mainframe names them (Lachy, 3 Nov: "make yourself bigger" or "stop wandering" through the brain).
+        private static readonly string[,] OwnLevels =
+        {
+            { "size", "my size" }, { "wander", "Wander" }, { "pop_ins", "Pop-ins" }, { "sleep", "Sleep" },
+            { "volume", "my voice's volume" }, { "voice_speed", "my voice's speed" }, { "replies", "Replies" }, { "bubble", "Bubble" }
+        };
+        internal static readonly string[][] OwnSteps =
+        {
+            new[] { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" },
+            new[] { "Off", "Rarely", "Sometimes", "Often", "Restless" },
+            new[] { "Rarely", "Sometimes", "Often" },
+            new[] { "Never", "1 min", "2 min", "5 min", "10 min", "30 min" },
+            new[] { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" },
+            new[] { "0.7x", "0.8x", "0.9x", "Normal", "1.1x", "1.2x", "1.3x", "1.4x", "1.5x" },
+            new[] { "Short", "Medium", "Long" },
+            new[] { "Quick", "Normal", "Long" }
         };
 
         // How one of her switches is set right now, or null when it can't be read, like her voice chat mic with no voice chat on.
@@ -4666,6 +4687,11 @@ namespace CapriDesktop
         // Flips one of her switches the way its own switch does, without her announcing it, since her brain tells them, and returns
         // anything worth knowing, like Gaming Mode's line. Her window sets it.
         internal static Func<string, bool, string> SetSetting = delegate { return null; };
+        // Which step one of her sliders is on, counted from the bottom, or -1 when it can't be read. Her window sets it.
+        internal static Func<string, int> LevelOf = delegate { return -1; };
+        // Moves one of her sliders to a step the way the slider itself does, without her announcing it, and returns anything worth
+        // knowing. Her window sets it.
+        internal static Func<string, int, string> SetLevel = delegate { return null; };
 
         private static int OwnRow(string name)
         {
@@ -4673,8 +4699,60 @@ namespace CapriDesktop
             return -1;
         }
 
-        // Her settings tool: list says how each switch is set right now, and on or off flips one and reads it back, so what she
-        // tells them is what the switch says afterwards, not what she meant to do.
+        private static int LevelRow(string name)
+        {
+            for (int i = 0; i < OwnLevels.GetLength(0); i++) if (OwnLevels[i, 0] == name) return i;
+            return -1;
+        }
+
+        private static string Spoken(string said) { return Regex.Replace(Regex.Replace(said.Trim().ToLowerInvariant(), @"\s+", " "), @"^(?:to|at|on) ", ""); }
+
+        // 1 or -1 for a word that moves one of her sliders a step, 2 or -2 for the top or the bottom, and 0 for anything else.
+        private static int Nudge(string asked)
+        {
+            if (Regex.IsMatch(asked, @"^(?:max(?:imum)?|most|top|highest|biggest|largest|loudest|fastest|longest|all the way up)$")) return 2;
+            if (Regex.IsMatch(asked, @"^(?:min(?:imum)?|least|bottom|lowest|smallest|tiniest|quietest|slowest|shortest|all the way down)$")) return -2;
+            const string Bit = @"(?:a (?:bit|little|step|notch|tad) |one (?:step|notch) |slightly |)";
+            if (Regex.IsMatch(asked, @"^" + Bit + @"(?:up|higher|more|bigger|larger|louder|faster|longer|increase|raise|\+1?)$")) return 1;
+            if (Regex.IsMatch(asked, @"^" + Bit + @"(?:down|lower|less|smaller|quieter|softer|slower|shorter|decrease|-1?)$")) return -1;
+            return 0;
+        }
+
+        // The step they asked for on one of her sliders: a step's own name, a number for her volume, speed or sleep, a word for one
+        // step up or down from where it is now, or the top or the bottom. -1 when it isn't any of those.
+        internal static int StepFor(string name, string said, int now)
+        {
+            int row = LevelRow(name);
+            if (row < 0 || said == null) return -1;
+            string[] steps = OwnSteps[row];
+            string asked = Spoken(said);
+            int nudge = Nudge(asked);
+            if (nudge == 2 || nudge == -2) return nudge > 0 ? steps.Length - 1 : 0;
+            if (nudge != 0) return Math.Max(0, Math.Min(steps.Length - 1, now + nudge));
+            string plain = asked.Replace(" ", "");
+            if (name == "volume")
+            {
+                if (plain == "off" || plain == "muted" || plain == "0" || plain == "0%") plain = "mute";
+                else if (Regex.IsMatch(plain, @"^\d+$")) plain += "%";
+            }
+            else if (name == "voice_speed")
+            {
+                if (plain == "1" || plain == "1x" || plain == "1.0" || plain == "1.0x" || plain == "100%") plain = "normal";
+                else if (Regex.IsMatch(plain, @"^[01]?\.\d$")) plain = (plain[0] == '.' ? "0" : "") + plain + "x";
+            }
+            else if (name == "sleep")
+            {
+                if (plain == "off" || plain == "no" || plain == "none" || plain == "0") plain = "never";
+                plain = Regex.Replace(plain, @"^(\d+)(?:m|mins?|minutes?)$", "$1min");
+                if (plain == "halfanhour" || plain == "half-hour" || plain == "halfhour") plain = "30min";
+            }
+            else if (name == "wander" && (plain == "no" || plain == "none" || plain == "never")) plain = "off";
+            for (int i = 0; i < steps.Length; i++) if (steps[i].Replace(" ", "").ToLowerInvariant() == plain) return i;
+            return -1;
+        }
+
+        // Her settings tool: list says how each switch and slider is set right now, on or off flips a switch and set moves a slider,
+        // and each reads it back, so what she tells them is what the setting says afterwards, not what she meant to do.
         private static string Settings(ToolArguments args)
         {
             if (args.Action == "list")
@@ -4682,11 +4760,19 @@ namespace CapriDesktop
                 List<string> each = new List<string>();
                 for (int i = 0; i < OwnSwitches.GetLength(0); i++)
                 {
+                    // Wander is a slider too, and says which step it's on with the others.
+                    if (OwnSwitches[i, 0] == "wander") continue;
                     bool? set = SettingOn(OwnSwitches[i, 0]);
                     each.Add(OwnSwitches[i, 1] + (set == null ? (OwnSwitches[i, 0] == "mic" ? ": no voice chat on" : ": can't tell") : set.Value ? " on" : " off"));
                 }
+                for (int i = 0; i < OwnLevels.GetLength(0); i++)
+                {
+                    int step = LevelOf(OwnLevels[i, 0]);
+                    each.Add(OwnLevels[i, 1] + ": " + (step < 0 || step >= OwnSteps[i].Length ? "can't tell" : OwnSteps[i][step]));
+                }
                 return "How my settings are right now: " + string.Join("; ", each.ToArray()) + ".";
             }
+            if (args.Action == "set") return Leveled(args);
             int row = OwnRow(args.Name);
             if (row < 0) return "There's no setting of mine called " + (args.Name ?? "that") + ".";
             string label = OwnSwitches[row, 1], way = args.Action == "on" ? "on" : "off";
@@ -4698,6 +4784,24 @@ namespace CapriDesktop
             bool? now = SettingOn(args.Name);
             note = string.IsNullOrEmpty(note) ? "" : " " + note;
             return now == want ? "Turned " + label + " " + way + "." + note : "Couldn't turn " + label + " " + way + ": it's still " + (now == true ? "on" : now == false ? "off" : "unreadable") + "." + note;
+        }
+
+        // Moves one of her sliders and reads it back. A step past either end says it's already as far as it goes.
+        private static string Leveled(ToolArguments args)
+        {
+            int row = LevelRow(args.Name);
+            if (row < 0) return "There's no slider of mine called " + (args.Name ?? "that") + ".";
+            string label = OwnLevels[row, 1], named = char.ToUpperInvariant(label[0]) + label.Substring(1);
+            string[] steps = OwnSteps[row];
+            int was = LevelOf(args.Name);
+            if (was < 0 || was >= steps.Length) return "Couldn't read " + label + " just now.";
+            int want = StepFor(args.Name, args.Level, was);
+            if (want < 0) return "There's no " + (args.Level ?? "step like that") + " for " + label + ". It goes " + string.Join(", ", steps) + ".";
+            if (want == was) return named + " is already " + steps[was] + (Nudge(Spoken(args.Level)) != 0 ? ", as far as it goes." : ".");
+            string note = SetLevel(args.Name, want);
+            int now = LevelOf(args.Name);
+            note = string.IsNullOrEmpty(note) ? "" : " " + note;
+            return now == want ? "Set " + label + " to " + steps[want] + "." + note : "Couldn't set " + label + " to " + steps[want] + ": it's still " + (now < 0 || now >= steps.Length ? "unreadable" : steps[now]) + "." + note;
         }
 #endif
 

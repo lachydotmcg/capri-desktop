@@ -308,5 +308,237 @@ namespace CapriDesktop
                 owner.Join(5000);
             }
         }
+
+        // Her settings tool's sliders and everyday switches on pretend settings: a step by name, by number or one step up or down,
+        // read back afterwards, with the ends and a slider that won't move said plainly, and nothing she mustn't touch in reach
+        // (Lachy, 3 Nov: "make yourself bigger" or "stop wandering" works through the brain).
+        private static void SmokeSettingsTool(List<string> checks)
+        {
+            Func<string, bool?> settingWas = Hands.SettingOn;
+            Func<string, bool, string> setWas = Hands.SetSetting;
+            Func<string, int> levelWas = Hands.LevelOf;
+            Func<string, int, string> moveWas = Hands.SetLevel;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            TcpListener fake = null;
+            try
+            {
+                Dictionary<string, bool?> switches = new Dictionary<string, bool?> { { "wander", true }, { "head_pats", true }, { "sit_on_windows", true }, { "typing_sound", false } };
+                Dictionary<string, int> levels = new Dictionary<string, int> { { "size", 3 }, { "wander", 1 }, { "pop_ins", 1 }, { "sleep", 3 }, { "volume", 8 }, { "voice_speed", 5 }, { "replies", 1 }, { "bubble", 1 } };
+                List<string> moved = new List<string>();
+                Hands.SettingOn = delegate(string name) { return switches.ContainsKey(name) ? switches[name] : null; };
+                Hands.SetSetting = delegate(string name, bool on) { switches[name] = on; return null; };
+                Hands.LevelOf = delegate(string name) { return levels.ContainsKey(name) ? levels[name] : -1; };
+                // Her bubble's slider is stuck, the way a setting can be when something else holds it.
+                Hands.SetLevel = delegate(string name, int step) { moved.Add(name + " " + step); if (name != "bubble") levels[name] = step; return null; };
+                Func<string, string, string> set = delegate(string name, string level) { return Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = level }); };
+                string[,] asks =
+                {
+                    { "size", "bigger", "Set my size to Medium+." }, { "size", "Giant", "Set my size to Giant." }, { "size", "a bit bigger", "My size is already Giant, as far as it goes." },
+                    { "size", "giant", "My size is already Giant." }, { "size", "smallest", "Set my size to Tiny." }, { "size", "huge+", "Set my size to Huge+." },
+                    { "wander", "off", "Set Wander to Off." }, { "wander", "more", "Set Wander to Rarely." }, { "wander", "Restless", "Set Wander to Restless." },
+                    { "volume", "50", "Set my voice's volume to 50%." }, { "volume", "louder", "Set my voice's volume to 60%." }, { "volume", "max", "Set my voice's volume to 150%." }, { "volume", "mute", "Set my voice's volume to Mute." },
+                    { "voice_speed", "1.3", "Set my voice's speed to 1.3x." }, { "voice_speed", "slower", "Set my voice's speed to 1.2x." }, { "voice_speed", "1x", "Set my voice's speed to Normal." }, { "voice_speed", "normal", "My voice's speed is already Normal." },
+                    { "sleep", "10 minutes", "Set Sleep to 10 min." }, { "sleep", "never", "Set Sleep to Never." }, { "sleep", "to 30 min", "Set Sleep to 30 min." },
+                    { "pop_ins", "often", "Set Pop-ins to Often." }, { "replies", "shorter", "Set Replies to Short." }, { "replies", "shorter", "Replies is already Short, as far as it goes." },
+                    { "bubble", "long", "Couldn't set Bubble to Long: it's still Normal." }, { "size", "humongous", "There's no humongous for my size. It goes Tiny, Small, Small+, Medium, Medium+, Large, Large+, Huge, Huge+, Giant." },
+                    { "brain", "bigger", "There's no slider of mine called brain." }
+                };
+                List<string> wrong = new List<string>();
+                for (int i = 0; i < asks.GetLength(0); i++)
+                {
+                    string got = set(asks[i, 0], asks[i, 1]);
+                    if (got != asks[i, 2]) wrong.Add(asks[i, 0] + " " + asks[i, 1] + " said \"" + got + "\"");
+                }
+                if (wrong.Count > 0) throw new Exception("Her sliders didn't say where they ended up: " + string.Join(" / ", wrong.ToArray()));
+                if (!Hands.Failed(set("bubble", "quick")) || !Hands.Failed(set("size", "humongous")) || Hands.Failed(set("size", "medium")) || string.Join(",", moved.ToArray()).IndexOf("bubble 2", StringComparison.Ordinal) < 0)
+                    throw new Exception("A slider that didn't move wasn't read as a failure: " + string.Join(",", moved.ToArray()));
+                levels["size"] = -1;
+                string unread = set("size", "bigger");
+                levels["size"] = 3;
+                switches["head_pats"] = true;
+                string pats = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "head_pats" }), typing = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "typing_sound" });
+                if (unread != "Couldn't read my size just now." || pats != "Turned Head pats off." || typing != "Turned Typing sound on.")
+                    throw new Exception("Her settings tool didn't read her new switches back: " + unread + " / " + pats + " / " + typing);
+                // Only a slider takes set, only a switch takes on or off, and set needs a level; none of it asks first or counts as a check.
+                ToolArguments bigger = new ToolArguments { Action = "set", Name = "size", Level = "bigger" };
+                if (!Hands.Valid("capri_settings", bigger) || Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = "size" }) || Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = "head_pats", Level = "up" })
+                    || Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = "size" }) || !Hands.Valid("capri_settings", new ToolArguments { Action = "off", Name = "sit_on_windows" }) || Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = "watch_my_screen", Level = "on" })
+                    || Hands.Checking("capri_settings", bigger) || Security.Needs("capri_settings", bigger) != -1)
+                    throw new Exception("Her settings tool's calls weren't checked.");
+                // Nothing she mustn't touch is in reach: keys, brains, her voice service, SECURITY, watching, comments, memories or "Hey Capri".
+                string tools = Hands.KitFor().WorkTools;
+                int at = tools.IndexOf("\"name\":\"capri_settings\"", StringComparison.Ordinal);
+                string spec = at < 0 ? "" : tools.Substring(at, tools.IndexOf("}}", tools.IndexOf("\"level\"", at), StringComparison.Ordinal) - at);
+                string names = spec.Length == 0 ? "" : spec.Substring(spec.IndexOf("\"enum\":[\"voice\"", StringComparison.Ordinal));
+                names = names.Substring(0, names.IndexOf(']') + 1);
+                foreach (string never in new[] { "key", "brain", "model", "elevenlabs", "service", "security", "blackwall", "preset", "watch", "comment", "remember", "memor", "listen", "hey", "startup", "start_with", "discord", "cursor", "password", "bypass" })
+                    if (names.IndexOf(never, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Her settings tool reached something she mustn't touch: " + never + " in " + names);
+                if (names != "\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"dance_to_music\",\"head_pats\",\"chaos_when_upset\",\"sit_on_windows\",\"always_on_top\",\"mini_player\",\"typing_sound\",\"follow_ups\",\"hide_in_full_screen\",\"glitch_in\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\",\"size\",\"pop_ins\",\"sleep\",\"volume\",\"voice_speed\",\"replies\",\"bubble\"]")
+                    throw new Exception("Her settings tool's names didn't match her switches and sliders: " + names);
+                foreach (string name in new[] { "voice", "quiet", "mic", "check_ins", "wander", "dance_to_music", "head_pats", "chaos_when_upset", "sit_on_windows", "always_on_top", "mini_player", "typing_sound", "follow_ups", "hide_in_full_screen", "glitch_in", "clip_my_games", "save_big_moments", "live_reactions", "gaming_mode", "hologram" })
+                    if (!Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = name })) throw new Exception("Her settings tool's switch " + name + " wasn't taken.");
+                foreach (string name in new[] { "size", "wander", "pop_ins", "sleep", "volume", "voice_speed", "replies", "bubble" })
+                    if (!Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = name, Level = "up" })) throw new Exception("Her settings tool's slider " + name + " wasn't taken.");
+                // Her sliders' steps are the ones her Mainframe's sliders stop on, by name and by value.
+                string[] mainframeNames = { "SizeNames", "WanderNames", "PopNames", "SleepNames", "VolumeNames", "PaceNames", "Lengths", "BubbleNames" };
+                for (int i = 0; i < mainframeNames.Length; i++)
+                {
+                    string[] shown = (string[])typeof(Mainframe).GetField(mainframeNames[i], System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);
+                    if (string.Join(",", shown) != string.Join(",", Hands.OwnSteps[i])) throw new Exception("Her settings tool's " + mainframeNames[i] + " aren't her Mainframe's: " + string.Join(",", Hands.OwnSteps[i]));
+                }
+                string[,] values = { { "SizeSteps", "OwnSizes" }, { "Sleeps", "OwnSleeps" }, { "Volumes", "OwnVolumes" }, { "Paces", "OwnPaces" } };
+                for (int i = 0; i < values.GetLength(0); i++)
+                {
+                    int[] shown = (int[])typeof(Mainframe).GetField(values[i, 0], System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);
+                    int[] own = (int[])typeof(Companion).GetField(values[i, 1], System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static).GetValue(null);
+                    if (string.Join(",", Array.ConvertAll(shown, step => step.ToString())) != string.Join(",", Array.ConvertAll(own, step => step.ToString()))) throw new Exception("Her settings tool's " + values[i, 1] + " aren't her Mainframe's " + values[i, 0] + ".");
+                }
+                // Saying she changed one with no tool behind it is a claim; questions and where a setting lives aren't.
+                List<KeyValuePair<string, ToolArguments>> none = new List<KeyValuePair<string, ToolArguments>>();
+                string[,] claims =
+                {
+                    { "There, I made myself bigger!", "capri_settings" }, { "Okay, I stopped wandering.", "capri_settings" }, { "Turned off head pats, choom.", "capri_settings" }, { "Set my volume to 50%.", "capri_settings" },
+                    { "I switched Always on top off.", "capri_settings" }, { "Want me to make myself bigger?", "" }, { "You can make me bigger in Settings.", "" }, { "Head pats are on by default.", "" }, { "Should I stop wandering?", "" }
+                };
+                for (int i = 0; i < claims.GetLength(0); i++)
+                    if ((Hands.Claimed(claims[i, 0], none) ?? "") != claims[i, 1]) throw new Exception("\"" + claims[i, 0] + "\" read as a claim for " + (Hands.Claimed(claims[i, 0], none) ?? "nothing") + " instead of " + (claims[i, 1].Length == 0 ? "nothing" : claims[i, 1]));
+                // A brain that works jobs out makes itself bigger and stops wandering with the tool, and can't just say it did.
+                List<string> asked = new List<string>();
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                levels["size"] = 3;
+                switches["wander"] = true;
+                Brain.OpenAi = FakeServer(new[]
+                {
+                    calls("capri_settings", "{\"action\":\"set\",\"name\":\"size\",\"level\":\"bigger\"}"), says("There, a bit bigger, choom."),
+                    calls("capri_settings", "{\"action\":\"off\",\"name\":\"wander\"}"), says("Okay, I'll stay put."),
+                    says("Done, I made myself bigger."), says("Done, I made myself bigger.")
+                }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                List<string> did = new List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + args.Name + ":" + args.Action + (args.Level == null ? "" : ":" + args.Level)); return Hands.Do(name, args); };
+                string grown = planner.Ask("make yourself bigger");
+                string still = planner.Ask("stop wandering");
+                string faked = planner.Ask("make yourself even bigger");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (grown != "There, a bit bigger, choom." || still != "Okay, I'll stay put." || faked != "That setting hasn't changed yet. It's in Capri Mainframe > Settings." || sent.Length != 6
+                    || string.Join(",", did.ToArray()) != "capri_settings:size:set:bigger,capri_settings:wander:off" || levels["size"] != 4 || switches["wander"] != false
+                    || !sent[0].Contains("like set size bigger for make yourself bigger") || !sent[0].Contains("\"voice_speed\"") || !sent[1].Contains("Set my size to Medium+.") || !sent[3].Contains("Turned Wander off.")
+                    || !sent[5].Contains("You said you did something that needs capri_settings"))
+                    throw new Exception("Her planner didn't change her settings with the tool: " + grown + " / " + still + " / " + faked + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                checks.Add("PASS her settings tool moves her sliders: size, wander, pop-ins, sleep, her voice's volume and speed, replies and bubble, by a step's name, a number, or a step up or down, says when one is already as far as it goes, when a step doesn't exist and when a slider didn't move, and flips her everyday switches like head pats, dancing, sitting on windows and always on top; only sliders take set and nothing she mustn't touch is in reach; her steps match her Mainframe's; saying she changed one with no tool is a claim; a planner makes herself bigger and stops wandering with the tool");
+            }
+            finally
+            {
+                Hands.SettingOn = settingWas;
+                Hands.SetSetting = setWas;
+                Hands.LevelOf = levelWas;
+                Hands.SetLevel = moveWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
+        // Her settings tool on her real switches and sliders: each new switch flipped and flipped back the way its own switch does,
+        // and each slider moved and read back from the setting itself, with nothing of her own said over her brain's reply.
+        private void SmokeOwnSliders(List<string> checks)
+        {
+            bool danceWas = preferences.NoDance, patsWas = preferences.NoHeadPats, chaosWas = preferences.UpsetChaos, sitWas = preferences.NoSitting, topWas = preferences.OnTop, playerWas = preferences.NoPlayer;
+            bool followWas = preferences.FollowUps, fullWas = preferences.HideFullScreen, introWas = preferences.NoIntro;
+            int typingWas = preferences.Typing, sizeWas = preferences.Size, wanderWas = WanderLevel, popWas = preferences.PopPace, sleepWas = preferences.SleepAfter, volumeWas = Voice.Loudness, speedWas = VoiceFx.Speed, wordsWas = Brain.Wordiness, bubbleWas = preferences.BubbleTime;
+            Action<short[]> typeOutWas = Sfx.TypeOut;
+            int askingWas = asking;
+            try
+            {
+                // Her typing sound plays a sample when it's turned on; the check keeps it off their speakers.
+                Sfx.TypeOut = null;
+                List<string> wrong = new List<string>();
+                string[,] switches =
+                {
+                    { "dance_to_music", "Dance to music" }, { "head_pats", "Head pats" }, { "chaos_when_upset", "Chaos when upset" }, { "sit_on_windows", "Sit on windows" }, { "always_on_top", "Always on top" },
+                    { "mini_player", "Mini player" }, { "typing_sound", "Typing sound" }, { "follow_ups", "Follow-up messages" }, { "hide_in_full_screen", "Hide in full screen" }, { "glitch_in", "Glitch in at startup" }
+                };
+                Func<string, bool> real = delegate(string name)
+                {
+                    switch (name)
+                    {
+                        case "dance_to_music": return !preferences.NoDance;
+                        case "head_pats": return !preferences.NoHeadPats;
+                        case "chaos_when_upset": return preferences.UpsetChaos;
+                        case "sit_on_windows": return !preferences.NoSitting;
+                        case "always_on_top": return preferences.OnTop;
+                        case "mini_player": return !preferences.NoPlayer;
+                        case "typing_sound": return TypingSound;
+                        case "follow_ups": return preferences.FollowUps;
+                        case "hide_in_full_screen": return preferences.HideFullScreen;
+                        default: return !preferences.NoIntro;
+                    }
+                };
+                for (int i = 0; i < switches.GetLength(0); i++)
+                {
+                    string name = switches[i, 0];
+                    bool was = real(name);
+                    string flipped = Hands.Do("capri_settings", new ToolArguments { Action = was ? "off" : "on", Name = name });
+                    bool now = real(name), lifted = TopMost == preferences.OnTop;
+                    string back = Hands.Do("capri_settings", new ToolArguments { Action = was ? "on" : "off", Name = name });
+                    if (flipped != "Turned " + switches[i, 1] + (was ? " off." : " on.") || now == was || back != "Turned " + switches[i, 1] + (was ? " on." : " off.") || real(name) != was || name == "always_on_top" && !lifted)
+                        wrong.Add(name + ": " + flipped + " / " + back);
+                }
+                if (wrong.Count > 0) throw new Exception("Her settings tool didn't flip her real switches: " + string.Join(" | ", wrong.ToArray()));
+                SetCharacterSize(240);
+                SetWanderLevel(1);
+                SetPopPace(1);
+                SetSleepAfter(300);
+                SetVolume(80);
+                SetVoiceSpeed(120);
+                SetWordiness(1);
+                SetBubbleTime(1);
+                Func<string, string, string> set = delegate(string name, string level) { return Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = level }); };
+                string listed = Hands.Do("capri_settings", new ToolArguments { Action = "list" });
+                string bigger = set("size", "bigger"), giant = set("size", "giant"), wander = set("wander", "often"), still = set("wander", "off"), pops = set("pop_ins", "rarely"), sleep = set("sleep", "10 min");
+                string volume = set("volume", "50%"), speed = set("voice_speed", "faster"), replies = set("replies", "long"), bubble = set("bubble", "quick");
+                if (!listed.EndsWith("my size: Medium; Wander: Rarely; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal.", StringComparison.Ordinal)
+                    || bigger != "Set my size to Medium+." || giant != "Set my size to Giant." || preferences.Size != MaxSize || Size != CanvasSize(MaxSize)
+                    || wander != "Set Wander to Often." || still != "Set Wander to Off." || preferences.Wander || WanderLevel != 0 || preferences.WanderPace != 2
+                    || pops != "Set Pop-ins to Rarely." || preferences.PopPace != 0 || sleep != "Set Sleep to 10 min." || preferences.SleepAfter != 600
+                    || volume != "Set my voice's volume to 50%." || Voice.Loudness != 50 || preferences.Volume != 50 || speed != "Set my voice's speed to 1.3x." || VoiceFx.Speed != 130
+                    || replies != "Set Replies to Long." || Brain.Wordiness != 2 || bubble != "Set Bubble to Quick." || preferences.BubbleTime != 0 || asking != askingWas)
+                    throw new Exception("Her settings tool didn't move her real sliders: " + listed + " / " + bigger + " / " + giant + " / " + wander + " / " + still + " / " + pops + " / " + sleep + " / " + volume + " / " + speed + " / " + replies + " / " + bubble + " / asking moved " + (asking - askingWas));
+                checks.Add("PASS her settings tool flips Dance to music, Head pats, Chaos when upset, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen and Glitch in at startup the way their own switches do, moves her size, wander, pop-ins, sleep, voice volume and speed, replies and bubble the way her Mainframe's sliders do, reads each one back from the setting itself, and never talks over her brain's reply");
+            }
+            finally
+            {
+                Sfx.TypeOut = typeOutWas;
+                if (preferences.NoDance != danceWas) ToggleDance();
+                if (preferences.NoHeadPats != patsWas) ToggleHeadPats();
+                if (preferences.UpsetChaos != chaosWas) ToggleUpsetChaos();
+                if (preferences.NoSitting != sitWas) ToggleSitting();
+                if (preferences.OnTop != topWas) ToggleOnTop();
+                if (preferences.NoPlayer != playerWas) TogglePlayer();
+                if (preferences.FollowUps != followWas) ToggleFollowUps();
+                if (preferences.HideFullScreen != fullWas) ToggleHideFullScreen();
+                if (preferences.NoIntro != introWas) ToggleIntro();
+                preferences.Typing = typingWas;
+                if (preferences.Size != sizeWas) SetCharacterSize(sizeWas);
+                SetWanderLevel(wanderWas);
+                SetPopPace(popWas);
+                SetSleepAfter(sleepWas);
+                SetVolume(volumeWas);
+                SetVoiceSpeed(speedWas);
+                SetWordiness(wordsWas);
+                SetBubbleTime(bubbleWas);
+                SavePreferences();
+                mainframe.Sync();
+            }
+        }
     }
 }

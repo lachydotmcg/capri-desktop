@@ -2054,6 +2054,8 @@ namespace CapriDesktop
             // Her brain reads and flips her own switches, and sees which open windows are games, only when it asks.
             Hands.SettingOn = SettingOn;
             Hands.SetSetting = SetSetting;
+            Hands.LevelOf = LevelOf;
+            Hands.SetLevel = SetLevel;
             Hands.Gamey = Computer.IsGame;
             Hands.Icons = IconTool;
             Hands.Upset = UpsetTool;
@@ -7935,6 +7937,16 @@ namespace CapriDesktop
                 case "live_reactions": return ReactionsOn;
                 case "gaming_mode": return GamingWanted;
                 case "hologram": return preferences.Hologram;
+                case "dance_to_music": return Dancing;
+                case "head_pats": return HeadPats;
+                case "chaos_when_upset": return UpsetChaos;
+                case "sit_on_windows": return Sitting;
+                case "always_on_top": return OnTop;
+                case "mini_player": return PlayerOn;
+                case "typing_sound": return TypingSound;
+                case "follow_ups": return FollowUps;
+                case "hide_in_full_screen": return HideFullScreen;
+                case "glitch_in": return Intro;
                 default: return null;
             }
         }
@@ -7957,8 +7969,69 @@ namespace CapriDesktop
                 case "live_reactions": ToggleReactions(); return null;
                 case "gaming_mode": return GamingMode(on ? "on" : "off");
                 case "hologram": return HologramTool(on ? "on" : "off");
+                case "dance_to_music": ToggleDance(); return null;
+                case "head_pats": ToggleHeadPats(); return null;
+                case "chaos_when_upset": ToggleUpsetChaos(); return null;
+                case "sit_on_windows": ToggleSitting(); return null;
+                case "always_on_top": ToggleOnTop(); return null;
+                case "mini_player": TogglePlayer(); return null;
+                case "typing_sound": ToggleTyping(); return null;
+                case "follow_ups": ToggleFollowUps(); return null;
+                case "hide_in_full_screen": ToggleHideFullScreen(); return null;
+                case "glitch_in": ToggleIntro(); return null;
                 default: return null;
             }
+        }
+
+        // Her sliders' steps for her settings tool, the same ones her Mainframe's sliders stop on.
+        internal static readonly int[] OwnSizes = { 140, 170, 200, 240, 280, 320, 380, 440, 500, 560 };
+        internal static readonly int[] OwnSleeps = { 0, 60, 120, 300, 600, 1800 };
+        internal static readonly int[] OwnVolumes = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
+        internal static readonly int[] OwnPaces = { 70, 80, 90, 100, 110, 120, 130, 140, 150 };
+
+        private static int Nearest(int[] steps, int value)
+        {
+            int near = 0;
+            for (int i = 0; i < steps.Length; i++) if (Math.Abs(steps[i] - value) < Math.Abs(steps[near] - value)) near = i;
+            return near;
+        }
+
+        // Which step one of her sliders is on, read the way her Mainframe shows it.
+        private int LevelOf(string name)
+        {
+            if (InvokeRequired) return (int)Invoke(new Func<string, int>(LevelOf), name);
+            switch (name)
+            {
+                case "size": return Nearest(OwnSizes, CharacterSize);
+                case "wander": return WanderLevel;
+                case "pop_ins": return Math.Max(0, Math.Min(2, PopPace));
+                case "sleep": return Nearest(OwnSleeps, SleepAfter);
+                case "volume": return Nearest(OwnVolumes, Volume);
+                case "voice_speed": return Nearest(OwnPaces, VoiceSpeed);
+                case "replies": return Wordiness;
+                case "bubble": return BubbleTime;
+                default: return -1;
+            }
+        }
+
+        // Moves one of her sliders the way the slider in her Mainframe does, and shows it there, without her line about it.
+        private string SetLevel(string name, int step)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, int, string>(SetLevel), name, step);
+            switch (name)
+            {
+                case "size": SetCharacterSize(OwnSizes[Math.Max(0, Math.Min(OwnSizes.Length - 1, step))]); break;
+                case "wander": SetWanderLevel(step); break;
+                case "pop_ins": SetPopPace(step); break;
+                case "sleep": SetSleepAfter(OwnSleeps[Math.Max(0, Math.Min(OwnSleeps.Length - 1, step))]); break;
+                case "volume": SetVolume(OwnVolumes[Math.Max(0, Math.Min(OwnVolumes.Length - 1, step))]); break;
+                case "voice_speed": SetVoiceSpeed(OwnPaces[Math.Max(0, Math.Min(OwnPaces.Length - 1, step))]); break;
+                case "replies": SetWordiness(step); break;
+                case "bubble": SetBubbleTime(step); break;
+                default: return null;
+            }
+            if (mainframe != null) mainframe.Sync();
+            return null;
         }
 
         internal bool HologramOn { get { return preferences.Hologram; } }
@@ -18897,6 +18970,7 @@ namespace CapriDesktop
             Func<string, bool> existsWas = Hands.Exists;
             Func<string, bool?> settingWas = Hands.SettingOn;
             Func<string, bool, string> setWas = Hands.SetSetting;
+            Func<string, int> levelWas = Hands.LevelOf;
             Action<byte> pressWas = Hands.Press;
             Func<double?> volumeWas = Hands.VolumeNow;
             Func<bool?> muteWas = Hands.MuteState;
@@ -18976,10 +19050,13 @@ namespace CapriDesktop
                 // Her settings tool reads back what it changed, and says when something couldn't change.
                 System.Collections.Generic.Dictionary<string, bool?> state = new System.Collections.Generic.Dictionary<string, bool?>
                 {
-                    { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false }
+                    { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false },
+                    { "dance_to_music", true }, { "head_pats", true }, { "chaos_when_upset", false }, { "sit_on_windows", true }, { "always_on_top", true }, { "mini_player", true }, { "typing_sound", false }, { "follow_ups", true }, { "hide_in_full_screen", false }, { "glitch_in", true }
                 };
                 System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
                 Hands.SettingOn = delegate(string name) { return state[name]; };
+                // Her sliders have their own check (SmokeSettingsTool); here each sits on a fixed step.
+                Hands.LevelOf = delegate(string name) { return Array.IndexOf(new[] { "pop_ins", "replies", "bubble" }, name) >= 0 ? 1 : name == "size" ? 3 : name == "wander" ? 0 : name == "sleep" ? 3 : name == "volume" ? 8 : name == "voice_speed" ? 5 : -1; };
                 Hands.SetSetting = delegate(string name, bool on)
                 {
                     flipped.Add(name + (on ? " on" : " off"));
@@ -18990,7 +19067,9 @@ namespace CapriDesktop
                 string clipped = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "clip_my_games" }), again = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "clip_my_games" });
                 string silent = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "voice" }), deaf = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "mic" });
                 string stuck = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "wander" }), gaming = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "gaming_mode" });
-                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off."
+                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; "
+                    + "Dance to music on; Head pats on; Chaos when upset off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; "
+                    + "my size: Medium; Wander: Off; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal."
                     || clipped != "Turned Clip my games on." || again != "Clip my games was already on." || silent != "Turned my voice off." || deaf != "Couldn't change my voice chat mic: voice chat isn't on."
                     || stuck != "Couldn't turn Wander on: it's still off." || gaming != "Turned Gaming Mode off. Gaming Mode off." || string.Join(",", flipped.ToArray()) != "clip_my_games on,voice off,wander on,gaming_mode off" || !Hands.Failed(stuck) || !Hands.Failed(deaf))
                     throw new Exception("Her settings tool didn't read back what it changed: " + settings + " / " + clipped + " / " + again + " / " + silent + " / " + deaf + " / " + stuck + " / " + gaming + " / " + string.Join(",", flipped.ToArray()));
@@ -19083,6 +19162,7 @@ namespace CapriDesktop
                 Hands.Exists = existsWas;
                 Hands.SettingOn = settingWas;
                 Hands.SetSetting = setWas;
+                Hands.LevelOf = levelWas;
                 Hands.Press = pressWas;
                 Hands.VolumeNow = volumeWas;
                 Hands.MuteState = muteWas;
@@ -19128,8 +19208,9 @@ namespace CapriDesktop
                 string wanted = "Turned Clip my games on. | Turned Save big moments on. | Turned Clip my games off. | Turned Live reactions off. | Turned Check in on me off. | Turned Wander on. | Turned Quiet on. | Turned Quiet off. | Turned my voice off. | Turned my voice on. | "
                     + "Turned Hologram mode on. Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off. | Turned Hologram mode off. Hologram mode off. You can click me again." + (calling ? "" : " | Couldn't change my voice chat mic: voice chat isn't on.");
                 string joined = string.Join(" | ", said.ToArray());
-                if (listed != "How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off."
-                    || joined != wanted || preferences.ClipGames || preferences.ClipMoments || !preferences.NoReactions || preferences.CheckIns || !preferences.Wander || shushed || preferences.Silent || preferences.Hologram || asking != askingWas)
+                // Her other switches and sliders have their own check (SmokeOwnSliders).
+                if (!listed.StartsWith("How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off; ", StringComparison.Ordinal)
+                    || !listed.Contains("; Wander: Off; ") || !listed.EndsWith(".", StringComparison.Ordinal) || joined != wanted || preferences.ClipGames || preferences.ClipMoments || !preferences.NoReactions || preferences.CheckIns || !preferences.Wander || shushed || preferences.Silent || preferences.Hologram || asking != askingWas)
                     throw new Exception("Her settings tool didn't flip her real switches quietly: " + listed + " / " + joined + " / asking moved " + (asking - askingWas));
                 checks.Add("PASS her settings tool flips Clip my games, Save big moments, live reactions, Check in on me, Wander, Quiet, her voice and hologram mode the way their own switches do, says her voice chat mic needs voice chat, reads each one back, and never cuts off the reply her brain is writing");
             }
@@ -23298,6 +23379,8 @@ namespace CapriDesktop
             Section(checks, "SmokeOwnSettings", delegate { SmokeOwnSettings(checks); });
             Section(checks, "SmokeWindowTool", delegate { SmokeWindowTool(checks); });
             Section(checks, "SmokeWindowReal", delegate { SmokeWindowReal(checks); });
+            Section(checks, "SmokeSettingsTool", delegate { SmokeSettingsTool(checks); });
+            Section(checks, "SmokeOwnSliders", delegate { SmokeOwnSliders(checks); });
             Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
             Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
             Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
