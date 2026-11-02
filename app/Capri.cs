@@ -13742,14 +13742,14 @@ namespace CapriDesktop
                 chaosOwner.Ticked(chaosDue);
                 ChaosScreen chaosShown = chaosScreen;
                 if (chaosShown == null || !chaosShown.Visible || !chaosShown.Running || chaosShown.Bounds != chaosRoom || chaosShown.Canvas.Size != chaosRoom.Size
-                    || chaosShown.Canvas.GetPixel(0, 0).A != 255 || chaosShown.Canvas.GetPixel(chaosRoom.Width - 1, chaosRoom.Height - 1).A != 255)
-                    throw new Exception("Her fake crash did not cover the monitor she was on when it opened.");
+                    || chaosShown.Canvas.GetPixel(0, 0).ToArgb() != Color.FromArgb(0, 120, 215).ToArgb() || chaosShown.Canvas.GetPixel(chaosRoom.Width - 1, chaosRoom.Height - 1).ToArgb() != Color.FromArgb(0, 120, 215).ToArgb())
+                    throw new Exception("Her fake crash did not cover the monitor she was on with Windows' blue when it opened.");
                 int chaosStyle = Native.GetWindowLong(chaosShown.Handle, -20);
                 if ((chaosStyle & 0x08080088) != 0x08080088 || (chaosStyle & 0x00000020) != 0 || chaosShown.ShowInTaskbar || Native.GetForegroundWindow() != chaosFront
                     || Native.SendMessage(chaosShown.Handle, 0x0084, IntPtr.Zero, IntPtr.Zero) != new IntPtr(1)
                     || Native.SendMessage(chaosShown.Handle, 0x0021, IntPtr.Zero, IntPtr.Zero) != new IntPtr(3)) throw new Exception("Her fake crash took focus, passed clicks through or appeared in the taskbar.");
                 if (!chaosShown.Motion || chaosShown.Revealed || chaosShown.Percent != 0 || !chaosShown.Said.Contains("FAKE CRASH") || !chaosShown.Said.Contains(ChaosScreen.StopCode)) throw new Exception("Her crash was not clearly Capri's prank from the start.");
-                checks.Add("PASS chaos fake crash waits 40 to 120 seconds then covers her current monitor with an opaque Capri plate that accepts clicks without taking focus or a taskbar button");
+                checks.Add("PASS chaos fake crash waits 40 to 120 seconds then covers her current monitor with an opaque Windows-blue screen that accepts clicks without taking focus or a taskbar button");
 
                 chaosShown.Advance(clock.Elapsed.TotalSeconds + 1.5);
                 if (chaosShown.Percent <= 0 || chaosShown.Percent >= 100 || chaosShown.Revealed) throw new Exception("Her fake crash percent did not count up.");

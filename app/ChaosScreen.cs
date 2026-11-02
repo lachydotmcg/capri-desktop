@@ -7,11 +7,15 @@ using System.Windows.Forms;
 
 namespace CapriDesktop
 {
-    // Her crash is just a five-second plate in her own look, with a quick way out and no PC changes (Lachy, 2 Nov).
+    // Her crash is a five-second Windows blue screen, with a quick way out and no PC changes (Lachy, 2 Nov). It looks like Windows'
+    // own (Lachy, 3 Nov: "It should be like this instead!"); her stop code is the tell, and before it goes her ":(" turns to ":)".
     internal sealed class ChaosScreen : Overlay
     {
         internal const double Seconds = 5, RevealAt = 3.7;
-        internal const string Headline = "CAPRI.EXE\nHAS TAKEN OVER", StopCode = "CHOOM_OVERFLOW", Punchline = "jk. you're fine, choom";
+        internal const string StopCode = "CHOOM_OVERFLOW", Punchline = "jk. you're fine, choom";
+        // Windows' wording, broken where it breaks at 1080p.
+        private static readonly string[] Message = { "Your PC ran into a problem and needs to restart. We're", "just collecting some error info, and then we'll restart for", "you." };
+        private static readonly Color Blue = Color.FromArgb(0, 120, 215);
         private readonly Rectangle room;
         private readonly Stopwatch clock;
         private readonly Timer ticks = new Timer();
@@ -39,7 +43,7 @@ namespace CapriDesktop
 
         internal Bitmap Canvas { get { return surface == null ? null : surface.Image; } }
         internal bool Running { get { return ticks.Enabled; } }
-        internal string Said { get { return "CAPRI // CHAOS\nFAKE CRASH\n" + Headline + "\ntoo much of me. the desktop couldn't cope.\nstop code: " + StopCode + "\n" + Percent + "% Capri\n" + (Revealed ? Punchline : "no reboot. just me being a menace.") + "\nclick anywhere or press esc"; } }
+        internal string Said { get { return "CAPRI // CHAOS\nFAKE CRASH\n" + (Revealed ? ":)" : ":(") + "\n" + string.Join(" ", Message) + "\n" + (Revealed ? Punchline : Percent + "% complete") + "\nFor more information about this issue and possible fixes, visit https://www.windows.com/stopcode\nIf you call a support person, give them this info:\nStop code: " + StopCode + "\nclick anywhere or press esc"; } }
 
         internal bool Open()
         {
@@ -90,42 +94,56 @@ namespace CapriDesktop
             base.WndProc(ref message);
         }
 
+        // Laid out on Windows' own 1080p screen and scaled to fit hers.
         private void Render()
         {
             using (Graphics graphics = Graphics.FromImage(surface.Image))
             {
-                graphics.Clear(Neon.Ground);
-                float s = Math.Min(room.Width / 1120f, room.Height / 720f);
-                Neon.Backdrop(graphics, room.Size, 360 * s);
-                graphics.TranslateTransform((room.Width - 1000 * s) / 2, (room.Height - 600 * s) / 2);
+                graphics.Clear(Blue);
+                float s = Math.Min(room.Width / 1920f, room.Height / 1080f);
+                graphics.TranslateTransform((room.Width - 1920 * s) / 2, (room.Height - 1080 * s) / 2);
                 graphics.ScaleTransform(s, s);
-                using (GraphicsPath plate = Neon.Cut(new RectangleF(0, 0, 1000, 600), 32, 8, 32, 8))
-                using (Brush face = new SolidBrush(Neon.Ground)) graphics.FillPath(face, plate);
-                Neon.Frame(graphics, new Size(1000, 600), 1, 32, 8, 110, 65);
-                graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                using (Font small = Look.Mono(17, FontStyle.Regular))
-                using (Font text = Look.Mono(22, FontStyle.Regular))
-                using (Font title = Neon.Display(72, GraphicsUnit.Pixel))
-                using (Font count = Neon.Display(60, GraphicsUnit.Pixel))
-                using (Brush cyan = new SolidBrush(Neon.Cyan))
-                using (Brush rose = new SolidBrush(Neon.Rose))
-                using (Brush white = new SolidBrush(Neon.White))
-                using (Brush faint = new SolidBrush(Neon.Faint))
-                using (Brush well = new SolidBrush(Neon.Deep))
+                graphics.TextRenderingHint = TextRenderingHint.AntiAlias;
+                StringFormat exact = StringFormat.GenericTypographic;
+                using (Font face = new Font("Segoe UI Light", 195, GraphicsUnit.Pixel))
+                using (Font text = new Font("Segoe UI Light", 43, GraphicsUnit.Pixel))
+                using (Font small = new Font("Segoe UI", 19, GraphicsUnit.Pixel))
+                using (Brush white = new SolidBrush(Color.White))
+                using (Brush ink = new SolidBrush(Blue))
                 {
-                    graphics.DrawString("CAPRI // CHAOS", small, cyan, 48, 34);
-                    graphics.DrawString("FAKE CRASH", small, rose, 820, 34);
-                    graphics.DrawString(Headline, title, rose, new RectangleF(44, 91, 920, 185));
-                    graphics.DrawString("too much of me. the desktop couldn't cope.", text, white, 48, 290);
-                    graphics.DrawString("stop code: " + StopCode, small, cyan, 48, 338);
-                    graphics.DrawString(Percent + "%", count, cyan, 44, 380);
-                    graphics.DrawString("Capri", small, faint, 190, 412);
-                    for (int block = 0; block < 25; block++) graphics.FillRectangle(block * 4 < Percent ? cyan : well, 48 + block * 36, 459, 30, 8);
-                    graphics.DrawString(Revealed ? Punchline : "no reboot. just me being a menace.", text, Revealed ? cyan : white, 48, 489);
-                    graphics.DrawString("click anywhere or press esc", small, faint, 48, 552);
+                    graphics.DrawString(Revealed ? ":)" : ":(", face, white, 181, 123, exact);
+                    for (int line = 0; line < Message.Length; line++) graphics.DrawString(Message[line], text, white, 208, 388 + 64 * line, exact);
+                    graphics.DrawString(Revealed ? Punchline : Percent + "% complete", text, white, 208, 606, exact);
+                    graphics.FillRectangle(white, 208, 700, 108, 108);
+                    Code(graphics, ink, 208, 700, 4);
+                    graphics.DrawString("For more information about this issue and possible fixes, visit https://www.windows.com/stopcode", small, white, 343, 692, exact);
+                    graphics.DrawString("If you call a support person, give them this info:", small, white, 343, 760, exact);
+                    graphics.DrawString("Stop code: " + StopCode, small, white, 343, 794, exact);
+                    if (Revealed) graphics.DrawString("click anywhere or press esc", small, white, 343, 848, exact);
                 }
             }
             surface.Show(Handle, room.Location);
+        }
+
+        // A QR code's look, 25 cells with a one-cell white border: its three corner squares, timing lines and fixed noise. It
+        // doesn't scan to anything.
+        private static void Code(Graphics graphics, Brush ink, float x, float y, float cell)
+        {
+            const int cells = 25;
+            Random noise = new Random(51);
+            for (int row = 0; row < cells; row++)
+                for (int col = 0; col < cells; col++)
+                {
+                    bool coin = noise.Next(2) == 0;
+                    int r = row < 8 ? row : row >= cells - 8 ? row - (cells - 7) : -9;
+                    int c = col < 8 ? col : col >= cells - 8 ? col - (cells - 7) : -9;
+                    bool dark;
+                    if (r != -9 && c != -9 && !(row >= cells - 8 && col >= cells - 8))
+                        dark = r >= 0 && r <= 6 && c >= 0 && c <= 6 && (r == 0 || r == 6 || c == 0 || c == 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4));
+                    else if (row == 6 || col == 6) dark = (row + col) % 2 == 0;
+                    else dark = coin;
+                    if (dark) graphics.FillRectangle(ink, x + (col + 1) * cell, y + (row + 1) * cell, cell, cell);
+                }
         }
 
         protected override void Dispose(bool disposing)
