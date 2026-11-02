@@ -353,29 +353,48 @@ namespace CapriDesktop
                 List<string> ran = new List<string>();
                 string status = "Playing";
                 string apple = "playing\n";
+                bool noDbusSend = false;
                 try
                 {
                     Music.Run = delegate(string file, string[] args)
                     {
                         string line = file + " " + string.Join(" ", args);
                         ran.Add(line);
-                        if (line.Contains("ListNames")) return "method return\n   array [\n      string \"org.freedesktop.DBus\"\n      string \"org.mpris.MediaPlayer2.chromium.instance4021\"\n      string \"org.mpris.MediaPlayer2.spotify\"\n   ]\n";
+                        if (file == "dbus-send" && noDbusSend) return null;
+                        // gdbus answers in GVariant text.
+                        if (file == "gdbus" && line.Contains("ListNames")) return "(['org.freedesktop.DBus', ':1.42', 'org.mpris.MediaPlayer2.vlc'],)\n";
+                        if (file == "gdbus" && line.Contains("PlaybackStatus")) return "(<'" + status + "'>,)\n";
+                        if (file == "gdbus" && line.Contains("Metadata")) return "(<{'mpris:trackid': <objectpath '/org/videolan/vlc/playlist/3'>, 'xesam:title': <\"Don't Stop Me Now\">, 'xesam:artist': <['Queen']>}>,)\n";
+                        if (line.Contains("ListNames")) return "method return\n   array [\n      string \"org.freedesktop.DBus\"\n      string \"org.mpris.MediaPlayer2.kdeconnect.mpris_000001\"\n      string \"org.mpris.MediaPlayer2.chromium.instance4021\"\n   ]\n";
                         if (line.Contains("PlaybackStatus")) return "method return\n   variant       string \"" + status + "\"\n";
+                        // KDE Connect is playing nothing with a name, and the browser tab has a title.
+                        if (line.Contains("Metadata")) return line.Contains("chromium") ? "method return\n   variant       array [\n         dict entry(\n            string \"xesam:title\"\n            variant                string \"lofi hip hop radio - beats to relax/study to\"\n         )\n      ]\n" : "method return\n   variant       array [\n      ]\n";
                         if (file == "pgrep") return line.EndsWith(" Spotify", StringComparison.Ordinal) ? "4242\n" : null;
                         if (file == "osascript") return line.Contains("\"Spotify\"") ? apple : "";
                         return null;
                     };
                     bool linuxOn = Music.Linux();
                     bool macOn = Music.Mac();
+                    noDbusSend = true;
+                    bool glibOn = Music.Linux();
+                    noDbusSend = false;
                     status = "Paused";
                     apple = "paused\n";
                     bool linuxOff = Music.Linux();
                     bool macOff = Music.Mac();
+                    noDbusSend = true;
+                    bool glibOff = Music.Linux();
+                    noDbusSend = false;
                     string asked = string.Join(" / ", ran);
-                    if (!linuxOn || !macOn || linuxOff || macOff || asked.Contains("chromium") || !asked.Contains("--dest=org.mpris.MediaPlayer2.spotify") || !asked.Contains("pgrep -x Music") || asked.Contains("tell application \"Music\"") || !asked.Contains("tell application \"Spotify\" to get player state")) throw new Exception("Music detection read players wrong: " + asked);
+                    bool unnamed = !Music.Titled("(<{'xesam:title': <''>, 'xesam:artist': <@as []>}>,)\n") && !Music.Titled("method return\n   variant       array [\n         dict entry(\n            string \"xesam:title\"\n            variant                string \"\"\n         )\n      ]\n") && !Music.Titled(null);
+                    if (!linuxOn || !macOn || !glibOn || linuxOff || macOff || glibOff || !unnamed
+                        || !asked.Contains("--dest=org.mpris.MediaPlayer2.kdeconnect.mpris_000001 /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata")
+                        || !asked.Contains("--dest=org.mpris.MediaPlayer2.chromium.instance4021 /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata")
+                        || !asked.Contains("gdbus call --session --dest org.mpris.MediaPlayer2.vlc --object-path /org/mpris/MediaPlayer2 --method org.freedesktop.DBus.Properties.Get 'org.mpris.MediaPlayer2.Player' 'Metadata'")
+                        || !asked.Contains("pgrep -x Music") || asked.Contains("tell application \"Music\"") || !asked.Contains("tell application \"Spotify\" to get player state")) throw new Exception("Music detection read players wrong: " + asked);
                 }
                 finally { Music.Run = runWas; }
-                checks.Add("PASS music: Linux reads music players over D-Bus (not browsers), Mac asks Spotify and Music only when they're already running");
+                checks.Add("PASS music: on Linux any player over D-Bus that's playing something with a title or an artist counts, browsers, VLC and mpv too, but not one with nothing named, and gdbus asks when dbus-send is missing; Mac asks Spotify and Music only when they're already running");
                 List<string> songsAsked = new List<string>();
                 try
                 {
