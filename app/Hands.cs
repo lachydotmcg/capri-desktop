@@ -1563,7 +1563,8 @@ namespace CapriDesktop
         {
             if (tool == "clone") return CloneOn.IsMatch(text) || CloneOff.IsMatch(text);
             if (tool == "gaming_mode") return GamingFor(text) != null;
-            if (tool == "clip") return ClipSeconds(said) > 0;
+            // "Clip that" is her default length, which ClipSeconds gives as -1.
+            if (tool == "clip") return ClipSeconds(said) != 0;
             if (tool == "mini_game") return MiniName(text) != null || ChessAsk.IsMatch(text);
             if (tool == "listen") return ListenFor(said);
             if (tool == "watch_for")
