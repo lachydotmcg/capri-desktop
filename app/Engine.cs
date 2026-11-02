@@ -343,17 +343,38 @@ namespace CapriDesktop
                     Ensure(pick);
                     return;
                 }
-                try
-                {
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Address + "/health");
-                    request.Proxy = null;
-                    request.Timeout = 2000;
-                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse()) if (response.StatusCode == HttpStatusCode.OK) return;
-                }
-                catch (WebException) { }
+                if (Healthy()) return;
                 Thread.Sleep(400);
             }
             throw new BrainException("Brain loaded too slowly. Close games, press Refresh.");
+        }
+
+        private bool Healthy()
+        {
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(Address + "/health");
+                request.Proxy = null;
+                request.Timeout = 2000;
+                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse()) return response.StatusCode == HttpStatusCode.OK;
+            }
+            catch (WebException) { return false; }
+        }
+
+        // An ask that reaches her brain while it's still loading gets llama-server's 503 "Loading model": Ensure lets a second ask
+        // through once the server is started, like one sent while another ask restarts it with more memory. It waits for the load.
+        internal bool Settle()
+        {
+            Stopwatch waited = Stopwatch.StartNew();
+            while (waited.Elapsed.TotalSeconds < 180)
+            {
+                Process running;
+                lock (gate) running = server;
+                if (running == null || running.HasExited) return false;
+                if (Healthy()) return true;
+                Thread.Sleep(400);
+            }
+            return false;
         }
 
         internal static bool Lost(string problem) { return Regex.IsMatch(problem ?? "", @"ErrorDeviceLost|DEVICE_LOST|device lost|vk::", RegexOptions.IgnoreCase); }

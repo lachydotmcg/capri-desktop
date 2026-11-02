@@ -21729,11 +21729,14 @@ namespace CapriDesktop
                     Directory.CreateDirectory(Path.GetDirectoryName(modelFile));
                     File.WriteAllText(files.FileName, "");
                     File.WriteAllText(modelFile, "");
+                    string healthy = "{\"status\":\"ok\"}";
+                    string loading = "!503 {\"error\":{\"message\":\"Loading model\",\"type\":\"unavailable_error\",\"code\":503}}";
+                    string[][] launches = { new[] { healthy, tooLong }, new[] { healthy, answer }, new[] { healthy, tooLong }, new[] { healthy, loading, healthy, answer } };
                     Engine.Spawn = delegate(ProcessStartInfo info)
                     {
                         windows.Add(Regex.Match(info.Arguments, @" -c (\d+) ").Groups[1].Value);
                         System.Net.Sockets.TcpListener served;
-                        FakeServer(new[] { "{\"status\":\"ok\"}", windows.Count == 2 ? answer : tooLong }, roomAsked, out served, port: int.Parse(Regex.Match(info.Arguments, @"--port (\d+)").Groups[1].Value));
+                        FakeServer(launches[Math.Min(windows.Count, launches.Length) - 1], roomAsked, out served, port: int.Parse(Regex.Match(info.Arguments, @"--port (\d+)").Groups[1].Value));
                         engines.Add(served);
                         return Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true });
                     };
@@ -21746,6 +21749,11 @@ namespace CapriDesktop
                     catch (BrainException error) { picked = error.Message; }
                     if (picked != "That was too long for my brain's 4K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe." || string.Join(" ", windows.ToArray()) != "4096 8192 4096") throw new Exception("An ask longer than a memory size they picked didn't say how to give her more: " + picked + " / " + string.Join(" ", windows.ToArray()));
                     checks.Add("PASS long asks: an ask longer than Auto memory's 4K restarts her built-in brain once with 8K and answers, and one longer than a size they picked says to pick a bigger Memory size instead of llama-server's own words");
+                    // An ask that lands while her brain is still loading, like during another ask's restart, waits for it (Lean, 3 Nov).
+                    Brain.MemorySize = 8192;
+                    string waited = overflowing.Aside("Talk", "Hello", 90);
+                    if (waited != "Done." || string.Join(" ", windows.ToArray()) != "4096 8192 4096 8192") throw new Exception("An ask that came while her brain was loading didn't wait for it: " + waited + " / " + string.Join(" ", windows.ToArray()));
+                    checks.Add("PASS loading brain: an ask that gets llama-server's 503 Loading model, like one sent during another ask's restart, waits for her brain to load and asks once more");
                 }
                 finally
                 {

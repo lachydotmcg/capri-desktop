@@ -2582,6 +2582,7 @@ namespace CapriDesktop
                 catch (BrainException error)
                 {
                     if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
+                    if (error.Status == 503 && local.Settle()) return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                     garbled = error.Message == Gibberish;
                     if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
                     lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
