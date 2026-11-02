@@ -8,18 +8,24 @@ using System.Windows.Forms;
 namespace CapriDesktop
 {
     // Her crash is a five-second Windows blue screen, with a quick way out and no PC changes (Lachy, 2 Nov). It looks like Windows'
-    // own (Lachy, 3 Nov: "It should be like this instead!"); her stop code is the tell, and before it goes her ":(" turns to ":)".
+    // own (Lachy, 3 Nov: "It should be like this instead!"), with her asleep on its first line as if she crashed too (his pick of
+    // three mockups, 3 Nov). Her stop code is the tell, and when she owns up she glitches where she lies and her ":(" turns to ":)".
     internal sealed class ChaosScreen : Overlay
     {
         internal const double Seconds = 5, RevealAt = 3.7;
-        internal const string StopCode = "CHOOM_OVERFLOW", Punchline = "jk. you're fine, choom";
+        internal const string StopCode = "CHOOM_OVERFLOW", Failed = "capri.sys", Punchline = "jk. you're fine, choom";
         // Windows' wording, broken where it breaks at 1080p.
         private static readonly string[] Message = { "Your PC ran into a problem and needs to restart. We're", "just collecting some error info, and then we'll restart for", "you." };
         private static readonly Color Blue = Color.FromArgb(0, 120, 215);
+        // Where she lies on that 1080p screen: the middle of her lying cells, their top and her size. Her legs hang off the end of
+        // the first line.
+        internal const float LieMiddle = 1030, LieTop = 196, LieSize = 1.4f;
+        private const double FrameTime = 0.08;
         private readonly Rectangle room;
         private readonly Stopwatch clock;
         private readonly Timer ticks = new Timer();
         private readonly Func<bool> blocked;
+        private readonly Clip rest, glitch, talk;
         private Native.Surface surface;
         private double born, drawAt;
         internal readonly bool Motion;
@@ -27,12 +33,16 @@ namespace CapriDesktop
         internal bool Revealed;
         internal Func<bool> EscDown = delegate { return (Native.GetAsyncKeyState(0x1B) & 0x8000) != 0; };
 
-        internal ChaosScreen(Rectangle area, Stopwatch time, bool motion, Func<bool> fullScreen) : base("Capri fake crash")
+        // She sleeps in rest, glitches once in glitch when she owns up, then talks in talk: her lying clips.
+        internal ChaosScreen(Rectangle area, Stopwatch time, bool motion, Func<bool> fullScreen, Clip rest, Clip glitch, Clip talk) : base("Capri fake crash")
         {
             room = area;
             clock = time;
             Motion = motion;
             blocked = fullScreen;
+            this.rest = rest;
+            this.glitch = glitch;
+            this.talk = talk;
             ticks.Interval = 40;
             ticks.Tick += delegate
             {
@@ -43,7 +53,7 @@ namespace CapriDesktop
 
         internal Bitmap Canvas { get { return surface == null ? null : surface.Image; } }
         internal bool Running { get { return ticks.Enabled; } }
-        internal string Said { get { return "CAPRI // CHAOS\nFAKE CRASH\n" + (Revealed ? ":)" : ":(") + "\n" + string.Join(" ", Message) + "\n" + (Revealed ? Punchline : Percent + "% complete") + "\nFor more information about this issue and possible fixes, visit https://www.windows.com/stopcode\nIf you call a support person, give them this info:\nStop code: " + StopCode + "\nclick anywhere or press esc"; } }
+        internal string Said { get { return "CAPRI // CHAOS\nFAKE CRASH\n" + (Revealed ? ":)" : ":(") + "\n" + string.Join(" ", Message) + "\n" + (Revealed ? Punchline : Percent + "% complete") + "\nFor more information about this issue and possible fixes, visit https://www.windows.com/stopcode\nIf you call a support person, give them this info:\nStop code: " + StopCode + "\nWhat failed: " + Failed + "\nclick anywhere or press esc"; } }
 
         internal bool Open()
         {
@@ -53,7 +63,7 @@ namespace CapriDesktop
             born = clock.Elapsed.TotalSeconds;
             Percent = Motion ? 0 : 100;
             Revealed = !Motion;
-            Render();
+            Render(0);
             if (blocked()) return false;
             Show();
             Native.SetWindowPos(Handle, new IntPtr(-1), room.X, room.Y, room.Width, room.Height, 0x0010);
@@ -67,13 +77,12 @@ namespace CapriDesktop
             double passed = Math.Max(0, now - born);
             if (EscDown() || blocked() || passed >= Seconds) { Close(); return; }
             if (!Motion) return;
-            int percent = Math.Min(100, (int)(100 * passed / RevealAt));
             bool revealed = passed >= RevealAt;
-            if (Revealed == revealed && (now < drawAt || percent == Percent)) return;
-            Percent = percent;
+            if (Revealed == revealed && now < drawAt) return;
+            Percent = Math.Min(100, (int)(100 * passed / RevealAt));
             Revealed = revealed;
-            drawAt = now + 0.12;
-            Render();
+            drawAt = now + FrameTime;
+            Render(passed);
         }
 
         // She stays out of keyboard focus, so Esc is polled as well as handled here. Every mouse button dismisses her plate.
@@ -94,8 +103,8 @@ namespace CapriDesktop
             base.WndProc(ref message);
         }
 
-        // Laid out on Windows' own 1080p screen and scaled to fit hers.
-        private void Render()
+        // Laid out on Windows' own 1080p screen and scaled to fit hers. Owning up splits her ":)" and joke into her colours.
+        private void Render(double passed)
         {
             using (Graphics graphics = Graphics.FromImage(surface.Image))
             {
@@ -109,20 +118,50 @@ namespace CapriDesktop
                 using (Font text = new Font("Segoe UI Light", 43, GraphicsUnit.Pixel))
                 using (Font small = new Font("Segoe UI", 19, GraphicsUnit.Pixel))
                 using (Brush white = new SolidBrush(Color.White))
+                using (Brush hair = new SolidBrush(HudPaint.Hair))
+                using (Brush pink = new SolidBrush(Color.FromArgb(230, HudPaint.Hair)))
+                using (Brush green = new SolidBrush(Color.FromArgb(230, HudPaint.Skin)))
                 using (Brush ink = new SolidBrush(Blue))
                 {
-                    graphics.DrawString(Revealed ? ":)" : ":(", face, white, 181, 123, exact);
+                    if (Revealed) Split(graphics, ":)", face, hair, pink, green, 181, 123, 7);
+                    else graphics.DrawString(":(", face, white, 181, 123, exact);
                     for (int line = 0; line < Message.Length; line++) graphics.DrawString(Message[line], text, white, 208, 388 + 64 * line, exact);
-                    graphics.DrawString(Revealed ? Punchline : Percent + "% complete", text, white, 208, 606, exact);
+                    if (Revealed) Split(graphics, Punchline, text, white, pink, green, 208, 606, 3);
+                    else graphics.DrawString(Percent + "% complete", text, white, 208, 606, exact);
                     graphics.FillRectangle(white, 208, 700, 108, 108);
                     Code(graphics, ink, 208, 700, 4);
                     graphics.DrawString("For more information about this issue and possible fixes, visit https://www.windows.com/stopcode", small, white, 343, 692, exact);
                     graphics.DrawString("If you call a support person, give them this info:", small, white, 343, 760, exact);
                     graphics.DrawString("Stop code: " + StopCode, small, white, 343, 794, exact);
-                    if (Revealed) graphics.DrawString("click anywhere or press esc", small, white, 343, 848, exact);
+                    graphics.DrawString("What failed: " + Failed, small, white, 343, 828, exact);
+                    if (Revealed) graphics.DrawString("click anywhere or press esc", small, white, 343, 882, exact);
                 }
+                Her(graphics, passed);
             }
             surface.Show(Handle, room.Location);
+        }
+
+        private static void Split(Graphics graphics, string words, Font font, Brush top, Brush left, Brush right, float x, float y, float apart)
+        {
+            StringFormat exact = StringFormat.GenericTypographic;
+            graphics.DrawString(words, font, left, x - apart, y, exact);
+            graphics.DrawString(words, font, right, x + apart, y + 1, exact);
+            graphics.DrawString(words, font, top, x, y, exact);
+        }
+
+        // Her, over the first line: asleep until she owns up, then one glitch where she lies, then talking. Reduced motion
+        // keeps her still on her first talking frame.
+        private void Her(Graphics graphics, double passed)
+        {
+            double owned = passed - RevealAt, glitched = glitch.Count / glitch.Fps;
+            Clip clip = !Revealed ? rest : Motion && owned < glitched ? glitch : talk;
+            double into = !Revealed ? passed : !Motion ? 0 : clip == glitch ? owned : owned - glitched;
+            Bitmap strip = clip.Strip;
+            if (strip == null) return;
+            int wide = strip.Width / clip.Count, index = (int)(Math.Max(0, into) * clip.Fps) % clip.Count;
+            graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+            graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            graphics.DrawImage(strip, new RectangleF(LieMiddle - wide * LieSize / 2, LieTop, wide * LieSize, strip.Height * LieSize), new RectangleF(wide * index, 0, wide, strip.Height), GraphicsUnit.Pixel);
         }
 
         // A QR code's look, 25 cells with a one-cell white border: its three corner squares, timing lines and fixed noise. It
@@ -168,9 +207,13 @@ namespace CapriDesktop
         private void ChaosTick(double now)
         {
             if (cloneWindow == null || quitting) { ChaosOff(); return; }
-            if (chaosScreen != null || chaosScreenUsed || now < chaosScreenAt || ChaosHeld()) return;
+            if (chaosScreen != null || chaosScreenUsed || now < chaosScreenAt - 5) return;
+            bool held = ChaosHeld();
+            // Her lying art loads off her thread in the seconds before, so the crash doesn't hitch as it opens.
+            if (!held) { laydownSleep.Warm(false); laydownGlitch.Warm(false); laydownTalk.Warm(false); }
+            if (held || now < chaosScreenAt) return;
             Point centre = new Point(anchor.X + Width / 2, anchor.Y + Height / 2);
-            ChaosScreen opened = new ChaosScreen(Screen.FromPoint(centre).Bounds, clock, preferences.Motion, ChaosHeld);
+            ChaosScreen opened = new ChaosScreen(Screen.FromPoint(centre).Bounds, clock, preferences.Motion, ChaosHeld, laydownSleep, laydownGlitch, laydownTalk);
             try
             {
                 if (!opened.Open()) { opened.Dispose(); return; }

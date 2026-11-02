@@ -13751,19 +13751,39 @@ namespace CapriDesktop
                 if (!chaosShown.Motion || chaosShown.Revealed || chaosShown.Percent != 0 || !chaosShown.Said.Contains("FAKE CRASH") || !chaosShown.Said.Contains(ChaosScreen.StopCode)) throw new Exception("Her crash was not clearly Capri's prank from the start.");
                 checks.Add("PASS chaos fake crash waits 40 to 120 seconds then covers her current monitor with an opaque Windows-blue screen that accepts clicks without taking focus or a taskbar button");
 
+                // How much of a spot on Windows' 1080p screen is her hair pink, wherever that screen lands on this monitor.
+                Func<Bitmap, RectangleF, double> chaosPink = delegate(Bitmap shot, RectangleF spot)
+                {
+                    float scale = Math.Min(shot.Width / 1920f, shot.Height / 1080f), left = (shot.Width - 1920 * scale) / 2, top = (shot.Height - 1080 * scale) / 2;
+                    Rectangle area = Rectangle.Intersect(Rectangle.Round(new RectangleF(left + spot.X * scale, top + spot.Y * scale, spot.Width * scale, spot.Height * scale)), new Rectangle(Point.Empty, shot.Size));
+                    int pink = 0, seen = 0;
+                    for (int y = area.Top; y < area.Bottom; y += 2)
+                        for (int x = area.Left; x < area.Right; x += 2, seen++)
+                        {
+                            Color pixel = shot.GetPixel(x, y);
+                            if (pixel.R > 200 && pixel.G < 90 && pixel.B > 40 && pixel.B < 150) pink++;
+                        }
+                    return pink / (double)Math.Max(1, seen);
+                };
+                RectangleF chaosLying = new RectangleF(ChaosScreen.LieMiddle - 372 * ChaosScreen.LieSize / 2, ChaosScreen.LieTop, 372 * ChaosScreen.LieSize, 250 * ChaosScreen.LieSize);
+                RectangleF chaosFace = new RectangleF(170, 180, 180, 200);
                 chaosShown.Advance(clock.Elapsed.TotalSeconds + 1.5);
                 if (chaosShown.Percent <= 0 || chaosShown.Percent >= 100 || chaosShown.Revealed) throw new Exception("Her fake crash percent did not count up.");
                 chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash.png"), ImageFormat.Png);
+                double chaosAsleep = chaosPink(chaosShown.Canvas, chaosLying), chaosFrown = chaosPink(chaosShown.Canvas, chaosFace);
+                if (chaosAsleep < 0.05 || chaosFrown > 0) throw new Exception("Capri was not lying on her fake crash's first line under a white :( (" + chaosAsleep.ToString("0.000") + " of her spot and " + chaosFrown.ToString("0.000") + " of the face pink).");
                 chaosShown.Advance(clock.Elapsed.TotalSeconds + ChaosScreen.RevealAt + 0.05);
                 if (chaosShown.Percent != 100 || !chaosShown.Revealed || !chaosShown.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Her fake crash did not own up before leaving.");
                 chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-jk.png"), ImageFormat.Png);
+                double chaosOwned = chaosPink(chaosShown.Canvas, chaosLying), chaosSmile = chaosPink(chaosShown.Canvas, chaosFace);
+                if (chaosOwned < 0.05 || chaosSmile < 0.01) throw new Exception("Owning up lost Capri from the first line or her pink :) (" + chaosOwned.ToString("0.000") + " of her spot and " + chaosSmile.ToString("0.000") + " of the face pink).");
                 Native.SendMessage(chaosShown.Handle, 0x0100, new IntPtr((int)Keys.Escape), IntPtr.Zero);
                 if (chaosScreen != null || !chaosShown.IsDisposed || chaosShown.Running || chaosShown.Canvas != null) throw new Exception("Esc left her fake crash or its resources alive.");
                 chaosOwner.Ticked(chaosDue + 200);
                 Clone("spawn", 1);
                 chaosOwner.Ticked(chaosDue + 2000);
                 if (chaosScreen != null || !chaosScreenUsed || chaosScreenAt != chaosDue) throw new Exception("Her fake crash repeated within a Chaos session or adding a clone reset it.");
-                checks.Add("PASS chaos fake crash counts up, says jk before leaving, closes on Esc and cannot repeat when more clones join the same session");
+                checks.Add("PASS chaos fake crash counts up with Capri lying on its first line, says jk with a pink :) before leaving, closes on Esc and cannot repeat when more clones join the same session");
 
                 foreach (MouseButtons chaosButton in new[] { MouseButtons.Left, MouseButtons.Right, MouseButtons.Middle, MouseButtons.XButton1, MouseButtons.XButton2 })
                 {
@@ -13814,7 +13834,7 @@ namespace CapriDesktop
                 cloneWindow.Ticked(chaosWaitingAt + 602);
                 if (chaosScreen != null || !chaosDeferred.IsDisposed || chaosDeferred.Running || chaosDeferred.Canvas != null || !chaosScreenUsed) throw new Exception("A new full-screen foreground did not dismiss her fake crash without replaying it.");
                 int chaosGuardCalls = 0;
-                using (ChaosScreen chaosGuard = new ChaosScreen(chaosRoom, clock, true, delegate { return ++chaosGuardCalls > 1; }))
+                using (ChaosScreen chaosGuard = new ChaosScreen(chaosRoom, clock, true, delegate { return ++chaosGuardCalls > 1; }, laydownSleep, laydownGlitch, laydownTalk))
                 {
                     if (chaosGuard.Open() || chaosGuard.Visible || chaosGuard.Running || chaosGuardCalls != 2) throw new Exception("Her fake crash did not recheck full screen before showing.");
                 }
@@ -13841,6 +13861,7 @@ namespace CapriDesktop
                     chaosStill.Canvas.Save(chaosPng, ImageFormat.Png);
                     if (Convert.ToBase64String(chaosPng.ToArray()) != chaosPixels || chaosStill.Percent != 100 || !chaosStill.Revealed) throw new Exception("The reduced-motion fake crash moved or changed its text.");
                 }
+                if (chaosPink(chaosStill.Canvas, chaosLying) < 0.05) throw new Exception("The reduced-motion fake crash lost Capri from its first line.");
                 chaosStill.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-still.png"), ImageFormat.Png);
                 Action<double> chaosStale = cloneWindow.Ticked;
                 ClonesOff();
@@ -13852,7 +13873,7 @@ namespace CapriDesktop
                 if (chaosScreen != null || chaosScreenUsed || chaosNextAt == chaosDue) throw new Exception("An old Chaos callback opened the next session's prank or the delay was not rerolled.");
                 cloneWindow.Ticked(chaosNextAt);
                 if (chaosScreen == null) throw new Exception("Restarting Chaos did not arm a new fake crash.");
-                checks.Add("PASS chaos fake crash stays completely static with reduced motion, runs with Chaos when upset off for manual Chaos, cleans up on stop and rejects callbacks from an earlier session");
+                checks.Add("PASS chaos fake crash stays completely static with reduced motion and Capri still on its first line, runs with Chaos when upset off for manual Chaos, cleans up on stop and rejects callbacks from an earlier session");
 
                 ChaosScreen chaosDisplay = chaosScreen;
                 DisplaysChanged(null, EventArgs.Empty);
