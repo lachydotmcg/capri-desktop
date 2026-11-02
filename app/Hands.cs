@@ -104,7 +104,11 @@ namespace CapriDesktop
             "On: she opens them when you ask. Off: she asks first.",
             "On: she plays music and sets the volume. Off: she asks first.",
             "On: she presses them for you. Off: she asks first.",
+#if CROSS
             "On: she switches and closes them. Off: she asks first.",
+#else
+            "On: she switches, moves and closes them. Off: she asks first.",
+#endif
             "On: she does it as soon as you ask. Off: she asks first.",
             "On: she clicks and types in your apps. Off: she asks first.",
             "On: she sends it without checking again. Off: she asks first.",

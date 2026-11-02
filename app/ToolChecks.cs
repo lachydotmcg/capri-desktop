@@ -465,6 +465,47 @@ namespace CapriDesktop
             }
         }
 
+        // What she knows about herself and her help page cover her window tool, the settings she can change herself, pausing and
+        // timers, in the house style: exact menu names, short lines.
+        private static void SmokeHelpForTools(List<string> checks)
+        {
+            string[,] asks =
+            {
+                { "how do I move a window to my other monitor?", "Arrange windows:" }, { "can you snap my window to the left?", "Arrange windows:" },
+                { "what settings can you change yourself?", "Settings she can change:" }, { "can you make yourself bigger?", "Settings she can change:" },
+                { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" }
+            };
+            for (int i = 0; i < asks.GetLength(0); i++)
+            {
+                string found = SelfKnow.Matching(asks[i, 0]) ?? "";
+                if (!found.StartsWith(asks[i, 1], StringComparison.Ordinal)) throw new Exception("Self knowledge missed " + asks[i, 1] + " for: " + asks[i, 0] + " / " + found);
+            }
+            string doing = SelfKnow.Matching("what can you do?") ?? "", closing = SelfKnow.Matching("Explain the Close and switch apps and tabs setting") ?? "", sizing = SelfKnow.Matching("how do I make you bigger?") ?? "";
+            string changing = SelfKnow.Matching("what settings can you change yourself?") ?? "";
+            if (!doing.Contains("maximize, snap, move, resize") || !doing.Contains("changes her own settings when you ask") || !closing.Contains("maximizing, snapping, moving and resizing windows")
+                || !sizing.Contains("make yourself bigger or smaller works too") || !changing.Contains("Keys, brains, her voice service, SECURITY, Watch my screen, Comments, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
+                throw new Exception("Self knowledge didn't say what her tools do now: " + doing + " / " + closing + " / " + changing);
+            string root = null;
+            foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
+            {
+                for (System.IO.DirectoryInfo folder = new System.IO.DirectoryInfo(start); folder != null && root == null; folder = folder.Parent)
+                    if (System.IO.File.Exists(System.IO.Path.Combine(folder.FullName, "site", "help", "knowledge.md"))) root = folder.FullName;
+                if (root != null) break;
+            }
+            if (root == null)
+            {
+                checks.Add("PASS self knowledge covers her window tool, the settings she can change herself and Close and switch apps and tabs");
+                checks.Add("LIMIT her help page's new sections need the source tree; it is not beside this executable or working directory");
+                return;
+            }
+            string help = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "site", "help", "knowledge.md"));
+            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
+                if (help.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page is missing: " + part);
+            int from = help.IndexOf("### Move, snap and resize windows (0.8.0)", StringComparison.Ordinal), to = help.IndexOf("### Discord and Windows shortcuts", from, StringComparison.Ordinal);
+            if (to < from || help.Substring(from, to - from).IndexOf('\u2014') >= 0) throw new Exception("Her help page's new sections are out of place or use an em dash.");
+            checks.Add("PASS self knowledge and her help page cover her window tool, the settings she can change herself, pausing only what's playing, timers and Close and switch apps and tabs, with exact menu names");
+        }
+
         // Her settings tool's sliders and everyday switches on pretend settings: a step by name, by number or one step up or down,
         // read back afterwards, with the ends and a slider that won't move said plainly, and nothing she mustn't touch in reach
         // (Lachy, 3 Nov: "make yourself bigger" or "stop wandering" works through the brain).

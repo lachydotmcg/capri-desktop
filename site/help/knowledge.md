@@ -1115,7 +1115,8 @@ If her reply says she can't open, play or access something she can do (like "I d
 - "Pause", "next", "previous", "turn it up", "turn it down", "mute", "unmute", and other ways of saying them: "turn up the volume a bit", "it's too loud", "set the volume to 50%", "turn on the volume", "turn mute off", "skip to the next song". Spanish and French work too ("sube el volumen", "baisse le son").
 - These work on every brain, straight away, and even before you've set one up.
 - Volume means your PC's volume. She only drags Spotify's own slider when you say Spotify ("turn Spotify up").
-- "What's playing?"
+- "What's playing?" covers Spotify, a YouTube tab or any player Windows shows in its volume flyout, and says when it's paused.
+- From 0.8.0, pause and play go by what Windows says is playing: "pause" with nothing playing doesn't start your music ("Nothing's playing: Spotify is already paused on Consume by Chase Atlantic."), and "resume" with music on says it's already playing. "Next" and "previous" name the song they landed on.
 - "Play something": she picks from the Cyberpunk 2077 and Edgerunners soundtracks.
 - Name the artist for the best match.
 - "Opened X in Spotify, but couldn't press play. Hit the green Play button." Press Play yourself.
@@ -1125,6 +1126,21 @@ If her reply says she can't open, play or access something she can do (like "I d
 - "Switch to Discord", "Minimize Chrome", "Close Discord"
 - "Close the YouTube tab" closes that browser tab.
 - "Asked X to close, but it's still open. It might be asking you to save." Check that app.
+- An app that's only in the tray, like Discord, has no window to switch to or close: "Couldn't close Discord: it has no window open, but it's running in the background, maybe in the tray." Quit it from its tray icon, or ask her to open it to bring its window back.
+
+### Move, snap and resize windows (0.8.0)
+- "Maximize Chrome", "Restore Chrome", "Snap Discord to the left", "Put Spotify on the bottom half", "Send Discord to my other monitor", "Move Discord to my portrait monitor", "Move Notepad to the top right corner", "Center Spotify"
+- Sizes and exact places work too, best with a cloud brain: "Make Chrome 1280 by 800", "Make Spotify half as wide".
+- Monitors are named left to right: the main screen, screen 2, screen 3. "My portrait monitor", "the left monitor" and "the next screen" work too.
+- She says where the window ended up. An app with a smallest size stays that size and stays on screen: "Snapped Discord to the left half of screen 2, but it stayed 940 x 1872: that's as small as it goes."
+- Windows running as admin, like Task Manager, only move when Capri runs as admin too. An app that's frozen says "it isn't responding right now".
+- Close and switch apps and tabs in SECURITY covers these too. Windows only for now.
+
+### Her own settings (0.8.0)
+With a cloud brain, ask her to change her own settings and she says how each one is set afterwards: "make yourself bigger", "stop wandering", "talk a bit faster", "turn off head pats", "stop sitting on my windows".
+- Switches: her voice, Quiet, Check in on me, Dance to music, Head pats, Chaos when upset, Sit on windows, Always on top, Mini player, Typing sound, Follow-up messages, Hide in full screen, Glitch in at startup, Clip my games, Save big moments, Live reactions, Gaming Mode (only when you say Gaming Mode) and Hologram.
+- Sliders: Size, Wander, Pop-ins, Sleep, Volume, Speed, Replies and Bubble, a step at a time or to the step you name ("set your size to Large").
+- Keys, brains, her voice service, SECURITY, Watch my screen, Comments, Remember what she sees, Listen for "Hey Capri" and Remember our chats stay yours to change in the Mainframe.
 
 ### Discord and Windows shortcuts
 She presses the keys for you:
@@ -1193,7 +1209,7 @@ The toggles, in order:
 1. Open apps, games and sites
 2. Music, media and volume
 3. Shortcuts (screenshots, Game Bar, captions, Discord mute)
-4. Close and switch apps and tabs
+4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too.
 5. Shut down, restart, sleep, lock and sign out
 6. Use your mouse and keyboard for jobs. Off, she asks before a job with her pink pointer, and does music and video the quick way instead of with her cursor.
 7. Send, post and delete what you asked for. Off, she asks "Should I send "hi"?" even about a message you asked her to send.
@@ -1269,6 +1285,8 @@ She reacts as usual. A successful automatic save happens without a spoken announ
 
 ### Can she remind me later?
 Ask "remind me in 20 minutes to take the pizza out" or "remind me tomorrow at 9 to send the form". She uses your PC's local clock. Ask "list my reminders" or "cancel the pizza reminder" to manage them.
+
+Timers are reminders too (0.8.0): "set a timer for 10 minutes", "timer 30 seconds" or "start a 5 minute timer", and she says "Reminder: your 10 minute timer is done" when it's up.
 
 Reminders are saved in %LOCALAPPDATA%\Capri\reminders.json. Capri needs to be running to deliver them. If one became due while she was closed, she gives it as a late reminder when she starts again. Quiet, full-screen play and voice chat keep reminders as text. For regular water or stretch check-ins, use Settings > HABITS.
 
