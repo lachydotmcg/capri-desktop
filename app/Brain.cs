@@ -688,7 +688,29 @@ namespace CapriDesktop
             return wordy == 1 ? "\nThey picked longer replies: use up to four sentences, under 70 words." : wordy >= 2 ? "\nThey picked long replies: use up to a short paragraph, under 140 words." : "";
         }
 
-        internal static int Window { get { return MemorySize > 0 ? MemorySize : Recall > 8 ? 8192 : 4096; } }
+        // Auto memory grows when an ask outgrows it, like a 6,073-token ask on Auto's 4,096 that failed for a tester (3 Nov), and
+        // stays grown until she restarts.
+        internal static int Grown;
+        internal static int Window { get { return MemorySize > 0 ? MemorySize : Math.Max(System.Threading.Volatile.Read(ref Grown), Recall > 8 ? 8192 : 4096); } }
+
+        // llama-server's words for an ask longer than its window: "request (6073 tokens) exceeds the available context size (4096
+        // tokens), try increasing it".
+        private static readonly Regex Overflow = new Regex(@"exceeds the available context size", RegexOptions.IgnoreCase);
+        private const int AutoMost = 16384;
+
+        // The window an ask that overflowed needs on Auto memory: the next memory size that fits it and room for its reply, up to 16K.
+        // 0 when they picked a size or the ask is too long even for that.
+        internal static int Room(string problem, int was, int reply)
+        {
+            if (MemorySize > 0) return 0;
+            Match sized = Regex.Match(problem ?? "", @"\((\d+) tokens\) exceeds");
+            long asked;
+            long need = sized.Success && long.TryParse(sized.Groups[1].Value, out asked) ? asked + Math.Min(reply, 2048) : 2L * was;
+            foreach (int size in MemorySizes) if (size > was && size >= need && size <= AutoMost) return size;
+            return 0;
+        }
+
+        internal static string TooLong(int window) { return "That was too long for my brain's " + window / 1024 + "K memory. Pick a bigger Memory size " + BrainMenu + "."; }
 
         internal static int ReplyLimit(int automatic, bool job = false)
         {
@@ -2559,6 +2581,7 @@ namespace CapriDesktop
                 try { return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); }
                 catch (BrainException error)
                 {
+                    if (Overflow.IsMatch(error.Detail ?? error.Message)) return Roomier(local, error, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job);
                     garbled = error.Message == Gibberish;
                     if (local.CpuOnly || (!garbled && !Engine.Lost(error.Message))) throw;
                     lost = garbled ? "The graphics card garbled the brain's reply" : "Graphics card dropped the brain";
@@ -2608,6 +2631,21 @@ namespace CapriDesktop
             if (routing && chat.Stopped == "length") return CutShort(chat.Message.Content, Whole(chat), calls);
             if (chat.Message.Calls != null) foreach (ToolCall call in chat.Message.Calls) if (call != null && call.Function != null) calls.Add(new KeyValuePair<string, ToolArguments>(call.Function.Name, call.Function.Arguments));
             return chat.Message.Content;
+        }
+
+        // An ask longer than her built-in brain's window restarts it once with a window that fits, on Auto memory. A size they picked,
+        // or an ask too long even for 16K, says how to give her more instead of llama-server's own words.
+        private string Roomier(Engine local, BrainException error, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools, bool job)
+        {
+            int was = Window;
+            int room = Room(error.Detail ?? error.Message, was, ReplyLimit(limit, job || routing));
+            if (room == 0) throw new BrainException(TooLong(was), true);
+            Log(local.Address, -1, "An ask outgrew the brain's " + was + "-token memory, restarting it with " + room);
+            int before = System.Threading.Interlocked.Exchange(ref Grown, room);
+            try { local.Ensure(LocalPick); }
+            catch (BrainException) { System.Threading.Interlocked.Exchange(ref Grown, before); throw; }
+            try { return Complete(local.Address, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job); }
+            catch (BrainException again) { if (Overflow.IsMatch(again.Detail ?? again.Message)) throw new BrainException(TooLong(room), true); throw; }
         }
 
         // What each model takes for reasoning_effort, learned from errors. Empty means it takes none at all.

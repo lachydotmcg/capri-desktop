@@ -9701,9 +9701,9 @@ namespace CapriDesktop
             return 0;
         }
 
-        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0, string contentType = "application/json", string headers = "", ManualResetEvent release = null)
+        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0, string contentType = "application/json", string headers = "", ManualResetEvent release = null, int port = 0)
         {
-            System.Net.Sockets.TcpListener server = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+            System.Net.Sockets.TcpListener server = new System.Net.Sockets.TcpListener(IPAddress.Loopback, port);
             server.Start();
             listener = server;
             ThreadPool.QueueUserWorkItem(delegate
@@ -21708,6 +21708,53 @@ namespace CapriDesktop
                 local.Step("Tools", "Next", Hands.Tools, Hands.ClaudeTools, Hands.Listing, calls);
                 if (Brain.Field(Brain.Field(SentBody(asked[asked.Count - 1]), "options"), "num_predict") != "8192") throw new Exception("A job ignored a larger reply setting.");
                 checks.Add("PASS job allowances: Short keeps local steps, built-in jobs, local server tools, game pictures, asides and comments at their own defaults; Long raises smaller jobs, while deep game turns keep 16000 tokens, and Auto keeps 4096 for other driving");
+
+                // An ask longer than Auto memory's 4K window restarts her built-in brain once with room for it (_mamad and sniix, 3 Nov).
+                Brain.MemorySize = 0; Brain.ReplyLength = 0; Brain.Recall = 8;
+                if (Brain.Room("request (6073 tokens) exceeds the available context size (4096 tokens), try increasing it", 4096, 90) != 8192 || Brain.Room("request (4538 tokens) exceeds the available context size (4096 tokens), try increasing it", 4096, 4096) != 8192
+                    || Brain.Room("the request exceeds the available context size, try increasing it", 4096, 90) != 8192 || Brain.Room("request (15000 tokens) exceeds the available context size (8192 tokens), try increasing it", 8192, 2048) != 0)
+                    throw new Exception("An overflowing ask picked the wrong memory size.");
+                string overflowData = Path.Combine(Path.GetTempPath(), "capri-overflow-" + Guid.NewGuid().ToString("N"));
+                Func<ProcessStartInfo, Process> spawnWas = Engine.Spawn;
+                Engine roomy = new Engine(overflowData);
+                System.Collections.Generic.List<string> windows = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<string> roomAsked = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<System.Net.Sockets.TcpListener> engines = new System.Collections.Generic.List<System.Net.Sockets.TcpListener>();
+                string tooLong = "!400 {\"error\":{\"code\":400,\"message\":\"request (6073 tokens) exceeds the available context size (4096 tokens), try increasing it\",\"type\":\"exceed_context_size_error\",\"n_prompt_tokens\":6073,\"n_ctx\":4096}}";
+                try
+                {
+                    ProcessStartInfo files = roomy.StartInfo(Engine.Picks[2], false, false, 1);
+                    string modelFile = Regex.Match(files.Arguments, "-m \"([^\"]+)\"").Groups[1].Value;
+                    Directory.CreateDirectory(Path.GetDirectoryName(files.FileName));
+                    Directory.CreateDirectory(Path.GetDirectoryName(modelFile));
+                    File.WriteAllText(files.FileName, "");
+                    File.WriteAllText(modelFile, "");
+                    Engine.Spawn = delegate(ProcessStartInfo info)
+                    {
+                        windows.Add(Regex.Match(info.Arguments, @" -c (\d+) ").Groups[1].Value);
+                        System.Net.Sockets.TcpListener served;
+                        FakeServer(new[] { "{\"status\":\"ok\"}", windows.Count == 2 ? answer : tooLong }, roomAsked, out served, port: int.Parse(Regex.Match(info.Arguments, @"--port (\d+)").Groups[1].Value));
+                        engines.Add(served);
+                        return Process.Start(new ProcessStartInfo("ping.exe", "-n 30 127.0.0.1") { UseShellExecute = false, CreateNoWindow = true });
+                    };
+                    Brain overflowing = new Brain { Model = "test", Local = roomy, LocalPick = Engine.Picks[2] };
+                    string fits = overflowing.Aside("Talk", "Hello", 90);
+                    if (fits != "Done." || string.Join(" ", windows.ToArray()) != "4096 8192" || Brain.Window != 8192) throw new Exception("An ask longer than Auto memory didn't restart her brain with room for it: " + fits + " / " + string.Join(" ", windows.ToArray()));
+                    Brain.MemorySize = 4096;
+                    string picked = null;
+                    try { overflowing.Aside("Talk", "Hello", 90); }
+                    catch (BrainException error) { picked = error.Message; }
+                    if (picked != "That was too long for my brain's 4K memory. Pick a bigger Memory size under BRAIN in Capri Mainframe." || string.Join(" ", windows.ToArray()) != "4096 8192 4096") throw new Exception("An ask longer than a memory size they picked didn't say how to give her more: " + picked + " / " + string.Join(" ", windows.ToArray()));
+                    checks.Add("PASS long asks: an ask longer than Auto memory's 4K restarts her built-in brain once with 8K and answers, and one longer than a size they picked says to pick a bigger Memory size instead of llama-server's own words");
+                }
+                finally
+                {
+                    Engine.Spawn = spawnWas;
+                    roomy.Stop();
+                    foreach (System.Net.Sockets.TcpListener served in engines) served.Stop();
+                    Brain.Grown = 0;
+                    try { Directory.Delete(overflowData, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                }
             }
             catch (System.Net.Sockets.SocketException unavailable) { checks.Add("LIMIT brain request settings: loopback sockets unavailable here (" + unavailable.SocketErrorCode + ")"); }
             finally
