@@ -11,7 +11,7 @@ namespace CapriDesktop
     internal abstract class Dictation : IDisposable
     {
         internal const string PrivacyOff = "Online speech recognition is off in Windows. Turn it on in Settings > Privacy & security > Speech.";
-        internal const string MicBlocked = "Windows is blocking the mic. Turn on Let desktop apps access your microphone in Settings > Privacy & security > Microphone.";
+        internal const string MicBlocked = "Windows is blocking the mic. Turn on Microphone access and Let desktop apps access your microphone in Settings > Privacy & security > Microphone.";
         internal const string NoMic = "Windows can't find a mic. Plug one in, or pick one in Settings > System > Sound.";
         internal static Func<Dictation> Make = delegate { return new WindowsDictation(); };
         internal static Func<string> DefaultMic = delegate
@@ -78,7 +78,7 @@ namespace CapriDesktop
             {
                 string problem = null;
                 try { Open(); }
-                catch (Exception error) { problem = Explain(error); Close(); }
+                catch (Exception error) { problem = Explain(error); Brain.Log("ears", -1, "Windows speech failed (0x" + error.HResult.ToString("X8") + "): " + problem); Close(); }
                 started(problem);
             });
         }
@@ -119,6 +119,7 @@ namespace CapriDesktop
 
         private void Open()
         {
+            if (Ears.PrivacyBlocked()) throw new UnauthorizedAccessException(MicBlocked);
             Windows.Globalization.Language tongue = Tongue(Language);
             SpeechRecognizer made = tongue == null ? new SpeechRecognizer() : new SpeechRecognizer(tongue);
             lock (gate)
@@ -141,6 +142,8 @@ namespace CapriDesktop
                 began = DateTime.UtcNow;
             }
             made.ContinuousRecognitionSession.StartAsync().AsTask().Wait();
+            string mic = DefaultMic();
+            Brain.Log("ears", -1, "Windows speech opened default mic " + (mic ?? "unknown") + "; Windows speech manages its capture format and conversion.");
         }
 
         internal override void Hold(bool hold)
@@ -205,6 +208,7 @@ namespace CapriDesktop
             lock (gate)
             {
                 if (closed || !running) return;
+                Brain.Log("ears", -1, "Windows speech session ended: " + status + ".");
                 running = false;
                 quick = DateTime.UtcNow - began < TimeSpan.FromSeconds(5) ? quick + 1 : 0;
                 if (!fatal && quick < 3)
