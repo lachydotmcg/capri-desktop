@@ -1170,6 +1170,7 @@ namespace CapriDesktop
             }
             base.WndProc(ref message);
             if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
+            if (message.Msg == 0x007E || message.Msg == 0x02E0) Panels.Forget();
             if (message.Msg == 0x001A && loaded) { Rezoom(Wanted()); ShowFrameSize(); }
         }
 
@@ -1409,7 +1410,23 @@ namespace CapriDesktop
             [DllImport("user32.dll")] private static extern int QueryDisplayConfig(uint flags, ref uint pathCount, [Out] PathInfo[] paths, ref uint modeCount, [Out] ModeInfo[] modes, IntPtr topology);
             [DllImport("user32.dll")] private static extern int DisplayConfigGetDeviceInfo(ref PreferredMode request);
 
+            // Asking the display driver about a panel while a game runs full screen on it may upset the game, and the answer
+            // only changes with the displays, so each screen is asked once until they change (john_sandevistan, 2 Nov).
+            private static readonly Dictionary<string, float> asked = new Dictionary<string, float>();
+
+            internal static void Forget() { lock (asked) asked.Clear(); }
+
             internal static float Shrink(Screen screen)
+            {
+                string key = screen.DeviceName + " " + screen.Bounds;
+                float known;
+                lock (asked) if (asked.TryGetValue(key, out known)) return known;
+                known = Measure(screen);
+                lock (asked) asked[key] = known;
+                return known;
+            }
+
+            private static float Measure(Screen screen)
             {
                 try
                 {
