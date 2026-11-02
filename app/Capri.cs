@@ -1804,9 +1804,6 @@ namespace CapriDesktop
             menu.Items.Add(title);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
-            ToolStripMenuItem clipsItem = new ToolStripMenuItem("Open clips folder", null, delegate { OpenClips(); });
-            menu.Items.Add(clipsItem);
-            menu.Opening += delegate { clipsItem.Visible = preferences.ClipGames || Directory.Exists(ClipBuffer.Folder); };
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
             menu.Items.Add(visibilityItem);
             ToolStripMenuItem sizes = new ToolStripMenuItem("Size");
@@ -1842,6 +1839,10 @@ namespace CapriDesktop
             screenItem = new ToolStripMenuItem("Go to the next screen", null, delegate { MoveSelf("other_screen", null); });
             moves.DropDownItems.Add(screenItem);
             menu.Items.Add(moves);
+            // After Move, so the items above keep their places.
+            ToolStripMenuItem clipsItem = new ToolStripMenuItem("Open clips folder", null, delegate { OpenClips(); });
+            menu.Items.Add(clipsItem);
+            menu.Opening += delegate { clipsItem.Visible = preferences.ClipGames || Directory.Exists(ClipBuffer.Folder); };
             menu.Opening += delegate { if (ownRest) WakeRest(!SleepBusy); sitHereItem.Text = seat != null && seat.Free ? "Stand up" : "Sit here"; hangHereItem.Text = hanging ? "Let go" : "Hang here"; lieItem.Text = lying ? "Sit up" : "Lie down"; lieItem.Enabled = lying || (clip == perch && LieWay() != null); sleepItem.Text = napAsked || Asleep ? "Wake up" : "Go to sleep"; danceNowItem.Checked = danceAsked; screenItem.Visible = Screen.AllScreens.Length > 1; };
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
