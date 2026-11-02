@@ -12697,6 +12697,8 @@ namespace CapriDesktop
                 Hands.GameOpen = delegate { return null; };
                 Hands.Plan = delegate { return new System.Collections.Generic.KeyValuePair<string, ToolArguments>(); };
                 Hands.Finder = new FileFinder();
+                Hands.Finder.Roots = delegate { return new string[0]; };
+                Hands.Finder.Wider = delegate { return new string[0]; };
                 Hands.Websites = null;
                 Hands.Forget();
                 string[,] requests =
@@ -12826,6 +12828,76 @@ namespace CapriDesktop
                 checks.Add("PASS website nicknames: current and explicit addresses save next to her memories, reload, open as whole targets in the named browser, list and forget; an unreadable address asks for the URL without input, and page fields aren't address bars");
                 checks.Add("LIMIT live browser address bars: Chrome, Edge, Firefox, Opera, Opera GX, Brave and Vivaldi still need a live browser check");
 
+                string portalAddress = "http://example.com/StudentPortal?Token=AbC";
+                string[,] savedSites = { { "School Portal", portalAddress }, { "school", "https://example.com/School" }, { "\u00c9cole \u00e9t\u00e9", "https://example.com/Cours" }, { "\u73ed\u7ea7", "https://example.com/Class" }, { "Local Portal", "http://localhost:8765/LocalPath" } };
+                for (int siteIndex = 0; siteIndex < savedSites.GetLength(0); siteIndex++)
+                {
+                    string saveSite = "remember \"  " + savedSites[siteIndex, 0].Replace(" ", "   ") + "  \" as " + savedSites[siteIndex, 1];
+                    if (!Hands.Heard(saveSite, out heardTool, out heardArgs) || heardTool != "website_nickname" || !Hands.Wants(saveSite) || !Hands.Valid(heardTool, heardArgs) || !Hands.Instant(heardTool, heardArgs)) throw new Exception("Remember as went to ordinary notes or back to the planner: " + saveSite);
+                    picked.Clear();
+                    picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = saveSite }));
+                    Hands.Rescue(saveSite, picked);
+                    if (picked.Count != 1 || picked[0].Key != "website_nickname") throw new Exception("The brain kept a website in ordinary notes.");
+                    Hands.Do(picked[0].Key, picked[0].Value);
+                }
+                Hands.Do("website_nickname", new ToolArguments { Action = "save", Name = "  \"  Quoted   Name  \"  ", Site = "https://example.com/Quoted" });
+                if (Hands.Websites.Find("QUOTED NAME") != "https://example.com/Quoted") throw new Exception("A tool-saved quoted nickname kept spaces around its key.");
+                Hands.Websites = new Websites(fixture);
+                for (int siteIndex = 0; siteIndex < savedSites.GetLength(0); siteIndex++)
+                    if (Hands.Websites.Find(savedSites[siteIndex, 0].ToUpperInvariant()) != savedSites[siteIndex, 1]) throw new Exception("A spaced or non-English nickname lost its address on reload.");
+                checks.Add("PASS remember X as an address saves a website instead of a note, including quoted names, extra spaces, capitals and non-English names, and reload keeps the address");
+
+                string[,] siteRequests =
+                {
+                    { "open my school website", "school", "https://example.com/School" },
+                    { "go to SCHOOL PORTAL", "school portal", portalAddress },
+                    { "take me to my School Portal site", "school portal", portalAddress },
+                    { "open \"School Portal\"", "school portal", portalAddress },
+                    { "open my School Portal website in chrome", "school portal", portalAddress },
+                    { "open \u00c9COLE \u00c9T\u00c9", "\u00e9cole \u00e9t\u00e9", "https://example.com/Cours" },
+                    { "open \u73ed\u7ea7", "\u73ed\u7ea7", "https://example.com/Class" },
+                    { "open Local Portal", "local portal", "http://localhost:8765/LocalPath" }
+                };
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("School Portal", "school-app"), new InstalledApp("school", "school") }; };
+                Hands.Forget();
+                for (int siteIndex = 0; siteIndex < siteRequests.GetLength(0); siteIndex++)
+                {
+                    string opening = siteRequests[siteIndex, 0];
+                    if (!Hands.Heard(opening, out heardTool, out heardArgs) || heardTool != "open_website" || heardArgs.Site != siteRequests[siteIndex, 1] || !Hands.Wants(opening) || !Hands.Instant(heardTool, heardArgs)) throw new Exception("A saved nickname lost to a literal route or the planner: " + opening);
+                    Hands.Do(heardTool, heardArgs);
+                    if (!launches[launches.Count - 1].EndsWith(siteRequests[siteIndex, 2], StringComparison.Ordinal)) throw new Exception("A nickname's scheme or path case changed: " + opening);
+                    picked.Clear();
+                    picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = opening }));
+                    Hands.Rescue(opening, picked);
+                    if (picked.Count != 1 || picked[0].Key != "open_website" || picked[0].Value.Site != siteRequests[siteIndex, 1]) throw new Exception("The brain's literal app route escaped nickname lookup.");
+                }
+                foreach (string literalSite in new[] { "School Portal", "my SCHOOL PORTAL website", "the School Portal site" })
+                {
+                    Hands.Do("open_website", new ToolArguments { Site = literalSite });
+                    if (launches[launches.Count - 1] != portalAddress) throw new Exception("A brain's literal website target missed its saved nickname.");
+                }
+                picked.Clear();
+                picked.Add(new System.Collections.Generic.KeyValuePair<string, ToolArguments>("open_website", new ToolArguments { Site = "School Portal" }));
+                Hands.Rescue("ouvre School Portal", picked);
+                if (picked.Count != 1 || picked[0].Key != "open_website") throw new Exception("A non-English ask changed a saved website into an installed app.");
+                Hands.Do(picked[0].Key, picked[0].Value);
+                if (launches[launches.Count - 1] != portalAddress) throw new Exception("A non-English brain call missed its saved website.");
+                Hands.Websites.Do(new ToolArguments { Action = "save", Name = "my school website", Site = "https://example.com/Exact" });
+                if (Hands.Websites.Nickname("my school website") != "my school website" || Hands.Websites.Nickname("school portal extra") != null || Hands.Websites.Nickname("unknown website") != null) throw new Exception("Nickname decoration took over an exact name or part of a target.");
+                Hands.Websites.Do(new ToolArguments { Action = "forget", Name = "my school website" });
+                Hands.Websites.Do(new ToolArguments { Action = "save", Name = "my study website", Site = "https://example.com/Study" });
+                if (!Hands.Heard("go to study", out heardTool, out heardArgs) || heardTool != "open_website" || heardArgs.Site != "my study website") throw new Exception("A nickname saved with my and website could not be opened by its name.");
+                Hands.Do(heardTool, heardArgs);
+                if (launches[launches.Count - 1] != "https://example.com/Study" || !Hands.Heard("forget the study site", out heardTool, out heardArgs) || heardTool != "website_nickname") throw new Exception("A decorated saved nickname could not be opened or forgotten.");
+                Hands.Do(heardTool, heardArgs);
+                if (new Websites(fixture).Find("my study website") != null) throw new Exception("Forgetting a nickname's bare name left the saved entry behind.");
+                Hands.Websites.Do(new ToolArguments { Action = "save", Name = "my study website", Site = "https://example.com/Study" });
+                Hands.Websites.Do(new ToolArguments { Action = "save", Name = "study site", Site = "https://example.com/OtherStudy" });
+                if (Hands.Websites.Nickname("study") != null || Hands.Websites.Nickname("my study website") != "my study website") throw new Exception("An ambiguous shortened nickname picked an arbitrary saved entry or took over an exact name.");
+                if (!Hands.Heard("google school portal", out heardTool, out heardArgs) || heardArgs.Site != "google" || heardArgs.Search != "school portal") throw new Exception("A saved nickname swallowed an explicit web search.");
+                checks.Add("PASS local and brain website opens resolve my and website around whole nicknames before app routes, keep exact names first and explicit searches separate, and preserve URL scheme and path case");
+                checks.Add("PASS a brain's non-English website call keeps its nickname even when an installed app has the same name");
+
                 string gameFolder = Path.Combine(fixture, "Cyberpunk"), otherFolder = Path.Combine(fixture, "Cyberpunk 2077"), ignoredFolder = Path.Combine(fixture, @"node_modules\Cyberpunk");
                 Directory.CreateDirectory(Path.Combine(gameFolder, "Cyberpunk inside")); Directory.CreateDirectory(otherFolder); Directory.CreateDirectory(ignoredFolder);
                 Directory.CreateDirectory(Path.Combine(fixture, @"Shallow\Deeper\Cyberpunk deeper"));
@@ -12835,6 +12907,45 @@ namespace CapriDesktop
                 if (foundFiles.Count != 2 || foundFiles[0].Path != gameFolder || foundFiles[1].Path != otherFolder) throw new Exception("File search lost its nearest folder, duplicated a root, entered a cache, or dug below what it found.");
                 if (FileFinder.Search("deeper folder", new[] { fixture }, delegate { return false; }).Count != 1) throw new Exception("File search missed a folder further down.");
                 if (FileFinder.Search("cyberpunk", new[] { fixture }, delegate { return true; }).Count != 0) throw new Exception("A stopped scan kept searching.");
+
+                string namedFiles = Path.Combine(fixture, "Named files"), redirected = Path.Combine(fixture, "Redirected Downloads");
+                Directory.CreateDirectory(Path.Combine(namedFiles, "budget.xlsx"));
+                Directory.CreateDirectory(redirected);
+                File.WriteAllText(Path.Combine(namedFiles, "budget.xlsx.txt"), "names only");
+                File.WriteAllText(Path.Combine(namedFiles, "My File.txt"), "names only");
+                File.WriteAllText(Path.Combine(namedFiles, "My Folder.txt"), "names only");
+                File.WriteAllText(Path.Combine(namedFiles, "name.exe"), "names only");
+                File.WriteAllText(Path.Combine(redirected, "\u0411\u044e\u0434\u0436\u0435\u0442.pdf"), "names only");
+                foundFiles = FileFinder.Search("file by name budget.xlsx", new[] { namedFiles }, delegate { return false; });
+                if (foundFiles.Count != 1 || foundFiles[0].Path != Path.Combine(namedFiles, "budget.xlsx.txt")) throw new Exception("A file by name selected a directory or kept the words by name.");
+                foundFiles = FileFinder.Search("file called \"My File.txt\"", new[] { namedFiles }, delegate { return false; });
+                if (foundFiles.Count != 1 || foundFiles[0].Score != 1000 || foundFiles[0].Path != Path.Combine(namedFiles, "My File.txt")) throw new Exception("A quoted filename lost words from its name.");
+                if (FileFinder.Search("file called \"My Folder.txt\"", new[] { namedFiles }, delegate { return false; }).Count != 1 || FileFinder.Search("file by name name.exe", new[] { namedFiles }, delegate { return false; })[0].Score != 1000) throw new Exception("Words inside a literal filename became its kind or were removed.");
+                foundFiles = FileFinder.Search("\u043d\u0430\u0439\u0434\u0438 \u0444\u0430\u0439\u043b \"\u0411\u044e\u0434\u0436\u0435\u0442.pdf\"", new[] { redirected }, delegate { return false; });
+                if (foundFiles.Count != 1 || foundFiles[0].Path != Path.Combine(redirected, "\u0411\u044e\u0434\u0436\u0435\u0442.pdf")) throw new Exception("A quoted non-English filename became command words.");
+                checks.Add("PASS file by name and quoted literal names keep the filename, including non-English names, and an explicit file request skips a matching directory");
+
+                string slowRoot = Path.Combine(fixture, "Big Desktop"), deepFolder = Path.Combine(slowRoot, @"Nested\Deeper");
+                Directory.CreateDirectory(deepFolder);
+                File.WriteAllText(Path.Combine(deepFolder, "nearby.pdf"), "names only");
+                File.WriteAllText(Path.Combine(redirected, "nearby.pdf"), "names only");
+                System.Collections.Generic.HashSet<string> walked = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foundFiles = FileFinder.Search("nearby.pdf", new[] { slowRoot, redirected, redirected }, delegate { return false; }, walked);
+                if (foundFiles.Count != 1 || foundFiles[0].Path != Path.Combine(redirected, "nearby.pdf") || walked.Contains(deepFolder)) throw new Exception("An earlier deep root delayed a nearby result or duplicated the redirected root.");
+                for (int entryIndex = 0; entryIndex < 80; entryIndex++) File.WriteAllText(Path.Combine(slowRoot, "entry" + entryIndex + ".txt"), "names only");
+                int scanSteps = 0;
+                if (FileFinder.Search("not here.pdf", new[] { slowRoot }, delegate { return ++scanSteps > 20; }).Count != 0 || scanSteps > 30) throw new Exception("A large folder ignored cancellation between entries.");
+                checks.Add("PASS likely folders are checked together by depth so a deep first root cannot delay a nearby redirected-folder result, duplicate roots are skipped, and a large folder cancels between entries");
+                FileAttributes cloudFolder = FileAttributes.Directory | FileAttributes.ReparsePoint;
+                for (uint cloudTag = 0; cloudTag < 16; cloudTag++) if (!FileFinder.Follow(cloudFolder, 0x9000001A | cloudTag << 12)) throw new Exception("A OneDrive cloud folder was skipped.");
+                if (!FileFinder.Follow(FileAttributes.Directory, 0) || !FileFinder.Follow(cloudFolder, 0x80000021) || FileFinder.Follow(cloudFolder, 0xA0000003) || FileFinder.Follow(cloudFolder, 0xA000000C) || FileFinder.Follow(cloudFolder, 0)) throw new Exception("Cloud placeholders and looping junctions weren't distinguished.");
+                string cloudRoot = Path.Combine(fixture, "Cloud placeholders"), cloudChild = Path.Combine(cloudRoot, "Coursework");
+                Directory.CreateDirectory(cloudChild);
+                File.WriteAllText(Path.Combine(cloudChild, "cloud.pdf"), "names only");
+                foundFiles = FileFinder.Search("cloud.pdf", new[] { cloudRoot }, delegate { return false; }, null, delegate(FileSystemInfo entry) { return FileFinder.Follow(entry.Attributes | FileAttributes.ReparsePoint, 0x9000001A); });
+                if (foundFiles.Count != 1 || foundFiles[0].Path != Path.Combine(cloudChild, "cloud.pdf")) throw new Exception("A fake cloud placeholder hid a nested filename.");
+                if (FileFinder.Search("cloud.pdf", new[] { cloudRoot }, delegate { return false; }, null, delegate(FileSystemInfo entry) { return FileFinder.Follow(entry.Attributes | FileAttributes.ReparsePoint, 0xA0000003); }).Count != 0) throw new Exception("A fake junction was followed below the search root.");
+                checks.Add("PASS fake cloud reparse tags allow OneDrive subfolders while junctions, symlinks and unreadable tags stay out of recursive walks");
                 foreach (string ignored in new[] { "Windows", @"AppData\Local\Cache", @"AppData\Local\Temp", "node_modules", ".git", "__pycache__", ".venv" }) if (!FileFinder.Skip(Path.Combine(fixture, ignored))) throw new Exception("A broad scan enters " + ignored);
                 if (FileFinder.Skip(Path.Combine(fixture, @"AppData\Roaming\MyGame\Saves"))) throw new Exception("The cache skip hid saved game data.");
                 string steamFixture = Path.Combine(fixture, "Steam"), extraLibrary = Path.Combine(fixture, "Other library"), epicFixture = Path.Combine(fixture, "Manifests");
@@ -12845,7 +12956,7 @@ namespace CapriDesktop
                 string selectedFile = null, workerResult = null;
                 bool searchedOnWorker = false;
                 Hands.Finder.Roots = delegate { searchedOnWorker = Thread.CurrentThread.IsThreadPoolThread; return new[] { fixture }; };
-                Hands.Finder.Reveal = delegate(string selectedPath) { selectedFile = selectedPath; };
+                Hands.Finder.Reveal = delegate(string selectedPath) { selectedFile = selectedPath; return true; };
                 using (ManualResetEvent filesFinished = new ManualResetEvent(false))
                 {
                     ThreadPool.QueueUserWorkItem(delegate { try { workerResult = Computer.Do("find_file", new ToolArguments { Description = "cyberpunk game folder" }, null); } finally { filesFinished.Set(); } });
@@ -12858,6 +12969,14 @@ namespace CapriDesktop
                     Hands.Do(heardTool, heardArgs);
                     if (selectedFile != gameFolder || FileFinder.Explorer(selectedFile).Arguments != "/select,\"" + gameFolder + "\"") throw new Exception("Explorer did not select the first path.");
                 }
+                Hands.Finder.Reveal = delegate { return false; };
+                string failedSelection = Hands.Do("find_file", new ToolArguments { Action = "show" });
+                if (failedSelection != "Couldn't select that in File Explorer. Here's the path:\n" + gameFolder || Hands.Pulled(failedSelection) != failedSelection || !Hands.Finder.Found) throw new Exception("A failed Explorer selection claimed success, lost its path or prevented a retry.");
+                Hands.Finder.Reveal = delegate { throw new System.ComponentModel.Win32Exception("fake Explorer failure"); };
+                if (Hands.Do("find_file", new ToolArguments { Action = "show" }) != failedSelection) throw new Exception("An Explorer exception lost the path.");
+                Hands.Finder.Reveal = delegate(string selectedPath) { selectedFile = selectedPath; return true; };
+                if (Hands.Do("find_file", new ToolArguments { Action = "show" }) != "Selected " + gameFolder + " in File Explorer.") throw new Exception("Explorer selection couldn't be retried.");
+                checks.Add("PASS failed and throwing Explorer stand-ins return a copyable path without claiming selection, keep the result and allow a successful retry");
                 bool widened = false;
                 Hands.Finder.Roots = delegate { return new[] { gameFolder }; };
                 Hands.Finder.Wider = delegate { widened = true; return new[] { fixture }; };
@@ -12868,6 +12987,27 @@ namespace CapriDesktop
                 string findJson = "find_file{\"description\":\"cyberpunk game folder\"}";
                 if (!Hands.Typed(findJson, out heardTool, out heardArgs) || heardTool != "find_file" || !Hands.Valid(heardTool, heardArgs) || !Computer.Written(findJson, out heardTool, out heardArgs) || Computer.Moves(findJson).Count != 1 || !Hands.Tools.Contains("find_file") || !Hands.ClaudeTools.Contains("find_file") || !Computer.Tools.Contains("find_file") || !Computer.ClaudeTools.Contains("find_file") || !Computer.Toolset.Contains("find_file") || !Computer.Sees.Contains("find_file")) throw new Exception("A file-search tool surface is missing.");
                 if (!Hands.Heard("stop searching for files", out heardTool, out heardArgs) || heardTool != "find_file" || heardArgs.Action != "stop") throw new Exception("File search stop did not route.");
+                if (!Hands.Instant(heardTool, heardArgs) || !Hands.Heard("find budget.xlsx", out heardTool, out heardArgs) || !Hands.Instant(heardTool, heardArgs) || Hands.Instant("open_website", new ToolArguments { Site = "example.net" })) throw new Exception("A file request went back through the planner or an unknown website skipped it.");
+                string plannerApiWas = Brain.OpenAi;
+                System.Collections.Generic.List<string> plannerHttp = new System.Collections.Generic.List<string>(), plannerTools = new System.Collections.Generic.List<string>();
+                System.Net.Sockets.TcpListener plannerFake;
+                string unusedReply = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Smoke planner fallback.\"}}]}";
+                Brain.OpenAi = FakeServer(new[] { unusedReply, unusedReply, unusedReply, unusedReply }, plannerHttp, out plannerFake);
+                try
+                {
+                    Brain directBrain = new Brain { OwnSteps = true, Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Model = "gpt-5-mini" };
+                    directBrain.Act = delegate(string name, ToolArguments callArgs) { plannerTools.Add(name + ":" + (name == "open_website" ? callArgs.Site : callArgs.Action)); return "The closest match is a smoke fixture."; };
+                    if (!directBrain.WorksOut()) throw new Exception("The fake planning brain wasn't using its planner.");
+                    foreach (string directRequest in new[] { "remember lesson as example.com/Lesson", "open my school website", "find budget.xlsx", "stop searching for files" })
+                    {
+                        directBrain.Forget();
+                        directBrain.Ask(directRequest);
+                    }
+                    if (string.Join(",", plannerTools.ToArray()) != "website_nickname:save,open_website:school,find_file:search,find_file:stop") throw new Exception("The planning brain reinterpreted a known website or file request.");
+                    lock (plannerHttp) if (plannerHttp.Count != 0) throw new Exception("A known website or file request waited for a cloud planner.");
+                }
+                finally { Brain.OpenAi = plannerApiWas; plannerFake.Stop(); }
+                checks.Add("PASS known website and file routes stay direct on planning brains, including save, open, find and stop, while unknown website targets still reach the planner");
                 using (ManualResetEvent scanEntered = new ManualResetEvent(false))
                 using (ManualResetEvent scanRelease = new ManualResetEvent(false))
                 using (ManualResetEvent scanFinished = new ManualResetEvent(false))
@@ -12882,7 +13022,7 @@ namespace CapriDesktop
                     if (!scanFinished.WaitOne(5000) || cancelledScan != "Stopped looking for files." || Hands.Finder.Busy) throw new Exception("The active file scan ignored stop.");
                 }
                 checks.Add("PASS file search: names only, whole paths ranked by match, folders distinguished from files, the likely places before every drive, the shallowest matches without digging below them, duplicate roots and caches skipped, Steam and Epic custom locations read, worker results kept for chat and jobs, and show selects the first path; cancellation and spoken paths work");
-                checks.Add("LIMIT live drive permissions, Explorer selection and streamed voice display: file paths use local fixtures and a launch stand-in here");
+                checks.Add("LIMIT live drive permissions, OneDrive placeholders, blocked network folders, Explorer selection and streamed voice display: file paths and cloud metadata use local fixtures and stand-ins here");
                 if (!(SelfKnow.Matching("how does file search work") ?? "").Contains("worker") || !(SelfKnow.Matching("how do website nicknames work") ?? "").Contains("websites.json")) throw new Exception("Her help missed the new requests.");
                 checks.Add("PASS her help explains file search, website nicknames and Spotify's direct path with Use her cursor on or off");
             }
