@@ -7862,6 +7862,10 @@ namespace CapriDesktop
             }
         }
 
+        internal bool HologramOn { get { return preferences.Hologram; } }
+
+        internal void ToggleHologram() { SetHologram(!preferences.Hologram); }
+
         private void SetHologram(bool on)
         {
             preferences.Hologram = on;
@@ -7881,6 +7885,7 @@ namespace CapriDesktop
             PassThrough();
             RenderFrame();
             SavePreferences();
+            if (mainframe != null) mainframe.Sync();
         }
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
