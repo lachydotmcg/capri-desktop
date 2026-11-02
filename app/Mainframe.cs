@@ -239,7 +239,7 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 478 }, new[] { 550, 1037 }, new[] { 1120, 1172 }, new[] { 1200, 1256 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 478 }, new[] { 560, 1037 }, new[] { 1120, 1172 }, new[] { 1200, 1256 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 372, 754 }, new[] { 950, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
