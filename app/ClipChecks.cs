@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Runtime.Serialization.Json;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -217,7 +219,10 @@ namespace CapriDesktop
                 simpleTest = false;
                 mainframe.Restore();
                 mainframe.ShowSettings(true);
-                mainframe.CheckDisplayDeferral();
+                bool through = fullThrough;
+                try { mainframe.CheckDisplayDeferral(delegate(bool full) { fullThrough = full; }); }
+                finally { fullThrough = through; }
+                FrameGrab.CheckRecovery(checks);
                 SmokeFullscreenInput(checks);
                 mainframe.PickClipOptions(60, 24, 480, 4);
                 ClipSettings saved = ClipSettings.Read(LoadPreferences());
@@ -255,8 +260,79 @@ namespace CapriDesktop
                 else mainframe.WindowState = state;
             }
             checks.Add("PASS CLIPS has its own Mainframe section in Simple and Advanced Settings at 100, 150 and 200%; recording controls and folder changes save and apply without overlaps");
-            checks.Add("PASS fullscreen Mainframe reuses cached panel scaling or defers a cold driver query, including after display-cache invalidation");
+            checks.Add("PASS fullscreen Mainframe reuses cached panel scaling or defers a cold driver query, including after display-cache invalidation and a focus change during restore");
             checks.Add("LIMIT live clips: verify the chosen FPS, resolution, bitrate, sound and fullscreen transitions in a real game; no real desktop or audio devices changed by these fixtures");
+        }
+    }
+
+    internal sealed partial class FrameGrab
+    {
+        internal static void CheckRecovery(List<string> checks)
+        {
+            Rectangle bounds = new Rectangle(System.Windows.Forms.Screen.PrimaryScreen.Bounds.Location, new Size(8, 8));
+            long tick = 1;
+            int starts = 0, takes = 0, queries = 0;
+            FrameGrab healthy = null;
+            using (healthy = new FrameGrab(delegate { return tick; }, delegate { queries++; return true; }, delegate
+            {
+                starts++;
+                healthy.duplication = Marshal.GetIUnknownForObject(new object());
+                healthy.describe = delegate(IntPtr output, out OutputDesc value) { value = new OutputDesc { Attached = 1, Left = healthy.desktop.Left, Top = healthy.desktop.Top, Right = healthy.desktop.Right, Bottom = healthy.desktop.Bottom }; return 0; };
+                healthy.acquire = delegate(IntPtr duplicate, int timeout, out FrameInfo info, out IntPtr resource) { takes++; info = new FrameInfo(); resource = IntPtr.Zero; return WaitTimeout; };
+            }, delegate { throw new Exception("Healthy duplication fell back to GDI."); }))
+            {
+                healthy.Open(bounds);
+                for (int frame = 0; frame < 3; frame++) { tick += Stopwatch.Frequency * 3; healthy.Next(0); }
+                if (starts != 1 || takes != 3 || queries != 0) throw new Exception("Healthy fullscreen duplication was paused or restarted.");
+            }
+            bool busy = true;
+            int unsupported = 0, fallbacks = 0;
+            using (FrameGrab fallback = new FrameGrab(delegate { return tick; }, delegate { return busy; }, delegate { unsupported++; }, delegate { fallbacks++; return true; }))
+            {
+                fallback.Open(bounds);
+                for (int frame = 0; frame < 3; frame++) { tick += Stopwatch.Frequency * 3; fallback.Next(0); }
+                if (unsupported != 1 || fallbacks != 3) throw new Exception("An unsupported fullscreen output repeated DXGI setup or lost its fallback.");
+                busy = false;
+                tick += Stopwatch.Frequency;
+                fallback.Next(0);
+                if (unsupported != 2) throw new Exception("A windowed unsupported output stopped retrying DXGI setup.");
+            }
+            foreach (string failure in new[] { "next", "copy", "gray", "open" })
+            {
+                long now = 1;
+                bool full = true, failOpen = failure == "open";
+                int opens = 0, copies = 0;
+                int lost = failure == "next" ? unchecked((int)0x887A0005) : AccessLost;
+                using (FrameGrab grab = new FrameGrab(delegate { return now; }, delegate { return full; },
+                    delegate { opens++; if (failOpen) throw new COMException("Fake device creation failure", lost); },
+                    delegate { copies++; return true; }))
+                {
+                    grab.Open(bounds);
+                    if (opens != 1) throw new Exception("Fullscreen capture lost its initial device attempt.");
+                    if (!failOpen)
+                    {
+                        if (!grab.Next(0) || copies != 1) throw new Exception("Healthy fullscreen capture was paused.");
+                        grab.duplication = Marshal.GetIUnknownForObject(new object());
+                        grab.describe = delegate(IntPtr output, out OutputDesc value) { value = new OutputDesc(); return lost; };
+                        grab.map = delegate(IntPtr context, IntPtr texture, int subresource, int kind, int flags, out Mapped value) { value = new Mapped(); return lost; };
+                        if (failure == "next" && grab.Next(0)) throw new Exception("A failed capture returned a frame.");
+                        if (failure == "copy" && grab.Copy(8) != null) throw new Exception("A failed readback returned a picture.");
+                        if (failure == "gray" && grab.Gray(2, 2) != null) throw new Exception("A failed readback returned gray pixels.");
+                    }
+                    int before = copies;
+                    now += Stopwatch.Frequency;
+                    if (grab.Next(0) || opens != 1 || copies != before) throw new Exception("Capture bypassed its settle guard after " + failure + ".");
+                    now += Stopwatch.Frequency * 4;
+                    if (!grab.Next(0) || opens != 1 || copies != before + 1) throw new Exception("Fullscreen recovery restarted a device or lost its GDI fallback after " + failure + ".");
+                    now += Stopwatch.Frequency * 10;
+                    if (!grab.Next(0) || opens != 1) throw new Exception("Fullscreen recovery retried device creation after " + failure + ".");
+                    full = false;
+                    failOpen = false;
+                    now += Stopwatch.Frequency;
+                    if (!grab.Next(0) || opens != 2) throw new Exception("Capture did not reopen after leaving fullscreen after " + failure + ".");
+                }
+            }
+            checks.Add("PASS fake capture and readback failures settle before GDI fallback, defer D3D recreation and unsupported-output setup throughout fullscreen, and retry after leaving it; initial and healthy fullscreen capture stay available");
         }
     }
 }

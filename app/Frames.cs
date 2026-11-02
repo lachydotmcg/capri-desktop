@@ -8,11 +8,15 @@ using System.Windows.Forms;
 
 namespace CapriDesktop
 {
-    internal sealed class FrameGrab : IDisposable
+    internal sealed partial class FrameGrab : IDisposable
     {
         private const int AccessLost = unchecked((int)0x887A0026);
         private const int WaitTimeout = unchecked((int)0x887A0027);
         private readonly object gate = new object();
+        private readonly Func<long> clock;
+        private readonly Func<bool> fullScreen;
+        private readonly Action openDisplay;
+        private readonly Func<bool> copyScreen;
         private Rectangle wanted, area, desktop;
         private IntPtr output, device, context, duplication, staging;
         private OutputDesc outputDesc;
@@ -30,6 +34,14 @@ namespace CapriDesktop
         private int counted;
         private double fps;
 
+        internal FrameGrab(Func<long> time = null, Func<bool> full = null, Action open = null, Func<bool> copy = null)
+        {
+            clock = time ?? Stopwatch.GetTimestamp;
+            fullScreen = full ?? Native.FillsScreen;
+            openDisplay = open ?? OpenDuplication;
+            copyScreen = copy ?? CopyDesktop;
+        }
+
         internal string Live { get { lock (gate) return !opened ? "Closed" : duplication != IntPtr.Zero ? "DXGI Desktop Duplication" : "Graphics.CopyFromScreen"; } }
         internal double Fps { get { lock (gate) return fps; } }
 
@@ -42,8 +54,9 @@ namespace CapriDesktop
                 wanted = bounds;
                 opened = true;
                 counted = 0;
-                countedAt = Stopwatch.GetTimestamp();
+                countedAt = clock();
                 fps = 0;
+                retryAt = settleUntil = 0;
                 Reopen();
             }
         }
@@ -54,15 +67,15 @@ namespace CapriDesktop
             if (fallback != null) { fallback.Dispose(); fallback = null; }
             desktop = Screen.FromRectangle(wanted).Bounds;
             area = CaptureArea(wanted, SystemInformation.VirtualScreen);
-            try { if (desktop.Contains(area)) OpenDuplication(); }
-            catch (Exception) { CloseDuplication(); }
-            retryAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 2;
+            try { if (desktop.Contains(area)) openDisplay(); }
+            catch (Exception) { Settle(); }
+            retryAt = clock() + Stopwatch.Frequency * 2;
         }
 
         private void Settle()
         {
             CloseDuplication();
-            retryAt = settleUntil = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 3 / 2;
+            retryAt = settleUntil = clock() + Stopwatch.Frequency * 3 / 2;
         }
 
         internal static Rectangle CaptureArea(Rectangle bounds, Rectangle screens) { return Rectangle.Intersect(bounds, screens); }
@@ -143,8 +156,14 @@ namespace CapriDesktop
                 // Lost to a mode change or a window taking the screen, it waits for that to settle before it tries again, even by
                 // copying the screen: a new device on every frame meanwhile can hang the graphics driver under a game
                 // (john_sandevistan, 2 Nov: Valorant crashed as the Mainframe opened).
-                if (Stopwatch.GetTimestamp() < settleUntil) return false;
-                if (duplication == IntPtr.Zero && Stopwatch.GetTimestamp() >= retryAt) Reopen();
+                long now = clock();
+                if (now < settleUntil) return false;
+                if (duplication == IntPtr.Zero && now >= retryAt)
+                {
+                    if (fullScreen()) retryAt = now + Stopwatch.Frequency / 2;
+                    else Reopen();
+                    if (clock() < settleUntil) return false;
+                }
                 if (duplication != IntPtr.Zero)
                 {
                     try
@@ -159,18 +178,16 @@ namespace CapriDesktop
                             return true;
                         }
                     }
-                    catch (COMException frameError)
+                    catch (COMException)
                     {
-                        if (frameError.ErrorCode == AccessLost) { Settle(); return false; }
-                        CloseDuplication();
-                        retryAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 2;
+                        Settle();
+                        return false;
                     }
                 }
                 if (area.Width <= 0 || area.Height <= 0) return false;
                 try
                 {
-                    if (fallback == null) fallback = new Bitmap(area.Width, area.Height, PixelFormat.Format32bppRgb);
-                    using (Graphics graphics = Graphics.FromImage(fallback)) graphics.CopyFromScreen(area.Location, Point.Empty, area.Size, CopyPixelOperation.SourceCopy);
+                    if (!copyScreen()) return false;
                     ready = true;
                     Count();
                     return true;
@@ -178,6 +195,13 @@ namespace CapriDesktop
                 catch (System.ComponentModel.Win32Exception) { ready = false; return false; }
                 catch (ExternalException) { ready = false; return false; }
             }
+        }
+
+        private bool CopyDesktop()
+        {
+            if (fallback == null) fallback = new Bitmap(area.Width, area.Height, PixelFormat.Format32bppRgb);
+            using (Graphics graphics = Graphics.FromImage(fallback)) graphics.CopyFromScreen(area.Location, Point.Empty, area.Size, CopyPixelOperation.SourceCopy);
+            return true;
         }
 
         private bool Take(int timeoutMs)
@@ -233,7 +257,7 @@ namespace CapriDesktop
         private void Count()
         {
             counted++;
-            long now = Stopwatch.GetTimestamp();
+            long now = clock();
             double elapsed = (double)(now - countedAt) / Stopwatch.Frequency;
             if (elapsed < 0.5) return;
             fps = counted / elapsed;
@@ -309,7 +333,7 @@ namespace CapriDesktop
                     }
                     catch { small.Dispose(); throw; }
                 }
-                catch (COMException) { CloseDuplication(); return null; }
+                catch (COMException) { Settle(); return null; }
                 finally { if (full != null) full.Dispose(); }
             }
         }
@@ -329,7 +353,7 @@ namespace CapriDesktop
                     try { return Downsample(source, area.Width, area.Height, across, down, width, height); }
                     finally { Unread(locked); }
                 }
-                catch (COMException) { CloseDuplication(); return null; }
+                catch (COMException) { Settle(); return null; }
             }
         }
 
