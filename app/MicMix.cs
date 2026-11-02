@@ -7,16 +7,21 @@ using System.Threading;
 
 namespace CapriDesktop
 {
-    // An audio device her mic mix uses: their mic, or VB-CABLE's input.
+    // An audio device her mic mix uses: their mic, or the virtual cable's input, VB-CABLE's or Steam's.
     internal sealed class MixDevice
     {
         internal readonly string Id;
         internal readonly string Name;
+        // For a cable, the mic it comes out of, which Discord or Roblox hears, or null when Windows doesn't list it.
+        internal readonly string Far;
 
-        internal MixDevice(string id, string name)
+        internal MixDevice(string id, string name) : this(id, name, null) { }
+
+        internal MixDevice(string id, string name, string far)
         {
             Id = id;
             Name = name;
+            Far = far;
         }
     }
 
@@ -54,19 +59,24 @@ namespace CapriDesktop
     // Where her mix finds its devices, so the smoke test can hand it stand-ins and never open a real one.
     internal interface IMixDevices
     {
-        // VB-CABLE's render device, the one with "CABLE Input" in its name, or null when there's none.
+        // The cable's render device: VB-CABLE's, the one with "CABLE Input" in its name, else Steam's virtual mic, else null.
         MixDevice Cable();
+        // How many dB Windows' volume on the cable's far end adds, and whether Windows has it muted. 0 when it can't say.
+        double Boost(MixDevice cable, out bool muted);
         // The mic for their pick: the picked one while it's plugged in, else Windows' default, else any other, but never a
-        // VB-CABLE output. Null when there's no mic.
+        // cable's far end. Null when there's no mic.
         MixDevice Mic(string chosen);
         IMixMic OpenMic(MixDevice mic);
         IMixCable OpenCable(MixDevice cable);
     }
 
-    // Her voice in your mic (F66, Lachy: "OPTION B!!"). Windows can't make a new mic without a driver, so they install the free
-    // VB-CABLE themselves. While the switch is on she plays their real mic plus her voice into CABLE Input, they pick CABLE
-    // Output as the mic in Discord or Roblox, and friends hear them both. Her voice still plays on their speakers, her sound
-    // effects stay out, and her own ears never listen to CABLE Output.
+    // Her voice in your mic (F66, Lachy: "OPTION B!!"). Windows can't make a new mic without a driver, so she plays into a
+    // virtual cable: VB-CABLE when it's there, else Steam's own virtual mic, which Steam puts on many gamers' PCs. Without either,
+    // Settings runs VB-Audio's own VB-CABLE setup from the copy she carries (CableSetup). While the switch is on she plays their
+    // real mic plus her voice into the cable, they pick its far end (CABLE Output, or Steam Streaming Microphone) as the mic in
+    // Discord or Roblox, and friends hear them both. Her voice still plays on their speakers, her sound effects stay out, and
+    // her own ears never listen to the cable's far end. Steam's far end turns everything up 30 dB through Windows' own volume on
+    // it, so she plays under by whatever that volume adds.
     //
     // One thread does it all. Each wake it takes the mic's new packets, resampled to the cable's rate into a short queue, then
     // tops the cable up to two of Windows' periods with that queue and her voice added in, through a soft limiter. The queue
@@ -77,9 +87,10 @@ namespace CapriDesktop
     // and every two seconds she checks they still have the mic and cable she should be using.
     internal sealed class MicMix : IDisposable
     {
-        internal const string CablePage = "https://vb-audio.com/Cable/";
         internal const string Missing = "Needs VB-CABLE (free).";
-        internal const string Unopened = "CABLE Input won't open. Trying again.";
+        internal const string Unopened = "The virtual mic won't open. Trying again.";
+        // What they pick in Discord or Roblox for each cable.
+        internal const string CableEnd = "CABLE Output", SteamEnd = "Steam Streaming Microphone";
         internal const string NoMic = "No mic found, so only her voice goes in.";
         internal const string MicGone = "Your mic won't open, so only her voice goes in.";
         // Where she finds the mic and the cable. The smoke test swaps in stand-ins.
@@ -122,8 +133,10 @@ namespace CapriDesktop
         private WaitHandle[] handles;
         private double cableAt, micAt, lookAt, heardAt;
         private int target, period, cushion, jump;
-        private bool steering;
+        private bool steering, farMuted;
         private double level, held, steeredAt;
+        // What the mix is played at, under 1 when Windows turns the cable's far end up.
+        private float trim = 1;
         private string cableProblem, micProblem, logged;
 
         internal MicMix(IMixDevices devices, Func<double> clock)
@@ -149,16 +162,46 @@ namespace CapriDesktop
         internal double Steered { get { MixResampler resampler = micRate; return resampler == null ? 0 : resampler.Step / resampler.Ratio - 1; } }
 
         // VB-CABLE's two ends: CABLE Input, which she plays into, and CABLE Output, which Discord or Roblox hears. A renamed one still
-        // has VB-Audio's own name for the cable in brackets after it.
+        // has VB-Audio's own name for the cable in brackets after it. Steam's virtual mic has the same name on both ends, "Speakers
+        // (Steam Streaming Microphone)" to play into and "Microphone (Steam Streaming Microphone)" to hear.
         private static readonly Regex InputName = new Regex(@"\bCABLE\s+Input\b|VB-Audio Virtual Cable", RegexOptions.IgnoreCase);
-        private static readonly Regex OutputName = new Regex(@"\bCABLE(?:-\w+)?\s+Output\b|VB-Audio Virtual Cable", RegexOptions.IgnoreCase);
+        private static readonly Regex OutputName = new Regex(@"\bCABLE(?:-\w+)?\s+Output\b|VB-Audio Virtual Cable|Steam Streaming Microphone", RegexOptions.IgnoreCase);
+        private static readonly Regex PlainOutput = new Regex(@"\bCABLE\s+Output\b", RegexOptions.IgnoreCase);
+        private static readonly Regex SteamName = new Regex(@"Steam Streaming Microphone", RegexOptions.IgnoreCase);
 
         internal static bool IsCableIn(string name) { return !string.IsNullOrEmpty(name) && InputName.IsMatch(name); }
 
+        // A cable's far end, VB-CABLE's or Steam's, which carries her voice while it's in their mic.
         internal static bool IsCableOut(string name) { return !string.IsNullOrEmpty(name) && OutputName.IsMatch(name); }
 
-        // The mic for a pick from Windows' active mics: the picked one, else Windows' default, else the first, but never a VB-CABLE
-        // output, which carries her own voice while it's in their mic. Null when there's no other mic.
+        internal static bool IsSteam(string name) { return !string.IsNullOrEmpty(name) && SteamName.IsMatch(name); }
+
+        // The end they pick as their mic in Discord or Roblox for a cable.
+        internal static string EndOf(MixDevice cable) { return cable != null && IsSteam(cable.Name) ? SteamEnd : CableEnd; }
+
+        // Settings' note for an end, short enough for its column.
+        internal static string PickLine(string end) { return end == SteamEnd ? "Pick Steam Streaming Microphone in Discord or Roblox." : "Pick " + end + " as your mic in Discord or Roblox."; }
+
+        // The cable from Windows' active speakers: VB-CABLE's input when it's there, since they installed it for this, else Steam's.
+        internal static MixDevice CableFrom(List<MixDevice> speakers)
+        {
+            return speakers.Find(delegate(MixDevice found) { return IsCableIn(found.Name); }) ?? speakers.Find(delegate(MixDevice found) { return IsSteam(found.Name); });
+        }
+
+        // The line in Settings when Windows has a cable's far end muted, so friends hear nothing.
+        internal static string MutedLine(string end) { return "Windows has " + end + " muted."; }
+
+        // The far end of a cable from Windows' active mics: Steam's for Steam's, plain CABLE Output for VB-CABLE's. Null when it's
+        // not listed.
+        internal static MixDevice FarFor(MixDevice cable, List<MixDevice> mics)
+        {
+            bool steam = IsSteam(cable.Name);
+            foreach (MixDevice found in mics) if (steam ? IsSteam(found.Name) : PlainOutput.IsMatch(found.Name)) return found;
+            return null;
+        }
+
+        // The mic for a pick from Windows' active mics: the picked one, else Windows' default, else the first, but never a cable's
+        // far end, which carries her own voice while it's in their mic. Null when there's no other mic.
         internal static MixDevice MicFor(List<MixDevice> mics, string picked, string defaultId)
         {
             MixDevice usual = null, first = null;
@@ -297,11 +340,12 @@ namespace CapriDesktop
                 Look(now);
             }
             if (cable != null && mic == null && now >= micAt) OpenMic(now);
-            Problem = cable == null ? cableProblem : micProblem;
+            Problem = cable == null ? cableProblem : farMuted ? MutedLine(EndOf(cableDevice)) : micProblem;
         }
 
-        // The cable that's open is still VB-CABLE's and the mic is still the one to hear: a new pick, a new Windows default or
-        // their own mic plugged back in moves her to it.
+        // The cable that's open is still the one to use and the mic is still the one to hear: a new pick, a new Windows default,
+        // their own mic plugged back in or VB-CABLE newly installed over Steam's moves her to it. The far end's volume is read
+        // again too, in case they changed it.
         private void Look(double now)
         {
             MixDevice wantCable, wantMic;
@@ -313,12 +357,30 @@ namespace CapriDesktop
             catch (Exception) { return; }
             if (wantCable == null || wantCable.Id != cableDevice.Id)
             {
-                LoseCable(now, wantCable == null ? "CABLE Input is gone." : "VB-CABLE's input changed.");
+                LoseCable(now, wantCable == null ? cableDevice.Name + " is gone." : "The cable changed to " + wantCable.Name + ".");
                 return;
             }
+            Trim(wantCable);
             if (mic != null && (wantMic == null || wantMic.Id != micDevice.Id)) { CloseMic(); micAt = now; }
             else if (mic == null && wantMic != null) micAt = now;
         }
+
+        // A far end Windows turns up, like Steam's mic at its +30 dB, would play their mic and her voice that much too loud, so
+        // the mix goes in that much under. One turned down is left alone, since they chose it.
+        private void Trim(MixDevice found)
+        {
+            bool muted = false;
+            double boost = 0;
+            try { boost = devices.Boost(found, out muted); }
+            catch (Exception) { }
+            float was = trim;
+            trim = boost > 0.1 ? (float)Math.Pow(10, -Math.Min(boost, 60) / 20) : 1;
+            farMuted = muted;
+            if (Math.Abs(trim - was) > 0.001f) Note("Her mic mix plays " + found.Name + " " + boost.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " dB under, since Windows turns its far end up that much.");
+        }
+
+        // What the mix is played at, for the smoke test.
+        internal float Trimmed { get { return trim; } }
 
         private void OpenCable(double now)
         {
@@ -328,8 +390,10 @@ namespace CapriDesktop
             catch (Exception error) { cableProblem = Unopened; Note("Windows wouldn't list its speakers for her mic mix: " + error.Message); return; }
             if (found == null) { cableProblem = Missing; Problem = Missing; return; }
             try { cable = devices.OpenCable(found); }
-            catch (Exception error) { cableProblem = Unopened; Problem = Unopened; Note("CABLE Input wouldn't open for her mic mix: " + error.Message); return; }
+            catch (Exception error) { cableProblem = Unopened; Problem = Unopened; Note(found.Name + " wouldn't open for her mic mix: " + error.Message); return; }
             cableDevice = found;
+            trim = 1;
+            Trim(found);
             int rate = cable.Rate;
             period = Math.Max(1, cable.Period);
             // Two of Windows' periods, at least 10 ms more than one, so a late wake still finds something to play.
@@ -391,7 +455,8 @@ namespace CapriDesktop
             cableAt = now + RetryGap;
             Problem = cableProblem = Unopened;
             CableLosses++;
-            Note("Her mic mix lost CABLE Input: " + why);
+            farMuted = false;
+            Note("Her mic mix lost its cable: " + why);
         }
 
         private void CloseMic()
@@ -460,6 +525,7 @@ namespace CapriDesktop
             else Array.Clear(mix, 0, want);
             lock (gate) foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate);
             limiter.Run(mix, want);
+            if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
             cable.Write(mix, want);
             Interlocked.Add(ref Written, want);
         }
@@ -1084,8 +1150,36 @@ namespace CapriDesktop
     {
         public MixDevice Cable()
         {
-            foreach (MixDevice found in Active(0)) if (MicMix.IsCableIn(found.Name)) return found;
-            return null;
+            MixDevice cable = MicMix.CableFrom(Active(0));
+            if (cable == null) return null;
+            MixDevice far = MicMix.FarFor(cable, Active(1));
+            return new MixDevice(cable.Id, cable.Name, far == null ? null : far.Id);
+        }
+
+        public double Boost(MixDevice cable, out bool muted)
+        {
+            muted = false;
+            if (cable == null || string.IsNullOrEmpty(cable.Far)) return 0;
+            ISoundDevices devices = null;
+            ISoundDevice device = null;
+            object found = null;
+            try
+            {
+                devices = (ISoundDevices)new SoundDevices();
+                Guid volumeId = typeof(ISpeakerVolume).GUID;
+                if (devices.GetDevice(cable.Far, out device) != 0 || device == null || device.Activate(ref volumeId, 23, IntPtr.Zero, out found) != 0 || found == null) return 0;
+                ISpeakerVolume volume = (ISpeakerVolume)found;
+                float decibels;
+                bool off;
+                if (volume.GetMute(out off) == 0) muted = off;
+                return volume.GetMasterVolumeLevel(out decibels) == 0 && !float.IsNaN(decibels) ? decibels : 0;
+            }
+            finally
+            {
+                Wasapi.Release(found);
+                Wasapi.Release(device);
+                Wasapi.Release(devices);
+            }
         }
 
         public MixDevice Mic(string chosen) { return MicMix.MicFor(Active(1), chosen, Default(1)); }

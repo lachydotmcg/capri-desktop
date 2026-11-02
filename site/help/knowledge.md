@@ -378,6 +378,7 @@ VOICE ("Every voice, ElevenLabs too" on the right of the heading, then the Layer
 - Sounds: her sound effects. Off, or 10% to 100%. Default 60%.
 - Typing sound: "When she types". A soft typing sound while her text replies type out.
 - Free voice in games (0.7.6 and newer): only shows while her HD voice is on, under Typing sound. Off by default, so her HD voice keeps talking while a game or video is full screen. Turn it on and her free voice talks while anything is full screen, so the game gets your graphics card back.
+- Her voice in your mic (0.8.0 and newer): off by default. Friends in Discord or Roblox hear her as well as you. She plays your mic, the one picked under Mic, and everything she says into a virtual mic, and you pick its other end as your mic in Discord or Roblox: Steam Streaming Microphone if Steam put its virtual mic on your PC, or CABLE Output once VB-CABLE is installed. The note under the switch says which. With neither, the switch stays off and Set up opens VB-Audio's own VB-CABLE setup, which she carries: Windows asks to let it run, click Install Driver, then restart your PC. VB-CABLE is donationware from vb-cable.com. Her voice still plays on your speakers, her sound effects stay out, and she never hears herself through it. Headphones stop your mic hearing her a second time.
 
 Pitch, Speed, Robot and Glitch change every voice she has: her free voice styles, HD, ElevenLabs and ElevenLabs voice chat. See "Pitch, speed, robot and glitch" under Her voice. Her voice layers do too; see "Voice layers".
 
