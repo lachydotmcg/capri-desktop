@@ -261,6 +261,8 @@ namespace CapriDesktop
         internal const string RejectedNew = "ElevenLabs rejected that key. Copy it again from ElevenLabs and paste it.";
 
         internal const string Restricted = "ElevenLabs has restricted your account, so her voice can't connect. Sign in at elevenlabs.io to see why, or pick PREBUILT LOCAL in the Mainframe.";
+        // ElevenLabs' "Access restricted" page, or a 451: their country or network is turned away, whatever the key (Void, in Russia).
+        internal const string Blocked = "ElevenLabs is blocked where you are, so a new key won't help. Pick PREBUILT LOCAL in the Mainframe for her free voice.";
 
         internal static string Unsaved(string problem) { return problem == Rejected ? RejectedNew : problem; }
 
@@ -275,6 +277,7 @@ namespace CapriDesktop
             detail = detail ?? "";
             if (detail.Contains("quota_exceeded")) return "Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe.";
             if (detail.Contains("account_restricted")) return Restricted;
+            if (status == 451 || status == 403 && Regex.IsMatch(detail, @"access restricted|unsupported[_ ]country|(not available|not supported|unavailable) in your (country|region|location)", RegexOptions.IgnoreCase)) return Blocked;
             if (detail.Contains("missing_permissions")) return "Key is missing permissions. Make a new ElevenLabs key with Restrict key turned off.";
             if (detail.Contains("voice_not_found")) return "Voice not found. Add it to your ElevenLabs voices.";
             // Voices other people shared in the Voice Library only work outside ElevenLabs' site on paid plans; a fresh clone may still be training.

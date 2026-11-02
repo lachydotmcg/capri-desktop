@@ -490,7 +490,7 @@ namespace CapriDesktop
                     string linuxSong = Limbs.Song(false);
                     string log = string.Join(" / ", did);
                     if ((opened != "Opened Spotify." && opened != "Opened Spotify, but its window hasn't appeared yet.") || !log.Contains("launch /bin/sh -c spotify") || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats") || !eachOpened) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / each " + eachOpened + " / " + log);
-                    if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.Contains("only work on Windows")) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
+                    if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.EndsWith(" on Windows for now, choom.", StringComparison.Ordinal)) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
                     if (!log.Contains("osascript -e tell application \"Spotify\" to next track") || !log.Contains("+ 2)") || !log.Contains("pactl set-sink-mute @DEFAULT_SINK@ toggle / amixer -q sset Master toggle")) throw new Exception("Mac or Linux media keys went wrong: " + log);
                     if (!log.Contains("play track \"spotify:track:2iyaHQlYrR8Eyr4wOmOT5D\"") || !log.Contains("OpenUri string:spotify:track:2iyaHQlYrR8Eyr4wOmOT5D") || log.Contains("launch open spotify:") || log.Contains("launch xdg-open spotify:")) throw new Exception("Spotify tracks didn't play directly: " + log);
                     if (macSong != "Petite Meller - In Love With Myself" || linuxSong != "Chase Atlantic - Consume") throw new Exception("Now playing was read wrong: " + macSong + " / " + linuxSong);
@@ -826,9 +826,14 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 pet.Think = null;
                 string computer = OperatingSystem.IsMacOS() ? "Mac" : "PC", handsPrompt = Hands.Prompt, toolsNote = Hands.Note;
-                bool notWindows = handsPrompt.IndexOf("Windows", StringComparison.Ordinal) < 0 && handsPrompt.IndexOf("a desktop companion on the user's " + computer + ".", StringComparison.Ordinal) > 0
-                    && toolsNote.IndexOf("Windows", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0;
-                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows);
+                // What isn't here is named as Windows-only on purpose (34db044). What matters is that nothing calls this a Windows PC,
+                // and that settings jobs are offered only where her hands work.
+                bool handsHere = Hands.KitFor().Has("use_computer");
+                bool notWindows = handsPrompt.IndexOf("Windows PC", StringComparison.Ordinal) < 0 && handsPrompt.IndexOf("a desktop companion on the user's " + computer + ".", StringComparison.Ordinal) > 0
+                    && toolsNote.IndexOf("Windows PC", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("Windows settings", StringComparison.Ordinal) < 0
+                    && (toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0) == handsHere;
+                Func<string, string> nearWindows = delegate(string text) { int at = text.IndexOf("Windows", StringComparison.Ordinal); return at < 0 ? "-" : text.Substring(Math.Max(0, at - 60), Math.Min(140, text.Length - Math.Max(0, at - 60))); };
+                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows + " (hands " + handsHere + ") | " + nearWindows(handsPrompt) + " | " + nearWindows(toolsNote));
                 checks.Add("PASS Windows-only: asking for clones or chaos mode, or to get rid of clones, gets \"" + Hands.NoClones + "\" straight away, with or without a brain, and her hands' prompts call this computer their " + computer + ", not a Windows PC");
                 foreach (bool withBrain in new[] { false, true })
                 {

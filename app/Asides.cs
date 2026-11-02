@@ -147,18 +147,27 @@ namespace CapriDesktop
     // much from her first moments and after that only counts what's well over that share and loud enough for a voice.
     internal sealed class TalkOver
     {
-        private const int Learning = 3;
+        // Her first 600 ms of sound. Speakers start a few hundred ms after her clock does (Bluetooth ones later still), and a
+        // share learned before her voice reaches the mic is far too small, so her own echo then counts as them talking over
+        // her a couple of words in (ticket 35, GHISA with Hey Capri on: "speech stops after two words while text continues").
+        private const int Learning = 6;
         private const int Held = 2;
         private const double Margin = 2.5;
         private const double Fading = 0.93;
         private const double Pause = 0.002;
+        // A breath or room tone between her words is a gap too: Fish Audio's voices keep them, and over speakers the mic is still
+        // ringing with the word before, which counted as them talking over her and cut her voice off mid-reply (Mika, Ashy, 2 Nov).
+        private const double GapShare = 0.15;
+        private const double PeakFading = 0.98;
         private double share;
+        private double peak;
         private int chunks;
         private int over;
 
         internal void Reset()
         {
             share = 0;
+            peak = 0;
             chunks = 0;
             over = 0;
         }
@@ -168,6 +177,8 @@ namespace CapriDesktop
         {
             // Her gaps between words say nothing: a game or a fan is all a mic hears then, so only what's over her voice counts.
             if (mine <= Pause) return false;
+            peak = Math.Max(peak * PeakFading, mine);
+            if (mine < peak * GapShare) { over = 0; return false; }
             bool learned = chunks >= Learning;
             chunks++;
             bool loud = learned && mic >= wake && mic >= share * mine * Margin;
@@ -449,7 +460,8 @@ namespace CapriDesktop
             });
         }
 
-        // How loud she's playing now: the loudest of the last 300 ms, since the mic hears her a moment late.
+        // How loud she's playing now: the loudest of the last 600 ms, since the mic hears her a moment late. Her clock starts as
+        // her voice is handed over, before the speakers open, and Bluetooth ones add a few hundred ms more.
         private double[] spokenLevels;
         private double spokenAt;
 
@@ -459,7 +471,7 @@ namespace CapriDesktop
             if (levels == null) return 0;
             int at = (int)((now - spokenAt) * 10);
             double most = 0;
-            for (int i = Math.Max(0, at - 3); i <= at && i < levels.Length; i++) most = Math.Max(most, levels[i]);
+            for (int i = Math.Max(0, at - 6); i <= at && i < levels.Length; i++) most = Math.Max(most, levels[i]);
             return most;
         }
 

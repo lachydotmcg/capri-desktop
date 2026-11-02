@@ -22,6 +22,7 @@ namespace CapriDesktop
             FormWindowState wasState = WindowState;
             try
             {
+                tipsDriven = true;
                 Restore();
                 LayoutScale(96, 100);
                 SizeMainframe(100);
@@ -90,7 +91,9 @@ namespace CapriDesktop
                 SettingHint named = hints[volume];
                 Point labelAt = named.Label.PointToScreen(new Point(named.Label.Width / 2, named.Label.Height / 2));
                 Message labelMove = Message.Create(Handle, 0x00A0, new IntPtr(2), new IntPtr((labelAt.Y << 16) | (labelAt.X & 0xFFFF)));
-                PreFilterMessage(ref labelMove);
+                tipSent = true;
+                try { PreFilterMessage(ref labelMove); }
+                finally { tipSent = false; }
                 if (waitingHint != named || !hintDelay.Enabled) throw new Exception("A transparent setting name did not queue its slider's delayed tip.");
                 ShowHint();
                 CheckHintPlace(volume);
@@ -193,6 +196,7 @@ namespace CapriDesktop
             }
             finally
             {
+                tipsDriven = false;
                 DismissHint();
                 overHint = dismissedHint = null;
                 if (capri.AdvancedSettings != wasAdvanced) capri.ToggleAdvancedSettings();
@@ -232,13 +236,17 @@ namespace CapriDesktop
         {
             Point point = new Point(control.Width / 2, control.Height / 2);
             Message move = Message.Create(control.Handle, 0x0200, IntPtr.Zero, new IntPtr((point.Y << 16) | (point.X & 0xFFFF)));
-            PreFilterMessage(ref move);
+            tipSent = true;
+            try { PreFilterMessage(ref move); }
+            finally { tipSent = false; }
         }
 
         private void TipMessage(Control control, int message, int key)
         {
             Message press = Message.Create(control.Handle, message, new IntPtr(key), IntPtr.Zero);
-            PreFilterMessage(ref press);
+            tipSent = true;
+            try { PreFilterMessage(ref press); }
+            finally { tipSent = false; }
         }
 
         private void AwaitHint()

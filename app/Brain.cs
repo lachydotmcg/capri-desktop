@@ -355,6 +355,10 @@ namespace CapriDesktop
         internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
         internal const string NewKey = "Key rejected. Make a new Google AI Studio key and paste it.";
         internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
+        // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
+        // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
+        internal const string Blocked = "Their API is blocked where you are, so a new key won't help. Pick another service under Free key, or Built-in under BRAIN, which runs on your PC.";
+        private static readonly Regex BlockPage = new Regex(@"security policy|access restricted|unsupported[_ ]country|country, region,? or territory|(not available|not supported|unavailable) in your (country|region|location)", RegexOptions.IgnoreCase);
         internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
         internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : remote.Kind == "local" ? ", or turn pictures on in your server." : "."); }
@@ -3164,6 +3168,7 @@ namespace CapriDesktop
             if (!needs.Success) needs = Spelled.Match(error);
             if (needs.Success) return "Not enough free RAM: it needs " + needs.Groups["need"].Value + " GB, only " + needs.Groups["free"].Value + " GB is free.";
             if (NoMemory.IsMatch(error) || error.StartsWith("Your PC ran out of free RAM", StringComparison.Ordinal)) return "Not enough free RAM. Close some apps, then try again.";
+            if (error == Blocked) return "Blocked where you are. Try another service or Built-in.";
             return null;
         }
 
@@ -3535,6 +3540,8 @@ namespace CapriDesktop
         internal static string Meaning(int status, string body, bool google = false)
         {
             if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
+            // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
+            if (status == 451 || status == 403 && (BlockPage.IsMatch(body ?? "") || (body ?? "").TrimStart().StartsWith("<", StringComparison.Ordinal))) return Blocked;
             if (google && status == 400 && Regex.IsMatch(body ?? "", @"location is not supported|in your (country|region)", RegexOptions.IgnoreCase)) return Unserved;
             if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
             if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;

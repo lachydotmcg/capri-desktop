@@ -1677,6 +1677,9 @@ namespace CapriDesktop
         internal static Func<IntPtr, Rectangle> Display = delegate(IntPtr window) { return window == IntPtr.Zero ? Screen.FromPoint(Cursor.Position).Bounds : Screen.FromHandle(window).Bounds; };
         private double nextGlance = -1;
         private double lastGlance = -1;
+        // When the glance in flight started on her own clock, and how long a look takes before she spaces them out.
+        private double glanceStart = -1;
+        private const double SlowGlance = 20;
         private int watchTicket;
         private bool glancing;
         private string glanceProblem;
@@ -7131,6 +7134,7 @@ namespace CapriDesktop
             catch (Exception) { lastPrint = null; mainframe.ShowProblem("Couldn't capture the screen. I'll try again."); return; }
             glancing = true;
             lastGlance = now;
+            glanceStart = clock.Elapsed.TotalSeconds;
             int ticket = asking;
             int watch = watchTicket;
             int awayWatch = exploring ? exploreTicket : -1;
@@ -7163,6 +7167,11 @@ namespace CapriDesktop
         private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null, Sight front = null, int awayWatch = -1)
         {
             glancing = false;
+            // A slow look, like a brain on a busy PC, waits twice as long as it took before the next one, so their chats aren't
+            // stuck behind her glances (ticket 88, Void: 180 s timeouts with Watch every 10 s on a local Gemma).
+            double took = glanceStart < 0 ? 0 : clock.Elapsed.TotalSeconds - glanceStart;
+            glanceStart = -1;
+            if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, clock.Elapsed.TotalSeconds + took * 2);
             if (watch != watchTicket || (awayWatch >= 0 ? !exploring || awayWatch != exploreTicket || !ExploreFree() || Native.GetForegroundWindow() != exploreWindow || awayInput.Quiet() < (long)ExploreAfter * 1000 : !preferences.Watch)) return;
             if (brain.ScreenWait > 0) nextGlance = clock.Elapsed.TotalSeconds + brain.ScreenWait;
             string unseen = Unseeing();
@@ -17210,26 +17219,33 @@ namespace CapriDesktop
                 using (Bitmap overShot = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
                 using (Bitmap overStale = new Bitmap(overArea.Width, overArea.Height, PixelFormat.Format24bppRgb))
                 {
-                    using (Graphics overDraw = Graphics.FromImage(overShot)) overDraw.CopyFromScreen(overArea.Location, Point.Empty, overArea.Size);
-                    using (Graphics overDraw = Graphics.FromImage(overStale)) overDraw.Clear(Color.Blue);
-                    Color overBefore = overShot.GetPixel(160, 90);
-                    bool overHadIt = overBefore.R > 200 && overBefore.G < 80 && overBefore.B > 200, overCopied = false, overStaleCopied = true, overDone = false;
-                    // A window of someone else's in front of the game.
-                    overShot.SetPixel(20, 20, Color.Red);
-                    Thread overThread = new Thread(delegate()
+                    bool overScreen = true;
+                    try { using (Graphics overDraw = Graphics.FromImage(overShot)) overDraw.CopyFromScreen(overArea.Location, Point.Empty, overArea.Size); }
+                    // A desktop Windows isn't showing, like the hidden one smoke runs on, has no screen to copy ("The handle is invalid").
+                    catch (System.ComponentModel.Win32Exception) { overScreen = false; }
+                    if (!overScreen) checks.Add("LIMIT window copies: this desktop has no screen to copy from");
+                    else
                     {
-                        overCopied = Computer.WindowOver(overShot, overArea, underHandle, overHers);
-                        overStaleCopied = Computer.WindowOver(overStale, overArea, underHandle, overHers);
-                        overDone = true;
-                    });
-                    overThread.Start();
-                    while (!overDone) { Application.DoEvents(); Thread.Sleep(5); }
-                    Color overSeen = overShot.GetPixel(160, 90), overLeft = overStale.GetPixel(160, 90), overOther = overShot.GetPixel(20, 20);
-                    if (overStaleCopied || overLeft.B < 200) throw new Exception("A window copy that didn't look like the screen went over it.");
-                    if (!overHadIt) checks.Add("LIMIT window copies: the test window never got on top of the other one here");
-                    else if (!overCopied || overSeen.G < 200 || overSeen.R > 60) throw new Exception("She couldn't see through her own window: " + overCopied + " " + overSeen);
-                    else if (overOther.R < 200 || overOther.G > 60) throw new Exception("A window copy painted over something that isn't hers: " + overOther);
-                    else checks.Add("PASS window copies: a game's own window shows what's under anything of hers and nothing else, and a copy that doesn't match the screen is left out");
+                        using (Graphics overDraw = Graphics.FromImage(overStale)) overDraw.Clear(Color.Blue);
+                        Color overBefore = overShot.GetPixel(160, 90);
+                        bool overHadIt = overBefore.R > 200 && overBefore.G < 80 && overBefore.B > 200, overCopied = false, overStaleCopied = true, overDone = false;
+                        // A window of someone else's in front of the game.
+                        overShot.SetPixel(20, 20, Color.Red);
+                        Thread overThread = new Thread(delegate()
+                        {
+                            overCopied = Computer.WindowOver(overShot, overArea, underHandle, overHers);
+                            overStaleCopied = Computer.WindowOver(overStale, overArea, underHandle, overHers);
+                            overDone = true;
+                        });
+                        overThread.Start();
+                        while (!overDone) { Application.DoEvents(); Thread.Sleep(5); }
+                        Color overSeen = overShot.GetPixel(160, 90), overLeft = overStale.GetPixel(160, 90), overOther = overShot.GetPixel(20, 20);
+                        if (overStaleCopied || overLeft.B < 200) throw new Exception("A window copy that didn't look like the screen went over it.");
+                        if (!overHadIt) checks.Add("LIMIT window copies: the test window never got on top of the other one here");
+                        else if (!overCopied || overSeen.G < 200 || overSeen.R > 60) throw new Exception("She couldn't see through her own window: " + overCopied + " " + overSeen);
+                        else if (overOther.R < 200 || overOther.G > 60) throw new Exception("A window copy painted over something that isn't hers: " + overOther);
+                        else checks.Add("PASS window copies: a game's own window shows what's under anything of hers and nothing else, and a copy that doesn't match the screen is left out");
+                    }
                 }
                 overForm.Close();
                 underForm.Close();
@@ -19235,8 +19251,12 @@ namespace CapriDesktop
             Func<string> openWas = Computer.GameOpen;
             string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
             bool keepingWas = Brain.Keeping;
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
             try
             {
+                // "Open spotify" goes to the app only where Spotify is installed, which GitHub's test machines don't have.
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Spotify", "spotify") }; };
+                Hands.Forget();
                 Brain.OpenAi = FakeServer(new[]
                 {
                     says("Blue's elite. I'll remember that, choom."), calls("remember", "{\"text\":\"Their favourite colour is blue.\"}"), says("Saved it, choom."),
@@ -19268,6 +19288,8 @@ namespace CapriDesktop
             }
             finally
             {
+                Hands.Catalog = catalogWas;
+                Hands.Forget();
                 Hands.Windows = windowsWas;
                 Computer.GameOpen = openWas;
                 Brain.OpenAi = openAiWas;
@@ -26517,7 +26539,7 @@ namespace CapriDesktop
                                 if (brainSent.Length != 9 || brainSent[0].IndexOf("\"tools\":[{\"type\":\"function\"", StringComparison.Ordinal) < 0 || brainSent[0].IndexOf("You are the hands of Capri", StringComparison.Ordinal) < 0 || brainSent[0].IndexOf("Project Capricorn", StringComparison.Ordinal) >= 0) throw new Exception("The request pass did not get the tool prompt alone: " + brainSent.Length);
                                 if (brainSent[1].IndexOf("The tools have already run: you did their job yourself", StringComparison.Ordinal) < 0 || brainSent[1].IndexOf("Project Capricorn", StringComparison.Ordinal) < 0 || brainSent[1].IndexOf("Right now it's " + DateTime.Now.ToString("dddd", System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal) < 0) throw new Exception("Her result prompt lost the persona or time.");
                                 if (brainSent[1].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[1].IndexOf("open_app:", StringComparison.Ordinal) < 0 || brainSent[1].IndexOf("Opened Spotify.", StringComparison.Ordinal) < 0) throw new Exception("The follow-up did not pass the named tool result: " + brainSent[1]);
-                                if (brainSent[2].IndexOf("\"tools\":", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[3].IndexOf("To use one, reply with only the call", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("media{\\\"action\\\": \\\"play_pause|next|previous|volume_up|volume_down|volume_set|mute|unmute|now_playing\\\", \\\"level\\\": \\\"...\\\"}", StringComparison.Ordinal) < 0) throw new Exception("A model without tools did not get its tools as text: " + brainSent[3]);
+                                if (brainSent[2].IndexOf("\"tools\":", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[3].IndexOf("To use one, reply with only the call", StringComparison.Ordinal) < 0 || brainSent[3].IndexOf("media{\\\"action\\\": \\\"play_pause|next|previous|volume_up|volume_down|volume_set|mute|unmute|now_playing|volume_now\\\", \\\"level\\\": \\\"...\\\"}", StringComparison.Ordinal) < 0) throw new Exception("A model without tools did not get its tools as text: " + brainSent[3]);
                                 if (brainSent[4].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[4].IndexOf("Project Capricorn", StringComparison.Ordinal) < 0 || brainSent[5].IndexOf("\"tools\":", StringComparison.Ordinal) >= 0 || brainSent[5].IndexOf("You are the hands", StringComparison.Ordinal) >= 0) throw new Exception("Plain chat still went through the tool prompt.");
                                 if (!Hands.Wants("can you see what im doing?") || !Hands.Wants("play me some music") || !Hands.Wants("open notepad") || !Hands.Wants("go to youtube.com") || Hands.Wants("hey") || Hands.Wants("how was your day?") || Hands.Wants("still there?") || Hands.Wants("out of five playtesters, who's the best?")) throw new Exception("Requests and chat were told apart wrong.");
                                 if (!Hands.Wants("click the search bar") || !Hands.Wants("make a song in suno") || Hands.Wants("make a joke") || !Hands.Promised("Opening Comet now, choom!") || !Hands.Promised("Bet, I'll open it for you.") || Hands.Promised("I'll play a game with you anytime.") || Hands.Promised("Sure, I love that song.")
@@ -29238,7 +29260,10 @@ namespace CapriDesktop
                                         || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null
                                         || Brain.Meaning(403, "{\"error\":{\"message\":\"Method doesn't allow unregistered callers\",\"status\":\"PERMISSION_DENIED\"}}", true) != Brain.NewKey || Brain.Meaning(400, "{\"error\":{\"message\":\"API key not valid.\"}}") != null
                                         || Brain.Meaning(400, "{\"error\":{\"message\":\"Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.Unserved
-                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != broke || Brain.Meaning(400, "{\"error\":{\"message\":\"contents is not specified\",\"status\":\"INVALID_ARGUMENT\"}}", true) != null) throw new Exception("Cloud errors were explained wrong.");
+                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != broke || Brain.Meaning(400, "{\"error\":{\"message\":\"contents is not specified\",\"status\":\"INVALID_ARGUMENT\"}}", true) != null
+                                        || Brain.Meaning(451, "") != Brain.Blocked || Brain.Meaning(451, "{\"error\":\"Unavailable For Legal Reasons\"}", true) != Brain.Blocked || Brain.Brief(Brain.Blocked).Length > 60
+                                        || Brain.Meaning(403, "<html><head><title>Access Denied</title></head><body>You don't have permission to access this server.</body></html>") != Brain.Blocked || Brain.Meaning(403, "{\"error\":{\"message\":\"Access denied by security policy\"}}") != Brain.Blocked
+                                        || Brain.Meaning(403, "{\"error\":{\"code\":\"unsupported_country_region_territory\",\"message\":\"Country, region, or territory not supported\"}}") != Brain.Blocked || Brain.Meaning(403, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again.") throw new Exception("Cloud errors were explained wrong.");
                                     System.Collections.Generic.List<string> directAsked = new System.Collections.Generic.List<string>();
                                     System.Net.Sockets.TcpListener directFake;
                                     string ollamaUrl = Brain.Ollama;
@@ -30311,11 +30336,13 @@ namespace CapriDesktop
                             simpleTest = true;
                             mainframe.ShowSettings(true);
                             string simpleCrowd = mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
-                            int simpleTall = mainframe.ClientSize.Height;
+                            int simpleTall = mainframe.ClientSize.Height, simpleScroll = mainframe.ScrollMost;
                             snap("mainframe-settings-simple.png");
                             simpleTest = false;
                             mainframe.ShowSettings(true);
-                            if (simpleCrowd != null || simpleTall >= mainframe.ClientSize.Height) throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height);
+                            // Both pages can reach Settings' tallest window since 0.8.0's rows, so Simple is shorter by what's left to scroll.
+                            if (simpleCrowd != null || simpleTall > mainframe.ClientSize.Height || simpleTall == mainframe.ClientSize.Height && simpleScroll >= mainframe.ScrollMost)
+                                throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height + ", " + simpleScroll + " px to scroll against " + mainframe.ScrollMost);
                             checks.Add("PASS Simple Settings: the main rows only, shorter than Advanced Settings, with nothing overlapping or poking out");
                             // Her voice in your mic (F66) under VOICE, on stand-in devices: without VB-CABLE the switch is locked, the line says
                             // it needs it and the button opens its page in their browser; with it the switch starts and stops the mix and is
@@ -31082,7 +31109,7 @@ namespace CapriDesktop
                             if (Voice.Unprotect(sealedKey) != "sk_test_capri_1234" || sealedKey.Contains("sk_test") || Voice.Unprotect("not a key") != null || Voice.Tail("sk_test_capri_1234") != "1234") throw new Exception("Key storage failed.");
                             if (Voice.Spoken("[GLITCH] Hey *choom*, [static] ready?") != "Hey choom, ready?" || Voice.Spoken("[STATIC]") != "") throw new Exception("Spoken text kept her tags: " + Voice.Spoken("[GLITCH] Hey *choom*, [static] ready?"));
                             if (Voice.Explain(401, "") != "ElevenLabs rejected the key. Press Forget, paste a new one." || Voice.Explain(401, "{\"detail\":{\"status\":\"quota_exceeded\"}}") != "Out of ElevenLabs credits. Pick PREBUILT LOCAL in the Mainframe." || Voice.Explain(400, "{\"detail\":{\"status\":\"invalid\",\"message\":\"Text is \\\"too\\\" long\"}}") != "Text is \"too\" long" + Voice.RestrictHint || Voice.Explain(500, "oops") != "ElevenLabs error 500." + Voice.RestrictHint
-                                || Voice.Explain(400, "{\"detail\":{\"message\":\"Input at position 0 has empty text. All inputs must include non-empty text.\"}}") != Voice.Silent || Voice.Explain(403, "{\"detail\":{\"message\":\"nope\"}}").IndexOf("Restrict key turned off", StringComparison.Ordinal) < 0 || Voice.Spoken("...") != "" || Voice.Spoken("[sighs] ...") != "") throw new Exception("ElevenLabs errors read wrong.");
+                                || Voice.Explain(400, "{\"detail\":{\"message\":\"Input at position 0 has empty text. All inputs must include non-empty text.\"}}") != Voice.Silent || Voice.Explain(403, "{\"detail\":{\"message\":\"nope\"}}").IndexOf("Restrict key turned off", StringComparison.Ordinal) < 0 || Voice.Explain(403, "<!DOCTYPE html><html><head><title>Access restricted</title></head></html>") != Voice.Blocked || Voice.Explain(451, "") != Voice.Blocked || Voice.Explain(403, "") != Voice.Refused || Voice.Spoken("...") != "" || Voice.Spoken("[sighs] ...") != "") throw new Exception("ElevenLabs errors read wrong.");
                             if (Voice.Explain(402, "{\"detail\":{\"status\":\"free_users_not_allowed\",\"message\":\"Free users cannot use library voices via the API. Please upgrade your subscription to use this voice.\"}}") != Voice.LibraryVoice || Voice.Explain(400, "{\"detail\":{\"status\":\"voice_not_fine_tuned\",\"message\":\"Voice is still being fine-tuned\"}}").IndexOf("still training", StringComparison.Ordinal) < 0
                                 || Voice.Explain(400, "{\"detail\":{\"message\":\"This voice is not available for model eleven_v3\"}}").IndexOf("Restrict key", StringComparison.Ordinal) >= 0 || Voice.Explain(402, "{\"detail\":{\"message\":\"Payment required\"}}") != "Payment required") throw new Exception("Custom and library voice errors read wrong or blamed the key.");
                             checks.Add("PASS voice errors: library voices on free plans, voices still training and voice or model mismatches say what's wrong instead of blaming the key");
@@ -34599,6 +34626,17 @@ namespace CapriDesktop
                             ToggleWatch();
                             FinishGlance(asking, oldWatch, "That chest looks good.", null);
                             if (reply != null) throw new Exception("An old glance spoke after Watch was restarted.");
+                            double slowFrom = nextGlance;
+                            nextGlance = -1;
+                            glanceStart = clock.Elapsed.TotalSeconds - 30;
+                            FinishGlance(asking, oldWatch, null, null);
+                            double slowNext = nextGlance - clock.Elapsed.TotalSeconds;
+                            glanceStart = clock.Elapsed.TotalSeconds - 2;
+                            nextGlance = slowFrom;
+                            FinishGlance(asking, oldWatch, null, null);
+                            if (slowNext < 59 || slowNext > 61 || nextGlance != slowFrom || glanceStart != -1) throw new Exception("A 30 s glance didn't wait a minute before the next, or a quick one waited: " + slowNext + " / " + (nextGlance - slowFrom));
+                            nextGlance = slowFrom;
+                            checks.Add("PASS slow glances: a look that took 30 s waits a minute before the next one, so a slow brain has room for chat, and quick looks keep their timer");
                             lastPrint = new byte[64 * 36 * 3];
                             FinishGlance(asking - 1, watchTicket, "That chest looks good.", null);
                             if (reply != null || lastPrint != null) throw new Exception("An interrupted glance spoke or prevented the next try.");
@@ -35429,7 +35467,7 @@ namespace CapriDesktop
                 string nameLayout = mainframe.Overlap() ?? mainframe.Outside();
                 if (nameLayout != null) throw new Exception("Listen for Capri crowded Settings: " + nameLayout);
                 ToggleChat();
-                if (!local || !chatting || agent != null || !earsReady || !pill.ListenForName || mainframe.VoiceNoteText != LocalListening + " Say my name anywhere in your sentence.") throw new Exception("Listen for Capri did not open its own ears and explain itself once.");
+                if (!local || !chatting || agent != null || !earsReady || !pill.ListenForName || mainframe.VoiceNoteText != LocalListening + " Say my name anywhere in your sentence.") throw new Exception("Listen for Capri did not open its own ears and explain itself once: local " + local + ", chatting " + chatting + ", agent " + (agent != null) + ", ears ready " + earsReady + ", pill " + pill.ListenForName + ", note " + mainframe.VoiceNoteText);
                 int onceAsked = asking;
                 string onceReply = reply;
                 EarsReady(false);
@@ -35767,7 +35805,9 @@ namespace CapriDesktop
             Func<string> switchState = delegate
             {
                 return "chatting " + chatting + ", local " + local + ", ears ready " + earsReady + ", shut " + earsShut + ", transcribing " + transcribing + ", muted " + ears.Muted
-                    + ", talk " + talkState + ", quiet " + preferences.Quiet + ", server " + preferences.ServerVoice + ", note " + mainframe.VoiceNoteText;
+                    + ", talk " + talkState + ", quiet " + preferences.Quiet + ", server " + preferences.ServerVoice + ", note " + mainframe.VoiceNoteText
+                    + ", voice for " + (voiceUntil - clock.Elapsed.TotalSeconds).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s, busy " + speaker.Busy + ", name over " + nameOver
+                    + ", ears on " + ears.Listening + ", hearing " + (hearingStatus == null ? "-" : hearingStatus.Text) + ", cloud " + preferences.CloudVoice + ", calls " + switchCalls;
             };
             // She says her check line through each new voice first, so each line waits for it to finish.
             Action<string> switchHeard = delegate(string what)
@@ -36198,6 +36238,18 @@ namespace CapriDesktop
                 for (int i = 0; i < spokenLevels.Length; i++) spokenLevels[i] = 0.1;
                 spokenAt = talkNow;
                 talkOver.Reset();
+                TalkOver breathy = new TalkOver();
+                for (int i = 0; i < 6; i++) breathy.Heard(0.03, 0.1, WakeLevel);
+                bool breathHeard = false, wordsHeard = false;
+                for (int i = 0; i < 4; i++) breathHeard |= breathy.Heard(0.05, 0.006, WakeLevel);
+                for (int i = 0; i < 2; i++) wordsHeard |= breathy.Heard(0.4, 0.1, WakeLevel);
+                must(!breathHeard && wordsHeard, "The echo of her last word over a breath counted as them talking over her, or them talking over her words didn't: " + breathHeard + " " + wordsHeard);
+                // Speakers that start late: the mic hears nothing of her for 300 ms, then her echo. That's still her.
+                TalkOver late = new TalkOver();
+                bool lateHeard = false;
+                for (int i = 0; i < 3; i++) lateHeard |= late.Heard(0.004, 0.1, WakeLevel);
+                for (int i = 0; i < 6; i++) lateHeard |= late.Heard(0.05, 0.1, WakeLevel);
+                must(!lateHeard, "Her own echo from speakers that start late counted as them talking over her.");
                 for (int i = 0; i < 6; i++) must(OverHerLocally(echoChunk, VoiceLevel(echoChunk)), "Free voice chat's ears opened on her own voice.");
                 must(bargeIns == bargedBefore + 1, "Her own voice barged in on free voice chat.");
                 for (int i = 0; i < 4; i++) OverHerLocally(voiceChunk, VoiceLevel(voiceChunk));
@@ -36227,7 +36279,7 @@ namespace CapriDesktop
                 Hear("how's it going");
                 must(voiceUntil == 0, "Typing to her didn't stop her talking.");
                 waitFor(delegate { return asides.Count > 0; });
-                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
+                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, the echo of her last word over a breath between words and her echo from speakers that start late aren't them, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
 
                 StageLog stage = new StageLog();
                 Commentary.Stage = stage;
