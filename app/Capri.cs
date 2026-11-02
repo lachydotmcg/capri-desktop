@@ -21350,25 +21350,44 @@ namespace CapriDesktop
                                 Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
                                 Func<OpenWindow, string, bool> steerWas = Hands.Steer;
                                 Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+                                Func<IntPtr> foregroundWas = Hands.Foreground;
+                                Func<IntPtr, bool> typableWas = Hands.Typable;
                                 System.Collections.Generic.List<string> pressLog = new System.Collections.Generic.List<string>();
                                 try
                                 {
-                                    Hands.Chord = delegate(byte[] keys) { pressLog.Add("keys " + BitConverter.ToString(keys)); };
+                                    int focusChecks = 0;
+                                    System.Collections.Generic.List<int> pressedAfter = new System.Collections.Generic.List<int>();
+                                    Hands.Chord = delegate(byte[] keys) { pressLog.Add("keys " + BitConverter.ToString(keys)); pressedAfter.Add(focusChecks); };
                                     Hands.Steer = delegate(OpenWindow window, string action) { pressLog.Add(action + " " + window.Handle); return true; };
                                     Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow> { new OpenWindow(new IntPtr(41), "Friends - Discord", "Discord") }; };
+                                    // Discord comes forward from another window and its page takes the keyboard on the third look, so the keys wait for that.
+                                    Hands.Foreground = delegate { return new IntPtr(7); };
+                                    Hands.Typable = delegate(IntPtr window) { return window == new IntPtr(41) && ++focusChecks >= 3; };
                                     string muted = Hands.Do("shortcut", new ToolArguments { Name = "discord_mute" });
                                     string snipped = Hands.Do("shortcut", new ToolArguments { Name = "screenshot" });
                                     string captions = Hands.Do("shortcut", new ToolArguments { Name = "live_captions" });
+                                    int focusedBy = focusChecks;
+                                    // Already in front, Discord gets them at once.
+                                    Hands.Foreground = delegate { return new IntPtr(41); };
+                                    string deafened = Hands.Do("shortcut", new ToolArguments { Name = "discord_deafen" });
+                                    // A page that never takes the keyboard still gets the keys once FocusWait is up.
+                                    Hands.Foreground = delegate { return new IntPtr(7); };
+                                    Hands.Typable = delegate { return false; };
+                                    Stopwatch unfocused = Stopwatch.StartNew();
+                                    string stillMuted = Hands.Do("shortcut", new ToolArguments { Name = "discord_mute" });
+                                    long unfocusedMs = unfocused.ElapsedMilliseconds;
                                     Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
                                     Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(); };
                                     Hands.Forget();
                                     string missing = Hands.Do("shortcut", new ToolArguments { Name = "discord_deafen" });
                                     string pressed = string.Join(" | ", pressLog.ToArray());
-                                    if (muted != "Toggled their mic mute in Discord (Ctrl + Shift + M)." || !pressed.StartsWith("switch_to 41 | keys 11-10-4D", StringComparison.Ordinal) || snipped.IndexOf("Win + Shift + S", StringComparison.Ordinal) < 0 || pressed.IndexOf("keys 5B-10-53", StringComparison.Ordinal) < 0 || !missing.StartsWith("Discord isn't open", StringComparison.Ordinal)
+                                    if (muted != "Toggled their mic mute in Discord (Ctrl + Shift + M)." || !pressed.StartsWith("switch_to 41 | keys 11-10-4D | switch_to 7", StringComparison.Ordinal) || snipped.IndexOf("Win + Shift + S", StringComparison.Ordinal) < 0 || pressed.IndexOf("keys 5B-10-53", StringComparison.Ordinal) < 0 || !missing.StartsWith("Discord isn't open", StringComparison.Ordinal)
                                         || captions != "Turned Live Captions on or off (Win + Ctrl + L)." || pressed.IndexOf("keys 5B-11-4C", StringComparison.Ordinal) < 0) throw new Exception("Shortcuts pressed the wrong keys: " + muted + " / " + snipped + " / " + captions + " / " + missing + " / " + pressed);
+                                    if (focusedBy != 3 || pressedAfter.Count != 5 || pressedAfter[0] != 3 || focusChecks != 3 || deafened != "Toggled deafen in Discord (Ctrl + Shift + D)." || pressed.IndexOf("switch_to 41 | keys 11-10-44 | switch_to 41 | keys 11-10-4D", StringComparison.Ordinal) < 0
+                                        || stillMuted != muted || unfocusedMs < Hands.FocusWait || unfocusedMs > 5000) throw new Exception("Discord's keys didn't wait for its page to take the keyboard: " + focusedBy + " looks, keys after " + string.Join(",", pressedAfter) + ", " + deafened + ", " + unfocusedMs + " ms / " + pressed);
                                 }
-                                finally { Hands.Chord = chordWas; Hands.Windows = windowsWas; Hands.Steer = steerWas; Hands.Catalog = catalogWas; Hands.Forget(); }
-                                checks.Add("PASS shortcuts: mute my mic and deafen me press Discord's keys in Discord and switch back, screenshots, clips, recording, Live Captions, Narrator, Magnifier, colour filters, voice typing, Quick Settings and more press Windows keys, and chat about muting or captions doesn't");
+                                finally { Hands.Chord = chordWas; Hands.Windows = windowsWas; Hands.Steer = steerWas; Hands.Catalog = catalogWas; Hands.Foreground = foregroundWas; Hands.Typable = typableWas; Hands.Forget(); }
+                                checks.Add("PASS shortcuts: mute my mic and deafen me press Discord's keys in Discord and switch back, waiting up to 400 ms for its page to take the keyboard when it wasn't in front, screenshots, clips, recording, Live Captions, Narrator, Magnifier, colour filters, voice typing, Quick Settings and more press Windows keys, and chat about muting or captions doesn't");
                                 string steamRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "steam-test");
                                 Func<System.Collections.Generic.List<InstalledApp>> catalogBefore = Hands.Catalog;
                                 try

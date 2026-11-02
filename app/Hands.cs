@@ -783,6 +783,10 @@ namespace CapriDesktop
         // Puts dots over a password she typed into a password box, wherever it would show or be saved.
         internal static Func<string, string> Hush = delegate(string text) { return text; };
         internal static Action<byte[]> Chord = PressChord;
+        // Discord drops keys pressed before its page has the keyboard, a moment after it comes to the front (deafen took two tries, 2 Nov).
+        internal static Func<IntPtr, bool> Typable = PageFocused;
+        internal const int FocusWait = 400;
+        private const int KeyGap = 20;
         internal static Func<string, int, bool> Power = Switch;
         // Puts her to sleep (true) or wakes her (false), and says how it went. Her window sets it.
         internal static Func<bool, string> Nap = delegate { return "Couldn't nap just now."; };
@@ -826,7 +830,11 @@ namespace CapriDesktop
         [DllImport("kernel32.dll")] private static extern int GetCurrentThreadId();
         [StructLayout(LayoutKind.Sequential)] private struct Message { internal IntPtr Window; internal uint Id; internal UIntPtr WParam; internal IntPtr LParam; internal uint Time; internal int X, Y; internal uint Private; }
         [DllImport("user32.dll")] private static extern bool PeekMessage(out Message message, IntPtr window, uint first, uint last, uint flags);
-        private static readonly Regex Junk = new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
+        [StructLayout(LayoutKind.Sequential)] private struct ThreadFocus { internal int Size, Flags; internal IntPtr Active, Focus, Capture, MenuOwner, MoveSize, Caret; internal WindowEdges CaretEdges; }
+        [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(int thread, ref ThreadFocus focus);
+        [DllImport("user32.dll")] private static extern bool IsChild(IntPtr parent, IntPtr window);
+        [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code, uint kind);
+        private static readonly Regex Junk =new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
         private static readonly string[,] Searches =
         {
             { "youtube", "https://www.youtube.com/results?search_query=" },
@@ -2933,8 +2941,13 @@ namespace CapriDesktop
                 for (int i = 0; i < 20 && discord == null; i++) { Thread.Sleep(250); discord = FindDiscord(); }
                 if (discord == null) return "Opened Discord, but its window didn't show up in time. Ask again in a sec.";
             }
-            IntPtr before = Native.GetForegroundWindow();
+            IntPtr before = Foreground();
             if (!Steer(discord, "switch_to")) return "Couldn't bring Discord to the front to press its shortcut.";
+            if (before != discord.Handle)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < FocusWait && !Typable(discord.Handle)) Thread.Sleep(20);
+            }
             Chord(keys);
             Thread.Sleep(150);
             if (before != IntPtr.Zero && before != discord.Handle) Steer(new OpenWindow(before, "", ""), "switch_to");
@@ -3039,10 +3052,30 @@ namespace CapriDesktop
             catch (System.ComponentModel.Win32Exception) { return false; }
         }
 
+        // A beat apart and with their scan codes, so an app that reads either one, like Discord's page, gets the whole chord.
         private static void PressChord(byte[] keys)
         {
-            foreach (byte key in keys) Native.keybd_event(key, 0, key == 0x5B ? 0x1 : 0, UIntPtr.Zero);
-            for (int i = keys.Length - 1; i >= 0; i--) Native.keybd_event(keys[i], 0, (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (i > 0) Thread.Sleep(KeyGap);
+                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), keys[i] == 0x5B ? 0x1 : 0, UIntPtr.Zero);
+            }
+            for (int i = keys.Length - 1; i >= 0; i--)
+            {
+                Thread.Sleep(KeyGap);
+                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+            }
+        }
+
+        // Discord's page has the keyboard: it's in front, not minimised, and its focus is on one of its own child windows.
+        private static bool PageFocused(IntPtr window)
+        {
+            int ignored;
+            if (Native.GetForegroundWindow() != window || IsIconic(window)) return false;
+            ThreadFocus focus = new ThreadFocus();
+            focus.Size = Marshal.SizeOf(typeof(ThreadFocus));
+            int thread = GetWindowThreadProcessId(window, out ignored);
+            return thread != 0 && GetGUIThreadInfo(thread, ref focus) && focus.Focus != IntPtr.Zero && IsChild(window, focus.Focus);
         }
 
         private static void Tap(byte key)
