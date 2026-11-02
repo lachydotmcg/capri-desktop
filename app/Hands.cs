@@ -3926,12 +3926,12 @@ namespace CapriDesktop
             if (action == "next" || action == "previous")
             {
 #if !CROSS
-                string skipped = Skipped(action == "next");
-                if (skipped != null) return skipped;
-#endif
+                return Skipped(action == "next");
+#else
                 if (action == "next") { Press(0xB0); return "Skipped to the next track."; }
                 Press(0xB1);
                 return "Went back a track.";
+#endif
             }
             int level;
             bool leveled = int.TryParse(args.Level, out level) && level >= 0 && level <= 100;
@@ -4054,6 +4054,7 @@ namespace CapriDesktop
         // player.
         internal static Func<List<Tune>> Sessions = delegate { return null; };
         internal static Func<Tune, string, bool> SessionPress = delegate { return false; };
+        internal static Func<Tune, Tune> SessionRead = Again;
 
         // The player that's playing, or the first paused one with something on, or null when there's neither.
         private static Tune Sounding(List<Tune> tunes)
@@ -4100,19 +4101,46 @@ namespace CapriDesktop
             return pausing ? "Couldn't pause " + app + ": it still says it's playing." : "Couldn't play " + app + ": it still says it's paused.";
         }
 
-        // Next and previous on the player that's playing, and the song it moved to once it says. Null when there's no player.
         private static string Skipped(bool next)
         {
-            Tune tune = Sounding(Sessions());
-            if (tune == null) return null;
+            List<Tune> tunes = Sessions();
+            Tune tune = Sounding(tunes);
+            if (tunes != null && (tune == null || !tune.Playing)) tune = tunes.Find(delegate(Tune item) { return item.Playing; }) ?? tune ?? (tunes.Count > 0 ? tunes[0] : null);
+            if (tune == null) return SkipKey(next);
+            string before = tune.Key;
+            bool known = tune.Title.Length > 0, seen = false;
             if (!SessionPress(tune, next ? "next" : "previous")) return "Couldn't reach " + Tunes.AppName(tune.App) + " to skip.";
-            for (int i = 0; i < 10; i++)
+            Stopwatch waited = Stopwatch.StartNew();
+            while (waited.ElapsedMilliseconds < 2000)
             {
-                Thread.Sleep(150);
-                Tune now = Again(tune);
-                if (now != null && now.Title.Length > 0 && now.Key != tune.Key) return (next ? "Skipped to the next track: " : "Went back a track: ") + Song(now) + ".";
+                Thread.Sleep(200);
+                Tune now = SessionRead(tune);
+                seen = now != null && now.Title.Length > 0;
+                if (!seen) continue;
+                if (known && now.Key != before) return (next ? "Skipped to the next track: " : "Went back a track: ") + Song(now) + ".";
             }
-            return next ? "Skipped to the next track." : "Went back a track.";
+            return known && seen ? "The track didn't change." : "I couldn't check whether the track changed.";
+        }
+
+        private static string SkipKey(bool next)
+        {
+            string before = NowPlaying();
+            Press(next ? (byte)0xB0 : (byte)0xB1);
+            string unknown = (next ? "Pressed next." : "Pressed previous.") + " I couldn't check whether the track changed.";
+            if (!TrackTitle(before)) return unknown;
+            bool seen = false;
+            Stopwatch waited = Stopwatch.StartNew();
+            while (waited.ElapsedMilliseconds < 2000)
+            {
+                Thread.Sleep(200);
+                string after = NowPlaying();
+                seen = TrackTitle(after);
+                if (!seen) continue;
+                if (after == before) continue;
+                int dash = after.IndexOf(" - ", StringComparison.Ordinal);
+                return "Spotify is playing " + (dash > 0 ? after.Substring(dash + 3) + " by " + after.Substring(0, dash) : after) + ".";
+            }
+            return seen ? "The track didn't change." : unknown;
         }
 #endif
 

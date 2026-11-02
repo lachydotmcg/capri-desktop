@@ -270,6 +270,14 @@ namespace CapriDesktop
 
         private static string Clean(string text) { return Regex.Replace(text ?? "", @"[\s\u0000-\u001F\u007F]+", " ").Trim(); }
 
+        internal static Tune Refresh(Tune tune)
+        {
+            GlobalSystemMediaTransportControlsSession session = tune == null ? null : tune.Session as GlobalSystemMediaTransportControlsSession;
+            if (session == null) return null;
+            try { return Describe(session); }
+            catch (Exception) { return null; }
+        }
+
         private static bool SendToSession(Tune tune, string what)
         {
             try { return SendNow(tune, what); }

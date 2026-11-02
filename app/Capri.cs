@@ -2064,8 +2064,9 @@ namespace CapriDesktop
             // presses their real player.
             if (!testing)
             {
-                Hands.Sessions = delegate { return Tunes.Shared(); };
+                Hands.Sessions = delegate { return Tunes.Sessions(); };
                 Hands.SessionPress = delegate(Tune tune, string what) { return Tunes.Send(tune, what); };
+                Hands.SessionRead = Tunes.Refresh;
             }
             Hands.Gamey = Computer.IsGame;
             Hands.Icons = IconTool;
@@ -26939,12 +26940,14 @@ namespace CapriDesktop
                             Action<byte> realPress = Hands.Press;
                             Func<System.Collections.Generic.List<InstalledApp>> realCatalog = Hands.Catalog;
                             Func<string, bool> realExists = Hands.Exists;
+                            Func<string> realMediaTitle = Hands.NowPlaying;
                             string realOllama = Brain.Ollama;
                             System.Net.Sockets.TcpListener fakeBrain = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
                             try
                             {
                                 Hands.Run = delegate(string id) { ran.Add(id); };
                                 Hands.Press = delegate(byte key) { tapped.Add(key); };
+                                Hands.NowPlaying = delegate { return ""; };
                                 Hands.Exists = delegate { return false; };
                                 Hands.Catalog = delegate
                                 {
@@ -26976,12 +26979,122 @@ namespace CapriDesktop
                                 {
                                     "Opened Spotify.", "Opened Roblox.", "Opened Blender 5.1.", "Opened Minecraft Launcher.",
                                     "No app called steam support center is installed on this PC.", "No app called Zorblax is installed on this PC.", "Searched youtube.com for lofi beats.", "Opened discord.com.",
-                                    "Turned the volume up.", "Skipped to the next track.", "There's no tool called format_drive."
+                                    "Turned the volume up.", "Pressed next. I couldn't check whether the track changed.", "There's no tool called format_drive."
                                 };
                                 for (int i = 0; i < expected.Length; i++) if (outcomes[i] != expected[i]) throw new Exception("Harness answered '" + outcomes[i] + "', expected '" + expected[i] + "'.");
                                 string launched = string.Join(" | ", ran.ToArray());
                                 if (launched != @"SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify | com.Roblox.Player | {6D809377-6AF0-444B-8957-A3773F02200E}\Blender Foundation\Blender 5.1\blender-launcher.exe | Microsoft.4297127D64EC6_8wekyb3d8bbwe!Minecraft | https://www.youtube.com/results?search_query=lofi%20beats | https://discord.com/") throw new Exception("Harness launched the wrong things: " + launched);
                                 if (tapped.Count != 6 || tapped[0] != 0xAF || tapped[5] != 0xB0) throw new Exception("Media keys were wrong: " + tapped.Count);
+                                {
+                                    Func<System.Collections.Generic.List<Tune>> skipSessionsWas = Hands.Sessions;
+                                    Func<Tune, string, bool> skipPressWas = Hands.SessionPress;
+                                    Func<Tune, Tune> skipReadWas = Hands.SessionRead;
+                                    Func<string> skipTitleWas = Hands.NowPlaying;
+                                    Action<byte> skipKeyWas = Hands.Press;
+                                    System.Collections.Generic.List<byte> skipKeys = new System.Collections.Generic.List<byte>();
+                                    System.Collections.Generic.List<string> skipSent = new System.Collections.Generic.List<string>();
+                                    Tune skipTune = new Tune { App = "Spotify.exe", Title = "Starboy", Artist = "The Weeknd", Playing = true, Session = new object() };
+                                    Tune skipAfter = new Tune { App = "Spotify.exe", Title = "After Hours", Artist = "The Weeknd", Playing = true, Session = skipTune.Session };
+                                    int skipReads = 0;
+                                    try
+                                    {
+                                        Hands.Press = delegate(byte key) { skipKeys.Add(key); };
+                                        Hands.Sessions = delegate { return new System.Collections.Generic.List<Tune> { new Tune { App = "Chrome", Title = "A film" }, skipTune }; };
+                                        Hands.SessionPress = delegate(Tune tune, string what)
+                                        {
+                                            if (!ReferenceEquals(tune, skipTune)) throw new Exception("Skip went to the paused player.");
+                                            skipSent.Add(what);
+                                            return true;
+                                        };
+                                        Hands.SessionRead = delegate(Tune tune)
+                                        {
+                                            if (!ReferenceEquals(tune, skipTune)) throw new Exception("Skip checked another session.");
+                                            skipReads++;
+                                            return skipReads < 2 ? skipTune : skipAfter;
+                                        };
+                                        string skipNext = Hands.Do("media", new ToolArguments { Action = "next" });
+                                        if (skipNext != "Skipped to the next track: After Hours by The Weeknd." || skipReads != 2 || skipKeys.Count != 0 || string.Join(" ", skipSent.ToArray()) != "next") throw new Exception("Session next did not check the track: " + skipNext);
+                                        skipTune = skipAfter;
+                                        Hands.SessionRead = delegate { return skipTune; };
+                                        Hands.SessionPress = delegate(Tune tune, string what)
+                                        {
+                                            skipSent.Add(what);
+                                            tune.Title = "Starboy";
+                                            return true;
+                                        };
+                                        string skipPrevious = Hands.Do("media", new ToolArguments { Action = "previous" });
+                                        if (skipPrevious != "Went back a track: Starboy by The Weeknd." || skipKeys.Count != 0 || string.Join(" ", skipSent.ToArray()) != "next previous") throw new Exception("Session previous lost the old track: " + skipPrevious);
+                                        checks.Add("PASS media skip: next uses the playing session, waits for its track to change and names it; previous keeps the old title before sending");
+                                        Hands.SessionPress = delegate { return true; };
+                                        foreach (string skipAction in new[] { "next", "previous" })
+                                        {
+                                            string skipStill = Hands.Do("media", new ToolArguments { Action = skipAction });
+                                            if (skipStill != "The track didn't change." || skipKeys.Count != 0) throw new Exception("An unchanged session skip claimed success: " + skipStill);
+                                        }
+                                        checks.Add("PASS media skip: an accepted next or previous that leaves the same track says it did not change");
+                                        Hands.SessionPress = delegate { return false; };
+                                        Hands.SessionRead = delegate { throw new Exception("A refused skip was checked as sent."); };
+                                        foreach (string skipAction in new[] { "next", "previous" })
+                                        {
+                                            string skipRefused = Hands.Do("media", new ToolArguments { Action = skipAction });
+                                            if (skipRefused != "Couldn't reach Spotify to skip." || skipKeys.Count != 0) throw new Exception("A refused session skip tapped a key or claimed success: " + skipRefused);
+                                        }
+                                        if (!Tunes.Send(skipTune, "next") || !Tunes.Send(skipTune, "previous") || skipKeys.Count != 2 || skipKeys[0] != 0xB0 || skipKeys[1] != 0xB1) throw new Exception("A session that can't take a skip did not fall back to the media keys.");
+                                        skipKeys.Clear();
+                                        if (Tunes.Refresh(skipTune) != null || Tunes.Refresh(null) != null) throw new Exception("A missing session produced a track.");
+                                        checks.Add("PASS media skip: a refused skip says it couldn't reach the player, and a session that can't take one falls back to the media keys");
+                                        Hands.SessionPress = delegate { return true; };
+                                        skipReads = 0;
+                                        Hands.SessionRead = delegate { return skipReads++ == 0 ? skipTune : null; };
+                                        string skipGone = Hands.Do("media", new ToolArguments { Action = "next" });
+                                        if (skipGone != "I couldn't check whether the track changed." || skipKeys.Count != 0) throw new Exception("A lost session was counted as a changed track: " + skipGone);
+                                        skipTune = new Tune { App = "Spotify.exe", Playing = true, Session = new object() };
+                                        skipSent.Clear();
+                                        Hands.SessionPress = delegate(Tune tune, string what) { skipSent.Add(what); return ReferenceEquals(tune, skipTune); };
+                                        Hands.SessionRead = delegate { return skipTune; };
+                                        string skipUntitled = Hands.Do("media", new ToolArguments { Action = "previous" });
+                                        if (skipUntitled != "I couldn't check whether the track changed." || skipKeys.Count != 0 || string.Join(" ", skipSent.ToArray()) != "previous") throw new Exception("An untitled session fell back to a key or claimed a track change: " + skipUntitled);
+                                        checks.Add("PASS media skip: a lost session or missing title says the track change could not be checked");
+                                        Hands.SessionPress = delegate { throw new Exception("No session should use a media key."); };
+                                        Hands.SessionRead = delegate { throw new Exception("No session should be reread."); };
+                                        Hands.Sessions = delegate { return null; };
+                                        Hands.NowPlaying = delegate { return ""; };
+                                        string skipNoNext = Hands.Do("media", new ToolArguments { Action = "next" });
+                                        Hands.Sessions = delegate { return new System.Collections.Generic.List<Tune>(); };
+                                        string skipNoPrevious = Hands.Do("media", new ToolArguments { Action = "previous" });
+                                        if (skipNoNext != "Pressed next. I couldn't check whether the track changed." || skipNoPrevious != "Pressed previous. I couldn't check whether the track changed." || skipKeys.Count != 2 || skipKeys[0] != 0xB0 || skipKeys[1] != 0xB1) throw new Exception("No-session skip keys or replies were wrong: " + skipNoNext + " / " + skipNoPrevious);
+                                        checks.Add("PASS media skip: no session taps next or previous once and says when the result cannot be checked");
+                                        string skipTitle = "The Weeknd - Starboy";
+                                        Hands.NowPlaying = delegate { return skipTitle; };
+                                        foreach (string skipAction in new[] { "next", "previous" })
+                                        {
+                                            skipTitle = "The Weeknd - Starboy";
+                                            skipKeys.Clear();
+                                            Hands.Press = delegate(byte key) { skipKeys.Add(key); skipTitle = "The Weeknd - After Hours"; };
+                                            string skipFallback = Hands.Do("media", new ToolArguments { Action = skipAction });
+                                            if (skipFallback != "Spotify is playing After Hours by The Weeknd." || skipKeys.Count != 1 || skipKeys[0] != (skipAction == "next" ? 0xB0 : 0xB1)) throw new Exception("A media key skip did not check the new title: " + skipFallback);
+                                        }
+                                        Hands.Press = delegate(byte key) { skipKeys.Add(key); };
+                                        foreach (string skipAction in new[] { "next", "previous" })
+                                        {
+                                            skipKeys.Clear();
+                                            string skipStill = Hands.Do("media", new ToolArguments { Action = skipAction });
+                                            if (skipStill != "The track didn't change." || skipKeys.Count != 1 || skipKeys[0] != (skipAction == "next" ? 0xB0 : 0xB1)) throw new Exception("An unchanged media key skip claimed success: " + skipStill);
+                                        }
+                                        Hands.Press = delegate(byte key) { skipTitle = ""; };
+                                        string skipLostTitle = Hands.Do("media", new ToolArguments { Action = "next" });
+                                        if (skipLostTitle != "Pressed next. I couldn't check whether the track changed.") throw new Exception("A lost window title was counted as a track change: " + skipLostTitle);
+                                        checks.Add("PASS media skip: the key fallback names a changed Spotify title and reports an unchanged or unreadable title honestly");
+                                    }
+                                    finally
+                                    {
+                                        Hands.Sessions = skipSessionsWas;
+                                        Hands.SessionPress = skipPressWas;
+                                        Hands.SessionRead = skipReadWas;
+                                        Hands.NowPlaying = skipTitleWas;
+                                        Hands.Press = skipKeyWas;
+                                    }
+                                }
                                 Func<string> playingBefore = Hands.NowPlaying;
                                 Hands.NowPlaying = delegate { return tapped.FindAll(delegate(byte key) { return key == 0xB3; }).Count % 2 == 1 ? "Spotify Premium" : "Chase Atlantic - Consume"; };
                                 string paused = Hands.Do("media", new ToolArguments { Action = "pause" });
@@ -29929,7 +30042,7 @@ namespace CapriDesktop
                                         new[] { "POST /v1/messages", "Tool results, from what you just did:", "open_app:", "Opened Spotify." },
                                         new[] { "GET /v1/models", "Authorization: Bearer sk-proj-test" },
                                         new[] { "POST /v1/chat/completions", "\"max_completion_tokens\":2000", "\"reasoning_effort\":\"low\"", "\"tools\":[{\"type\":\"function\",\"function\":{\"name\":\"open_app\"" },
-                                        new[] { "POST /v1/chat/completions", "Tool results, from what you just did:", "media:", "Skipped to the next track." },
+                                        new[] { "POST /v1/chat/completions", "Tool results, from what you just did:", "media:", "Pressed next. I couldn't check whether the track changed." },
                                         new[] { "POST /v1/messages" },
                                         new[] { "GET /models ", "Authorization: Bearer " + deepKey },
                                         new[] { "POST /chat/completions ", "\"thinking\":{\"type\":\"disabled\"}", "\"max_tokens\":2000", "\"model\":\"deepseek-flash\"", "You are Capri" },
@@ -30676,6 +30789,7 @@ namespace CapriDesktop
                                 Hands.Press = realPress;
                                 Hands.Catalog = realCatalog;
                                 Hands.Exists = realExists;
+                                Hands.NowPlaying = realMediaTitle;
                                 Hands.Forget();
                                 Brain.Ollama = realOllama;
                                 fakeBrain.Stop();
