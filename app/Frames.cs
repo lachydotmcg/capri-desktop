@@ -26,7 +26,7 @@ namespace CapriDesktop
         private DescribeOutput describe;
         private Bitmap fallback;
         private bool opened, ready, disposed;
-        private long retryAt, countedAt;
+        private long retryAt, countedAt, settleUntil;
         private int counted;
         private double fps;
 
@@ -57,6 +57,12 @@ namespace CapriDesktop
             try { if (desktop.Contains(area)) OpenDuplication(); }
             catch (Exception) { CloseDuplication(); }
             retryAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 2;
+        }
+
+        private void Settle()
+        {
+            CloseDuplication();
+            retryAt = settleUntil = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 3 / 2;
         }
 
         internal static Rectangle CaptureArea(Rectangle bounds, Rectangle screens) { return Rectangle.Intersect(bounds, screens); }
@@ -134,6 +140,10 @@ namespace CapriDesktop
             {
                 if (disposed) throw new ObjectDisposedException("FrameGrab");
                 if (!opened) return false;
+                // Lost to a mode change or a window taking the screen, it waits for that to settle before it tries again, even by
+                // copying the screen: a new device on every frame meanwhile can hang the graphics driver under a game
+                // (john_sandevistan, 2 Nov: Valorant crashed as the Mainframe opened).
+                if (Stopwatch.GetTimestamp() < settleUntil) return false;
                 if (duplication == IntPtr.Zero && Stopwatch.GetTimestamp() >= retryAt) Reopen();
                 if (duplication != IntPtr.Zero)
                 {
@@ -141,7 +151,7 @@ namespace CapriDesktop
                     {
                         OutputDesc current;
                         Check(describe(output, out current));
-                        if (current.Attached == 0 || current.Bounds != desktop || current.Rotation != outputDesc.Rotation) Reopen();
+                        if (current.Attached == 0 || current.Bounds != desktop || current.Rotation != outputDesc.Rotation) { Settle(); return false; }
                         if (duplication != IntPtr.Zero)
                         {
                             if (!Take(timeoutMs)) return false;
@@ -151,7 +161,7 @@ namespace CapriDesktop
                     }
                     catch (COMException frameError)
                     {
-                        if (frameError.ErrorCode == AccessLost) { Reopen(); return false; }
+                        if (frameError.ErrorCode == AccessLost) { Settle(); return false; }
                         CloseDuplication();
                         retryAt = Stopwatch.GetTimestamp() + Stopwatch.Frequency * 2;
                     }

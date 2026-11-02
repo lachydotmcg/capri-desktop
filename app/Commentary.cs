@@ -241,7 +241,7 @@ namespace CapriDesktop
                 case "death": return "They may have just died; check the pictures.";
                 case "kill": return "They may have just taken something down; check the pictures.";
                 case "sound": case "noise": return "There was a big burst of sound in the game.";
-                case "flash": return "The screen just flashed.";
+                case "flash": return "The screen just went bright for a moment; check the pictures for why.";
                 case "motion": return "Something on screen just moved fast.";
                 case "red": return "The edges of the screen just went red.";
                 case "scene": return "Nothing big just happened, so this is a look at how they're getting on.";

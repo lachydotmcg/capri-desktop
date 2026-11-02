@@ -15,6 +15,8 @@ namespace CapriDesktop
         internal Rectangle Icon;
         internal bool Floor;
         internal bool Free;
+        // A spot she took beside something full screen, given up once it's gone.
+        internal bool Aside;
         internal int Left;
         internal int Right;
         internal int Y;
