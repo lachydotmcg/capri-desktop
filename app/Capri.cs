@@ -32285,6 +32285,11 @@ namespace CapriDesktop
                                 return vsHeard;
                             };
                             int vsRate;
+                            // A long piece that came back in a second was cut off; a short line or a long piece at talking speed wasn't.
+                            const string vsLong = "This line is long enough that it takes a good few seconds to say out loud, choom, every time.";
+                            if (!VoiceServer.Clipped(vsLong, YourVoice.Rate) || VoiceServer.Clipped(vsLong, YourVoice.Rate * 6) || VoiceServer.Clipped("Hey choom, this is your server.", 2400)
+                                || VoiceServer.Clipped("[laughing] [excited] Ha ha ha ha ha ha ha ha ha ha ha ha ha!", YourVoice.Rate * 2))
+                                throw new Exception("A cut-off voice server piece was read wrong.");
                             const string vsLine = "Hey choom, this is your server.";
                             byte[] vsSaid = vsOff(vsVoice.Or(vsFree, vsNoted), vsLine);
                             short[] vsSamples = Voice.Samples(vsSaid, out vsRate);

@@ -3571,12 +3571,37 @@ namespace CapriDesktop
                     if (!string.IsNullOrEmpty(speaker)) body.Append(",\"voice\":").Append(Voice.Quote(speaker));
                     body.Append(",\"response_format\":\"wav\"}");
                 }
-                said.AddRange(Ask(endpoint, key, fish ? model : null, body.ToString(), name));
+                short[] made = Ask(endpoint, key, fish ? model : null, body.ToString(), name);
+                // A piece far shorter than its words could take was cut off on their side, which sounds like her voice stopping
+                // mid-reply while the text goes on (Mika on Fish Audio). It's asked for once more and the longer one kept.
+                if (Clipped(piece, made.Length))
+                {
+                    short[] again = Ask(endpoint, key, fish ? model : null, body.ToString(), name);
+                    Brain.Log(name, -1, "Sound for " + Letters(piece) + " letters came back as " + (made.Length / (double)YourVoice.Rate).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
+                        + " s, so she asked again and got " + (again.Length / (double)YourVoice.Rate).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s.");
+                    if (again.Length > made.Length) made = again;
+                }
+                said.AddRange(made);
             }
             short[] samples = said.ToArray();
             if (samples.Length == 0) throw new VoiceException(name + " sent back no sound.");
             if (!VoiceFx.Plain(pitch, speed, robot, glitch, layers)) samples = VoiceFx.Restyled(samples, YourVoice.Rate, pitch, speed, robot, glitch, VoiceFx.Seed(text), layers);
             return Voice.Wave(samples, YourVoice.Rate);
+        }
+
+        // Sound for a piece is cut off when it's quicker than 20 letters a second, faster than anyone talks. Pieces under 40
+        // letters are left alone, since a few words can be said quickly.
+        internal static bool Clipped(string piece, int samples)
+        {
+            int letters = Letters(piece);
+            return letters >= 40 && samples < (long)letters * YourVoice.Rate / 20;
+        }
+
+        private static int Letters(string piece)
+        {
+            int count = 0;
+            foreach (char c in Voice.Uncued(piece ?? "")) if (char.IsLetterOrDigit(c)) count++;
+            return count;
         }
 
         // `model` goes in a header, where Fish Audio's API takes it. `name` is what her notes call the server.
