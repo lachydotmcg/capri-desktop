@@ -1555,6 +1555,7 @@ namespace CapriDesktop
         // A voice check she says once her HD voice wakes, in place of her usual one.
         private string hdLine;
         private int hdSpeaking = -1;
+        private volatile int answerTurn, audioTurn;
         private long voiceGot, voiceTotal, earsGot, earsTotal, hdGot, hdTotal;
         private double hdRest = -1, hdUsed = -1, hdChecked = -1;
         private const double HdRest = 600, HdShortRest = 60;
@@ -9436,7 +9437,7 @@ namespace CapriDesktop
                     if (!frames.Enabled && (!hidden || docked)) frames.Start();
                 });
             };
-            opened.Interrupted += delegate { Post(delegate { if (agent != opened) return; bargedUntil = -1; Hush(); }); };
+            opened.Interrupted += delegate { Post(delegate { if (agent == opened) ChatInterrupted(); }); };
             opened.Closed += delegate(string problem) { Post(delegate { if (agent != opened) return; if (problem != null) ChatFailed(problem); else Rest(); }); };
             agent = opened;
             opened.Start(url, voiceId);
@@ -9471,6 +9472,14 @@ namespace CapriDesktop
             speaker.Clear();
             chatTail.Stop();
             chatFx = null;
+        }
+
+        private void ChatInterrupted()
+        {
+            LogVoiceInterruption("server interruption", audioTurn, false);
+            CancelAnswerAudio();
+            bargedUntil = -1;
+            Hush();
         }
 
         private void ChatOpened(int rate)
@@ -9953,6 +9962,8 @@ namespace CapriDesktop
             if (hidden) SetHidden(false);
             hideAsked = false;
             brain.Cancel();
+            LogVoiceInterruption("explicit input", audioTurn, false);
+            CancelAnswerAudio();
             voice.Stop();
             int ticket = ++asking;
             heard = shown;
@@ -10057,6 +10068,11 @@ namespace CapriDesktop
         private void Answer(int ticket, string said, TalkState state, bool quiet = false)
         {
             if (ticket != asking || IsDisposed) return;
+            // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
+            int turn = ++answerTurn;
+            CancelAnswerAudio();
+            int audio = audioTurn;
+            barging = false;
             voice.Stop();
             voiceUntil = 0;
             Func<string, byte[]> free;
@@ -10077,7 +10093,7 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate
             {
                 Thread.Sleep(wait);
-                Post(delegate { if (ticket == asking && reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, null); });
+                Post(delegate { if (turn == answerTurn && ticket == asking && reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, null); });
             });
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -10087,13 +10103,19 @@ namespace CapriDesktop
                 if (!testing && (problem != null || (speak == free && took.ElapsedMilliseconds > 5000))) Brain.Log(speak == free ? "free voice" : "ElevenLabs voice", took.ElapsedMilliseconds, problem ?? "slow, " + (wav == null ? 0 : Voice.Seconds(wav)).ToString("0.0") + " s of speech");
                 Post(delegate
                 {
-                    if (answerVoice == ticket) answerVoice = -1;
-                    voiceBroken = problem != null;
-                    if (hdSpeaking == ticket) hdSpeaking = -1;
-                    if (ticket != asking || IsDisposed) return;
-                    if (problem != null) mainframe.VoiceNote(problem, wav == null);
-                    if (reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, wav);
-                    else if (FollowDelivery(ticket) && talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
+                    bool current = turn == answerTurn && ticket == asking && !IsDisposed;
+                    bool audible = current && audio == audioTurn;
+                    Brain.Log("voice delivery", took.ElapsedMilliseconds, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible);
+                    if (!current) return;
+                    if (audible)
+                    {
+                        answerVoice = -1;
+                        hdSpeaking = -1;
+                        voiceBroken = problem != null;
+                        if (problem != null) mainframe.VoiceNote(problem, wav == null);
+                    }
+                    if (reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, audible ? wav : null);
+                    else if (audible && FollowDelivery(ticket) && talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
                 });
             });
         }
@@ -10185,6 +10207,8 @@ namespace CapriDesktop
 
         private void CloseTalk()
         {
+            answerTurn++;
+            CancelAnswerAudio();
             voice.Stop();
             Sfx.Untype();
             hdSpeaking = -1;
@@ -20112,6 +20136,209 @@ namespace CapriDesktop
             if (!done()) throw new Exception(problem);
         }
 
+        private void SmokeAnswerVoice(System.Collections.Generic.List<string> checks, string output)
+        {
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            bool quietWas = preferences.Quiet, silentWas = preferences.Silent, servedWas = preferences.ServerVoice, hdWas = preferences.HdVoice;
+            bool localWas = local, chattingWas = chatting, readyWas = earsReady, mutedWas = ears.Muted, transcribingWas = transcribing, nameWas = preferences.ListenCapri;
+            bool brokenWas = voiceBroken, brokeWas = voiceBroke, asideWas = asideVoiceTest;
+            int waitWas = VoiceWait, freeWaitWas = FreeWait, typingWas = preferences.Typing;
+            Job jobWas = job;
+            string workingWas = working, logWas = Brain.LogPath, keyWas = voice.Key;
+            string log = Path.Combine(output, "voice-cutoff.txt");
+            System.Collections.Generic.List<ManualResetEvent> gates = new System.Collections.Generic.List<ManualResetEvent>();
+            Func<ManualResetEvent> gate = delegate { ManualResetEvent made = new ManualResetEvent(false); gates.Add(made); return made; };
+            Func<int, bool> completed = delegate(int turn) { return File.Exists(log) && File.ReadAllText(log).Contains(" | answer=" + turn + " audio="); };
+            Action<int> settle = delegate(int milliseconds)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < milliseconds) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            try
+            {
+                CloseTalk();
+                Brain.LogPath = log;
+                File.WriteAllText(log, "");
+                preferences.Quiet = preferences.Silent = preferences.ServerVoice = preferences.ListenCapri = voiceBroken = voiceBroke = false;
+                preferences.HdVoice = true;
+                preferences.Typing = 2;
+                local = chatting = transcribing = nameOver = false;
+                earsReady = true;
+                ears.Muted = false;
+                voice.Key = "ticket35-private-key-marker";
+                Speak = null;
+                Job busy = new Job("voice ownership check");
+                job = busy;
+                working = "On it. Esc stops me.";
+                int callVersion = callSession.Generation;
+                bool interrupted = Computer.Interrupted;
+                short[] samples = new short[24000];
+                for (int at = 0; at < samples.Length; at++) samples[at] = (short)(9000 * Math.Sin(at * 0.05));
+                byte[] wav = Voice.Wave(samples, 24000);
+                VoiceWait = FreeWait = 120;
+                foreach (bool afterText in new[] { false, true })
+                {
+                    ManualResetEvent entered = gate(), release = gate();
+                    FreeSpeak = delegate { entered.Set(); if (!release.WaitOne(4000)) throw new Exception("The fake voice stayed blocked."); return wav; };
+                    string line = afterText ? "Private reply after fallback." : "Private reply before fallback.";
+                    int ticket = ++asking;
+                    Answer(ticket, line, TalkState.Talking, true);
+                    int turn = answerTurn, audio = audioTurn;
+                    WaitVoice(delegate { return entered.WaitOne(0); }, "The fake voice did not start.");
+                    if (afterText) WaitVoice(delegate { return reply == line; }, "The pending voice hid its text fallback.");
+                    double textStart = replyStart;
+                    BargeIn();
+                    if (answerTurn != turn || audioTurn == audio || answerVoice != -1 || hdSpeaking != -1) throw new Exception("Talking over her cancelled the answer's text or kept its pending audio.");
+                    release.Set();
+                    WaitVoice(delegate { return completed(turn) && reply == line; }, "An interrupted answer lost its text or never completed.");
+                    if (voiceUntil != 0 || mouths != null || spokenLevels != null || afterText && replyStart != textStart || voiceBroken) throw new Exception("A late WAV played or restarted interrupted text.");
+                    if (asking != ticket || job != busy || working != "On it. Esc stops me." || Computer.Interrupted != interrupted || callSession.Generation != callVersion) throw new Exception("An audio interruption changed the job, asking ticket or call session.");
+                    checks.Add(afterText ? "PASS talking over her after text appears keeps that text and rejects the late WAV" : "PASS talking over her before text appears keeps its fallback and rejects the late WAV");
+                    CloseTalk();
+                }
+
+                foreach (bool failOld in new[] { false, true })
+                {
+                    ManualResetEvent oldEntered = gate(), oldRelease = gate(), newEntered = gate(), newRelease = gate();
+                    FreeSpeak = delegate { oldEntered.Set(); if (!oldRelease.WaitOne(4000)) throw new Exception("The old fake voice stayed blocked."); if (failOld) throw new VoiceException("Private stale voice failure."); return wav; };
+                    int ticket = ++asking;
+                    VoiceWait = FreeWait = 120;
+                    Answer(ticket, "Private replaced reply.", TalkState.Talking, true);
+                    int oldTurn = answerTurn;
+                    WaitVoice(delegate { return oldEntered.WaitOne(0); }, "The old fake voice did not start.");
+                    VoiceWait = FreeWait = 1200;
+                    FreeSpeak = delegate { newEntered.Set(); if (!newRelease.WaitOne(4000)) throw new Exception("The new fake voice stayed blocked."); return wav; };
+                    Answer(ticket, "Private replacement reply.", TalkState.Talking, true);
+                    int newTurn = answerTurn;
+                    WaitVoice(delegate { return newEntered.WaitOne(0); }, "The replacement fake voice did not start.");
+                    settle(200);
+                    if (reply != null || talkState != TalkState.Thinking) throw new Exception("An old text fallback replaced a newer answer on the same asking ticket.");
+                    voiceBroken = !failOld;
+                    string note = mainframe.VoiceNoteText;
+                    oldRelease.Set();
+                    WaitVoice(delegate { return completed(oldTurn); }, "The replaced voice did not complete.");
+                    if (reply != null || answerVoice != ticket || hdSpeaking != ticket || voiceBroken != !failOld || mainframe.VoiceNoteText != note) throw new Exception("An old voice completion changed the replacement's text or bookkeeping.");
+                    newRelease.Set();
+                    WaitVoice(delegate { return completed(newTurn) && reply == "Private replacement reply." && voiceUntil > 0; }, "The replacement answer did not speak.");
+                    if (answerVoice != -1 || hdSpeaking != -1 || voiceBroken || asking != ticket) throw new Exception("The replacement voice did not finish its own bookkeeping.");
+                    CloseTalk();
+                }
+                checks.Add("PASS replacing an answer on the same asking ticket rejects its old fallback, WAV and failure without clearing the new voice bookkeeping");
+
+                ManualResetEvent silentEntered = gate(), silentRelease = gate();
+                FreeSpeak = delegate { silentEntered.Set(); if (!silentRelease.WaitOne(4000)) throw new Exception("The silent replacement gate stayed shut."); return wav; };
+                int silentTicket = ++asking;
+                Answer(silentTicket, "Private pending reply.", TalkState.Talking, true);
+                int silentTurn = answerTurn;
+                WaitVoice(delegate { return silentEntered.WaitOne(0); }, "The pending fake voice did not start.");
+                preferences.Silent = true;
+                Answer(silentTicket, "Private text only replacement.", TalkState.Talking, true);
+                voiceBroken = true;
+                silentRelease.Set();
+                WaitVoice(delegate { return completed(silentTurn); }, "The text-only replacement's old voice did not complete.");
+                if (reply != "Private text only replacement." || voiceUntil != 0 || mouths != null || answerVoice != -1 || hdSpeaking != -1 || !voiceBroken) throw new Exception("An old voice changed a text-only replacement.");
+                checks.Add("PASS a text-only replacement owns the same asking ticket and ignores the older voice completion");
+                preferences.Silent = voiceBroken = false;
+                CloseTalk();
+
+                VoiceWait = FreeWait = 120;
+                FreeSpeak = delegate { return wav; };
+                foreach (bool wakeMic in new[] { false, true })
+                {
+                    local = chatting = true;
+                    Answer(++asking, "Private talk-over origin.", TalkState.Talking, true);
+                    WaitVoice(delegate { return voiceUntil > 0; }, "The talk-over origin did not speak.");
+                    int oldAudio = audioTurn, barges = bargeIns;
+                    talkOver.Reset(); wakeOver.Reset();
+                    short[] echo = new short[1600], talking = new short[1600];
+                    for (int at = 0; at < echo.Length; at++) { echo[at] = (short)(1200 * Math.Sin(at * 0.05)); talking[at] = (short)(14000 * Math.Sin(at * 0.05)); }
+                    for (int at = 0; at < 6; at++) { if (wakeMic) OverHeard(echo); else OverHerLocally(echo, VoiceLevel(echo)); }
+                    for (int at = 0; at < 4; at++) { if (wakeMic) OverHeard(talking); else OverHerLocally(talking, VoiceLevel(talking)); }
+                    Answer(asking, "Private talk-over replacement.", TalkState.Talking, true);
+                    int turn = answerTurn;
+                    WaitVoice(delegate { return completed(turn) && voiceUntil > 0; }, "A queued old talk-over stopped the replacement voice.");
+                    string source = wakeMic ? "wake mic talk-over" : "local chat talk-over";
+                    if (bargeIns != barges || reply != "Private talk-over replacement." || !File.ReadAllText(log).Contains("detected=" + oldAudio + " ignored=True")) throw new Exception("A queued " + source + " was not detected or stopped a newer answer.");
+                    CloseTalk();
+                }
+                checks.Add("PASS queued local chat and wake mic talk-over events leave a replacement answer on the same asking ticket speaking");
+
+                local = false;
+                Agent quietLink = new Agent();
+                speaker.Open(24000);
+                speaker.Play(samples);
+                talkOver.Reset();
+                short[] streamEcho = new short[1600], streamVoice = new short[1600];
+                for (int at = 0; at < streamEcho.Length; at++) { streamEcho[at] = (short)(1200 * Math.Sin(at * 0.05)); streamVoice[at] = (short)(14000 * Math.Sin(at * 0.05)); }
+                for (int at = 0; at < 6; at++) OverHer(streamEcho, quietLink);
+                int streamBarges = bargeIns;
+                bool streamDetected = false;
+                for (int at = 0; at < 4 && !streamDetected; at++) streamDetected = OverHer(streamVoice, quietLink) == streamVoice;
+                asking++;
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "The queued voice chat talk-over did not drain.");
+                if (!streamDetected || bargeIns != streamBarges || !speaker.Busy || OverHer(streamEcho, quietLink) == streamEcho) throw new Exception("A stale voice chat talk-over stopped the new stream or left its echo gate open.");
+                speaker.Clear();
+                checks.Add("PASS a stale voice chat talk-over leaves the next stream playing with its echo gate closed");
+
+                local = chatting = false;
+                ManualResetEvent asideEntered = gate(), asideRelease = gate();
+                FreeSpeak = delegate { asideEntered.Set(); if (!asideRelease.WaitOne(4000)) throw new Exception("The answer beside a job stayed blocked."); return wav; };
+                Speak = delegate { return wav; };
+                Answer(++asking, "Private answer beside a job.", TalkState.Talking, true);
+                int asideTurn = answerTurn, asideAudio = audioTurn;
+                WaitVoice(delegate { return asideEntered.WaitOne(0); }, "The answer beside a job did not start.");
+                asideVoiceTest = true;
+                int jobVoice = asideVoice;
+                SayAside("Private job line.", busy);
+                WaitVoice(delegate { return voiceUntil > 0; }, "The fake job line did not speak.");
+                if (asideVoice == jobVoice || answerTurn != asideTurn || audioTurn != asideAudio) throw new Exception("A job line changed the answer's audio identity.");
+                asideRelease.Set();
+                WaitVoice(delegate { return completed(asideTurn) && reply == "Private answer beside a job." && mouths != null; }, "A job voice invalidated its answer.");
+                checks.Add("PASS a job line changes its own voice generation while the pending answer still completes and speaks");
+                CloseTalk();
+
+                ManualResetEvent serverEntered = gate(), serverRelease = gate();
+                FreeSpeak = delegate { serverEntered.Set(); if (!serverRelease.WaitOne(4000)) throw new Exception("The server interruption gate stayed shut."); return wav; };
+                Answer(++asking, "Private server interrupted reply.", TalkState.Talking, true);
+                int serverTurn = answerTurn, serverTicket = asking;
+                WaitVoice(delegate { return serverEntered.WaitOne(0); }, "The server interruption fake voice did not start.");
+                ChatInterrupted();
+                serverRelease.Set();
+                WaitVoice(delegate { return completed(serverTurn) && reply == "Private server interrupted reply."; }, "A server interruption lost the text fallback.");
+                if (voiceUntil != 0 || mouths != null || asking != serverTicket) throw new Exception("A server interruption allowed a late WAV or changed asking.");
+                FreeSpeak = delegate { return wav; };
+                Answer(++asking, "Private next valid reply.", TalkState.Talking, true);
+                int nextTurn = answerTurn;
+                WaitVoice(delegate { return completed(nextTurn) && reply == "Private next valid reply." && voiceUntil > 0 && mouths != null; }, "The next valid reply stayed silent after an interruption.");
+                if (job != busy || working != "On it. Esc stops me." || Computer.Interrupted != interrupted || callSession.Generation != callVersion) throw new Exception("Voice delivery changed the job or call session.");
+                checks.Add("PASS server interruption rejects pending audio, the next valid reply speaks, and jobs, asking, computer interruption and call generation stay intact");
+
+                string logged = File.ReadAllText(log);
+                foreach (string source in new[] { "explicit input", "wake mic talk-over", "local chat talk-over", "server interruption" })
+                    if (!logged.Contains(" | voice interruption | - | " + source + " answer=") || !logged.Contains("played_ms=") || !logged.Contains("remaining_ms=")) throw new Exception("An interruption source or playback timing was missing from her log.");
+                if (logged.Contains("Private ") || logged.Contains("ticket35-private-key-marker")) throw new Exception("Voice interruption diagnostics included speech or a key.");
+                checks.Add("PASS voice interruption logs name the source with generations and playback timing without reply text or keys");
+                checks.Add("LIMIT ticket 35 guards a confirmed delivery race; the recorded two-word cutoff and live mic echo still need device reproduction, and in-flight paid requests are not cancelled");
+            }
+            finally
+            {
+                CloseTalk();
+                foreach (ManualResetEvent release in gates) release.Set();
+                asideVoice++;
+                Speak = speakWas; FreeSpeak = freeWas;
+                preferences.Quiet = quietWas; preferences.Silent = silentWas; preferences.ServerVoice = servedWas; preferences.HdVoice = hdWas; preferences.ListenCapri = nameWas;
+                preferences.Typing = typingWas; VoiceWait = waitWas; FreeWait = freeWaitWas;
+                local = localWas; chatting = chattingWas; earsReady = readyWas; ears.Muted = mutedWas; transcribing = transcribingWas; nameOver = false;
+                voiceBroken = brokenWas; voiceBroke = brokeWas; asideVoiceTest = asideWas;
+                job = jobWas; working = workingWas; Brain.LogPath = logWas; voice.Key = keyWas;
+                spokenLevels = null;
+                talkOver.Reset(); wakeOver.Reset();
+                lock (waking) preroll.Clear();
+            }
+        }
+
         private void SmokeGreeting(System.Collections.Generic.List<string> checks)
         {
             Func<string, byte[]> greetingSpeakWas = Speak, greetingFreeWas = FreeSpeak;
@@ -20641,6 +20868,7 @@ namespace CapriDesktop
 
         private static void SmokeHardwareSound(System.Collections.Generic.List<string> checks)
         {
+            if (OnGitHub) { checks.Add("LIMIT unattended smoke leaves real audio devices closed; fake sound clients cover playback, and real WASAPI speakers need a live check"); return; }
             bool hardwareWaveWas = Speaker.SkipWave;
             using (Speaker hardwareSpeaker = new Speaker(false))
             {
@@ -20781,6 +21009,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeComments(checks); });
                             Section(checks, delegate { SmokeOpening(checks); });
                             Section(checks, delegate { SmokeVoiceWaits(checks); });
+                            Section(checks, delegate { SmokeAnswerVoice(checks, output); });
                             Section(checks, delegate { SmokeVault(checks); });
                             Section(checks, delegate { SmokeSound(checks, output); });
                             Section(checks, delegate { SmokeMicSources(checks, output); });

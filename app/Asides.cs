@@ -408,8 +408,10 @@ namespace CapriDesktop
         }
 
         // They've started talking, or typed: she stops that instant in whatever voice she's using, and her hands carry on.
-        private void BargeIn()
+        private void BargeIn(string source = "explicit input")
         {
+            LogVoiceInterruption(source, audioTurn, false);
+            CancelAnswerAudio();
             bargeIns++;
             double now = clock.Elapsed.TotalSeconds;
             asideVoice++;
@@ -421,6 +423,30 @@ namespace CapriDesktop
             barging = false;
             Say(null);
             CheckEars(now);
+        }
+
+        private void CancelAnswerAudio()
+        {
+            audioTurn++;
+            answerVoice = -1;
+            hdSpeaking = -1;
+        }
+
+        private void LogVoiceInterruption(string source, int detected, bool ignored)
+        {
+            double now = clock.Elapsed.TotalSeconds;
+            Brain.Log("voice interruption", -1, source + " answer=" + answerTurn + " audio=" + audioTurn + " detected=" + detected + " ignored=" + ignored
+                + " played_ms=" + (spokenLevels == null ? -1 : (long)((now - spokenAt) * 1000)) + " remaining_ms=" + (long)(Math.Max(0, voiceUntil - now) * 1000) + " stream_busy=" + speaker.Busy);
+        }
+
+        // A mic event queued for one reply must leave the next reply alone (ticket 35).
+        private void QueueBargeIn(int ticket, int audio, string source)
+        {
+            Post(delegate
+            {
+                if (ticket != asking || audio != audioTurn) { LogVoiceInterruption(source, audio, true); return; }
+                BargeIn(source);
+            });
         }
 
         // How loud she's playing now: the loudest of the last 300 ms, since the mic hears her a moment late.
@@ -447,6 +473,7 @@ namespace CapriDesktop
         private readonly TalkOver wakeOver = new TalkOver();
         private readonly List<short[]> heldBack = new List<short[]>();
         private volatile bool barging;
+        private volatile int bargingTicket = -1, bargingAudio = -1;
         private bool overHeld;
         private volatile bool nameOver;
         private double bargedUntil = -1;
@@ -456,16 +483,19 @@ namespace CapriDesktop
         // gets through: she stops, and the agent hears them from the start of what they said.
         private short[] OverHer(short[] chunk, Agent open)
         {
+            int ticket = asking, audio = audioTurn;
             double level = VoiceLevel(chunk);
             if (level >= WakeLevel) micTalked = Environment.TickCount;
-            if (barging) return chunk;
+            if (barging && bargingTicket == ticket && bargingAudio == audio) return chunk;
             if (!speaker.Busy) { talkOver.Reset(); heldBack.Clear(); return chunk; }
             heldBack.Add(chunk);
             if (heldBack.Count > 4) heldBack.RemoveAt(0);
             if (!talkOver.Heard(level, speaker.Level(), WakeLevel)) return new short[chunk.Length];
+            bargingTicket = ticket;
+            bargingAudio = audio;
             barging = true;
             talkOver.Reset();
-            Post(BargeIn);
+            QueueBargeIn(ticket, audio, "voice chat talk-over");
             for (int i = 0; i + 1 < heldBack.Count; i++) open.Send(heldBack[i]);
             heldBack.Clear();
             return chunk;
@@ -474,6 +504,7 @@ namespace CapriDesktop
         // The same for free voice chat, whose ears shut while she talks: it listens for them over her, with the line's start kept.
         private bool OverHerLocally(short[] chunk, double level)
         {
+            int ticket = asking, audio = audioTurn;
             double now = clock.Elapsed.TotalSeconds;
             if (level >= WakeLevel) micTalked = Environment.TickCount;
             if (nameOver && local && earsReady && !ears.Muted && !transcribing) return false;
@@ -499,18 +530,19 @@ namespace CapriDesktop
                 return true;
             }
             talkOver.Reset();
-            Post(BargeIn);
+            QueueBargeIn(ticket, audio, "local chat talk-over");
             return true;
         }
 
         // "Hey Capri" is held while she talks so her own voice can't wake her, but its mic still hears them over her.
         private void OverHeard(short[] chunk)
         {
+            int ticket = asking, audio = audioTurn;
             double now = clock.Elapsed.TotalSeconds;
             if (now >= voiceUntil) { wakeOver.Reset(); return; }
             if (!wakeOver.Heard(VoiceLevel(chunk), SpokenLevel(now), WakeLevel)) return;
             wakeOver.Reset();
-            Post(BargeIn);
+            QueueBargeIn(ticket, audio, "wake mic talk-over");
         }
 
         // Her push-to-talk key, any key or mouse button, read rather than taken, so it still does its own job in a game. Held, her
