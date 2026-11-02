@@ -1613,7 +1613,10 @@ namespace CapriDesktop
         private readonly Ears ears = new Ears();
         private Ears micTest;
         private Action<double> micTestLevel;
-        private double micTestUntil, micTestPeak;
+        private double micTestUntil, micTestPeak, micTestMuteAt;
+        // Windows' own mute on the mic being tested, asked off the UI thread now and then: muted there sounds just like silence.
+        private bool? micTestWindowsMuted;
+        private bool micTestMuteAsking;
         private readonly Speaker speaker;
         private readonly Speaker effects;
         private readonly Speaker typist;
@@ -1653,6 +1656,7 @@ namespace CapriDesktop
         // A live mic hisses above this even in a quiet room; a wrong, unplugged or blocked one sends silence.
         private const double MicAlive = 0.0005;
         private const double MicQuietWait = 20;
+        internal const string MicMutedInWindows = "Your mic is muted in Windows. Unmute it in Windows sound settings, then test again.";
         internal const string MicSilent = "I can't hear anything from your mic. Pick the right one under VOICE, or let desktop apps use your mic in Windows Settings > Privacy & security > Microphone.";
         private volatile bool noiseHold;
         private System.Collections.Generic.List<short[]> utterance;
@@ -8780,13 +8784,16 @@ namespace CapriDesktop
             input.Chosen = preferences.Mic;
             micTestUntil = clock.Elapsed.TotalSeconds + 10;
             micTestPeak = 0;
+            micTestWindowsMuted = null;
+            micTestMuteAt = clock.Elapsed.TotalSeconds + 2;
+            AskMicTestMute(input);
             micTestLevel = delegate(double value)
             {
                 Post(delegate
                 {
                     if (micTest != input) return;
                     micTestPeak = Math.Max(micTestPeak, value);
-                    mainframe.ShowMicTest(true, value, input.Muted);
+                    mainframe.ShowMicTest(true, value, input.Muted || micTestWindowsMuted == true);
                 });
             };
             input.Level += micTestLevel;
@@ -8796,9 +8803,26 @@ namespace CapriDesktop
             catch (VoiceException error) { StopMicTest(false); HearingCaptureFailed(error.Message, false); mainframe.VoiceNote(error.Message, true); }
         }
 
+        private void AskMicTestMute(Ears input)
+        {
+            Func<string, bool?> ask = MicMuted;
+            // Smoke tests never read this PC's real mic; a check that wants a Windows mute stands in its own answer.
+            if (micTestMuteAsking || (testing && ask == (Func<string, bool?>)Mics.Muted)) return;
+            micTestMuteAsking = true;
+            string chosen = input.Chosen;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                bool? muted = null;
+                try { muted = ask(chosen); }
+                catch (Exception error) { Brain.Log("ears", -1, "Couldn't ask Windows if the mic is muted: " + error.Message); }
+                Post(delegate { micTestMuteAsking = false; if (micTest == input) micTestWindowsMuted = muted; });
+            });
+        }
+
         private void CheckMicTest(double now)
         {
             if (micTest == null) return;
+            if (now >= micTestMuteAt) { micTestMuteAt = now + 2; AskMicTestMute(micTest); }
             if (micTest.Stalled)
             {
                 StopMicTest(false);
@@ -8817,13 +8841,14 @@ namespace CapriDesktop
             if (input != ears) input.Dispose();
             mainframe.ShowMicTest(false, 0, false);
             if (!report) return;
-            hearingTestSilent = micTestPeak == 0 && !input.Muted;
+            bool windowsMuted = !input.Muted && micTestWindowsMuted == true, muted = input.Muted || windowsMuted;
+            hearingTestSilent = micTestPeak == 0 && !muted;
             hearingSilent = false;
-            hearingQuiet = micTestPeak > 0 && micTestPeak < QuietWake && !input.Muted;
+            hearingQuiet = micTestPeak > 0 && micTestPeak < QuietWake && !muted;
             hearingCaptureProblem = null;
             UpdateHearing();
-            string result = input.Muted ? "Your mic is muted. Unmute it to test." : micTestPeak == 0 ? MicSilent : micTestPeak < QuietWake ? "Your mic is very quiet. Raise its input volume in Windows sound settings." : "Mic test finished. Sound is reaching Capri.";
-            mainframe.VoiceNote(result, input.Muted || micTestPeak < QuietWake);
+            string result = input.Muted ? "Your mic is muted. Unmute it to test." : windowsMuted ? MicMutedInWindows : micTestPeak == 0 ? MicSilent : micTestPeak < QuietWake ? "Your mic is very quiet. Raise its input volume in Windows sound settings." : "Mic test finished. Sound is reaching Capri.";
+            mainframe.VoiceNote(result, muted || micTestPeak < QuietWake);
             Brain.Log("ears", -1, "Mic test: peak RMS " + (micTestPeak <= 0 ? "silence" : (20 * Math.Log10(micTestPeak)).ToString("0.0") + " dBFS") + ". " + result);
         }
 
@@ -21727,6 +21752,21 @@ namespace CapriDesktop
             TestMic(); TestMic();
             if (micTest != null || mainframe.MicTesting || mainframe.VoiceNoteText != MicSilent) throw new Exception("Stopping a silent test didn't explain the missing input.");
             checks.Add("PASS Mainframe mic Test shows a live level from fake audio without recognition or voice setup, stops on click or after ten seconds, and explains silence or low input volume");
+            Func<string, bool?> mutedWas = MicMuted;
+            try
+            {
+                MicMuted = delegate { return true; };
+                TestMic();
+                Ears windowsMuted = micTest;
+                Stopwatch asked = Stopwatch.StartNew();
+                while (micTestWindowsMuted != true && asked.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(10); }
+                windowsMuted.Feed(new short[Ears.Chunk]);
+                Application.DoEvents();
+                CheckMicTest(micTestUntil + 1);
+                if (micTest != null || mainframe.VoiceNoteText != MicMutedInWindows) throw new Exception("A mic muted in Windows was called silent: " + mainframe.VoiceNoteText);
+                checks.Add("PASS a mic muted in Windows is called muted there by the mic Test, not silent or blocked");
+            }
+            finally { MicMuted = mutedWas; if (micTest != null) StopMicTest(false); }
             Func<Dictation> makeWas = Dictation.Make;
             Func<string> defaultWas = Dictation.DefaultMic;
             bool? ownWas = ownEarsTest;

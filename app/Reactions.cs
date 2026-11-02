@@ -805,7 +805,12 @@ namespace CapriDesktop
         internal void ToggleReactions()
         {
             preferences.NoReactions = !preferences.NoReactions;
-            if (preferences.NoReactions && feed != null) feed.Clear();
+            if (preferences.NoReactions)
+            {
+                // A voice still on its way stays unsaid.
+                ++reactTurn;
+                if (feed != null) feed.Clear();
+            }
             SavePreferences();
             mainframe.Sync();
         }
@@ -858,6 +863,7 @@ namespace CapriDesktop
             Func<string, byte[]> speak = PickVoice(false, out free, false);
             if (speak == null) return;
             string words = Voice.Spoken(line), stamp = ReactionStamp(speak);
+            Rectangle game = ReactionGame;
             byte[] kept = null;
             lock (reactVoices)
             {
@@ -881,6 +887,7 @@ namespace CapriDesktop
                 Post(delegate
                 {
                     if (turn != reactTurn || took.ElapsedMilliseconds > Reactions.BrainLate || !ReactionVoiceFree()) return;
+                    if (preferences.NoReactions || !Reactions.Running || ReactionGame != game) return;
                     double now = clock.Elapsed.TotalSeconds;
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
                     CheckEars(now);
@@ -890,11 +897,16 @@ namespace CapriDesktop
             });
         }
 
-        // Whatever changes how a line sounds, so a kept voice is never one she's moved on from.
+        // Whatever changes how a line sounds, so a kept voice is never one she's moved on from. It's built from her voice settings,
+        // not the voice's delegate: a server or HD voice is a new wrapper each time it's picked, which emptied the kept voices.
         private string ReactionStamp(Func<string, byte[]> speak)
         {
-            return speak.Method.Name + "|" + (speak.Target == null ? 0 : speak.Target.GetHashCode()) + "|" + VoiceFx.Pitch + "|" + VoiceFx.Speed + "|" + VoiceFx.Robot + "|" + VoiceFx.Glitch + "|" + preferences.VoiceLayers
-                + "|" + preferences.VoiceId + "|" + preferences.VoiceModel + "|" + preferences.VoiceStyle + "|" + preferences.ServerVoice + "|" + preferences.ServerModel + "|" + preferences.ServerSpeaker + "|" + preferences.HdVoice + "|" + preferences.HdGameRest + "|" + preferences.Language;
+            return speak.Method.DeclaringType + "." + speak.Method.Name + "|" + VoiceFx.Pitch + "|" + VoiceFx.Speed + "|" + VoiceFx.Robot + "|" + VoiceFx.Glitch
+                + "|" + preferences.VoiceLayers + "|" + preferences.LayerPitch1 + "|" + preferences.LayerDelay1 + "|" + preferences.LayerPitch2 + "|" + preferences.LayerDelay2
+                + "|" + preferences.VoiceId + "|" + preferences.VoiceModel + "|" + preferences.VoiceStyle + "|" + preferences.CloudVoice
+                + "|" + preferences.ServerVoice + "|" + preferences.ServerUrl + "|" + preferences.ServerApi + "|" + preferences.ServerModel + "|" + preferences.ServerSpeaker + "|" + preferences.ServerRobot + "|" + preferences.ServerGlitch
+                + "|" + preferences.HdVoice + "|" + preferences.HdRobot + "|" + preferences.HdVoiceGlitch + "|" + preferences.HdGameRest + "|" + qwen.Awake + "|" + HdStepsAside()
+                + "|" + preferences.Language + "|" + voiceBroke;
         }
 
         private bool ReactionVoiceFree()
@@ -920,6 +932,7 @@ namespace CapriDesktop
             Rectangle game = ReactionGame;
             if (game.IsEmpty || !Reactions.Running)
             {
+                ++reactTurn;
                 shown.Clear();
                 lock (reactVoices) reactVoices.Clear();
                 return;
