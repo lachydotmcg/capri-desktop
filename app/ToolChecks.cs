@@ -13,7 +13,7 @@ namespace CapriDesktop
         private sealed class PretendWindow
         {
             internal Rectangle Edges, Normal;
-            internal bool Minimized, Maximized, Admin;
+            internal bool Minimized, Maximized, Admin, Pinned;
             internal Size Least = new Size(120, 80);
         }
 
@@ -28,6 +28,8 @@ namespace CapriDesktop
             Func<IntPtr, string, Rectangle, bool> shapeWas = Arrange.Shape;
             Func<IntPtr, bool> raisedWas = Arrange.Raised, hungWas = Arrange.Hung;
             Func<Point> mouseWas = Arrange.Mouse;
+            Func<IntPtr, bool> pinnedWas = Arrange.Pinned;
+            Func<IntPtr, bool, bool> pinWas = Arrange.Pin;
             int patienceWas = Arrange.Patience;
             Func<List<OpenWindow>> windowsWas = Hands.Windows;
             Func<IntPtr> frontWas = Hands.Foreground;
@@ -250,6 +252,29 @@ namespace CapriDesktop
                 Hands.Do("look_at_screen", new ToolArguments { Focus = "the error" });
                 if (string.Join(",", looked.ToArray()) != "left,here" || !kit.WorkTools.Contains("\"screen\":{\"type\":\"string\",\"description\":\"Another monitor to look at") || !kit.WorkTools.Contains("It looks at the monitor they're using, or the one they name."))
                     throw new Exception("Her look didn't go to the monitor they named: " + string.Join(",", looked.ToArray()));
+                // She keeps a window on top of the others and lets it go, read back from the window, and an admin one says why not.
+                Arrange.Pinned = delegate(IntPtr handle) { return pretend[handle].Pinned; };
+                Arrange.Pin = delegate(IntPtr handle, bool pin) { if (pretend[handle].Admin) return false; pretend[handle].Pinned = pin; return true; };
+                string pinned = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "pin_on_top" }), pinnedAgain = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "pin_on_top" });
+                bool kept = pretend[new IntPtr(31)].Pinned;
+                string unpinned = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "unpin" }), unpinnedAgain = Hands.Do("app_window", new ToolArguments { Name = "discord", Action = "unpin" });
+                string adminPin = Hands.Do("app_window", new ToolArguments { Name = "task manager", Action = "pin_on_top" }), frozenPin = Hands.Do("app_window", new ToolArguments { Name = "frozen", Action = "pin_on_top" });
+                if (pinned != "Kept discord on top of your other windows. Say unpin discord to let it go." || !kept || pinnedAgain != "discord is already kept on top of your other windows."
+                    || unpinned != "discord isn't kept on top any more." || pretend[new IntPtr(31)].Pinned || unpinnedAgain != "discord isn't kept on top, so it's already in among your other windows."
+                    || adminPin != "Couldn't pin task manager: it's running as admin, and Windows only lets me move admin windows when I run as admin too." || frozenPin != "Couldn't pin frozen: it isn't responding right now."
+                    || !Hands.Failed(adminPin) || Hands.Failed(pinned) || Security.Asking("app_window", new ToolArguments { Name = "Discord", Action = "pin_on_top" }) != "keep Discord on top of your other windows")
+                    throw new Exception("Her window tool didn't keep a window on top or let it go: " + pinned + " / " + pinnedAgain + " / " + unpinned + " / " + unpinnedAgain + " / " + adminPin + " / " + frozenPin);
+                string[,] pinAsks = { { "keep discord on top", "pin_on_top" }, { "pin chrome", "pin_on_top" }, { "keep spotify on top of everything", "pin_on_top" }, { "unpin discord", "unpin" }, { "stop keeping discord on top", "unpin" } };
+                for (int i = 0; i < pinAsks.GetLength(0); i++)
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (!Hands.Heard(pinAsks[i, 0], out tool, out args) || tool != "app_window" || args.Action != pinAsks[i, 1])
+                        throw new Exception("\"" + pinAsks[i, 0] + "\" didn't " + pinAsks[i, 1] + ": " + tool + " " + (args == null ? "" : args.Action));
+                }
+                string unknownPin;
+                ToolArguments unknownArgs;
+                if (Hands.Heard("keep yourself on top", out unknownPin, out unknownArgs) && unknownPin == "app_window") throw new Exception("\"Keep yourself on top\" went to someone else's window.");
                 // A brain that works jobs out checks where the window is, moves it, and hears where it really ended up.
                 List<string> asked = new List<string>();
                 Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
@@ -268,7 +293,7 @@ namespace CapriDesktop
                     || !sent[0].Contains("\"move_to_screen\"") || !sent[0].Contains("To arrange a window, use app_window") || !sent[1].Contains("Monitors, left to right: main screen 1920 x 1080; screen 2 1080 x 1920, portrait")
                     || !sent[1].Contains("940 x 800 at 70, 200") || !sent[2].Contains("Snapped discord to the left half of screen 2, but it stayed 940 x 1872: that's as small as it goes."))
                     throw new Exception("Her planner didn't check where the window was, or didn't hear where it really went: " + reply + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
-                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up");
+                checks.Add("PASS her window tool on three monitors, one portrait and one at 150%: snaps left, right, top and bottom, maximizes on the monitor they name, restores from maximized or minimized, sends a window to the next, numbered or portrait monitor keeping a snapped half a half and scaling the rest, moves to a corner, to pixels or by a nudge, and resizes by pixels or percent, all read back afterwards; it says when an app won't go smaller and slides it back on screen, when a window runs as admin, isn't responding, isn't open, or is already there, and names the monitors when one doesn't exist; list_windows names their monitors and where one app's window is; everyday asks like \"snap discord to the left\" or \"send spotify to my other monitor\" work for every brain; it asks first with Close and switch apps and tabs off; Mac and Linux kits leave it out and say it's Windows only; her voice chat gets the same moves, every parameter described, and her agent is tuned again for them; she keeps a window on top of the others and lets it go, like \"keep discord on top\"; she looks at the monitor they name, like \"what's on my second monitor\" or \"check the portrait one\", and says when there's no such monitor; a planner checks where the window is before moving it and hears where it ended up");
             }
             finally
             {
@@ -278,6 +303,8 @@ namespace CapriDesktop
                 Arrange.Raised = raisedWas;
                 Arrange.Hung = hungWas;
                 Arrange.Mouse = mouseWas;
+                Arrange.Pinned = pinnedWas;
+                Arrange.Pin = pinWas;
                 Arrange.Patience = patienceWas;
                 Hands.Windows = windowsWas;
                 Hands.Foreground = frontWas;
@@ -744,7 +771,7 @@ namespace CapriDesktop
             string doing = SelfKnow.Matching("what can you do?") ?? "", closing = SelfKnow.Matching("Explain the Close and switch apps and tabs setting") ?? "", sizing = SelfKnow.Matching("how do I make you bigger?") ?? "";
             string changing = SelfKnow.Matching("what settings can you change yourself?") ?? "", timing = SelfKnow.Matching("how do timers work?") ?? "";
             if (!doing.Contains("maximize, snap, move, resize") || !doing.Contains("changes her own settings when you ask") || !closing.Contains("maximizing, snapping, moving and resizing windows")
-                || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Hologram, Watch my screen and game Comments, plus Size") || !changing.Contains("Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
+                || !SelfKnow.Matching("how do I move a window to my other monitor?").Contains("keep Discord on top, until unpin Discord") || !sizing.Contains("make yourself bigger or smaller works too") || !timing.Contains("set a timer for 10 minutes, and cancel my timer stops it") || !changing.Contains("Hologram, Watch my screen and game Comments, plus Size") || !changing.Contains("Keys, brains, her voice service, SECURITY, Remember what she sees, Listen for \"Hey Capri\" and Remember our chats stay yours"))
                 throw new Exception("Self knowledge didn't say what her tools do now: " + doing + " / " + closing + " / " + changing);
             string root = null;
             foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
@@ -760,7 +787,7 @@ namespace CapriDesktop
                 return;
             }
             string help = System.IO.File.ReadAllText(System.IO.Path.Combine(root, "site", "help", "knowledge.md"));
-            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "With more than one monitor (0.8.0), she looks at the one with the window you're using.", "### How your PC is doing (0.8.0)", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
+            foreach (string part in new[] { "### Move, snap and resize windows (0.8.0)", "### Her own settings (0.8.0)", "\"Send Discord to my other monitor\"", "Timers are reminders too (0.8.0)", "One app's own volume (0.8.0), with a cloud brain", "With more than one monitor (0.8.0), she looks at the one with the window you're using.", "### How your PC is doing (0.8.0)", "\"Keep Discord on top\" keeps it above your other windows until you say \"Unpin Discord\".", "\"Cancel my timer\" stops it.", "\"pause\" with nothing playing doesn't start your music", "4. Close and switch apps and tabs. It covers maximizing, snapping, moving and resizing windows too." })
                 if (help.IndexOf(part, StringComparison.Ordinal) < 0) throw new Exception("Her help page is missing: " + part);
             int from = help.IndexOf("### Move, snap and resize windows (0.8.0)", StringComparison.Ordinal), to = help.IndexOf("### Discord and Windows shortcuts", from, StringComparison.Ordinal);
             if (to < from || help.Substring(from, to - from).IndexOf('\u2014') >= 0) throw new Exception("Her help page's new sections are out of place or use an em dash.");

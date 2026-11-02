@@ -44,10 +44,13 @@ namespace CapriDesktop
         internal static Func<IntPtr, bool> Raised = AboveHer;
         internal static Func<IntPtr, bool> Hung = IsHungAppWindow;
         internal static Func<Point> Mouse = delegate { return Cursor.Position; };
+        // Whether a window is kept on top of the others, and keeping it there or letting it go. False when Windows refused.
+        internal static Func<IntPtr, bool> Pinned = OnTop;
+        internal static Func<IntPtr, bool, bool> Pin = KeepOnTop;
         // How long a window gets to finish maximizing or restoring, in milliseconds.
         internal static int Patience = 1500;
 
-        internal static readonly string[] Actions = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize" };
+        internal static readonly string[] Actions = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
         internal static readonly string[] Spots = { "center", "top_left", "top_right", "bottom_left", "bottom_right" };
         private const int Smallest = 160;
 
@@ -60,6 +63,7 @@ namespace CapriDesktop
             Spot was = Read(handle);
             if (was == null || was.Gone) return "Couldn't " + verb + " " + label + ": its window closed.";
             if (Hung(handle)) return "Couldn't " + verb + " " + label + ": it isn't responding right now.";
+            if (action == "pin_on_top" || action == "unpin") return Pinning(handle, label, action == "pin_on_top");
             List<Display> screens = Displays();
             if (screens == null || screens.Count == 0) return "Couldn't read your monitors just now.";
             if (action == "restore") return Restore(handle, label, was);
@@ -149,8 +153,20 @@ namespace CapriDesktop
             if (action == "maximize") return "maximize";
             if (action == "restore") return "restore";
             if (action == "resize") return "resize";
+            if (action == "pin_on_top") return "pin";
+            if (action == "unpin") return "unpin";
             if (action != null && action.StartsWith("snap_", StringComparison.Ordinal)) return "snap";
             return "move";
+        }
+
+        // Keeps a window above the others, the way a video or a chat stays up over a game, or lets it go back among them, and says
+        // what Windows did.
+        private static string Pinning(IntPtr handle, string label, bool pin)
+        {
+            if (Pinned(handle) == pin) return pin ? label + " is already kept on top of your other windows." : label + " isn't kept on top, so it's already in among your other windows.";
+            if (!Pin(handle, pin) || Pinned(handle) != pin)
+                return Refused(handle, pin ? "pin" : "unpin", label) ?? "Couldn't " + (pin ? "keep " + label + " on top" : "stop keeping " + label + " on top") + ": Windows didn't let me.";
+            return pin ? "Kept " + label + " on top of your other windows. Say unpin " + label + " to let it go." : label + " isn't kept on top any more.";
         }
 
         private static string Restore(IntPtr handle, string label, Spot was)
@@ -590,6 +606,11 @@ namespace CapriDesktop
 
         [StructLayout(LayoutKind.Sequential)] private struct Edges { internal int Left, Top, Right, Bottom; }
         [StructLayout(LayoutKind.Sequential)] private struct Spotted { internal int X, Y; }
+        private static bool OnTop(IntPtr window) { return (GetWindowLong(window, -20) & 0x8) != 0; }
+
+        private static bool KeepOnTop(IntPtr window, bool pin) { return SetWindowPos(window, new IntPtr(pin ? -1 : -2), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010); }
+
+        [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr window, int index);
         [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
         [DllImport("user32.dll")] private static extern bool IsZoomed(IntPtr window);

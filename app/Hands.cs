@@ -429,6 +429,8 @@ namespace CapriDesktop
                         case "move_to_screen": return "move " + windowName + " to " + monitor;
                         case "move": return "move " + windowName;
                         case "resize": return "resize " + windowName;
+                        case "pin_on_top": return "keep " + windowName + " on top of your other windows";
+                        case "unpin": return "stop keeping " + windowName + " on top";
                         default: return "switch to " + windowName;
                     }
                 case "power":
@@ -667,7 +669,7 @@ namespace CapriDesktop
 
         // Her window tool's arranging (Lachy, 2 Nov): what its description and schema say about it, which come out where windows
         // can't be arranged yet.
-        private const string Arranging = " Or arrange its window: maximize it, restore it from minimized or maximized, snap it to the left, right, top or bottom half of its monitor, send it to another monitor with move_to_screen, move it to a spot or to left and top, or resize it. Sizes and places are in the monitor's own pixels.";
+        private const string Arranging = " Or arrange its window: maximize it, restore it from minimized or maximized, snap it to the left, right, top or bottom half of its monitor, send it to another monitor with move_to_screen, move it to a spot or to left and top, resize it, or keep it on top of other windows with pin_on_top until unpin. Sizes and places are in the monitor's own pixels.";
         // Which of their monitors to look at, on Windows, where she can tell them apart.
         private const string LookingAt =
 #if CROSS
@@ -705,7 +707,7 @@ namespace CapriDesktop
             { "play_music", "Play a song, playlist, album or artist they name, on Spotify or YouTube, including open Spotify and play requests. Only for things to listen to: a game, match or board is never this, even when they say play. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
               "{\"type\":\"object\",\"properties\":{\"song\":{\"type\":\"string\",\"description\":\"What to play, like a song and its artist or a playlist's name\"},\"kind\":{\"type\":\"string\",\"description\":\"What it is\",\"enum\":[\"song\",\"playlist\",\"album\",\"artist\"]},\"app\":{\"type\":\"string\",\"description\":\"Where to play it, if they said\",\"enum\":[\"spotify\",\"youtube\"]}},\"required\":[\"song\"]}", "play songs, playlists, albums and artists on Spotify or YouTube", "play songs on Spotify or YouTube" },
             { "app_window", "Switch to, minimize or close an app or game that's open on their PC, found by its name or a word in its window's title. Naming a site closes that browser tab." + Arranging,
-              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name or a word from its window's title, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"maximize\",\"restore\",\"close\",\"snap_left\",\"snap_right\",\"snap_top\",\"snap_bottom\",\"move_to_screen\",\"move\",\"resize\"]}" + Placing + "},\"required\":[\"name\",\"action\"]}",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name or a word from its window's title, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"maximize\",\"restore\",\"close\",\"snap_left\",\"snap_right\",\"snap_top\",\"snap_bottom\",\"move_to_screen\",\"move\",\"resize\",\"pin_on_top\",\"unpin\"]}" + Placing + "},\"required\":[\"name\",\"action\"]}",
               "switch to, minimize, maximize, snap, move, resize or close your apps' windows and browser tabs, on any of your monitors", "switch to, minimize, maximize, snap, move, resize or close their windows" },
             { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it, or in a game: picking a mode, queueing for a match, or waiting for one and accepting it while they're away. You always have their mouse and keyboard through this tool.",
               "{\"type\":\"object\",\"properties\":{\"task\":{\"type\":\"string\",\"description\":\"The whole job in their exact words, including any message to send\"}},\"required\":[\"task\"]}", "do mouse and keyboard jobs in your apps, sites and games, like sending messages, changing settings or playing a game herself", "mouse and keyboard jobs in their apps, sites and games" },
@@ -2352,6 +2354,8 @@ namespace CapriDesktop
             @"^snap\s+" + Owned + @"\s+(?:to\s+the\s+)?(?<side>left|right|up|down|top|bottom)$", "snap",
             @"^(?:move|send|put|throw|drag|take|shift|bring|push|toss|slide)\s+" + Owned + @"\s+(?:over\s+|back\s+|across\s+)?(?:to|onto|on|into|over to)\s+(?:the\s+|my\s+|your\s+|our\s+)?(?:" + WindowScreens + ")$", "move_to_screen",
             @"^(?:move|put|throw|stick|send|drag|shove|push|slide)\s+" + Owned + @"\s+(?:to|in|into|on)\s+(?:the\s+)?(?<v>top|bottom)[ -]?(?<h>left|right)(?:\s+corner)?" + OfScreen + "$", "corner",
+            @"^(?:keep|pin|put|stick|leave)\s+" + Owned + @"\s+(?:on\s+top|above\s+(?:everything|all|other\s+windows|my\s+other\s+windows|the\s+rest))(?:\s+of\s+(?:everything|my\s+other\s+windows|other\s+windows|all|the\s+rest))?$|^pin\s+" + Owned + "$", "pin_on_top",
+            @"^(?:unpin\s+" + Owned + @"|stop\s+keeping\s+" + Owned + @"\s+on\s+top|let\s+" + Owned + @"\s+go\s+(?:back\s+)?(?:behind|under)\s+(?:other\s+windows|everything|the\s+rest))$", "unpin",
             @"^cent(?:er|re)\s+" + Owned + @"(?:\s+on\s+(?:the|my|this|your)\s+(?:screen|monitor|display))?$|^(?:move|put|throw|stick|drag|shove|push|slide)\s+" + Owned + @"\s+(?:to|in|into)\s+the\s+(?:middle|cent(?:er|re))" + OfScreen + "$", "center"
         };
 
@@ -4535,7 +4539,7 @@ namespace CapriDesktop
 
         // Her window tool: switch to, minimize and close every window of the app they named, or arrange the one nearest the front,
         // where Windows lets her (Lachy, 2 Nov: move, resize, maximize, minimize, restore, snap and send to another monitor).
-        private static readonly string[] WindowActions = { "switch_to", "minimize", "close", "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize" };
+        private static readonly string[] WindowActions = { "switch_to", "minimize", "close", "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 
         private static string Window(ToolArguments args)
         {

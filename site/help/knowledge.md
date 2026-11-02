@@ -1135,6 +1135,7 @@ With a cloud brain, ask "what's using my CPU?", "why is my PC lagging?", "how mu
 ### Move, snap and resize windows (0.8.0)
 - "Maximize Chrome", "Restore Chrome", "Snap Discord to the left", "Put Spotify on the bottom half", "Send Discord to my other monitor", "Move Discord to my portrait monitor", "Move Notepad to the top right corner", "Center Spotify"
 - Sizes and exact places work too, best with a cloud brain: "Make Chrome 1280 by 800", "Make Spotify half as wide".
+- "Keep Discord on top" keeps it above your other windows until you say "Unpin Discord".
 - Monitors are named left to right: the main screen, screen 2, screen 3. "My portrait monitor", "the left monitor" and "the next screen" work too.
 - She says where the window ended up. An app with a smallest size stays that size and stays on screen: "Snapped Discord to the left half of screen 2, but it stayed 940 x 1872: that's as small as it goes."
 - Windows running as admin, like Task Manager, only move when Capri runs as admin too. An app that's frozen says "it isn't responding right now".
