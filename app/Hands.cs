@@ -1256,7 +1256,7 @@ namespace CapriDesktop
             if (Regex.IsMatch(result ?? "", @"^(Saved [\d.]+ seconds of |Turn on Clip my games |I haven't buffered any game video |Windows couldn't (find an H\.264 encoder|encode that clip)|Windows Media Foundation isn't installed|Couldn't save that clip)")) return result;
             if ((result ?? "").StartsWith("Opened your own website", StringComparison.Ordinal)) return "Here's my site, choom. That's where people download me.";
             // Power lines go out as they are: no second brain call while the shutdown counts down.
-            if (Regex.IsMatch(result ?? "", @"^(One of me wasn't|There's (?:two|\d+ more) of me|Got rid of|I don't have any clones|Messing with your icons|Poof\. Your icons|Put your icons back|Your icons are already|I'm already in there|Couldn't get at your desktop|Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
+            if (Regex.IsMatch(result ?? "", @"^(One of me wasn't|There's (?:two|\d+ more) of me|Got rid of|I don't have any clones|Messing with your icons|Poof\. Your icons|Put your icons back|Your icons are already|I'm already in there|Couldn't get at your desktop|Couldn't put all your icons back|Shutting your PC down|Restarting your PC|Signing you out|Putting your PC to sleep|Lock(ed|ing) your PC|Cancelled it\.|Gaming Mode|Moved my HUD|Put my HUD|My HUD)")) return result;
             Match searched = Regex.Match(result ?? "", @"^Searched google\.com for (.+)\.$");
             return searched.Success ? "Pulled up \"" + searched.Groups[1].Value + "\" on Google for you, choom." : null;
         }

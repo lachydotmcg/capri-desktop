@@ -10,6 +10,12 @@ namespace CapriDesktop
         internal static readonly int[] Rates = { 15, 24, 30, 60 };
         internal static readonly int[] Sizes = { 0, 480, 720, 1080 };
         internal static readonly int[] Bitrates = { 0, 2, 4, 8, 12, 20 };
+        internal static Action<string> CheckFolder = delegate(string folder)
+        {
+            string probe = Path.Combine(folder, ".capri-write-" + Guid.NewGuid().ToString("N") + ".tmp");
+            using (FileStream file = new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None)) file.WriteByte(0);
+            File.Delete(probe);
+        };
         internal readonly string Folder;
         internal readonly int Seconds, Fps, Resolution, Mbps;
 
@@ -64,13 +70,14 @@ namespace CapriDesktop
             {
                 ClipSettings chosen = new ClipSettings(path);
                 if (!Directory.Exists(chosen.Folder)) return "Pick an existing folder for your clips.";
+                ClipSettings.CheckFolder(chosen.Folder);
                 preferences.ClipFolder = chosen.Folder;
                 clips.Configure(ClipOptions);
                 SavePreferences();
                 mainframe.Sync();
                 return null;
             }
-            catch (Exception error) { return "Couldn't use that folder: " + error.Message; }
+            catch (Exception) { return "Couldn't save clips in that folder. Pick a folder you can write to."; }
         }
     }
 }
