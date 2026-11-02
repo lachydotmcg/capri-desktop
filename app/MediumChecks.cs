@@ -40,7 +40,7 @@ namespace CapriDesktop
                 LayoutScale(96, 100);
                 SizeMainframe(percent);
                 string crowded = TextFits() ?? Overlap();
-                if (!TiersFit || crowded != null) throw new Exception("The medium BRAIN panel does not fit at " + percent + "%: " + crowded);
+                if (!TiersFit || crowded != null) throw new Exception("The medium BRAIN panel does not fit at " + percent + "%: " + (crowded ?? TiersProblem));
                 if (freeWarning.ForeColor != Look.Yellow || freeWarning.Text != "Free keys can be rate limited and slow.") throw new Exception("The free-key warning changed its words or colour.");
                 if (percent == 200) continue;
                 Directory.CreateDirectory(output);
@@ -156,7 +156,7 @@ namespace CapriDesktop
                     mainframe.LayoutScale(96, 100);
                     mainframe.SizeMainframe(percent);
                     string crowded = mainframe.TextFits() ?? mainframe.Overlap();
-                    if (!mainframe.TiersFit || crowded != null) throw new Exception("The empty medium key cue does not fit at " + percent + "%: " + crowded);
+                    if (!mainframe.TiersFit || crowded != null) throw new Exception("The empty medium key cue does not fit at " + percent + "%: " + (crowded ?? mainframe.TiersProblem));
                 }
                 checks.Add("PASS the empty MEDIUM key box names NVIDIA, Google AI Studio and OpenRouter without clipping at 100%, 150% and 200%");
                 string keptPaid = preferences.PaidKey;

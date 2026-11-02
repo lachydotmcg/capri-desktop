@@ -2387,25 +2387,34 @@ namespace CapriDesktop
             Arrange(expanded);
         }
 
-        internal bool TiersFit
+        internal bool TiersFit { get { return TiersProblem == null; } }
+
+        // What doesn't fit among BRAIN's tiers, in words for the smoke test, or null when it all fits.
+        internal string TiersProblem
         {
             get
             {
                 Rectangle last = rungs[rungs.Length - 1].Bounds;
-                bool row = !textEntry.Visible || (textEntry.Top >= last.Bottom && textConnect.Right <= ClientSize.Width);
+                if (textEntry.Visible && textEntry.Top < last.Bottom) return "the key box (top " + textEntry.Top + ") overlaps the last rung (bottom " + last.Bottom + ")";
+                if (textEntry.Visible && textConnect.Right > ClientSize.Width) return "Connect (right " + textConnect.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
                 int end = textEntry.Visible ? textEntry.Bottom : last.Bottom;
                 if (freeWarning.Visible)
                 {
-                    if (freeWarning.Top < end || freeWarning.Right > Scaled(356)) return false;
+                    if (freeWarning.Top < end || freeWarning.Right > Scaled(356)) return "the free-key warning (" + freeWarning.Bounds + ") overlaps the key box (bottom " + end + ") or runs past " + Scaled(356);
                     end = freeWarning.Bottom;
                 }
                 if (paidNote.Visible)
                 {
-                    if (paidNote.Top < end || movePaid.Top < paidNote.Bottom || movePaid.Right > Scaled(356)) return false;
+                    if (paidNote.Top < end || movePaid.Top < paidNote.Bottom || movePaid.Right > Scaled(356)) return "the paid-key offer (" + paidNote.Bounds + ", " + movePaid.Bounds + ") overlaps or runs past " + Scaled(356);
                     end = movePaid.Bottom;
                 }
-                foreach (Rung brainRung in rungs) if (!brainRung.Fits) return false;
-                return tierNote.Right <= ClientSize.Width && rungs[0].Top >= tierNote.Bottom && rungs[1].Top >= rungs[0].Bottom && rungs[2].Top >= rungs[1].Bottom && freeKey.Left >= rungs[1].Right && freeKey.Top >= rungs[1].Top && freeKey.Bottom <= rungs[1].Bottom && row && end <= voiceHead.Top && rungs[0].Right <= ClientSize.Width;
+                foreach (Rung brainRung in rungs) if (!brainRung.Fits) return brainRung.Text + " doesn't fit its rung (" + brainRung.Bounds + ")";
+                if (tierNote.Right > ClientSize.Width) return "the tier note (right " + tierNote.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
+                if (rungs[0].Top < tierNote.Bottom || rungs[1].Top < rungs[0].Bottom || rungs[2].Top < rungs[1].Bottom) return "the rungs overlap the tier note or each other";
+                if (freeKey.Left < rungs[1].Right || freeKey.Top < rungs[1].Top || freeKey.Bottom > rungs[1].Bottom) return "Free key (" + freeKey.Bounds + ") overlaps or leaves its rung (" + rungs[1].Bounds + ")";
+                if (end > voiceHead.Top) return "BRAIN (bottom " + end + ") runs into VOICE (top " + voiceHead.Top + ")";
+                if (rungs[0].Right > ClientSize.Width) return "the rungs (right " + rungs[0].Right + ") run past the Mainframe (" + ClientSize.Width + ")";
+                return null;
             }
         }
 

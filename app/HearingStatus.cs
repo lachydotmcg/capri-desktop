@@ -321,6 +321,9 @@ namespace CapriDesktop
             string voiceKeyWas = voice.Key, voiceIdWas = voice.VoiceId;
             bool pageWas = mainframe.SettingsShown;
             bool simpleWas = simpleTest;
+            // Its checks bring the Mainframe up, so it goes back down after: a minimized start stays minimized.
+            bool mainframeShownWas = mainframe.Visible;
+            System.Windows.Forms.FormWindowState mainframeStateWas = mainframe.WindowState;
             try
             {
                 StopChat();
@@ -628,10 +631,12 @@ namespace CapriDesktop
                 ears.Chosen = preferences.Mic;
                 RefreshHearingDevices();
                 ShowInstall();
-                mainframe.LayoutScale(96, 100);
+                mainframe.LayoutScale(0, 0);
                 mainframe.ShowSettings(pageWas);
                 mainframe.Sync();
                 SavePreferences();
+                if (!mainframeShownWas) mainframe.Hide();
+                else if (mainframe.WindowState != mainframeStateWas) mainframe.WindowState = mainframeStateWas;
             }
         }
     }
