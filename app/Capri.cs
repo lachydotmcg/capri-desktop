@@ -34621,6 +34621,7 @@ namespace CapriDesktop
                             FinishGlance(asking, oldWatch, "That chest looks good.", null);
                             if (reply != null) throw new Exception("An old glance spoke after Watch was restarted.");
                             double slowFrom = nextGlance;
+                            nextGlance = -1;
                             glanceStart = clock.Elapsed.TotalSeconds - 30;
                             FinishGlance(asking, oldWatch, null, null);
                             double slowNext = nextGlance - clock.Elapsed.TotalSeconds;
