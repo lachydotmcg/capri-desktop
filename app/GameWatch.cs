@@ -6,7 +6,8 @@ using System.Threading;
 namespace CapriDesktop
 {
     // Watches the game in front for moments worth reacting to, with no brain: a burst of its sound, a flash, a red screen edge, a
-    // health bar dropping. Her comments and her HUD react to them, and a hit makes a game she's playing herself look up.
+    // health bar dropping. Her live reactions, her comments and her HUD react to them, and a hit makes a game she's playing
+    // herself look up.
     internal sealed partial class Companion
     {
         private const int WatchWidth = 240, WatchHeight = 135;
@@ -30,13 +31,36 @@ namespace CapriDesktop
             GameSense sense = new GameSense();
             GameEars ears = null;
             FrameGrab grab = null;
-            Rectangle watched = Rectangle.Empty;
-            int listening = 0;
+            Rectangle watched = Rectangle.Empty, covers = Rectangle.Empty;
+            int listening = 0, heard = 0;
             IntPtr watchedWindow = IntPtr.Zero;
             byte[] before = null, after = null;
+            Bitmap current = null;
             Stopwatch watch = Stopwatch.StartNew();
-            double kept = 0, checkedFront = -1;
+            double kept = 0, checkedFront = -1, bannerAt = -10;
             bool live = false;
+            // Each moment goes to her reactions and comments. While her reactions run, a moment also gets a look, at most every
+            // 1.5 s, for the big words a game shows when they win, lose, die or get a kill, read off the watcher on a worker so
+            // the frames keep coming (F67).
+            Action<string> noticed = delegate(string kind)
+            {
+                byte[] was = before, now = after;
+                Bitmap middle = null;
+                if (current != null && Reactions.Running && watch.Elapsed.TotalSeconds - bannerAt >= 1.5 && Ocr.Ready)
+                {
+                    bannerAt = watch.Elapsed.TotalSeconds;
+                    middle = Banners.Middle(current);
+                }
+                if (middle == null) { Commentary.Moment(kind, null, was, now); return; }
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    string said = null, read = null;
+                    try { using (middle) read = Banners.Read(middle, 500, out said); }
+                    catch (Exception) { read = null; }
+                    if (read != null && Banners.Fresh(read, Environment.TickCount)) Commentary.Moment(read, "The screen says " + said, was, now);
+                    else Commentary.Moment(kind, null, was, now);
+                });
+            };
             sense.Noticed += delegate(string kind, double strength)
             {
                 if (watchedWindow == IntPtr.Zero || Native.GetForegroundWindow() != watchedWindow) return;
@@ -47,7 +71,7 @@ namespace CapriDesktop
                     Job running = job;
                     if (running != null) running.Hurt();
                 }
-                Commentary.Trigger(moment, null, before, after);
+                noticed(moment);
             };
             string failedWith = null;
             try
@@ -68,6 +92,8 @@ namespace CapriDesktop
                             {
                                 if (watchedWindow != front.Window) { before = after = null; sense.Reset(); }
                                 watchedWindow = front.Window;
+                                covers = front.Bounds;
+                                ReactionGame = front.Bounds;
                                 if (owner != listening)
                                 {
                                     before = after = null;
@@ -75,7 +101,8 @@ namespace CapriDesktop
                                     if (ears != null) ears.Dispose();
                                     ears = new GameEars(owner);
                                     int soundOwner = owner;
-                                    ears.Loud += delegate(double level) { if (listening == soundOwner && watchedWindow != IntPtr.Zero && Native.GetForegroundWindow() == watchedWindow) Commentary.Trigger("sound", null, before, after); };
+                                    // A burst of sound is taken up with the next frame, on this thread, so it can look for a banner too.
+                                    ears.Loud += delegate(double level) { if (listening == soundOwner && watchedWindow != IntPtr.Zero && Native.GetForegroundWindow() == watchedWindow) Interlocked.Exchange(ref heard, 1); };
                                     ears.Start();
                                     listening = owner;
                                 }
@@ -96,7 +123,10 @@ namespace CapriDesktop
                             else
                             {
                                 watchedWindow = IntPtr.Zero;
+                                covers = Rectangle.Empty;
+                                ReactionGame = Rectangle.Empty;
                                 before = after = null;
+                                Interlocked.Exchange(ref heard, 0);
                                 if (ears != null) { ears.Dispose(); ears = null; listening = 0; }
                                 if (grab != null) { grab.Dispose(); grab = null; watched = Rectangle.Empty; }
                                 sense.Reset();
@@ -112,15 +142,25 @@ namespace CapriDesktop
                         if (seen != null)
                             using (Bitmap frame = seen)
                             {
-                                byte[] pixels = GameSense.Bgra(frame, WatchWidth, WatchHeight);
-                                if (keepFrame)
+                                // Her own feed never reaches her eyes, her senses or a banner read.
+                                ReactionFeed shown = feed;
+                                if (shown != null) PaintOut(frame, covers, shown.Area);
+                                current = frame;
+                                try
                                 {
-                                    kept = watch.Elapsed.TotalSeconds;
-                                    before = after;
-                                    after = Jpeg(frame, 1280);
+                                    byte[] pixels = GameSense.Bgra(frame, WatchWidth, WatchHeight);
+                                    if (keepFrame)
+                                    {
+                                        kept = watch.Elapsed.TotalSeconds;
+                                        before = after;
+                                        after = Jpeg(frame, 1280);
+                                    }
+                                    if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
+                                    if (Interlocked.Exchange(ref heard, 0) != 0) noticed("sound");
                                 }
-                                if (pixels != null) sense.Feed(pixels, WatchWidth, WatchHeight, watch.Elapsed.TotalSeconds);
+                                finally { current = null; }
                             }
+                        else if (Interlocked.Exchange(ref heard, 0) != 0) noticed("sound");
                         Thread.Sleep(100);
                     }
                     catch (Exception error)
@@ -128,6 +168,9 @@ namespace CapriDesktop
                         if (error.Message != failedWith) Brain.Log("game watch", -1, error.GetType().Name + ": " + error.Message);
                         failedWith = error.Message;
                         watchedWindow = IntPtr.Zero;
+                        covers = Rectangle.Empty;
+                        ReactionGame = Rectangle.Empty;
+                        current = null;
                         before = after = null;
                         live = false;
                         listening = 0;

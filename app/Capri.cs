@@ -505,6 +505,8 @@ namespace CapriDesktop
         [DataMember] public int PushVk;
         // How much she says about a game they're playing: 0 off, 1 events only, 2 chatty. Off until they turn it on, since it shows her brain their screen.
         [DataMember] public int CommentPace;
+        // Her live reactions over a game (F67) are on by default, so they're saved as switched off.
+        [DataMember] public bool NoReactions;
         // Gaming Mode's key, Ctrl + Alt + G, and where her HUD sits in each game (GameSpots).
         [DataMember] public int GameMods = 3;
         [DataMember] public int GameVk = 0x47;
@@ -2005,6 +2007,7 @@ namespace CapriDesktop
                 if (!testing) CheckHome(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckLag(clock.Elapsed.TotalSeconds);
                 CheckGame(clock.Elapsed.TotalSeconds);
+                CheckReactions();
                 if (!testing) CheckInkEsc(signalNow);
                 if (!testing) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(signalNow, signalIdle);
@@ -6660,11 +6663,11 @@ namespace CapriDesktop
 
         private bool PanelUnseen(bool unseen)
         {
-            // Her mini player too, so it never hides what she's working on.
-            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen);
+            // Her mini player and her reactions feed too, so they never hide what she's working on.
+            if (!InvokeRequired) return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen);
             try
             {
-                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen); }));
+                IAsyncResult done = BeginInvoke(new Func<bool>(delegate { return taskPanel.Unseen(unseen) | player.Unseen(unseen) | GameHud.Unseen(unseen) | FeedUnseen(unseen); }));
                 return unseen && done.AsyncWaitHandle.WaitOne(1000) && (bool)EndInvoke(done);
             }
             catch (InvalidOperationException) { return false; }
@@ -10580,6 +10583,7 @@ namespace CapriDesktop
             if (gameKey) Native.UnregisterHotKey(Handle, GameKeyId);
             typeKey = hideKey = quietKey = gameKey = false;
             GameHud.Close();
+            if (feed != null) feed.Close();
             speaker.Close();
             effects.Close();
             typist.Close();
@@ -13528,6 +13532,7 @@ namespace CapriDesktop
                 { "does gaming mode work well on other brains?", "Gaming Mode" },
                 { "how does Free voice in games work?", "Free voice in games" },
                 { "how do your game comments work?", "Comments" },
+                { "how do your live reactions work?", "Live reactions" },
                 { "where is personality.md?", "personality.md" },
                 { "how do I stop a job?", "Stop a job" },
                 { "how do I set a reminder?", "Reminders" },
@@ -17245,6 +17250,488 @@ namespace CapriDesktop
             }
         }
 
+        // Her live reactions in games (F67), fed a synthetic stream of moments on a clock moved by hand, each part on its own so one
+        // that fails never hides the rest: quick lines go up at once and stack to four; the feed sits on the game's screen in her
+        // Mainframe's look and never takes focus; lines fade, never repeat back to back and follow her mood; her brain's line
+        // follows only in time; Mute her, her quiet key and reduced motion are kept; the switch is saved; banners are read.
+        private void SmokeReactions(System.Collections.Generic.List<string> checks)
+        {
+            Section(checks, delegate { ReactCheck(checks, SmokeReactQuick); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactFeed); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactFade); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactMoods); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactBrain); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactVoice); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactMotion); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactSwitch); });
+            Section(checks, delegate { ReactCheck(checks, SmokeReactBanners); });
+        }
+
+        // The stand-ins her live reactions' checks share: a full-screen game she doesn't know by name, a clock moved by hand, a
+        // brain that says what it's told, and ears on what goes up in the feed and what she says. What they change goes back after.
+        private sealed class ReactRig
+        {
+            internal int Now = 50000000;
+            internal string Brain = "SKIP";
+            internal int BrainWait;
+            internal byte[] Frame;
+            internal Rectangle GameArea;
+            internal readonly System.Collections.Generic.List<string> Fed = new System.Collections.Generic.List<string>();
+            internal readonly System.Collections.Generic.List<string> Said = new System.Collections.Generic.List<string>();
+            internal Func<bool> On, Sees, Free, Moments, Full;
+            internal Func<int> Clock, CommentClock;
+            internal Action<string, bool> Show;
+            internal Func<string> Game;
+            internal Func<string, string, byte[][], string> See;
+            internal Func<Sight> Glimpse;
+            internal int Pace, Late, Mic;
+            internal bool Motion, Off, Silent, Shush, Hidden, Manual, Nap, NapAsked, Push, Hear;
+            internal Job Job;
+            internal string Working;
+        }
+
+        private void ReactCheck(System.Collections.Generic.List<string> checks, Action<System.Collections.Generic.List<string>, ReactRig> part)
+        {
+            ReactRig rig = new ReactRig();
+            rig.On = Reactions.On; rig.Clock = Reactions.Clock; rig.Show = Reactions.Show; rig.Late = Reactions.BrainLate;
+            rig.Sees = Commentary.Sees; rig.Free = Commentary.Free; rig.Moments = Commentary.Moments; rig.CommentClock = Commentary.Clock;
+            rig.Game = Commentary.Game; rig.See = Commentary.See; rig.Pace = Commentary.Pace; rig.Glimpse = Computer.Glimpse; rig.Full = FullScreen;
+            rig.Motion = preferences.Motion; rig.Off = preferences.NoReactions; rig.Silent = preferences.Silent; rig.Shush = shushed;
+            rig.Hidden = hidden; rig.Manual = manualHidden; rig.Nap = napping; rig.NapAsked = napAsked; rig.Push = pushing; rig.Hear = transcribing;
+            rig.Mic = micTalked; rig.Job = job; rig.Working = working;
+            try
+            {
+                CloseTalk();
+                job = null;
+                working = null;
+                voiceUntil = 0;
+                micTalked = Environment.TickCount - 5000;
+                hidden = manualHidden = napping = napAsked = shushed = pushing = transcribing = false;
+                preferences.Silent = preferences.NoReactions = false;
+                preferences.Motion = true;
+                Reactions.Reset();
+                Banners.Reset();
+                Commentary.Reset();
+                Reactions.On = ReactionsWatch;
+                Reactions.Clock = delegate { return rig.Now; };
+                Commentary.Clock = delegate { return rig.Now; };
+                Commentary.Pace = Commentary.Events;
+                Commentary.Sees = delegate { return true; };
+                Commentary.Moments = delegate { return false; };
+                Rectangle area = Screen.PrimaryScreen.Bounds;
+                rig.GameArea = area;
+                ReactionGame = area;
+                // Any full-screen game, not just one she knows by name.
+                FullScreen = delegate { return true; };
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Hollow Abyss", Program = "HollowAbyss", Bounds = area }; };
+                Commentary.Game = GameAhead;
+                Commentary.See = delegate(string system, string ask, byte[][] frames) { if (rig.BrainWait > 0) Thread.Sleep(rig.BrainWait); return rig.Brain; };
+                reactTest = delegate(string line, bool brain) { lock (rig.Fed) rig.Fed.Add((brain ? "brain|" : "quick|") + line); };
+                reactVoiceTest = delegate(string line) { lock (rig.Said) rig.Said.Add(line); };
+                if (feed == null || feed.IsDisposed) feed = new ReactionFeed();
+                feed.Clear();
+                feed.Clock = delegate { return rig.Now / 1000.0; };
+                using (Bitmap blank = new Bitmap(640, 360)) rig.Frame = Jpeg(blank, 640);
+                part(checks, rig);
+            }
+            finally
+            {
+                // Her brain's last look finishes on the stand-in brain before anything goes back.
+                ReactSettle(0);
+                Reactions.On = rig.On;
+                Reactions.Clock = rig.Clock;
+                Reactions.Show = rig.Show;
+                Reactions.BrainLate = rig.Late;
+                Reactions.Reset();
+                Banners.Reset();
+                Commentary.Clock = rig.CommentClock;
+                Commentary.Game = rig.Game;
+                Commentary.See = rig.See;
+                Commentary.Sees = rig.Sees;
+                Commentary.Free = rig.Free;
+                Commentary.Moments = rig.Moments;
+                Commentary.Pace = rig.Pace;
+                Commentary.Reset();
+                Computer.Glimpse = rig.Glimpse;
+                FullScreen = rig.Full;
+                reactTest = null;
+                reactVoiceTest = null;
+                ReactionGame = Rectangle.Empty;
+                if (feed != null) { feed.Dispose(); feed = null; }
+                preferences.Motion = rig.Motion;
+                preferences.NoReactions = rig.Off;
+                preferences.Silent = rig.Silent;
+                shushed = rig.Shush;
+                hidden = rig.Hidden;
+                manualHidden = rig.Manual;
+                napping = rig.Nap;
+                napAsked = rig.NapAsked;
+                pushing = rig.Push;
+                transcribing = rig.Hear;
+                micTalked = rig.Mic;
+                job = rig.Job;
+                working = rig.Working;
+                voiceUntil = 0;
+                CloseTalk();
+                SavePreferences();
+                mainframe.Sync();
+            }
+        }
+
+        private static void ReactMust(bool fine, string why) { if (!fine) throw new Exception(why); }
+
+        // Pumps her window until that many lines have gone up in the feed, for at most 3 s.
+        private static bool ReactFed(ReactRig rig, int count)
+        {
+            Stopwatch waited = Stopwatch.StartNew();
+            while (waited.ElapsedMilliseconds < 3000)
+            {
+                lock (rig.Fed) if (rig.Fed.Count >= count) break;
+                Application.DoEvents();
+                Thread.Sleep(2);
+            }
+            lock (rig.Fed) return rig.Fed.Count >= count;
+        }
+
+        // A moment's quick line, put up in the feed at the time it happened.
+        private static bool ReactUp(ReactRig rig, string kind)
+        {
+            int before;
+            lock (rig.Fed) before = rig.Fed.Count;
+            return Reactions.React(kind) && ReactFed(rig, before + 1);
+        }
+
+        // Pumps her window for a while, and on until her brain's look is over, for at most 5 s.
+        private static void ReactSettle(int milliseconds)
+        {
+            Stopwatch waited = Stopwatch.StartNew();
+            while ((waited.ElapsedMilliseconds < milliseconds || Commentary.Thinking) && waited.ElapsedMilliseconds < 5000)
+            {
+                Application.DoEvents();
+                Thread.Sleep(2);
+            }
+        }
+
+        private static string ReactShown(ReactRig rig) { lock (rig.Fed) return string.Join(" / ", rig.Fed.ToArray()); }
+
+        // A kill's quick line goes up within a second in a full-screen game she doesn't know by name, and a run of big moments
+        // stacks to four with the newest at the bottom.
+        private void SmokeReactQuick(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            ReactMust(GameAhead() == "Hollow Abyss", "A full-screen game she doesn't know by name wasn't taken for one: " + GameAhead());
+            Stopwatch quick = Stopwatch.StartNew();
+            ReactMust(Commentary.Moment("kill", null, rig.Frame, rig.Frame), "A kill in a game she doesn't know didn't get her brain's look.");
+            ReactMust(ReactFed(rig, 1), "A kill's quick line never went up.");
+            long took = quick.ElapsedMilliseconds;
+            ReactMust(took < 1000 && rig.Fed[0].StartsWith("quick|", StringComparison.Ordinal) && Array.IndexOf(Reactions.Kills, rig.Fed[0].Substring(6)) >= 0 && feed.Count == 1 && feed.Visible,
+                "A kill's quick line was slow or wrong: " + took + " ms, " + ReactShown(rig));
+            foreach (string kind in new[] { "death", "advancement", "win", "loss" })
+            {
+                rig.Now += 300;
+                ReactMust(ReactUp(rig, kind), "A " + kind + " didn't get a quick line: " + ReactShown(rig));
+            }
+            ReactSettle(50);
+            string[] stack = feed.Texts;
+            float[] slots = feed.Slots;
+            ReactMust(feed.Count == Reactions.Most && stack[Reactions.Most - 1] == rig.Fed[4].Substring(6) && stack[0] == rig.Fed[1].Substring(6) && slots[0] < slots[1] && slots[1] < slots[2] && slots[2] < slots[3],
+                "The feed didn't stack to four with the newest at the bottom: " + string.Join(" / ", stack) + " at " + string.Join(", ", Array.ConvertAll(slots, slot => slot.ToString("0"))));
+            checks.Add("PASS live reactions: a moment in a full-screen game she doesn't know by name gets its quick line in the feed in " + took + " ms, and a run of big moments stacks to four with the newest at the bottom and the oldest pushed out");
+        }
+
+        // The feed sits on the right of the game's screen a third of the way down, clear of the top-right corner, never takes a
+        // click or focus, and is painted out of what her game watching sees. Each plate is in her Mainframe's look.
+        private void SmokeReactFeed(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            IntPtr front = Native.GetForegroundWindow();
+            ReactMust(ReactUp(rig, "kill") && ReactUp(rig, "death") && feed.Count == 2, "Two moments didn't put two lines up: " + ReactShown(rig));
+            Rectangle screen = rig.GameArea, at = feed.Bounds;
+            float scale = feed.Scaling;
+            ReactMust(screen.Contains(at) && at.Left > screen.Left + screen.Width / 2 && at.Right >= screen.Right - (int)(80 * scale) && at.Top >= screen.Top + screen.Height / 4 && at.Top <= screen.Top + screen.Height / 2 && at.Contains(feed.Area),
+                "The feed isn't on the right of the game's screen a third of the way down: " + at + " on " + screen + ", lines at " + feed.Area);
+            Rectangle second = new Rectangle(screen.Right, screen.Top, 2560, 1440);
+            Rectangle there = ReactionFeed.Spot(second, second, ReactionFeed.CanvasSize(1.5f), 1.5f);
+            Rectangle windowed = new Rectangle(second.Left + 200, second.Top + 100, 1280, 720);
+            Rectangle beside = ReactionFeed.Spot(windowed, second, ReactionFeed.CanvasSize(1f), 1f);
+            Rectangle hanging = ReactionFeed.Spot(new Rectangle(second.Right - 300, second.Top, 1280, 720), second, ReactionFeed.CanvasSize(1f), 1f);
+            ReactMust(second.Contains(there) && there.Left > second.Left + second.Width / 2 && there.Top >= second.Top + second.Height / 4 && windowed.Contains(beside) && beside.Left > windowed.Left + windowed.Width / 2 && second.Contains(hanging),
+                "The feed left the game's own screen: " + there + ", " + beside + ", " + hanging);
+            int point = ((at.Top + at.Height / 2) << 16) | ((at.Left + at.Width / 2) & 0xFFFF);
+            bool through = Native.SendMessage(feed.Handle, 0x0084, IntPtr.Zero, new IntPtr(point)) == new IntPtr(-1) && Native.SendMessage(feed.Handle, 0x0021, IntPtr.Zero, IntPtr.Zero) == new IntPtr(3);
+            ReactMust(feed.ClickThrough && through && Native.GetForegroundWindow() == front && Form.ActiveForm != feed && !feed.ContainsFocus,
+                "The feed took a click or focus: click-through " + feed.ClickThrough + ", hit test " + through + ", front kept " + (Native.GetForegroundWindow() == front));
+            using (Bitmap seen = new Bitmap(480, 270, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics paper = Graphics.FromImage(seen)) paper.Clear(Color.White);
+                Rectangle lines = feed.Area;
+                PaintOut(seen, screen, lines);
+                int x = (lines.Left + lines.Width / 2 - screen.Left) * seen.Width / screen.Width, y = (lines.Top + lines.Height / 2 - screen.Top) * seen.Height / screen.Height;
+                ReactMust(seen.GetPixel(x, y).ToArgb() == Color.Black.ToArgb() && seen.GetPixel(10, 10).ToArgb() == Color.White.ToArgb(), "Her own feed wasn't painted out of what her game watching sees.");
+            }
+            Color quickBar, brainBar, ground;
+            bool inked = false;
+            using (Bitmap quickPlate = ReactionFeed.Plate("did you SEE that??", false, 1))
+            using (Bitmap brainPlate = ReactionFeed.Plate("That sniper had your number.", true, 1))
+            using (Bitmap leftward = ReactionFeed.Plate("مذهل جدا", true, 1))
+            {
+                int rim = ReactionFeed.Rim(1);
+                quickBar = quickPlate.GetPixel(rim + 11, quickPlate.Height / 2);
+                brainBar = brainPlate.GetPixel(rim + 11, brainPlate.Height / 2);
+                ground = quickPlate.GetPixel(rim + 5, quickPlate.Height / 2);
+                for (int row = rim + 10; row < leftward.Height - rim - 10 && !inked; row++)
+                    for (int column = rim + 22; column < leftward.Width - rim - 14 && !inked; column++)
+                        if (leftward.GetPixel(column, row).R > 150) inked = true;
+            }
+            ReactMust(quickBar.ToArgb() == Neon.Hot.ToArgb() && brainBar.ToArgb() == Neon.Cyan.ToArgb() && ground.A == 255 && ground.R < 48 && ground.G < 32 && ground.B < 48 && inked,
+                "A plate isn't in her Mainframe's look: bars " + quickBar + " and " + brainBar + ", ground " + ground + ", a right-to-left line drawn " + inked);
+            checks.Add("PASS live reactions feed: on the right of the game's screen a third of the way down and clear of the top-right corner, on the game's own screen with two screens and beside a windowed game, click-through, never active and never taking focus, painted out of what her game watching sees, and each line on a plate in her Mainframe's look, right-to-left lines too");
+        }
+
+        // Each line fades after about 4 s, the oldest first, and the feed goes once they have.
+        private void SmokeReactFade(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            ReactMust(ReactionFeed.Fade(1) == 1 && ReactionFeed.Fade(3.8) > 0 && ReactionFeed.Fade(3.8) < 1 && ReactionFeed.Fade(4) == 0, "A line's fade is off: " + ReactionFeed.Fade(3.8));
+            string[] kinds = { "kill", "death", "advancement", "win" };
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                if (i > 0) rig.Now += 300;
+                ReactMust(ReactUp(rig, kinds[i]), "A " + kinds[i] + " didn't get a quick line: " + ReactShown(rig));
+            }
+            rig.Now += 3200;
+            feed.Step();
+            ReactMust(feed.Count == 3 && feed.Texts[0] == rig.Fed[1].Substring(6) && feed.Visible, "Lines left before their time, or the oldest stayed: " + feed.Count + " " + string.Join(" / ", feed.Texts));
+            rig.Now += 1200;
+            feed.Step();
+            ReactMust(feed.Count == 0 && !feed.Visible && feed.Area.IsEmpty, "The feed didn't fade away: " + feed.Count + " left");
+            checks.Add("PASS live reactions fade after 4 s, the oldest first, and the feed goes once they have");
+        }
+
+        // Her pools never give the same line twice in a row, and each kind of moment has lines in the mood it puts her in.
+        private void SmokeReactMoods(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            System.Collections.Generic.List<string> run = new System.Collections.Generic.List<string>();
+            Reactions.Show = delegate(string line, bool brain) { run.Add(line); };
+            string[] kinds = { "kill", "death", "hit", "flash", "sound", "scene", "dark", "win", "loss", "advancement" };
+            Random dice = new Random(67);
+            string wrong = null;
+            for (int round = 0; round < 400; round++)
+            {
+                rig.Now += 11000;
+                string kind = kinds[dice.Next(kinds.Length)];
+                int before = run.Count;
+                if (!Reactions.React(kind)) { wrong = wrong ?? "a " + kind + " after every gap got no line"; continue; }
+                if (before > 0 && string.Equals(run[before - 1], run[run.Count - 1], StringComparison.OrdinalIgnoreCase)) wrong = wrong ?? "the same line twice in a row: " + run[run.Count - 1];
+            }
+            ReactMust(wrong == null && run.Count == 400, "Her quick lines went wrong: " + wrong + ", " + run.Count + " lines");
+            Reactions.Reset();
+            Func<string, string> mood = delegate(string kind) { rig.Now += 3000; int before = run.Count; Reactions.React(kind); return run.Count > before ? run[run.Count - 1] : "(nothing)"; };
+            bool kindsRight = Array.IndexOf(Reactions.Hits, mood("hit")) >= 0 && Array.IndexOf(Reactions.Flashes, mood("flash")) >= 0 && Reactions.MoodOf("kill") == GameMood.Happy && Reactions.MoodOf("death") == GameMood.Hit && Reactions.MoodOf("flash") == GameMood.Surprise;
+            bool firstDeath = Array.IndexOf(Reactions.Deaths, mood("death")) >= 0;
+            mood("death");
+            string third = mood("death");
+            bool comeback = Array.IndexOf(Reactions.Comebacks, mood("kill")) >= 0;
+            mood("kill");
+            bool onFire = Array.IndexOf(Reactions.Streaks, mood("kill")) >= 0;
+            bool ended = Array.IndexOf(Reactions.Ended, mood("death")) >= 0;
+            bool teased = Array.Exists(Reactions.Again, again => string.Format(again, 3) == third);
+            ReactMust(kindsRight && firstDeath && teased && comeback && onFire && ended,
+                "Her lines didn't follow her mood: kinds " + kindsRight + ", first death " + firstDeath + ", third " + third + ", comeback " + comeback + ", streak " + onFire + ", ended " + ended);
+            checks.Add("PASS live reactions: 400 moments never gave the same line twice in a row, and her lines follow her mood: a third death in a row is teased with its count, a kill after deaths is a comeback, a third kill a streak, and a death after it stings");
+        }
+
+        // Her brain's line follows when it lands in time and is dropped when it's late, and a slow brain is asked less.
+        private void SmokeReactBrain(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            Reactions.BrainLate = 400;
+            rig.Brain = "That sniper had your number.";
+            ReactMust(Commentary.Moment("death", null, rig.Frame, rig.Frame), "A death didn't get her brain's look.");
+            ReactMust(ReactFed(rig, 2), "Her brain's quick line didn't follow the moment: " + ReactShown(rig));
+            ReactSettle(100);
+            ReactMust(rig.Fed.Count == 2 && rig.Fed[0].StartsWith("quick|", StringComparison.Ordinal) && rig.Fed[1] == "brain|That sniper had your number." && feed.Texts[feed.Count - 1] == "That sniper had your number.",
+                "Her brain's line didn't follow her quick one: " + ReactShown(rig));
+            rig.Now += 60000;
+            rig.Brain = "Took you long enough to notice.";
+            rig.BrainWait = 700;
+            lock (rig.Fed) rig.Fed.Clear();
+            ReactMust(Commentary.Moment("death", null, rig.Frame, rig.Frame), "A second death didn't get her brain's look.");
+            ReactSettle(1200);
+            ReactMust(rig.Fed.Count == 1 && rig.Fed[0].StartsWith("quick|", StringComparison.Ordinal), "A late brain line went up: " + ReactShown(rig));
+            rig.BrainWait = 0;
+            Reactions.Reset();
+            for (int late = 0; late < 3; late++) Reactions.Looked(3000);
+            bool slow = Reactions.Slow && Reactions.Asking(rig.Now);
+            Reactions.Asked(rig.Now);
+            bool waits = !Reactions.Asking(rig.Now + 1000) && Reactions.Asking(rig.Now + Reactions.SlowAsk);
+            Reactions.Looked(100);
+            ReactMust(slow && waits && !Reactions.Slow && Reactions.Asking(rig.Now + 1000), "A slow brain wasn't asked less, or a quick one again was: " + slow + " " + waits);
+            checks.Add("PASS live reactions and her brain: its line follows the quick one when it lands in time and is dropped when it's late, and a brain late three times running is only asked every 30 s until it's quick again");
+        }
+
+        // Out loud at most once every 8 s, never over her own voice or theirs, and Mute her and her quiet key keep it to text.
+        private void SmokeReactVoice(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            Func<string, int, bool, bool> spoken = delegate(string kind, int advance, bool aloud)
+            {
+                rig.Now += advance;
+                int said;
+                lock (rig.Said) said = rig.Said.Count;
+                if (!ReactUp(rig, kind)) return false;
+                lock (rig.Said) return (rig.Said.Count > said) == aloud;
+            };
+            bool first = spoken("kill", 0, true);
+            bool gapKept = spoken("death", 2000, false);
+            bool afterGap = spoken("win", 6100, true);
+            voiceUntil = clock.Elapsed.TotalSeconds + 5;
+            bool overHer = spoken("loss", 8100, false);
+            voiceUntil = 0;
+            micTalked = Environment.TickCount;
+            bool overThem = spoken("advancement", 8100, false);
+            micTalked = Environment.TickCount - 5000;
+            pushing = true;
+            bool overPush = spoken("kill", 8100, false);
+            pushing = false;
+            ToggleShush();
+            CloseTalk();
+            bool muted = shushed && spoken("death", 8100, false);
+            ToggleShush();
+            CloseTalk();
+            Message quiet = Message.Create(Handle, 0x0312, new IntPtr(QuietKeyId), IntPtr.Zero);
+            WndProc(ref quiet);
+            CloseTalk();
+            bool quietKey = shushed && spoken("win", 10100, false);
+            quiet = Message.Create(Handle, 0x0312, new IntPtr(QuietKeyId), IntPtr.Zero);
+            WndProc(ref quiet);
+            CloseTalk();
+            bool back = !shushed && spoken("loss", 10100, true);
+            ReactMust(first && gapKept && afterGap && overHer && overThem && overPush && muted && quietKey && back,
+                "Her voice for reactions went wrong: first " + first + ", gap " + gapKept + "/" + afterGap + ", over her " + overHer + ", over them " + overThem + "/" + overPush + ", muted " + muted + ", quiet key " + quietKey + ", back " + back + ", said " + string.Join(" / ", rig.Said.ToArray()) + ", fed " + ReactShown(rig));
+            checks.Add("PASS live reactions out loud: one at most every 8 s, never over her own voice, their voice or their push-to-talk key, and Mute her and her quiet key keep every line as text in the feed");
+        }
+
+        // Reduced motion: no glitch and no slide. With motion on, a line glitches in and the rest slide up, then settle.
+        private void SmokeReactMotion(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            string[] kinds = { "kill", "death", "win", "loss", "advancement" };
+            preferences.Motion = false;
+            foreach (string kind in kinds)
+            {
+                rig.Now += 300;
+                ReactMust(ReactUp(rig, kind), "A " + kind + " didn't get a quick line with motion off: " + ReactShown(rig));
+            }
+            bool still = feed.Count == Reactions.Most && !feed.Motion && !feed.Tearing && !feed.Sliding;
+            Reactions.Reset();
+            feed.Clear();
+            preferences.Motion = true;
+            foreach (string kind in kinds)
+            {
+                rig.Now += 300;
+                ReactMust(ReactUp(rig, kind), "A " + kind + " didn't get a quick line with motion on: " + ReactShown(rig));
+            }
+            bool moving = feed.Count == Reactions.Most && feed.Motion && feed.Tearing && feed.Sliding;
+            rig.Now += 400;
+            feed.Step();
+            bool settled = !feed.Tearing && !feed.Sliding;
+            bool torn = false;
+            using (Bitmap plate = ReactionFeed.Plate("did you SEE that??", false, 1))
+            using (Bitmap ripped = ReactionFeed.Torn(plate, 1, 1, 67))
+                for (int y = 0; y < plate.Height && !torn; y++)
+                    for (int x = 0; x < plate.Width && !torn; x++)
+                        if (plate.GetPixel(x, y) != ripped.GetPixel(x, y)) torn = true;
+            ReactMust(still && moving && settled && torn, "Reduced motion wasn't kept: still " + still + ", moving " + moving + ", settled " + settled + ", glitch drawn " + torn);
+            checks.Add("PASS live reactions and reduced motion: with motion off lines go up with no glitch and jump to their slots; with it on they glitch in and the rest slide up, then settle");
+        }
+
+        // Only while it's on, her comments run and she's watching: Comments Off, the switch off, a hide they asked for, a nap or her
+        // own game job mean none. The switch is saved, and settings from before it start with it on.
+        private void SmokeReactSwitch(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            Commentary.Pace = Commentary.Off;
+            bool offPace = !Reactions.React("kill") && !Commentary.Moment("kill", null, rig.Frame, rig.Frame);
+            Commentary.Pace = Commentary.Events;
+            manualHidden = hidden = true;
+            bool offHidden = !Reactions.React("death");
+            manualHidden = hidden = false;
+            napping = true;
+            bool offNap = !Reactions.React("win");
+            napping = false;
+            job = new Job("play minecraft");
+            working = "On it. Esc stops me.";
+            bool offPlaying = job.Playing && !Reactions.React("loss");
+            job = null;
+            working = null;
+            mainframe.Sync();
+            bool shownOn = mainframe.ReactionsShown && ReactionsOn;
+            mainframe.FlipReactions();
+            bool savedOff = preferences.NoReactions && LoadPreferences().NoReactions && !mainframe.ReactionsShown && !Reactions.Running && !Reactions.React("advancement");
+            mainframe.FlipReactions();
+            bool savedOn = !preferences.NoReactions && !LoadPreferences().NoReactions && mainframe.ReactionsShown && Reactions.Running && ReactUp(rig, "advancement");
+            bool oldOn;
+            using (MemoryStream old = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"CommentPace\":1}")))
+                oldOn = !((Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(old)).NoReactions && !new Preferences().NoReactions && !Preferences.Fresh().NoReactions;
+            ReactMust(offPace && offHidden && offNap && offPlaying && shownOn && savedOff && savedOn && oldOn,
+                "Live reactions ran when they shouldn't, or the switch wasn't saved: comments off " + offPace + ", hidden " + offHidden + ", nap " + offNap + ", her game " + offPlaying + ", shown " + shownOn + ", off " + savedOff + ", on " + savedOn + ", old settings " + oldOn);
+            checks.Add("PASS Live reactions switch: on by default in new and old settings, saved both ways from Settings > GAMES, and no reactions with Comments off, the switch off, a hide they asked for, a nap or a game she's playing herself");
+        }
+
+        // Big words on screen: a win, a loss, a death or a kill she can read, never a sign, a menu or a small line, and a banner that
+        // stays up counts once. Their own kills in Minecraft's log count too.
+        private void SmokeReactBanners(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            string kindWrong = null;
+            string[,] words = { { "VICTORY!", "win" }, { "Victory Royale", "win" }, { "DEFEAT", "loss" }, { "Game Over", "loss" }, { "YOU DIED", "death" }, { "Eliminated by xXSniperXx", "death" }, { "DOUBLE KILL", "kill" }, { "Headshot", "kill" },
+                { "Victory Road", null }, { "Press any key to defeat the boss", null }, { "Settings", null }, { "", null } };
+            for (int word = 0; word < words.GetLength(0); word++)
+                if (Banners.Kind(words[word, 0]) != words[word, 1]) kindWrong = kindWrong ?? words[word, 0] + " read as " + Banners.Kind(words[word, 0]);
+            ReactMust(kindWrong == null && Banners.Fresh("win", rig.Now) && !Banners.Fresh("win", rig.Now + 5000) && Banners.Fresh("win", rig.Now + 20000), "Banner words were read wrong: " + kindWrong);
+            string player = null;
+            GameLog.Parse("[12:01:05] [Render thread/INFO]: Setting user: Steve_99", ref player);
+            GameEvent kill = GameLog.Parse("[12:03:00] [Render thread/INFO]: [System] [CHAT] Alex was slain by Steve_99", ref player);
+            GameEvent died = GameLog.Parse("[12:03:01] [Server thread/INFO]: Steve_99 was slain by Alex", ref player);
+            GameEvent other = GameLog.Parse("[12:03:02] [Render thread/INFO]: [System] [CHAT] Alex was slain by Zombie", ref player);
+            ReactMust(kill != null && kill.Kind == "kill" && kill.Detail.Contains("Alex") && died != null && died.Kind == "death" && other != null && other.Kind == "chat",
+                "Minecraft's log didn't tell their kill from their death: " + (kill == null ? "-" : kill.Kind) + ", " + (died == null ? "-" : died.Kind) + ", " + (other == null ? "-" : other.Kind));
+            checks.Add("PASS live reactions can tell a win, a loss, a death and a kill from big words on screen and never from a sign or a menu line, count a banner that stays up once, and read their own kills in Minecraft's log");
+            if (!Ocr.Ready) checks.Add("LIMIT live reactions' banner reading needs Windows OCR, which isn't ready here; a person must check a VICTORY or YOU DIED screen gets its line");
+            else
+            {
+                string read = null, small = null, saidWords = null, smallWords = null;
+                long readIn = 0;
+                Thread reader = new Thread(delegate()
+                {
+                    Func<string, int, Bitmap> banner = delegate(string text, int size)
+                    {
+                        Bitmap shot = new Bitmap(1280, 720, PixelFormat.Format32bppArgb);
+                        using (Graphics paper = Graphics.FromImage(shot))
+                        using (Font big = new Font("Arial", size, FontStyle.Bold, GraphicsUnit.Pixel))
+                        using (StringFormat middle = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center })
+                        {
+                            paper.Clear(Color.FromArgb(24, 20, 30));
+                            paper.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                            paper.DrawString(text, big, Brushes.White, new RectangleF(0, 0, 1280, 720), middle);
+                        }
+                        return shot;
+                    };
+                    using (Bitmap warm = banner("WARM UP", 80))
+                    using (Bitmap warmMiddle = Banners.Middle(warm)) { string warmWords; Banners.Read(warmMiddle, 6000, out warmWords); }
+                    using (Bitmap won = banner("VICTORY", 96))
+                    {
+                        Stopwatch reading = Stopwatch.StartNew();
+                        using (Bitmap wonMiddle = Banners.Middle(won)) read = Banners.Read(wonMiddle, 500, out saidWords);
+                        readIn = reading.ElapsedMilliseconds;
+                    }
+                    using (Bitmap sign = banner("VICTORY ROAD 2 KM", 16))
+                    using (Bitmap signMiddle = Banners.Middle(sign)) small = Banners.Read(signMiddle, 3000, out smallWords);
+                });
+                reader.IsBackground = true;
+                reader.Start();
+                ReactMust(reader.Join(20000), "Reading a banner never finished.");
+                ReactMust(small == null && readIn < 1000, "A small sign was read as a banner, or a banner read was slow: " + small + " (" + smallWords + "), " + readIn + " ms");
+                if (read == "win") checks.Add("PASS live reactions read a big VICTORY across the middle of the screen as a win in " + readIn + " ms, with a small sign left alone");
+                else checks.Add("LIMIT live reactions' banner reading: Windows OCR here didn't read a drawn VICTORY in 500 ms (" + (saidWords ?? "nothing") + "); a person must check a real VICTORY or YOU DIED screen gets its line");
+            }
+            checks.Add("LIMIT live reactions over a real borderless game: a person must check the feed shows on the right of the game a third of the way down, glitches in and fades, never takes a click or focus, follows the game to a second monitor, and that exclusive full screen hides it");
+            checks.Add("LIMIT live reactions out loud: a person must hear at most one reaction every 8 s in a real game, never over her voice or theirs, and none with Mute her or her quiet key");
+        }
+
         private static void SmokeGameWindows(System.Collections.Generic.List<string> checks, Func<string> find)
         {
             Func<System.Collections.Generic.List<OpenWindow>> windowsWere = Hands.Windows;
@@ -19766,6 +20253,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeCamera(checks); });
                             Section(checks, delegate { SmokeSteering(checks); });
                             Section(checks, delegate { SmokeGameWatch(checks); });
+                            Section(checks, delegate { SmokeReactions(checks); });
                             Section(checks, delegate { SmokeGameWindows(checks, findGame); });
                             Section(checks, delegate { SmokeGameHolds(checks); });
                             Section(checks, delegate { SmokeGameAsks(checks); });
@@ -32096,6 +32584,7 @@ namespace CapriDesktop
             Func<int> clockWas = Commentary.Clock;
             int paceWas = Commentary.Pace, lateWas = Commentary.Late;
             GameLog logWas = Commentary.Log;
+            Func<bool> reactionsWas = Reactions.On;
             string anthropicWas = Brain.Anthropic;
             string logFile = Path.Combine(Path.GetTempPath(), "capri-talk-check-" + Guid.NewGuid().ToString("N") + ".log");
             System.Net.Sockets.TcpListener fastFake = null;
@@ -32439,6 +32928,8 @@ namespace CapriDesktop
                 must(!firstTime && secondTime && wasRepeating && !newLine && !repeating, "Voice chat's repeat filter is wrong: " + firstTime + " " + secondTime + " " + newLine);
                 checks.Add("PASS voice chat mid-job: a use_computer call while a job runs goes into that job as more or as a change, the same job asked again still gets the old answer, one done line lands once and waits for them to finish talking, and a line said twice is cut");
 
+                // These are her comments the way they were before her live reactions, which have checks of their own.
+                Reactions.On = delegate { return false; };
                 Commentary.Pace = Commentary.Events;
                 Commentary.Late = 6000;
                 Commentary.Reset();
@@ -32793,6 +33284,7 @@ namespace CapriDesktop
                 Commentary.Late = lateWas;
                 Commentary.Log = logWas;
                 Commentary.Reset();
+                Reactions.On = reactionsWas;
                 Brain.Anthropic = anthropicWas;
                 if (fastFake != null) fastFake.Stop();
                 try { File.Delete(logFile); }
