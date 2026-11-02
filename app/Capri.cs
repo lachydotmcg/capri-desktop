@@ -8557,7 +8557,9 @@ namespace CapriDesktop
 
         // Only the cursor on her or on the pill, or the open typer, keeps it up. Her replies and voice chat don't hold it there,
         // including while she's sitting on a window, and over full screen the cursor doesn't either.
-        private bool PillHeld(bool hovered) { return (hovered && !fullThrough) || typer.Visible; }
+        // While their mic is muted in voice chat her pill stays up with its red MUTED, so muting with the key is never silent
+        // (Lachy, 2 Nov: "it was like silently muting").
+        private bool PillHeld(bool hovered) { return (hovered && !fullThrough) || typer.Visible || (chatting && ears.Muted); }
 
         private void UpdatePill(double now)
         {
@@ -28818,10 +28820,11 @@ namespace CapriDesktop
                             pillUntil = 0;
                             WndProc(ref mutePress);
                             if (!pill.Muted || !ears.Muted) throw new Exception("Ctrl + Alt + N did not mute the mic.");
-                            if (pillUntil < clock.Elapsed.TotalSeconds + 2 || PillHeld(false)) throw new Exception("Ctrl + Alt + N should pop the talk pill up for a few seconds in voice chat: up for " + (pillUntil - clock.Elapsed.TotalSeconds).ToString("0.0") + " s, held " + PillHeld(false) + ".");
+                            if (!PillHeld(false)) throw new Exception("Ctrl + Alt + N muted the mic without keeping the pill's red MUTED up.");
                             WndProc(ref mutePress);
                             if (pill.Muted || ears.Muted) throw new Exception("Ctrl + Alt + N did not unmute the mic.");
-                            checks.Add("PASS the talk pill doesn't stay up for a whole voice chat: it pops up for a few seconds when the call starts or the mic is muted or unmuted, then hides unless you hover her or the pill, or keep the typer open");
+                            if (pillUntil < clock.Elapsed.TotalSeconds + 2 || PillHeld(false)) throw new Exception("Ctrl + Alt + N should pop the talk pill up for a few seconds when it unmutes: up for " + (pillUntil - clock.Elapsed.TotalSeconds).ToString("0.0") + "s, held " + PillHeld(false));
+                            checks.Add("PASS the talk pill doesn't stay up for a whole voice chat: it pops up for a few seconds when the call starts or the mic is unmuted, stays up with its red MUTED while the mic is muted, and otherwise hides unless you hover her or the pill, or keep the typer open");
                             ears.Feed(loud);
                             ears.Feed(loud);
                         }
