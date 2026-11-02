@@ -1284,10 +1284,10 @@ namespace CapriDesktop
             int shift = Scaled(next);
             // Every control moves at once, with no half-scrolled frame in between.
             Native.SendMessage(Handle, 0x000B, IntPtr.Zero, IntPtr.Zero);
+            SuspendLayout();
             try { foreach (Control control in scrolled) control.Top = tops[control] - shift; }
-            finally { Native.SendMessage(Handle, 0x000B, new IntPtr(1), IntPtr.Zero); }
+            finally { ResumeLayout(false); Native.SendMessage(Handle, 0x000B, new IntPtr(1), IntPtr.Zero); }
             Invalidate(true);
-            Update();
         }
 
         // How much of the settings page the screen's working area has room for, before scaling.
@@ -1299,10 +1299,16 @@ namespace CapriDesktop
 
         protected override void OnMouseWheel(MouseEventArgs e)
         {
+            HandledMouseEventArgs handled = e as HandledMouseEventArgs;
+            if (handled != null) handled.Handled = true;
+            ScrollWheel(e.Delta);
+        }
+
+        private void ScrollWheel(int delta)
+        {
             DismissHint();
-            base.OnMouseWheel(e);
             if (!paged || pageView >= PageNow) return;
-            wheel += e.Delta;
+            wheel += delta;
             int rows = wheel / 120;
             wheel -= rows * 120;
             if (rows != 0) ScrollPage(pageScroll - rows * ScrollRow);
@@ -3249,6 +3255,18 @@ namespace CapriDesktop
         public bool PreFilterMessage(ref Message m)
         {
             FilterHints(ref m);
+            // A wheel turn over Mainframe belongs to it, including at either end of the page (Lachy, 2 Nov).
+            if (m.Msg == 0x020A)
+            {
+                Control wheelOver = Control.FromChildHandle(m.HWnd);
+                if (wheelOver != null && wheelOver.FindForm() == this)
+                {
+                    ComboBox choice = wheelOver as ComboBox;
+                    if (choice != null && choice.DroppedDown) return false;
+                    ScrollWheel(unchecked((short)((m.WParam.ToInt64() >> 16) & 0xFFFF)));
+                    return true;
+                }
+            }
             if (capturing == 0 || (m.Msg != 0x0207 && m.Msg != 0x0209 && m.Msg != 0x020B && m.Msg != 0x020D)) return false;
             Control over = Control.FromChildHandle(m.HWnd);
             if (over == null || over.FindForm() != this) return false;
