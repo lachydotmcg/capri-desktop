@@ -882,7 +882,7 @@ namespace CapriDesktop
                 using (Process self = Process.GetCurrentProcess()) own = self.Id;
                 opened.Grabbable = delegate { return Computer.Streaming || Computer.GameOpen() != null ? null : Ledges.Haulable(own); };
                 opened.Allowed = delegate { return !Computer.Streaming && Computer.GameOpen() == null; };
-                opened.Ticked = CloneTalk;
+                opened.Ticked = CloneTick;
                 cloneWindow = opened;
                 cloneTalkAt = now + 3;
                 opened.Open(now);
@@ -897,6 +897,7 @@ namespace CapriDesktop
 
         internal void ClonesOff()
         {
+            ClearIcons();
             cloneTurn++;
             cloneTalking = false;
             CloneWindow closing = cloneWindow;
