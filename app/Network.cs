@@ -21,7 +21,7 @@ namespace CapriDesktop
     // (Lachy, 3 Nov: "ensure they have the tools they need to perform everything themself").
     internal static class Network
     {
-        // Pings the address they gave, or two public ones, the second only when the first never answers.
+        // Pings the address they gave, or two public ones, the second only when the first never answers, and looks a name up.
         internal static NetUse Read(string address)
         {
             NetUse use = new NetUse();
@@ -39,7 +39,8 @@ namespace CapriDesktop
                 use.Fastest = 0;
                 using (Ping ping = new Ping())
                 {
-                    for (int i = 0; i < 4; i++)
+                    // Two lost in a row from the start means nothing's answering there, so it doesn't wait out all four.
+                    for (int i = 0; i < 4 && !(i == 2 && use.Lost == 2); i++)
                     {
                         use.Sent++;
                         try
