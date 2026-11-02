@@ -19501,7 +19501,8 @@ namespace CapriDesktop
                     says("Octopuses have three hearts. I'll remember that."), says("chat"),
                     says("Opened Spotify and set a reminder for later, choom."),
                     calls("open_app", "{\"name\":\"Discord\"}"), says("Discord's up and I set a reminder to stretch."), says("Discord's up, choom."),
-                    calls("open_app", "{\"name\":\"Spotify\"}"), says("Spotify's open, choom!")
+                    calls("open_app", "{\"name\":\"Spotify\"}"), says("Spotify's open, choom!"),
+                    calls("open_app", "{\"name\":\"Discord\"}"), says("")
                 }, asked, out fake);
                 Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
                 Brain.Keeping = false;
@@ -19517,11 +19518,13 @@ namespace CapriDesktop
                 planner.Act = delegate(string name, ToolArguments args) { did.Add(name); return args.Name == "Spotify" ? "No app called Spotify is installed on this PC." : "Opened " + args.Name + "."; };
                 string discord = planner.Ask("open discord");
                 string failed = planner.Ask("open spotify");
+                // A planner that ends with no words after its step worked says what she did, not "My brain sent an empty reply" (Nox, 3 Nov).
+                string wordless = planner.Ask("bring discord up");
                 string[] sent;
                 lock (asked) sent = asked.ToArray();
-                if (saved != "Saved it, choom." || stripped != "Octopuses have three hearts." || opened != "Opened spotify." || discord != "Discord's up, choom." || failed != "No app called Spotify is installed on this PC."
-                    || string.Join(",", did.ToArray()) != "remember,open_app,open_app,open_app" || sent.Length != 11 || !sent[8].Contains("You said you did something that needs remind"))
-                    throw new Exception("A claim with no tool behind it reached them: " + saved + " / " + stripped + " / " + opened + " / " + discord + " / " + failed + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                if (saved != "Saved it, choom." || stripped != "Octopuses have three hearts." || opened != "Opened spotify." || discord != "Discord's up, choom." || failed != "No app called Spotify is installed on this PC." || wordless != "Opened Discord."
+                    || string.Join(",", did.ToArray()) != "remember,open_app,open_app,open_app,open_app" || sent.Length != 13 || !sent[8].Contains("You said you did something that needs remind"))
+                    throw new Exception("A claim with no tool behind it reached them: " + saved + " / " + stripped + " / " + opened + " / " + discord + " / " + failed + " / " + wordless + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
                 checks.Add("PASS claims: \"I'll remember that\", reminders, watches, watching along, clones, dancing, naps, moving, clips, drawing, screenshots, Gaming Mode, routines and switching her own settings count as claims, questions, chat and how a setting starts out don't; a claim with no tool gives her hands a go and comes out of her reply when they find nothing, a claim after other tools ran comes out too, her planner gets one reminder for it, and her planner's last line can't say a failed step worked");
             }
             finally

@@ -1985,9 +1985,10 @@ namespace CapriDesktop
                 else
 #endif
                 if (pulled != null) raw = pulled;
-                // Her own last line, from the brain that did the steps, unless it hands them the credit, or a step failed and the
-                // line doesn't say so (F69, pass 4).
-                else if (planText != null && !teaching) raw = Hands.Credits(Clean(planText)) || (deeds.Exists(Hands.Failed) && !Hands.Admits(Clean(planText))) ? done : planText;
+                // Her own last line, from the brain that did the steps, unless it hands them the credit, a step failed and the line
+                // doesn't say so (F69, pass 4), or it ended with no words at all, which said "My brain sent an empty reply" after a
+                // snap that worked (Nox, 3 Nov): then it's what she did.
+                else if (planText != null && !teaching) raw = Clean(planText).Trim().Length == 0 || Hands.Credits(Clean(planText)) || (deeds.Exists(Hands.Failed) && !Hands.Admits(Clean(planText))) ? done : planText;
                 else if (stopped || deeds.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !teaching && !calls.Exists(call => call.Key == "look_at_screen" || call.Key == "listen" || Hands.Checking(call.Key, call.Value)))) raw = done;
                 else
                 {
@@ -2079,7 +2080,11 @@ namespace CapriDesktop
             for (int round = 0; round < Rounds; round++)
             {
                 List<KeyValuePair<string, ToolArguments>> picked = new List<KeyValuePair<string, ToolArguments>>();
-                string raw = Think(model, asking, true, picked, null, Math.Max(budget, 200), ticket, true, kit.WorkTools, kit.WorkClaudeTools);
+                string raw;
+                // A brain that ends with no words once its steps have run leaves her own line to say what she did (Nox, 3 Nov: "My
+                // brain sent an empty reply" after a snap that worked).
+                try { raw = Think(model, asking, true, picked, null, Math.Max(budget, 200), ticket, true, kit.WorkTools, kit.WorkClaudeTools); }
+                catch (BrainException error) { if (calls.Count == 0 || (error.Message != Wordless && error.Message != Answerless)) throw; return ""; }
                 string said = Clean(raw), written;
                 ToolArguments writtenArgs;
                 // A brain copying the way its earlier calls are written below gets its calls read all the same.
@@ -2748,8 +2753,8 @@ namespace CapriDesktop
             if (Clean(message.Content).Length == 0 && calls.Count == before)
             {
                 if (choice.Stopped == "length") throw new BrainException("That model ran out of room before answering. Pick another model in Capri Mainframe.", true);
-                if (!string.IsNullOrWhiteSpace(message.Reasoning) || !string.IsNullOrWhiteSpace(message.Thinking)) throw new BrainException("That model sent thoughts without an answer. Pick another model in Capri Mainframe.", true);
-                throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+                if (!string.IsNullOrWhiteSpace(message.Reasoning) || !string.IsNullOrWhiteSpace(message.Thinking)) throw new BrainException(Answerless, true);
+                throw new BrainException(Wordless, true);
             }
             return Visible(message.Content);
         }
@@ -3204,6 +3209,8 @@ namespace CapriDesktop
         internal static string Now() { return "\nRight now it's " + DateTime.Now.ToString("dddd d MMMM yyyy, h:mm tt", System.Globalization.CultureInfo.InvariantCulture) + " where they are, so answer the time or date from this line without searching for it."; }
 
         internal const string Gibberish = "My brain sent gibberish. Pick another model in Capri Mainframe.";
+        internal const string Wordless = "My brain sent an empty reply. Try again or pick another model in Capri Mainframe.";
+        internal const string Answerless = "That model sent thoughts without an answer. Pick another model in Capri Mainframe.";
         private static readonly Regex Junk = new Regex(@"<(unused\d+|pad|mask|unk|eos|bos|start_of_(turn|image|audio)|end_of_(turn|image|audio))>", RegexOptions.IgnoreCase);
 
         internal static bool Garbled(string text)
