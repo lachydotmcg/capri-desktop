@@ -30332,11 +30332,13 @@ namespace CapriDesktop
                             simpleTest = true;
                             mainframe.ShowSettings(true);
                             string simpleCrowd = mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
-                            int simpleTall = mainframe.ClientSize.Height;
+                            int simpleTall = mainframe.ClientSize.Height, simpleScroll = mainframe.ScrollMost;
                             snap("mainframe-settings-simple.png");
                             simpleTest = false;
                             mainframe.ShowSettings(true);
-                            if (simpleCrowd != null || simpleTall >= mainframe.ClientSize.Height) throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height);
+                            // Both pages can reach Settings' tallest window since 0.8.0's rows, so Simple is shorter by what's left to scroll.
+                            if (simpleCrowd != null || simpleTall > mainframe.ClientSize.Height || simpleTall == mainframe.ClientSize.Height && simpleScroll >= mainframe.ScrollMost)
+                                throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height + ", " + simpleScroll + " px to scroll against " + mainframe.ScrollMost);
                             checks.Add("PASS Simple Settings: the main rows only, shorter than Advanced Settings, with nothing overlapping or poking out");
                             // Her voice in your mic (F66) under VOICE, on stand-in devices: without VB-CABLE the switch is locked, the line says
                             // it needs it and the button opens its page in their browser; with it the switch starts and stops the mix and is
@@ -35799,7 +35801,9 @@ namespace CapriDesktop
             Func<string> switchState = delegate
             {
                 return "chatting " + chatting + ", local " + local + ", ears ready " + earsReady + ", shut " + earsShut + ", transcribing " + transcribing + ", muted " + ears.Muted
-                    + ", talk " + talkState + ", quiet " + preferences.Quiet + ", server " + preferences.ServerVoice + ", note " + mainframe.VoiceNoteText;
+                    + ", talk " + talkState + ", quiet " + preferences.Quiet + ", server " + preferences.ServerVoice + ", note " + mainframe.VoiceNoteText
+                    + ", voice for " + (voiceUntil - clock.Elapsed.TotalSeconds).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s, busy " + speaker.Busy + ", name over " + nameOver
+                    + ", ears on " + ears.Listening + ", hearing " + (hearingStatus == null ? "-" : hearingStatus.Text) + ", cloud " + preferences.CloudVoice + ", calls " + switchCalls;
             };
             // She says her check line through each new voice first, so each line waits for it to finish.
             Action<string> switchHeard = delegate(string what)

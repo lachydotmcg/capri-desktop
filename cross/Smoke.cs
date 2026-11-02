@@ -826,9 +826,14 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 pet.Think = null;
                 string computer = OperatingSystem.IsMacOS() ? "Mac" : "PC", handsPrompt = Hands.Prompt, toolsNote = Hands.Note;
-                bool notWindows = handsPrompt.IndexOf("Windows", StringComparison.Ordinal) < 0 && handsPrompt.IndexOf("a desktop companion on the user's " + computer + ".", StringComparison.Ordinal) > 0
-                    && toolsNote.IndexOf("Windows", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0;
-                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows);
+                // What isn't here is named as Windows-only on purpose (34db044). What matters is that nothing calls this a Windows PC,
+                // and that settings jobs are offered only where her hands work.
+                bool handsHere = Hands.KitFor().Has("use_computer");
+                bool notWindows = handsPrompt.IndexOf("Windows PC", StringComparison.Ordinal) < 0 && handsPrompt.IndexOf("a desktop companion on the user's " + computer + ".", StringComparison.Ordinal) > 0
+                    && toolsNote.IndexOf("Windows PC", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("Windows settings", StringComparison.Ordinal) < 0
+                    && (toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0) == handsHere;
+                Func<string, string> nearWindows = delegate(string text) { int at = text.IndexOf("Windows", StringComparison.Ordinal); return at < 0 ? "-" : text.Substring(Math.Max(0, at - 60), Math.Min(140, text.Length - Math.Max(0, at - 60))); };
+                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows + " (hands " + handsHere + ") | " + nearWindows(handsPrompt) + " | " + nearWindows(toolsNote));
                 checks.Add("PASS Windows-only: asking for clones or chaos mode, or to get rid of clones, gets \"" + Hands.NoClones + "\" straight away, with or without a brain, and her hands' prompts call this computer their " + computer + ", not a Windows PC");
                 foreach (bool withBrain in new[] { false, true })
                 {
