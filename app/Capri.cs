@@ -26569,6 +26569,8 @@ namespace CapriDesktop
                                 bool renamedHeard = Hands.Heard("remember my name is Sam", out shortTool, out shortArgs) && shortTool == "remember";
                                 string renamed = Hands.Do(shortTool, shortArgs);
                                 bool renamedRight = renamed == "Got it, Sam." && Brain.Nickname == "Sam" && preferences.Nickname == "Sam" && Brain.Notes() == "";
+                                string nickFixed = Hands.Do("remember", new ToolArguments { Text = "no, my nickname is Skittle-Pro" });
+                                renamedRight = renamedRight && nickFixed == "Got it, Skittle-Pro." && Brain.Nickname == "Skittle-Pro" && Brain.Notes() == "";
                                 Brain.Nickname = nickBefore;
                                 preferences.Nickname = prefBefore;
                                 SavePreferences();
@@ -33134,7 +33136,9 @@ namespace CapriDesktop
                                 || meetSkip != Meeting.AskPronouns || meetStop != "No worries. What you told me is in my notes, me.md. " + Meeting.Again || meetAgain != "- Name: Lachy\n- Pronouns: they/them\n- Into: Cyberpunk, Roblox and drawing"
                                 || meetElsewhere != Brain.Offline || !meetLeft || !meetAfterSetup || meetStopped != "No worries, choom. " + Meeting.Again)
                                 throw new Exception("Getting to know them went wrong: " + meetFirst + " / typing " + meetTyping + " / " + meetNudge + " / " + meetNamed + " / " + meetPronouns + " / " + meetInto + " / " + meetNotes.Replace("\n", " | ") + " / nicked " + meetNicked + " / " + meetSkip + " / " + meetStop + " / " + meetAgain.Replace("\n", " | ") + " / " + meetElsewhere + " / left " + meetLeft + " / after setup " + meetAfterSetup + " / " + meetStopped);
-                            checks.Add("PASS getting to know you: after setup, or from Settings > Get to know me, she asks what to call them, their pronouns and what they're into in chat with her typing box open and no brain needed, writes the answers to me.md and calls them by their name; skip, stop and asking again work, and a question or a job ends it and is heard as usual");
+                            foreach (string[] nameCase in new[] { new[] { "Cursed, it's my nickname", "Cursed" }, new[] { "Cursed is my name", "Cursed" }, new[] { "call me Cursed, that's my gamertag", "Cursed" }, new[] { "my nickname is Skittle-Pro", "Skittle-Pro" }, new[] { "Lachy", "Lachy" } })
+                                if (Meeting.NameIn(nameCase[0]) != nameCase[1]) throw new Exception("Her name question kept the wrong name: " + nameCase[0] + " -> " + Meeting.NameIn(nameCase[0]));
+                            checks.Add("PASS getting to know you: after setup, or from Settings > Get to know me, she asks what to call them, their pronouns and what they're into in chat with her typing box open and no brain needed, writes the answers to me.md and calls them by their name, without \"it's my nickname\" on the end; skip, stop and asking again work, and a question or a job ends it and is heard as usual");
                             Hear("hello");
                             if (talkState != TalkState.Dormant || reply != Brain.Offline) throw new Exception("Missing brain did not go DORMANT.");
                             replyStart -= 10;

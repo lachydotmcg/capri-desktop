@@ -1106,7 +1106,8 @@ namespace CapriDesktop
 
         private static string CallMe(string text)
         {
-            Match named = Regex.Match((text ?? "").Replace('’', '\'').Trim(), @"^(?:that\s+)?(?:my name is|my name's|call me|i'm called|i am called|i go by)\s+([\p{L}][\p{L}'-]*(?:\s[\p{L}][\p{L}'-]*)?)[.!]*$", RegexOptions.IgnoreCase);
+            // "No, my nickname is Skittle-Pro" counts too: a correction was saved as a note, and her name for them stayed wrong (ticket 91).
+            Match named = Regex.Match((text ?? "").Replace('’', '\'').Trim(), @"^(?:(?:no|nah|nope|actually|sorry|oops|wait)[\s,.!]+)*(?:that\s+)?(?:my (?:nick ?|first |real |user ?)?name is|my (?:nick ?|first |real |user ?)?name's|call me|i'm called|i am called|i go by)\s+([\p{L}\p{Nd}][\p{L}\p{Nd}'._-]*(?:\s[\p{L}\p{Nd}][\p{L}\p{Nd}'._-]*)?)[.!]*$", RegexOptions.IgnoreCase);
             Func<string, string> rename = Rename;
             return named.Success && rename != null ? rename(named.Groups[1].Value) : null;
         }
