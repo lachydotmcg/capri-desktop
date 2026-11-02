@@ -12095,282 +12095,71 @@ namespace CapriDesktop
 
         // Her clones and your windows (lance, 1 Nov: chaos mode "need more... OUMF"). A section of its own, since it needs a real
         // window on a real screen, and a problem there mustn't leave the checks after it in a muddle.
-        // Throwing her (Zr4, F63 and F44): drags at known speeds through her mouse handlers, her flight against a stand-in window
-        // and her screen's edges, reduced motion, and her grudge, with a stand-in cursor and her sounds kept off the speakers.
-        private void SmokeThrow(System.Collections.Generic.List<string> checks)
+        // Throwing her (Zr4, F63 and F44), each part in a Section of its own so one failure can't hide the rest: drags at known
+        // speeds through her mouse handlers, her flight against her screen's edges and a stand-in window, reduced motion, and her
+        // grudge, with a stand-in cursor and her sounds kept off the speakers.
+        private void SmokeThrows(System.Collections.Generic.List<string> checks)
         {
-            Point throwAnchorWas = anchor;
-            Ledge throwSeatWas = seat;
-            Clip throwClipWas = clip;
-            bool throwMotionWas = preferences.Motion, throwSittingWas = preferences.NoSitting, throwPatsWas = preferences.NoHeadPats, throwInstantWas = instant, throwFacedWas = facingLeft;
-            Func<Point> throwMouseWas = MouseAt;
-            Action<short[]> throwSoundWas = Sfx.Out;
-            int throwLevelWas = Sfx.Level;
-            double scale = TalkScale();
-            int size = preferences.Size;
-            System.Collections.Generic.List<short[]> throwSounds = new System.Collections.Generic.List<short[]>();
+            Section(checks, delegate { SmokeThrowReads(checks); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowSlow); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowFast); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowUp); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowSlam); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowStanding); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowCatch); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowCalm); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowGrudge); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowDodges); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowSorry); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowPat); });
+            Section(checks, delegate { ThrowCheck(checks, SmokeThrowAlone); });
+            checks.Add("LIMIT throwing her for real: how a flick off a real mouse feels, her tumble, bounces, tear and dizzy sway on a real screen, her thud on real speakers, and her hopping away from a real cursor need a person at the desk");
+        }
+
+        // One throwing check with her state saved first and put back after however it ends. During it she sits on windows, motion
+        // and head pats are on, nothing animates, she faces right, nothing's full screen, and her sounds are caught, not played.
+        private void ThrowCheck(System.Collections.Generic.List<string> checks, Action<System.Collections.Generic.List<string>, System.Collections.Generic.List<short[]>> run)
+        {
+            Point anchorWas = anchor;
+            Ledge seatWas = seat;
+            Clip clipWas = clip;
+            Action outroWas = outro;
+            bool motionWas = preferences.Motion, sittingWas = preferences.NoSitting, patsWas = preferences.NoHeadPats, instantWas = instant, facedWas = facingLeft, busyWas = frontBusy;
+            bool walkingWas = walking, hangingWas = hanging, lyingWas = lying, dropWas = dropAfter, spawnWas = spawnFall;
+            long petAtWas = petAt;
+            Func<Point> mouseWas = MouseAt;
+            Action<short[]> soundWas = Sfx.Out;
+            int levelWas = Sfx.Level;
+            System.Collections.Generic.List<short[]> sounds = new System.Collections.Generic.List<short[]>();
             try
             {
-                // Their cursor's speed as they let go: a steady drag reads true, one that stopped reads still, and a flick after
-                // holding still isn't spread over the wait.
-                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>> track = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>>();
-                for (int i = 0; i <= 12; i++) track.Add(new System.Collections.Generic.KeyValuePair<double, Point>(10 + i * 0.016, new Point(100 + i * 10, 300 - i * 6)));
-                PointF steady = TrailSpeed(track, 10 + 12 * 0.016 + 0.004, ThrowSpan), stopped = TrailSpeed(track, 10 + 12 * 0.016 + 0.12, ThrowSpan);
-                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>> flick = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>>();
-                flick.Add(new System.Collections.Generic.KeyValuePair<double, Point>(10, new Point(500, 500)));
-                for (int i = 0; i < 3; i++) flick.Add(new System.Collections.Generic.KeyValuePair<double, Point>(12 + i * 0.01, new Point(550 + i * 50, 500)));
-                PointF flicked = TrailSpeed(flick, 12.025, ThrowSpan);
-                if (Math.Abs(steady.X - 625) > 60 || Math.Abs(steady.Y + 375) > 40 || stopped.X != 0 || stopped.Y != 0 || flicked.X < 1800 || flicked.Y != 0)
-                    throw new Exception("Her cursor's speed read wrong: steady " + steady + ", stopped " + stopped + ", a flick after a wait " + flicked);
-                string[] sorries = { "sorry", "I'm sorry Capri", "my bad lol", "soooo sorry!!", "sorry for throwing you", "lo siento", "ごめんね" };
-                foreach (string said in sorries) if (!Apology(said)) throw new Exception("She didn't hear an apology in \"" + said + "\".");
-                foreach (string said in new[] { "open spotify", "the sorrow of it", "" }) if (Apology(said)) throw new Exception("She heard an apology in \"" + said + "\".");
-                if (!OnlyApology("I'm sorry Capri") || !OnlyApology("sorry for throwing you") || !OnlyApology("soooo sorry!!") || OnlyApology("sorry, can you open spotify") || OnlyApology("open spotify")) throw new Exception("A plain sorry and a sorry with more in it were told apart wrong.");
-                checks.Add("PASS throwing her: their cursor's speed as they let go reads true for a steady drag, still once it stopped, and a flick after holding still isn't spread over the wait; she hears sorry, I'm sorry Capri, my bad and a few other languages' sorry, and tells a plain sorry from one with more in it");
-
                 CloseTalk();
+                tear.Hide();
                 preferences.NoSitting = false;
                 preferences.Motion = true;
                 preferences.NoHeadPats = false;
                 instant = true;
                 facingLeft = false;
+                frontBusy = false;
                 throwsAt.Clear();
                 sulkSince = -1;
-                Sfx.Out = delegate(short[] sound) { throwSounds.Add(sound); };
+                dizzyFrom = dizzyUntil = dizzyGlitchAt = -1;
+                pendingClick = false;
+                clickDelay.Stop();
+                Sfx.Out = delegate(short[] sound) { sounds.Add(sound); };
                 Sfx.Level = 60;
-                Rectangle work = Screen.PrimaryScreen.WorkingArea;
-                using (Shelf shelf = new Shelf())
-                {
-                    int middle = work.Left + work.Width / 2, clear = Math.Max(160, size) + 60;
-                    System.Collections.Generic.List<Ledge> others = Ledges.Find(Skip(), icons);
-                    int shelfY = work.Top + work.Height / 2;
-                    for (int y = Math.Max(work.Top + Headroom() + 20, work.Top + work.Height / 2 - 60); y < work.Bottom - 240; y += 10)
-                        if (!others.Exists(other => !other.Floor && other.Icon.IsEmpty && other.Right > middle - 280 && other.Left < middle + 280 && Math.Abs(other.Y - y) < clear)) { shelfY = y; break; }
-                    shelf.Bounds = new Rectangle(middle - 220, shelfY, 440, 180);
-                    shelf.Show();
-                    // A drag through her mouse handlers at a known speed: pressed on her, moved dx, dy every 16 ms, let go 4 ms after.
-                    Func<int, int, int, double> drag = delegate(int dx, int dy, int moves)
-                    {
-                        OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
-                        double pressedAt = trail[0].Key;
-                        Point from = pointerStart;
-                        for (int i = 1; i <= moves; i++) MovePointer(new Point(from.X + dx * i, from.Y + dy * i), pressedAt + i * 0.016);
-                        double letGo = pressedAt + moves * 0.016 + 0.004;
-                        Released(new Point(from.X + dx * moves, from.Y + dy * moves), letGo);
-                        return letGo;
-                    };
-                    Action<Point> placeHip = delegate(Point hip)
-                    {
-                        seat = null;
-                        falling = thrown = false;
-                        anchor = Seated(hip.X, hip.Y);
-                        Location = anchor;
-                        Play(idle);
-                    };
-                    // Her flight at 60 frames a second until she's down: whether she ever left the screen she was thrown on or was
-                    // drawn slower than every 1/64 s, how far she tumbled and where she'd turned to just before landing, and whether
-                    // she touched the right edge and came back off it.
-                    string flightWrong = null;
-                    float turned = 0, lastTurn = 0;
-                    bool touchedRight = false, cameBack = false;
-                    Action flyOut = delegate
-                    {
-                        Rectangle room = flyArea, screen = Screen.FromRectangle(flyArea).Bounds;
-                        flightWrong = null;
-                        turned = lastTurn = 0;
-                        touchedRight = cameBack = false;
-                        for (int tick = 0; tick < 900 && falling; tick++)
-                        {
-                            Tumble(fallStep + 1 / 60.0);
-                            if (!falling) break;
-                            if (thrown && FrameInterval(fallStep) != 15) flightWrong = "she was drawn every " + FrameInterval(fallStep) + " ms in the air";
-                            Rectangle body = BodyOnScreen(anchor, Body);
-                            if (!screen.Contains(body) || body.Left < room.Left || body.Right > room.Right || body.Top < room.Top) flightWrong = "she left her screen at " + body + " on " + room;
-                            turned = Math.Max(turned, Math.Abs(Turn()));
-                            lastTurn = Turn();
-                            if (body.Right >= room.Right - 2) touchedRight = true;
-                            else if (touchedRight && body.Right < room.Right - 40) cameBack = true;
-                        }
-                        if (falling) flightWrong = "she never came down";
-                    };
-                    // Slow: she drops onto the window under her, like before.
-                    placeHip(new Point(shelf.Left + 220, shelf.Top - 12));
-                    drag(4, 0, 8);
-                    bool slowDropped = falling && !thrown && fallTo != null && fallTo.Window == shelf.Handle;
-                    for (int i = 0; i < 60 && falling; i++) Tumble(fallStep + 0.033);
-                    slowDropped &= seat != null && seat.Window == shelf.Handle && Hip().Y == shelf.Top;
-                    // Fast up and to the right off the window: she flies, yells, hits the right edge of her screen and bounces back
-                    // off it, bounces on the taskbar, tumbles, lands upright on a ledge and is dizzy for a beat.
-                    CloseTalk();
-                    throwsAt.Clear();
-                    drag((int)Math.Round(60 * scale), (int)Math.Round(-30 * scale), 6);
-                    bool flew = falling && thrown && clip == dangle && flyVX > 0 && flyVY < 0;
-                    bool yelled = Array.IndexOf(ThrowLines, reply) >= 0 && heard == "throws you" && box.Prompt == "> sys: ";
-                    int bumpsBefore = bumps;
-                    flyOut();
-                    string wallWrong = flightWrong;
-                    int wallBounces = flyBounces, wallFloors = flyFloors;
-                    bool bounced = touchedRight && cameBack && flyBounces >= 2 && bumps > bumpsBefore;
-                    bool landedOn = !falling && !thrown && seat != null && (seat.Floor || seat.Window != IntPtr.Zero) && Hip().Y == seat.Y && Hip().Y <= work.Bottom;
-                    double upright = Math.Abs(lastTurn - 360 * Math.Round(lastTurn / 360.0));
-                    bool tumbledRight = turned >= 90 && upright <= 45;
-                    double landedAt = fallStep;
-                    bool dizzy = Dizzy(landedAt) && Sway(dizzyFrom + 0.25) != 0 && Sway(dizzyUntil + 0.1) == 0 && FrameInterval(dizzyFrom + 0.25) == 33 && Array.IndexOf(DizzyLines, reply) >= 0;
-                    // Straight up off the window, she comes back down onto it.
-                    CloseTalk();
-                    throwsAt.Clear();
-                    placeHip(new Point(shelf.Left + 220, shelf.Top - 12));
-                    drag(0, (int)Math.Round(-26 * scale), 6);
-                    bool upThrown = falling && thrown && flyVY < 0 && Math.Abs(flyVX) < 1;
-                    flyOut();
-                    bool backOnShelf = upThrown && flightWrong == null && seat != null && seat.Window == shelf.Handle && Hip().Y == shelf.Top;
-                    // Hard down onto the taskbar, clear of the window: she bounces on it before she settles there.
-                    CloseTalk();
-                    throwsAt.Clear();
-                    placeHip(new Point(work.Left + size, work.Top + work.Height / 3));
-                    drag(0, (int)Math.Round(50 * scale), 4);
-                    flyOut();
-                    bool slammed = flightWrong == null && flyFloors >= 1 && seat != null && seat.Floor && seat.Y == work.Bottom && Hip().Y == work.Bottom;
-                    int slamFloors = flyFloors;
-                    if (!slowDropped || !flew || !yelled || wallWrong != null || !bounced || !landedOn || !tumbledRight || !dizzy || !backOnShelf || !slammed)
-                        throw new Exception("Throwing her went wrong: slow drop " + slowDropped + ", flew " + flew + ", yelled " + yelled + " (" + reply + "), flight " + (wallWrong ?? "on screen") + ", bounced " + bounced + " (" + wallBounces + " bounces, right edge " + touchedRight + "/" + cameBack + "), landed " + landedOn + ", tumbled " + turned + " and landed at " + upright + ", dizzy " + dizzy + ", back on the window " + backOnShelf + " (" + flightWrong + "), slammed " + slammed + " (" + slamFloors + " taskbar bounces)");
-                    checks.Add("PASS throwing her: a slow drag drops her onto the window under her like before; a fast one throws her at its speed and she yells, hits the right edge of her screen and bounces back off it, bounces on the taskbar (" + wallBounces + " bounces in all, " + wallFloors + " on the taskbar), tumbles and rights herself, lands on a ledge, never leaves her screen, is drawn every 1/64 s in the air, and is dizzy for a beat after; thrown straight up off a window she comes back down onto it, and slammed down onto the taskbar she bounces " + slamFloors + " times before she settles");
-                    // A press mid-flight catches her, and letting go without a drag lets her fall from there.
-                    CloseTalk();
-                    placeHip(new Point(middle, work.Top + work.Height / 4));
-                    Launch(900 * scale, -1500 * scale, clock.Elapsed.TotalSeconds);
-                    for (int i = 0; i < 5; i++) Tumble(fallStep + 1 / 60.0);
-                    OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
-                    bool caughtHer = pressed && caught && !falling && clip == dangle;
-                    Released(PointToScreen(new Point(Width / 2, Height / 2)), clock.Elapsed.TotalSeconds);
-                    bool letFall = falling && !thrown;
-                    pendingClick = false;
-                    clickDelay.Stop();
-                    for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.033);
-                    letFall &= seat != null;
-                    if (!caughtHer || !letFall) throw new Exception("Catching her mid-flight went wrong: caught " + caughtHer + ", fell after " + letFall);
-                    checks.Add("PASS a press on her mid-flight catches her in their hand, and letting go without a drag lets her fall from there");
-
-                    // Reduced motion: the same throw from the same spot at the same times flies the same path, with no tumble, screen
-                    // tear or dizzy sway, and her thud still plays.
-                    Point sameFrom = Seated(middle + 60, work.Top + work.Height / 4);
-                    double sameAt = clock.Elapsed.TotalSeconds;
-                    System.Collections.Generic.List<Point>[] paths = { new System.Collections.Generic.List<Point>(), new System.Collections.Generic.List<Point>() };
-                    int[] thuds = new int[2];
-                    bool[] tore = new bool[2], swayed = new bool[2];
-                    float[] tumbled = new float[2];
-                    int thudLength = Sfx.Make(Cue.Bonk, 60).Length;
-                    instant = false;
-                    for (int run = 0; run < 2; run++)
-                    {
-                        preferences.Motion = run == 0;
-                        CloseTalk();
-                        tear.Hide();
-                        throwSounds.Clear();
-                        seat = null;
-                        falling = thrown = false;
-                        anchor = sameFrom;
-                        Location = anchor;
-                        Play(idle);
-                        Launch(3200 * scale, -2600 * scale, sameAt);
-                        for (int k = 1; k <= 900 && falling; k++)
-                        {
-                            Tumble(sameAt + k / 60.0);
-                            paths[run].Add(anchor);
-                            tumbled[run] = Math.Max(tumbled[run], Math.Abs(Turn()));
-                        }
-                        thuds[run] = throwSounds.FindAll(sound => sound.Length == thudLength).Count;
-                        tore[run] = tear.Visible;
-                        swayed[run] = Dizzy(fallStep) && Sway(dizzyFrom + 0.25) != 0;
-                    }
-                    instant = true;
-                    preferences.Motion = true;
-                    bool samePath = paths[0].Count > 0 && paths[0].Count == paths[1].Count && !falling;
-                    for (int i = 0; samePath && i < paths[0].Count; i++) if (paths[0][i] != paths[1][i]) samePath = false;
-                    if (!samePath || tumbled[0] < 90 || tumbled[1] != 0 || !tore[0] || tore[1] || !swayed[0] || swayed[1] || thuds[0] == 0 || thuds[1] != thuds[0])
-                        throw new Exception("Reduced motion went wrong: same path " + samePath + " (" + paths[0].Count + " / " + paths[1].Count + " frames), tumble " + tumbled[0] + " / " + tumbled[1] + ", tear " + tore[0] + " / " + tore[1] + ", sway " + swayed[0] + " / " + swayed[1] + ", thuds " + thuds[0] + " / " + thuds[1]);
-                    checks.Add("PASS reduced motion: the same throw flies the same path frame for frame (" + paths[0].Count + " frames), with no tumble, no screen tear and no dizzy sway, and her thud still plays on each hard bounce (" + thuds[0] + ")");
-
-                    // Her grudge: three throws in two minutes, each down before the next. The second gets a warning, the third her sulk.
-                    CloseTalk();
-                    throwsAt.Clear();
-                    tear.Hide();
-                    string[] grudgeLines = new string[3];
-                    bool[] grudgeSulking = new bool[3];
-                    for (int n = 0; n < 3; n++)
-                    {
-                        CloseTalk();
-                        placeHip(new Point(shelf.Left + 120, shelf.Top - 12));
-                        drag((int)Math.Round(36 * scale), (int)Math.Round(-12 * scale), 6);
-                        grudgeLines[n] = reply;
-                        grudgeSulking[n] = Sulking;
-                        flyOut();
-                    }
-                    string sulkSaid = reply;
-                    bool sulked = !grudgeSulking[0] && !grudgeSulking[1] && grudgeSulking[2] && Sulking && !sulkLine && Array.IndexOf(WarnLines, grudgeLines[1]) >= 0 && Array.IndexOf(SulkLines, sulkSaid) >= 0 && seat != null;
-                    // A press on her doesn't pick her up: she glitches a short hop away and says so.
-                    int dodgesBefore = dodges;
-                    Point hipBefore = Hip();
-                    Point pressAt = new Point(hipBefore.X, hipBefore.Y - size / 3);
-                    MouseAt = delegate { return pressAt; };
-                    OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
-                    bool pressDodged = !pressed && !dragging && dodges == dodgesBefore + 1 && Math.Abs(Hip().X - hipBefore.X) >= size / 4 && reply == FirstDodgeLine;
-                    for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.033);
-                    Rectangle dodgeScreen = Screen.FromPoint(hipBefore).Bounds, dodgeBody = BodyOnScreen(anchor, seat != null ? PerchedBody : Body);
-                    pressDodged &= dodgeBody.Left >= dodgeScreen.Left && dodgeBody.Right <= dodgeScreen.Right && dodgeBody.Top >= dodgeScreen.Top && Hip().Y <= work.Bottom;
-                    // Their cursor coming at her fast gets a hop away too; one that comes slowly reaches her.
-                    double shyNow = clock.Elapsed.TotalSeconds + DodgeGap + 0.5;
-                    Rectangle near = BodyOnScreen(anchor, seat != null ? PerchedBody : Body);
-                    Point cursorAt = new Point(near.Left - 400, near.Top + near.Height / 2);
-                    MouseAt = delegate { return cursorAt; };
-                    Shy(shyNow);
-                    cursorAt = new Point(near.Left + 6, near.Top + near.Height / 2);
-                    Shy(shyNow + 0.033);
-                    bool fastDodged = dodges == dodgesBefore + 2;
-                    for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.033);
-                    double slowAt = shyNow + DodgeGap + 1;
-                    near = BodyOnScreen(anchor, seat != null ? PerchedBody : Body);
-                    int margin = Math.Max(16, (int)(size * 0.18f));
-                    cursorAt = new Point(near.Left - margin - 40, near.Top + near.Height / 2);
-                    Shy(slowAt);
-                    for (int i = 1; i <= 30; i++) { cursorAt = new Point(cursorAt.X + 4, cursorAt.Y); Shy(slowAt + i * 0.033); }
-                    bool slowReached = dodges == dodgesBefore + 2 && Rectangle.Inflate(near, margin, margin).Contains(cursorAt) && Sulking;
-                    // Sorry makes up with her.
-                    CloseTalk();
-                    Hear("I'm sorry Capri");
-                    bool sorryForgave = !Sulking && Array.IndexOf(SorryLines, reply) >= 0 && heard == "I'm sorry Capri";
-                    // So does a head pat, which gets its own line.
-                    CloseTalk();
-                    Sulk(clock.Elapsed.TotalSeconds);
-                    Petted();
-                    bool patForgave = !Sulking && patForgives;
-                    PetLine(petTicket);
-                    patForgave &= Array.IndexOf(PatPeaceLines, reply) >= 0 && !patForgives;
-                    petTicket++;
-                    petAt = -60000;
-                    // And five minutes alone, not a moment before.
-                    CloseTalk();
-                    double sulkAt = clock.Elapsed.TotalSeconds;
-                    Sulk(sulkAt);
-                    CheckSulk(sulkAt + SulkAlone - 1);
-                    bool heldOn = Sulking;
-                    CheckSulk(sulkAt + SulkAlone + 1);
-                    bool timeForgave = heldOn && !Sulking && (Hushed || Array.IndexOf(AloneLines, reply) >= 0);
-                    if (!sulked || !pressDodged || !fastDodged || !slowReached || !sorryForgave || !patForgave || !timeForgave)
-                        throw new Exception("Her grudge went wrong: sulked " + sulked + " (" + grudgeLines[1] + " / " + sulkSaid + "), press dodged " + pressDodged + ", fast cursor dodged " + fastDodged + ", slow cursor reached her " + slowReached + ", sorry " + sorryForgave + ", pat " + patForgave + ", five minutes " + timeForgave);
-                    checks.Add("PASS her grudge: the second throw in two minutes gets a warning and the third her sulk; sulking, a press on her doesn't pick her up but glitches her a short hop away along her ledge with \"" + FirstDodgeLine + "\", their cursor coming at her fast gets a hop too while a slow one reaches her, and \"I'm sorry Capri\", a head pat or five minutes alone each make up with her with a line of their own");
-                }
-                checks.Add("LIMIT throwing her for real: how a flick off a real mouse feels, her tumble, bounces, tear and dizzy sway on a real screen, her thud on real speakers, and her hopping away from a real cursor need a person at the desk");
+                run(checks, sounds);
             }
             finally
             {
-                MouseAt = throwMouseWas;
-                Sfx.Out = throwSoundWas;
-                Sfx.Level = throwLevelWas;
-                preferences.Motion = throwMotionWas;
-                preferences.NoSitting = throwSittingWas;
-                preferences.NoHeadPats = throwPatsWas;
-                instant = throwInstantWas;
+                MouseAt = mouseWas;
+                Sfx.Out = soundWas;
+                Sfx.Level = levelWas;
+                preferences.Motion = motionWas;
+                preferences.NoSitting = sittingWas;
+                preferences.NoHeadPats = patsWas;
+                instant = instantWas;
+                frontBusy = busyWas;
                 sulkSince = -1;
                 sulkLine = patForgives = false;
                 throwsAt.Clear();
@@ -12381,18 +12170,405 @@ namespace CapriDesktop
                 clickDelay.Stop();
                 falling = thrown = false;
                 fallTo = null;
-                walking = hanging = lying = false;
-                dropAfter = spawnFall = false;
-                outro = null;
+                petTicket++;
+                petAt = petAtWas;
                 CloseTalk();
                 tear.Hide();
-                facingLeft = throwFacedWas;
-                seat = throwSeatWas;
-                anchor = throwAnchorWas;
+                outro = outroWas;
+                walking = walkingWas;
+                hanging = hangingWas;
+                lying = lyingWas;
+                dropAfter = dropWas;
+                spawnFall = spawnWas;
+                facingLeft = facedWas;
+                seat = seatWas;
+                anchor = anchorWas;
                 Location = anchor;
-                Play(throwClipWas ?? idle);
+                Play(clipWas ?? idle);
                 RenderFrame();
             }
+        }
+
+        // A stand-in window halfway down her main screen, with nothing else near its top edge, for her to land on.
+        private Shelf ThrowShelf()
+        {
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            int middle = work.Left + work.Width / 2, clear = Math.Max(160, preferences.Size) + 60;
+            System.Collections.Generic.List<Ledge> others = Ledges.Find(Skip(), icons);
+            int shelfY = work.Top + work.Height / 2;
+            for (int y = Math.Max(work.Top + Headroom() + 20, work.Top + work.Height / 2 - 60); y < work.Bottom - 240; y += 10)
+                if (!others.Exists(other => !other.Floor && other.Icon.IsEmpty && other.Right > middle - 280 && other.Left < middle + 280 && Math.Abs(other.Y - y) < clear)) { shelfY = y; break; }
+            Shelf shelf = new Shelf();
+            shelf.Bounds = new Rectangle(middle - 220, shelfY, 440, 180);
+            shelf.Show();
+            return shelf;
+        }
+
+        // Her hip at hip, standing on nothing, ready to be picked up.
+        private void StandForThrow(Point hip)
+        {
+            seat = null;
+            falling = thrown = false;
+            walking = hanging = lying = false;
+            anchor = Seated(hip.X, hip.Y);
+            Location = anchor;
+            Play(idle);
+        }
+
+        // A drag through her mouse handlers at a known speed: pressed on her, moved dx, dy every 16 ms, and let go 4 ms after the
+        // last move. Over the last 80 ms that's 4.75 moves, so 59.375 times a move a second.
+        private void DragAndLetGo(int dx, int dy, int moves)
+        {
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+            if (!pressed || trail.Count == 0) throw new Exception("A press on her didn't take hold of her.");
+            double pressedAt = trail[0].Key;
+            Point from = pointerStart;
+            for (int i = 1; i <= moves; i++) MovePointer(new Point(from.X + dx * i, from.Y + dy * i), pressedAt + i * 0.016);
+            Released(new Point(from.X + dx * moves, from.Y + dy * moves), pressedAt + moves * 0.016 + 0.004);
+        }
+
+        // What her flight looked like, frame by frame at 60 a second, until she was down.
+        private sealed class FlightSeen
+        {
+            internal string Wrong;
+            internal float Turned, LastTurn;
+            internal int Rightmost = int.MinValue, Frames;
+            internal bool TurnedBack, CameBack;
+        }
+
+        private FlightSeen WatchFlight()
+        {
+            FlightSeen seen = new FlightSeen();
+            Rectangle room = flyArea, screen = Screen.FromRectangle(flyArea).Bounds;
+            bool goingRight = flyVX > 0;
+            for (int tick = 0; tick < 900 && falling; tick++)
+            {
+                Tumble(fallStep + 1 / 60.0);
+                if (!falling) break;
+                seen.Frames++;
+                if (thrown && FrameInterval(fallStep) != 15) seen.Wrong = "she was drawn every " + FrameInterval(fallStep) + " ms in the air";
+                Rectangle body = BodyOnScreen(anchor, Body);
+                if (!screen.Contains(body) || body.Left < room.Left || body.Right > room.Right || body.Top < room.Top) seen.Wrong = "she left her screen at " + body + " on " + room;
+                seen.Turned = Math.Max(seen.Turned, Math.Abs(Turn()));
+                seen.LastTurn = Turn();
+                seen.Rightmost = Math.Max(seen.Rightmost, body.Right);
+                // Only her screen's right edge turns a throw to the right back.
+                if (goingRight && thrown && flyVX < 0) seen.TurnedBack = true;
+                if (seen.TurnedBack && body.Right < room.Right - 40) seen.CameBack = true;
+            }
+            if (falling) seen.Wrong = "she never came down";
+            return seen;
+        }
+
+        // How far from upright she was, in degrees.
+        private static double OffUpright(float turn) { return Math.Abs(turn - 360 * Math.Round(turn / 360.0)); }
+
+        // Their cursor's speed as they let go, and what counts as saying sorry.
+        private void SmokeThrowReads(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>> track = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>>();
+            for (int i = 0; i <= 12; i++) track.Add(new System.Collections.Generic.KeyValuePair<double, Point>(10 + i * 0.016, new Point(100 + i * 10, 300 - i * 6)));
+            PointF steady = TrailSpeed(track, 10 + 12 * 0.016 + 0.004, ThrowSpan), stopped = TrailSpeed(track, 10 + 12 * 0.016 + 0.12, ThrowSpan);
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>> flick = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>>();
+            flick.Add(new System.Collections.Generic.KeyValuePair<double, Point>(10, new Point(500, 500)));
+            for (int i = 0; i < 3; i++) flick.Add(new System.Collections.Generic.KeyValuePair<double, Point>(12 + i * 0.01, new Point(550 + i * 50, 500)));
+            PointF flicked = TrailSpeed(flick, 12.025, ThrowSpan);
+            if (Math.Abs(steady.X - 625) > 60 || Math.Abs(steady.Y + 375) > 40 || stopped.X != 0 || stopped.Y != 0 || flicked.X < 1800 || flicked.Y != 0)
+                throw new Exception("Her cursor's speed read wrong: steady " + steady + ", stopped " + stopped + ", a flick after a wait " + flicked);
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            foreach (string said in new[] { "sorry", "I'm sorry Capri", "my bad lol", "soooo sorry!!", "sorry for throwing you", "lo siento", "ごめんね" })
+                if (!Apology(said)) wrong.Add("she didn't hear an apology in \"" + said + "\"");
+            foreach (string said in new[] { "open spotify", "the sorrow of it", "" })
+                if (Apology(said)) wrong.Add("she heard an apology in \"" + said + "\"");
+            foreach (string said in new[] { "I'm sorry Capri", "sorry for throwing you", "soooo sorry!!" })
+                if (!OnlyApology(said)) wrong.Add("\"" + said + "\" wasn't a plain sorry");
+            foreach (string said in new[] { "sorry, can you open spotify", "open spotify" })
+                if (OnlyApology(said)) wrong.Add("\"" + said + "\" was a plain sorry");
+            if (wrong.Count > 0) throw new Exception("Saying sorry to her read wrong: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS throwing her: their cursor's speed as they let go reads true for a steady drag, still once it stopped, and a flick after holding still isn't spread over the wait; she hears sorry, I'm sorry Capri, my bad and sorry in a few other languages, and tells a plain sorry from one with more in it");
+        }
+
+        // Slow drags drop her onto the window under her like before, one of them just under throwing speed.
+        private void SmokeThrowSlow(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            using (Shelf shelf = ThrowShelf())
+            {
+                foreach (int[] slow in new[] { new[] { 4, 0, 8 }, new[] { 20, 0, 6 } })
+                {
+                    StandForThrow(new Point(shelf.Left + 160, shelf.Top - 12));
+                    DragAndLetGo(slow[0], slow[1], slow[2]);
+                    bool dropped = falling && !thrown && fallTo != null && fallTo.Window == shelf.Handle;
+                    for (int i = 0; i < 60 && falling; i++) Tumble(fallStep + 0.033);
+                    if (!dropped || seat == null || seat.Window != shelf.Handle || Hip().Y != shelf.Top) wrong.Add("a drag of " + slow[0] + " px every 16 ms: dropped " + dropped + ", thrown " + thrown + ", sat on the window " + (seat != null && seat.Window == shelf.Handle) + " at " + Hip() + " for " + shelf.Top);
+                }
+            }
+            if (wrong.Count > 0) throw new Exception("A slow drag didn't drop her like before: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS a slow drag and one just under throwing speed both drop her onto the window under her like before, without throwing her");
+        }
+
+        // A fast drag throws her at its speed: she yells, hits the right edge of her screen and comes back off it, bounces on the
+        // taskbar, tumbles and rights herself, lands, never leaves her screen, is drawn every 1/64 s in the air, and is dizzy for a
+        // beat after. A wild flick is kept to her top speed and stays on her screen too.
+        private void SmokeThrowFast(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            int size = preferences.Size;
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            int middle = work.Left + work.Width / 2, dx = (int)Math.Round(60 * scale), dy = (int)Math.Round(-30 * scale);
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            StandForThrow(new Point(middle, work.Top + work.Height / 2 - 72));
+            int bumpsBefore = bumps;
+            DragAndLetGo(dx, dy, 6);
+            double speed = Math.Sqrt(flyVX * flyVX + flyVY * flyVY);
+            if (!Flying || clip != dangle || Math.Abs(flyVX - 59.375 * dx) > 2 || Math.Abs(flyVY - 59.375 * dy) > 2) wrong.Add("she didn't fly at their cursor's speed: flying " + Flying + " at " + (int)flyVX + ", " + (int)flyVY + " for " + (int)(59.375 * dx) + ", " + (int)(59.375 * dy));
+            if (Array.IndexOf(ThrowLines, reply) < 0 || heard != "throws you" || box.Prompt != "> sys: ") wrong.Add("she didn't yell as she flew: " + reply + " / " + heard);
+            frontBusy = true;
+            int overGame = FrameInterval(fallStep);
+            frontBusy = false;
+            if (overGame != 33) wrong.Add("over a game she was drawn every " + overGame + " ms in the air, not 33");
+            FlightSeen seen = WatchFlight();
+            if (seen.Wrong != null) wrong.Add(seen.Wrong);
+            if (!seen.TurnedBack || !seen.CameBack || seen.Rightmost < flyArea.Right - size / 4) wrong.Add("she didn't bounce back off the right edge of her screen: got to " + seen.Rightmost + " of " + flyArea.Right + ", turned back " + seen.TurnedBack + ", came back " + seen.CameBack);
+            if (flyFloors < 1) wrong.Add("she didn't bounce on the taskbar");
+            if (bumps == bumpsBefore) wrong.Add("no impact was hard enough to thud");
+            bool landed = !falling && !thrown && seat != null && (seat.Floor || seat.Window != IntPtr.Zero) && Hip().Y == seat.Y;
+            if (!landed) wrong.Add("she didn't land on a ledge: falling " + falling + ", seat " + (seat != null) + ", hip " + Hip());
+            if (seen.Turned < 90) wrong.Add("she only tumbled " + (int)seen.Turned + " degrees");
+            if (landed && seat.Floor && OffUpright(seen.LastTurn) > 45) wrong.Add("she was " + (int)OffUpright(seen.LastTurn) + " degrees off upright just before she landed on the taskbar");
+            if (!Dizzy(fallStep) || Sway(dizzyFrom + 0.25) == 0 || Sway(dizzyUntil + 0.1) != 0 || FrameInterval(dizzyFrom + 0.25) != 33 || Array.IndexOf(DizzyLines, reply) < 0) wrong.Add("she wasn't dizzy for a beat after: dizzy " + Dizzy(fallStep) + ", sway " + Sway(dizzyFrom + 0.25) + ", said " + reply);
+            int bounces = flyBounces, floors = flyFloors;
+            CloseTalk();
+            throwsAt.Clear();
+            StandForThrow(new Point(middle, work.Top + work.Height / 2));
+            DragAndLetGo((int)Math.Round(300 * scale), 0, 3);
+            double wild = Math.Sqrt(flyVX * flyVX + flyVY * flyVY);
+            if (!Flying || Math.Abs(wild - ThrowMost * scale) > 1) wrong.Add("a wild flick flew at " + (int)wild + " px/s, not " + (int)(ThrowMost * scale));
+            FlightSeen wildSeen = WatchFlight();
+            if (wildSeen.Wrong != null) wrong.Add("a wild flick: " + wildSeen.Wrong);
+            if (wrong.Count > 0) throw new Exception("Throwing her fast went wrong: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS a fast drag throws her at its speed (" + (int)speed + " px/s): she yells, hits the right edge of her screen and bounces back off it, bounces on the taskbar (" + bounces + " bounces in all, " + floors + " on the taskbar), tumbles and rights herself, lands, never leaves her screen, is drawn every 1/64 s in the air and every 33 ms over a game, and is dizzy for a beat after; a wild flick is kept to " + (int)(ThrowMost * scale) + " px/s and stays on her screen too");
+        }
+
+        // Thrown straight up off a window, she comes back down onto it.
+        private void SmokeThrowUp(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            using (Shelf shelf = ThrowShelf())
+            {
+                StandForThrow(new Point(shelf.Left + 220, shelf.Top - 12));
+                DragAndLetGo(0, (int)Math.Round(-26 * scale), 6);
+                bool up = Flying && flyVY < 0 && Math.Abs(flyVX) < 1;
+                FlightSeen seen = WatchFlight();
+                if (!up || seen.Wrong != null || seat == null || seat.Window != shelf.Handle || Hip().Y != shelf.Top)
+                    throw new Exception("Thrown straight up off a window she didn't come back down onto it: thrown up " + up + ", " + (seen.Wrong ?? "stayed on her screen") + ", on the window " + (seat != null && seat.Window == shelf.Handle) + ", hip " + Hip() + " for " + shelf.Top);
+            }
+            checks.Add("PASS thrown straight up off a window she comes back down and lands on it");
+        }
+
+        // Thrown hard down onto the taskbar, she bounces on it before she settles there, upright.
+        private void SmokeThrowSlam(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            StandForThrow(new Point(work.Left + preferences.Size, work.Top + work.Height / 3));
+            DragAndLetGo(0, (int)Math.Round(50 * scale), 4);
+            bool down = Flying && flyVY > 0;
+            FlightSeen seen = WatchFlight();
+            if (!down || seen.Wrong != null || flyFloors < 1 || seat == null || !seat.Floor || seat.Y != work.Bottom || Hip().Y != work.Bottom || OffUpright(seen.LastTurn) > 45)
+                throw new Exception("Slammed down she didn't bounce on the taskbar and land on it: thrown down " + down + ", " + (seen.Wrong ?? "stayed on her screen") + ", " + flyFloors + " taskbar bounces, on the taskbar " + (seat != null && seat.Floor) + ", hip " + Hip() + " for " + work.Bottom + ", " + (int)OffUpright(seen.LastTurn) + " degrees off upright");
+            checks.Add("PASS slammed down onto the taskbar she bounces on it " + flyFloors + " times, then lands on it upright without leaving her screen");
+        }
+
+        // With Sit on windows off, a throw still flies, and she ends up standing on the bottom of her screen's work area.
+        private void SmokeThrowStanding(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            preferences.NoSitting = true;
+            StandForThrow(new Point(work.Left + work.Width / 2, work.Top + work.Height / 2 - 72));
+            DragAndLetGo((int)Math.Round(60 * scale), (int)Math.Round(-30 * scale), 6);
+            bool flew = Flying;
+            FlightSeen seen = WatchFlight();
+            Rectangle body = BodyOnScreen(anchor, Body);
+            if (!flew || seen.Wrong != null || falling || seat != null || body.Bottom != work.Bottom)
+                throw new Exception("With Sit on windows off a throw went wrong: flew " + flew + ", " + (seen.Wrong ?? "stayed on her screen") + ", falling " + falling + ", seat " + (seat != null) + ", feet at " + body.Bottom + " for " + work.Bottom);
+            checks.Add("PASS with Sit on windows off a throw still flies and bounces, and she ends up standing on the bottom of her screen's work area");
+        }
+
+        // A press on her mid-flight catches her in their hand where she is, and letting go without a drag lets her fall from there.
+        private void SmokeThrowCatch(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            StandForThrow(new Point(work.Left + work.Width / 2, work.Top + work.Height / 4));
+            Launch(900 * scale, -1500 * scale, clock.Elapsed.TotalSeconds);
+            for (int i = 0; i < 5; i++) Tumble(fallStep + 1 / 60.0);
+            bool flying = Flying;
+            Point caughtAt = anchor;
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+            bool held = flying && pressed && caught && !falling && !thrown && clip == dangle && anchor == caughtAt;
+            Released(PointToScreen(new Point(Width / 2, Height / 2)), clock.Elapsed.TotalSeconds);
+            bool letFall = falling && !thrown;
+            pendingClick = false;
+            clickDelay.Stop();
+            for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.033);
+            letFall &= seat != null && Hip().Y == seat.Y;
+            if (!held || !letFall) throw new Exception("Catching her mid-flight went wrong: flying " + flying + ", caught " + held + ", fell after " + letFall);
+            checks.Add("PASS a press on her mid-flight catches her in their hand where she is, and letting go without a drag lets her fall from there onto a ledge");
+        }
+
+        // Reduced motion: the same throw from the same spot at the same times flies the same path, with no tumble, screen tear or
+        // dizzy sway, and her thud still plays.
+        private void SmokeThrowCalm(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            Point hip = new Point(work.Left + work.Width / 2 + 60, work.Top + work.Height / 4);
+            double at = clock.Elapsed.TotalSeconds;
+            System.Collections.Generic.List<Point>[] paths = { new System.Collections.Generic.List<Point>(), new System.Collections.Generic.List<Point>() };
+            int[] thuds = new int[2];
+            bool[] tore = new bool[2], swayed = new bool[2];
+            float[] tumbled = new float[2];
+            int thudLength = Sfx.Make(Cue.Bonk, 60).Length;
+            instant = false;
+            for (int run = 0; run < 2; run++)
+            {
+                preferences.Motion = run == 0;
+                CloseTalk();
+                tear.Hide();
+                sounds.Clear();
+                StandForThrow(hip);
+                Launch(4000 * scale, -2600 * scale, at);
+                for (int k = 1; k <= 900 && falling; k++)
+                {
+                    Tumble(at + k / 60.0);
+                    paths[run].Add(anchor);
+                    tumbled[run] = Math.Max(tumbled[run], Math.Abs(Turn()));
+                }
+                thuds[run] = sounds.FindAll(sound => sound.Length == thudLength).Count;
+                tore[run] = tear.Visible;
+                swayed[run] = Dizzy(fallStep) && Sway(dizzyFrom + 0.25) != 0;
+            }
+            instant = true;
+            bool samePath = paths[0].Count > 0 && paths[0].Count == paths[1].Count && !falling;
+            for (int i = 0; samePath && i < paths[0].Count; i++) if (paths[0][i] != paths[1][i]) samePath = false;
+            if (!samePath || tumbled[0] < 30 || tumbled[1] != 0 || !tore[0] || tore[1] || !swayed[0] || swayed[1] || thuds[0] == 0 || thuds[1] != thuds[0])
+                throw new Exception("Reduced motion went wrong: same path " + samePath + " (" + paths[0].Count + " / " + paths[1].Count + " frames), tumble " + tumbled[0] + " / " + tumbled[1] + ", tear " + tore[0] + " / " + tore[1] + ", sway " + swayed[0] + " / " + swayed[1] + ", thuds " + thuds[0] + " / " + thuds[1]);
+            checks.Add("PASS reduced motion: the same throw flies the same path frame for frame (" + paths[0].Count + " frames), with no tumble, no screen tear and no dizzy sway, and her thud still plays on each hard bounce (" + thuds[0] + ")");
+        }
+
+        // Three throws in two minutes: a soft first one gets no line, the second a warning, the third her sulk, said once she's
+        // down. Throws further apart than that don't add up.
+        private void SmokeThrowGrudge(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            int middle = work.Left + work.Width / 2;
+            string[] said = new string[3];
+            bool[] sulking = new bool[3];
+            for (int n = 0; n < 3; n++)
+            {
+                CloseTalk();
+                StandForThrow(new Point(middle - 100, work.Top + work.Height / 2 - 84));
+                DragAndLetGo((int)Math.Round(36 * scale), (int)Math.Round(-12 * scale), 6);
+                said[n] = reply;
+                sulking[n] = Sulking;
+                FlightSeen seen = WatchFlight();
+                if (seen.Wrong != null) throw new Exception("Throw " + (n + 1) + " toward her grudge went wrong: " + seen.Wrong);
+            }
+            bool sulked = !sulking[0] && !sulking[1] && sulking[2] && Sulking && !sulkLine && said[0] == null && Array.IndexOf(WarnLines, said[1]) >= 0 && Array.IndexOf(SulkLines, reply) >= 0 && seat != null;
+            string sulkSaid = reply;
+            sulkSince = -1;
+            throwsAt.Clear();
+            double at = clock.Elapsed.TotalSeconds;
+            Grudge(1500, at);
+            Grudge(1500, at + SulkWindow + 1);
+            Grudge(1500, at + SulkWindow * 2 + 2);
+            bool apart = !Sulking && throwsAt.Count == 1;
+            if (!sulked || !apart) throw new Exception("Her grudge went wrong: sulking after each throw " + sulking[0] + ", " + sulking[1] + ", " + sulking[2] + "; said " + said[0] + " / " + said[1] + " / " + sulkSaid + "; throws two minutes apart added up " + !apart);
+            checks.Add("PASS her grudge: a soft first throw gets no line, the second in two minutes gets a warning, and the third starts her sulk, which she says once she's down; throws more than two minutes apart don't add up");
+        }
+
+        // Sulking, a press on her doesn't pick her up but glitches her a short hop along her ledge with her first line. Their
+        // cursor coming at her fast gets a hop too, and one that comes slowly reaches her, so a head pat still can.
+        private void SmokeThrowDodges(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            int size = preferences.Size;
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            StandForThrow(new Point(work.Left + work.Width / 2, work.Bottom));
+            Land(new Ledge { Floor = true, Left = work.Left, Right = work.Right, Y = work.Bottom });
+            if (seat == null) throw new Exception("She couldn't be sat on the taskbar for the dodge checks.");
+            Sulk(clock.Elapsed.TotalSeconds);
+            CloseTalk();
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            int dodgesBefore = dodges;
+            Point hipBefore = Hip();
+            Point cursorAt = new Point(hipBefore.X, hipBefore.Y - size / 3);
+            MouseAt = delegate { return cursorAt; };
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+            Rectangle screen = Screen.FromPoint(hipBefore).Bounds, body = BodyOnScreen(anchor, seat != null ? PerchedBody : Body);
+            if (pressed || dragging || dodges != dodgesBefore + 1) wrong.Add("a press picked her up or didn't hop her away: pressed " + pressed + ", dodges " + (dodges - dodgesBefore));
+            if (seat == null || Hip().Y != hipBefore.Y || Math.Abs(Hip().X - hipBefore.X) < size / 4) wrong.Add("her hop from a press didn't go along her ledge: " + hipBefore + " to " + Hip());
+            if (body.Left < screen.Left || body.Right > screen.Right || body.Top < screen.Top) wrong.Add("her hop took her off her screen: " + body);
+            if (reply != FirstDodgeLine) wrong.Add("her first hop said " + reply);
+            double approachAt = clock.Elapsed.TotalSeconds + DodgeGap + 0.5;
+            Rectangle near = BodyOnScreen(anchor, PerchedBody);
+            cursorAt = new Point(near.Left - 400, near.Top + near.Height / 2);
+            Shy(approachAt);
+            cursorAt = new Point(near.Left + 6, near.Top + near.Height / 2);
+            Shy(approachAt + 0.033);
+            if (dodges != dodgesBefore + 2) wrong.Add("their cursor coming at her fast didn't hop her away");
+            double slowAt = approachAt + DodgeGap + 1;
+            near = BodyOnScreen(anchor, PerchedBody);
+            int margin = Math.Max(16, (int)(size * 0.18f));
+            cursorAt = new Point(near.Left - margin - 40, near.Top + near.Height / 2);
+            Shy(slowAt);
+            for (int i = 1; i <= 30; i++) { cursorAt = new Point(cursorAt.X + 4, cursorAt.Y); Shy(slowAt + i * 0.033); }
+            if (dodges != dodgesBefore + 2 || !Rectangle.Inflate(near, margin, margin).Contains(cursorAt) || !Sulking) wrong.Add("a slow cursor didn't reach her: dodges " + (dodges - dodgesBefore) + ", sulking " + Sulking);
+            if (wrong.Count > 0) throw new Exception("Her dodges went wrong: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS sulking, a press on her doesn't pick her up but glitches her a short hop along her ledge with \"" + FirstDodgeLine + "\", their cursor coming at her fast gets a hop too, and a slow one reaches her so a head pat still can");
+        }
+
+        // Sorry, typed or said, ends her sulk, and a plain one gets her forgiving line.
+        private void SmokeThrowSorry(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            Sulk(clock.Elapsed.TotalSeconds);
+            CloseTalk();
+            Hear("I'm sorry Capri");
+            if (Sulking || Array.IndexOf(SorryLines, reply) < 0 || heard != "I'm sorry Capri" || box.Prompt != "> you: ")
+                throw new Exception("Saying sorry didn't make up with her: sulking " + Sulking + ", said " + reply + ", heard " + heard);
+            checks.Add("PASS \"I'm sorry Capri\", typed or said, ends her sulk, and she answers with a forgiving line of her own");
+        }
+
+        // A head pat ends her sulk, and her pat line says so.
+        private void SmokeThrowPat(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            Sulk(clock.Elapsed.TotalSeconds);
+            CloseTalk();
+            Petted();
+            bool forgave = !Sulking && patForgives;
+            PetLine(petTicket);
+            if (!forgave || Array.IndexOf(PatPeaceLines, reply) < 0 || patForgives)
+                throw new Exception("A head pat didn't make up with her: forgave " + forgave + ", said " + reply);
+            checks.Add("PASS a head pat ends her sulk, with a pat line that says so");
+        }
+
+        // Five minutes alone ends her sulk, not a moment before, and a hop away starts the five minutes again.
+        private void SmokeThrowAlone(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double at = clock.Elapsed.TotalSeconds;
+            Sulk(at);
+            CloseTalk();
+            CheckSulk(at + SulkAlone - 1);
+            bool held = Sulking;
+            sulkBothered = at + 200;
+            CheckSulk(at + SulkAlone + 1);
+            bool bothered = Sulking;
+            CheckSulk(at + 200 + SulkAlone + 1);
+            if (!held || !bothered || Sulking || (!Hushed && Array.IndexOf(AloneLines, reply) < 0))
+                throw new Exception("Time alone didn't end her sulk right: still sulking before five minutes " + held + ", after a later hop " + bothered + ", after five quiet minutes " + Sulking + ", said " + reply);
+            checks.Add("PASS five minutes alone ends her sulk, not a moment before, a hop away starts the five minutes again, and she says she's over it");
         }
 
         private void SmokeHaul(System.Collections.Generic.List<string> checks)
@@ -22591,7 +22767,7 @@ namespace CapriDesktop
                                 checks.Add("PASS dropped above a window she fell, sat on its top edge, rode along when it moved, ignored popups and windows passing over, stood up where she sat when a window parked over her or it closed, and can sit on top of her own Mainframe without it knocking her off anything else");
                             }
                             checks.Add("PASS ledge covering math; desktop icons read: " + Ledges.Icons().Count);
-                            Section(checks, delegate { SmokeThrow(checks); });
+                            SmokeThrows(checks);
                             {
                                 Point faceAnchor = anchor;
                                 Ledge faceSeat = seat;
