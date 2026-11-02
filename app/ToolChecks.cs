@@ -656,7 +656,7 @@ namespace CapriDesktop
                 { "how do I move a window to my other monitor?", "Arrange windows:" }, { "can you snap my window to the left?", "Arrange windows:" },
                 { "what settings can you change yourself?", "Settings she can change:" }, { "can you make yourself bigger?", "Settings she can change:" },
                 { "What is the Arrange windows setting in Capri?", "Arrange windows:" }, { "how do I make you bigger?", "Size:" },
-                { "can you set a timer?", "Reminders:" }, { "can you turn the game down?", "App volume:" }, { "can you use the volume mixer?", "App volume:" },
+                { "can you set a timer?", "Reminders:" }, { "can you turn discord down?", "App volume:" }, { "can you use the volume mixer?", "App volume:" },
                 { "can you see my other monitor?", "Look at another monitor:" }
             };
             for (int i = 0; i < asks.GetLength(0); i++)
