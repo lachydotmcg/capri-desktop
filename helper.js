@@ -1,6 +1,8 @@
 (() => {
   const root = new URL('./', document.currentScript.src);
-  const live = 'https://lachydotmcg.github.io/capri-desktop/';
+  const live = 'https://capriai.app/';
+  // The helper's links before the site moved to capriai.app.
+  const before = 'https://lachydotmcg.github.io/capri-desktop/';
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   const api = (local && new URLSearchParams(location.search).get('helpapi')) || 'https://capri-reactions.lachydotmcg.workers.dev/help';
   const still = matchMedia('(prefers-reduced-motion: reduce)');
@@ -153,6 +155,7 @@
   const linked = href => {
     if (typeof href !== 'string') return null;
     if (href.startsWith(live)) return new URL(href.slice(live.length), root).href;
+    if (href.startsWith(before)) return new URL(href.slice(before.length), root).href;
     return /^https:\/\/discord\.gg\/[\w-]+$/.test(href) ? href : null;
   };
   const addLinks = (bubble, links) => {
