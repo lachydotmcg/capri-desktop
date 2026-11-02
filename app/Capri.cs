@@ -1701,9 +1701,9 @@ namespace CapriDesktop
         private const string FreeKeyPage = "https://build.nvidia.com/settings/api-keys";
         private const string GeminiKeyPage = "https://aistudio.google.com/apikey";
         private const string RouterKeyPage = "https://openrouter.ai/keys";
-        private const string GuidePage = "https://lachydotmcg.github.io/capri-desktop/setup/#voice";
+        private const string GuidePage = "https://capriai.app/setup/#voice";
         private const string DiscordPage = "https://discord.gg/F4fDHfGtFk";
-        private const string HelpPage = "https://lachydotmcg.github.io/capri-desktop/help/";
+        private const string HelpPage = "https://capriai.app/help/";
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
@@ -20828,6 +20828,10 @@ namespace CapriDesktop
             try { Brain.Address(null, "/models"); } catch (BrainException) { unknownAddress = true; }
             if (!unknownAddress) throw new Exception("An unknown brain key fell through to OpenAI.");
             checks.Add("PASS Gemini and OpenRouter keys have their own endpoints, OpenRouter precedes sk-, and unconfirmed Nous keys never fall through to OpenAI");
+
+            System.Collections.Generic.List<string> prefixedModels = Brain.ReadCloudModels("google", "{\"data\":[{\"id\":\"models/gemini-90-pro\"},{\"id\":\"models/gemini-embedding-90\"},{\"id\":\"models/gemini-90-flash\"},{\"id\":\"gemini-90-flash\"}]}");
+            if (string.Join("|", prefixedModels) != "gemini-90-flash|gemini-90-pro") throw new Exception("Gemini's models/ names didn't come through as chat models: " + string.Join("|", prefixedModels));
+            checks.Add("PASS Gemini models listed as models/gemini-... come through by their bare names, once each");
 
             string googleCatalog = "{\"data\":[null,{\"id\":\"gemini-90.2-flash\"},{\"id\":\"gemini-90.10-flash\"},{\"id\":\"gemini-91-flash-preview\"},{\"id\":\"gemini-90.10-flash-lite\"},{\"id\":\"gemini-91-pro\"},{\"id\":\"gemini-embedding-90\"},{\"id\":\"gemini-91-flash-image\"},{\"id\":\"gemini-91-live\"},{\"id\":\"gemini-91-flash-tts\"},{\"id\":\"gemini-91-native-audio\"},{\"id\":\"gemini-91.5-transcribe\"},{\"id\":\"gemini-nano-banana-91\"},{\"id\":\"gemini-omni-91-flash\"},{\"id\":\"gemini-90.10-flash\"}]}";
             string routerCatalog = "{\"data\":[{\"id\":\"example/vision-text:free\",\"architecture\":{\"input_modalities\":[\"text\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"google/gemini-90-flash\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"example/eyes:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"max_tokens\"]},{\"id\":\"example/vision:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\",\"max_tokens\"]},{\"id\":\"example/embedding\",\"architecture\":{\"output_modalities\":[\"embeddings\"]}},{\"id\":\"example/unknown:free\"}]}";
