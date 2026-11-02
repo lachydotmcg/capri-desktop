@@ -453,6 +453,7 @@ namespace CapriDesktop
         [DataMember] public bool NoKeepAwake;
         [DataMember] public bool HideFullScreen;
         [DataMember] public bool PlayerFullScreen;
+        [DataMember] public bool Hologram;
         [DataMember] public bool ExploreAway;
         [DataMember] public bool AdvancedSettings;
         [DataMember] public int ExploreAfter;
@@ -1258,6 +1259,7 @@ namespace CapriDesktop
         private readonly NotifyIcon tray;
         private readonly ContextMenuStrip menu;
         private readonly ToolStripMenuItem visibilityItem;
+        private readonly ToolStripMenuItem hologramItem;
         private readonly ToolStripMenuItem sleepItem;
         private readonly ToolStripMenuItem wanderItem;
         private double nextWander = -1;
@@ -1308,7 +1310,7 @@ namespace CapriDesktop
         private Clip drawnClip;
         private Bitmap drawnArt;
         private int drawnCell = -1, drawnMouth = -1, drawnMix, bodyPaints;
-        private bool drawnVeil, drawnMotion, drawnSettled, drawnNotes;
+        private bool drawnVeil, drawnMotion, drawnSettled, drawnNotes, drawnHologram;
         private double drawnLean;
         private float drawnBreath, drawnTilt;
         private bool fullScreenHidden, manualHidden, frontBusy;
@@ -1758,6 +1760,8 @@ namespace CapriDesktop
             heyCapri = new WakeWord(data);
             presence = new Presence(Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             preferences = smoke ? new Preferences() : LoadPreferences();
+            foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) form.HandleCreated += delegate { PassThrough(); };
+            PassThrough();
             qwen.CpuOnly = preferences.HdCpu;
             bool careNew = !preferences.CareWritten;
             careLines = new CareLines(Path.Combine(data, "check-ins.md"));
@@ -1819,6 +1823,7 @@ namespace CapriDesktop
             menu.BackColor = Mainframe.MenuLook.Panel;
             menu.Font = Neon.Type(10f);
             menu.ShowImageMargin = false;
+            menu.ShowCheckMargin = true;
             ToolStripMenuItem title = new ToolStripMenuItem("CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             title.Enabled = false;
             title.Font = Neon.Display(12f);
@@ -1845,6 +1850,7 @@ namespace CapriDesktop
             danceNowItem = new ToolStripMenuItem("Dance", null, delegate { Animate(danceAsked ? "stop_dancing" : "dance"); });
             moves.DropDownItems.Add(danceNowItem);
             rideItem =new ToolStripMenuItem("Ride cursor", null, delegate { WakeRest(true); if (riding) StopRide(); else StartRide(); });
+            rideItem.Enabled = !preferences.Hologram;
             moves.DropDownItems.Add(rideItem);
             sitItem = new ToolStripMenuItem("Sit on windows", null, delegate { ToggleSitting(); });
             sitItem.Checked = !preferences.NoSitting;
@@ -1861,6 +1867,11 @@ namespace CapriDesktop
             screenItem = new ToolStripMenuItem("Go to the next screen", null, delegate { MoveSelf("other_screen", null); });
             moves.DropDownItems.Add(screenItem);
             menu.Items.Add(moves);
+            hologramItem = new ToolStripMenuItem("Hologram", null, delegate { SetHologram(!preferences.Hologram); });
+            hologramItem.Checked = preferences.Hologram;
+            hologramItem.ToolTipText = "Clicks go through her until you turn it off from her tray icon";
+            hologramItem.AccessibleName = "Hologram. " + hologramItem.ToolTipText;
+            menu.Items.Add(hologramItem);
             menu.Opening += delegate { if (ownRest) WakeRest(!SleepBusy); sitHereItem.Text = seat != null && seat.Free ? "Stand up" : "Sit here"; hangHereItem.Text = hanging ? "Let go" : "Hang here"; lieItem.Text = lying ? "Sit up" : "Lie down"; lieItem.Enabled = lying || (clip == perch && LieWay() != null); sleepItem.Text = napAsked || Asleep ? "Wake up" : "Go to sleep"; danceNowItem.Checked = danceAsked; screenItem.Visible = Screen.AllScreens.Length > 1; };
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
@@ -1925,6 +1936,7 @@ namespace CapriDesktop
             Hands.MoveSelf = MoveTool;
             Hands.Animate = AnimateTool;
             Hands.Clone = CloneTool;
+            Hands.Hologram = HologramTool;
             Hands.Icons = IconTool;
             Hands.Upset = UpsetTool;
             Hands.Cloning = delegate { return cloneWindow != null; };
@@ -2049,7 +2061,7 @@ namespace CapriDesktop
             get
             {
                 CreateParams value = base.CreateParams;
-                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000;
+                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000 | (preferences != null && (preferences.Hologram || riding || lentOut) ? 0x20 : 0);
                 return value;
             }
         }
@@ -3104,7 +3116,7 @@ namespace CapriDesktop
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            if (e.Button != MouseButtons.Left || outro != null) return;
+            if (preferences.Hologram || e.Button != MouseButtons.Left || outro != null) return;
             if (Asleep || ownRest) { WakeRest(!SleepBusy); RenderFrame(); }
             pressed = true;
             dragging = false;
@@ -3115,7 +3127,7 @@ namespace CapriDesktop
 
         private void MovePointer(Point position)
         {
-            if (!pressed) return;
+            if (preferences.Hologram || !pressed) return;
             int dx = position.X - pointerStart.X;
             int dy = position.Y - pointerStart.Y;
             if (!dragging && dx * dx + dy * dy < 25) return;
@@ -3143,7 +3155,7 @@ namespace CapriDesktop
 
         private void Stroke(Point cursor)
         {
-            if (preferences.NoHeadPats || pressed || dragging || riding || hidden || InChat || working != null || frame == null || !Solid(PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
+            if (preferences.Hologram || preferences.NoHeadPats || pressed || dragging || riding || hidden || InChat || working != null || frame == null || !Solid(PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
             int dx = cursor.X - petX;
             if (Math.Abs(dx) < 6) return;
             long now = clock.ElapsedMilliseconds;
@@ -3160,6 +3172,7 @@ namespace CapriDesktop
 
         private void Petted()
         {
+            if (preferences.Hologram) return;
             EndWalk();
             if (!WakeRest(!SleepBusy))
             {
@@ -3249,6 +3262,7 @@ namespace CapriDesktop
         protected override void OnMouseUp(MouseEventArgs e)
         {
             base.OnMouseUp(e);
+            if (preferences.Hologram) return;
             if (e.Button == MouseButtons.Right) { menu.Show(Cursor.Position); return; }
             if (e.Button != MouseButtons.Left || !pressed) return;
             pressed = false;
@@ -3316,7 +3330,7 @@ namespace CapriDesktop
             clickDelay.Stop();
             if (!pendingClick) return;
             pendingClick = false;
-            if (hidden || riding || dragging || pressed) return;
+            if (preferences.Hologram || hidden || riding || dragging || pressed) return;
             React();
         }
 
@@ -3328,7 +3342,7 @@ namespace CapriDesktop
 
         private void StartRide(bool quiet = false)
         {
-            if (riding || hidden || !IsHandleCreated) return;
+            if (preferences.Hologram || riding || hidden || !IsHandleCreated) return;
             Halt();
             LeavePanel(false);
             dropAfter = false;
@@ -3346,7 +3360,7 @@ namespace CapriDesktop
                 if (Native.RegisterHotKey(Handle, DismountId, HopKeys[i, 0] | 0x4000, HopKeys[i, 1])) hopName = HopNames[i];
             hotkey = hopName != null;
             riding = true;
-            Native.SetWindowLong(Handle, -20, Native.GetWindowLong(Handle, -20) | 0x20);
+            PassThrough();
             rideItem.Text = "Hop off";
             tray.Text = hotkey ? "Capri · " + hopName + " to hop off" : "Capri · Hop off from this menu";
             if (!testing && !quiet) { balloonPage = null; balloonUpdate = false; balloonMainframe = false; tray.ShowBalloonTip(6000, "Capri is riding your cursor", hotkey ? "Press " + hopName + " to get her off." : "Right-click her tray icon, then choose Move and Hop off.", ToolTipIcon.Info); }
@@ -3364,7 +3378,7 @@ namespace CapriDesktop
             riding = false;
             leanAngle = 0;
             Play(grin);
-            if (IsHandleCreated) Native.SetWindowLong(Handle, -20, Native.GetWindowLong(Handle, -20) & ~0x20);
+            PassThrough();
             if (rideItem != null) rideItem.Text = "Ride cursor";
             if (tray != null) tray.Text = "Capri · Double-click to restore";
             if (!IsDisposed) { Location = anchor; UpdateAnimation(); SavePreferences(); mainframe.Sync(); }
@@ -7255,16 +7269,47 @@ namespace CapriDesktop
             return namedApp;
         }
 
+        private string HologramTool(string action)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string>(HologramTool), action);
+            if (action != "on" && action != "off") return "Should hologram mode be on or off, choom?";
+            SetHologram(action == "on");
+            return preferences.Hologram ? "Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off." : "Hologram mode off. You can click me again.";
+        }
+
+        private void SetHologram(bool on)
+        {
+            preferences.Hologram = on;
+            hologramItem.Checked = on;
+            rideItem.Enabled = !on;
+            if (on)
+            {
+                pressed = dragging = pendingClick = false;
+                Capture = false;
+                clickDelay.Stop();
+                petTurns.Clear();
+                petWay = 0;
+                petTicket++;
+                StopRide();
+                if (clip == dangle) { Play(idle); Drop(); }
+            }
+            PassThrough();
+            RenderFrame();
+            SavePreferences();
+        }
+
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
         // for one of her presses, so between presses they can drag her and the panel out of the way, including over full screen.
         private void PassThrough()
         {
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player })
             {
+                bool through = lentOut || (preferences.Hologram && (form == this || form == pill || form == box)) || (form == this ? riding : form != taskPanel && pointing);
+                Overlay overlay = form as Overlay;
+                if (overlay != null) overlay.ClickThrough = through;
                 if (!form.IsHandleCreated) continue;
                 int style = Native.GetWindowLong(form.Handle, -20);
                 if ((style & 0x80000) == 0) continue;
-                bool through = lentOut || (form == this ? riding : form != taskPanel && pointing);
                 int wanted = through ? style | 0x20 : style & ~0x20;
                 if (wanted != style) Native.SetWindowLong(form.Handle, -20, wanted);
             }
@@ -9910,7 +9955,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (think == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
+            if (Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
             if (think == null && fileMessage) think = brain.Ask;
             if (think == null)
             {
@@ -9962,7 +10007,7 @@ namespace CapriDesktop
 
         internal static bool WithoutBrain(string tool)
         {
-            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "clone" || tool == "desktop_icons" || tool == "gaming_mode" || tool == "watch_along";
+            return tool == "media" || tool == "play_music" || tool == "open_app" || tool == "open_website" || tool == "website_nickname" || tool == "find_file" || tool == "nap" || tool == "move_yourself" || tool == "animate" || tool == "clone" || tool == "hologram" || tool == "desktop_icons" || tool == "gaming_mode" || tool == "watch_along";
         }
 
         private bool SwitchModel(Cloud remote)
@@ -10201,6 +10246,7 @@ namespace CapriDesktop
                 graphics.Clear(Color.Transparent);
                 Draw(graphics, shown, cell, talk, tween);
             }
+            if (preferences.Hologram) TintHologram(frame);
             bodySurface.Show(Handle, anchor);
             bodyPaints++;
             drawnClip = shown;
@@ -10210,6 +10256,7 @@ namespace CapriDesktop
             drawnMix = perchMix;
             drawnVeil = veiled || now < veilUntil;
             drawnMotion = preferences.Motion;
+            drawnHologram = preferences.Hologram;
             drawnSettled = Calm;
             drawnLean = leanAngle;
             drawnBreath = Breath(now);
@@ -10220,10 +10267,32 @@ namespace CapriDesktop
             drawnFacing = facingLeft;
         }
 
+        private static unsafe void TintHologram(Bitmap image)
+        {
+            BitmapData pixels = image.LockBits(new Rectangle(Point.Empty, image.Size), ImageLockMode.ReadWrite, PixelFormat.Format32bppPArgb);
+            try
+            {
+                for (int y = 0; y < image.Height; y++)
+                {
+                    byte* row = (byte*)pixels.Scan0.ToPointer() + y * pixels.Stride;
+                    for (int x = 0; x < image.Width; x++)
+                    {
+                        byte* pixel = row + x * 4;
+                        int alpha = pixel[3];
+                        pixel[0] = (byte)((pixel[0] * 224 + alpha * 31) * 3 / 1275);
+                        pixel[1] = (byte)((pixel[1] * 224 + alpha * 27) * 3 / 1275);
+                        pixel[2] = (byte)((pixel[2] * 224 + alpha * 8) * 3 / 1275);
+                        pixel[3] = (byte)(alpha * 3 / 5);
+                    }
+                }
+            }
+            finally { image.UnlockBits(pixels); }
+        }
+
         private bool BodyChanged(double now, Clip shown, int cell, int talk)
         {
             return frame == null || frame.Size != Size || shown != drawnClip || Art(shown) != drawnArt || cell != drawnCell || talk != drawnMouth || perchMix != drawnMix
-                || anchor != drawnAt || facingLeft != drawnFacing || leanAngle != drawnLean || preferences.Motion != drawnMotion
+                || anchor != drawnAt || facingLeft != drawnFacing || leanAngle != drawnLean || preferences.Motion != drawnMotion || preferences.Hologram != drawnHologram
                 || Calm != drawnSettled || (veiled || now < veilUntil) != drawnVeil
                 || (preferences.Motion && (walking || clip == dance || clip == perchDance || drawnNotes || notes.Exists(note => now - note.Born < NoteLife)))
                 // Her breathing is slower than her art, so a step too small to see isn't worth a paint.
@@ -10775,6 +10844,171 @@ namespace CapriDesktop
                 SavePreferences();
                 mainframe.ShowSettings(awakeSettings);
                 mainframe.Sync();
+            }
+        }
+
+        private void HologramChecks(System.Collections.Generic.List<string> checks, string output)
+        {
+            bool hologramWas = preferences.Hologram, motionWas = preferences.Motion, silentWas = preferences.Silent, pointingWas = pointing, lentWas = lentOut;
+            bool fullWas = fullThrough, veiledWas = veiled;
+            double veilWas = veilUntil;
+            Clip clipWas = clip;
+            Func<string, string> thinkWas = Think;
+            string modelWas = brain.Model;
+            Point home = anchor;
+            try
+            {
+                if (new Preferences().Hologram) throw new Exception("Hologram starts on by default.");
+                using (MemoryStream oldSettings = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"Size\":240}")))
+                    if (((Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(oldSettings)).Hologram) throw new Exception("Old preferences enabled hologram mode.");
+                preferences.Motion = false;
+                preferences.Silent = true;
+                pointing = lentOut = veiled = false;
+                veilUntil = -1;
+                CloseTalk();
+                Play(idle);
+                SetHologram(false);
+                using (Bitmap normal = (Bitmap)frame.Clone())
+                {
+                    hologramItem.PerformClick();
+                    if (!preferences.Hologram || !hologramItem.Checked || !LoadPreferences().Hologram || tray.ContextMenuStrip != menu || !menu.ShowCheckMargin || hologramItem.AccessibleName.IndexOf("tray icon", StringComparison.Ordinal) < 0) throw new Exception("Hologram's shared tray item did not toggle, tick or save.");
+                    checks.Add("PASS Hologram menu item toggles, shows its check and recovery hint, and saves in preferences");
+                    foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
+                    {
+                        bool through = (Native.GetWindowLong(form.Handle, -20) & 0x20) != 0;
+                        if (through != (form == this || form == pill || form == box)) throw new Exception("Hologram click-through is wrong on " + form.GetType().Name);
+                    }
+                    typeof(Control).GetMethod("RecreateHandle", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(pill, null);
+                    typeof(Control).GetMethod("RecreateHandle", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(box, null);
+                    if ((Native.GetWindowLong(pill.Handle, -20) & 0x20) == 0 || (Native.GetWindowLong(box.Handle, -20) & 0x20) == 0) throw new Exception("Hologram lost click-through on a recreated overlay.");
+                    checks.Add("PASS Hologram applies WS_EX_TRANSPARENT only to her body, pill and bubble, including newly created and recreated handles");
+                    long normalAlpha = 0, hologramAlpha = 0;
+                    for (int y = 0; y < normal.Height; y++)
+                        for (int x = 0; x < normal.Width; x++) { normalAlpha += normal.GetPixel(x, y).A; hologramAlpha += frame.GetPixel(x, y).A; }
+                    double opacity = (double)hologramAlpha / Math.Max(1, normalAlpha);
+                    if (normalAlpha == 0 || opacity < 0.59 || opacity > 0.61) throw new Exception("Hologram opacity was " + opacity);
+                    int steadyPaints = bodyPaints;
+                    clipStart -= 10;
+                    RenderFrame();
+                    if (bodyPaints != steadyPaints) throw new Exception("Reduced-motion hologram repainted a steady frame.");
+                    using (Bitmap preview = new Bitmap(normal.Width * 2 + 80, normal.Height + 100, PixelFormat.Format32bppArgb))
+                    {
+                        using (Graphics graphics = Graphics.FromImage(preview))
+                        using (Font label = Neon.Type(14f))
+                        using (Brush ink = new SolidBrush(Color.FromArgb(193, 220, 230)))
+                        {
+                            graphics.Clear(Color.FromArgb(24, 32, 44));
+                            graphics.DrawString("NORMAL", label, ink, 24, 20);
+                            graphics.DrawString("HOLOGRAM / 60%", label, ink, normal.Width + 56, 20);
+                            graphics.DrawImageUnscaled(normal, 24, 60);
+                            graphics.DrawImageUnscaled(frame, normal.Width + 56, 60);
+                        }
+                        preview.Save(Path.Combine(output, "hologram-preview.png"), ImageFormat.Png);
+                    }
+                    checks.Add("PASS Hologram renders existing frames at 60% opacity with a steady cyan tint under reduced motion; side-by-side preview saved");
+                }
+                int petBefore = petTicket;
+                OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+                MovePointer(new Point(Cursor.Position.X + 50, Cursor.Position.Y + 50));
+                OnMouseUp(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+                StartRide();
+                Stroke(Cursor.Position);
+                Petted();
+                if (pressed || dragging || riding || Capture || pendingClick || rideItem.Enabled || petTicket != petBefore || anchor != home) throw new Exception("Hologram could be dragged, ridden, clicked or petted.");
+                checks.Add("PASS Hologram blocks dragging, riding, pending clicks and head pats");
+                pointing = true;
+                Lend(true);
+                foreach (Form form in new Form[] { this, pill, box, taskPanel, player })
+                    if ((Native.GetWindowLong(form.Handle, -20) & 0x20) == 0) throw new Exception("Hologram broke cursor lending on " + form.GetType().Name);
+                Lend(false);
+                if ((Native.GetWindowLong(Handle, -20) & 0x20) == 0 || (Native.GetWindowLong(taskPanel.Handle, -20) & 0x20) != 0) throw new Exception("Returning the cursor lost hologram mode or blocked the task panel.");
+                pointing = false;
+                PassThrough();
+                checks.Add("PASS Hologram preserves cursor lending during jobs and leaves the task panel usable when the cursor returns");
+                Preferences restarted = LoadPreferences();
+                SetHologram(false);
+                SetHologram(restarted.Hologram);
+                if (!preferences.Hologram || !hologramItem.Checked || rideItem.Enabled || (Native.GetWindowLong(Handle, -20) & 0x20) == 0) throw new Exception("Loading saved preferences did not restore hologram mode.");
+                checks.Add("PASS Hologram survives LoadPreferences and restores its check, disabled ride and click-through");
+                hologramItem.PerformClick();
+                foreach (Form form in new Form[] { this, pill, box, typer, player, mainframe, taskPanel })
+                    if ((Native.GetWindowLong(form.Handle, -20) & 0x20) != 0) throw new Exception("Turning hologram off did not give clicks back to " + form.GetType().Name);
+                if (preferences.Hologram || hologramItem.Checked || LoadPreferences().Hologram || !rideItem.Enabled) throw new Exception("Hologram off did not clear and save its state.");
+                OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+                MovePointer(new Point(pointerStart.X + 30, pointerStart.Y + 30));
+                if (!pressed || !dragging) throw new Exception("Dragging did not return after hologram off.");
+                SetHologram(true);
+                if (pressed || dragging || Capture || pendingClick) throw new Exception("Hologram did not cancel a drag already in progress.");
+                SetHologram(false);
+                StartRide(true);
+                if (!riding) throw new Exception("Riding did not return after hologram off.");
+                SetHologram(true);
+                if (riding || (Native.GetWindowLong(Handle, -20) & 0x20) == 0) throw new Exception("Hologram did not end an existing ride and keep click-through.");
+                SetHologram(false);
+                checks.Add("PASS Hologram off restores clicks, dragging and riding; switching it on cancels an existing drag or ride");
+                foreach (bool full in new[] { false, true })
+                {
+                    fullThrough = full;
+                    PassThrough();
+                    if ((Native.GetWindowLong(Handle, -20) & 0x20) != 0) throw new Exception("Full screen made her unclickable without hologram mode.");
+                    SetHologram(true);
+                    if ((Native.GetWindowLong(Handle, -20) & 0x20) == 0) throw new Exception("Hologram did not work over full screen.");
+                    SetHologram(false);
+                }
+                checks.Add("PASS she stays clickable over full screen unless Hologram is on");
+                string[,] routes = { { "hologram mode on", "on" }, { "hologram on", "on" }, { "go hologram", "on" }, { "turn on hologram mode", "on" }, { "Capri, become a hologram please", "on" }, { "hologram off", "off" }, { "stop being a hologram", "off" }, { "turn hologram mode off", "off" }, { "disable hologram", "off" } };
+                for (int i = 0; i < routes.GetLength(0); i++)
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (!Hands.Heard(routes[i, 0], out tool, out args) || tool != "hologram" || args.Action != routes[i, 1] || !Hands.Valid(tool, args)) throw new Exception("Hologram wording was missed: " + routes[i, 0]);
+                    string done = Hands.Do(tool, args);
+                    if (preferences.Hologram != (args.Action == "on") || Hands.Pulled(done) != done) throw new Exception("Hologram words did not toggle locally: " + routes[i, 0]);
+                }
+                foreach (string chat in new[] { "what is a hologram", "I saw a hologram", "do not turn on hologram mode", "hologram off after this job" })
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (Hands.Heard(chat, out tool, out args) && tool == "hologram") throw new Exception("Hologram took ordinary chat: " + chat);
+                }
+                if (Hands.Valid("hologram", null) || Hands.Valid("hologram", new ToolArguments { Action = "toggle" })) throw new Exception("Hologram accepted an invalid brain tool action.");
+                bool offered = false;
+                for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "hologram") offered = Hands.ElevenLabsTool(i).Contains("\"on\",\"off\"");
+                if (!offered) throw new Exception("Brains were not offered the hologram on/off tool.");
+                checks.Add("PASS hologram words route both ways locally, brain tools offer on/off, and ordinary chat stays chat");
+                foreach (bool withBrain in new[] { false, true })
+                {
+                    bool thought = false;
+                    brain.Model = withBrain ? "hologram-test" : null;
+                    Think = withBrain ? delegate(string words) { thought = true; return "wrong reply"; } : (Func<string, string>)null;
+                    foreach (string words in new[] { "go hologram", "hologram off" })
+                    {
+                        Hear(words);
+                        Stopwatch wait = Stopwatch.StartNew();
+                        while ((reply == null || !reply.StartsWith("Hologram mode ", StringComparison.Ordinal)) && wait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(10); }
+                        if (thought || reply == null || !reply.StartsWith("Hologram mode ", StringComparison.Ordinal) || preferences.Hologram != (words == "go hologram")) throw new Exception("Hologram needed a brain or failed to answer locally: " + words);
+                        CloseTalk();
+                    }
+                }
+                checks.Add("PASS hologram on and off run through Hear with and without a configured brain, without asking that brain");
+            }
+            finally
+            {
+                Think = thinkWas;
+                brain.Model = modelWas;
+                CloseTalk();
+                preferences.Motion = motionWas;
+                preferences.Silent = silentWas;
+                pointing = pointingWas;
+                lentOut = lentWas;
+                fullThrough = fullWas;
+                veiled = veiledWas;
+                veilUntil = veilWas;
+                anchor = home;
+                Location = anchor;
+                Play(clipWas);
+                SetHologram(hologramWas);
+                UpdateAnimation();
             }
         }
 
@@ -13517,6 +13751,8 @@ namespace CapriDesktop
                 { "WHAT DOES POP-IN ON ME DO?", "Check in on me" },
                 { "why can\u2019t you see my screen?", "Watch my screen" },
                 { "what does Gaming Mode do?", "Gaming Mode" },
+                { "what is hologram mode?", "Hologram" },
+                { "how do I turn hologram off?", "Hologram" },
                 { "can you keep your memories in obsidian?", "Obsidian vault" },
                 { "how do i activate gaming mode", "Gaming Mode" },
                 { "how to activate gaming mode", "Gaming Mode" },
@@ -20239,6 +20475,7 @@ namespace CapriDesktop
                         if (step == 0)
                         {
                             if (OnGitHub) checks.Add("LIMIT Mainframe's Auto size: GitHub's virtual screen has no real panel to compare its desktop with, so Auto stays at 100% there");
+                            Section(checks, delegate { HologramChecks(checks, output); });
                             Section(checks, delegate { SmokeReportedLogic(checks); });
                             Section(checks, delegate { SmokeComments(checks); });
                             Section(checks, delegate { SmokeOpening(checks); });
@@ -22324,13 +22561,16 @@ namespace CapriDesktop
                             Play(idle);
                             if (!cornered) throw new Exception("She can't sit in the bottom corner: " + perched + " in " + corner);
                             checks.Add("PASS screen bounds: her body, not her see-through window, stays on screen, so she stands and sits right in the corners");
-                            ((ToolStripMenuItem)((ToolStripMenuItem)menu.Items[4]).DropDownItems[0]).PerformClick();
+                            ToolStripMenuItem sizeMenu = null;
+                            foreach (ToolStripItem top in menu.Items) if (top.Text == "Size") sizeMenu = top as ToolStripMenuItem;
+                            if (sizeMenu == null) throw new Exception("The Size menu is missing.");
+                            ((ToolStripMenuItem)sizeMenu.DropDownItems[0]).PerformClick();
                             if (Width != 170 + PaddingSize * 2) throw new Exception("Small size failed.");
-                            ((ToolStripMenuItem)((ToolStripMenuItem)menu.Items[4]).DropDownItems[1]).PerformClick();
+                            ((ToolStripMenuItem)sizeMenu.DropDownItems[1]).PerformClick();
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
-                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,Hide Capri,Size,Move,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
+                            if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,Hide Capri,Size,Move,Hologram,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
                             Ledge popSeat = seat;

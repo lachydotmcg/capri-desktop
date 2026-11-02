@@ -594,6 +594,7 @@ namespace CapriDesktop
 
     internal class Overlay : Form
     {
+        internal bool ClickThrough;
         private Bitmap shown;
         internal bool Above = true;
 
@@ -613,7 +614,7 @@ namespace CapriDesktop
             get
             {
                 CreateParams value = base.CreateParams;
-                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000 | (Above ? 0x00000008 : 0);
+                value.ExStyle |= 0x00080000 | 0x00000080 | 0x08000000 | (Above ? 0x00000008 : 0) | (ClickThrough ? 0x20 : 0);
                 return value;
             }
         }
