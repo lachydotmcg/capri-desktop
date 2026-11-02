@@ -40,11 +40,11 @@ namespace CapriDesktop
         private static readonly FontFamily Heavy = Family("Bahnschrift SemiBold SemiConden");
         private static readonly FontFamily Narrow = Family("Bahnschrift SemiBold Condensed");
         private const int Wide = 380;
-        private const int Tall = 642;
+        private const int Tall = 698;
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1544;
+        private const int PageTall = 1572;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -72,9 +72,9 @@ namespace CapriDesktop
         private static readonly int[] Recalls = { 8, 16, 32 };
         private static readonly string[] MemoryNames = { "Auto", "4K", "8K", "16K", "32K", "64K" };
         private static readonly string[] ReplyNames = { "Auto", "256", "2K", "8K" };
-        private const int VoiceHeight = 300;
+        private const int VoiceHeight = 356;
         // While her free voice or ears download, a row with the brain setup's dotted bar opens here and pushes the rest down.
-        private const int InstallAt = 443;
+        private const int InstallAt = 499;
         private const int InstallRow = 40;
         // CLOUD VOICE's row: its service, then ElevenLabs' key or the other service's panel. Unless ElevenLabs is picked with a
         // key saved, one row under it folds away and the rest moves up; under the other rows, this one folds away instead.
@@ -190,6 +190,11 @@ namespace CapriDesktop
         private readonly Key speechModels;
         private readonly ContextMenuStrip speechModelMenu;
         private readonly Label voiceNote;
+        private readonly Label hearingNote;
+        private readonly Key[] hearingFixes = new Key[2];
+        private HearingAction[] hearingActions = new HearingAction[0];
+        private readonly Key hearingChoice;
+        private readonly ContextMenuStrip hearingMenu;
         private bool speechFix;
         private readonly Label keysNote;
         private readonly Label blackwallNote;
@@ -244,13 +249,13 @@ namespace CapriDesktop
         private int pageScroll;
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 965 }, new[] { 1048, 1100 }, new[] { 1100, 1128 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 993 }, new[] { 1076, 1128 }, new[] { 1128, 1156 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 372, 754 }, new[] { 950, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
-        private const int SimpleTall = 752;
+        private const int SimpleTall = 780;
         private int wheel;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
@@ -459,7 +464,19 @@ namespace CapriDesktop
             mics.AccessibleName = "Microphone";
             micTest = Lower(Make("Test", 280, 382, 76, 28, delegate { capri.TestMic(); }));
             micTest.AccessibleName = "Test microphone input";
-            muteShortcut = Lower(Caption("Ctrl + Alt + N mutes mic", 28, 417, small, Faint));
+            hearingNote = Lower(Caption("", 28, 414, Type(9.5f), Faint));
+            hearingNote.AutoSize = false;
+            hearingNote.AutoEllipsis = true;
+            hearingNote.Size = new Size(328, 20);
+            hearingNote.AccessibleName = "Hearing status";
+            for (int i = 0; i < hearingFixes.Length; i++)
+            {
+                int at = i;
+                hearingFixes[i] = Lower(Make("", 28 + i * 168, 438, 160, 22, delegate { if (at < hearingActions.Length) capri.HearingFix(hearingActions[at]); }));
+                hearingFixes[i].AccessibleName = "Hearing help";
+                hearingFixes[i].Visible = false;
+            }
+            muteShortcut = Lower(Caption("Ctrl + Alt + N mutes mic", 28, 473, small, Faint));
             muteShortcut.Cursor = Cursors.Hand;
             muteShortcut.Click += delegate { ShowSettings(true); PickKeys(1); };
             Deactivate += delegate { CancelKeys(); };
@@ -554,8 +571,20 @@ namespace CapriDesktop
             listenCapri = Switch("Listen for Capri", 0, 400, delegate { if (!syncing) capri.ToggleListenCapri(); });
             Caption("Say her name anywhere to chat", 28, 428, small, Faint);
             listenCapri.AccessibleName = "Listen for Capri. Keep the mic open; say her name anywhere in your sentence. Stop and push to talk still work";
+            Caption("Hearing", 28, 454, Type(9.5f), Rose).AccessibleName = "Hearing";
+            hearingMenu = Dropdown();
+            hearingMenu.AccessibleName = "Hearing engine choices";
+            hearingChoice = Make("Auto", ValueAt, 450, ValueWide, 22, delegate { hearingMenu.Show(hearingChoice, new Point(0, hearingChoice.Height)); });
+            hearingChoice.Chevron = true;
+            hearingChoice.AccessibleName = "Hearing engine";
+            for (int i = 0; i < HearingStatus.Choices.Length; i++)
+            {
+                int choice = i;
+                hearingMenu.Items.Add(Choice(HearingStatus.Choices[i], false, delegate { capri.ChooseHearing(choice); }));
+                hearingMenu.Items[i].AccessibleName = HearingStatus.Choices[i];
+            }
             // The row under Listen for Capri, shown only while her HD voice is on (Lachy, 29 Oct). Off out of the box.
-            hdGames = Switch("Free voice in games", 0, 450, delegate { if (!syncing) capri.ToggleHdGameRest(); });
+            hdGames = Switch("Free voice in games", 0, 478, delegate { if (!syncing) capri.ToggleHdGameRest(); });
             hdGames.AccessibleName = "Free voice in games: while a game or video is full screen, her free voice talks instead of her HD voice, so the game gets the graphics card";
             hdGames.Visible = false;
             int afterVoice = Controls.Count;
@@ -606,7 +635,7 @@ namespace CapriDesktop
             keysNote.MaximumSize = new Size(328, 0);
             for (int i = afterVoice; i < Controls.Count; i++)
             {
-                Controls[i].Top += Row + 22;
+                Controls[i].Top += Row * 2 + 22;
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             }
             Section("CAPRI >", c, 58);
@@ -768,7 +797,11 @@ namespace CapriDesktop
             // Head pats and Chaos when upset took two rows under Mainframe size, so the rest of this column sits two lower.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 2;
-            for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++) underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
+            for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
+            {
+                Controls[gameRow].Top += Row;
+                underVoice.Add(new KeyValuePair<Control, int>(Controls[gameRow], Controls[gameRow].Top));
+            }
             for (int i = first; i < Controls.Count; i++)
             {
                 Control control = Controls[i];
@@ -1275,7 +1308,7 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu }) menu.Font = Font;
                 foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
                 CloseGaps();
                 freeVoices.Width = Scaled(freeReady && !yoursShown ? 328 : 196);
@@ -1693,7 +1726,7 @@ namespace CapriDesktop
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); }
+            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); }
             base.Dispose(disposing);
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();
         }
@@ -1716,6 +1749,9 @@ namespace CapriDesktop
         internal void Sync()
         {
             syncing = true;
+            hearingChoice.Text = HearingStatus.Choices[capri.HearingChoice];
+            hearingChoice.AccessibleName = "Hearing: " + hearingChoice.Text;
+            for (int i = 0; i < hearingMenu.Items.Count; i++) ((ToolStripMenuItem)hearingMenu.Items[i]).Checked = i == capri.HearingChoice;
             showHide.Text = capri.IsHidden ? "Show Capri" : "Hide Capri";
             perch.Text = capri.Riding ? "Hop off" : "Ride cursor";
             int near = 0;
@@ -3082,10 +3118,16 @@ namespace CapriDesktop
 
         internal bool MicTesting { get { return micTest.Text == "Stop" && micTest.Meter >= 0; } }
 
+        internal void PickHearingMic() { ShowMics(); }
+        internal void PickHearingChoice(int choice) { hearingMenu.Items[choice].PerformClick(); }
+        internal bool HearingMicMenuShown { get { return micMenu.Visible; } }
+        internal void CloseHearingMicMenu() { micMenu.Close(); }
+
         private void ShowMics()
         {
+            capri.RefreshHearingDevices();
             string chosen = capri.MicId;
-            List<Mic> found = Ears.List();
+            List<Mic> found = capri.HearingMics;
             micMenu.Items.Clear();
             micMenu.Items.Add(Choice("Windows default", Ears.Find(chosen, found) == null, delegate { capri.ChooseMic(null); }));
             if (found.Count > 0) micMenu.Items.Add(new ToolStripSeparator());
@@ -3097,12 +3139,49 @@ namespace CapriDesktop
             micMenu.Show(mics, new Point(0, mics.Height));
         }
 
+        internal void ShowHearing(HearingStatus status)
+        {
+            bool same = hearingNote.Text == status.Text && hearingNote.ForeColor == (status.Problem ? Hot : Faint) && hearingActions.Length == status.Actions.Length;
+            if (same) for (int i = 0; i < hearingActions.Length; i++) if (hearingActions[i] != status.Actions[i]) { same = false; break; }
+            if (same) return;
+            hearingNote.Text = status.Text;
+            hearingNote.AccessibleName = status.Text;
+            hearingNote.ForeColor = status.Problem ? Hot : Faint;
+            hearingActions = status.Actions;
+            for (int i = 0; i < hearingFixes.Length; i++)
+            {
+                bool shown = i < status.Actions.Length;
+                hearingFixes[i].Visible = shown;
+                if (shown) hearingFixes[i].AccessibleName = hearingFixes[i].Text = HearingStatus.Name(status.Actions[i]);
+            }
+        }
+
+        internal string HearingText { get { return hearingNote.Text; } }
+        internal bool HearingWarning { get { return hearingNote.ForeColor == Hot; } }
+        internal string HearingButtons { get { return string.Join(" | ", Array.ConvertAll(hearingActions, HearingStatus.Name)); } }
+        internal string HearingShown { get { return hearingChoice.Text; } }
+
+        internal void PressHearing(int button) { hearingFixes[button].PerformClick(); }
+
+        internal bool HearingActionsFit
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(hearingNote.AccessibleName) || hearingNote.Bottom > hearingFixes[0].Top || hearingFixes[0].Bottom > muteShortcut.Top) return false;
+                for (int i = 0; i < hearingFixes.Length; i++)
+                    if (hearingFixes[i].Visible != (i < hearingActions.Length) || i < hearingActions.Length && (string.IsNullOrEmpty(hearingFixes[i].AccessibleName) || hearingFixes[i].Text != HearingStatus.Name(hearingActions[i]))) return false;
+                return !hearingFixes[0].Bounds.IntersectsWith(hearingFixes[1].Bounds);
+            }
+        }
+
+        internal bool HearingChoiceFits { get { return !Folded(hearingChoice) && !Hidden(hearingChoice) && !string.IsNullOrEmpty(hearingChoice.AccessibleName); } }
+
         internal string MicStatus { get { return "mic | " + mics.Text + " | " + (keyHelp.Visible ? "help" : "-") + " | " + (shortcut.Visible ? (shortcutReady ? "keys" : "taken") : "-") + " | " + (muteShortcut.Visible ? (muteReady ? "mute" : "taken") : "-"); } }
 
         // Windows' Online speech recognition switch is hard to find (Baguettboy couldn't), so a note that asks for it opens its page.
         internal void VoiceNote(string text, bool problem)
         {
-            speechFix = text != null && text.IndexOf("Online speech recognition", StringComparison.Ordinal) >= 0;
+            speechFix = text != null && text != hearingNote.Text && text.IndexOf("Online speech recognition", StringComparison.Ordinal) >= 0;
             voiceNote.Text = speechFix ? text + OpenSpeech : text;
             voiceNote.ForeColor = problem ? Hot : Faint;
             voiceNote.Cursor = speechFix ? Cursors.Hand : Cursors.Default;
@@ -3182,6 +3261,7 @@ namespace CapriDesktop
         {
             base.OnActivated(e);
             ShowPersonality();
+            if (loaded) capri.RefreshHearingDevices();
         }
 
         private static ToolStripMenuItem Choice(string text, bool chosen, EventHandler click)
