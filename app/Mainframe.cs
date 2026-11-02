@@ -224,6 +224,11 @@ namespace CapriDesktop
         private readonly Entry textEntry;
         private readonly Key textConnect;
         private readonly Key freeKey;
+        private readonly Label freeWarning;
+        private readonly Label paidNote;
+        private readonly Key movePaid;
+        private string paidTextKey;
+        internal const string NvidiaNote = "NVIDIA's free API is often slow, especially at busy times.";
         private bool textSaved;
         private readonly List<KeyValuePair<Control, int>> lower = new List<KeyValuePair<Control, int>>();
         private string[] lastInstalled;
@@ -364,7 +369,7 @@ namespace CapriDesktop
             setup.Loud = true;
             hint = Caption("Have Ollama? Open it, then press Refresh.", 28, 264, Look.Mono(9f, FontStyle.Italic, GraphicsUnit.Point), Faint);
             tierNote = Caption("Pick one. Only one brain runs at a time.", 28, 168, Look.Mono(8.5f, FontStyle.Italic, GraphicsUnit.Point), Faint);
-            string[,] tiers = { { "NORMAL", "Free · local model" }, { "HIGHER", "Free · NVIDIA API" }, { "MAX INTELLIGENCE", "Cloud API keys" } };
+            string[,] tiers = { { "NORMAL", "Free · local model" }, { "MEDIUM INTELLIGENCE", "Free" }, { "MAX INTELLIGENCE", "Cloud API keys" } };
             for (int i = 0; i < rungs.Length; i++)
             {
                 int picked = i;
@@ -384,9 +389,15 @@ namespace CapriDesktop
             freeKey = Make("Free key", 266, 209, 90, 22, delegate { capri.OpenFreeKeyPage(); });
             textEntry = Input(28, 262, 244);
             textEntry.Box.UseSystemPasswordChar = true;
-            textEntry.Box.AccessibleName = "NVIDIA API key";
-            textEntry.Cue = "Paste your free NVIDIA key";
+            textEntry.Box.AccessibleName = "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key";
+            textEntry.Cue = "NVIDIA / Google AI Studio / OpenRouter";
             textConnect = Make("Connect", 280, 262, 76, 28, delegate { ConnectText(); });
+            freeWarning = Caption("Free keys can be rate limited and slow.", 28, 294, Type(8.5f), Look.Yellow);
+            paidNote = Caption("That's a paid key: it goes under MAX INTELLIGENCE.", 28, 315, Font, Look.Yellow);
+            paidNote.MaximumSize = new Size(328, 0);
+            movePaid = Make("Move to MAX", 28, 350, 128, 24, delegate { MovePaidText(); });
+            movePaid.AccessibleName = "Move key to MAX INTELLIGENCE";
+            freeWarning.Visible = paidNote.Visible = movePaid.Visible = false;
             textEntry.Box.TextChanged += delegate { RelabelText(); };
             textEntry.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; ConnectText(); } };
             voiceHead = Lower(Section("VOICE >", 0, 184));
@@ -1707,6 +1718,12 @@ namespace CapriDesktop
             textEntry.Top = Scaled(262 + top);
             textConnect.Top = textEntry.Top;
             textEntry.Visible = textConnect.Visible = tier > 0;
+            freeWarning.Top = Scaled(294 + top);
+            freeWarning.Visible = tier == 1;
+            paidNote.Top = Scaled(315 + top);
+            paidNote.MaximumSize = new Size(Scaled(328), 0);
+            movePaid.Top = Scaled(350 + top);
+            paidNote.Visible = movePaid.Visible = tier == 1 && paidTextKey != null;
             int below = voiceFilled >= 0 ? InstallRow : 0;
             int fold = arrangedFold = Fold;
             foreach (KeyValuePair<Control, int> entry in lower) entry.Key.Top = Scaled(entry.Value + shift + (entry.Value >= InstallAt ? below : 0) - (entry.Value > KeyAt ? fold : 0));
@@ -2312,7 +2329,7 @@ namespace CapriDesktop
         internal void ShowCloud(Cloud remote, List<string> found)
         {
             brainName.Text = remote.Name + (remote.Model == null ? "" : " · " + remote.Model);
-            brainNote.Text = remote.Kind == "local" ? "Running on this PC · :" + remote.Port : "Using your " + remote.Company + " key";
+            brainNote.Text = remote.Kind == "local" ? "Running on this PC · :" + remote.Port : remote.Kind == "nvidia" ? NvidiaNote : "Using your " + remote.Company + " key";
             models.Text = remote.Model;
             models.Visible = remote.Model != null;
             hint.Visible = false;
@@ -2349,19 +2366,23 @@ namespace CapriDesktop
             Arrange(false);
         }
 
-        private int KeyRow { get { return tier > 0 ? 128 : 94; } }
+        private int KeyRow { get { return tier > 0 ? 128 + (tier == 1 && paidTextKey != null ? 86 : 0) : 94; } }
 
-        internal void ShowTiers(int pick, string nvidiaTail, string paidTail)
+        internal void ShowTiers(int pick, string nvidiaTail, string paidTail, string mediumKind = null)
         {
+            int old = tier;
             tier = Math.Max(0, Math.Min(rungs.Length - 1, pick));
+            if (old != tier) textEntry.Box.Clear();
+            ClearPaidText();
             syncing = true;
             for (int i = 0; i < rungs.Length; i++) rungs[i].Checked = i == tier;
             syncing = false;
             string tail = tier == 1 ? nvidiaTail : tier == 2 ? paidTail : null;
             textSaved = tail != null;
-            textEntry.Box.AccessibleName = tier == 1 ? "NVIDIA API key" : "Google AI, OpenRouter, OpenAI, Anthropic or DeepSeek API key";
-            tierNote.Text = tier == 1 ? "Most NVIDIA models can't see your screen." : tier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
-            textEntry.Cue = textSaved ? (tier == 1 ? "NVIDIA key saved, ends " : "Key saved, ends ") + tail : tier == 1 ? "Paste your free NVIDIA key" : "Paste a brain API key";
+            textEntry.Box.AccessibleName = tier == 1 ? "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key" : "Google AI, OpenRouter, NVIDIA, OpenAI, Anthropic or DeepSeek API key";
+            textEntry.AccessibleName = textEntry.Box.AccessibleName;
+            tierNote.Text = tier == 1 ? mediumKind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : tier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
+            textEntry.Cue = textSaved ? "Key saved, ends " + tail : tier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
             RelabelText();
             Arrange(expanded);
         }
@@ -2373,6 +2394,16 @@ namespace CapriDesktop
                 Rectangle last = rungs[rungs.Length - 1].Bounds;
                 bool row = !textEntry.Visible || (textEntry.Top >= last.Bottom && textConnect.Right <= ClientSize.Width);
                 int end = textEntry.Visible ? textEntry.Bottom : last.Bottom;
+                if (freeWarning.Visible)
+                {
+                    if (freeWarning.Top < end || freeWarning.Right > Scaled(356)) return false;
+                    end = freeWarning.Bottom;
+                }
+                if (paidNote.Visible)
+                {
+                    if (paidNote.Top < end || movePaid.Top < paidNote.Bottom || movePaid.Right > Scaled(356)) return false;
+                    end = movePaid.Bottom;
+                }
                 foreach (Rung brainRung in rungs) if (!brainRung.Fits) return false;
                 return tierNote.Right <= ClientSize.Width && rungs[0].Top >= tierNote.Bottom && rungs[1].Top >= rungs[0].Bottom && rungs[2].Top >= rungs[1].Bottom && freeKey.Left >= rungs[1].Right && freeKey.Top >= rungs[1].Top && freeKey.Bottom <= rungs[1].Bottom && row && end <= voiceHead.Top && rungs[0].Right <= ClientSize.Width;
             }
@@ -2383,17 +2414,47 @@ namespace CapriDesktop
         private void ConnectText()
         {
             string typed = textEntry.Box.Text.Trim();
-            if (typed.Length > 0) { textEntry.Box.Text = ""; capri.ConnectText(typed); }
+            if (typed.Length > 0)
+            {
+                string kind = Cloud.KindOf(typed);
+                if (tier != 1 || kind == null || Cloud.MediumKind(kind)) textEntry.Box.Clear();
+                capri.ConnectText(typed);
+            }
             else if (textSaved) capri.ForgetText();
             else textEntry.Box.Focus();
         }
 
         private void RelabelText()
         {
+            string typed = textEntry.Box.Text.Trim(), kind = Cloud.KindOf(typed);
+            if (tier == 1 && kind != null && !Cloud.MediumKind(kind)) OfferPaidText(typed);
+            else ClearPaidText();
             bool forget = textSaved && textEntry.Box.Text.Trim().Length == 0;
             textConnect.Text = forget ? "Forget" : "Connect";
             textConnect.Accent = forget ? Hot : Rose;
             textConnect.Invalidate();
+        }
+
+        internal void OfferPaidText(string key)
+        {
+            bool wasShown = paidTextKey != null;
+            paidTextKey = Voice.Protect(key);
+            if (!wasShown) Arrange(expanded);
+        }
+
+        private void ClearPaidText()
+        {
+            bool wasShown = paidTextKey != null;
+            paidTextKey = null;
+            if (wasShown) Arrange(expanded);
+        }
+
+        private void MovePaidText()
+        {
+            string key = Voice.Unprotect(paidTextKey);
+            textEntry.Box.Clear();
+            ClearPaidText();
+            if (key != null) capri.ConnectPaidText(key);
         }
 
         internal void ShowLocal(Pick pick)

@@ -5397,6 +5397,7 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             if (remote == null && installed != null && Array.IndexOf(installed, name) < 0 && Array.IndexOf(installed, name + ":latest") < 0) return "Ollama doesn't have it. Run: ollama pull " + name;
             if (remote != null && remote.Kind != "local" && !Brain.ModelFits(remote.Kind, name)) return "That isn't a model for " + remote.Company + ".";
+            if (preferences.Tier == 1 && remote != null && remote.Kind == "openrouter" && !name.EndsWith(":free", StringComparison.Ordinal)) return "MEDIUM INTELLIGENCE needs a :free model. Paid models go under MAX INTELLIGENCE.";
             ChooseModel(name);
             if (remote == null) { mainframe.ShowOllama(installed ?? new[] { name }, name); return "Using " + name + "."; }
             if (remote.Kind == "local") { mainframe.ShowCloud(remote, null); return "Using " + name + " on " + remote.Name + "."; }
@@ -7951,7 +7952,10 @@ namespace CapriDesktop
             if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel, preferences.BrainAddress);
             string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
             string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel;
-            return Cloud.KindOf(key) == null ? null : new Cloud(key, Brain.ModelFits(Cloud.KindOf(key), model) ? model : null);
+            string kind = Cloud.KindOf(key);
+            if (kind == null || preferences.Tier == 1 && !Cloud.MediumKind(kind)) return null;
+            bool fits = Brain.ModelFits(kind, model) && (preferences.Tier != 1 || kind != "openrouter" || model.EndsWith(":free", StringComparison.Ordinal));
+            return new Cloud(key, fits ? model : null);
         }
 
         private void Mirror()
@@ -7963,13 +7967,13 @@ namespace CapriDesktop
         private void ShowTiers()
         {
             string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey);
-            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : Voice.Tail(paid));
+            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : Voice.Tail(paid), Cloud.KindOf(nvidia));
         }
 
         private void Keep(Cloud remote)
         {
             if (remote.Kind == "local") { preferences.BrainPort = remote.Port; preferences.BrainAddress = remote.Host; preferences.LocalModel = remote.Model; }
-            else if (remote.Kind == "nvidia") preferences.NvidiaModel = remote.Model;
+            else if (preferences.Tier == 1) preferences.NvidiaModel = remote.Model;
             else preferences.PaidModel = remote.Model;
             Mirror();
             SavePreferences();
@@ -7994,10 +7998,23 @@ namespace CapriDesktop
 
         internal void ConnectText(string key)
         {
+            ConnectText(key, preferences.Tier);
+        }
+
+        internal void ConnectPaidText(string key)
+        {
+            ConnectText(key, 2);
+        }
+
+        private void ConnectText(string key, int targetTier)
+        {
             ++cloudListing;
             key = (key ?? "").Trim();
-            if (Cloud.KindOf(key) == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.", true); return; }
-            ListCloud(key, true);
+            string kind = Cloud.KindOf(key);
+            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.", true); return; }
+            if (targetTier == 1 && !Cloud.MediumKind(kind)) { mainframe.OfferPaidText(key); return; }
+            if (targetTier == 0) targetTier = kind == "nvidia" ? 1 : 2;
+            ListCloud(key, true, targetTier);
         }
 
         private void TextProblem(string problem, bool connecting)
@@ -8034,16 +8051,17 @@ namespace CapriDesktop
             FindBrain();
         }
 
-        private void ListCloud(string key, bool connecting)
+        private void ListCloud(string key, bool connecting, int targetTier = -1)
         {
             int listing = cloudListing, refresh = ++cloudRefresh;
+            int pickedTier = targetTier < 0 ? preferences.Tier : targetTier;
             Cloud probe = new Cloud(key, null);
             if (connecting) mainframe.ShowProblem("Checking key...");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 System.Collections.Generic.List<string> found = null;
                 string problem = null;
-                try { found = Brain.CloudModels(key); }
+                try { found = Brain.CloudModels(key, pickedTier == 1); }
                 catch (BrainException error) { problem = error.Message; }
                 catch (Exception error) { Brain.Log("https://" + probe.Company.ToLowerInvariant() + "/models", -1, error.Message); problem = brain.Remote != null && brain.Remote.Key == key && brain.Remote.Model != null ? probe.Company + " is slow. Using " + brain.Remote.Model + "." : "Couldn't reach " + probe.Company + ". Check your internet."; }
                 Post(delegate
@@ -8056,9 +8074,9 @@ namespace CapriDesktop
                         if (remote.Model == null) { TextProblem("That key can't use any chat models.", true); return; }
                         brain.Cancel();
                         brain.Remote = remote;
-                        if (remote.Kind == "nvidia") preferences.NvidiaKey = Voice.Protect(key);
+                        if (pickedTier == 1) preferences.NvidiaKey = Voice.Protect(key);
                         else preferences.PaidKey = Voice.Protect(key);
-                        preferences.Tier = remote.Kind == "nvidia" ? 1 : 2;
+                        preferences.Tier = pickedTier;
                         Keep(remote);
                         ShowTiers();
                     }
@@ -14793,6 +14811,8 @@ namespace CapriDesktop
                 { "how do I connect a free key", "Free key" },
                 { "how do I connect Gemini", "Cloud brain keys" },
                 { "how do I use OpenRouter", "Cloud brain keys" },
+                { "what is medium intelligence", "Medium intelligence" },
+                { "what happened to higher", "Medium intelligence" },
                 { "what can you do", "What she can do" },
                 { "give me a tutorial", "Tutorial" },
                 { "how do I use you", "Tutorial" },
@@ -20333,11 +20353,11 @@ namespace CapriDesktop
                 });
                 Section(checks, "SmokePickerClears", delegate
                 {
-                    foreach (string action in new[] { "NORMAL", "empty HIGHER", "empty MAX", "Forget" })
+                    foreach (string action in new[] { "NORMAL", "empty MEDIUM INTELLIGENCE", "empty MAX", "Forget" })
                     {
                         use(action == "empty MAX" ? "nvapi-picker-test" : "sk-proj-picker-test", action == "empty MAX" ? "openai/gpt-oss-20b" : "gpt-90-mini");
                         if (action == "Forget") ForgetText();
-                        else ChooseTier(action == "NORMAL" ? 0 : action == "empty HIGHER" ? 1 : 2);
+                        else ChooseTier(action == "NORMAL" ? 0 : action == "empty MEDIUM INTELLIGENCE" ? 1 : 2);
                         if (brain.Remote != null || brain.Model != null || mainframe.Status != "Looking for a brain... | " || mainframe.BrainChoices.Length != 0) throw new Exception("The " + action + " action left the old cloud menu or model while local discovery was pending: " + mainframe.Status);
                         UseBrain(new[] { "ollama-picker-test" }, new Machine { Ram = 8L << 30 }, null);
                         if (brain.Model != "ollama-picker-test" || mainframe.BrainChoices[0] != "Ollama · ollama-picker-test") throw new Exception("Local discovery did not replace the old cloud menu.");
@@ -20428,7 +20448,7 @@ namespace CapriDesktop
                                 preferences.NvidiaModel = "openai/gpt-oss-20b";
                                 Brain.Nvidia = serve(new[] { nvidiaCatalog }, new System.Collections.Generic.List<string>(), null);
                                 ChooseTier(1);
-                                WaitVoice(delegate { return mainframe.Status == "NVIDIA · openai/gpt-oss-20b | Using your NVIDIA key"; }, "The NVIDIA tier did not finish.");
+                                WaitVoice(delegate { return mainframe.Status == "NVIDIA · openai/gpt-oss-20b | " + Mainframe.NvidiaNote; }, "The NVIDIA tier did not finish.");
                             }
                             else if (action == "forget") ForgetText();
                             else { ChooseLocalBrain(null, "local-picker-test", null); mainframe.ShowOllama(new[] { "local-picker-test" }, "local-picker-test"); }
@@ -21910,6 +21930,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLocalBrains", delegate { SmokeLocalBrains(checks); });
             Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
+            Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
@@ -27990,12 +28011,12 @@ namespace CapriDesktop
                                     checks.Add("PASS a brain's Gaming Mode call needs talk of games or her HUD: anything else gets her answer, and the setting stays as it was");
                                     if (!mainframe.TextStatus.StartsWith("tier 0 | ", StringComparison.Ordinal) || !mainframe.TextStatus.EndsWith("| no key row", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("The brain tiers are wrong with no key: " + mainframe.TextStatus);
                                     mainframe.ShowTiers(1, null, null);
-                                    if (!mainframe.TextStatus.EndsWith("| Paste your free NVIDIA key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("HIGHER without a key is wrong: " + mainframe.TextStatus);
-                                    // HIGHER's model menu marks Nemotron Super and Nemotron's reasoning model as recommended, at its top.
+                                    if (!mainframe.TextStatus.EndsWith("| NVIDIA / Google AI Studio / OpenRouter | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MEDIUM INTELLIGENCE without a key is wrong: " + mainframe.TextStatus);
+                                    // MEDIUM INTELLIGENCE's model menu marks Nemotron Super and Nemotron's reasoning model as recommended, at its top.
                                     mainframe.ShowCloud(new Cloud("nvapi-test", "nvidia/nemotron-3.5-super-vl-120b-a12b"), freeModels);
                                     string freeMenu = mainframe.ModelChoices;
                                     if (freeMenu != "nvidia/nemotron-3.5-super-vl-120b-a12b · recommended (picked), nvidia/nemotron-3-nano-omni-30b-a3b-reasoning · recommended, mistralai/mistral-large-3-675b-instruct-2512")
-                                        throw new Exception("HIGHER's model menu didn't mark the recommended models: " + freeMenu);
+                                        throw new Exception("MEDIUM INTELLIGENCE's model menu didn't mark the recommended models: " + freeMenu);
                                     mainframe.ShowTiers(2, null, null);
                                     foreach (Cloud panelBrain in new[] { new Cloud("AIza-test", "gemini-90-flash"), new Cloud("sk-or-test", "example/vision:free") })
                                     {
@@ -28034,7 +28055,7 @@ namespace CapriDesktop
                                         preferences.PaidKey = null;
                                         preferences.PaidModel = null;
                                         SplitKeys();
-                                        if (preferences.Tier != 1 || Voice.Unprotect(preferences.TextKey) != "nvapi-test" || Voice.Unprotect(preferences.NvidiaKey) != "nvapi-test" || preferences.NvidiaModel != "nvidia/nemotron-3.5-super-vl-120b-a12b" || preferences.PaidKey != null) throw new Exception("An old NVIDIA key did not move to HIGHER.");
+                                        if (preferences.Tier != 1 || Voice.Unprotect(preferences.TextKey) != "nvapi-test" || Voice.Unprotect(preferences.NvidiaKey) != "nvapi-test" || preferences.NvidiaModel != "nvidia/nemotron-3.5-super-vl-120b-a12b" || preferences.PaidKey != null) throw new Exception("An old NVIDIA key did not move to MEDIUM INTELLIGENCE.");
                                         preferences.PaidKey = Voice.Protect("sk-ant-test");
                                         preferences.PaidModel = "claude-opus-5-5";
                                         Cloud higher = TierCloud();
@@ -28048,8 +28069,8 @@ namespace CapriDesktop
                                         mainframe.ShowTiers(1, null, null);
                                         string nvidiaNote = mainframe.TierNote;
                                         ShowTiers();
-                                        if (nvidiaNote != "Most NVIDIA models can't see your screen." || mainframe.TierNote != "Pick one. Only one brain runs at a time.") throw new Exception("HIGHER didn't say most NVIDIA models can't see, or the note stayed: " + nvidiaNote + " / " + mainframe.TierNote);
-                                        checks.Add("PASS NVIDIA sight note: with HIGHER picked, the line under BRAIN says most NVIDIA models can't see your screen");
+                                        if (nvidiaNote != "NVIDIA, Gemini, OpenRouter" || mainframe.TierNote != "Pick one. Only one brain runs at a time.") throw new Exception("MEDIUM INTELLIGENCE didn't list its providers, or the note stayed: " + nvidiaNote + " / " + mainframe.TierNote);
+                                        checks.Add("PASS MEDIUM INTELLIGENCE lists NVIDIA, Gemini and OpenRouter under BRAIN");
                                         preferences.PaidKey = null;
                                         ChooseTier(2);
                                         if (preferences.Tier != 2 || brain.Remote != null || preferences.TextKey != null || !mainframe.TextStatus.EndsWith("| Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MAX INTELLIGENCE without its key did not fall back to her own brain: " + mainframe.TextStatus);
@@ -28077,7 +28098,7 @@ namespace CapriDesktop
                                     Brain.Nvidia = realNvidia;
                                     cloudFake.Stop();
                                 }
-                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), HIGHER (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key running her own brain");
+                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), MEDIUM INTELLIGENCE (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key running her own brain");
                                 System.Collections.Generic.List<string> quickAsked = new System.Collections.Generic.List<string>();
                                 System.Net.Sockets.TcpListener quickFake;
                                 Brain.Nvidia = FakeServer(new string[]
