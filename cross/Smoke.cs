@@ -1681,7 +1681,8 @@ namespace CapriDesktop
                                 for (int i = 0; i < got; i++) read.Add(chunk[i]);
                             }
                             string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
-                            string said = replies[Math.Min(replied, replies.Length - 1)];
+                            // After its last reply this brain only ever waits, so the next job never finishes.
+                            string said = replied < replies.Length ? replies[replied] : "{\"do\":\"wait\",\"seconds\":1}";
                             lock (prompts) { prompts.Add(body); replied++; }
                             byte[] bytes = Encoding.UTF8.GetBytes("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(said) + "},\"finish_reason\":\"stop\"}]}");
                             byte[] top = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
@@ -1698,19 +1699,31 @@ namespace CapriDesktop
             Func<byte[]> shootWas = Chores.Shoot;
             Chores.Shoot = delegate { return picture; };
             Chores.Doing = delegate(string what, System.Text.Json.JsonElement step) { done.Add(what + (step.TryGetProperty("x", out System.Text.Json.JsonElement x) ? " " + x.GetRawText() + "," + step.GetProperty("y").GetRawText() : step.TryGetProperty("text", out System.Text.Json.JsonElement text) ? " " + text.GetString() : step.TryGetProperty("keys", out System.Text.Json.JsonElement keys) ? " " + keys.GetString() : "")); };
-            string result;
-            try { result = Chores.Run(new Brain { Server = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port, Model = "eyes-test" }, "send hola qué tal to Ana on Discord", "tell Ana hola qué tal"); }
+            string result, last, ran, endless;
+            int firstReplies;
+            Brain looker = new Brain { Server = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port, Model = "eyes-test" };
+            try
+            {
+                result = Chores.Run(looker, "send hola qué tal to Ana on Discord", "tell Ana hola qué tal");
+                lock (prompts) { last = prompts.Count == 0 ? "" : prompts[prompts.Count - 1]; firstReplies = replied; }
+                ran = string.Join(" | ", done.ToArray());
+                // A brain that never says done: the job gives up after 25 steps and says the last one, on a small screen to stay quick.
+                done.Clear();
+                byte[] small = FakeScreen(new SkiaSharp.SKColor(30, 30, 30));
+                Chores.Shoot = delegate { return small; };
+                endless = Chores.Run(looker, "wait for the match to start", null);
+            }
             finally
             {
                 Chores.Doing = null;
                 Chores.Shoot = shootWas;
                 server.Stop();
             }
-            string last;
-            lock (prompts) last = prompts.Count == 0 ? "" : prompts[prompts.Count - 1];
-            fail("a job run", result == "Did it. Sent it." && string.Join(" | ", done.ToArray()) == "click 640,360 | type hola qué tal | key enter | fly" && replied == 5
+            fail("a job run", result == "Did it. Sent it." && ran == "click 640,360 | type hola qué tal | key enter | fly" && firstReplies == 5
                 && last.IndexOf("image_url", StringComparison.Ordinal) > 0 && last.IndexOf("1280 x 720", StringComparison.Ordinal) > 0 && last.IndexOf("send hola qu", StringComparison.Ordinal) > 0
                 && last.IndexOf("4. fly", StringComparison.Ordinal) > 0 && last.IndexOf("\\\"model\\\"", StringComparison.Ordinal) < 0 && last.IndexOf("eyes-test", StringComparison.Ordinal) > 0);
+            fail("a job that never ends stops at 25 steps", Chores.MostSteps == 25 && endless == "Ran out of steps before finishing. Last: wait at 0, 0" && done.Count == 25 && replied == 30);
+            fail("she never clicks herself", last.IndexOf("The small red-haired girl with a speech bubble is you, Capri: never click her.", StringComparison.Ordinal) > 0);
             Security.Pick(Security.Blackwall);
             List<string> streamLines = new List<string>();
             Chores.Says = streamLines.Add;
@@ -1720,8 +1733,8 @@ namespace CapriDesktop
             string blackwall = Chores.Allowed;
             Security.Pick(Security.Trusted);
             fail("rules follow SECURITY", Chores.Allowed == Chores.Rules && blackwall.IndexOf("Type passwords", StringComparison.Ordinal) > 0 && blackwall.IndexOf("Never", StringComparison.Ordinal) < 0);
-            if (wrong.Count > 0) throw new Exception("Her mouse and keyboard jobs went wrong: " + string.Join(", ", wrong) + " / " + result + " / " + string.Join(" | ", done.ToArray()) + " / " + replied);
-            checks.Add("PASS mouse and keyboard jobs: on Linux use_computer sends her brain the screenshot and the steps so far, takes one JSON step back even wrapped in words, clicks, types and presses keys through her own uinput mouse and keyboard until the brain says done, and never types a card number");
+            if (wrong.Count > 0) throw new Exception("Her mouse and keyboard jobs went wrong: " + string.Join(", ", wrong) + " / " + result + " / " + ran + " / " + endless + " / " + done.Count + " / " + replied);
+            checks.Add("PASS mouse and keyboard jobs: on Linux use_computer sends her brain the screenshot and the steps so far, takes one JSON step back even wrapped in words, clicks, types and presses keys through her own uinput mouse and keyboard until the brain says done or 25 steps go by, is told the red-haired girl with the speech bubble is her so she never clicks herself, and never types a card number");
         }
 
         private void ServeSpeech(NetworkStream stream)

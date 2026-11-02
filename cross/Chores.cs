@@ -31,6 +31,7 @@ namespace CapriDesktop
             "{\"do\":\"done\",\"said\":\"what you did, in one short sentence\"}\n" +
             "{\"do\":\"stop\",\"said\":\"why you can't go on, in one short sentence\"}\n" +
             "Click the middle of what you mean. When the screen already shows the job finished, say done. " +
+            "The small red-haired girl with a speech bubble is you, Capri: never click her. " +
             Secrets + Stops +
             "If the same step didn't change anything twice, try something else or stop.";
 
@@ -43,6 +44,9 @@ namespace CapriDesktop
 
         // Out loud and in her bubble, for her stream.
         internal static Action<string> Says;
+
+        // A job that isn't her stream stops after this many steps, so a brain that never says done can't keep her going for ever.
+        internal const int MostSteps = 25;
 
         internal static string Say(string words)
         {
@@ -78,7 +82,7 @@ namespace CapriDesktop
             List<string> steps = new List<string>();
             Hands.StreamMinute minute = new Hands.StreamMinute();
             System.Diagnostics.Stopwatch live = System.Diagnostics.Stopwatch.StartNew();
-            for (int step = 0; ; step++)
+            for (int step = 0; Hands.Streaming || step < MostSteps; step++)
             {
                 if (Grabbed()) return "You grabbed the mouse, so you stopped. Say what to do next.";
                 byte[] picture = Shoot();
