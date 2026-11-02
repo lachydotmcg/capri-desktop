@@ -1502,7 +1502,7 @@ Quit Capri, then delete the Capri folder you unpacked. Her settings are in ~/.co
 - When you ask her to listen, captured PC audio stays in memory for local transcription and is released afterwards. The words can then go to your chosen brain for an answer or translation.
 
 ### What goes to the services you pick
-- A brain key (NVIDIA, Gemini, OpenRouter, OpenAI, Claude, DeepSeek): your messages, her personality, her notes, memories.md, recent chat and what she saw on your screen lately go to that company. With Watch my screen on, or when you say "check my screen", so does the screenshot. With Remember our chats on, folding sends that company the newest transcript lines too, voice chat lines included, and the few older lines her search finds for a message go with that message.
+- A brain key (NVIDIA, Gemini, OpenRouter, OpenAI, Claude, DeepSeek): your messages, her personality, her notes, memories.md, recent chat and what she saw on your screen lately go to that company. With Watch my screen on, or when you say "check my screen", so does the screenshot. With Remember our chats on, folding sends that company the newest transcript lines too, voice chat lines included, and the few older lines her search finds for a message go with that message. During a job, when her brain checks what's open, the titles of your open windows (trimmed) and which apps are running go to it too. Nothing about your windows is sent before her brain asks.
 - ElevenLabs: the text she says out loud. In ElevenLabs voice chat: your voice, your words, her personality, her notes, memories.md and what she saw lately.
 - Free voice chat in a language other than English uses Windows speech, which goes through Microsoft.
 
