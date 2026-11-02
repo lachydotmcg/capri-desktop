@@ -1856,6 +1856,18 @@ namespace CapriDesktop
                     if (calls.Count == 0 && unable == null && hesitant) Force(calls, request, kit, ref unable);
                     if (calls.Count == 0 && unable == null) raw = Hands.Unpromised;
                 }
+                // "I'll remember that", "reminder set" or "clipped it" with no tool behind it: her hands get a go when they asked for
+                // something, and whatever her hands don't do comes out of her reply (F69, pass 4).
+                else if (act != null && !planned && Hands.Claimed(Clean(raw), calls) != null)
+                {
+                    string claiming = Clean(raw);
+                    if (!reached && Hands.Requested(request))
+                    {
+                        try { Reach(model, request, follows ? recent : new List<ChatMessage>(), calls, ticket, kit); if (Hands.Rescue(request, calls, kit)) unable = kit.Unable("use_computer", null); }
+                        catch (BrainException) { calls.Clear(); }
+                    }
+                    if (calls.Count == 0 && unable == null) raw = Hands.Unclaimed(claiming, calls) ?? Hands.NotYet(Hands.Claimed(claiming, calls), kit);
+                }
                 // "I don't have access to your Spotify" about something they asked for: her hands get a go, then a web search if it was
                 // a lookup, and the refusal stays only if neither fits.
                 else if (refused)
@@ -1914,8 +1926,9 @@ namespace CapriDesktop
                 else
 #endif
                 if (pulled != null) raw = pulled;
-                // Her own last line, from the brain that did the steps, unless it hands them the credit.
-                else if (planText != null && !teaching) raw = Hands.Credits(Clean(planText)) ? done : planText;
+                // Her own last line, from the brain that did the steps, unless it hands them the credit, or a step failed and the
+                // line doesn't say so (F69, pass 4).
+                else if (planText != null && !teaching) raw = Hands.Credits(Clean(planText)) || (results.Exists(Hands.Failed) && !Hands.Admits(Clean(planText))) ? done : planText;
                 else if (stopped || results.Exists(Hands.Failed) || (remote != null && remote.Kind == "nvidia" && !teaching && !calls.Exists(call => call.Key == "look_at_screen" || call.Key == "listen"))) raw = done;
                 else
                 {
@@ -1930,6 +1943,8 @@ namespace CapriDesktop
                     catch (WebException error) { if (error.Status == WebExceptionStatus.RequestCanceled) throw; raw = done; }
                     // "Nice, you opened Notepad" after she opened it gives them the credit, so the plain result goes out instead.
                     if (!teaching && !calls.Exists(call => call.Key == "look_at_screen") && Hands.Credits(Clean(raw))) raw = done;
+                    // A claim no tool this turn backs, like "and your reminder's set" after only opening an app, comes out (F69, pass 4).
+                    else if (Hands.Claimed(Clean(raw), calls) != null) raw = Hands.Unclaimed(Clean(raw), calls) ?? done;
                 }
             }
             bool lately = false;
@@ -2009,11 +2024,14 @@ namespace CapriDesktop
                 else if (picked.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) picked.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
                 if (picked.Count == 0)
                 {
-                    if (calls.Count > 0 || !(Hands.Promised(said) || Hands.Handed(said))) return raw;
-                    if (reminded) return Hands.Unpromised;
+                    // "Reminder set" with no remind behind it is a claim even after other tools ran this turn (F69, pass 4).
+                    string claimed = Hands.Claimed(said, calls);
+                    bool promised = calls.Count == 0 && (Hands.Promised(said) || Hands.Handed(said));
+                    if (claimed == null && !promised) return raw;
+                    if (reminded) return claimed == null ? Hands.Unpromised : Hands.Unclaimed(said, calls) ?? (calls.Count > 0 ? null : Hands.NotYet(claimed, kit));
                     reminded = true;
                     asking.Add(new ChatMessage("assistant", said));
-                    asking.Add(new ChatMessage("user", Hands.Unkept));
+                    asking.Add(new ChatMessage("user", claimed == null ? Hands.Unkept : Hands.Unbacked(claimed)));
                     continue;
                 }
                 List<string> did = new List<string>(), saw = new List<string>();

@@ -16618,6 +16618,82 @@ namespace CapriDesktop
             }
         }
 
+        // She can't say "I'll remember that", "reminder set" or "clipped it" without the tool running, before or after other tools ran
+        // that turn, and her planner's last line can't say a failed step worked (F69, pass 4).
+        private static void SmokeClaims(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> none = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+            Func<string, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>> ran = delegate(string tool) { return new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> { new System.Collections.Generic.KeyValuePair<string, ToolArguments>(tool, new ToolArguments()) }; };
+            string[,] claims =
+            {
+                { "Got it, I'll remember that!", "remember" }, { "Saved that to my notes.", "remember" }, { "I'll remember this day forever.", "" },
+                { "Reminder set for 5pm.", "remind" }, { "I'll remind you at 5.", "remind" }, { "Should I set a reminder?", "" },
+                { "I'll let you know when it's done.", "watch_for" }, { "I'll tell you when I think of one.", "" }, { "I'll keep an eye on it.", "watch_for" },
+                { "We're watching it together now.", "watch_along" }, { "Here come my clones!", "clone" }, { "*dances* Let's go!", "animate" }, { "*grins* Nice one.", "" },
+                { "I'm going to sleep, night!", "nap" }, { "Are you going to sleep?", "" }, { "I'm on my way over.", "move_yourself" }, { "Clipped it!", "clip" },
+                { "I've circled the button.", "draw" }, { "Took a screenshot for you.", "shortcut" }, { "Gaming Mode activated!", "gaming_mode" }, { "Gaming Mode is on.", "" },
+                { "Routine saved.", "routine" }, { "Opened Spotify for you.", "" }, { "You should put that in your notes.", "" }
+            };
+            for (int i = 0; i < claims.GetLength(0); i++)
+                if ((Hands.Claimed(claims[i, 0], none) ?? "") != claims[i, 1]) throw new Exception("\"" + claims[i, 0] + "\" read as a claim for " + (Hands.Claimed(claims[i, 0], none) ?? "nothing") + " instead of " + (claims[i, 1].Length == 0 ? "nothing" : claims[i, 1]));
+            if (Hands.Claimed("Got it, I'll remember that!", ran("remember")) != null || Hands.Claimed("Clipped it!", ran("shortcut")) != null || Hands.Claimed("Opened Spotify and set a reminder for 5.", ran("open_app")) != "remind"
+                || Hands.Unclaimed("Blue's elite. I'll remember that, choom.", none) != "Blue's elite." || Hands.Unclaimed("*dances* Let's go!", none) != "Let's go!" || Hands.Unclaimed("Reminder set!", none) != null
+                || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet, choom. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
+                || !Hands.Admits("Couldn't open it, choom.") || Hands.Admits("Queued you up, choom."))
+                throw new Exception("Her claims weren't checked against the tools that ran.");
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake = null;
+            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+            Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+            Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string> openWas = Computer.GameOpen;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            try
+            {
+                Brain.OpenAi = FakeServer(new[]
+                {
+                    says("Blue's elite. I'll remember that, choom."), calls("remember", "{\"text\":\"Their favourite colour is blue.\"}"), says("Saved it, choom."),
+                    says("Octopuses have three hearts. I'll remember that."), says("chat"),
+                    says("Opened Spotify and set a reminder for later, choom."),
+                    calls("open_app", "{\"name\":\"Discord\"}"), says("Discord's up and I set a reminder to stretch."), says("Discord's up, choom."),
+                    calls("open_app", "{\"name\":\"Spotify\"}"), says("Spotify's open, choom!")
+                }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                Computer.GameOpen = delegate { return null; };
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Brain chat = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini") };
+                chat.Act = delegate(string name, ToolArguments args) { did.Add(name); return name == "remember" ? "I'll remember: " + args.Text : name == "open_app" ? "Opened " + args.Name + "." : "Done."; };
+                string saved = chat.Ask("my favourite colour is blue");
+                string stripped = chat.Ask("say something cool");
+                string opened = chat.Ask("open spotify");
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name); return args.Name == "Spotify" ? "No app called Spotify is installed on this PC." : "Opened " + args.Name + "."; };
+                string discord = planner.Ask("open discord");
+                string failed = planner.Ask("open spotify");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (saved != "Saved it, choom." || stripped != "Octopuses have three hearts." || opened != "Opened spotify." || discord != "Discord's up, choom." || failed != "No app called Spotify is installed on this PC."
+                    || string.Join(",", did.ToArray()) != "remember,open_app,open_app,open_app" || sent.Length != 11 || !sent[8].Contains("You said you did something that needs remind"))
+                    throw new Exception("A claim with no tool behind it reached them: " + saved + " / " + stripped + " / " + opened + " / " + discord + " / " + failed + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                checks.Add("PASS claims: \"I'll remember that\", reminders, watches, watching along, clones, dancing, naps, moving, clips, drawing, screenshots, Gaming Mode and routines count as claims, questions and chat don't; a claim with no tool gives her hands a go and comes out of her reply when they find nothing, a claim after other tools ran comes out too, her planner gets one reminder for it, and her planner's last line can't say a failed step worked");
+            }
+            finally
+            {
+                Hands.Windows = windowsWas;
+                Computer.GameOpen = openWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         private void SmokeGameWatch(System.Collections.Generic.List<string> checks)
         {
             Func<Sight> glimpseBefore = Computer.Glimpse;
@@ -18945,6 +19021,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeGameAsks(checks); });
                             Section(checks, delegate { SmokeWorkingOut(checks); });
                             Section(checks, delegate { SmokePlannerStatus(checks); });
+                            Section(checks, delegate { SmokeClaims(checks); });
                             Section(checks, delegate { SmokeSighted(checks); });
                             Section(checks, delegate { SmokeGameNotes(checks); });
                             Section(checks, delegate { SmokeLongJob(checks); });

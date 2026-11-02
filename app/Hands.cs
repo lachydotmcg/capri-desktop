@@ -1791,6 +1791,92 @@ namespace CapriDesktop
 
         internal static bool Credits(string said) { return Credit.IsMatch((said ?? "").Replace('’', '\'')); }
 
+        // What she says she did that only one of her tools does, the tools that do it, and her line when nothing else is left to
+        // say (F69, pass 4). "I'll remember that", "reminder set", "I'll tell you when" and "clipped it" with no tool behind them
+        // were how a brain invented memories and reminders that never happened.
+        private static readonly string[,] Claims =
+        {
+            { "remember", "remember", @"\bi(?:'ll| will) (?:remember|save|note) (?:that|this|it)\b(?! (?:day|moment|night|forever|one))|\b(?:saved|added|noted|wrote|written|jotted|stored|put|logged) (?:(?:that|this|it) )?(?:down )?(?:to|in|into) (?:my )?(?:notes|memory|memories|me\.md)\b|\b(?:memory|note) (?:saved|added|stored|updated)\b|\bnoted (?:that|this|it) down\b|\bi(?:'ve| have) (?:made a note of|remembered) (?:that|this|it)\b",
+                "I haven't saved that to my notes yet, choom. Say remember and what to keep." },
+            { "remind", "remind routine", @"\breminder(?:'s| is)? (?:set|saved|added|created|scheduled)\b|\bi(?:'ll| will) remind you\b|(?<!\b(?:you|u|can|could|should|to|please|pls|gonna|wanna|want|how|i'd|i would)\s)\b(?:set|added|created|scheduled|made) (?:a|an|the|your|that) (?:\w+ )?reminder\b",
+                "I haven't set that reminder yet. Say remind me, what and when." },
+            { "watch_for", "watch_for", @"\bi(?:'ll| will) (?:tell|let) you know (?:when|as soon as|the moment|the second) (?:it|that|this|the|your|they|he|she|someone|something|a|an)\b|\bi(?:'ll| will) (?:keep|have) an eye (?:on|out)\b|\bi(?:'ll| will) (?:watch|look out) for\b|\bi(?:'m| am) (?:now )?(?:watching|keeping an eye on|keeping watch on) (?:your|the) screen\b",
+                "I'm not watching your screen for that yet. Say tell me when, and what to look for." },
+            { "watch_along", "watch_along", @"\b(?:i'm|i am|we're|we are) (?:now )?watching (?:it|this|that|the (?:video|stream|movie|show|episode)) (?:with you|together)\b|\bwatching along (?:with you)?\b",
+                "I'm not watching along yet. Say watch this with me." },
+            { "clone", "clone", @"\b(?:i(?:'ve| have)? )?(?:cloned|duplicated|multiplied) myself\b|\b(?:here come|spawned|summoned|unleashed|made) (?:my |some |a few |\d+ )?(?:clones|copies of me)\b|\bchaos mode (?:is )?(?:on|activated|engaged|enabled)\b|\b(?:my )?clones (?:are )?(?:gone|cleared|deployed)\b",
+                "No clones yet, choom. Say clone yourself." },
+            { "animate", "animate mini_game", @"\*(?:dances?|dancing|busts? a move|breaks? into a dance)\b[^*\n]{0,30}\*|\bi(?:'m| am) (?:now )?dancing\b",
+                "I didn't move just now. Say dance and I will." },
+            { "nap", "nap", @"\bi(?:'m| am) (?:going|heading|off) (?:to sleep|to bed|for a nap)\b|\bi(?:'m| am) (?:now )?(?:taking|having) a (?:quick |little )?nap\b|\btime for my nap\b|\*(?:yawns and )?(?:falls asleep|curls up and sleeps|snores)\*",
+                "I'm not napping yet. Say take a nap." },
+            { "move_yourself", "move_yourself", @"\bi(?:'m| am) (?:coming|on my way|heading) (?:over|to you|to your (?:mouse|cursor|screen|monitor))\b|\bi(?:'m| am) (?:now )?(?:sitting|lying|perched|riding) (?:on|down on|along) (?:your|the) (?:taskbar|cursor|mouse|\w+ window|window)\b|\b(?:hopped|hopping|jumped) (?:on|off) (?:your|the) (?:cursor|mouse)\b|\bteleport(?:ed|ing) (?:over )?to (?:you|your)\b",
+                "I haven't moved yet. Tell me where to go." },
+            { "clip", "clip shortcut", @"\b(?:i(?:'ve| have)? )?(?:just )?clipped (?:it|that|this|the last)\b|\bclip(?:'s| is)? (?:saved|done)\b|\bsaved (?:a|the|that|your) clip\b",
+                "I haven't clipped anything yet. Say clip that while your game's open." },
+            { "draw", "draw use_computer", @"\bi(?:'ve| have)? (?:just )?(?:drawn|drew|circled|underlined|sketched|doodled|annotated) (?:it|that|this|a|an|the|some|on|around|your)\b|\b(?:drawing|circling|sketching|doodling) (?:it|that|this|on your screen) (?:now|for you)\b",
+                "I haven't drawn anything yet. Tell me what to draw on your screen." },
+            { "shortcut", "shortcut use_computer open_app", @"\b(?:took|taken|snapped|grabbed) (?:a|the|your) screenshot\b|\bscreenshot (?:taken|saved|done)\b|\b(?:i(?:'ve| have) )?(?:started|stopped) (?:the |a )?recording\b",
+                "I haven't pressed anything yet. Tell me which shortcut." },
+            { "gaming_mode", "gaming_mode", @"\bgaming mode(?:'s| is)? (?:now )?(?:activated|enabled|disabled|engaged)\b|\bgaming mode(?:'s| is) now (?:on|off)\b|\b(?:turned|switched) (?:gaming mode (?:on|off)|(?:on|off) gaming mode)\b",
+                "Gaming Mode hasn't changed yet. Say gaming mode on or off." },
+            { "routine", "routine", @"\b(?:saved|set up|created|made) (?:the|that|your|a|this) routine\b|\broutine (?:saved|set|created)\b",
+                "I haven't saved a routine yet. Say when I say, then what to do." }
+        };
+
+        // The first tool her reply says she used that didn't run this turn, or null.
+        internal static string Claimed(string reply, List<KeyValuePair<string, ToolArguments>> calls)
+        {
+            foreach (string sentence in Sentences(reply))
+            {
+                string tool = ClaimIn(sentence, calls);
+                if (tool != null) return tool;
+            }
+            return null;
+        }
+
+        // Her reply without what it says she did that didn't happen, or null when nothing else is left.
+        internal static string Unclaimed(string reply, List<KeyValuePair<string, ToolArguments>> calls)
+        {
+            List<string> kept = Sentences(reply).FindAll(sentence => ClaimIn(sentence, calls) == null);
+            string rest = string.Join(" ", kept.ToArray()).Trim();
+            return Regex.IsMatch(rest, @"[\p{L}\p{N}]") ? rest : null;
+        }
+
+        // Her line when all she said was something she didn't do: what isn't here says so, the rest says how to ask for it.
+        internal static string NotYet(string tool, Kit kit)
+        {
+            string line = kit == null ? null : Cannot(kit, tool, null);
+            for (int i = 0; i < Claims.GetLength(0) && line == null; i++) if (Claims[i, 0] == tool) line = Claims[i, 3];
+            return line ?? Unpromised;
+        }
+
+        // The planner's note when its line says it did something a tool didn't do this turn.
+        internal static string Unbacked(string tool) { return "You said you did something that needs " + tool + ", but " + tool + " didn't run this turn, so it hasn't happened. Call it now, or reply without saying it's done."; }
+
+        // A question, like "should I set a reminder?", offers it instead of saying it's done.
+        private static string ClaimIn(string sentence, List<KeyValuePair<string, ToolArguments>> calls)
+        {
+            string text = sentence.Replace('’', '\'');
+            if (Regex.IsMatch(text, @"[?？]\W*$")) return null;
+            for (int i = 0; i < Claims.GetLength(0); i++)
+            {
+                string[] backers = Claims[i, 1].Split(' ');
+                if (calls != null && calls.Exists(call => Array.IndexOf(backers, call.Key) >= 0)) continue;
+                if (Regex.IsMatch(text, Claims[i, 2], RegexOptions.IgnoreCase)) return Claims[i, 0];
+            }
+            return null;
+        }
+
+        // Her reply in sentences, with a roleplay action like *dances* on its own.
+        private static List<string> Sentences(string reply)
+        {
+            return new List<string>(Regex.Split((reply ?? "").Trim(), @"(?<=[.!?…]|\*(?=\s))\s+|\s*\n+\s*")).FindAll(sentence => sentence.Length > 0);
+        }
+
+        // A last line that owns up to something going wrong, so it can stand after a tool failed.
+        internal static bool Admits(string reply) { return Regex.IsMatch((reply ?? "").Replace('’', '\''), @"\b(?:can't|cannot|couldn't|didn't|did not|won't|wasn't|isn't|not|no|nope|failed|fail|unable|sorry|problem|error|trouble|wrong|nothing|missing|instead)\b", RegexOptions.IgnoreCase); }
+
         private static readonly Regex Doing = new Regex(@"^((i (want|need) (you|u) to|go ahead and|just|now|then|and)\s+)*(send|dm|pm|message|msg|text|ping|tell|say|ask|type|write|post|tweet|reply|respond|put|paste|share|open|launch|start|run|close|quit|exit|kill|join|leave|end|hang up|call|ring|turn|shut|power|switch|restart|reboot|sleep|lock|log|sign|mute|unmute|deafen|undeafen|play|pause|skip|go|click|tap|press|scroll|search|google|find|make|create|delete|remove|add|invite|kick|ban|block|unblock|react|pin|accept|decline|install|uninstall|download|change|set|minimi[sz]e|maximi[sz]e|move|copy|rename|save|record|clip|fill|submit|hop|get on|get off|pick up|answer|reject)\b(?!\s+(me|us)\b)", RegexOptions.IgnoreCase);
         private static readonly Regex Hesitation = new Regex(@"\b(do you want me to|you want me to|want me to|would you like me to|should i|shall i|is it ok(ay)? (if i|for me to|to)|ok(ay)? (if i|for me to|to)|mind if i|are you sure|you sure|just to (check|confirm)|(can|could) you confirm|confirm(ing)?|double[- ]?check(ing)?|ready (for me )?to)\b[^.!?]{0,160}?\b(send|sent|post|messag|dm|text|typ|writ|past|shar|repl|open|launch|start|clos|quit|join|leav|end|hang|call|ring|shut|turn|power|restart|reboot|sleep|lock|sign|log|delet|remov|click|press|mut|unmut|deafen|undeafen|play|paus|skip|search|install|uninstall|go ahead|proceed|do (it|that|this))\w*" +
             @"|\b(say the word|just say (yes|go|so|the word)|give me the (go[- ]ahead|ok|okay|word|green light)|(with|on) your (ok|okay|go[- ]ahead|say[- ]so)|let me know (if|when) (you want|you'?re ready|to go|it'?s ok))\b|\b(is that|that) (right|correct|ok(ay)?|what you want)\s*\?|^\W*(are you sure|you sure|really|confirm)\W*$", RegexOptions.IgnoreCase);
