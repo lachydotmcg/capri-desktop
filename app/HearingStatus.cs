@@ -180,7 +180,9 @@ namespace CapriDesktop
         private void UpdateHearing()
         {
             if (mainframe == null || mainframe.IsDisposed) return;
+            bool problem = hearingStatus != null && hearingStatus.Problem;
             hearingStatus = ReadHearing();
+            if (problem && !hearingStatus.Problem) earsMended++;
             mainframe.ShowHearing(hearingStatus);
         }
 
@@ -457,23 +459,43 @@ namespace CapriDesktop
                 expect("Mic is too quiet: raise its input volume", true, "Test mic | Pick another mic");
                 HeardLevel(0.03);
                 expect("Hearing: Windows speech · default mic (Realtek) · working", false, "");
-                // A real problem while she's still saying a line shows under VOICE, waits for her to finish, then is said once if it's
-                // still the problem.
+                // A real problem while she's still saying a reply shows under VOICE, waits for her to finish, then is said once
+                // unless her hearing recovered meanwhile. A reply has its own ticket, which tells it from her last ears note.
                 talkState = TalkState.Talking;
-                int midLine = asking;
+                int midLine = ++asking;
                 EarsNote("Mic failed: test", true);
                 if (asking != midLine || mainframe.VoiceNoteText != "Mic failed: test") throw new Exception("A hearing problem cut into her line.");
                 talkState = TalkState.Online;
                 voiceUntil = 0;
                 SayHeldEarsNote();
                 if (asking == midLine || reply != "Mic failed: test") throw new Exception("A hearing problem held for her line was never said.");
+                // Her ears failing on a line while she talks hold "Say it again?", though VOICE then shows what went wrong.
                 talkState = TalkState.Talking;
-                midLine = asking;
-                EarsNote("Mic failed: gone", true);
-                mainframe.VoiceNote("Hearing: her own ears · mic · working", false);
+                midLine = ++asking;
+                earsWarned = -100;
+                HeardLocally(chatTicket, asking, null, "Test ears failure.");
+                bool glitchHeld = asking == midLine && mainframe.VoiceNoteText == "Test ears failure.";
                 talkState = TalkState.Online;
                 SayHeldEarsNote();
-                if (asking != midLine) throw new Exception("A hearing problem that cleared while she talked was still said.");
+                bool glitchSaid = asking != midLine && reply == EarsGlitched;
+                HearingResult(null, true);
+                // A mic unplugged while she talks is held too, and plugging one back in before she's done drops it, though VOICE
+                // still says it.
+                talkState = TalkState.Talking;
+                midLine = ++asking;
+                devices.Clear();
+                currentDefault = null;
+                RefreshHearingDevices();
+                hearingSaid = null;
+                HearingNote();
+                bool unplugHeld = asking == midLine && mainframe.VoiceNoteText == "No mic found";
+                devices.Add(new Mic("usb", "USB Mic")); devices.Add(new Mic("default", "Realtek"));
+                currentDefault = "default";
+                RefreshHearingDevices();
+                talkState = TalkState.Online;
+                SayHeldEarsNote();
+                if (!glitchHeld || !glitchSaid || !unplugHeld || asking != midLine)
+                    throw new Exception("A held hearing problem went wrong: glitch held " + glitchHeld + ", glitch said " + glitchSaid + ", unplugged held " + unplugHeld + ", said after the mic was back " + (asking != midLine) + ", VOICE " + mainframe.VoiceNoteText);
                 StopChat();
                 checks.Add("PASS hearing: working own ears and Windows default mic, route changes, no mic, blocked, silent and quiet show their exact words and only fitting accessible actions; Sound, privacy, type, test and picker actions use stand-ins; silence shows on the hearing line without being said and recovers; a problem never cuts into her line and is said after it only while it's still the problem");
 
