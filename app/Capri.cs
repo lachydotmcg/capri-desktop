@@ -1299,6 +1299,8 @@ namespace CapriDesktop
         private double drawnLean;
         private float drawnBreath, drawnTilt;
         private bool fullScreenHidden, manualHidden, frontBusy;
+        // A full-screen game or video is in front and Gaming Mode hasn't docked her, so clicks go through her windows to it.
+        private bool fullThrough;
         private double frontChecked = -1;
         private readonly AwayInput awayInput = new AwayInput();
         private const double ExploreFor = 1800;
@@ -5399,8 +5401,9 @@ namespace CapriDesktop
             else if (playerClosed && now - tuneHeard >= PlayerQuiet) { playerClosed = false; tuneHeard = -1; }
             bool allowed = PlayerAllowed && !playerClosed;
             bool up = allowed && tune != null && tuneHeard >= 0 && now - tuneHeard < PlayerLinger && (preferences.PlayerFullScreen || !FullScreen());
-            // Never out from under them while they're using it.
-            if (!up && allowed && player.Busy) { up = true; tune = tune ?? player.Tune; }
+            // Never out from under them while they're using it. Over full screen it lets clicks through, so a mouse resting on
+            // it there doesn't count.
+            if (!up && allowed && player.Busy && !fullThrough) { up = true; tune = tune ?? player.Tune; }
             if (!up) { HidePlayer(); return; }
             // A read from before their last press may not have the press in it yet.
             if (player.Visible && asked < player.SentAt + 0.3) return;
@@ -6026,6 +6029,9 @@ namespace CapriDesktop
 
         private void CheckFullScreen(bool full)
         {
+            // Checked again while it lasts, so a window of hers that's made meanwhile lets clicks through too.
+            bool through = full && !docked;
+            if (through || fullThrough) { fullThrough = through; PassThrough(); }
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
             if (fullScreenHidden == shouldHide) return;
             fullScreenHidden = shouldHide;
@@ -7143,7 +7149,8 @@ namespace CapriDesktop
         }
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
-        // for one of her presses, so between presses they can drag her and the panel out of the way.
+        // for one of her presses, so between presses they can drag her and the panel out of the way. Over a full-screen game or
+        // video she, her pill, her bubble and her mini player all do, so a click meant for it can't close or open anything of hers.
         private void PassThrough()
         {
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player })
@@ -7151,8 +7158,9 @@ namespace CapriDesktop
                 if (!form.IsHandleCreated) continue;
                 int style = Native.GetWindowLong(form.Handle, -20);
                 if ((style & 0x80000) == 0) continue;
-                bool through = lentOut || (form == this ? riding : form != taskPanel && pointing);
-                Native.SetWindowLong(form.Handle, -20, through ? style | 0x20 : style & ~0x20);
+                bool through = lentOut || (fullThrough && form != taskPanel) || (form == this ? riding : form != taskPanel && pointing);
+                int wanted = through ? style | 0x20 : style & ~0x20;
+                if (wanted != style) Native.SetWindowLong(form.Handle, -20, wanted);
             }
         }
 
@@ -8537,8 +8545,8 @@ namespace CapriDesktop
         private const double PillPop = 3;
 
         // Only the cursor on her or on the pill, or the open typer, keeps it up. Her replies and voice chat don't hold it there,
-        // including while she's sitting on a window.
-        private bool PillHeld(bool hovered) { return hovered || typer.Visible; }
+        // including while she's sitting on a window, and over full screen the cursor doesn't either.
+        private bool PillHeld(bool hovered) { return (hovered && !fullThrough) || typer.Visible; }
 
         private void UpdatePill(double now)
         {
@@ -10660,6 +10668,7 @@ namespace CapriDesktop
             Preferences desktopPreferences = preferences;
             Func<bool> desktopFull = FullScreen;
             Func<GameSeen> desktopFind = gaming.Find;
+            Func<Point> desktopMouse = MiniPlayer.Mouse;
             bool desktopHidden = hidden, desktopManual = manualHidden, desktopAutomatic = fullScreenHidden, desktopInstant = instant, desktopBusy = frontBusy;
             Ledge desktopSeat = seat;
             Clip desktopClip = clip;
@@ -10712,6 +10721,25 @@ namespace CapriDesktop
                 preferences.PlayerFullScreen = true;
                 Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
                 if (!player.Visible) throw new Exception("The mini player stayed away with its full-screen switch on.");
+                // Over full screen, clicks go through her, her bubble, her pill and her mini player, hovering doesn't hold her pill
+                // up and a mouse resting on the player doesn't keep it there. Leaving full screen gives it all back.
+                Func<Form, bool> letThrough = delegate(Form form) { return (Native.GetWindowLong(form.Handle, -20) & 0x20) != 0; };
+                CheckFullScreen(false);
+                bool clickable = !letThrough(this) && !letThrough(pill) && !letThrough(box) && !letThrough(player) && PillHeld(true);
+                CheckFullScreen(true);
+                bool passedOn = letThrough(this) && letThrough(pill) && letThrough(box) && letThrough(player) && PillHeld(true) == PillHeld(false);
+                MiniPlayer.Mouse = delegate { return new Point(player.Left + player.Width / 2, player.Top + player.Height / 2); };
+                preferences.PlayerFullScreen = false;
+                Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
+                bool restedOff = !player.Visible;
+                preferences.PlayerFullScreen = true;
+                Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
+                bool shownThrough = player.Visible && letThrough(player);
+                CheckFullScreen(false);
+                bool cameBack = !letThrough(this) && !letThrough(pill) && !letThrough(box) && !letThrough(player) && PillHeld(true);
+                MiniPlayer.Mouse = desktopMouse;
+                if (!clickable || !passedOn || !restedOff || !shownThrough || !cameBack) throw new Exception("Her windows over full screen went wrong: before " + clickable + ", over " + passedOn + ", rested player gone " + restedOff + ", shown player " + shownThrough + ", after " + cameBack);
+                checks.Add("PASS over full screen she, her bubble, her pill and her mini player let clicks through, hovering doesn't hold her pill up, a mouse resting on the player doesn't keep it up, and leaving full screen takes clicks again");
                 preferences.NoPlayer = true;
                 HidePlayer();
                 int desktopWatch = watchTicket, desktopAway = exploreTicket, desktopGlances = glanced.Count;
@@ -10752,7 +10780,10 @@ namespace CapriDesktop
                 StopExplore();
                 preferences = desktopPreferences;
                 FullScreen = desktopFull;
+                MiniPlayer.Mouse = desktopMouse;
                 docked = riding = false;
+                fullThrough = false;
+                PassThrough();
                 frontBusy = desktopBusy;
                 fullScreenHidden = desktopAutomatic;
                 manualHidden = desktopManual;
