@@ -7171,9 +7171,11 @@ namespace CapriDesktop
             // stuck behind her glances (ticket 88, Void: 180 s timeouts with Watch every 10 s on a local Gemma).
             double took = double.IsNaN(glanceStart) ? 0 : clock.Elapsed.TotalSeconds - glanceStart;
             glanceStart = double.NaN;
-            if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, clock.Elapsed.TotalSeconds + took * 2);
             if (watch != watchTicket || (awayWatch >= 0 ? !exploring || awayWatch != exploreTicket || !ExploreFree() || Native.GetForegroundWindow() != exploreWindow || awayInput.Quiet() < (long)ExploreAfter * 1000 : !preferences.Watch)) return;
-            if (brain.ScreenWait > 0) nextGlance = clock.Elapsed.TotalSeconds + brain.ScreenWait;
+            // Only a look Watch still wants moves its timer, and a provider's wait only adds to it, like in CheckGlance.
+            double finished = clock.Elapsed.TotalSeconds, wait = brain.ScreenWait;
+            if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, finished + took * 2);
+            if (wait > 0) nextGlance = Math.Max(nextGlance, finished + wait);
             string unseen = Unseeing();
             if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? problem; mainframe.ShowProblem(glanceProblem); return; }
             if (glanceProblem != null && said != null)
@@ -34631,14 +34633,19 @@ namespace CapriDesktop
                             double slowFrom = nextGlance;
                             nextGlance = -1;
                             glanceStart = clock.Elapsed.TotalSeconds - 30;
-                            FinishGlance(asking, oldWatch, null, null);
+                            FinishGlance(asking - 1, watchTicket, null, null);
                             double slowNext = nextGlance - clock.Elapsed.TotalSeconds;
                             glanceStart = clock.Elapsed.TotalSeconds - 2;
                             nextGlance = slowFrom;
-                            FinishGlance(asking, oldWatch, null, null);
-                            if (slowNext < 59 || slowNext > 61 || nextGlance != slowFrom || !double.IsNaN(glanceStart)) throw new Exception("A 30 s glance didn't wait a minute before the next, or a quick one waited: " + slowNext + " / " + (nextGlance - slowFrom));
+                            FinishGlance(asking - 1, watchTicket, null, null);
+                            bool quickKept = nextGlance == slowFrom;
+                            // A slow look from before Watch was restarted leaves the new timer alone.
+                            glanceStart = clock.Elapsed.TotalSeconds - 180;
+                            FinishGlance(asking - 1, oldWatch, null, null);
+                            bool oldKept = nextGlance == slowFrom;
+                            if (slowNext < 59 || slowNext > 61 || !quickKept || !oldKept || !double.IsNaN(glanceStart)) throw new Exception("A 30 s glance didn't wait a minute before the next, a quick one waited, or one from before Watch restarted moved its timer: " + slowNext + ", quick kept " + quickKept + ", old kept " + oldKept);
                             nextGlance = slowFrom;
-                            checks.Add("PASS slow glances: a look that took 30 s waits a minute before the next one, so a slow brain has room for chat, and quick looks keep their timer");
+                            checks.Add("PASS slow glances: a look that took 30 s waits a minute before the next one, so a slow brain has room for chat, quick looks keep their timer, and a look from before Watch was restarted leaves the new one's timer alone");
                             lastPrint = new byte[64 * 36 * 3];
                             FinishGlance(asking - 1, watchTicket, "That chest looks good.", null);
                             if (reply != null || lastPrint != null) throw new Exception("An interrupted glance spoke or prevented the next try.");
