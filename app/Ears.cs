@@ -306,7 +306,16 @@ namespace CapriDesktop
                 throw new VoiceException(OnlyCable);
             }
             string previous = openedId;
-            openedId = resolve(Chosen);
+            string opening = resolve(Chosen);
+            // The mics can change between that check and this one, so what she's about to open is checked too: no safe mic left
+            // means Windows' default, and that or the pick itself can be the cable by now (Codex review, 2 Nov).
+            if (!fake && MicMix.IsCableOut(opening == null ? DefaultName() : FullName(opening)))
+            {
+                Brain.Log("ears", -1, OnlyCable);
+                if (Changed != null) Changed(OnlyCable);
+                throw new VoiceException(OnlyCable);
+            }
+            openedId = opening;
             if (!string.Equals(previous, openedId, StringComparison.OrdinalIgnoreCase)) preferModern = false;
             routeAt = Environment.TickCount + 2000;
             string name = FullName(openedId) ?? openedId ?? "Windows default";
@@ -319,7 +328,11 @@ namespace CapriDesktop
                     WaveFormat format = WaveFormat.Mono(Rate);
                     signal = new AutoResetEvent(false);
                     int size = Marshal.SizeOf(typeof(WaveHeader));
-                    CheckWave(waveInOpen(out device, Pick(openedId), ref format, signal.SafeWaitHandle.DangerousGetHandle(), IntPtr.Zero, 0x00050000), "open");
+                    int index = Pick(openedId);
+                    // A mic that went away since isn't swapped for the wave mapper while Windows' default is the cable. WASAPI
+                    // opens it by its id below, or fails.
+                    if (index < 0 && openedId != null && MicMix.IsCableOut(DefaultName())) throw new IOException("It went away, and Windows' default is the cable.");
+                    CheckWave(waveInOpen(out device, index, ref format, signal.SafeWaitHandle.DangerousGetHandle(), IntPtr.Zero, 0x00050000), "open");
                     headers = new IntPtr[Buffers];
                     for (int i = 0; i < Buffers; i++)
                     {

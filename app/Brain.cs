@@ -3609,6 +3609,8 @@ namespace CapriDesktop
         private static readonly Regex Pass = new Regex(@"^(skip|pass|next|no|nah|nope|none|nothing|not much|not really|idk|i don'?t know|dunno|not sure|rather not|i'?d rather not|prefer not to say|no thanks|no thank you|not telling)(\s+(it|this|that|one|this one|that one|please|pls|thanks|really|much|tbh|honestly|lol))*\W*$", RegexOptions.IgnoreCase);
         private static readonly Regex Halt = new Regex(@"^(stop|quit|cancel|enough|end|done|not now|later|maybe later|another time|skip (all|everything|it all|them all|the rest)|no more( questions)?|that'?s enough|stop asking( me)?( questions)?)(\s+(please|pls|thanks))?\W*$", RegexOptions.IgnoreCase);
         private static readonly Regex Called = new Regex(@"^(?:(?:you can |u can |just |please |pls |my friends |friends |people |everyone |most people )?call me|my (?:first |nick)?name(?:'s| is)|(?:the )?name'?s|i'?m|i am|it'?s|it is|they call me|i go by|people call me|everyone calls me)\s+(?<n>.+)$", RegexOptions.IgnoreCase);
+        // "Cursed, it's my nickname" or "Cursed is my name": the name is what comes before (ticket 91).
+        private static readonly Regex Explained = new Regex(@"(?:[\s,.!;:-]+(?:it'?s|its|that'?s|thats|is|which is)|'s)\s+(?:my|the)\s+(?:(?:first|nick|user|real|gamer|screen|display)\s?)?(?:name|tag|handle)\b.*$", RegexOptions.IgnoreCase);
         private static readonly Regex Into = new Regex(@"^(?:i'?m (?:really |mostly |super )?into|i am (?:really |mostly )?into|into|i (?:really )?(?:like|love|enjoy)|mostly|probably|honestly|um+|uh+)[\s,:]+", RegexOptions.IgnoreCase);
         private static readonly Regex Asked = new Regex(@"^\W*(what|who|how|why|when|where|which|can|could|would|will|should|do|does|did|is|are|r u|have you)\b.*\?\W*$", RegexOptions.IgnoreCase);
         private int step = -1;
@@ -3646,10 +3648,8 @@ namespace CapriDesktop
             {
                 if (step == 0)
                 {
-                    Match named = Called.Match(text);
-                    string typed = Regex.Replace(named.Success ? named.Groups["n"].Value : text, @"[\s,]+(please|pls|thanks|thank you|thx|lol|haha|lmao)\W*$", "", RegexOptions.IgnoreCase);
-                    if (!named.Success && Regex.Matches(typed, @"\S+").Count > 4) { step = -1; return null; }
-                    called = Brain.Nick(typed);
+                    called = NameIn(text);
+                    if (called == null) { step = -1; return null; }
                     name = called.Length == 0 ? null : called;
                     if (name != null) Keep("Name", name);
                     lead = name == null ? "Choom it is. " : "Nice to meet you, " + name + ". ";
@@ -3673,6 +3673,16 @@ namespace CapriDesktop
         }
 
         private string Ask() { return step == 0 ? AskCalled : step == 1 ? AskPronouns : AskInto; }
+
+        // What to call them from their answer, "" for choom, or null when it runs too long to be a name.
+        internal static string NameIn(string text)
+        {
+            Match named = Called.Match(text ?? "");
+            string typed = Regex.Replace(named.Success ? named.Groups["n"].Value : text ?? "", @"[\s,]+(please|pls|thanks|thank you|thx|lol|haha|lmao)\W*$", "", RegexOptions.IgnoreCase);
+            typed = Explained.Replace(typed, "");
+            if (!named.Success && Regex.Matches(typed, @"\S+").Count > 4) return null;
+            return Brain.Nick(typed);
+        }
 
         // A question, or something for her to do, isn't an answer. What they're into can run long, so there only a real question
         // or a quick job counts.
