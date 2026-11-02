@@ -560,6 +560,8 @@ namespace CapriDesktop
         // Free voice in games is off out of the box (Lachy, 29 Oct): her HD voice keeps talking while a game is full screen.
         // On, her free voice takes over while anything is full screen, so the game gets the graphics card back.
         [DataMember] public bool HdGameRest;
+        // Her voice in your mic (F66): their mic and her voice go into VB-CABLE's input for Discord or Roblox. Off out of the box.
+        [DataMember] public bool VoiceInMic;
         [DataMember] public int VoicePitch;
         [DataMember] public int VoiceSpeed = 100;
         [DataMember] public int VoiceRobot;
@@ -1825,6 +1827,12 @@ namespace CapriDesktop
             HerCursor.Marker = Path.Combine(data, "her-cursor.on");
             // Smoke tests never touch the real Windows cursor.
             if (smoke) HerCursor.Apply = delegate(bool on) { cursorSwaps.Add(on); };
+            // Nor a real audio device for her voice in your mic, or Windows' choice of default mic.
+            if (smoke)
+            {
+                MicMix.Devices = new StandInDevices();
+                Ears.DefaultName = delegate { return "Microphone (stand-in)"; };
+            }
             HerCursor.Recover();
             CloneWindow.Marker = Path.Combine(data, "moved-windows.txt");
             CloneWindow.Recover();
@@ -1876,6 +1884,7 @@ namespace CapriDesktop
             Security.SetHey = SetHeyCapri;
             Security.Changed = SecurityChanged;
             ears.Chosen = preferences.Mic;
+            if (!smoke) MixVoice();
             kokoro.Style = LocalVoice.Find(preferences.VoiceStyle);
             Brain.Language = Brain.LanguageCode(preferences.Language) == "en" ? null : preferences.Language;
             PointEars();
@@ -2150,6 +2159,7 @@ namespace CapriDesktop
                 CheckEars(clock.Elapsed.TotalSeconds);
                 CheckWake(clock.Elapsed.TotalSeconds);
                 CheckSlow(clock.Elapsed.TotalSeconds);
+                CheckVoiceInMic(signalNow);
                 UpdatePill(clock.Elapsed.TotalSeconds);
                 if (!testing && UpdateDue(preferences.UpdateCheckedAt, DateTime.UtcNow.Ticks, clock.Elapsed.TotalSeconds, updateStarted)) CheckForUpdates(false);
             };
@@ -2639,7 +2649,7 @@ namespace CapriDesktop
 
         private static void OpenPage(string page)
         {
-            if (page != OllamaPage && page != FreeKeyPage && page != GeminiKeyPage && page != RouterKeyPage && page != GuidePage && page != DiscordPage && page != HelpPage && page != SupportPage) return;
+            if (page != OllamaPage && page != FreeKeyPage && page != GeminiKeyPage && page != RouterKeyPage && page != GuidePage && page != DiscordPage && page != HelpPage && page != SupportPage && page != MicMix.CablePage) return;
             Browse(page);
         }
 
@@ -4995,6 +5005,69 @@ namespace CapriDesktop
             preferences.HdGameRest = !preferences.HdGameRest;
             SavePreferences();
             mainframe.Sync();
+        }
+
+        // Her voice in your mic (F66): the mix while the switch is on, or null.
+        private MicMix micMix;
+        private bool cableThere;
+        private double cableLooked = -10, micMixShown;
+
+        internal bool VoiceInMic { get { return preferences.VoiceInMic; } }
+
+        // VB-CABLE's input is there. Settings asks each time it syncs, so Windows' device list is read at most every 3 s.
+        internal bool CableReady
+        {
+            get
+            {
+                double now = clock.Elapsed.TotalSeconds;
+                if (now >= cableLooked + 3 || now < cableLooked)
+                {
+                    cableLooked = now;
+                    try { cableThere = MicMix.Devices.Cable() != null; }
+                    catch (Exception) { cableThere = false; }
+                }
+                return cableThere;
+            }
+        }
+
+        internal string VoiceInMicProblem { get { MicMix running = micMix; return running == null ? null : running.Problem; } }
+
+        // The switch can't go on without VB-CABLE: Settings says it needs it and offers its page instead.
+        internal void ToggleVoiceInMic()
+        {
+            cableLooked = -10;
+            if (!preferences.VoiceInMic && !CableReady) { mainframe.ShowVoiceInMic(); return; }
+            preferences.VoiceInMic = !preferences.VoiceInMic;
+            SavePreferences();
+            MixVoice();
+            mainframe.Sync();
+        }
+
+        // Starts or stops the mix to match the switch.
+        private void MixVoice()
+        {
+            if (preferences.VoiceInMic && micMix == null)
+            {
+                micMix = new MicMix(MicMix.Devices, null);
+                micMix.Chosen = preferences.Mic;
+                micMix.Start();
+            }
+            else if (!preferences.VoiceInMic && micMix != null)
+            {
+                micMix.Stop();
+                micMix = null;
+            }
+        }
+
+        // VB-CABLE's own page, in their browser. She never downloads or installs it.
+        internal void OpenCablePage() { OpenPage(MicMix.CablePage); }
+
+        // While Settings shows, her voice in your mic's line follows what the mix and the device list say, once a second.
+        private void CheckVoiceInMic(double now)
+        {
+            if (now < micMixShown || !mainframe.SettingsShown || !mainframe.Visible || mainframe.WindowState == FormWindowState.Minimized) return;
+            micMixShown = now + 1;
+            mainframe.ShowVoiceInMic();
         }
 
         internal void ToggleIntro()
@@ -8279,6 +8352,7 @@ namespace CapriDesktop
             StopMicTest(false);
             preferences.Mic = string.IsNullOrEmpty(id) ? null : id;
             ears.Chosen = preferences.Mic;
+            if (micMix != null) micMix.Chosen = preferences.Mic;
             SavePreferences();
             mainframe.ShowMic(MicName(preferences.Mic));
             hearingCaptureProblem = null;
@@ -9607,6 +9681,9 @@ namespace CapriDesktop
             if (HearingChoice == 1) { if (parakeet.Fits) AwaitEars(null); else HearingNote(); return; }
             Hearing.Own = null;
             GetFreeEars();
+            // Windows speech only hears Windows' default mic. When that's VB-CABLE's output it would hear her own voice in their
+            // mic (F66), so she hears their real mic offline instead.
+            if (MicMix.IsCableOut(Ears.DefaultName())) { HearLater(CableDefault); return; }
             Dictation opened;
             try { opened = Dictation.Make(); }
             catch (Exception error) { hearingSpeechProblem = "Windows speech recognition isn't on this PC: " + Voice.Short(error.Message); HearLater(hearingSpeechProblem); return; }
@@ -9810,6 +9887,8 @@ namespace CapriDesktop
         }
 
         private string LocalListening { get { return CallModeOn ? "Call mode (beta). Voice is conversation only." : preferences.ListenCapri ? "Listening for Capri." : "Free voice chat on. Talk and I'll type back."; } }
+
+        internal const string CableDefault = "Windows speech only hears your default mic, CABLE Output, which has her voice in it. She hears your real mic offline instead.";
 
         private bool VoiceForHer(string text)
         {
@@ -11407,6 +11486,8 @@ namespace CapriDesktop
             effects.Close();
             typist.Close();
             voice.Stop();
+            if (micMix != null) micMix.Stop();
+            micMix = null;
             engine.Cancel = true;
             kokoro.Cancel = true;
             heyCapri.Cancel = true;
@@ -15185,7 +15266,8 @@ namespace CapriDesktop
                 { "how do I turn off head pats?", "Head pats" },
                 { "how do I turn off chaos when upset?", "Chaos when upset" },
                 { "where did my settings go?", "Advanced Settings" },
-                { "what is the extras window?", "Extras" }
+                { "what is the extras window?", "Extras" },
+                { "how do I put your voice in my mic?", "Her voice in your mic" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
             {
@@ -22406,6 +22488,190 @@ namespace CapriDesktop
             public void Dispose() { if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer); buffer = IntPtr.Zero; }
         }
 
+        // Her voice in your mic's stand-ins (F66): a mic that hums a tone and a cable that keeps all it's given, so the smoke test
+        // never opens a real device. Each runs on a clock the test moves, or a real one. The mic hands over whole 10 ms packets
+        // as they fill, and the cable lets Windows take a period at a time, as WASAPI does.
+        private sealed class StandInMic : IMixMic
+        {
+            private readonly Func<double> clock;
+            private readonly double opened;
+            private readonly int rate, period;
+            private readonly double hertz, level, fast, late;
+            private long given;
+            // A frame that clicks to 0.5 on top of the hum.
+            private readonly long click;
+            internal volatile bool Lost, Disposed;
+
+            // Its packets land `phase` seconds out of step with the moment it opened, and each up to `late` seconds behind, like
+            // a busy PC's. That's under a packet, so they still land in order.
+            internal StandInMic(Func<double> clock, int rate, double hertz, double level, double fast, double phase, long click, double late)
+            {
+                this.clock = clock;
+                this.rate = rate;
+                this.hertz = hertz;
+                this.level = level;
+                this.fast = fast;
+                this.click = click;
+                period = rate / 100;
+                this.late = Math.Min(late, 0.9 * period / (rate * fast));
+                opened = clock() - phase;
+            }
+
+            public int Rate { get { return rate; } }
+            public int Period { get { return period; } }
+            public WaitHandle Ready { get { return null; } }
+
+            internal double HeardAt(long frame) { return opened + frame / (rate * fast); }
+
+            // When a packet lands: once its last frame is heard on its own clock, which runs fast times the test's like a mic whose
+            // crystal is off, and then up to late seconds after that.
+            private double Lands(long packet)
+            {
+                double shake = Math.Abs(Math.Sin(packet * 12.9898) * 43758.5453);
+                return HeardAt((packet + 1) * period) + late * (shake - Math.Floor(shake));
+            }
+
+            internal double NextPacket { get { return Lands(given / period); } }
+
+            public int Read(float[] into)
+            {
+                if (Lost) throw new MixLost("Stand-in mic unplugged (0x88890004).");
+                double now = clock();
+                int count = 0;
+                while (count + period <= into.Length && Lands((given + count) / period) <= now) count += period;
+                for (int i = 0; i < count; i++)
+                {
+                    long at = given + i;
+                    into[i] = (float)(level * Math.Sin(2 * Math.PI * hertz * at / rate)) + (at == click ? 0.5f : 0f);
+                }
+                given += count;
+                return count;
+            }
+
+            public void Dispose() { Disposed = true; }
+        }
+
+        private sealed class StandInCable : IMixCable
+        {
+            private readonly Func<double> clock;
+            private readonly double opened;
+            private readonly int rate, period;
+            private readonly object gate = new object();
+            private readonly System.Collections.Generic.List<float> kept = new System.Collections.Generic.List<float>();
+            // Where each period Windows took started in what it was given, and when it took it.
+            private readonly System.Collections.Generic.List<long> takenFrom = new System.Collections.Generic.List<long>();
+            private readonly System.Collections.Generic.List<double> takenAt = new System.Collections.Generic.List<double>();
+            private long played, pulls;
+            // Periods Windows found short once it had been given something.
+            internal int Starved;
+            internal volatile bool Lost, Disposed;
+
+            internal StandInCable(Func<double> clock, int rate)
+            {
+                this.clock = clock;
+                this.rate = rate;
+                period = rate / 100;
+                opened = clock();
+            }
+
+            public int Rate { get { return rate; } }
+            public int Period { get { return period; } }
+            public WaitHandle Ready { get { return null; } }
+
+            internal double NextTake { get { return opened + (Math.Floor((clock() - opened) * rate / period) + 1) * period / rate; } }
+
+            internal double OpenedAt { get { return opened; } }
+
+            private void Take()
+            {
+                long due = (long)Math.Floor((clock() - opened) * rate / period);
+                for (; pulls < due; pulls++)
+                {
+                    long have = kept.Count - played, take = Math.Min(period, have);
+                    takenFrom.Add(played);
+                    takenAt.Add(opened + (double)(pulls + 1) * period / rate);
+                    played += take;
+                    if (take < period && kept.Count > 0) Starved++;
+                }
+            }
+
+            public int Queued()
+            {
+                if (Lost) throw new MixLost("Stand-in cable gone (0x88890004).");
+                lock (gate) { Take(); return (int)(kept.Count - played); }
+            }
+
+            public void Write(float[] mono, int count)
+            {
+                if (Lost) throw new MixLost("Stand-in cable gone (0x88890004).");
+                lock (gate)
+                {
+                    Take();
+                    for (int i = 0; i < count; i++) kept.Add(mono[i]);
+                }
+            }
+
+            internal float[] Kept { get { lock (gate) return kept.ToArray(); } }
+
+            // When Windows took a frame it was given, or NaN if it hasn't yet.
+            internal double PlayedAt(long frame)
+            {
+                lock (gate)
+                {
+                    int found = takenFrom.BinarySearch(frame);
+                    if (found < 0) found = ~found - 1;
+                    while (found >= 0 && found + 1 < takenFrom.Count && takenFrom[found + 1] <= frame) found++;
+                    return found < 0 || frame >= played ? double.NaN : takenAt[found];
+                }
+            }
+
+            public void Dispose() { Disposed = true; }
+        }
+
+        private sealed class StandInDevices : IMixDevices
+        {
+            internal Func<double> Clock;
+            // Null for a PC without VB-CABLE.
+            internal MixDevice CableThere;
+            internal readonly System.Collections.Generic.List<MixDevice> Mics = new System.Collections.Generic.List<MixDevice>();
+            internal string DefaultMic;
+            internal int MicRate = 48000, CableRate = 48000;
+            internal double Level = 0.25, Fast = 1, Phase, Late;
+            internal long Click = -1;
+            // Each mic's hum, by id. Any other hums at 440 Hz.
+            internal readonly System.Collections.Generic.Dictionary<string, double> Hums = new System.Collections.Generic.Dictionary<string, double>();
+            internal bool CableBusy;
+            internal readonly System.Collections.Generic.List<StandInMic> Opened = new System.Collections.Generic.List<StandInMic>();
+            internal readonly System.Collections.Generic.List<StandInCable> Cables = new System.Collections.Generic.List<StandInCable>();
+
+            internal StandInDevices()
+            {
+                Stopwatch own = Stopwatch.StartNew();
+                Clock = delegate { return own.Elapsed.TotalSeconds; };
+            }
+
+            public MixDevice Cable() { return CableThere; }
+
+            public MixDevice Mic(string chosen) { lock (Mics) return MicMix.MicFor(Mics, chosen, DefaultMic); }
+
+            public IMixMic OpenMic(MixDevice mic)
+            {
+                double hum;
+                if (!Hums.TryGetValue(mic.Id, out hum)) hum = 440;
+                StandInMic made = new StandInMic(Clock, MicRate, hum, Level, Fast, Phase, Click, Late);
+                lock (Opened) Opened.Add(made);
+                return made;
+            }
+
+            public IMixCable OpenCable(MixDevice cable)
+            {
+                if (CableBusy) throw new MixLost("Stand-in cable busy (0x88890008).");
+                StandInCable made = new StandInCable(Clock, CableRate);
+                lock (Cables) Cables.Add(made);
+                return made;
+            }
+        }
+
         private static void WaitSound(Func<bool> done, string problem)
         {
             Stopwatch waited = Stopwatch.StartNew();
@@ -22539,6 +22805,450 @@ namespace CapriDesktop
             }
         }
 
+        // A pretend PC for her voice in your mic: VB-CABLE at cableRate and one mic humming 440 Hz at 0.25, on the test's clock.
+        private const string MixMicId = "{0.0.1.00000000}.{stand-in-mic}";
+
+        private static StandInDevices MixPc(double[] now, int cableRate, int micRate)
+        {
+            StandInDevices pc = new StandInDevices();
+            pc.Clock = delegate { return now[0]; };
+            pc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-cable}", "CABLE Input (VB-Audio Virtual Cable)");
+            pc.Mics.Add(new MixDevice(MixMicId, "Microphone (stand-in)"));
+            pc.DefaultMic = MixMicId;
+            pc.CableRate = cableRate;
+            pc.MicRate = micRate;
+            return pc;
+        }
+
+        // Runs a mix on the test's clock, waking it as WASAPI would: when the mic's packet lands, when the cable takes a period,
+        // and every 10 ms while neither is open, each wake a moment late like a real one. during runs first at each wake.
+        private static void RunMix(MicMix mix, StandInDevices pc, double[] now, double seconds, Action<double> during)
+        {
+            double end = now[0] + seconds;
+            while (now[0] < end)
+            {
+                double next = now[0] + 0.01;
+                lock (pc.Opened) foreach (StandInMic heard in pc.Opened) if (!heard.Disposed) next = Math.Min(next, heard.NextPacket);
+                lock (pc.Cables) foreach (StandInCable playing in pc.Cables) if (!playing.Disposed) next = Math.Min(next, playing.NextTake);
+                now[0] = Math.Min(end, next) + 0.0002;
+                if (during != null) during(now[0]);
+                mix.Step();
+            }
+        }
+
+        // A steady tone as her speakers hand it over.
+        private static short[] Hum(int rate, double hertz, double level, double seconds)
+        {
+            short[] hum = new short[(int)(rate * seconds)];
+            for (int i = 0; i < hum.Length; i++) hum[i] = (short)Math.Round(level * 32767 * Math.Sin(2 * Math.PI * hertz * i / rate));
+            return hum;
+        }
+
+        private static double[] hannWindow = new double[0];
+        private static double hannTotal;
+
+        // How strong hertz is over a stretch of sound, as a sine's amplitude where 1 is full scale: Goertzel with a Hann window.
+        private static double ToneIn(float[] sound, int rate, double hertz, double from, double seconds)
+        {
+            int start = (int)(from * rate), count = Math.Min((int)(seconds * rate), sound.Length - start);
+            if (count < 16) return 0;
+            if (hannWindow.Length != count)
+            {
+                hannWindow = new double[count];
+                hannTotal = 0;
+                for (int i = 0; i < count; i++) hannTotal += hannWindow[i] = 0.5 - 0.5 * Math.Cos(2 * Math.PI * i / (count - 1));
+            }
+            double turn = 2 * Math.Cos(2 * Math.PI * hertz / rate), one = 0, two = 0;
+            for (int i = 0; i < count; i++)
+            {
+                double next = sound[start + i] * hannWindow[i] + turn * one - two;
+                two = one;
+                one = next;
+            }
+            return 2 * Math.Sqrt(Math.Max(0, one * one + two * two - turn * one * two)) / hannTotal;
+        }
+
+        // The strongest frequency within spread Hz of near, to 0.05 Hz.
+        private static double PeakIn(float[] sound, int rate, double near, double spread, double from, double seconds)
+        {
+            double best = near, strongest = -1;
+            for (double hertz = near - spread; hertz <= near + spread; hertz += 0.05)
+            {
+                double strength = ToneIn(sound, rate, hertz, from, seconds);
+                if (strength > strongest) { strongest = strength; best = hertz; }
+            }
+            return best;
+        }
+
+        // The strongest stray tone: at every 100 Hz, and 37 Hz past each, up to near Nyquist, 20 Hz or more from any tone meant to be
+        // there. A glitch each packet or chunk would show at 100 Hz steps.
+        private static double StrayIn(float[] sound, int rate, double from, double seconds, params double[] tones)
+        {
+            double most = 0;
+            for (double hertz = 100; hertz < rate * 0.47; hertz += 100)
+                foreach (double probe in new[] { hertz, hertz + 37 })
+                {
+                    bool meant = false;
+                    foreach (double tone in tones) meant |= Math.Abs(probe - tone) < 20;
+                    if (!meant) most = Math.Max(most, ToneIn(sound, rate, probe, from, seconds));
+                }
+            return most;
+        }
+
+        private static string Khz(int rate) { return (rate / 1000.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture); }
+
+        private static string Db(double level) { return (20 * Math.Log10(Math.Max(1e-9, level))).ToString("0", System.Globalization.CultureInfo.InvariantCulture); }
+
+        // Her voice in your mic (F66) on stand-in devices and a pretend clock: no real device opens.
+        private static void SmokeVoiceInMic(System.Collections.Generic.List<string> checks, string output)
+        {
+            string logWas = Brain.LogPath;
+            int loudnessWas = Voice.Loudness;
+            MicMix currentWas = MicMix.Current;
+            try
+            {
+                Brain.LogPath = Path.Combine(output, "mic-mix-check.txt");
+                File.WriteAllText(Brain.LogPath, "");
+                Voice.Loudness = 100;
+                // Their mic at 440 Hz, her line at 1000 Hz from 24 kHz, and voice chat streaming in at 700 Hz from 16 kHz: each comes
+                // out at its own level and pitch, with nothing else in there, at every cable rate from a mic at every rate.
+                double worstStray = 0;
+                foreach (int cableRate in new[] { 48000, 44100, 16000 })
+                    foreach (int micRate in new[] { 48000, 44100, 16000 })
+                    {
+                        double[] now = { 0 };
+                        StandInDevices pc = MixPc(now, cableRate, micRate);
+                        pc.Phase = 0.0037;
+                        MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                        object lines = new object(), chat = new object();
+                        mix.Step();
+                        if (!mix.Mixing || pc.Opened.Count != 1 || pc.Cables.Count != 1 || mix.Problem != null) throw new Exception("Her mic mix didn't open the stand-in mic and cable at " + Khz(cableRate) + " kHz: " + mix.Problem);
+                        mix.Take(lines, Hum(24000, 1000, 0.2, 3), 24000);
+                        short[] streamed = Hum(16000, 700, 0.15, 3);
+                        int sent = 0;
+                        // Voice chat comes in 50 ms chunks, each a little ahead of when it plays.
+                        RunMix(mix, pc, now, 2.6, delegate(double at)
+                        {
+                            while (sent < streamed.Length && sent < (at + 0.1) * 16000)
+                            {
+                                short[] chunk = new short[Math.Min(800, streamed.Length - sent)];
+                                Array.Copy(streamed, sent, chunk, 0, chunk.Length);
+                                mix.Take(chat, chunk, 16000);
+                                sent += chunk.Length;
+                            }
+                        });
+                        float[] got = pc.Cables[0].Kept;
+                        double micLevel = ToneIn(got, cableRate, 440, 1, 1), herLevel = ToneIn(got, cableRate, 1000, 1, 1), chatLevel = ToneIn(got, cableRate, 700, 1, 1);
+                        double micHz = PeakIn(got, cableRate, 440, 3, 1, 1), herHz = PeakIn(got, cableRate, 1000, 3, 1, 1), chatHz = PeakIn(got, cableRate, 700, 3, 1, 1);
+                        double stray = StrayIn(got, cableRate, 1, 1, 440, 1000, 700);
+                        worstStray = Math.Max(worstStray, stray);
+                        string seen = Khz(micRate) + " to " + Khz(cableRate) + " kHz: mic " + micLevel.ToString("0.0000") + " at " + micHz.ToString("0.00") + " Hz, her " + herLevel.ToString("0.0000") + " at " + herHz.ToString("0.00") + " Hz, chat " + chatLevel.ToString("0.0000") + " at " + chatHz.ToString("0.00") + " Hz, stray " + stray.ToString("0.00000") + ", " + got.Length + " frames, short " + mix.Starved + "/" + pc.Cables[0].Starved;
+                        if (Math.Abs(micLevel / 0.25 - 1) > 0.03 || Math.Abs(herLevel / 0.2 - 1) > 0.03 || Math.Abs(chatLevel / 0.15 - 1) > 0.03 || Math.Abs(micHz - 440) > 0.5 || Math.Abs(herHz - 1000) > 0.25 || Math.Abs(chatHz - 700) > 0.25
+                            || stray > 0.0025 || got.Length < 2.55 * cableRate || got.Length > 2.65 * cableRate || mix.Starved != 0 || pc.Cables[0].Starved != 0)
+                            throw new Exception("Her mic mix came out wrong from " + seen);
+                        mix.Stop();
+                        if (!pc.Opened[0].Disposed || !pc.Cables[0].Disposed || mix.Mixing) throw new Exception("Stopping her mic mix kept a device open.");
+                    }
+                // Going down to 16 kHz a 12 kHz tone doesn't fold back to 4 kHz, and going up from 16 kHz a 6 kHz tone doesn't image at 10 kHz.
+                double alias, image, imaged;
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 16000, 48000);
+                    pc.Hums[MixMicId] = 12000;
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    RunMix(mix, pc, now, 1.6, null);
+                    alias = ToneIn(pc.Cables[0].Kept, 16000, 4000, 0.5, 1);
+                    mix.Stop();
+                }
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 16000);
+                    pc.Hums[MixMicId] = 6000;
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    RunMix(mix, pc, now, 1.6, null);
+                    image = ToneIn(pc.Cables[0].Kept, 48000, 10000, 0.5, 1);
+                    imaged = ToneIn(pc.Cables[0].Kept, 48000, 6000, 0.5, 1);
+                    mix.Stop();
+                }
+                if (alias > 0.0025 || image > 0.0025 || Math.Abs(imaged / 0.25 - 1) > 0.05) throw new Exception("Her mic mix aliased or imaged: " + alias.ToString("0.00000") + " at 4 kHz, " + image.ToString("0.00000") + " at 10 kHz, 6 kHz at " + imaged.ToString("0.0000"));
+                checks.Add("PASS her voice in your mic: their mic and her voice reach the cable at their own levels and pitches at 48, 44.1 and 16 kHz, from mics at each rate and her voice at 24 and 16 kHz, voice chat's chunks join seamlessly, stray tones stay under " + Db(worstStray) + " dB, and nothing aliases or images (" + Db(Math.Max(alias, image)) + " dB)");
+                // Too loud: the mic and her voice each at 0.8 peak at 1.6 together, and the limiter keeps every sample under its ceiling
+                // without crushing them.
+                float loudest = 0;
+                double loudness = 0;
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Hums[MixMicId] = 300;
+                    pc.Level = 0.8;
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    mix.Take(new object(), Hum(24000, 700, 0.8, 2), 24000);
+                    RunMix(mix, pc, now, 1.6, null);
+                    float[] got = pc.Cables[0].Kept;
+                    foreach (float sample in got) loudest = Math.Max(loudest, Math.Abs(sample));
+                    for (int i = 48000 / 2; i < 48000 * 3 / 2; i++) loudness += got[i] * got[i];
+                    loudness = Math.Sqrt(loudness / 48000);
+                    mix.Stop();
+                }
+                // A mix peaking at 0.75 comes out exactly as it went in.
+                float[] quiet = new float[4800], quietWas = new float[4800];
+                for (int i = 0; i < quiet.Length; i++) quiet[i] = quietWas[i] = (float)(0.75 * Math.Sin(2 * Math.PI * 440 * i / 48000));
+                new SoftLimiter(48000).Run(quiet, quiet.Length);
+                bool untouched = true;
+                for (int i = 0; i < quiet.Length; i++) untouched &= quiet[i] == quietWas[i];
+                if (loudest >= SoftLimiter.Ceiling || loudness < 0.35 || !untouched) throw new Exception("Her mic mix's limiter let a 1.6x mix peak at " + loudest.ToString("0.000") + ", crushed it to " + loudness.ToString("0.000") + ", or changed a quiet one (" + untouched + ").");
+                checks.Add("PASS her voice in your mic's limiter keeps a mix of 1.6 times full scale under " + SoftLimiter.Ceiling.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " (it peaked just under that and stayed at " + loudness.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " RMS), and a mix peaking at 0.75 goes through untouched");
+                // A click on the mic reaches the cable within 60 ms at each rate, however its packets fall against the cable's.
+                double slowest = 0, quickest = 1;
+                foreach (int cableRate in new[] { 48000, 44100, 16000 })
+                    foreach (double phase in new[] { 0.0003, 0.0051, 0.0097 })
+                    {
+                        double[] now = { 0 };
+                        StandInDevices pc = MixPc(now, cableRate, 48000);
+                        pc.Level = 0;
+                        pc.Phase = phase;
+                        pc.Click = 72000;
+                        MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                        mix.Step();
+                        RunMix(mix, pc, now, 2, null);
+                        float[] got = pc.Cables[0].Kept;
+                        int peak = 0;
+                        for (int i = 1; i < got.Length; i++) if (Math.Abs(got[i]) > Math.Abs(got[peak])) peak = i;
+                        double took = pc.Cables[0].PlayedAt(peak) - pc.Opened[0].HeardAt(72000);
+                        mix.Stop();
+                        // Going down to 16 kHz spreads the click over three samples, so it peaks lower there.
+                        if (double.IsNaN(took) || took <= 0 || took > 0.06 || Math.Abs(got[peak]) < 0.1) throw new Exception("A click on the mic took " + (took * 1000).ToString("0.0") + " ms to reach a " + Khz(cableRate) + " kHz cable, with packets " + phase * 1000 + " ms out of step.");
+                        slowest = Math.Max(slowest, took);
+                        quickest = Math.Min(quickest, took);
+                    }
+                checks.Add("PASS her voice in your mic: a click on the mic reaches the cable in " + (quickest * 1000).ToString("0") + " to " + (slowest * 1000).ToString("0") + " ms at 48, 44.1 and 16 kHz however its packets fall, under the 60 ms target");
+                // A mic whose clock runs fast or slow against the cable's, by as much as a cheap one's, ends up matched to it exactly:
+                // it never runs dry or piles up, and a click at the end still comes through in time.
+                System.Collections.Generic.List<string> steered = new System.Collections.Generic.List<string>();
+                foreach (double off in new[] { 300e-6, -300e-6, 1500e-6, -1500e-6 })
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Fast = 1 + off;
+                    pc.Phase = 0.0051;
+                    pc.Level = 0.1;
+                    pc.Click = (long)(39 * 48000 * pc.Fast);
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    RunMix(mix, pc, now, 40, null);
+                    float[] got = pc.Cables[0].Kept;
+                    int peak = 38 * 48000;
+                    for (int i = peak; i < got.Length; i++) if (Math.Abs(got[i]) > Math.Abs(got[peak])) peak = i;
+                    double took = pc.Cables[0].PlayedAt(peak) - pc.Opened[0].HeardAt(pc.Click), steer = mix.Steered;
+                    long starved = mix.Starved;
+                    int dry = pc.Cables[0].Starved;
+                    mix.Stop();
+                    steered.Add((off * 1e6).ToString("+0;-0") + " steered " + (steer * 1e6).ToString("+0;-0") + " ppm, " + (took * 1000).ToString("0") + " ms");
+                    if (starved != 0 || dry != 0 || Math.Abs(steer / off - 1) > 0.05 || double.IsNaN(took) || took > 0.06)
+                        throw new Exception("A mic " + (off * 1e6).ToString("0") + " ppm off wasn't matched: " + steered[steered.Count - 1] + ", " + starved + " frames short, " + dry + " short periods.");
+                }
+                checks.Add("PASS her voice in your mic matches a mic whose clock is 300 or 1500 ppm fast or slow against the cable's within 40 s (" + string.Join("; ", steered.ToArray()) + "), so it never runs dry or piles up");
+                // A busy PC hands over the mic's packets up to 8 ms late. A late one waits on the cable's spare period, so nothing
+                // runs short or clicks and the mic still sounds right.
+                string shaken;
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 44100);
+                    pc.Late = 0.008;
+                    pc.Fast = 1.0003;
+                    pc.Phase = 0.0037;
+                    pc.Click = (long)(19 * 44100 * pc.Fast);
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    RunMix(mix, pc, now, 20, null);
+                    float[] got = pc.Cables[0].Kept;
+                    double micLevel = ToneIn(got, 48000, 440, 10, 1), stray = StrayIn(got, 48000, 10, 1, 440);
+                    int peak = 18 * 48000;
+                    for (int i = peak; i < got.Length; i++) if (Math.Abs(got[i]) > Math.Abs(got[peak])) peak = i;
+                    double took = pc.Cables[0].PlayedAt(peak) - pc.Opened[0].HeardAt(pc.Click);
+                    long starved = mix.Starved;
+                    int dry = pc.Cables[0].Starved;
+                    mix.Stop();
+                    shaken = "mic at " + micLevel.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + ", stray tones " + Db(stray) + " dB, a click in " + (took * 1000).ToString("0") + " ms";
+                    if (starved != 0 || dry != 0 || Math.Abs(micLevel / 0.25 - 1) > 0.03 || stray > 0.0025 || double.IsNaN(took) || took > 0.06)
+                        throw new Exception("Late mic packets broke her mic mix: " + shaken + ", " + starved + " frames short, " + dry + " short periods.");
+                }
+                checks.Add("PASS her voice in your mic rides out mic packets up to 8 ms late, like a busy PC's, with nothing running short (" + shaken + ")");
+                // Devices that go and come back, with her voice playing through it all.
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    const string other = "{0.0.1.00000000}.{stand-in-headset}";
+                    pc.Mics.Add(new MixDevice(other, "Headset Microphone (stand-in)"));
+                    pc.Hums[other] = 520;
+                    MixDevice cableThere = pc.CableThere;
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    mix.Take(new object(), Hum(24000, 1000, 0.2, 4), 24000);
+                    bool lostMic = false, lostCable = false, moved = false, picked = false, gone = false, back = false;
+                    string goneProblem = null;
+                    bool goneClosed = false, goneMixing = true;
+                    RunMix(mix, pc, now, 18, delegate(double at)
+                    {
+                        if (!lostMic && at >= 1) { lostMic = true; pc.Opened[0].Lost = true; }
+                        if (!lostCable && at >= 4) { lostCable = true; pc.Cables[0].Lost = true; }
+                        if (!moved && at >= 7) { moved = true; pc.DefaultMic = other; }
+                        if (!picked && at >= 10) { picked = true; mix.Chosen = MixMicId; }
+                        if (!gone && at >= 12) { gone = true; pc.CableThere = null; }
+                        if (goneProblem == null && at >= 14.4) { goneProblem = mix.Problem; goneMixing = mix.Mixing; goneClosed = pc.Opened.TrueForAll(heard => heard.Disposed) && pc.Cables.TrueForAll(playing => playing.Disposed); }
+                        if (!back && at >= 14.5) { back = true; pc.CableThere = cableThere; }
+                    });
+                    string lost = mix.MicOpens + " mic opens, " + mix.MicLosses + " lost, " + mix.CableOpens + " cable opens, " + mix.CableLosses + " lost, " + pc.Cables.Count + " cables";
+                    if (pc.Cables.Count != 3 || pc.Opened.Count != 6 || mix.MicLosses != 1 || mix.CableLosses != 2 || !mix.Mixing) throw new Exception("Her mic mix didn't come back from lost devices: " + lost);
+                    StandInCable first = pc.Cables[0], second = pc.Cables[1], third = pc.Cables[2];
+                    float[] one = first.Kept, two = second.Kept, three = third.Kept;
+                    Func<StandInCable, float[], double, double, double> heardAt = delegate(StandInCable cable, float[] kept, double at, double hertz) { return ToneIn(kept, 48000, hertz, at - cable.OpenedAt, 0.4); };
+                    string timeline = "mic " + heardAt(first, one, 0.4, 440).ToString("0.000") + ", gone " + heardAt(first, one, 1.4, 440).ToString("0.000") + " with her " + heardAt(first, one, 1.4, 1000).ToString("0.000") + ", back " + heardAt(first, one, 2.6, 440).ToString("0.000")
+                        + "; new cable " + heardAt(second, two, 5.6, 440).ToString("0.000") + "; Windows' default " + heardAt(second, two, 9.4, 520).ToString("0.000") + "/" + heardAt(second, two, 9.4, 440).ToString("0.000") + "; picked " + heardAt(second, two, 10.5, 440).ToString("0.000") + "/" + heardAt(second, two, 10.5, 520).ToString("0.000")
+                        + "; cable gone " + (goneProblem ?? "-") + ", " + (goneMixing ? "mixing" : "closed") + "; back " + heardAt(third, three, 16.5, 440).ToString("0.000");
+                    if (heardAt(first, one, 0.4, 440) < 0.24 || heardAt(first, one, 1.4, 440) > 0.001 || heardAt(first, one, 1.4, 1000) < 0.19 || heardAt(first, one, 2.6, 440) < 0.24 || first.Starved != 0
+                        || heardAt(second, two, 5.6, 440) < 0.24 || heardAt(second, two, 9.4, 520) < 0.24 || heardAt(second, two, 9.4, 440) > 0.001 || heardAt(second, two, 10.5, 440) < 0.24 || heardAt(second, two, 10.5, 520) > 0.001
+                        || goneProblem != MicMix.Missing || goneMixing || !goneClosed || heardAt(third, three, 16.5, 440) < 0.24)
+                        throw new Exception("Her mic mix went wrong as devices came and went: " + timeline + " (" + lost + ")");
+                    mix.Stop();
+                }
+                // CABLE Output is never the mic it hears, as Windows' default or as their pick. With nothing else, her voice goes in alone.
+                string cableMicSeen;
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    const string cableOut = "{0.0.1.00000000}.{stand-in-cable-out}";
+                    pc.Mics.Insert(0, new MixDevice(cableOut, "CABLE Output (VB-Audio Virtual Cable)"));
+                    pc.DefaultMic = cableOut;
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Chosen = cableOut;
+                    mix.Step();
+                    RunMix(mix, pc, now, 0.5, null);
+                    cableMicSeen = mix.MicName;
+                    lock (pc.Mics) pc.Mics.RemoveAt(1);
+                    mix.Chosen = cableOut;
+                    mix.Take(new object(), Hum(24000, 1000, 0.2, 2), 24000);
+                    RunMix(mix, pc, now, 1, null);
+                    double alone = ToneIn(pc.Cables[0].Kept, 48000, 1000, 0.8, 0.5);
+                    if (cableMicSeen != "Microphone (stand-in)" || mix.MicName != null || mix.Problem != MicMix.NoMic || !mix.Mixing || alone < 0.19 || pc.Opened.Count != 1)
+                        throw new Exception("Her mic mix heard CABLE Output, or stopped without a mic: " + cableMicSeen + " / " + mix.MicName + " / " + mix.Problem + " / her voice " + alone.ToString("0.000"));
+                    mix.Stop();
+                }
+                // A cable another app holds is tried again each second, and opens once it's free.
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.CableBusy = true;
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    string busy = mix.Problem;
+                    RunMix(mix, pc, now, 0.5, null);
+                    bool waited = !mix.Mixing && mix.Problem == MicMix.Unopened;
+                    pc.CableBusy = false;
+                    RunMix(mix, pc, now, 1.1, null);
+                    if (busy != MicMix.Unopened || !waited || !mix.Mixing || mix.Problem != null) throw new Exception("A busy cable wasn't tried again: " + busy + " / " + mix.Problem);
+                    mix.Stop();
+                }
+                checks.Add("PASS her voice in your mic recovers: a lost mic or cable opens again within a second while her voice keeps going, a new Windows default or a new pick moves it to that mic, a cable that goes away closes the mic too and comes back with it, a busy cable is tried again, and CABLE Output is never the mic it hears, so with no other mic her voice goes in alone");
+                // Her voice goes in from her own speakers' code, at her volume, and stops when she's cut off. Her sound effects' Plain
+                // speakers stay out.
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0;
+                    MicMix mix = new MicMix(pc, delegate { return now[0]; });
+                    mix.Step();
+                    MicMix.Current = mix;
+                    double line, beep, after;
+                    int waitingLine, waitingCut;
+                    using (Speaker voiced = new Speaker(true))
+                    using (Speaker effect = new Speaker(true) { Plain = true })
+                    {
+                        Voice.Loudness = 50;
+                        new Voice(voiced).Play(Voice.Wave(Hum(24000, 1000, 0.4, 2), 24000));
+                        effect.Open(Sfx.Rate);
+                        effect.Play(Hum(Sfx.Rate, 2500, 0.4, 2));
+                        waitingLine = mix.Waiting;
+                        RunMix(mix, pc, now, 1, null);
+                        voiced.Clear();
+                        waitingCut = mix.Waiting;
+                        RunMix(mix, pc, now, 0.6, null);
+                        float[] got = pc.Cables[0].Kept;
+                        line = ToneIn(got, 48000, 1000, 0.3, 0.5);
+                        beep = ToneIn(got, 48000, 2500, 0.3, 0.5);
+                        after = ToneIn(got, 48000, 1000, 1.2, 0.3);
+                    }
+                    MicMix.Current = null;
+                    mix.Stop();
+                    if (waitingLine != 48000 || Math.Abs(line / 0.2 - 1) > 0.03 || beep > 0.001 || waitingCut != 0 || after > 0.001)
+                        throw new Exception("Her speakers didn't hand her mic mix just her voice: " + waitingLine + " samples waiting, line " + line.ToString("0.000") + ", effect " + beep.ToString("0.000") + ", " + waitingCut + " left after the cut, then " + after.ToString("0.000"));
+                }
+                checks.Add("PASS her voice in your mic only takes her voice: a line through her speaker code goes into the cable at her volume and stops when she's cut off, and her sound effects' speakers stay out");
+                // On its own thread with stand-ins on a real clock: it starts, mixes the mic and her voice, and stops letting both go.
+                {
+                    StandInDevices pc = new StandInDevices();
+                    pc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-cable}", "CABLE Input (VB-Audio Virtual Cable)");
+                    pc.Mics.Add(new MixDevice(MixMicId, "Microphone (stand-in)"));
+                    pc.DefaultMic = MixMicId;
+                    MicMix running = new MicMix(pc, null);
+                    running.Chosen = MixMicId;
+                    running.Start();
+                    try
+                    {
+                        WaitSound(delegate { return running.Mixing && running.MicOpens == 1 && Interlocked.Read(ref running.Written) > 4800; }, "Her mic mix's thread never started mixing.");
+                        if (MicMix.Current != running) throw new Exception("Her speakers can't find the running mic mix.");
+                        MicMix.Hear(running, Hum(24000, 1000, 0.3, 0.5), 24000);
+                        WaitSound(delegate
+                        {
+                            float[] kept;
+                            lock (pc.Cables) kept = pc.Cables[0].Kept;
+                            float most = 0;
+                            foreach (float sample in kept) most = Math.Max(most, Math.Abs(sample));
+                            return most > 0.4;
+                        }, "Her voice never reached the cable from the mix's thread.");
+                    }
+                    finally { running.Stop(); }
+                    if (running.Running || MicMix.Current != null || !pc.Opened[0].Disposed || !pc.Cables[0].Disposed) throw new Exception("Her mic mix's thread didn't stop cleanly.");
+                }
+                checks.Add("PASS her voice in your mic runs on its own thread, mixes the mic and her voice there, and stops cleanly, letting both devices go");
+                // Her ears never pick CABLE Output: it's left out of the mic list, skipped as a pick and as Windows' default, and with
+                // only cables there's no mic to open.
+                System.Collections.Generic.List<Mic> wave = new System.Collections.Generic.List<Mic>
+                {
+                    new Mic("{0.0.1.00000000}.{real}", "Microphone (Realtek(R) Audio)", 0),
+                    new Mic("{0.0.1.00000000}.{cable-out}", "CABLE Output (VB-Audio Virtual Cable)", 1),
+                    new Mic("{0.0.1.00000000}.{headset}", "Headset Microphone (Arctis 7)", 2),
+                    new Mic("{0.0.1.00000000}.{cable-b}", "CABLE-B Output (VB-Audio Cable B)", 3),
+                    new Mic("CABLE Output (VB-Audio Virtual ", "CABLE Output (VB-Audio Virtual ", 4),
+                };
+                System.Collections.Generic.List<Mic> pickable = Ears.Pickable(wave), onlyCables = wave.FindAll(heard => MicMix.IsCableOut(heard.Name));
+                bool namesRight = MicMix.IsCableIn("CABLE Input (VB-Audio Virtual Cable)") && MicMix.IsCableIn("Capri (VB-Audio Virtual Cable)") && !MicMix.IsCableIn("Speakers (Realtek(R) Audio)") && !MicMix.IsCableIn(null)
+                    && MicMix.IsCableOut("CABLE Output (VB-Audio Virtual Cable)") && MicMix.IsCableOut("CABLE-A Output (VB-Audio Cable A)") && !MicMix.IsCableOut("Microphone (Yeti Stereo Microphone)") && !MicMix.IsCableOut("Line In (Cable box)") && !MicMix.IsCableOut("");
+                bool opensRight = Ears.Opening(wave, "{0.0.1.00000000}.{headset}", "Microphone (Realtek(R) Audio)") == 2 && Ears.Opening(wave, "{0.0.1.00000000}.{cable-out}", "Microphone (Realtek(R) Audio)") == -1
+                    && Ears.Opening(wave, null, "CABLE Output (VB-Audio Virtual Cable)") == 0 && Ears.Opening(wave, "{0.0.1.00000000}.{cable-out}", "CABLE Output (VB-Audio Virtual Cable)") == 0
+                    && Ears.Opening(onlyCables, null, "CABLE Output (VB-Audio Virtual Cable)") == -2 && Ears.Opening(new System.Collections.Generic.List<Mic>(), null, null) == -1;
+                System.Collections.Generic.List<MixDevice> heardBy = wave.ConvertAll(heard => new MixDevice(heard.Id, heard.Name));
+                MixDevice usual = MicMix.MicFor(heardBy, null, "{0.0.1.00000000}.{headset}"), cablePicked = MicMix.MicFor(heardBy, "{0.0.1.00000000}.{cable-out}", "{0.0.1.00000000}.{cable-out}");
+                bool mixRight = usual != null && usual.Name == "Headset Microphone (Arctis 7)" && cablePicked != null && cablePicked.Name == "Microphone (Realtek(R) Audio)" && MicMix.MicFor(onlyCables.ConvertAll(heard => new MixDevice(heard.Id, heard.Name)), null, null) == null;
+                if (pickable.Count != 2 || pickable[0].Name != "Microphone (Realtek(R) Audio)" || pickable[1].Index != 2 || !namesRight || !opensRight || !mixRight)
+                    throw new Exception("Her ears or her mic mix could pick CABLE Output: " + pickable.Count + " pickable, names " + namesRight + ", ears " + opensRight + ", mix " + mixRight);
+                checks.Add("PASS her ears never pick CABLE Output: the mic list leaves VB-CABLE's outputs out, her ears and the mix skip one as a pick or as Windows' default for the next real mic, and with only cables there's no mic to open");
+                checks.Add("LIMIT her voice in your mic on real devices needs a PC with VB-CABLE installed: friends in Discord or Roblox hearing you and her with CABLE Output as the mic, how it sounds, VB-CABLE's own delay on top of hers, a mic near speakers picking her up a second time (headphones avoid it), and a Bluetooth headset's mic dropping it to call quality while the mix has it open");
+            }
+            finally
+            {
+                // Her mix's notes land in its own check file before the log goes back.
+                Stopwatch flushing = Stopwatch.StartNew();
+                while (MicMix.Noting && flushing.ElapsedMilliseconds < 5000) Thread.Sleep(5);
+                Brain.LogPath = logWas;
+                Voice.Loudness = loudnessWas;
+                MicMix.Current = currentWas;
+            }
+        }
+
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
         {
             Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
@@ -22549,6 +23259,7 @@ namespace CapriDesktop
             Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
+            Section(checks, "SmokeVoiceInMic", delegate { SmokeVoiceInMic(checks, output); });
             Section(checks, "SmokeMicSources", delegate { SmokeMicSources(checks, output); });
             Section(checks, "SmokeMicTest", delegate { SmokeMicTest(checks); });
             Section(checks, "SmokeHearingStatus", delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
@@ -29525,6 +30236,99 @@ namespace CapriDesktop
                             mainframe.ShowSettings(true);
                             if (simpleCrowd != null || simpleTall >= mainframe.ClientSize.Height) throw new Exception("Simple Settings went wrong: crowded " + simpleCrowd + ", " + simpleTall + " px tall against " + mainframe.ClientSize.Height);
                             checks.Add("PASS Simple Settings: the main rows only, shorter than Advanced Settings, with nothing overlapping or poking out");
+                            // Her voice in your mic (F66) under VOICE, on stand-in devices: without VB-CABLE the switch is locked, the line says
+                            // it needs it and the button opens its page in their browser; with it the switch starts and stops the mix and is
+                            // saved, a new mic pick moves the mix, the line says what's wrong, and the rows fit in Advanced and Simple Settings.
+                            Section(checks, "SmokeVoiceInMicRows", delegate
+                            {
+                                IMixDevices mixDevicesWas = MicMix.Devices;
+                                Action<string> mixBrowseWas = Browse;
+                                string mixMicWas = preferences.Mic, mixBrowsed = null;
+                                StandInDevices mixPc = new StandInDevices();
+                                MicMix mixRunning = null;
+                                const string mixHeadset = "{0.0.1.00000000}.{stand-in-headset}";
+                                string mixNote = " | Pick CABLE Output as your mic in Discord or Roblox.";
+                                string mixMissing, mixMissingFits, mixRefused, mixOpened, mixReady, mixOn, mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixSimpleFits;
+                                bool mixStayedOff, mixSaved, mixWired, mixStopped, mixUnsaved;
+                                try
+                                {
+                                    Browse = delegate(string mixPage) { mixBrowsed = mixPage; };
+                                    MicMix.Devices = new StandInDevices();
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixMissing = mainframe.VoiceInMicStatus;
+                                    mixMissingFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside();
+                                    snap("mainframe-settings-voice-in-mic.png");
+                                    mainframe.FlipVoiceInMic();
+                                    mixRefused = mainframe.VoiceInMicStatus;
+                                    mixStayedOff = !preferences.VoiceInMic && micMix == null && MicMix.Current == null && !LoadPreferences().VoiceInMic;
+                                    mainframe.PressCable();
+                                    mixOpened = mixBrowsed;
+                                    // VB-CABLE installed: the switch opens up, and turning it on starts the mix with the mic picked under VOICE.
+                                    mixPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-cable}", "CABLE Input (VB-Audio Virtual Cable)");
+                                    mixPc.Mics.Add(new MixDevice(MixMicId, "Microphone (stand-in)"));
+                                    mixPc.Mics.Add(new MixDevice(mixHeadset, "Headset Microphone (stand-in)"));
+                                    mixPc.DefaultMic = MixMicId;
+                                    MicMix.Devices = mixPc;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixReady = mainframe.VoiceInMicStatus;
+                                    mainframe.FlipVoiceInMic();
+                                    mixRunning = micMix;
+                                    MicMix mixWatched = mixRunning;
+                                    WaitSound(delegate { return mixWatched != null && mixWatched.Mixing && mixWatched.MicName == "Microphone (stand-in)"; }, "Her voice in your mic didn't start mixing from Settings.");
+                                    mainframe.ShowVoiceInMic();
+                                    mixOn = mainframe.VoiceInMicStatus;
+                                    mixSaved = preferences.VoiceInMic && LoadPreferences().VoiceInMic && MicMix.Current == mixRunning && mixRunning.Running;
+                                    mixWired = !speaker.Plain && effects.Plain && typist.Plain;
+                                    mixOnFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside();
+                                    snap("mainframe-settings-voice-in-mic-on.png");
+                                    ChooseMic(mixHeadset);
+                                    WaitSound(delegate { return mixWatched.MicName == "Headset Microphone (stand-in)"; }, "A new mic pick didn't move her voice in your mic: " + mixWatched.MicName);
+                                    mixMoved = mixWatched.MicName;
+                                    ChooseMic(mixMicWas);
+                                    // No mic left: her voice goes in alone, and the line says so.
+                                    lock (mixPc.Mics) mixPc.Mics.Clear();
+                                    mixWatched.Chosen = mixWatched.Chosen;
+                                    WaitSound(delegate { return mixWatched.Problem == MicMix.NoMic && mixWatched.Mixing; }, "Her voice in your mic didn't say there's no mic: " + mixWatched.Problem);
+                                    mainframe.ShowVoiceInMic();
+                                    mixAlone = mainframe.VoiceInMicStatus;
+                                    // VB-CABLE uninstalled while it's on: the line says it needs it again, and the switch still goes off.
+                                    mixPc.CableThere = null;
+                                    mixWatched.Chosen = mixWatched.Chosen;
+                                    WaitSound(delegate { return mixWatched.Problem == MicMix.Missing && !mixWatched.Mixing; }, "Her voice in your mic didn't notice VB-CABLE go: " + mixWatched.Problem);
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixGone = mainframe.VoiceInMicStatus;
+                                    mainframe.FlipVoiceInMic();
+                                    mixOff = mainframe.VoiceInMicStatus;
+                                    mixStopped = micMix == null && MicMix.Current == null && !mixRunning.Running && mixPc.Opened.TrueForAll(mixMic => mixMic.Disposed) && mixPc.Cables.TrueForAll(mixCable => mixCable.Disposed);
+                                    mixUnsaved = !preferences.VoiceInMic && !LoadPreferences().VoiceInMic;
+                                    simpleTest = true;
+                                    mainframe.ShowSettings(true);
+                                    mixSimpleFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                                    simpleTest = false;
+                                    mainframe.ShowSettings(true);
+                                }
+                                finally
+                                {
+                                    if (micMix != null) { micMix.Stop(); micMix = null; }
+                                    if (mixRunning != null) mixRunning.Stop();
+                                    preferences.VoiceInMic = false;
+                                    if (preferences.Mic != mixMicWas) ChooseMic(mixMicWas);
+                                    SavePreferences();
+                                    MicMix.Devices = mixDevicesWas;
+                                    Browse = mixBrowseWas;
+                                    cableLooked = -10;
+                                    simpleTest = false;
+                                    mainframe.ShowSettings(true);
+                                }
+                                if (mixMissing != "off | locked | " + MicMix.Missing + " | Get VB-CABLE" + mixNote || mixMissingFits != null || mixRefused != mixMissing || !mixStayedOff || mixOpened != MicMix.CablePage
+                                    || mixReady != "off | open | - | -" + mixNote || mixOn != "on | open | - | -" + mixNote || !mixSaved || !mixWired || mixOnFits != null || mixMoved != "Headset Microphone (stand-in)"
+                                    || mixAlone != "on | open | " + MicMix.NoMic + " | -" + mixNote || mixGone != "on | open | " + MicMix.Missing + " | Get VB-CABLE" + mixNote || mixOff != mixMissing || !mixStopped || !mixUnsaved || mixSimpleFits != null)
+                                    throw new Exception("Her voice in your mic's Settings went wrong: " + string.Join(" / ", new[] { mixMissing, mixMissingFits, mixRefused, mixStayedOff.ToString(), mixOpened, mixReady, mixOn, mixSaved.ToString(), mixWired.ToString(), mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixStopped.ToString(), mixUnsaved.ToString(), mixSimpleFits }));
+                                checks.Add("PASS her voice in your mic in Settings: without VB-CABLE the switch is locked, the line under its note says it needs VB-CABLE (free) and Get VB-CABLE opens vb-audio.com/Cable in their browser; with it the switch starts the mix with the mic picked under VOICE and is saved, a new pick moves it, no mic says only her voice goes in, VB-CABLE going away says it's needed again and the switch still turns off and stops it, and the rows fit in Advanced and Simple Settings");
+                            });
                             // A new install has them all off, and steps before this one leave Watch my screen on.
                             int launchWander = WanderLevel;
                             bool launchWatching = preferences.Watch;
@@ -30716,6 +31520,20 @@ namespace CapriDesktop
                             ChooseVoiceStyle(QwenVoice.Style);
                             if (!preferences.HdVoice || mainframe.FreeStatus != "Free voice: HD | " + freeSetupText || !mainframe.HdChoice.EndsWith("(picked)", StringComparison.Ordinal)) throw new Exception("Picking her HD voice didn't stick: " + mainframe.FreeStatus + " / " + mainframe.HdChoice);
                             if (mainframe.Overlap() != null) throw new Exception("The free voice row overlaps with HD picked: " + mainframe.Overlap());
+                            // Her voice in your mic's rows (F66) sit under Free voice in games while HD is picked.
+                            Section(checks, "SmokeVoiceInMicHdRows", delegate
+                            {
+                                bool hdMixPage = mainframe.SettingsShown;
+                                string hdMixFits;
+                                try
+                                {
+                                    mainframe.ShowSettings(true);
+                                    hdMixFits = mainframe.HdGamesStatus == "-" ? "Free voice in games isn't showing" : mainframe.VoiceInMicFits() ?? mainframe.Overlap();
+                                }
+                                finally { mainframe.ShowSettings(hdMixPage); }
+                                if (hdMixFits != null) throw new Exception("Her voice in your mic's rows don't fit with Free voice in games showing: " + hdMixFits);
+                                checks.Add("PASS her voice in your mic's rows move down under Free voice in games while HD is on and still fit, with nothing over them");
+                            });
                             Func<string, byte[]> hdFallback = delegate(string words) { return null; };
                             if (Hd(hdFallback) != hdFallback) throw new Exception("Her HD voice spoke before it was installed.");
                             // Free voice in games: shown only with HD on and off out of the box, and only when it's on does a full-screen game send her to her free voice.
@@ -32567,6 +33385,35 @@ namespace CapriDesktop
                             StartLocal();
                             if (!local || !earsReady || !mainframe.HearingText.StartsWith("Windows speech failed: Windows speech recognition isn't on this PC", StringComparison.Ordinal) || mainframe.VoiceNoteText != mainframe.HearingText) throw new Exception("A PC without Windows speech did not fall back to offline hearing: " + mainframe.VoiceStatus);
                             StopChat();
+                            // CABLE Output as Windows' default mic (F66): Windows speech would hear her own voice in their mic, so she doesn't
+                            // open it and hears their real mic offline instead, saying why.
+                            Section(checks, "SmokeCableDefaultMic", delegate
+                            {
+                                Func<string> cableNameWas = Ears.DefaultName;
+                                int cableDictations = 0;
+                                bool cableSkipped;
+                                string cableStatus;
+                                try
+                                {
+                                    Ears.DefaultName = delegate { return "CABLE Output (VB-Audio Virtual Cable)"; };
+                                    Dictation.Make = delegate { cableDictations++; return new StandInDictation(); };
+                                    StartLocal();
+                                    cableStatus = mainframe.VoiceStatus;
+                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0;
+                                    StopChat();
+                                    Ears.DefaultName = delegate { return "Microphone (stand-in)"; };
+                                    StartLocal();
+                                    cableSkipped &= cableDictations == 1;
+                                    StopChat();
+                                }
+                                finally
+                                {
+                                    Ears.DefaultName = cableNameWas;
+                                    if (chatting) StopChat();
+                                }
+                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus);
+                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why; any other default opens it as before");
+                            });
                             if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
                             if (Dictation.OtherMic(null, null, otherWith) != null || Dictation.OtherMic("{0.0.1.00000000}.{b76a5175-3f7c}", "Yeti", otherWith) != null || Dictation.OtherMic("{0.0.1.00000000}.{aaaa}", "Yeti", null) != null || Dictation.OtherMic("{0.0.1.00000000}.{aaaa}", "Yeti", otherWith) != "Windows speech only hears your default mic, not Yeti. Make Yeti the default in Windows Settings > System > Sound > Input, or pick Mic: default here.") throw new Exception("The default mic check went wrong.");
