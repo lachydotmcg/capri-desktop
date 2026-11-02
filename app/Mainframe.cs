@@ -1246,7 +1246,7 @@ namespace CapriDesktop
         private float Wanted()
         {
             // GitHub's virtual screen says its panel is narrower than the desktop her test needs, which isn't a shrunken monitor.
-            float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this), capri.FullScreenDisplay);
+            float shrunk = Companion.OnGitHub ? 1f : Panels.Shrink(Screen.FromControl(this), restoringFullScreen || capri.FullScreenDisplay);
             autoZoom = Math.Max(1f, Math.Min(2f, (float)Math.Round(shrunk / DeviceScale() * 20) / 20));
             int picked = capri.MainframeSize;
             return picked > 0 ? picked / 100f : autoZoom;
@@ -1696,11 +1696,19 @@ namespace CapriDesktop
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();
         }
 
+        private bool restoringFullScreen;
+
         internal void Restore()
         {
-            if (!Visible) Show();
-            if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
-            Activate();
+            bool busy = restoringFullScreen;
+            restoringFullScreen = busy || capri.FullScreenDisplay;
+            try
+            {
+                if (!Visible) Show();
+                if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
+                Activate();
+            }
+            finally { restoringFullScreen = busy; }
         }
 
         internal void Sync()
@@ -1898,21 +1906,39 @@ namespace CapriDesktop
         internal bool ClipsSectionShown { get { return paged && !Folded(clipHead) && !Folded(clipChoose) && clipHead.Left < Far; } }
         internal bool SimpleGameControls { get { return !simple || (!Folded(gameMute) && Folded(fastHands)); } }
 
-        internal void CheckDisplayDeferral()
+        internal void CheckDisplayDeferral(Action<bool> fullscreen)
         {
             Func<Screen, float> readWas = Panels.Read;
             int queries = 0;
+            FormWindowState state = WindowState;
+            bool restored = false;
+            Screen screen = Screen.FromControl(this);
+            EventHandler focused = delegate
+            {
+                if (WindowState != FormWindowState.Normal) return;
+                fullscreen(false);
+                Wanted();
+                if (!restoringFullScreen || Panels.Shrink(screen, restoringFullScreen || capri.FullScreenDisplay) != 1f || queries != 1)
+                    throw new Exception("Restoring Mainframe forgot the fullscreen game when focus changed.");
+                restored = true;
+            };
             try
             {
                 Panels.Forget();
                 Panels.Read = delegate { queries++; return 1.5f; };
-                Screen screen = Screen.FromControl(this);
                 if (Panels.Shrink(screen, true) != 1f || queries != 0) throw new Exception("Fullscreen Mainframe queried a cold display driver.");
                 if (Panels.Shrink(screen, false) != 1.5f || queries != 1 || Panels.Shrink(screen, true) != 1.5f || queries != 1) throw new Exception("Mainframe did not reuse its cached panel scale.");
                 Panels.Forget();
                 if (Panels.Shrink(screen, true) != 1f || queries != 1) throw new Exception("A display change queried the driver while fullscreen.");
+                fullscreen(true);
+                WindowState = FormWindowState.Minimized;
+                Resize += focused;
+                Restore();
+                Resize -= focused;
+                if (!restored || restoringFullScreen) throw new Exception("Mainframe did not hold and release its fullscreen restore guard.");
+                if (Panels.Shrink(screen, capri.FullScreenDisplay) != 1.5f || queries != 2) throw new Exception("Mainframe did not resume panel queries after restoring.");
             }
-            finally { Panels.Read = readWas; Panels.Forget(); }
+            finally { Resize -= focused; fullscreen(false); WindowState = state; Panels.Read = readWas; Panels.Forget(); }
         }
 
         internal void PickClipOptions(int seconds, int fps, int resolution, int mbps)
