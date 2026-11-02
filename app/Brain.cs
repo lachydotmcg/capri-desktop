@@ -1571,6 +1571,16 @@ namespace CapriDesktop
             return kind == "nvidia" && Array.IndexOf(NvidiaRecommended, id) >= 0 ? id + Recommended : id;
         }
 
+        internal static bool ModelFits(string kind, string id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return false;
+            if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal);
+            if (kind == "openai") return Regex.IsMatch(id, @"^(gpt-|o\d|chatgpt-)");
+            if (kind == "anthropic") return id.StartsWith("claude-", StringComparison.Ordinal);
+            if (kind == "deepseek") return id.StartsWith("deepseek-", StringComparison.Ordinal);
+            return true;
+        }
+
         private static bool Chats(string kind, string id)
         {
             if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal) && !Regex.IsMatch(id, @"embed|image|audio|tts|live|robotics|computer-use|aqa|transcribe|banana|omni", RegexOptions.IgnoreCase);

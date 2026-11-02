@@ -1471,6 +1471,8 @@ namespace CapriDesktop
         private const double MouthRate = 12;
         private readonly Brain brain = new Brain { Act = Hands.Do };
         private System.Collections.Generic.List<string> cloudModels;
+        private int cloudListing;
+        private int cloudRefresh;
         private readonly System.Collections.Generic.HashSet<string> stalled = new System.Collections.Generic.HashSet<string>();
         private readonly TalkPill pill = new TalkPill();
         private readonly SpeechBox box = new SpeechBox();
@@ -5304,6 +5306,7 @@ namespace CapriDesktop
             if (brain.Model == null) return "Find her a brain first.";
             Cloud remote = brain.Remote;
             if (remote == null && installed != null && Array.IndexOf(installed, name) < 0 && Array.IndexOf(installed, name + ":latest") < 0) return "Ollama doesn't have it. Run: ollama pull " + name;
+            if (remote != null && remote.Kind != "local" && !Brain.ModelFits(remote.Kind, name)) return "That isn't a model for " + remote.Company + ".";
             ChooseModel(name);
             if (remote == null) { mainframe.ShowOllama(installed ?? new[] { name }, name); return "Using " + name + "."; }
             if (remote.Kind == "local") { mainframe.ShowCloud(remote, null); return "Using " + name + " on " + remote.Name + "."; }
@@ -6857,13 +6860,15 @@ namespace CapriDesktop
             if (remote != null && remote.Kind != "local")
             {
                 brain.Local = null;
-                if (remote.Model != null) { brain.Model = remote.Model; mainframe.ShowCloud(remote, cloudModels); }
+                brain.Model = remote.Model;
+                mainframe.ShowCloud(remote, cloudModels);
                 ListCloud(remote.Key, false);
                 return;
             }
-            if (finding || SettingUp) return;
-            finding = true;
+            if (SettingUp) return;
             mainframe.Searching();
+            if (finding) return;
+            finding = true;
             string address = preferences.LocalAddress;
             int port = preferences.BrainPort;
             string selected = preferences.BrainAddress;
@@ -6906,6 +6911,8 @@ namespace CapriDesktop
 
         internal void ChooseLocalBrain(Cloud server, string model, Pick local)
         {
+            ++cloudListing;
+            cloudModels = null;
             brain.Cancel();
             ++asking;
             CloseTalk();
@@ -7444,6 +7451,13 @@ namespace CapriDesktop
             }
         }
 
+        internal void ChooseCloudModel(Cloud remote, string name)
+        {
+            if (remote != brain.Remote || cloudModels == null || !cloudModels.Contains(name)) return;
+            ChooseModel(name);
+            mainframe.ShowCloud(remote, cloudModels);
+        }
+
         private void SplitKeys()
         {
             if (preferences.Tiered) return;
@@ -7468,7 +7482,8 @@ namespace CapriDesktop
         {
             if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel, preferences.BrainAddress);
             string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
-            return key == null ? null : new Cloud(key, preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel);
+            string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel;
+            return Cloud.KindOf(key) == null ? null : new Cloud(key, Brain.ModelFits(Cloud.KindOf(key), model) ? model : null);
         }
 
         private void Mirror()
@@ -7495,6 +7510,7 @@ namespace CapriDesktop
         internal void ChooseTier(int tier)
         {
             if (tier == preferences.Tier) return;
+            ++cloudListing;
             brain.Cancel();
             ++asking;
             CloseTalk();
@@ -7502,6 +7518,7 @@ namespace CapriDesktop
             Mirror();
             SavePreferences();
             brain.Remote = TierCloud();
+            brain.Model = brain.Remote == null ? null : brain.Remote.Model;
             cloudModels = null;
             ShowTiers();
             FindBrain();
@@ -7509,17 +7526,28 @@ namespace CapriDesktop
 
         internal void ConnectText(string key)
         {
+            ++cloudListing;
             key = (key ?? "").Trim();
-            if (Cloud.KindOf(key) == null) { mainframe.ShowProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key."); return; }
+            if (Cloud.KindOf(key) == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.", true); return; }
             ListCloud(key, true);
+        }
+
+        private void TextProblem(string problem, bool connecting)
+        {
+            problem = Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem);
+            Cloud remote = brain.Remote;
+            if (connecting && remote != null && remote.Kind != "local") problem = "Still using your " + remote.Company + " key. " + problem;
+            mainframe.ShowProblem(problem);
         }
 
         internal void ForgetText()
         {
+            ++cloudListing;
             brain.Cancel();
             ++asking;
             CloseTalk();
             brain.Remote = null;
+            brain.Model = null;
             cloudModels = null;
             if (preferences.Tier == 1)
             {
@@ -7540,6 +7568,7 @@ namespace CapriDesktop
 
         private void ListCloud(string key, bool connecting)
         {
+            int listing = cloudListing, refresh = ++cloudRefresh;
             Cloud probe = new Cloud(key, null);
             if (connecting) mainframe.ShowProblem("Checking key...");
             ThreadPool.QueueUserWorkItem(delegate
@@ -7551,11 +7580,12 @@ namespace CapriDesktop
                 catch (Exception error) { Brain.Log("https://" + probe.Company.ToLowerInvariant() + "/models", -1, error.Message); problem = brain.Remote != null && brain.Remote.Key == key && brain.Remote.Model != null ? probe.Company + " is slow. Using " + brain.Remote.Model + "." : "Couldn't reach " + probe.Company + ". Check your internet."; }
                 Post(delegate
                 {
-                    if (problem != null) { if (connecting || brain.Remote != null) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem)); return; }
+                    if (listing != cloudListing || !connecting && refresh != cloudRefresh) return;
+                    if (problem != null) { if (connecting || brain.Remote != null && brain.Remote.Key == key) TextProblem(problem, connecting); return; }
                     if (connecting)
                     {
                         Cloud remote = new Cloud(key, Brain.DefaultCloudModel(probe.Kind, found));
-                        if (remote.Model == null) { mainframe.ShowProblem("That key can't use any chat models."); return; }
+                        if (remote.Model == null) { TextProblem("That key can't use any chat models.", true); return; }
                         brain.Cancel();
                         brain.Remote = remote;
                         if (remote.Kind == "nvidia") preferences.NvidiaKey = Voice.Protect(key);
@@ -8718,7 +8748,7 @@ namespace CapriDesktop
             return 0;
         }
 
-        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0, string contentType = "application/json", string headers = "")
+        private static string FakeServer(string[] replies, System.Collections.Generic.List<string> asked, out System.Net.Sockets.TcpListener listener, int status = 200, int delay = 0, bool drip = false, int missing = 0, string contentType = "application/json", string headers = "", ManualResetEvent release = null)
         {
             System.Net.Sockets.TcpListener server = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
             server.Start();
@@ -8746,6 +8776,7 @@ namespace CapriDesktop
                                 if (got.Length >= end + 4 + (length.Success ? int.Parse(length.Groups[1].Value) : 0)) break;
                             }
                             lock (asked) asked.Add(text);
+                            if (release != null && !release.WaitOne(15000)) throw new TimeoutException("The fake model list stayed held.");
                             // A reply starting "!400 " goes out with that status instead.
                             System.Text.RegularExpressions.Match coded = System.Text.RegularExpressions.Regex.Match(reply, @"^!(\d{3}) ");
                             byte[] answer = System.Text.Encoding.UTF8.GetBytes(coded.Success ? reply.Substring(coded.Length) : reply);
@@ -19191,6 +19222,276 @@ namespace CapriDesktop
             checks.Add("LIMIT live Gemini and OpenRouter authentication, model availability and tool execution need provider keys");
         }
 
+        private void SmokeCloudPicker(System.Collections.Generic.List<string> checks)
+        {
+            Preferences wasPreferences = preferences;
+            Cloud wasRemote = brain.Remote;
+            Engine wasLocal = brain.Local;
+            string wasModel = brain.Model;
+            System.Collections.Generic.List<string> wasModels = cloudModels;
+            Func<string, string> wasThink = Think;
+            bool wasFinding = finding;
+            Machine wasMachine = machine;
+            Pick wasFit = fit;
+            bool wasOllamaRunning = ollamaRunning, wasSettings = mainframe.SettingsShown;
+            int wasSize = preferences.MainframeSize;
+            string wasGoogle = Brain.Google, wasOpenAi = Brain.OpenAi, wasNvidia = Brain.Nvidia;
+            string googleCatalog = "{\"data\":[{\"id\":\"gpt-90-mini\"},{\"id\":\"gemini-90-flash\"},{\"id\":\"gemini-90-pro\"}]}";
+            string openCatalog = "{\"data\":[{\"id\":\"gpt-90-mini\"},{\"id\":\"gpt-90\"}]}";
+            string nvidiaCatalog = "{\"data\":[{\"id\":\"openai/gpt-oss-20b\"}]}";
+            System.Collections.Generic.List<System.Net.Sockets.TcpListener> servers = new System.Collections.Generic.List<System.Net.Sockets.TcpListener>();
+            System.Collections.Generic.List<ManualResetEvent> gates = new System.Collections.Generic.List<ManualResetEvent>();
+            Func<string[], System.Collections.Generic.List<string>, ManualResetEvent, string> serve = delegate(string[] replies, System.Collections.Generic.List<string> asked, ManualResetEvent release)
+            {
+                System.Net.Sockets.TcpListener server;
+                string address = FakeServer(replies, asked, out server, release: release);
+                servers.Add(server);
+                return address;
+            };
+            Action settle = delegate
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < 600) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            Action<string, string> use = delegate(string key, string model)
+            {
+                ++asking;
+                CloseTalk();
+                preferences = new Preferences { Tiered = true, Silent = true, Tier = Cloud.KindOf(key) == "nvidia" ? 1 : 2 };
+                if (preferences.Tier == 1) preferences.NvidiaKey = Voice.Protect(key);
+                else preferences.PaidKey = Voice.Protect(key);
+                brain.Remote = new Cloud(key, model);
+                brain.Local = null;
+                brain.Model = model;
+                cloudModels = new System.Collections.Generic.List<string> { model };
+                Keep(brain.Remote);
+                ShowTiers();
+                mainframe.ShowCloud(brain.Remote, cloudModels);
+            };
+            Func<System.Collections.Generic.List<string>, int> count = delegate(System.Collections.Generic.List<string> asked) { lock (asked) return asked.Count; };
+            try
+            {
+                Think = delegate { return "Connected."; };
+                finding = true;
+                Section(checks, delegate
+                {
+                    foreach (string key in new[] { "AIza-picker-test", "AQ.picker-test" })
+                    {
+                        use("sk-proj-picker-test", "gpt-90-mini");
+                        Cloud old = brain.Remote;
+                        System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                        Brain.Google = serve(new[] { "!401 {\"error\":{\"message\":\"Key rejected\"}}" }, asked, null);
+                        ConnectText(key);
+                        WaitVoice(delegate { return count(asked) == 1 && !mainframe.Status.Contains("Checking key..."); }, "The rejected Gemini key did not finish.");
+                        if (brain.Remote != old || Voice.Unprotect(preferences.PaidKey) != old.Key || mainframe.BrainChoices[0] != "gpt-90-mini" || !mainframe.Status.Contains("Still using your OpenAI key.")) throw new Exception("A rejected Gemini replacement did not say the old OpenAI key is still in use: " + mainframe.Status);
+                        mainframe.ShowSettings(false);
+                        foreach (int size in new[] { 100, 125, 150, 175, 200 })
+                        {
+                            mainframe.SizeMainframe(size);
+                            string crowded = mainframe.TextFits() ?? mainframe.Overlap();
+                            if (crowded != null) throw new Exception("The retained-key message does not fit at " + size + "%: " + crowded);
+                        }
+                    }
+                    ConnectText("unknown-picker-key");
+                    if (!mainframe.Status.Contains("Still using your OpenAI key.")) throw new Exception("An unrecognised replacement hid which key is still in use.");
+                    checks.Add("PASS rejected and unrecognised replacement keys keep the old models and explicitly say the old provider key is still in use");
+                });
+                Section(checks, delegate
+                {
+                    use("sk-proj-picker-test", "gpt-90-mini");
+                    System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                    Brain.Google = serve(new[] { googleCatalog }, asked, null);
+                    ConnectText("AQ.picker-good");
+                    WaitVoice(delegate { return brain.Remote.Key == "AQ.picker-good"; }, "The Gemini replacement did not connect.");
+                    if (brain.Remote.Kind != "google" || brain.Model != "gemini-90-flash" || mainframe.Status != "Gemini · gemini-90-flash | Using your Google AI key" || string.Join("|", mainframe.BrainChoices) != "gemini-90-flash|gemini-90-pro" || !asked[0].Contains("Authorization: Bearer AQ.picker-good")) throw new Exception("The Gemini key kept an OpenAI identity or model list: " + mainframe.Status);
+                    mainframe.PickBrain(1);
+                    if (brain.Model != "gemini-90-pro" || preferences.PaidModel != brain.Model || !mainframe.Status.StartsWith("Gemini · gemini-90-pro", StringComparison.Ordinal)) throw new Exception("A Gemini menu choice did not save and show the active provider.");
+                    mainframe.TypeCustomModel("gpt-90-mini");
+                    if (brain.Model != "gemini-90-pro" || Array.IndexOf(mainframe.BrainChoices, "gpt-90-mini") >= 0) throw new Exception("Typing an OpenAI model put it on a Gemini key's menu.");
+                    mainframe.TypeCustomModel("gemini-92-flash-preview");
+                    if (brain.Model != "gemini-92-flash-preview") throw new Exception("An unlisted custom Gemini model was rejected.");
+                    if (!Brain.ModelFits("openai", "gpt-90-mini-2090-11-02") || !Brain.ModelFits("openai", "chatgpt-90-latest") || !Brain.ModelFits("openrouter", "google/gemini-90-pro") || !Brain.ModelFits("nvidia", "openai/gpt-oss-20b") || Brain.ModelFits("anthropic", "gpt-90-mini") || Brain.ModelFits("deepseek", "gemini-90-pro")) throw new Exception("Model validation discarded pinned or routed models, or accepted another provider's model.");
+                    checks.Add("PASS a Gemini replacement, its model choices and custom model entry keep Google's name, key, saved model and Gemini-only menu");
+                });
+                Section(checks, delegate
+                {
+                    foreach (string action in new[] { "NORMAL", "empty HIGHER", "empty MAX", "Forget" })
+                    {
+                        use(action == "empty MAX" ? "nvapi-picker-test" : "sk-proj-picker-test", action == "empty MAX" ? "openai/gpt-oss-20b" : "gpt-90-mini");
+                        if (action == "Forget") ForgetText();
+                        else ChooseTier(action == "NORMAL" ? 0 : action == "empty HIGHER" ? 1 : 2);
+                        if (brain.Remote != null || brain.Model != null || mainframe.Status != "Looking for a brain... | " || mainframe.BrainChoices.Length != 0) throw new Exception("The " + action + " action left the old cloud menu or model while local discovery was pending: " + mainframe.Status);
+                        UseBrain(new[] { "ollama-picker-test" }, new Machine { Ram = 8L << 30 }, null);
+                        if (brain.Model != "ollama-picker-test" || mainframe.BrainChoices[0] != "Ollama · ollama-picker-test") throw new Exception("Local discovery did not replace the old cloud menu.");
+                    }
+                    checks.Add("PASS NORMAL, tiers without keys and Forget clear the old cloud menu and model while local discovery is pending, then show the local brain");
+                });
+                Section(checks, delegate
+                {
+                    use("nvapi-picker-test", "openai/gpt-oss-20b");
+                    preferences.PaidKey = Voice.Protect("AIza-picker-saved");
+                    preferences.PaidModel = null;
+                    System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                    Brain.Google = serve(new[] { "!503 {}" }, asked, null);
+                    ChooseTier(2);
+                    WaitVoice(delegate { return count(asked) == 1 && !mainframe.Status.Contains("Checking key..."); }, "The saved Gemini key did not refresh.");
+                    settle();
+                    if (brain.Remote.Kind != "google" || brain.Model != null || !mainframe.Status.StartsWith("Gemini |", StringComparison.Ordinal) || mainframe.BrainChoices.Length != 0) throw new Exception("A saved key without a model kept the previous tier's name, model or menu: " + mainframe.Status);
+                    UseBrain(null, new Machine { Ram = 8L << 30 }, null);
+                    if (mainframe.BrainChoices.Length != 0 || !mainframe.Status.StartsWith("Gemini |", StringComparison.Ordinal)) throw new Exception("Local discovery restored another provider's menu.");
+                    checks.Add("PASS a saved Gemini key with no model clears the previous tier's identity and menu even when its list fails or local discovery finishes");
+                });
+                Section(checks, delegate
+                {
+                    use("sk-proj-picker-test", "gpt-90-mini");
+                    ContextMenuStrip menu = (ContextMenuStrip)typeof(Mainframe).GetField("modelMenu", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(mainframe);
+                    ToolStripMenuItem oldChoice = (ToolStripMenuItem)menu.Items[0];
+                    Brain.Google = serve(new[] { googleCatalog, "{\"data\":[{\"id\":\"gemini-90-pro\"}]}" }, new System.Collections.Generic.List<string>(), null);
+                    ConnectText("AIza-picker-new");
+                    WaitVoice(delegate { return brain.Remote.Key == "AIza-picker-new"; }, "The new key did not connect for the queued menu choice.");
+                    oldChoice.PerformClick();
+                    if (brain.Model != "gemini-90-flash" || !mainframe.Status.StartsWith("Gemini ·", StringComparison.Ordinal)) throw new Exception("A queued old-provider menu choice changed the active key's model or identity.");
+                    ToolStripMenuItem removedChoice = (ToolStripMenuItem)menu.Items[0];
+                    FindBrain();
+                    WaitVoice(delegate { return brain.Model == "gemini-90-pro"; }, "The refreshed model list did not replace the removed model.");
+                    removedChoice.PerformClick();
+                    if (brain.Model != "gemini-90-pro" || mainframe.BrainChoices.Length != 1) throw new Exception("A removed menu choice restored an old model list.");
+                    checks.Add("PASS queued model choices from an old key or an earlier model list cannot restore its models or provider identity");
+                });
+                Section(checks, delegate
+                {
+                    use("sk-proj-picker-test", "gpt-90-mini");
+                    preferences.Tiered = false;
+                    preferences.TextKey = Voice.Protect("AIza-picker-migrated");
+                    preferences.TextModel = "gpt-90-mini";
+                    SplitKeys();
+                    Cloud migrated = TierCloud();
+                    if (migrated.Kind != "google" || migrated.Model != null) throw new Exception("A legacy Gemini key inherited an incompatible saved ChatGPT model.");
+                    preferences.Tiered = false;
+                    preferences.TextKey = Voice.Protect("AQ.picker-migrated");
+                    preferences.TextModel = "gemini-90-pro";
+                    SplitKeys();
+                    if (TierCloud().Model != "gemini-90-pro") throw new Exception("Migration discarded a matching Gemini model.");
+                    preferences.PaidKey = Voice.Protect("unknown-picker-key");
+                    preferences.PaidModel = "gpt-90-mini";
+                    if (TierCloud() != null) throw new Exception("An unsupported saved key was activated with a ChatGPT model.");
+                    preferences.Tier = 1;
+                    preferences.NvidiaKey = Voice.Protect("nvapi-picker-test");
+                    preferences.NvidiaModel = "openai/gpt-oss-20b";
+                    System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                    Brain.Nvidia = serve(new[] { nvidiaCatalog }, asked, null);
+                    if (TierCloud().Kind != "nvidia" || Brain.CloudModels(TierCloud().Key)[0] != "openai/gpt-oss-20b") throw new Exception("NVIDIA's OpenAI model was mistaken for a ChatGPT key.");
+                    checks.Add("PASS legacy keys move to their own tier, incompatible saved models are ignored, matching Gemini models survive, and NVIDIA's gpt-oss stays on its NVIDIA key");
+                });
+                foreach (string action in new[] { "new key", "unrecognised key", "tier", "forget", "local" })
+                {
+                    Section(checks, delegate
+                    {
+                        use("sk-proj-picker-test", "gpt-90-mini");
+                        ManualResetEvent release = new ManualResetEvent(false);
+                        gates.Add(release);
+                        System.Collections.Generic.List<string> oldAsked = new System.Collections.Generic.List<string>();
+                        Brain.OpenAi = serve(new[] { openCatalog }, oldAsked, release);
+                        ConnectText("sk-proj-picker-old");
+                        WaitVoice(delegate { return count(oldAsked) == 1; }, "The old connection did not reach its held model list.");
+                        try
+                        {
+                            if (action == "new key")
+                            {
+                                System.Collections.Generic.List<string> newAsked = new System.Collections.Generic.List<string>();
+                                Brain.Google = serve(new[] { googleCatalog }, newAsked, null);
+                                ConnectText("AIza-picker-new");
+                                WaitVoice(delegate { return brain.Remote.Key == "AIza-picker-new"; }, "The newer Gemini key did not connect.");
+                            }
+                            else if (action == "unrecognised key") ConnectText("unknown-picker-key");
+                            else if (action == "tier")
+                            {
+                                preferences.NvidiaKey = Voice.Protect("nvapi-picker-test");
+                                preferences.NvidiaModel = "openai/gpt-oss-20b";
+                                Brain.Nvidia = serve(new[] { nvidiaCatalog }, new System.Collections.Generic.List<string>(), null);
+                                ChooseTier(1);
+                                WaitVoice(delegate { return mainframe.Status == "NVIDIA · openai/gpt-oss-20b | Using your NVIDIA key"; }, "The NVIDIA tier did not finish.");
+                            }
+                            else if (action == "forget") ForgetText();
+                            else { ChooseLocalBrain(null, "local-picker-test", null); mainframe.ShowOllama(new[] { "local-picker-test" }, "local-picker-test"); }
+                            Cloud current = brain.Remote;
+                            string status = mainframe.Status, choices = string.Join("|", mainframe.BrainChoices);
+                            release.Set();
+                            settle();
+                            if (brain.Remote != current || mainframe.Status != status || string.Join("|", mainframe.BrainChoices) != choices) throw new Exception("An old connection overwrote the later " + action + " action: " + mainframe.Status);
+                            checks.Add("PASS a pending key connection cannot overwrite a later " + action + " action");
+                        }
+                        finally { release.Set(); settle(); }
+                    });
+                }
+                Section(checks, delegate
+                {
+                    use("sk-proj-picker-test", "gpt-90-mini");
+                    ManualResetEvent release = new ManualResetEvent(false);
+                    gates.Add(release);
+                    System.Collections.Generic.List<string> connectingAsked = new System.Collections.Generic.List<string>();
+                    Brain.Google = serve(new[] { googleCatalog }, connectingAsked, release);
+                    ConnectText("AIza-picker-refresh");
+                    WaitVoice(delegate { return count(connectingAsked) == 1; }, "The Gemini connection did not start before refreshing.");
+                    try
+                    {
+                        Brain.OpenAi = serve(new[] { openCatalog }, new System.Collections.Generic.List<string>(), null);
+                        FindBrain();
+                        WaitVoice(delegate { return cloudModels.Count == 2; }, "The current OpenAI key did not refresh.");
+                        release.Set();
+                        WaitVoice(delegate { return brain.Remote.Key == "AIza-picker-refresh"; }, "Refreshing the old key cancelled the pending Gemini replacement.");
+                        if (mainframe.Status != "Gemini · gemini-90-flash | Using your Google AI key") throw new Exception("Refreshing the old key left the wrong provider identity after connecting.");
+                        checks.Add("PASS refreshing the active key while a replacement connects lets the replacement finish on its own provider");
+                    }
+                    finally { release.Set(); settle(); }
+                });
+                Section(checks, delegate
+                {
+                    use("sk-proj-picker-test", "gpt-90-mini");
+                    ManualResetEvent release = new ManualResetEvent(false);
+                    gates.Add(release);
+                    System.Collections.Generic.List<string> oldAsked = new System.Collections.Generic.List<string>();
+                    Brain.OpenAi = serve(new[] { "!401 {}" }, oldAsked, release);
+                    FindBrain();
+                    WaitVoice(delegate { return count(oldAsked) == 1; }, "The old refresh did not start.");
+                    try
+                    {
+                        Brain.Google = serve(new[] { googleCatalog }, new System.Collections.Generic.List<string>(), null);
+                        ConnectText("AIza-picker-new");
+                        WaitVoice(delegate { return brain.Remote.Key == "AIza-picker-new"; }, "The new key did not connect during the old refresh.");
+                        string status = mainframe.Status;
+                        release.Set();
+                        settle();
+                        if (mainframe.Status != status) throw new Exception("An old provider's refresh error overwrote the current key's note: " + mainframe.Status);
+                        checks.Add("PASS an old provider's failed refresh cannot overwrite the active provider's note");
+                    }
+                    finally { release.Set(); settle(); }
+                });
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT cloud model picker: loopback sockets unavailable"); }
+            finally
+            {
+                foreach (ManualResetEvent gate in gates) gate.Set();
+                foreach (System.Net.Sockets.TcpListener server in servers) server.Stop();
+                settle();
+                ++cloudListing;
+                ++asking;
+                CloseTalk();
+                preferences = wasPreferences;
+                brain.Remote = wasRemote; brain.Local = wasLocal; brain.Model = wasModel; cloudModels = wasModels;
+                Think = wasThink; finding = wasFinding;
+                machine = wasMachine; fit = wasFit; ollamaRunning = wasOllamaRunning;
+                Brain.Google = wasGoogle; Brain.OpenAi = wasOpenAi; Brain.Nvidia = wasNvidia;
+                mainframe.SizeMainframe(wasSize);
+                mainframe.ShowSettings(wasSettings);
+                mainframe.Sync();
+                ShowTiers();
+                if (wasRemote != null) mainframe.ShowCloud(wasRemote, wasModels);
+                else mainframe.Searching();
+                SavePreferences();
+            }
+        }
+
         private static void SmokeBrainBodies(System.Collections.Generic.List<string> checks)
         {
             int wasMemory = Brain.MemorySize, wasReply = Brain.ReplyLength, wasRecall = Brain.Recall;
@@ -20486,6 +20787,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeMicTest(checks); });
                             Section(checks, delegate { SmokeLocalBrains(checks); });
                             Section(checks, delegate { SmokeCloudBrains(checks); });
+                            Section(checks, delegate { SmokeCloudPicker(checks); });
                             Section(checks, delegate { SmokeBrainBodies(checks); });
                             Section(checks, delegate { SmokeCamera(checks); });
                             Section(checks, delegate { SmokeSteering(checks); });
