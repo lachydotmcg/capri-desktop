@@ -36208,6 +36208,12 @@ namespace CapriDesktop
                 for (int i = 0; i < spokenLevels.Length; i++) spokenLevels[i] = 0.1;
                 spokenAt = talkNow;
                 talkOver.Reset();
+                TalkOver breathy = new TalkOver();
+                for (int i = 0; i < 3; i++) breathy.Heard(0.03, 0.1, WakeLevel);
+                bool breathHeard = false, wordsHeard = false;
+                for (int i = 0; i < 4; i++) breathHeard |= breathy.Heard(0.05, 0.006, WakeLevel);
+                for (int i = 0; i < 2; i++) wordsHeard |= breathy.Heard(0.4, 0.1, WakeLevel);
+                must(!breathHeard && wordsHeard, "The echo of her last word over a breath counted as them talking over her, or them talking over her words didn't: " + breathHeard + " " + wordsHeard);
                 for (int i = 0; i < 6; i++) must(OverHerLocally(echoChunk, VoiceLevel(echoChunk)), "Free voice chat's ears opened on her own voice.");
                 must(bargeIns == bargedBefore + 1, "Her own voice barged in on free voice chat.");
                 for (int i = 0; i < 4; i++) OverHerLocally(voiceChunk, VoiceLevel(voiceChunk));
@@ -36237,7 +36243,7 @@ namespace CapriDesktop
                 Hear("how's it going");
                 must(voiceUntil == 0, "Typing to her didn't stop her talking.");
                 waitFor(delegate { return asides.Count > 0; });
-                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
+                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, the echo of her last word over a breath between words isn't them, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
 
                 StageLog stage = new StageLog();
                 Commentary.Stage = stage;
