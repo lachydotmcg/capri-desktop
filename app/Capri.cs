@@ -11662,6 +11662,24 @@ namespace CapriDesktop
             finally { Hands.WatchFor = watchToolWas; }
             checks.Add("PASS several watches share one look, list names them, stop cancels one or all, and the tool honestly adds nothing when she cannot see");
 
+            // Her alert line follows her language while NONE and the numbers stay as written. English adds nothing.
+            string tongueRules = null;
+            Lookout tongueWatch = new Lookout { Automatic = false, Clock = delegate { return lookoutNow; }, Shot = delegate { return lookoutStill; }, Speak = delegate { },
+                See = delegate(string tongueSystem, string tongueAsk, byte[] tongueJpeg) { tongueRules = tongueSystem; return "NONE"; } };
+            string lookoutTongueWas = Brain.Language;
+            Brain.Language = "Spanish";
+            tongueWatch.Run(new ToolArguments { Text = "low health" });
+            tongueWatch.Tick();
+            string spanishRules = tongueRules;
+            Brain.Language = null;
+            tongueRules = null;
+            tongueWatch.Run(new ToolArguments { Text = "download finishes" });
+            tongueWatch.Tick();
+            Brain.Language = lookoutTongueWas;
+            if (spanishRules == null || !spanishRules.EndsWith("1: \"low health\"\n\nWrite the short line after the colon in Spanish. Keep NONE and the numbers exactly as written.", StringComparison.Ordinal)
+                || tongueRules == null || !tongueRules.EndsWith("2: \"download finishes\"\n", StringComparison.Ordinal) || tongueRules.IndexOf("Write the short line", StringComparison.Ordinal) >= 0) throw new Exception("Lookout's alert didn't follow her language: " + spanishRules + " / " + tongueRules);
+            checks.Add("PASS lookout language: with Spanish picked, her watch rules ask for the alert line in Spanish with NONE and the numbers kept as written; English adds nothing");
+
             int failedLooks = 0, failedLogs = 0;
             lookoutNow = 0;
             lookoutLines.Clear();
@@ -24632,6 +24650,18 @@ namespace CapriDesktop
                                     string glanceAsking = Glances.Ask(glanceLines);
                                     if (Glances.Ask(new System.Collections.Generic.List<string>()) != Glances.Line || !glanceAsking.StartsWith(Glances.Line, StringComparison.Ordinal) || glanceAsking.IndexOf("\n- Nice dodge.\n", StringComparison.Ordinal) < 0 || glanceAsking.IndexOf("\n- " + curses, StringComparison.Ordinal) >= 0 || glanceAsking.IndexOf("Earlier you also brought up: king of curses, malevolent shrine", StringComparison.Ordinal) < 0 || !glanceAsking.EndsWith("make it SAY: SKIP.)", StringComparison.Ordinal)) throw new Exception("The glance prompt lost her recent lines or older topics: " + glanceAsking);
                                     checks.Add("PASS glance repeats: names, numbers and phrases she already brought up count as a repeat, lowercased or at a sentence start; new lines, their nickname and glitch tags don't; the brain sees her last six lines and older topics");
+                                    // Her SAY line follows her language while SAW, the labels and SKIP stay as written. English adds nothing.
+                                    string glanceTongueWas = Brain.Language;
+                                    string spanishSay = "\n(Write the SAY line in Spanish. Keep SAW in English, and the labels SAW: and SAY: and the word SKIP exactly as written.)";
+                                    Brain.Language = "Spanish";
+                                    string spanishFirst = Glances.Ask(new System.Collections.Generic.List<string>()), spanishLater = Glances.Ask(glanceLines);
+                                    string spanishWatch = WatchAlong.Ask(new System.Collections.Generic.List<string>(), "Video", "The train left.", true), spanishWatchLater = WatchAlong.Ask(glanceLines, "Video", "The train left.", true);
+                                    Brain.Language = null;
+                                    string glanceEnglish = Glances.Ask(new System.Collections.Generic.List<string>()), watchEnglish = WatchAlong.Ask(new System.Collections.Generic.List<string>(), "Video", "The train left.", true);
+                                    Brain.Language = glanceTongueWas;
+                                    if (spanishFirst != Glances.Line + spanishSay || !spanishLater.EndsWith("make it SAY: SKIP.)" + spanishSay, StringComparison.Ordinal) || spanishWatch.IndexOf(spanishSay, StringComparison.Ordinal) < 0 || spanishWatchLater.IndexOf(spanishSay, StringComparison.Ordinal) < 0
+                                        || glanceEnglish != Glances.Line || watchEnglish.IndexOf("Write the SAY line", StringComparison.Ordinal) >= 0) throw new Exception("Her glance or watch-along ask didn't follow her language: " + spanishFirst + " / " + spanishWatch);
+                                    checks.Add("PASS glance language: with Spanish picked, her glance and watch-along asks, with or without her past lines, tell her to write the SAY line in Spanish and keep SAW, the labels and SKIP as written; English adds nothing");
                                     lastPrint = null;
                                     using (Bitmap wide = new Bitmap(2560, 1440))
                                     using (MemoryStream read = new MemoryStream(Jpeg(wide, 1280)))

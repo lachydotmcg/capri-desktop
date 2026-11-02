@@ -514,6 +514,13 @@ namespace CapriDesktop
             return string.IsNullOrEmpty(language) || language == "English" ? "" : "\nAlways reply in " + language + ", whatever language they use. Keep your Night City slang words as they are.";
         }
 
+        // The part of a labelled reply she says out loud, in their language, with the labels and words her code reads back left as written.
+        internal static string SayIn(string rule)
+        {
+            string language = Language;
+            return string.IsNullOrEmpty(language) || language == "English" ? "" : "\n" + string.Format(rule, language);
+        }
+
         private static string Longer()
         {
             int wordy = Wordiness;
@@ -3288,6 +3295,8 @@ namespace CapriDesktop
     internal static class Glances
     {
         internal const string Line = "(You glance at their screen while they do their thing. Only this picture counts: your instructions, old chats and memories aren't evidence of what's open, so never take a game from them. Reply in two parts, with the labels SAW: and SAY: written exactly like that. SAW: only what you can clearly see, in under 20 plain words: the game or app and what's happening. SAY: your reaction in one short line, in character, to one specific thing you can see: tease them, gloat, wince or cheer them on, and don't ask what they're doing. A game scene, scoreboard, inventory or quiet moment is enough, but a document or code editor is work, not a game. A fight, match, stream or video is something they're watching: react as a viewer next to them, and never as if they're the one fighting or playing. Don't invent action from a still image, and never guess who a person is; name someone only if their name is written on screen. If you aren't sure what you're seeing, reply with just SKIP. If nothing's worth a line, still give the SAW part and make it SAY: SKIP. For a blank screen, a bare desktop or a loading screen, reply with just SKIP.)";
+        // Only SAY is said out loud, so only it goes in their language: SAW, the labels and SKIP are read back in English.
+        internal const string Tongue = "(Write the SAY line in {0}. Keep SAW in English, and the labels SAW: and SAY: and the word SKIP exactly as written.)";
         // Her glance lines from the last hour count as already said.
         internal const double Memory = 3600;
 
@@ -3312,14 +3321,14 @@ namespace CapriDesktop
         // Each glance is a fresh look with no chat history, so she's shown her recent lines and older topics to stay off.
         internal static string Ask(List<string> said, string line = Line)
         {
-            if (said.Count == 0) return line;
+            if (said.Count == 0) return line + Brain.SayIn(Tongue);
             int shown = Math.Max(0, said.Count - 6);
             string ask = line + "\n(You already said these about their screen:";
             for (int i = shown; i < said.Count; i++) ask += "\n- " + said[i];
             List<string> older = new List<string>();
             for (int i = 0; i < shown; i++) foreach (string key in Keys(said[i], Brain.Nickname)) if (older.Count < 12) Key(older, key);
             if (older.Count > 0) ask += "\nEarlier you also brought up: " + string.Join(", ", older.ToArray()) + ".";
-            return ask + "\nDon't bring any of it up again: no character, move, item, place, number, name or joke from those lines. Pick something new and specific, or make it SAY: SKIP.)";
+            return ask + "\nDon't bring any of it up again: no character, move, item, place, number, name or joke from those lines. Pick something new and specific, or make it SAY: SKIP.)" + Brain.SayIn(Tongue);
         }
 
         // A look she isn't sure of stays unsaid: small brains guess a game from a blurry picture (MiritO, 31 Oct).
