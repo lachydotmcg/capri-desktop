@@ -28794,7 +28794,8 @@ namespace CapriDesktop
                                     Hands.Roll = rollBefore;
                                     if (nowPlaying != "Spotify is playing Consume (feat. Goon Des Garcons) by Chase Atlantic. | Spotify is playing Consume (feat. Goon Des Garcons) by Chase Atlantic. | Spotify is open but paused. | Nothing's playing that I can see. | Their YouTube tab is on Consume - Chase Atlantic. | Playing Resist and Disorder on Spotify.") throw new Exception("What's playing came back wrong: " + nowPlaying);
                                     Hands.PressPlay = realPressPlay;
-                                    Hands.NowPlaying = realNowPlaying;
+                                    // The harness keeps their real Spotify window out of its skips, but these checks read Spotify titles.
+                                    Hands.NowPlaying = realMediaTitle;
                                     Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp>(); };
                                     Hands.Forget();
                                     string noSpotify = Hands.Do("play_music", new ToolArguments { Song = "Blinding Lights", App = "spotify" });
