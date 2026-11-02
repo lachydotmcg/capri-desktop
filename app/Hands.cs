@@ -1325,7 +1325,7 @@ namespace CapriDesktop
         private static readonly string[] WindowsMoves = { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off", "move_mainframe" };
         private static readonly string[] WindowsTools = { "find_file", "website_nickname", "read_file", "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" };
         // Her window tool's arranging, which only Windows has so far.
-        private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize" };
+        private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
 
         // What can't work here, as a tool or "tool:choice" and why, in the order her line about it lists them. A brain that can't
@@ -1390,6 +1390,8 @@ namespace CapriDesktop
             { "app_window:move_to_screen", "", ArrangeLine },
             { "app_window:move", "", ArrangeLine },
             { "app_window:resize", "", ArrangeLine },
+            { "app_window:pin_on_top", "", ArrangeLine },
+            { "app_window:unpin", "", ArrangeLine },
             { "find_file", "finding files", "Finding files is only on Windows for now, choom." },
             { "website_nickname", "website nicknames", "Website nicknames are only on Windows for now, choom." },
             { "read_file", "reading files", "Reading files is only on Windows for now, choom." },
