@@ -3199,7 +3199,7 @@ namespace CapriDesktop
             if (IsDisposed) return;
             Ledges.Invalidate();
             // Her clones' room was the old screen, so they go, and the windows they had go back if their spots are still on a screen.
-            BeginInvoke((Action)delegate { if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); if (cloneWindow != null) ClonesOff(); });
+            BeginInvoke((Action)delegate { if (cloneWindow != null) ClonesOff(); if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); });
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -11328,6 +11328,7 @@ namespace CapriDesktop
             if (disposing)
             {
                 quitting = true;
+                ChaosOff();
                 CheckKeepAwake();
                 clips.Dispose();
                 Native.Lower(false);
@@ -13266,6 +13267,172 @@ namespace CapriDesktop
             }
             checks.Add("PASS desktop icon chaos on a fake list view: reads icon names and spots through her own process the way she'd reach into Explorer's, a scatter slides several and puts every one back exactly, a vanish hides the list view and brings it back in 10 to 20 s, Auto arrange falls back to the vanish, the backup file restores a scatter after a simulated crash matched by name, and an icon moved by hand meanwhile is left where it was put");
             checks.Add("LIMIT desktop icon chaos on the real desktop: the smoke test only ever runs against a fake list view it creates, so moving, hiding and restoring real Explorer icons is for Lachy to check live");
+        }
+
+        private void SmokeChaosScreen(System.Collections.Generic.List<string> checks)
+        {
+            Func<bool> chaosFullWas = FullScreen;
+            bool chaosMotionWas = preferences.Motion, chaosHiddenWas = hidden, chaosQuitWas = quitting, chaosUpsetWas = preferences.UpsetChaos;
+            Point chaosAnchorWas = anchor, chaosLocationWas = Location;
+            try
+            {
+                ClonesOff();
+                hidden = quitting = false;
+                preferences.Motion = true;
+                preferences.UpsetChaos = false;
+                bool chaosFull = false;
+                FullScreen = delegate { return chaosFull; };
+                double chaosStarted = clock.Elapsed.TotalSeconds;
+                Clone("spawn", 1);
+                CloneWindow chaosOwner = cloneWindow;
+                double chaosDue = chaosScreenAt;
+                if (chaosDue < chaosStarted + 40 || chaosDue > clock.Elapsed.TotalSeconds + 120) throw new Exception("Her fake crash was not scheduled 40 to 120 seconds into Chaos.");
+                chaosOwner.Ticked(chaosDue - 0.001);
+                if (chaosScreen != null || chaosScreenUsed) throw new Exception("Her fake crash opened early.");
+                Rectangle chaosMonitor = Screen.AllScreens[Screen.AllScreens.Length - 1].Bounds;
+                anchor = new Point(chaosMonitor.Left + 80, chaosMonitor.Top + 80);
+                Rectangle chaosRoom = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).Bounds;
+                IntPtr chaosFront = Native.GetForegroundWindow();
+                chaosOwner.Ticked(chaosDue);
+                ChaosScreen chaosShown = chaosScreen;
+                if (chaosShown == null || !chaosShown.Visible || !chaosShown.Running || chaosShown.Bounds != chaosRoom || chaosShown.Canvas.Size != chaosRoom.Size
+                    || chaosShown.Canvas.GetPixel(0, 0).A != 255 || chaosShown.Canvas.GetPixel(chaosRoom.Width - 1, chaosRoom.Height - 1).A != 255)
+                    throw new Exception("Her fake crash did not cover the monitor she was on when it opened.");
+                int chaosStyle = Native.GetWindowLong(chaosShown.Handle, -20);
+                if ((chaosStyle & 0x08080088) != 0x08080088 || (chaosStyle & 0x00000020) != 0 || chaosShown.ShowInTaskbar || Native.GetForegroundWindow() != chaosFront
+                    || Native.SendMessage(chaosShown.Handle, 0x0084, IntPtr.Zero, IntPtr.Zero) != new IntPtr(1)
+                    || Native.SendMessage(chaosShown.Handle, 0x0021, IntPtr.Zero, IntPtr.Zero) != new IntPtr(3)) throw new Exception("Her fake crash took focus, passed clicks through or appeared in the taskbar.");
+                if (!chaosShown.Motion || chaosShown.Revealed || chaosShown.Percent != 0 || !chaosShown.Said.Contains("FAKE CRASH") || !chaosShown.Said.Contains(ChaosScreen.StopCode)) throw new Exception("Her crash was not clearly Capri's prank from the start.");
+                checks.Add("PASS chaos fake crash waits 40 to 120 seconds then covers her current monitor with an opaque Capri plate that accepts clicks without taking focus or a taskbar button");
+
+                chaosShown.Advance(clock.Elapsed.TotalSeconds + 1.5);
+                if (chaosShown.Percent <= 0 || chaosShown.Percent >= 100 || chaosShown.Revealed) throw new Exception("Her fake crash percent did not count up.");
+                chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash.png"), ImageFormat.Png);
+                chaosShown.Advance(clock.Elapsed.TotalSeconds + ChaosScreen.RevealAt + 0.05);
+                if (chaosShown.Percent != 100 || !chaosShown.Revealed || !chaosShown.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Her fake crash did not own up before leaving.");
+                chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-jk.png"), ImageFormat.Png);
+                Native.SendMessage(chaosShown.Handle, 0x0100, new IntPtr((int)Keys.Escape), IntPtr.Zero);
+                if (chaosScreen != null || !chaosShown.IsDisposed || chaosShown.Running || chaosShown.Canvas != null) throw new Exception("Esc left her fake crash or its resources alive.");
+                chaosOwner.Ticked(chaosDue + 200);
+                Clone("spawn", 1);
+                chaosOwner.Ticked(chaosDue + 2000);
+                if (chaosScreen != null || !chaosScreenUsed || chaosScreenAt != chaosDue) throw new Exception("Her fake crash repeated within a Chaos session or adding a clone reset it.");
+                checks.Add("PASS chaos fake crash counts up, says jk before leaving, closes on Esc and cannot repeat when more clones join the same session");
+
+                foreach (MouseButtons chaosButton in new[] { MouseButtons.Left, MouseButtons.Right, MouseButtons.Middle, MouseButtons.XButton1, MouseButtons.XButton2 })
+                {
+                    ClonesOff();
+                    Clone("spawn", 1);
+                    cloneWindow.Ticked(chaosScreenAt);
+                    ChaosScreen chaosClicked = chaosScreen;
+                    if (chaosClicked == null) throw new Exception("A new Chaos session did not get its own fake crash.");
+                    int chaosMessage = chaosButton == MouseButtons.Left ? 0x0201 : chaosButton == MouseButtons.Right ? 0x0204 : chaosButton == MouseButtons.Middle ? 0x0207 : 0x020B;
+                    Native.SendMessage(chaosClicked.Handle, chaosMessage, new IntPtr(chaosButton == MouseButtons.XButton2 ? 0x00020000 : chaosButton == MouseButtons.XButton1 ? 0x00010000 : 0), IntPtr.Zero);
+                    if (chaosScreen != null || !chaosClicked.IsDisposed || chaosClicked.Running || chaosClicked.Canvas != null) throw new Exception("Clicking left her fake crash or its resources alive.");
+                }
+                ClonesOff();
+                Clone("spawn", 1);
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosPolled = chaosScreen;
+                chaosPolled.EscDown = delegate { return true; };
+                Stopwatch chaosEscWait = Stopwatch.StartNew();
+                while (chaosScreen != null && chaosEscWait.ElapsedMilliseconds < 2000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (chaosScreen != null || !chaosPolled.IsDisposed || chaosPolled.Running || chaosPolled.Canvas != null) throw new Exception("Esc without focus did not dismiss her fake crash on its timer.");
+                checks.Add("PASS chaos fake crash closes and frees its timer and bitmap on left, right, middle and side clicks or Esc while another window has focus");
+
+                ClonesOff();
+                Clone("spawn", 1);
+                Stopwatch chaosWait = Stopwatch.StartNew();
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosTimed = chaosScreen;
+                if (chaosTimed == null) throw new Exception("Her timed fake crash did not open.");
+                while (chaosScreen != null && chaosWait.ElapsedMilliseconds < 8000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (chaosScreen != null || !chaosTimed.IsDisposed || chaosTimed.Running || chaosTimed.Canvas != null || chaosWait.ElapsedMilliseconds < 4900 || chaosWait.ElapsedMilliseconds >= 8000)
+                    throw new Exception("Her fake crash did not clean up after about five seconds: " + chaosWait.ElapsedMilliseconds + " ms.");
+                checks.Add("PASS chaos fake crash dismisses itself after about five seconds and releases its window, timer and bitmap");
+
+                ClonesOff();
+                Clone("spawn", 1);
+                chaosFull = true;
+                double chaosWaitingAt = chaosScreenAt;
+                cloneWindow.Ticked(chaosWaitingAt);
+                cloneWindow.Ticked(chaosWaitingAt + 600);
+                if (chaosScreen != null || chaosScreenUsed || chaosScreenAt != chaosWaitingAt) throw new Exception("Her fake crash did not wait while something was full screen.");
+                chaosFull = false;
+                cloneWindow.Ticked(chaosWaitingAt + 601);
+                ChaosScreen chaosDeferred = chaosScreen;
+                if (chaosDeferred == null || !chaosScreenUsed) throw new Exception("Her deferred fake crash did not open once full screen ended.");
+                chaosFull = true;
+                chaosDeferred.Advance(clock.Elapsed.TotalSeconds);
+                chaosFull = false;
+                cloneWindow.Ticked(chaosWaitingAt + 602);
+                if (chaosScreen != null || !chaosDeferred.IsDisposed || chaosDeferred.Running || chaosDeferred.Canvas != null || !chaosScreenUsed) throw new Exception("A new full-screen foreground did not dismiss her fake crash without replaying it.");
+                int chaosGuardCalls = 0;
+                using (ChaosScreen chaosGuard = new ChaosScreen(chaosRoom, clock, true, delegate { return ++chaosGuardCalls > 1; }))
+                {
+                    if (chaosGuard.Open() || chaosGuard.Visible || chaosGuard.Running || chaosGuardCalls != 2) throw new Exception("Her fake crash did not recheck full screen before showing.");
+                }
+                checks.Add("PASS chaos fake crash defers without using its turn over full screen, rechecks before showing and closes if full screen begins while it is visible");
+
+                ClonesOff();
+                Clone("spawn", 1);
+                Action<double> chaosCancelled = cloneWindow.Ticked;
+                double chaosCancelledAt = chaosScreenAt;
+                ClonesOff();
+                chaosCancelled(chaosCancelledAt + 1);
+                if (chaosScreen != null || chaosScreenUsed || !double.IsPositiveInfinity(chaosScreenAt)) throw new Exception("Stopping Chaos did not cancel a fake crash that was still waiting.");
+                ClonesOff();
+                preferences.Motion = false;
+                Clone("spawn", 1);
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosStill = chaosScreen;
+                if (chaosStill == null || chaosStill.Motion || chaosStill.Percent != 100 || !chaosStill.Revealed || !chaosStill.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Reduced motion did not get a still fake crash with its joke already revealed.");
+                string chaosPixels;
+                using (MemoryStream chaosPng = new MemoryStream()) { chaosStill.Canvas.Save(chaosPng, ImageFormat.Png); chaosPixels = Convert.ToBase64String(chaosPng.ToArray()); }
+                foreach (double chaosSecond in new[] { 1.0, 3.0, 4.8 }) chaosStill.Advance(clock.Elapsed.TotalSeconds + chaosSecond);
+                using (MemoryStream chaosPng = new MemoryStream())
+                {
+                    chaosStill.Canvas.Save(chaosPng, ImageFormat.Png);
+                    if (Convert.ToBase64String(chaosPng.ToArray()) != chaosPixels || chaosStill.Percent != 100 || !chaosStill.Revealed) throw new Exception("The reduced-motion fake crash moved or changed its text.");
+                }
+                chaosStill.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-still.png"), ImageFormat.Png);
+                Action<double> chaosStale = cloneWindow.Ticked;
+                ClonesOff();
+                if (chaosScreen != null || !chaosStill.IsDisposed || chaosStill.Running || chaosStill.Canvas != null || !double.IsPositiveInfinity(chaosScreenAt)) throw new Exception("Stopping Chaos left her fake crash or its schedule alive.");
+                chaosStale(chaosDue + 10000);
+                Clone("spawn", 1);
+                double chaosNextAt = chaosScreenAt;
+                chaosStale(chaosNextAt + 1);
+                if (chaosScreen != null || chaosScreenUsed || chaosNextAt == chaosDue) throw new Exception("An old Chaos callback opened the next session's prank or the delay was not rerolled.");
+                cloneWindow.Ticked(chaosNextAt);
+                if (chaosScreen == null) throw new Exception("Restarting Chaos did not arm a new fake crash.");
+                checks.Add("PASS chaos fake crash stays completely static with reduced motion, runs with Chaos when upset off for manual Chaos, cleans up on stop and rejects callbacks from an earlier session");
+
+                ChaosScreen chaosDisplay = chaosScreen;
+                DisplaysChanged(null, EventArgs.Empty);
+                Stopwatch chaosDisplayWait = Stopwatch.StartNew();
+                while (cloneWindow != null && chaosDisplayWait.ElapsedMilliseconds < 2000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (cloneWindow != null || chaosScreen != null || !chaosDisplay.IsDisposed || chaosDisplay.Running || chaosDisplay.Canvas != null || !double.IsPositiveInfinity(chaosScreenAt)) throw new Exception("A display change left her fake crash or its schedule alive.");
+                Clone("spawn", 1);
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosQuit = chaosScreen;
+                quitting = true;
+                ChaosTick(clock.Elapsed.TotalSeconds);
+                if (chaosScreen != null || !chaosQuit.IsDisposed || chaosQuit.Running || chaosQuit.Canvas != null) throw new Exception("Quitting left her fake crash alive.");
+                checks.Add("PASS chaos fake crash and its pending schedule are cleared when displays change or she quits");
+                checks.Add("LIMIT chaos fake crash: check physical monitor scaling, real Esc and mouse input, and switching a real game into borderless or exclusive full screen on an interactive bench");
+            }
+            finally
+            {
+                ClonesOff();
+                FullScreen = chaosFullWas;
+                preferences.Motion = chaosMotionWas;
+                preferences.UpsetChaos = chaosUpsetWas;
+                hidden = chaosHiddenWas;
+                quitting = chaosQuitWas;
+                anchor = chaosAnchorWas;
+                Location = chaosLocationWas;
+            }
         }
 
         private static void SmokeGameKeys(System.Collections.Generic.List<string> checks)
@@ -22040,6 +22207,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
             Section(checks, "SmokeHaul", delegate { SmokeHaul(checks); });
             Section(checks, "SmokeIcons", delegate { SmokeIcons(checks); });
+            Section(checks, "SmokeChaosScreen", delegate { SmokeChaosScreen(checks); });
             Section(checks, "SmokeListen", delegate { SmokeListen(checks); });
             Section(checks, "SmokeTalkLogic", delegate { SmokeTalkLogic(checks); });
             Section(checks, "SmokeTalkSettings", delegate { SmokeTalkSettings(checks); });
