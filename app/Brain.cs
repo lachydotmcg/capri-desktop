@@ -1931,6 +1931,7 @@ namespace CapriDesktop
             // ran, that's the part that can't work here, unless a brain that worked the job out had its say.
             if (calls.Count == 0 && rest != null && !planned) unable = unable == null ? rest : unable + " " + rest;
             if (calls.Count == 0 && unable != null) raw = unable;
+            if (!planned) Once(calls);
             string done = null;
             if (calls.Count > 0)
             {
@@ -2101,9 +2102,9 @@ namespace CapriDesktop
                     if (call.Key == "use_computer" && args.Asked == null) args.Asked = request;
                     if (call.Key == "app_window") args.Asked = request;
                     if (call.Key == "media") Hands.Aim(args, request);
-                    // The same job or app twice runs once: a small brain can call a job again that it thinks is still going. Media
-                    // can go twice, like skipping two songs.
-                    int again = call.Key == "use_computer" || call.Key == "open_app" ? calls.FindIndex(done => done.Key == call.Key && Written(done.Key, done.Value) == Written(call.Key, args)) : -1;
+                    // The same job, app, site or song twice runs once: a small brain can call a job again that it thinks is still
+                    // going, or write the same call over and over. Media can go twice, like skipping two songs.
+                    int again = OpensOnce(call.Key) ? calls.FindIndex(done => done.Key == call.Key && Written(done.Key, done.Value) == Written(call.Key, args)) : -1;
                     if (again >= 0)
                     {
                         did.Add(Written(call.Key, args));
@@ -2160,6 +2161,20 @@ namespace CapriDesktop
         {
             if (kit.Has("use_computer")) calls.Add(Hands.Forced(request));
             else unable = kit.Unable("use_computer", null);
+        }
+
+        // A small brain can write the same call over and over until it runs out of room (Bende, 3 Nov: YouTube opened about
+        // 20 times). Opening the same job, app, site or song twice in one turn is never wanted, so an exact repeat runs once.
+        internal static bool OpensOnce(string tool) { return tool == "use_computer" || tool == "open_app" || tool == "open_website" || tool == "play_music"; }
+
+        internal static void Once(List<KeyValuePair<string, ToolArguments>> calls)
+        {
+            for (int i = calls.Count - 1; i > 0; i--)
+            {
+                KeyValuePair<string, ToolArguments> call = calls[i];
+                string written = call.Value == null ? call.Key : Written(call.Key, call.Value);
+                if (OpensOnce(call.Key) && calls.FindIndex(0, i, earlier => (earlier.Value == null ? earlier.Key : Written(earlier.Key, earlier.Value)) == written) >= 0) calls.RemoveAt(i);
+            }
         }
 
         // A call written the way her text-only brains write them, without the empty fields: open_app{"name":"Steam"}.
