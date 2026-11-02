@@ -26031,21 +26031,23 @@ namespace CapriDesktop
                             {
                                 try
                                 {
-                                    using (System.Net.Sockets.TcpClient client = packServer.AcceptTcpClient())
-                                    using (System.Net.Sockets.NetworkStream stream = client.GetStream())
-                                    {
-                                        byte[] buffer = new byte[4096];
-                                        string request = "";
-                                        while (request.IndexOf("\r\n\r\n", StringComparison.Ordinal) < 0)
+                                    // Once for a first install and once for a reinstall over it.
+                                    for (int served = 0; served < 2; served++)
+                                        using (System.Net.Sockets.TcpClient client = packServer.AcceptTcpClient())
+                                        using (System.Net.Sockets.NetworkStream stream = client.GetStream())
                                         {
-                                            int read = stream.Read(buffer, 0, buffer.Length);
-                                            if (read <= 0) break;
-                                            request += System.Text.Encoding.ASCII.GetString(buffer, 0, read);
+                                            byte[] buffer = new byte[4096];
+                                            string request = "";
+                                            while (request.IndexOf("\r\n\r\n", StringComparison.Ordinal) < 0)
+                                            {
+                                                int read = stream.Read(buffer, 0, buffer.Length);
+                                                if (read <= 0) break;
+                                                request += System.Text.Encoding.ASCII.GetString(buffer, 0, read);
+                                            }
+                                            byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/zip\r\nContent-Length: " + pack.Length + "\r\nConnection: close\r\n\r\n");
+                                            stream.Write(head, 0, head.Length);
+                                            stream.Write(pack, 0, pack.Length);
                                         }
-                                        byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/zip\r\nContent-Length: " + pack.Length + "\r\nConnection: close\r\n\r\n");
-                                        stream.Write(head, 0, head.Length);
-                                        stream.Write(pack, 0, pack.Length);
-                                    }
                                 }
                                 catch (Exception) { }
                             });
@@ -26055,6 +26057,8 @@ namespace CapriDesktop
                             string packRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "pack-test");
                             LocalVoice fetchedVoice = new LocalVoice(packRoot);
                             System.Collections.Generic.List<string> packSteps = new System.Collections.Generic.List<string>();
+                            string packFolder = Path.Combine(Path.Combine(packRoot, "voice"), LocalVoice.Pack), packHeld = Path.Combine(packFolder, "onnxruntime.dll"), packRedone = null;
+                            bool packFresh = false, packBroken = false, packKept = false;
                             try
                             {
                                 LocalVoice.PackUrl = "http://127.0.0.1:" + ((IPEndPoint)packServer.LocalEndpoint).Port + "/capri-voice-1.zip";
@@ -26062,6 +26066,20 @@ namespace CapriDesktop
                                 using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) LocalVoice.PackSha = BitConverter.ToString(sha.ComputeHash(pack)).Replace("-", "").ToLowerInvariant();
                                 if (fetchedVoice.Installed) throw new Exception("An empty folder counted as a voice pack.");
                                 fetchedVoice.Install(delegate(string text, long done, long total) { packSteps.Add(text); });
+                                packFresh = fetchedVoice.Installed;
+                                // Set up again over a folder that lost all but its DLLs, with onnxruntime.dll in use (held open here, loaded for
+                                // real), she moves the pack in around that DLL instead of failing to delete the folder.
+                                foreach (string name in LocalVoice.Needed) if (!name.EndsWith(".dll", StringComparison.Ordinal)) File.Delete(Path.Combine(packFolder, name));
+                                File.WriteAllBytes(packHeld, new byte[] { 7 });
+                                packBroken = !fetchedVoice.Installed;
+                                using (new FileStream(packHeld, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                {
+                                    try { fetchedVoice.Install(delegate(string text, long done, long total) { }); }
+                                    catch (IOException error) { packRedone = error.Message; }
+                                    catch (UnauthorizedAccessException error) { packRedone = error.Message; }
+                                }
+                                byte[] packLeft = File.ReadAllBytes(packHeld);
+                                packKept = packLeft.Length == 1 && packLeft[0] == 7;
                             }
                             finally
                             {
@@ -26070,10 +26088,10 @@ namespace CapriDesktop
                                 LocalVoice.PackSize = packSize;
                                 packServer.Stop();
                             }
-                            string packFolder = Path.Combine(Path.Combine(packRoot, "voice"), LocalVoice.Pack);
-                            if (!fetchedVoice.Installed || File.Exists(packFolder + ".zip") || Directory.Exists(packFolder + ".new") || !packSteps.Contains("Checking her free voice") || !packSteps.Contains("Unpacking her free voice")) throw new Exception("Voice pack did not install: " + string.Join(", ", packSteps.ToArray()));
+                            if (!packFresh || !fetchedVoice.Installed || File.Exists(packFolder + ".zip") || Directory.Exists(packFolder + ".new") || !packSteps.Contains("Checking her free voice") || !packSteps.Contains("Unpacking her free voice")) throw new Exception("Voice pack did not install: " + string.Join(", ", packSteps.ToArray()));
+                            if (!packBroken || packRedone != null || !packKept) throw new Exception("Setting her free voice up again over a DLL in use went wrong: broken " + packBroken + ", kept " + packKept + ", " + packRedone);
                             Directory.Delete(packRoot, true);
-                            checks.Add("PASS free voice: Free voice row and Get free voice button without a key, four styles with fallback, pack download + checksum + unpack from a fake server");
+                            checks.Add("PASS free voice: Free voice row and Get free voice button without a key, four styles with fallback, pack download + checksum + unpack from a fake server, and set up again over a folder whose onnxruntime.dll is in use, the pack goes in around it");
                             if (new Preferences().HdVoice) throw new Exception("Her HD voice is on by default.");
                             qwen.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
                             string hdUsualLaunch = qwen.StartInfo(1234).Arguments;
@@ -27307,7 +27325,10 @@ namespace CapriDesktop
                             fetchedEars.Language = "en";
                             bool earsWaitOnVoice = fetchedEars.Installed && !fetchedEars.Ready;
                             Directory.CreateDirectory(LocalVoice.Folder(earsRoot));
+                            // The voice's DLLs alone, as a failed setup used to leave, aren't her free voice, so her ears don't load them.
                             foreach (string name in new[] { "sherpa-onnx-c-api.dll", "onnxruntime.dll" }) File.WriteAllBytes(Path.Combine(LocalVoice.Folder(earsRoot), name), new byte[] { 1 });
+                            earsWaitOnVoice &= !fetchedEars.Ready;
+                            foreach (string name in LocalVoice.Needed) { string part = Path.Combine(LocalVoice.Folder(earsRoot), name); Directory.CreateDirectory(Path.GetDirectoryName(part)); File.WriteAllBytes(part, new byte[] { 1 }); }
                             if (!earsWaitOnVoice || !fetchedEars.Ready || File.Exists(earsFolder + ".tar.bz2") || Directory.Exists(earsFolder + ".new") || !earsSteps.Contains("Checking her ears") || !earsSteps.Contains("Unpacking her ears")) throw new Exception("Her ears pack did not install: " + string.Join(", ", earsSteps.ToArray()));
                             if (!englishFirst || !europeanApart || !europeanIn || !turkishNone) throw new Exception("Her ears didn't pick the pack for the language: English " + englishFirst + ", European apart " + europeanApart + ", European in " + europeanIn + ", Turkish none " + turkishNone);
                             Directory.Delete(earsRoot, true);
@@ -28227,6 +28248,8 @@ namespace CapriDesktop
                             bool wakeWaitsOnVoice = fetchedWake.Installed && !fetchedWake.Ready && !fetchedWake.VoiceIn;
                             Directory.CreateDirectory(LocalVoice.Folder(wakeData));
                             foreach (string name in new[] { "sherpa-onnx-c-api.dll", "onnxruntime.dll" }) File.WriteAllBytes(Path.Combine(LocalVoice.Folder(wakeData), name), new byte[] { 1 });
+                            wakeWaitsOnVoice &= !fetchedWake.Ready && !fetchedWake.VoiceIn;
+                            foreach (string name in LocalVoice.Needed) { string part = Path.Combine(LocalVoice.Folder(wakeData), name); Directory.CreateDirectory(Path.GetDirectoryName(part)); File.WriteAllBytes(part, new byte[] { 1 }); }
                             string wakeFolder = Path.Combine(Path.Combine(wakeData, "wake"), WakeWord.Pack);
                             if (!wakeEmpty || !wakeWaitsOnVoice || !fetchedWake.Ready || File.Exists(wakeFolder + ".tar.bz2") || Directory.Exists(wakeFolder + ".new") || !wakeSteps.Contains("Checking her wake word") || !wakeSteps.Contains("Unpacking her wake word"))
                                 throw new Exception("Her wake word pack did not install: empty " + wakeEmpty + ", waits on voice " + wakeWaitsOnVoice + ", ready " + fetchedWake.Ready + " / " + string.Join(", ", wakeSteps.ToArray()));
