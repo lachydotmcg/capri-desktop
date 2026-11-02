@@ -17126,14 +17126,14 @@ namespace CapriDesktop
                 string clipTool;
                 ToolArguments clipArgs;
                 Computer.GameOpen = delegate { return "Synthetic Game"; };
-                string[] clipWords = { "clip that", "clip it", "save that", "save a clip", "clip the last 2 minutes", "clip that capri", "Capri, clip that.", "clip the last two minutes" };
+                string[] clipWords = { "clip that", "clip it", "save that", "save a clip", "clip the last 2 minutes", "clip that capri", "Capri, clip that.", "clip the last two minutes", "Capri scroll that BD", "capri, scroll that b.d.", "scroll that, bd" };
                 foreach (string clipWordsCase in clipWords)
                 {
                     if (!Hands.Direct(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip" || !Hands.Heard(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip")
                         throw new Exception("A clip phrase missed her local route: " + clipWordsCase);
                     if (clipArgs.Seconds != (clipWordsCase.Contains("minutes") ? "120" : null)) throw new Exception("A clip phrase lost its duration.");
                 }
-                foreach (string ordinary in new[] { "that", "save that file", "save that document", "how do I clip that", "don't clip that" })
+                foreach (string ordinary in new[] { "that", "save that file", "save that document", "how do I clip that", "don't clip that", "scroll that", "scroll that page down", "scroll that bd page" })
                     if (Hands.Heard(ordinary, out clipTool, out clipArgs) && clipTool == "clip") throw new Exception("Clips took an ordinary request: " + ordinary);
                 using (ClipBuffer off = new ClipBuffer())
                 {

@@ -747,7 +747,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
             { "gaming_mode", "Turn Gaming Mode on or off, only when they ask for Gaming Mode by name: you watch their game and react when something happens, until it closes.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}", "react to your games in Gaming Mode", "turn Gaming Mode on or off" },
-            { "clip", "Save recent game video to their chosen clips folder on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > CLIPS must be on. Omit seconds to use their chosen default length; seconds can request a different stretch of the buffered video.",
+            { "clip", "Save recent game video to their chosen clips folder on this PC. Use this when they ask to clip a game, including clip that and scroll that BD. Clip my games in Settings > CLIPS must be on. Omit seconds to use their chosen default length; seconds can request a different stretch of the buffered video.",
               "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}", "clip your games", "clip their game" },
             { "mini_game", "Play your own tic-tac-toe, connect four, rock paper scissors or native chess board beside you. Online play goes to their browser. A move uses their square, column or rock/paper/scissors as text; chess moves use the mouse. again starts a new round; close closes your board. Chess also has undo, hint, resign and level. Chess needs no brain or key; choose easy, normal or hard and their side, white by default.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\",\"chess\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\",\"undo\",\"hint\",\"resign\",\"level\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move on a non-chess board\"},\"level\":{\"type\":\"string\",\"description\":\"Chess strength\",\"enum\":[\"easy\",\"normal\",\"hard\"]},\"side\":{\"type\":\"string\",\"description\":\"Their chess pieces\",\"enum\":[\"white\",\"black\"]}},\"required\":[\"name\"]}", "play her mini games with you (tic-tac-toe, connect four, rock paper scissors and chess) on her own desktop boards, even without a brain", "play tic-tac-toe, connect four, rock paper scissors or chess" },
@@ -2680,7 +2680,8 @@ namespace CapriDesktop
         internal static int ClipSeconds(string text)
         {
             string plain = ClipPlain(text);
-            if (Regex.IsMatch(plain, @"^(clip (that|it|this)|save that|(save|grab) (a |the )?clip)$", RegexOptions.IgnoreCase)) return -1;
+            // "Scroll that BD" clips too, however her ears spell the BD (Lieuquier, 3 Nov; Lachy: "genuinely a goated idea").
+            if (Regex.IsMatch(plain, @"^(clip (that|it|this)|save that|(save|grab) (a |the )?clip|scroll that,? (b\.? ?d|bee ?dee|beady))$", RegexOptions.IgnoreCase)) return -1;
             Match stretch = Regex.Match(plain, @"^clip the last (\d+|one|two|a) (seconds?|minutes?)$", RegexOptions.IgnoreCase);
             if (!stretch.Success) return 0;
             string amount = stretch.Groups[1].Value.ToLowerInvariant();
