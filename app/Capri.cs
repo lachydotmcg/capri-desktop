@@ -1694,12 +1694,16 @@ namespace CapriDesktop
         private double pace = LettersPerSecond;
         private const string OllamaPage = "https://ollama.com/download";
         private const string FreeKeyPage = "https://build.nvidia.com/settings/api-keys";
+        private const string GeminiKeyPage = "https://aistudio.google.com/apikey";
+        private const string RouterKeyPage = "https://openrouter.ai/keys";
         private const string GuidePage = "https://lachydotmcg.github.io/capri-desktop/setup/#voice";
         private const string DiscordPage = "https://discord.gg/F4fDHfGtFk";
         private const string HelpPage = "https://lachydotmcg.github.io/capri-desktop/help/";
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
+        private const string GeminiKeyLine = "Sign in on that page, make a key and copy it. Then paste it in the box under BRAIN and press Connect. It's free, but it can be rate limited." + Brain.Stuck;
+        private const string RouterKeyLine = "Sign in on that page, make a key and copy it. Then paste it in the box under BRAIN and press Connect. MEDIUM lists only its free models." + Brain.Stuck;
         internal static Action<string> Browse = delegate(string page) { try { Process.Start(page); } catch (System.ComponentModel.Win32Exception) { } };
         // Opens a file of hers in Notepad. Smoke tests swap it to see which file a button opened.
         internal static Action<string> Edit = delegate(string path) { using (Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = false })) { } };
@@ -1767,6 +1771,7 @@ namespace CapriDesktop
                     TestFailed = true;
                     checks.Add("FAIL section " + name + " left her changed: " + before + " became " + after);
                     if (menu.Visible) menu.Close();
+                    if (mainframe.FreeKeysShown) mainframe.CloseFreeKeys();
                     if (playerMenu != null && playerMenu.Visible) playerMenu.Close();
                     if (preferences.OnTop != onTop) { preferences.OnTop = onTop; TopMost = onTop; Layer(); }
                     // WinForms keeps its own TopMost, so a window that lost Windows' topmost bit behind its back is told again directly.
@@ -1789,6 +1794,7 @@ namespace CapriDesktop
         {
             return "Mainframe " + (mainframe.Visible ? mainframe.WindowState.ToString() : "hidden") + ", her " + (hidden ? "hidden" : "shown")
                 + ", her menu " + (menu.Visible ? "open" : "closed") + ", the player's menu " + (playerMenu != null && playerMenu.Visible ? "open" : "closed")
+                + ", free key menu " + (mainframe.FreeKeysShown ? "open" : "closed")
                 + ", Always on top " + preferences.OnTop + ", topmost in Windows " + NativeTop;
         }
 
@@ -2629,7 +2635,7 @@ namespace CapriDesktop
 
         private static void OpenPage(string page)
         {
-            if (page != OllamaPage && page != FreeKeyPage && page != GuidePage && page != DiscordPage && page != HelpPage && page != SupportPage) return;
+            if (page != OllamaPage && page != FreeKeyPage && page != GeminiKeyPage && page != RouterKeyPage && page != GuidePage && page != DiscordPage && page != HelpPage && page != SupportPage) return;
             Browse(page);
         }
 
@@ -8273,6 +8279,10 @@ namespace CapriDesktop
         internal void OpenKeyPage() { OpenPage(GuidePage); Tell("get a key", GuideLine); }
 
         internal void OpenFreeKeyPage() { OpenPage(FreeKeyPage); Tell("free key", FreeKeyLine); }
+
+        internal void OpenGeminiKeyPage() { OpenPage(GeminiKeyPage); Tell("free key", GeminiKeyLine); }
+
+        internal void OpenRouterKeyPage() { OpenPage(RouterKeyPage); Tell("free key", RouterKeyLine); }
 
         internal void OpenHelp() { OpenPage(HelpPage); }
         internal void OpenSupport() { OpenPage(SupportPage); }
@@ -15108,6 +15118,7 @@ namespace CapriDesktop
                 { "why can't you see my screen", "Watch my screen" },
                 { "what's the Bubble setting", "Bubble" },
                 { "how do I connect a free key", "Free key" },
+                { "how do I get a free key", "Free key" },
                 { "how do I connect Gemini", "Cloud brain keys" },
                 { "how do I use OpenRouter", "Cloud brain keys" },
                 { "what is medium intelligence", "Medium intelligence" },
@@ -15190,6 +15201,11 @@ namespace CapriDesktop
             foreach (string selfGamingFact in new[] { "Hey Capri, activate gaming mode", "Settings > GAMES", "Gaming Mode switch", "default key is Ctrl + Alt + G", "MAX INTELLIGENCE", "weaker on other brains" })
                 if (selfGamingHelp == null || !selfGamingHelp.Contains(selfGamingFact)) throw new Exception("Gaming Mode help missed: " + selfGamingFact);
             checks.Add("PASS self knowledge: Gaming Mode explains asking her, the Settings switch, the default key and the difference between MAX INTELLIGENCE and other brains");
+
+            string selfFreeKeyHelp = SelfKnow.Matching("how do I get a free key");
+            foreach (string provider in new[] { "NVIDIA", "Google AI Studio (Gemini)", "OpenRouter", "free models", "rate limited" })
+                if (selfFreeKeyHelp == null || !selfFreeKeyHelp.Contains(provider)) throw new Exception("Free key help missed: " + provider);
+            checks.Add("PASS self knowledge: asking for a free key explains all three providers, OpenRouter's free models and rate limits");
 
             string selfMaxReplyHelp = SelfKnow.Matching("What does Max reply Auto do?");
             string selfClippingHelp = SelfKnow.Matching("How do I clip my games?");
@@ -22522,6 +22538,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLocalBrains", delegate { SmokeLocalBrains(checks); });
             Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
+            Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
@@ -32973,16 +32990,22 @@ namespace CapriDesktop
                                 OpenKeyPage();
                                 if (reply != GuideLine || heard != "get a key") throw new Exception("Get a key did not tell them to follow the guide: " + reply);
                                 CloseTalk();
-                                OpenFreeKeyPage();
-                                if (reply != FreeKeyLine || heard != "free key") throw new Exception("Free key did not explain the NVIDIA key: " + reply);
-                                CloseTalk();
+                                string[] keyLines = { FreeKeyLine, GeminiKeyLine, RouterKeyLine };
+                                for (int provider = 0; provider < keyLines.Length; provider++)
+                                {
+                                    mainframe.ShowFreeKeys();
+                                    if (!mainframe.FreeKeysShown || mainframe.FreeKeyChoices != 3) throw new Exception("Free key did not offer all three providers.");
+                                    mainframe.PickFreeKey(provider);
+                                    if (reply != keyLines[provider] || heard != "free key") throw new Exception("Free key did not explain provider " + provider + ": " + reply);
+                                    CloseTalk();
+                                }
                                 ((ToolStripMenuItem)helpItem.DropDownItems[1]).PerformClick();
                                 ((ToolStripMenuItem)helpItem.DropDownItems[0]).PerformClick();
                                 OpenHelp();
-                                if (string.Join(" ", browsed.ToArray()) != GuidePage + " " + FreeKeyPage + " " + DiscordPage + " " + HelpPage + " " + HelpPage) throw new Exception("Key buttons, Join the Discord or Help opened the wrong pages: " + string.Join(" ", browsed.ToArray()));
+                                if (string.Join(" ", browsed.ToArray()) != GuidePage + " " + FreeKeyPage + " " + GeminiKeyPage + " " + RouterKeyPage + " " + DiscordPage + " " + HelpPage + " " + HelpPage) throw new Exception("Key buttons, Join the Discord or Help opened the wrong pages: " + string.Join(" ", browsed.ToArray()));
                             }
-                            finally { Browse = realBrowse; }
-                            checks.Add("PASS key buttons: Setup guide opens the setup guide's voice steps, Free key opens NVIDIA's key page and she says what to do for each, and Help opens the help page");
+                            finally { mainframe.CloseFreeKeys(); Browse = realBrowse; }
+                            checks.Add("PASS key buttons: Setup guide opens the setup guide's voice steps, Free key offers NVIDIA, Google AI Studio and OpenRouter and she says what to do for each, and Help opens the help page");
                             mainframe.WindowState = FormWindowState.Minimized;
                             if (TalkPill.Render(1, 0).Width != TalkPill.Measure(1).Width) throw new Exception("Mic button showed outside voice chat.");
                             System.Net.Sockets.TcpListener free = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
