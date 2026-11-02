@@ -894,7 +894,7 @@ namespace CapriDesktop
 
         // A plate with cut corners: a soft glow, the black fill with faint scan lines, a cyan wash where it's hovered, and a neon
         // edge from one colour to the other, inside the box so its straight edges land on whole pixels.
-        private static void Plate(Graphics graphics, Rectangle box, float s, Rectangle lit, Color from, Color to)
+        internal static void Plate(Graphics graphics, Rectangle box, float s, Rectangle lit, Color from, Color to)
         {
             int cut = Cut(s);
             int edge = EdgeWidth(s);

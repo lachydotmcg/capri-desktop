@@ -133,6 +133,7 @@ namespace CapriDesktop
         private readonly Toggle stayOnModel;
         private readonly Toggle remembering;
         private readonly Toggle keepAwake, hideFullScreen, playerFullScreen, exploreAway;
+        private Key clipsFolder;
         private readonly Slider exploreAfter;
         private readonly Readout exploreAfterName;
         private static readonly int[] AwayTimes = { 60, 120, 300, 600, 900, 1800 };
@@ -719,6 +720,8 @@ namespace CapriDesktop
             Make("Edit check-in lines", 28 + c, 1240, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
+            clipsFolder = Make("Open clips folder", 104, 911, 136, 20, delegate { capri.OpenClips(); });
+            clipsFolder.AccessibleName = "Open clips folder: your saved clips, in Videos\\Capri Clips";
             // What she says about a game they're playing, from what happens in it rather than on a timer.
             comments = Setting("Comments", Commentary.PaceNames, 0, 938, "How much she says about a game you're playing: off, only when something happens, or chatty");
             commentsName = new Readout(comments);
@@ -1841,6 +1844,8 @@ namespace CapriDesktop
         internal void FlipClips() { clipGames.Checked = !clipGames.Checked; }
 
         internal bool ClipMomentsShown { get { return clipMoments.Checked; } }
+
+        internal bool ClipsFolderShown { get { return clipsFolder != null && clipsFolder.Parent != null; } }
 
         internal void FlipClipMoments() { clipMoments.Checked = !clipMoments.Checked; }
 

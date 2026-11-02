@@ -2,9 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Drawing.Text;
 using System.IO;
+using System.Media;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -436,6 +440,19 @@ namespace CapriDesktop
             }
         }
 
+        // After a clip saves, off the UI thread: its path, how many seconds, and the game.
+        internal Action<string, double, string> Saved;
+
+        // Where clips go: Videos\Capri Clips, wherever Windows keeps their Videos.
+        internal static string Folder { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Capri Clips"); } }
+
+        // What she says for a saved clip: how long and of what, without the file's path, which the CLIP SAVED popup shows.
+        internal static string Spoken(string result)
+        {
+            if (result == null || !result.StartsWith("Saved ", StringComparison.Ordinal)) return result;
+            return "Clipped " + Regex.Replace(result.Substring(6), @": (?:[A-Za-z]:\\|\\\\)[^\r\n]*?\.mp4", ".");
+        }
+
         internal string Clip(int seconds)
         {
             bool saved;
@@ -457,12 +474,17 @@ namespace CapriDesktop
             title = title.Trim().TrimEnd('.');
             if (title.Length == 0) title = "Game";
             if (title.Length > 100) title = title.Substring(0, 100);
-            string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Capri Clips");
+            string directory = Folder;
             Directory.CreateDirectory(directory);
             ClipMedia.Tidy(directory);
             string path = Path.Combine(directory, title + " " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss-fff") + " " + Guid.NewGuid().ToString("N").Substring(0, 6) + ".mp4");
             ClipResult result = Save(path, seconds).GetAwaiter().GetResult();
             saved = result.Problem == null;
+            if (saved)
+            {
+                Action<string, double, string> told = Saved;
+                if (told != null) told(result.Path, result.Seconds, open);
+            }
             return result.Problem ?? "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + open + (result.Sound ? "" : " without sound") + ": " + result.Path + (result.Merged ? " Merged your clip requests into this clip." : "");
         }
 
@@ -1172,6 +1194,248 @@ namespace CapriDesktop
         {
             internal ClipSoundException(Exception cause) : base("Windows couldn't encode the clip's sound.", cause) { }
         }
+    }
+
+    // Saving a clip pops this up at the top right of the game's screen with a short chime, the way Medal does: CLIP SAVED, how
+    // long and of what, and where it went. Clicking it shows the clip in its folder, and hovering holds it up (Lachy, 2 Nov:
+    // "a sound confirmation when it's clipped and like a little popup in the top right or something kinda like a medal clip").
+    internal sealed class ClipToast : Overlay
+    {
+        internal const int Shown = 4000, Slide = 160, Fade = 320, Step = 16;
+        private static SoundPlayer chime;
+        private readonly System.Windows.Forms.Timer ticks = new System.Windows.Forms.Timer();
+        private Bitmap plate;
+        private string saved, game;
+        private double seconds;
+        private float scale = 1;
+        private Point home;
+        private int age;
+        private bool hovered;
+        internal bool Motion = true;
+        internal event Action<string> Open;
+
+        internal ClipToast() : base("Clip saved")
+        {
+            Cursor = Look.Pointer;
+            ticks.Interval = Step;
+            ticks.Tick += delegate { Age(Step); };
+        }
+
+        internal string Saved { get { return saved; } }
+
+        internal static Size Measure(float s) { return new Size((int)Math.Round(286 * s), (int)Math.Round(78 * s)); }
+
+        // Its spot once it's in: the top right of the work area, clear of the edges.
+        internal static Point Corner(Rectangle area, float s)
+        {
+            Size size = Measure(s);
+            int gap = (int)Math.Round(18 * s);
+            return new Point(area.Right - size.Width - gap, area.Top + gap);
+        }
+
+        internal void Pop(string clip, double length, string title, Rectangle area)
+        {
+            saved = clip;
+            seconds = length;
+            game = string.IsNullOrEmpty(title) ? "your game" : title;
+            scale = ScaleOf(area);
+            home = Corner(area, scale);
+            age = Motion ? 0 : Slide;
+            hovered = false;
+            Render();
+            Redraw();
+            ticks.Stop();
+            ticks.Start();
+        }
+
+        // Its life in milliseconds: it slides in from the right, holds for Shown or while hovered, then fades out and hides.
+        internal void Age(int ms)
+        {
+            if (!Visible) { ticks.Stop(); return; }
+            if (hovered && age >= Slide) return;
+            age += ms;
+            if (age >= Slide + Shown + (Motion ? Fade : 0)) { ticks.Stop(); Hide(); return; }
+            if (age <= Slide + ms || age > Slide + Shown) Redraw();
+        }
+
+        internal void Hovering(bool on)
+        {
+            hovered = on;
+            if (on && age > Slide) age = Slide;
+            Render();
+            Redraw();
+        }
+
+        // A click shows the clip, and it's done.
+        internal void Choose()
+        {
+            ticks.Stop();
+            Hide();
+            Action<string> open = Open;
+            if (open != null && saved != null) open(saved);
+        }
+
+        protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); Hovering(true); }
+
+        protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); Hovering(false); }
+
+        protected override void OnMouseUp(System.Windows.Forms.MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            if (e.Button == System.Windows.Forms.MouseButtons.Left) Choose();
+        }
+
+        private void Render()
+        {
+            Bitmap old = plate;
+            plate = Draw(scale, seconds, game, hovered);
+            if (old != null) old.Dispose();
+        }
+
+        private void Redraw()
+        {
+            if (plate == null) return;
+            float lead = Motion ? 1 - Math.Min(1f, age / (float)Slide) : 0;
+            float alpha = Motion && age > Slide + Shown ? Math.Max(0f, 1 - (age - Slide - Shown) / (float)Fade) : 1;
+            Present(Faded(plate, alpha), new Point(home.X + (int)Math.Round(lead * lead * 48 * scale), home.Y));
+        }
+
+        private static Bitmap Faded(Bitmap source, float alpha)
+        {
+            Rectangle all = new Rectangle(0, 0, source.Width, source.Height);
+            if (alpha >= 1) return source.Clone(all, PixelFormat.Format32bppPArgb);
+            Bitmap faded = new Bitmap(source.Width, source.Height, PixelFormat.Format32bppPArgb);
+            ColorMatrix matrix = new ColorMatrix();
+            matrix.Matrix33 = alpha;
+            using (Graphics graphics = Graphics.FromImage(faded))
+            using (ImageAttributes attributes = new ImageAttributes())
+            {
+                attributes.SetColorMatrix(matrix);
+                graphics.DrawImage(source, all, 0, 0, source.Width, source.Height, GraphicsUnit.Pixel, attributes);
+            }
+            return faded;
+        }
+
+        // Her talk pill's plate, wider: a red dot and CLIP SAVED in pink with the length on the right, the game under it, and
+        // where it went, which turns cyan when hovered.
+        internal static Bitmap Draw(float s, double seconds, string game, bool hovered)
+        {
+            Size size = Measure(s);
+            Bitmap image = new Bitmap(size.Width, size.Height, PixelFormat.Format32bppPArgb);
+            using (Graphics graphics = Graphics.FromImage(image))
+            using (Font title = Look.Mono(9.5f * s, FontStyle.Bold))
+            using (Font name = Look.Mono(12f * s, FontStyle.Regular, GraphicsUnit.Pixel, game))
+            using (Font small = Look.Mono(8.5f * s, FontStyle.Regular))
+            using (StringFormat trim = new StringFormat(StringFormat.GenericTypographic))
+            {
+                graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                trim.Trimming = StringTrimming.EllipsisCharacter;
+                trim.FormatFlags |= StringFormatFlags.NoWrap;
+                int margin = (int)Math.Round(3 * s);
+                Rectangle body = new Rectangle(margin, margin, size.Width - margin * 2, size.Height - margin * 2);
+                TalkPill.Plate(graphics, body, s, hovered ? body : Rectangle.Empty, Look.Pink, Look.Cyan);
+                float left = body.Left + 14 * s, right = body.Right - 14 * s, top = body.Top + 10 * s;
+                using (Brush red = new SolidBrush(Look.Red)) graphics.FillEllipse(red, left, top + 2.5f * s, 7 * s, 7 * s);
+                using (Brush pink = new SolidBrush(Look.Pink)) graphics.DrawString("CLIP SAVED", title, pink, left + 13 * s, top, StringFormat.GenericTypographic);
+                string length = Length(seconds);
+                float wide = graphics.MeasureString(length, title, PointF.Empty, StringFormat.GenericTypographic).Width;
+                using (Brush dim = new SolidBrush(Look.Dim)) graphics.DrawString(length, title, dim, right - wide, top, StringFormat.GenericTypographic);
+                using (Brush ink = new SolidBrush(Look.Ink)) graphics.DrawString(game, name, ink, new RectangleF(left, top + 19 * s, right - left, 18 * s), trim);
+                using (Brush caption = new SolidBrush(hovered ? Look.Cyan : TalkPill.Caption))
+                    graphics.DrawString(hovered ? "Show it in Videos\\Capri Clips" : "Videos\\Capri Clips  /  click to see it", small, caption, left, top + 42 * s, StringFormat.GenericTypographic);
+            }
+            return image;
+        }
+
+        // 30 seconds reads 0:30, two minutes 2:00.
+        internal static string Length(double seconds)
+        {
+            int whole = (int)Math.Round(Math.Max(0, seconds));
+            return (whole / 60) + ":" + (whole % 60).ToString("00");
+        }
+
+        // The scale of the screen it shows on, which may not be the one she's on.
+        internal static float ScaleOf(Rectangle area)
+        {
+            try
+            {
+                Box box = new Box { Left = area.Left, Top = area.Top, Right = area.Right, Bottom = area.Bottom };
+                int x, y;
+                if (GetDpiForMonitor(MonitorFromRect(ref box, 2), 0, out x, out y) == 0 && x > 0) return Math.Max(1f, x / 96f);
+            }
+            catch (DllNotFoundException) { }
+            catch (EntryPointNotFoundException) { }
+            return 1f;
+        }
+
+        // Her clip chime: two quick rising notes, made here so no sound file ships with her.
+        internal static byte[] Chime()
+        {
+            const int rate = 44100;
+            double[] notes = { 1318.51, 1975.53 };
+            double[] lengths = { 0.075, 0.16 };
+            List<short> samples = new List<short>();
+            for (int n = 0; n < notes.Length; n++)
+            {
+                int count = (int)(rate * lengths[n]);
+                for (int i = 0; i < count; i++)
+                {
+                    double t = (double)i / rate;
+                    double envelope = Math.Min(1, t / 0.004) * Math.Min(1, (count - i) / (0.003 * rate)) * Math.Exp(-t * (n == 0 ? 28 : 16));
+                    double wave = Math.Sin(2 * Math.PI * notes[n] * t) + 0.25 * Math.Sin(4 * Math.PI * notes[n] * t);
+                    samples.Add((short)Math.Round(wave / 1.25 * envelope * 0.32 * short.MaxValue));
+                }
+            }
+            using (MemoryStream stream = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(stream))
+            {
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+                writer.Write(36 + samples.Count * 2);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
+                writer.Write(16);
+                writer.Write((short)1);
+                writer.Write((short)1);
+                writer.Write(rate);
+                writer.Write(rate * 2);
+                writer.Write((short)2);
+                writer.Write((short)16);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("data"));
+                writer.Write(samples.Count * 2);
+                foreach (short sample in samples) writer.Write(sample);
+                writer.Flush();
+                return stream.ToArray();
+            }
+        }
+
+        internal static void Ring()
+        {
+            try
+            {
+                if (chime == null) chime = new SoundPlayer(new MemoryStream(Chime()));
+                chime.Play();
+            }
+            catch (InvalidOperationException) { }
+            catch (TimeoutException) { }
+            catch (IOException) { }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ticks.Dispose();
+                if (plate != null) { plate.Dispose(); plate = null; }
+            }
+            base.Dispose(disposing);
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Box { internal int Left, Top, Right, Bottom; }
+
+        [DllImport("user32.dll")] private static extern IntPtr MonitorFromRect(ref Box box, int flags);
+        [DllImport("shcore.dll")] private static extern int GetDpiForMonitor(IntPtr monitor, int kind, out int x, out int y);
     }
 
     internal sealed class ClipResult

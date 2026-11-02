@@ -1290,6 +1290,9 @@ namespace CapriDesktop
         private readonly Stopwatch clock = Stopwatch.StartNew();
         private Preferences preferences;
         private readonly ClipBuffer clips = new ClipBuffer();
+        private ClipToast clipToast;
+        private int clipsChimed;
+        private readonly System.Collections.Generic.List<string> clipsOpened = new System.Collections.Generic.List<string>();
         private Bitmap frame;
         private Native.Surface bodySurface;
         private Clip drawnClip;
@@ -1801,6 +1804,9 @@ namespace CapriDesktop
             menu.Items.Add(title);
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add(new ToolStripMenuItem("Open Capri Mainframe", null, delegate { mainframe.Restore(); }));
+            ToolStripMenuItem clipsItem = new ToolStripMenuItem("Open clips folder", null, delegate { OpenClips(); });
+            menu.Items.Add(clipsItem);
+            menu.Opening += delegate { clipsItem.Visible = preferences.ClipGames || Directory.Exists(ClipBuffer.Folder); };
             visibilityItem = new ToolStripMenuItem("Hide Capri", null, delegate { ToggleHidden(); });
             menu.Items.Add(visibilityItem);
             ToolStripMenuItem sizes = new ToolStripMenuItem("Size");
@@ -1905,6 +1911,7 @@ namespace CapriDesktop
             Hands.WatchAlong = WatchAlongTool;
             WatchAlong.Active = delegate { return watchAlong != null; };
             Hands.SaveClip = clips.Clip;
+            clips.Saved = delegate(string saved, double seconds, string game) { Post(delegate { Clipped(saved, seconds, game); }); };
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
             clips.Enable(!testing && preferences.ClipGames);
             SetUpMinis();
@@ -4528,6 +4535,45 @@ namespace CapriDesktop
         }
 
         // Shows memories.md in File Explorer, beside her transcripts folder.
+        // A saved clip chimes and pops up CLIP SAVED at the top right of the game's screen, like Medal, so clipping is never
+        // silent and it's clear where clips go. If they hid her themselves it only chimes (Lachy, 2 Nov).
+        private void Clipped(string saved, double seconds, string game)
+        {
+            clipsChimed++;
+            if (!testing) ClipToast.Ring();
+            if (manualHidden) return;
+            if (clipToast == null)
+            {
+                clipToast = new ClipToast();
+                clipToast.Open += delegate(string chosen) { OpenClips(chosen); };
+            }
+            clipToast.Motion = preferences.Motion;
+            clipToast.Pop(saved, seconds, game, ClipArea());
+        }
+
+        // The work area of the screen the game, or whatever is in front, is on.
+        private Rectangle ClipArea()
+        {
+            Sight front = Computer.Glimpse();
+            Screen screen = front != null && front.Window != IntPtr.Zero ? Screen.FromHandle(front.Window) : Screen.FromPoint(Cursor.Position);
+            return screen.WorkingArea;
+        }
+
+        // Their clips in Explorer, from Settings > GAMES, her menu or the CLIP SAVED popup, which picks out its clip (Lachy, 2 Nov:
+        // "I want you to be able to just click to open capri clipping folder to watch the clips").
+        internal void OpenClips(string saved = null)
+        {
+            string folder = ClipBuffer.Folder;
+            if (testing) { clipsOpened.Add(saved); return; }
+            try
+            {
+                Directory.CreateDirectory(folder);
+                if (saved != null && File.Exists(saved)) using (Process.Start(FileFinder.Explorer(saved))) { }
+                else using (Process.Start(new ProcessStartInfo(folder) { UseShellExecute = true })) { }
+            }
+            catch (Exception) { Tell("open clips", "Couldn't open your clips. They're in " + folder + "."); }
+        }
+
         internal void OpenMemories()
         {
             string path = Brain.MemoriesPath;
@@ -9485,7 +9531,7 @@ namespace CapriDesktop
                     if (tool == "clip")
                     {
                         lock (shortcutGate) toolDone = result;
-                        Post(delegate { Answer(ticket, result, TalkState.Talking); });
+                        Post(delegate { Answer(ticket, ClipBuffer.Spoken(result), TalkState.Talking); });
                     }
                     else if (Security.IsHold(result)) { if (told != null) told.Tell(result); }
                     else if (tool == "find_file" || unchecked(Environment.TickCount - began) > 8000) Finished(told, tool, result, ticket);
@@ -14087,6 +14133,69 @@ namespace CapriDesktop
             checks.Add("PASS over a game she gives way below normal, but her window's thread stays level with the game's, so a game on every core can't freeze her");
         }
 
+        // The CLIP SAVED popup and chime, and clips opening from it, her menu and Settings (Lachy, 2 Nov).
+        private void SmokeClipPopup(System.Collections.Generic.List<string> checks, string output)
+        {
+            using (Bitmap popupPlain = ClipToast.Draw(1.5f, 30, "VALORANT", false))
+            using (Bitmap popupHovered = ClipToast.Draw(1.5f, 30, "VALORANT", true))
+            using (Bitmap popupSheet = new Bitmap(popupPlain.Width + 48, popupPlain.Height * 2 + 72, PixelFormat.Format32bppArgb))
+            {
+                using (Graphics sheet = Graphics.FromImage(popupSheet))
+                {
+                    sheet.Clear(Color.FromArgb(38, 44, 56));
+                    sheet.DrawImage(popupPlain, 24, 24);
+                    sheet.DrawImage(popupHovered, 24, popupPlain.Height + 48);
+                }
+                popupSheet.Save(Path.Combine(output, "clip-popup.png"), ImageFormat.Png);
+            }
+            byte[] popupChime = ClipToast.Chime();
+            if (popupChime.Length < 44 || System.Text.Encoding.ASCII.GetString(popupChime, 0, 4) != "RIFF" || System.Text.Encoding.ASCII.GetString(popupChime, 8, 4) != "WAVE") throw new Exception("The clip chime isn't a WAV.");
+            double popupChimeLength = (popupChime.Length - 44) / 2.0 / 44100;
+            int popupChimePeak = 0;
+            for (int popupAt = 44; popupAt + 1 < popupChime.Length; popupAt += 2) popupChimePeak = Math.Max(popupChimePeak, Math.Abs((int)BitConverter.ToInt16(popupChime, popupAt)));
+            if (popupChimeLength < 0.15 || popupChimeLength > 0.4 || popupChimePeak > short.MaxValue / 2 || popupChimePeak < short.MaxValue / 8) throw new Exception("The clip chime runs " + popupChimeLength + " s at a peak of " + popupChimePeak + ".");
+            string popupSpoken = ClipBuffer.Spoken("Saved 30 seconds of Call of Duty: Black Ops without sound: C:\\Users\\player\\Videos\\Capri Clips\\Call of Duty 2026-11-02 14-00-00-000 abc123.mp4 Merged your clip requests into this clip.");
+            if (popupSpoken != "Clipped 30 seconds of Call of Duty: Black Ops without sound. Merged your clip requests into this clip." || ClipBuffer.Spoken("Turn on Clip my games in Settings > GAMES, then I can clip that.") != "Turn on Clip my games in Settings > GAMES, then I can clip that.")
+                throw new Exception("Her clip line still reads the path out: " + popupSpoken);
+            if (ClipToast.Length(30) != "0:30" || ClipToast.Length(120) != "2:00" || ClipToast.Length(29.6) != "0:30") throw new Exception("The popup's clip length reads wrong.");
+            bool popupHiddenWas = manualHidden, popupMotionWas = preferences.Motion;
+            int popupChimesWas = clipsChimed;
+            clipsOpened.Clear();
+            try
+            {
+                string popupClip = Path.Combine(ClipBuffer.Folder, "Synthetic Game 2026-11-02 14-00-00-000 abc123.mp4");
+                preferences.Motion = true;
+                manualHidden = true;
+                Clipped(popupClip, 30, "Synthetic Game");
+                if (clipsChimed != popupChimesWas + 1 || (clipToast != null && clipToast.Visible)) throw new Exception("Hidden by hand, a saved clip popped up or didn't chime.");
+                manualHidden = false;
+                Clipped(popupClip, 30, "Synthetic Game");
+                if (clipsChimed != popupChimesWas + 2 || clipToast == null || !clipToast.Visible || clipToast.Saved != popupClip) throw new Exception("A saved clip didn't chime and pop up.");
+                clipToast.Age(ClipToast.Slide + ClipToast.Step);
+                Rectangle popupArea = ClipArea();
+                float popupScale = ClipToast.ScaleOf(popupArea);
+                int popupStyle = Native.GetWindowLong(clipToast.Handle, -20);
+                if (clipToast.Location != ClipToast.Corner(popupArea, popupScale) || clipToast.Size != ClipToast.Measure(popupScale) || !popupArea.Contains(clipToast.Bounds)
+                    || (popupStyle & 0x08000000) == 0 || (popupStyle & 0x8) == 0 || (popupStyle & 0x80000) == 0 || Native.GetForegroundWindow() == clipToast.Handle)
+                    throw new Exception("The clip popup didn't settle at the top right, on top, without taking focus.");
+                clipToast.Hovering(true);
+                clipToast.Age(ClipToast.Shown + ClipToast.Fade + 1000);
+                if (!clipToast.Visible) throw new Exception("The clip popup left while hovered.");
+                clipToast.Hovering(false);
+                clipToast.Age(ClipToast.Shown + ClipToast.Step);
+                if (!clipToast.Visible) throw new Exception("The clip popup left without fading.");
+                clipToast.Age(ClipToast.Fade);
+                if (clipToast.Visible) throw new Exception("The clip popup stayed past its time.");
+                Clipped(popupClip, 120, "Synthetic Game");
+                clipToast.Choose();
+                if (clipToast.Visible || clipsOpened.Count != 1 || clipsOpened[0] != popupClip) throw new Exception("Clicking the clip popup didn't show its clip.");
+                OpenClips();
+                if (clipsOpened.Count != 2 || clipsOpened[1] != null || !mainframe.ClipsFolderShown) throw new Exception("Open clips folder is missing or didn't open the folder.");
+            }
+            finally { manualHidden = popupHiddenWas; preferences.Motion = popupMotionWas; if (clipToast != null) clipToast.Hide(); }
+            checks.Add("PASS a saved clip chimes and pops up CLIP SAVED at the top right of the game's screen without taking focus, holds while hovered, fades after 4 s and shows its clip when clicked, and only chimes if she's hidden by hand; Open clips folder is in Settings > GAMES and her menu, and she says how long a clip is instead of reading its path");
+        }
+
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
         {
             using (ClipBuffer aged = new ClipBuffer(2, 8192))
@@ -18590,6 +18699,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
                             Section(checks, delegate { SmokeClips(checks); });
+                            Section(checks, delegate { SmokeClipPopup(checks, output); });
                             Section(checks, delegate { SmokeHeartbeat(checks); });
                             Section(checks, delegate { SmokeMenuWait(checks); });
                             Section(checks, delegate { SmokeGivingWay(checks); });
