@@ -33641,14 +33641,16 @@ namespace CapriDesktop
                                 Func<string> cableNameWas = Ears.DefaultName;
                                 int cableDictations = 0;
                                 bool cableSkipped;
-                                string cableStatus;
+                                string cableStatus, cableHearing;
                                 try
                                 {
                                     Ears.DefaultName = delegate { return "CABLE Output (VB-Audio Virtual Cable)"; };
                                     Dictation.Make = delegate { cableDictations++; return new StandInDictation(); };
                                     StartLocal();
                                     cableStatus = mainframe.VoiceStatus;
-                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0;
+                                    cableHearing = hearingStatus.Text;
+                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0
+                                        && !hearingStatus.Problem && cableHearing.IndexOf("CABLE Output", StringComparison.Ordinal) >= 0;
                                     StopChat();
                                     Ears.DefaultName = delegate { return "Microphone (stand-in)"; };
                                     StartLocal();
@@ -33660,8 +33662,8 @@ namespace CapriDesktop
                                     Ears.DefaultName = cableNameWas;
                                     if (chatting) StopChat();
                                 }
-                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus);
-                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why; any other default opens it as before");
+                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus + " / " + cableHearing);
+                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why under VOICE, and her hearing line names the cable without calling it a failure; any other default opens it as before");
                             });
                             if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
@@ -34595,6 +34597,9 @@ namespace CapriDesktop
                             if (!failedEars) throw new Exception("An offline hearing failure was swallowed.");
                             checks.Add("PASS offline hearing: it gets the mic's raw 16 kHz samples and passes failures on");
                             Hearing.Run = delegate(short[] samples) { lock (earsLog) earsLog.Add("empty " + samples.Length / Ears.Chunk); return "  "; };
+                            // A note about her ears never cuts into a reply she's still saying, so the typed reply above ends first,
+                            // as it would have by then. On GitHub's runner it was sometimes still typing when the empty result came.
+                            CloseTalk();
                             earsWarned = -10;
                             ears.Feed(hush);
                             ears.Feed(talk);
@@ -34610,7 +34615,8 @@ namespace CapriDesktop
                             if (transcribing) return;
                             string log;
                             lock (earsLog) log = string.Join(" | ", earsLog.ToArray());
-                            if (log != "think What's up, choom? | empty 15" || !local || earsShut || reply != "I couldn't make out any words. Try again closer to the mic." || mainframe.VoiceStatus.IndexOf("I couldn't make out any words.", StringComparison.Ordinal) != 0) throw new Exception("An empty transcript vanished or reached her brain: " + log);
+                            if (log != "think What's up, choom? | empty 15" || !local || earsShut || reply != "I couldn't make out any words. Try again closer to the mic." || mainframe.VoiceStatus.IndexOf("I couldn't make out any words.", StringComparison.Ordinal) != 0)
+                                throw new Exception("An empty transcript vanished or reached her brain: " + log + " / local " + local + ", shut " + earsShut + ", talk " + talkState + ", reply " + reply + ", voice " + mainframe.VoiceStatus);
                             int notice = asking;
                             Missed("I couldn't make out any words. Try again closer to the mic.", false);
                             if (asking != notice) throw new Exception("Repeated noise kept restarting her warning bubble.");
@@ -35957,17 +35963,19 @@ namespace CapriDesktop
                     + ", windows speech " + (dictation != null) + ", noise hold " + noiseHold + ", room " + room.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + ", asking " + asking + ", chat ticket " + chatTicket;
             };
             // She says her check line through each new voice first, so each line waits for it to finish. On GitHub's runner the
-            // line can start after the first 1.5 s, and talking over it is a different check.
+            // line can start after the first 1.5 s, and talking over it is a different check. Her ears stay shut until the next
+            // tick after her voice ends, so the line waits for that too.
             Action<string> switchHeard = delegate(string what)
             {
                 switchPump(delegate { return false; }, 1500);
-                switchPump(delegate { return talkState != TalkState.Thinking && !StillSaying; }, 6000);
+                switchPump(delegate { return talkState != TalkState.Thinking && !StillSaying && !earsShut; }, 6000);
+                bool shutAtLine = earsShut;
                 int before = switchCalls;
                 for (int lineAt = 0; lineAt < 4; lineAt++) Gather(switchWave(0));
                 for (int lineAt = 0; lineAt < 8; lineAt++) Gather(switchWave(lineAt % 2 == 0 ? 14000 : 20000));
                 for (int lineAt = 0; lineAt < 12; lineAt++) Gather(switchWave(0));
                 switchPump(delegate { return switchCalls > before; }, 5000);
-                if (switchCalls == before) throw new Exception("Her ears stopped hearing after " + what + ": " + switchState());
+                if (switchCalls == before) throw new Exception("Her ears stopped hearing after " + what + ": shut at the line " + shutAtLine + ", " + switchState());
             };
             try
             {
