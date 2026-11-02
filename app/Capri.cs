@@ -36263,6 +36263,16 @@ namespace CapriDesktop
                 for (int i = 0; i < 3; i++) lateHeard |= late.Heard(0.004, 0.1, WakeLevel);
                 for (int i = 0; i < 6; i++) lateHeard |= late.Heard(0.05, 0.1, WakeLevel);
                 must(!lateHeard, "Her own echo from speakers that start late counted as them talking over her.");
+                // Them talking over a soft word right after a loud one is still them, and so is talking over her soft words a
+                // second later, once her loud one can't be ringing any more.
+                TalkOver soft = new TalkOver();
+                for (int i = 0; i < 6; i++) soft.Heard(0.03, 0.1, WakeLevel);
+                soft.Heard(0.24, 0.8, WakeLevel);
+                bool softHeard = false, laterHeard = false;
+                for (int i = 0; i < 2; i++) softHeard |= soft.Heard(0.8, 0.05, WakeLevel);
+                for (int i = 0; i < 10; i++) soft.Heard(0.004, 0.05, WakeLevel);
+                for (int i = 0; i < 2; i++) laterHeard |= soft.Heard(0.2, 0.05, WakeLevel);
+                must(softHeard && laterHeard, "Them talking over her soft words after a loud one wasn't heard: " + softHeard + " " + laterHeard);
                 for (int i = 0; i < 6; i++) must(OverHerLocally(echoChunk, VoiceLevel(echoChunk)), "Free voice chat's ears opened on her own voice.");
                 must(bargeIns == bargedBefore + 1, "Her own voice barged in on free voice chat.");
                 for (int i = 0; i < 4; i++) OverHerLocally(voiceChunk, VoiceLevel(voiceChunk));
@@ -36292,7 +36302,7 @@ namespace CapriDesktop
                 Hear("how's it going");
                 must(voiceUntil == 0, "Typing to her didn't stop her talking.");
                 waitFor(delegate { return asides.Count > 0; });
-                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, the echo of her last word over a breath between words and her echo from speakers that start late aren't them, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
+                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, the echo of her last word over a breath between words and her echo from speakers that start late aren't them, them talking over a soft word after a loud one is, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
 
                 StageLog stage = new StageLog();
                 Commentary.Stage = stage;
