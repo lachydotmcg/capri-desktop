@@ -8562,9 +8562,11 @@ namespace CapriDesktop
             {
                 dictationMicAt = now + 2;
                 string current = Dictation.DefaultMic();
-                if (current != null && !string.Equals(current, dictationMic, StringComparison.OrdinalIgnoreCase))
+                // The cable is caught even when it was already the default as Windows speech opened, so the id never changed.
+                bool cable = MicMix.IsCableOut(Ears.DefaultName());
+                if (cable || current != null && !string.Equals(current, dictationMic, StringComparison.OrdinalIgnoreCase))
                 {
-                    Brain.Log("ears", -1, "Windows default mic changed from " + dictationMic + " to " + current + "; reopening Windows speech.");
+                    Brain.Log("ears", -1, cable ? "Windows default mic is CABLE Output; leaving Windows speech." : "Windows default mic changed from " + dictationMic + " to " + current + "; reopening Windows speech.");
                     dictation.Dispose();
                     dictation = null;
                     earsReady = false;
@@ -9753,6 +9755,15 @@ namespace CapriDesktop
         {
             if (!chatting || !local) return;
             if (problem != null) { DictationLost(problem); return; }
+            // Windows speech only hears the default mic, and that can turn into the cable while it opens (Codex review, 2 Nov).
+            if (MicMix.IsCableOut(Ears.DefaultName()))
+            {
+                Dictation closing = dictation;
+                dictation = null;
+                if (closing != null) closing.Dispose();
+                HearLater(CableDefault);
+                return;
+            }
             try { if (!testing && !ears.Listening) ears.Start(); }
             catch (VoiceException error) { HearingCaptureFailed(error.Message, false); }
             earsReady = true;
