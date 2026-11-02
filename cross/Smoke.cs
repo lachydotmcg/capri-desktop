@@ -353,29 +353,48 @@ namespace CapriDesktop
                 List<string> ran = new List<string>();
                 string status = "Playing";
                 string apple = "playing\n";
+                bool noDbusSend = false;
                 try
                 {
                     Music.Run = delegate(string file, string[] args)
                     {
                         string line = file + " " + string.Join(" ", args);
                         ran.Add(line);
-                        if (line.Contains("ListNames")) return "method return\n   array [\n      string \"org.freedesktop.DBus\"\n      string \"org.mpris.MediaPlayer2.chromium.instance4021\"\n      string \"org.mpris.MediaPlayer2.spotify\"\n   ]\n";
+                        if (file == "dbus-send" && noDbusSend) return null;
+                        // gdbus answers in GVariant text.
+                        if (file == "gdbus" && line.Contains("ListNames")) return "(['org.freedesktop.DBus', ':1.42', 'org.mpris.MediaPlayer2.vlc'],)\n";
+                        if (file == "gdbus" && line.Contains("PlaybackStatus")) return "(<'" + status + "'>,)\n";
+                        if (file == "gdbus" && line.Contains("Metadata")) return "(<{'mpris:trackid': <objectpath '/org/videolan/vlc/playlist/3'>, 'xesam:title': <\"Don't Stop Me Now\">, 'xesam:artist': <['Queen']>}>,)\n";
+                        if (line.Contains("ListNames")) return "method return\n   array [\n      string \"org.freedesktop.DBus\"\n      string \"org.mpris.MediaPlayer2.kdeconnect.mpris_000001\"\n      string \"org.mpris.MediaPlayer2.chromium.instance4021\"\n   ]\n";
                         if (line.Contains("PlaybackStatus")) return "method return\n   variant       string \"" + status + "\"\n";
+                        // KDE Connect is playing nothing with a name, and the browser tab has a title.
+                        if (line.Contains("Metadata")) return line.Contains("chromium") ? "method return\n   variant       array [\n         dict entry(\n            string \"xesam:title\"\n            variant                string \"lofi hip hop radio - beats to relax/study to\"\n         )\n      ]\n" : "method return\n   variant       array [\n      ]\n";
                         if (file == "pgrep") return line.EndsWith(" Spotify", StringComparison.Ordinal) ? "4242\n" : null;
                         if (file == "osascript") return line.Contains("\"Spotify\"") ? apple : "";
                         return null;
                     };
                     bool linuxOn = Music.Linux();
                     bool macOn = Music.Mac();
+                    noDbusSend = true;
+                    bool glibOn = Music.Linux();
+                    noDbusSend = false;
                     status = "Paused";
                     apple = "paused\n";
                     bool linuxOff = Music.Linux();
                     bool macOff = Music.Mac();
+                    noDbusSend = true;
+                    bool glibOff = Music.Linux();
+                    noDbusSend = false;
                     string asked = string.Join(" / ", ran);
-                    if (!linuxOn || !macOn || linuxOff || macOff || asked.Contains("chromium") || !asked.Contains("--dest=org.mpris.MediaPlayer2.spotify") || !asked.Contains("pgrep -x Music") || asked.Contains("tell application \"Music\"") || !asked.Contains("tell application \"Spotify\" to get player state")) throw new Exception("Music detection read players wrong: " + asked);
+                    bool unnamed = !Music.Titled("(<{'xesam:title': <''>, 'xesam:artist': <@as []>}>,)\n") && !Music.Titled("method return\n   variant       array [\n         dict entry(\n            string \"xesam:title\"\n            variant                string \"\"\n         )\n      ]\n") && !Music.Titled(null);
+                    if (!linuxOn || !macOn || !glibOn || linuxOff || macOff || glibOff || !unnamed
+                        || !asked.Contains("--dest=org.mpris.MediaPlayer2.kdeconnect.mpris_000001 /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata")
+                        || !asked.Contains("--dest=org.mpris.MediaPlayer2.chromium.instance4021 /org/mpris/MediaPlayer2 org.freedesktop.DBus.Properties.Get string:org.mpris.MediaPlayer2.Player string:Metadata")
+                        || !asked.Contains("gdbus call --session --dest org.mpris.MediaPlayer2.vlc --object-path /org/mpris/MediaPlayer2 --method org.freedesktop.DBus.Properties.Get 'org.mpris.MediaPlayer2.Player' 'Metadata'")
+                        || !asked.Contains("pgrep -x Music") || asked.Contains("tell application \"Music\"") || !asked.Contains("tell application \"Spotify\" to get player state")) throw new Exception("Music detection read players wrong: " + asked);
                 }
                 finally { Music.Run = runWas; }
-                checks.Add("PASS music: Linux reads music players over D-Bus (not browsers), Mac asks Spotify and Music only when they're already running");
+                checks.Add("PASS music: on Linux any player over D-Bus that's playing something with a title or an artist counts, browsers, VLC and mpv too, but not one with nothing named, and gdbus asks when dbus-send is missing; Mac asks Spotify and Music only when they're already running");
                 List<string> songsAsked = new List<string>();
                 try
                 {
@@ -456,6 +475,9 @@ namespace CapriDesktop
                     Hands.Forget();
                     string opened = Hands.Do("open_app", new ToolArguments { Name = "spotify" });
                     string searched = Hands.Do("open_website", new ToolArguments { Site = "youtube", Search = "lofi beats" });
+                    // "Open spotify and then youtube.com" opens each one instead of turning into a mouse job (a Bazzite user).
+                    List<KeyValuePair<string, ToolArguments>> thens = new List<KeyValuePair<string, ToolArguments>>();
+                    bool eachOpened = Hands.Several("open spotify and then youtube.com", thens) && thens.Count == 2 && thens[0].Key == "open_app" && thens[0].Value.Name == "spotify" && thens[1].Key == "open_website" && thens[1].Value.Site == "youtube.com";
                     string skipped = Hands.Do("media", new ToolArguments { Action = "next" });
                     string snipped = Hands.Do("shortcut", new ToolArguments { Name = "screenshot" });
                     string clipped = Hands.Do("shortcut", new ToolArguments { Name = "clip_that" });
@@ -467,7 +489,7 @@ namespace CapriDesktop
                     string macSong = Limbs.Song(true);
                     string linuxSong = Limbs.Song(false);
                     string log = string.Join(" / ", did);
-                    if ((opened != "Opened Spotify." && opened != "Opened Spotify, but its window hasn't appeared yet.") || !log.Contains("launch /bin/sh -c spotify") || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats")) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / " + log);
+                    if ((opened != "Opened Spotify." && opened != "Opened Spotify, but its window hasn't appeared yet.") || !log.Contains("launch /bin/sh -c spotify") || searched != "Searched youtube.com for lofi beats." || !log.Contains((OperatingSystem.IsMacOS() ? "launch open " : "launch xdg-open ") + "https://www.youtube.com/results?search_query=lofi%20beats") || !eachOpened) throw new Exception("Opening apps or sites went wrong: " + opened + " / " + searched + " / each " + eachOpened + " / " + log);
                     if (skipped != "Skipped to the next track." || !log.Contains(OperatingSystem.IsMacOS() ? "osascript -e tell application \"Spotify\" to next track" : "--dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next") || !snipped.StartsWith("Opened the screenshot picker.", StringComparison.Ordinal) || !clipped.Contains("only work on Windows")) throw new Exception("Media keys or shortcuts went wrong: " + skipped + " / " + snipped + " / " + clipped + " / " + log);
                     if (!log.Contains("osascript -e tell application \"Spotify\" to next track") || !log.Contains("+ 2)") || !log.Contains("pactl set-sink-mute @DEFAULT_SINK@ toggle / amixer -q sset Master toggle")) throw new Exception("Mac or Linux media keys went wrong: " + log);
                     if (!log.Contains("play track \"spotify:track:2iyaHQlYrR8Eyr4wOmOT5D\"") || !log.Contains("OpenUri string:spotify:track:2iyaHQlYrR8Eyr4wOmOT5D") || log.Contains("launch open spotify:") || log.Contains("launch xdg-open spotify:")) throw new Exception("Spotify tracks didn't play directly: " + log);
@@ -541,7 +563,12 @@ namespace CapriDesktop
                     Hands.Catalog = catalogWas;
                     Hands.Forget();
                 }
-                checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, and key-press shortcuts say they're Windows-only");
+                checks.Add("PASS hands: she opens apps (.app folders, .desktop files) and sites, each one in \"open spotify and then youtube.com\", skips and plays Spotify tracks, reads what's playing, turns or sets the volume and reads the mute state on Mac and Linux, closes, minimizes and switches to apps (System Events on Mac, wmctrl on Linux, which says when it's missing), and shuts down, restarts, sleeps, locks and signs out, with cancel stopping a wait; a screenshot, the task manager and show desktop use their own tools, and key-press shortcuts say they're Windows-only");
+                // An app only opens when its name has the whole word they said (a Bazzite user).
+                List<InstalledApp> lookalikes = new List<InstalledApp> { new InstalledApp("Minecraftle", "exec:minecraftle"), new InstalledApp("Kate", "exec:kate") };
+                if (Hands.Match(lookalikes, "minecraft").Count != 0 || Hands.Match(lookalikes, "minecraftle").Count != 1 || Hands.Match(lookalikes, "kate").Count != 1 || Hands.Match(lookalikes, "Kate text editor").Count != 1)
+                    throw new Exception("An app was opened by part of a word: " + Hands.Match(lookalikes, "minecraft").Count);
+                checks.Add("PASS whole words: an app opens only when its name has the whole word they said, so \"open minecraft\" never opens Minecraftle, and \"Kate text editor\" still opens Kate");
                 SecurityChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
@@ -725,6 +752,21 @@ namespace CapriDesktop
                     || dugBoss.IndexOf("earlier moments that may connect", StringComparison.Ordinal) < 0 || dugBoss.IndexOf("You: we finally beat the smoke boss", StringComparison.Ordinal) < 0 || dugShown.IndexOf("we finally beat the smoke boss", StringComparison.Ordinal) >= 0 || dugSmall != "")
                     throw new Exception("Remember our chats went wrong: " + transcribed + " | " + rememberedOn + " | " + stoppedWriting + " | " + recalledBoss + " | " + dugBoss + " | " + dugShown + " | " + dugSmall);
                 checks.Add("PASS remember our chats: on by default here too, a chat line goes in today's transcript, \"remember when\" finds it, talking about it again digs it up unasked unless it's already in her chat, small talk digs up nothing, off writes nothing, and Open her memories makes memories.md");
+                // Screenshots here show her and her bubble, so her glance and look prompts say she isn't part of their screen, and her
+                // glances go in the transcript but never into memories.md (a Bazzite user).
+                string unfolded = Path.Combine(Brain.TranscriptPath, "unfolded.txt");
+                Brain glancer = new Brain();
+                glancer.Saw("an anime wallpaper with a red-haired girl", null);
+                glancer.Remember("(You glanced at their screen and saw: an anime wallpaper)", "Cute wallpaper, choom.");
+                glancer.Saw("a code editor with a red error on line 12", null, true);
+                Brain.Unsee();
+                string logged = File.ReadAllText(today), queued = File.Exists(unfolded) ? File.ReadAllText(unfolded) : "";
+                bool glancesKept = !Brain.FoldsGlances && logged.Contains("She glanced at your screen: an anime wallpaper with a red-haired girl. She stayed quiet.") && logged.Contains("Capri:** Cute wallpaper, choom.")
+                    && !queued.Contains("anime wallpaper") && !queued.Contains("Cute wallpaper") && queued.Contains("You: we finally beat the smoke boss") && queued.Contains("She looked at your screen: a code editor with a red error on line 12.");
+                bool toldMirror = Glances.Line.IndexOf("The small red-haired anime girl with a speech bubble is you, Capri, not part of their screen", StringComparison.Ordinal) > 0
+                    && Pet.LookAsk.IndexOf("The small red-haired anime girl with a speech bubble is Capri, the desktop companion, not part of their screen", StringComparison.Ordinal) > 0;
+                if (!glancesKept || !toldMirror) throw new Exception("Her own sprite in screenshots went wrong: kept " + glancesKept + ", told " + toldMirror + " | " + queued.Replace("\n", " | "));
+                checks.Add("PASS her own sprite: her glance and check-my-screen prompts say the red-haired anime girl with the speech bubble is her, not part of their screen, and her glances go in the transcript but never into memories.md, while a look they asked for still does");
                 bool personaFixed = Brain.Persona == Brain.DefaultPersonality + "\n" + Brain.Safety + "\n" + Brain.Machinery && Brain.Safety.IndexOf("findahelpline.com", StringComparison.Ordinal) >= 0 && Brain.DefaultPersonality.IndexOf("helpline", StringComparison.Ordinal) < 0 && Brain.Character.StartsWith(Brain.Persona, StringComparison.Ordinal);
                 if (!personaFixed) throw new Exception("Her personality or safety lines aren't fixed in code: " + Brain.Persona.Length + " characters");
                 // Their personality.md takes her default's place, with her safety lines still after it, and Reset puts her back.
@@ -769,6 +811,25 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 if (!brainlessDance || !brainlessStop) throw new Exception("Her dance needed a brain: " + brainlessDance + ", " + brainlessStop + ", " + pet.Talk.Reply);
                 checks.Add("PASS her own moves without a brain: \"dance for me\" and \"stop dancing\" work with no brain set up, like her nap and \"teleport here\"");
+                // Clones and chaos mode are Windows-only, which she says straight away whether or not she has a brain, and her hands
+                // aren't told this is a Windows PC.
+                pet.Hear("clone yourself");
+                string cloneLine = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                bool cloneAsked = false;
+                pet.Think = delegate(string words) { cloneAsked = true; return "Ten of me? Easy, choom."; };
+                pet.Hear("activate chaos mode");
+                string chaosLine = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                pet.Hear("get rid of your clones");
+                string clearLine = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                pet.Think = null;
+                string computer = OperatingSystem.IsMacOS() ? "Mac" : "PC", handsPrompt = Hands.Prompt, toolsNote = Hands.Note;
+                bool notWindows = handsPrompt.IndexOf("Windows", StringComparison.Ordinal) < 0 && handsPrompt.IndexOf("a desktop companion on the user's " + computer + ".", StringComparison.Ordinal) > 0
+                    && toolsNote.IndexOf("Windows", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0;
+                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows);
+                checks.Add("PASS Windows-only: asking for clones or chaos mode, or to get rid of clones, gets \"" + Hands.NoClones + "\" straight away, with or without a brain, and her hands' prompts call this computer their " + computer + ", not a Windows PC");
                 pet.Think = delegate(string words) { return words == "hey" ? "Just vibing, choom." : "wrong words"; };
                 pet.Talk.Pill.Press(1);
                 if (!pet.Talk.Typing) throw new Exception("The pencil didn't open the typing box.");
@@ -1682,7 +1743,8 @@ namespace CapriDesktop
                                 for (int i = 0; i < got; i++) read.Add(chunk[i]);
                             }
                             string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
-                            string said = replies[Math.Min(replied, replies.Length - 1)];
+                            // After its last reply this brain only ever waits, so the next job never finishes.
+                            string said = replied < replies.Length ? replies[replied] : "{\"do\":\"wait\",\"seconds\":1}";
                             lock (prompts) { prompts.Add(body); replied++; }
                             byte[] bytes = Encoding.UTF8.GetBytes("{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(said) + "},\"finish_reason\":\"stop\"}]}");
                             byte[] top = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
@@ -1699,19 +1761,31 @@ namespace CapriDesktop
             Func<byte[]> shootWas = Chores.Shoot;
             Chores.Shoot = delegate { return picture; };
             Chores.Doing = delegate(string what, System.Text.Json.JsonElement step) { done.Add(what + (step.TryGetProperty("x", out System.Text.Json.JsonElement x) ? " " + x.GetRawText() + "," + step.GetProperty("y").GetRawText() : step.TryGetProperty("text", out System.Text.Json.JsonElement text) ? " " + text.GetString() : step.TryGetProperty("keys", out System.Text.Json.JsonElement keys) ? " " + keys.GetString() : "")); };
-            string result;
-            try { result = Chores.Run(new Brain { Server = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port, Model = "eyes-test" }, "send hola qué tal to Ana on Discord", "tell Ana hola qué tal"); }
+            string result, last, ran, endless;
+            int firstReplies;
+            Brain looker = new Brain { Server = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port, Model = "eyes-test" };
+            try
+            {
+                result = Chores.Run(looker, "send hola qué tal to Ana on Discord", "tell Ana hola qué tal");
+                lock (prompts) { last = prompts.Count == 0 ? "" : prompts[prompts.Count - 1]; firstReplies = replied; }
+                ran = string.Join(" | ", done.ToArray());
+                // A brain that never says done: the job gives up after 25 steps and says the last one, on a small screen to stay quick.
+                done.Clear();
+                byte[] small = FakeScreen(new SkiaSharp.SKColor(30, 30, 30));
+                Chores.Shoot = delegate { return small; };
+                endless = Chores.Run(looker, "wait for the match to start", null);
+            }
             finally
             {
                 Chores.Doing = null;
                 Chores.Shoot = shootWas;
                 server.Stop();
             }
-            string last;
-            lock (prompts) last = prompts.Count == 0 ? "" : prompts[prompts.Count - 1];
-            fail("a job run", result == "Did it. Sent it." && string.Join(" | ", done.ToArray()) == "click 640,360 | type hola qué tal | key enter | fly" && replied == 5
+            fail("a job run", result == "Did it. Sent it." && ran == "click 640,360 | type hola qué tal | key enter | fly" && firstReplies == 5
                 && last.IndexOf("image_url", StringComparison.Ordinal) > 0 && last.IndexOf("1280 x 720", StringComparison.Ordinal) > 0 && last.IndexOf("send hola qu", StringComparison.Ordinal) > 0
                 && last.IndexOf("4. fly", StringComparison.Ordinal) > 0 && last.IndexOf("\\\"model\\\"", StringComparison.Ordinal) < 0 && last.IndexOf("eyes-test", StringComparison.Ordinal) > 0);
+            fail("a job that never ends stops at 25 steps", Chores.MostSteps == 25 && endless == "Ran out of steps before finishing. Last: wait at 0, 0" && done.Count == 25 && replied == 30);
+            fail("she never clicks herself", last.IndexOf("The small red-haired girl with a speech bubble is you, Capri: never click her.", StringComparison.Ordinal) > 0);
             Security.Pick(Security.Blackwall);
             List<string> streamLines = new List<string>();
             Chores.Says = streamLines.Add;
@@ -1721,8 +1795,8 @@ namespace CapriDesktop
             string blackwall = Chores.Allowed;
             Security.Pick(Security.Trusted);
             fail("rules follow SECURITY", Chores.Allowed == Chores.Rules && blackwall.IndexOf("Type passwords", StringComparison.Ordinal) > 0 && blackwall.IndexOf("Never", StringComparison.Ordinal) < 0);
-            if (wrong.Count > 0) throw new Exception("Her mouse and keyboard jobs went wrong: " + string.Join(", ", wrong) + " / " + result + " / " + string.Join(" | ", done.ToArray()) + " / " + replied);
-            checks.Add("PASS mouse and keyboard jobs: on Linux use_computer sends her brain the screenshot and the steps so far, takes one JSON step back even wrapped in words, clicks, types and presses keys through her own uinput mouse and keyboard until the brain says done, and never types a card number");
+            if (wrong.Count > 0) throw new Exception("Her mouse and keyboard jobs went wrong: " + string.Join(", ", wrong) + " / " + result + " / " + ran + " / " + endless + " / " + done.Count + " / " + replied);
+            checks.Add("PASS mouse and keyboard jobs: on Linux use_computer sends her brain the screenshot and the steps so far, takes one JSON step back even wrapped in words, clicks, types and presses keys through her own uinput mouse and keyboard until the brain says done or 25 steps go by, is told the red-haired girl with the speech bubble is her so she never clicks herself, and never types a card number");
         }
 
         private void ServeSpeech(NetworkStream stream)

@@ -1301,7 +1301,7 @@ Settings > HABITS, on by default. While she's on a job or watching for something
 ### Drawing on your screen
 Ask for a diagram and she draws it, then talks you through it: "make a diagram and help me understand linear algebra", "explain eigenvectors with a diagram" or "make a flowchart of how a bill becomes law". Say an app, like "make a chart in Excel", and she does it in that app.
 
-"Draw me a cat", "write hi on my screen", "circle the start button" or "point at the save button". Clicks go straight through her ink, and it stays until you say "clear your drawing" or "rub that out", or pick Clear her drawing from her menu. Say "add" to keep what's there. For things already on screen she looks at the monitor you're using.
+"Draw me a cat", "write hi on my screen", "circle the start button" or "point at the save button". Clicks go straight through her ink, and it stays until you say "clear your drawing", "remove it" or "get rid of that", hold Esc, or pick Clear her drawing from her menu. Say "add" to keep what's there. For things already on screen she looks at the monitor you're using.
 
 ### Watch something with her
 "Watch this with me", "let's watch this" or "react to this". She hears the PC, looks at the screen every 5 seconds and says something now and then. "Stop watching" ends it, and so do 90 quiet seconds. On a Claude key it costs about 10 cents an hour. Nothing she hears is saved.

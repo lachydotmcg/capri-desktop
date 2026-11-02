@@ -351,6 +351,8 @@ namespace CapriDesktop
         internal const string Gone = "That model isn't on your key. Pick another one.";
         internal const string Down = "Their servers failed. Pick another model or retry.";
         internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
+        internal const string NewKey = "Key rejected. Make a new Google AI Studio key and paste it.";
+        internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
         internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
         internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : remote.Kind == "local" ? ", or turn pictures on in your server." : "."); }
@@ -665,6 +667,13 @@ namespace CapriDesktop
             return string.IsNullOrEmpty(language) || language == "English" ? "" : "\nAlways reply in " + language + ", whatever language they use. Keep your Night City slang words as they are.";
         }
 
+        // The part of a labelled reply she says out loud, in their language, with the labels and words her code reads back left as written.
+        internal static string SayIn(string rule)
+        {
+            string language = Language;
+            return string.IsNullOrEmpty(language) || language == "English" ? "" : "\n" + string.Format(rule, language);
+        }
+
         private static string Longer()
         {
             int wordy = Wordiness;
@@ -837,7 +846,7 @@ namespace CapriDesktop
                 sightings.Add(new Sighting { At = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture), Saw = text, Said = string.IsNullOrEmpty(said) ? null : said, Asked = asked });
                 if (sightings.Count > 30) sightings.RemoveRange(0, sightings.Count - 30);
             }
-            Transcribe(null, (watched ? "She watched with you: " : asked ? "She looked at your screen: " : "She glanced at your screen: ") + text.TrimEnd('.') + (string.IsNullOrEmpty(said) && !asked && !watched ? ". She stayed quiet." : "."));
+            Transcribe(null, (watched ? "She watched with you: " : asked ? "She looked at your screen: " : "She glanced at your screen: ") + text.TrimEnd('.') + (string.IsNullOrEmpty(said) && !asked && !watched ? ". She stayed quiet." : "."), asked || watched || FoldsGlances);
             lock (gate) Save();
         }
 
@@ -867,6 +876,9 @@ namespace CapriDesktop
         internal static string MemoriesPath;
         internal static volatile bool Keeping = true;
         internal static volatile Brain Keeper;
+        // Mac and Linux turn this off: their screenshots show her and her bubble, so a glance can take her for part of their
+        // screen, and that mustn't become a memory. Her glances still go in the transcript.
+        internal static bool FoldsGlances = true;
         private static readonly object writing = new object();
         private static int folding;
         private static long foldWait;
@@ -885,8 +897,9 @@ namespace CapriDesktop
 
         private static string QueuePath { get { string folder = TranscriptPath; return folder == null ? null : Path.Combine(folder, "unfolded.txt"); } }
 
-        // Who is "You" or "Capri" (with " (voice)" in voice chat), or null for something she did, like a glance or a job.
-        internal static void Transcribe(string who, string text)
+        // Who is "You" or "Capri" (with " (voice)" in voice chat), or null for something she did, like a glance or a job. A line
+        // that isn't folded stays out of memories.md.
+        internal static void Transcribe(string who, string text, bool folded = true)
         {
             string folder = TranscriptPath;
             text = Regex.Replace(text ?? "", @"\s+", " ").Trim();
@@ -901,7 +914,7 @@ namespace CapriDesktop
                     string day = Path.Combine(folder, now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md");
                     if (!File.Exists(day)) File.WriteAllText(day, "# Capri and you, " + now.ToString("dddd d MMMM yyyy", System.Globalization.CultureInfo.InvariantCulture) + "\n> Kept on this PC only, never uploaded. Delete a line or the whole file whenever you like.\n\n");
                     File.AppendAllText(day, (who == null ? "*" + clock + " " + text + "*" : "**" + clock + " " + who + ":** " + text) + "\n");
-                    File.AppendAllText(QueuePath, now.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) + " " + (who == null ? text : who + ": " + text) + "\n");
+                    if (folded) File.AppendAllText(QueuePath, now.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) + " " + (who == null ? text : who + ": " + text) + "\n");
                 }
                 catch (IOException) { return; }
                 catch (UnauthorizedAccessException) { return; }
@@ -915,7 +928,7 @@ namespace CapriDesktop
         private static void Logged(string asked, string said)
         {
             if (!(asked ?? "").StartsWith("(", StringComparison.Ordinal)) Transcribe("You", asked);
-            Transcribe("Capri", said);
+            Transcribe("Capri", said, FoldsGlances || !(asked ?? "").StartsWith("(You glanced", StringComparison.Ordinal));
         }
 
         internal static string Memories()
@@ -1459,8 +1472,12 @@ namespace CapriDesktop
             {
                 if (error.Response != null)
                 {
-                    BrainException failure = Problem(error, true);
-                    if (OtherDoor(key, failure)) return CloudModels(key);
+                    BrainException failure = Problem(error, true, kind);
+                    if (OtherDoor(key, request.RequestUri.AbsoluteUri, failure))
+                    {
+                        try { return CloudModels(key); }
+                        catch (BrainException) { ShutDoor(key, request.RequestUri.AbsoluteUri); throw; }
+                    }
                     if (failure.Message == Gone) throw new BrainException(Cloud.CompanyOf(kind) + " couldn't find its model list. Try Refresh.", true);
                     throw failure;
                 }
@@ -1541,7 +1558,7 @@ namespace CapriDesktop
 
         private static bool Chats(string kind, string id)
         {
-            if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal) && !Regex.IsMatch(id, @"embed|image|audio|tts|live|robotics|computer-use|aqa", RegexOptions.IgnoreCase);
+            if (kind == "google") return id.StartsWith("gemini-", StringComparison.Ordinal) && !Regex.IsMatch(id, @"embed|image|audio|tts|live|robotics|computer-use|aqa|transcribe|banana|omni", RegexOptions.IgnoreCase);
             if (kind == "openai") return Regex.IsMatch(id, @"^(gpt-|o\d)") && !Regex.IsMatch(id, @"audio|realtime|tts|transcribe|image|search|embed|instruct|codex|moderation|-\d{4}-\d{2}-\d{2}$");
             if (kind == "nvidia") return Regex.IsMatch(id, @"instruct|chat|-it\b|-it-|gpt-oss|kimi|glm|deepseek|qwen|qwq|llama|gemma|mistral|mixtral|magistral|ministral|nemotron|phi-|granite|minimax|hermes|seed|jamba|falcon|solar|olmo|exaone", RegexOptions.IgnoreCase)
                 && !Regex.IsMatch(id, @"embed|rerank|reward|guard|safety|topic-control|parse|clip|retriev|translate|deplot|kosmos|vila|fuyu|neva|calibration|cod|chatqa|palmyra|cosmos|riva|diffusion|recurrent|llama2|-2b$|detect|synthetic|video|ocr|asr|tts|speech|audio|image|segment|depth|pose|classif", RegexOptions.IgnoreCase);
@@ -1596,22 +1613,27 @@ namespace CapriDesktop
             return models[0];
         }
 
-        // Some of Google's AQ. keys get turned away as a Bearer token, and x-goog-api-key is their other way in: one try, then it's kept.
+        // Some of Google's AQ. keys get turned away as a Bearer token at one address and let in at another, so x-goog-api-key is their
+        // other way in only where they were turned away: one try, kept until it's turned away too.
         private static readonly HashSet<string> headerKeys = new HashSet<string>();
 
-        private static bool OtherDoor(string key, BrainException error)
+        private static string Door(string key, string address) { return key + "|" + new Uri(address).AbsolutePath; }
+
+        private static bool OtherDoor(string key, string address, BrainException error)
         {
             if (key == null || !key.StartsWith("AQ.", StringComparison.Ordinal) || (error.Status != 400 && error.Status != 401 && error.Status != 403)) return false;
             if (!Regex.IsMatch(error.Detail ?? "", @"credential|authenticat|ACCESS_TOKEN|API key", RegexOptions.IgnoreCase)) return false;
-            lock (headerKeys) return headerKeys.Add(key);
+            lock (headerKeys) return headerKeys.Add(Door(key, address));
         }
+
+        private static void ShutDoor(string key, string address) { lock (headerKeys) headerKeys.Remove(Door(key, address)); }
 
         private static void Sign(HttpWebRequest request, string key, bool claude)
         {
             request.AllowAutoRedirect = false;
             if (Cloud.KindOf(key) == "openrouter") request.Headers["X-Title"] = "Capri";
             bool headerKey;
-            lock (headerKeys) headerKey = headerKeys.Contains(key);
+            lock (headerKeys) headerKey = headerKeys.Contains(Door(key, request.RequestUri.AbsoluteUri));
             if (headerKey) { request.Headers["x-goog-api-key"] = key; return; }
             if (!claude) { request.Headers["Authorization"] = "Bearer " + key; return; }
             request.Headers["x-api-key"] = key;
@@ -2302,17 +2324,19 @@ namespace CapriDesktop
             if (remote != null)
             {
                 bool openAi = remote.Kind == "openai";
+                // Gemini thinks before every reply and its thoughts share max_tokens, so it thinks low and keeps room to answer.
+                bool google = remote.Kind == "google";
                 bool brief = remote.Kind == "nvidia" && remote.Model == "google/gemma-4-31b-it";
                 bool screen = (parts != null || unhurried) && remote.Kind == "nvidia";
                 bool super = screen && (!job || unhurried) && !routing && remote.Model == "nvidia/nemotron-3.5-super-vl-120b-a12b";
                 int headroom = unhurried ? 8000 : 2000;
-                string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi, super ? "none" : null);
+                string effort = remote.Kind == "local" ? null : Effort(remote.Model, openAi, super ? "none" : google ? "low" : null);
                 OpenAiRequest body = new OpenAiRequest
                 {
                     Model = remote.Model,
                     Messages = messages.ToArray(),
                     Limit = openAi ? ReplyLimit(headroom, job || routing) : (int?)null,
-                    Tokens = openAi ? (int?)null : ReplyLimit(brief ? Math.Max(256, limit) : headroom, job || routing),
+                    Tokens = openAi ? (int?)null : google ? Math.Max(2048, ReplyLimit(headroom, job || routing)) : ReplyLimit(brief ? Math.Max(256, limit) : headroom, job || routing),
                     Effort = effort,
                     Thinking = remote.Kind == "deepseek" ? new CloudThinking() : null,
                     Template = brief ? new CloudTemplate() : null,
@@ -2331,7 +2355,11 @@ namespace CapriDesktop
                         body.Stream = false;
                         reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
                     }
-                    else if (OtherDoor(remote.Key, error)) reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket);
+                    else if (OtherDoor(remote.Key, address, error))
+                    {
+                        try { reply = Send<CompletionReply>(address, body, wait, listed, sign, parts, ticket); }
+                        catch (BrainException) { ShutDoor(remote.Key, address); throw; }
+                    }
                     else
                     {
                         // A model that turns down its reasoning_effort, like gpt-6-luna with tools, gets the value its error names, once, and keeps it.
@@ -3222,7 +3250,7 @@ namespace CapriDesktop
                 {
                     if (error.Response == null) throw;
                     Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode + (sending == null ? "" : " model " + sending.Model) + " body " + payload.Length + " bytes");
-                    BrainException problem = Problem(error, sign != null);
+                    BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null);
                     if (sending != null && problem.RetryAt != default(DateTime))
                         lock (gate) { waitingRemote = sending; waitingSource = sending.Source; waiting = problem; }
                     throw problem;
@@ -3311,7 +3339,7 @@ namespace CapriDesktop
             if (status >= 300 && status < 400) throw new BrainException("Their API moved. Your key wasn't sent to the new address.", true);
         }
 
-        private static BrainException Problem(WebException error, bool remote)
+        private static BrainException Problem(WebException error, bool remote, string kind = null)
         {
             string text;
             string url = error.Response.ResponseUri.AbsoluteUri;
@@ -3323,7 +3351,7 @@ namespace CapriDesktop
             if (string.IsNullOrWhiteSpace(said)) said = error.Message;
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
-            string meaning = remote && !toolless ? Meaning(status, text) : null;
+            string meaning = remote && !toolless ? Meaning(status, text, kind == "google") : null;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
@@ -3376,10 +3404,14 @@ namespace CapriDesktop
             });
         }
 
-        internal static string Meaning(int status, string body)
+        internal static string Meaning(int status, string body, bool google = false)
         {
             if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
+            if (google && status == 400 && Regex.IsMatch(body ?? "", @"location is not supported|in your (country|region)", RegexOptions.IgnoreCase)) return Unserved;
             if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
+            if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
+            // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
+            if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;
             if (status == 401 || status == 403) return "Key rejected. Press Forget, then paste it again.";
             if (status == 429) return Busy;
             if (status == 404) return Gone;
@@ -3594,7 +3626,15 @@ namespace CapriDesktop
     // and spotting a line that brings back one she already said.
     internal static class Glances
     {
-        internal const string Line = "(You glance at their screen while they do their thing. Only this picture counts: your instructions, old chats and memories aren't evidence of what's open, so never take a game from them. Reply in two parts, with the labels SAW: and SAY: written exactly like that. SAW: only what you can clearly see, in under 20 plain words: the game or app and what's happening. SAY: your reaction in one short line, in character, to one specific thing you can see: tease them, gloat, wince or cheer them on, and don't ask what they're doing. A game scene, scoreboard, inventory or quiet moment is enough, but a document or code editor is work, not a game. A fight, match, stream or video is something they're watching: react as a viewer next to them, and never as if they're the one fighting or playing. Don't invent action from a still image, and never guess who a person is; name someone only if their name is written on screen. If you aren't sure what you're seeing, reply with just SKIP. If nothing's worth a line, still give the SAW part and make it SAY: SKIP. For a blank screen, a bare desktop or a loading screen, reply with just SKIP.)";
+#if CROSS
+        // Mac and Linux screenshots show her and her bubble too, so she once took herself for their anime wallpaper (a Bazzite user).
+        private const string Mirror = "The small red-haired anime girl with a speech bubble is you, Capri, not part of their screen, so leave her out. ";
+#else
+        private const string Mirror = "";
+#endif
+        internal const string Line = "(You glance at their screen while they do their thing. Only this picture counts: your instructions, old chats and memories aren't evidence of what's open, so never take a game from them. " + Mirror + "Reply in two parts, with the labels SAW: and SAY: written exactly like that. SAW: only what you can clearly see, in under 20 plain words: the game or app and what's happening. SAY: your reaction in one short line, in character, to one specific thing you can see: tease them, gloat, wince or cheer them on, and don't ask what they're doing. A game scene, scoreboard, inventory or quiet moment is enough, but a document or code editor is work, not a game. A fight, match, stream or video is something they're watching: react as a viewer next to them, and never as if they're the one fighting or playing. Don't invent action from a still image, and never guess who a person is; name someone only if their name is written on screen. If you aren't sure what you're seeing, reply with just SKIP. If nothing's worth a line, still give the SAW part and make it SAY: SKIP. For a blank screen, a bare desktop or a loading screen, reply with just SKIP.)";
+        // Only SAY is said out loud, so only it goes in their language: SAW, the labels and SKIP are read back in English.
+        internal const string Tongue = "(Write the SAY line in {0}. Keep SAW in English, and the labels SAW: and SAY: and the word SKIP exactly as written.)";
         // Her glance lines from the last hour count as already said.
         internal const double Memory = 3600;
 
@@ -3619,14 +3659,14 @@ namespace CapriDesktop
         // Each glance is a fresh look with no chat history, so she's shown her recent lines and older topics to stay off.
         internal static string Ask(List<string> said, string line = Line)
         {
-            if (said.Count == 0) return line;
+            if (said.Count == 0) return line + Brain.SayIn(Tongue);
             int shown = Math.Max(0, said.Count - 6);
             string ask = line + "\n(You already said these about their screen:";
             for (int i = shown; i < said.Count; i++) ask += "\n- " + said[i];
             List<string> older = new List<string>();
             for (int i = 0; i < shown; i++) foreach (string key in Keys(said[i], Brain.Nickname)) if (older.Count < 12) Key(older, key);
             if (older.Count > 0) ask += "\nEarlier you also brought up: " + string.Join(", ", older.ToArray()) + ".";
-            return ask + "\nDon't bring any of it up again: no character, move, item, place, number, name or joke from those lines. Pick something new and specific, or make it SAY: SKIP.)";
+            return ask + "\nDon't bring any of it up again: no character, move, item, place, number, name or joke from those lines. Pick something new and specific, or make it SAY: SKIP.)" + Brain.SayIn(Tongue);
         }
 
         // A look she isn't sure of stays unsaid: small brains guess a game from a blurry picture (MiritO, 31 Oct).

@@ -476,6 +476,8 @@ namespace CapriDesktop
             // lines into memories.md, which she reads every chat.
             Brain.MemoriesPath = Path.Combine(Program.Smoke ?? folder, "memories.md");
             Brain.TranscriptPath = Path.Combine(Program.Smoke ?? folder, "transcripts");
+            // Screenshots here show her and her bubble too, so her glances stay out of memories.md (a Bazzite user).
+            Brain.FoldsGlances = false;
             Brain.Keeping = !Saved.NoMemories;
             if (Program.Smoke == null) Brain.Keeper = Brain;
             Brain.Language = Brain.LanguageCode(Saved.Language) == "en" ? null : Saved.Language;
@@ -805,6 +807,9 @@ namespace CapriDesktop
         }
 
         // "Check my screen": her brain looks at a screenshot when they ask, like on Windows. Watch my screen's glances are below.
+        // Screenshots here show her and her bubble too, which aren't part of their screen.
+        internal const string LookAsk = "Describe what's on this screen in two or three plain sentences: what kind of game or app it is (name it only if the name is on screen), what's happening, and any text or numbers that matter. Don't guess who a person is from their face; name someone only if their name is written on screen. The small red-haired anime girl with a speech bubble is Capri, the desktop companion, not part of their screen, so leave her out.";
+
         private string LookAt(string focus)
         {
             Cloud remote = Brain.Remote;
@@ -814,7 +819,7 @@ namespace CapriDesktop
             string seen;
             try
             {
-                seen = Brain.See(shot, "You describe screenshots accurately and briefly.", "Describe what's on this screen in two or three plain sentences: what kind of game or app it is (name it only if the name is on screen), what's happening, and any text or numbers that matter. Don't guess who a person is from their face; name someone only if their name is written on screen." + (string.IsNullOrWhiteSpace(focus) ? "" : " Pay attention to: " + focus.Trim()), 160);
+                seen = Brain.See(shot, "You describe screenshots accurately and briefly.", LookAsk + (string.IsNullOrWhiteSpace(focus) ? "" : " Pay attention to: " + focus.Trim()), 160);
             }
             catch (BrainException error)
             {
@@ -3389,7 +3394,8 @@ namespace CapriDesktop
             bool noted;
             try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
-            if (noted)
+            // Clones and chaos mode are Windows-only: she says so herself, brain or no brain, instead of her brain joking about them.
+            if (noted || tool == "clone")
             {
                 string done = Hands.Do(tool, args);
                 Brain.Remember(text, done);

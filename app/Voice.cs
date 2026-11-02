@@ -2218,10 +2218,31 @@ namespace CapriDesktop
             lock (gate)
             {
                 Close();
-                if (Directory.Exists(folder)) Directory.Delete(folder, true);
-                Directory.Move(staging, folder);
+                if (Directory.Exists(folder)) Merge(staging, folder);
+                else Directory.Move(staging, folder);
             }
             File.Delete(zip);
+        }
+
+        // A new pack goes into her folder file by file. Deleting the folder first failed on onnxruntime.dll once her voice, ears or
+        // wake word had loaded it, since Windows holds a loaded DLL until she closes, and left only the DLLs behind, so every try
+        // after failed the same way. A DLL that's in use stays: the pack is pinned, so it's the same file.
+        internal static void Merge(string from, string into)
+        {
+            foreach (string file in Directory.GetFiles(from, "*", SearchOption.AllDirectories))
+            {
+                string target = Path.Combine(into, file.Substring(from.Length).TrimStart('\\', '/'));
+                Directory.CreateDirectory(Path.GetDirectoryName(target));
+                if (File.Exists(target))
+                {
+                    bool dll = target.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
+                    try { File.Delete(target); }
+                    catch (IOException) { if (!dll) throw; continue; }
+                    catch (UnauthorizedAccessException) { if (!dll) throw; continue; }
+                }
+                File.Move(file, target);
+            }
+            Directory.Delete(from, true);
         }
 
         internal void Warm()
@@ -2689,7 +2710,7 @@ namespace CapriDesktop
             string key = folder + "|" + lang;
             if (tts != IntPtr.Zero && opened == key) return openKind;
             if (IntPtr.Size != 8) throw new VoiceException("Voice model files need 64-bit Windows.");
-            if (Engine == null || !File.Exists(Path.Combine(Engine, "sherpa-onnx-c-api.dll"))) throw new VoiceException("Voice model files run on her free voice. Get free voice under VOICE first.");
+            if (Engine == null || !VoicePack.Complete(Engine)) throw new VoiceException("Voice model files run on her free voice. Get free voice under VOICE first.");
             string kind = Kind(folder);
             if (kind == null) throw new VoiceException(Missing);
             LocalVoice.Load(Engine);
@@ -3109,6 +3130,11 @@ namespace CapriDesktop
             catch (IOException) { throw new VoiceException(MemoryFailed() ? MemoryFull : "Her HD voice stopped answering."); }
         }
 
+        // A line slower than this, and than its own speech, goes in her log. Tests lower it.
+        internal static double SlowSeconds = 6;
+        // How long a line waits for her HD voice to wake before her free voice takes it. Tests shorten it.
+        internal static int WakeWait = 15000;
+
         internal Func<string, byte[]> Or(Func<string, byte[]> fallback, Action<string> trouble)
         {
             return delegate(string words)
@@ -3118,7 +3144,8 @@ namespace CapriDesktop
                 {
                     byte[] wav = Speak(words);
                     lock (gate) { noted = null; memoryFailed = false; }
-                    if (!CpuOnly && (Hardware == null || !Smaller(Hardware)) && took.Elapsed.TotalSeconds > Math.Max(6, Voice.Seconds(wav) * 1.2)) trouble("Her HD voice is running slowly right now, so she's using her free voice for a bit.");
+                    // A slow line still played in HD, so it only goes in her log. Resting HD for one put her next lines in her free voice (2 Nov).
+                    if (!CpuOnly && (Hardware == null || !Smaller(Hardware)) && took.Elapsed.TotalSeconds > Math.Max(SlowSeconds, Voice.Seconds(wav) * 1.2)) Brain.Log("HD voice", took.ElapsedMilliseconds, "slow, " + Voice.Seconds(wav).ToString("0.0") + " s of speech");
                     return wav;
                 }
                 catch (VoiceException error)
@@ -3128,6 +3155,19 @@ namespace CapriDesktop
                     if (NewProblem(problem)) trouble(problem);
                     return fallback(words);
                 }
+            };
+        }
+
+        // Asleep while a wake is under way, her HD voice gets WakeWait to come up before her free voice takes the line, so the first
+        // line after a quiet spell isn't in another voice (2 Nov). A wake that ends without her up hands it on at once.
+        internal Func<string, byte[]> Waiting(Func<string, byte[]> fallback, Action<string> trouble, Func<bool> waking)
+        {
+            Func<string, byte[]> hd = Or(fallback, trouble);
+            return delegate(string words)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (!Awake && waking() && waited.ElapsedMilliseconds < WakeWait) Thread.Sleep(100);
+                return Awake ? hd(words) : fallback(words);
             };
         }
 

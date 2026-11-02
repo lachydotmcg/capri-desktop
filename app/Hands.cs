@@ -444,7 +444,7 @@ namespace CapriDesktop
         internal static bool HeardName(string words) { return Regex.IsMatch(words ?? "", SpokenName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant); }
 
         // Her chat and voice chat line about her tools, with SECURITY's line after it while one of her tools' toggles is off.
-        internal static string Note { get { return Noted + Security.Note + MiniNote + MiniBoard() + DrawingNote; } }
+        internal static string Note { get { return Here(Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote; } }
 
 #if CROSS
         private const string MiniNote = "";
@@ -490,7 +490,21 @@ namespace CapriDesktop
 
         // Her hands' prompt. While one of her tools' toggles is off in SECURITY, its line goes in after "Call the tool.", so she
         // still calls it and Capri asks them.
-        internal static string Prompt { get { string note = Security.Note; return (note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote; } }
+        internal static string Prompt { get { string note = Security.Note; return Here(note.Length == 0 ? Handing : Handing.Replace("Call the tool.\n", "Call the tool." + note + "\n")) + MiniNote + DrawingNote; } }
+
+#if CROSS
+        // What her prompts call this computer, their Mac or their PC, since it isn't a Windows PC. Limbs sets it.
+        internal static string ThisComputer = "PC";
+#endif
+
+        private static string Here(string prompt)
+        {
+#if CROSS
+            return prompt.Replace("the user's Windows PC", "the user's " + ThisComputer).Replace("change Windows settings", "change their " + ThisComputer + "'s settings");
+#else
+            return prompt;
+#endif
+        }
 
         private const string Handing =
             "You are the hands of Capri, a desktop companion on the user's Windows PC. You don't chat.\n" +
@@ -808,6 +822,10 @@ namespace CapriDesktop
         // Puts dots over a password she typed into a password box, wherever it would show or be saved.
         internal static Func<string, string> Hush = delegate(string text) { return text; };
         internal static Action<byte[]> Chord = PressChord;
+        // Discord drops keys pressed before its page has the keyboard, a moment after it comes to the front (deafen took two tries, 2 Nov).
+        internal static Func<IntPtr, bool> Typable = PageFocused;
+        internal const int FocusWait = 400;
+        private const int KeyGap = 20;
         internal static Func<string, int, bool> Power = Switch;
         // Puts her to sleep (true) or wakes her (false), and says how it went. Her window sets it.
         internal static Func<bool, string> Nap = delegate { return "Couldn't nap just now."; };
@@ -820,9 +838,14 @@ namespace CapriDesktop
         // Makes her clones or clears them, and says how it went. Her window sets it.
         internal static Func<string, int, string> Clone = delegate { return "Couldn't do that just now."; };
         internal static Func<bool> Cloning = delegate { return false; };
+#else
+        // Mac and Linux have no clones yet, so asking for them gets this straight away instead of a joke from her brain.
+        internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
+#endif
         // "Clone yourself", "make 5 clones", "start multiplying". A number makes that many, and no number lets them keep multiplying.
         private static readonly Regex CloneOn = new Regex(@"^(?:start |begin |go ahead and |just )?(?:(?:clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|copy(?:ing)?) your ?self(?: (?<count>\d+) times?)?(?: as (?:many|much)(?: times)? as you (?:want|like|can))?|clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|(?:make|spawn|create|summon)(?: me)? (?:(?<count>\d+) |an? |some |more |lots of |a bunch of |as many )?(?:clones?|copies|duplicates?)(?: of (?:your ?self|you))?(?: as you (?:want|like|can))?|(?:(?:activate|enable|start|begin|turn on|enter|go into|switch to)(?: the)? )?chaos mode(?: on)?|(?:unleash|cause) (?:the )?chaos)$", RegexOptions.IgnoreCase);
         private static readonly Regex CloneOff = new Regex(@"^(?:(?:stop|end|kill|remove|delete|clear|get rid of|destroy|banish|no more|enough(?: of)?|turn off|put away|send away)(?: (?:all|of|the|your))* (?:clones?|copies|duplicates?|cloning|duplicating|multiplying)|clones? off|chaos mode off|(?:stop|end|deactivate|disable|turn off|exit|leave)(?: the)? chaos(?: mode)?)$", RegexOptions.IgnoreCase);
+#if !CROSS
         private static readonly Regex CloneEnough = new Regex(@"^(?:ok(?:ay)? )?(?:stop|enough|that'?s enough)$", RegexOptions.IgnoreCase);
 #endif
         // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
@@ -851,7 +874,14 @@ namespace CapriDesktop
         [DllImport("kernel32.dll")] private static extern int GetCurrentThreadId();
         [StructLayout(LayoutKind.Sequential)] private struct Message { internal IntPtr Window; internal uint Id; internal UIntPtr WParam; internal IntPtr LParam; internal uint Time; internal int X, Y; internal uint Private; }
         [DllImport("user32.dll")] private static extern bool PeekMessage(out Message message, IntPtr window, uint first, uint last, uint flags);
-        private static readonly Regex Junk = new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
+        [StructLayout(LayoutKind.Sequential)] private struct ThreadFocus { internal int Size, Flags; internal IntPtr Active, Focus, Capture, MenuOwner, MoveSize, Caret; internal WindowEdges CaretEdges; }
+        [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(int thread, ref ThreadFocus focus);
+        [DllImport("user32.dll")] private static extern bool IsChild(IntPtr parent, IntPtr window);
+        [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code, uint kind);
+        [DllImport("kernel32.dll")] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
+        [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
+        private static readonly Regex Junk =new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
         private static readonly string[,] Searches =
         {
             { "youtube", "https://www.youtube.com/results?search_query=" },
@@ -947,6 +977,8 @@ namespace CapriDesktop
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
+#else
+                if (tool == "clone") return NoClones;
 #endif
                 if (tool == "remind") return Remind(args);
                 if (tool == "routine") return Routine(args);
@@ -1040,9 +1072,11 @@ namespace CapriDesktop
         }
 
         internal const string SayPlease = "Say please.";
+        // Please however it's typed, like plz, pleas or plsease, but not plaza or pleases.
+        private const string Plea = @"pl(?!aza\b|eases\b)(?=[aeisz]*[sz])[aeisz]{1,6}\b";
         // Please and thanks in all her languages, so "öffne bitte Spotify" never gets Say please and "bitte" runs what was held.
         // Chinese, Japanese, Korean, Thai and the Indian scripts have no word breaks a \b can see, so they match anywhere.
-        private static readonly Regex Polite = new Regex(@"\b(please|pls|plz|pleas|thank you|thanks|por favor|porfavor|porfa|porfis|gracias|merci|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
+        private static readonly Regex Polite = new Regex(@"\b(please|pls|plz|pleas|" + Plea + @"|thank you|thanks|por favor|porfavor|porfa|porfis|gracias|merci|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
             @"|bitte|danke|per favore|perfavore|per piacere|grazie|pfv|obrigad[oa]|si us plau|sisplau|siusplau|gr[àa]cies|grazas|mesedez|eskerrik asko|alsjeblieft|alstublieft|a\.?u\.?b|dank je|dankjewel|bedankt|asseblief|dankie" +
             @"|snälla|snalla|tack|vær så snill|vennligst|venligst|takk|tak|vinsamlegast|ole hyvä|ole kiltti|kiitos|palun|aitäh|aitah|lūdzu|ludzu|paldies|prašau|prasau|ačiū|aciu" +
             @"|proszę|prosze|dzięki|dzieki|dziękuję|dziekuje|prosím|prosim|díky|diky|děkuji|dekuji|ďakujem|dakujem|kérlek|kerlek|légyszi|legyszi|köszi|koszi|köszönöm|hvala|molim|молим|хвала" +
@@ -1055,7 +1089,7 @@ namespace CapriDesktop
             @"|请|請|麻烦|麻煩|拜托|拜託|谢谢|謝謝|ください|下さい|お願い|おねがい|ありがとう|주세요|부탁|제발|고마워|감사|กรุณา|รบกวน|ขอบคุณ|ກະລຸນາ|ຂອບໃຈ|សូម|អរគុណ|ကျေးဇူးပြု၍|ကျေးဇူးပြုပြီး|ကျေးဇူးတင်|ကျေးဇူးပဲ|ပါ(ဦး|ဥ\u102Eး|နော်)?[။၊!?.\s]*$" +
             @"|कृपया|प्लीज़|प्लीज|प्लिज|धन्यवाद|शुक्रिया|দয়া করে|প্লিজ|প্লীজ|ধন্যবাদ|કૃપા કરીને|પ્લીઝ|આભાર|ਕਿਰਪਾ ਕਰਕੇ|ਪਲੀਜ਼|ਪਲੀਜ|ਧੰਨਵਾਦ" +
             @"|தயவுசெய்து|ப்ளீஸ்|பிளீஸ்|நன்றி|దయచేసి|ప్లీజ్|ధన్యవాదాలు|ದಯವಿಟ್ಟು|ಪ್ಲೀಸ್|ಧನ್ಯವಾದ|ദയവായി|പ്ലീസ്|നന്ദി", RegexOptions.IgnoreCase);
-        private static readonly Regex JustPlease = new Regex(@"^\W*((ok|okay|fine|sorry|vale|perd[oó]n|d[ée]sol[ée])\W+)?(pretty\s+)?(please+|pls|plz|pleas+e*|por favor|porfavor|porfa|porfis|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
+        private static readonly Regex JustPlease = new Regex(@"^\W*((ok|okay|fine|sorry|vale|perd[oó]n|d[ée]sol[ée])\W+)?(pretty\s+)?(please+|pls|plz|pleas+e*|" + Plea + @"|por favor|porfavor|porfa|porfis|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
             @"|bitte( sehr| schön)?|per favore|perfavore|per piacere|pfv|si us plau|sisplau|siusplau|mesedez|alsjeblieft|alstublieft|a\.?u\.?b\.?|asseblief|snälla|snalla|vær så snill|vennligst|venligst|vinsamlegast|ole hyvä|ole kiltti|palun|lūdzu|ludzu|prašau|prasau" +
             @"|proszę|prosze|prosím|prosim|kérlek|kerlek|légyszi|legyszi|molim( te| vas)?|молим( те)?|të lutem|te lutem|ju lutem|te rog|vă rog|va rog|le do thoil|plîs|plis|os gwelwch yn dda|jekk jogħġbok|jekk joghgbok" +
             @"|lütfen|lutfen|zəhmət olmasa|xahiş edirəm|iltimos|пожалуйста|пожалуста|плиз|плз|пж|будь ласка|калі ласка|моля|те молам|ве молам|өтінемін|гуйя|παρακαλώ|παρακαλω" +
@@ -1072,7 +1106,8 @@ namespace CapriDesktop
             askPlease = false;
             string held = heldForPlease;
             heldForPlease = null;
-            if (held != null && JustPlease.IsMatch(said ?? "")) return held + " please";
+            // Their please runs what she held as they said it. Added on the end, it went out as part of their message (a tester, 2 Nov).
+            if (held != null && JustPlease.IsMatch(said ?? "")) return held;
 #if !CROSS
             if (Ink.Request(Asked(said)) != null) return said;
 #endif
@@ -1081,6 +1116,11 @@ namespace CapriDesktop
             askPlease = true;
             return said;
         }
+
+        // A please on the end of a message job is manners, not part of the message: "text hi to my alt plsease" sends hi.
+        private static readonly Regex PleaseAfter = new Regex(@"[\s,]+(?:please+|" + Plea + @"|stp|s'il te pla[iî]t|sil te pla[iî]t|por favor|porfavor|porfa|porfis|bitte|per favore|perfavore|per piacere|proszę|prosze|пожалуйста|плз|пж|будь ласка|lütfen|lutfen|alsjeblieft|alstublieft)(?:\s+capri)?[\s.!?]*$", RegexOptions.IgnoreCase);
+
+        internal static string Unpleased(string task) { return task != null && Errand(task) ? PleaseAfter.Replace(task, "") : task; }
 
         internal static bool Wants(string said)
         {
@@ -1196,6 +1236,8 @@ namespace CapriDesktop
         {
 #if !CROSS
             if (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.") return result;
+#else
+            if (result == NoClones) return result;
 #endif
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser because |but (it's behind|I couldn't bring) )")) return result;
@@ -1227,6 +1269,9 @@ namespace CapriDesktop
         internal static bool Hurt(string reply) { return (reply ?? "").IndexOf("[hurt]", StringComparison.OrdinalIgnoreCase) >= 0; }
 
         internal const string Unpromised = "I haven't actually done that yet. Tell me what to open or click and I'll do it.";
+        // What she says she wiped: her drawing by any name, it, that or everything, or nothing after the word at all.
+        // "Clear that up" is explaining and "wiped out" is tired.
+        private const string Wiped = @"((\s+(away|off|out))?\s+(it|that|this|them|everything|all of (it|them)|((the|my|your|that|this|those|these|all the)\s+)?(whole\s+)?(drawings?|diagrams?|art|artwork|ink|doodles?|sketch(es)?|annotations?|scribbles?|lines|arrows|circles|screen))\b(?!\s+up\b)|\s*([.!]|$))";
         private static readonly Regex Promise = new Regex(@"\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to|about to)|gonna|on it,?)[\s—–-]+(\w+[\s,—–-]+){0,2}(open|launch|load|boot|fire|pull|bring|search|google|look up|click|type|close|switch|head|install|download|play(?!\s+(along|around|with|nice|fair|dumb|it (cool|safe)|((a|some|the|this|that|any|your|my)\s+)?(games?|round|match)\b|devil))|put on|queue|blast|spin|mute|unmute|deafen|undeafen|send(?!\s+(you|u|ya)\b)|message(?!\s+(you|u)\b)|text(?!\s+(you|u)\b)|dm|ping|reply|post|hang up|(end|leave|join) (the|your|this|that) (call|vc|meeting))\b" +
             @"|^((sure|ok|okay|alright|bet|got it|on it|say less|yessir+|yezzir+)[,.!\s—–-]+)?((choom|chooms)[,.!\s—–-]+)?(opening|launching|loading|pulling up|bringing up|firing up|booting up|heading to|searching|clicking|typing|closing|switching|playing|putting on|queuing|queueing|blasting|spinning|muting|unmuting|deafening|sending|messaging|texting|dming|replying|posting|hanging up|ending (the|your) call|leaving (the|your) (call|vc)|joining (the|your) (call|vc)|disconnecting)\b" +
             @"|\bi'?m\s+(now\s+)?(sending|messaging|texting|dming|opening(?!\s+up\b)|launching|closing|muting|unmuting|deafening|hanging up|posting|replying)\b" +
@@ -1234,7 +1279,11 @@ namespace CapriDesktop
             // The same promise in her other big languages ("Otwieram YouTube!" with nothing opened, a Polish tester, 30 Oct).
             @"|^\W*((ok|okej|okay|jasne|dobra|spoko|już|juz|sure|vale|claro|vamos|d'accord|ok[eé]|alles klar|klar|certo|va bene|хорошо|ладно|окей|сейчас)[,.!\s—–-]+)*((choom|chooms|\p{Lu}[\p{L}\p{N}_]{1,23})[,.!\s—–-]+)?(otwieram|odpalam|odpalamy|otwieramy|włączamy|wlaczamy|uruchamiamy|włączam|wlaczam|uruchamiam|puszczam|zamykam|wysyłam|wysylam|otworzę|otworze|włączę|wlacze|odpalę|odpale|puszczę|puszcze|uruchomię|uruchomie|otworzyłam|otworzylam|włączyłam|wlaczylam|odpaliłam|odpalilam|puściłam|puscilam|uruchomiłam|uruchomilam" +
             @"|abriendo|abro|pongo|reproduciendo|abr[ií]|puse|te abro|te pongo|j'ouvre|je lance|je mets|j'ai ouvert|j'ai lanc[ée]|ich [öo]ffne|ich starte|ich spiele|ich habe (\w+\s+){0,3}(ge[öo]ffnet|gestartet)|abrindo|vou abrir|abri|coloquei|apro|metto|ho aperto|открываю|включаю|запускаю|открыла|включила|запустила)(?!\w)" +
-            @"|^((done|sorted|there|boom|bet|ok|okay|alright)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(opened|launched|closed|sent(?!\s+(you|u|ya)\b)|messaged|texted|dmed|dm'd|posted|replied|muted|unmuted|deafened|undeafened|hung up|(ended|left|joined) (the|your|this|that) (call|vc|meeting|server|channel))\b", RegexOptions.IgnoreCase);
+            @"|^((done|sorted|there|boom|bet|ok|okay|alright)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(opened|launched|closed|sent(?!\s+(you|u|ya)\b)|messaged|texted|dmed|dm'd|posted|replied|muted|unmuted|deafened|undeafened|hung up|(ended|left|joined) (the|your|this|that) (call|vc|meeting|server|channel))\b" +
+            // Wiping her drawing too: "Done, wiped it!" left the ink up with no tool behind it (Nemotron, 2 Nov).
+            @"|^((done|sorted|there|boom|bet|ok|okay|alright|sure|poof|gone|all gone|all clear|on it)[,.!\s—–-]+)*((choom|chooms)[,.!\s—–-]+)?(i('ve| have)\s+)?(just\s+)?(cleared|erased|wiped|removed|deleted|rubbed|got rid of|clearing|erasing|wiping|removing|deleting|rubbing|getting rid of)" + Wiped +
+            @"|\bi('ve| have)?\s+(just\s+)?(cleared|erased|wiped|removed|deleted|rubbed|got rid of)" + Wiped +
+            @"|\b(i'?ll|i will|let me|lemme|i'?m (gonna|going to|about to)|gonna|on it,?)[\s—–-]+(\w+[\s,—–-]+){0,2}(clear|erase|wipe|remove|delete|rub|get rid of)" + Wiped, RegexOptions.IgnoreCase);
 
         // "I'm sending you the biggest hug" is warmth, not a message she owes them. Warmth sent to someone by name still counts.
         private static readonly Regex Warmth = new Regex(@"\b(send(s|ing)?|sent)\s+((you|u|ya|y'all)\s+)?((a|an|the|my|some|all|so|much|many|lots|of|this|big|bigger|biggest|huge|massive|giant|tight|warm|warmest|virtual|good|positive|happy|healing|cozy|cosy|little|tiny|extra|more|mega|super|best|sweet|soft|gentle|digital|cyber|neon)\s+)*(hugs?|huggies|squeezes?|kiss(es)?|love|xoxo|vibes?|energy|thoughts|wishes|prayers?|luck|cuddles?|smooches?|hearts?|sunshine|strength|support|positivity|juju|blessings?|regards|cheers|kudos|props|high[- ]?fives?|fist[- ]?bumps?|headpats?|pats)\b(?!\s+(to|over to)\s+(?!(you|u|ya|y'all|yourself)\b)\w)", RegexOptions.IgnoreCase);
@@ -1942,6 +1991,8 @@ namespace CapriDesktop
                 return true;
             }
             if (CloneOff.IsMatch(text) || (CloneEnough.IsMatch(text) && Cloning())) { tool = "clone"; args.Action = "stop"; return true; }
+#else
+            if (CloneOn.IsMatch(text) || CloneOff.IsMatch(text)) { tool = "clone"; return true; }
 #endif
             string screen, window;
             string moved = MovingFor(text, out screen, out window);
@@ -2312,17 +2363,18 @@ namespace CapriDesktop
             return tool == "play_music" && Named(args.Song) && (string.IsNullOrEmpty(args.Kind) || Regex.IsMatch(args.Kind, @"\A(song|playlist|album|artist)\z")) && (string.IsNullOrEmpty(args.App) || args.App == "spotify" || args.App == "youtube");
         }
 
-        // "Open Discord and Spotify" opens both, so nobody has to ask for each app on its own. Anything she doesn't know goes to her brain.
+        // "Open Discord and Spotify" opens both, so nobody has to ask for each app on its own, and so does "open steam and then
+        // spotify" (a Bazzite user). Anything she doesn't know goes to her brain.
         internal static bool Several(string said, List<KeyValuePair<string, ToolArguments>> calls)
         {
             Match found = Regex.Match(Asked(said), @"^(?:open|launch|start|run|load up|boot up|fire up)\s+(?:up\s+)?(.+)$", RegexOptions.IgnoreCase);
             if (!found.Success) return false;
-            string[] parts = Regex.Split(found.Groups[1].Value.Trim(), @"\s*,\s*(?:and\s+|&\s*)?|\s+and\s+|\s*&\s*", RegexOptions.IgnoreCase);
+            string[] parts = Regex.Split(found.Groups[1].Value.Trim(), @"\s*,\s*(?:and\s+|&\s*)?|\s+and\s+|\s*&\s*|\s+then\s+", RegexOptions.IgnoreCase);
             if (parts.Length < 2) return false;
             List<KeyValuePair<string, ToolArguments>> opening = new List<KeyValuePair<string, ToolArguments>>();
             foreach (string part in parts)
             {
-                string target = Regex.Replace(part.Trim(), @"^(?:open|launch|start|run)\s+", "", RegexOptions.IgnoreCase);
+                string target = Regex.Replace(part.Trim(), @"^(?:(?:and\s+)?then\s+)?(?:(?:open|launch|start|run)\s+)?", "", RegexOptions.IgnoreCase);
                 if (Installed(target)) opening.Add(new KeyValuePair<string, ToolArguments>("open_app", new ToolArguments { Name = target }));
                 else if (Site(target)) opening.Add(new KeyValuePair<string, ToolArguments>("open_website", new ToolArguments { Site = target }));
                 else return false;
@@ -2454,7 +2506,14 @@ namespace CapriDesktop
         private static int Score(InstalledApp app, string want)
         {
             string name = AppName(app);
-            return name.Length == 0 ? 0 : Math.Max(Score(name, want), Score(Plain(app.Name), want));
+            if (name.Length == 0) return 0;
+            int score = Math.Max(Score(name, want), Score(Plain(app.Name), want));
+#if CROSS
+            // Mac and Linux list every .app and .desktop name, so part of a word doesn't count there: "minecraft" can't open an app
+            // that merely has it inside a longer name (a Bazzite user).
+            if (score == 1 && name.Contains(want)) return 0;
+#endif
+            return score;
         }
 
         private static string AppName(InstalledApp app)
@@ -2983,8 +3042,13 @@ namespace CapriDesktop
                 for (int i = 0; i < 20 && discord == null; i++) { Thread.Sleep(250); discord = FindDiscord(); }
                 if (discord == null) return "Opened Discord, but its window didn't show up in time. Ask again in a sec.";
             }
-            IntPtr before = Native.GetForegroundWindow();
+            IntPtr before = Foreground();
             if (!Steer(discord, "switch_to")) return "Couldn't bring Discord to the front to press its shortcut.";
+            if (before != discord.Handle)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < FocusWait && !Typable(discord.Handle)) Thread.Sleep(20);
+            }
             Chord(keys);
             Thread.Sleep(150);
             if (before != IntPtr.Zero && before != discord.Handle) Steer(new OpenWindow(before, "", ""), "switch_to");
@@ -3089,10 +3153,30 @@ namespace CapriDesktop
             catch (System.ComponentModel.Win32Exception) { return false; }
         }
 
+        // A beat apart and with their scan codes, so an app that reads either one, like Discord's page, gets the whole chord.
         private static void PressChord(byte[] keys)
         {
-            foreach (byte key in keys) Native.keybd_event(key, 0, key == 0x5B ? 0x1 : 0, UIntPtr.Zero);
-            for (int i = keys.Length - 1; i >= 0; i--) Native.keybd_event(keys[i], 0, (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+            for (int i = 0; i < keys.Length; i++)
+            {
+                if (i > 0) Thread.Sleep(KeyGap);
+                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), keys[i] == 0x5B ? 0x1 : 0, UIntPtr.Zero);
+            }
+            for (int i = keys.Length - 1; i >= 0; i--)
+            {
+                Thread.Sleep(KeyGap);
+                Native.keybd_event(keys[i], (byte)MapVirtualKey(keys[i], 0), (keys[i] == 0x5B ? 0x1 : 0) | 0x2, UIntPtr.Zero);
+            }
+        }
+
+        // Discord's page has the keyboard: it's in front, not minimised, and its focus is on one of its own child windows.
+        private static bool PageFocused(IntPtr window)
+        {
+            int ignored;
+            if (Native.GetForegroundWindow() != window || IsIconic(window)) return false;
+            ThreadFocus focus = new ThreadFocus();
+            focus.Size = Marshal.SizeOf(typeof(ThreadFocus));
+            int thread = GetWindowThreadProcessId(window, out ignored);
+            return thread != 0 && GetGUIThreadInfo(thread, ref focus) && focus.Focus != IntPtr.Zero && IsChild(window, focus.Focus);
         }
 
         private static void Tap(byte key)
@@ -3412,9 +3496,7 @@ namespace CapriDesktop
                 string program;
                 if (!programs.TryGetValue(id, out program))
                 {
-                    try { using (Process process = Process.GetProcessById(id)) program = process.ProcessName; }
-                    catch (ArgumentException) { program = ""; }
-                    catch (InvalidOperationException) { program = ""; }
+                    program = ProgramName(id);
                     programs[id] = program;
                 }
                 StringBuilder title = new StringBuilder(length + 1);
@@ -3425,6 +3507,30 @@ namespace CapriDesktop
             EnumWindows(visit, IntPtr.Zero);
             GC.KeepAlive(visit);
             return found;
+        }
+
+        // A program's name as Process has it, chrome or soffice.bin, or "". Process took a snapshot of every process and thread on
+        // the PC for each one, and her windows are read every second or so.
+        internal static string ProgramName(int id)
+        {
+            IntPtr handle = OpenProcess(0x1000, false, id);
+            if (handle != IntPtr.Zero)
+            {
+                try
+                {
+                    StringBuilder path = new StringBuilder(1024);
+                    int size = path.Capacity;
+                    if (QueryFullProcessImageName(handle, 0, path, ref size))
+                    {
+                        string full = path.ToString(), name = full.Substring(full.LastIndexOf('\\') + 1);
+                        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+                    }
+                }
+                finally { CloseHandle(handle); }
+            }
+            try { using (Process process = Process.GetProcessById(id)) return process.ProcessName; }
+            catch (ArgumentException) { return ""; }
+            catch (InvalidOperationException) { return ""; }
         }
 
         private static bool Apply(OpenWindow window, string action)

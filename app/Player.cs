@@ -24,6 +24,11 @@ namespace CapriDesktop
         // The app playing it, as Windows names it: Spotify.exe, Chrome, MSEdge, SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify.
         internal string App = "";
         internal bool Playing;
+        // Between songs, which Playing counts too.
+        internal bool Changing;
+        // What the app says it is, when it says.
+        internal bool Music;
+        internal bool Video;
         // Where it was and how long it is, in seconds, when it was read. Length is 0 when the app doesn't say.
         internal double Start;
         internal double Position;
@@ -57,6 +62,9 @@ namespace CapriDesktop
     {
         private static readonly Stopwatch clock = Stopwatch.StartNew();
         private static GlobalSystemMediaTransportControlsSessionManager manager;
+        private static readonly object sharing = new object(), pressing = new object();
+        private static List<Tune> shared;
+        private static double sharedAt = -10, pressedAt = -10;
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
         [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
 
@@ -64,6 +72,8 @@ namespace CapriDesktop
 
         // What's playing, or null. Tests swap it out.
         internal static Func<Tune> Read = ReadSession;
+        // Every session Windows has, the one it puts first leading, or null. Tests swap it out.
+        internal static Func<List<Tune>> Sessions = ReadSessions;
         // The session Windows puts first, playing or paused, or null. Tests swap it out.
         internal static Func<Tune> Current = ReadCurrent;
         internal static Func<Tune> Spotify = ReadSpotify;
@@ -131,6 +141,44 @@ namespace CapriDesktop
         // the first paused one. Sessions without a title, like a call or a game, don't count.
         private static Tune ReadSession()
         {
+            List<Tune> tunes = Shared();
+            if (tunes == null) return null;
+            Tune paused = null;
+            foreach (Tune tune in tunes)
+            {
+                if (tune.Title.Length == 0) continue;
+                if (tune.Playing) return tune;
+                if (paused == null) paused = tune;
+            }
+            return paused;
+        }
+
+        // Her mini player and her dancing both look every second or two, so they share a read for most of a second. One that
+        // started before a press could show in it isn't shared.
+        internal static List<Tune> Shared()
+        {
+            lock (sharing)
+            {
+                double now = Now, pressed;
+                lock (pressing) pressed = pressedAt;
+                if (shared != null && now - sharedAt < 0.9 && sharedAt >= pressed + 0.3) return shared;
+                shared = Sessions();
+                sharedAt = now;
+                return shared;
+            }
+        }
+
+        // For tests: no read to share and no press to wait out.
+        internal static void Forget()
+        {
+            lock (sharing) shared = null;
+            lock (pressing) pressedAt = -10;
+        }
+
+        internal static void Pressed() { lock (pressing) pressedAt = Now; }
+
+        private static List<Tune> ReadSessions()
+        {
             GlobalSystemMediaTransportControlsSessionManager sessions = Manager();
             if (sessions == null) return null;
             try
@@ -139,15 +187,9 @@ namespace CapriDesktop
                 GlobalSystemMediaTransportControlsSession current = sessions.GetCurrentSession();
                 if (current != null) order.Add(current);
                 foreach (GlobalSystemMediaTransportControlsSession session in sessions.GetSessions()) if (!ReferenceEquals(session, current)) order.Add(session);
-                Tune paused = null;
-                foreach (GlobalSystemMediaTransportControlsSession session in order)
-                {
-                    Tune tune = Describe(session);
-                    if (tune.Title.Length == 0) continue;
-                    if (tune.Playing) return tune;
-                    if (paused == null) paused = tune;
-                }
-                return paused;
+                List<Tune> tunes = new List<Tune>();
+                foreach (GlobalSystemMediaTransportControlsSession session in order) tunes.Add(Describe(session));
+                return tunes;
             }
             catch (Exception) { manager = null; return null; }
         }
@@ -193,7 +235,11 @@ namespace CapriDesktop
             GlobalSystemMediaTransportControlsSessionPlaybackInfo info = session.GetPlaybackInfo();
             if (info != null)
             {
-                tune.Playing = info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing || info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Changing;
+                tune.Changing = info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Changing;
+                tune.Playing = info.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing || tune.Changing;
+                Windows.Media.MediaPlaybackType? kind = info.PlaybackType;
+                tune.Music = kind.HasValue && kind.Value == Windows.Media.MediaPlaybackType.Music;
+                tune.Video = kind.HasValue && kind.Value == Windows.Media.MediaPlaybackType.Video;
                 GlobalSystemMediaTransportControlsSessionPlaybackControls controls = info.Controls;
                 if (controls != null)
                 {
@@ -225,6 +271,12 @@ namespace CapriDesktop
         private static string Clean(string text) { return Regex.Replace(text ?? "", @"[\s\u0000-\u001F\u007F]+", " ").Trim(); }
 
         private static bool SendToSession(Tune tune, string what)
+        {
+            try { return SendNow(tune, what); }
+            finally { Pressed(); }
+        }
+
+        private static bool SendNow(Tune tune, string what)
         {
             if (what == "like" || what == "unlike") return LikeOnSpotify(what == "like");
             GlobalSystemMediaTransportControlsSession session = tune == null ? null : tune.Session as GlobalSystemMediaTransportControlsSession;

@@ -1065,8 +1065,9 @@ namespace CapriDesktop
 
         internal bool Installed { get { return Fits && Complete(Folder); } }
 
-        // Ready to hear: the model is in, and so is the free voice that brings sherpa-onnx.
-        internal bool Ready { get { return IntPtr.Size == 8 && Installed && File.Exists(Path.Combine(engine, "sherpa-onnx-c-api.dll")) && File.Exists(Path.Combine(engine, "onnxruntime.dll")); } }
+        // Ready to hear: the model is in, and so is the whole free voice that brings sherpa-onnx. Its DLLs alone don't count, so
+        // a broken voice is never loaded from, which would hold its DLLs while she sets it up again.
+        internal bool Ready { get { return IntPtr.Size == 8 && Installed && VoicePack.Complete(engine); } }
 
         private static bool Complete(string where)
         {
@@ -2024,10 +2025,10 @@ namespace CapriDesktop
 
         internal bool Installed { get { return Complete(Folder); } }
 
-        // Ready to listen: the pack is in, and so is the free voice that brings sherpa-onnx.
-        internal bool Ready { get { return IntPtr.Size == 8 && Installed && File.Exists(Path.Combine(engine, "sherpa-onnx-c-api.dll")) && File.Exists(Path.Combine(engine, "onnxruntime.dll")); } }
+        // Ready to listen: the pack is in, and so is the whole free voice that brings sherpa-onnx, as her ears need.
+        internal bool Ready { get { return IntPtr.Size == 8 && Installed && VoicePack.Complete(engine); } }
 
-        internal bool VoiceIn { get { return File.Exists(Path.Combine(engine, "sherpa-onnx-c-api.dll")) && File.Exists(Path.Combine(engine, "onnxruntime.dll")); } }
+        internal bool VoiceIn { get { return VoicePack.Complete(engine); } }
 
         // The mic is open: Windows shows its mic-in-use icon.
         internal bool Listening { get { return mic.Listening; } }
