@@ -3064,10 +3064,15 @@ namespace CapriDesktop
             reader.Start();
             if (!reader.Join(10000)) throw new TimeoutException("The app list took too long.");
             if (failed != null) throw failed;
-            return WithSteam(apps, SteamApps(SteamFolder()));
+            List<InstalledApp> listed = WithSteam(apps, SteamApps(SteamFolder()));
+#if !CROSS
+            listed = WithSteam(listed, StoreApps());
+#endif
+            return listed;
         }
 
-        // Steam games and apps show in All apps only when Steam made a Start menu shortcut, so her list adds the rest from Steam's own library.
+        // Steam games and apps show in All apps only when Steam made a Start menu shortcut, so her list adds the rest from Steam's own
+        // library, and from her other launchers' lists the same way. One already in All apps by that name isn't listed twice.
         internal static List<InstalledApp> WithSteam(List<InstalledApp> apps, List<InstalledApp> steam)
         {
             foreach (InstalledApp game in steam)
@@ -3128,13 +3133,166 @@ namespace CapriDesktop
         }
 
 #if !CROSS
+        // Games from her other launchers' own lists, for the ones with no Start menu shortcut: Epic Games, Riot Client, Ubisoft
+        // Connect and GOG Galaxy (Lachy, 2 Nov: "If the app isn't on steam, is it on epic games launcher?"). Battle.net and the
+        // EA app keep their lists in files she can't read, so their games open from the Start menu shortcuts they make.
+        internal static List<InstalledApp> StoreApps()
+        {
+            string data = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            List<InstalledApp> apps = new List<InstalledApp>();
+            if (data.Length == 0) return apps;
+            apps.AddRange(EpicApps(Path.Combine(data, @"Epic\EpicGamesLauncher\Data\Manifests")));
+            apps.AddRange(RiotApps(Path.Combine(data, "Riot Games")));
+            apps.AddRange(UbisoftApps(Listed(@"SOFTWARE\WOW6432Node\Ubisoft\Launcher\Installs", "InstallDir")));
+            apps.AddRange(GogApps(Listed(@"SOFTWARE\WOW6432Node\GOG.com\Games", "gameName", "exe", "launchParam", "dependsOn")));
+            return apps;
+        }
+
+        [DataContract]
+        private sealed class EpicItem
+        {
+            [DataMember] internal string DisplayName, AppName, CatalogNamespace, CatalogItemId, MainGameAppName, LaunchExecutable;
+            [DataMember(Name = "bIsIncompleteInstall")] internal bool Incomplete;
+        }
+
+        // Epic's install manifests, the same .item files her file finder reads for game folders. Each game opens through Epic's own
+        // launch link, so Epic signs in and updates it first, as its shortcuts do. Add-ons and half-installed games are left out.
+        internal static List<InstalledApp> EpicApps(string folder)
+        {
+            List<InstalledApp> apps = new List<InstalledApp>();
+            try
+            {
+                if (!Directory.Exists(folder)) return apps;
+                DataContractJsonSerializer reader = new DataContractJsonSerializer(typeof(EpicItem));
+                foreach (string manifest in Directory.GetFiles(folder, "*.item"))
+                {
+                    EpicItem item;
+                    // A byte order mark in front stops the JSON reader, so it's skipped.
+                    try
+                    {
+                        byte[] bytes = File.ReadAllBytes(manifest);
+                        int start = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF ? 3 : 0;
+                        using (MemoryStream stream = new MemoryStream(bytes, start, bytes.Length - start)) item = (EpicItem)reader.ReadObject(stream);
+                    }
+                    catch (IOException) { continue; }
+                    catch (UnauthorizedAccessException) { continue; }
+                    catch (SerializationException) { continue; }
+                    if (item == null || item.Incomplete || string.IsNullOrWhiteSpace(item.DisplayName) || string.IsNullOrWhiteSpace(item.AppName) || string.IsNullOrWhiteSpace(item.LaunchExecutable)) continue;
+                    if (!string.IsNullOrEmpty(item.MainGameAppName) && item.MainGameAppName != item.AppName) continue;
+                    string app = string.IsNullOrEmpty(item.CatalogNamespace) || string.IsNullOrEmpty(item.CatalogItemId) ? Uri.EscapeDataString(item.AppName)
+                        : Uri.EscapeDataString(item.CatalogNamespace) + "%3A" + Uri.EscapeDataString(item.CatalogItemId) + "%3A" + Uri.EscapeDataString(item.AppName);
+                    apps.Add(new InstalledApp(item.DisplayName.Trim(), "com.epicgames.launcher://apps/" + app + "?action=launch&silent=true"));
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return apps;
+        }
+
+        // Riot's games, from the settings Riot Client keeps for each one under ProgramData, opened through Riot Client the way its
+        // own shortcuts do. One whose folder is gone was uninstalled.
+        internal static List<InstalledApp> RiotApps(string folder)
+        {
+            List<InstalledApp> apps = new List<InstalledApp>();
+            try
+            {
+                string installs = Path.Combine(folder, "RiotClientInstalls.json"), metadata = Path.Combine(folder, "Metadata");
+                if (!File.Exists(installs) || !Directory.Exists(metadata)) return apps;
+                Match client = Regex.Match(File.ReadAllText(installs), @"""rc_(?:default|live)""\s*:\s*""([^""]+)""");
+                string services = client.Success ? client.Groups[1].Value.Replace(@"\/", "/").Replace(@"\\", @"\").Replace('/', '\\') : null;
+                if (services == null || !Regex.IsMatch(services, @"^[A-Za-z]:\\.+\.exe$", RegexOptions.IgnoreCase) || !File.Exists(services)) return apps;
+                foreach (string product in Directory.GetDirectories(metadata))
+                {
+                    Match named = Regex.Match(Path.GetFileName(product), @"^([a-z0-9_]+)\.([a-z0-9_]+)$");
+                    if (!named.Success || named.Groups[1].Value == "riot_client") continue;
+                    string settings = Path.Combine(product, named.Value + ".product_settings.yaml");
+                    if (!File.Exists(settings)) continue;
+                    string text = File.ReadAllText(settings);
+                    Match shortcut = Regex.Match(text, @"(?m)^shortcut_name:\s*""?(.+?)(?:\.lnk)?""?\s*$");
+                    Match place = Regex.Match(text, @"(?m)^product_install_full_path:\s*""?(.+?)""?\s*$");
+                    if (!shortcut.Success || !place.Success || !Directory.Exists(place.Groups[1].Value.Replace('/', '\\'))) continue;
+                    apps.Add(new InstalledApp(shortcut.Groups[1].Value.Trim(), "\"" + services + "\" --launch-product=" + named.Groups[1].Value + " --launch-patchline=" + named.Groups[2].Value));
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return apps;
+        }
+
+        // Ubisoft Connect's installs, each an id and its folder, with the name Windows lists it under. They open through Ubisoft's
+        // launch link.
+        internal static List<InstalledApp> UbisoftApps(List<string[]> installs)
+        {
+            List<InstalledApp> apps = new List<InstalledApp>();
+            foreach (string[] install in installs)
+            {
+                string name = Uninstalled("Uplay Install " + install[0]);
+                if (Regex.IsMatch(install[0], @"^\d+$") && !string.IsNullOrWhiteSpace(name) && FolderThere(install[1])) apps.Add(new InstalledApp(name.Trim(), "uplay://launch/" + install[0] + "/0"));
+            }
+            return apps;
+        }
+
+        // GOG Galaxy's games, which are DRM-free, so each opens from its own program. Add-ons, which depend on a game, are left out.
+        internal static List<InstalledApp> GogApps(List<string[]> games)
+        {
+            List<InstalledApp> apps = new List<InstalledApp>();
+            foreach (string[] game in games)
+            {
+                string exe = game[2] ?? "", given = (game[3] ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(game[1]) || !string.IsNullOrWhiteSpace(game[4]) || !Regex.IsMatch(exe, @"^[A-Za-z]:\\.+\.exe$", RegexOptions.IgnoreCase) || !Exists(exe)) continue;
+                apps.Add(new InstalledApp(game[1].Trim(), given.Length == 0 ? exe : "\"" + exe + "\" " + given));
+            }
+            return apps;
+        }
+
+        // A launcher's list in the registry: each subkey's name, then the values asked for. Checks hand her lists of their own.
+        internal static Func<string, string[], List<string[]>> Registered = ReadRegistered;
+        internal static Func<string, string> Uninstalled = ReadUninstalled;
+        internal static Func<string, bool> FolderThere = Directory.Exists;
+
+        private static List<string[]> Listed(string key, params string[] values) { return Registered(key, values); }
+
+        private static List<string[]> ReadRegistered(string path, string[] values)
+        {
+            List<string[]> found = new List<string[]>();
+            try
+            {
+                using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(path))
+                {
+                    if (key == null) return found;
+                    foreach (string name in key.GetSubKeyNames())
+                        using (Microsoft.Win32.RegistryKey item = key.OpenSubKey(name))
+                        {
+                            if (item == null) continue;
+                            string[] row = new string[values.Length + 1];
+                            row[0] = name;
+                            for (int i = 0; i < values.Length; i++) row[i + 1] = item.GetValue(values[i]) as string;
+                            found.Add(row);
+                        }
+                }
+            }
+            catch (Exception) { }
+            return found;
+        }
+
+        private static string ReadUninstalled(string name)
+        {
+            try
+            {
+                using (Microsoft.Win32.RegistryKey key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\" + name))
+                    return key == null ? null : key.GetValue("DisplayName") as string;
+            }
+            catch (Exception) { return null; }
+        }
+
         internal static IEnumerable<string> GamePaths()
         {
             List<string> paths = new List<string>();
             try
             {
+                // A launcher's command, like Riot Client's, is no game's own path.
                 foreach (InstalledApp saved in Apps())
-                    if (Path.IsPathRooted(saved.Id) && Computer.GamePath(saved.Id)) paths.Add(Path.GetDirectoryName(saved.Id));
+                    if (Regex.IsMatch(saved.Id, @"^(?:[A-Za-z]:|\\)[^""<>|]*$") && Computer.GamePath(saved.Id)) paths.Add(Path.GetDirectoryName(saved.Id));
             }
             catch (Exception) { }
             return paths;
@@ -3152,7 +3310,12 @@ namespace CapriDesktop
 
         internal static ProcessStartInfo Launch(string id)
         {
-            ProcessStartInfo info = Regex.IsMatch(id, @"^[A-Za-z]:\\|^\\\\|^[a-z][a-z0-9+.-]*://|^spotify:", RegexOptions.IgnoreCase) ? new ProcessStartInfo(id) : new ProcessStartInfo("explorer.exe", "shell:AppsFolder\\" + id);
+            // A launcher's command, like Riot Client with the game to start, runs its program with the rest, from that program's
+            // folder, and so does a game's own program.
+            Match command = Regex.Match(id, @"^""([A-Za-z]:\\[^""]+\.exe)""\s+(\S.*)$", RegexOptions.IgnoreCase);
+            ProcessStartInfo info = command.Success ? new ProcessStartInfo(command.Groups[1].Value, command.Groups[2].Value)
+                : Regex.IsMatch(id, @"^[A-Za-z]:\\|^\\\\|^[a-z][a-z0-9+.-]*://|^spotify:", RegexOptions.IgnoreCase) ? new ProcessStartInfo(id) : new ProcessStartInfo("explorer.exe", "shell:AppsFolder\\" + id);
+            if (Regex.IsMatch(info.FileName, @"^[A-Za-z]:\\[^""<>|]+\.exe$", RegexOptions.IgnoreCase)) info.WorkingDirectory = Path.GetDirectoryName(info.FileName);
             info.UseShellExecute = true;
             return info;
         }

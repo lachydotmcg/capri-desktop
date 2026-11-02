@@ -13437,6 +13437,109 @@ namespace CapriDesktop
             checks.Add("PASS her tools here: with everything on this PC her tool lists and prompts are unchanged and kept for each set of missing tools; a brain that can't see pictures has no look_at_screen or screen watches, is told \"" + blindLine + "\" in chat, hands, planner and voice chat, answers \"I can't see your screen\" without being sent to look while a seeing brain still looks; her chat brain always gets a short list of every tool she has here; Clip my games off stays in her tools and says where to turn it on; on a Mac, can you draw, clip, ride my cursor, chess, listen, watch along, watch for, files, clones and Gaming Mode get her not-here line with no brain call while mouse jobs get her mouse line and nothing is forced; what she can do lists her tools with mini games and chess, the shortcuts she can press and her clones");
         }
 
+        // Her other launchers' games open even without a Start menu shortcut: Epic Games through its launch link, Riot's through
+        // Riot Client, Ubisoft Connect's through its link and GOG's from their own programs. Made-up manifests, settings and
+        // registry lists stand in for real installs, and nothing is launched (Lachy, 2 Nov: "is it on epic games launcher?").
+        private static void SmokeStores(System.Collections.Generic.List<string> checks, string output)
+        {
+            string root = Path.Combine(output, "store-checks");
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> openedWas = Hands.Opened, uninstalledWas = Hands.Uninstalled;
+            Func<string, bool> folderWas = Hands.FolderThere, existsWas = Hands.Exists;
+            try
+            {
+                Hands.Exists = File.Exists;
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+                // Epic: a game, an old manifest with no catalog ids, an add-on, a half-installed game, a broken file and one saved
+                // with a byte order mark.
+                string manifests = Path.Combine(root, @"Epic\EpicGamesLauncher\Data\Manifests");
+                Directory.CreateDirectory(manifests);
+                Func<string, string, string, string, string, bool, string> epic = delegate(string display, string app, string space, string item, string main, bool incomplete)
+                {
+                    return "{\n\t\"FormatVersion\": 0,\n\t\"bIsIncompleteInstall\": " + (incomplete ? "true" : "false") + ",\n\t\"LaunchExecutable\": \"Game/Binaries/Win64/Game.exe\",\n\t\"AppCategories\": [ \"public\", \"games\", \"applications\" ],\n\t\"InstallSize\": 31415926535,\n\t\"DisplayName\": " + Voice.Quote(display)
+                        + ",\n\t\"InstallLocation\": \"C:\\\\Program Files\\\\Epic Games\\\\" + app + "\",\n\t\"CatalogNamespace\": " + Voice.Quote(space) + ",\n\t\"CatalogItemId\": " + Voice.Quote(item) + ",\n\t\"AppName\": " + Voice.Quote(app) + ",\n\t\"MainGameAppName\": " + Voice.Quote(main) + "\n}";
+                };
+                File.WriteAllText(Path.Combine(manifests, "A1.item"), epic("Fortnite", "Fortnite", "fn", "4fe75bbc5a674f4f9b356b5c90567da5", "Fortnite", false));
+                File.WriteAllText(Path.Combine(manifests, "A2.item"), epic("Rocket League\u00ae", "Sugar", "", "", "Sugar", false), new System.Text.UTF8Encoding(true));
+                File.WriteAllText(Path.Combine(manifests, "A3.item"), epic("Fortnite Extra Pack", "FortniteDlc", "fn", "dlc1", "Fortnite", false));
+                File.WriteAllText(Path.Combine(manifests, "A4.item"), epic("Half Installed", "Half", "hf", "h1", "Half", true));
+                File.WriteAllText(Path.Combine(manifests, "A5.item"), "{ \"DisplayName\": \"Broken");
+                // Riot: VALORANT installed, League's settings left behind after it was uninstalled.
+                string riot = Path.Combine(root, "Riot Games"), services = Path.Combine(root, @"Riot Client\RiotClientServices.exe"), valorant = Path.Combine(root, @"VALORANT\live");
+                Directory.CreateDirectory(Path.Combine(riot, @"Metadata\valorant.live"));
+                Directory.CreateDirectory(Path.Combine(riot, @"Metadata\league_of_legends.live"));
+                Directory.CreateDirectory(Path.Combine(riot, @"Metadata\riot_client"));
+                Directory.CreateDirectory(Path.GetDirectoryName(services));
+                Directory.CreateDirectory(valorant);
+                File.WriteAllText(services, "");
+                File.WriteAllText(Path.Combine(riot, "RiotClientInstalls.json"), "{\"associated_client\":{\"" + valorant.Replace('\\', '/') + "/\":\"" + services.Replace('\\', '/') + "\"},\"rc_default\":\"" + services.Replace('\\', '/') + "\",\"rc_live\":\"" + services.Replace('\\', '/') + "\"}");
+                File.WriteAllText(Path.Combine(riot, @"Metadata\valorant.live\valorant.live.product_settings.yaml"), "auto_patching_enabled_by_player: false\nproduct_install_full_path: \"" + valorant.Replace('\\', '/') + "\"\nproduct_install_root: \"" + root.Replace('\\', '/') + "\"\nsettings:\n    create_shortcut: true\nshortcut_name: \"VALORANT.lnk\"\nshould_repair: false\n");
+                File.WriteAllText(Path.Combine(riot, @"Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml"), "product_install_full_path: \"" + Path.Combine(root, "League of Legends").Replace('\\', '/') + "\"\nshortcut_name: \"League of Legends.lnk\"\n");
+                // Ubisoft and GOG keep theirs in the registry, so made-up lists stand in for it.
+                string valhalla = Path.Combine(root, @"Ubisoft\Valhalla"), witcher = Path.Combine(root, @"GOG Games\The Witcher 3\bin\x64\witcher3.exe"), dosbox = Path.Combine(root, @"GOG Games\Fallout\DOSBOX\dosbox.exe");
+                Directory.CreateDirectory(valhalla);
+                Directory.CreateDirectory(Path.GetDirectoryName(witcher));
+                Directory.CreateDirectory(Path.GetDirectoryName(dosbox));
+                File.WriteAllText(witcher, "");
+                File.WriteAllText(dosbox, "");
+                Hands.Uninstalled = delegate(string key) { return key == "Uplay Install 13504" ? "Assassin's Creed Valhalla" : key == "Uplay Install 720" ? "Gone Game" : null; };
+                Hands.FolderThere = Directory.Exists;
+                System.Collections.Generic.List<string[]> ubisoft = new System.Collections.Generic.List<string[]> { new[] { "13504", valhalla }, new[] { "720", Path.Combine(root, @"Ubisoft\Gone") }, new[] { "launcher", valhalla } };
+                System.Collections.Generic.List<string[]> gog = new System.Collections.Generic.List<string[]>
+                {
+                    new[] { "1207664663", "The Witcher 3: Wild Hunt", witcher, "", null },
+                    new[] { "1640424747", "The Witcher 3: Hearts of Stone", witcher, "", "1207664663" },
+                    new[] { "1440163901", "Fallout", dosbox, "-conf \"..\\dosboxFallout.conf\" -noconsole", "" },
+                    new[] { "1", "Uninstalled Game", Path.Combine(root, @"GOG Games\Gone\gone.exe"), "", null }
+                };
+                Func<System.Collections.Generic.List<InstalledApp>, string> listed = delegate(System.Collections.Generic.List<InstalledApp> apps) { return string.Join(" | ", apps.ConvertAll(app => app.Name + " = " + app.Id).ToArray()); };
+                string epicList = listed(Hands.EpicApps(manifests)), riotList = listed(Hands.RiotApps(riot)), ubisoftList = listed(Hands.UbisoftApps(ubisoft)), gogList = listed(Hands.GogApps(gog));
+                string riotCommand = "\"" + services + "\" --launch-product=valorant --launch-patchline=live", falloutCommand = "\"" + dosbox + "\" -conf \"..\\dosboxFallout.conf\" -noconsole";
+                if (epicList != "Fortnite = com.epicgames.launcher://apps/fn%3A4fe75bbc5a674f4f9b356b5c90567da5%3AFortnite?action=launch&silent=true | Rocket League\u00ae = com.epicgames.launcher://apps/Sugar?action=launch&silent=true"
+                    || riotList != "VALORANT = " + riotCommand || ubisoftList != "Assassin's Creed Valhalla = uplay://launch/13504/0" || gogList != "The Witcher 3: Wild Hunt = " + witcher + " | Fallout = " + falloutCommand
+                    || Hands.EpicApps(Path.Combine(root, "missing")).Count != 0 || Hands.RiotApps(Path.Combine(root, "missing")).Count != 0)
+                    throw new Exception("A launcher's games read wrong: " + epicList + " / " + riotList + " / " + ubisoftList + " / " + gogList);
+                ProcessStartInfo riotLaunch = Hands.Launch(riotCommand), falloutLaunch = Hands.Launch(falloutCommand), witcherLaunch = Hands.Launch(witcher), epicLaunch = Hands.Launch("com.epicgames.launcher://apps/Sugar?action=launch&silent=true"), uplayLaunch = Hands.Launch("uplay://launch/13504/0");
+                if (riotLaunch.FileName != services || riotLaunch.Arguments != "--launch-product=valorant --launch-patchline=live" || riotLaunch.WorkingDirectory != Path.GetDirectoryName(services) || !riotLaunch.UseShellExecute
+                    || falloutLaunch.FileName != dosbox || falloutLaunch.Arguments != "-conf \"..\\dosboxFallout.conf\" -noconsole" || falloutLaunch.WorkingDirectory != Path.GetDirectoryName(dosbox)
+                    || witcherLaunch.FileName != witcher || witcherLaunch.Arguments != "" || witcherLaunch.WorkingDirectory != Path.GetDirectoryName(witcher)
+                    || epicLaunch.FileName != "com.epicgames.launcher://apps/Sugar?action=launch&silent=true" || epicLaunch.Arguments != "" || uplayLaunch.FileName != "uplay://launch/13504/0")
+                    throw new Exception("A launcher's game wouldn't start the way its own shortcut does: " + riotLaunch.FileName + " " + riotLaunch.Arguments);
+                // With VALORANT already in All apps, her list keeps that one, and "open fortnite" goes through Epic.
+                System.Collections.Generic.List<InstalledApp> stores = new System.Collections.Generic.List<InstalledApp>();
+                stores.AddRange(Hands.EpicApps(manifests));
+                stores.AddRange(Hands.RiotApps(riot));
+                stores.AddRange(Hands.UbisoftApps(ubisoft));
+                stores.AddRange(Hands.GogApps(gog));
+                System.Collections.Generic.List<InstalledApp> merged = Hands.WithSteam(new System.Collections.Generic.List<InstalledApp> { new InstalledApp("VALORANT", "Riot Game valorant.live") }, stores);
+                System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>();
+                Hands.Catalog = delegate { return merged; };
+                Hands.Run = delegate(string id) { ran.Add(id); };
+                Hands.Opened = delegate { return ""; };
+                Hands.Forget();
+                string fortnite = Hands.Do("open_app", new ToolArguments { Name = "fortnite" }), rocket = Hands.Do("open_app", new ToolArguments { Name = "rocket league" }), valorantOpened = Hands.Do("open_app", new ToolArguments { Name = "valorant" });
+                string witcherOpened = Hands.Do("open_app", new ToolArguments { Name = "the witcher 3" }), valhallaOpened = Hands.Do("open_app", new ToolArguments { Name = "assassin's creed valhalla" }), extra = Hands.Do("open_app", new ToolArguments { Name = "fortnite extra pack" });
+                if (merged.Count != 6 || fortnite != "Opened Fortnite." || rocket != "Opened Rocket League\u00ae." || valorantOpened != "Opened VALORANT." || witcherOpened != "Opened The Witcher 3: Wild Hunt." || valhallaOpened != "Opened Assassin's Creed Valhalla."
+                    || !extra.StartsWith("No app called", StringComparison.Ordinal)
+                    || string.Join(" | ", ran.ToArray()) != "com.epicgames.launcher://apps/fn%3A4fe75bbc5a674f4f9b356b5c90567da5%3AFortnite?action=launch&silent=true | com.epicgames.launcher://apps/Sugar?action=launch&silent=true | Riot Game valorant.live | " + witcher + " | uplay://launch/13504/0")
+                    throw new Exception("Her launchers' games didn't open from her app list: " + fortnite + " / " + rocket + " / " + valorantOpened + " / " + witcherOpened + " / " + valhallaOpened + " / " + extra + " / " + string.Join(" | ", ran.ToArray()));
+                checks.Add("PASS launchers: Epic games open through Epic's launch link with or without catalog ids, add-ons, half installs and broken manifests left out; Riot's installed games open through Riot Client with their product and patchline; Ubisoft Connect's through its link by the name Windows lists; GOG's from their own programs with their launch options and folder, add-ons and missing ones left out; one already in All apps isn't listed twice");
+                checks.Add("LIMIT launchers: Epic, Riot, Ubisoft and GOG games on a real PC, and their launch links starting them, need a check on a PC that has them; Battle.net and the EA app keep unreadable lists, so their games open from the Start menu shortcuts they make");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Run = runWas;
+                Hands.Opened = openedWas;
+                Hands.Uninstalled = uninstalledWas;
+                Hands.FolderThere = folderWas;
+                Hands.Exists = existsWas;
+                Hands.Forget();
+                try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch (IOException) { }
+            }
+        }
+
         private void SmokeCare(System.Collections.Generic.List<string> checks)
         {
             double careNow = 0;
@@ -18853,6 +18956,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeGameSense(checks); });
                             Section(checks, delegate { SmokeSelfKnow(checks); });
                             Section(checks, delegate { SmokeToolKit(checks); });
+                            Section(checks, delegate { SmokeStores(checks, output); });
                             Section(checks, delegate { SmokeFiles(checks); });
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
