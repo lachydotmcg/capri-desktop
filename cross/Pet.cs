@@ -3365,7 +3365,8 @@ namespace CapriDesktop
             bool noted;
             try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
-            if (noted)
+            // Clones and chaos mode are Windows-only: she says so herself, brain or no brain, instead of her brain joking about them.
+            if (noted || tool == "clone")
             {
                 string done = Hands.Do(tool, args);
                 Brain.Remember(text, done);

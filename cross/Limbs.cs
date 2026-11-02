@@ -101,6 +101,7 @@ namespace CapriDesktop
             Hands.Power = delegate(string action, int seconds) { return Power(action, seconds, OnMac); };
             Hands.Unlisted = delegate { return Blind; };
             Hands.Presses = false;
+            Hands.ThisComputer = OnMac ? "Mac" : "PC";
             Hands.Instead = delegate(string name) { return Shortcut(name, OnMac); };
             Hands.SetVolume = delegate(double level) { return SetLevel(level, OnMac); };
             Hands.VolumeNow = delegate { return Level(OnMac); };

@@ -768,6 +768,25 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 if (!brainlessDance || !brainlessStop) throw new Exception("Her dance needed a brain: " + brainlessDance + ", " + brainlessStop + ", " + pet.Talk.Reply);
                 checks.Add("PASS her own moves without a brain: \"dance for me\" and \"stop dancing\" work with no brain set up, like her nap and \"teleport here\"");
+                // Clones and chaos mode are Windows-only, which she says straight away whether or not she has a brain, and her hands
+                // aren't told this is a Windows PC.
+                pet.Hear("clone yourself");
+                string cloneLine = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                bool cloneAsked = false;
+                pet.Think = delegate(string words) { cloneAsked = true; return "Ten of me? Easy, choom."; };
+                pet.Hear("activate chaos mode");
+                string chaosLine = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                pet.Hear("get rid of your clones");
+                string clearLine = pet.Talk.Reply;
+                pet.Talk.Dismiss();
+                pet.Think = null;
+                string computer = OperatingSystem.IsMacOS() ? "Mac" : "PC", handsPrompt = Hands.Prompt, toolsNote = Hands.Note;
+                bool notWindows = handsPrompt.IndexOf("Windows", StringComparison.Ordinal) < 0 && handsPrompt.IndexOf("a desktop companion on the user's " + computer + ".", StringComparison.Ordinal) > 0
+                    && toolsNote.IndexOf("Windows", StringComparison.Ordinal) < 0 && toolsNote.IndexOf("You can change their " + computer + "'s settings too", StringComparison.Ordinal) > 0;
+                if (cloneLine != Hands.NoClones || chaosLine != Hands.NoClones || clearLine != Hands.NoClones || cloneAsked || !notWindows) throw new Exception("Windows-only things went wrong on Mac or Linux: " + cloneLine + " | " + chaosLine + " | " + clearLine + " | brain asked " + cloneAsked + " | prompts " + notWindows);
+                checks.Add("PASS Windows-only: asking for clones or chaos mode, or to get rid of clones, gets \"" + Hands.NoClones + "\" straight away, with or without a brain, and her hands' prompts call this computer their " + computer + ", not a Windows PC");
                 pet.Think = delegate(string words) { return words == "hey" ? "Just vibing, choom." : "wrong words"; };
                 pet.Talk.Pill.Press(1);
                 if (!pet.Talk.Typing) throw new Exception("The pencil didn't open the typing box.");
