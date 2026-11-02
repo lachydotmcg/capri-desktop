@@ -793,6 +793,9 @@ namespace CapriDesktop
             }
         }
 
+        // Where updates download. A smoke worker keeps its data in a folder of its own, so its check asks here.
+        internal string Folder { get { return folder; } }
+
         internal static ReleaseAsset Installer(Release release)
         {
             ReleaseAsset first = null;
@@ -25363,7 +25366,7 @@ namespace CapriDesktop
                             {
                                 installer.Id = DateTime.UtcNow.Ticks;
                                 installer.Size = System.Text.Encoding.UTF8.GetByteCount(payload);
-                                string final = Path.Combine(output, "updates", "Capri-Setup-9.0.0-" + installer.Id + ".exe");
+                                string final = Path.Combine(updater.Folder, "Capri-Setup-9.0.0-" + installer.Id + ".exe");
                                 string partial = final + ".partial";
                                 Directory.CreateDirectory(Path.GetDirectoryName(final));
                                 File.WriteAllText(partial, "old interrupted download");
@@ -25394,7 +25397,7 @@ namespace CapriDesktop
                                 checkItem.PerformClick();
                                 finishUpdate();
                                 if (queries != 2 || updateRequests.Count != 3 || updateFile.Path != final) throw new Exception("The manual menu check downloaded a verified installer again.");
-                                Updater resumed = new Updater(output, Application.ExecutablePath, true);
+                                Updater resumed = new Updater(Path.GetDirectoryName(updater.Folder), Application.ExecutablePath, true);
                                 resumed.Signer = delegate { return null; };
                                 if (resumed.Download(release).Path != final || updateRequests.Count != 4) throw new Exception("A later Capri session did not reuse the verified download.");
                                 resumed.Signer = delegate { throw new BrainException("fake trust check unavailable"); };
