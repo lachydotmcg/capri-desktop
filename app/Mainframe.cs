@@ -239,7 +239,7 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 478 }, new[] { 550, 1029 }, new[] { 1112, 1164 }, new[] { 1192, 1248 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 450, 478 }, new[] { 550, 1037 }, new[] { 1120, 1172 }, new[] { 1200, 1256 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 372, 754 }, new[] { 950, 2000 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
@@ -280,7 +280,7 @@ namespace CapriDesktop
         private readonly Label voiceInMicState;
         private readonly Key cableKey;
         private const int MixAt = 478;
-        private const int MixRows = 64;
+        private const int MixRows = 72;
         private readonly Toggle miniPlayer;
         private readonly Readout sleepName;
         private readonly Readout soundsName;
@@ -564,8 +564,8 @@ namespace CapriDesktop
             voiceInMic.Switch = 68;
             voiceInMic.AccessibleName = "Her voice in your mic. Your mic and her voice go into VB-CABLE, so friends in Discord or Roblox hear you both";
             voiceInMicNote = Caption("Pick CABLE Output as your mic in Discord or Roblox.", 28, MixAt + 26, small, Faint);
-            voiceInMicState = Caption("", 28, MixAt + 44, small, Faint);
-            cableKey = Make("Get VB-CABLE", 264, MixAt + 41, 92, 20, delegate { capri.OpenCablePage(); });
+            voiceInMicState = Caption("", 28, MixAt + 50, small, Faint);
+            cableKey = Make("Get VB-CABLE", 264, MixAt + 47, 92, 20, delegate { capri.OpenCablePage(); });
             cableKey.AccessibleName = "Get VB-CABLE: opens its page in your browser. It's free";
             cableKey.Visible = false;
             int afterVoice = Controls.Count;

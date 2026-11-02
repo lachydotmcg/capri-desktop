@@ -13191,7 +13191,8 @@ namespace CapriDesktop
                 { "how do I turn off head pats?", "Head pats" },
                 { "how do I turn off chaos when upset?", "Chaos when upset" },
                 { "where did my settings go?", "Advanced Settings" },
-                { "what is the extras window?", "Extras" }
+                { "what is the extras window?", "Extras" },
+                { "how do I put your voice in my mic?", "Her voice in your mic" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
             {
@@ -19152,6 +19153,9 @@ namespace CapriDesktop
             }
             finally
             {
+                // Her mix's notes land in its own check file before the log goes back.
+                Stopwatch flushing = Stopwatch.StartNew();
+                while (MicMix.Noting && flushing.ElapsedMilliseconds < 5000) Thread.Sleep(5);
                 Brain.LogPath = logWas;
                 Voice.Loudness = loudnessWas;
                 MicMix.Current = currentWas;
@@ -26110,7 +26114,7 @@ namespace CapriDesktop
                                     Browse = mixBrowseWas;
                                     cableLooked = -10;
                                     simpleTest = false;
-                                    mainframe.Sync();
+                                    mainframe.ShowSettings(true);
                                 }
                                 if (mixMissing != "off | locked | " + MicMix.Missing + " | Get VB-CABLE" + mixNote || mixMissingFits != null || mixRefused != mixMissing || !mixStayedOff || mixOpened != MicMix.CablePage
                                     || mixReady != "off | open | - | -" + mixNote || mixOn != "on | open | - | -" + mixNote || !mixSaved || !mixWired || mixOnFits != null || mixMoved != "Headset Microphone (stand-in)"
@@ -27323,8 +27327,20 @@ namespace CapriDesktop
                             ChooseVoiceStyle(QwenVoice.Style);
                             if (!preferences.HdVoice || mainframe.FreeStatus != "Free voice: HD | " + freeSetupText || !mainframe.HdChoice.EndsWith("(picked)", StringComparison.Ordinal)) throw new Exception("Picking her HD voice didn't stick: " + mainframe.FreeStatus + " / " + mainframe.HdChoice);
                             if (mainframe.Overlap() != null) throw new Exception("The free voice row overlaps with HD picked: " + mainframe.Overlap());
-                            string hdMixFits = mainframe.HdGamesStatus == "-" ? "Free voice in games isn't showing" : mainframe.VoiceInMicFits();
-                            if (hdMixFits != null) throw new Exception("Her voice in your mic's rows don't fit with Free voice in games showing: " + hdMixFits);
+                            // Her voice in your mic's rows (F66) sit under Free voice in games while HD is picked.
+                            Section(checks, delegate
+                            {
+                                bool hdMixPage = mainframe.SettingsShown;
+                                string hdMixFits;
+                                try
+                                {
+                                    mainframe.ShowSettings(true);
+                                    hdMixFits = mainframe.HdGamesStatus == "-" ? "Free voice in games isn't showing" : mainframe.VoiceInMicFits() ?? mainframe.Overlap();
+                                }
+                                finally { mainframe.ShowSettings(hdMixPage); }
+                                if (hdMixFits != null) throw new Exception("Her voice in your mic's rows don't fit with Free voice in games showing: " + hdMixFits);
+                                checks.Add("PASS her voice in your mic's rows move down under Free voice in games while HD is on and still fit, with nothing over them");
+                            });
                             Func<string, byte[]> hdFallback = delegate(string words) { return null; };
                             if (Hd(hdFallback) != hdFallback) throw new Exception("Her HD voice spoke before it was installed.");
                             // Free voice in games: shown only with HD on and off out of the box, and only when it's on does a full-screen game send her to her free voice.
@@ -27351,7 +27367,6 @@ namespace CapriDesktop
                             qwen.Hardware = null;
                             checks.Add("PASS HD voice memory: 2, 4, 6 and 8 GB graphics with 8 and 16 GB RAM all allow HD and clips; under 6 GB uses 2-second codec chunks, 6 GB and above keeps the same 1024-frame cache and 6-second chunks; low or unknown memory warns without blocking; CPU can be picked and undone on every machine, adding only --device CPU and clearing the retry wait");
                             checks.Add("PASS HD voice: off by default, picking it sticks, Free voice in games shows in Settings only while it's on and starts off, a full-screen game sends her to her free voice only with it on, and picking another free voice turns HD off");
-                            checks.Add("PASS her voice in your mic's rows move down under Free voice in games while HD is on and still fit, with nothing over them");
                             // Their own voice: a clip in any coding Windows reads becomes a 24 kHz mono 16-bit reference with its quiet ends cut, a bad clip
                             // says why in plain words, and the free voice menu brings back a clip a test build shelved.
                             string yvRoot = Path.Combine(output, "your-voice");
@@ -29200,26 +29215,33 @@ namespace CapriDesktop
                             StopChat();
                             // CABLE Output as Windows' default mic (F66): Windows speech would hear her own voice in their mic, so she doesn't
                             // open it and hears their real mic offline instead, saying why.
-                            Func<string> cableNameWas = Ears.DefaultName;
-                            int cableDictations = 0;
-                            bool cableSkipped;
-                            string cableStatus;
-                            try
+                            Section(checks, delegate
                             {
-                                Ears.DefaultName = delegate { return "CABLE Output (VB-Audio Virtual Cable)"; };
-                                Dictation.Make = delegate { cableDictations++; return new StandInDictation(); };
-                                StartLocal();
-                                cableStatus = mainframe.VoiceStatus;
-                                cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0;
-                                StopChat();
-                                Ears.DefaultName = delegate { return "Microphone (stand-in)"; };
-                                StartLocal();
-                                cableSkipped &= cableDictations == 1;
-                                StopChat();
-                            }
-                            finally { Ears.DefaultName = cableNameWas; }
-                            if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus);
-                            checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why; any other default opens it as before");
+                                Func<string> cableNameWas = Ears.DefaultName;
+                                int cableDictations = 0;
+                                bool cableSkipped;
+                                string cableStatus;
+                                try
+                                {
+                                    Ears.DefaultName = delegate { return "CABLE Output (VB-Audio Virtual Cable)"; };
+                                    Dictation.Make = delegate { cableDictations++; return new StandInDictation(); };
+                                    StartLocal();
+                                    cableStatus = mainframe.VoiceStatus;
+                                    cableSkipped = cableDictations == 0 && dictation == null && local && earsReady && cableStatus.IndexOf(CableDefault, StringComparison.Ordinal) == 0;
+                                    StopChat();
+                                    Ears.DefaultName = delegate { return "Microphone (stand-in)"; };
+                                    StartLocal();
+                                    cableSkipped &= cableDictations == 1;
+                                    StopChat();
+                                }
+                                finally
+                                {
+                                    Ears.DefaultName = cableNameWas;
+                                    if (chatting) StopChat();
+                                }
+                                if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus);
+                                checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why; any other default opens it as before");
+                            });
                             if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
                             if (Dictation.OtherMic(null, null, otherWith) != null || Dictation.OtherMic("{0.0.1.00000000}.{b76a5175-3f7c}", "Yeti", otherWith) != null || Dictation.OtherMic("{0.0.1.00000000}.{aaaa}", "Yeti", null) != null || Dictation.OtherMic("{0.0.1.00000000}.{aaaa}", "Yeti", otherWith) != "Windows speech only hears your default mic, not Yeti. Make Yeti the default in Windows Settings > System > Sound > Input, or pick Mic: default here.") throw new Exception("The default mic check went wrong.");

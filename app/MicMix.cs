@@ -500,13 +500,41 @@ namespace CapriDesktop
             return true;
         }
 
-        // errors.txt gets each new thing once, written off the mix thread so the cable never waits on the disk.
+        // errors.txt gets each new thing once, written off the mix thread so the cable never waits on the disk. One pool thread
+        // at a time writes them, so a burst of them can't crowd out the rest of her.
+        private static readonly Queue<string> notes = new Queue<string>();
+        private static bool noting;
+
         private void Note(string what)
         {
             if (what == logged) return;
             logged = what;
-            ThreadPool.QueueUserWorkItem(delegate { Brain.Log("mic mix", -1, what); });
+            lock (notes)
+            {
+                if (notes.Count < 64) notes.Enqueue(what);
+                if (noting) return;
+                noting = true;
+            }
+            ThreadPool.QueueUserWorkItem(delegate { WriteNotes(); });
         }
+
+        private static void WriteNotes()
+        {
+            while (true)
+            {
+                string next;
+                lock (notes)
+                {
+                    if (notes.Count == 0) { noting = false; return; }
+                    next = notes.Dequeue();
+                }
+                try { Brain.Log("mic mix", -1, next); }
+                catch (Exception) { }
+            }
+        }
+
+        // Notes still waiting for errors.txt, for the smoke test.
+        internal static bool Noting { get { lock (notes) return noting; } }
 
         // Her voice from one of her speakers, waiting for the cable and resampled to its rate as it goes in.
         private sealed class Lane
