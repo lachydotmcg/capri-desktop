@@ -549,6 +549,8 @@ namespace CapriDesktop
             IconMischief gag = iconChaos;
             iconChaos = null;
             iconTimer.Stop();
+            // The next chaos session gets its own 22 to 48 second wait before her first go at the icons.
+            iconActAt = -1;
             if (gag != null) { try { gag.PutBack(); } catch (Exception problem) { Brain.Log("icons", -1, problem.Message); } }
         }
 
