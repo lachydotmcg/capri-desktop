@@ -1677,6 +1677,9 @@ namespace CapriDesktop
         internal static Func<IntPtr, Rectangle> Display = delegate(IntPtr window) { return window == IntPtr.Zero ? Screen.FromPoint(Cursor.Position).Bounds : Screen.FromHandle(window).Bounds; };
         private double nextGlance = -1;
         private double lastGlance = -1;
+        // When the glance in flight started on her own clock, and how long a look takes before she spaces them out.
+        private double glanceStart = -1;
+        private const double SlowGlance = 20;
         private int watchTicket;
         private bool glancing;
         private string glanceProblem;
@@ -7131,6 +7134,7 @@ namespace CapriDesktop
             catch (Exception) { lastPrint = null; mainframe.ShowProblem("Couldn't capture the screen. I'll try again."); return; }
             glancing = true;
             lastGlance = now;
+            glanceStart = clock.Elapsed.TotalSeconds;
             int ticket = asking;
             int watch = watchTicket;
             int awayWatch = exploring ? exploreTicket : -1;
@@ -7163,6 +7167,11 @@ namespace CapriDesktop
         private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null, Sight front = null, int awayWatch = -1)
         {
             glancing = false;
+            // A slow look, like a brain on a busy PC, waits twice as long as it took before the next one, so their chats aren't
+            // stuck behind her glances (ticket 88, Void: 180 s timeouts with Watch every 10 s on a local Gemma).
+            double took = glanceStart < 0 ? 0 : clock.Elapsed.TotalSeconds - glanceStart;
+            glanceStart = -1;
+            if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, clock.Elapsed.TotalSeconds + took * 2);
             if (watch != watchTicket || (awayWatch >= 0 ? !exploring || awayWatch != exploreTicket || !ExploreFree() || Native.GetForegroundWindow() != exploreWindow || awayInput.Quiet() < (long)ExploreAfter * 1000 : !preferences.Watch)) return;
             if (brain.ScreenWait > 0) nextGlance = clock.Elapsed.TotalSeconds + brain.ScreenWait;
             string unseen = Unseeing();
@@ -34611,6 +34620,16 @@ namespace CapriDesktop
                             ToggleWatch();
                             FinishGlance(asking, oldWatch, "That chest looks good.", null);
                             if (reply != null) throw new Exception("An old glance spoke after Watch was restarted.");
+                            double slowFrom = nextGlance;
+                            glanceStart = clock.Elapsed.TotalSeconds - 30;
+                            FinishGlance(asking, oldWatch, null, null);
+                            double slowNext = nextGlance - clock.Elapsed.TotalSeconds;
+                            glanceStart = clock.Elapsed.TotalSeconds - 2;
+                            nextGlance = slowFrom;
+                            FinishGlance(asking, oldWatch, null, null);
+                            if (slowNext < 59 || slowNext > 61 || nextGlance != slowFrom || glanceStart != -1) throw new Exception("A 30 s glance didn't wait a minute before the next, or a quick one waited: " + slowNext + " / " + (nextGlance - slowFrom));
+                            nextGlance = slowFrom;
+                            checks.Add("PASS slow glances: a look that took 30 s waits a minute before the next one, so a slow brain has room for chat, and quick looks keep their timer");
                             lastPrint = new byte[64 * 36 * 3];
                             FinishGlance(asking - 1, watchTicket, "That chest looks good.", null);
                             if (reply != null || lastPrint != null) throw new Exception("An interrupted glance spoke or prevented the next try.");
