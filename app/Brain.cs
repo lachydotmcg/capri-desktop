@@ -351,6 +351,8 @@ namespace CapriDesktop
         internal const string Gone = "That model isn't on your key. Pick another one.";
         internal const string Down = "Their servers failed. Pick another model or retry.";
         internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
+        internal const string NewKey = "Key rejected. Make a new Google AI Studio key and paste it.";
+        internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
         internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
         internal static string Sightless(Cloud remote) { return remote.Model + " can't see screens. In Capri Mainframe, pick a model that can" + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : remote.Kind == "local" ? ", or turn pictures on in your server." : "."); }
@@ -1308,7 +1310,7 @@ namespace CapriDesktop
             {
                 if (error.Response != null)
                 {
-                    BrainException failure = Problem(error, true);
+                    BrainException failure = Problem(error, true, kind);
                     if (OtherDoor(key, request.RequestUri.AbsoluteUri, failure))
                     {
                         try { return CloudModels(key); }
@@ -2928,7 +2930,7 @@ namespace CapriDesktop
                 {
                     if (error.Response == null) throw;
                     Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode + (sending == null ? "" : " model " + sending.Model) + " body " + payload.Length + " bytes");
-                    BrainException problem = Problem(error, sign != null);
+                    BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null);
                     if (sending != null && problem.RetryAt != default(DateTime))
                         lock (gate) { waitingRemote = sending; waitingSource = sending.Source; waiting = problem; }
                     throw problem;
@@ -3017,7 +3019,7 @@ namespace CapriDesktop
             if (status >= 300 && status < 400) throw new BrainException("Their API moved. Your key wasn't sent to the new address.", true);
         }
 
-        private static BrainException Problem(WebException error, bool remote)
+        private static BrainException Problem(WebException error, bool remote, string kind = null)
         {
             string text;
             string url = error.Response.ResponseUri.AbsoluteUri;
@@ -3029,7 +3031,7 @@ namespace CapriDesktop
             if (string.IsNullOrWhiteSpace(said)) said = error.Message;
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
-            string meaning = remote && !toolless ? Meaning(status, text) : null;
+            string meaning = remote && !toolless ? Meaning(status, text, kind == "google") : null;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
@@ -3082,10 +3084,14 @@ namespace CapriDesktop
             });
         }
 
-        internal static string Meaning(int status, string body)
+        internal static string Meaning(int status, string body, bool google = false)
         {
             if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
+            if (google && status == 400 && Regex.IsMatch(body ?? "", @"location is not supported|in your (country|region)", RegexOptions.IgnoreCase)) return Unserved;
             if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
+            if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
+            // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
+            if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;
             if (status == 401 || status == 403) return "Key rejected. Press Forget, then paste it again.";
             if (status == 429) return Busy;
             if (status == 404) return Gone;

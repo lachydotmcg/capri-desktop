@@ -17112,18 +17112,25 @@ namespace CapriDesktop
                 System.Collections.Generic.List<string> doorAsked = new System.Collections.Generic.List<string>();
                 string twoKeys = "!400 {\"error\":{\"message\":\"Multiple authentication credentials received. Please pass only one.\",\"status\":\"INVALID_ARGUMENT\"}}";
                 string noBearer = "!400 [{\"error\":{\"code\":400,\"message\":\"Missing Authorization header.\",\"status\":\"INVALID_ARGUMENT\"}}]";
-                Brain.Google = FakeServer(new[] { twoKeys, googleCatalog, LocalReply("Bearer still opens chat."), googleCatalog, twoKeys, noBearer, LocalReply("Back on Bearer.") }, doorAsked, out doorFake) + "/v1beta/openai";
+                string nowhere = "!400 [{\"error\":{\"code\":400,\"message\":\"User location is not supported for the API use.\",\"status\":\"FAILED_PRECONDITION\"}}]";
+                string invalidKey = "!400 {\"error\":{\"code\":400,\"message\":\"API key not valid. Please pass a valid API key.\",\"status\":\"INVALID_ARGUMENT\"}}";
+                Brain.Google = FakeServer(new[] { twoKeys, googleCatalog, LocalReply("Bearer still opens chat."), googleCatalog, twoKeys, noBearer, LocalReply("Back on Bearer."), nowhere, invalidKey }, doorAsked, out doorFake) + "/v1beta/openai";
                 Brain.CloudModels("AQ.door-test");
                 Brain doorBrain = new Brain { Remote = new Cloud("AQ.door-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
                 string doorReply = doorBrain.Ask("Hello");
                 Brain.CloudModels("AQ.door-test");
                 Brain shutBrain = new Brain { Remote = new Cloud("AQ.shut-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
-                bool shutFailed = false;
-                try { shutBrain.Ask("Hello"); } catch (BrainException) { shutFailed = true; }
+                string shutLine = null;
+                try { shutBrain.Ask("Hello"); } catch (BrainException shut) { shutLine = shut.Told ? shut.Message : null; }
                 string backReply = shutBrain.Ask("Hello again");
+                Brain plainBrain = new Brain { Remote = new Cloud("AIza-door-test", "gemini-90.10-flash"), Model = "gemini-90.10-flash" };
+                string nowhereLine = null, invalidLine = null;
+                try { plainBrain.Ask("Hello"); } catch (BrainException unserved) { nowhereLine = unserved.Told ? unserved.Message : null; }
+                try { plainBrain.Ask("Hello"); } catch (BrainException rejected) { invalidLine = rejected.Told ? rejected.Message : null; }
+                if (shutLine != Brain.NewKey || invalidLine != Brain.NewKey || nowhereLine != Brain.Unserved) throw new Exception("Google's key and region errors reached her as: " + shutLine + " / " + invalidLine + " / " + nowhereLine);
                 string[] doorSent;
                 lock (doorAsked) doorSent = doorAsked.ToArray();
-                bool doorRight = doorReply == "Bearer still opens chat." && shutFailed && backReply == "Back on Bearer." && doorSent.Length == 7
+                bool doorRight = doorReply == "Bearer still opens chat." && backReply == "Back on Bearer." && doorSent.Length == 9
                     && doorSent[0].StartsWith("GET /v1beta/openai/models ", StringComparison.Ordinal) && doorSent[0].Contains("Authorization: Bearer AQ.door-test") && doorSent[1].Contains("x-goog-api-key: AQ.door-test") && !doorSent[1].Contains("Authorization:")
                     && doorSent[2].StartsWith("POST /v1beta/openai/chat/completions ", StringComparison.Ordinal) && doorSent[2].Contains("Authorization: Bearer AQ.door-test") && !doorSent[2].Contains("x-goog-api-key:")
                     && doorSent[3].StartsWith("GET /v1beta/openai/models ", StringComparison.Ordinal) && doorSent[3].Contains("x-goog-api-key: AQ.door-test") && !doorSent[3].Contains("Authorization:")
@@ -17132,6 +17139,7 @@ namespace CapriDesktop
                 if (!doorRight) throw new Exception("A Gemini AQ. key took the wrong way in: " + doorReply + " / " + backReply + " / " + doorSent.Length + " requests");
                 if (Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e") != "bad key [redacted]") throw new Exception("An AQ. key wasn't redacted: " + Brain.Redacted("bad key AQ.Ab8RN6Kabc_d-e"));
                 checks.Add("PASS Gemini keys that start AQ. stay out of her logs; one Google turns away as a Bearer token at the model list lists with x-goog-api-key from then on while chat keeps its Bearer token, and a way in that's turned away too is forgotten");
+                checks.Add("PASS a Gemini key Google turns away for its credentials or a missing Authorization header says to make a new Google AI Studio key, and a place Google doesn't serve says so, instead of her brain couldn't answer");
             }
             catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT Gemini AQ. keys: loopback sockets unavailable"); }
             finally
@@ -17165,7 +17173,7 @@ namespace CapriDesktop
                     Brain limitedBrain = new Brain { Remote = new Cloud(limitedKey, "test"), Model = "test" };
                     try { limitedBrain.Aside("Chat", "Hello", 90); } catch (BrainException chatLimit) { if (chatLimit.Message == Brain.Busy && Brain.Stalled(chatLimit)) explainedLimits++; }
                     bool rejectedKey = false;
-                    try { Brain.CloudModels(limitedKey); } catch (BrainException badKey) { rejectedKey = badKey.Told && badKey.Message == "Key rejected. Press Forget, then paste it again."; }
+                    try { Brain.CloudModels(limitedKey); } catch (BrainException badKey) { rejectedKey = badKey.Told && badKey.Message == (limitedKey == "AIza-test" ? Brain.NewKey : "Key rejected. Press Forget, then paste it again."); }
                     bool scrubbedKey = false, missingList = false;
                     try { Brain.CloudModels(limitedKey); } catch (BrainException echoedKey) { scrubbedKey = echoedKey.Message.Contains("[redacted]") && !echoedKey.Message.Contains(limitedKey); }
                     try { Brain.CloudModels(limitedKey); } catch (BrainException missingModels) { missingList = missingModels.Told && missingModels.Message.Contains("couldn't find its model list"); }
@@ -17179,7 +17187,7 @@ namespace CapriDesktop
                     if (limitedFake != null) limitedFake.Stop();
                 }
             }
-            if (checkedLimits == 2) checks.Add("PASS new providers share NVIDIA's rate-limit message and retry handling, explain missing model lists and rejected keys, and scrub keys echoed in errors");
+            if (checkedLimits == 2) checks.Add("PASS new providers share NVIDIA's rate-limit message and retry handling, explain missing model lists and rejected keys (a Gemini one asks for a new Google AI Studio key), and scrub keys echoed in errors");
             System.Net.Sockets.TcpListener movedFake = null, redirectFake = null;
             try
             {
@@ -23873,7 +23881,10 @@ namespace CapriDesktop
                                     const string broke = "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
                                     if (Brain.Meaning(429, "{\"error\":{\"message\":\"You have no credits remaining. Add credits to continue using the API.\",\"type\":\"insufficient_quota\"}}") != broke || Brain.Meaning(402, "{\"error\":{\"message\":\"Insufficient Balance\"}}") != broke
                                         || Brain.Meaning(400, "{\"type\":\"error\",\"error\":{\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}") != broke || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != "Too many requests. Wait a minute, or watch slower."
-                                        || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null) throw new Exception("Cloud errors were explained wrong.");
+                                        || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null
+                                        || Brain.Meaning(403, "{\"error\":{\"message\":\"Method doesn't allow unregistered callers\",\"status\":\"PERMISSION_DENIED\"}}", true) != Brain.NewKey || Brain.Meaning(400, "{\"error\":{\"message\":\"API key not valid.\"}}") != null
+                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.Unserved
+                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != broke || Brain.Meaning(400, "{\"error\":{\"message\":\"contents is not specified\",\"status\":\"INVALID_ARGUMENT\"}}", true) != null) throw new Exception("Cloud errors were explained wrong.");
                                     System.Collections.Generic.List<string> directAsked = new System.Collections.Generic.List<string>();
                                     System.Net.Sockets.TcpListener directFake;
                                     string ollamaUrl = Brain.Ollama;
