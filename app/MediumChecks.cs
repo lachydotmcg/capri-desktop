@@ -84,6 +84,9 @@ namespace CapriDesktop
             bool wasFinding = finding, wasSettings = mainframe.SettingsShown;
             string wasNvidia = Brain.Nvidia, wasGoogle = Brain.Google, wasRouter = Brain.OpenRouter, wasOpenAi = Brain.OpenAi, wasAnthropic = Brain.Anthropic, wasDeepSeek = Brain.DeepSeek;
             int wasSize = preferences.MainframeSize;
+            // The fit checks measure the Mainframe, and a minimized one is 0 wide, so it comes up for them and goes back down after.
+            bool mainframeShownWas = mainframe.Visible;
+            FormWindowState mainframeStateWas = mainframe.WindowState;
             List<TcpListener> servers = new List<TcpListener>();
             Func<string, List<string>, string> serve = delegate(string catalog, List<string> asked)
             {
@@ -99,6 +102,7 @@ namespace CapriDesktop
             {
                 Think = delegate { return "Connected."; };
                 finding = true;
+                mainframe.Restore();
                 mainframe.ShowSettings(false);
                 foreach (bool split in new[] { true, false })
                 {
@@ -280,6 +284,8 @@ namespace CapriDesktop
                 ShowTiers();
                 if (wasRemote != null) mainframe.ShowCloud(wasRemote, wasModels); else mainframe.Searching();
                 SavePreferences();
+                if (!mainframeShownWas) mainframe.Hide();
+                else if (mainframe.WindowState != mainframeStateWas) mainframe.WindowState = mainframeStateWas;
             }
         }
     }
