@@ -632,6 +632,8 @@ namespace CapriDesktop
             { "draw", Ink.Description, Ink.Schema },
             { "clone", "Make copies of yourself on their screen. They wander around, talk to each other, steal the cursor and drag notes in until they're cleared. Use it when they ask you to clone, copy, duplicate or multiply yourself or to activate chaos mode, in any language, and when they ask you to get rid of your clones or end chaos mode.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"spawn makes copies and stop removes them all\",\"enum\":[\"spawn\",\"stop\"]},\"count\":{\"type\":\"integer\",\"description\":\"How many copies to make. Leave it out and they keep multiplying by themselves until they're cleared\"}},\"required\":[\"action\"]}" },
+            { "hologram", "Turn hologram mode on or off when asked, in any language. On makes you translucent and lets clicks pass through your body, talk pill and speech bubble. They can turn it off from your tray icon's right-click menu or by saying hologram off. Your type box, mini player, Mainframe and task panel stay usable.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"on lets clicks through and off gives them back\",\"enum\":[\"on\",\"off\"]}},\"required\":[\"action\"]}" },
             { "desktop_icons", "Prank the icons and shortcuts on their desktop, then put them back. mess scatters them around for a bit, hide makes them all vanish and come back after a few seconds, and back puts everything where it was right now. Use it when they ask you to mess up, shuffle, scatter, move around, hide or bring back their desktop icons or shortcuts. You never touch a file, only move or hide the icons.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back\",\"enum\":[\"mess\",\"hide\",\"back\"]}},\"required\":[\"action\"]}" },
             { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
@@ -850,17 +852,21 @@ namespace CapriDesktop
 #if !CROSS
         // Makes her clones or clears them, and says how it went. Her window sets it.
         internal static Func<string, int, string> Clone = delegate { return "Couldn't do that just now."; };
+        internal static Func<string, string> Hologram = delegate { return "Couldn't do that just now."; };
         internal static Func<bool> Cloning = delegate { return false; };
         // Messes up, hides or puts back their desktop icons, and says how it went. Her window sets it.
         internal static Func<string, string> Icons = delegate { return "Couldn't do that just now."; };
 #else
         // Mac and Linux have no clones yet, so asking for them gets this straight away instead of a joke from her brain.
         internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
+        internal const string NoHologram = "Hologram mode is Windows-only for now, choom.";
         internal const string NoIcons = "Messing with your desktop icons is Windows-only for now, choom.";
 #endif
         // "Clone yourself", "make 5 clones", "start multiplying". A number makes that many, and no number lets them keep multiplying.
         private static readonly Regex CloneOn = new Regex(@"^(?:start |begin |go ahead and |just )?(?:(?:clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|copy(?:ing)?) your ?self(?: (?<count>\d+) times?)?(?: as (?:many|much)(?: times)? as you (?:want|like|can))?|clon(?:e|ing)|duplicat(?:e|ing)|replicat(?:e|ing)|multiply(?:ing)?|(?:make|spawn|create|summon)(?: me)? (?:(?<count>\d+) |an? |some |more |lots of |a bunch of |as many )?(?:clones?|copies|duplicates?)(?: of (?:your ?self|you))?(?: as you (?:want|like|can))?|(?:(?:activate|enable|start|begin|turn on|enter|go into|switch to)(?: the)? )?chaos mode(?: on)?|(?:unleash|cause) (?:the )?chaos)$", RegexOptions.IgnoreCase);
         private static readonly Regex CloneOff = new Regex(@"^(?:(?:stop|end|kill|remove|delete|clear|get rid of|destroy|banish|no more|enough(?: of)?|turn off|put away|send away)(?: (?:all|of|the|your))* (?:clones?|copies|duplicates?|cloning|duplicating|multiplying)|clones? off|chaos mode off|(?:stop|end|deactivate|disable|turn off|exit|leave)(?: the)? chaos(?: mode)?)$", RegexOptions.IgnoreCase);
+        private static readonly Regex HologramOn = new Regex(@"^(?:hologram(?: mode)?(?: on)?|(?:turn|switch) (?:on (?:the |your )?hologram(?: mode)?|(?:the |your )?hologram(?: mode)? on)|(?:enable|activate|start|enter|go into|switch to) (?:the |your )?hologram(?: mode)?|go hologram|(?:become|be|turn into) (?:a )?hologram)$", RegexOptions.IgnoreCase);
+        private static readonly Regex HologramOff = new Regex(@"^(?:hologram(?: mode)? off|(?:turn|switch) (?:off (?:the |your )?hologram(?: mode)?|(?:the |your )?hologram(?: mode)? off)|(?:disable|deactivate|stop|end|exit|leave) (?:the |your )?hologram(?: mode)?|stop being (?:a )?hologram|(?:dont|don't) be (?:a )?hologram)$", RegexOptions.IgnoreCase);
         // "Put my icons back", "mess up my icons", "hide my icons" (F72). Back is checked first so it always wins, and it reaches
         // her hands even on Mac and Linux, where it answers that the prank is Windows only.
         private static readonly Regex IconsBack = new Regex(@"^(?:(?:put|move|bring|get|set)\s+(?:(?:my|the|all|them|everything|those|these)\s+)*(?:(?:desktop\s+)?(?:icons?|shortcuts?)\s+)?back(?:\s+(?:where\s+they\s+were|to\s+normal|in\s+place|please))?|(?:restore|undo|unmess|unscramble|fix)\s+(?:(?:my|the)\s+)?(?:desktop\s+)?(?:icons?|shortcuts?)(?:\s+back)?|give\s+me\s+(?:my|the)\s+(?:desktop\s+)?(?:icons?|shortcuts?)\s+back)$", RegexOptions.IgnoreCase);
@@ -994,6 +1000,7 @@ namespace CapriDesktop
 #if !CROSS
                 if (tool == "draw") return Draw(args);
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
+                if (tool == "hologram") return Hologram(args.Action);
                 if (tool == "desktop_icons") return Icons(args.Action);
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
@@ -1001,6 +1008,7 @@ namespace CapriDesktop
                 if (tool == "watch_for") return WatchFor(args);
 #else
                 if (tool == "clone") return NoClones;
+                if (tool == "hologram") return NoHologram;
                 if (tool == "desktop_icons") return NoIcons;
 #endif
                 if (tool == "remind") return Remind(args);
@@ -1147,6 +1155,7 @@ namespace CapriDesktop
 
         internal static bool Wants(string said)
         {
+            if (HologramOn.IsMatch(Asked(said)) || HologramOff.IsMatch(Asked(said))) return true;
 #if !CROSS
             if (Ink.Request(Asked(said)) != null) return true;
             if (Files.PathIn(said) != null) return true;
@@ -1260,10 +1269,11 @@ namespace CapriDesktop
 
         internal static string Pulled(string result)
         {
+            if ((result ?? "").StartsWith("Hologram mode ", StringComparison.Ordinal)) return result;
 #if !CROSS
             if (result == Ink.Question || result == "Cleared my drawing." || result == "Drew on your screen." || result == "Added to my drawing.") return result;
 #else
-            if (result == NoClones || result == NoIcons) return result;
+            if (result == NoClones || result == NoHologram || result == NoIcons) return result;
 #endif
             if (Regex.IsMatch(result ?? "", @"^(The closest match is |I didn't find a name matching |Stopped looking for files\.|Selected .+ in File Explorer\.|Couldn't select that in File Explorer\.|Your websites:\n|I'll remember .+ as https?://|Forgot the .+ website\.|I couldn't read that browser's address\.)")) return result;
             if (Regex.IsMatch(result ?? "", @"^(Opened|Searched) .+ (in your default browser because |but (it's behind|I couldn't bring) )")) return result;
@@ -2010,6 +2020,8 @@ namespace CapriDesktop
             if (switched != null) { tool = "power"; args.Action = switched; args.Minutes = minutes; return true; }
             Match napped = Napping.Match(text);
             if (napped.Success) { tool = "nap"; args.Action = napped.Groups["wake"].Success ? "wake" : "sleep"; return true; }
+            if (HologramOff.IsMatch(text)) { tool = "hologram"; args.Action = "off"; return true; }
+            if (HologramOn.IsMatch(text)) { tool = "hologram"; args.Action = "on"; return true; }
 #if !CROSS
             Match cloning = CloneOn.Match(text);
             if (cloning.Success)
@@ -2164,7 +2176,7 @@ namespace CapriDesktop
 #if !CROSS
             if (!paired && lone.Length > 0 && tool == "watch_for") { args.Text = lone; return args; }
 #endif
-            if (!paired && lone.Length > 0) Set(args, tool == "find_file" ? "description" : tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "move_yourself" ? "action" : tool == "look_at_screen" || tool == "listen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
+            if (!paired && lone.Length > 0) Set(args, tool == "find_file" ? "description" : tool == "open_website" ? "site" : tool == "media" || tool == "power" || tool == "nap" || tool == "hologram" || tool == "move_yourself" ? "action" : tool == "look_at_screen" || tool == "listen" ? "focus" : tool == "play_music" ? "song" : tool == "use_computer" ? "task" : tool == "remember" ? "text" : tool == "read_file" ? "path" : "name", lone);
             return args;
         }
 
@@ -2340,6 +2352,7 @@ namespace CapriDesktop
 #if !CROSS
             if (tool == "draw") return Ink.Valid(args);
             if (tool == "clone") return args != null && (args.Action == "spawn" || args.Action == "stop");
+            if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
             if (tool == "listen")
