@@ -33621,6 +33621,8 @@ namespace CapriDesktop
                             ownEarsTest = null;
                             if (!failTold || !failQuiet || !retryRan || !retryStopped || !backsOff) throw new Exception("A failed ears download didn't say so and try again: told " + failTold + ", quiet after " + failQuiet + ", retried " + retryRan + ", stopped " + retryStopped + ", backs off " + backsOff + " / " + reply + " / " + mainframe.VoiceStatus);
                             checks.Add("PASS ears retry: a failed ears download during free voice chat says so once in the chat, tries again after 30 s, 1, 2 and 4 min, then every 5, and stops when the chat ends");
+                            // The test's failed download would otherwise still be the hearing problem for later checks without her own ears.
+                            hearingInstallProblem = null;
                             ownEarsTest = true;
                             StartLocal();
                             double quietFrom = clock.Elapsed.TotalSeconds;
