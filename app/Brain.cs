@@ -1788,6 +1788,11 @@ namespace CapriDesktop
             // Asked for something that can't work here, like "can you draw on my screen?" on a Mac, she says so straight away
             // instead of a brain promising it or a mouse job trying it (F69, pass 5).
             string lacking = act != null && !fileChat ? kit.Lacking(request) : null;
+            // Asked for that and something she can do too, like "draw a star and open Spotify" on a Mac: the rest goes ahead with
+            // the missing tools left out, and she says why she can't do that part after it (a Codex review, 2 Nov). A brain that
+            // works jobs out gets all of it to decide on; her hands only get what she can do.
+            string doable = null, rest = lacking == null && act != null && !fileChat ? kit.Rest(request, out doable) : null;
+            if (rest != null && !planning) request = doable;
             if (lacking != null) unable = lacking;
             // On stream, asking her to play starts her stream job however it's worded.
             else if (act != null && Hands.Streaming && Hands.Streams(request))
@@ -1795,7 +1800,7 @@ namespace CapriDesktop
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && recent.Count == 2 && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(text.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
                 calls.Add(new KeyValuePair<string, ToolArguments>("remember", new ToolArguments { Text = text }));
-            else if (act != null && Hands.Heard(request, out direct, out directArgs) && (!planning || Hands.Instant(direct, directArgs)))
+            else if (act != null && Hands.Heard(request, out direct, out directArgs) && (!planning || Hands.Instant(direct, directArgs)) && (rest == null || kit.Unable(direct, directArgs) == null))
             {
                 // "Remember that" saves what they said just before, unless that was a question or one of her own glances.
                 string before = recent.Count == 2 ? recent[0].Content ?? "" : "";
@@ -1918,7 +1923,9 @@ namespace CapriDesktop
                     if (calls.Count == 0 && unable == null && lookup != null) calls.Add(new KeyValuePair<string, ToolArguments>("open_website", lookup));
                 }
             }
-            // Asked for something that can't work here: she says so and why, after anything she could do.
+            // Asked for something that can't work here: she says so and why, after anything she could do. When none of a mixed ask
+            // ran, that's the part that can't work here, unless a brain that worked the job out had its say.
+            if (calls.Count == 0 && rest != null && !planned) unable = unable == null ? rest : unable + " " + rest;
             if (calls.Count == 0 && unable != null) raw = unable;
             string done = null;
             if (calls.Count > 0)
@@ -1989,6 +1996,9 @@ namespace CapriDesktop
                     // A claim no tool this turn backs, like "and your reminder's set" after only opening an app, comes out (F69, pass 4).
                     else if (Hands.Claimed(Clean(raw), calls) != null) raw = Hands.Unclaimed(Clean(raw), calls) ?? done;
                 }
+                // What can't work here of a mixed ask, like the drawing in "draw a star and open Spotify" on a Mac, goes after what she
+                // did. A brain that worked the job out says that in its own words, unless they were dropped for the plain results.
+                if (rest != null && held == null && (!planned || raw == done)) raw = (raw ?? "").TrimEnd() + " " + rest;
             }
             bool lately = false;
             string name = Nickname;

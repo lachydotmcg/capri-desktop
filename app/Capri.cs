@@ -15467,6 +15467,91 @@ namespace CapriDesktop
             checks.Add("PASS her tools here: with everything on this PC her tool lists and prompts are unchanged and kept for each set of missing tools; a brain that can't see pictures has no look_at_screen or screen watches, is told \"" + blindLine + "\" in chat, hands, planner and voice chat, answers \"I can't see your screen\" without being sent to look while a seeing brain still looks; her chat brain always gets a short list of every tool she has here; Clip my games off stays in her tools and says where to turn it on; on a Mac, can you draw, clip, ride my cursor, chess, listen, watch along, watch for, files, clones and Gaming Mode get her not-here line with no brain call while mouse jobs get her mouse line and nothing is forced; what she can do lists her tools with mini games and chess, the shortcuts she can press and her clones");
         }
 
+        // "Draw a star and open Spotify" on a Mac opens Spotify and then says why she can't draw, instead of the drawing line
+        // stopping the lot (a Codex review, 2 Nov): only an ask for something missing on its own is turned down up front. Her
+        // hands only get what she can do; a brain that works jobs out gets all of it with the missing tools left out. Made-up
+        // apps and fake brains, so nothing opens.
+        private static void SmokeMixedAsks(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<string[]> macGaps = new System.Collections.Generic.List<string[]>();
+            macGaps.Add(new[] { "use_computer", "Mac doesn't let apps use the mouse and keyboard yet" });
+            foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
+            Hands.Kit mac = Hands.KitWithout(macGaps), everything = Hands.KitWithout(new System.Collections.Generic.List<string[]>());
+            const string drawLine = "Drawing on your screen is only on Windows for now, choom.";
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<string, bool> existsWas = Hands.Exists;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                Hands.Catalog = delegate { return new System.Collections.Generic.List<InstalledApp> { new InstalledApp("Spotify", "spotify") }; };
+                Hands.Exists = delegate { return false; };
+                Hands.Forget();
+                // What they asked, her line up front, her line after the rest, and the rest that goes ahead.
+                string[,] asks =
+                {
+                    { "draw a star and open Spotify", null, drawLine, "open Spotify" },
+                    { "can you open Spotify, then draw a star please", null, drawLine, "open Spotify" },
+                    { "clip that and open Spotify", null, "Game clips are only on Windows for now, choom.", "open Spotify" },
+                    { "ride my cursor and play some music", null, "Riding your cursor is only on Windows so far.", "play some music" },
+                    { "open Spotify, draw a star and play some music", null, drawLine, "open Spotify and play some music" },
+                    { "open Spotify. Chaos mode", null, Hands.NoClones, "open Spotify" },
+                    { "draw a cat and a dog", drawLine, null, null },
+                    { "draw a star and clip that", drawLine, null, null },
+                    { "can you draw on my screen?", drawLine, null, null },
+                    { "open Spotify and play some music", null, null, null }
+                };
+                for (int i = 0; i < asks.GetLength(0); i++)
+                {
+                    string doable, rest = mac.Rest(asks[i, 0], out doable), upFront = mac.Lacking(asks[i, 0]);
+                    if (upFront != asks[i, 1] || rest != asks[i, 2] || doable != asks[i, 3])
+                        throw new Exception("\"" + asks[i, 0] + "\" on a Mac got " + (upFront ?? "nothing") + " up front, " + (rest ?? "nothing") + " after, and " + (doable ?? "nothing") + " going ahead");
+                }
+                string ignored, heardTool;
+                ToolArguments heardArgs;
+                if (everything.Rest("draw a star and open Spotify", out ignored) != null || everything.Lacking("draw a star and open Spotify") != null)
+                    throw new Exception("With everything here, a mixed ask was split up.");
+                // Mac and Linux's own shortcut for a set phrase that can't work there only answers an ask for that alone.
+                if (!Hands.Heard("open Spotify. Chaos mode", out heardTool, out heardArgs) || heardTool != "clone" || mac.Unable(heardTool, heardArgs) == null || mac.Rest("chaos mode", out ignored) != null)
+                    throw new Exception("Her own shortcut for what isn't here would still stop a mixed ask, or stop answering one on its own: " + heardTool);
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>(), did = new System.Collections.Generic.List<string>();
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                Brain.OpenAi = FakeServer(new[] { says("Spotify's up."), calls("open_app", "{\"name\":\"Spotify\"}"), says("Opened Spotify. Drawing's only on Windows for now, choom.") }, asked, out fake);
+                Func<string, ToolArguments, string> act = delegate(string name, ToolArguments args) { did.Add(name + ":" + args.Name); return name == "open_app" ? "Opened Spotify." : "Done."; };
+                Brain hands = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = act };
+                hands.Kit = delegate { return mac; };
+                string handed = hands.Ask("draw a star and open Spotify");
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = act, OwnSteps = true };
+                planner.Kit = delegate { return mac; };
+                string planned = planner.Ask("draw a star and open Spotify");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (!handed.StartsWith("Spotify's up. Drawing on your screen is only on Windows for now", StringComparison.Ordinal) || !planned.StartsWith("Opened Spotify. Drawing's only on Windows for now", StringComparison.Ordinal)
+                    || string.Join(",", did.ToArray()) != "open_app:Spotify,open_app:Spotify" || sent.Length != 3)
+                    throw new Exception("A mixed ask on a Mac didn't do the part she can and say why not the rest: " + handed + " / " + planned + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                if (sent[0].Contains("draw a star") || !sent[1].Contains("draw a star and open Spotify") || !sent[1].Contains("drawing on their screen") || sent[1].Contains("\"name\":\"draw\"") || !sent[1].Contains("\"name\":\"open_app\""))
+                    throw new Exception("Her hands were handed what she can't do, or her planner didn't get all of it with the missing tools left out.");
+                checks.Add("PASS a mixed ask where something isn't here, like \"draw a star and open Spotify\" on a Mac, opens Spotify and then says drawing is Windows-only: her hands only get the part she can do, a brain that works jobs out gets all of it with drawing left out of its tools, the bits that ask for nothing stay with their ask, and an ask for something missing on its own, or only for missing things, still gets her line up front");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Exists = existsWas;
+                Hands.Forget();
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         // Her other launchers' games open even without a Start menu shortcut: Epic Games through its launch link, Riot's through
         // Riot Client, Ubisoft Connect's through its link and GOG's from their own programs. Made-up manifests, settings and
         // registry lists stand in for real installs, and nothing is launched (Lachy, 2 Nov: "is it on epic games launcher?").
@@ -22443,6 +22528,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
             Section(checks, "SmokeSelfKnow", delegate { SmokeSelfKnow(checks); });
             Section(checks, "SmokeToolKit", delegate { SmokeToolKit(checks); });
+            Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });

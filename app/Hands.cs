@@ -1182,8 +1182,13 @@ namespace CapriDesktop
             // Her line when she's asked for something this kit doesn't have, or null when it has it.
             internal string Unable(string tool, ToolArguments args) { return Cannot(this, tool, args); }
 
-            // Her line when what they said asks for something this kit doesn't have, or null.
+            // Her line when what they said asks for something this kit doesn't have, or null. Null too when they asked for
+            // something it has as well: that part goes ahead (Rest).
             internal string Lacking(string said) { return Lacks(this, said); }
+
+            // Asked for something this kit doesn't have and something it has, like "draw a star and open Spotify" on a Mac: her
+            // lines for what she can't do here, and in doable what's left that she can. Null when it isn't both.
+            internal string Rest(string said, out string doable) { return Leftover(this, said, out doable); }
         }
 
         private static readonly Dictionary<string, Kit> kits = new Dictionary<string, Kit>();
@@ -1529,8 +1534,16 @@ namespace CapriDesktop
         // Her line when what they said asks for something that can't work here, so "can you draw on my screen?" gets the truth
         // straight away instead of a brain promising it or a mouse job trying it (F69, pass 5). A mouse and keyboard job still
         // goes to her hands, which open what they named first and then say why they can't do the rest. A look still goes to her
-        // eyes, and a screen watch in her lookout's own words to her lookout, which name the brain that can't see.
+        // eyes, and a screen watch in her lookout's own words to her lookout, which name the brain that can't see. Only an ask
+        // for that alone gets it up front: "draw a star and open Spotify" on a Mac still opens Spotify, and she says why she
+        // can't draw after (a Codex review, 2 Nov).
         private static string Lacks(Kit kit, string said)
+        {
+            string line = Lacked(kit, said), doable;
+            return line != null && Leftover(kit, said, out doable) == null ? line : null;
+        }
+
+        private static string Lacked(Kit kit, string said)
         {
             if (kit.Missing.Count == 0) return null;
             string text = Asked(said);
@@ -1548,6 +1561,53 @@ namespace CapriDesktop
                 if (!(Heard(said, out heard, out heardArgs) && heard == key)) return BlindWatch;
             }
             return null;
+        }
+
+        // Where one ask ends and the next starts: "and", "then", "also", commas, semicolons and full stops.
+        private static readonly Regex Joins = new Regex(@"\s*[,;](?!\d)\s*(?:and\s+then\s+|and\s+also\s+|and\s+|then\s+|also\s+|plus\s+)?|(?<=\S)[.!?]+\s+|\s+(?:and\s+then|and\s+also|and|then|also|plus|after\s+that)\s+|\s*&\s*", RegexOptions.IgnoreCase);
+
+        // "Draw a star and open Spotify", "open Spotify, then draw a star": her lines for the asks in it she can't do here, and in
+        // doable the rest of what they said, which goes ahead. A bit that asks for nothing stays with the ask before it, so "draw
+        // a cat and a dog" is one ask and "open Command and Conquer" stays whole. Null unless there's both.
+        private static string Leftover(Kit kit, string said, out string doable)
+        {
+            doable = null;
+            if (kit.Missing.Count == 0) return null;
+            string text = Asked(said);
+            MatchCollection joins = Joins.Matches(text);
+            if (joins.Count == 0) return null;
+            List<string> lines = new List<string>();
+            StringBuilder kept = new StringBuilder();
+            // Whether the ask a bit belongs to goes ahead: 1 it does, -1 it can't work here, 0 nothing's been asked yet.
+            int going = 0;
+            for (int i = 0, from = 0; i <= joins.Count; i++)
+            {
+                int to = i < joins.Count ? joins[i].Index : text.Length;
+                string bit = text.Substring(from, to - from), ask = Asked(bit), line = ask.Length == 0 ? null : Missed(kit, ask);
+                if (line != null) { going = -1; if (!lines.Contains(line)) lines.Add(line); }
+                else if (ask.Length > 0 && Doable(kit, ask)) going = 1;
+                if (going == 1) kept.Append(kept.Length == 0 ? "" : joins[i - 1].Value).Append(bit);
+                if (i < joins.Count) from = joins[i].Index + joins[i].Length;
+            }
+            if (lines.Count == 0 || kept.Length == 0) return null;
+            doable = kept.ToString().Trim();
+            return string.Join(" ", lines.ToArray());
+        }
+
+        // Her line when this one ask is for something that isn't here, or null.
+        private static string Missed(Kit kit, string ask)
+        {
+            string line = Lacked(kit, ask), tool;
+            ToolArguments args;
+            return line != null ? line : Heard(ask, out tool, out args) ? Cannot(kit, tool, args) : null;
+        }
+
+        // Whether this one ask is for something she can do here.
+        private static bool Doable(Kit kit, string ask)
+        {
+            string tool;
+            ToolArguments args;
+            return Heard(ask, out tool, out args) ? kit.Has(tool) : Wants(ask);
         }
 
         // Whether what they said asks for this tool, in the words her hands take for it where she has it.

@@ -3395,8 +3395,10 @@ namespace CapriDesktop
             try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
             catch (Exception) { noted = false; tool = null; args = null; }
             // Something that can't work here, like clones and chaos mode, which are Windows-only: she says so herself and why,
-            // brain or no brain, instead of her brain joking about it.
-            if (noted || (tool != null && Hands.Unable(tool, args) != null))
+            // brain or no brain, instead of her brain joking about it. Asked for that and something she can do too, like "open
+            // Spotify. Chaos mode", the rest goes ahead and she says why after it (a Codex review, 2 Nov).
+            string doable;
+            if (noted || (tool != null && Hands.Unable(tool, args) != null && Hands.KitFor().Rest(text, out doable) == null))
             {
                 string done = Hands.Do(tool, args);
                 Brain.Remember(text, done);
