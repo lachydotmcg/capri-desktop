@@ -2166,10 +2166,31 @@ namespace CapriDesktop
             lock (gate)
             {
                 Close();
-                if (Directory.Exists(folder)) Directory.Delete(folder, true);
-                Directory.Move(staging, folder);
+                if (Directory.Exists(folder)) Merge(staging, folder);
+                else Directory.Move(staging, folder);
             }
             File.Delete(zip);
+        }
+
+        // A new pack goes into her folder file by file. Deleting the folder first failed on onnxruntime.dll once her voice, ears or
+        // wake word had loaded it, since Windows holds a loaded DLL until she closes, and left only the DLLs behind, so every try
+        // after failed the same way. A DLL that's in use stays: the pack is pinned, so it's the same file.
+        internal static void Merge(string from, string into)
+        {
+            foreach (string file in Directory.GetFiles(from, "*", SearchOption.AllDirectories))
+            {
+                string target = Path.Combine(into, file.Substring(from.Length).TrimStart('\\', '/'));
+                Directory.CreateDirectory(Path.GetDirectoryName(target));
+                if (File.Exists(target))
+                {
+                    bool dll = target.EndsWith(".dll", StringComparison.OrdinalIgnoreCase);
+                    try { File.Delete(target); }
+                    catch (IOException) { if (!dll) throw; continue; }
+                    catch (UnauthorizedAccessException) { if (!dll) throw; continue; }
+                }
+                File.Move(file, target);
+            }
+            Directory.Delete(from, true);
         }
 
         internal void Warm()
@@ -2637,7 +2658,7 @@ namespace CapriDesktop
             string key = folder + "|" + lang;
             if (tts != IntPtr.Zero && opened == key) return openKind;
             if (IntPtr.Size != 8) throw new VoiceException("Voice model files need 64-bit Windows.");
-            if (Engine == null || !File.Exists(Path.Combine(Engine, "sherpa-onnx-c-api.dll"))) throw new VoiceException("Voice model files run on her free voice. Get free voice under VOICE first.");
+            if (Engine == null || !VoicePack.Complete(Engine)) throw new VoiceException("Voice model files run on her free voice. Get free voice under VOICE first.");
             string kind = Kind(folder);
             if (kind == null) throw new VoiceException(Missing);
             LocalVoice.Load(Engine);

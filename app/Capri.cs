@@ -1299,6 +1299,8 @@ namespace CapriDesktop
         private double drawnLean;
         private float drawnBreath, drawnTilt;
         private bool fullScreenHidden, manualHidden, frontBusy;
+        // A full-screen game or video is in front and Gaming Mode hasn't docked her, so clicks go through her windows to it.
+        private bool fullThrough;
         private double frontChecked = -1;
         private readonly AwayInput awayInput = new AwayInput();
         private const double ExploreFor = 1800;
@@ -3363,9 +3365,13 @@ namespace CapriDesktop
 
         private Point Seated(int x, int y)
         {
-            if (lying && seat != null && seat.Floor) y -= (int)Math.Ceiling(preferences.Size * (LyingRight.Bottom - SitY));
+            if (lying && seat != null && seat.Floor) y -= FloorLift(preferences.Size, x, y);
             return new Point(x - PaddingSize - (int)(preferences.Size * SitX), y - PaddingSize - (int)(preferences.Size * SitY));
         }
+
+        // Lying on the taskbar, her legs and hair hang over it the way her legs do when she sits there. She's raised only by what
+        // would hang off the bottom of the screen, like with the taskbar hidden or on another side.
+        private static int FloorLift(int size, int x, int y) { return Math.Max(0, y + (int)Math.Ceiling(size * LyingRight.Bottom) - (int)(size * SitY) - Screen.FromPoint(new Point(x, y - 1)).Bounds.Bottom); }
 
         private System.Collections.Generic.List<IntPtr> Skip()
         {
@@ -5395,8 +5401,9 @@ namespace CapriDesktop
             else if (playerClosed && now - tuneHeard >= PlayerQuiet) { playerClosed = false; tuneHeard = -1; }
             bool allowed = PlayerAllowed && !playerClosed;
             bool up = allowed && tune != null && tuneHeard >= 0 && now - tuneHeard < PlayerLinger && (preferences.PlayerFullScreen || !FullScreen());
-            // Never out from under them while they're using it.
-            if (!up && allowed && player.Busy) { up = true; tune = tune ?? player.Tune; }
+            // Never out from under them while they're using it. Over full screen it lets clicks through, so a mouse resting on
+            // it there doesn't count.
+            if (!up && allowed && player.Busy && !fullThrough) { up = true; tune = tune ?? player.Tune; }
             if (!up) { HidePlayer(); return; }
             // A read from before their last press may not have the press in it yet.
             if (player.Visible && asked < player.SentAt + 0.3) return;
@@ -5694,7 +5701,7 @@ namespace CapriDesktop
                 int placeX;
                 bool placeLeft;
                 int headroom = (int)Math.Ceiling(size * (SitY - LyingRight.Top));
-                if (place.Floor) headroom += (int)Math.Ceiling(size * (LyingRight.Bottom - SitY));
+                if (place.Floor) headroom += FloorLift(size, hip.X, place.Y);
                 if (place.Y < hip.Y || place.Y > area.Bottom || place.Y - headroom < area.Top || !LiePlace(place, hip, area, size, left, out placeX, out placeLeft)) continue;
                 long dx = placeX - hip.X, dy = place.Y - hip.Y;
                 long away = dx * dx + dy * dy;
@@ -6022,6 +6029,9 @@ namespace CapriDesktop
 
         private void CheckFullScreen(bool full)
         {
+            // Checked again while it lasts, so a window of hers that's made meanwhile lets clicks through too.
+            bool through = full && !docked;
+            if (through || fullThrough) { fullThrough = through; PassThrough(); }
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
             if (fullScreenHidden == shouldHide) return;
             fullScreenHidden = shouldHide;
@@ -7139,7 +7149,8 @@ namespace CapriDesktop
         }
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
-        // for one of her presses, so between presses they can drag her and the panel out of the way.
+        // for one of her presses, so between presses they can drag her and the panel out of the way. Over a full-screen game or
+        // video she, her pill, her bubble and her mini player all do, so a click meant for it can't close or open anything of hers.
         private void PassThrough()
         {
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player })
@@ -7147,8 +7158,9 @@ namespace CapriDesktop
                 if (!form.IsHandleCreated) continue;
                 int style = Native.GetWindowLong(form.Handle, -20);
                 if ((style & 0x80000) == 0) continue;
-                bool through = lentOut || (form == this ? riding : form != taskPanel && pointing);
-                Native.SetWindowLong(form.Handle, -20, through ? style | 0x20 : style & ~0x20);
+                bool through = lentOut || (fullThrough && form != taskPanel) || (form == this ? riding : form != taskPanel && pointing);
+                int wanted = through ? style | 0x20 : style & ~0x20;
+                if (wanted != style) Native.SetWindowLong(form.Handle, -20, wanted);
             }
         }
 
@@ -8533,8 +8545,8 @@ namespace CapriDesktop
         private const double PillPop = 3;
 
         // Only the cursor on her or on the pill, or the open typer, keeps it up. Her replies and voice chat don't hold it there,
-        // including while she's sitting on a window.
-        private bool PillHeld(bool hovered) { return hovered || typer.Visible; }
+        // including while she's sitting on a window, and over full screen the cursor doesn't either.
+        private bool PillHeld(bool hovered) { return (hovered && !fullThrough) || typer.Visible; }
 
         private void UpdatePill(double now)
         {
@@ -10333,7 +10345,7 @@ namespace CapriDesktop
             // On the task panel she's only visiting, so where she sat before is what's kept. Lying, it's where she'd sit, since
             // she comes back sitting.
             Point spot = onPanel ? panelHome : lying ? new Point(anchor.X + (int)(preferences.Size * SitX) - (int)(preferences.Size * (facingLeft ? 1 - SitRight : SitRight)), anchor.Y) : anchor;
-            if (!onPanel && lying && seat != null && seat.Floor) spot.Y += (int)Math.Ceiling(preferences.Size * (LyingRight.Bottom - SitY));
+            if (!onPanel && lying && seat != null && seat.Floor) spot.Y = seat.Y - PaddingSize - (int)(preferences.Size * SitY);
             preferences.X = spot.X;
             preferences.Y = spot.Y;
             preferences.HasPosition = true;
@@ -10656,6 +10668,7 @@ namespace CapriDesktop
             Preferences desktopPreferences = preferences;
             Func<bool> desktopFull = FullScreen;
             Func<GameSeen> desktopFind = gaming.Find;
+            Func<Point> desktopMouse = MiniPlayer.Mouse;
             bool desktopHidden = hidden, desktopManual = manualHidden, desktopAutomatic = fullScreenHidden, desktopInstant = instant, desktopBusy = frontBusy;
             Ledge desktopSeat = seat;
             Clip desktopClip = clip;
@@ -10708,6 +10721,25 @@ namespace CapriDesktop
                 preferences.PlayerFullScreen = true;
                 Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
                 if (!player.Visible) throw new Exception("The mini player stayed away with its full-screen switch on.");
+                // Over full screen, clicks go through her, her bubble, her pill and her mini player, hovering doesn't hold her pill
+                // up and a mouse resting on the player doesn't keep it there. Leaving full screen gives it all back.
+                Func<Form, bool> letThrough = delegate(Form form) { return (Native.GetWindowLong(form.Handle, -20) & 0x20) != 0; };
+                CheckFullScreen(false);
+                bool clickable = !letThrough(this) && !letThrough(pill) && !letThrough(box) && !letThrough(player) && PillHeld(true);
+                CheckFullScreen(true);
+                bool passedOn = letThrough(this) && letThrough(pill) && letThrough(box) && letThrough(player) && PillHeld(true) == PillHeld(false);
+                MiniPlayer.Mouse = delegate { return new Point(player.Left + player.Width / 2, player.Top + player.Height / 2); };
+                preferences.PlayerFullScreen = false;
+                Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
+                bool restedOff = !player.Visible;
+                preferences.PlayerFullScreen = true;
+                Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
+                bool shownThrough = player.Visible && letThrough(player);
+                CheckFullScreen(false);
+                bool cameBack = !letThrough(this) && !letThrough(pill) && !letThrough(box) && !letThrough(player) && PillHeld(true);
+                MiniPlayer.Mouse = desktopMouse;
+                if (!clickable || !passedOn || !restedOff || !shownThrough || !cameBack) throw new Exception("Her windows over full screen went wrong: before " + clickable + ", over " + passedOn + ", rested player gone " + restedOff + ", shown player " + shownThrough + ", after " + cameBack);
+                checks.Add("PASS over full screen she, her bubble, her pill and her mini player let clicks through, hovering doesn't hold her pill up, a mouse resting on the player doesn't keep it up, and leaving full screen takes clicks again");
                 preferences.NoPlayer = true;
                 HidePlayer();
                 int desktopWatch = watchTicket, desktopAway = exploreTicket, desktopGlances = glanced.Count;
@@ -10748,7 +10780,10 @@ namespace CapriDesktop
                 StopExplore();
                 preferences = desktopPreferences;
                 FullScreen = desktopFull;
+                MiniPlayer.Mouse = desktopMouse;
                 docked = riding = false;
+                fullThrough = false;
+                PassThrough();
                 frontBusy = desktopBusy;
                 fullScreenHidden = desktopAutomatic;
                 manualHidden = desktopManual;
@@ -10867,7 +10902,10 @@ namespace CapriDesktop
                     napTicks(0, 200);
                     if (!Asleep || !lying || !napping || napAsked || !Hushed || walking || hanging || falling || napReply != "Going to sleep. A click on me wakes me up.") throw new Exception("Sleep did not settle from state " + napState);
                     if (napState == 1 && (seat != napShelf || Hip().Y != napShelf.Y)) throw new Exception("Her nap lost its ledge.");
-                    if (seat.Floor && BodyOnScreen(anchor, PerchedBody).Bottom > napArea.Bottom) throw new Exception("Her sleeping feet fell below the floor.");
+                    if (napState == 0 && seat != napFloor) throw new Exception("Her nap from the floor wasn't on the floor.");
+                    // On the floor she lies on its line with her legs over the taskbar, raised only so her feet stay on the screen.
+                    Rectangle napFeet = BodyOnScreen(anchor, PerchedBody), napScreen = Screen.FromPoint(new Point(Hip().X, seat.Y - 1)).Bounds;
+                    if (seat.Floor && (napFeet.Bottom > napScreen.Bottom || (Hip().Y != seat.Y && Math.Abs(napFeet.Bottom - napScreen.Bottom) > 1))) throw new Exception("Lying on the floor she floated above it or hung off the screen: hip " + Hip().Y + " on " + seat.Y + ", feet " + napFeet.Bottom + " of " + napScreen.Bottom);
                     CheckIdle(napNow, 0);
                     if (!Asleep || CommentFree() || LookoutFree()) throw new Exception("An asked-for nap did not stay quiet.");
                     React();
@@ -10875,7 +10913,7 @@ namespace CapriDesktop
                 }
                 preferences.Motion = true;
                 preferences.NoSitting = false;
-                checks.Add("PASS nap from floor, window ledge, hanging, walking, drag and dance with a stand-in clock, even with motion or automatic sitting off; asked naps hush comments and Watch and ignore PC input until clicked");
+                checks.Add("PASS nap from floor, window ledge, hanging, walking, drag and dance with a stand-in clock, even with motion or automatic sitting off; asked naps hush comments and Watch and ignore PC input until clicked; on the floor she lies on its line, raised only to keep her feet on the screen");
                 napReset();
                 Ledge napNarrow = new Ledge { Left = napArea.Left + napArea.Width / 2 - 12, Right = napArea.Left + napArea.Width / 2 + 12, Y = napShelf.Y - 10 };
                 seat = napNarrow;
@@ -25993,21 +26031,23 @@ namespace CapriDesktop
                             {
                                 try
                                 {
-                                    using (System.Net.Sockets.TcpClient client = packServer.AcceptTcpClient())
-                                    using (System.Net.Sockets.NetworkStream stream = client.GetStream())
-                                    {
-                                        byte[] buffer = new byte[4096];
-                                        string request = "";
-                                        while (request.IndexOf("\r\n\r\n", StringComparison.Ordinal) < 0)
+                                    // Once for a first install and once for a reinstall over it.
+                                    for (int served = 0; served < 2; served++)
+                                        using (System.Net.Sockets.TcpClient client = packServer.AcceptTcpClient())
+                                        using (System.Net.Sockets.NetworkStream stream = client.GetStream())
                                         {
-                                            int read = stream.Read(buffer, 0, buffer.Length);
-                                            if (read <= 0) break;
-                                            request += System.Text.Encoding.ASCII.GetString(buffer, 0, read);
+                                            byte[] buffer = new byte[4096];
+                                            string request = "";
+                                            while (request.IndexOf("\r\n\r\n", StringComparison.Ordinal) < 0)
+                                            {
+                                                int read = stream.Read(buffer, 0, buffer.Length);
+                                                if (read <= 0) break;
+                                                request += System.Text.Encoding.ASCII.GetString(buffer, 0, read);
+                                            }
+                                            byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/zip\r\nContent-Length: " + pack.Length + "\r\nConnection: close\r\n\r\n");
+                                            stream.Write(head, 0, head.Length);
+                                            stream.Write(pack, 0, pack.Length);
                                         }
-                                        byte[] head = System.Text.Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/zip\r\nContent-Length: " + pack.Length + "\r\nConnection: close\r\n\r\n");
-                                        stream.Write(head, 0, head.Length);
-                                        stream.Write(pack, 0, pack.Length);
-                                    }
                                 }
                                 catch (Exception) { }
                             });
@@ -26017,6 +26057,8 @@ namespace CapriDesktop
                             string packRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "pack-test");
                             LocalVoice fetchedVoice = new LocalVoice(packRoot);
                             System.Collections.Generic.List<string> packSteps = new System.Collections.Generic.List<string>();
+                            string packFolder = Path.Combine(Path.Combine(packRoot, "voice"), LocalVoice.Pack), packHeld = Path.Combine(packFolder, "onnxruntime.dll"), packRedone = null;
+                            bool packFresh = false, packBroken = false, packKept = false;
                             try
                             {
                                 LocalVoice.PackUrl = "http://127.0.0.1:" + ((IPEndPoint)packServer.LocalEndpoint).Port + "/capri-voice-1.zip";
@@ -26024,6 +26066,20 @@ namespace CapriDesktop
                                 using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) LocalVoice.PackSha = BitConverter.ToString(sha.ComputeHash(pack)).Replace("-", "").ToLowerInvariant();
                                 if (fetchedVoice.Installed) throw new Exception("An empty folder counted as a voice pack.");
                                 fetchedVoice.Install(delegate(string text, long done, long total) { packSteps.Add(text); });
+                                packFresh = fetchedVoice.Installed;
+                                // Set up again over a folder that lost all but its DLLs, with onnxruntime.dll in use (held open here, loaded for
+                                // real), she moves the pack in around that DLL instead of failing to delete the folder.
+                                foreach (string name in LocalVoice.Needed) if (!name.EndsWith(".dll", StringComparison.Ordinal)) File.Delete(Path.Combine(packFolder, name));
+                                File.WriteAllBytes(packHeld, new byte[] { 7 });
+                                packBroken = !fetchedVoice.Installed;
+                                using (new FileStream(packHeld, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                {
+                                    try { fetchedVoice.Install(delegate(string text, long done, long total) { }); }
+                                    catch (IOException error) { packRedone = error.Message; }
+                                    catch (UnauthorizedAccessException error) { packRedone = error.Message; }
+                                }
+                                byte[] packLeft = File.ReadAllBytes(packHeld);
+                                packKept = packLeft.Length == 1 && packLeft[0] == 7;
                             }
                             finally
                             {
@@ -26032,10 +26088,10 @@ namespace CapriDesktop
                                 LocalVoice.PackSize = packSize;
                                 packServer.Stop();
                             }
-                            string packFolder = Path.Combine(Path.Combine(packRoot, "voice"), LocalVoice.Pack);
-                            if (!fetchedVoice.Installed || File.Exists(packFolder + ".zip") || Directory.Exists(packFolder + ".new") || !packSteps.Contains("Checking her free voice") || !packSteps.Contains("Unpacking her free voice")) throw new Exception("Voice pack did not install: " + string.Join(", ", packSteps.ToArray()));
+                            if (!packFresh || !fetchedVoice.Installed || File.Exists(packFolder + ".zip") || Directory.Exists(packFolder + ".new") || !packSteps.Contains("Checking her free voice") || !packSteps.Contains("Unpacking her free voice")) throw new Exception("Voice pack did not install: " + string.Join(", ", packSteps.ToArray()));
+                            if (!packBroken || packRedone != null || !packKept) throw new Exception("Setting her free voice up again over a DLL in use went wrong: broken " + packBroken + ", kept " + packKept + ", " + packRedone);
                             Directory.Delete(packRoot, true);
-                            checks.Add("PASS free voice: Free voice row and Get free voice button without a key, four styles with fallback, pack download + checksum + unpack from a fake server");
+                            checks.Add("PASS free voice: Free voice row and Get free voice button without a key, four styles with fallback, pack download + checksum + unpack from a fake server, and set up again over a folder whose onnxruntime.dll is in use, the pack goes in around it");
                             if (new Preferences().HdVoice) throw new Exception("Her HD voice is on by default.");
                             qwen.Hardware = new Machine { Vram = 6L << 30, Ram = 16L << 30 };
                             string hdUsualLaunch = qwen.StartInfo(1234).Arguments;
@@ -27269,7 +27325,10 @@ namespace CapriDesktop
                             fetchedEars.Language = "en";
                             bool earsWaitOnVoice = fetchedEars.Installed && !fetchedEars.Ready;
                             Directory.CreateDirectory(LocalVoice.Folder(earsRoot));
+                            // The voice's DLLs alone, as a failed setup used to leave, aren't her free voice, so her ears don't load them.
                             foreach (string name in new[] { "sherpa-onnx-c-api.dll", "onnxruntime.dll" }) File.WriteAllBytes(Path.Combine(LocalVoice.Folder(earsRoot), name), new byte[] { 1 });
+                            earsWaitOnVoice &= !fetchedEars.Ready;
+                            foreach (string name in LocalVoice.Needed) { string part = Path.Combine(LocalVoice.Folder(earsRoot), name); Directory.CreateDirectory(Path.GetDirectoryName(part)); File.WriteAllBytes(part, new byte[] { 1 }); }
                             if (!earsWaitOnVoice || !fetchedEars.Ready || File.Exists(earsFolder + ".tar.bz2") || Directory.Exists(earsFolder + ".new") || !earsSteps.Contains("Checking her ears") || !earsSteps.Contains("Unpacking her ears")) throw new Exception("Her ears pack did not install: " + string.Join(", ", earsSteps.ToArray()));
                             if (!englishFirst || !europeanApart || !europeanIn || !turkishNone) throw new Exception("Her ears didn't pick the pack for the language: English " + englishFirst + ", European apart " + europeanApart + ", European in " + europeanIn + ", Turkish none " + turkishNone);
                             Directory.Delete(earsRoot, true);
@@ -28189,6 +28248,8 @@ namespace CapriDesktop
                             bool wakeWaitsOnVoice = fetchedWake.Installed && !fetchedWake.Ready && !fetchedWake.VoiceIn;
                             Directory.CreateDirectory(LocalVoice.Folder(wakeData));
                             foreach (string name in new[] { "sherpa-onnx-c-api.dll", "onnxruntime.dll" }) File.WriteAllBytes(Path.Combine(LocalVoice.Folder(wakeData), name), new byte[] { 1 });
+                            wakeWaitsOnVoice &= !fetchedWake.Ready && !fetchedWake.VoiceIn;
+                            foreach (string name in LocalVoice.Needed) { string part = Path.Combine(LocalVoice.Folder(wakeData), name); Directory.CreateDirectory(Path.GetDirectoryName(part)); File.WriteAllBytes(part, new byte[] { 1 }); }
                             string wakeFolder = Path.Combine(Path.Combine(wakeData, "wake"), WakeWord.Pack);
                             if (!wakeEmpty || !wakeWaitsOnVoice || !fetchedWake.Ready || File.Exists(wakeFolder + ".tar.bz2") || Directory.Exists(wakeFolder + ".new") || !wakeSteps.Contains("Checking her wake word") || !wakeSteps.Contains("Unpacking her wake word"))
                                 throw new Exception("Her wake word pack did not install: empty " + wakeEmpty + ", waits on voice " + wakeWaitsOnVoice + ", ready " + fetchedWake.Ready + " / " + string.Join(", ", wakeSteps.ToArray()));
@@ -30596,6 +30657,18 @@ namespace CapriDesktop
                 mainframe.TakeKeys(Keys.ShiftKey | Keys.Shift);
                 mainframe.ConfirmKeys();
                 must(preferences.PushVk == 0x10 && mainframe.PushKeyShown == "Push to talk: Shift", "Shift alone didn't bind for push to talk: " + mainframe.PushKeyShown);
+                // Off belongs to push to talk alone: picking Gaming Mode's key doesn't offer it, and it does nothing there.
+                int gameVkWas = preferences.GameVk, gameModsWas = preferences.GameMods;
+                mainframe.PickKeys(5);
+                bool offForGame = mainframe.OffShown;
+                mainframe.ClearPush();
+                bool gameKept = mainframe.Picking && preferences.PushVk == 0x10 && preferences.GameVk == gameVkWas && preferences.GameMods == gameModsWas;
+                mainframe.CancelKeys();
+                mainframe.PickKeys(PushSlot);
+                bool offForPush = mainframe.OffShown;
+                mainframe.ClearPush();
+                must(!offForGame && gameKept && offForPush && !mainframe.OffShown && !mainframe.Picking && preferences.PushVk == 0 && preferences.PushMods == 0 && PushKeyName == "not set" && mainframe.PushKeyShown == "Push to talk: not set", "Her push-to-talk Off button went wrong: game " + offForGame + "/" + gameKept + ", push " + offForPush + ", " + mainframe.PushKeyShown);
+                checks.Add("PASS her push-to-talk Off button shows while that key is picked and not while Gaming Mode's is, does nothing there, and turns push to talk off to \"not set\"");
                 must(SetPushKey(0, 0x06) == null && preferences.PushVk == 0x06 && PushKeyName != "not set", "Her push-to-talk didn't take a mouse button: " + PushKeyName);
                 must(SetPushKey(0, 0) == null && preferences.PushVk == 0 && PushKeyName == "not set", "Her push-to-talk didn't turn off.");
                 checks.Add("PASS push to talk: holding her key, any key or mouse button with or without modifiers, stops her and opens her ears, letting go sends what was said to the running job, a tap goes nowhere, her other keys can't be taken, and it reads the key rather than taking it, so it works with a game in front");
