@@ -231,6 +231,9 @@ namespace CapriDesktop
             worker = null;
             if (running == null) { Close(); return; }
             stopping = true;
+            // Nothing more of hers goes in from here, even while the worker's stuck in a device call (Codex review, 2 Nov).
+            open = false;
+            lock (gate) lanes.Clear();
             wake.Set();
             if (Thread.CurrentThread != running && !running.Join(3000)) Note("Her mic mix took too long to stop.");
         }
@@ -460,6 +463,8 @@ namespace CapriDesktop
             else Array.Clear(mix, 0, want);
             lock (gate) foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate);
             limiter.Run(mix, want);
+            // A pass that was stuck in a device call when the switch went off writes nothing once it comes back.
+            if (stopping) return;
             cable.Write(mix, want);
             Interlocked.Add(ref Written, want);
         }

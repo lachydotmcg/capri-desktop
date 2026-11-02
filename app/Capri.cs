@@ -7953,6 +7953,8 @@ namespace CapriDesktop
                 case "live_reactions": return ReactionsOn;
                 case "gaming_mode": return GamingWanted;
                 case "hologram": return preferences.Hologram;
+                case "watch_my_screen": return preferences.Watch;
+                case "game_comments": return CommentPace != Commentary.Off;
                 default: return null;
             }
         }
@@ -7975,6 +7977,8 @@ namespace CapriDesktop
                 case "live_reactions": ToggleReactions(); return null;
                 case "gaming_mode": return GamingMode(on ? "on" : "off");
                 case "hologram": return HologramTool(on ? "on" : "off");
+                case "watch_my_screen": ToggleWatch(); return null;
+                case "game_comments": SetCommentPace(on ? Commentary.Events : Commentary.Off); mainframe.Sync(); return null;
                 default: return null;
             }
         }
@@ -8558,9 +8562,11 @@ namespace CapriDesktop
             {
                 dictationMicAt = now + 2;
                 string current = Dictation.DefaultMic();
-                if (current != null && !string.Equals(current, dictationMic, StringComparison.OrdinalIgnoreCase))
+                // The cable is caught even when it was already the default as Windows speech opened, so the id never changed.
+                bool cable = MicMix.IsCableOut(Ears.DefaultName());
+                if (cable || current != null && !string.Equals(current, dictationMic, StringComparison.OrdinalIgnoreCase))
                 {
-                    Brain.Log("ears", -1, "Windows default mic changed from " + dictationMic + " to " + current + "; reopening Windows speech.");
+                    Brain.Log("ears", -1, cable ? "Windows default mic is CABLE Output; leaving Windows speech." : "Windows default mic changed from " + dictationMic + " to " + current + "; reopening Windows speech.");
                     dictation.Dispose();
                     dictation = null;
                     earsReady = false;
@@ -9749,6 +9755,15 @@ namespace CapriDesktop
         {
             if (!chatting || !local) return;
             if (problem != null) { DictationLost(problem); return; }
+            // Windows speech only hears the default mic, and that can turn into the cable while it opens (Codex review, 2 Nov).
+            if (MicMix.IsCableOut(Ears.DefaultName()))
+            {
+                Dictation closing = dictation;
+                dictation = null;
+                if (closing != null) closing.Dispose();
+                HearLater(CableDefault);
+                return;
+            }
             try { if (!testing && !ears.Listening) ears.Start(); }
             catch (VoiceException error) { HearingCaptureFailed(error.Message, false); }
             earsReady = true;
@@ -19011,7 +19026,8 @@ namespace CapriDesktop
                 // Her settings tool reads back what it changed, and says when something couldn't change.
                 System.Collections.Generic.Dictionary<string, bool?> state = new System.Collections.Generic.Dictionary<string, bool?>
                 {
-                    { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false }
+                    { "voice", true }, { "quiet", false }, { "mic", null }, { "check_ins", true }, { "wander", false }, { "clip_my_games", false }, { "save_big_moments", false }, { "live_reactions", true }, { "gaming_mode", true }, { "hologram", false },
+                    { "watch_my_screen", false }, { "game_comments", true }
                 };
                 System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
                 Hands.SettingOn = delegate(string name) { return state[name]; };
@@ -19025,9 +19041,11 @@ namespace CapriDesktop
                 string clipped = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "clip_my_games" }), again = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "clip_my_games" });
                 string silent = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "voice" }), deaf = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "mic" });
                 string stuck = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "wander" }), gaming = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "gaming_mode" });
-                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off."
+                string uncommented = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
+                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; Watch my screen off; Game comments on."
+                    || uncommented != "Turned Game comments off."
                     || clipped != "Turned Clip my games on." || again != "Clip my games was already on." || silent != "Turned my voice off." || deaf != "Couldn't change my voice chat mic: voice chat isn't on."
-                    || stuck != "Couldn't turn Wander on: it's still off." || gaming != "Turned Gaming Mode off. Gaming Mode off." || string.Join(",", flipped.ToArray()) != "clip_my_games on,voice off,wander on,gaming_mode off" || !Hands.Failed(stuck) || !Hands.Failed(deaf))
+                    || stuck != "Couldn't turn Wander on: it's still off." || gaming != "Turned Gaming Mode off. Gaming Mode off." || string.Join(",", flipped.ToArray()) != "clip_my_games on,voice off,wander on,gaming_mode off,game_comments off" || !Hands.Failed(stuck) || !Hands.Failed(deaf))
                     throw new Exception("Her settings tool didn't read back what it changed: " + settings + " / " + clipped + " / " + again + " / " + silent + " / " + deaf + " / " + stuck + " / " + gaming + " / " + string.Join(",", flipped.ToArray()));
                 // The volume says where it ended up when it moved, and minimizing says when a window stayed up.
                 System.Collections.Generic.List<byte> pressed = new System.Collections.Generic.List<byte>();
@@ -19162,7 +19180,7 @@ namespace CapriDesktop
                 string wanted = "Turned Clip my games on. | Turned Save big moments on. | Turned Clip my games off. | Turned Live reactions off. | Turned Check in on me off. | Turned Wander on. | Turned Quiet on. | Turned Quiet off. | Turned my voice off. | Turned my voice on. | "
                     + "Turned Hologram mode on. Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off. | Turned Hologram mode off. Hologram mode off. You can click me again." + (calling ? "" : " | Couldn't change my voice chat mic: voice chat isn't on.");
                 string joined = string.Join(" | ", said.ToArray());
-                if (listed != "How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off."
+                if (listed != "How my settings are right now: my voice on; Quiet off; my voice chat mic" + (calling ? (ears.Muted ? " off" : " on") : ": no voice chat on") + "; Check in on me on; Wander off; Clip my games off; Save big moments off; Live reactions on; Gaming Mode " + (GamingWanted ? "on" : "off") + "; Hologram mode off; Watch my screen " + (preferences.Watch ? "on" : "off") + "; Game comments " + (CommentPace != Commentary.Off ? "on" : "off") + "."
                     || joined != wanted || preferences.ClipGames || preferences.ClipMoments || !preferences.NoReactions || preferences.CheckIns || !preferences.Wander || shushed || preferences.Silent || preferences.Hologram || asking != askingWas)
                     throw new Exception("Her settings tool didn't flip her real switches quietly: " + listed + " / " + joined + " / asking moved " + (asking - askingWas));
                 checks.Add("PASS her settings tool flips Clip my games, Save big moments, live reactions, Check in on me, Wander, Quiet, her voice and hologram mode the way their own switches do, says her voice chat mic needs voice chat, reads each one back, and never cuts off the reply her brain is writing");
@@ -26566,6 +26584,8 @@ namespace CapriDesktop
                                 bool renamedHeard = Hands.Heard("remember my name is Sam", out shortTool, out shortArgs) && shortTool == "remember";
                                 string renamed = Hands.Do(shortTool, shortArgs);
                                 bool renamedRight = renamed == "Got it, Sam." && Brain.Nickname == "Sam" && preferences.Nickname == "Sam" && Brain.Notes() == "";
+                                string nickFixed = Hands.Do("remember", new ToolArguments { Text = "no, my nickname is Skittle-Pro" });
+                                renamedRight = renamedRight && nickFixed == "Got it, Skittle-Pro." && Brain.Nickname == "Skittle-Pro" && Brain.Notes() == "";
                                 Brain.Nickname = nickBefore;
                                 preferences.Nickname = prefBefore;
                                 SavePreferences();
@@ -29218,7 +29238,8 @@ namespace CapriDesktop
                                         || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null
                                         || Brain.Meaning(403, "{\"error\":{\"message\":\"Method doesn't allow unregistered callers\",\"status\":\"PERMISSION_DENIED\"}}", true) != Brain.NewKey || Brain.Meaning(400, "{\"error\":{\"message\":\"API key not valid.\"}}") != null
                                         || Brain.Meaning(400, "{\"error\":{\"message\":\"Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.Unserved
-                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != broke || Brain.Meaning(400, "{\"error\":{\"message\":\"contents is not specified\",\"status\":\"INVALID_ARGUMENT\"}}", true) != null) throw new Exception("Cloud errors were explained wrong.");
+                                        || Brain.Meaning(400, "{\"error\":{\"message\":\"Billing is disabled for this project.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != broke || Brain.Meaning(400, "{\"error\":{\"message\":\"contents is not specified\",\"status\":\"INVALID_ARGUMENT\"}}", true) != null
+                                        || Brain.Meaning(451, "") != Brain.Blocked || Brain.Meaning(451, "{\"error\":\"Unavailable For Legal Reasons\"}", true) != Brain.Blocked || Brain.Brief(Brain.Blocked).Length > 60) throw new Exception("Cloud errors were explained wrong.");
                                     System.Collections.Generic.List<string> directAsked = new System.Collections.Generic.List<string>();
                                     System.Net.Sockets.TcpListener directFake;
                                     string ollamaUrl = Brain.Ollama;
@@ -33131,7 +33152,9 @@ namespace CapriDesktop
                                 || meetSkip != Meeting.AskPronouns || meetStop != "No worries. What you told me is in my notes, me.md. " + Meeting.Again || meetAgain != "- Name: Lachy\n- Pronouns: they/them\n- Into: Cyberpunk, Roblox and drawing"
                                 || meetElsewhere != Brain.Offline || !meetLeft || !meetAfterSetup || meetStopped != "No worries, choom. " + Meeting.Again)
                                 throw new Exception("Getting to know them went wrong: " + meetFirst + " / typing " + meetTyping + " / " + meetNudge + " / " + meetNamed + " / " + meetPronouns + " / " + meetInto + " / " + meetNotes.Replace("\n", " | ") + " / nicked " + meetNicked + " / " + meetSkip + " / " + meetStop + " / " + meetAgain.Replace("\n", " | ") + " / " + meetElsewhere + " / left " + meetLeft + " / after setup " + meetAfterSetup + " / " + meetStopped);
-                            checks.Add("PASS getting to know you: after setup, or from Settings > Get to know me, she asks what to call them, their pronouns and what they're into in chat with her typing box open and no brain needed, writes the answers to me.md and calls them by their name; skip, stop and asking again work, and a question or a job ends it and is heard as usual");
+                            foreach (string[] nameCase in new[] { new[] { "Cursed, it's my nickname", "Cursed" }, new[] { "Cursed is my name", "Cursed" }, new[] { "call me Cursed, that's my gamertag", "Cursed" }, new[] { "my nickname is Skittle-Pro", "Skittle-Pro" }, new[] { "Lachy", "Lachy" } })
+                                if (Meeting.NameIn(nameCase[0]) != nameCase[1]) throw new Exception("Her name question kept the wrong name: " + nameCase[0] + " -> " + Meeting.NameIn(nameCase[0]));
+                            checks.Add("PASS getting to know you: after setup, or from Settings > Get to know me, she asks what to call them, their pronouns and what they're into in chat with her typing box open and no brain needed, writes the answers to me.md and calls them by their name, without \"it's my nickname\" on the end; skip, stop and asking again work, and a question or a job ends it and is heard as usual");
                             Hear("hello");
                             if (talkState != TalkState.Dormant || reply != Brain.Offline) throw new Exception("Missing brain did not go DORMANT.");
                             replyStart -= 10;
