@@ -3559,7 +3559,7 @@ namespace CapriDesktop
             if (string.IsNullOrWhiteSpace(said)) said = error.Message;
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
-            string meaning = remote && !toolless ? Meaning(status, text, kind == "google") : null;
+            string meaning = remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai") : null;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
@@ -3612,7 +3612,7 @@ namespace CapriDesktop
             });
         }
 
-        internal static string Meaning(int status, string body, bool google = false)
+        internal static string Meaning(int status, string body, bool google = false, bool openai = false)
         {
             if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
             // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
@@ -3622,7 +3622,7 @@ namespace CapriDesktop
             if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
             // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
             if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;
-            if (status == 401 || status == 403) return "Key rejected. Press Forget, then paste it again.";
+            if (status == 401 || status == 403) return openai ? "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com." : "Key rejected. Press Forget, then paste it again.";
             if (status == 429) return Busy;
             if (status == 404) return Gone;
             if (status >= 500) return Down;

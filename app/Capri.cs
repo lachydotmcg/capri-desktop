@@ -29910,6 +29910,23 @@ namespace CapriDesktop
                                         || Brain.Meaning(451, "") != Brain.Blocked || Brain.Meaning(451, "{\"error\":\"Unavailable For Legal Reasons\"}", true) != Brain.Blocked || Brain.Brief(Brain.Blocked).Length > 60
                                         || Brain.Meaning(403, "<html><head><title>Access Denied</title></head><body>You don't have permission to access this server.</body></html>") != Brain.Blocked || Brain.Meaning(403, "{\"error\":{\"message\":\"Access denied by security policy\"}}") != Brain.Blocked
                                         || Brain.Meaning(403, "{\"error\":{\"code\":\"unsupported_country_region_territory\",\"message\":\"Country, region, or territory not supported\"}}") != Brain.Blocked || Brain.Meaning(403, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again.") throw new Exception("Cloud errors were explained wrong.");
+                                    const string openKeyLine = "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com.";
+                                    System.Collections.Generic.List<string> rejectedAsked = new System.Collections.Generic.List<string>();
+                                    System.Net.Sockets.TcpListener rejectedFake;
+                                    string keyUrlWas = Brain.OpenAi;
+                                    Brain.OpenAi = FakeServer(new[] { "!401 {\"error\":\"bad key\"}", "!403 {\"error\":\"bad key\"}" }, rejectedAsked, out rejectedFake);
+                                    try
+                                    {
+                                        foreach (int keyStatus in new[] { 401, 403 })
+                                        {
+                                            BrainException rejection = null;
+                                            try { Brain.CloudModels("sk-proj-test"); }
+                                            catch (BrainException error) { rejection = error; }
+                                            if (rejection == null || !rejection.Told || rejection.Status != keyStatus || rejection.Message != openKeyLine) throw new Exception("A rejected OpenAI key did not explain API use and credits.");
+                                        }
+                                        checks.Add("PASS OpenAI 401 and 403 key errors explain that ChatGPT Plus does not include API use and say to get a platform.openai.com key and add credits");
+                                    }
+                                    finally { Brain.OpenAi = keyUrlWas; rejectedFake.Stop(); }
                                     System.Collections.Generic.List<string> directAsked = new System.Collections.Generic.List<string>();
                                     System.Net.Sockets.TcpListener directFake;
                                     string ollamaUrl = Brain.Ollama;
