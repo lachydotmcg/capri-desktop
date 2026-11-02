@@ -44,7 +44,7 @@ namespace CapriDesktop
         private static readonly int[] Gaps = { 10, 15, 30, 60, 90, 120, 180, 300, 600 };
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
-        private const int PageTall = 1572;
+        private const int PageTall = 1600;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -256,7 +256,7 @@ namespace CapriDesktop
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
-        private const int SimpleTall = 780;
+        private const int SimpleTall = 808;
         private int wheel;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
