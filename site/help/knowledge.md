@@ -46,7 +46,7 @@ No. On Windows the installer has everything. You don't need Claude Code, Python,
 A mic is only needed for voice chat.
 
 ### Where do I get it?
-- Website: https://lachydotmcg.github.io/capri-desktop/
+- Website: https://capriai.app/
 - Windows: Capri-Setup.exe
 - Mac (Apple Silicon): Capri-mac-apple-silicon.zip
 - Mac (Intel): Capri-mac-intel.zip
@@ -761,7 +761,7 @@ Her other free voice styles (Her own, Bright, Sly and Sharp) are set voices and 
 Her voice can come from Fish Audio's cloud, OpenAI, a voice model file she runs herself, or any speech model you run behind a server. Windows only for now.
 1. Mainframe > VOICE:
    - On your PC (a voice model file, Fish Speech, Kokoro or any OpenAI-style server): press Set up on the CUSTOM LOCAL row.
-   - In the cloud (Fish Audio or OpenAI): click CLOUD VOICE. Fish Audio is first in the menu under it and its panel opens; pick OpenAI in that menu instead if you want it. The setup guide has Fish Audio's steps: https://lachydotmcg.github.io/capri-desktop/setup/#fish
+   - In the cloud (Fish Audio or OpenAI): click CLOUD VOICE. Fish Audio is first in the menu under it and its panel opens; pick OpenAI in that menu instead if you want it. The setup guide has Fish Audio's steps: https://capriai.app/setup/#fish
    - The first 0.7.6 tester build had them all in one list instead: VOICE > FREE VOICE, open the "Free voice" menu and pick "Any voice model...".
 2. Under "Voice from", pick where her voice comes from. CUSTOM LOCAL's panel lists only the ones on your PC, and CLOUD VOICE's only Fish Audio and OpenAI. It fills in the address, model and voice. Fish Audio's and OpenAI's addresses never change (https://api.fish.audio and https://api.openai.com/v1), so CLOUD VOICE's panel has no Address box; CUSTOM LOCAL's does, for the server on your PC:
    - Fish Audio · cloud (https://fish.audio): sign up, open https://fish.audio/app/api-keys, press Create New Key, and paste the key under Key. Under Voice, paste the link or ID of a voice you have the rights to use (a link like https://fish.audio/m/ followed by its ID works as it is), or press the arrow in the Voice box to pick one of your own Fish Audio voices. To make a new voice, press that arrow, pick New voice from a clip..., and choose 10 to 30 seconds of someone talking (with their OK): she sends it to Fish Audio as a private voice and puts its ID in the Voice box. Capri ships no voice of her own here: make one with Fish Audio's Voice Design. Capri prohibits cloning or impersonating a living person's voice without explicit, informed consent or other valid authorization. Model s2.1-pro-free is Fish Audio's free developer tier; with credit on your account, type s2.1-pro, s2-pro or s1 instead.
@@ -1543,7 +1543,7 @@ On Mac and Linux, her error log is errors.txt in ~/.config/Capri.
 ### Where to get help
 - Mainframe > Help, or right-click her > Help > Help page: opens this Help page.
 - Capri in the bottom-right corner of the website: click her and ask, or drop a screenshot. She answers from this help.
-- The setup guide: https://lachydotmcg.github.io/capri-desktop/setup/
+- The setup guide: https://capriai.app/setup/
 - Discord: https://discord.gg/F4fDHfGtFk (or right-click her > Help > Join the Discord)
 - GitHub: https://github.com/lachydotmcg/capri-desktop
 

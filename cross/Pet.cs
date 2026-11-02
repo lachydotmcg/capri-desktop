@@ -186,7 +186,7 @@ namespace CapriDesktop
         internal const string NotAKey = "That doesn't look like an NVIDIA, OpenAI, Claude or DeepSeek key. NVIDIA's start with nvapi-.";
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Then right-click me > Brain > " + KeyChoice + " and paste it.";
         internal const string DiscordPage = "https://discord.gg/F4fDHfGtFk";
-        internal const string HelpPage = "https://lachydotmcg.github.io/capri-desktop/help/";
+        internal const string HelpPage = "https://capriai.app/help/";
         // Mac and Linux don't update themselves yet, so she checks GitHub's latest release now and then and offers its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
