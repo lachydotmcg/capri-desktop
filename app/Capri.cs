@@ -1699,8 +1699,8 @@ namespace CapriDesktop
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;
         private const string FreeKeyLine = "Sign in on that page, press Generate API Key and copy it. Then paste it in the box under BRAIN and press Connect. It's free." + Brain.Stuck;
-        private const string GeminiKeyLine = "Make a key in Google AI Studio, paste it in the box under BRAIN and press Connect. Free keys can be rate limited, choom." + Brain.Stuck;
-        private const string RouterKeyLine = "Make an OpenRouter key, paste it in the box under BRAIN and press Connect. Only free models show here. Free keys can be rate limited, choom." + Brain.Stuck;
+        private const string GeminiKeyLine = "Sign in on that page, make a key and copy it. Then paste it in the box under BRAIN and press Connect. It's free, but it can be rate limited." + Brain.Stuck;
+        private const string RouterKeyLine = "Sign in on that page, make a key and copy it. Then paste it in the box under BRAIN and press Connect. MEDIUM lists only its free models." + Brain.Stuck;
         internal static Action<string> Browse = delegate(string page) { try { Process.Start(page); } catch (System.ComponentModel.Win32Exception) { } };
         // Opens a file of hers in Notepad. Smoke tests swap it to see which file a button opened.
         internal static Action<string> Edit = delegate(string path) { using (Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\"") { UseShellExecute = false })) { } };

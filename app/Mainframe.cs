@@ -395,7 +395,7 @@ namespace CapriDesktop
             ToolStripMenuItem geminiKey = Choice("Google AI Studio (Gemini) · free tier · rate limited", false, delegate { capri.OpenGeminiKeyPage(); });
             geminiKey.AccessibleName = "Google AI Studio (Gemini)";
             freeKeyMenu.Items.Add(geminiKey);
-            ToolStripMenuItem routerKey = Choice("OpenRouter · free models only here", false, delegate { capri.OpenRouterKeyPage(); });
+            ToolStripMenuItem routerKey = Choice("OpenRouter · free models only", false, delegate { capri.OpenRouterKeyPage(); });
             routerKey.AccessibleName = "OpenRouter";
             freeKeyMenu.Items.Add(routerKey);
             freeKey = Make("Free key", 266, 209, 90, 22, delegate { ShowFreeKeys(); });

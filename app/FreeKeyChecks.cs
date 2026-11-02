@@ -14,7 +14,8 @@ namespace CapriDesktop
             bool wasSettings = paged, wasAdvanced = capri.AdvancedSettings, wasShown = Visible, wasMenu = freeKeyMenu.Visible;
             bool wasFallback = layoutFallback;
             int wasSize = capri.MainframeSize, wasDpi = layoutDpi, wasText = layoutText, wasScroll = pageScroll, wasChoice = -1;
-            Point wasAt = Location;
+            // A minimized Mainframe's Location is -32000, so its normal place is kept instead and put back before it minimizes again.
+            Point wasAt = WindowState == FormWindowState.Normal ? Location : RestoreBounds.Location;
             Control wasFocus = ActiveControl;
             FormWindowState wasState = WindowState;
             for (int i = 0; i < freeKeyMenu.Items.Count; i++) if (freeKeyMenu.Items[i].Selected) wasChoice = i;
@@ -92,7 +93,7 @@ namespace CapriDesktop
         private void CheckFreeKeyRows()
         {
             string[] providers = { "NVIDIA", "Google AI Studio (Gemini)", "OpenRouter" };
-            string[] notes = { "free · often slow at busy times", "free tier · rate limited", "free models only here" };
+            string[] notes = { "free · often slow at busy times", "free tier · rate limited", "free models only" };
             if (!freeKeyMenu.Visible || freeKeyMenu.Items.Count != providers.Length || !(freeKeyMenu.Renderer is MenuLook) || !freeKeyMenu.Font.Equals(Font))
                 throw new Exception("Free key did not open three rows in the Mainframe's menu style and scaled font.");
             if (!Screen.FromControl(this).WorkingArea.Contains(freeKeyMenu.Bounds)) throw new Exception("The Free key menu left the screen.");
