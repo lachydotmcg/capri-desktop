@@ -1966,6 +1966,7 @@ namespace CapriDesktop
                 if (!testing) CheckHome(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckLag(clock.Elapsed.TotalSeconds);
                 CheckGame(clock.Elapsed.TotalSeconds);
+                if (!testing) CheckInkEsc(signalNow);
                 if (!testing) Clip.RestAll(Environment.TickCount);
                 if (!testing) CheckPopIn(signalNow, signalIdle);
                 if (!testing) CheckReminders(DateTime.Now);
@@ -15365,18 +15366,23 @@ namespace CapriDesktop
             try
             {
                 Ink.Active = delegate { return true; };
-                foreach (string inkClear in new[] { "clear your drawing", "rub that out", "erase that", "Hey Capri, can you clear your drawing please?" })
+                foreach (string inkClear in new[] { "clear your drawing", "rub that out", "erase that", "Hey Capri, can you clear your drawing please?", "remove it", "get rid of that", "clear my screen", "delete the diagram", "remove the art from my screen", "take it off my screen", "erase everything", "Capri, can you get rid of the drawing please?" })
                 {
                     string inkClearTool;
                     ToolArguments inkClearArgs;
-                    if (!Hands.Heard(inkClear, out inkClearTool, out inkClearArgs) || inkClearTool != "draw" || inkClearArgs.Action != "clear" || inkClearArgs.Description != null || Asides.Plain(inkClear, out inkClearTool, out inkClearArgs) != AsideKind.Tool) throw new Exception("Clearing ink needed a brain.");
+                    if (!Hands.Heard(inkClear, out inkClearTool, out inkClearArgs) || inkClearTool != "draw" || inkClearArgs.Action != "clear" || inkClearArgs.Description != null || Asides.Plain(inkClear, out inkClearTool, out inkClearArgs) != AsideKind.Tool) throw new Exception("Clearing ink needed a brain: " + inkClear);
+                }
+                foreach (string inkKept in new[] { "remove the song from my playlist", "delete it from my downloads", "clear my history", "get rid of the virus", "take it off", "remove him from the call" })
+                {
+                    ToolArguments inkKeptArgs = Ink.Request(Hands.Asked(inkKept));
+                    if (inkKeptArgs != null && inkKeptArgs.Action == "clear") throw new Exception("Her ink took a wipe that wasn't about it: " + inkKept);
                 }
                 ToolArguments inkAdd = Ink.Request("add a dog");
                 if (inkAdd == null || inkAdd.Action != "add" || inkAdd.Task == null) throw new Exception("Adding to an existing drawing did not look at its placement.");
                 if (Ink.Request("add milk to my shopping list") != null || Ink.Request("add a reminder for 5") != null) throw new Exception("Her ink took an add that wasn't about it.");
             }
             finally { Ink.Active = inkActiveWas; }
-            if (Ink.Request("erase that") != null || Ink.Request("rub it out") != null || Ink.Request("clear your drawing") == null) throw new Exception("Erase took a request with nothing drawn, or clear your drawing stopped working.");
+            if (Ink.Request("erase that") != null || Ink.Request("rub it out") != null || Ink.Request("remove it") != null || Ink.Request("get rid of that") != null || Ink.Request("clear your drawing") == null) throw new Exception("Erase took a request with nothing drawn, or clear your drawing stopped working.");
             Func<int> inkPleaseWas = Hands.PleaseRoll;
             try
             {
@@ -15416,7 +15422,32 @@ namespace CapriDesktop
                 Brain.Ollama = diagramOllama;
                 if (diagramServer != null) diagramServer.Stop();
             }
-            checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, clear and bare draw need no brain, and a diagram in any wording is drawn and talked through");
+            foreach (string inkClaim in new[] { "Done, wiped it!", "Cleared it, choom.", "Cleared!", "Poof, all gone. I erased your drawing.", "I've removed the diagram from your screen.", "Got rid of it!", "On it, clearing it now.", "Let me wipe that off your screen.", "Okay choom, I just deleted the drawing." })
+                if (!Hands.Promised(inkClaim)) throw new Exception("She claimed a wipe no tool did and it slipped through: " + inkClaim);
+            foreach (string inkTalk in new[] { "Let me clear that up for you.", "Deleted scenes are the best part.", "Cleared for takeoff, choom!", "Wiped out, choom. Long day.", "I'll remove all doubt: pineapple wins.", "Erasing history is a villain move." })
+                if (Hands.Promised(inkTalk)) throw new Exception("Plain chat counted as a wipe: " + inkTalk);
+            System.Collections.Generic.List<string> wipeAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener wipeServer = null;
+            string wipeOllama = Brain.Ollama;
+            Func<string> wipeGameWas = Computer.GameOpen;
+            try
+            {
+                // Her brain says it wiped the ink with no tool call, so her hands get a go and clear it for real.
+                Brain.Ollama = FakeServer(new[] { diagramSays("Done, wiped it clean, choom!"), "{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"draw\",\"arguments\":{\"action\":\"clear\"}}}]},\"done_reason\":\"stop\"}" }, wipeAsked, out wipeServer);
+                Computer.GameOpen = delegate { return null; };
+                System.Collections.Generic.List<string> wipeDid = new System.Collections.Generic.List<string>();
+                Brain wiper = new Brain { Model = "wipe-check" };
+                wiper.Act = delegate(string name, ToolArguments args) { wipeDid.Add(name + ":" + args.Action); return name == "draw" && args.Action == "clear" ? "Cleared my drawing." : "Wrong tool: " + name; };
+                string wipedReply = wiper.Ask("make it go away");
+                if (wipeDid.Count != 1 || wipeDid[0] != "draw:clear" || wipedReply != "Cleared my drawing." || wipeAsked.Count != 2) throw new Exception("A brain saying it wiped her ink didn't get her hands to clear it: " + wipedReply + " / " + string.Join(",", wipeDid.ToArray()));
+            }
+            finally
+            {
+                Brain.Ollama = wipeOllama;
+                Computer.GameOpen = wipeGameWas;
+                if (wipeServer != null) wipeServer.Stop();
+            }
+            checks.Add("PASS every drawing wording reaches her hands, screen references become jobs, clear and bare draw need no brain, \"remove it\", \"get rid of that\" and \"clear my screen\" wipe her ink only while it's up, a brain that says it wiped the ink gets her hands to clear it, and a diagram in any wording is drawn and talked through");
             foreach (string insultAsk in new[] { "Capri, you're annoying", "you're so annoying", "you are really fucking useless", "you're such an idiot", "ur dumb", "your annoying", "why are you so stupid", "you suck", "I hate you", "fuck you", "screw you capri", "you’re the worst" })
                 if (!Hands.Insulted(insultAsk)) throw new Exception("An insult didn't count: " + insultAsk);
             foreach (string insultNot in new[] { "you're not annoying", "this is annoying", "the pop-up is so annoying", "you're the best", "did you really trash my desktop", "what the fuck you doing", "empty your trash", "thank you so much", "don't be annoying", "I hate this game" })
@@ -15571,14 +15602,35 @@ namespace CapriDesktop
             }
             string inkMenuResult = DrawTool(new ToolArguments { Shapes = "line " + (Screen.PrimaryScreen.Bounds.Left + 25) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) + " " + (Screen.PrimaryScreen.Bounds.Left + 75) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) });
             if (inkMenuResult == Ink.NoOverlay || inkMenuResult == Ink.NoSpace) { checks.Add("LIMIT ink tray item: " + inkMenuResult); return; }
+            Func<bool> inkEscWas = Ink.EscDown;
             try
             {
                 if (!clearInkItem.Available || clearInkItem.Text != "Clear her drawing") throw new Exception("Drawn ink had no clear item.");
                 clearInkItem.PerformClick();
                 if (ink.Has || clearInkItem.Available) throw new Exception("The tray item did not clear her drawing.");
+                DrawTool(new ToolArguments { Shapes = "line " + (Screen.PrimaryScreen.Bounds.Left + 25) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) + " " + (Screen.PrimaryScreen.Bounds.Left + 75) + " " + (Screen.PrimaryScreen.Bounds.Top + 25) });
+                // Her signals read Esc every quarter second: a tap between two holds, and a hold short of EscHold, leave her ink.
+                bool inkEscHeld = true;
+                Ink.EscDown = delegate { return inkEscHeld; };
+                inkEscFrom = -1;
+                CheckInkEsc(100);
+                CheckInkEsc(100.25);
+                inkEscHeld = false;
+                CheckInkEsc(100.5);
+                inkEscHeld = true;
+                CheckInkEsc(100.75);
+                CheckInkEsc(101.25);
+                if (!ink.Has || !clearInkItem.Available) throw new Exception("A tap of Esc, or a hold under " + Ink.EscHold + " s, wiped her drawing.");
+                CheckInkEsc(101.5);
+                if (ink.Has || clearInkItem.Available) throw new Exception("Holding Esc didn't wipe her drawing.");
             }
-            finally { DrawTool(new ToolArguments { Action = "clear" }); }
-            checks.Add("PASS ink is layered, topmost, click-through, absent from Alt-Tab and never activates; it settles, adds, replaces and clears");
+            finally
+            {
+                Ink.EscDown = inkEscWas;
+                inkEscFrom = -1;
+                DrawTool(new ToolArguments { Action = "clear" });
+            }
+            checks.Add("PASS ink is layered, topmost, click-through, absent from Alt-Tab and never activates; it settles, adds, replaces and clears, and holding Esc wipes it while a tap leaves it");
         }
 
         private void SmokeMinis(System.Collections.Generic.List<string> checks)
