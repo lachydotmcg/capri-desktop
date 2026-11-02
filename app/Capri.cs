@@ -10944,7 +10944,9 @@ namespace CapriDesktop
                 {
                     bool current = turn == answerTurn && ticket == asking && !IsDisposed;
                     bool audible = current && audio == audioTurn;
-                    Brain.Log("voice delivery", took.ElapsedMilliseconds, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible);
+                    // How long her sound is against how much there was to say tells a clip cut short from playback that was stopped (ticket 35).
+                    Brain.Log("voice delivery", took.ElapsedMilliseconds, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible
+                        + " seconds=" + (wav == null ? "none" : Voice.Seconds(wav).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)) + " letters=" + VoiceServer.Letters(words));
                     if (!current) return;
                     if (audible)
                     {
@@ -31977,7 +31979,10 @@ namespace CapriDesktop
                             lock (hdAsked) hdCalls = hdAsked.Count;
                             short[] hdLongSamples = Voice.Samples(hdVoice.Or(delegate(string words) { return hdTone; }, hdNoted)(hdLong), out hdRate);
                             lock (hdAsked) hdCalls = hdAsked.Count - hdCalls;
-                            if (hdPieces.Count != 2 || hdPieces[0].Length > QwenVoice.PieceLength || string.Join(" ", hdPieces.ToArray()) != hdLong || hdCalls != 2 || hdTrouble != null || hdLongSamples.Length != 2 * hdWave.Length) throw new Exception("Her HD voice didn't say a long reply a few sentences at a time: " + hdPieces.Count + " pieces / " + hdCalls + " calls / " + hdLongSamples.Length + " samples / " + hdTrouble);
+                            // The test server's 0.4 s of sound is far too short for either piece, so each is asked for once more with another seed.
+                            string hdSeeds;
+                            lock (hdAsked) hdSeeds = string.Join(" ", hdAsked.GetRange(hdAsked.Count - hdCalls, hdCalls).ConvertAll(delegate(string hdRequest) { System.Text.RegularExpressions.Match seed = System.Text.RegularExpressions.Regex.Match(hdRequest, "\"seed\":(\\d+)"); return seed.Success ? seed.Groups[1].Value : "-"; }).ToArray());
+                            if (hdPieces.Count != 2 || hdPieces[0].Length > QwenVoice.PieceLength || string.Join(" ", hdPieces.ToArray()) != hdLong || hdCalls != 4 || hdSeeds != "7 8 7 8" || hdTrouble != null || hdLongSamples.Length != 2 * hdWave.Length) throw new Exception("Her HD voice didn't say a long reply a few sentences at a time, asking again for pieces cut short: " + hdPieces.Count + " pieces / " + hdCalls + " calls / seeds " + hdSeeds + " / " + hdLongSamples.Length + " samples / " + hdTrouble);
                             int hdPitchWas = VoiceFx.Pitch;
                             short[] hdPitched;
                             VoiceFx.Pitch = 6;

@@ -3048,12 +3048,30 @@ namespace CapriDesktop
         {
             Voiced(number);
             int tongue = Array.IndexOf(Tongues, Brain.LanguageCode(Brain.Language));
-            string rest = ",\"voice\":\"capri\",\"language\":\"" + (tongue >= 0 ? Languages[tongue] : "english") + "\",\"seed\":7,\"max_new_tokens\":512,\"response_format\":\"wav\"}";
+            string language = tongue >= 0 ? Languages[tongue] : "english";
+            Func<string, int, string> body = delegate(string piece, int seed)
+            {
+                return "{\"input\":" + Voice.Quote(piece) + ",\"voice\":\"capri\",\"language\":\"" + language + "\",\"seed\":" + seed + ",\"max_new_tokens\":512,\"response_format\":\"wav\"}";
+            };
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.HdRobot, glitch = VoiceFx.HdGlitch;
             VoiceFx.Layering layers = VoiceFx.Layers;
             List<short> said = new List<short>();
             int hertz = 24000;
-            foreach (string piece in Pieces(Voice.Sayable(text))) said.AddRange(Voice.Samples(Ask(number, "/v1/audio/speech", "{\"input\":" + Voice.Quote(piece) + rest), out hertz));
+            foreach (string piece in Pieces(Voice.Sayable(text)))
+            {
+                short[] made = Voice.Samples(Ask(number, "/v1/audio/speech", body(piece, 7)), out hertz);
+                // Like a voice server's, a piece far shorter than its words could take was cut off, which sounds like her voice
+                // stopping mid-reply while the text goes on (ticket 35: Ashy, on headphones with her HD voice). It's asked for once
+                // more with another seed, since the same seed makes the same sound, and the longer one is kept.
+                if (VoiceServer.Clipped(piece, made.Length, hertz))
+                {
+                    short[] again = Voice.Samples(Ask(number, "/v1/audio/speech", body(piece, 8)), out hertz);
+                    Brain.Log("HD voice", -1, "Sound for " + VoiceServer.Letters(piece) + " letters came back as " + (made.Length / (double)hertz).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
+                        + " s, so she asked again and got " + (again.Length / (double)hertz).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s.");
+                    if (again.Length > made.Length) made = again;
+                }
+                said.AddRange(made);
+            }
             short[] samples = said.ToArray();
             if (!VoiceFx.Plain(pitch, speed, robot, glitch, layers)) samples = VoiceFx.Restyled(samples, hertz, pitch, speed, robot, glitch, VoiceFx.Seed(text), layers);
             byte[] wav = Voice.Wave(samples, hertz);
@@ -3591,13 +3609,13 @@ namespace CapriDesktop
 
         // Sound for a piece is cut off when it's quicker than 20 letters a second, faster than anyone talks. Pieces under 40
         // letters are left alone, since a few words can be said quickly.
-        internal static bool Clipped(string piece, int samples)
+        internal static bool Clipped(string piece, int samples, int rate = YourVoice.Rate)
         {
             int letters = Letters(piece);
-            return letters >= 40 && samples < (long)letters * YourVoice.Rate / 20;
+            return letters >= 40 && samples < (long)letters * rate / 20;
         }
 
-        private static int Letters(string piece)
+        internal static int Letters(string piece)
         {
             int count = 0;
             foreach (char c in Voice.Uncued(piece ?? "")) if (char.IsLetterOrDigit(c)) count++;
