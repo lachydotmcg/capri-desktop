@@ -37,6 +37,18 @@ namespace CapriDesktop
         {
             new Topic("Mainframe", "your settings|her settings|open your settings|mainframe|settings window",
                 "Right-click Capri or her tray icon and choose Open Capri Mainframe. Its main page has BRAIN, VOICE and CAPRI; Settings at the top opens the settings page, and changes are saved as you make them.", "Capri.cs", "Open Capri Mainframe"),
+            new Topic("Settings pages", "settings button|back button in mainframe|settings pages",
+                "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them.", "Mainframe.cs", "Settings"),
+            new Topic("Minimize Mainframe", "minimize mainframe|minimise mainframe|minimize your settings",
+                "Minimize puts Capri Mainframe on the taskbar. Capri keeps running, and clicking its taskbar button brings the window back.", "Mainframe.cs", "Minimize"),
+            new Topic("Close Mainframe", "close mainframe|close your settings",
+                "Close puts Capri Mainframe on the taskbar too. Capri keeps running. Use Quit Capri on the main page when you want to close her completely.", "Mainframe.cs", "Close"),
+            new Topic("Support", "support capri|support lachy|your support button",
+                "Mainframe > CAPRI > Support opens Lachy's Ko-fi page in your browser. Opening the page does not make a payment.", "Mainframe.cs", "Support"),
+            new Topic("Help", "your help button|capri help page|help website",
+                "Mainframe > CAPRI > Help opens Capri's help page in your browser, where you can ask about her. You can also ask Capri about a setting in chat.", "Mainframe.cs", "Help"),
+            new Topic("Quit Capri", "quit capri|quit button|exit capri",
+                "Mainframe > CAPRI > Quit Capri closes Capri and her windows. She stops running until you open her again. Closing the Mainframe with its corner button only minimizes that window.", "Mainframe.cs", "Quit Capri"),
             new Topic("What she can do", "what can you do|what do you do|what can capri do|your features|your capabilities|what are your tools|what tools do you have|your tools|everything you can do|what else can you do",
                 delegate(Hands.Kit kit) { return "Talk by hovering over Capri and pressing TYPE or TALK, or use the keys in Mainframe > Settings > KEYS. She chats and speaks, and with her tools she can " + kit.Abilities + ". Ask in plain words; Esc stops a running job." + (kit.Absent.Length == 0 ? "" : " Not here right now: " + Regex.Replace(kit.Absent, @"\btheir\b", "your") + ".") + (kit.Switched.Length == 0 ? "" : " Off right now: " + Regex.Replace(kit.Switched, @"\btheir\b", "your") + "."); }, "Hands.cs", "use_computer"),
             new Topic("Clones and chaos mode", "your clones|clone yourself|chaos mode|make clones|copies of yourself|copy yourself|multiply yourself|duplicate yourself",
@@ -45,12 +57,40 @@ namespace CapriDesktop
                 delegate(Hands.Kit kit) { return "Ask in plain words and she presses it for you: she can " + Pressed(kit) + ". Mainframe > Settings > HABITS > Security > Shortcuts sets whether she asks first. Her own hotkeys, like Talk and Quiet, are under Mainframe > Settings > KEYS."; }, "Hands.cs", "shortcut"),
             new Topic("Brain", "your brain|her brain|brain setup|set up her brain|normal brain|higher brain|max intelligence|ollama|local brain|built in brain",
                 "In Mainframe > BRAIN, NORMAL uses a local brain: press Set up her brain to download one, or open Ollama and press Refresh. HIGHER uses a free NVIDIA key; MAX INTELLIGENCE accepts Google AI (Gemini), OpenRouter, OpenAI, Claude or DeepSeek keys, and only the selected tier runs. Pick a model from the model menu; a brain key and a voice key do different jobs.", "Mainframe.cs", "NORMAL"),
+            new Topic("Brain models", "brain model picker|brain model menu|choose a brain model",
+                "Mainframe > BRAIN's model menu chooses the brain she uses. Local choices come from installed models and detected local servers. Cloud choices come from the selected service and key. Only the selected brain runs.", "Mainframe.cs", "Brain model"),
+            new Topic("Refresh", "refresh your brain|refresh brain models|refresh button",
+                "Mainframe > BRAIN > Refresh looks for installed Ollama models, her built-in model and local servers at known or saved addresses. It updates the model menu. With a cloud brain selected, it also refreshes that service's models.", "Mainframe.cs", "Refresh"),
+            new Topic("Set up her brain", "brain download button|set up her brain button|cancel brain download",
+                "Mainframe > BRAIN > Set up her brain downloads a local model. With Ollama running she gets it there. Otherwise she installs her built-in brain, loads it and saves the choice. Progress shows while it works, and pressing the button again cancels.", "Mainframe.cs", "Set up her brain"),
             new Topic("Free key", "free key|nvidia key|nvidia api|connect a key|connect my key|connect an api key|brain key|api keys",
-                "In Mainframe > BRAIN, press Free key, sign in to NVIDIA, then Generate API Key and copy it. Choose HIGHER, paste the key into the BRAIN box and press Connect, then choose a model there. Keys go in the Mainframe's key boxes, not in chat; they are saved encrypted on this PC.", "Mainframe.cs", "Free key"),
+                "In Mainframe > BRAIN, press Free key, sign in to NVIDIA, then Generate API Key and copy it. Choose HIGHER, paste the key into the BRAIN box and press Connect, then choose a model there. Keys go in the Mainframe's key boxes, not in chat; they are saved encrypted on this PC. With a saved key and an empty box, Forget removes that key from Capri.", "Mainframe.cs", "Free key"),
+            new Topic("Brain API key", "brain key box|forget brain key|brain api key box",
+                "Mainframe > BRAIN > Connect saves a pasted API key encrypted on this PC. HIGHER needs NVIDIA; MAX INTELLIGENCE needs a supported cloud key. With a saved key and an empty box, Forget removes it.", "Mainframe.cs", "NVIDIA API key"),
             new Topic("Cloud brain keys", "openai key|claude key|deepseek key|chatgpt key|paid key|paid brain|google ai|gemini|openrouter|open router",
                 "In Mainframe > BRAIN, choose MAX INTELLIGENCE, paste a Google AI (Gemini), OpenRouter, OpenAI, Claude or DeepSeek API key and press Connect. Google AI starts on an available stable Flash model when there is one; Gemini can see. OpenRouter prefers a free model that takes images, and the model list tells her which models can see and use tools. If no free seeing model is listed she prefers another free model, then an available paid one. A new Claude key starts on Claude Haiku 5.5. Pick an available model in the menu; these are brain services, separate from CLOUD VOICE, and a ChatGPT subscription is not an API key.", "Mainframe.cs", "MAX INTELLIGENCE"),
             new Topic("Voice", "change your voice|change her voice|your voice|her voice|voice choices|voice settings|prebuilt local|custom local|cloud voice|elevenlabs|fish audio",
-                "Mainframe > VOICE offers OFF for text only, PREBUILT LOCAL for free voices on this PC, CUSTOM LOCAL for your own model, and CLOUD VOICE for Fish Audio, ElevenLabs or OpenAI. Under PREBUILT LOCAL, press Get free voice if needed and use Free voice: Her own to pick a style; CUSTOM LOCAL's Set up opens its model panel. For CLOUD VOICE pick the service and connect there; ElevenLabs has a key box, Voice ID and model menu, and Test lets you hear the result.", "Mainframe.cs", "PREBUILT LOCAL"),
+                "Mainframe > VOICE offers OFF for text only, PREBUILT LOCAL for free voices on this PC, CUSTOM LOCAL for your own model, and CLOUD VOICE for Fish Audio, ElevenLabs or OpenAI. Under PREBUILT LOCAL, press Get free voice if needed and use Free voice: Her own to pick a style; CUSTOM LOCAL's Set up opens its model panel. For CLOUD VOICE pick the service and connect there; ElevenLabs has a key box, Voice ID and model menu, and Test lets you hear the result. With its key saved and its box empty, Forget removes the ElevenLabs key from Capri.", "Mainframe.cs", "PREBUILT LOCAL"),
+            new Topic("Voice off", "voice off setting|silent voice setting",
+                "Mainframe > VOICE > OFF makes her replies text only. It does not remove saved voice keys or models. Pick another voice row when you want her to speak again.", "Mainframe.cs", "OFF"),
+            new Topic("Custom local voice", "custom local voice setup|your voice model panel",
+                "Mainframe > VOICE > CUSTOM LOCAL uses a voice model on your PC. Set up opens its model panel, where you choose a local server or supported model files. Test it there, then use the panel's save button to select it.", "Mainframe.cs", "CUSTOM LOCAL"),
+            new Topic("Cloud voice service", "cloud voice service picker|choose a cloud voice service",
+                "Mainframe > VOICE > CLOUD VOICE uses Fish Audio, ElevenLabs or OpenAI. Choose the service in its menu. Fish Audio and OpenAI keep their key, model and voice in a setup panel; ElevenLabs has its key and voice controls on the main page. Brain keys are separate.", "Mainframe.cs", "Cloud voice service"),
+            new Topic("ElevenLabs key", "elevenlabs voice key|forget elevenlabs key|connect elevenlabs key",
+                "Mainframe > VOICE's ElevenLabs key box takes a voice API key. Connect checks it, loads your voices and saves it encrypted on this PC. With a saved key and an empty box, Forget stops the voice link and removes the saved key. It does not change your brain key.", "Mainframe.cs", "ElevenLabs API key"),
+            new Topic("Voice ID", "elevenlabs voice id|voice id box|voice id menu",
+                "Mainframe > VOICE's ElevenLabs Voice ID chooses who speaks. Connect loads the voices for your key. Pick one from the menu or paste its ID; leaving the box saves it. Clearing the box removes the selected ID.", "Mainframe.cs", "ElevenLabs voice ID"),
+            new Topic("Speech model", "elevenlabs speech model|elevenlabs model menu|default speech model",
+                "Mainframe > VOICE's ElevenLabs model menu lists the speech models returned for your key. Pick one or choose Default model. She saves that choice for future ElevenLabs speech; this is separate from her BRAIN model.", "Mainframe.cs", "Default model"),
+            new Topic("Free voice style", "free voice style picker|free voice menu|choose a free voice style",
+                "Mainframe > VOICE > PREBUILT LOCAL's free voice menu chooses a voice style on your PC. Your voice (HD) uses a clip you pick and needs more memory. Picking another free voice returns her to a preset style.", "Mainframe.cs", "Free voice: Her own"),
+            new Topic("Get free voice", "get free voice button|cancel free voice download|download free voice",
+                "Mainframe > VOICE > Get free voice downloads and warms her local speech model. She gets her offline ears too when needed. Progress shows under VOICE. The button becomes Cancel while it runs; cancelling keeps downloaded parts for the next try.", "Mainframe.cs", "Get free voice"),
+            new Topic("Voice setup guide", "voice setup guide|cloud voice setup guide",
+                "Mainframe > VOICE > Setup guide opens the ElevenLabs key guide in your browser. With Fish Audio or OpenAI selected, it opens that service's setup panel instead. Each voice service has its own key and voice choices.", "Mainframe.cs", "Setup guide"),
+            new Topic("Test mic", "test my mic|test the mic|test your mic|mic test|test microphone|test button|is my mic working",
+                "Mainframe > VOICE > Test, beside the mic picker, listens to the picked mic for up to 10 seconds and shows its level as you speak. Click Stop to end it early. It tells you if the mic is muted, silent or very quiet, or that sound is reaching her. Picking a voice plays her test line.", "Mainframe.cs", "Test"),
             new Topic("HD voice", "hd voice|your voice hd|voice clip|clone my voice",
                 "Mainframe > VOICE > PREBUILT LOCAL's free voice menu offers Your voice (HD) and a clip picker. HD recommends 6 GB graphics memory and 16 GB RAM; 4 GB may fit with smaller chunks. Less memory warns but still lets you try, and Use CPU for HD trades speed for graphics memory. Capri ships no voice clip of her own. Pick another free voice in that menu to return to a preset style.", "Mainframe.cs", "Your voice (HD)"),
             new Topic("Microphone", "your microphone|your mic|voice chat|talk button|mute mic|mute your mic|cant hear me|cannot hear me|push to talk",
@@ -113,6 +153,8 @@ namespace CapriDesktop
                 "Mainframe > Settings > MOVES > Glitch in at startup switches her arrival effect on or off. It changes how she appears when Capri starts, not whether she starts with Windows.", "Mainframe.cs", "Glitch in at startup"),
             new Topic("Hotkeys", "hotkeys|hot keys|your shortcuts|keyboard shortcuts|change your keys|keybinds|ctrl alt",
                 "Mainframe > Settings > KEYS lets you click a binding, press new keys and click Confirm; Cancel keeps the old binding. The defaults are Ctrl + Alt + V for Talk, N for Mute mic, T for Type, H for Hide/show, P for Quiet and G for Gaming Mode. Push to talk starts unbound and can use a key or mouse button held while talking.", "Mainframe.cs", "KEYS >"),
+            new Topic("Push to talk key", "push to talk key setting|bind push to talk|push to talk button",
+                "Mainframe > Settings > KEYS > Push to talk lets you hold a key or mouse button to talk to her, even with a game in front. It starts unbound. Click it, press the binding and click Confirm, or click Off to clear it. The binding still does its usual job in the game.", "Mainframe.cs", "Push to talk: not set"),
             new Topic("Quiet", "quiet mode|quiet key|make you quiet|keep you quiet|stop interrupting|stop talking on your own",
                 "The default Ctrl + Alt + P toggles Quiet, and Mainframe > Settings > KEYS lets you change that key. It stops unsolicited glances, check-ins, cheers and jokes and pauses Hey Capri, while she still answers when you talk to her. Press it again to resume without changing Watch my screen or Check in on me.", "Mainframe.cs", "Quiet: Ctrl + Alt + P"),
             new Topic("Size", "your size|her size|make you bigger|make you smaller|make her bigger|make her smaller|resize you|resize capri",
@@ -223,6 +265,12 @@ namespace CapriDesktop
                 "Say remember this website as apples, call this site apples, or remember apples is example.com/page. She reads the front browser's address without moving input, or asks for the address if unavailable. Open apples, check out the apples website, go to apples and take me to apples open that whole nickname; in chrome chooses Chrome. What websites do you know lists them, and forget the apples website removes one. Nicknames are in websites.json next to memories.md in her data folder.", "Hands.cs", "website_nickname"),
             new Topic("Moves", "your moves|move you|move capri|ride cursor|hop off|sit here|hang here|sit on windows|bring here|bring to this screen",
                 "Drag Capri to place her, double-click her to ride the cursor, or right-click > Move for Sit here, Hang here, Lie down, Ride cursor and monitor choices. Sit on windows lets her land on window edges; Stand up releases a chosen seat and Hop off ends a cursor ride, also available with Ctrl + Alt + C. Mainframe > CAPRI has Bring here and Hide Capri, and double-clicking her tray icon brings her back.", "Capri.cs", "Sit on windows"),
+            new Topic("Hide Capri", "hide capri button|show capri button",
+                "Mainframe > CAPRI > Hide Capri hides her and stops her movement, cursor riding, chat and speech. The button changes to Show Capri to bring her back. Hiding her keeps Capri running.", "Mainframe.cs", "Hide Capri"),
+            new Topic("Bring here", "bring here button|bring capri here button",
+                "Mainframe > CAPRI > Bring here wakes her, ends a cursor ride and clears her seat. She appears near the lower-right corner of the monitor containing your cursor.", "Mainframe.cs", "Bring here"),
+            new Topic("Ride cursor", "ride cursor button|hop off button",
+                "Mainframe > CAPRI > Ride cursor makes her follow your mouse smoothly on its monitor. Mouse clicks pass through her while she rides. The button becomes Hop off; stopping the ride returns her to her previous position.", "Mainframe.cs", "Ride cursor"),
             new Topic("Notes", "me md|your notes|her notes|open her notes|edit your notes|remember things about me",
                 "Mainframe > Settings > YOU > Open her notes opens me.md in Notepad. Tell her remember or forget a fact, or edit the file and save it; she reads these notes when you chat. Get to know me writes your nickname, pronouns and interests there too.", "Mainframe.cs", "Open her notes"),
             new Topic("personality.md", "personality md|edit your personality|change your personality|personality file",
@@ -301,6 +349,13 @@ namespace CapriDesktop
             List<string> doing = new List<string>();
             foreach (string name in kit.Keys) doing.Add(Security.Asking("shortcut", new ToolArguments { Name = name }));
             return doing.Count < 2 ? string.Join("", doing.ToArray()) : string.Join(", ", doing.GetRange(0, doing.Count - 1).ToArray()) + " and " + doing[doing.Count - 1];
+        }
+
+        internal static Topic Setting(string file, string label)
+        {
+            foreach (Topic topic in Topics)
+                if (topic.File == file && topic.Label == label) return topic;
+            return null;
         }
 
         // Facts about the topics they asked about. What she can do comes from her tools here, and a brain that can't see leaves out looking.

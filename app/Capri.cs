@@ -20509,6 +20509,7 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeSelfKnow(checks); });
                             Section(checks, delegate { SmokeToolKit(checks); });
                             Section(checks, delegate { SmokeStores(checks, output); });
+                            Section(checks, delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
                             Section(checks, delegate { SmokeFiles(checks); });
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
