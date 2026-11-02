@@ -3403,6 +3403,14 @@ namespace CapriDesktop
                 Reply(ticket, text, done);
                 return;
             }
+            // Asked in other words for something only Windows has, like "can you draw on my screen?", she says so too (F69).
+            string lacking = Hands.KitFor().Lacking(text);
+            if (lacking != null)
+            {
+                Brain.Remember(text, lacking);
+                Reply(ticket, text, lacking);
+                return;
+            }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
             if (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate")) { Reply(ticket, text, Hands.Do(tool, args)); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline); FindBrain(); return; }

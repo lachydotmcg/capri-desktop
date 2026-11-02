@@ -373,6 +373,8 @@ namespace CapriDesktop
         // Hugging Face's TGI, at its address without /v1. It thinks instead of Ollama, with Model as its model.
         internal volatile string Server;
         internal Func<string, ToolArguments, string> Act;
+        // Her tools here for a brain that can or can't see. Checks hand her another computer's, like a Mac's.
+        internal Func<bool, Hands.Kit> Kit = Hands.KitFor;
 #if !CROSS
         internal readonly Files Attachments = new Files();
 #endif
@@ -1679,7 +1681,7 @@ namespace CapriDesktop
             if (droppedFiles && text == Files.Dropped) act = null;
 #endif
             // Her tools here, for this brain: what works on this computer, and looking only when it can see.
-            Hands.Kit kit = Hands.KitFor(Blind);
+            Hands.Kit kit = Kit(Blind);
             string self = null;
 #if !CROSS
             self = SelfKnow.Matching(text, kit);
@@ -1742,8 +1744,12 @@ namespace CapriDesktop
             string unable = null;
             // A stream is a mouse and keyboard job, so it only starts where she has them.
             if (act != null && kit.Has("use_computer") && Hands.StreamAsked(request)) Hands.Streaming = true;
+            // Asked for something that can't work here, like "can you draw on my screen?" on a Mac, she says so straight away
+            // instead of a brain promising it or a mouse job trying it (F69, pass 5).
+            string lacking = act != null && !fileChat ? kit.Lacking(request) : null;
+            if (lacking != null) unable = lacking;
             // On stream, asking her to play starts her stream job however it's worded.
-            if (act != null && Hands.Streaming && Hands.Streams(request))
+            else if (act != null && Hands.Streaming && Hands.Streams(request))
                 calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = request }));
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && recent.Count == 2 && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(text.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))

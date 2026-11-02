@@ -1905,6 +1905,8 @@ namespace CapriDesktop
             Hands.WatchAlong = WatchAlongTool;
             WatchAlong.Active = delegate { return watchAlong != null; };
             Hands.SaveClip = clips.Clip;
+            // Her brains hear Clip my games is off, and where to turn it on (F69).
+            Hands.ClipsOn = delegate { return preferences.ClipGames; };
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
             clips.Enable(!testing && preferences.ClipGames);
             SetUpMinis();
@@ -13281,9 +13283,10 @@ namespace CapriDesktop
             System.Collections.Generic.List<string> unfound = Hands.Unfound();
             if (unfound.Count > 0) throw new Exception("A missing tool's prompt edit no longer matches her prompts: " + unfound[0]);
             Hands.Kit blind = Hands.KitFor(true);
-            const string blindLine = "Not on this PC: looking at their screen (this brain can't see pictures).";
-            if (!ReferenceEquals(blind, Hands.KitFor(true)) || blind.Has("look_at_screen") || blind.NotHere != blindLine
+            const string blindLine = "Not on this PC: looking at their screen and watching their screen for something (this brain can't see pictures).";
+            if (!ReferenceEquals(blind, Hands.KitFor(true)) || blind.Has("look_at_screen") || blind.Has("watch_for") || blind.NotHere != blindLine
                 || blind.Tools.Contains("\"name\":\"look_at_screen\"") || blind.ClaudeTools.Contains("\"name\":\"look_at_screen\"") || blind.Listing.Contains("look_at_screen{")
+                || blind.Tools.Contains("\"name\":\"watch_for\"") || blind.Listing.Contains("watch_for{") || Hands.NoteFor(blind).Contains("Use watch_for when") || Hands.PromptFor(blind).Contains("call watch_for")
                 || !blind.Tools.Contains("\"name\":\"use_computer\"") || !blind.Listing.Contains("mini_game{") || blind.Tools.Length >= Hands.Tools.Length
                 || blind.Chat.Contains("You can always see their screen") || !blind.Chat.Contains(blindLine) || blind.Chat.IndexOf(blindLine, StringComparison.Ordinal) > blind.Chat.IndexOf(" If they want anything done", StringComparison.Ordinal)
                 || !blind.ChatOnly.Contains(blindLine) || blind.ChatOnly.Contains(": act") || !Hands.PromptFor(blind).Contains(blindLine + " If they ask for one of these, call no tool") || Hands.PromptFor(blind).Contains("look at their screen when asked")
@@ -13291,10 +13294,68 @@ namespace CapriDesktop
                 throw new Exception("A brain that can't see still had look_at_screen or wasn't told why: " + blind.NotHere);
             string doing = SelfKnow.Matching("what can you do?") ?? "", doingBlind = SelfKnow.Matching("what can you do?", blind) ?? "", pressing = SelfKnow.Matching("what keyboard shortcuts can you press?") ?? "", cloning = SelfKnow.Matching("can you clone yourself?") ?? "";
             if (!doing.StartsWith("What she can do:", StringComparison.Ordinal) || !doing.Contains("mini games") || !doing.Contains("chess") || !doing.Contains("look at your screen;") || doing.Contains("Not here right now")
-                || !doingBlind.Contains("mini games") || doingBlind.Contains("look at your screen;") || !doingBlind.Contains("Not here right now: looking at your screen (this brain can't see pictures).")
+                || !doingBlind.Contains("mini games") || doingBlind.Contains("look at your screen;") || !doingBlind.Contains("Not here right now: looking at your screen and watching your screen for something (this brain can't see pictures).")
                 || !pressing.StartsWith("Shortcuts she can press:", StringComparison.Ordinal) || !pressing.Contains("take a screenshot") || !pressing.Contains("open the Game Bar")
                 || !cloning.StartsWith("Clones and chaos mode:", StringComparison.Ordinal) || !cloning.Contains("Hold Esc"))
                 throw new Exception("Her help didn't say what she can do from her tools: " + doing + " / " + pressing + " / " + cloning);
+            // The brain she chats with always gets a short list of what she can do right now, by name and in a few words (F69).
+            for (int i = 0; i < Hands.Count; i++)
+            {
+                string tool = Hands.Name(i);
+                if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
+                    throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
+            }
+            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 1700 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
+                || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
+                throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
+            // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
+            Func<bool> clipsWere = Hands.ClipsOn;
+            try
+            {
+                Hands.ClipsOn = delegate { return true; };
+                Hands.Kit clipsOn = Hands.KitFor();
+                Hands.ClipsOn = delegate { return false; };
+                Hands.Kit clipsOff = Hands.KitFor();
+                const string offLine = "Off right now: game clips (turn on Clip my games in Settings > GAMES).";
+                if (ReferenceEquals(clipsOn, clipsOff) || !ReferenceEquals(clipsOff, Hands.KitFor()) || clipsOff.Missing.Count != 0 || clipsOn.Off.Count != 0 || !clipsOff.Off.ContainsKey("clip") || clipsOff.Tools != clipsOn.Tools
+                    || clipsOff.Unable("clip", new ToolArguments()) != null || !clipsOff.Noted.Contains(offLine) || clipsOn.Noted.Contains("Off right now") || clipsOn.Brief.Contains("off right now")
+                    || !clipsOff.Brief.Contains("\n- clip: clip their game (off right now: turn on Clip my games in Settings > GAMES)") || !clipsOff.ChatOnly.Contains("(off right now: ")
+                    || !(SelfKnow.Matching("what can you do?", clipsOff) ?? "").Contains(offLine) || (SelfKnow.Matching("what can you do?", clipsOn) ?? "").Contains("Off right now"))
+                    throw new Exception("Clip my games being off didn't reach her brains or her help: " + clipsOff.Switched);
+            }
+            finally { Hands.ClipsOn = clipsWere; }
+            // "Can you X?" for something that isn't here gets the truth straight away, on a Mac without her mouse and keyboard
+            // too, while mouse jobs, looks and what works go on to her hands (F69, pass 5).
+            System.Collections.Generic.List<string[]> macGaps = new System.Collections.Generic.List<string[]>();
+            macGaps.Add(new[] { "use_computer", "Mac doesn't let apps use the mouse and keyboard yet" });
+            foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
+            Hands.Kit mac = Hands.KitWithout(macGaps);
+            string[,] lacking =
+            {
+                { "can you draw on my screen?", "Drawing on your screen is only on Windows for now, choom." },
+                { "clip that", "Game clips are only on Windows for now, choom." },
+                { "ride my cursor", "Riding your cursor is only on Windows so far." },
+                { "let's play chess", "My mini games are only on Windows for now, choom." },
+                { "play tic tac toe with me", "My mini games are only on Windows for now, choom." },
+                { "what did he just say", "Listening to what's playing is only on Windows for now, choom." },
+                { "watch this video with me", "Watching videos together is only on Windows for now, choom." },
+                { "tell me when my download finishes", "Watching your screen for something is only on Windows for now, choom." },
+                { "where are my save files", "Finding files is only on Windows for now, choom." },
+                { "clone yourself", Hands.NoClones },
+                { "activate gaming mode", "Gaming Mode is only on Windows for now, choom." },
+                { "can you click the play button?", null },
+                { "open spotify", null },
+                { "what's on my screen?", null },
+                { "let me know when you're free", null },
+                { "tell me when it's 5pm", null },
+                { "do you like drawing?", null }
+            };
+            for (int i = 0; i < lacking.GetLength(0); i++)
+                if (mac.Lacking(lacking[i, 0]) != lacking[i, 1]) throw new Exception("\"" + lacking[i, 0] + "\" on a Mac got " + (mac.Lacking(lacking[i, 0]) ?? "nothing") + " instead of " + (lacking[i, 1] ?? "nothing"));
+            if (mac.Lacking("open the game bar") == null || !mac.Lacking("open the game bar").EndsWith(" on Windows for now, choom.", StringComparison.Ordinal) || !mac.NotHere.StartsWith("Not on this PC: mouse and keyboard jobs (Mac doesn't let apps use the mouse and keyboard yet); the Game Bar shortcuts, riding their cursor,", StringComparison.Ordinal)
+                || mac.Brief.Contains("\n- draw: ") || mac.Brief.Contains("\n- use_computer: ") || !mac.Brief.Contains("\n- open_app: ") || !mac.Brief.Contains(mac.NotHere) || mac.Tools.Contains("\"name\":\"draw\"") || mac.Tools.Contains("\"ride_cursor\"") || !mac.Tools.Contains("\"sit_on\"")
+                || kit.Lacking("can you draw on my screen?") != null || kit.Lacking("tell me when my download finishes") != null || blind.Lacking("tell me when my download finishes") != null || blind.Lacking("what's on my screen?") != null)
+                throw new Exception("Her line about what isn't here was wrong, or what works was turned down: " + mac.NotHere);
             Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
             System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
             System.Net.Sockets.TcpListener fake;
@@ -13342,7 +13403,38 @@ namespace CapriDesktop
                 Brain.Keeping = keepingWas;
                 fake.Stop();
             }
-            checks.Add("PASS her tools here: with everything on this PC her tool lists and prompts are unchanged and kept for each set of missing tools; a brain that can't see pictures has no look_at_screen, is told \"" + blindLine + "\" in chat, hands, planner and voice chat, answers \"I can't see your screen\" without being sent to look while a seeing brain still looks; what she can do lists her tools with mini games and chess, the shortcuts she can press and her clones");
+            // On a Mac, "can you draw on my screen?" gets the truth with no brain call, and a mouse job gets her line instead of
+            // being forced on hands she doesn't have (F69, pass 5).
+            System.Collections.Generic.List<string> macAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener macFake;
+            Brain.OpenAi = FakeServer(new[] { says("chat") }, macAsked, out macFake);
+            try
+            {
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                int macActed = 0;
+                Brain onMac = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = delegate { macActed++; return "Done."; } };
+                onMac.Kit = delegate { return mac; };
+                string drew = onMac.Ask("can you draw on my screen?");
+                int drawCalls;
+                lock (macAsked) drawCalls = macAsked.Count;
+                string clicked = onMac.Ask("can you click the play button?");
+                string[] macSent;
+                lock (macAsked) macSent = macAsked.ToArray();
+                if (drew != "Drawing on your screen is only on Windows for now, choom." || drawCalls != 0 || !clicked.StartsWith("I can't use your mouse and keyboard on a Mac yet", StringComparison.Ordinal) || macActed != 0 || macSent.Length != 1 || macSent[0].Contains("\"name\":\"use_computer\""))
+                    throw new Exception("On a Mac a tool that isn't there was promised or forced on her hands: " + drew + " / " + clicked + " / " + macActed + " tools / " + macSent.Length + " calls");
+            }
+            finally
+            {
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                macFake.Stop();
+            }
+            checks.Add("PASS her tools here: with everything on this PC her tool lists and prompts are unchanged and kept for each set of missing tools; a brain that can't see pictures has no look_at_screen or screen watches, is told \"" + blindLine + "\" in chat, hands, planner and voice chat, answers \"I can't see your screen\" without being sent to look while a seeing brain still looks; her chat brain always gets a short list of every tool she has here; Clip my games off stays in her tools and says where to turn it on; on a Mac, can you draw, clip, ride my cursor, chess, listen, watch along, watch for, files, clones and Gaming Mode get her not-here line with no brain call while mouse jobs get her mouse line and nothing is forced; what she can do lists her tools with mini games and chess, the shortcuts she can press and her clones");
         }
 
         private void SmokeCare(System.Collections.Generic.List<string> checks)
