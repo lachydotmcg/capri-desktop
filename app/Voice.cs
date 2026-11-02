@@ -505,14 +505,34 @@ namespace CapriDesktop
 #endif
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         internal void Stop()
         {
 #if CROSS
             if (Silence != null) Silence();
 #else
+            // A line stopped with sound still to play goes in errors.txt with what stopped it, so a report of her voice stopping
+            // mid-reply says which part of her did it (ticket 35).
+            double left = player.Left;
+            if (left > 0.5) Brain.Log("voice cut", -1, left.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s left, stopped by " + Stopper());
             player.Close();
 #endif
         }
+
+#if !CROSS
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static string Stopper()
+        {
+            StackTrace trace = new StackTrace(2, false);
+            List<string> names = new List<string>();
+            for (int i = 0; i < trace.FrameCount && names.Count < 3; i++)
+            {
+                MethodBase method = trace.GetFrame(i).GetMethod();
+                if (method != null) names.Add(method.Name);
+            }
+            return string.Join(" < ", names.ToArray());
+        }
+#endif
     }
 
     // Bonk is her thud when she's thrown into an edge of her screen or the taskbar.
