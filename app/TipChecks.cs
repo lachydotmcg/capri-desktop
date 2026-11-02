@@ -17,6 +17,9 @@ namespace CapriDesktop
             int wasSize = capri.MainframeSize;
             Point wasAt = Location;
             Control wasFocus = ActiveControl;
+            // Restore() brings the Mainframe up, so it goes back down after: a minimized start stays minimized.
+            bool wasShown = Visible;
+            FormWindowState wasState = WindowState;
             try
             {
                 Restore();
@@ -199,6 +202,8 @@ namespace CapriDesktop
                 Location = wasAt;
                 if (wasFocus != null && wasFocus.CanFocus) wasFocus.Focus();
                 DismissHint();
+                if (!wasShown) Hide();
+                else if (WindowState != wasState) WindowState = wasState;
             }
         }
 

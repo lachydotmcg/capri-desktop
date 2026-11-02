@@ -88,9 +88,10 @@ namespace CapriDesktop
             Explain(models, "Brain model", "Mainframe.cs", null, "Brain model");
             Explain(refresh, "Refresh");
             Explain(setup, "Set up her brain", "Mainframe.cs", hint, "Set up her brain");
-            for (int i = 0; i < rungs.Length; i++) Explain(rungs[i], i == 2 ? "MAX INTELLIGENCE" : i == 1 ? "Free key" : "NORMAL");
-            Explain(textEntry, "NVIDIA API key", "Mainframe.cs", null, "Brain API key");
-            Explain(textConnect, "NVIDIA API key", "Mainframe.cs", null, "Connect / Forget brain key");
+            for (int i = 0; i < rungs.Length; i++) Explain(rungs[i], i == 2 ? "MAX INTELLIGENCE" : i == 1 ? "MEDIUM INTELLIGENCE" : "NORMAL");
+            Explain(textEntry, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key", "Mainframe.cs", null, "Brain API key");
+            Explain(textConnect, "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key", "Mainframe.cs", null, "Connect / Forget brain key");
+            Explain(movePaid, "Move key to MAX INTELLIGENCE");
             for (int i = 0; i < voiceRungs.Length; i++) Explain(voiceRungs[i], i == 0 ? "OFF" : i == 1 ? "PREBUILT LOCAL" : i == 2 ? "CUSTOM LOCAL" : "Cloud voice service");
             Explain(setUpModel, "CUSTOM LOCAL", "Mainframe.cs", null, "Set up your voice model");
             Explain(customVoice, "CUSTOM LOCAL", "Mainframe.cs", null, "Your voice model");
@@ -107,6 +108,8 @@ namespace CapriDesktop
             Explain(shortcut, "KEYS >", "Mainframe.cs", null, "Talk key");
             Explain(muteShortcut, "Mic: default", "Mainframe.cs", null, "Mute mic key");
             Explain(voiceNote, "Mic: default", "Mainframe.cs", null, "Voice status");
+            foreach (Key fix in hearingFixes) Explain(fix, "Hearing status", "Mainframe.cs", null, "Hearing fix");
+            Explain(hearingChoice, "Hearing engine", "Mainframe.cs", null, "Hearing");
             Explain(showHide, "Hide Capri", "Mainframe.cs", null, "Hide / Show Capri");
             Explain(perch, "Ride cursor", "Mainframe.cs", null, "Ride cursor / Hop off");
             foreach (Control control in Controls)

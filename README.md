@@ -175,7 +175,7 @@ Pick what she calls you, her language, her voice and what she does on your PC fr
 - [x] Typing to her, with replies in her speech bubble
 - [x] A brain on your PC that sets itself up, or Ollama if you have it
 - [x] A free NVIDIA key, or your own Gemini, OpenRouter, ChatGPT, Claude or DeepSeek key
-- [x] Three brain tiers: NORMAL, HIGHER and MAX INTELLIGENCE
+- [x] Three brain tiers: NORMAL, MEDIUM INTELLIGENCE (free) and MAX INTELLIGENCE
 - [x] Remembering things about you, in her notes (me.md)
 - [x] Keeping your chat for up to a week
 - [x] Remembering past chats and what she saw on your screen, and bringing up old moments herself (0.7.6)

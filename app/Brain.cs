@@ -313,6 +313,8 @@ namespace CapriDesktop
             if (Regex.IsMatch(key, "^sk-[0-9a-f]{32}$")) return "deepseek";
             return key.StartsWith("sk-", StringComparison.Ordinal) ? "openai" : null;
         }
+
+        internal static bool MediumKind(string kind) { return kind == "nvidia" || kind == "google" || kind == "openrouter"; }
     }
 
     internal sealed class BrainException : Exception
@@ -1469,7 +1471,7 @@ namespace CapriDesktop
             return installed[0];
         }
 
-        internal static List<string> CloudModels(string key)
+        internal static List<string> CloudModels(string key, bool freeOnly = false)
         {
             string kind = Cloud.KindOf(key);
             bool claude = kind == "anthropic";
@@ -1480,7 +1482,16 @@ namespace CapriDesktop
                 using (WebResponse response = request.GetResponse())
                 {
                     CheckRedirect(response);
-                    using (StreamReader body = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) return ReadCloudModels(kind, body.ReadToEnd());
+                    using (StreamReader body = new StreamReader(response.GetResponseStream(), Encoding.UTF8))
+                    {
+                        List<string> found = ReadCloudModels(kind, body.ReadToEnd());
+                        if (freeOnly && kind == "openrouter")
+                        {
+                            found.RemoveAll(model => !model.EndsWith(":free", StringComparison.Ordinal));
+                            if (found.Count == 0) throw new BrainException("OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.", true);
+                        }
+                        return found;
+                    }
                 }
             }
             catch (WebException error)
@@ -1490,7 +1501,7 @@ namespace CapriDesktop
                     BrainException failure = Problem(error, true, kind);
                     if (OtherDoor(key, request.RequestUri.AbsoluteUri, failure))
                     {
-                        try { return CloudModels(key); }
+                        try { return CloudModels(key, freeOnly); }
                         catch (BrainException) { ShutDoor(key, request.RequestUri.AbsoluteUri); throw; }
                     }
                     if (failure.Message == Gone) throw new BrainException(Cloud.CompanyOf(kind) + " couldn't find its model list. Try Refresh.", true);

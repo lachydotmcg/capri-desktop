@@ -33,14 +33,16 @@ namespace CapriDesktop
             try { Native.SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { Native.SetProcessDPIAware(); }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            bool smoke = args.Length == 2 && args[0] == "--smoke-test";
+            bool smoke = args.Length >= 2 && args[0] == "--smoke-test";
+            if (smoke && !SmokeRun.Worker) return SmokeRun.Run(args);
+            SmokeOptions smokeOptions = smoke ? SmokeOptions.Parse(args) : null;
             bool bench = args.Length == 2 && args[0] == "--bench";
             if (args.Length == 1 && args[0] == "--stream") Computer.Streaming = Computer.StreamingAlways = true;
             string identity = WindowsIdentity.GetCurrent().User.Value;
             bool first;
-            using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test" : bench ? ".Bench" : ""), out first))
-            using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
-            using (EventWaitHandle shown = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\Capri.Shown." + identity + (smoke ? ".Test" : bench ? ".Bench" : "")))
+            using (Mutex mutex = new Mutex(true, "Local\\Capri.Desktop." + identity + (smoke ? ".Test.Worker" : bench ? ".Bench" : ""), out first))
+            using (EventWaitHandle restore = new EventWaitHandle(false, EventResetMode.AutoReset, "Local\\Capri.Restore." + identity + (smoke ? ".Test.Worker" : bench ? ".Bench" : "")))
+            using (EventWaitHandle shown = new EventWaitHandle(false, EventResetMode.ManualReset, "Local\\Capri.Shown." + identity + (smoke ? ".Test.Worker" : bench ? ".Bench" : "")))
             {
                 if (!first)
                 {
@@ -71,9 +73,9 @@ namespace CapriDesktop
                         StartedFresh = Starting(data);
                     }
                     else Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
-                    using (Companion app = new Companion(data, restore, shown, smoke))
+                    using (Companion app = new Companion(smoke ? Environment.GetEnvironmentVariable("CAPRI_SMOKE_DATA") ?? data : data, restore, shown, smoke))
                     {
-                        if (smoke) app.StartSmokeTest(data);
+                        if (smoke) app.StartSmokeTest(data, smokeOptions);
                         if (bench) app.StartBench(data);
                         Application.Run(app);
                         HerCursor.Off();
@@ -431,6 +433,7 @@ namespace CapriDesktop
         [DataMember] public string AgentId;
         [DataMember] public int AgentVersion;
         [DataMember] public string Mic;
+        [DataMember] public int Hearing;
         [DataMember] public string TextKey;
         [DataMember] public string TextModel;
         [DataMember] public string NvidiaKey;
@@ -1312,7 +1315,7 @@ namespace CapriDesktop
         private int drawnCell = -1, drawnMouth = -1, drawnMix, bodyPaints;
         private bool drawnVeil, drawnMotion, drawnSettled, drawnNotes, drawnHologram;
         private double drawnLean;
-        private float drawnBreath, drawnTilt;
+        private float drawnBreath, drawnTilt, drawnTurn;
         private bool fullScreenHidden, manualHidden, frontBusy;
         // A full-screen game or video is in front and Gaming Mode hasn't docked her.
         private bool fullThrough;
@@ -1404,6 +1407,48 @@ namespace CapriDesktop
         private Ledge fallTo;
         private double fallSpeed;
         private double fallStep;
+        // Thrown (Zr4, F63, the most-wanted ask): let go while their cursor's still moving fast and her fall is a flight at its
+        // speed, under gravity and a little air drag, bouncing off her screen's edges and the taskbar until she lands on a ledge
+        // like any fall. Her position and speed are kept in fractions of a pixel, and she tumbles unless motion is reduced.
+        private bool thrown;
+        private double flyX, flyY, flyVX, flyVY, flyBegan, flyHardest, flyBumped, flyLedgesAt;
+        private double spin, spinRate;
+        private int flyBounces, flyFloors;
+        private Point flyAt;
+        private Rectangle flyArea;
+        private System.Collections.Generic.List<Ledge> flyLedges;
+        // Where their cursor was while they held her, for how fast it was going when they let go, and whether the press caught
+        // her mid-flight.
+        private readonly System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>> trail = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>>();
+        private bool caught;
+        // Pixels a second at 100% scale. Under ThrowFrom she drops like before, from ThrowHard she says something, and ThrowMost
+        // caps a flick off a fast mouse.
+        private const double ThrowSpan = 0.08, ThrowFrom = 1300, ThrowHard = 2500, ThrowMost = 7000;
+        private const double ThrowDrag = 0.6, WallBounce = 0.55, FloorBounce = 0.42, FloorGrip = 0.72, FlightLongest = 8;
+        private const double BumpFrom = 900, DizzyFrom = 2400, DizzyFor = 1.8, DizzySway = 7;
+        // A big landing leaves her dizzy for a beat: her head swims around her hip and she glitches once.
+        private double dizzyFrom = -1, dizzyUntil = -1, dizzyGlitchAt = -1;
+        private int bumps;
+        // Her grudge (Zr4 and Tac9, F44): three throws in two minutes and she sulks. Until they say sorry, give her a head pat or
+        // leave her alone for five minutes, she won't be picked up, and a press on her or their cursor coming at her glitches her
+        // a short hop away. A cursor that comes slowly can still reach her, so a pat can make up with her.
+        private readonly System.Collections.Generic.List<double> throwsAt = new System.Collections.Generic.List<double>();
+        private const double SulkWindow = 120, SulkAlone = 300, DodgeGap = 1.2, DodgeSpeed = 700, DodgeSaid = 6;
+        private const int SulkThrows = 3;
+        private double sulkSince = -1, sulkBothered, dodgeAt = -10, dodgeSaidAt = -10;
+        private int dodges, sulkDodges, yelpTicket = -1;
+        private bool sulkLine, patForgives, shyInside;
+        private Point shyCursor;
+        private double shyAt = -1;
+        private static readonly string[] ThrowLines = { "WHEEEE!", "Put me DOWN!", "Choom, I'm not a frisbee!", "AAAAAA!", "Not the hair!" };
+        private static readonly string[] WarnLines = { "Okay, rude.", "Again?! One more and we're fighting.", "Do that again. I dare you." };
+        private static readonly string[] DizzyLines = { "Ugh. Which way is up?", "Everything's spinning, choom.", "My gyro's cooked." };
+        private static readonly string[] SulkLines = { "That's it. Don't touch me.", "Nope. We're done. Hands off." };
+        private static readonly string[] DodgeLines = { "Nope.", "Hands off, choom.", "Say sorry first.", "Not happening." };
+        private static readonly string[] SorryLines = { "...Fine. Apology accepted.", "Okay. We're cool. No more yeeting." };
+        private static readonly string[] PatPeaceLines = { "...Okay, that's cheating. Fine, you're forgiven.", "Hmph. Head pats work. We're cool." };
+        private static readonly string[] AloneLines = { "...Okay, I'm over it.", "Fine. I missed you. A little." };
+        private const string FirstDodgeLine = "No. Don't touch me.";
         private double coveredSince = -1;
         private double seatLost = -1;
         private System.Collections.Generic.List<Rectangle> icons = new System.Collections.Generic.List<Rectangle>();
@@ -1555,6 +1600,7 @@ namespace CapriDesktop
         // A voice check she says once her HD voice wakes, in place of her usual one.
         private string hdLine;
         private int hdSpeaking = -1;
+        private volatile int answerTurn, audioTurn;
         private long voiceGot, voiceTotal, earsGot, earsTotal, hdGot, hdTotal;
         private double hdRest = -1, hdUsed = -1, hdChecked = -1;
         private const double HdRest = 600, HdShortRest = 60;
@@ -1567,7 +1613,10 @@ namespace CapriDesktop
         private readonly Ears ears = new Ears();
         private Ears micTest;
         private Action<double> micTestLevel;
-        private double micTestUntil, micTestPeak;
+        private double micTestUntil, micTestPeak, micTestMuteAt;
+        // Windows' own mute on the mic being tested, asked off the UI thread now and then: muted there sounds just like silence.
+        private bool? micTestWindowsMuted;
+        private bool micTestMuteAsking;
         private readonly Speaker speaker;
         private readonly Speaker effects;
         private readonly Speaker typist;
@@ -1607,10 +1656,8 @@ namespace CapriDesktop
         // A live mic hisses above this even in a quiet room; a wrong, unplugged or blocked one sends silence.
         private const double MicAlive = 0.0005;
         private const double MicQuietWait = 20;
+        internal const string MicMutedInWindows = "Your mic is muted in Windows. Unmute it in Windows sound settings, then test again.";
         internal const string MicSilent = "I can't hear anything from your mic. Pick the right one under VOICE, or let desktop apps use your mic in Windows Settings > Privacy & security > Microphone.";
-        private double micQuietFrom = -1;
-        private bool micHeard;
-        private bool micWarned;
         private volatile bool noiseHold;
         private System.Collections.Generic.List<short[]> utterance;
         private int quietRun;
@@ -1696,14 +1743,44 @@ namespace CapriDesktop
         internal static readonly int[] PerchRates = { 10, 15, 20, 30, 40, 50, 60 };
         internal bool TestFailed;
 
-        // GitHub's Windows machine sets this. There a section that fails is a FAIL line and the rest still run, so one run shows everything.
         internal static bool OnGitHub { get { return Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true"; } }
 
-        private void Section(System.Collections.Generic.List<string> checks, Action run)
+        private void Section(System.Collections.Generic.List<string> checks, string name, Action run)
         {
-            if (!OnGitHub) { run(); return; }
+            if (!SmokeRun.EnterSection(name)) return;
+            string before = SmokeState();
+            bool mainframeShown = mainframe.Visible, onTop = preferences.OnTop;
+            FormWindowState mainframeState = mainframe.WindowState;
             try { run(); }
-            catch (Exception problem) { TestFailed = true; checks.Add("FAIL " + problem.Message); }
+            catch (Exception problem) { TestFailed = true; checks.Add("FAIL section " + name + ": " + problem.Message); }
+            finally
+            {
+                // A section leaves her as it found her. One that doesn't fails by name and is put back, so the steps after it
+                // don't fail for it (her Mainframe left up once broke step 0 and everything after).
+                string after = SmokeState();
+                if (after != before)
+                {
+                    TestFailed = true;
+                    checks.Add("FAIL section " + name + " left her changed: " + before + " became " + after);
+                    if (menu.Visible) menu.Close();
+                    if (playerMenu != null && playerMenu.Visible) playerMenu.Close();
+                    if (preferences.OnTop != onTop) { preferences.OnTop = onTop; TopMost = onTop; Layer(); }
+                    if (!mainframeShown) { if (mainframe.Visible) mainframe.Hide(); }
+                    else
+                    {
+                        if (!mainframe.Visible) mainframe.Show();
+                        if (mainframe.WindowState != mainframeState) mainframe.WindowState = mainframeState;
+                    }
+                }
+                SmokeRun.LeaveSection(name, checks);
+            }
+        }
+
+        private string SmokeState()
+        {
+            return "Mainframe " + (mainframe.Visible ? mainframe.WindowState.ToString() : "hidden") + ", her " + (hidden ? "hidden" : "shown")
+                + ", her menu " + (menu.Visible ? "open" : "closed") + ", the player's menu " + (playerMenu != null && playerMenu.Visible ? "open" : "closed")
+                + ", Always on top " + preferences.OnTop;
         }
         internal bool TestFinished;
         internal string TestStep = "startup";
@@ -1975,6 +2052,7 @@ namespace CapriDesktop
             voice.Model = string.IsNullOrEmpty(preferences.VoiceModel) ? null : preferences.VoiceModel;
             ShowVoice();
             mainframe.ShowMic(MicName(preferences.Mic));
+            StartHearingStatus();
             pill.Typing += OpenTyper;
             pill.Voice += ToggleChat;
             pill.Mute += ToggleMic;
@@ -1983,6 +2061,7 @@ namespace CapriDesktop
             WireCommentary();
             WireLookout();
             ears.Level += delegate(double value) { Post(delegate { HeardLevel(value); }); };
+            ears.Changed += delegate(string problem) { OnUi(delegate { HearingCaptureFailed(problem, false); }); };
             heyCapri.Heard += delegate { Post(HeardHeyCapri); };
             HeyCapriChanged += WakeChanged;
             getWakeVoice = delegate { SetUpFreeVoice(true); };
@@ -2020,6 +2099,7 @@ namespace CapriDesktop
                 if (!testing) CheckIdle(signalIdle);
                 if (!testing) CheckGlance(signalNow, signalIdle);
                 if (!testing) CheckWander(signalNow, signalIdle);
+                if (!testing) CheckSulk(signalNow);
                 if (!testing) CheckMusic(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckPlayer(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckHome(clock.Elapsed.TotalSeconds);
@@ -2168,10 +2248,12 @@ namespace CapriDesktop
             if (hidden) { frames.Stop(); return; }
             if (riding) FollowCursor(); else if (onPanel) HoldPanel(); else if (falling) Tumble(now); else if (seat != null) HoldSeat(now);
             if (walking) Walk(now);
+            if (Sulking) Shy(now);
+            if (dizzyGlitchAt >= 0 && now >= dizzyGlitchAt) { dizzyGlitchAt = -1; if (preferences.Motion && clip == perch && SittingStill) Play(perchGlitch); }
             if (!riding && !dragging && !walking && !falling && outro == null && clip != arrive && clip != leave) Face();
             if (!Steady(now)) RenderFrame();
             else UpdateTalk(now);
-            if (!exploring && !riding && !dragging && !walking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off) frames.Stop();
+            if (!exploring && !riding && !dragging && !walking && !falling && !Sulking && outro == null && !preferences.Motion && clip == idle && speech == null && talkState == TalkState.Off) frames.Stop();
         }
 
         // Over a game her quiet body follows its art and her docked mouth follows speech. Otherwise she keeps 33 ms or her
@@ -2179,6 +2261,9 @@ namespace CapriDesktop
         private int FrameInterval(double now)
         {
             if (exploring && now - exploreMoved < 0.8) return 33;
+            // Thrown, she covers a lot of screen a frame, so she's drawn every 1/64 s; dizzy, her sway needs 30 a second.
+            if (Flying) return frontBusy ? 33 : 15;
+            if (Dizzy(now)) return 33;
             if (frontBusy)
             {
                 if (docked) return 66;
@@ -2195,7 +2280,7 @@ namespace CapriDesktop
         private bool Steady(double now)
         {
             int fps = preferences.PerchFps;
-            return fps != 30 && clip == perch && SittingStill && Quiet(now) && anchor == drawnAt && facingLeft == drawnFacing && (long)((now - clipStart) * fps) == drawnStep;
+            return fps != 30 && clip == perch && SittingStill && Quiet(now) && !Dizzy(now) && anchor == drawnAt && facingLeft == drawnFacing && (long)((now - clipStart) * fps) == drawnStep;
         }
 
         // On a window, not riding, dragged, walking, falling or leaving.
@@ -2616,6 +2701,7 @@ namespace CapriDesktop
                     anchor = Seated(restX, Math.Min(restHip.Y, restPlace.Y));
                     fallTo = restPlace;
                     falling = true;
+                    thrown = false;
                     fallSpeed = 0;
                     fallStep = now;
                     Play(dangle);
@@ -2874,6 +2960,7 @@ namespace CapriDesktop
             if (under == null) return "There's nothing under me to lie on.";
             lieBy = clock.Elapsed.TotalSeconds + 10;
             falling = true;
+            thrown = false;
             fallTo = under;
             fallSpeed = 0;
             fallStep = clock.Elapsed.TotalSeconds;
@@ -3116,7 +3203,7 @@ namespace CapriDesktop
             if (IsDisposed) return;
             Ledges.Invalidate();
             // Her clones' room was the old screen, so they go, and the windows they had go back if their spots are still on a screen.
-            BeginInvoke((Action)delegate { if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); if (cloneWindow != null) ClonesOff(); });
+            BeginInvoke((Action)delegate { if (cloneWindow != null) ClonesOff(); if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); });
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -3124,16 +3211,34 @@ namespace CapriDesktop
             base.OnMouseDown(e);
             if (preferences.Hologram || e.Button != MouseButtons.Left || outro != null) return;
             if (Asleep || ownRest) { WakeRest(!SleepBusy); RenderFrame(); }
+            double now = clock.Elapsed.TotalSeconds;
+            // Sulking, she won't be picked up: a press glitches her a short hop away, and mid-air it misses her (Zr4, F44). On her
+            // task panel or mid-job, dragging works as always.
+            if (Sulking && !onPanel && working == null && job == null)
+            {
+                if (!falling) Dodge(MouseAt(), now);
+                return;
+            }
+            // Caught mid-flight, she stops in their hand.
+            caught = Flying;
+            if (caught) { falling = false; thrown = false; Play(dangle); }
             pressed = true;
             dragging = false;
             pointerStart = Cursor.Position;
             anchorStart = anchor;
+            trail.Clear();
+            trail.Add(new System.Collections.Generic.KeyValuePair<double, Point>(now, pointerStart));
             Capture = true;
         }
 
-        private void MovePointer(Point position)
+        private void MovePointer(Point position) { MovePointer(position, clock.Elapsed.TotalSeconds); }
+
+        private void MovePointer(Point position, double now)
         {
             if (preferences.Hologram || !pressed) return;
+            // Where their cursor's been lately, for how fast it's going when they let go.
+            trail.Add(new System.Collections.Generic.KeyValuePair<double, Point>(now, position));
+            while (trail.Count > 2 && trail[1].Key < now - 0.5) trail.RemoveAt(0);
             int dx = position.X - pointerStart.X;
             int dy = position.Y - pointerStart.Y;
             if (!dragging && dx * dx + dy * dy < 25) return;
@@ -3149,7 +3254,7 @@ namespace CapriDesktop
             }
             // Picked up lying, she sits up first, so she hangs from the cursor where her hip was.
             if (!dragging && lying) { int was = anchor.X; SitUp(false); anchorStart.X += anchor.X - was; }
-            if (!dragging) { seat = null; falling = false; hanging = false; walking = false; dropAfter = false; leanAngle = 0; Play(dangle); frames.Start(); RefreshIcons(); }
+            if (!dragging) { seat = null; falling = false; hanging = false; walking = false; dropAfter = false; leanAngle = 0; dizzyUntil = -1; Play(dangle); frames.Start(); RefreshIcons(); }
             dragging = true;
             pendingClick = false;
             clickDelay.Stop();
@@ -3170,7 +3275,7 @@ namespace CapriDesktop
             if (petWay != 0 && way != petWay) petTurns.Add(now);
             petWay = way;
             petTurns.RemoveAll(delegate(long at) { return now - at > 1500; });
-            if (petTurns.Count < 4 || now - petAt < 20000) return;
+            if (petTurns.Count < 4 || (now - petAt < 20000 && !Sulking)) return;
             petTurns.Clear();
             petAt = now;
             Petted();
@@ -3180,6 +3285,9 @@ namespace CapriDesktop
         {
             if (preferences.Hologram) return;
             EndWalk();
+            // A head pat makes up with her when she's sulking over being thrown, and her pat line says so (Zr4, F44).
+            patForgives = Sulking;
+            Forgive();
             if (!WakeRest(!SleepBusy))
             {
                 if (lying) { Play(laydown); blinkWith = Blinks(false); }
@@ -3250,7 +3358,8 @@ namespace CapriDesktop
             heard = "pets you";
             box.Prompt = "> sys: ";
             // Pat lines use the same voice as everything else she says: their ElevenLabs voice and model when they've set one.
-            Answer(++asking, NextPetLine(), TalkState.Talking);
+            Answer(++asking, patForgives ? Lines.Pick(PatPeaceLines) : NextPetLine(), TalkState.Talking);
+            patForgives = false;
         }
 
         internal string NextPetLine()
@@ -3271,8 +3380,16 @@ namespace CapriDesktop
             if (preferences.Hologram) return;
             if (e.Button == MouseButtons.Right) { menu.Show(Cursor.Position); return; }
             if (e.Button != MouseButtons.Left || !pressed) return;
+            Released(PointToScreen(e.Location), clock.Elapsed.TotalSeconds);
+        }
+
+        // They let go of her at now. at is where the click happened, not where the mouse is by now.
+        private void Released(Point at, double now)
+        {
             pressed = false;
             Capture = false;
+            bool wasCaught = caught;
+            caught = false;
             if (dragging)
             {
                 pendingClick = false;
@@ -3284,12 +3401,16 @@ namespace CapriDesktop
                     Keys held = testing ? Keys.None : ModifierKeys;
                     if ((held & Keys.Control) != 0) HangHere();
                     else if ((held & Keys.Shift) != 0) SitHere();
-                    else if (!Drop()) SavePreferences();
+                    else if (!Throw(now) && !Drop()) SavePreferences();
                 }
             }
-            // Where the click happened, not where the mouse is by now.
-            else if (pendingClick && IsDoubleClick(pendingPoint, PointToScreen(e.Location), clock.ElapsedMilliseconds - pendingTime)) { pendingClick = false; clickDelay.Stop(); StartRide(); }
-            else { pendingClick = true; pendingPoint = PointToScreen(e.Location); pendingTime = clock.ElapsedMilliseconds; clickDelay.Stop(); clickDelay.Start(); }
+            else
+            {
+                // Caught mid-flight and let go without a drag, she falls from where they caught her.
+                if (wasCaught && !preferences.NoSitting) Fall();
+                if (pendingClick && IsDoubleClick(pendingPoint, at, clock.ElapsedMilliseconds - pendingTime)) { pendingClick = false; clickDelay.Stop(); StartRide(); }
+                else { pendingClick = true; pendingPoint = at; pendingTime = clock.ElapsedMilliseconds; clickDelay.Stop(); clickDelay.Start(); }
+            }
             dragging = false;
         }
 
@@ -3297,6 +3418,7 @@ namespace CapriDesktop
 
         protected override void WndProc(ref Message message)
         {
+            if ((message.Msg == 0x0219 || message.Msg == 0x001A) && mainframe != null) RefreshHearingDevices();
             if (message.Msg == 0x0218 && message.WParam.ToInt64() == 0x8013) screenOff = Native.ScreenOff(message.LParam);
             if (message.Msg == 0x0084 && frame != null)
             {
@@ -3461,6 +3583,7 @@ namespace CapriDesktop
             spawnFall = false;
             if (riding || onPanel || dragging || hanging || hidden || seat != null) return;
             falling = true;
+            thrown = false;
             fallTo = null;
             fallSpeed = 0;
             fallStep = clock.Elapsed.TotalSeconds;
@@ -3473,6 +3596,7 @@ namespace CapriDesktop
             Ledge target = Perch(Around(), Hip());
             if (target == null) return false;
             falling = true;
+            thrown = false;
             fallTo = target;
             fallSpeed = 0;
             fallStep = clock.Elapsed.TotalSeconds;
@@ -5313,6 +5437,7 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             if (remote == null && installed != null && Array.IndexOf(installed, name) < 0 && Array.IndexOf(installed, name + ":latest") < 0) return "Ollama doesn't have it. Run: ollama pull " + name;
             if (remote != null && remote.Kind != "local" && !Brain.ModelFits(remote.Kind, name)) return "That isn't a model for " + remote.Company + ".";
+            if (preferences.Tier == 1 && remote != null && remote.Kind == "openrouter" && !name.EndsWith(":free", StringComparison.Ordinal)) return "MEDIUM INTELLIGENCE needs a :free model. Paid models go under MAX INTELLIGENCE.";
             ChooseModel(name);
             if (remote == null) { mainframe.ShowOllama(installed ?? new[] { name }, name); return "Using " + name + "."; }
             if (remote.Kind == "local") { mainframe.ShowCloud(remote, null); return "Using " + name + " on " + remote.Name + "."; }
@@ -5934,6 +6059,7 @@ namespace CapriDesktop
 
         private void Tumble(double now)
         {
+            if (thrown) { Fly(now); return; }
             double step = Math.Max(0, Math.Min(0.05, now - fallStep));
             fallStep = now;
             Point hip = Hip();
@@ -5957,6 +6083,7 @@ namespace CapriDesktop
                 if (bounds != ledge.Bounds) { ledge.Left = bounds.Left; ledge.Right = bounds.Right; ledge.Y = bounds.Top; ledge.Bounds = bounds; }
             }
             falling = false;
+            thrown = false;
             coveredSince = -1;
             seatLost = -1;
             int x = ledge.Icon.IsEmpty ? Math.Max(ledge.Left + 8, Math.Min(Hip().X, ledge.Right - 8)) : ledge.Icon.Left + ledge.Icon.Width / 2;
@@ -5969,6 +6096,382 @@ namespace CapriDesktop
             anchor = Seated(x, ledge.Y);
             Play(arriving && preferences.Motion && !instant ? perchArrive : perchGlitch);
             SavePreferences();
+        }
+
+        // While she's thrown her fall is a flight, which Tumble hands to Fly.
+        private bool Flying { get { return falling && thrown; } }
+
+        // A gap in their cursor's track with no move in it means it sat still until just before the next one.
+        private const double TrailGap = 0.03;
+
+        // How fast their cursor went over the last span seconds up to now, in pixels a second: from where it was then to where
+        // it is, going straight between the spots it was seen at. Before the first spot it was there.
+        internal static PointF TrailSpeed(System.Collections.Generic.IList<System.Collections.Generic.KeyValuePair<double, Point>> track, double now, double span)
+        {
+            if (track.Count == 0 || span <= 0) return PointF.Empty;
+            PointF to = TrailAt(track, now), from = TrailAt(track, now - span);
+            return new PointF((float)((to.X - from.X) / span), (float)((to.Y - from.Y) / span));
+        }
+
+        private static PointF TrailAt(System.Collections.Generic.IList<System.Collections.Generic.KeyValuePair<double, Point>> track, double at)
+        {
+            if (at <= track[0].Key) return track[0].Value;
+            for (int i = 1; i < track.Count; i++)
+            {
+                if (at > track[i].Key) continue;
+                double began = Math.Max(track[i - 1].Key, track[i].Key - TrailGap), length = track[i].Key - began;
+                double part = at <= began ? 0 : length <= 0 ? 1 : (at - began) / length;
+                Point a = track[i - 1].Value, b = track[i].Value;
+                return new PointF((float)(a.X + (b.X - a.X) * part), (float)(a.Y + (b.Y - a.Y) * part));
+            }
+            return track[track.Count - 1].Value;
+        }
+
+        // Let go while their cursor's still going fast, she's thrown at its speed (Zr4, F63: "grab her and throw her by mouse
+        // speed"). Slower, she drops like before, and mid-job dragging her stays as it was.
+        private bool Throw(double now)
+        {
+            if (onPanel || hidden || docked || riding || working != null || job != null || trail.Count == 0) return false;
+            PointF speed = TrailSpeed(trail, now, ThrowSpan);
+            double scale = TalkScale(), vx = speed.X, vy = speed.Y, fast = Math.Sqrt(vx * vx + vy * vy);
+            if (fast < ThrowFrom * scale) return false;
+            double most = ThrowMost * scale;
+            if (fast > most) { vx *= most / fast; vy *= most / fast; fast = most; }
+            Launch(vx, vy, now);
+            Grudge(fast / scale, now);
+            return true;
+        }
+
+        // She leaves their hand at vx, vy pixels a second, kept to the screen she's on.
+        private void Launch(double vx, double vy, double now)
+        {
+            SitUp(false);
+            seat = null;
+            hanging = false;
+            walking = false;
+            dropAfter = false;
+            fallTo = null;
+            falling = true;
+            thrown = true;
+            fallSpeed = 0;
+            fallStep = now;
+            flyX = anchor.X;
+            flyY = anchor.Y;
+            flyAt = anchor;
+            flyVX = vx;
+            flyVY = vy;
+            flyArea = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+            flyBegan = now;
+            flyHardest = 0;
+            flyBumped = -1;
+            flyBounces = flyFloors = 0;
+            flyLedges = null;
+            dizzyUntil = -1;
+            leanAngle = 0;
+            spin = 0;
+            // She tumbles the way she's thrown, faster the harder it is.
+            spinRate = preferences.Motion ? Math.Max(-1080, Math.Min(1080, vx * 0.28 + (vx < 0 ? -1 : 1) * Math.Abs(vy) * 0.1)) : 0;
+            Play(dangle);
+            frames.Start();
+        }
+
+        // One frame of her flight: gravity and air drag, bounces off her screen's sides, top and taskbar that lose some speed each
+        // time, and a ledge she comes down onto catches her like a fall. A soft bounce off the taskbar lands her on it.
+        private void Fly(double now)
+        {
+            double step = Math.Max(0, Math.Min(0.05, now - fallStep));
+            fallStep = now;
+            // Moved by something else mid-flight, like a screen going away, she carries on from there.
+            if (anchor != flyAt) { flyX = anchor.X; flyY = anchor.Y; }
+            if (Screen.FromRectangle(flyArea).WorkingArea != flyArea) flyArea = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).WorkingArea;
+            if (clip == idle) Play(dangle);
+            int size = preferences.Size, hipDown = PaddingSize + (int)(size * SitY), hipAcross = PaddingSize + (int)(size * SitX);
+            bool sits = !preferences.NoSitting;
+            RectangleF body = Body;
+            double left = flyArea.Left - PaddingSize - (int)(size * body.Left), right = flyArea.Right - PaddingSize - (int)Math.Ceiling(size * body.Right);
+            double top = flyArea.Top - PaddingSize - (int)(size * body.Top);
+            // She bounces where she'd sit on the taskbar, her hip on its edge, but never with her feet past the bottom of the screen.
+            double feet = flyArea.Bottom - PaddingSize - (int)Math.Ceiling(size * body.Bottom);
+            double floor = sits ? Math.Min(flyArea.Bottom - hipDown, Screen.FromRectangle(flyArea).Bounds.Bottom - PaddingSize - (int)Math.Ceiling(size * body.Bottom)) : feet;
+            if (sits && (flyLedges == null || now - flyLedgesAt >= 0.25)) { flyLedges = Around(); flyLedgesAt = now; }
+            double gravity = size * 11, settle = size * 2.2, calm = 900 * TalkScale();
+            int steps = Math.Max(1, (int)Math.Ceiling(step / 0.004));
+            double dt = step / steps;
+            for (int i = 0; i < steps; i++)
+            {
+                double hipWas = flyY + hipDown;
+                flyVY += gravity * dt;
+                double keep = Math.Exp(-ThrowDrag * dt);
+                flyVX *= keep;
+                flyVY *= keep;
+                flyX += flyVX * dt;
+                flyY += flyVY * dt;
+                Spin(dt, calm);
+                if (flyX < left) { Hit(Math.Abs(flyVX), now); flyX = Math.Min(right, left + (left - flyX) * WallBounce); flyVX = Math.Abs(flyVX) * WallBounce; spinRate = -spinRate * 0.8; }
+                else if (flyX > right) { Hit(Math.Abs(flyVX), now); flyX = Math.Max(left, right - (flyX - right) * WallBounce); flyVX = -Math.Abs(flyVX) * WallBounce; spinRate = -spinRate * 0.8; }
+                if (flyY < top) { Hit(Math.Abs(flyVY), now); flyY = Math.Min(floor, top + (top - flyY) * WallBounce); flyVY = Math.Abs(flyVY) * WallBounce; }
+                if (sits && flyVY > 0)
+                {
+                    double hipNow = flyY + hipDown;
+                    int hipX = (int)Math.Round(flyX) + hipAcross;
+                    Ledge onto = null;
+                    foreach (Ledge ledge in flyLedges)
+                    {
+                        if (ledge.Floor || ledge.Y < hipWas || ledge.Y > hipNow || ledge.Right - ledge.Left < 24 || hipX < ledge.Left || hipX > ledge.Right) continue;
+                        if (ledge.Y - Headroom() < Screen.FromPoint(new Point(hipX, ledge.Y)).Bounds.Top) continue;
+                        if (onto == null || ledge.Y < onto.Y) onto = ledge;
+                    }
+                    if (onto != null)
+                    {
+                        double impact = flyVY;
+                        anchor = new Point((int)Math.Round(flyX), onto.Y - hipDown);
+                        Land(onto);
+                        if (seat == onto) { Landed(impact, now); return; }
+                        // Its window's gone or can't seat her any more: she flies on past it.
+                        flyLedges.Remove(onto);
+                    }
+                }
+                if (flyY >= floor)
+                {
+                    double impact = flyVY;
+                    flyY = floor;
+                    if (impact > settle && flyFloors < 6) { Hit(impact, now); flyVY = -impact * FloorBounce; flyVX *= FloorGrip; spinRate *= 0.6; flyFloors++; }
+                    else { Settle(impact, now, sits); return; }
+                }
+            }
+            anchor = new Point((int)Math.Round(flyX), (int)Math.Round(flyY));
+            flyAt = anchor;
+            // A flight that somehow never settles carries on as a plain fall.
+            if (now - flyBegan > FlightLongest) { thrown = false; if (!sits) { falling = false; SavePreferences(); } }
+        }
+
+        // Her tumble slows in the air, and once she's slowed down or bounced off the taskbar she rights herself before she lands.
+        // None with reduced motion.
+        private void Spin(double dt, double calm)
+        {
+            if (!preferences.Motion) { spin = spinRate = 0; return; }
+            spin += spinRate * dt;
+            spinRate *= Math.Exp(-0.6 * dt);
+            if (flyFloors == 0 && flyVX * flyVX + flyVY * flyVY >= calm * calm) return;
+            double off = spin - 360 * Math.Round(spin / 360);
+            spinRate += (-off * 60 - spinRate * 14) * dt;
+        }
+
+        // How far she's turned in her tumble, for drawing.
+        private float Turn() { return Flying && preferences.Motion ? (float)spin : 0; }
+
+        // She hits a side, the top or the taskbar at impact pixels a second.
+        private void Hit(double impact, double now)
+        {
+            flyBounces++;
+            flyHardest = Math.Max(flyHardest, impact);
+            if (impact / TalkScale() < BumpFrom || now - flyBumped < 0.12) return;
+            flyBumped = now;
+            anchor = new Point((int)Math.Round(flyX), (int)Math.Round(flyY));
+            Bump();
+        }
+
+        // An impact she feels: a thud, and with motion on a short screen tear where she hit.
+        private void Bump()
+        {
+            bumps++;
+            if (instant || hidden || !IsHandleCreated) return;
+            Sfx.Play(Cue.Bonk);
+            Static(false, null);
+        }
+
+        // Slow at the taskbar, she lands on it like any fall. With Sit on windows off she just stops there.
+        private void Settle(double impact, double now, bool sits)
+        {
+            anchor = new Point((int)Math.Round(flyX), (int)Math.Round(flyY));
+            flyAt = anchor;
+            if (sits) Land(new Ledge { Floor = true, Left = flyArea.Left, Right = flyArea.Right, Y = flyArea.Bottom });
+            else
+            {
+                falling = false;
+                thrown = false;
+                SavePreferences();
+            }
+            Landed(impact, now);
+        }
+
+        // Down after a flight: a hard one thuds, leaves her dizzy for a beat and gets a word out of her, and the third throw in
+        // two minutes gets her sulk.
+        private void Landed(double impact, double now)
+        {
+            thrown = false;
+            spin = spinRate = 0;
+            double scale = TalkScale(), hardest = Math.Max(flyHardest, impact) / scale;
+            if (impact / scale >= BumpFrom) Bump();
+            bool dizzy = hardest >= DizzyFrom;
+            if (dizzy) { dizzyFrom = now; dizzyUntil = now + DizzyFor; dizzyGlitchAt = now + 0.9; }
+            if (sulkLine) { sulkLine = false; Yelp("throws you", Lines.Pick(SulkLines), true); }
+            else if (dizzy && throwsAt.Count == 1) Yelp("throws you", Lines.Pick(DizzyLines), true);
+        }
+
+        private bool Dizzy(double now) { return now >= dizzyFrom && now < dizzyUntil; }
+
+        // Dizzy, her head swims around her hip and settles. Not with reduced motion, or while she's held, riding or falling.
+        private float Sway(double now)
+        {
+            if (!preferences.Motion || !Dizzy(now) || dragging || falling || riding || onPanel) return 0;
+            double fade = Math.Min(1, (dizzyUntil - now) / (DizzyFor * 0.6));
+            return (float)(DizzySway * Math.Sin((now - dizzyFrom) * Math.PI * 2 * 1.3) * fade);
+        }
+
+        // Every throw counts toward her grudge: the second in two minutes gets a warning and the third starts her sulk. A hard
+        // first one gets a yelp and a glitch as she flies.
+        private void Grudge(double fast, double now)
+        {
+            throwsAt.RemoveAll(at => now - at > SulkWindow || at > now);
+            throwsAt.Add(now);
+            if (fast >= ThrowHard) Static(false, Cue.Hop);
+            if (throwsAt.Count >= SulkThrows) { throwsAt.Clear(); Sulk(now); sulkLine = true; return; }
+            string line = throwsAt.Count == 2 ? Lines.Pick(WarnLines) : fast >= ThrowHard ? Lines.Pick(ThrowLines) : null;
+            if (line != null) Yelp("throws you", line, false);
+        }
+
+        // Her short line about being thrown or touched: in her bubble straight away, or said in her voice like her pat lines.
+        // Never over a chat, a reply on its way, her typing box or a job, though one of these lines still up gives way to the
+        // next. shown is what her bubble says they did, or null for a line she says on her own.
+        private void Yelp(string shown, string line, bool voiced)
+        {
+            if (hidden || docked || InChat || typer.Visible || working != null || job != null) return;
+            if ((speech != null || talkState != TalkState.Off) && asking != yelpTicket) return;
+            heard = shown ?? "sulk";
+            box.Prompt = shown == null ? "" : "> sys: ";
+            yelpTicket = ++asking;
+            if (shown == null) remarkTicket = yelpTicket;
+            if (voiced) Answer(yelpTicket, line, TalkState.Talking);
+            else Begin(yelpTicket, line, TalkState.Talking, null);
+        }
+
+        private bool Sulking { get { return sulkSince >= 0; } }
+
+        private void Sulk(double now)
+        {
+            sulkSince = now;
+            sulkBothered = now;
+            sulkDodges = 0;
+            dodgeAt = dodgeSaidAt = -10;
+            // A cursor that's already close when she starts sulking hasn't come at her.
+            shyInside = true;
+            shyAt = -1;
+            frames.Start();
+            Agent told = agent;
+            if (told != null) told.Tell("They just threw Capri around three times in two minutes, so she's sulking: she won't let them pick her up until they say sorry, give her a head pat or leave her alone for five minutes. She still answers and helps them as usual.");
+        }
+
+        // She makes up with them and forgets the throws: they said sorry, gave her a head pat, or left her be long enough.
+        private void Forgive()
+        {
+            if (!Sulking) return;
+            sulkSince = -1;
+            sulkLine = false;
+            throwsAt.Clear();
+            shyAt = -1;
+            Agent told = agent;
+            if (told != null) told.Tell("Capri forgave them for throwing her around and isn't sulking any more.");
+        }
+
+        // Left alone five minutes, she gets over it by herself.
+        private void CheckSulk(double now)
+        {
+            if (!Sulking || now - sulkBothered < SulkAlone) return;
+            Forgive();
+            if (!Hushed) Yelp(null, Lines.Pick(AloneLines), true);
+        }
+
+        // Sulking, she keeps an eye on their cursor: one that comes at her fast gets a hop away, at most every DodgeGap seconds.
+        // One that comes slowly can reach her, so a head pat can make up with her.
+        private void Shy(double now)
+        {
+            Point cursor = MouseAt();
+            int margin = Math.Max(16, (int)(preferences.Size * 0.18f));
+            bool inside = Rectangle.Inflate(BodyOnScreen(anchor, seat != null ? PerchedBody : Body), margin, margin).Contains(cursor);
+            double gap = now - shyAt, dx = cursor.X - shyCursor.X, dy = cursor.Y - shyCursor.Y;
+            bool fast = shyAt >= 0 && gap > 0 && gap < 0.3 && Math.Sqrt(dx * dx + dy * dy) / gap >= DodgeSpeed * TalkScale();
+            bool came = inside && !shyInside && fast;
+            shyInside = inside;
+            shyCursor = cursor;
+            shyAt = now;
+            if (came && now - dodgeAt >= DodgeGap && !hidden && !docked && !pressed && !dragging && !falling && !riding && !onPanel && outro == null && working == null && job == null && !Asleep) Dodge(cursor, now);
+        }
+
+        // Sulking, she glitches a short hop away from their cursor: along her ledge if it has room one way or the other, or else
+        // across the air, kept on her screen, falling onto what's below if she'd been sitting (Zr4, F44).
+        private void Dodge(Point cursor, double now)
+        {
+            dodgeAt = now;
+            sulkBothered = now;
+            dodges++;
+            sulkDodges++;
+            Point hip = Hip();
+            Rectangle area = Screen.FromPoint(hip).WorkingArea;
+            int size = preferences.Size, hop = (int)(size * (0.85 + random.NextDouble() * 0.4));
+            int away = cursor.X > hip.X ? -1 : 1;
+            if (seat != null && !seat.Free && seat.Icon.IsEmpty)
+            {
+                int low = Math.Max(seat.Left, area.Left) + size / 3, high = Math.Min(seat.Right, area.Right) - size / 3;
+                if (high > low)
+                {
+                    int there = Math.Max(low, Math.Min(high, hip.X + away * hop)), back = Math.Max(low, Math.Min(high, hip.X - away * hop));
+                    int x = Math.Abs(there - cursor.X) >= Math.Abs(back - cursor.X) ? there : back;
+                    if (Math.Abs(x - cursor.X) >= size / 2 && Math.Abs(x - hip.X) >= size / 4)
+                    {
+                        Ledge spot = seat;
+                        GlitchOut(delegate { Hop(spot, x); }, false);
+                        Fuss(now);
+                        return;
+                    }
+                }
+            }
+            RectangleF shape = seat != null ? PerchedBody : Body;
+            Point to = Within(new Point(anchor.X + away * hop, anchor.Y), area, shape);
+            if (Math.Abs(to.X - anchor.X) < size / 3) to = Within(new Point(anchor.X - away * hop, anchor.Y), area, shape);
+            bool free = seat != null && seat.Free, drop = seat != null && !free && !preferences.NoSitting;
+            int freeY = free ? seat.Y : 0, shift = to.X - anchor.X;
+            GlitchOut(delegate
+            {
+                if (free) { int freeX = Hip().X + shift; Hop(new Ledge { Left = freeX - 8, Right = freeX + 8, Y = freeY, Floor = true, Free = true }, freeX); return; }
+                SitUp(false);
+                seat = null;
+                hanging = false;
+                walking = false;
+                anchor = to;
+                Location = anchor;
+                Play(instant || !preferences.Motion ? idle : arrive);
+                Static(false, null);
+                frames.Start();
+                if (!drop) return;
+                if (clip == arrive) dropAfter = spawnFall = true;
+                else Fall();
+            }, false);
+            Fuss(now);
+        }
+
+        // What she says as she hops away: always the first time in a sulk, then now and then.
+        private void Fuss(double now)
+        {
+            if (sulkDodges > 1 && now - dodgeSaidAt < DodgeSaid) return;
+            dodgeSaidAt = now;
+            Yelp("reaches for you", sulkDodges == 1 ? FirstDodgeLine : Lines.Pick(DodgeLines), true);
+        }
+
+        // An apology to her, typed or said: "sorry", "I'm sorry Capri", "my bad", "forgive me", and sorry in a few other languages.
+        private static readonly Regex SorrySaid = new Regex(@"\b(?:sorry|sry|soz|sowwy|apologi[sz]e|my bad|forgive me|lo siento|perd[oó]n(?:ame)?|d[eé]sol[eé]e?|entschuldigung|tut mir leid|scusa(?:mi)?|mi dispiace|desculpa|przepraszam|прости|извини)\b|ごめん|すみません|미안|죄송|对不起|對不起|抱歉", RegexOptions.IgnoreCase);
+        // The words around a plain apology: her name, "I'm so", "for throwing you" and the like.
+        private static readonly Regex SorryWords = new Regex(@"^(?:sorry|sry|soz|sowwy|i|i'm|im|i’m|am|so|soo+|really|truly|very|super|capri|choom|babe|bestie|hey|oh|ok|okay|please|pls|plz|forgive|me|my|bad|apologi[sz]e|for|about|throwing|threw|throw|tossing|tossed|yeeting|yeeted|yeet|you|that|it|earlier|again|the|thing|won't|wont|won’t|do|will|never|i'll|ill|i’ll|lol|haha|a|lot|lo|siento|perd[oó]n|perdona|perd[oó]name|d[eé]sol[eé]e?|entschuldigung|tut|mir|leid|scusa|scusami|mi|dispiace|desculpa|przepraszam|прости|извини)$", RegexOptions.IgnoreCase);
+
+        internal static bool Apology(string text) { return text != null && SorrySaid.IsMatch(text); }
+
+        // Nothing but an apology, so her forgiving line is the whole answer. Anything more goes on to her brain as usual.
+        internal static bool OnlyApology(string text)
+        {
+            if (!Apology(text)) return false;
+            foreach (string word in Regex.Split(text.Trim(), @"[^\p{L}\p{N}'’]+"))
+                if (word.Length > 0 && !SorryWords.IsMatch(word)) return false;
+            return true;
         }
 
         private void HoldSeat(double now)
@@ -7545,7 +8048,10 @@ namespace CapriDesktop
             if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel, preferences.BrainAddress);
             string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
             string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel;
-            return Cloud.KindOf(key) == null ? null : new Cloud(key, Brain.ModelFits(Cloud.KindOf(key), model) ? model : null);
+            string kind = Cloud.KindOf(key);
+            if (kind == null || preferences.Tier == 1 && !Cloud.MediumKind(kind)) return null;
+            bool fits = Brain.ModelFits(kind, model) && (preferences.Tier != 1 || kind != "openrouter" || model.EndsWith(":free", StringComparison.Ordinal));
+            return new Cloud(key, fits ? model : null);
         }
 
         private void Mirror()
@@ -7557,13 +8063,13 @@ namespace CapriDesktop
         private void ShowTiers()
         {
             string nvidia = Voice.Unprotect(preferences.NvidiaKey), paid = Voice.Unprotect(preferences.PaidKey);
-            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : Voice.Tail(paid));
+            mainframe.ShowTiers(preferences.Tier, nvidia == null ? null : Voice.Tail(nvidia), paid == null ? null : Voice.Tail(paid), Cloud.KindOf(nvidia));
         }
 
         private void Keep(Cloud remote)
         {
             if (remote.Kind == "local") { preferences.BrainPort = remote.Port; preferences.BrainAddress = remote.Host; preferences.LocalModel = remote.Model; }
-            else if (remote.Kind == "nvidia") preferences.NvidiaModel = remote.Model;
+            else if (preferences.Tier == 1) preferences.NvidiaModel = remote.Model;
             else preferences.PaidModel = remote.Model;
             Mirror();
             SavePreferences();
@@ -7588,10 +8094,23 @@ namespace CapriDesktop
 
         internal void ConnectText(string key)
         {
+            ConnectText(key, preferences.Tier);
+        }
+
+        internal void ConnectPaidText(string key)
+        {
+            ConnectText(key, 2);
+        }
+
+        private void ConnectText(string key, int targetTier)
+        {
             ++cloudListing;
             key = (key ?? "").Trim();
-            if (Cloud.KindOf(key) == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.", true); return; }
-            ListCloud(key, true);
+            string kind = Cloud.KindOf(key);
+            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.", true); return; }
+            if (targetTier == 1 && !Cloud.MediumKind(kind)) { mainframe.OfferPaidText(key); return; }
+            if (targetTier == 0) targetTier = kind == "nvidia" ? 1 : 2;
+            ListCloud(key, true, targetTier);
         }
 
         private void TextProblem(string problem, bool connecting)
@@ -7628,16 +8147,17 @@ namespace CapriDesktop
             FindBrain();
         }
 
-        private void ListCloud(string key, bool connecting)
+        private void ListCloud(string key, bool connecting, int targetTier = -1)
         {
             int listing = cloudListing, refresh = ++cloudRefresh;
+            int pickedTier = targetTier < 0 ? preferences.Tier : targetTier;
             Cloud probe = new Cloud(key, null);
             if (connecting) mainframe.ShowProblem("Checking key...");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 System.Collections.Generic.List<string> found = null;
                 string problem = null;
-                try { found = Brain.CloudModels(key); }
+                try { found = Brain.CloudModels(key, pickedTier == 1); }
                 catch (BrainException error) { problem = error.Message; }
                 catch (Exception error) { Brain.Log("https://" + probe.Company.ToLowerInvariant() + "/models", -1, error.Message); problem = brain.Remote != null && brain.Remote.Key == key && brain.Remote.Model != null ? probe.Company + " is slow. Using " + brain.Remote.Model + "." : "Couldn't reach " + probe.Company + ". Check your internet."; }
                 Post(delegate
@@ -7650,9 +8170,9 @@ namespace CapriDesktop
                         if (remote.Model == null) { TextProblem("That key can't use any chat models.", true); return; }
                         brain.Cancel();
                         brain.Remote = remote;
-                        if (remote.Kind == "nvidia") preferences.NvidiaKey = Voice.Protect(key);
+                        if (pickedTier == 1) preferences.NvidiaKey = Voice.Protect(key);
                         else preferences.PaidKey = Voice.Protect(key);
-                        preferences.Tier = remote.Kind == "nvidia" ? 1 : 2;
+                        preferences.Tier = pickedTier;
                         Keep(remote);
                         ShowTiers();
                     }
@@ -7725,15 +8245,16 @@ namespace CapriDesktop
             ears.Chosen = preferences.Mic;
             SavePreferences();
             mainframe.ShowMic(MicName(preferences.Mic));
-            micHeard = micWarned = false;
-            micQuietFrom = -1;
+            hearingCaptureProblem = null;
+            ResetHearingSignal();
+            RefreshHearingDevices();
             // "Hey Capri" opens the new mic on its next check.
             if (wakeOpen) CloseWake();
             wakeMuteAt = -1;
             if (!ears.Listening) return;
             ears.Stop();
             try { ears.Start(); }
-            catch (VoiceException error) { mainframe.VoiceNote(error.Message, true); StopChat(); }
+            catch (VoiceException error) { StopChat(); HearingCaptureFailed(error.Message, true); }
         }
 
         internal void OpenKeyPage() { OpenPage(GuidePage); Tell("get a key", GuideLine); }
@@ -7817,6 +8338,7 @@ namespace CapriDesktop
         {
             string was = parakeet.Model;
             parakeet.Language = Listening(preferences.Language, System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
+            UpdateHearing();
             if (parakeet.Model == was || !chatting || !local) return;
             Dictation closing = dictation;
             dictation = null;
@@ -7834,8 +8356,9 @@ namespace CapriDesktop
         private void GetFreeEars(bool retry = false)
         {
             // It downloads alongside her free voice; they work once both are in.
-            if (testing || settingUpEars || !FreeChatOn || parakeet.Installed || !parakeet.Fits) return;
+            if (testing || HearingChoice == 2 || settingUpEars || !FreeChatOn || parakeet.Installed || !parakeet.Fits) return;
             settingUpEars = true;
+            hearingInstallProblem = null;
             parakeet.Cancel = false;
             earsGot = earsTotal = 0;
             ShowInstall();
@@ -7874,13 +8397,13 @@ namespace CapriDesktop
         // In free voice chat she says the download failed and tries again after 30 seconds, then 1, 2 and 4 minutes, then every 5.
         private void EarsFailed(string problem)
         {
-            if (problem == "Cancelled." || !chatting || !local) { mainframe.VoiceNote("Her own ears didn't download: " + problem, true); return; }
+            hearingInstallProblem = problem;
+            if (problem == "Cancelled." || !chatting || !local) { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Text, true); return; }
             earsFailures++;
             int wait = EarsRetryWait(earsFailures);
             earsRetryAt = clock.Elapsed.TotalSeconds + wait;
-            string again = " I'll try again in " + (wait < 60 ? wait + " seconds" : wait == 60 ? "a minute" : wait / 60 + " minutes") + ".";
-            if (earsAwaited && earsFailures == 1) EarsNote(earsLead + "My ears didn't download, so type to me for now. " + problem + again, true);
-            else mainframe.VoiceNote("Her own ears didn't download: " + problem + again, true);
+            if (earsAwaited && earsFailures == 1) HearingNote();
+            else { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Text, true); }
         }
 
         internal static int EarsRetryWait(int failures) { return Math.Min(300, 30 << Math.Max(0, Math.Min(4, failures - 1))); }
@@ -7889,6 +8412,7 @@ namespace CapriDesktop
         private void CheckHearing(double now)
         {
             CheckMicTest(now);
+            CheckHearingSignal(now);
             if (chatting && local && dictation != null && earsReady && now >= dictationMicAt)
             {
                 dictationMicAt = now + 2;
@@ -7918,13 +8442,6 @@ namespace CapriDesktop
             }
             // A mic that stopped sending, unplugged, lost in sleep or dropped by its driver, is opened again, like Hey Capri's.
             if (chatting && ears.Stalled) ReopenMic(now);
-            if (!chatting || !local || !earsReady || ears.Muted || micHeard || micWarned) { micQuietFrom = -1; return; }
-            if (micQuietFrom < 0) micQuietFrom = now;
-            else if (now - micQuietFrom >= MicQuietWait && talkState != TalkState.Thinking && now - earsWarned >= 8)
-            {
-                micWarned = true;
-                Missed(MicSilent, true);
-            }
         }
 
         internal const string MicStopped = "Your mic keeps cutting out. Pick it again under VOICE, or check it in Windows sound settings.";
@@ -7939,7 +8456,7 @@ namespace CapriDesktop
             catch (VoiceException error)
             {
                 StopChat();
-                EarsNote(error.Message, true);
+                HearingCaptureFailed(error.Message, true);
                 return;
             }
             bool again = now - micReopened < 60;
@@ -7949,7 +8466,7 @@ namespace CapriDesktop
 
         private void HeardLevel(double value)
         {
-            if (value >= MicAlive) micHeard = true;
+            HearingLevel(value);
             double level = local && (preferences.ListenCapri && !pushing || earsShut || transcribing || noiseHold || !earsReady) ? 0 : value;
             pill.SetLevel(level);
             if (docked) DockLevel(level);
@@ -8155,6 +8672,7 @@ namespace CapriDesktop
         // One row under VOICE, with the brain setup's dotted bar, for whichever of her free voice, ears and HD voice is downloading.
         private void ShowInstall()
         {
+            UpdateHearing();
             bool voicing = SettingUpVoice, hearing = settingUpEars, hd = settingUpHd;
             if (!voicing && !hearing && !hd) { mainframe.HideInstall(); return; }
             long done = (voicing ? voiceGot : 0) + (hearing ? earsGot : 0) + (hd ? hdGot : 0);
@@ -8328,24 +8846,45 @@ namespace CapriDesktop
             input.Chosen = preferences.Mic;
             micTestUntil = clock.Elapsed.TotalSeconds + 10;
             micTestPeak = 0;
+            micTestWindowsMuted = null;
+            micTestMuteAt = clock.Elapsed.TotalSeconds + 2;
+            AskMicTestMute(input);
             micTestLevel = delegate(double value)
             {
                 Post(delegate
                 {
                     if (micTest != input) return;
                     micTestPeak = Math.Max(micTestPeak, value);
-                    mainframe.ShowMicTest(true, value, input.Muted);
+                    mainframe.ShowMicTest(true, value, input.Muted || micTestWindowsMuted == true);
                 });
             };
             input.Level += micTestLevel;
+            if (input != ears) input.Changed += delegate(string problem) { OnUi(delegate { HearingCaptureFailed(problem, false); }); };
             mainframe.ShowMicTest(true, 0, input.Muted);
             try { if (!testing) input.Start(); }
-            catch (VoiceException error) { StopMicTest(false); mainframe.VoiceNote(error.Message, true); }
+            catch (VoiceException error) { StopMicTest(false); HearingCaptureFailed(error.Message, false); mainframe.VoiceNote(error.Message, true); }
+        }
+
+        private void AskMicTestMute(Ears input)
+        {
+            Func<string, bool?> ask = MicMuted;
+            // Smoke tests never read this PC's real mic; a check that wants a Windows mute stands in its own answer.
+            if (micTestMuteAsking || (testing && ask == (Func<string, bool?>)Mics.Muted)) return;
+            micTestMuteAsking = true;
+            string chosen = input.Chosen;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                bool? muted = null;
+                try { muted = ask(chosen); }
+                catch (Exception error) { Brain.Log("ears", -1, "Couldn't ask Windows if the mic is muted: " + error.Message); }
+                Post(delegate { micTestMuteAsking = false; if (micTest == input) micTestWindowsMuted = muted; });
+            });
         }
 
         private void CheckMicTest(double now)
         {
             if (micTest == null) return;
+            if (now >= micTestMuteAt) { micTestMuteAt = now + 2; AskMicTestMute(micTest); }
             if (micTest.Stalled)
             {
                 StopMicTest(false);
@@ -8364,8 +8903,14 @@ namespace CapriDesktop
             if (input != ears) input.Dispose();
             mainframe.ShowMicTest(false, 0, false);
             if (!report) return;
-            string result = input.Muted ? "Your mic is muted. Unmute it to test." : micTestPeak == 0 ? MicSilent : micTestPeak < QuietWake ? "Your mic is very quiet. Raise its input volume in Windows sound settings." : "Mic test finished. Sound is reaching Capri.";
-            mainframe.VoiceNote(result, input.Muted || micTestPeak < QuietWake);
+            bool windowsMuted = !input.Muted && micTestWindowsMuted == true, muted = input.Muted || windowsMuted;
+            hearingTestSilent = micTestPeak == 0 && !muted;
+            hearingSilent = false;
+            hearingQuiet = micTestPeak > 0 && micTestPeak < QuietWake && !muted;
+            hearingCaptureProblem = null;
+            UpdateHearing();
+            string result = input.Muted ? "Your mic is muted. Unmute it to test." : windowsMuted ? MicMutedInWindows : micTestPeak == 0 ? MicSilent : micTestPeak < QuietWake ? "Your mic is very quiet. Raise its input volume in Windows sound settings." : "Mic test finished. Sound is reaching Capri.";
+            mainframe.VoiceNote(result, muted || micTestPeak < QuietWake);
             Brain.Log("ears", -1, "Mic test: peak RMS " + (micTestPeak <= 0 ? "silence" : (20 * Math.Log10(micTestPeak)).ToString("0.0") + " dBFS") + ". " + result);
         }
 
@@ -8775,6 +9320,7 @@ namespace CapriDesktop
             mainframe.ShowVoice(voice.Key == null ? null : Voice.Tail(voice.Key), voice.VoiceId, voice.Model, voices);
             bool hd = preferences.HdVoice, yours = YourVoice.Active(qwen.Folder), served = preferences.ServerVoice;
             mainframe.ShowFree(ready, hd ? QwenVoice.Style : served ? VoiceServer.Style : kokoro.Style.Name, SettingUpVoice, HdMachine, yours, YourVoice.Saved(qwen.Folder), served && !hd ? VoiceServer.Label(server.Url, server.Api) : null);
+            UpdateHearing();
             if (!note) return;
             if (hd && voice.Key == null && !served && !settingUpHd && (preferences.HdCpu || QwenVoice.Warn(HdMachine))) { mainframe.VoiceNote(preferences.HdCpu ? "HD on your CPU: slower, and 16 GB of RAM is best." : QwenVoice.Advice(HdMachine), !preferences.HdCpu || HdMachine.Ram < QwenVoice.RamRecommended); return; }
             if (chatting && local && preferences.ListenCapri && earsReady) { mainframe.VoiceNote(ears.Muted ? "Listening for Capri; mic muted." : LocalListening, false); return; }
@@ -8918,6 +9464,10 @@ namespace CapriDesktop
             }
             chatting = true;
             ears.Muted = false;
+            hearingSaid = null;
+            hearingCaptureProblem = hearingSpeechProblem = null;
+            ResetHearingSignal();
+            RefreshHearingDevices();
             if (!testing && !muteKey) muteKey = ByMouse(preferences.MuteVk) || Native.RegisterHotKey(Handle, MuteKeyId, preferences.MuteMods | 0x4000, preferences.MuteVk);
             pill.SetChat(true, false);
             pillUntil = clock.Elapsed.TotalSeconds + PillPop;
@@ -8929,6 +9479,10 @@ namespace CapriDesktop
         private void StartLocal(bool credits = false)
         {
             StopMicTest(false);
+            hearingSaid = null;
+            hearingCaptureProblem = hearingSpeechProblem = null;
+            ResetHearingSignal();
+            RefreshHearingDevices();
             WakeRest(true);
             chatTicket++;
             chatting = true;
@@ -8939,8 +9493,6 @@ namespace CapriDesktop
             earsWarned = -10;
             earsFailures = 0;
             earsRetryAt = -1;
-            micHeard = micWarned = false;
-            micQuietFrom = -1;
             ears.Muted = false;
             if (!testing && !muteKey) muteKey = ByMouse(preferences.MuteVk) || Native.RegisterHotKey(Handle, MuteKeyId, preferences.MuteMods | 0x4000, preferences.MuteVk);
             pill.SetChat(true, false);
@@ -8970,6 +9522,7 @@ namespace CapriDesktop
         // Free voice chat is listening. How it works gets said the first time and after that only shows under VOICE, unless she promised to say when she can hear them.
         private void EarsReady(bool promised)
         {
+            if (HearingNote()) return;
             if (preferences.ListenCapri)
             {
                 pill.ListenForName = true;
@@ -9003,23 +9556,28 @@ namespace CapriDesktop
 
         private void ListenLocally()
         {
+            hearingOffline = false;
+            hearingSpeechProblem = null;
             nameOver = false;
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
-            if (OwnEars) { ListenOwn(); return; }
+            if (HearingStatus.Own(HearingChoice, OwnEars)) { ListenOwn(); return; }
+            if (HearingChoice == 1) { if (parakeet.Fits) AwaitEars(null); else HearingNote(); return; }
             Hearing.Own = null;
             GetFreeEars();
             Dictation opened;
             try { opened = Dictation.Make(); }
-            catch (Exception error) { HearLater("Windows speech recognition isn't on this PC: " + Voice.Short(error.Message)); return; }
+            catch (Exception error) { hearingSpeechProblem = "Windows speech recognition isn't on this PC: " + Voice.Short(error.Message); HearLater(hearingSpeechProblem); return; }
             opened.Language = preferences.Language;
             dictation = opened;
             opened.Heard = delegate(string text) { OnUi(delegate { if (dictation == opened) HeardDictation(text); }); };
-            opened.Partial = delegate(string words) { OnUi(delegate { if (dictation == opened) DockWords(words); }); };
+            opened.Partial = delegate(string words) { OnUi(delegate { if (dictation == opened) { if (!string.IsNullOrEmpty(words)) HearingResult(null, true); DockWords(words); } }); };
             opened.Lost = delegate(string problem) { OnUi(delegate { if (dictation == opened) DictationLost(problem); }); };
+            opened.Rejected = delegate(string problem) { OnUi(delegate { if (dictation == opened && !ears.Muted) HearingResult(problem, false); }); };
             if ((preferences.ListenCapri || preferences.FreeChatTold) && earsLead.Length == 0) mainframe.VoiceNote("One sec, opening my ears.", false);
             else EarsNote(earsLead + "One sec, opening my ears.", false);
             opened.Start(delegate(string problem) { OnUi(delegate { if (dictation == opened) Dictated(problem); }); });
+            UpdateHearing();
         }
 
         private void Dictated(string problem)
@@ -9027,7 +9585,7 @@ namespace CapriDesktop
             if (!chatting || !local) return;
             if (problem != null) { DictationLost(problem); return; }
             try { if (!testing && !ears.Listening) ears.Start(); }
-            catch (VoiceException) { }
+            catch (VoiceException error) { HearingCaptureFailed(error.Message, false); }
             earsReady = true;
             dictation.Hold(ears.Muted);
             dictationMic = Dictation.DefaultMic();
@@ -9037,8 +9595,7 @@ namespace CapriDesktop
             string other = chosen == null || ears.Muted ? null : Dictation.OtherMic(preferences.Mic, chosen, dictationMic);
             if (other != null)
             {
-                EarsNote(earsLead + "Free voice chat on, but Windows speech only hears your default mic, not " + chosen + ". The fix is under VOICE.", false);
-                mainframe.VoiceNote(other, true);
+                HearingNote();
                 return;
             }
             EarsReady(false);
@@ -9051,14 +9608,15 @@ namespace CapriDesktop
             if (closing != null) closing.Dispose();
             if (!chatting || !local) return;
             earsReady = false;
-            if (problem == Dictation.MicBlocked) { StopChat(); EarsNote(problem, true); return; }
-            if (OwnEars) ListenOwn();
+            hearingSpeechProblem = problem;
+            if (problem == Dictation.MicBlocked || problem == Dictation.NoMic) { StopChat(); HearingNote(); return; }
+            if (HearingStatus.Own(HearingChoice, OwnEars)) ListenOwn();
             else HearLater(problem);
         }
 
         private void HearLater(string why)
         {
-            if (EarsComing) AwaitEars(why);
+            if (HearingChoice != 2 && EarsComing) AwaitEars(why);
             else ListenOffline(why);
         }
 
@@ -9072,14 +9630,14 @@ namespace CapriDesktop
             if (why != null) Brain.Log("ears", -1, "waiting for her own ears: " + why);
             GetFreeVoice();
             GetFreeEars();
-            string got = settingUpEars && earsTotal > 0 && earsGot > 0 ? " (" + earsGot * 100 / earsTotal + "% done)" : "";
-            EarsNote(earsLead + "My ears are still downloading" + got + ", so type to me for now. I'll say when I can hear you.", false);
+            HearingNote(true);
         }
 
         // Her ears work once the ears and the voice pack are both in, whichever lands last.
         private bool EarsArrived()
         {
-            if (!chatting || !local || !OwnEars || (dictation == null && !earsAwaited)) return false;
+            UpdateHearing();
+            if (HearingChoice == 2 || !chatting || !local || !OwnEars || (dictation == null && !earsAwaited)) return false;
             if (dictation != null) DictationLost(null);
             else ListenOwn();
             return true;
@@ -9088,6 +9646,8 @@ namespace CapriDesktop
         // Her own Parakeet ears hear the picked mic offline, about as well as Windows' online speech, so no warning.
         private void ListenOwn()
         {
+            hearingOffline = false;
+            hearingSpeechProblem = null;
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             bool promised = earsAwaited;
             earsAwaited = false;
@@ -9096,7 +9656,7 @@ namespace CapriDesktop
             catch (VoiceException error)
             {
                 StopChat();
-                EarsNote(error.Message, true);
+                HearingCaptureFailed(error.Message, true);
                 return;
             }
             earsReady = true;
@@ -9107,17 +9667,21 @@ namespace CapriDesktop
 
         private void ListenOffline(string why)
         {
+            hearingOffline = true;
+            hearingSpeechProblem = why;
+            Hearing.Own = null;
             lock (waking) { utterance = null; quietRun = 0; loudRun = 0; noiseHold = false; preroll.Clear(); room = -1; lineAt = -100; }
             earsAwaited = false;
             try { if (!testing && !ears.Listening) ears.Start(); }
             catch (VoiceException error)
             {
                 StopChat();
-                EarsNote(error.Message, true);
+                HearingCaptureFailed(error.Message, true);
                 return;
             }
             earsReady = true;
             CheckEars(clock.Elapsed.TotalSeconds);
+            if (HearingNote()) return;
             if (preferences.ListenCapri)
             {
                 EarsReady(false);
@@ -9131,6 +9695,7 @@ namespace CapriDesktop
         private void HeardDictation(string text)
         {
             if (!chatting || !local || !earsReady || ears.Muted) return;
+            HearingResult(null, true);
             if (CallModeOn) { if (!earsShut) HearCall(Hearing.Clean(text)); return; }
             text = Hearing.Clean(text);
             if (watchAlong != null && WatchAlong.Request(text) == "stop" && StopWatchAlong(text)) return;
@@ -9406,12 +9971,14 @@ namespace CapriDesktop
             if (request != asking || ears.Muted) { if (!preferences.ListenCapri) mainframe.VoiceNote(LocalListening, false); return; }
             if (problem != null)
             {
+                HearingResult(problem, false);
                 if (!testing) Brain.Log("ears", -1, problem);
                 Missed("I couldn't hear that. Try again, or check your mic under VOICE.", true);
                 mainframe.VoiceNote(problem, true);
                 return;
             }
-            if (string.IsNullOrEmpty(text)) { Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
+            if (string.IsNullOrEmpty(text)) { HearingResult(null, false); Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
+            HearingResult(null, true);
             if (CallModeOn) { HearCall(text); return; }
             if (!VoiceForHer(text)) return;
             if (preferences.ListenCapri && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy))
@@ -9498,7 +10065,7 @@ namespace CapriDesktop
                     if (!frames.Enabled && (!hidden || docked)) frames.Start();
                 });
             };
-            opened.Interrupted += delegate { Post(delegate { if (agent != opened) return; bargedUntil = -1; Hush(); }); };
+            opened.Interrupted += delegate { Post(delegate { if (agent == opened) ChatInterrupted(); }); };
             opened.Closed += delegate(string problem) { Post(delegate { if (agent != opened) return; if (problem != null) ChatFailed(problem); else Rest(); }); };
             agent = opened;
             opened.Start(url, voiceId);
@@ -9535,6 +10102,14 @@ namespace CapriDesktop
             chatFx = null;
         }
 
+        private void ChatInterrupted()
+        {
+            LogVoiceInterruption("server interruption", audioTurn, false);
+            CancelAnswerAudio();
+            bargedUntil = -1;
+            Hush();
+        }
+
         private void ChatOpened(int rate)
         {
             StopMicTest(false);
@@ -9546,7 +10121,12 @@ namespace CapriDesktop
                 speaker.Open(rate);
                 if (!testing) ears.Start();
             }
-            catch (VoiceException error) { ChatFailed(error.Message); return; }
+            catch (VoiceException error)
+            {
+                if (hearingCaptureProblem != null) { StopChat(); HearingNote(); }
+                else ChatFailed(error.Message);
+                return;
+            }
             spoke = false;
             checkedIn = false;
             quietSince = -1;
@@ -9559,7 +10139,7 @@ namespace CapriDesktop
                 if (backlog != null) foreach (short[] held in backlog) agent.Send(held);
                 backlog = null;
             }
-            mainframe.VoiceNote(muteKey ? "Voice chat on. " + MuteKeyName + " mutes your mic." : "Voice chat on. Talk to her.", false);
+            if (!HearingNote()) mainframe.VoiceNote(muteKey ? "Voice chat on. " + MuteKeyName + " mutes your mic." : "Voice chat on. Talk to her.", false);
         }
 
         private void ChatFailed(string problem)
@@ -9731,6 +10311,8 @@ namespace CapriDesktop
             WakeRest(!SleepBusy);
             agentComment = false;
             if (StopListening(text)) return;
+            // A sorry in voice chat makes up with her too, and the agent hears so before it answers (Zr4, F44).
+            if (Sulking && Apology(text)) Forgive();
             Brain.Transcribe("You (voice)", text);
             spoke = true;
             stirred = Environment.TickCount;
@@ -9837,7 +10419,6 @@ namespace CapriDesktop
             earsReady = false;
             earsAwaited = false;
             earsRetryAt = -1;
-            micQuietFrom = -1;
             if (muteKey && !ByMouse(preferences.MuteVk)) Native.UnregisterHotKey(Handle, MuteKeyId);
             muteKey = false;
             chatTicket++;
@@ -9869,6 +10450,7 @@ namespace CapriDesktop
                 if (asking == earsNotice) CloseTalk();
                 mainframe.VoiceNote("Free voice chat off. Click the wave to listen again.", false);
             }
+            UpdateHearing();
         }
 
         private void CheckChat(double now)
@@ -9910,6 +10492,8 @@ namespace CapriDesktop
         {
             if (!chatting) return;
             ears.Muted = !ears.Muted;
+            ResetHearingSignal();
+            UpdateHearing();
             if (ears.Muted) nameOver = false;
             if (dictation != null && earsReady) dictation.Hold(ears.Muted);
             pill.SetChat(true, ears.Muted);
@@ -9987,6 +10571,10 @@ namespace CapriDesktop
             followUp.Drop();
             if (StopWatchAlong(text)) return;
             if (StopListening(text)) return;
+            // Sorry, typed or said while she sulks over being thrown, makes up with her, and a plain sorry gets her forgiving line
+            // back. Mid-job it still goes to the job (Zr4, F44).
+            bool sorry = Sulking && prompt == "> you: " && Apology(text);
+            if (sorry) Forgive();
             string afterGaming = Hands.AfterGaming(text);
             if (afterGaming != null)
             {
@@ -10015,10 +10603,13 @@ namespace CapriDesktop
             if (hidden) SetHidden(false);
             hideAsked = false;
             brain.Cancel();
+            LogVoiceInterruption("explicit input", audioTurn, false);
+            CancelAnswerAudio();
             voice.Stop();
             int ticket = ++asking;
             heard = shown;
             box.Prompt = prompt;
+            if (sorry && OnlyApology(text)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
             if (meeting.Asking && prompt == "> you: ")
             {
@@ -10119,6 +10710,11 @@ namespace CapriDesktop
         private void Answer(int ticket, string said, TalkState state, bool quiet = false)
         {
             if (ticket != asking || IsDisposed) return;
+            // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
+            int turn = ++answerTurn;
+            CancelAnswerAudio();
+            int audio = audioTurn;
+            barging = false;
             voice.Stop();
             voiceUntil = 0;
             Func<string, byte[]> free;
@@ -10139,7 +10735,7 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate
             {
                 Thread.Sleep(wait);
-                Post(delegate { if (ticket == asking && reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, null); });
+                Post(delegate { if (turn == answerTurn && ticket == asking && reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, null); });
             });
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -10149,13 +10745,19 @@ namespace CapriDesktop
                 if (!testing && (problem != null || (speak == free && took.ElapsedMilliseconds > 5000))) Brain.Log(speak == free ? "free voice" : "ElevenLabs voice", took.ElapsedMilliseconds, problem ?? "slow, " + (wav == null ? 0 : Voice.Seconds(wav)).ToString("0.0") + " s of speech");
                 Post(delegate
                 {
-                    if (answerVoice == ticket) answerVoice = -1;
-                    voiceBroken = problem != null;
-                    if (hdSpeaking == ticket) hdSpeaking = -1;
-                    if (ticket != asking || IsDisposed) return;
-                    if (problem != null) mainframe.VoiceNote(problem, wav == null);
-                    if (reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, wav);
-                    else if (FollowDelivery(ticket) && talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
+                    bool current = turn == answerTurn && ticket == asking && !IsDisposed;
+                    bool audible = current && audio == audioTurn;
+                    Brain.Log("voice delivery", took.ElapsedMilliseconds, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible);
+                    if (!current) return;
+                    if (audible)
+                    {
+                        answerVoice = -1;
+                        hdSpeaking = -1;
+                        voiceBroken = problem != null;
+                        if (problem != null) mainframe.VoiceNote(problem, wav == null);
+                    }
+                    if (reply == null && talkState == TalkState.Thinking) Begin(ticket, said, state, audible ? wav : null);
+                    else if (audible && FollowDelivery(ticket) && talkState != TalkState.Off && box.Leaving < 0 && reply == said && (speak == free || !preferences.Quiet)) PlayReply(said, wav);
                 });
             });
         }
@@ -10247,6 +10849,8 @@ namespace CapriDesktop
 
         private void CloseTalk()
         {
+            answerTurn++;
+            CancelAnswerAudio();
             voice.Stop();
             Sfx.Untype();
             hdSpeaking = -1;
@@ -10303,7 +10907,7 @@ namespace CapriDesktop
                 return;
             }
             if (!preferences.Motion && !riding && seat == null && !falling && clip != glitch && clip != dangle && clip != wake && !Asleep) Play(idle);
-            if ((exploring || preferences.Motion || riding || seat != null || falling || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
+            if ((exploring || preferences.Motion || riding || seat != null || falling || Sulking || clip != idle || speech != null || talkState != TalkState.Off) && !hidden) frames.Start(); else frames.Stop();
             RenderFrame();
         }
 
@@ -10352,6 +10956,7 @@ namespace CapriDesktop
             drawnHologram = preferences.Hologram;
             drawnSettled = Calm;
             drawnLean = leanAngle;
+            drawnTurn = Turn() + Sway(now);
             drawnBreath = Breath(now);
             drawnTilt = Tilt(now);
             drawnNotes = preferences.Motion && notes.Exists(note => now - note.Born < NoteLife);
@@ -10385,7 +10990,7 @@ namespace CapriDesktop
         private bool BodyChanged(double now, Clip shown, int cell, int talk)
         {
             return frame == null || frame.Size != Size || shown != drawnClip || Art(shown) != drawnArt || cell != drawnCell || talk != drawnMouth || perchMix != drawnMix
-                || anchor != drawnAt || facingLeft != drawnFacing || leanAngle != drawnLean || preferences.Motion != drawnMotion || preferences.Hologram != drawnHologram
+                || anchor != drawnAt || facingLeft != drawnFacing || leanAngle != drawnLean || Turn() + Sway(now) != drawnTurn || preferences.Motion != drawnMotion || preferences.Hologram != drawnHologram
                 || Calm != drawnSettled || (veiled || now < veilUntil) != drawnVeil
                 || (preferences.Motion && (walking || clip == dance || clip == perchDance || drawnNotes || notes.Exists(note => now - note.Born < NoteLife)))
                 // Her breathing is slower than her art, so a step too small to see isn't worth a paint.
@@ -10535,8 +11140,17 @@ namespace CapriDesktop
             bool settled = Calm;
             float breathe = settled ? Breath(now) : 0;
             float tilt = settled ? Tilt(now) : 0;
+            // Dizzy, she sways around her hip, so she stays sat where she landed; thrown, she tumbles around her middle.
+            float sway = Sway(now);
+            if (sway != 0)
+            {
+                float hipX = PaddingSize + preferences.Size * SitX, hipY = PaddingSize + preferences.Size * SitY;
+                graphics.TranslateTransform(hipX, hipY);
+                graphics.RotateTransform(sway);
+                graphics.TranslateTransform(-hipX, -hipY);
+            }
             graphics.TranslateTransform(Width / 2f, Height / 2f + breathe);
-            graphics.RotateTransform(tilt + (float)leanAngle);
+            graphics.RotateTransform(tilt + (float)leanAngle + Turn());
             if (facingLeft) graphics.ScaleTransform(-1, 1);
             Bitmap art = Art(shown), strip = tween ?? art;
             int width = art.Width / shown.Count;
@@ -10724,6 +11338,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            if (hearingWatch != null) hearingWatch.Dispose();
             StopMicTest(false);
             EndWatchAlong();
             followUp.Drop();
@@ -10775,6 +11390,7 @@ namespace CapriDesktop
             if (disposing)
             {
                 quitting = true;
+                ChaosOff();
                 CheckKeepAwake();
                 clips.Dispose();
                 Native.Lower(false);
@@ -11941,6 +12557,482 @@ namespace CapriDesktop
 
         // Her clones and your windows (lance, 1 Nov: chaos mode "need more... OUMF"). A section of its own, since it needs a real
         // window on a real screen, and a problem there mustn't leave the checks after it in a muddle.
+        // Throwing her (Zr4, F63 and F44), each part in a Section of its own so one failure can't hide the rest: drags at known
+        // speeds through her mouse handlers, her flight against her screen's edges and a stand-in window, reduced motion, and her
+        // grudge, with a stand-in cursor and her sounds kept off the speakers.
+        private void SmokeThrows(System.Collections.Generic.List<string> checks)
+        {
+            Section(checks, "SmokeThrowReads", delegate { SmokeThrowReads(checks); });
+            Section(checks, "SmokeThrowSlow", delegate { ThrowCheck(checks, SmokeThrowSlow); });
+            Section(checks, "SmokeThrowFast", delegate { ThrowCheck(checks, SmokeThrowFast); });
+            Section(checks, "SmokeThrowUp", delegate { ThrowCheck(checks, SmokeThrowUp); });
+            Section(checks, "SmokeThrowSlam", delegate { ThrowCheck(checks, SmokeThrowSlam); });
+            Section(checks, "SmokeThrowStanding", delegate { ThrowCheck(checks, SmokeThrowStanding); });
+            Section(checks, "SmokeThrowCatch", delegate { ThrowCheck(checks, SmokeThrowCatch); });
+            Section(checks, "SmokeThrowCalm", delegate { ThrowCheck(checks, SmokeThrowCalm); });
+            Section(checks, "SmokeThrowGrudge", delegate { ThrowCheck(checks, SmokeThrowGrudge); });
+            Section(checks, "SmokeThrowDodges", delegate { ThrowCheck(checks, SmokeThrowDodges); });
+            Section(checks, "SmokeThrowSorry", delegate { ThrowCheck(checks, SmokeThrowSorry); });
+            Section(checks, "SmokeThrowPat", delegate { ThrowCheck(checks, SmokeThrowPat); });
+            Section(checks, "SmokeThrowAlone", delegate { ThrowCheck(checks, SmokeThrowAlone); });
+            checks.Add("LIMIT throwing her for real: how a flick off a real mouse feels, her tumble, bounces, tear and dizzy sway on a real screen, her thud on real speakers, and her hopping away from a real cursor need a person at the desk");
+        }
+
+        // One throwing check with her state saved first and put back after however it ends. During it she sits on windows, motion
+        // and head pats are on, nothing animates, she faces right, nothing's full screen, and her sounds are caught, not played.
+        private void ThrowCheck(System.Collections.Generic.List<string> checks, Action<System.Collections.Generic.List<string>, System.Collections.Generic.List<short[]>> run)
+        {
+            Point anchorWas = anchor;
+            Ledge seatWas = seat;
+            Clip clipWas = clip;
+            Action outroWas = outro;
+            bool motionWas = preferences.Motion, sittingWas = preferences.NoSitting, patsWas = preferences.NoHeadPats, instantWas = instant, facedWas = facingLeft, busyWas = frontBusy;
+            bool walkingWas = walking, hangingWas = hanging, lyingWas = lying, dropWas = dropAfter, spawnWas = spawnFall;
+            long petAtWas = petAt;
+            Func<Point> mouseWas = MouseAt;
+            Action<short[]> soundWas = Sfx.Out;
+            int levelWas = Sfx.Level;
+            System.Collections.Generic.List<short[]> sounds = new System.Collections.Generic.List<short[]>();
+            try
+            {
+                CloseTalk();
+                tear.Hide();
+                preferences.NoSitting = false;
+                preferences.Motion = true;
+                preferences.NoHeadPats = false;
+                instant = true;
+                facingLeft = false;
+                frontBusy = false;
+                throwsAt.Clear();
+                sulkSince = -1;
+                dizzyFrom = dizzyUntil = dizzyGlitchAt = -1;
+                pendingClick = false;
+                clickDelay.Stop();
+                Sfx.Out = delegate(short[] sound) { sounds.Add(sound); };
+                Sfx.Level = 60;
+                run(checks, sounds);
+            }
+            finally
+            {
+                MouseAt = mouseWas;
+                Sfx.Out = soundWas;
+                Sfx.Level = levelWas;
+                preferences.Motion = motionWas;
+                preferences.NoSitting = sittingWas;
+                preferences.NoHeadPats = patsWas;
+                instant = instantWas;
+                frontBusy = busyWas;
+                sulkSince = -1;
+                sulkLine = patForgives = false;
+                throwsAt.Clear();
+                dizzyFrom = dizzyUntil = dizzyGlitchAt = -1;
+                pressed = dragging = caught = false;
+                Capture = false;
+                pendingClick = false;
+                clickDelay.Stop();
+                falling = thrown = false;
+                fallTo = null;
+                petTicket++;
+                petAt = petAtWas;
+                CloseTalk();
+                tear.Hide();
+                outro = outroWas;
+                walking = walkingWas;
+                hanging = hangingWas;
+                lying = lyingWas;
+                dropAfter = dropWas;
+                spawnFall = spawnWas;
+                facingLeft = facedWas;
+                seat = seatWas;
+                anchor = anchorWas;
+                Location = anchor;
+                Play(clipWas ?? idle);
+                RenderFrame();
+            }
+        }
+
+        // A stand-in window halfway down her main screen, with nothing else near its top edge, for her to land on.
+        private Shelf ThrowShelf()
+        {
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            int middle = work.Left + work.Width / 2, clear = Math.Max(160, preferences.Size) + 60;
+            System.Collections.Generic.List<Ledge> others = Ledges.Find(Skip(), icons);
+            int shelfY = work.Top + work.Height / 2;
+            for (int y = Math.Max(work.Top + Headroom() + 20, work.Top + work.Height / 2 - 60); y < work.Bottom - 240; y += 10)
+                if (!others.Exists(other => !other.Floor && other.Icon.IsEmpty && other.Right > middle - 280 && other.Left < middle + 280 && Math.Abs(other.Y - y) < clear)) { shelfY = y; break; }
+            Shelf shelf = new Shelf();
+            shelf.Bounds = new Rectangle(middle - 220, shelfY, 440, 180);
+            shelf.Show();
+            return shelf;
+        }
+
+        // Her hip at hip, standing on nothing, ready to be picked up.
+        private void StandForThrow(Point hip)
+        {
+            seat = null;
+            falling = thrown = false;
+            walking = hanging = lying = false;
+            anchor = Seated(hip.X, hip.Y);
+            Location = anchor;
+            Play(idle);
+        }
+
+        // A drag through her mouse handlers at a known speed: pressed on her, moved dx, dy every 16 ms, and let go 4 ms after the
+        // last move. Over the last 80 ms that's 4.75 moves, so 59.375 times a move a second.
+        private void DragAndLetGo(int dx, int dy, int moves)
+        {
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+            if (!pressed || trail.Count == 0) throw new Exception("A press on her didn't take hold of her.");
+            double pressedAt = trail[0].Key;
+            Point from = pointerStart;
+            for (int i = 1; i <= moves; i++) MovePointer(new Point(from.X + dx * i, from.Y + dy * i), pressedAt + i * 0.016);
+            Released(new Point(from.X + dx * moves, from.Y + dy * moves), pressedAt + moves * 0.016 + 0.004);
+        }
+
+        // What her flight looked like, frame by frame at 60 a second, until she was down.
+        private sealed class FlightSeen
+        {
+            internal string Wrong;
+            internal float Turned, LastTurn;
+            internal int Rightmost = int.MinValue, Frames;
+            internal bool TurnedBack, CameBack;
+        }
+
+        private FlightSeen WatchFlight()
+        {
+            FlightSeen seen = new FlightSeen();
+            Rectangle room = flyArea, screen = Screen.FromRectangle(flyArea).Bounds;
+            bool goingRight = flyVX > 0;
+            for (int tick = 0; tick < 900 && falling; tick++)
+            {
+                Tumble(fallStep + 1 / 60.0);
+                if (!falling) break;
+                seen.Frames++;
+                if (thrown && FrameInterval(fallStep) != 15) seen.Wrong = "she was drawn every " + FrameInterval(fallStep) + " ms in the air";
+                Rectangle body = BodyOnScreen(anchor, Body);
+                if (!screen.Contains(body) || body.Left < room.Left || body.Right > room.Right || body.Top < room.Top) seen.Wrong = "she left her screen at " + body + " on " + room;
+                seen.Turned = Math.Max(seen.Turned, Math.Abs(Turn()));
+                seen.LastTurn = Turn();
+                seen.Rightmost = Math.Max(seen.Rightmost, body.Right);
+                // Only her screen's right edge turns a throw to the right back.
+                if (goingRight && thrown && flyVX < 0) seen.TurnedBack = true;
+                if (seen.TurnedBack && body.Right < room.Right - 40) seen.CameBack = true;
+            }
+            if (falling) seen.Wrong = "she never came down";
+            return seen;
+        }
+
+        // How far from upright she was, in degrees.
+        private static double OffUpright(float turn) { return Math.Abs(turn - 360 * Math.Round(turn / 360.0)); }
+
+        // Their cursor's speed as they let go, and what counts as saying sorry.
+        private void SmokeThrowReads(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>> track = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>>();
+            for (int i = 0; i <= 12; i++) track.Add(new System.Collections.Generic.KeyValuePair<double, Point>(10 + i * 0.016, new Point(100 + i * 10, 300 - i * 6)));
+            PointF steady = TrailSpeed(track, 10 + 12 * 0.016 + 0.004, ThrowSpan), stopped = TrailSpeed(track, 10 + 12 * 0.016 + 0.12, ThrowSpan);
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>> flick = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<double, Point>>();
+            flick.Add(new System.Collections.Generic.KeyValuePair<double, Point>(10, new Point(500, 500)));
+            for (int i = 0; i < 3; i++) flick.Add(new System.Collections.Generic.KeyValuePair<double, Point>(12 + i * 0.01, new Point(550 + i * 50, 500)));
+            PointF flicked = TrailSpeed(flick, 12.025, ThrowSpan);
+            if (Math.Abs(steady.X - 625) > 60 || Math.Abs(steady.Y + 375) > 40 || stopped.X != 0 || stopped.Y != 0 || flicked.X < 1800 || flicked.Y != 0)
+                throw new Exception("Her cursor's speed read wrong: steady " + steady + ", stopped " + stopped + ", a flick after a wait " + flicked);
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            foreach (string said in new[] { "sorry", "I'm sorry Capri", "my bad lol", "soooo sorry!!", "sorry for throwing you", "lo siento", "ごめんね" })
+                if (!Apology(said)) wrong.Add("she didn't hear an apology in \"" + said + "\"");
+            foreach (string said in new[] { "open spotify", "the sorrow of it", "" })
+                if (Apology(said)) wrong.Add("she heard an apology in \"" + said + "\"");
+            foreach (string said in new[] { "I'm sorry Capri", "sorry for throwing you", "soooo sorry!!" })
+                if (!OnlyApology(said)) wrong.Add("\"" + said + "\" wasn't a plain sorry");
+            foreach (string said in new[] { "sorry, can you open spotify", "open spotify" })
+                if (OnlyApology(said)) wrong.Add("\"" + said + "\" was a plain sorry");
+            if (wrong.Count > 0) throw new Exception("Saying sorry to her read wrong: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS throwing her: their cursor's speed as they let go reads true for a steady drag, still once it stopped, and a flick after holding still isn't spread over the wait; she hears sorry, I'm sorry Capri, my bad and sorry in a few other languages, and tells a plain sorry from one with more in it");
+        }
+
+        // Slow drags drop her onto the window under her like before, one of them just under throwing speed.
+        private void SmokeThrowSlow(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            using (Shelf shelf = ThrowShelf())
+            {
+                foreach (int[] slow in new[] { new[] { 4, 0, 8 }, new[] { 20, 0, 6 } })
+                {
+                    StandForThrow(new Point(shelf.Left + 160, shelf.Top - 12));
+                    DragAndLetGo(slow[0], slow[1], slow[2]);
+                    bool dropped = falling && !thrown && fallTo != null && fallTo.Window == shelf.Handle;
+                    for (int i = 0; i < 60 && falling; i++) Tumble(fallStep + 0.033);
+                    if (!dropped || seat == null || seat.Window != shelf.Handle || Hip().Y != shelf.Top) wrong.Add("a drag of " + slow[0] + " px every 16 ms: dropped " + dropped + ", thrown " + thrown + ", sat on the window " + (seat != null && seat.Window == shelf.Handle) + " at " + Hip() + " for " + shelf.Top);
+                }
+            }
+            if (wrong.Count > 0) throw new Exception("A slow drag didn't drop her like before: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS a slow drag and one just under throwing speed both drop her onto the window under her like before, without throwing her");
+        }
+
+        // A fast drag throws her at its speed: she yells, hits the right edge of her screen and comes back off it, bounces on the
+        // taskbar, tumbles and rights herself, lands, never leaves her screen, is drawn every 1/64 s in the air, and is dizzy for a
+        // beat after. A wild flick is kept to her top speed and stays on her screen too.
+        private void SmokeThrowFast(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            int size = preferences.Size;
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            int middle = work.Left + work.Width / 2, dx = (int)Math.Round(60 * scale), dy = (int)Math.Round(-30 * scale);
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            StandForThrow(new Point(middle, work.Top + work.Height / 2 - 72));
+            int bumpsBefore = bumps;
+            DragAndLetGo(dx, dy, 6);
+            double speed = Math.Sqrt(flyVX * flyVX + flyVY * flyVY);
+            if (!Flying || clip != dangle || Math.Abs(flyVX - 59.375 * dx) > 2 || Math.Abs(flyVY - 59.375 * dy) > 2) wrong.Add("she didn't fly at their cursor's speed: flying " + Flying + " at " + (int)flyVX + ", " + (int)flyVY + " for " + (int)(59.375 * dx) + ", " + (int)(59.375 * dy));
+            if (Array.IndexOf(ThrowLines, reply) < 0 || heard != "throws you" || box.Prompt != "> sys: ") wrong.Add("she didn't yell as she flew: " + reply + " / " + heard);
+            frontBusy = true;
+            int overGame = FrameInterval(fallStep);
+            frontBusy = false;
+            if (overGame != 33) wrong.Add("over a game she was drawn every " + overGame + " ms in the air, not 33");
+            FlightSeen seen = WatchFlight();
+            if (seen.Wrong != null) wrong.Add(seen.Wrong);
+            if (!seen.TurnedBack || !seen.CameBack || seen.Rightmost < flyArea.Right - size / 4) wrong.Add("she didn't bounce back off the right edge of her screen: got to " + seen.Rightmost + " of " + flyArea.Right + ", turned back " + seen.TurnedBack + ", came back " + seen.CameBack);
+            if (flyFloors < 1) wrong.Add("she didn't bounce on the taskbar");
+            if (bumps == bumpsBefore) wrong.Add("no impact was hard enough to thud");
+            bool landed = !falling && !thrown && seat != null && (seat.Floor || seat.Window != IntPtr.Zero) && Hip().Y == seat.Y;
+            if (!landed) wrong.Add("she didn't land on a ledge: falling " + falling + ", seat " + (seat != null) + ", hip " + Hip());
+            if (seen.Turned < 90) wrong.Add("she only tumbled " + (int)seen.Turned + " degrees");
+            if (landed && seat.Floor && OffUpright(seen.LastTurn) > 45) wrong.Add("she was " + (int)OffUpright(seen.LastTurn) + " degrees off upright just before she landed on the taskbar");
+            if (!Dizzy(fallStep) || Sway(dizzyFrom + 0.25) == 0 || Sway(dizzyUntil + 0.1) != 0 || FrameInterval(dizzyFrom + 0.25) != 33 || Array.IndexOf(DizzyLines, reply) < 0) wrong.Add("she wasn't dizzy for a beat after: dizzy " + Dizzy(fallStep) + ", sway " + Sway(dizzyFrom + 0.25) + ", said " + reply);
+            int bounces = flyBounces, floors = flyFloors;
+            CloseTalk();
+            throwsAt.Clear();
+            StandForThrow(new Point(middle, work.Top + work.Height / 2));
+            DragAndLetGo((int)Math.Round(300 * scale), 0, 3);
+            double wild = Math.Sqrt(flyVX * flyVX + flyVY * flyVY);
+            if (!Flying || Math.Abs(wild - ThrowMost * scale) > 1) wrong.Add("a wild flick flew at " + (int)wild + " px/s, not " + (int)(ThrowMost * scale));
+            FlightSeen wildSeen = WatchFlight();
+            if (wildSeen.Wrong != null) wrong.Add("a wild flick: " + wildSeen.Wrong);
+            if (wrong.Count > 0) throw new Exception("Throwing her fast went wrong: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS a fast drag throws her at its speed (" + (int)speed + " px/s): she yells, hits the right edge of her screen and bounces back off it, bounces on the taskbar (" + bounces + " bounces in all, " + floors + " on the taskbar), tumbles and rights herself, lands, never leaves her screen, is drawn every 1/64 s in the air and every 33 ms over a game, and is dizzy for a beat after; a wild flick is kept to " + (int)(ThrowMost * scale) + " px/s and stays on her screen too");
+        }
+
+        // Thrown straight up off a window, she comes back down onto it.
+        private void SmokeThrowUp(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            using (Shelf shelf = ThrowShelf())
+            {
+                StandForThrow(new Point(shelf.Left + 220, shelf.Top - 12));
+                DragAndLetGo(0, (int)Math.Round(-26 * scale), 6);
+                bool up = Flying && flyVY < 0 && Math.Abs(flyVX) < 1;
+                FlightSeen seen = WatchFlight();
+                if (!up || seen.Wrong != null || seat == null || seat.Window != shelf.Handle || Hip().Y != shelf.Top)
+                    throw new Exception("Thrown straight up off a window she didn't come back down onto it: thrown up " + up + ", " + (seen.Wrong ?? "stayed on her screen") + ", on the window " + (seat != null && seat.Window == shelf.Handle) + ", hip " + Hip() + " for " + shelf.Top);
+            }
+            checks.Add("PASS thrown straight up off a window she comes back down and lands on it");
+        }
+
+        // Thrown hard down onto the taskbar, she bounces on it before she settles there, upright.
+        private void SmokeThrowSlam(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            StandForThrow(new Point(work.Left + preferences.Size, work.Top + work.Height / 3));
+            DragAndLetGo(0, (int)Math.Round(50 * scale), 4);
+            bool down = Flying && flyVY > 0;
+            FlightSeen seen = WatchFlight();
+            if (!down || seen.Wrong != null || flyFloors < 1 || seat == null || !seat.Floor || seat.Y != work.Bottom || Hip().Y != work.Bottom || OffUpright(seen.LastTurn) > 45)
+                throw new Exception("Slammed down she didn't bounce on the taskbar and land on it: thrown down " + down + ", " + (seen.Wrong ?? "stayed on her screen") + ", " + flyFloors + " taskbar bounces, on the taskbar " + (seat != null && seat.Floor) + ", hip " + Hip() + " for " + work.Bottom + ", " + (int)OffUpright(seen.LastTurn) + " degrees off upright");
+            checks.Add("PASS slammed down onto the taskbar she bounces on it " + flyFloors + " times, then lands on it upright without leaving her screen");
+        }
+
+        // With Sit on windows off, a throw still flies, and she ends up standing on the bottom of her screen's work area.
+        private void SmokeThrowStanding(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            preferences.NoSitting = true;
+            StandForThrow(new Point(work.Left + work.Width / 2, work.Top + work.Height / 2 - 72));
+            DragAndLetGo((int)Math.Round(60 * scale), (int)Math.Round(-30 * scale), 6);
+            bool flew = Flying;
+            FlightSeen seen = WatchFlight();
+            Rectangle body = BodyOnScreen(anchor, Body);
+            if (!flew || seen.Wrong != null || falling || seat != null || body.Bottom != work.Bottom)
+                throw new Exception("With Sit on windows off a throw went wrong: flew " + flew + ", " + (seen.Wrong ?? "stayed on her screen") + ", falling " + falling + ", seat " + (seat != null) + ", feet at " + body.Bottom + " for " + work.Bottom);
+            checks.Add("PASS with Sit on windows off a throw still flies and bounces, and she ends up standing on the bottom of her screen's work area");
+        }
+
+        // A press on her mid-flight catches her in their hand where she is, and letting go without a drag lets her fall from there.
+        private void SmokeThrowCatch(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            StandForThrow(new Point(work.Left + work.Width / 2, work.Top + work.Height / 4));
+            Launch(900 * scale, -1500 * scale, clock.Elapsed.TotalSeconds);
+            for (int i = 0; i < 5; i++) Tumble(fallStep + 1 / 60.0);
+            bool flying = Flying;
+            Point caughtAt = anchor;
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+            bool held = flying && pressed && caught && !falling && !thrown && clip == dangle && anchor == caughtAt;
+            Released(PointToScreen(new Point(Width / 2, Height / 2)), clock.Elapsed.TotalSeconds);
+            bool letFall = falling && !thrown;
+            pendingClick = false;
+            clickDelay.Stop();
+            for (int i = 0; i < 400 && falling; i++) Tumble(fallStep + 0.033);
+            letFall &= seat != null && Hip().Y == seat.Y;
+            if (!held || !letFall) throw new Exception("Catching her mid-flight went wrong: flying " + flying + ", caught " + held + ", fell after " + letFall);
+            checks.Add("PASS a press on her mid-flight catches her in their hand where she is, and letting go without a drag lets her fall from there onto a ledge");
+        }
+
+        // Reduced motion: the same throw from the same spot at the same times flies the same path, with no tumble, screen tear or
+        // dizzy sway, and her thud still plays.
+        private void SmokeThrowCalm(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            Point hip = new Point(work.Left + work.Width / 2 + 60, work.Top + work.Height / 4);
+            double at = clock.Elapsed.TotalSeconds;
+            System.Collections.Generic.List<Point>[] paths = { new System.Collections.Generic.List<Point>(), new System.Collections.Generic.List<Point>() };
+            int[] thuds = new int[2];
+            bool[] tore = new bool[2], swayed = new bool[2];
+            float[] tumbled = new float[2];
+            int thudLength = Sfx.Make(Cue.Bonk, 60).Length;
+            instant = false;
+            for (int run = 0; run < 2; run++)
+            {
+                preferences.Motion = run == 0;
+                CloseTalk();
+                tear.Hide();
+                sounds.Clear();
+                StandForThrow(hip);
+                Launch(4000 * scale, -2600 * scale, at);
+                for (int k = 1; k <= 900 && falling; k++)
+                {
+                    Tumble(at + k / 60.0);
+                    paths[run].Add(anchor);
+                    tumbled[run] = Math.Max(tumbled[run], Math.Abs(Turn()));
+                }
+                thuds[run] = sounds.FindAll(sound => sound.Length == thudLength).Count;
+                tore[run] = tear.Visible;
+                swayed[run] = Dizzy(fallStep) && Sway(dizzyFrom + 0.25) != 0;
+            }
+            instant = true;
+            bool samePath = paths[0].Count > 0 && paths[0].Count == paths[1].Count && !falling;
+            for (int i = 0; samePath && i < paths[0].Count; i++) if (paths[0][i] != paths[1][i]) samePath = false;
+            if (!samePath || tumbled[0] < 30 || tumbled[1] != 0 || !tore[0] || tore[1] || !swayed[0] || swayed[1] || thuds[0] == 0 || thuds[1] != thuds[0])
+                throw new Exception("Reduced motion went wrong: same path " + samePath + " (" + paths[0].Count + " / " + paths[1].Count + " frames), tumble " + tumbled[0] + " / " + tumbled[1] + ", tear " + tore[0] + " / " + tore[1] + ", sway " + swayed[0] + " / " + swayed[1] + ", thuds " + thuds[0] + " / " + thuds[1]);
+            checks.Add("PASS reduced motion: the same throw flies the same path frame for frame (" + paths[0].Count + " frames), with no tumble, no screen tear and no dizzy sway, and her thud still plays on each hard bounce (" + thuds[0] + ")");
+        }
+
+        // Three throws in two minutes: a soft first one gets no line, the second a warning, the third her sulk, said once she's
+        // down. Throws further apart than that don't add up.
+        private void SmokeThrowGrudge(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double scale = TalkScale();
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            int middle = work.Left + work.Width / 2;
+            string[] said = new string[3];
+            bool[] sulking = new bool[3];
+            for (int n = 0; n < 3; n++)
+            {
+                CloseTalk();
+                StandForThrow(new Point(middle - 100, work.Top + work.Height / 2 - 84));
+                DragAndLetGo((int)Math.Round(36 * scale), (int)Math.Round(-12 * scale), 6);
+                said[n] = reply;
+                sulking[n] = Sulking;
+                FlightSeen seen = WatchFlight();
+                if (seen.Wrong != null) throw new Exception("Throw " + (n + 1) + " toward her grudge went wrong: " + seen.Wrong);
+            }
+            bool sulked = !sulking[0] && !sulking[1] && sulking[2] && Sulking && !sulkLine && said[0] == null && Array.IndexOf(WarnLines, said[1]) >= 0 && Array.IndexOf(SulkLines, reply) >= 0 && seat != null;
+            string sulkSaid = reply;
+            sulkSince = -1;
+            throwsAt.Clear();
+            double at = clock.Elapsed.TotalSeconds;
+            Grudge(1500, at);
+            Grudge(1500, at + SulkWindow + 1);
+            Grudge(1500, at + SulkWindow * 2 + 2);
+            bool apart = !Sulking && throwsAt.Count == 1;
+            if (!sulked || !apart) throw new Exception("Her grudge went wrong: sulking after each throw " + sulking[0] + ", " + sulking[1] + ", " + sulking[2] + "; said " + said[0] + " / " + said[1] + " / " + sulkSaid + "; throws two minutes apart added up " + !apart);
+            checks.Add("PASS her grudge: a soft first throw gets no line, the second in two minutes gets a warning, and the third starts her sulk, which she says once she's down; throws more than two minutes apart don't add up");
+        }
+
+        // Sulking, a press on her doesn't pick her up but glitches her a short hop along her ledge with her first line. Their
+        // cursor coming at her fast gets a hop too, and one that comes slowly reaches her, so a head pat still can.
+        private void SmokeThrowDodges(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            int size = preferences.Size;
+            Rectangle work = Screen.PrimaryScreen.WorkingArea;
+            StandForThrow(new Point(work.Left + work.Width / 2, work.Bottom));
+            Land(new Ledge { Floor = true, Left = work.Left, Right = work.Right, Y = work.Bottom });
+            if (seat == null) throw new Exception("She couldn't be sat on the taskbar for the dodge checks.");
+            Sulk(clock.Elapsed.TotalSeconds);
+            CloseTalk();
+            System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
+            int dodgesBefore = dodges;
+            Point hipBefore = Hip();
+            Point cursorAt = new Point(hipBefore.X, hipBefore.Y - size / 3);
+            MouseAt = delegate { return cursorAt; };
+            OnMouseDown(new MouseEventArgs(MouseButtons.Left, 1, Width / 2, Height / 2, 0));
+            Rectangle screen = Screen.FromPoint(hipBefore).Bounds, body = BodyOnScreen(anchor, seat != null ? PerchedBody : Body);
+            if (pressed || dragging || dodges != dodgesBefore + 1) wrong.Add("a press picked her up or didn't hop her away: pressed " + pressed + ", dodges " + (dodges - dodgesBefore));
+            if (seat == null || Hip().Y != hipBefore.Y || Math.Abs(Hip().X - hipBefore.X) < size / 4) wrong.Add("her hop from a press didn't go along her ledge: " + hipBefore + " to " + Hip());
+            if (body.Left < screen.Left || body.Right > screen.Right || body.Top < screen.Top) wrong.Add("her hop took her off her screen: " + body);
+            if (reply != FirstDodgeLine) wrong.Add("her first hop said " + reply);
+            double approachAt = clock.Elapsed.TotalSeconds + DodgeGap + 0.5;
+            Rectangle near = BodyOnScreen(anchor, PerchedBody);
+            cursorAt = new Point(near.Left - 400, near.Top + near.Height / 2);
+            Shy(approachAt);
+            cursorAt = new Point(near.Left + 6, near.Top + near.Height / 2);
+            Shy(approachAt + 0.033);
+            if (dodges != dodgesBefore + 2) wrong.Add("their cursor coming at her fast didn't hop her away");
+            double slowAt = approachAt + DodgeGap + 1;
+            near = BodyOnScreen(anchor, PerchedBody);
+            int margin = Math.Max(16, (int)(size * 0.18f));
+            cursorAt = new Point(near.Left - margin - 40, near.Top + near.Height / 2);
+            Shy(slowAt);
+            for (int i = 1; i <= 30; i++) { cursorAt = new Point(cursorAt.X + 4, cursorAt.Y); Shy(slowAt + i * 0.033); }
+            if (dodges != dodgesBefore + 2 || !Rectangle.Inflate(near, margin, margin).Contains(cursorAt) || !Sulking) wrong.Add("a slow cursor didn't reach her: dodges " + (dodges - dodgesBefore) + ", sulking " + Sulking);
+            if (wrong.Count > 0) throw new Exception("Her dodges went wrong: " + string.Join("; ", wrong.ToArray()));
+            checks.Add("PASS sulking, a press on her doesn't pick her up but glitches her a short hop along her ledge with \"" + FirstDodgeLine + "\", their cursor coming at her fast gets a hop too, and a slow one reaches her so a head pat still can");
+        }
+
+        // Sorry, typed or said, ends her sulk, and a plain one gets her forgiving line.
+        private void SmokeThrowSorry(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            Sulk(clock.Elapsed.TotalSeconds);
+            CloseTalk();
+            Hear("I'm sorry Capri");
+            if (Sulking || Array.IndexOf(SorryLines, reply) < 0 || heard != "I'm sorry Capri" || box.Prompt != "> you: ")
+                throw new Exception("Saying sorry didn't make up with her: sulking " + Sulking + ", said " + reply + ", heard " + heard);
+            checks.Add("PASS \"I'm sorry Capri\", typed or said, ends her sulk, and she answers with a forgiving line of her own");
+        }
+
+        // A head pat ends her sulk, and her pat line says so.
+        private void SmokeThrowPat(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            Sulk(clock.Elapsed.TotalSeconds);
+            CloseTalk();
+            Petted();
+            bool forgave = !Sulking && patForgives;
+            PetLine(petTicket);
+            if (!forgave || Array.IndexOf(PatPeaceLines, reply) < 0 || patForgives)
+                throw new Exception("A head pat didn't make up with her: forgave " + forgave + ", said " + reply);
+            checks.Add("PASS a head pat ends her sulk, with a pat line that says so");
+        }
+
+        // Five minutes alone ends her sulk, not a moment before, and a hop away starts the five minutes again.
+        private void SmokeThrowAlone(System.Collections.Generic.List<string> checks, System.Collections.Generic.List<short[]> sounds)
+        {
+            double at = clock.Elapsed.TotalSeconds;
+            Sulk(at);
+            CloseTalk();
+            CheckSulk(at + SulkAlone - 1);
+            bool held = Sulking;
+            sulkBothered = at + 200;
+            CheckSulk(at + SulkAlone + 1);
+            bool bothered = Sulking;
+            CheckSulk(at + 200 + SulkAlone + 1);
+            if (!held || !bothered || Sulking || (!Hushed && Array.IndexOf(AloneLines, reply) < 0))
+                throw new Exception("Time alone didn't end her sulk right: still sulking before five minutes " + held + ", after a later hop " + bothered + ", after five quiet minutes " + Sulking + ", said " + reply);
+            checks.Add("PASS five minutes alone ends her sulk, not a moment before, a hop away starts the five minutes again, and she says she's over it");
+        }
+
         private void SmokeHaul(System.Collections.Generic.List<string> checks)
         {
             Swarm haulRun = new Swarm(1200, 800, 9, 0);
@@ -12237,6 +13329,172 @@ namespace CapriDesktop
             }
             checks.Add("PASS desktop icon chaos on a fake list view: reads icon names and spots through her own process the way she'd reach into Explorer's, a scatter slides several and puts every one back exactly, a vanish hides the list view and brings it back in 10 to 20 s, Auto arrange falls back to the vanish, the backup file restores a scatter after a simulated crash matched by name, and an icon moved by hand meanwhile is left where it was put");
             checks.Add("LIMIT desktop icon chaos on the real desktop: the smoke test only ever runs against a fake list view it creates, so moving, hiding and restoring real Explorer icons is for Lachy to check live");
+        }
+
+        private void SmokeChaosScreen(System.Collections.Generic.List<string> checks)
+        {
+            Func<bool> chaosFullWas = FullScreen;
+            bool chaosMotionWas = preferences.Motion, chaosHiddenWas = hidden, chaosQuitWas = quitting, chaosUpsetWas = preferences.UpsetChaos;
+            Point chaosAnchorWas = anchor, chaosLocationWas = Location;
+            try
+            {
+                ClonesOff();
+                hidden = quitting = false;
+                preferences.Motion = true;
+                preferences.UpsetChaos = false;
+                bool chaosFull = false;
+                FullScreen = delegate { return chaosFull; };
+                double chaosStarted = clock.Elapsed.TotalSeconds;
+                Clone("spawn", 1);
+                CloneWindow chaosOwner = cloneWindow;
+                double chaosDue = chaosScreenAt;
+                if (chaosDue < chaosStarted + 40 || chaosDue > clock.Elapsed.TotalSeconds + 120) throw new Exception("Her fake crash was not scheduled 40 to 120 seconds into Chaos.");
+                chaosOwner.Ticked(chaosDue - 0.001);
+                if (chaosScreen != null || chaosScreenUsed) throw new Exception("Her fake crash opened early.");
+                Rectangle chaosMonitor = Screen.AllScreens[Screen.AllScreens.Length - 1].Bounds;
+                anchor = new Point(chaosMonitor.Left + 80, chaosMonitor.Top + 80);
+                Rectangle chaosRoom = Screen.FromPoint(new Point(anchor.X + Width / 2, anchor.Y + Height / 2)).Bounds;
+                IntPtr chaosFront = Native.GetForegroundWindow();
+                chaosOwner.Ticked(chaosDue);
+                ChaosScreen chaosShown = chaosScreen;
+                if (chaosShown == null || !chaosShown.Visible || !chaosShown.Running || chaosShown.Bounds != chaosRoom || chaosShown.Canvas.Size != chaosRoom.Size
+                    || chaosShown.Canvas.GetPixel(0, 0).A != 255 || chaosShown.Canvas.GetPixel(chaosRoom.Width - 1, chaosRoom.Height - 1).A != 255)
+                    throw new Exception("Her fake crash did not cover the monitor she was on when it opened.");
+                int chaosStyle = Native.GetWindowLong(chaosShown.Handle, -20);
+                if ((chaosStyle & 0x08080088) != 0x08080088 || (chaosStyle & 0x00000020) != 0 || chaosShown.ShowInTaskbar || Native.GetForegroundWindow() != chaosFront
+                    || Native.SendMessage(chaosShown.Handle, 0x0084, IntPtr.Zero, IntPtr.Zero) != new IntPtr(1)
+                    || Native.SendMessage(chaosShown.Handle, 0x0021, IntPtr.Zero, IntPtr.Zero) != new IntPtr(3)) throw new Exception("Her fake crash took focus, passed clicks through or appeared in the taskbar.");
+                if (!chaosShown.Motion || chaosShown.Revealed || chaosShown.Percent != 0 || !chaosShown.Said.Contains("FAKE CRASH") || !chaosShown.Said.Contains(ChaosScreen.StopCode)) throw new Exception("Her crash was not clearly Capri's prank from the start.");
+                checks.Add("PASS chaos fake crash waits 40 to 120 seconds then covers her current monitor with an opaque Capri plate that accepts clicks without taking focus or a taskbar button");
+
+                chaosShown.Advance(clock.Elapsed.TotalSeconds + 1.5);
+                if (chaosShown.Percent <= 0 || chaosShown.Percent >= 100 || chaosShown.Revealed) throw new Exception("Her fake crash percent did not count up.");
+                chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash.png"), ImageFormat.Png);
+                chaosShown.Advance(clock.Elapsed.TotalSeconds + ChaosScreen.RevealAt + 0.05);
+                if (chaosShown.Percent != 100 || !chaosShown.Revealed || !chaosShown.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Her fake crash did not own up before leaving.");
+                chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-jk.png"), ImageFormat.Png);
+                Native.SendMessage(chaosShown.Handle, 0x0100, new IntPtr((int)Keys.Escape), IntPtr.Zero);
+                if (chaosScreen != null || !chaosShown.IsDisposed || chaosShown.Running || chaosShown.Canvas != null) throw new Exception("Esc left her fake crash or its resources alive.");
+                chaosOwner.Ticked(chaosDue + 200);
+                Clone("spawn", 1);
+                chaosOwner.Ticked(chaosDue + 2000);
+                if (chaosScreen != null || !chaosScreenUsed || chaosScreenAt != chaosDue) throw new Exception("Her fake crash repeated within a Chaos session or adding a clone reset it.");
+                checks.Add("PASS chaos fake crash counts up, says jk before leaving, closes on Esc and cannot repeat when more clones join the same session");
+
+                foreach (MouseButtons chaosButton in new[] { MouseButtons.Left, MouseButtons.Right, MouseButtons.Middle, MouseButtons.XButton1, MouseButtons.XButton2 })
+                {
+                    ClonesOff();
+                    Clone("spawn", 1);
+                    cloneWindow.Ticked(chaosScreenAt);
+                    ChaosScreen chaosClicked = chaosScreen;
+                    if (chaosClicked == null) throw new Exception("A new Chaos session did not get its own fake crash.");
+                    int chaosMessage = chaosButton == MouseButtons.Left ? 0x0201 : chaosButton == MouseButtons.Right ? 0x0204 : chaosButton == MouseButtons.Middle ? 0x0207 : 0x020B;
+                    Native.SendMessage(chaosClicked.Handle, chaosMessage, new IntPtr(chaosButton == MouseButtons.XButton2 ? 0x00020000 : chaosButton == MouseButtons.XButton1 ? 0x00010000 : 0), IntPtr.Zero);
+                    if (chaosScreen != null || !chaosClicked.IsDisposed || chaosClicked.Running || chaosClicked.Canvas != null) throw new Exception("Clicking left her fake crash or its resources alive.");
+                }
+                ClonesOff();
+                Clone("spawn", 1);
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosPolled = chaosScreen;
+                chaosPolled.EscDown = delegate { return true; };
+                Stopwatch chaosEscWait = Stopwatch.StartNew();
+                while (chaosScreen != null && chaosEscWait.ElapsedMilliseconds < 2000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (chaosScreen != null || !chaosPolled.IsDisposed || chaosPolled.Running || chaosPolled.Canvas != null) throw new Exception("Esc without focus did not dismiss her fake crash on its timer.");
+                checks.Add("PASS chaos fake crash closes and frees its timer and bitmap on left, right, middle and side clicks or Esc while another window has focus");
+
+                ClonesOff();
+                Clone("spawn", 1);
+                Stopwatch chaosWait = Stopwatch.StartNew();
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosTimed = chaosScreen;
+                if (chaosTimed == null) throw new Exception("Her timed fake crash did not open.");
+                while (chaosScreen != null && chaosWait.ElapsedMilliseconds < 8000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (chaosScreen != null || !chaosTimed.IsDisposed || chaosTimed.Running || chaosTimed.Canvas != null || chaosWait.ElapsedMilliseconds < 4900 || chaosWait.ElapsedMilliseconds >= 8000)
+                    throw new Exception("Her fake crash did not clean up after about five seconds: " + chaosWait.ElapsedMilliseconds + " ms.");
+                checks.Add("PASS chaos fake crash dismisses itself after about five seconds and releases its window, timer and bitmap");
+
+                ClonesOff();
+                Clone("spawn", 1);
+                chaosFull = true;
+                double chaosWaitingAt = chaosScreenAt;
+                cloneWindow.Ticked(chaosWaitingAt);
+                cloneWindow.Ticked(chaosWaitingAt + 600);
+                if (chaosScreen != null || chaosScreenUsed || chaosScreenAt != chaosWaitingAt) throw new Exception("Her fake crash did not wait while something was full screen.");
+                chaosFull = false;
+                cloneWindow.Ticked(chaosWaitingAt + 601);
+                ChaosScreen chaosDeferred = chaosScreen;
+                if (chaosDeferred == null || !chaosScreenUsed) throw new Exception("Her deferred fake crash did not open once full screen ended.");
+                chaosFull = true;
+                chaosDeferred.Advance(clock.Elapsed.TotalSeconds);
+                chaosFull = false;
+                cloneWindow.Ticked(chaosWaitingAt + 602);
+                if (chaosScreen != null || !chaosDeferred.IsDisposed || chaosDeferred.Running || chaosDeferred.Canvas != null || !chaosScreenUsed) throw new Exception("A new full-screen foreground did not dismiss her fake crash without replaying it.");
+                int chaosGuardCalls = 0;
+                using (ChaosScreen chaosGuard = new ChaosScreen(chaosRoom, clock, true, delegate { return ++chaosGuardCalls > 1; }))
+                {
+                    if (chaosGuard.Open() || chaosGuard.Visible || chaosGuard.Running || chaosGuardCalls != 2) throw new Exception("Her fake crash did not recheck full screen before showing.");
+                }
+                checks.Add("PASS chaos fake crash defers without using its turn over full screen, rechecks before showing and closes if full screen begins while it is visible");
+
+                ClonesOff();
+                Clone("spawn", 1);
+                Action<double> chaosCancelled = cloneWindow.Ticked;
+                double chaosCancelledAt = chaosScreenAt;
+                ClonesOff();
+                chaosCancelled(chaosCancelledAt + 1);
+                if (chaosScreen != null || chaosScreenUsed || !double.IsPositiveInfinity(chaosScreenAt)) throw new Exception("Stopping Chaos did not cancel a fake crash that was still waiting.");
+                ClonesOff();
+                preferences.Motion = false;
+                Clone("spawn", 1);
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosStill = chaosScreen;
+                if (chaosStill == null || chaosStill.Motion || chaosStill.Percent != 100 || !chaosStill.Revealed || !chaosStill.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Reduced motion did not get a still fake crash with its joke already revealed.");
+                string chaosPixels;
+                using (MemoryStream chaosPng = new MemoryStream()) { chaosStill.Canvas.Save(chaosPng, ImageFormat.Png); chaosPixels = Convert.ToBase64String(chaosPng.ToArray()); }
+                foreach (double chaosSecond in new[] { 1.0, 3.0, 4.8 }) chaosStill.Advance(clock.Elapsed.TotalSeconds + chaosSecond);
+                using (MemoryStream chaosPng = new MemoryStream())
+                {
+                    chaosStill.Canvas.Save(chaosPng, ImageFormat.Png);
+                    if (Convert.ToBase64String(chaosPng.ToArray()) != chaosPixels || chaosStill.Percent != 100 || !chaosStill.Revealed) throw new Exception("The reduced-motion fake crash moved or changed its text.");
+                }
+                chaosStill.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-still.png"), ImageFormat.Png);
+                Action<double> chaosStale = cloneWindow.Ticked;
+                ClonesOff();
+                if (chaosScreen != null || !chaosStill.IsDisposed || chaosStill.Running || chaosStill.Canvas != null || !double.IsPositiveInfinity(chaosScreenAt)) throw new Exception("Stopping Chaos left her fake crash or its schedule alive.");
+                chaosStale(chaosDue + 10000);
+                Clone("spawn", 1);
+                double chaosNextAt = chaosScreenAt;
+                chaosStale(chaosNextAt + 1);
+                if (chaosScreen != null || chaosScreenUsed || chaosNextAt == chaosDue) throw new Exception("An old Chaos callback opened the next session's prank or the delay was not rerolled.");
+                cloneWindow.Ticked(chaosNextAt);
+                if (chaosScreen == null) throw new Exception("Restarting Chaos did not arm a new fake crash.");
+                checks.Add("PASS chaos fake crash stays completely static with reduced motion, runs with Chaos when upset off for manual Chaos, cleans up on stop and rejects callbacks from an earlier session");
+
+                ChaosScreen chaosDisplay = chaosScreen;
+                DisplaysChanged(null, EventArgs.Empty);
+                Stopwatch chaosDisplayWait = Stopwatch.StartNew();
+                while (cloneWindow != null && chaosDisplayWait.ElapsedMilliseconds < 2000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (cloneWindow != null || chaosScreen != null || !chaosDisplay.IsDisposed || chaosDisplay.Running || chaosDisplay.Canvas != null || !double.IsPositiveInfinity(chaosScreenAt)) throw new Exception("A display change left her fake crash or its schedule alive.");
+                Clone("spawn", 1);
+                cloneWindow.Ticked(chaosScreenAt);
+                ChaosScreen chaosQuit = chaosScreen;
+                quitting = true;
+                ChaosTick(clock.Elapsed.TotalSeconds);
+                if (chaosScreen != null || !chaosQuit.IsDisposed || chaosQuit.Running || chaosQuit.Canvas != null) throw new Exception("Quitting left her fake crash alive.");
+                checks.Add("PASS chaos fake crash and its pending schedule are cleared when displays change or she quits");
+                checks.Add("LIMIT chaos fake crash: check physical monitor scaling, real Esc and mouse input, and switching a real game into borderless or exclusive full screen on an interactive bench");
+            }
+            finally
+            {
+                ClonesOff();
+                FullScreen = chaosFullWas;
+                preferences.Motion = chaosMotionWas;
+                preferences.UpsetChaos = chaosUpsetWas;
+                hidden = chaosHiddenWas;
+                quitting = chaosQuitWas;
+                anchor = chaosAnchorWas;
+                Location = chaosLocationWas;
+            }
         }
 
         private static void SmokeGameKeys(System.Collections.Generic.List<string> checks)
@@ -13837,6 +15095,8 @@ namespace CapriDesktop
                 { "how do I connect a free key", "Free key" },
                 { "how do I connect Gemini", "Cloud brain keys" },
                 { "how do I use OpenRouter", "Cloud brain keys" },
+                { "what is medium intelligence", "Medium intelligence" },
+                { "what happened to higher", "Medium intelligence" },
                 { "what can you do", "What she can do" },
                 { "give me a tutorial", "Tutorial" },
                 { "how do I use you", "Tutorial" },
@@ -17774,15 +19034,15 @@ namespace CapriDesktop
         // follows only in time; Mute her, her quiet key and reduced motion are kept; the switch is saved; banners are read.
         private void SmokeReactions(System.Collections.Generic.List<string> checks)
         {
-            Section(checks, delegate { ReactCheck(checks, SmokeReactQuick); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactFeed); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactFade); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactMoods); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactBrain); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactVoice); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactMotion); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactSwitch); });
-            Section(checks, delegate { ReactCheck(checks, SmokeReactBanners); });
+            Section(checks, "SmokeReactQuick", delegate { ReactCheck(checks, SmokeReactQuick); });
+            Section(checks, "SmokeReactFeed", delegate { ReactCheck(checks, SmokeReactFeed); });
+            Section(checks, "SmokeReactFade", delegate { ReactCheck(checks, SmokeReactFade); });
+            Section(checks, "SmokeReactMoods", delegate { ReactCheck(checks, SmokeReactMoods); });
+            Section(checks, "SmokeReactBrain", delegate { ReactCheck(checks, SmokeReactBrain); });
+            Section(checks, "SmokeReactVoice", delegate { ReactCheck(checks, SmokeReactVoice); });
+            Section(checks, "SmokeReactMotion", delegate { ReactCheck(checks, SmokeReactMotion); });
+            Section(checks, "SmokeReactSwitch", delegate { ReactCheck(checks, SmokeReactSwitch); });
+            Section(checks, "SmokeReactBanners", delegate { ReactCheck(checks, SmokeReactBanners); });
         }
 
         // The stand-ins her live reactions' checks share: a full-screen game she doesn't know by name, a clock moved by hand, a
@@ -19524,7 +20784,7 @@ namespace CapriDesktop
             {
                 Think = delegate { return "Connected."; };
                 finding = true;
-                Section(checks, delegate
+                Section(checks, "SmokePickerRejectedKeys", delegate
                 {
                     foreach (string key in new[] { "AIza-picker-test", "AQ.picker-test" })
                     {
@@ -19547,7 +20807,7 @@ namespace CapriDesktop
                     if (!mainframe.Status.Contains("Still using your OpenAI key.")) throw new Exception("An unrecognised replacement hid which key is still in use.");
                     checks.Add("PASS rejected and unrecognised replacement keys keep the old models and explicitly say the old provider key is still in use");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerGemini", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
@@ -19564,20 +20824,20 @@ namespace CapriDesktop
                     if (!Brain.ModelFits("openai", "gpt-90-mini-2090-11-02") || !Brain.ModelFits("openai", "chatgpt-90-latest") || !Brain.ModelFits("openrouter", "google/gemini-90-pro") || !Brain.ModelFits("nvidia", "openai/gpt-oss-20b") || Brain.ModelFits("anthropic", "gpt-90-mini") || Brain.ModelFits("deepseek", "gemini-90-pro")) throw new Exception("Model validation discarded pinned or routed models, or accepted another provider's model.");
                     checks.Add("PASS a Gemini replacement, its model choices and custom model entry keep Google's name, key, saved model and Gemini-only menu");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerClears", delegate
                 {
-                    foreach (string action in new[] { "NORMAL", "empty HIGHER", "empty MAX", "Forget" })
+                    foreach (string action in new[] { "NORMAL", "empty MEDIUM INTELLIGENCE", "empty MAX", "Forget" })
                     {
                         use(action == "empty MAX" ? "nvapi-picker-test" : "sk-proj-picker-test", action == "empty MAX" ? "openai/gpt-oss-20b" : "gpt-90-mini");
                         if (action == "Forget") ForgetText();
-                        else ChooseTier(action == "NORMAL" ? 0 : action == "empty HIGHER" ? 1 : 2);
+                        else ChooseTier(action == "NORMAL" ? 0 : action == "empty MEDIUM INTELLIGENCE" ? 1 : 2);
                         if (brain.Remote != null || brain.Model != null || mainframe.Status != "Looking for a brain... | " || mainframe.BrainChoices.Length != 0) throw new Exception("The " + action + " action left the old cloud menu or model while local discovery was pending: " + mainframe.Status);
                         UseBrain(new[] { "ollama-picker-test" }, new Machine { Ram = 8L << 30 }, null);
                         if (brain.Model != "ollama-picker-test" || mainframe.BrainChoices[0] != "Ollama · ollama-picker-test") throw new Exception("Local discovery did not replace the old cloud menu.");
                     }
                     checks.Add("PASS NORMAL, tiers without keys and Forget clear the old cloud menu and model while local discovery is pending, then show the local brain");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerSavedGemini", delegate
                 {
                     use("nvapi-picker-test", "openai/gpt-oss-20b");
                     preferences.PaidKey = Voice.Protect("AIza-picker-saved");
@@ -19592,7 +20852,7 @@ namespace CapriDesktop
                     if (mainframe.BrainChoices.Length != 0 || !mainframe.Status.StartsWith("Gemini |", StringComparison.Ordinal)) throw new Exception("Local discovery restored another provider's menu.");
                     checks.Add("PASS a saved Gemini key with no model clears the previous tier's identity and menu even when its list fails or local discovery finishes");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerQueuedChoices", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     ContextMenuStrip menu = (ContextMenuStrip)typeof(Mainframe).GetField("modelMenu", BindingFlags.NonPublic | BindingFlags.Instance).GetValue(mainframe);
@@ -19609,7 +20869,7 @@ namespace CapriDesktop
                     if (brain.Model != "gemini-90-pro" || mainframe.BrainChoices.Length != 1) throw new Exception("A removed menu choice restored an old model list.");
                     checks.Add("PASS queued model choices from an old key or an earlier model list cannot restore its models or provider identity");
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerLegacyKeys", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     preferences.Tiered = false;
@@ -19636,7 +20896,7 @@ namespace CapriDesktop
                 });
                 foreach (string action in new[] { "new key", "unrecognised key", "tier", "forget", "local" })
                 {
-                    Section(checks, delegate
+                    Section(checks, "SmokePickerPending-" + action.Replace(' ', '-'), delegate
                     {
                         use("sk-proj-picker-test", "gpt-90-mini");
                         ManualResetEvent release = new ManualResetEvent(false);
@@ -19661,7 +20921,7 @@ namespace CapriDesktop
                                 preferences.NvidiaModel = "openai/gpt-oss-20b";
                                 Brain.Nvidia = serve(new[] { nvidiaCatalog }, new System.Collections.Generic.List<string>(), null);
                                 ChooseTier(1);
-                                WaitVoice(delegate { return mainframe.Status == "NVIDIA · openai/gpt-oss-20b | Using your NVIDIA key"; }, "The NVIDIA tier did not finish.");
+                                WaitVoice(delegate { return mainframe.Status == "NVIDIA · openai/gpt-oss-20b | " + Mainframe.NvidiaNote; }, "The NVIDIA tier did not finish.");
                             }
                             else if (action == "forget") ForgetText();
                             else { ChooseLocalBrain(null, "local-picker-test", null); mainframe.ShowOllama(new[] { "local-picker-test" }, "local-picker-test"); }
@@ -19675,7 +20935,7 @@ namespace CapriDesktop
                         finally { release.Set(); settle(); }
                     });
                 }
-                Section(checks, delegate
+                Section(checks, "SmokePickerRefresh", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     ManualResetEvent release = new ManualResetEvent(false);
@@ -19696,7 +20956,7 @@ namespace CapriDesktop
                     }
                     finally { release.Set(); settle(); }
                 });
-                Section(checks, delegate
+                Section(checks, "SmokePickerOldRefresh", delegate
                 {
                     use("sk-proj-picker-test", "gpt-90-mini");
                     ManualResetEvent release = new ManualResetEvent(false);
@@ -20363,6 +21623,209 @@ namespace CapriDesktop
             if (!done()) throw new Exception(problem);
         }
 
+        private void SmokeAnswerVoice(System.Collections.Generic.List<string> checks, string output)
+        {
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            bool quietWas = preferences.Quiet, silentWas = preferences.Silent, servedWas = preferences.ServerVoice, hdWas = preferences.HdVoice;
+            bool localWas = local, chattingWas = chatting, readyWas = earsReady, mutedWas = ears.Muted, transcribingWas = transcribing, nameWas = preferences.ListenCapri;
+            bool brokenWas = voiceBroken, brokeWas = voiceBroke, asideWas = asideVoiceTest;
+            int waitWas = VoiceWait, freeWaitWas = FreeWait, typingWas = preferences.Typing;
+            Job jobWas = job;
+            string workingWas = working, logWas = Brain.LogPath, keyWas = voice.Key;
+            string log = Path.Combine(output, "voice-cutoff.txt");
+            System.Collections.Generic.List<ManualResetEvent> gates = new System.Collections.Generic.List<ManualResetEvent>();
+            Func<ManualResetEvent> gate = delegate { ManualResetEvent made = new ManualResetEvent(false); gates.Add(made); return made; };
+            Func<int, bool> completed = delegate(int turn) { return File.Exists(log) && File.ReadAllText(log).Contains(" | answer=" + turn + " audio="); };
+            Action<int> settle = delegate(int milliseconds)
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < milliseconds) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            try
+            {
+                CloseTalk();
+                Brain.LogPath = log;
+                File.WriteAllText(log, "");
+                preferences.Quiet = preferences.Silent = preferences.ServerVoice = preferences.ListenCapri = voiceBroken = voiceBroke = false;
+                preferences.HdVoice = true;
+                preferences.Typing = 2;
+                local = chatting = transcribing = nameOver = false;
+                earsReady = true;
+                ears.Muted = false;
+                voice.Key = "ticket35-private-key-marker";
+                Speak = null;
+                Job busy = new Job("voice ownership check");
+                job = busy;
+                working = "On it. Esc stops me.";
+                int callVersion = callSession.Generation;
+                bool interrupted = Computer.Interrupted;
+                short[] samples = new short[24000];
+                for (int at = 0; at < samples.Length; at++) samples[at] = (short)(9000 * Math.Sin(at * 0.05));
+                byte[] wav = Voice.Wave(samples, 24000);
+                VoiceWait = FreeWait = 120;
+                foreach (bool afterText in new[] { false, true })
+                {
+                    ManualResetEvent entered = gate(), release = gate();
+                    FreeSpeak = delegate { entered.Set(); if (!release.WaitOne(4000)) throw new Exception("The fake voice stayed blocked."); return wav; };
+                    string line = afterText ? "Private reply after fallback." : "Private reply before fallback.";
+                    int ticket = ++asking;
+                    Answer(ticket, line, TalkState.Talking, true);
+                    int turn = answerTurn, audio = audioTurn;
+                    WaitVoice(delegate { return entered.WaitOne(0); }, "The fake voice did not start.");
+                    if (afterText) WaitVoice(delegate { return reply == line; }, "The pending voice hid its text fallback.");
+                    double textStart = replyStart;
+                    BargeIn();
+                    if (answerTurn != turn || audioTurn == audio || answerVoice != -1 || hdSpeaking != -1) throw new Exception("Talking over her cancelled the answer's text or kept its pending audio.");
+                    release.Set();
+                    WaitVoice(delegate { return completed(turn) && reply == line; }, "An interrupted answer lost its text or never completed.");
+                    if (voiceUntil != 0 || mouths != null || spokenLevels != null || afterText && replyStart != textStart || voiceBroken) throw new Exception("A late WAV played or restarted interrupted text.");
+                    if (asking != ticket || job != busy || working != "On it. Esc stops me." || Computer.Interrupted != interrupted || callSession.Generation != callVersion) throw new Exception("An audio interruption changed the job, asking ticket or call session.");
+                    checks.Add(afterText ? "PASS talking over her after text appears keeps that text and rejects the late WAV" : "PASS talking over her before text appears keeps its fallback and rejects the late WAV");
+                    CloseTalk();
+                }
+
+                foreach (bool failOld in new[] { false, true })
+                {
+                    ManualResetEvent oldEntered = gate(), oldRelease = gate(), newEntered = gate(), newRelease = gate();
+                    FreeSpeak = delegate { oldEntered.Set(); if (!oldRelease.WaitOne(4000)) throw new Exception("The old fake voice stayed blocked."); if (failOld) throw new VoiceException("Private stale voice failure."); return wav; };
+                    int ticket = ++asking;
+                    VoiceWait = FreeWait = 120;
+                    Answer(ticket, "Private replaced reply.", TalkState.Talking, true);
+                    int oldTurn = answerTurn;
+                    WaitVoice(delegate { return oldEntered.WaitOne(0); }, "The old fake voice did not start.");
+                    VoiceWait = FreeWait = 1200;
+                    FreeSpeak = delegate { newEntered.Set(); if (!newRelease.WaitOne(4000)) throw new Exception("The new fake voice stayed blocked."); return wav; };
+                    Answer(ticket, "Private replacement reply.", TalkState.Talking, true);
+                    int newTurn = answerTurn;
+                    WaitVoice(delegate { return newEntered.WaitOne(0); }, "The replacement fake voice did not start.");
+                    settle(200);
+                    if (reply != null || talkState != TalkState.Thinking) throw new Exception("An old text fallback replaced a newer answer on the same asking ticket.");
+                    voiceBroken = !failOld;
+                    string note = mainframe.VoiceNoteText;
+                    oldRelease.Set();
+                    WaitVoice(delegate { return completed(oldTurn); }, "The replaced voice did not complete.");
+                    if (reply != null || answerVoice != ticket || hdSpeaking != ticket || voiceBroken != !failOld || mainframe.VoiceNoteText != note) throw new Exception("An old voice completion changed the replacement's text or bookkeeping.");
+                    newRelease.Set();
+                    WaitVoice(delegate { return completed(newTurn) && reply == "Private replacement reply." && voiceUntil > 0; }, "The replacement answer did not speak.");
+                    if (answerVoice != -1 || hdSpeaking != -1 || voiceBroken || asking != ticket) throw new Exception("The replacement voice did not finish its own bookkeeping.");
+                    CloseTalk();
+                }
+                checks.Add("PASS replacing an answer on the same asking ticket rejects its old fallback, WAV and failure without clearing the new voice bookkeeping");
+
+                ManualResetEvent silentEntered = gate(), silentRelease = gate();
+                FreeSpeak = delegate { silentEntered.Set(); if (!silentRelease.WaitOne(4000)) throw new Exception("The silent replacement gate stayed shut."); return wav; };
+                int silentTicket = ++asking;
+                Answer(silentTicket, "Private pending reply.", TalkState.Talking, true);
+                int silentTurn = answerTurn;
+                WaitVoice(delegate { return silentEntered.WaitOne(0); }, "The pending fake voice did not start.");
+                preferences.Silent = true;
+                Answer(silentTicket, "Private text only replacement.", TalkState.Talking, true);
+                voiceBroken = true;
+                silentRelease.Set();
+                WaitVoice(delegate { return completed(silentTurn); }, "The text-only replacement's old voice did not complete.");
+                if (reply != "Private text only replacement." || voiceUntil != 0 || mouths != null || answerVoice != -1 || hdSpeaking != -1 || !voiceBroken) throw new Exception("An old voice changed a text-only replacement.");
+                checks.Add("PASS a text-only replacement owns the same asking ticket and ignores the older voice completion");
+                preferences.Silent = voiceBroken = false;
+                CloseTalk();
+
+                VoiceWait = FreeWait = 120;
+                FreeSpeak = delegate { return wav; };
+                foreach (bool wakeMic in new[] { false, true })
+                {
+                    local = chatting = true;
+                    Answer(++asking, "Private talk-over origin.", TalkState.Talking, true);
+                    WaitVoice(delegate { return voiceUntil > 0; }, "The talk-over origin did not speak.");
+                    int oldAudio = audioTurn, barges = bargeIns;
+                    talkOver.Reset(); wakeOver.Reset();
+                    short[] echo = new short[1600], talking = new short[1600];
+                    for (int at = 0; at < echo.Length; at++) { echo[at] = (short)(1200 * Math.Sin(at * 0.05)); talking[at] = (short)(14000 * Math.Sin(at * 0.05)); }
+                    for (int at = 0; at < 6; at++) { if (wakeMic) OverHeard(echo); else OverHerLocally(echo, VoiceLevel(echo)); }
+                    for (int at = 0; at < 4; at++) { if (wakeMic) OverHeard(talking); else OverHerLocally(talking, VoiceLevel(talking)); }
+                    Answer(asking, "Private talk-over replacement.", TalkState.Talking, true);
+                    int turn = answerTurn;
+                    WaitVoice(delegate { return completed(turn) && voiceUntil > 0; }, "A queued old talk-over stopped the replacement voice.");
+                    string source = wakeMic ? "wake mic talk-over" : "local chat talk-over";
+                    if (bargeIns != barges || reply != "Private talk-over replacement." || !File.ReadAllText(log).Contains("detected=" + oldAudio + " ignored=True")) throw new Exception("A queued " + source + " was not detected or stopped a newer answer.");
+                    CloseTalk();
+                }
+                checks.Add("PASS queued local chat and wake mic talk-over events leave a replacement answer on the same asking ticket speaking");
+
+                local = false;
+                Agent quietLink = new Agent();
+                speaker.Open(24000);
+                speaker.Play(samples);
+                talkOver.Reset();
+                short[] streamEcho = new short[1600], streamVoice = new short[1600];
+                for (int at = 0; at < streamEcho.Length; at++) { streamEcho[at] = (short)(1200 * Math.Sin(at * 0.05)); streamVoice[at] = (short)(14000 * Math.Sin(at * 0.05)); }
+                for (int at = 0; at < 6; at++) OverHer(streamEcho, quietLink);
+                int streamBarges = bargeIns;
+                bool streamDetected = false;
+                for (int at = 0; at < 4 && !streamDetected; at++) streamDetected = OverHer(streamVoice, quietLink) == streamVoice;
+                asking++;
+                bool drained = false;
+                Post(delegate { drained = true; });
+                WaitVoice(delegate { return drained; }, "The queued voice chat talk-over did not drain.");
+                if (!streamDetected || bargeIns != streamBarges || !speaker.Busy || OverHer(streamEcho, quietLink) == streamEcho) throw new Exception("A stale voice chat talk-over stopped the new stream or left its echo gate open.");
+                speaker.Clear();
+                checks.Add("PASS a stale voice chat talk-over leaves the next stream playing with its echo gate closed");
+
+                local = chatting = false;
+                ManualResetEvent asideEntered = gate(), asideRelease = gate();
+                FreeSpeak = delegate { asideEntered.Set(); if (!asideRelease.WaitOne(4000)) throw new Exception("The answer beside a job stayed blocked."); return wav; };
+                Speak = delegate { return wav; };
+                Answer(++asking, "Private answer beside a job.", TalkState.Talking, true);
+                int asideTurn = answerTurn, asideAudio = audioTurn;
+                WaitVoice(delegate { return asideEntered.WaitOne(0); }, "The answer beside a job did not start.");
+                asideVoiceTest = true;
+                int jobVoice = asideVoice;
+                SayAside("Private job line.", busy);
+                WaitVoice(delegate { return voiceUntil > 0; }, "The fake job line did not speak.");
+                if (asideVoice == jobVoice || answerTurn != asideTurn || audioTurn != asideAudio) throw new Exception("A job line changed the answer's audio identity.");
+                asideRelease.Set();
+                WaitVoice(delegate { return completed(asideTurn) && reply == "Private answer beside a job." && mouths != null; }, "A job voice invalidated its answer.");
+                checks.Add("PASS a job line changes its own voice generation while the pending answer still completes and speaks");
+                CloseTalk();
+
+                ManualResetEvent serverEntered = gate(), serverRelease = gate();
+                FreeSpeak = delegate { serverEntered.Set(); if (!serverRelease.WaitOne(4000)) throw new Exception("The server interruption gate stayed shut."); return wav; };
+                Answer(++asking, "Private server interrupted reply.", TalkState.Talking, true);
+                int serverTurn = answerTurn, serverTicket = asking;
+                WaitVoice(delegate { return serverEntered.WaitOne(0); }, "The server interruption fake voice did not start.");
+                ChatInterrupted();
+                serverRelease.Set();
+                WaitVoice(delegate { return completed(serverTurn) && reply == "Private server interrupted reply."; }, "A server interruption lost the text fallback.");
+                if (voiceUntil != 0 || mouths != null || asking != serverTicket) throw new Exception("A server interruption allowed a late WAV or changed asking.");
+                FreeSpeak = delegate { return wav; };
+                Answer(++asking, "Private next valid reply.", TalkState.Talking, true);
+                int nextTurn = answerTurn;
+                WaitVoice(delegate { return completed(nextTurn) && reply == "Private next valid reply." && voiceUntil > 0 && mouths != null; }, "The next valid reply stayed silent after an interruption.");
+                if (job != busy || working != "On it. Esc stops me." || Computer.Interrupted != interrupted || callSession.Generation != callVersion) throw new Exception("Voice delivery changed the job or call session.");
+                checks.Add("PASS server interruption rejects pending audio, the next valid reply speaks, and jobs, asking, computer interruption and call generation stay intact");
+
+                string logged = File.ReadAllText(log);
+                foreach (string source in new[] { "explicit input", "wake mic talk-over", "local chat talk-over", "server interruption" })
+                    if (!logged.Contains(" | voice interruption | - | " + source + " answer=") || !logged.Contains("played_ms=") || !logged.Contains("remaining_ms=")) throw new Exception("An interruption source or playback timing was missing from her log.");
+                if (logged.Contains("Private ") || logged.Contains("ticket35-private-key-marker")) throw new Exception("Voice interruption diagnostics included speech or a key.");
+                checks.Add("PASS voice interruption logs name the source with generations and playback timing without reply text or keys");
+                checks.Add("LIMIT ticket 35 guards a confirmed delivery race; the recorded two-word cutoff and live mic echo still need device reproduction, and in-flight paid requests are not cancelled");
+            }
+            finally
+            {
+                CloseTalk();
+                foreach (ManualResetEvent release in gates) release.Set();
+                asideVoice++;
+                Speak = speakWas; FreeSpeak = freeWas;
+                preferences.Quiet = quietWas; preferences.Silent = silentWas; preferences.ServerVoice = servedWas; preferences.HdVoice = hdWas; preferences.ListenCapri = nameWas;
+                preferences.Typing = typingWas; VoiceWait = waitWas; FreeWait = freeWaitWas;
+                local = localWas; chatting = chattingWas; earsReady = readyWas; ears.Muted = mutedWas; transcribing = transcribingWas; nameOver = false;
+                voiceBroken = brokenWas; voiceBroke = brokeWas; asideVoiceTest = asideWas;
+                job = jobWas; working = workingWas; Brain.LogPath = logWas; voice.Key = keyWas;
+                spokenLevels = null;
+                talkOver.Reset(); wakeOver.Reset();
+                lock (waking) preroll.Clear();
+            }
+        }
+
         private void SmokeGreeting(System.Collections.Generic.List<string> checks)
         {
             Func<string, byte[]> greetingSpeakWas = Speak, greetingFreeWas = FreeSpeak;
@@ -20641,15 +22104,17 @@ namespace CapriDesktop
                         input.Chosen = "gone";
                         input.Heard += delegate(short[] chunk) { if (chunk.Length != Ears.Chunk) throw new Exception("Wrong mic chunk size."); Interlocked.Add(ref heard, chunk.Length); };
                         input.Level += delegate(double value) { level = value; };
+                        int changes = 0;
+                        input.Changed += delegate(string problem) { if (problem != null) throw new Exception("A successful fake input reported a failure."); changes++; };
                         input.Start();
                         WaitSound(delegate { return Interlocked.CompareExchange(ref heard, 0, 0) >= Ears.Chunk * 2; }, "Fake WASAPI mic produced no converted audio.");
-                        if (opened[0] != "default-one" || Math.Abs(level - 0.25) > 0.001 || input.DeviceChanged) throw new Exception("A missing mic didn't capture the default at its original level.");
+                        if (opened[0] != "default-one" || Math.Abs(level - 0.25) > 0.001 || input.DeviceChanged || input.OpenedId != "default-one" || changes != 1) throw new Exception("A missing mic didn't capture the default at its original level or announce its actual input.");
                         current = "default-two";
                         if (!input.DeviceChanged) throw new Exception("A changed default mic was ignored while audio still arrived.");
                         input.Stop(); input.Start();
                         if (opened[1] != "default-two") throw new Exception("Reopening kept the old Windows default mic.");
                         input.Stop(); input.Chosen = "picked"; input.Start(); current = "default-three";
-                        if (input.DeviceChanged || opened[2] != "picked") throw new Exception("A fixed mic followed the Windows default.");
+                        if (input.DeviceChanged || opened[2] != "picked" || changes != 3) throw new Exception("A fixed mic followed the Windows default or missed an open notification.");
                         input.Muted = true;
                         short[] muted = null;
                         input.Heard += delegate(short[] chunk) { muted = chunk; };
@@ -20670,8 +22135,10 @@ namespace CapriDesktop
                     using (Ears input = new Ears(delegate(string id, Action<short[]> hear) { return new SoundIn(id, hear, capture, capture); }, delegate { return "fake-blocked"; }, delegate { return false; }))
                     {
                         bool explained = false;
+                        string announced = null;
+                        input.Changed += delegate(string problem) { announced = problem; };
                         try { input.Start(); } catch (VoiceException error) { explained = error.Message.IndexOf(Ears.Problem(failure), StringComparison.Ordinal) >= 0; }
-                        if (!explained || input.Listening || capture.Starts != 0) throw new Exception("A blocked or exclusively held mic didn't explain why it couldn't open.");
+                        if (!explained || input.Listening || capture.Starts != 0 || announced == null || announced.IndexOf(Ears.Problem(failure), StringComparison.Ordinal) < 0) throw new Exception("A blocked or exclusively held mic didn't explain and announce why it couldn't open.");
                     }
                 }
                 bool openedBlocked = false;
@@ -20703,6 +22170,21 @@ namespace CapriDesktop
             TestMic(); TestMic();
             if (micTest != null || mainframe.MicTesting || mainframe.VoiceNoteText != MicSilent) throw new Exception("Stopping a silent test didn't explain the missing input.");
             checks.Add("PASS Mainframe mic Test shows a live level from fake audio without recognition or voice setup, stops on click or after ten seconds, and explains silence or low input volume");
+            Func<string, bool?> mutedWas = MicMuted;
+            try
+            {
+                MicMuted = delegate { return true; };
+                TestMic();
+                Ears windowsMuted = micTest;
+                Stopwatch asked = Stopwatch.StartNew();
+                while (micTestWindowsMuted != true && asked.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(10); }
+                windowsMuted.Feed(new short[Ears.Chunk]);
+                Application.DoEvents();
+                CheckMicTest(micTestUntil + 1);
+                if (micTest != null || mainframe.VoiceNoteText != MicMutedInWindows) throw new Exception("A mic muted in Windows was called silent: " + mainframe.VoiceNoteText);
+                checks.Add("PASS a mic muted in Windows is called muted there by the mic Test, not silent or blocked");
+            }
+            finally { MicMuted = mutedWas; if (micTest != null) StopMicTest(false); }
             Func<Dictation> makeWas = Dictation.Make;
             Func<string> defaultWas = Dictation.DefaultMic;
             bool? ownWas = ownEarsTest;
@@ -20723,7 +22205,7 @@ namespace CapriDesktop
                 earsComingTest = true;
                 Dictation.Make = delegate { return new StandInDictation { Problem = Dictation.MicBlocked }; };
                 StartLocal();
-                if (chatting || earsReady || dictation != null || mainframe.VoiceNoteText != Dictation.MicBlocked) throw new Exception("Mic privacy denial was hidden behind a pending ears download.");
+                if (chatting || earsReady || dictation != null || mainframe.VoiceNoteText != "Windows is blocking the mic" || reply != mainframe.HearingText) throw new Exception("Mic privacy denial was hidden behind a pending ears download.");
                 checks.Add("PASS Windows mic privacy denial stays visible while her ears download instead of falling back to another blocked recognizer");
             }
             finally { StopChat(); Dictation.Make = makeWas; Dictation.DefaultMic = defaultWas; ownEarsTest = ownWas; earsComingTest = comingWas; }
@@ -20892,6 +22374,7 @@ namespace CapriDesktop
 
         private static void SmokeHardwareSound(System.Collections.Generic.List<string> checks)
         {
+            if (OnGitHub) { checks.Add("LIMIT unattended smoke leaves real audio devices closed; fake sound clients cover playback, and real WASAPI speakers need a live check"); return; }
             bool hardwareWaveWas = Speaker.SkipWave;
             using (Speaker hardwareSpeaker = new Speaker(false))
             {
@@ -20919,13 +22402,142 @@ namespace CapriDesktop
             }
         }
 
-        internal void StartSmokeTest(string output)
+        private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
+        {
+            Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
+            Section(checks, "SmokeReportedLogic", delegate { SmokeReportedLogic(checks); });
+            Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
+            Section(checks, "SmokeOpening", delegate { SmokeOpening(checks); });
+            Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
+            Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
+            Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
+            Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
+            Section(checks, "SmokeMicSources", delegate { SmokeMicSources(checks, output); });
+            Section(checks, "SmokeMicTest", delegate { SmokeMicTest(checks); });
+            Section(checks, "SmokeHearingStatus", delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
+            Section(checks, "SmokeLocalBrains", delegate { SmokeLocalBrains(checks); });
+            Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
+            Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
+            Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
+            Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
+            Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
+            Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
+            Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
+            Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
+            Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });
+            Section(checks, "SmokeGameWindows", delegate { SmokeGameWindows(checks, findGame); });
+            Section(checks, "SmokeGameHolds", delegate { SmokeGameHolds(checks); });
+            Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
+            Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
+            Section(checks, "SmokePlannerChecks", delegate { SmokePlannerChecks(checks); });
+            Section(checks, "SmokeOwnSettings", delegate { SmokeOwnSettings(checks); });
+            Section(checks, "SmokeClaims", delegate { SmokeClaims(checks); });
+            Section(checks, "SmokeSighted", delegate { SmokeSighted(checks); });
+            Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
+            Section(checks, "SmokeLongJob", delegate { SmokeLongJob(checks); });
+            Section(checks, "SmokeLooseCalls", delegate { SmokeLooseCalls(checks); });
+            Section(checks, "SmokeFrames", delegate { SmokeFrames(checks); });
+            Section(checks, "SmokeGameKeys", delegate { SmokeGameKeys(checks); });
+            Section(checks, "SmokeReminders", delegate { SmokeReminders(checks); });
+            Section(checks, "SmokeLookout", delegate { SmokeLookout(checks); });
+            Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
+            Section(checks, "SmokeSelfKnow", delegate { SmokeSelfKnow(checks); });
+            Section(checks, "SmokeToolKit", delegate { SmokeToolKit(checks); });
+            Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
+            Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
+            Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
+            Section(checks, "SmokeRequests", delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
+            Section(checks, "SmokeCare", delegate { SmokeCare(checks); });
+            Section(checks, "SmokeClips", delegate { SmokeClips(checks); });
+            Section(checks, "SmokeClipOptions", delegate { SmokeClipOptions(checks); });
+            Section(checks, "SmokeClipPanel", delegate { SmokeClipPanel(checks, output); });
+            Section(checks, "SmokeClipPopup", delegate { SmokeClipPopup(checks, output); });
+            Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
+            Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
+            Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
+            Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
+            Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });
+            Section(checks, "SmokeHaul", delegate { SmokeHaul(checks); });
+            Section(checks, "SmokeIcons", delegate { SmokeIcons(checks); });
+            Section(checks, "SmokeChaosScreen", delegate { SmokeChaosScreen(checks); });
+            Section(checks, "SmokeListen", delegate { SmokeListen(checks); });
+            Section(checks, "SmokeTalkLogic", delegate { SmokeTalkLogic(checks); });
+            Section(checks, "SmokeTalkSettings", delegate { SmokeTalkSettings(checks); });
+            Section(checks, "SmokeTalkBrain", delegate { SmokeTalkBrain(checks, Path.Combine(output, "talk-checks")); });
+            Section(checks, "SmokeClipToggle", delegate { SmokeClipToggle(checks); });
+            Section(checks, "SmokeGameEars", delegate { SmokeGameEars(checks); });
+            Section(checks, "SmokeMinis", delegate { SmokeMinis(checks); });
+            Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
+        }
+
+        private void SmokeClipToggle(System.Collections.Generic.List<string> checks)
+        {
+            bool clipsWereOn = preferences.ClipGames;
+            mainframe.FlipClips();
+            if (preferences.ClipGames == clipsWereOn || mainframe.ClipsShown != preferences.ClipGames || LoadPreferences().ClipGames != preferences.ClipGames) throw new Exception("Clip my games didn't switch, show and save from HABITS.");
+            mainframe.FlipClips();
+            if (preferences.ClipGames != clipsWereOn || mainframe.ClipsShown != clipsWereOn || LoadPreferences().ClipGames != clipsWereOn) throw new Exception("Clip my games didn't switch back from HABITS.");
+            checks.Add("PASS Clip my games switches and saves from GAMES and shows its saved state");
+        }
+
+        private static byte[] SmokeTone()
+        {
+            using (MemoryStream raw = new MemoryStream())
+            using (BinaryWriter writer = new BinaryWriter(raw))
+            {
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+                writer.Write(-1);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
+                writer.Write(16);
+                writer.Write((short)1);
+                writer.Write((short)1);
+                writer.Write(16000);
+                writer.Write(32000);
+                writer.Write((short)2);
+                writer.Write((short)16);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("LIST"));
+                writer.Write(4);
+                writer.Write(System.Text.Encoding.ASCII.GetBytes("INFOdata"));
+                writer.Write(-1);
+                for (int i = 0; i < 16000; i++) writer.Write((short)(i < 8000 ? 0 : Math.Sin(i * 0.2) * (2000 + 14000 * Math.Abs(Math.Sin(i / 1300.0)))));
+                writer.Flush();
+                return Voice.Clean(raw.ToArray());
+            }
+        }
+
+        private static Form SmokeBackdrop()
+        {
+            Form backdrop = new Form();
+            backdrop.Text = "Capri clean test desktop";
+            backdrop.FormBorderStyle = FormBorderStyle.None;
+            backdrop.ShowInTaskbar = false;
+            backdrop.StartPosition = FormStartPosition.Manual;
+            Rectangle area = Screen.PrimaryScreen.WorkingArea;
+            backdrop.Bounds = new Rectangle(area.Left + Math.Max(0, (area.Width - 920) / 2), area.Top + Math.Max(0, (area.Height - 560) / 2), Math.Min(920, area.Width), Math.Min(560, area.Height));
+            backdrop.BackColor = Color.FromArgb(237, 239, 242);
+            backdrop.TopMost = true;
+            backdrop.Paint += delegate(object sender, PaintEventArgs paint)
+            {
+                using (Pen line = new Pen(Color.FromArgb(225, 228, 232)))
+                    for (int x = 32; x < backdrop.Width; x += 32) for (int y = 32; y < backdrop.Height; y += 32) paint.Graphics.DrawEllipse(line, x, y, 1, 1);
+                using (Font label = new Font("Segoe UI", 10))
+                using (Brush ink = new SolidBrush(Color.FromArgb(110, 116, 125)))
+                    paint.Graphics.DrawString("CAPRI  /  WINDOWS DESKTOP COMPANION", label, ink, 32, 28);
+                using (Brush bar = new SolidBrush(Color.FromArgb(249, 250, 251))) paint.Graphics.FillRectangle(bar, 0, backdrop.Height - 42, backdrop.Width, 42);
+                using (Font label = new Font("Segoe UI", 9))
+                using (Brush ink = new SolidBrush(Color.FromArgb(126, 131, 139)))
+                    paint.Graphics.DrawString("Clean test desktop · actual native app", label, ink, 24, backdrop.Height - 29);
+            };
+            backdrop.Show();
+            return backdrop;
+        }
+
+        internal void StartSmokeTest(string output, SmokeOptions options)
         {
             // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
             Native.FakedGaming = false;
             Directory.CreateDirectory(output);
-            File.Delete(Path.Combine(output, "failure.txt"));
-            File.Delete(Path.Combine(output, "smoke-test.txt"));
+            SmokeRun.Start(output, options);
             Action<string> smokeStep = delegate(string name) { TestStep = name; File.WriteAllText(Path.Combine(output, "smoke-step.txt"), name); };
             smokeStep("startup");
             SmokeInput smokeInput = new SmokeInput();
@@ -20938,7 +22550,8 @@ namespace CapriDesktop
             Brain.LocalSees = delegate { return true; };
             Shown += delegate
             {
-                System.Threading.Tasks.Task<System.Collections.Generic.List<string>> ocrCheck = System.Threading.Tasks.Task.Run(delegate
+                System.Threading.Tasks.Task<System.Collections.Generic.List<string>> ocrCheck = null;
+                if (SmokeRun.EnterSection("CheckOcr")) ocrCheck = System.Threading.Tasks.Task.Run(delegate
                 {
                     System.Collections.Generic.List<string> ocrResults = new System.Collections.Generic.List<string>();
                     try { CheckOcr(ocrResults, output); }
@@ -20947,7 +22560,7 @@ namespace CapriDesktop
                 });
                 System.Windows.Forms.Timer test = new System.Windows.Forms.Timer();
                 test.Interval = 500;
-                int step = 0;
+                int step = SmokeRun.NextStep;
                 int thoughts = 0;
                 byte[] tone = null;
                 string voiced = null;
@@ -20987,7 +22600,8 @@ namespace CapriDesktop
                 double glanceDeadline = 0;
                 double linkDeadline = 0;
                 short[][] earLine = null;
-                System.Collections.Generic.List<string> checks = new System.Collections.Generic.List<string>();
+                System.Collections.Generic.List<string> checks = SmokeRun.Checks();
+                bool sectionsRun = false;
                 FormClosed += delegate
                 {
                     agentStop.Cancel();
@@ -21006,19 +22620,48 @@ namespace CapriDesktop
                         if (ocrCheck != null)
                         {
                             if (!ocrCheck.IsCompleted) return;
-                            checks.AddRange(ocrCheck.GetAwaiter().GetResult());
-                            ocrCheck = null;
-                            using (Bitmap uiOcr = new Bitmap(400, 200))
-                            using (Font uiFont = new Font("Arial", 28, FontStyle.Regular, GraphicsUnit.Pixel))
+                            try
                             {
-                                using (Graphics uiDrawing = Graphics.FromImage(uiOcr)) { uiDrawing.Clear(Color.White); uiDrawing.DrawString("Capri", uiFont, Brushes.Black, 30, 40); }
-                                Stopwatch uiTime = Stopwatch.StartNew();
-                                bool uiReady = Ocr.Ready;
-                                if (Ocr.Words(uiOcr, 1, 10000).Count != 0 || Ocr.Lines(uiOcr, 1, 10000).Count != 0 || Ocr.Sharpened(uiOcr, new Rectangle(Point.Empty, uiOcr.Size), 4) != null || uiTime.ElapsedMilliseconds > 250)
-                                    throw new Exception("OCR waited or processed a bitmap on the UI thread.");
-                                checks.Add("PASS OCR runs on a worker; its synchronous calls return immediately on the UI thread (engine ready: " + uiReady + ")");
+                                checks.AddRange(ocrCheck.GetAwaiter().GetResult());
+                                using (Bitmap uiOcr = new Bitmap(400, 200))
+                                using (Font uiFont = new Font("Arial", 28, FontStyle.Regular, GraphicsUnit.Pixel))
+                                {
+                                    using (Graphics uiDrawing = Graphics.FromImage(uiOcr)) { uiDrawing.Clear(Color.White); uiDrawing.DrawString("Capri", uiFont, Brushes.Black, 30, 40); }
+                                    Stopwatch uiTime = Stopwatch.StartNew();
+                                    bool uiReady = Ocr.Ready;
+                                    if (Ocr.Words(uiOcr, 1, 10000).Count != 0 || Ocr.Lines(uiOcr, 1, 10000).Count != 0 || Ocr.Sharpened(uiOcr, new Rectangle(Point.Empty, uiOcr.Size), 4) != null || uiTime.ElapsedMilliseconds > 250)
+                                        throw new Exception("OCR waited or processed a bitmap on the UI thread.");
+                                    checks.Add("PASS OCR runs on a worker; its synchronous calls return immediately on the UI thread (engine ready: " + uiReady + ")");
+                                }
                             }
+                            catch (Exception error) { TestFailed = true; checks.Add("FAIL section CheckOcr: " + error.Message); }
+                            finally { ocrCheck = null; SmokeRun.LeaveSection("CheckOcr", checks); }
                         }
+                        if (!sectionsRun)
+                        {
+                            RunSmokeSections(checks, output, findGame);
+                            SmokeRun.ValidateSelection(checks);
+                            sectionsRun = true;
+                        }
+                        if (!options.RunSteps || step > 22)
+                        {
+                            TestFailed = checks.Exists(delegate(string line) { return line.StartsWith("FAIL ", StringComparison.Ordinal); });
+                            TestFinished = true;
+                            test.Stop();
+                            SmokeRun.Complete(checks);
+                            Close();
+                            return;
+                        }
+                        int needed = SmokeRun.Needs(step);
+                        if (needed >= 0)
+                        {
+                            checks.Add("SKIP step " + step + ": needs step " + needed);
+                            SmokeRun.StepDone(step, false, checks);
+                            step++;
+                            return;
+                        }
+                        SmokeRun.Begin("step", step.ToString(System.Globalization.CultureInfo.InvariantCulture), SmokeRun.StepSeconds(step));
+                        SmokeRun.Inject(step);
                         if (TestStep != "step " + step && !(step == 5 && !agentStarted)) smokeStep("step " + step);
                         if (step >= 5 && step <= 9)
                         {
@@ -21027,70 +22670,6 @@ namespace CapriDesktop
                         if (step == 0)
                         {
                             if (OnGitHub) checks.Add("LIMIT Mainframe's Auto size: GitHub's virtual screen has no real panel to compare its desktop with, so Auto stays at 100% there");
-                            Section(checks, delegate { HologramChecks(checks, output); });
-                            Section(checks, delegate { SmokeReportedLogic(checks); });
-                            Section(checks, delegate { SmokeComments(checks); });
-                            Section(checks, delegate { SmokeOpening(checks); });
-                            Section(checks, delegate { SmokeVoiceWaits(checks); });
-                            Section(checks, delegate { SmokeVault(checks); });
-                            Section(checks, delegate { SmokeSound(checks, output); });
-                            Section(checks, delegate { SmokeMicSources(checks, output); });
-                            Section(checks, delegate { SmokeMicTest(checks); });
-                            Section(checks, delegate { SmokeLocalBrains(checks); });
-                            Section(checks, delegate { SmokeCloudBrains(checks); });
-                            Section(checks, delegate { SmokeCloudPicker(checks); });
-                            Section(checks, delegate { SmokeBrainBodies(checks); });
-                            Section(checks, delegate { SmokeCamera(checks); });
-                            Section(checks, delegate { SmokeSteering(checks); });
-                            Section(checks, delegate { SmokeGameWatch(checks); });
-                            Section(checks, delegate { SmokeReactions(checks); });
-                            Section(checks, delegate { SmokeGameWindows(checks, findGame); });
-                            Section(checks, delegate { SmokeGameHolds(checks); });
-                            Section(checks, delegate { SmokeGameAsks(checks); });
-                            Section(checks, delegate { SmokeWorkingOut(checks); });
-                            Section(checks, delegate { SmokePlannerChecks(checks); });
-                            Section(checks, delegate { SmokeOwnSettings(checks); });
-                            Section(checks, delegate { SmokeClaims(checks); });
-                            Section(checks, delegate { SmokeSighted(checks); });
-                            Section(checks, delegate { SmokeGameNotes(checks); });
-                            Section(checks, delegate { SmokeLongJob(checks); });
-                            Section(checks, delegate { SmokeLooseCalls(checks); });
-                            Section(checks, delegate { SmokeFrames(checks); });
-                            Section(checks, delegate { SmokeGameKeys(checks); });
-                            Section(checks, delegate { SmokeReminders(checks); });
-                            Section(checks, delegate { SmokeLookout(checks); });
-                            Section(checks, delegate { SmokeGameSense(checks); });
-                            Section(checks, delegate { SmokeSelfKnow(checks); });
-                            Section(checks, delegate { SmokeToolKit(checks); });
-                            Section(checks, delegate { SmokeStores(checks, output); });
-                            Section(checks, delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
-                            Section(checks, delegate { SmokeFiles(checks); });
-                            Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
-                            Section(checks, delegate { SmokeCare(checks); });
-                            Section(checks, delegate { SmokeClips(checks); });
-                            Section(checks, delegate { SmokeClipOptions(checks); });
-                            Section(checks, delegate { SmokeClipPanel(checks, output); });
-                            Section(checks, delegate { SmokeClipPopup(checks, output); });
-                            Section(checks, delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
-                            Section(checks, delegate { SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
-                            Section(checks, delegate { SmokeHeartbeat(checks); });
-                            Section(checks, delegate { SmokeMenuWait(checks); });
-                            Section(checks, delegate { SmokeGivingWay(checks); });
-                            Section(checks, delegate { SmokeHaul(checks); });
-                            Section(checks, delegate { SmokeIcons(checks); });
-                            Section(checks, delegate { SmokeListen(checks); });
-                            Section(checks, delegate { SmokeTalkLogic(checks); });
-                            Section(checks, delegate { SmokeTalkSettings(checks); });
-                            Section(checks, delegate { SmokeTalkBrain(checks, Path.Combine(output, "talk-checks")); });
-                            bool clipsWereOn = preferences.ClipGames;
-                            mainframe.FlipClips();
-                            if (preferences.ClipGames == clipsWereOn || mainframe.ClipsShown != preferences.ClipGames || LoadPreferences().ClipGames != preferences.ClipGames) throw new Exception("Clip my games didn't switch, show and save from HABITS.");
-                            mainframe.FlipClips();
-                            if (preferences.ClipGames != clipsWereOn || mainframe.ClipsShown != clipsWereOn || LoadPreferences().ClipGames != clipsWereOn) throw new Exception("Clip my games didn't switch back from HABITS.");
-                            checks.Add("PASS Clip my games switches and saves from GAMES and shows its saved state");
-                            Section(checks, delegate { SmokeGameEars(checks); });
-                            Section(checks, delegate { SmokeMinis(checks); });
-                            Section(checks, delegate { SmokeInk(checks); });
                             preferences.NoSitting = true;
                             checks.Add("PASS native window visible: " + Visible);
                             if (!mainframe.Visible || !mainframe.ShowInTaskbar || mainframe.WindowState != FormWindowState.Minimized) throw new Exception("Mainframe did not start minimized in the taskbar.");
@@ -26922,12 +28501,12 @@ namespace CapriDesktop
                                     checks.Add("PASS a brain's Gaming Mode call needs talk of games or her HUD: anything else gets her answer, and the setting stays as it was");
                                     if (!mainframe.TextStatus.StartsWith("tier 0 | ", StringComparison.Ordinal) || !mainframe.TextStatus.EndsWith("| no key row", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("The brain tiers are wrong with no key: " + mainframe.TextStatus);
                                     mainframe.ShowTiers(1, null, null);
-                                    if (!mainframe.TextStatus.EndsWith("| Paste your free NVIDIA key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("HIGHER without a key is wrong: " + mainframe.TextStatus);
-                                    // HIGHER's model menu marks Nemotron Super and Nemotron's reasoning model as recommended, at its top.
+                                    if (!mainframe.TextStatus.EndsWith("| NVIDIA / Google AI Studio / OpenRouter | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MEDIUM INTELLIGENCE without a key is wrong: " + mainframe.TextStatus);
+                                    // MEDIUM INTELLIGENCE's model menu marks Nemotron Super and Nemotron's reasoning model as recommended, at its top.
                                     mainframe.ShowCloud(new Cloud("nvapi-test", "nvidia/nemotron-3.5-super-vl-120b-a12b"), freeModels);
                                     string freeMenu = mainframe.ModelChoices;
                                     if (freeMenu != "nvidia/nemotron-3.5-super-vl-120b-a12b · recommended (picked), nvidia/nemotron-3-nano-omni-30b-a3b-reasoning · recommended, mistralai/mistral-large-3-675b-instruct-2512")
-                                        throw new Exception("HIGHER's model menu didn't mark the recommended models: " + freeMenu);
+                                        throw new Exception("MEDIUM INTELLIGENCE's model menu didn't mark the recommended models: " + freeMenu);
                                     mainframe.ShowTiers(2, null, null);
                                     foreach (Cloud panelBrain in new[] { new Cloud("AIza-test", "gemini-90-flash"), new Cloud("sk-or-test", "example/vision:free") })
                                     {
@@ -26966,7 +28545,7 @@ namespace CapriDesktop
                                         preferences.PaidKey = null;
                                         preferences.PaidModel = null;
                                         SplitKeys();
-                                        if (preferences.Tier != 1 || Voice.Unprotect(preferences.TextKey) != "nvapi-test" || Voice.Unprotect(preferences.NvidiaKey) != "nvapi-test" || preferences.NvidiaModel != "nvidia/nemotron-3.5-super-vl-120b-a12b" || preferences.PaidKey != null) throw new Exception("An old NVIDIA key did not move to HIGHER.");
+                                        if (preferences.Tier != 1 || Voice.Unprotect(preferences.TextKey) != "nvapi-test" || Voice.Unprotect(preferences.NvidiaKey) != "nvapi-test" || preferences.NvidiaModel != "nvidia/nemotron-3.5-super-vl-120b-a12b" || preferences.PaidKey != null) throw new Exception("An old NVIDIA key did not move to MEDIUM INTELLIGENCE.");
                                         preferences.PaidKey = Voice.Protect("sk-ant-test");
                                         preferences.PaidModel = "claude-opus-5-5";
                                         Cloud higher = TierCloud();
@@ -26980,8 +28559,8 @@ namespace CapriDesktop
                                         mainframe.ShowTiers(1, null, null);
                                         string nvidiaNote = mainframe.TierNote;
                                         ShowTiers();
-                                        if (nvidiaNote != "Most NVIDIA models can't see your screen." || mainframe.TierNote != "Pick one. Only one brain runs at a time.") throw new Exception("HIGHER didn't say most NVIDIA models can't see, or the note stayed: " + nvidiaNote + " / " + mainframe.TierNote);
-                                        checks.Add("PASS NVIDIA sight note: with HIGHER picked, the line under BRAIN says most NVIDIA models can't see your screen");
+                                        if (nvidiaNote != "NVIDIA, Gemini, OpenRouter" || mainframe.TierNote != "Pick one. Only one brain runs at a time.") throw new Exception("MEDIUM INTELLIGENCE didn't list its providers, or the note stayed: " + nvidiaNote + " / " + mainframe.TierNote);
+                                        checks.Add("PASS MEDIUM INTELLIGENCE lists NVIDIA, Gemini and OpenRouter under BRAIN");
                                         preferences.PaidKey = null;
                                         ChooseTier(2);
                                         if (preferences.Tier != 2 || brain.Remote != null || preferences.TextKey != null || !mainframe.TextStatus.EndsWith("| Paste a brain API key | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MAX INTELLIGENCE without its key did not fall back to her own brain: " + mainframe.TextStatus);
@@ -27009,7 +28588,7 @@ namespace CapriDesktop
                                     Brain.Nvidia = realNvidia;
                                     cloudFake.Stop();
                                 }
-                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), HIGHER (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key running her own brain");
+                                checks.Add("PASS API brain: sorts NVIDIA, OpenAI, Claude and DeepSeek keys, reads their model lists (an NVIDIA key's with Nemotron Super and Nemotron's reasoning model marked recommended at the top), picks defaults, sends each provider's request shape with tools, runs their tool calls, handles a refusal, and shows the brain tiers: NORMAL (free, local, start with this), MEDIUM INTELLIGENCE (free NVIDIA key) and MAX INTELLIGENCE (ChatGPT or Claude key), one at a time, each with its own saved key, an old key moving to its tier, and a tier without its key running her own brain");
                                 System.Collections.Generic.List<string> quickAsked = new System.Collections.Generic.List<string>();
                                 System.Net.Sockets.TcpListener quickFake;
                                 Brain.Nvidia = FakeServer(new string[]
@@ -28486,27 +30065,7 @@ namespace CapriDesktop
                             if (Voice.Explain(403, "<html><head><title>Access denied | api.elevenlabs.io used Cloudflare to restrict access</title></head></html>") != Voice.Refused || Voice.Explain(403, "{\"detail\":{\"message\":\"You do not have access to this voice.\"}}") != "You do not have access to this voice."
                                 || Voice.Explain(403, "{\"detail\":{\"message\":\"The API key you used does not have access to this workspace.\"}}").IndexOf("Key can't do that", StringComparison.Ordinal) < 0) throw new Exception("A 403 blamed the key when ElevenLabs didn't: " + Voice.Explain(403, "<html></html>"));
                             checks.Add("PASS voice 403s: only an answer about the key gets the key line; other 403s show ElevenLabs' own words, or say it gave no reason");
-                            using (MemoryStream raw = new MemoryStream())
-                            using (BinaryWriter writer = new BinaryWriter(raw))
-                            {
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-                                writer.Write(-1);
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
-                                writer.Write(16);
-                                writer.Write((short)1);
-                                writer.Write((short)1);
-                                writer.Write(16000);
-                                writer.Write(32000);
-                                writer.Write((short)2);
-                                writer.Write((short)16);
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("LIST"));
-                                writer.Write(4);
-                                writer.Write(System.Text.Encoding.ASCII.GetBytes("INFOdata"));
-                                writer.Write(-1);
-                                for (int i = 0; i < 16000; i++) writer.Write((short)(i < 8000 ? 0 : Math.Sin(i * 0.2) * (2000 + 14000 * Math.Abs(Math.Sin(i / 1300.0)))));
-                                writer.Flush();
-                                tone = Voice.Clean(raw.ToArray());
-                            }
+                            tone = SmokeTone();
                             int toneRate;
                             if (Voice.Samples(tone, out toneRate).Length != 16000 || toneRate != 16000 || BitConverter.ToInt32(tone, 40) != 32000 || Math.Abs(Voice.Seconds(tone) - 1) > 0.001 || Voice.Samples(new byte[] { 82, 73, 70, 70, 0, 0, 0, 0, 87, 65, 86, 69, 102, 109, 116, 32, 248, 255, 255, 255 }, out toneRate).Length != 0) throw new Exception("WAV cleanup failed.");
                             int[] shapes = Voice.Mouths(tone, MouthRate);
@@ -30414,28 +31973,7 @@ namespace CapriDesktop
                             if (!box.Visible || box.State != TalkState.Thinking) throw new Exception("Speech box did not open on THINKING.");
                             typer.Hide();
                             checks.Add("PASS pill under her, pencil opens the typing box above her head, Enter sends, THINKING shows and the typing box stays open");
-                            backdrop = new Form();
-                            backdrop.Text = "Capri clean test desktop";
-                            backdrop.FormBorderStyle = FormBorderStyle.None;
-                            backdrop.ShowInTaskbar = false;
-                            backdrop.StartPosition = FormStartPosition.Manual;
-                            Rectangle area = Screen.PrimaryScreen.WorkingArea;
-                            backdrop.Bounds = new Rectangle(area.Left + Math.Max(0, (area.Width - 920) / 2), area.Top + Math.Max(0, (area.Height - 560) / 2), Math.Min(920, area.Width), Math.Min(560, area.Height));
-                            backdrop.BackColor = Color.FromArgb(237, 239, 242);
-                            backdrop.TopMost = true;
-                            backdrop.Paint += delegate(object sender, PaintEventArgs paint)
-                            {
-                                using (Pen line = new Pen(Color.FromArgb(225, 228, 232)))
-                                    for (int x = 32; x < backdrop.Width; x += 32) for (int y = 32; y < backdrop.Height; y += 32) paint.Graphics.DrawEllipse(line, x, y, 1, 1);
-                                using (Font label = new Font("Segoe UI", 10))
-                                using (Brush ink = new SolidBrush(Color.FromArgb(110, 116, 125)))
-                                    paint.Graphics.DrawString("CAPRI  /  WINDOWS DESKTOP COMPANION", label, ink, 32, 28);
-                                using (Brush bar = new SolidBrush(Color.FromArgb(249, 250, 251))) paint.Graphics.FillRectangle(bar, 0, backdrop.Height - 42, backdrop.Width, 42);
-                                using (Font label = new Font("Segoe UI", 9))
-                                using (Brush ink = new SolidBrush(Color.FromArgb(126, 131, 139)))
-                                    paint.Graphics.DrawString("Clean test desktop · actual native app", label, ink, 24, backdrop.Height - 29);
-                            };
-                            backdrop.Show();
+                            backdrop = SmokeBackdrop();
                             anchor = new Point(backdrop.Left + backdrop.Width / 2 - Width / 2 + 150, backdrop.Top + backdrop.Height / 2 - Height / 2 + 20);
                             Location = anchor;
                             lastForeground = new IntPtr(-1);
@@ -30866,11 +32404,11 @@ namespace CapriDesktop
                             StartLocal();
                             ToggleMic();
                             mutedStart.Pending(null);
-                            if (!earsReady || !ears.Muted || !pill.Muted || !earsShut || !mutedStart.Held || reply != "Free voice chat is ready; your mic is muted.") throw new Exception("Windows speech starting unmuted the mic or claimed it was listening.");
+                            if (!earsReady || !ears.Muted || !pill.Muted || !earsShut || !mutedStart.Held || reply != "Mic muted" || reply != mainframe.HearingText) throw new Exception("Windows speech starting unmuted the mic or claimed it was listening.");
                             ToggleMic();
                             if (earsShut || mutedStart.Held || mainframe.VoiceStatus.IndexOf("Free voice chat on.", StringComparison.Ordinal) != 0) throw new Exception("Unmuting did not restore the ready status.");
                             mutedStart.Lost("Windows speech recognition lost its internet connection.");
-                            if (!mutedStart.Disposed || dictation != null || !local || !earsReady || earsShut || reply.IndexOf("Free voice chat on, but I'm hearing offline", StringComparison.Ordinal) != 0 || reply.IndexOf("under VOICE", StringComparison.Ordinal) < 0 || mainframe.VoiceStatus.IndexOf("Windows speech recognition lost its internet connection.", StringComparison.Ordinal) != 0) throw new Exception("Losing Windows speech did not fall back to offline hearing: " + reply + " / " + mainframe.VoiceStatus);
+                            if (!mutedStart.Disposed || dictation != null || !local || !earsReady || earsShut || reply != "Windows speech failed: Windows speech recognition lost its internet connection" || mainframe.HearingText != reply || mainframe.VoiceNoteText != reply) throw new Exception("Losing Windows speech did not fall back to offline hearing: " + reply + " / " + mainframe.VoiceStatus);
                             for (int i = 0; i < 3; i++) ears.Feed(setupNoise);
                             if (utterance == null) throw new Exception("Offline hearing did not gather sound after Windows speech was lost.");
                             StopChat();
@@ -30878,17 +32416,17 @@ namespace CapriDesktop
                             privacyOff.Problem = Dictation.PrivacyOff;
                             Dictation.Make = delegate { return privacyOff; };
                             StartLocal();
-                            if (!privacyOff.Disposed || dictation != null || !local || !earsReady || reply.IndexOf("Turn on Online speech recognition in Windows Settings", StringComparison.Ordinal) < 0 || mainframe.VoiceStatus.IndexOf(Dictation.PrivacyOff, StringComparison.Ordinal) != 0) throw new Exception("Online speech recognition being off did not explain the switch: " + reply);
+                            if (!privacyOff.Disposed || dictation != null || !local || !earsReady || reply != "Online speech recognition is off" || mainframe.HearingText != reply || mainframe.VoiceNoteText != reply) throw new Exception("Online speech recognition being off did not explain the switch: " + reply);
                             System.Collections.Generic.List<string> speechOpened = new System.Collections.Generic.List<string>();
                             Action<string> browseBefore = Browse;
                             Browse = speechOpened.Add;
                             try { OpenSpeechSettings(); }
                             finally { Browse = browseBefore; }
-                            if (!mainframe.SpeechFixShown || speechOpened.Count != 1 || speechOpened[0] != SpeechSettings) throw new Exception("The Online speech recognition note didn't open Windows' Speech page: " + mainframe.VoiceStatus);
+                            if (mainframe.HearingButtons.IndexOf("Open speech settings", StringComparison.Ordinal) < 0 || speechOpened.Count != 1 || speechOpened[0] != SpeechSettings) throw new Exception("The Online speech recognition note didn't open Windows' Speech page: " + mainframe.VoiceStatus);
                             StopChat();
                             Dictation.Make = delegate { throw new TypeLoadException("Test missing WinRT."); };
                             StartLocal();
-                            if (!local || !earsReady || mainframe.VoiceStatus.IndexOf("Windows speech recognition isn't on this PC", StringComparison.Ordinal) != 0 || mainframe.SpeechFixShown) throw new Exception("A PC without Windows speech did not fall back to offline hearing: " + mainframe.VoiceStatus);
+                            if (!local || !earsReady || !mainframe.HearingText.StartsWith("Windows speech failed: Windows speech recognition isn't on this PC", StringComparison.Ordinal) || mainframe.VoiceNoteText != mainframe.HearingText) throw new Exception("A PC without Windows speech did not fall back to offline hearing: " + mainframe.VoiceStatus);
                             StopChat();
                             if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
@@ -30903,7 +32441,7 @@ namespace CapriDesktop
                                 ChooseMic(pickable[0].Id);
                                 Dictation.DefaultMic = delegate { return @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{some-other-mic}#{2eef81be}"; };
                                 StartLocal();
-                                bool warned = reply == "Free voice chat on, but Windows speech only hears your default mic, not " + pickable[0].Name + ". The fix is under VOICE." && mainframe.VoiceStatus.IndexOf("Windows speech only hears your default mic, not " + pickable[0].Name + ".", StringComparison.Ordinal) == 0;
+                                bool warned = reply == "Windows speech hears a different mic: Windows default" && mainframe.HearingText == reply && mainframe.VoiceNoteText == reply;
                                 StopChat();
                                 Dictation.DefaultMic = delegate { return @"\\?\SWD#MMDEVAPI#" + pickable[0].Id + "#{2eef81be}"; };
                                 StartLocal();
@@ -30941,7 +32479,7 @@ namespace CapriDesktop
                             Dictation.Make = delegate { return noOnline; };
                             StartLocal();
                             for (int i = 0; i < 3; i++) ears.Feed(setupNoise);
-                            bool earsWaited = noOnline.Disposed && dictation == null && local && !earsReady && earsAwaited && Hearing.Own == null && utterance == null && reply == "My ears are still downloading, so type to me for now. I'll say when I can hear you.";
+                            bool earsWaited = noOnline.Disposed && dictation == null && local && !earsReady && earsAwaited && Hearing.Own == null && utterance == null && reply == "Online speech recognition is off" && reply == mainframe.HearingText;
                             bool tooEarly = !EarsArrived() && earsAwaited;
                             ownEarsTest = true;
                             bool earsLanded = EarsArrived() && !earsAwaited && earsReady && Hearing.Own == parakeet && reply == "Free voice chat on. Talk and I'll type back.";
@@ -30961,10 +32499,10 @@ namespace CapriDesktop
                             StartLocal();
                             double failedAt = clock.Elapsed.TotalSeconds;
                             EarsFailed("Test download failure.");
-                            bool failTold = reply == "My ears didn't download, so type to me for now. Test download failure. I'll try again in 30 seconds." && earsRetryAt >= failedAt + 29 && earsRetryAt <= failedAt + 31;
+                            bool failTold = reply == "Her ears didn't download: Test download failure" && reply == mainframe.HearingText && earsRetryAt >= failedAt + 29 && earsRetryAt <= failedAt + 31;
                             int askedBeforeRetry = asking;
                             EarsFailed("Test download failure.");
-                            bool failQuiet = asking == askedBeforeRetry && mainframe.VoiceStatus.IndexOf("Her own ears didn't download: Test download failure. I'll try again in a minute.", StringComparison.Ordinal) == 0;
+                            bool failQuiet = asking == askedBeforeRetry && mainframe.VoiceNoteText == "Her ears didn't download: Test download failure";
                             CheckHearing(earsRetryAt + 1);
                             bool retryRan = earsRetryAt < 0;
                             EarsFailed("Test download failure.");
@@ -30982,7 +32520,7 @@ namespace CapriDesktop
                             CheckHearing(quietFrom + 19);
                             bool micPatient = reply == "Free voice chat on. Talk and I'll type back.";
                             CheckHearing(quietFrom + 21);
-                            bool micToldSilent = reply == MicSilent && mainframe.VoiceStatus.IndexOf(MicSilent, StringComparison.Ordinal) == 0;
+                            bool micToldSilent = reply == "Silent for 20 s: is the right mic picked?" && reply == mainframe.HearingText && mainframe.VoiceNoteText == reply;
                             int askedAfterSilent = asking;
                             CheckHearing(quietFrom + 80);
                             bool micToldOnce = asking == askedAfterSilent;
@@ -30990,7 +32528,7 @@ namespace CapriDesktop
                             StartLocal();
                             HeardLevel(0.01);
                             CheckHearing(quietFrom);
-                            CheckHearing(quietFrom + 30);
+                            CheckHearing(clock.Elapsed.TotalSeconds + 1);
                             bool micLive = reply == "Free voice chat on. Talk and I'll type back.";
                             StopChat();
                             StartLocal();
@@ -30998,9 +32536,9 @@ namespace CapriDesktop
                             CheckHearing(quietFrom);
                             CheckHearing(quietFrom + 30);
                             ToggleMic();
-                            CheckHearing(quietFrom + 31);
-                            CheckHearing(quietFrom + 40);
-                            bool micMutedQuiet = reply == "Free voice chat on. Talk and I'll type back." && micQuietFrom == quietFrom + 31;
+                            CheckHearing(clock.Elapsed.TotalSeconds + 1);
+                            CheckHearing(clock.Elapsed.TotalSeconds + 10);
+                            bool micMutedQuiet = reply == "Free voice chat on. Talk and I'll type back." && !hearingSilent && !hearingQuiet;
                             StopChat();
                             ownEarsTest = null;
                             if (!micPatient || !micToldSilent || !micToldOnce || !micLive || !micMutedQuiet) throw new Exception("The silent mic check went wrong: patient " + micPatient + ", told " + micToldSilent + ", once " + micToldOnce + ", live mic quiet " + micLive + ", muted quiet " + micMutedQuiet + " / " + reply);
@@ -32109,6 +33647,19 @@ namespace CapriDesktop
                         }
                         else if (step == 17)
                         {
+                            if (backdrop == null)
+                            {
+                                tone = SmokeTone();
+                                backdrop = SmokeBackdrop();
+                                anchor = new Point(backdrop.Left + backdrop.Width / 2 - Width / 2 + 150, backdrop.Top + backdrop.Height / 2 - Height / 2 + 20);
+                                Location = anchor;
+                                brain.Model = "google/gemma-4-31b-it";
+                                heard = "Hello Capri.";
+                                Answer(++asking, "Hey choom! Net's been quiet, too quiet. Time to stir up some trouble.", TalkState.Talking);
+                                replyStart -= 10;
+                                speechStart = replyStart;
+                                RenderFrame();
+                            }
                             bool captured;
                             using (Bitmap capture = new Bitmap(backdrop.Width, backdrop.Height))
                             using (Graphics graphics = Graphics.FromImage(capture))
@@ -32492,29 +34043,14 @@ namespace CapriDesktop
                             backdrop.Close();
                             ((ToolStripMenuItem)menu.Items[menu.Items.Count - 1]).PerformClick();
                         }
+                        SmokeRun.StepDone(step, true, checks);
+                        if (step == 22) SmokeRun.Complete(checks);
                         step++;
                     }
                     catch (Exception error)
                     {
-                        if (OnGitHub && step < 22)
-                        {
-                            TestFailed = true;
-                            checks.Add("FAIL step " + step + ": " + error.Message);
-                            File.WriteAllLines(Path.Combine(output, "smoke-test.txt"), checks);
-                            File.AppendAllText(Path.Combine(output, "failure.txt"), error + Environment.NewLine);
-                            step++;
-                            return;
-                        }
-                        agentStop.Cancel();
-                        if (fakeAgent != null) { fakeAgent.Close(); fakeAgent = null; }
-                        if (resetGlance != null) resetGlance();
                         TestFailed = true;
-                        File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString());
-                        if (OnGitHub) File.WriteAllLines(Path.Combine(output, "smoke-test.txt"), checks);
-                        test.Stop();
-                        test.Dispose();
-                        if (backdrop != null) backdrop.Close();
-                        Close();
+                        SmokeRun.StepFailed(step, error, checks);
                     }
                     finally { stepping = false; }
                 };
