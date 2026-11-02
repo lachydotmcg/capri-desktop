@@ -625,7 +625,7 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}" },
             { "gaming_mode", "Turn Gaming Mode on or off, only when they ask for Gaming Mode by name: you watch their game and react when something happens, until it closes.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}" },
-            { "clip", "Save the recent game video to Videos\\Capri Clips on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > GAMES must be on. The default is the last 30 seconds; seconds can request a different stretch of the buffered video.",
+            { "clip", "Save recent game video to their chosen clips folder on this PC. Use this when they ask to clip a game, including clip that. Clip my games in Settings > CLIPS must be on. Omit seconds to use their chosen default length; seconds can request a different stretch of the buffered video.",
               "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}" },
             { "mini_game", "Play your own tic-tac-toe, connect four, rock paper scissors or native chess board beside you. Online play goes to their browser. A move uses their square, column or rock/paper/scissors as text; chess moves use the mouse. again starts a new round; close closes your board. Chess also has undo, hint, resign and level. Chess needs no brain or key; choose easy, normal or hard and their side, white by default.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\",\"chess\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\",\"undo\",\"hint\",\"resign\",\"level\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move on a non-chess board\"},\"level\":{\"type\":\"string\",\"description\":\"Chess strength\",\"enum\":[\"easy\",\"normal\",\"hard\"]},\"side\":{\"type\":\"string\",\"description\":\"Their chess pieces\",\"enum\":[\"white\",\"black\"]}},\"required\":[\"name\"]}" },
@@ -850,7 +850,7 @@ namespace CapriDesktop
 #endif
         // Gaming Mode: on, off, or which way to move her HUD (up, down, left, right, reset). Her window sets it.
         internal static Func<string, string> GamingMode = delegate { return "Gaming Mode isn't on this PC yet."; };
-        internal static Func<int, string> SaveClip = delegate { return "Turn on Clip my games in Settings > GAMES, then I can clip that."; };
+        internal static Func<int, string> SaveClip = delegate { return "Turn on Clip my games in Settings > CLIPS, then I can clip that."; };
         private static readonly string[] Browsers = { "chrome", "msedge", "firefox", "brave", "opera", "vivaldi" };
         private static readonly string[] Shell = { "Progman", "WorkerW", "Shell_TrayWnd", "Shell_SecondaryTrayWnd" };
         private delegate bool Visit(IntPtr window, IntPtr data);
@@ -989,7 +989,7 @@ namespace CapriDesktop
                 if (tool == "gaming_mode") return GamingMode(args.Action);
                 if (tool == "clip")
                 {
-                    int clipSeconds = 30;
+                    int clipSeconds = 0;
                     if (!string.IsNullOrEmpty(args.Seconds) && (!int.TryParse(args.Seconds, out clipSeconds) || clipSeconds <= 0)) return "How many seconds should I clip?";
                     return SaveClip(clipSeconds);
                 }
@@ -1870,7 +1870,7 @@ namespace CapriDesktop
         internal static int ClipSeconds(string text)
         {
             string plain = Regex.Replace(Asked(text), @"[\s,]+capri$", "", RegexOptions.IgnoreCase);
-            if (Regex.IsMatch(plain, @"^(clip (that|it|this)|save that|(save|grab) (a |the )?clip)$", RegexOptions.IgnoreCase)) return 30;
+            if (Regex.IsMatch(plain, @"^(clip (that|it|this)|save that|(save|grab) (a |the )?clip)$", RegexOptions.IgnoreCase)) return -1;
             Match stretch = Regex.Match(plain, @"^clip the last (\d+|one|two|a) (seconds?|minutes?)$", RegexOptions.IgnoreCase);
             if (!stretch.Success) return 0;
             string amount = stretch.Groups[1].Value.ToLowerInvariant();
@@ -1923,7 +1923,7 @@ namespace CapriDesktop
             ToolArguments watchArgs = WatchRequest(text);
             if (watchArgs != null) { tool = "watch_for"; args = watchArgs; return true; }
             int clipSeconds = ClipSeconds(text);
-            if (clipSeconds > 0 && Computer.GameOpen() != null) { tool = "clip"; args.Seconds = clipSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return true; }
+            if (clipSeconds != 0 && Computer.GameOpen() != null) { tool = "clip"; args.Seconds = clipSeconds < 0 ? null : clipSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture); return true; }
 #endif
             string gaming = GamingFor(text);
             if (gaming != null) { tool = "gaming_mode"; args.Action = gaming; return true; }

@@ -26,6 +26,7 @@ namespace CapriDesktop
         private readonly LinkedList<ClipPart> sounds = new LinkedList<ClipPart>();
         private ClipSave pending;
         private readonly Func<ClipSave, ClipResult> encode;
+        private readonly Func<long> clock;
         private readonly int history;
         private readonly long memory;
         private readonly AutoResetEvent changed = new AutoResetEvent(false);
@@ -36,15 +37,24 @@ namespace CapriDesktop
         private int dropped;
         private Bitmap shared;
         private long sharedAt;
+        private ClipSettings settings = new ClipSettings();
+        private Task<ClipResult> recent;
+        private long recentAt, session, recentSession;
+        private int recentSeconds;
+        private ClipSettings recentSettings;
+
+        internal void Configure(ClipSettings chosen) { lock (gate) settings = chosen; changed.Set(); }
+        internal ClipSettings Settings { get { lock (gate) return settings; } }
 
         internal ClipBuffer() : this(History, Memory) { }
 
-        internal ClipBuffer(int seconds, long bytes, Func<ClipSave, ClipResult> write = null)
+        internal ClipBuffer(int seconds, long bytes, Func<ClipSave, ClipResult> write = null, Func<long> time = null)
         {
             if (seconds <= 0 || bytes <= 0) throw new ArgumentOutOfRangeException("seconds");
             history = seconds;
             memory = bytes;
             encode = write ?? ClipMedia.Save;
+            clock = time ?? delegate { return Now; };
         }
 
         internal bool Enabled { get { lock (gate) return enabled; } }
@@ -101,6 +111,7 @@ namespace CapriDesktop
             double interval = 10000000.0 / 30;
             int wide = 1920;
             bool started = false;
+            ClipSettings recording = Settings;
             try
             {
                 ClipMedia.Check(ClipMedia.CoInitializeEx(IntPtr.Zero, 0));
@@ -115,6 +126,14 @@ namespace CapriDesktop
                         {
                             inspectAt = tick + 2500000;
                             front = Enabled ? GameFinder.Front() : null;
+                            ClipSettings chosen = Settings;
+                            if (!object.ReferenceEquals(recording, chosen))
+                            {
+                                recording = chosen;
+                                interval = 10000000.0 / recording.Fps;
+                                wide = 0;
+                                nextAt = 0;
+                            }
                             lock (gate) Trim(tick);
                             if (Follow(front))
                             {
@@ -141,9 +160,10 @@ namespace CapriDesktop
                             grab = new FrameGrab();
                             grab.Open(current);
                             bounds = current;
-                            interval = 10000000.0 / 30;
-                            wide = 1920;
+                            interval = 10000000.0 / recording.Fps;
+                            wide = 0;
                         }
+                        if (wide == 0) wide = recording.Fit(current.Width, current.Height).Width;
                         if (tick >= soundAt)
                         {
                             if (tap != null && SoundTap.DefaultDevice() != tap.Device) { tap.Dispose(); tap = null; }
@@ -171,14 +191,14 @@ namespace CapriDesktop
                                 }
                             }
                             long cost = Now - began;
-                            interval = Math.Max(10000000.0 / 30, Math.Max(cost * 1.5, interval * 0.98));
+                            interval = Math.Max(10000000.0 / recording.Fps, Math.Max(cost * 1.5, interval * 0.98));
                             lock (gate)
                             {
                                 if (pictures.Count > 0)
                                 {
-                                    double room = (pictures.Last.Value.Data.Length + 64.0) * Math.Min(history, Sharp) * 10000000 / (memory * 0.85);
+                                    double room = (pictures.Last.Value.Data.Length + 64.0) * Math.Min(history, Math.Max(Sharp, recording.Seconds)) * 10000000 / (memory * 0.85);
                                     // A busy picture at full size would be a slideshow, and smooth at 720p makes the better clip.
-                                    if (room > 10000000.0 / 24 && wide > 1280) wide = 1280;
+                                    if (recording.Resolution == 0 && room > 10000000.0 / 24 && wide > 1280) wide = Math.Min(wide, new ClipSettings(null, 30, 30, 720).Fit(current.Width, current.Height).Width);
                                     interval = Math.Max(interval, room);
                                 }
                                 if (enabled) through = Now;
@@ -294,7 +314,7 @@ namespace CapriDesktop
                 long size = data.LongLength + 64;
                 if (used + size > memory)
                 {
-                    while (used + size > memory && Thin(at - Sharp * 10000000L)) { }
+                    while (used + size > memory && Thin(at - Math.Max(Sharp, settings.Seconds) * 10000000L)) { }
                     while (used + size > memory && Thin(long.MaxValue)) { }
                     LinkedListNode<ClipPart> last = pictures.Last;
                     while (video && last != null && used + size > memory)
@@ -354,6 +374,7 @@ namespace CapriDesktop
 
         private void Clear()
         {
+            session++;
             foreach (ClipPart picture in pictures) Release(picture);
             foreach (ClipPart sound in sounds) Release(sound);
             pictures.Clear();
@@ -372,16 +393,23 @@ namespace CapriDesktop
             foreach (ClipPart sound in sounds) if (sound.End > start && sound.At < end) yield return sound;
         }
 
-        internal Task<ClipResult> Save(string path, int seconds)
+        internal Task<ClipResult> Save(string path, int seconds, bool reuse = false, ClipSettings chosen = null)
         {
             if (seconds <= 0) throw new ArgumentOutOfRangeException("seconds");
             lock (saving)
             {
                 List<ClipPart> frames, audio;
-                long start, end;
+                long start, end, capturedSession;
                 lock (gate)
                 {
+                    chosen = chosen ?? settings;
+                    capturedSession = session;
                     if (pictures.Count == 0 || disposed) return Task.FromResult(new ClipResult { Problem = "I haven't buffered any game video yet." });
+                    // A repeated voice/tool request gets the same save, even after the writer took it off the queue (john sandevistan).
+                    if (reuse && recent != null && recentSession == session && recentSeconds == seconds && object.ReferenceEquals(recentSettings, chosen)
+                        && clock() - recentAt < 80000000 && (!recent.IsCompleted || recent.Result.Problem == null)) return recent;
+                    if (pending != null && !object.ReferenceEquals(pending.Settings, chosen)) return Task.FromResult(new ClipResult { Problem = "Couldn't save that clip: one with the previous recording settings is still queued. Try again once it finishes." });
+                    if (pending != null && pending.Session != capturedSession) return Task.FromResult(new ClipResult { Problem = "Couldn't save that clip: one from the previous game is still queued. Try again once it finishes." });
                     end = Math.Max(through, pictures.Last.Value.At + 1);
                     long cutoff = end - seconds * 10000000L;
                     LinkedListNode<ClipPart> first = pictures.First;
@@ -393,13 +421,14 @@ namespace CapriDesktop
                 ClipSave save = pending;
                 try
                 {
-                    if (save == null) save = new ClipSave { Path = path, Start = start, End = end };
+                    if (save == null) save = new ClipSave { Path = path, Start = start, End = end, Settings = chosen, Session = capturedSession };
                     else { save.Merged = true; save.Start = Math.Min(save.Start, start); save.End = Math.Max(save.End, end); }
                     save.Pictures.Merge(frames);
                     save.Sounds.Merge(audio);
                     lock (gate)
                     {
                         pending = save;
+                        if (reuse) { recent = save.Done.Task; recentAt = clock(); recentSession = capturedSession; recentSeconds = seconds; recentSettings = chosen; }
                         if (writer == null)
                         {
                             writer = Worker(Write, "Capri clip writer");
@@ -462,7 +491,9 @@ namespace CapriDesktop
         internal string Clip(int seconds, out bool saved)
         {
             saved = false;
-            if (!Enabled) return "Turn on Clip my games in Settings > GAMES, then I can clip that.";
+            if (!Enabled) return "Turn on Clip my games in Settings > CLIPS, then I can clip that.";
+            ClipSettings recording = Settings;
+            if (seconds <= 0) seconds = recording.Seconds;
             string open = Computer.GameOpen();
             lock (gate)
             {
@@ -474,16 +505,16 @@ namespace CapriDesktop
             title = title.Trim().TrimEnd('.');
             if (title.Length == 0) title = "Game";
             if (title.Length > 100) title = title.Substring(0, 100);
-            string directory = Folder;
+            string directory = recording.Folder;
             Directory.CreateDirectory(directory);
             ClipMedia.Tidy(directory);
             string path = Path.Combine(directory, title + " " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss-fff") + " " + Guid.NewGuid().ToString("N").Substring(0, 6) + ".mp4");
-            ClipResult result = Save(path, seconds).GetAwaiter().GetResult();
+            ClipResult result = Save(path, seconds, true, recording).GetAwaiter().GetResult();
             saved = result.Problem == null;
             if (saved)
             {
                 Action<string, double, string> told = Saved;
-                if (told != null) told(result.Path, result.Seconds, open);
+                if (told != null && result.Announce()) told(result.Path, result.Seconds, open);
             }
             return result.Problem ?? "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + open + (result.Sound ? "" : " without sound") + ": " + result.Path + (result.Merged ? " Merged your clip requests into this clip." : "");
         }
@@ -590,8 +621,10 @@ namespace CapriDesktop
 
     internal sealed class ClipSave : IDisposable
     {
+        internal ClipSettings Settings = new ClipSettings();
         internal string Path;
         internal long Start, End;
+        internal long Session;
         internal bool Merged;
         internal readonly ClipTrack Pictures;
         internal readonly ClipTrack Sounds;
@@ -632,7 +665,7 @@ namespace CapriDesktop
                 foreach (string left in Directory.GetFiles(directory, ".capri-*.mp4"))
                 {
                     string name = Path.GetFileName(left);
-                    if (!name.StartsWith(".capri-", StringComparison.OrdinalIgnoreCase) || !name.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!Regex.IsMatch(name, @"\A\.capri-[0-9a-f]{32}\.mp4\z", RegexOptions.IgnoreCase)) continue;
                     try { if (DateTime.UtcNow - File.GetLastWriteTimeUtc(left) > TimeSpan.FromHours(1)) File.Delete(left); }
                     catch (IOException) { }
                     catch (UnauthorizedAccessException) { }
@@ -692,8 +725,9 @@ namespace CapriDesktop
                 using (MemoryStream firstBytes = new MemoryStream(opening.Current.Data, false))
                 using (Bitmap first = new Bitmap(firstBytes))
                 {
-                    width = (first.Width + 1) & ~1;
-                    height = (first.Height + 1) & ~1;
+                    Size size = save.Settings.Fit(first.Width, first.Height);
+                    width = size.Width;
+                    height = size.Height;
                 }
             }
             try
@@ -701,11 +735,11 @@ namespace CapriDesktop
                 Check(MFCreateAttributes(out options, 2));
                 Number(options, "9c27891a-ed7a-40e1-88e8-b22727a024ee", 1);
                 Check(MFCreateSinkWriterFromURL(path, IntPtr.Zero, options, out sink));
-                target = VideoType(H264, width, height);
-                Number((IMFAttributes)target, "20332624-fb0d-4d9e-bd0d-cbf6786c102e", Math.Max(250000, Math.Min(12000000, width * height * 4)));
+                target = VideoType(H264, width, height, save.Settings.Fps);
+                Number((IMFAttributes)target, "20332624-fb0d-4d9e-bd0d-cbf6786c102e", save.Settings.Bits(width, height));
                 int videoStream;
                 Check(sink.AddStream(target, out videoStream));
-                input = VideoType(Nv12, width, height);
+                input = VideoType(Nv12, width, height, save.Settings.Fps);
                 Check(((IMFAttributes)input).SetUINT32(Stride, width));
                 Number(options, "b0c8bf60-16f7-4951-a30b-1db1609293d6", 1);
                 Check(sink.SetInputMediaType(videoStream, input, options));
@@ -791,7 +825,7 @@ namespace CapriDesktop
             }
         }
 
-        private static IMFMediaType VideoType(Guid subtype, int width, int height)
+        private static IMFMediaType VideoType(Guid subtype, int width, int height, int fps)
         {
             IMFMediaType type;
             Check(MFCreateMediaType(out type));
@@ -801,7 +835,7 @@ namespace CapriDesktop
                 Check(attributes.SetGUID(Major, Video));
                 Check(attributes.SetGUID(Subtype, subtype));
                 Check(attributes.SetUINT64(FrameSize, ((long)width << 32) | (uint)height));
-                Check(attributes.SetUINT64(new Guid("c459a2e8-3d2c-4e44-b132-fee5156c7bb0"), (30L << 32) | 1));
+                Check(attributes.SetUINT64(new Guid("c459a2e8-3d2c-4e44-b132-fee5156c7bb0"), ((long)fps << 32) | 1));
                 Check(attributes.SetUINT64(new Guid("c6376a1e-8d0a-4027-be45-6d9a0ad39bb6"), (1L << 32) | 1));
                 Number(attributes, "e2724bb8-e676-4806-b4b2-a8d6efb44ccd", 2);
                 return type;
@@ -1440,6 +1474,8 @@ namespace CapriDesktop
 
     internal sealed class ClipResult
     {
+        private int announced;
+        internal bool Announce() { return Interlocked.CompareExchange(ref announced, 1, 0) == 0; }
         internal string Problem, Path;
         internal bool Sound, Unavailable, Merged;
         internal double Seconds;

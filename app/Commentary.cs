@@ -485,7 +485,7 @@ namespace CapriDesktop
             Commentary.Keep = delegate
             {
                 bool saved;
-                string result = clips.Clip(30, out saved);
+                string result = clips.Clip(0, out saved);
                 return saved ? null : result;
             };
             if (!testing) Commentary.Start();

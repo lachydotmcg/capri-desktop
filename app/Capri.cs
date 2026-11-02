@@ -473,6 +473,11 @@ namespace CapriDesktop
         [DataMember] public bool Remembers = true;
         [DataMember] public bool ClipGames;
         [DataMember] public bool ClipMoments;
+        [DataMember] public string ClipFolder;
+        [DataMember] public int ClipSeconds;
+        [DataMember] public int ClipFps;
+        [DataMember] public int ClipResolution;
+        [DataMember] public int ClipMbps;
         [DataMember] public bool SlowHands;
         [DataMember] public int Volume = 100;
         [DataMember] public int Sounds = 60;
@@ -1302,7 +1307,7 @@ namespace CapriDesktop
         private double drawnLean;
         private float drawnBreath, drawnTilt;
         private bool fullScreenHidden, manualHidden, frontBusy;
-        // A full-screen game or video is in front and Gaming Mode hasn't docked her, so clicks go through her windows to it.
+        // A full-screen game or video is in front and Gaming Mode hasn't docked her.
         private bool fullThrough;
         private double frontChecked = -1;
         private readonly AwayInput awayInput = new AwayInput();
@@ -1842,7 +1847,7 @@ namespace CapriDesktop
             // After Move, so the items above keep their places.
             ToolStripMenuItem clipsItem = new ToolStripMenuItem("Open clips folder", null, delegate { OpenClips(); });
             menu.Items.Add(clipsItem);
-            menu.Opening += delegate { clipsItem.Visible = preferences.ClipGames || Directory.Exists(ClipBuffer.Folder); };
+            menu.Opening += delegate { clipsItem.Visible = preferences.ClipGames || Directory.Exists(ClipOptions.Folder); };
             menu.Opening += delegate { if (ownRest) WakeRest(!SleepBusy); sitHereItem.Text = seat != null && seat.Free ? "Stand up" : "Sit here"; hangHereItem.Text = hanging ? "Let go" : "Hang here"; lieItem.Text = lying ? "Sit up" : "Lie down"; lieItem.Enabled = lying || (clip == perch && LieWay() != null); sleepItem.Text = napAsked || Asleep ? "Wake up" : "Go to sleep"; danceNowItem.Checked = danceAsked; screenItem.Visible = Screen.AllScreens.Length > 1; };
             clickDelay = new System.Windows.Forms.Timer();
             clickDelay.Interval = Math.Max(100, SystemInformation.DoubleClickTime);
@@ -1914,6 +1919,7 @@ namespace CapriDesktop
             Hands.SaveClip = clips.Clip;
             clips.Saved = delegate(string saved, double seconds, string game) { Post(delegate { Clipped(saved, seconds, game); }); };
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
+            clips.Configure(ClipOptions);
             clips.Enable(!testing && preferences.ClipGames);
             SetUpMinis();
             SetUpInk();
@@ -4560,11 +4566,11 @@ namespace CapriDesktop
             return screen.WorkingArea;
         }
 
-        // Their clips in Explorer, from Settings > GAMES, her menu or the CLIP SAVED popup, which picks out its clip (Lachy, 2 Nov:
+        // Their clips in Explorer, from Settings > CLIPS, her menu or the CLIP SAVED popup, which picks out its clip (Lachy, 2 Nov:
         // "I want you to be able to just click to open capri clipping folder to watch the clips").
         internal void OpenClips(string saved = null)
         {
-            string folder = ClipBuffer.Folder;
+            string folder = saved == null ? ClipOptions.Folder : Path.GetDirectoryName(saved);
             if (testing) { clipsOpened.Add(saved); return; }
             try
             {
@@ -5467,9 +5473,8 @@ namespace CapriDesktop
             else if (playerClosed && now - tuneHeard >= PlayerQuiet) { playerClosed = false; tuneHeard = -1; }
             bool allowed = PlayerAllowed && !playerClosed;
             bool up = allowed && tune != null && tuneHeard >= 0 && now - tuneHeard < PlayerLinger && (preferences.PlayerFullScreen || !FullScreen());
-            // Never out from under them while they're using it. Over full screen it lets clicks through, so a mouse resting on
-            // it there doesn't count.
-            if (!up && allowed && player.Busy && !fullThrough) { up = true; tune = tune ?? player.Tune; }
+            // Never out from under them while they're using it.
+            if (!up && allowed && player.Busy && (!FullScreen() || preferences.PlayerFullScreen)) { up = true; tune = tune ?? player.Tune; }
             if (!up) { HidePlayer(); return; }
             // A read from before their last press may not have the press in it yet.
             if (player.Visible && asked < player.SentAt + 0.3) return;
@@ -6095,7 +6100,7 @@ namespace CapriDesktop
 
         private void CheckFullScreen(bool full)
         {
-            // Checked again while it lasts, so a window of hers that's made meanwhile lets clicks through too.
+            // Fullscreen does not take her controls away (Lachy, 2 Nov: keep her draggable and clickable).
             bool through = full && !docked;
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
@@ -6103,6 +6108,8 @@ namespace CapriDesktop
             fullScreenHidden = shouldHide;
             if (!docked && hidden != (manualHidden || shouldHide)) ApplyHidden(manualHidden || shouldHide);
         }
+
+        internal bool FullScreenDisplay { get { return fullThrough || (!testing && Native.FillsScreen()); } }
 
         // Beside something full screen she sits on nothing, clear of the game or video. Once it's gone she goes back to a real
         // ledge instead of staying in the middle of their screen, sitting or standing up there after a nap (john_sandevistan, 1 Nov).
@@ -7228,8 +7235,7 @@ namespace CapriDesktop
         }
 
         // During a job her pill and bubble let clicks through. She and the task panel only do while their cursor is lent out
-        // for one of her presses, so between presses they can drag her and the panel out of the way. Over a full-screen game or
-        // video she, her pill, her bubble and her mini player all do, so a click meant for it can't close or open anything of hers.
+        // for one of her presses, so between presses they can drag her and the panel out of the way, including over full screen.
         private void PassThrough()
         {
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player })
@@ -7237,7 +7243,7 @@ namespace CapriDesktop
                 if (!form.IsHandleCreated) continue;
                 int style = Native.GetWindowLong(form.Handle, -20);
                 if ((style & 0x80000) == 0) continue;
-                bool through = lentOut || (fullThrough && form != taskPanel) || (form == this ? riding : form != taskPanel && pointing);
+                bool through = lentOut || (form == this ? riding : form != taskPanel && pointing);
                 int wanted = through ? style | 0x20 : style & ~0x20;
                 if (wanted != style) Native.SetWindowLong(form.Handle, -20, wanted);
             }
@@ -8633,7 +8639,7 @@ namespace CapriDesktop
         // including while she's sitting on a window, and over full screen the cursor doesn't either.
         // While their mic is muted in voice chat her pill stays up with its red MUTED, so muting with the key is never silent
         // (Lachy, 2 Nov: "it was like silently muting").
-        private bool PillHeld(bool hovered) { return (hovered && !fullThrough) || typer.Visible || (chatting && ears.Muted); }
+        private bool PillHeld(bool hovered) { return hovered || typer.Visible || (chatting && ears.Muted); }
 
         private void UpdatePill(double now)
         {
@@ -10814,25 +10820,24 @@ namespace CapriDesktop
                 preferences.PlayerFullScreen = true;
                 Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
                 if (!player.Visible) throw new Exception("The mini player stayed away with its full-screen switch on.");
-                // Over full screen, clicks go through her, her bubble, her pill and her mini player, hovering doesn't hold her pill
-                // up and a mouse resting on the player doesn't keep it there. Leaving full screen gives it all back.
+                // Her controls and hover stay usable over fullscreen; the player's fullscreen switch still decides visibility.
                 Func<Form, bool> letThrough = delegate(Form form) { return (Native.GetWindowLong(form.Handle, -20) & 0x20) != 0; };
                 CheckFullScreen(false);
                 bool clickable = !letThrough(this) && !letThrough(pill) && !letThrough(box) && !letThrough(player) && PillHeld(true);
                 CheckFullScreen(true);
-                bool passedOn = letThrough(this) && letThrough(pill) && letThrough(box) && letThrough(player) && PillHeld(true) == PillHeld(false);
+                bool passedOn = !letThrough(this) && !letThrough(pill) && !letThrough(box) && !letThrough(player) && PillHeld(true);
                 MiniPlayer.Mouse = delegate { return new Point(player.Left + player.Width / 2, player.Top + player.Height / 2); };
                 preferences.PlayerFullScreen = false;
                 Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
                 bool restedOff = !player.Visible;
                 preferences.PlayerFullScreen = true;
                 Tuned(desktopTune, clock.Elapsed.TotalSeconds, Tunes.Now);
-                bool shownThrough = player.Visible && letThrough(player);
+                bool shownThrough = player.Visible && !letThrough(player);
                 CheckFullScreen(false);
                 bool cameBack = !letThrough(this) && !letThrough(pill) && !letThrough(box) && !letThrough(player) && PillHeld(true);
                 MiniPlayer.Mouse = desktopMouse;
                 if (!clickable || !passedOn || !restedOff || !shownThrough || !cameBack) throw new Exception("Her windows over full screen went wrong: before " + clickable + ", over " + passedOn + ", rested player gone " + restedOff + ", shown player " + shownThrough + ", after " + cameBack);
-                checks.Add("PASS over full screen she, her bubble, her pill and her mini player let clicks through, hovering doesn't hold her pill up, a mouse resting on the player doesn't keep it up, and leaving full screen takes clicks again");
+                checks.Add("PASS over full screen she, her bubble, her pill and her mini player remain clickable, hovering holds her pill, the player respects its fullscreen switch, and leaving keeps controls usable");
                 preferences.NoPlayer = true;
                 HidePlayer();
                 int desktopWatch = watchTicket, desktopAway = exploreTicket, desktopGlances = glanced.Count;
@@ -13148,7 +13153,7 @@ namespace CapriDesktop
                 { "how do I give you a file?", "Handing her a file" },
                 { "how does your listen tool work?", "Listening to PC sound" },
                 { "what kinds of files can you read?", "Handing her a file" },
-                { "where are clips saved?", "Clip my games" },
+                { "where are clips saved?", "Save folder" },
                 { "how do I move the HUD down?", "Gaming Mode" },
                 { "how do I change the game break setting?", "Game break" },
                 { "how do I edit check-in lines?", "Edit check-in lines" },
@@ -14156,7 +14161,7 @@ namespace CapriDesktop
             for (int popupAt = 44; popupAt + 1 < popupChime.Length; popupAt += 2) popupChimePeak = Math.Max(popupChimePeak, Math.Abs((int)BitConverter.ToInt16(popupChime, popupAt)));
             if (popupChimeLength < 0.15 || popupChimeLength > 0.4 || popupChimePeak > short.MaxValue / 2 || popupChimePeak < short.MaxValue / 8) throw new Exception("The clip chime runs " + popupChimeLength + " s at a peak of " + popupChimePeak + ".");
             string popupSpoken = ClipBuffer.Spoken("Saved 30 seconds of Call of Duty: Black Ops without sound: C:\\Users\\player\\Videos\\Capri Clips\\Call of Duty 2026-11-02 14-00-00-000 abc123.mp4 Merged your clip requests into this clip.");
-            if (popupSpoken != "Clipped 30 seconds of Call of Duty: Black Ops without sound. Merged your clip requests into this clip." || ClipBuffer.Spoken("Turn on Clip my games in Settings > GAMES, then I can clip that.") != "Turn on Clip my games in Settings > GAMES, then I can clip that.")
+            if (popupSpoken != "Clipped 30 seconds of Call of Duty: Black Ops without sound. Merged your clip requests into this clip." || ClipBuffer.Spoken("Turn on Clip my games in Settings > CLIPS, then I can clip that.") != "Turn on Clip my games in Settings > CLIPS, then I can clip that.")
                 throw new Exception("Her clip line still reads the path out: " + popupSpoken);
             if (ClipToast.Length(30) != "0:30" || ClipToast.Length(120) != "2:00" || ClipToast.Length(29.6) != "0:30") throw new Exception("The popup's clip length reads wrong.");
             bool popupHiddenWas = manualHidden, popupMotionWas = preferences.Motion;
@@ -14194,7 +14199,7 @@ namespace CapriDesktop
                 if (clipsOpened.Count != 2 || clipsOpened[1] != null || !mainframe.ClipsFolderShown) throw new Exception("Open clips folder is missing or didn't open the folder.");
             }
             finally { manualHidden = popupHiddenWas; preferences.Motion = popupMotionWas; if (clipToast != null) clipToast.Hide(); }
-            checks.Add("PASS a saved clip chimes and pops up CLIP SAVED at the top right of the game's screen without taking focus, holds while hovered, fades after 4 s and shows its clip when clicked, and only chimes if she's hidden by hand; Open clips folder is in Settings > GAMES and her menu, and she says how long a clip is instead of reading its path");
+            checks.Add("PASS a saved clip chimes and pops up CLIP SAVED at the top right of the game's screen without taking focus, holds while hovered, fades after 4 s and shows its clip when clicked, and only chimes if she's hidden by hand; Open clips folder is in Settings > CLIPS and her menu, and she says how long a clip is instead of reading its path");
         }
 
         private static void SmokeClips(System.Collections.Generic.List<string> checks)
@@ -14320,7 +14325,7 @@ namespace CapriDesktop
                 {
                     if (!Hands.Direct(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip" || !Hands.Heard(clipWordsCase, out clipTool, out clipArgs) || clipTool != "clip")
                         throw new Exception("A clip phrase missed her local route: " + clipWordsCase);
-                    if (clipArgs.Seconds != (clipWordsCase.Contains("minutes") ? "120" : "30")) throw new Exception("A clip phrase lost its duration.");
+                    if (clipArgs.Seconds != (clipWordsCase.Contains("minutes") ? "120" : null)) throw new Exception("A clip phrase lost its duration.");
                 }
                 foreach (string ordinary in new[] { "that", "save that file", "save that document", "how do I clip that", "don't clip that" })
                     if (Hands.Heard(ordinary, out clipTool, out clipArgs) && clipTool == "clip") throw new Exception("Clips took an ordinary request: " + ordinary);
@@ -14328,7 +14333,7 @@ namespace CapriDesktop
                 {
                     Hands.SaveClip = off.Clip;
                     string offLine = Hands.Do("clip", new ToolArguments());
-                    if (!offLine.Contains("Settings > GAMES") || off.Enabled || Hands.Pulled(offLine) != offLine) throw new Exception("Clips didn't explain their off switch.");
+                    if (!offLine.Contains("Settings > CLIPS") || off.Enabled || Hands.Pulled(offLine) != offLine) throw new Exception("Clips didn't explain their off switch.");
                     bool offSaved;
                     if (off.Clip(30, out offSaved) != offLine || offSaved) throw new Exception("An automatic clip reported success while clips were off.");
                 }
@@ -17896,8 +17901,8 @@ namespace CapriDesktop
                     }
                     if (gamingToggle == null || gamingCaption == null || gamingDisclaimer == null || gamingClip == null || gamingMoments == null || gamingHands == null || gamingEnd == null
                         || !gamingCaption.Visible || !gamingDisclaimer.Visible
-                        || gamingToggle.Bottom > gamingEnd.Top || gamingEnd.Bottom > gamingCaption.Top || gamingCaption.Bottom > gamingDisclaimer.Top || gamingDisclaimer.Bottom > gamingClip.Top
-                        || gamingClip.Bottom > gamingMoments.Top || gamingMoments.Bottom > gamingHands.Top
+                        || gamingToggle.Bottom > gamingEnd.Top || gamingEnd.Bottom > gamingCaption.Top || gamingCaption.Bottom > gamingDisclaimer.Top || gamingDisclaimer.Bottom > gamingHands.Top
+                        || gamingHands.Bottom > gamingClip.Top || gamingClip.Bottom > gamingMoments.Top
                         || !(gamingToggle.AccessibleName ?? "").Contains(gamingCaption.Text) || !(gamingToggle.AccessibleName ?? "").Contains(gamingDisclaimer.Text))
                         throw new Exception("Gaming Mode captions or rows do not fit at " + size + "%.");
                 }
@@ -18700,6 +18705,8 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
                             Section(checks, delegate { SmokeClips(checks); });
+                            Section(checks, delegate { SmokeClipOptions(checks); });
+                            Section(checks, delegate { SmokeClipPanel(checks, output); });
                             Section(checks, delegate { SmokeClipPopup(checks, output); });
                             Section(checks, delegate { SmokeHeartbeat(checks); });
                             Section(checks, delegate { SmokeMenuWait(checks); });
@@ -20747,6 +20754,7 @@ namespace CapriDesktop
                             checks.Add("PASS size menu");
                             System.Collections.Generic.List<string> tops = new System.Collections.Generic.List<string>();
                             foreach (ToolStripItem top in menu.Items) if (top.Available) tops.Add(top.Text);
+                            tops.Remove("Open clips folder");
                             if (string.Join(",", tops.ToArray()) != "CAPRI  /  " + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + ",,Open Capri Mainframe,Hide Capri,Size,Move,Help,,Quit Capri") throw new Exception("The right-click menu is not the short one: " + string.Join(",", tops.ToArray()));
                             bool hiddenWas = hidden, popsWere = preferences.CheckIns;
                             Point popFrom = anchor;
