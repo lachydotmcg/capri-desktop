@@ -834,6 +834,9 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(int thread, ref ThreadFocus focus);
         [DllImport("user32.dll")] private static extern bool IsChild(IntPtr parent, IntPtr window);
         [DllImport("user32.dll")] private static extern uint MapVirtualKey(uint code, uint kind);
+        [DllImport("kernel32.dll")] private static extern IntPtr OpenProcess(int access, bool inherit, int id);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern bool QueryFullProcessImageName(IntPtr process, int flags, StringBuilder name, ref int size);
+        [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
         private static readonly Regex Junk =new Regex(@"\b(uninstall\w*|desinstall\w*|readme|read me|lisez moi|help|aide|manual|manuel|documentation|release notes|notes de version|licen[cs]e|website|site web|support|assistance|changelog)\b", RegexOptions.IgnoreCase);
         private static readonly string[,] Searches =
         {
@@ -3395,9 +3398,7 @@ namespace CapriDesktop
                 string program;
                 if (!programs.TryGetValue(id, out program))
                 {
-                    try { using (Process process = Process.GetProcessById(id)) program = process.ProcessName; }
-                    catch (ArgumentException) { program = ""; }
-                    catch (InvalidOperationException) { program = ""; }
+                    program = ProgramName(id);
                     programs[id] = program;
                 }
                 StringBuilder title = new StringBuilder(length + 1);
@@ -3408,6 +3409,30 @@ namespace CapriDesktop
             EnumWindows(visit, IntPtr.Zero);
             GC.KeepAlive(visit);
             return found;
+        }
+
+        // A program's name as Process has it, chrome or soffice.bin, or "". Process took a snapshot of every process and thread on
+        // the PC for each one, and her windows are read every second or so.
+        internal static string ProgramName(int id)
+        {
+            IntPtr handle = OpenProcess(0x1000, false, id);
+            if (handle != IntPtr.Zero)
+            {
+                try
+                {
+                    StringBuilder path = new StringBuilder(1024);
+                    int size = path.Capacity;
+                    if (QueryFullProcessImageName(handle, 0, path, ref size))
+                    {
+                        string full = path.ToString(), name = full.Substring(full.LastIndexOf('\\') + 1);
+                        return name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? name.Substring(0, name.Length - 4) : name;
+                    }
+                }
+                finally { CloseHandle(handle); }
+            }
+            try { using (Process process = Process.GetProcessById(id)) return process.ProcessName; }
+            catch (ArgumentException) { return ""; }
+            catch (InvalidOperationException) { return ""; }
         }
 
         private static bool Apply(OpenWindow window, string action)

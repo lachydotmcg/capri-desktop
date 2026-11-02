@@ -5291,7 +5291,6 @@ namespace CapriDesktop
         }
 
         internal static Func<bool> MusicPlaying = delegate { return MediaPlaying() || PlayerLoud(); };
-        private static Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager media;
         private static bool mediaMissing;
         private static readonly string[] SilentPlayers = { "AIMP", "foobar2000", "winamp", "MusicBee", "Clementine", "strawberry", "MediaMonkey" };
         private static GameEars playerEars;
@@ -5305,12 +5304,12 @@ namespace CapriDesktop
                 if (playerLooked == 0 || unchecked(Environment.TickCount - playerLooked) >= 10000)
                 {
                     playerLooked = Environment.TickCount;
-                    int found = 0;
-                    foreach (string name in SilentPlayers)
+                    // One list of what's running, not one per player: each list is a snapshot of every process on the PC.
+                    int found = 0, rank = SilentPlayers.Length;
+                    foreach (Process each in Process.GetProcesses())
                     {
-                        Process[] running = Process.GetProcessesByName(name);
-                        if (found == 0 && running.Length > 0) found = running[0].Id;
-                        foreach (Process each in running) each.Dispose();
+                        for (int i = 0; i < rank; i++) if (string.Equals(each.ProcessName, SilentPlayers[i], StringComparison.OrdinalIgnoreCase)) { rank = i; found = each.Id; break; }
+                        each.Dispose();
                     }
                     if (found != playerOpen)
                     {
@@ -5330,32 +5329,24 @@ namespace CapriDesktop
             }
         }
 
+        // Read from the same look at Windows' sessions as her mini player's.
         private static bool MediaPlaying()
         {
             if (mediaMissing) return false;
             try
             {
-                if (media == null) media = Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager.RequestAsync().AsTask().Result;
-                foreach (Windows.Media.Control.GlobalSystemMediaTransportControlsSession session in media.GetSessions())
+                System.Collections.Generic.List<Tune> sessions = Tunes.Shared();
+                if (sessions == null) return false;
+                foreach (Tune tune in sessions)
                 {
-                    Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackInfo info = session.GetPlaybackInfo();
-                    if (info == null || info.PlaybackStatus != Windows.Media.Control.GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing) continue;
-                    Windows.Media.MediaPlaybackType? type = info.PlaybackType;
-                    if (type.HasValue && type.Value == Windows.Media.MediaPlaybackType.Video) continue;
-                    if (IsMusicApp(session.SourceAppUserModelId)) return true;
-                    if (!type.HasValue || type.Value != Windows.Media.MediaPlaybackType.Music) continue;
-                    try
-                    {
-                        Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties song = session.TryGetMediaPropertiesAsync().AsTask().Result;
-                        Windows.Media.Control.GlobalSystemMediaTransportControlsSessionTimelineProperties line = session.GetTimelineProperties();
-                        if (song != null && IsSong(song.Title, song.Artist, line != null ? line.EndTime - line.StartTime : TimeSpan.Zero)) return true;
-                    }
-                    catch (Exception) { }
+                    if (!tune.Playing || tune.Changing || tune.Video) continue;
+                    if (IsMusicApp(tune.App)) return true;
+                    if (tune.Music && IsSong(tune.Title, tune.Artist, TimeSpan.FromSeconds(tune.Length))) return true;
                 }
                 return false;
             }
             catch (TypeLoadException) { mediaMissing = true; return false; }
-            catch (Exception) { media = null; return false; }
+            catch (Exception) { return false; }
         }
 
         internal static bool IsMusicApp(string id) { return id != null && Regex.IsMatch(id, @"spotify|zunemusic|applemusic|itunes|amazonmusic|tidal|deezer|foobar|musicbee|winamp|aimp|soundcloud|pandora", RegexOptions.IgnoreCase); }
@@ -19069,6 +19060,35 @@ namespace CapriDesktop
                                 if (!musicCheck.Join(8000) || !musicReal) throw new Exception("Checking Windows for music hung.");
                                 if (!IsMusicApp("SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify") || !IsMusicApp("Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic") || IsMusicApp("Chrome") || IsMusicApp(null)) throw new Exception("Music apps were spotted wrong.");
                                 if (!IsSong("Blinding Lights", "The Weeknd", TimeSpan.FromSeconds(200)) || IsSong("Episode 4", "", TimeSpan.FromMinutes(58)) || IsSong("A film", "Warner Bros.", TimeSpan.FromMinutes(166)) || IsSong("Some clip", "", TimeSpan.FromMinutes(4)) || IsSong(null, null, TimeSpan.Zero) || !IsSong("lofi hip hop radio - beats to relax/study to", "Lofi Girl", TimeSpan.Zero) || !IsSong("Never Gonna Give You Up (Official Music Video)", "", TimeSpan.FromMinutes(70))) throw new Exception("Songs and films in a browser were told apart wrong.");
+                                Func<System.Collections.Generic.List<Tune>> sessionsWas = Tunes.Sessions;
+                                int sessionReads = 0;
+                                System.Collections.Generic.List<Tune> sessionsNow = new System.Collections.Generic.List<Tune>
+                                {
+                                    new Tune { App = "Discord", Playing = true },
+                                    new Tune { App = "Spotify.exe", Title = "Starboy", Artist = "The Weeknd" },
+                                    new Tune { App = "Chrome", Title = "A film", Playing = true, Video = true },
+                                    new Tune { App = "Chrome", Title = "Episode 4", Playing = true, Music = true, Length = 3480 },
+                                    new Tune { App = "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify", Title = "Blinding Lights", Artist = "The Weeknd", Playing = true, Changing = true }
+                                };
+                                Tunes.Sessions = delegate { sessionReads++; return new System.Collections.Generic.List<Tune>(sessionsNow); };
+                                try
+                                {
+                                    Tunes.Forget();
+                                    Tune sessionShown = Tunes.Read();
+                                    bool sessionQuiet = !MediaPlaying();
+                                    if (sessionReads != 1 || sessionShown == null || sessionShown.Title != "A film" || !ReferenceEquals(Tunes.Shared(), Tunes.Shared())) throw new Exception("Her mini player and her dancing read Windows' media " + sessionReads + " times instead of sharing one read.");
+                                    Tunes.Pressed();
+                                    Tunes.Shared();
+                                    if (sessionReads != 2) throw new Exception("A read from before a press on her mini player was shared after it.");
+                                    sessionsNow.Add(new Tune { App = "Chrome", Title = "Blinding Lights", Artist = "The Weeknd", Playing = true, Music = true, Length = 200 });
+                                    Tunes.Forget();
+                                    if (!sessionQuiet || !MediaPlaying()) throw new Exception("Her dancing counted a call, a paused song, a film, a long show or a song changing over as music, or missed a song in a browser.");
+                                }
+                                finally
+                                {
+                                    Tunes.Sessions = sessionsWas;
+                                    Tunes.Forget();
+                                }
                                 clipStart -= 2;
                                 RenderFrame();
                                 musicOn = true;
@@ -19244,7 +19264,7 @@ namespace CapriDesktop
                                 CheckMusic(clock.Elapsed.TotalSeconds);
                                 if (clip != perch) throw new Exception("She kept dancing after the music stopped.");
                                 MusicPlaying = musicWas;
-                                checks.Add("PASS dancing: she dances on her seat while music plays, stops to talk, stops when it ends, and the menu turns it off; a film in a browser tab isn't music, a song or a lofi radio is");
+                                checks.Add("PASS dancing: she dances on her seat while music plays, stops to talk, stops when it ends, and the menu turns it off; a film in a browser tab isn't music, a song or a lofi radio is, and her dancing and her mini player share one read of what's playing until a press");
                                 instant = false;
                                 Ledge hopFrom = seat;
                                 Wander();
@@ -23989,6 +24009,16 @@ namespace CapriDesktop
                                 }
                                 System.Collections.Generic.List<OpenWindow> live = Hands.Windows();
                                 if (live.Exists(window => window.Handle == Handle || window.Handle == mainframe.Handle)) throw new Exception("Capri listed her own window as an app to close.");
+                                foreach (OpenWindow window in live)
+                                {
+                                    int liveId;
+                                    Native.GetWindowThreadProcessId(window.Handle, out liveId);
+                                    string liveName = null;
+                                    try { using (Process liveProcess = Process.GetProcessById(liveId)) liveName = liveProcess.ProcessName; }
+                                    catch (ArgumentException) { }
+                                    catch (InvalidOperationException) { }
+                                    if (liveName != null && liveName != window.Program) throw new Exception("Her window list called " + liveName + " \"" + window.Program + "\".");
+                                }
                                 System.Collections.Generic.List<string> cloudAsked = new System.Collections.Generic.List<string>();
                                 System.Net.Sockets.TcpListener cloudFake;
                                 string cloudUrl = FakeServer(new string[]
