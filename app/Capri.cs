@@ -1930,6 +1930,8 @@ namespace CapriDesktop
             WatchAlong.Active = delegate { return watchAlong != null; };
             Hands.SaveClip = clips.Clip;
             clips.Saved = delegate(string saved, double seconds, string game, string monitor) { Post(delegate { Clipped(saved, seconds, game, monitor); }); };
+            // Her brains hear Clip my games is off, and where to turn it on (F69).
+            Hands.ClipsOn = delegate { return preferences.ClipGames; };
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
             clips.Configure(ClipOptions);
             clips.Enable(!testing && preferences.ClipGames);
@@ -13690,6 +13692,290 @@ namespace CapriDesktop
             }
         }
 
+        // 0.8.0: she knows which of her tools work here. On this PC with a brain that can see, her tool lists and prompts are what
+        // they always were. A brain that can't see pictures has no look_at_screen, is told why, and says so instead of looking,
+        // and her help lists what she can do from the tools she has, mini games and chess included.
+        private static void SmokeToolKit(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<string> openAiTools = new System.Collections.Generic.List<string>(), claudeTools = new System.Collections.Generic.List<string>();
+            System.Text.StringBuilder listing = new System.Text.StringBuilder("\nYour tools:");
+            for (int i = 0; i < Hands.Count; i++)
+            {
+                openAiTools.Add("{\"type\":\"function\",\"function\":{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"parameters\":" + Hands.Schema(i) + "}}");
+                claudeTools.Add("{\"name\":\"" + Hands.Name(i) + "\",\"description\":" + Voice.Quote(Hands.Description(i)) + ",\"input_schema\":" + Hands.Schema(i) + "}");
+                System.Collections.Generic.List<string> keys = new System.Collections.Generic.List<string>();
+                foreach (Match key in Regex.Matches(Hands.Schema(i), @"""(\w+)"":\{""type"":""string"",""description"":""[^""]*""(?:,""enum"":\[([^\]]*)\])?"))
+                    keys.Add("\"" + key.Groups[1].Value + "\": \"" + (key.Groups[2].Success ? key.Groups[2].Value.Replace("\"", "").Replace(",", "|") : "...") + "\"");
+                foreach (Match number in Regex.Matches(Hands.Schema(i), @"""(\w+)"":\{""type"":""integer""")) keys.Add("\"" + number.Groups[1].Value + "\": " + (number.Groups[1].Value == "page" ? "1" : "0"));
+                listing.Append("\n- " + Hands.Name(i) + "{" + string.Join(", ", keys.ToArray()) + "}: " + Hands.Description(i));
+                if (Hands.Unable(Hands.Name(i), new ToolArguments()) != null) throw new Exception("A tool said it can't work on this PC: " + Hands.Name(i));
+            }
+            listing.Append("\nChoose one value from each | choice and omit unused fields.\nTo use one, reply with only the call, like: open_app{\"name\": \"Spotify\"}");
+            Hands.Kit kit = Hands.KitFor();
+            if (Hands.Tools != "[" + string.Join(",", openAiTools.ToArray()) + "]" || Hands.ClaudeTools != "[" + string.Join(",", claudeTools.ToArray()) + "]" || Hands.Listing != listing.ToString()
+                || kit.Missing.Count != 0 || kit.NotHere.Length != 0 || !ReferenceEquals(kit, Hands.KitFor(false)) || Hands.Note != Hands.NoteFor(kit) || Hands.Prompt != Hands.PromptFor(kit)
+                || Hands.Note.IndexOf("Not on this", StringComparison.Ordinal) >= 0 || Hands.Prompt.IndexOf("Not on this", StringComparison.Ordinal) >= 0 || Hands.Chat.IndexOf("Not on this", StringComparison.Ordinal) >= 0)
+                throw new Exception("Her tool lists or prompts on this PC changed with all her tools here, or weren't kept.");
+            System.Collections.Generic.List<string> unfound = Hands.Unfound();
+            if (unfound.Count > 0) throw new Exception("A missing tool's prompt edit no longer matches her prompts: " + unfound[0]);
+            Hands.Kit blind = Hands.KitFor(true);
+            const string blindLine = "Not on this PC: looking at their screen and watching their screen for something (this brain can't see pictures).";
+            if (!ReferenceEquals(blind, Hands.KitFor(true)) || blind.Has("look_at_screen") || blind.Has("watch_for") || blind.NotHere != blindLine
+                || blind.Tools.Contains("\"name\":\"look_at_screen\"") || blind.ClaudeTools.Contains("\"name\":\"look_at_screen\"") || blind.Listing.Contains("look_at_screen{")
+                || blind.Tools.Contains("\"name\":\"watch_for\"") || blind.Listing.Contains("watch_for{") || Hands.NoteFor(blind).Contains("Use watch_for when") || Hands.PromptFor(blind).Contains("call watch_for")
+                || !blind.Tools.Contains("\"name\":\"use_computer\"") || !blind.Listing.Contains("mini_game{") || blind.Tools.Length >= Hands.Tools.Length
+                || blind.Chat.Contains("You can always see their screen") || !blind.Chat.Contains(blindLine) || blind.Chat.IndexOf(blindLine, StringComparison.Ordinal) > blind.Chat.IndexOf(" If they want anything done", StringComparison.Ordinal)
+                || !blind.ChatOnly.Contains(blindLine) || blind.ChatOnly.Contains(": act") || !Hands.PromptFor(blind).Contains(blindLine + " If they ask for one of these, call no tool") || Hands.PromptFor(blind).Contains("look at their screen when asked")
+                || !Hands.NoteFor(blind).Contains(blindLine) || Hands.NoteFor(blind).Contains("Look at their screen when they ask") || Hands.NoteFor(blind).Contains("look at their screen, and use their mouse"))
+                throw new Exception("A brain that can't see still had look_at_screen or wasn't told why: " + blind.NotHere);
+            string doing = SelfKnow.Matching("what can you do?") ?? "", doingBlind = SelfKnow.Matching("what can you do?", blind) ?? "", pressing = SelfKnow.Matching("what keyboard shortcuts can you press?") ?? "", cloning = SelfKnow.Matching("can you clone yourself?") ?? "";
+            if (!doing.StartsWith("What she can do:", StringComparison.Ordinal) || !doing.Contains("mini games") || !doing.Contains("chess") || !doing.Contains("look at your screen;") || doing.Contains("Not here right now")
+                || !doingBlind.Contains("mini games") || doingBlind.Contains("look at your screen;") || !doingBlind.Contains("Not here right now: looking at your screen and watching your screen for something (this brain can't see pictures).")
+                || !pressing.StartsWith("Shortcuts she can press:", StringComparison.Ordinal) || !pressing.Contains("take a screenshot") || !pressing.Contains("open the Game Bar")
+                || !cloning.StartsWith("Clones and chaos mode:", StringComparison.Ordinal) || !cloning.Contains("Hold Esc"))
+                throw new Exception("Her help didn't say what she can do from her tools: " + doing + " / " + pressing + " / " + cloning);
+            // The brain she chats with always gets a short list of what she can do right now, by name and in a few words (F69).
+            for (int i = 0; i < Hands.Count; i++)
+            {
+                string tool = Hands.Name(i);
+                if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
+                    throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
+            }
+            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 1700 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
+                || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
+                throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
+            // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
+            Func<bool> clipsWere = Hands.ClipsOn;
+            try
+            {
+                Hands.ClipsOn = delegate { return true; };
+                Hands.Kit clipsOn = Hands.KitFor();
+                Hands.ClipsOn = delegate { return false; };
+                Hands.Kit clipsOff = Hands.KitFor();
+                const string offLine = "Off right now: game clips (turn on Clip my games in Settings > CLIPS).";
+                if (ReferenceEquals(clipsOn, clipsOff) || !ReferenceEquals(clipsOff, Hands.KitFor()) || clipsOff.Missing.Count != 0 || clipsOn.Off.Count != 0 || !clipsOff.Off.ContainsKey("clip") || clipsOff.Tools != clipsOn.Tools
+                    || clipsOff.Unable("clip", new ToolArguments()) != null || !clipsOff.Noted.Contains(offLine) || clipsOn.Noted.Contains("Off right now") || clipsOn.Brief.Contains("off right now")
+                    || !clipsOff.Brief.Contains("\n- clip: clip their game (off right now: turn on Clip my games in Settings > CLIPS)") || !clipsOff.ChatOnly.Contains("(off right now: ")
+                    || !(SelfKnow.Matching("what can you do?", clipsOff) ?? "").Contains(offLine) || (SelfKnow.Matching("what can you do?", clipsOn) ?? "").Contains("Off right now"))
+                    throw new Exception("Clip my games being off didn't reach her brains or her help: " + clipsOff.Switched);
+            }
+            finally { Hands.ClipsOn = clipsWere; }
+            // "Can you X?" for something that isn't here gets the truth straight away, on a Mac without her mouse and keyboard
+            // too, while mouse jobs, looks and what works go on to her hands (F69, pass 5).
+            System.Collections.Generic.List<string[]> macGaps = new System.Collections.Generic.List<string[]>();
+            macGaps.Add(new[] { "use_computer", "Mac doesn't let apps use the mouse and keyboard yet" });
+            foreach (string macTool in new[] { "shortcut:game_bar", "move_yourself:ride_cursor", "find_file", "draw", "clone", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" }) macGaps.Add(new[] { macTool, "only on Windows for now" });
+            Hands.Kit mac = Hands.KitWithout(macGaps);
+            string[,] lacking =
+            {
+                { "can you draw on my screen?", "Drawing on your screen is only on Windows for now, choom." },
+                { "clip that", "Game clips are only on Windows for now, choom." },
+                { "ride my cursor", "Riding your cursor is only on Windows so far." },
+                { "let's play chess", "My mini games are only on Windows for now, choom." },
+                { "play tic tac toe with me", "My mini games are only on Windows for now, choom." },
+                { "what did he just say", "Listening to what's playing is only on Windows for now, choom." },
+                { "watch this video with me", "Watching videos together is only on Windows for now, choom." },
+                { "tell me when my download finishes", "Watching your screen for something is only on Windows for now, choom." },
+                { "where are my save files", "Finding files is only on Windows for now, choom." },
+                { "clone yourself", Hands.NoClones },
+                { "activate gaming mode", "Gaming Mode is only on Windows for now, choom." },
+                { "can you click the play button?", null },
+                { "open spotify", null },
+                { "what's on my screen?", null },
+                { "let me know when you're free", null },
+                { "tell me when it's 5pm", null },
+                { "do you like drawing?", null }
+            };
+            for (int i = 0; i < lacking.GetLength(0); i++)
+                if (mac.Lacking(lacking[i, 0]) != lacking[i, 1]) throw new Exception("\"" + lacking[i, 0] + "\" on a Mac got " + (mac.Lacking(lacking[i, 0]) ?? "nothing") + " instead of " + (lacking[i, 1] ?? "nothing"));
+            if (mac.Lacking("open the game bar") == null || !mac.Lacking("open the game bar").EndsWith(" on Windows for now, choom.", StringComparison.Ordinal) || !mac.NotHere.StartsWith("Not on this PC: mouse and keyboard jobs (Mac doesn't let apps use the mouse and keyboard yet); the Game Bar shortcuts, riding their cursor,", StringComparison.Ordinal)
+                || mac.Brief.Contains("\n- draw: ") || mac.Brief.Contains("\n- use_computer: ") || !mac.Brief.Contains("\n- open_app: ") || !mac.Brief.Contains(mac.NotHere) || mac.Tools.Contains("\"name\":\"draw\"") || mac.Tools.Contains("\"ride_cursor\"") || !mac.Tools.Contains("\"sit_on\"")
+                || kit.Lacking("can you draw on my screen?") != null || kit.Lacking("tell me when my download finishes") != null || blind.Lacking("tell me when my download finishes") != null || blind.Lacking("what's on my screen?") != null)
+                throw new Exception("Her line about what isn't here was wrong, or what works was turned down: " + mac.NotHere);
+            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            Brain keeperWas = Brain.Keeper;
+            Brain.OpenAi = FakeServer(new[] { says("I can't see your screen, choom."), says("I can't see your screen with this brain, choom."), says("I can't see your screen, choom."), says("Looks sick, choom.") }, asked, out fake);
+            try
+            {
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Func<string, ToolArguments, string> act = delegate(string name, ToolArguments args) { did.Add(name); return name == "look_at_screen" ? "You see a code editor." : "Done."; };
+                Brain eyeless = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = act };
+                Brain sighted = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = act };
+                if (eyeless.Blind) throw new Exception("A cloud brain counted as blind before it was found not to see.");
+                eyeless.Unsighted = eyeless.Remote.Sight;
+                if (!eyeless.Blind || sighted.Blind) throw new Exception("A brain that can't see wasn't counted as blind, or one that can was.");
+                string honest = eyeless.Ask("do you like what I'm working on?");
+                eyeless.OwnSteps = true;
+                string planned = eyeless.Ask("what's on my screen right now?");
+                string looked = sighted.Ask("do you like what I'm working on?");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (honest != "I can't see your screen, choom." || looked != "Looks sick, choom." || string.Join(",", did.ToArray()) != "look_at_screen" || sent.Length != 4)
+                    throw new Exception("A brain that can't see was sent to look, or one that can didn't: " + honest + " / " + planned + " / " + looked + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                if (!sent[0].Contains(blindLine) || sent[0].Contains("You can always see their screen") || !sent[1].Contains("\"tools\":[") || sent[1].Contains("\"name\":\"look_at_screen\"") || !sent[1].Contains(blindLine)
+                    || sent[2].Contains(blindLine) || !sent[2].Contains("You can always see their screen"))
+                    throw new Exception("Her brain's prompts didn't follow what it can see.");
+                Brain.Keeper = eyeless;
+                string voiceBlind = Agent.Prompt;
+                Brain.Keeper = sighted;
+                string voiceSighted = Agent.Prompt;
+                Brain.Keeper = keeperWas;
+                if (!voiceBlind.Contains(blindLine) || voiceSighted.Contains(blindLine)) throw new Exception("Voice chat wasn't told her brain can't see.");
+            }
+            finally
+            {
+                Brain.Keeper = keeperWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                fake.Stop();
+            }
+            // On a Mac, "can you draw on my screen?" gets the truth with no brain call, and a mouse job gets her line instead of
+            // being forced on hands she doesn't have (F69, pass 5).
+            System.Collections.Generic.List<string> macAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener macFake;
+            Brain.OpenAi = FakeServer(new[] { says("chat") }, macAsked, out macFake);
+            try
+            {
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                int macActed = 0;
+                Brain onMac = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), Act = delegate { macActed++; return "Done."; } };
+                onMac.Kit = delegate { return mac; };
+                string drew = onMac.Ask("can you draw on my screen?");
+                int drawCalls;
+                lock (macAsked) drawCalls = macAsked.Count;
+                string clicked = onMac.Ask("can you click the play button?");
+                string[] macSent;
+                lock (macAsked) macSent = macAsked.ToArray();
+                if (drew != "Drawing on your screen is only on Windows for now, choom." || drawCalls != 0 || !clicked.StartsWith("I can't use your mouse and keyboard on a Mac yet", StringComparison.Ordinal) || macActed != 0 || macSent.Length != 1 || macSent[0].Contains("\"name\":\"use_computer\""))
+                    throw new Exception("On a Mac a tool that isn't there was promised or forced on her hands: " + drew + " / " + clicked + " / " + macActed + " tools / " + macSent.Length + " calls");
+            }
+            finally
+            {
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                macFake.Stop();
+            }
+            checks.Add("PASS her tools here: with everything on this PC her tool lists and prompts are unchanged and kept for each set of missing tools; a brain that can't see pictures has no look_at_screen or screen watches, is told \"" + blindLine + "\" in chat, hands, planner and voice chat, answers \"I can't see your screen\" without being sent to look while a seeing brain still looks; her chat brain always gets a short list of every tool she has here; Clip my games off stays in her tools and says where to turn it on; on a Mac, can you draw, clip, ride my cursor, chess, listen, watch along, watch for, files, clones and Gaming Mode get her not-here line with no brain call while mouse jobs get her mouse line and nothing is forced; what she can do lists her tools with mini games and chess, the shortcuts she can press and her clones");
+        }
+
+        // Her other launchers' games open even without a Start menu shortcut: Epic Games through its launch link, Riot's through
+        // Riot Client, Ubisoft Connect's through its link and GOG's from their own programs. Made-up manifests, settings and
+        // registry lists stand in for real installs, and nothing is launched (Lachy, 2 Nov: "is it on epic games launcher?").
+        private static void SmokeStores(System.Collections.Generic.List<string> checks, string output)
+        {
+            string root = Path.Combine(output, "store-checks");
+            Func<System.Collections.Generic.List<InstalledApp>> catalogWas = Hands.Catalog;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> openedWas = Hands.Opened, uninstalledWas = Hands.Uninstalled;
+            Func<string, bool> folderWas = Hands.FolderThere, existsWas = Hands.Exists;
+            try
+            {
+                Hands.Exists = File.Exists;
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+                // Epic: a game, an old manifest with no catalog ids, an add-on, a half-installed game, a broken file and one saved
+                // with a byte order mark.
+                string manifests = Path.Combine(root, @"Epic\EpicGamesLauncher\Data\Manifests");
+                Directory.CreateDirectory(manifests);
+                Func<string, string, string, string, string, bool, string> epic = delegate(string display, string app, string space, string item, string main, bool incomplete)
+                {
+                    return "{\n\t\"FormatVersion\": 0,\n\t\"bIsIncompleteInstall\": " + (incomplete ? "true" : "false") + ",\n\t\"LaunchExecutable\": \"Game/Binaries/Win64/Game.exe\",\n\t\"AppCategories\": [ \"public\", \"games\", \"applications\" ],\n\t\"InstallSize\": 31415926535,\n\t\"DisplayName\": " + Voice.Quote(display)
+                        + ",\n\t\"InstallLocation\": \"C:\\\\Program Files\\\\Epic Games\\\\" + app + "\",\n\t\"CatalogNamespace\": " + Voice.Quote(space) + ",\n\t\"CatalogItemId\": " + Voice.Quote(item) + ",\n\t\"AppName\": " + Voice.Quote(app) + ",\n\t\"MainGameAppName\": " + Voice.Quote(main) + "\n}";
+                };
+                File.WriteAllText(Path.Combine(manifests, "A1.item"), epic("Fortnite", "Fortnite", "fn", "4fe75bbc5a674f4f9b356b5c90567da5", "Fortnite", false));
+                File.WriteAllText(Path.Combine(manifests, "A2.item"), epic("Rocket League\u00ae", "Sugar", "", "", "Sugar", false), new System.Text.UTF8Encoding(true));
+                File.WriteAllText(Path.Combine(manifests, "A3.item"), epic("Fortnite Extra Pack", "FortniteDlc", "fn", "dlc1", "Fortnite", false));
+                File.WriteAllText(Path.Combine(manifests, "A4.item"), epic("Half Installed", "Half", "hf", "h1", "Half", true));
+                File.WriteAllText(Path.Combine(manifests, "A5.item"), "{ \"DisplayName\": \"Broken");
+                // Riot: VALORANT installed, League's settings left behind after it was uninstalled.
+                string riot = Path.Combine(root, "Riot Games"), services = Path.Combine(root, @"Riot Client\RiotClientServices.exe"), valorant = Path.Combine(root, @"VALORANT\live");
+                Directory.CreateDirectory(Path.Combine(riot, @"Metadata\valorant.live"));
+                Directory.CreateDirectory(Path.Combine(riot, @"Metadata\league_of_legends.live"));
+                Directory.CreateDirectory(Path.Combine(riot, @"Metadata\riot_client"));
+                Directory.CreateDirectory(Path.GetDirectoryName(services));
+                Directory.CreateDirectory(valorant);
+                File.WriteAllText(services, "");
+                File.WriteAllText(Path.Combine(riot, "RiotClientInstalls.json"), "{\"associated_client\":{\"" + valorant.Replace('\\', '/') + "/\":\"" + services.Replace('\\', '/') + "\"},\"rc_default\":\"" + services.Replace('\\', '/') + "\",\"rc_live\":\"" + services.Replace('\\', '/') + "\"}");
+                File.WriteAllText(Path.Combine(riot, @"Metadata\valorant.live\valorant.live.product_settings.yaml"), "auto_patching_enabled_by_player: false\nproduct_install_full_path: \"" + valorant.Replace('\\', '/') + "\"\nproduct_install_root: \"" + root.Replace('\\', '/') + "\"\nsettings:\n    create_shortcut: true\nshortcut_name: \"VALORANT.lnk\"\nshould_repair: false\n");
+                File.WriteAllText(Path.Combine(riot, @"Metadata\league_of_legends.live\league_of_legends.live.product_settings.yaml"), "product_install_full_path: \"" + Path.Combine(root, "League of Legends").Replace('\\', '/') + "\"\nshortcut_name: \"League of Legends.lnk\"\n");
+                // Ubisoft and GOG keep theirs in the registry, so made-up lists stand in for it.
+                string valhalla = Path.Combine(root, @"Ubisoft\Valhalla"), witcher = Path.Combine(root, @"GOG Games\The Witcher 3\bin\x64\witcher3.exe"), dosbox = Path.Combine(root, @"GOG Games\Fallout\DOSBOX\dosbox.exe");
+                Directory.CreateDirectory(valhalla);
+                Directory.CreateDirectory(Path.GetDirectoryName(witcher));
+                Directory.CreateDirectory(Path.GetDirectoryName(dosbox));
+                File.WriteAllText(witcher, "");
+                File.WriteAllText(dosbox, "");
+                Hands.Uninstalled = delegate(string key) { return key == "Uplay Install 13504" ? "Assassin's Creed Valhalla" : key == "Uplay Install 720" ? "Gone Game" : null; };
+                Hands.FolderThere = Directory.Exists;
+                System.Collections.Generic.List<string[]> ubisoft = new System.Collections.Generic.List<string[]> { new[] { "13504", valhalla }, new[] { "720", Path.Combine(root, @"Ubisoft\Gone") }, new[] { "launcher", valhalla } };
+                System.Collections.Generic.List<string[]> gog = new System.Collections.Generic.List<string[]>
+                {
+                    new[] { "1207664663", "The Witcher 3: Wild Hunt", witcher, "", null },
+                    new[] { "1640424747", "The Witcher 3: Hearts of Stone", witcher, "", "1207664663" },
+                    new[] { "1440163901", "Fallout", dosbox, "-conf \"..\\dosboxFallout.conf\" -noconsole", "" },
+                    new[] { "1", "Uninstalled Game", Path.Combine(root, @"GOG Games\Gone\gone.exe"), "", null }
+                };
+                Func<System.Collections.Generic.List<InstalledApp>, string> listed = delegate(System.Collections.Generic.List<InstalledApp> apps) { return string.Join(" | ", apps.ConvertAll(app => app.Name + " = " + app.Id).ToArray()); };
+                string epicList = listed(Hands.EpicApps(manifests)), riotList = listed(Hands.RiotApps(riot)), ubisoftList = listed(Hands.UbisoftApps(ubisoft)), gogList = listed(Hands.GogApps(gog));
+                string riotCommand = "\"" + services + "\" --launch-product=valorant --launch-patchline=live", falloutCommand = "\"" + dosbox + "\" -conf \"..\\dosboxFallout.conf\" -noconsole";
+                if (epicList != "Fortnite = com.epicgames.launcher://apps/fn%3A4fe75bbc5a674f4f9b356b5c90567da5%3AFortnite?action=launch&silent=true | Rocket League\u00ae = com.epicgames.launcher://apps/Sugar?action=launch&silent=true"
+                    || riotList != "VALORANT = " + riotCommand || ubisoftList != "Assassin's Creed Valhalla = uplay://launch/13504/0" || gogList != "The Witcher 3: Wild Hunt = " + witcher + " | Fallout = " + falloutCommand
+                    || Hands.EpicApps(Path.Combine(root, "missing")).Count != 0 || Hands.RiotApps(Path.Combine(root, "missing")).Count != 0)
+                    throw new Exception("A launcher's games read wrong: " + epicList + " / " + riotList + " / " + ubisoftList + " / " + gogList);
+                ProcessStartInfo riotLaunch = Hands.Launch(riotCommand), falloutLaunch = Hands.Launch(falloutCommand), witcherLaunch = Hands.Launch(witcher), epicLaunch = Hands.Launch("com.epicgames.launcher://apps/Sugar?action=launch&silent=true"), uplayLaunch = Hands.Launch("uplay://launch/13504/0");
+                if (riotLaunch.FileName != services || riotLaunch.Arguments != "--launch-product=valorant --launch-patchline=live" || riotLaunch.WorkingDirectory != Path.GetDirectoryName(services) || !riotLaunch.UseShellExecute
+                    || falloutLaunch.FileName != dosbox || falloutLaunch.Arguments != "-conf \"..\\dosboxFallout.conf\" -noconsole" || falloutLaunch.WorkingDirectory != Path.GetDirectoryName(dosbox)
+                    || witcherLaunch.FileName != witcher || witcherLaunch.Arguments != "" || witcherLaunch.WorkingDirectory != Path.GetDirectoryName(witcher)
+                    || epicLaunch.FileName != "com.epicgames.launcher://apps/Sugar?action=launch&silent=true" || epicLaunch.Arguments != "" || uplayLaunch.FileName != "uplay://launch/13504/0")
+                    throw new Exception("A launcher's game wouldn't start the way its own shortcut does: " + riotLaunch.FileName + " " + riotLaunch.Arguments);
+                // With VALORANT already in All apps, her list keeps that one, and "open fortnite" goes through Epic.
+                System.Collections.Generic.List<InstalledApp> stores = new System.Collections.Generic.List<InstalledApp>();
+                stores.AddRange(Hands.EpicApps(manifests));
+                stores.AddRange(Hands.RiotApps(riot));
+                stores.AddRange(Hands.UbisoftApps(ubisoft));
+                stores.AddRange(Hands.GogApps(gog));
+                System.Collections.Generic.List<InstalledApp> merged = Hands.WithSteam(new System.Collections.Generic.List<InstalledApp> { new InstalledApp("VALORANT", "Riot Game valorant.live") }, stores);
+                System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>();
+                Hands.Catalog = delegate { return merged; };
+                Hands.Run = delegate(string id) { ran.Add(id); };
+                Hands.Opened = delegate { return ""; };
+                Hands.Forget();
+                string fortnite = Hands.Do("open_app", new ToolArguments { Name = "fortnite" }), rocket = Hands.Do("open_app", new ToolArguments { Name = "rocket league" }), valorantOpened = Hands.Do("open_app", new ToolArguments { Name = "valorant" });
+                string witcherOpened = Hands.Do("open_app", new ToolArguments { Name = "the witcher 3" }), valhallaOpened = Hands.Do("open_app", new ToolArguments { Name = "assassin's creed valhalla" }), extra = Hands.Do("open_app", new ToolArguments { Name = "fortnite extra pack" });
+                if (merged.Count != 6 || fortnite != "Opened Fortnite." || rocket != "Opened Rocket League\u00ae." || valorantOpened != "Opened VALORANT." || witcherOpened != "Opened The Witcher 3: Wild Hunt." || valhallaOpened != "Opened Assassin's Creed Valhalla."
+                    || !extra.StartsWith("No app called", StringComparison.Ordinal)
+                    || string.Join(" | ", ran.ToArray()) != "com.epicgames.launcher://apps/fn%3A4fe75bbc5a674f4f9b356b5c90567da5%3AFortnite?action=launch&silent=true | com.epicgames.launcher://apps/Sugar?action=launch&silent=true | Riot Game valorant.live | " + witcher + " | uplay://launch/13504/0")
+                    throw new Exception("Her launchers' games didn't open from her app list: " + fortnite + " / " + rocket + " / " + valorantOpened + " / " + witcherOpened + " / " + valhallaOpened + " / " + extra + " / " + string.Join(" | ", ran.ToArray()));
+                checks.Add("PASS launchers: Epic games open through Epic's launch link with or without catalog ids, add-ons, half installs and broken manifests left out; Riot's installed games open through Riot Client with their product and patchline; Ubisoft Connect's through its link by the name Windows lists; GOG's from their own programs with their launch options and folder, add-ons and missing ones left out; one already in All apps isn't listed twice");
+                checks.Add("LIMIT launchers: Epic, Riot, Ubisoft and GOG games on a real PC, and their launch links starting them, need a check on a PC that has them; Battle.net and the EA app keep unreadable lists, so their games open from the Start menu shortcuts they make");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Run = runWas;
+                Hands.Opened = openedWas;
+                Hands.Uninstalled = uninstalledWas;
+                Hands.FolderThere = folderWas;
+                Hands.Exists = existsWas;
+                Hands.Forget();
+                try { if (Directory.Exists(root)) Directory.Delete(root, true); } catch (IOException) { }
+            }
+        }
+
         private void SmokeCare(System.Collections.Generic.List<string> checks)
         {
             double careNow = 0;
@@ -16767,6 +17053,164 @@ namespace CapriDesktop
             }
         }
 
+        // Before her planner's first step she checks where things stand: the window in front and what else is open, titles trimmed,
+        // and for a job about their screen on a brain that sees, a glance that her first look then uses (Lachy, 2 Nov: "Is it open?
+        // What is open currently? What is on the screen?").
+        private static void SmokePlannerStatus(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+            Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+            Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<IntPtr> frontWas = Hands.Foreground;
+            Func<string> unlistedWas = Hands.Unlisted, openWas = Computer.GameOpen;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                System.Collections.Generic.List<OpenWindow> open = new System.Collections.Generic.List<OpenWindow>
+                {
+                    new OpenWindow(new IntPtr(11), "Spotify Premium", "Spotify"),
+                    new OpenWindow(new IntPtr(12), "#general | Capri Fans - Discord   with a title that runs on far too long", "Discord"),
+                    new OpenWindow(new IntPtr(13), "Counter-Strike 2", "cs2"),
+                    new OpenWindow(new IntPtr(14), "Spotify Premium", "Spotify")
+                };
+                Hands.Windows = delegate { return open; };
+                Hands.Foreground = delegate { return new IntPtr(12); };
+                Hands.Unlisted = delegate { return null; };
+                const string front = "in front is \"#general | Capri Fans - Discord with a title...\" (Discord); also open: \"Spotify Premium\" (Spotify), \"Counter-Strike 2\" (cs2).";
+                string status = Hands.Status(null), glanced = Hands.Status("A Discord chat.");
+                // While they type to her, her own window is in front and isn't listed, so the top window is the one they were in.
+                Hands.Foreground = delegate { return new IntPtr(99); };
+                string typing = Hands.Status(null);
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                string none = Hands.Status(null);
+                Hands.Unlisted = delegate { return "wmctrl isn't installed."; };
+                string unlisted = Hands.Status(null);
+                Hands.Windows = delegate { throw new InvalidOperationException("no desktop"); };
+                string broken = Hands.Status(null);
+                if (!status.EndsWith(front, StringComparison.Ordinal) || !status.StartsWith("\nWhat's open on their PC right now, checked before your first step: ", StringComparison.Ordinal) || status.Contains("far too long") || status.Contains("glanced")
+                    || glanced != status + "\nYou glanced at their screen just now and saw: A Discord chat." || !typing.Contains("in front is \"Spotify Premium\" (Spotify); also open: \"#general")
+                    || !none.EndsWith("no app windows are open.", StringComparison.Ordinal) || !unlisted.EndsWith("their windows couldn't be read: wmctrl isn't installed.", StringComparison.Ordinal) || !broken.EndsWith("their windows couldn't be read just now.", StringComparison.Ordinal))
+                    throw new Exception("Her planner's status didn't say what's open: " + status + " / " + typing + " / " + none + " / " + unlisted + " / " + broken);
+                if (!Hands.AboutScreen("what's on my screen?") || !Hands.AboutScreen("what game is this?") || !Hands.AboutScreen("is anyone talking on my screen?") || Hands.AboutScreen("open cs") || Hands.AboutScreen("what have I got open?") || Hands.AboutScreen("take a screenshot"))
+                    throw new Exception("A job about their screen was missed, or another one counted.");
+                Hands.Windows = delegate { return open; };
+                Hands.Foreground = delegate { return new IntPtr(12); };
+                Hands.Unlisted = unlistedWas;
+                Brain.OpenAi = FakeServer(new[] { says("You're in Discord, with Spotify and CS up too."), calls("look_at_screen", "{\"focus\":\"the chat\"}"), says("Your chat's quiet, choom."), calls("open_app", "{\"name\":\"Counter-Strike 2\"}"), says("CS is up.") }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                Computer.GameOpen = delegate { return null; };
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name + ":" + (args.Focus ?? args.Name)); return name == "look_at_screen" ? "A Discord chat with no new messages." : "Opened " + args.Name + "."; };
+                string whatsOpen = planner.Ask("what have I got open?");
+                string quiet = planner.Ask("is anyone talking on my screen?");
+                string opened = planner.Ask("open cs");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (whatsOpen != "You're in Discord, with Spotify and CS up too." || quiet != "Your chat's quiet, choom." || opened != "CS is up." || sent.Length != 5
+                    || string.Join(",", did.ToArray()) != "look_at_screen:is anyone talking on my screen?,open_app:Counter-Strike 2")
+                    throw new Exception("Her planner didn't check first, or looked twice: " + whatsOpen + " / " + quiet + " / " + opened + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                if (!sent[0].Contains("checked before your first step: in front is ") || !sent[0].Contains("Capri Fans - Discord with a title...") || !sent[0].Contains(" (Spotify), ") || sent[0].Contains("You glanced") || !sent[1].Contains("You glanced at their screen just now and saw: A Discord chat with no new messages.")
+                    || !sent[2].Contains("A Discord chat with no new messages.") || !sent[3].Contains("in front is ") || sent[3].Contains("You glanced"))
+                    throw new Exception("Her planner's first message didn't carry what's open, or the glance went to the wrong job.");
+                checks.Add("PASS her planner checks where things stand before its first step: the window in front, or the top one while she has focus, and the other open windows once each with long titles trimmed; empty, missing and failed window lists say so; a job about their screen gets a glance on a brain that sees, and her first look in that job uses it instead of looking twice");
+            }
+            finally
+            {
+                Hands.Windows = windowsWas;
+                Hands.Foreground = frontWas;
+                Hands.Unlisted = unlistedWas;
+                Computer.GameOpen = openWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
+        // She can't say "I'll remember that", "reminder set" or "clipped it" without the tool running, before or after other tools ran
+        // that turn, and her planner's last line can't say a failed step worked (F69, pass 4).
+        private static void SmokeClaims(System.Collections.Generic.List<string> checks)
+        {
+            System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> none = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+            Func<string, System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>> ran = delegate(string tool) { return new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> { new System.Collections.Generic.KeyValuePair<string, ToolArguments>(tool, new ToolArguments()) }; };
+            string[,] claims =
+            {
+                { "Got it, I'll remember that!", "remember" }, { "Saved that to my notes.", "remember" }, { "I'll remember this day forever.", "" },
+                { "Reminder set for 5pm.", "remind" }, { "I'll remind you at 5.", "remind" }, { "Should I set a reminder?", "" },
+                { "I'll let you know when it's done.", "watch_for" }, { "I'll tell you when I think of one.", "" }, { "I'll keep an eye on it.", "watch_for" },
+                { "We're watching it together now.", "watch_along" }, { "Here come my clones!", "clone" }, { "*dances* Let's go!", "animate" }, { "*grins* Nice one.", "" },
+                { "I'm going to sleep, night!", "nap" }, { "Are you going to sleep?", "" }, { "I'm on my way over.", "move_yourself" }, { "Clipped it!", "clip" },
+                { "I've circled the button.", "draw" }, { "Took a screenshot for you.", "shortcut" }, { "Gaming Mode activated!", "gaming_mode" }, { "Gaming Mode is on.", "" },
+                { "Routine saved.", "routine" }, { "Opened Spotify for you.", "" }, { "You should put that in your notes.", "" }
+            };
+            for (int i = 0; i < claims.GetLength(0); i++)
+                if ((Hands.Claimed(claims[i, 0], none) ?? "") != claims[i, 1]) throw new Exception("\"" + claims[i, 0] + "\" read as a claim for " + (Hands.Claimed(claims[i, 0], none) ?? "nothing") + " instead of " + (claims[i, 1].Length == 0 ? "nothing" : claims[i, 1]));
+            if (Hands.Claimed("Got it, I'll remember that!", ran("remember")) != null || Hands.Claimed("Clipped it!", ran("shortcut")) != null || Hands.Claimed("Opened Spotify and set a reminder for 5.", ran("open_app")) != "remind"
+                || Hands.Unclaimed("Blue's elite. I'll remember that, choom.", none) != "Blue's elite." || Hands.Unclaimed("*dances* Let's go!", none) != "Let's go!" || Hands.Unclaimed("Reminder set!", none) != null
+                || Hands.NotYet("remember", Hands.KitFor()) != "I haven't saved that to my notes yet, choom. Say remember and what to keep." || Hands.NotYet("open_app", null) != Hands.Unpromised
+                || !Hands.Admits("Couldn't open it, choom.") || Hands.Admits("Queued you up, choom."))
+                throw new Exception("Her claims weren't checked against the tools that ran.");
+            System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake = null;
+            Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+            Func<string, string, string> calls = delegate(string name, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c1\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+            Func<System.Collections.Generic.List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string> openWas = Computer.GameOpen;
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            try
+            {
+                Brain.OpenAi = FakeServer(new[]
+                {
+                    says("Blue's elite. I'll remember that, choom."), calls("remember", "{\"text\":\"Their favourite colour is blue.\"}"), says("Saved it, choom."),
+                    says("Octopuses have three hearts. I'll remember that."), says("chat"),
+                    says("Opened Spotify and set a reminder for later, choom."),
+                    calls("open_app", "{\"name\":\"Discord\"}"), says("Discord's up and I set a reminder to stretch."), says("Discord's up, choom."),
+                    calls("open_app", "{\"name\":\"Spotify\"}"), says("Spotify's open, choom!")
+                }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                Hands.Windows = delegate { return new System.Collections.Generic.List<OpenWindow>(); };
+                Computer.GameOpen = delegate { return null; };
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+                Brain chat = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini") };
+                chat.Act = delegate(string name, ToolArguments args) { did.Add(name); return name == "remember" ? "I'll remember: " + args.Text : name == "open_app" ? "Opened " + args.Name + "." : "Done."; };
+                string saved = chat.Ask("my favourite colour is blue");
+                string stripped = chat.Ask("say something cool");
+                string opened = chat.Ask("open spotify");
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = delegate(string name, ToolArguments args) { did.Add(name); return args.Name == "Spotify" ? "No app called Spotify is installed on this PC." : "Opened " + args.Name + "."; };
+                string discord = planner.Ask("open discord");
+                string failed = planner.Ask("open spotify");
+                string[] sent;
+                lock (asked) sent = asked.ToArray();
+                if (saved != "Saved it, choom." || stripped != "Octopuses have three hearts." || opened != "Opened spotify." || discord != "Discord's up, choom." || failed != "No app called Spotify is installed on this PC."
+                    || string.Join(",", did.ToArray()) != "remember,open_app,open_app,open_app" || sent.Length != 11 || !sent[8].Contains("You said you did something that needs remind"))
+                    throw new Exception("A claim with no tool behind it reached them: " + saved + " / " + stripped + " / " + opened + " / " + discord + " / " + failed + " / " + string.Join(",", did.ToArray()) + " / " + sent.Length + " calls");
+                checks.Add("PASS claims: \"I'll remember that\", reminders, watches, watching along, clones, dancing, naps, moving, clips, drawing, screenshots, Gaming Mode and routines count as claims, questions and chat don't; a claim with no tool gives her hands a go and comes out of her reply when they find nothing, a claim after other tools ran comes out too, her planner gets one reminder for it, and her planner's last line can't say a failed step worked");
+            }
+            finally
+            {
+                Hands.Windows = windowsWas;
+                Computer.GameOpen = openWas;
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         private void SmokeGameWatch(System.Collections.Generic.List<string> checks)
         {
             Func<Sight> glimpseBefore = Computer.Glimpse;
@@ -19326,6 +19770,8 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeGameHolds(checks); });
                             Section(checks, delegate { SmokeGameAsks(checks); });
                             Section(checks, delegate { SmokeWorkingOut(checks); });
+                            Section(checks, delegate { SmokePlannerStatus(checks); });
+                            Section(checks, delegate { SmokeClaims(checks); });
                             Section(checks, delegate { SmokeSighted(checks); });
                             Section(checks, delegate { SmokeGameNotes(checks); });
                             Section(checks, delegate { SmokeLongJob(checks); });
@@ -19336,6 +19782,8 @@ namespace CapriDesktop
                             Section(checks, delegate { SmokeLookout(checks); });
                             Section(checks, delegate { SmokeGameSense(checks); });
                             Section(checks, delegate { SmokeSelfKnow(checks); });
+                            Section(checks, delegate { SmokeToolKit(checks); });
+                            Section(checks, delegate { SmokeStores(checks, output); });
                             Section(checks, delegate { SmokeFiles(checks); });
                             Section(checks, delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
                             Section(checks, delegate { SmokeCare(checks); });
