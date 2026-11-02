@@ -150,9 +150,9 @@ namespace CapriDesktop
         private void ChaosTick(double now)
         {
             if (cloneWindow == null || quitting) { ChaosOff(); return; }
-            if (chaosScreen != null || chaosScreenUsed || now < chaosScreenAt || FullScreen() || Computer.Streaming) return;
+            if (chaosScreen != null || chaosScreenUsed || now < chaosScreenAt || ChaosHeld()) return;
             Point centre = new Point(anchor.X + Width / 2, anchor.Y + Height / 2);
-            ChaosScreen opened = new ChaosScreen(Screen.FromPoint(centre).Bounds, clock, preferences.Motion, delegate { return FullScreen(); });
+            ChaosScreen opened = new ChaosScreen(Screen.FromPoint(centre).Bounds, clock, preferences.Motion, ChaosHeld);
             try
             {
                 if (!opened.Open()) { opened.Dispose(); return; }
@@ -165,6 +165,13 @@ namespace CapriDesktop
                 chaosScreenUsed = true;
                 opened.Dispose();
             }
+        }
+
+        // What holds her fake crash back, and closes it if it starts while it's up: full screen, a stream, a job of hers (its
+        // clicks would land on the plate), their cursor lent to her, or her being dragged (a Codex review, 2 Nov).
+        private bool ChaosHeld()
+        {
+            return FullScreen() || Computer.Streaming || working != null || MidJob(job) || lentOut || dragging || pressed;
         }
 
         private void ChaosOff()

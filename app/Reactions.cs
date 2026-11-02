@@ -802,6 +802,14 @@ namespace CapriDesktop
 
         internal bool ReactionsOn { get { return !preferences.NoReactions; } }
 
+        // Her kept reaction voices, and any still on their way, go when her voice changes in a way the stamp can't see, like a
+        // new HD clip.
+        private void ForgetReactionVoices()
+        {
+            ++reactTurn;
+            lock (reactVoices) reactVoices.Clear();
+        }
+
         internal void ToggleReactions()
         {
             preferences.NoReactions = !preferences.NoReactions;

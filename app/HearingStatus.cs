@@ -67,6 +67,8 @@ namespace CapriDesktop
         private string hearingInstallProblem;
         private string hearingSaid;
         private bool hearingOffline, hearingSilent, hearingQuiet, hearingLoud, hearingTestSilent;
+        // The mic Test found the mic muted in Windows. It's cleared by the next Test, a mic change or a reset.
+        private bool hearingWindowsMuted;
         private int hearingMisses;
         private double hearingSoundAt, hearingLoudAt, hearingWordsAt, hearingSignalSeconds;
         private HearingStatus hearingStatus;
@@ -129,6 +131,7 @@ namespace CapriDesktop
             if (hearingCaptureProblem != null)
                 return new HearingStatus("Mic failed: " + HearingStatus.Reason(hearingCaptureProblem), true, HearingAction.Sound, HearingAction.Type);
             if (ears.Muted) return new HearingStatus("Mic muted", true);
+            if (hearingWindowsMuted) return new HearingStatus("Mic muted in Windows", true, HearingAction.Sound, HearingAction.Test);
             bool ownFits = parakeet.Fits;
             bool windows = HearingWindows && !HearingLink;
             if (!HearingLink && HearingChoice == 1 && !ownFits)
@@ -189,7 +192,7 @@ namespace CapriDesktop
 
         private void ResetHearingSignal()
         {
-            hearingSilent = hearingQuiet = hearingLoud = hearingTestSilent = false;
+            hearingSilent = hearingQuiet = hearingLoud = hearingTestSilent = hearingWindowsMuted = false;
             hearingMisses = 0;
             hearingResultProblem = null;
             hearingSoundAt = hearingLoudAt = hearingWordsAt = clock.Elapsed.TotalSeconds;

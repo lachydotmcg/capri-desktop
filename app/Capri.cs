@@ -149,6 +149,9 @@ namespace CapriDesktop
             fresh.TextKey = old.TextKey; fresh.TextModel = old.TextModel;
             fresh.NvidiaKey = old.NvidiaKey; fresh.NvidiaModel = old.NvidiaModel;
             fresh.PaidKey = old.PaidKey; fresh.PaidModel = old.PaidModel;
+            // Which tier is picked and that the keys are already split: without them, a MEDIUM Gemini or OpenRouter key would
+            // be split again as a paid one, over the MAX key (a Codex review, 2 Nov).
+            fresh.Tier = old.Tier; fresh.Tiered = old.Tiered; fresh.NvidiaGlm = old.NvidiaGlm;
             fresh.ServerUrl = old.ServerUrl; fresh.ServerApi = old.ServerApi; fresh.ServerModel = old.ServerModel; fresh.ServerSpeaker = old.ServerSpeaker; fresh.ServerKey = old.ServerKey;
             fresh.AsideUrl = old.AsideUrl; fresh.AsideApi = old.AsideApi; fresh.AsideModel = old.AsideModel; fresh.AsideSpeaker = old.AsideSpeaker; fresh.AsideKey = old.AsideKey;
             fresh.CloudVoice = old.CloudVoice;
@@ -1750,6 +1753,7 @@ namespace CapriDesktop
             if (!SmokeRun.EnterSection(name)) return;
             string before = SmokeState();
             bool mainframeShown = mainframe.Visible, onTop = preferences.OnTop, topWas = NativeTop;
+            bool hiddenWas = hidden, manualWas = manualHidden, fullWas = fullScreenHidden;
             FormWindowState mainframeState = mainframe.WindowState;
             try { run(); }
             catch (Exception problem) { TestFailed = true; checks.Add("FAIL section " + name + ": " + problem.Message); }
@@ -1773,6 +1777,9 @@ namespace CapriDesktop
                         if (!mainframe.Visible) mainframe.Show();
                         if (mainframe.WindowState != mainframeState) mainframe.WindowState = mainframeState;
                     }
+                    if (hidden != hiddenWas) { manualHidden = manualWas; fullScreenHidden = fullWas; ApplyHidden(hiddenWas); }
+                    string repaired = SmokeState();
+                    if (repaired != before) checks.Add("FAIL section " + name + " couldn't be put back: " + repaired);
                 }
                 SmokeRun.LeaveSection(name, checks);
             }
@@ -8911,6 +8918,7 @@ namespace CapriDesktop
             if (!report) return;
             bool windowsMuted = !input.Muted && micTestWindowsMuted == true, muted = input.Muted || windowsMuted;
             hearingTestSilent = micTestPeak == 0 && !muted;
+            hearingWindowsMuted = windowsMuted;
             hearingSilent = false;
             hearingQuiet = micTestPeak > 0 && micTestPeak < QuietWake && !muted;
             hearingCaptureProblem = null;
@@ -9291,6 +9299,7 @@ namespace CapriDesktop
         // Her HD voice reads the clip on its next line, so she says one, waking it first if it's asleep. With HD off, picking it sets it up.
         private void HearClip(string line)
         {
+            ForgetReactionVoices();
             if (!preferences.HdVoice) { ChooseVoiceStyle(QwenVoice.Style); return; }
             ShowVoice();
             if (!testing && !qwen.Installed) return;
@@ -22276,9 +22285,10 @@ namespace CapriDesktop
                 Application.DoEvents();
                 CheckMicTest(micTestUntil + 1);
                 if (micTest != null || mainframe.VoiceNoteText != MicMutedInWindows) throw new Exception("A mic muted in Windows was called silent: " + mainframe.VoiceNoteText);
+                if (hearingStatus == null || hearingStatus.Text != "Mic muted in Windows") throw new Exception("The hearing line didn't say the mic is muted in Windows: " + (hearingStatus == null ? "nothing" : hearingStatus.Text));
                 checks.Add("PASS a mic muted in Windows is called muted there by the mic Test, not silent or blocked");
             }
-            finally { MicMuted = mutedWas; if (micTest != null) StopMicTest(false); }
+            finally { MicMuted = mutedWas; if (micTest != null) StopMicTest(false); hearingWindowsMuted = false; UpdateHearing(); }
             Func<Dictation> makeWas = Dictation.Make;
             Func<string> defaultWas = Dictation.DefaultMic;
             bool? ownWas = ownEarsTest;
@@ -25136,7 +25146,7 @@ namespace CapriDesktop
                                 Directory.CreateDirectory(startCheck);
                                 Brain.LogPath = Path.Combine(startCheck, "errors.txt");
                                 string startSettings = Path.Combine(startCheck, "settings.json"), startMark = Path.Combine(startCheck, Program.StartMarker);
-                                File.WriteAllText(startSettings, "{\"Size\":300,\"Watch\":true,\"NvidiaKey\":\"kept-nvidia\",\"PaidKey\":\"kept-paid\",\"VoiceKey\":\"kept-voice-key\",\"VoiceId\":\"kept-voice\",\"ServerUrl\":\"https://api.fish.audio\",\"ServerKey\":\"kept-server\",\"TalkMods\":2,\"TalkVk\":75}");
+                                File.WriteAllText(startSettings, "{\"Size\":300,\"Watch\":true,\"Tier\":1,\"Tiered\":true,\"NvidiaGlm\":true,\"NvidiaKey\":\"kept-nvidia\",\"PaidKey\":\"kept-paid\",\"VoiceKey\":\"kept-voice-key\",\"VoiceId\":\"kept-voice\",\"ServerUrl\":\"https://api.fish.audio\",\"ServerKey\":\"kept-server\",\"TalkMods\":2,\"TalkVk\":75}");
                                 bool firstStart = Program.Starting(startCheck);
                                 bool marked = File.Exists(startMark) && File.Exists(startSettings);
                                 // One start that never settled only warns: Task Manager or a stuck shutdown can do that once.
@@ -25146,7 +25156,7 @@ namespace CapriDesktop
                                 Preferences afterReset;
                                 using (FileStream stream = File.OpenRead(startSettings)) afterReset = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
                                 bool movedAside = File.ReadAllText(Path.Combine(startCheck, "settings.crashed.json")).Contains("300") && afterReset.Size == 240 && !afterReset.Watch
-                                    && afterReset.NvidiaKey == "kept-nvidia" && afterReset.PaidKey == "kept-paid" && afterReset.VoiceKey == "kept-voice-key" && afterReset.VoiceId == "kept-voice"
+                                    && afterReset.NvidiaKey == "kept-nvidia" && afterReset.PaidKey == "kept-paid" && afterReset.Tier == 1 && afterReset.Tiered && afterReset.NvidiaGlm && afterReset.VoiceKey == "kept-voice-key" && afterReset.VoiceId == "kept-voice"
                                     && afterReset.ServerUrl == "https://api.fish.audio" && afterReset.ServerKey == "kept-server" && afterReset.TalkMods == 2 && afterReset.TalkVk == 75 && afterReset.MuteVk == 0x4E
                                     && File.ReadAllLines(startMark)[1] == "0";
                                 File.Delete(startMark);
@@ -25173,7 +25183,7 @@ namespace CapriDesktop
                                 Brain.LogPath = logWas;
                                 try { Directory.Delete(startCheck, true); } catch (IOException) { }
                             }
-                            checks.Add("PASS crash recovery: a crash goes in errors.txt with where in her code it happened (once, not every tick); one start that never settled (or a marker from before 0.7.6) only warns, and two in a row move settings.json aside to settings.crashed.json, say so and start fresh with her brain and voice keys, what they're for and her hotkeys kept; settings that can't be read keep nothing, and a clean start keeps them all");
+                            checks.Add("PASS crash recovery: a crash goes in errors.txt with where in her code it happened (once, not every tick); one start that never settled (or a marker from before 0.7.6) only warns, and two in a row move settings.json aside to settings.crashed.json, say so and start fresh with her brain and voice keys, what they're for, which brain tier is picked and her hotkeys kept; settings that can't be read keep nothing, and a clean start keeps them all");
                             {
                                 // A pretend Discord on its own pipe: she says hello with the app's id, shows what she's doing with her
                                 // picture and buttons, and hangs up when Show on Discord goes off.
