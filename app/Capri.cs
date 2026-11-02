@@ -3363,9 +3363,13 @@ namespace CapriDesktop
 
         private Point Seated(int x, int y)
         {
-            if (lying && seat != null && seat.Floor) y -= (int)Math.Ceiling(preferences.Size * (LyingRight.Bottom - SitY));
+            if (lying && seat != null && seat.Floor) y -= FloorLift(preferences.Size, x, y);
             return new Point(x - PaddingSize - (int)(preferences.Size * SitX), y - PaddingSize - (int)(preferences.Size * SitY));
         }
+
+        // Lying on the taskbar, her legs and hair hang over it the way her legs do when she sits there. She's raised only by what
+        // would hang off the bottom of the screen, like with the taskbar hidden or on another side.
+        private static int FloorLift(int size, int x, int y) { return Math.Max(0, y + (int)Math.Ceiling(size * LyingRight.Bottom) - (int)(size * SitY) - Screen.FromPoint(new Point(x, y - 1)).Bounds.Bottom); }
 
         private System.Collections.Generic.List<IntPtr> Skip()
         {
@@ -5694,7 +5698,7 @@ namespace CapriDesktop
                 int placeX;
                 bool placeLeft;
                 int headroom = (int)Math.Ceiling(size * (SitY - LyingRight.Top));
-                if (place.Floor) headroom += (int)Math.Ceiling(size * (LyingRight.Bottom - SitY));
+                if (place.Floor) headroom += FloorLift(size, hip.X, place.Y);
                 if (place.Y < hip.Y || place.Y > area.Bottom || place.Y - headroom < area.Top || !LiePlace(place, hip, area, size, left, out placeX, out placeLeft)) continue;
                 long dx = placeX - hip.X, dy = place.Y - hip.Y;
                 long away = dx * dx + dy * dy;
@@ -10333,7 +10337,7 @@ namespace CapriDesktop
             // On the task panel she's only visiting, so where she sat before is what's kept. Lying, it's where she'd sit, since
             // she comes back sitting.
             Point spot = onPanel ? panelHome : lying ? new Point(anchor.X + (int)(preferences.Size * SitX) - (int)(preferences.Size * (facingLeft ? 1 - SitRight : SitRight)), anchor.Y) : anchor;
-            if (!onPanel && lying && seat != null && seat.Floor) spot.Y += (int)Math.Ceiling(preferences.Size * (LyingRight.Bottom - SitY));
+            if (!onPanel && lying && seat != null && seat.Floor) spot.Y = seat.Y - PaddingSize - (int)(preferences.Size * SitY);
             preferences.X = spot.X;
             preferences.Y = spot.Y;
             preferences.HasPosition = true;
@@ -10867,7 +10871,10 @@ namespace CapriDesktop
                     napTicks(0, 200);
                     if (!Asleep || !lying || !napping || napAsked || !Hushed || walking || hanging || falling || napReply != "Going to sleep. A click on me wakes me up.") throw new Exception("Sleep did not settle from state " + napState);
                     if (napState == 1 && (seat != napShelf || Hip().Y != napShelf.Y)) throw new Exception("Her nap lost its ledge.");
-                    if (seat.Floor && BodyOnScreen(anchor, PerchedBody).Bottom > napArea.Bottom) throw new Exception("Her sleeping feet fell below the floor.");
+                    if (napState == 0 && seat != napFloor) throw new Exception("Her nap from the floor wasn't on the floor.");
+                    // On the floor she lies on its line with her legs over the taskbar, raised only so her feet stay on the screen.
+                    Rectangle napFeet = BodyOnScreen(anchor, PerchedBody), napScreen = Screen.FromPoint(new Point(Hip().X, seat.Y - 1)).Bounds;
+                    if (seat.Floor && (napFeet.Bottom > napScreen.Bottom || (Hip().Y != seat.Y && Math.Abs(napFeet.Bottom - napScreen.Bottom) > 1))) throw new Exception("Lying on the floor she floated above it or hung off the screen: hip " + Hip().Y + " on " + seat.Y + ", feet " + napFeet.Bottom + " of " + napScreen.Bottom);
                     CheckIdle(napNow, 0);
                     if (!Asleep || CommentFree() || LookoutFree()) throw new Exception("An asked-for nap did not stay quiet.");
                     React();
@@ -10875,7 +10882,7 @@ namespace CapriDesktop
                 }
                 preferences.Motion = true;
                 preferences.NoSitting = false;
-                checks.Add("PASS nap from floor, window ledge, hanging, walking, drag and dance with a stand-in clock, even with motion or automatic sitting off; asked naps hush comments and Watch and ignore PC input until clicked");
+                checks.Add("PASS nap from floor, window ledge, hanging, walking, drag and dance with a stand-in clock, even with motion or automatic sitting off; asked naps hush comments and Watch and ignore PC input until clicked; on the floor she lies on its line, raised only to keep her feet on the screen");
                 napReset();
                 Ledge napNarrow = new Ledge { Left = napArea.Left + napArea.Width / 2 - 12, Right = napArea.Left + napArea.Width / 2 + 12, Y = napShelf.Y - 10 };
                 seat = napNarrow;
