@@ -723,6 +723,9 @@ namespace CapriDesktop
 
         internal bool Busy { get { return Stopwatch.GetTimestamp() < Interlocked.Read(ref until) + Stopwatch.Frequency * 35 / 100; } }
 
+        // Seconds of sound still to play.
+        internal double Left { get { return Math.Max(0, Interlocked.Read(ref until) - Stopwatch.GetTimestamp()) / (double)Stopwatch.Frequency; } }
+
         internal void Play(short[] samples)
         {
             lock (PcEars.VoiceGate) if (!PcEars.Capturing) Write(samples);

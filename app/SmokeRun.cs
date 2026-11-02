@@ -50,6 +50,8 @@ namespace CapriDesktop
         private static string folder, kind, current;
         private static DateTime began;
         private static int limit;
+        private static readonly object progressLock = new object();
+        private static Thread watched, watcher;
         private static SmokeOptions options;
         private static readonly HashSet<string> matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private static readonly HashSet<string> sectionsDone = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -78,6 +80,47 @@ namespace CapriDesktop
                 if (pieces.Length == 2 && int.TryParse(pieces[1], out step)) stepsDone[step] = pieces[0] == "PASS";
             }
             Begin("startup", "startup", 60);
+            watched = Thread.CurrentThread;
+            if (watcher == null)
+            {
+                watcher = new Thread(Watch);
+                watcher.IsBackground = true;
+                watcher.Start();
+            }
+        }
+
+        // A step or section 10 s from running out of time notes where the UI thread is stuck in hangs.txt, so its timeout
+        // can say what hung. A step only flushes its checks when it ends, so without this a timeout says nothing more.
+        private static void Watch()
+        {
+            long noted = 0;
+            while (true)
+            {
+                Thread.Sleep(1000);
+                string phase, name;
+                long start;
+                int seconds;
+                lock (progressLock) { phase = kind; name = current; start = began.Ticks; seconds = limit; }
+                if (phase != "step" && phase != "section" || start == noted || seconds < 30 || DateTime.UtcNow.Ticks - start < TimeSpan.FromSeconds(seconds - 10).Ticks) continue;
+                noted = start;
+                string where = Heartbeat.Where(watched);
+                try { File.AppendAllText(Path.Combine(folder, "hangs.txt"), phase + " " + name + ":" + (where.Length == 0 ? " Stuck at: (couldn't read it)" : where) + Environment.NewLine); }
+                catch (IOException) { }
+            }
+        }
+
+        // What the worker noted in hangs.txt for the step or section that just timed out, if anything.
+        private static string Stuck(string[] active)
+        {
+            try
+            {
+                string path = Path.Combine(folder, "hangs.txt");
+                if (!File.Exists(path)) return "";
+                string[] lines = File.ReadAllLines(path);
+                string mark = active[0] + " " + active[1] + ":";
+                return lines.Length != 0 && lines[lines.Length - 1].StartsWith(mark, StringComparison.Ordinal) ? "." + lines[lines.Length - 1].Substring(mark.Length) : "";
+            }
+            catch (IOException) { return ""; }
         }
 
         internal static bool Wants(string name)
@@ -127,7 +170,7 @@ namespace CapriDesktop
         internal static void Begin(string phase, string name, int seconds)
         {
             if (kind == phase && current == name) return;
-            kind = phase; current = name; began = DateTime.UtcNow; limit = seconds;
+            lock (progressLock) { kind = phase; current = name; began = DateTime.UtcNow; limit = seconds; }
             WriteProgress();
         }
 
@@ -174,8 +217,9 @@ namespace CapriDesktop
             int testLimit;
             if (Fault("HANG", step) && int.TryParse(Environment.GetEnvironmentVariable("CAPRI_SMOKE_TEST_SECONDS"), out testLimit) && testLimit > 0 && testLimit <= 60) return testLimit;
             // Step 0 exercises many UI/render paths and two media joins. Step 1 includes four 60 s transcode waits,
-            // a 30 s fake voice-server wait, and the Mainframe/voice integration checks.
-            return step == 0 ? 180 : step == 1 ? 600 : 60;
+            // a 30 s fake voice-server wait, and the Mainframe/voice integration checks. Step 22 runs the talk, Listen for
+            // Capri, voice switch and gaming checks, each waiting on her voice, which took over 60 s on a busy PC.
+            return step == 0 ? 180 : step == 1 ? 600 : step == 22 ? 180 : 60;
         }
 
         // 0-13 exchange asynchronous chat/voice results. Glances (14) and screen/cloud checks (17) have their own fixtures.
@@ -244,13 +288,15 @@ namespace CapriDesktop
         private static int RunLocked(string[] args, string output)
         {
             folder = output;
-            foreach (string name in new[] { "smoke-test.txt", "failure.txt", "progress.txt", "sections-done.txt", "steps-done.txt" })
+            foreach (string name in new[] { "smoke-test.txt", "failure.txt", "progress.txt", "sections-done.txt", "steps-done.txt", "hangs.txt" })
                 File.Delete(Path.Combine(folder, name));
             List<string> checks = new List<string>();
             try
             {
                 options = SmokeOptions.Parse(args);
-                string runtime = "runtime-" + Guid.NewGuid().ToString("N");
+                // Kept short: on GitHub's runner the run folder plus her longest download path (the "Hey Capri" encoder in its
+                // staging folder) reached Windows' 260-letter limit with a full GUID here, so the pack read as missing files.
+                string runtime = "data-" + Guid.NewGuid().ToString("N").Substring(0, 8);
                 for (int attempt = 0; attempt < 100; attempt++)
                 {
                     using (SmokeJob job = new SmokeJob())
@@ -308,6 +354,7 @@ namespace CapriDesktop
                         }
                         string reason = timedOut ? "timed out after " + seconds + " s" : "worker exited " + child.ExitCode;
                         if (active == null || active[0] == "startup") { checks.Add("FAIL smoke startup: " + reason); break; }
+                        if (timedOut) reason += Stuck(active);
                         if (active[0] == "section")
                         {
                             checks.Add("FAIL section " + active[1] + ": " + reason);

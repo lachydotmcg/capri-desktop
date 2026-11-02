@@ -505,14 +505,34 @@ namespace CapriDesktop
 #endif
         }
 
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         internal void Stop()
         {
 #if CROSS
             if (Silence != null) Silence();
 #else
+            // A line stopped with sound still to play goes in errors.txt with what stopped it, so a report of her voice stopping
+            // mid-reply says which part of her did it (ticket 35).
+            double left = player.Left;
+            if (left > 0.5) Brain.Log("voice cut", -1, left.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s left, stopped by " + Stopper());
             player.Close();
 #endif
         }
+
+#if !CROSS
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static string Stopper()
+        {
+            StackTrace trace = new StackTrace(2, false);
+            List<string> names = new List<string>();
+            for (int i = 0; i < trace.FrameCount && names.Count < 3; i++)
+            {
+                MethodBase method = trace.GetFrame(i).GetMethod();
+                if (method != null) names.Add(method.Name);
+            }
+            return string.Join(" < ", names.ToArray());
+        }
+#endif
     }
 
     // Bonk is her thud when she's thrown into an edge of her screen or the taskbar.
@@ -3048,12 +3068,30 @@ namespace CapriDesktop
         {
             Voiced(number);
             int tongue = Array.IndexOf(Tongues, Brain.LanguageCode(Brain.Language));
-            string rest = ",\"voice\":\"capri\",\"language\":\"" + (tongue >= 0 ? Languages[tongue] : "english") + "\",\"seed\":7,\"max_new_tokens\":512,\"response_format\":\"wav\"}";
+            string language = tongue >= 0 ? Languages[tongue] : "english";
+            Func<string, int, string> body = delegate(string piece, int seed)
+            {
+                return "{\"input\":" + Voice.Quote(piece) + ",\"voice\":\"capri\",\"language\":\"" + language + "\",\"seed\":" + seed + ",\"max_new_tokens\":512,\"response_format\":\"wav\"}";
+            };
             int pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.HdRobot, glitch = VoiceFx.HdGlitch;
             VoiceFx.Layering layers = VoiceFx.Layers;
             List<short> said = new List<short>();
             int hertz = 24000;
-            foreach (string piece in Pieces(Voice.Sayable(text))) said.AddRange(Voice.Samples(Ask(number, "/v1/audio/speech", "{\"input\":" + Voice.Quote(piece) + rest), out hertz));
+            foreach (string piece in Pieces(Voice.Sayable(text)))
+            {
+                short[] made = Voice.Samples(Ask(number, "/v1/audio/speech", body(piece, 7)), out hertz);
+                // Like a voice server's, a piece far shorter than its words could take was cut off, which sounds like her voice
+                // stopping mid-reply while the text goes on (ticket 35: Ashy, on headphones with her HD voice). It's asked for once
+                // more with another seed, since the same seed makes the same sound, and the longer one is kept.
+                if (VoiceServer.Clipped(piece, made.Length, hertz))
+                {
+                    short[] again = Voice.Samples(Ask(number, "/v1/audio/speech", body(piece, 8)), out hertz);
+                    Brain.Log("HD voice", -1, "Sound for " + VoiceServer.Letters(piece) + " letters came back as " + (made.Length / (double)hertz).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
+                        + " s, so she asked again and got " + (again.Length / (double)hertz).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s.");
+                    if (again.Length > made.Length) made = again;
+                }
+                said.AddRange(made);
+            }
             short[] samples = said.ToArray();
             if (!VoiceFx.Plain(pitch, speed, robot, glitch, layers)) samples = VoiceFx.Restyled(samples, hertz, pitch, speed, robot, glitch, VoiceFx.Seed(text), layers);
             byte[] wav = Voice.Wave(samples, hertz);
@@ -3571,12 +3609,37 @@ namespace CapriDesktop
                     if (!string.IsNullOrEmpty(speaker)) body.Append(",\"voice\":").Append(Voice.Quote(speaker));
                     body.Append(",\"response_format\":\"wav\"}");
                 }
-                said.AddRange(Ask(endpoint, key, fish ? model : null, body.ToString(), name));
+                short[] made = Ask(endpoint, key, fish ? model : null, body.ToString(), name);
+                // A piece far shorter than its words could take was cut off on their side, which sounds like her voice stopping
+                // mid-reply while the text goes on (Mika on Fish Audio). It's asked for once more and the longer one kept.
+                if (Clipped(piece, made.Length))
+                {
+                    short[] again = Ask(endpoint, key, fish ? model : null, body.ToString(), name);
+                    Brain.Log(name, -1, "Sound for " + Letters(piece) + " letters came back as " + (made.Length / (double)YourVoice.Rate).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)
+                        + " s, so she asked again and got " + (again.Length / (double)YourVoice.Rate).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s.");
+                    if (again.Length > made.Length) made = again;
+                }
+                said.AddRange(made);
             }
             short[] samples = said.ToArray();
             if (samples.Length == 0) throw new VoiceException(name + " sent back no sound.");
             if (!VoiceFx.Plain(pitch, speed, robot, glitch, layers)) samples = VoiceFx.Restyled(samples, YourVoice.Rate, pitch, speed, robot, glitch, VoiceFx.Seed(text), layers);
             return Voice.Wave(samples, YourVoice.Rate);
+        }
+
+        // Sound for a piece is cut off when it's quicker than 20 letters a second, faster than anyone talks. Pieces under 40
+        // letters are left alone, since a few words can be said quickly.
+        internal static bool Clipped(string piece, int samples, int rate = YourVoice.Rate)
+        {
+            int letters = Letters(piece);
+            return letters >= 40 && samples < (long)letters * rate / 20;
+        }
+
+        internal static int Letters(string piece)
+        {
+            int count = 0;
+            foreach (char c in Voice.Uncued(piece ?? "")) if (char.IsLetterOrDigit(c)) count++;
+            return count;
         }
 
         // `model` goes in a header, where Fish Audio's API takes it. `name` is what her notes call the server.

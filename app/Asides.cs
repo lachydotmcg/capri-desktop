@@ -157,17 +157,21 @@ namespace CapriDesktop
         private const double Pause = 0.002;
         // A breath or room tone between her words is a gap too: Fish Audio's voices keep them, and over speakers the mic is still
         // ringing with the word before, which counted as them talking over her and cut her voice off mid-reply (Mika, Ashy, 2 Nov).
+        // In a gap the mic is held against her loudest in the last second, the most her own echo can be, so them talking over
+        // a soft word after a loud one still counts (Codex review, 3 Nov).
         private const double GapShare = 0.15;
-        private const double PeakFading = 0.98;
+        private const int Recent = 10;
+        private readonly double[] recent = new double[Recent];
+        private int slot;
         private double share;
-        private double peak;
         private int chunks;
         private int over;
 
         internal void Reset()
         {
             share = 0;
-            peak = 0;
+            Array.Clear(recent, 0, Recent);
+            slot = 0;
             chunks = 0;
             over = 0;
         }
@@ -175,14 +179,17 @@ namespace CapriDesktop
         // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for two chunks in a row.
         internal bool Heard(double mic, double mine, double wake)
         {
+            recent[slot] = mine;
+            slot = (slot + 1) % Recent;
             // Her gaps between words say nothing: a game or a fan is all a mic hears then, so only what's over her voice counts.
             if (mine <= Pause) return false;
-            peak = Math.Max(peak * PeakFading, mine);
-            if (mine < peak * GapShare) { over = 0; return false; }
+            double loudest = 0;
+            foreach (double level in recent) loudest = Math.Max(loudest, level);
+            double against = mine < loudest * GapShare ? loudest : mine;
             bool learned = chunks >= Learning;
             chunks++;
-            bool loud = learned && mic >= wake && mic >= share * mine * Margin;
-            if (!loud) share = Math.Max(share * Fading, mic / mine);
+            bool loud = learned && mic >= wake && mic >= share * against * Margin;
+            if (!loud) share = Math.Max(share * Fading, mic / against);
             over = loud ? over + 1 : 0;
             return over >= Held;
         }

@@ -265,7 +265,7 @@ namespace CapriDesktop
                 long closing = Interlocked.Read(ref closingAt);
                 if (closing >= 0 && now - closing >= CloseFor)
                 {
-                    Noted("She was still closing " + (now - closing) / 1000 + " s after Quit, so she ended herself." + Where());
+                    Noted("She was still closing " + (now - closing) / 1000 + " s after Quit, so she ended herself." + Where(ui));
                     Ended(false);
                     return;
                 }
@@ -282,7 +282,7 @@ namespace CapriDesktop
                     frozeAt = Interlocked.Read(ref sentAt);
                     Func<string> doing = Doing;
                     string what = doing == null ? "" : doing();
-                    Noted("Her window stopped answering for " + stuck / 1000 + " s" + (what.Length == 0 ? "." : ", " + what + ".") + Where());
+                    Noted("Her window stopped answering for " + stuck / 1000 + " s" + (what.Length == 0 ? "." : ", " + what + ".") + Where(ui));
                 }
                 // A start is left be: a window that never answered, or is in its first 15 s, is still starting, and ending it
                 // then would count as a start that never finished (two in a row move settings.json aside).
@@ -334,7 +334,7 @@ namespace CapriDesktop
         }
 
         // Where her UI thread is stuck, read by pausing it for a moment on a thread of its own. Empty if it can't be read.
-        private string Where()
+        internal static string Where(Thread ui)
         {
             StackTrace trace = null;
             Thread reader = new Thread(delegate()
@@ -1678,7 +1678,7 @@ namespace CapriDesktop
         private double nextGlance = -1;
         private double lastGlance = -1;
         // When the glance in flight started on her own clock, and how long a look takes before she spaces them out.
-        private double glanceStart = -1;
+        private double glanceStart = double.NaN;
         private const double SlowGlance = 20;
         private int watchTicket;
         private bool glancing;
@@ -7260,11 +7260,13 @@ namespace CapriDesktop
             glancing = false;
             // A slow look, like a brain on a busy PC, waits twice as long as it took before the next one, so their chats aren't
             // stuck behind her glances (ticket 88, Void: 180 s timeouts with Watch every 10 s on a local Gemma).
-            double took = glanceStart < 0 ? 0 : clock.Elapsed.TotalSeconds - glanceStart;
-            glanceStart = -1;
-            if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, clock.Elapsed.TotalSeconds + took * 2);
+            double took = double.IsNaN(glanceStart) ? 0 : clock.Elapsed.TotalSeconds - glanceStart;
+            glanceStart = double.NaN;
             if (watch != watchTicket || (awayWatch >= 0 ? !exploring || awayWatch != exploreTicket || !ExploreFree() || Native.GetForegroundWindow() != exploreWindow || awayInput.Quiet() < (long)ExploreAfter * 1000 : !preferences.Watch)) return;
-            if (brain.ScreenWait > 0) nextGlance = clock.Elapsed.TotalSeconds + brain.ScreenWait;
+            // Only a look Watch still wants moves its timer, and a provider's wait only adds to it, like in CheckGlance.
+            double finished = clock.Elapsed.TotalSeconds, wait = brain.ScreenWait;
+            if (took >= SlowGlance) nextGlance = Math.Max(nextGlance, finished + took * 2);
+            if (wait > 0) nextGlance = Math.Max(nextGlance, finished + wait);
             string unseen = Unseeing();
             if (unseen != null || problem != null) { lastPrint = null; glanceProblem = unseen ?? problem; mainframe.ShowProblem(glanceProblem); return; }
             if (glanceProblem != null && said != null)
@@ -9764,8 +9766,9 @@ namespace CapriDesktop
         {
             mainframe.VoiceNote(text, problem);
             if (talkState == TalkState.Thinking) return;
-            // A note about her ears never cuts into a line she's still saying (Lachy, 2 Nov). A problem waits for her to finish.
-            if (StillSaying) { if (problem) earsHeld = text; return; }
+            // A note about her ears never cuts into a reply she's still saying (Lachy, 2 Nov). A problem waits for her to finish.
+            // Her own last ears note can be followed straight away, like "One sec, opening my ears." by that they're ready.
+            if (StillSaying && asking != earsNotice) { if (problem) { earsHeld = text; earsHeldMended = earsMended; } return; }
             earsHeld = null;
             heard = "(voice)";
             box.Prompt = "> you: ";
@@ -9774,17 +9777,20 @@ namespace CapriDesktop
         }
 
         private string earsHeld;
+        // Counts her hearing going from a problem back to working (UpdateHearing), so a held note can tell it's out of date.
+        private int earsHeldMended, earsMended;
 
         // Her words are still coming out, or her voice is still playing them.
         private bool StillSaying { get { return talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || hdSpeaking == asking; } }
 
-        // A problem held while she finished her line is said now, if it's still what VOICE shows.
+        // A problem held while she finished her line is said now, unless her hearing has recovered since. What VOICE shows
+        // can't tell: a glitch's details replace its "Say it again?" there, and a mic that's found again leaves it (Codex review, 3 Nov).
         private void SayHeldEarsNote()
         {
             if (earsHeld == null || StillSaying || talkState == TalkState.Thinking) return;
             string held = earsHeld;
             earsHeld = null;
-            if (mainframe.VoiceNoteText == held || mainframe.VoiceNoteText == held + Mainframe.OpenSpeech) EarsNote(held, true);
+            if (earsHeldMended == earsMended) EarsNote(held, true);
         }
 
         // Free voice chat is listening. How it works gets said the first time and after that only shows under VOICE, unless she promised to say when she can hear them.
@@ -11029,7 +11035,9 @@ namespace CapriDesktop
                 {
                     bool current = turn == answerTurn && ticket == asking && !IsDisposed;
                     bool audible = current && audio == audioTurn;
-                    Brain.Log("voice delivery", took.ElapsedMilliseconds, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible);
+                    // How long her sound is against how much there was to say tells a clip cut short from playback that was stopped (ticket 35).
+                    Brain.Log("voice delivery", took.ElapsedMilliseconds, "answer=" + turn + " audio=" + audio + " current_answer=" + answerTurn + " current_audio=" + audioTurn + " text_current=" + current + " audio_current=" + audible
+                        + " seconds=" + (wav == null ? "none" : Voice.Seconds(wav).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)) + " letters=" + VoiceServer.Letters(words));
                     if (!current) return;
                     if (audible)
                     {
@@ -27964,6 +27972,19 @@ namespace CapriDesktop
                                     if (driveRefusals[0] != "Won't press ctrl+shift+esc." || driveRefusals[1] != "There's no key called hyper." || driveRefusals[2] != "That isn't on the screenshot, which is 1280x720." || !driveRefusals[3].StartsWith("Couldn't drag", StringComparison.Ordinal) || !driveRefusals[4].StartsWith("Couldn't scroll", StringComparison.Ordinal) || driveRefusals[5] != "There's no action called teleport.")
                                         throw new Exception("Claude's hands didn't refuse a bad action: " + string.Join(" / ", driveRefusals));
                                     foreach (string driveRefusal in driveRefusals) if (!Computer.Failed(driveRefusal)) throw new Exception("A refused action wasn't marked as failed: " + driveRefusal);
+                                    // A window running as administrator keeps her clicks and keys out, so she says so instead of "Clicked." (ticket 81).
+                                    Func<IntPtr, bool> adminWas = Computer.AboveHer;
+                                    string adminClick, adminKeys;
+                                    try
+                                    {
+                                        Computer.AboveHer = delegate { return true; };
+                                        adminClick = Computer.Member("left_click", new ToolArguments { Coordinate = new double[] { 10, 10 } }, driveFrame);
+                                        adminKeys = Computer.Member("type", new ToolArguments { Text = "hi" }, driveFrame);
+                                    }
+                                    finally { Computer.AboveHer = adminWas; }
+                                    if (adminClick != Computer.AdminWindow || adminKeys != Computer.AdminWindow || !Computer.Failed(adminClick) || Computer.AboveHer(IntPtr.Zero) || Computer.AboveHer(Handle))
+                                        throw new Exception("Her hands didn't say a window running as administrator keeps them out, or counted her own window: " + adminClick + " / " + adminKeys);
+                                    checks.Add("PASS a window running as administrator: her clicks and keys say Windows keeps them out instead of \"Clicked.\", and her own window and no window don't count");
                                     bool driveBlinded = false;
                                     Computer.Look = delegate { return new Sight { Window = new IntPtr(7), Title = "Shop", Program = "shop" }; };
                                     Computer.Front = delegate { return new IntPtr(7); };
@@ -32198,7 +32219,10 @@ namespace CapriDesktop
                             lock (hdAsked) hdCalls = hdAsked.Count;
                             short[] hdLongSamples = Voice.Samples(hdVoice.Or(delegate(string words) { return hdTone; }, hdNoted)(hdLong), out hdRate);
                             lock (hdAsked) hdCalls = hdAsked.Count - hdCalls;
-                            if (hdPieces.Count != 2 || hdPieces[0].Length > QwenVoice.PieceLength || string.Join(" ", hdPieces.ToArray()) != hdLong || hdCalls != 2 || hdTrouble != null || hdLongSamples.Length != 2 * hdWave.Length) throw new Exception("Her HD voice didn't say a long reply a few sentences at a time: " + hdPieces.Count + " pieces / " + hdCalls + " calls / " + hdLongSamples.Length + " samples / " + hdTrouble);
+                            // The test server's 0.4 s of sound is far too short for either piece, so each is asked for once more with another seed.
+                            string hdSeeds;
+                            lock (hdAsked) hdSeeds = string.Join(" ", hdAsked.GetRange(hdAsked.Count - hdCalls, hdCalls).ConvertAll(delegate(string hdRequest) { System.Text.RegularExpressions.Match seed = System.Text.RegularExpressions.Regex.Match(hdRequest, "\"seed\":(\\d+)"); return seed.Success ? seed.Groups[1].Value : "-"; }).ToArray());
+                            if (hdPieces.Count != 2 || hdPieces[0].Length > QwenVoice.PieceLength || string.Join(" ", hdPieces.ToArray()) != hdLong || hdCalls != 4 || hdSeeds != "7 8 7 8" || hdTrouble != null || hdLongSamples.Length != 2 * hdWave.Length) throw new Exception("Her HD voice didn't say a long reply a few sentences at a time, asking again for pieces cut short: " + hdPieces.Count + " pieces / " + hdCalls + " calls / seeds " + hdSeeds + " / " + hdLongSamples.Length + " samples / " + hdTrouble);
                             int hdPitchWas = VoiceFx.Pitch;
                             short[] hdPitched;
                             VoiceFx.Pitch = 6;
@@ -32511,6 +32535,11 @@ namespace CapriDesktop
                                 if (vsFailed != null) throw vsFailed;
                                 return vsHeard;
                             };
+                            // A long piece that came back in a second was cut off; a short line or a long piece at talking speed wasn't.
+                            const string vsLong = "This line is long enough that it takes a good few seconds to say out loud, choom, every time.";
+                            if (!VoiceServer.Clipped(vsLong, YourVoice.Rate) || VoiceServer.Clipped(vsLong, YourVoice.Rate * 6) || VoiceServer.Clipped("Hey choom, this is your server.", 2400)
+                                || VoiceServer.Clipped("[laughing] [excited] Ha ha ha ha ha ha ha ha ha ha ha ha ha!", YourVoice.Rate * 2))
+                                throw new Exception("A cut-off voice server piece was read wrong.");
                             int vsRate;
                             const string vsLine = "Hey choom, this is your server.";
                             byte[] vsSaid = vsOff(vsVoice.Or(vsFree, vsNoted), vsLine);
@@ -33832,6 +33861,8 @@ namespace CapriDesktop
                             ownEarsTest = null;
                             if (!failTold || !failQuiet || !retryRan || !retryStopped || !backsOff) throw new Exception("A failed ears download didn't say so and try again: told " + failTold + ", quiet after " + failQuiet + ", retried " + retryRan + ", stopped " + retryStopped + ", backs off " + backsOff + " / " + reply + " / " + mainframe.VoiceStatus);
                             checks.Add("PASS ears retry: a failed ears download during free voice chat says so once in the chat, tries again after 30 s, 1, 2 and 4 min, then every 5, and stops when the chat ends");
+                            // The test's failed download would otherwise still be the hearing problem for later checks without her own ears.
+                            hearingInstallProblem = null;
                             ownEarsTest = true;
                             StartLocal();
                             double quietFrom = clock.Elapsed.TotalSeconds;
@@ -34852,14 +34883,19 @@ namespace CapriDesktop
                             double slowFrom = nextGlance;
                             nextGlance = -1;
                             glanceStart = clock.Elapsed.TotalSeconds - 30;
-                            FinishGlance(asking, oldWatch, null, null);
+                            FinishGlance(asking - 1, watchTicket, null, null);
                             double slowNext = nextGlance - clock.Elapsed.TotalSeconds;
                             glanceStart = clock.Elapsed.TotalSeconds - 2;
                             nextGlance = slowFrom;
-                            FinishGlance(asking, oldWatch, null, null);
-                            if (slowNext < 59 || slowNext > 61 || nextGlance != slowFrom || glanceStart != -1) throw new Exception("A 30 s glance didn't wait a minute before the next, or a quick one waited: " + slowNext + " / " + (nextGlance - slowFrom));
+                            FinishGlance(asking - 1, watchTicket, null, null);
+                            bool quickKept = nextGlance == slowFrom;
+                            // A slow look from before Watch was restarted leaves the new timer alone.
+                            glanceStart = clock.Elapsed.TotalSeconds - 180;
+                            FinishGlance(asking - 1, oldWatch, null, null);
+                            bool oldKept = nextGlance == slowFrom;
+                            if (slowNext < 59 || slowNext > 61 || !quickKept || !oldKept || !double.IsNaN(glanceStart)) throw new Exception("A 30 s glance didn't wait a minute before the next, a quick one waited, or one from before Watch restarted moved its timer: " + slowNext + ", quick kept " + quickKept + ", old kept " + oldKept);
                             nextGlance = slowFrom;
-                            checks.Add("PASS slow glances: a look that took 30 s waits a minute before the next one, so a slow brain has room for chat, and quick looks keep their timer");
+                            checks.Add("PASS slow glances: a look that took 30 s waits a minute before the next one, so a slow brain has room for chat, quick looks keep their timer, and a look from before Watch was restarted leaves the new one's timer alone");
                             lastPrint = new byte[64 * 36 * 3];
                             FinishGlance(asking - 1, watchTicket, "That chest looks good.", null);
                             if (reply != null || lastPrint != null) throw new Exception("An interrupted glance spoke or prevented the next try.");
@@ -36030,12 +36066,15 @@ namespace CapriDesktop
                 return "chatting " + chatting + ", local " + local + ", ears ready " + earsReady + ", shut " + earsShut + ", transcribing " + transcribing + ", muted " + ears.Muted
                     + ", talk " + talkState + ", quiet " + preferences.Quiet + ", server " + preferences.ServerVoice + ", note " + mainframe.VoiceNoteText
                     + ", voice for " + (voiceUntil - clock.Elapsed.TotalSeconds).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s, busy " + speaker.Busy + ", name over " + nameOver
-                    + ", ears on " + ears.Listening + ", hearing " + (hearingStatus == null ? "-" : hearingStatus.Text) + ", cloud " + preferences.CloudVoice + ", calls " + switchCalls;
+                    + ", ears on " + ears.Listening + ", hearing " + (hearingStatus == null ? "-" : hearingStatus.Text) + ", cloud " + preferences.CloudVoice + ", calls " + switchCalls
+                    + ", windows speech " + (dictation != null) + ", noise hold " + noiseHold + ", room " + room.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture) + ", asking " + asking + ", chat ticket " + chatTicket;
             };
-            // She says her check line through each new voice first, so each line waits for it to finish.
+            // She says her check line through each new voice first, so each line waits for it to finish. On GitHub's runner the
+            // line can start after the first 1.5 s, and talking over it is a different check.
             Action<string> switchHeard = delegate(string what)
             {
                 switchPump(delegate { return false; }, 1500);
+                switchPump(delegate { return talkState != TalkState.Thinking && !StillSaying; }, 6000);
                 int before = switchCalls;
                 for (int lineAt = 0; lineAt < 4; lineAt++) Gather(switchWave(0));
                 for (int lineAt = 0; lineAt < 8; lineAt++) Gather(switchWave(lineAt % 2 == 0 ? 14000 : 20000));
@@ -36473,6 +36512,16 @@ namespace CapriDesktop
                 for (int i = 0; i < 3; i++) lateHeard |= late.Heard(0.004, 0.1, WakeLevel);
                 for (int i = 0; i < 6; i++) lateHeard |= late.Heard(0.05, 0.1, WakeLevel);
                 must(!lateHeard, "Her own echo from speakers that start late counted as them talking over her.");
+                // Them talking over a soft word right after a loud one is still them, and so is talking over her soft words a
+                // second later, once her loud one can't be ringing any more.
+                TalkOver soft = new TalkOver();
+                for (int i = 0; i < 6; i++) soft.Heard(0.03, 0.1, WakeLevel);
+                soft.Heard(0.24, 0.8, WakeLevel);
+                bool softHeard = false, laterHeard = false;
+                for (int i = 0; i < 2; i++) softHeard |= soft.Heard(0.8, 0.05, WakeLevel);
+                for (int i = 0; i < 10; i++) soft.Heard(0.004, 0.05, WakeLevel);
+                for (int i = 0; i < 2; i++) laterHeard |= soft.Heard(0.2, 0.05, WakeLevel);
+                must(softHeard && laterHeard, "Them talking over her soft words after a loud one wasn't heard: " + softHeard + " " + laterHeard);
                 for (int i = 0; i < 6; i++) must(OverHerLocally(echoChunk, VoiceLevel(echoChunk)), "Free voice chat's ears opened on her own voice.");
                 must(bargeIns == bargedBefore + 1, "Her own voice barged in on free voice chat.");
                 for (int i = 0; i < 4; i++) OverHerLocally(voiceChunk, VoiceLevel(voiceChunk));
@@ -36502,7 +36551,7 @@ namespace CapriDesktop
                 Hear("how's it going");
                 must(voiceUntil == 0, "Typing to her didn't stop her talking.");
                 waitFor(delegate { return asides.Count > 0; });
-                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, the echo of her last word over a breath between words and her echo from speakers that start late aren't them, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
+                checks.Add("PASS barge-in: her own voice in the mic is learned and ignored, the echo of her last word over a breath between words and her echo from speakers that start late aren't them, them talking over a soft word after a loud one is, and them talking over her stops her at once through voice chat's mic, free voice chat's mic and Hey Capri's mic, or by typing, while her job carries on");
 
                 StageLog stage = new StageLog();
                 Commentary.Stage = stage;
