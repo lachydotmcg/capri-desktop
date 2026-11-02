@@ -826,6 +826,73 @@ namespace CapriDesktop
             }
         }
 
+        // An ask opens each app, site or song once, however many times her brain repeats the call (a tester saw YouTube or Spotify
+        // open about 20 times in a row on 0.7.10): her one-shot hands writing the same call over and over, and a planner calling it
+        // twenty times at once and again a round later. Media still goes twice, like skipping two songs.
+        private static void SmokeOpensOnce(List<string> checks)
+        {
+            string openAiWas = Brain.OpenAi, notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, logWas = Brain.LogPath;
+            bool keepingWas = Brain.Keeping;
+            TcpListener fake = null;
+            try
+            {
+                string looped = "";
+                for (int i = 0; i < 20; i++) looped += "open_website{\"site\":\"youtube.com\"}\n";
+                List<KeyValuePair<string, ToolArguments>> written = Hands.Written(looped);
+                int parsed = written.Count;
+                Brain.Once(written);
+                List<KeyValuePair<string, ToolArguments>> mixed = Hands.Written("open_app{\"name\":\"Spotify\"}\nmedia{\"action\":\"next\"}\nopen_app{\"name\":\"spotify\"}\nmedia{\"action\":\"next\"}\nplay_music{\"song\":\"lofi beats\"}\nopen_website{\"site\":\"youtube.com\"}\nplay_music{\"song\":\"lofi beats\"}\nopen_app{\"name\":\"Discord\"}");
+                Brain.Once(mixed);
+                List<string> kept = mixed.ConvertAll(call => call.Key + ":" + (call.Value.Name ?? call.Value.Song ?? call.Value.Site ?? call.Value.Action));
+                if (parsed != 20 || written.Count != 1 || string.Join(",", kept.ToArray()) != "open_app:Spotify,media:next,media:next,play_music:lofi beats,open_website:youtube.com,open_app:Discord")
+                    throw new Exception("Repeated opens weren't cut to one: " + parsed + " written, " + written.Count + " left / " + string.Join(",", kept.ToArray()));
+                // Her one-shot hands calling the same open twenty times at once open it once.
+                List<string> asked = new List<string>(), did = new List<string>();
+                Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
+                Func<string, string, int, string> repeated = delegate(string name, string json, int times)
+                {
+                    string made = "";
+                    for (int i = 0; i < times; i++) made += (i == 0 ? "" : ",") + "{\"id\":\"c" + i + "\",\"type\":\"function\",\"function\":{\"name\":\"" + name + "\",\"arguments\":" + Voice.Quote(json) + "}}";
+                    return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[" + made + "]}}]}";
+                };
+                Func<string, ToolArguments, string> opening = delegate(string name, ToolArguments args) { did.Add(name + ":" + (args.Name ?? args.Site)); return "Opened " + (args.Name ?? args.Site) + "."; };
+                Brain.OpenAi = FakeServer(new[] { repeated("open_app", "{\"name\":\"Blorbo Studio\"}", 20), says("Blorbo Studio's up, choom."), says("Blorbo Studio's up, choom.") }, asked, out fake);
+                Brain.MemoryPath = Brain.MemoriesPath = Brain.TranscriptPath = Brain.LogPath = null;
+                Brain.Keeping = false;
+                Brain hands = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini") };
+                hands.Act = opening;
+                string handed = hands.Ask("boot up blorbo studio");
+                int handAsks;
+                lock (asked) handAsks = asked.Count;
+                if (string.Join(",", did.ToArray()) != "open_app:Blorbo Studio" || handAsks == 0)
+                    throw new Exception("Her hands opened it more than once, or never asked her brain: " + handed + " / " + string.Join(",", did.ToArray()) + " / " + handAsks + " calls");
+                fake.Stop();
+                fake = null;
+                // A planner calling YouTube twenty times at once, then again a round later, opens it once and hears it's done.
+                did.Clear();
+                lock (asked) asked.Clear();
+                Brain.OpenAi = FakeServer(new[] { repeated("open_website", "{\"site\":\"youtube.com\"}", 20), repeated("open_website", "{\"site\":\"youtube.com\"}", 1), says("YouTube's up, choom.") }, asked, out fake);
+                Brain planner = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                planner.Act = opening;
+                string planned = planner.Ask("can you get youtube going for me while i eat");
+                string[] heard;
+                lock (asked) heard = asked.ToArray();
+                if (planned != "YouTube's up, choom." || string.Join(",", did.ToArray()) != "open_website:youtube.com" || heard.Length != 3 || !heard[2].Contains("Already done this turn"))
+                    throw new Exception("Her planner opened YouTube more than once: " + planned + " / " + string.Join(",", did.ToArray()) + " / " + heard.Length + " calls");
+                checks.Add("PASS an ask opens each app, site or song once: twenty calls at once from her hands open Blorbo Studio once, twenty written ones are cut to one, a planner calling YouTube twenty times at once and again a round later opens it once and hears it's done, and media still skips twice");
+            }
+            finally
+            {
+                Brain.OpenAi = openAiWas;
+                Brain.MemoryPath = notesWas;
+                Brain.MemoriesPath = memoriesWas;
+                Brain.TranscriptPath = transcriptsWas;
+                Brain.LogPath = logWas;
+                Brain.Keeping = keepingWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         // What she knows about herself and her help page cover her window tool, the settings she can change herself, pausing and
         // timers, in the house style: exact menu names, short lines.
         private static void SmokeHelpForTools(List<string> checks)
