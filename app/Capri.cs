@@ -1604,7 +1604,7 @@ namespace CapriDesktop
         // Her glance lines from the last hour, so she stops bringing up the same thing on their screen.
         private readonly System.Collections.Generic.List<Tuple<double, string>> glanced = new System.Collections.Generic.List<Tuple<double, string>>();
         private byte[] lastPrint;
-        private const double GlanceTalkGap = 60;
+        private double GlanceTalkGap { get { return Math.Min(60, GlanceGap * 2); } }
         private Rectangle lastArea;
         private volatile bool fetchingEyes;
         private double thinkingSince = double.NaN;
@@ -6325,8 +6325,9 @@ namespace CapriDesktop
             return "You looked at their screen. You see: " + seen;
         }
 
-        // Voice chat pauses her glances only while their mic is on. Muted, she keeps commenting on their screen.
-        private bool MicOpen { get { return chatting && !ears.Muted; } }
+        // Voice chat pauses her glances only while their mic is on. Muted, she keeps commenting on their screen, and Listen for
+        // Capri's open ears aren't a chat, so they don't pause her either.
+        private bool MicOpen { get { return InChat && !ears.Muted; } }
 
         // While she plays a game for them she keeps quiet about the screen, since her glances would be a running commentary on
         // her own play (Lachy, 30 Oct: "they were constantly yapping to chat").
@@ -6409,7 +6410,8 @@ namespace CapriDesktop
             if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(clock.Elapsed.TotalSeconds), Brain.Nickname)) { Glimpsed(saw); return; }
-            // She can look every 10 seconds, but talking that often wears on people (Lachy, 31 Oct), so a look this soon after her last line stays to herself.
+            // She can look every 10 seconds, but talking that often wears on people (Lachy, 31 Oct), so a look within twice her Every gap
+            // of her last line, and never more than a minute, stays to herself.
             if (glanced.Count > 0 && clock.Elapsed.TotalSeconds - glanced[glanced.Count - 1].Item1 < GlanceTalkGap) { Glimpsed(saw); return; }
             glanced.Add(Tuple.Create(clock.Elapsed.TotalSeconds, said));
             brain.Saw(saw, said);
@@ -28923,6 +28925,16 @@ namespace CapriDesktop
                             ears.Muted = false;
                             if (captures != 1) throw new Exception("A voice chat with the mic muted stopped her glancing.");
                             captures = 0;
+                            // Listen for Capri's open ears aren't a chat, so they don't pause her glances.
+                            bool glanceListenWas = preferences.ListenCapri, glanceLocalWas = local;
+                            nextGlance = 1000;
+                            chatting = local = preferences.ListenCapri = true;
+                            CheckGlance(1000, 130000);
+                            chatting = false;
+                            local = glanceLocalWas;
+                            preferences.ListenCapri = glanceListenWas;
+                            if (captures != 1) throw new Exception("Listen for Capri's open ears stopped her glancing.");
+                            captures = 0;
                             nextGlance = 1000;
                             Play(sleep);
                             CheckGlance(1000, 130000);
@@ -28962,7 +28974,7 @@ namespace CapriDesktop
                             lastPrint = new byte[64 * 36 * 3];
                             FinishGlance(asking, watchTicket, null, "Couldn't read the screen. I'll try again.");
                             if (reply != null || lastPrint != null || mainframe.Status.IndexOf("Couldn't read the screen.", StringComparison.Ordinal) < 0) throw new Exception("A failed vision request did not allow a retry or show its reason.");
-                            checks.Add("PASS glance gates: watch, busy, hidden, dragging, typing, voice chat with the mic on, a game she's playing, talk states, unsighted models and 10 minutes away pause capture; her sleep pose and a muted voice chat do not; black frames stay local; failures retry; stopped or interrupted glances stay silent");
+                            checks.Add("PASS glance gates: watch, busy, hidden, dragging, typing, voice chat with the mic on, a game she's playing, talk states, unsighted models and 10 minutes away pause capture; her sleep pose, a muted voice chat and Listen for Capri's open ears do not; black frames stay local; failures retry; stopped or interrupted glances stay silent");
                             Grab = delegate(Rectangle place)
                             {
                                 Bitmap shot = new Bitmap(place.Width, place.Height, PixelFormat.Format24bppRgb);
@@ -29025,6 +29037,38 @@ namespace CapriDesktop
                             if (!System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a dungeon with a closed treasure chest\. She stayed quiet\.\*\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a treasure chest next to their character\.\*\n\*\*\d\d:\d\d Capri:\*\* Don't skip that chest\.\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She looked at your screen: A code editor with a red error on line 12\.\*\n") || !System.Text.RegularExpressions.Regex.IsMatch(glanceDay, @"\*\d\d:\d\d She glanced at your screen: a world map with three quest markers\. She stayed quiet\.\*\n") || glanceDay.IndexOf("a settings menu", StringComparison.Ordinal) >= 0) throw new Exception("Her glances and looks didn't reach her transcript the right way: " + glanceDay);
                             Brain.Unsee();
                             checks.Add("PASS screen memory: a spoken glance goes in her chat as what she saw plus her line, a look they asked for is kept too, and Remember what she sees (on by default, saved) decides whether glances she stays quiet about are kept");
+                            // Her spoken glances follow Every: twice its gap apart and never more than a minute, with Listen for Capri's ears open too.
+                            CloseTalk();
+                            double gapNow = clock.Elapsed.TotalSeconds;
+                            bool gapListenWas = preferences.ListenCapri, gapLocalWas = local;
+                            preferences.GlanceGap = 10;
+                            glanced.Clear();
+                            glanced.Add(Tuple.Create(gapNow - 15, "That chest is bait."));
+                            FinishGlance(asking, watchTicket, "Those lava pools look nasty.", null);
+                            bool gapHeld = glanced.Count == 1;
+                            glanced[0] = Tuple.Create(gapNow - 21, "That chest is bait.");
+                            chatting = local = preferences.ListenCapri = true;
+                            FinishGlance(asking, watchTicket, "Those lava pools look nasty.", null);
+                            chatting = false;
+                            local = gapLocalWas;
+                            preferences.ListenCapri = gapListenWas;
+                            bool gapSaid = glanced.Count == 2 && glanced[1].Item2 == "Those lava pools look nasty." && heard == "watching";
+                            CloseTalk();
+                            preferences.GlanceGap = 600;
+                            glanced.Clear();
+                            glanced.Add(Tuple.Create(gapNow - 59, "That chest is bait."));
+                            FinishGlance(asking, watchTicket, "A bridge over the lava, finally.", null);
+                            bool minuteHeld = glanced.Count == 1;
+                            glanced[0] = Tuple.Create(gapNow - 61, "That chest is bait.");
+                            FinishGlance(asking, watchTicket, "A bridge over the lava, finally.", null);
+                            bool minuteSaid = glanced.Count == 2;
+                            CloseTalk();
+                            preferences.GlanceGap = 15;
+                            bool fifteenGap = GlanceTalkGap == 30;
+                            preferences.GlanceGap = 0;
+                            bool unsetGap = GlanceTalkGap == 60;
+                            if (!gapHeld || !gapSaid || !minuteHeld || !minuteSaid || !fifteenGap || !unsetGap) throw new Exception("Her spoken glances didn't follow Every: held at 15 s " + gapHeld + ", said at 21 s with Listen for Capri on " + gapSaid + ", held at 59 s on 10 min " + minuteHeld + ", said at 61 s " + minuteSaid + ", 15 s " + fifteenGap + ", unset " + unsetGap);
+                            checks.Add("PASS glance talk gap: on Every 10 s a glance 15 s after her last line stays quiet and one 21 s after is said, Listen for Capri's ears open; on 10 min she waits a minute, not longer; 15 s spaces lines 30 s and unset a minute");
                             resetGlance();
                             resetGlance = null;
                             heard = "Hello Capri.";
