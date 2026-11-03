@@ -21342,15 +21342,17 @@ namespace CapriDesktop
         }
 
         // Her live reactions in games (F67), fed a synthetic stream of moments on a clock moved by hand, each part on its own so one
-        // that fails never hides the rest: quick lines go up at once and stack to four; the feed sits on the game's screen in her
-        // Mainframe's look and never takes focus; lines fade, never repeat back to back and follow her mood; her brain's line
-        // follows only in time; Mute her, her quiet key and reduced motion are kept; the switch is saved; banners are read.
+        // that fails never hides the rest: quick lines from her brain go up at once and stack to four; the feed sits on the game's
+        // screen in her Mainframe's look and never takes focus; lines fade, and her brain is asked in her mood; a quick line is her
+        // brain's or nothing, never a fixed one or a repeat; her brain's look follows only in time; Mute her, her quiet key and
+        // reduced motion are kept; the switch is saved; banners are read.
         private void SmokeReactions(System.Collections.Generic.List<string> checks)
         {
             Section(checks, "SmokeReactQuick", delegate { ReactCheck(checks, SmokeReactQuick); });
             Section(checks, "SmokeReactFeed", delegate { ReactCheck(checks, SmokeReactFeed); });
             Section(checks, "SmokeReactFade", delegate { ReactCheck(checks, SmokeReactFade); });
             Section(checks, "SmokeReactMoods", delegate { ReactCheck(checks, SmokeReactMoods); });
+            Section(checks, "SmokeReactWritten", delegate { ReactCheck(checks, SmokeReactWritten); });
             Section(checks, "SmokeReactBrain", delegate { ReactCheck(checks, SmokeReactBrain); });
             Section(checks, "SmokeReactVoice", delegate { ReactCheck(checks, SmokeReactVoice); });
             Section(checks, "SmokeReactMotion", delegate { ReactCheck(checks, SmokeReactMotion); });
@@ -21359,12 +21361,20 @@ namespace CapriDesktop
         }
 
         // The stand-ins her live reactions' checks share: a full-screen game she doesn't know by name, a clock moved by hand, a
-        // brain that says what it's told, and ears on what goes up in the feed and what she says. What they change goes back after.
+        // brain that says what it's told for her look and writes her quick lines, and ears on what goes up in the feed and what
+        // she says. What they change goes back after.
         private sealed class ReactRig
         {
+            // Her stand-in brain's own quick lines, which never share a word, so none reads as a repeat of another.
+            internal static readonly string[] Lines = { "alpha!!", "bravo!!", "charlie!!", "echo!!", "foxtrot!!", "hotel!!", "india!!", "juliet!!", "kilo!!", "lima!!", "mike!!", "oscar!!", "papa!!", "quebec!!", "romeo!!", "sierra!!", "tango!!", "victor!!", "yankee!!", "zulu!!" };
             internal int Now = 50000000;
             internal string Brain = "SKIP";
             internal int BrainWait;
+            // A quick line it's told to write instead, how long it takes, what it was asked and with which rules.
+            internal Func<string, string> Quick;
+            internal int QuickWait, Next;
+            internal readonly System.Collections.Generic.List<string> Asks = new System.Collections.Generic.List<string>();
+            internal string Rules;
             internal byte[] Frame;
             internal Rectangle GameArea;
             internal readonly System.Collections.Generic.List<string> Fed = new System.Collections.Generic.List<string>();
@@ -21374,6 +21384,7 @@ namespace CapriDesktop
             internal Action<string, bool> Show;
             internal Func<string> Game;
             internal Func<string, string, byte[][], string> See;
+            internal Func<string, string, string> Ask;
             internal Func<Sight> Glimpse;
             internal int Pace, Late, Mic;
             internal bool Motion, Off, Silent, Shush, Hidden, Manual, Nap, NapAsked, Push, Hear;
@@ -21384,7 +21395,7 @@ namespace CapriDesktop
         private void ReactCheck(System.Collections.Generic.List<string> checks, Action<System.Collections.Generic.List<string>, ReactRig> part)
         {
             ReactRig rig = new ReactRig();
-            rig.On = Reactions.On; rig.Clock = Reactions.Clock; rig.Show = Reactions.Show; rig.Late = Reactions.BrainLate;
+            rig.On = Reactions.On; rig.Clock = Reactions.Clock; rig.Show = Reactions.Show; rig.Late = Reactions.BrainLate; rig.Ask = Reactions.Ask;
             rig.Sees = Commentary.Sees; rig.Free = Commentary.Free; rig.Moments = Commentary.Moments; rig.CommentClock = Commentary.Clock;
             rig.Game = Commentary.Game; rig.See = Commentary.See; rig.Pace = Commentary.Pace; rig.Glimpse = Computer.Glimpse; rig.Full = FullScreen;
             rig.Motion = preferences.Motion; rig.Off = preferences.NoReactions; rig.Silent = preferences.Silent; rig.Shush = shushed;
@@ -21417,6 +21428,21 @@ namespace CapriDesktop
                 Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Title = "Hollow Abyss", Program = "HollowAbyss", Bounds = area }; };
                 Commentary.Game = GameAhead;
                 Commentary.See = delegate(string system, string ask, byte[][] frames) { if (rig.BrainWait > 0) Thread.Sleep(rig.BrainWait); return rig.Brain; };
+                Reactions.Ask = delegate(string system, string ask)
+                {
+                    Func<string, string> told;
+                    int wait, next;
+                    lock (rig.Asks)
+                    {
+                        rig.Asks.Add(ask);
+                        rig.Rules = system;
+                        told = rig.Quick;
+                        wait = rig.QuickWait;
+                        next = rig.Next++;
+                    }
+                    if (wait > 0) Thread.Sleep(wait);
+                    return told != null ? told(ask) : ReactRig.Lines[next % ReactRig.Lines.Length];
+                };
                 reactTest = delegate(string line, bool brain) { lock (rig.Fed) rig.Fed.Add((brain ? "brain|" : "quick|") + line); };
                 reactVoiceTest = delegate(string line) { lock (rig.Said) rig.Said.Add(line); };
                 if (feed == null || feed.IsDisposed) feed = new ReactionFeed();
@@ -21427,12 +21453,13 @@ namespace CapriDesktop
             }
             finally
             {
-                // Her brain's last look finishes on the stand-in brain before anything goes back.
+                // Her brain's last look and quick lines finish on the stand-in brain before anything goes back.
                 ReactSettle(0);
                 Reactions.On = rig.On;
                 Reactions.Clock = rig.Clock;
                 Reactions.Show = rig.Show;
                 Reactions.BrainLate = rig.Late;
+                Reactions.Ask = rig.Ask;
                 Reactions.Reset();
                 Banners.Reset();
                 Commentary.Clock = rig.CommentClock;
@@ -21492,21 +21519,23 @@ namespace CapriDesktop
             return Reactions.React(kind) && ReactFed(rig, before + 1);
         }
 
-        // Pumps her window for a while, and on until her brain's look is over, for at most 5 s.
+        // Pumps her window for a while, and on until her brain's look and quick lines are over, for at most 5 s. A line handed to her
+        // window just before goes up too, so it can't land in the next check.
         private static void ReactSettle(int milliseconds)
         {
             Stopwatch waited = Stopwatch.StartNew();
-            while ((waited.ElapsedMilliseconds < milliseconds || Commentary.Thinking) && waited.ElapsedMilliseconds < 5000)
+            while ((waited.ElapsedMilliseconds < milliseconds || Commentary.Thinking || Reactions.Pending > 0) && waited.ElapsedMilliseconds < 5000)
             {
                 Application.DoEvents();
                 Thread.Sleep(2);
             }
+            Application.DoEvents();
         }
 
         private static string ReactShown(ReactRig rig) { lock (rig.Fed) return string.Join(" / ", rig.Fed.ToArray()); }
 
-        // A kill's quick line goes up within a second in a full-screen game she doesn't know by name, and a run of big moments
-        // stacks to four with the newest at the bottom.
+        // A kill's quick line from her brain goes up within a second in a full-screen game she doesn't know by name, and a run of
+        // big moments stacks to four with the newest at the bottom.
         private void SmokeReactQuick(System.Collections.Generic.List<string> checks, ReactRig rig)
         {
             ReactMust(GameAhead() == "Hollow Abyss", "A full-screen game she doesn't know by name wasn't taken for one: " + GameAhead());
@@ -21514,8 +21543,8 @@ namespace CapriDesktop
             ReactMust(Commentary.Moment("kill", null, rig.Frame, rig.Frame), "A kill in a game she doesn't know didn't get her brain's look.");
             ReactMust(ReactFed(rig, 1), "A kill's quick line never went up.");
             long took = quick.ElapsedMilliseconds;
-            ReactMust(took < 1000 && rig.Fed[0].StartsWith("quick|", StringComparison.Ordinal) && Array.IndexOf(Reactions.Kills, rig.Fed[0].Substring(6)) >= 0 && feed.Count == 1 && feed.Visible,
-                "A kill's quick line was slow or wrong: " + took + " ms, " + ReactShown(rig));
+            ReactMust(took < 1000 && rig.Fed[0] == "quick|" + ReactRig.Lines[0] && feed.Count == 1 && feed.Visible,
+                "A kill's quick line was slow or wasn't her brain's: " + took + " ms, " + ReactShown(rig));
             foreach (string kind in new[] { "death", "advancement", "win", "loss" })
             {
                 rig.Now += 300;
@@ -21526,7 +21555,7 @@ namespace CapriDesktop
             float[] slots = feed.Slots;
             ReactMust(feed.Count == Reactions.Most && stack[Reactions.Most - 1] == rig.Fed[4].Substring(6) && stack[0] == rig.Fed[1].Substring(6) && slots[0] < slots[1] && slots[1] < slots[2] && slots[2] < slots[3],
                 "The feed didn't stack to four with the newest at the bottom: " + string.Join(" / ", stack) + " at " + string.Join(", ", Array.ConvertAll(slots, slot => slot.ToString("0"))));
-            checks.Add("PASS live reactions: a moment in a full-screen game she doesn't know by name gets its quick line in the feed in " + took + " ms, and a run of big moments stacks to four with the newest at the bottom and the oldest pushed out");
+            checks.Add("PASS live reactions: a moment in a full-screen game she doesn't know by name gets her brain's quick line in the feed in " + took + " ms, and a run of big moments stacks to four with the newest at the bottom and the oldest pushed out");
         }
 
         // The feed sits on the right of the game's screen a third of the way down, clear of the top-right corner, never takes a
@@ -21596,56 +21625,130 @@ namespace CapriDesktop
             checks.Add("PASS live reactions fade after 4 s, the oldest first, and the feed goes once they have");
         }
 
-        // Her pools never give the same line twice in a row, and each kind of moment has lines in the mood it puts her in.
+        // Her brain is asked in the mood the run of the game has put her in: each kind of moment comes with three of its own lines
+        // as examples, and a run of deaths or kills is told with its count.
         private void SmokeReactMoods(System.Collections.Generic.List<string> checks, ReactRig rig)
         {
-            System.Collections.Generic.List<string> run = new System.Collections.Generic.List<string>();
-            Reactions.Show = delegate(string line, bool brain) { run.Add(line); };
-            string[] kinds = { "kill", "death", "hit", "flash", "sound", "scene", "dark", "win", "loss", "advancement" };
-            Random dice = new Random(67);
-            string wrong = null;
-            for (int round = 0; round < 400; round++)
+            Func<string, int, string> asked = delegate(string kind, int advance)
             {
-                rig.Now += 11000;
-                string kind = kinds[dice.Next(kinds.Length)];
-                int before = run.Count;
-                if (!Reactions.React(kind)) { wrong = wrong ?? "a " + kind + " after every gap got no line"; continue; }
-                if (before > 0 && string.Equals(run[before - 1], run[run.Count - 1], StringComparison.OrdinalIgnoreCase)) wrong = wrong ?? "the same line twice in a row: " + run[run.Count - 1];
+                rig.Now += advance;
+                int before;
+                lock (rig.Asks) before = rig.Asks.Count;
+                bool asking = Reactions.React(kind);
+                ReactSettle(0);
+                lock (rig.Asks) return asking && rig.Asks.Count > before ? rig.Asks[rig.Asks.Count - 1] : "(not asked)";
+            };
+            Func<string, string[], int, int> shown = delegate(string ask, string[] pool, int count)
+            {
+                int found = 0;
+                foreach (string line in pool) if (ask.IndexOf("\n- " + string.Format(line, count) + "\n", StringComparison.Ordinal) >= 0) found++;
+                return found;
+            };
+            string[] kinds = { "kill", "death", "hit", "flash", "sound", "scene", "dark", "win", "loss", "advancement" };
+            string[][] pools = { Reactions.Kills, Reactions.Deaths, Reactions.Hits, Reactions.Flashes, Reactions.Sounds, Reactions.Scenes, Reactions.Darks, Reactions.Wins, Reactions.Losses, Reactions.Unlocks };
+            string wrong = null;
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                string ask = asked(kinds[i], 11000);
+                if (shown(ask, pools[i], 0) != 3) wrong = wrong ?? "a " + kinds[i] + " wasn't asked with three of its own lines: " + ask;
             }
-            ReactMust(wrong == null && run.Count == 400, "Her quick lines went wrong: " + wrong + ", " + run.Count + " lines");
+            ReactMust(wrong == null, "Her brain wasn't shown the right examples: " + wrong);
             Reactions.Reset();
-            Func<string, string> mood = delegate(string kind) { rig.Now += 3000; int before = run.Count; Reactions.React(kind); return run.Count > before ? run[run.Count - 1] : "(nothing)"; };
-            bool kindsRight = Array.IndexOf(Reactions.Hits, mood("hit")) >= 0 && Array.IndexOf(Reactions.Flashes, mood("flash")) >= 0 && Reactions.MoodOf("kill") == GameMood.Happy && Reactions.MoodOf("death") == GameMood.Hit && Reactions.MoodOf("flash") == GameMood.Surprise;
-            bool firstDeath = Array.IndexOf(Reactions.Deaths, mood("death")) >= 0;
-            mood("death");
-            string third = mood("death");
-            bool comeback = Array.IndexOf(Reactions.Comebacks, mood("kill")) >= 0;
-            mood("kill");
-            bool onFire = Array.IndexOf(Reactions.Streaks, mood("kill")) >= 0;
-            bool ended = Array.IndexOf(Reactions.Ended, mood("death")) >= 0;
-            bool teased = Array.Exists(Reactions.Again, again => string.Format(again, 3) == third);
-            ReactMust(kindsRight && firstDeath && teased && comeback && onFire && ended,
-                "Her lines didn't follow her mood: kinds " + kindsRight + ", first death " + firstDeath + ", third " + third + ", comeback " + comeback + ", streak " + onFire + ", ended " + ended);
-            checks.Add("PASS live reactions: 400 moments never gave the same line twice in a row, and her lines follow her mood: a third death in a row is teased with its count, a kill after deaths is a comeback, a third kill a streak, and a death after it stings");
+            string firstDeath = asked("death", 3000);
+            asked("death", 3000);
+            string third = asked("death", 3000);
+            string comeback = asked("kill", 3000);
+            asked("kill", 3000);
+            string onFire = asked("kill", 3000);
+            string ended = asked("death", 3000);
+            bool kindsRight = Reactions.MoodOf("kill") == GameMood.Happy && Reactions.MoodOf("death") == GameMood.Hit && Reactions.MoodOf("flash") == GameMood.Surprise;
+            bool died = shown(firstDeath, Reactions.Deaths, 0) == 3 && firstDeath.Contains("They just died.");
+            bool teased = shown(third, Reactions.Again, 3) == 3 && third.Contains("that's 3 deaths in a row");
+            bool relief = shown(comeback, Reactions.Comebacks, 0) == 3 && comeback.Contains("after dying 3 times in a row");
+            bool streak = shown(onFire, Reactions.Streaks, 0) == 3 && onFire.Contains("that's 3 in a row");
+            bool stung = shown(ended, Reactions.Ended, 0) == 3 && ended.Contains("ended their streak of 3");
+            ReactMust(kindsRight && died && teased && relief && streak && stung,
+                "Her brain wasn't asked in her mood: kinds " + kindsRight + ", first death " + died + ", third " + teased + ", comeback " + relief + ", streak " + streak + ", ended " + stung + ": " + third);
+            checks.Add("PASS live reactions ask her brain in her mood: each kind of moment comes with three of its own lines as examples, a third death in a row is told with its count and teased, a kill after deaths is a comeback, a third kill a streak, and a death after it stings");
         }
 
-        // Her brain's line follows when it lands in time and is dropped when it's late, and a slow brain is asked less.
+        // A quick line is her brain's or nothing (Lachy, 3 Nov: "Premade ones? fr? Remove that"): its line goes up as it wrote it,
+        // asked with her safety lines, the game, what happened, three examples and her last lines; a line that repeats one of hers,
+        // nearly does or copies an example is dropped; a slow or failing brain puts nothing up, never a fixed line; and a brain late
+        // three times running is only asked every 30 s until it's quick again.
+        private void SmokeReactWritten(System.Collections.Generic.List<string> checks, ReactRig rig)
+        {
+            Reactions.BrainLate = 400;
+            Func<string, string, int, Func<string, string>, bool> up = delegate(string kind, string detail, int advance, Func<string, string> write)
+            {
+                rig.Now += advance;
+                rig.Quick = write;
+                int before;
+                lock (rig.Fed) before = rig.Fed.Count;
+                bool asking = Reactions.React(kind, detail);
+                ReactSettle(0);
+                ReactSettle(150);
+                lock (rig.Fed) return asking && rig.Fed.Count > before;
+            };
+            Func<string> lastAsk = delegate { lock (rig.Asks) return rig.Asks[rig.Asks.Count - 1]; };
+            bool written = up("kill", null, 0, ask => "that boss just FOLDED");
+            string first = lastAsk(), rules = rig.Rules;
+            int examples = 0;
+            foreach (string line in Reactions.Kills) if (first.IndexOf("\n- " + line + "\n", StringComparison.Ordinal) >= 0) examples++;
+            bool banner = up("win", "The screen says VICTORY", 2000, ask => "dub secured, no notes");
+            string won = lastAsk();
+            ReactMust(written && banner && feed.Texts[feed.Count - 1] == "dub secured, no notes" && rules.Contains(Brain.Safety) && rules.Contains("about 6 words")
+                && first.Contains("(They're playing Hollow Abyss. They just took someone down.") && won.Contains("They just won. This just happened: \"The screen says VICTORY\"."),
+                "Her brain's line didn't go up as it wrote it, or it wasn't asked with her safety lines, the game and what happened: " + ReactShown(rig) + " / " + first);
+            checks.Add("PASS live reactions come from her brain: its quick line goes up as it wrote it, asked with her safety lines, the game, what happened and what the screen said");
+            bool repeated = up("death", null, 2000, ask => "That boss just folded!");
+            string seen = lastAsk();
+            bool near = up("death", null, 2000, ask => "that boss just folded again");
+            bool copied = up("death", null, 2000, ask => Regex.Match(ask, @"word for word:\n- ([^\n]+)").Groups[1].Value);
+            bool fresh = up("death", null, 2000, ask => "who even taught them to aim");
+            ReactMust(examples == 3 && seen.Contains("\n- that boss just FOLDED\n- dub secured, no notes\n"),
+                "Her brain wasn't shown three examples and her last lines: " + examples + " examples in " + first + " / " + seen);
+            checks.Add("PASS live reactions show her brain three of her lines for the moment as examples, and her last lines over the game");
+            ReactMust(!repeated && !near && !copied && fresh, "A repeat or a copied example went up, or a fresh line didn't: " + repeated + " " + near + " " + copied + " " + fresh + ", " + ReactShown(rig));
+            checks.Add("PASS live reactions drop a line from her brain that repeats one of her last lines, nearly repeats one or copies an example, and keep a fresh one");
+            rig.QuickWait = 700;
+            bool slow = up("kill", null, 2000, ask => "way too late for this one");
+            rig.QuickWait = 0;
+            bool failed = up("kill", null, 2000, ask => { throw new BrainException("No brain here."); });
+            bool cut = up("kill", null, 2000, ask => { throw new System.Net.WebException("The connection was cut."); });
+            rig.Now += 2000;
+            int asks;
+            lock (rig.Asks) asks = rig.Asks.Count;
+            bool rested = !Reactions.React("kill");
+            lock (rig.Asks) rested = rested && rig.Asks.Count == asks;
+            bool back = up("kill", null, Reactions.SlowAsk, ask => "back on time, finally");
+            string[] fed;
+            lock (rig.Fed) fed = rig.Fed.ToArray();
+            bool onlyHers = fed.Length == 4 && fed[0] == "quick|that boss just FOLDED" && fed[1] == "quick|dub secured, no notes" && fed[2] == "quick|who even taught them to aim" && fed[3] == "quick|back on time, finally";
+            ReactMust(!slow && !failed && !cut && rested && back && onlyHers,
+                "A slow or failing brain put something up, or wasn't asked less: slow " + slow + ", failed " + failed + ", cut " + cut + ", rested " + rested + ", back " + back + ", " + ReactShown(rig));
+            checks.Add("PASS live reactions show nothing, never a fixed line, when her brain answers after 2.5 s or fails, and a brain late three times running is only asked every 30 s until it's quick again");
+        }
+
+        // Her brain's look follows when it lands in time and is dropped when it's late, and a slow brain is asked less.
         private void SmokeReactBrain(System.Collections.Generic.List<string> checks, ReactRig rig)
         {
             Reactions.BrainLate = 400;
             rig.Brain = "That sniper had your number.";
+            // Her look reads pictures, so it takes a moment longer than her quick line.
+            rig.BrainWait = 100;
             ReactMust(Commentary.Moment("death", null, rig.Frame, rig.Frame), "A death didn't get her brain's look.");
-            ReactMust(ReactFed(rig, 2), "Her brain's quick line didn't follow the moment: " + ReactShown(rig));
+            ReactMust(ReactFed(rig, 2), "Her brain's look didn't follow the moment: " + ReactShown(rig));
             ReactSettle(100);
             ReactMust(rig.Fed.Count == 2 && rig.Fed[0].StartsWith("quick|", StringComparison.Ordinal) && rig.Fed[1] == "brain|That sniper had your number." && feed.Texts[feed.Count - 1] == "That sniper had your number.",
-                "Her brain's line didn't follow her quick one: " + ReactShown(rig));
+                "Her brain's look didn't follow her quick line: " + ReactShown(rig));
             rig.Now += 60000;
             rig.Brain = "Took you long enough to notice.";
             rig.BrainWait = 700;
             lock (rig.Fed) rig.Fed.Clear();
             ReactMust(Commentary.Moment("death", null, rig.Frame, rig.Frame), "A second death didn't get her brain's look.");
             ReactSettle(1200);
-            ReactMust(rig.Fed.Count == 1 && rig.Fed[0].StartsWith("quick|", StringComparison.Ordinal), "A late brain line went up: " + ReactShown(rig));
+            ReactMust(rig.Fed.Count == 1 && rig.Fed[0].StartsWith("quick|", StringComparison.Ordinal), "A late look went up: " + ReactShown(rig));
             rig.BrainWait = 0;
             Reactions.Reset();
             for (int late = 0; late < 3; late++) Reactions.Looked(3000);
@@ -21654,7 +21757,7 @@ namespace CapriDesktop
             bool waits = !Reactions.Asking(rig.Now + 1000) && Reactions.Asking(rig.Now + Reactions.SlowAsk);
             Reactions.Looked(100);
             ReactMust(slow && waits && !Reactions.Slow && Reactions.Asking(rig.Now + 1000), "A slow brain wasn't asked less, or a quick one again was: " + slow + " " + waits);
-            checks.Add("PASS live reactions and her brain: its line follows the quick one when it lands in time and is dropped when it's late, and a brain late three times running is only asked every 30 s until it's quick again");
+            checks.Add("PASS live reactions and her brain's look: its line follows the quick one when it lands in time and is dropped when it's late, and a brain late three times running is only asked every 30 s until it's quick again");
         }
 
         // Out loud at most once every 8 s, never over her own voice or theirs, and Mute her and her quiet key keep it to text.

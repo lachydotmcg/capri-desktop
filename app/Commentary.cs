@@ -96,13 +96,13 @@ namespace CapriDesktop
 
         internal static void Trigger(string kind, byte[] frameBefore, byte[] frameAfter) { Trigger(kind, null, frameBefore, frameAfter); }
 
-        // A moment her game watching noticed, or the game's own log told her about (F67): her live reactions get it first, with a
-        // quick line right away, then her brain gets its look. While they're on, her brain's line has to land as fast as a
-        // reaction does, and it goes up in the feed even while she can't talk.
+        // A moment her game watching noticed, or the game's own log told her about (F67): her live reactions get it first, with her
+        // brain's quick line, then her brain gets its look at the pictures. While they're on, the look's line has to land as fast
+        // as a reaction does, and it goes up in the feed even while she can't talk.
         internal static bool Moment(string kind, string detail, byte[] frameBefore, byte[] frameAfter)
         {
             bool live = Reactions.KindOf(kind) != null && Reactions.Running;
-            if (live) Reactions.React(kind);
+            if (live) Reactions.React(kind, detail);
             return Trigger(kind, detail, frameBefore, frameAfter, live);
         }
 

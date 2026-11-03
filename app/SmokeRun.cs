@@ -43,7 +43,7 @@ namespace CapriDesktop
         // Sections run inside another, so --only can name a child and its parent still runs to reach it.
         private static readonly Dictionary<string, string[]> Children = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            { "SmokeReactions", new[] { "SmokeReactQuick", "SmokeReactFeed", "SmokeReactFade", "SmokeReactMoods", "SmokeReactBrain", "SmokeReactVoice", "SmokeReactMotion", "SmokeReactSwitch", "SmokeReactBanners" } },
+            { "SmokeReactions", new[] { "SmokeReactQuick", "SmokeReactFeed", "SmokeReactFade", "SmokeReactMoods", "SmokeReactWritten", "SmokeReactBrain", "SmokeReactVoice", "SmokeReactMotion", "SmokeReactSwitch", "SmokeReactBanners" } },
             { "SmokeThrows", new[] { "SmokeThrowReads", "SmokeThrowSlow", "SmokeThrowFast", "SmokeThrowUp", "SmokeThrowSlam", "SmokeThrowStanding", "SmokeThrowCatch", "SmokeThrowCalm", "SmokeThrowGrudge", "SmokeThrowDodges", "SmokeThrowSorry", "SmokeThrowPat", "SmokeThrowAlone" } },
             { "SmokeCloudPicker", new[] { "SmokePickerRejectedKeys", "SmokePickerGemini", "SmokePickerClears", "SmokePickerSavedGemini", "SmokePickerQueuedChoices", "SmokePickerLegacyKeys", "SmokePickerPending-new-key", "SmokePickerPending-unrecognised-key", "SmokePickerPending-tier", "SmokePickerPending-forget", "SmokePickerPending-local", "SmokePickerRefresh", "SmokePickerOldRefresh" } }
         };
