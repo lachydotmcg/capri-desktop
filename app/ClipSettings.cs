@@ -30,6 +30,12 @@ namespace CapriDesktop
 
         private static int Pick(int[] choices, int value, int fallback) { return Array.IndexOf(choices, value) < 0 ? fallback : value; }
 
+        internal bool Same(ClipSettings other)
+        {
+            return other != null && Seconds == other.Seconds && Fps == other.Fps && Resolution == other.Resolution && Mbps == other.Mbps
+                && string.Equals(Folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), other.Folder.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar), StringComparison.OrdinalIgnoreCase);
+        }
+
         internal static ClipSettings Read(Preferences saved)
         {
             try { return new ClipSettings(saved.ClipFolder, saved.ClipSeconds, saved.ClipFps, saved.ClipResolution, saved.ClipMbps); }
