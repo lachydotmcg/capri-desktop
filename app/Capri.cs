@@ -23993,6 +23993,123 @@ namespace CapriDesktop
             finally { mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
         }
 
+        private void SmokeLanguageBounds(ToolStripDropDown menu, Rectangle area, bool[] seen)
+        {
+            if (!menu.Visible || !area.Contains(menu.Bounds)) throw new Exception("The language menu leaves its screen: " + menu.Bounds + " in " + area);
+            foreach (ToolStripItem item in menu.Items)
+            {
+                if (!item.Available) continue;
+                Rectangle bounds = new Rectangle(menu.PointToScreen(item.Bounds.Location), item.Size);
+                if (!item.Visible || !area.Contains(bounds) || !menu.ClientRectangle.Contains(item.Bounds)) throw new Exception("A language item is clipped: " + item.Text + " at " + bounds + " in " + area);
+                ToolStripMenuItem choice = item as ToolStripMenuItem;
+                if (choice == null) continue;
+                if (choice.HasDropDownItems)
+                {
+                    choice.ShowDropDown();
+                    try { SmokeLanguageBounds(choice.DropDown, area, seen); }
+                    finally { choice.HideDropDown(); }
+                    continue;
+                }
+                int row = -1;
+                for (int i = 0; i < Brain.Languages.GetLength(0); i++) if ((string)choice.Tag == Brain.Languages[i, 1]) { row = i; break; }
+                if (row < 0) throw new Exception("A language item has no language: " + choice.Text);
+                string name = Brain.Languages[row, 0], english = Brain.Languages[row, 1];
+                if (choice.Text != (name == english ? name : name + " (" + english + ")") || choice.Checked != (english == Language)) throw new Exception("A language label or tick is wrong: " + choice.Text);
+                seen[row] = true;
+            }
+        }
+
+        private void SmokeLanguages(System.Collections.Generic.List<string> checks)
+        {
+            int sizeWas = MainframeSize;
+            Point atWas = mainframe.Location;
+            bool shownWas = mainframe.Visible, settingsWas = mainframe.SettingsShown;
+            FormWindowState stateWas = mainframe.WindowState;
+            string languageWas = Brain.Language, savedWas = preferences.Language;
+            ContextMenuStrip menu = null;
+            try
+            {
+                mainframe.WindowState = FormWindowState.Normal;
+                mainframe.Show();
+                mainframe.ShowSettings(true);
+                mainframe.SizeMainframe(100);
+                foreach (int percent in new[] { 100, 150, 200 })
+                {
+                    mainframe.LayoutScale(percent * 96 / 100, 100);
+                    foreach (Screen screen in Screen.AllScreens)
+                    {
+                        Rectangle area = screen.WorkingArea;
+                        int right = Math.Max(area.Left, area.Right - mainframe.Width), bottom = Math.Max(area.Top, area.Bottom - mainframe.Height);
+                        foreach (Point at in new[] { area.Location, new Point(right, area.Top), new Point(area.Left, bottom), new Point(right, bottom), new Point((area.Left + right) / 2, (area.Top + bottom) / 2), new Point(area.Right - mainframe.Width / 2, area.Bottom - mainframe.Height / 2), new Point(area.Left - mainframe.Width / 2, area.Top - mainframe.Height / 2) })
+                        {
+                            mainframe.Location = at;
+                            Rectangle work = Screen.FromControl(mainframe).WorkingArea;
+                            foreach (string language in new[] { "English", "Persian", "Japanese" })
+                            {
+                                Brain.Language = language == "English" ? null : language;
+                                mainframe.Sync();
+                                menu = mainframe.ShowLanguages();
+                                if ((string)menu.Items[0].Tag != "English" || menu.Items[1].Available != (language != "English") || (string)menu.Items[1].Tag != language) throw new Exception("The language shortcuts are wrong.");
+                                bool[] seen = new bool[Brain.Languages.GetLength(0)];
+                                try { SmokeLanguageBounds(menu, work, seen); }
+                                catch (Exception error) { throw new Exception("Language menu at " + percent + "%, Mainframe " + at + ": " + error.Message, error); }
+                                finally { menu.Close(); }
+                                for (int row = 0; row < seen.Length; row++) if (!seen[row]) throw new Exception("The language menu is missing " + Brain.Languages[row, 1] + " at " + percent + "%.");
+                            }
+                        }
+                    }
+                }
+                Brain.Language = null;
+                mainframe.Sync();
+                menu = mainframe.ShowLanguages();
+                Brain.Language = "Persian";
+                mainframe.Sync();
+                if (!menu.Visible || !menu.Items[1].Available || !mainframe.LanguageIs("Persian")) throw new Exception("Sync lost the open language menu.");
+                SmokeLanguageBounds(menu, Screen.FromControl(mainframe).WorkingArea, new bool[Brain.Languages.GetLength(0)]);
+                Brain.Language = null;
+                mainframe.Sync();
+                if (menu.Items[1].Available || !mainframe.LanguageIs("English")) throw new Exception("Sync left the current-language shortcut open for English.");
+                SmokeLanguageBounds(menu, Screen.FromControl(mainframe).WorkingArea, new bool[Brain.Languages.GetLength(0)]);
+                mainframe.LayoutScale(96, 100);
+                if (menu.Visible) throw new Exception("Scaling left the language menu open with old fonts.");
+                menu.Close();
+                for (int row = 0; row < Brain.Languages.GetLength(0); row++)
+                {
+                    string language = Brain.Languages[row, 1];
+                    Brain.Language = language == "English" ? null : language;
+                    mainframe.Sync();
+                    if (!mainframe.LanguageIs(language) || (string)menu.Items[1].Tag != language || menu.Items[1].Available != (language != "English")) throw new Exception("Sync lost the current language: " + language);
+                    foreach (ToolStripMenuItem item in Mainframe.LanguageItems(menu.Items))
+                        if (item.Checked != ((string)item.Tag == language)) throw new Exception("Sync left the wrong language ticked: " + item.Text);
+                }
+                ToolStripMenuItem persian = null;
+                foreach (ToolStripMenuItem item in Mainframe.LanguageItems(menu.Items)) if ((string)item.Tag == "Persian" && item.Owner != menu) persian = item;
+                if (persian == null) throw new Exception("Persian has no submenu item.");
+                persian.PerformClick();
+                if (Language != "Persian" || LoadPreferences().Language != "Persian" || !mainframe.LanguageIs("Persian") || (string)menu.Items[1].Tag != "Persian") throw new Exception("The Persian menu item did not select, save and tick Persian.");
+                menu = mainframe.ShowLanguages();
+                ((ToolStripMenuItem)menu.Items[0]).PerformClick();
+                menu.Close();
+                if (Language != "English" || LoadPreferences().Language != "English" || !mainframe.LanguageIs("English") || menu.Items[1].Available) throw new Exception("The English shortcut did not select, save and tick English.");
+                checks.Add("PASS language menu: every language has its native and English name, every menu and item fits Mainframe's screen at 100%, 150% and 200% from each corner, the centre and partly off screen, English and the current language stay at the top, Sync updates every tick and the open shortcut, scaling closes old menus, and Persian and English can be picked and saved");
+            }
+            finally
+            {
+                if (menu != null) menu.Close();
+                Brain.Language = languageWas;
+                preferences.Language = savedWas;
+                SavePreferences();
+                PointEars();
+                mainframe.LayoutScale(0, 0);
+                mainframe.SizeMainframe(sizeWas);
+                mainframe.Sync();
+                mainframe.ShowSettings(settingsWas);
+                mainframe.Location = atWas;
+                mainframe.WindowState = stateWas;
+                if (!shownWas) mainframe.Hide();
+            }
+        }
+
         private static void SmokeOpening(System.Collections.Generic.List<string> checks)
         {
             Func<System.Collections.Generic.List<InstalledApp>> openingCatalog = Hands.Catalog;
@@ -33416,6 +33533,7 @@ namespace CapriDesktop
                             if (pageOverlap != null) throw new Exception("Settings controls overlap: " + pageOverlap);
                             string pageOutside = mainframe.Outside();
                             if (pageOutside != null) throw new Exception("A settings control pokes out of the page: " + pageOutside);
+                            SmokeLanguages(checks);
                             // Her default personality and safety lines are in code, her reply rules come last, and her chat and voice-chat prompts start with all three.
                             const string todaysPersona = "2975408ad8bc6d515aa950c64ad896f5890dfdfa3eb039b105a4f972eeb51e14";
                             Func<string, string> personaHash = delegate(string text) { using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(new System.Text.UTF8Encoding(false).GetBytes(text))).Replace("-", "").ToLowerInvariant(); };
