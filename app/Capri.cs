@@ -36283,10 +36283,15 @@ namespace CapriDesktop
                             string bunzipInto = Path.Combine(bunzipRoot, "into");
                             Directory.CreateDirectory(bunzipInto);
                             bool systemBzip = LocalEars.SystemBzip;
+                            int tarTimeout = LocalEars.TarTimeout;
+                            Func<ProcessStartInfo, Process> tarStart = LocalEars.StartTar;
+                            string tarUrl = LocalEars.PackUrl, tarSha = LocalEars.PackSha;
+                            long tarSize = LocalEars.PackSize;
                             string unpackedSha = "", trickySha = "", damagedProblem = null;
                             bool cleaned = false, emptyKept = false;
                             try
                             {
+                                if (!systemBzip || tarTimeout != 600000) throw new Exception("Her ears stopped trying Windows tar first, or changed its timeout.");
                                 LocalEars.SystemBzip = false;
                                 LocalEars.Untar(bunzipTar, bunzipInto);
                                 using (System.Security.Cryptography.SHA256 sha = System.Security.Cryptography.SHA256.Create())
@@ -36296,13 +36301,119 @@ namespace CapriDesktop
                                 }
                                 emptyKept = File.Exists(Path.Combine(Path.Combine(bunzipInto, "pack"), "empty.bin"));
                                 cleaned = !File.Exists(bunzipTar) && !File.Exists(Path.Combine(bunzipRoot, "pack.tar"));
+                                foreach (string tarTest in new[] { "pipes", "failure", "start", "hang", "plain-hang", "plain-failure", "plain-empty" })
+                                {
+                                    string tarInstallRoot = Path.Combine(bunzipRoot, "install");
+                                    string tarFolder = Path.Combine(Path.Combine(tarInstallRoot, "ears"), LocalEars.Pack);
+                                    string tarInto = tarTest == "hang" ? tarFolder + ".new" : bunzipInto;
+                                    string tarPartial = Path.Combine(tarInto, "partial.txt"), tarChildFile = Path.Combine(bunzipRoot, tarTest + "-" + Guid.NewGuid().ToString("N") + ".pid");
+                                    int tarCalls = 0;
+                                    Process tarWatch = null, tarChild = null;
+                                    Stopwatch tarWaited = new Stopwatch();
+                                    LocalEars.SystemBzip = tarTest == "failure" || tarTest == "start" || tarTest == "hang";
+                                    int tarLimit = tarTest == "hang" || tarTest == "plain-hang" ? 500 : 15000;
+                                    LocalEars.TarTimeout = tarLimit;
+                                    File.WriteAllBytes(bunzipTar, bunzipPack);
+                                    Directory.CreateDirectory(tarInto);
+                                    using (SmokeJob tarJob = new SmokeJob())
+                                    try
+                                    {
+                                        LocalEars.StartTar = delegate(ProcessStartInfo info)
+                                        {
+                                            tarCalls++;
+                                            bool compressed = info.Arguments.StartsWith("-xjf ", StringComparison.Ordinal);
+                                            if (!compressed && LocalEars.SystemBzip)
+                                            {
+                                                if (File.Exists(tarPartial)) throw new Exception("Failed tar left files for the fallback.");
+                                                tarWaited.Stop();
+                                                LocalEars.TarTimeout = 15000;
+                                                return tarStart(info);
+                                            }
+                                            File.WriteAllText(tarPartial, "partial");
+                                            if (tarTest == "start") throw new System.ComponentModel.Win32Exception(2);
+                                            if (tarTest == "failure" || tarTest == "plain-failure" || tarTest == "plain-empty")
+                                            {
+                                                info.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+                                                info.Arguments = tarTest == "plain-empty" ? "/d /c exit /b 3" : "/d /c echo tar test failed 1>&2 & exit /b 3";
+                                                return tarStart(info);
+                                            }
+                                            string script;
+                                            if (tarTest == "pipes")
+                                                script = "[Console]::Error.Write(('e' * 131072)); [Console]::Out.Write(('o' * 131072)); & '" + info.FileName.Replace("'", "''") + "' -xf '" + Path.ChangeExtension(bunzipTar, null).Replace("'", "''") + "' -C '" + tarInto.Replace("'", "''") + "'; exit $LASTEXITCODE";
+                                            else
+                                                script = "$child = Start-Process -FilePath '" + Path.Combine(Environment.SystemDirectory, "ping.exe").Replace("'", "''") + "' -ArgumentList '-t 127.0.0.1' -WindowStyle Hidden -PassThru; [IO.File]::WriteAllText('" + tarChildFile.Replace("'", "''") + ".new', $child.Id.ToString()); [IO.File]::Move('" + tarChildFile.Replace("'", "''") + ".new', '" + tarChildFile.Replace("'", "''") + "'); while ($true) { [Threading.Thread]::Sleep(1000) }";
+                                            info.FileName = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
+                                            info.Arguments = "-NoProfile -NonInteractive -EncodedCommand " + Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
+                                            Process fakeTar = tarStart(info);
+                                            tarJob.Assign(fakeTar);
+                                            if (tarTest != "pipes")
+                                            {
+                                                tarWatch = Process.GetProcessById(fakeTar.Id);
+                                                tarWatch.EnableRaisingEvents = true;
+                                                Stopwatch ready = Stopwatch.StartNew();
+                                                while (!File.Exists(tarChildFile) && !fakeTar.HasExited && ready.ElapsedMilliseconds < 10000) Thread.Sleep(10);
+                                                if (!File.Exists(tarChildFile)) throw new Exception("The fake tar did not start its child.");
+                                                tarChild = Process.GetProcessById(int.Parse(File.ReadAllText(tarChildFile)));
+                                                tarChild.EnableRaisingEvents = true;
+                                                if (tarWatch.HasExited || tarChild.HasExited) throw new Exception("The fake tar exited before its timeout.");
+                                                tarWaited.Start();
+                                            }
+                                            return fakeTar;
+                                        };
+                                        string tarProblem = null;
+                                        if (tarTest == "hang")
+                                        {
+                                            byte[] tarPack = earsPacks["/" + englishInside + ".tar.bz2"];
+                                            File.WriteAllBytes(tarFolder + ".tar.bz2.part", tarPack);
+                                            LocalEars.PackUrl = "http://127.0.0.1:1/ears.tar.bz2";
+                                            LocalEars.PackSize = tarPack.Length;
+                                            LocalEars.PackSha = shaOf(tarPack);
+                                            LocalEars timedEars = new LocalEars(tarInstallRoot);
+                                            timedEars.Install(delegate(string text, long done, long total) { });
+                                            if (!timedEars.Installed || Directory.Exists(tarInto) || File.Exists(tarFolder + ".tar.bz2") || File.Exists(tarFolder + ".tar")) throw new Exception("Her ears did not finish setup after tar hung.");
+                                        }
+                                        else
+                                        {
+                                            try { LocalEars.Untar(bunzipTar, bunzipInto); }
+                                            catch (IOException problem) { tarProblem = problem.Message; }
+                                            if (tarTest == "plain-hang" || tarTest == "plain-failure" || tarTest == "plain-empty")
+                                            {
+                                                string expected = "Couldn't unpack her ears: " + (tarTest == "plain-hang" ? "Windows tar took too long." : tarTest == "plain-empty" ? "Windows tar couldn't unpack the download." : "tar test failed");
+                                                if (tarProblem != expected || Directory.Exists(bunzipInto)) throw new Exception("Failed plain tar left files or the wrong problem: " + tarProblem);
+                                            }
+                                            else if (tarProblem != null || shaOf(File.ReadAllBytes(Path.Combine(Path.Combine(bunzipInto, "pack"), "tricky.bin"))) != shaOf(trickyBytes))
+                                                throw new Exception("Tar did not unpack after " + tarTest + ": " + tarProblem);
+                                        }
+                                        if (tarCalls != (LocalEars.SystemBzip ? 2 : 1) || File.Exists(Path.Combine(bunzipRoot, "pack.tar"))) throw new Exception("Tar used the wrong path or left its plain archive after " + tarTest + ".");
+                                        if (tarWatch != null && (!tarWatch.WaitForExit(2000) || !tarChild.WaitForExit(2000) || tarWaited.ElapsedMilliseconds > tarLimit + 12000)) throw new Exception("Tar or its child survived the unpacking timeout.");
+                                    }
+                                    finally
+                                    {
+                                        LocalEars.StartTar = tarStart;
+                                        tarJob.Stop();
+                                        if (tarWatch != null) tarWatch.Dispose();
+                                        if (tarChild != null) tarChild.Dispose();
+                                    }
+                                }
+                                checks.Add("PASS ears tar: both output pipes drain; a failed or missing tar falls back; a hung tar and its child are killed at the test timeout and setup finishes through bzip2; failed plain tar leaves no unpacked folder or plain archive");
+                                LocalEars.SystemBzip = false;
+                                Directory.CreateDirectory(bunzipInto);
+                                File.WriteAllText(Path.Combine(bunzipInto, "partial.txt"), "partial");
                                 bunzipPack[bunzipPack.Length / 2] ^= 0x10;
                                 File.WriteAllBytes(bunzipTar, bunzipPack);
                                 try { LocalEars.Untar(bunzipTar, bunzipInto); }
                                 catch (IOException problem) { damagedProblem = problem.Message; }
                             }
-                            finally { LocalEars.SystemBzip = systemBzip; }
-                            if (unpackedSha != trickySha || !emptyKept || !cleaned || damagedProblem == null || File.Exists(Path.Combine(bunzipRoot, "pack.tar")))
+                            finally
+                            {
+                                LocalEars.SystemBzip = systemBzip;
+                                LocalEars.TarTimeout = tarTimeout;
+                                LocalEars.StartTar = tarStart;
+                                LocalEars.PackUrl = tarUrl;
+                                LocalEars.PackSha = tarSha;
+                                LocalEars.PackSize = tarSize;
+                            }
+                            if (unpackedSha != trickySha || !emptyKept || !cleaned || damagedProblem == null || Directory.Exists(bunzipInto) || File.Exists(Path.Combine(bunzipRoot, "pack.tar")))
                                 throw new Exception("Unpacking bzip2 without Windows' tar went wrong: " + (unpackedSha == trickySha) + " / " + emptyKept + " / " + cleaned + " / " + damagedProblem);
                             Directory.Delete(bunzipRoot, true);
                             checks.Add("PASS ears on Windows 10: when Windows' tar can't read bzip2, she unpacks that layer herself (block CRCs checked) and tar unpacks the rest; a damaged pack stops with an error");
