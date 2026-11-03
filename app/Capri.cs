@@ -188,13 +188,48 @@ namespace CapriDesktop
         }
     }
 
+    // How many of Windows' drawing objects and how much memory she holds, for the lines a freeze leaves in errors.txt. A window
+    // out of GDI or USER objects (10,000 of each) draws only part of itself and stops, so the numbers show if that's why.
+    internal sealed class WindowUse
+    {
+        internal int Gdi = -1, User = -1, Handles = -1;
+        internal long Private = -1, Working = -1;
+
+        [DllImport("user32.dll")] private static extern int GetGuiResources(IntPtr process, int flags);
+
+        internal static WindowUse Read()
+        {
+            WindowUse use = new WindowUse();
+            try
+            {
+                using (Process own = Process.GetCurrentProcess())
+                {
+                    use.Gdi = GetGuiResources(own.Handle, 0);
+                    use.User = GetGuiResources(own.Handle, 1);
+                    use.Handles = own.HandleCount;
+                    use.Private = own.PrivateMemorySize64;
+                    use.Working = own.WorkingSet64;
+                }
+            }
+            catch (Exception) { }
+            return use;
+        }
+
+        public override string ToString()
+        {
+            return "GDI " + Gdi + ", USER " + User + ", handles " + Handles + ", private " + (Private < 0 ? -1 : Private >> 20) + " MB, working set " + (Working < 0 ? -1 : Working >> 20) + " MB";
+        }
+    }
+
     // Her window answers a ping four times a second. When it stops, something has her UI thread stuck, and she can't be clicked,
     // dragged or quit (Mika, 1 Nov: "SHES STUCK ON MMY SCREEN", "QUITTING DOESNT WORK"). Ten seconds stuck goes in errors.txt
     // with where in her code it's stuck. Stuck and opened again, stuck closing, or stuck for a minute, she ends herself, and her
     // input helper lets go of any key or button she held. A minute's freeze starts her again, at most once every ten minutes.
+    // A shorter stall, from 2 s, goes in once it's over with what held her up, at most once a minute (Neco Arc, 3 Nov: "she
+    // lags a lot", "her avatar freezes").
     internal sealed class Heartbeat
     {
-        internal int LogAfter = 10000, EndAfter = 60000, CloseFor = 15000, ReopenAfter = 2000, Grace = 2000, SettleAfter = 15000;
+        internal int StallAfter = 2000, StallSpacing = 60000, LogAfter = 10000, EndAfter = 60000, CloseFor = 15000, ReopenAfter = 2000, Grace = 2000, SettleAfter = 15000;
         // How long a second launch waits for a stuck Capri to end, before it leaves her be. Writing down where she's stuck
         // can take her about 10 s, and a stalled Quit 15 s.
         internal const int Handover = 20000;
@@ -208,6 +243,8 @@ namespace CapriDesktop
         private long sentAt, closingAt = -1;
         // What she was up to, for the line in errors.txt. Read on the heartbeat's thread, so it only reads fields.
         internal Func<string> Doing;
+        // What she holds of Windows' drawing objects and memory. The smoke test makes up its own.
+        internal Func<WindowUse> Use = WindowUse.Read;
         internal Action<string> Note = delegate(string line) { Brain.Log("frozen", -1, line); };
         // Ends her, starting her again when asked. The smoke test swaps it for one that only counts.
         internal Action<bool> End = Stop;
@@ -252,7 +289,8 @@ namespace CapriDesktop
 
         private void Beat()
         {
-            long last = clock.ElapsedMilliseconds, frozeAt = -1;
+            long last = clock.ElapsedMilliseconds, frozeAt = -1, stalledAt = -1, stallNoted = -StallSpacing;
+            string stall = null;
             while (true)
             {
                 Thread.Sleep(250);
@@ -272,7 +310,9 @@ namespace CapriDesktop
                 if (Volatile.Read(ref answered) == Volatile.Read(ref sent))
                 {
                     if (frozeAt >= 0) Noted("Her window answered again after " + (now - frozeAt) / 1000 + " s.");
-                    frozeAt = -1;
+                    else if (stall != null) Noted("Her window didn't answer for " + ((now - stalledAt) / 1000.0).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " s" + stall);
+                    frozeAt = stalledAt = -1;
+                    stall = null;
                     Ping(now);
                     continue;
                 }
@@ -280,9 +320,13 @@ namespace CapriDesktop
                 if (stuck >= LogAfter && frozeAt < 0)
                 {
                     frozeAt = Interlocked.Read(ref sentAt);
-                    Func<string> doing = Doing;
-                    string what = doing == null ? "" : doing();
-                    Noted("Her window stopped answering for " + stuck / 1000 + " s" + (what.Length == 0 ? "." : ", " + what + ".") + Where(ui));
+                    Noted("Her window stopped answering for " + stuck / 1000 + " s" + Said() + Where(ui));
+                }
+                // Read while it's held up, so the line says what held it, and written with how long once it answers.
+                if (stuck >= StallAfter && stalledAt < 0 && frozeAt < 0)
+                {
+                    stalledAt = Interlocked.Read(ref sentAt);
+                    if (now - stallNoted >= StallSpacing) { stallNoted = now; stall = Said() + Where(ui); }
                 }
                 // A start is left be: a window that never answered, or is in its first 15 s, is still starting, and ending it
                 // then would count as a start that never finished (two in a row move settings.json aside).
@@ -305,6 +349,14 @@ namespace CapriDesktop
                     return;
                 }
             }
+        }
+
+        // ", on a job. GDI 140, USER 360, ...": what she was doing and what she holds, read on this thread.
+        private string Said()
+        {
+            Func<string> doing = Doing;
+            string what = doing == null ? "" : doing();
+            return (what.Length == 0 ? ". " : ", " + what + ". ") + Use() + ".";
         }
 
         // Her window can be closed and the signal gone by the time a quit's last ping goes unanswered.
@@ -1478,6 +1530,7 @@ namespace CapriDesktop
         private bool quitting;
         private Action quitClose;
         private Heartbeat heartbeat;
+        private volatile bool mainframeOpen;
         // When her last job ended, for the line a freeze leaves in errors.txt (Mika, 1 Nov: she freezes "after doing a task").
         private int jobEndedAt = -1;
         private bool instant;
@@ -2039,6 +2092,8 @@ namespace CapriDesktop
             tray.BalloonTipClicked += delegate { BalloonClicked(); };
             tray.Visible = !testing;
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
+            mainframe.VisibleChanged += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
+            mainframe.Resize += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
             voice.Key = Voice.Unprotect(preferences.VoiceKey);
             Hands.Look = LookAt;
             Hands.LookOn = LookAt;
@@ -2175,6 +2230,7 @@ namespace CapriDesktop
                 CheckSeat(clock.Elapsed.TotalSeconds);
                 CheckChat(clock.Elapsed.TotalSeconds);
                 if (!testing) CheckHearing(clock.Elapsed.TotalSeconds);
+                if (!testing) CheckSoundNotice();
                 CheckEars(clock.Elapsed.TotalSeconds);
                 CheckWake(clock.Elapsed.TotalSeconds);
                 CheckSlow(clock.Elapsed.TotalSeconds);
@@ -4706,10 +4762,18 @@ namespace CapriDesktop
                 System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
                 Job running = job;
                 if (running != null) parts.Add(Computer.Streaming ? "on stream" : running.Playing ? "playing a game" : "on a job");
+                else if (working != null) parts.Add("working on something");
                 int ended = jobEndedAt;
                 if (running == null && ended != -1) parts.Add("her last job ended " + unchecked(Environment.TickCount - ended) / 1000 + " s before");
                 if (cloneWindow != null) parts.Add("clones out");
                 if (chatting) parts.Add(local ? "free voice chat on" : "voice chat on");
+                if (mainframeOpen) parts.Add("Mainframe open");
+                if (GamingOn) parts.Add("Gaming Mode on");
+                Preferences settings = preferences;
+                if (settings.Hologram) parts.Add("hologram on");
+                if (!settings.NoReactions) parts.Add("live reactions on");
+                MicMix mix = micMix;
+                if (mix != null && mix.Mixing) parts.Add("her voice in your mic on");
                 if (hidden) parts.Add("hidden");
                 if (quitting) parts.Add("quitting");
                 return string.Join(", ", parts.ToArray());
@@ -16809,6 +16873,177 @@ namespace CapriDesktop
             }
         }
 
+        // Her hearing line's sound warnings, with made-up devices: VB-Audio's cable as their speakers and a Bluetooth mic on a call.
+        private void SmokeSoundWarnings(System.Collections.Generic.List<string> checks)
+        {
+            Preferences saved = preferences;
+            Func<System.Collections.Generic.List<Mic>> devicesWas = hearingDevices;
+            Func<string> defaultWas = hearingDefault, outputWas = hearingOutput;
+            Func<string, string, bool> handsFreeWas = hearingHandsFree;
+            Func<bool> privacyWas = hearingPrivacy;
+            Func<bool?> onlineWas = hearingOnline;
+            Action<string, bool> noticeWas = hearingSoundNotice;
+            Action<string> browseWas = Browse;
+            bool saidWas = hearingCableSaid, mutedWas = ears.Muted, shownWas = mainframe.Visible, pageWas = mainframe.SettingsShown;
+            FormWindowState frameWas = mainframe.WindowState;
+            bool? ownWas = ownEarsTest;
+            string languageWas = parakeet.Language, keyWas = voice.Key, voiceWas = voice.VoiceId;
+            double untilWas = voiceUntil;
+            int hdWas = hdSpeaking;
+            try
+            {
+                StopChat();
+                preferences = new Preferences { Hearing = 2, Mic = "usb" };
+                ownEarsTest = true;
+                parakeet.Language = "en";
+                voice.Key = voice.VoiceId = null;
+                voiceUntil = 0;
+                hdSpeaking = -1;
+                talkState = TalkState.Off;
+                ears.Muted = false;
+                hearingCaptureProblem = hearingSpeechProblem = hearingInstallProblem = null;
+                hearingCableSaid = false;
+                ResetHearingSignal();
+                string output = "Speakers (Realtek)", current = "usb";
+                hearingDevices = delegate { return new System.Collections.Generic.List<Mic> { new Mic("usb", "USB mic"), new Mic("bt", "Headset (Test Hands-Free AG Audio)") }; };
+                hearingDefault = delegate { return current; };
+                hearingOutput = delegate { return output; };
+                hearingPrivacy = delegate { return false; };
+                hearingOnline = delegate { return null; };
+                hearingHandsFree = delegate(string id, string name) { return Ears.IsHandsFree(null, name); };
+                System.Collections.Generic.List<string> pages = new System.Collections.Generic.List<string>(), notes = new System.Collections.Generic.List<string>();
+                Browse = pages.Add;
+                hearingSoundNotice = delegate(string line, bool problem) { notes.Add(line); if (!problem) throw new Exception("The cable notice wasn't a warning."); };
+                mainframe.Restore();
+                mainframe.ShowSettings(false);
+                foreach (string cable in new[] { "CABLE Input (VB-Audio Virtual Cable)", "CABLE-A Input (VB-Audio Cable A)", "Hi-Fi Cable Input (VB-Audio Hi-Fi Cable)" })
+                {
+                    output = cable;
+                    RefreshHearingDevices();
+                    if (mainframe.HearingText != HearingStatus.CableSpeakers || !mainframe.HearingWarning || mainframe.HearingButtons != "Open output settings" || !mainframe.HearingActionsFit)
+                        throw new Exception("A cable default didn't show its warning and output fix: " + cable);
+                    mainframe.PressHearing(0);
+                    if (pages[pages.Count - 1] != "ms-settings:sound") throw new Exception("The output fix didn't open fake Sound settings.");
+                    CheckSoundNotice(); CheckSoundNotice(); HearingNote();
+                    if (notes.Count != 1 || notes[0] != HearingStatus.CableNotice) throw new Exception("The cable warning wasn't said exactly once.");
+                }
+                // Voicemeeter's input is meant to be the default, and Steam's is while it streams, so neither is called a cable.
+                foreach (string speakers in new[] { "Voicemeeter Input (VB-Audio Voicemeeter VAIO)", "Steam Streaming Speakers", "Speakers (Realtek)" })
+                {
+                    output = speakers;
+                    RefreshHearingDevices();
+                    if (mainframe.HearingWarning || HearingStatus.CableOutput(speakers)) throw new Exception("Speakers that aren't VB-Audio's cable were called one: " + speakers);
+                }
+                if (HearingStatus.CableOutput(null)) throw new Exception("Unknown speakers were called a cable.");
+                // A Bluetooth call mic is a note with its fixes, once nothing's wrong.
+                current = "bt";
+                preferences.Mic = null;
+                RefreshHearingDevices();
+                if (mainframe.HearingText != HearingStatus.BluetoothMic || mainframe.HearingWarning || mainframe.HearingButtons != "Pick another mic | Use her own ears" || !mainframe.HearingActionsFit)
+                    throw new Exception("Windows' hands-free mic didn't show call mode as a note with both fixes: " + mainframe.HearingText + " | " + mainframe.HearingButtons);
+                mainframe.PressHearing(0);
+                if (!mainframe.HearingMicMenuShown) throw new Exception("The Bluetooth fix didn't open the mic picker.");
+                mainframe.CloseHearingMicMenu();
+                // A USB mic picked while Windows speech hears the Bluetooth default: that's a problem, and the note doesn't hide it.
+                preferences.Mic = "usb";
+                RefreshHearingDevices();
+                if (mainframe.HearingText == HearingStatus.BluetoothMic || !mainframe.HearingWarning || mainframe.HearingButtons.IndexOf("Use her own ears", StringComparison.Ordinal) < 0)
+                    throw new Exception("The Bluetooth note hid Windows speech hearing a different mic: " + mainframe.HearingText + " | " + mainframe.HearingButtons);
+                mainframe.PressHearing(0);
+                if (HearingChoice != 1 || mainframe.HearingWarning || mainframe.HearingText.IndexOf("USB mic", StringComparison.Ordinal) < 0)
+                    throw new Exception("Her own ears didn't use the picked USB mic instead of Windows' hands-free default.");
+                preferences.Mic = null;
+                RefreshHearingDevices();
+                if (mainframe.HearingText != HearingStatus.BluetoothMic || mainframe.HearingButtons != "Pick another mic") throw new Exception("Own ears hid the note while using the same Bluetooth mic.");
+                foreach (int dpi in new[] { 96, 144, 192 })
+                {
+                    mainframe.LayoutScale(dpi, 100);
+                    foreach (HearingStatus status in new[] {
+                        new HearingStatus(HearingStatus.CableSpeakers, true, HearingAction.Output),
+                        new HearingStatus(HearingStatus.BluetoothMic, false, HearingAction.Pick, HearingAction.Own) })
+                    {
+                        mainframe.ShowHearing(status);
+                        if (!mainframe.HearingTextFits || !mainframe.HearingActionsFit) throw new Exception("A sound warning or fix doesn't fit at " + dpi + " dpi.");
+                    }
+                }
+                ChooseMic("usb");
+                if (mainframe.HearingText == HearingStatus.BluetoothMic) throw new Exception("Picking a USB mic didn't clear the Bluetooth note.");
+                hearingHandsFree = delegate(string id, string name) { return id == "usb"; };
+                UpdateHearing();
+                if (mainframe.HearingText != HearingStatus.BluetoothMic) throw new Exception("A renamed hands-free endpoint wasn't checked by id.");
+                if (!Ears.IsHandsFree(null, "Headset (Hands-Free AG Audio)") || !Ears.IsHandsFree(null, "Headset Hands Free") || !Ears.IsHandsFree(null, "Handsfree mic") || Ears.IsHandsFree(null, "Bluetooth stereo headphones") || Ears.IsHandsFree(null, "USB mic"))
+                    throw new Exception("Hands-free names confused a call mic with stereo headphones or a USB mic.");
+                int changes = 0;
+                HearingChanges notifications = new HearingChanges(delegate { changes++; });
+                notifications.OnDefaultDeviceChanged(0, 0, "cable");
+                notifications.OnDefaultDeviceChanged(0, 1, "speakers");
+                notifications.OnDefaultDeviceChanged(1, 0, "bt");
+                if (changes != 3) throw new Exception("An output or input default change didn't refresh the warnings.");
+                checks.Add("PASS sound warnings: VB-Audio's cables as default speakers show output settings and say why once, and Voicemeeter, Steam and real speakers don't; a Bluetooth call mic is a note with its picker and own-ears fix that never hides a problem, own ears use the selected USB mic, the same Bluetooth mic still notes it, renamed endpoints are checked, default changes refresh, and both lines and fixes fit at 100%, 150% and 200%");
+            }
+            finally
+            {
+                mainframe.CloseHearingMicMenu();
+                StopChat();
+                preferences = saved;
+                hearingDevices = devicesWas; hearingDefault = defaultWas; hearingOutput = outputWas; hearingHandsFree = handsFreeWas;
+                hearingPrivacy = privacyWas; hearingOnline = onlineWas; hearingSoundNotice = noticeWas;
+                Browse = browseWas; hearingCableSaid = saidWas;
+                ownEarsTest = ownWas; parakeet.Language = languageWas;
+                voice.Key = keyWas; voice.VoiceId = voiceWas; voiceUntil = untilWas; hdSpeaking = hdWas;
+                ears.Chosen = preferences.Mic; ears.Muted = mutedWas;
+                hearingCaptureProblem = hearingSpeechProblem = hearingInstallProblem = null;
+                ResetHearingSignal();
+                mainframe.LayoutScale(0, 0); mainframe.Sync(); RefreshHearingDevices(); mainframe.ShowSettings(pageWas);
+                SavePreferences();
+                if (!shownWas) mainframe.Hide(); else mainframe.WindowState = frameWas;
+            }
+        }
+
+        // A stall from 2 s goes in errors.txt once she answers, with how long, what she was doing, what she holds and where she
+        // was held up, and another within the minute stays out. Here the numbers are made up and her UI thread is held on purpose.
+        private void SmokeFreeze(System.Collections.Generic.List<string> checks, string output)
+        {
+            System.Collections.Generic.List<string> stallNotes = new System.Collections.Generic.List<string>();
+            Heartbeat stallBeat = new Heartbeat(this, null) { StallAfter = 400, LogAfter = 600000, EndAfter = 600000 };
+            stallBeat.Doing = delegate { return "on a job, Mainframe open"; };
+            stallBeat.Use = delegate { return new WindowUse { Gdi = 9876, User = 5432, Handles = 2109, Private = 3L << 30, Working = 1L << 30 }; };
+            stallBeat.Note = delegate(string line) { lock (stallNotes) stallNotes.Add(line); };
+            stallBeat.End = delegate(bool again) { lock (stallNotes) stallNotes.Add("ended"); };
+            Action<int> stallPump = delegate(int ms) { Stopwatch pumped = Stopwatch.StartNew(); while (pumped.ElapsedMilliseconds < ms) { Application.DoEvents(); Thread.Sleep(10); } };
+            string stallLine, stallAll;
+            int stallCount;
+            try
+            {
+                stallBeat.Start();
+                stallPump(600);
+                Thread.Sleep(1200);
+                stallPump(1000);
+                Thread.Sleep(1200);
+                stallPump(1000);
+            }
+            finally { stallBeat.Halt(); }
+            lock (stallNotes) { stallCount = stallNotes.Count; stallLine = stallCount == 0 ? "" : stallNotes[0]; stallAll = string.Join(" / ", stallNotes.ToArray()); }
+            System.Text.RegularExpressions.Match stallTook = System.Text.RegularExpressions.Regex.Match(stallLine, @"^Her window didn't answer for (\d+\.\d) s, on a job, Mainframe open\. GDI 9876, USER 5432, handles 2109, private 3072 MB, working set 1024 MB\. Stuck at: ");
+            double stallSeconds = stallTook.Success ? double.Parse(stallTook.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : -1;
+            if (stallCount != 1 || stallSeconds < 0.7 || stallSeconds > 2.5 || stallLine.IndexOf("SmokeFreeze", StringComparison.Ordinal) < 0)
+                throw new Exception("A stall wasn't written once with how long, what she was doing, what she holds and where: " + stallAll);
+            // errors.txt keeps the whole line: a freeze's line gets more room than the rest.
+            string logWas = Brain.LogPath;
+            string stallLog = Path.Combine(output, "freeze-log.txt");
+            try
+            {
+                Brain.LogPath = stallLog;
+                File.WriteAllText(stallLog, "");
+                Brain.Log("frozen", -1, stallLine + new string('x', 400));
+                Brain.Log("ears", -1, new string('y', 400));
+                string[] stallKept = File.ReadAllLines(stallLog);
+                if (stallKept.Length != 2 || stallKept[0].IndexOf(stallLine, StringComparison.Ordinal) < 0 || stallKept[1].Length != 300) throw new Exception("errors.txt cut a freeze's line short, or let another line run long.");
+            }
+            finally { Brain.LogPath = logWas; }
+            checks.Add("PASS a stall from 2 s goes in errors.txt once she answers, with how long, what she was doing, her GDI, USER, handles and memory, and where she was held up; another within the minute stays out, and errors.txt keeps the whole line");
+        }
+
         // A stuck window goes in errors.txt with where it's stuck, and opening her again, a long freeze or a Quit that stalls
         // ends her. Here the ending only counts, and her UI thread is held up on purpose.
         private void SmokeHeartbeat(System.Collections.Generic.List<string> checks)
@@ -16843,6 +17078,8 @@ namespace CapriDesktop
                 if (!beatBack || !beatStuck.StartsWith("Her window stopped answering for ", StringComparison.Ordinal) || beatStuck.IndexOf(", on a job.", StringComparison.Ordinal) < 0 || beatEnds.Count != 0)
                     throw new Exception("A stuck window wasn't written down once and then cleared: " + string.Join(" / ", beatNotes.ToArray()));
                 if (beatStuck.IndexOf("SmokeHeartbeat", StringComparison.Ordinal) < 0) throw new Exception("A stuck window's line didn't say where it was stuck: " + beatStuck);
+                foreach (string held in new[] { ". GDI ", ", USER ", ", handles ", ", private ", " MB, working set " })
+                    if (beatStuck.IndexOf(held, StringComparison.Ordinal) < 0) throw new Exception("A stuck window's line didn't say what she holds: " + beatStuck);
 
                 beatNotes.Clear();
                 Heartbeat reopenBeat = new Heartbeat(this, beatOpened) { ReopenAfter = 300, Grace = 500, SettleAfter = 0 };
@@ -16931,7 +17168,7 @@ namespace CapriDesktop
                 if (takeTook) takeHeld.ReleaseMutex();
                 if (!takeLeft || takeLeftMs > 3000 || !takeTook) throw new Exception("A second launch didn't leave once she showed herself, or didn't take her place once she was gone: left " + takeLeft + " after " + takeLeftMs + " ms, took over " + takeTook + ".");
             }
-            checks.Add("PASS a stuck window: 10 s stuck goes in errors.txt with what she was doing and where her code is stuck, and the line after says when it answered; stuck and opened again, she ends herself for the new one, never while she's still starting, and fine she shows herself and sends the new one away; a minute stuck ends her and starts her again; Quit that stalls ends her");
+            checks.Add("PASS a stuck window: 10 s stuck goes in errors.txt with what she was doing, what she holds and where her code is stuck, and the line after says when it answered; stuck and opened again, she ends herself for the new one, never while she's still starting, and fine she shows herself and sends the new one away; a minute stuck ends her and starts her again; Quit that stalls ends her");
         }
 
         // Her hands wait while her menu is open, so Quit can be clicked mid-job, and her UI thread never waits on it.
@@ -22844,6 +23081,8 @@ namespace CapriDesktop
 
         private sealed class MicCheck : ISoundClient, ISoundCapture, IDisposable
         {
+            internal int SessionRequests, SessionFailure;
+            internal bool SessionThrows;
             internal int Failure;
             internal string Fail;
             internal volatile bool Empty;
@@ -22876,7 +23115,15 @@ namespace CapriDesktop
             public int Stop() { Stops++; return 0; }
             public int Reset() { return 0; }
             public int SetEventHandle(IntPtr handle) { return 0; }
-            public int GetService(ref Guid id, out object service) { service = this; return 0; }
+            public int GetService(ref Guid id, out object service)
+            {
+                service = this;
+                if (id != Mixer.SessionId) return 0;
+                SessionRequests++;
+                if (SessionThrows) throw new COMException("No capture session.");
+                if (SessionFailure < 0) service = null;
+                return SessionFailure;
+            }
             public int GetNextPacketSize(out int frames) { frames = Empty ? 0 : Math.Min(137, 9600 - at); return Result("packet size"); }
             public int GetBuffer(out IntPtr data, out int frames, out int flags, out long position, out long time)
             {
@@ -23067,6 +23314,8 @@ namespace CapriDesktop
 
         private sealed class SoundCheck : ISoundClient, ISoundRender, ISoundVolume, IDisposable
         {
+            internal int SessionRequests, SessionFailure;
+            internal bool SessionThrows;
             internal volatile string Fail;
             internal volatile bool Drain = true, Muted;
             internal float Volume = 1;
@@ -23105,7 +23354,15 @@ namespace CapriDesktop
             public int Stop() { lock (gate) started = false; return Result("stop"); }
             public int Reset() { lock (gate) { padding = 0; Resets++; } return Result("reset"); }
             public int SetEventHandle(IntPtr handle) { return 0; }
-            public int GetService(ref Guid id, out object service) { service = this; return 0; }
+            public int GetService(ref Guid id, out object service)
+            {
+                service = this;
+                if (id != Mixer.SessionId) return 0;
+                SessionRequests++;
+                if (SessionThrows) throw new COMException("No playback session.");
+                if (SessionFailure < 0) service = null;
+                return SessionFailure;
+            }
             public int GetBuffer(int count, out IntPtr data) { writing = count; data = buffer; return Result("get buffer"); }
             public int ReleaseBuffer(int count, int flags)
             {
@@ -23317,6 +23574,64 @@ namespace CapriDesktop
             Stopwatch waited = Stopwatch.StartNew();
             while (!done() && waited.ElapsedMilliseconds < 4500) Thread.Sleep(5);
             if (!done()) throw new Exception(problem);
+        }
+
+        // Each of her sounds opts out of Windows quieting other apps before it starts, and keeps going when that fails.
+        private static void SmokeDucking(System.Collections.Generic.List<string> checks, string output)
+        {
+            Func<string, int, object> sessionWas = Mixer.Session;
+            Func<object, bool, int> duckingWas = Mixer.Ducking;
+            string logWas = Brain.LogPath;
+            try
+            {
+                Brain.LogPath = Path.Combine(output, "ducking-check.txt");
+                foreach (int failure in new[] { 0, 1, 2, 3, 4 })
+                {
+                    using (MicCheck mic = new MicCheck())
+                    using (SoundCheck voice = new SoundCheck())
+                    {
+                        int micAsked = 0, voiceAsked = 0, heard = 0;
+                        bool wrong = false;
+                        mic.SessionFailure = voice.SessionFailure = failure == 3 ? unchecked((int)0x80004002) : 0;
+                        mic.SessionThrows = voice.SessionThrows = failure == 4;
+                        Mixer.Ducking = delegate(object session, bool optOut)
+                        {
+                            if (!optOut) wrong = true;
+                            if (session == mic) { micAsked++; if (mic.Starts != 0) wrong = true; }
+                            else if (session == voice) { voiceAsked++; if (voice.Starts != 0) wrong = true; }
+                            else wrong = true;
+                            if (failure == 2) throw new COMException("Ducking is unavailable.");
+                            return failure == 1 ? unchecked((int)0x80004005) : 0;
+                        };
+                        using (SoundIn input = new SoundIn("fake-mic", delegate(short[] chunk) { Interlocked.Add(ref heard, chunk.Length); }, mic, mic))
+                        using (SoundOut playback = new SoundOut(Ears.Rate, voice, voice))
+                        {
+                            short[] sound = new short[Ears.Chunk];
+                            for (int i = 0; i < sound.Length; i++) sound[i] = 4096;
+                            playback.Write(sound);
+                            WaitSound(delegate { return Interlocked.CompareExchange(ref heard, 0, 0) > 0 && Interlocked.Read(ref playback.Played) >= sound.Length; }, "Ducking failure stopped fake capture or playback.");
+                            if (!input.Alive || !playback.Alive || mic.Starts != 1 || voice.Starts != 1) throw new Exception("Ducking failure closed a fake audio session.");
+                        }
+                        int expected = failure < 3 ? 1 : 0;
+                        if (wrong || mic.SessionRequests != 1 || voice.SessionRequests != 1 || micAsked != expected || voiceAsked != expected)
+                            throw new Exception("A capture or playback session didn't ask to opt out before starting: " + failure);
+                    }
+                }
+                object capture = new object(), render = new object();
+                System.Collections.Generic.List<string> routes = new System.Collections.Generic.List<string>();
+                int asked = 0;
+                bool optedOut = true;
+                Mixer.Session = delegate(string id, int flow) { routes.Add((id ?? "default") + ":" + flow); return flow == 1 ? capture : render; };
+                Mixer.Ducking = delegate(object session, bool optOut) { asked++; optedOut &= optOut && (session == capture || session == render); return unchecked((int)0x80004005); };
+                Mixer.NoDucking("picked-mic", 1); Mixer.NoDucking(null, 0);
+                if (asked != 2 || !optedOut || string.Join("|", routes.ToArray()) != "picked-mic:1|default:0") throw new Exception("Wave capture or playback used the wrong fake default session or ducking preference.");
+                Mixer.Session = delegate { throw new COMException("No session manager."); };
+                Mixer.NoDucking("picked-mic", 1); Mixer.NoDucking(null, 0);
+                Mixer.Session = delegate { return null; };
+                Mixer.NoDucking("picked-mic", 1); Mixer.NoDucking(null, 0);
+                checks.Add("PASS ducking: fake capture and playback sessions request TRUE before starting and keep moving audio after a failed HRESULT, a thrown opt-out or unavailable session service; wave sessions ask on the selected mic and default output, and a missing manager or session is ignored");
+            }
+            finally { Mixer.Session = sessionWas; Mixer.Ducking = duckingWas; Brain.LogPath = logWas; }
         }
 
         private static void SmokeSound(System.Collections.Generic.List<string> checks, string output)
@@ -23980,10 +24295,13 @@ namespace CapriDesktop
             Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
+            Section(checks, "SmokeDucking", delegate { SmokeDucking(checks, output); });
             Section(checks, "SmokeVoiceInMic", delegate { SmokeVoiceInMic(checks, output); });
             Section(checks, "SmokeMicSources", delegate { SmokeMicSources(checks, output); });
             Section(checks, "SmokeMicTest", delegate { SmokeMicTest(checks); });
             Section(checks, "SmokeHearingStatus", delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
+            Section(checks, "SmokeSoundWarnings", delegate { SmokeSoundWarnings(checks); });
+            Section(checks, "SmokeFreeze", delegate { SmokeFreeze(checks, output); });
             Section(checks, "SmokeLocalBrains", delegate { SmokeLocalBrains(checks); });
             Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });

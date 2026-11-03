@@ -3651,7 +3651,9 @@ namespace CapriDesktop
                 lock (typeof(Brain))
                 {
                     List<string> lines = File.Exists(path) ? new List<string>(File.ReadAllLines(path)) : new List<string>();
-                    lines.Add(line.Length > 300 ? line.Substring(0, 300) : line);
+                    // A freeze's line says what she was doing, what she holds and where she was held up, so it gets more room.
+                    int limit = place == "frozen" ? 1000 : 300;
+                    lines.Add(line.Length > limit ? line.Substring(0, limit) : line);
                     if (lines.Count > 200) lines.RemoveRange(0, lines.Count - 200);
                     File.WriteAllLines(path, lines.ToArray());
                 }

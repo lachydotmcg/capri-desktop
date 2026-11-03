@@ -208,13 +208,18 @@ namespace CapriDesktop
         // Windows' default mic, the one the wave API's mapper opens, by endpoint id. Null when Windows won't say.
         internal static string DefaultDevice()
         {
+            return DefaultDevice(1, 0);
+        }
+
+        internal static string DefaultDevice(int flow, int role)
+        {
             ISoundDevices devices = null;
             ISoundDevice device = null;
             try
             {
                 devices = (ISoundDevices)new SoundDevices();
                 string id;
-                if (devices.GetDefaultAudioEndpoint(1, 0, out device) != 0 || device == null || device.GetId(out id) != 0) return null;
+                if (devices.GetDefaultAudioEndpoint(flow, role, out device) != 0 || device == null || device.GetId(out id) != 0) return null;
                 return id;
             }
             catch (Exception) { return null; }
@@ -235,15 +240,22 @@ namespace CapriDesktop
         internal static string HandsFree(string chosen)
         {
             string id = Opens(chosen);
+            string name = FullName(id);
+            return IsHandsFree(id, name) ? name ?? "Bluetooth headset" : null;
+        }
+
+        // Windows 10 names the hands-free side "Hands-Free AG Audio". Windows 11 doesn't, so its driver is checked too.
+        internal static bool IsHandsFree(string id, string name)
+        {
+            if (Regex.IsMatch(name ?? "", @"\bHands[- ]?Free\b", RegexOptions.IgnoreCase)) return true;
             try
             {
                 using (RegistryKey key = Properties(id))
                 {
-                    if (key == null || !string.Equals(key.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},24") as string, "BTHHFENUM", StringComparison.OrdinalIgnoreCase)) return null;
+                    return key != null && string.Equals(key.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},24") as string, "BTHHFENUM", StringComparison.OrdinalIgnoreCase);
                 }
             }
-            catch (Exception) { return null; }
-            return FullName(id) ?? "Bluetooth headset";
+            catch (Exception) { return false; }
         }
 
         private static int Pick(string chosen)
@@ -333,6 +345,7 @@ namespace CapriDesktop
                     // opens it by its id below, or fails.
                     if (index < 0 && openedId != null && MicMix.IsCableOut(DefaultName())) throw new IOException("It went away, and Windows' default is the cable.");
                     CheckWave(waveInOpen(out device, index, ref format, signal.SafeWaitHandle.DangerousGetHandle(), IntPtr.Zero, 0x00050000), "open");
+                    Mixer.NoDucking(openedId, 1);
                     headers = new IntPtr[Buffers];
                     for (int i = 0; i < Buffers; i++)
                     {
@@ -602,6 +615,7 @@ namespace CapriDesktop
                     pcm = new MicPcm(native);
                     format = pcm.Format;
                     Check(client.Initialize(0, 0, 1000000, 0, native, IntPtr.Zero), "initialize");
+                    Mixer.NoDucking(client);
                     if (capture == null)
                     {
                         Guid captureId = typeof(ISoundCapture).GUID;
@@ -695,7 +709,7 @@ namespace CapriDesktop
             if (silent) return;
             WaveFormat format = WaveFormat.Mono(rate);
             int failed = SkipWave ? 6 : waveOutOpen(out device, -1, ref format, IntPtr.Zero, IntPtr.Zero, 0);
-            if (failed == 0) return;
+            if (failed == 0) { Mixer.NoDucking(null, 0); return; }
             device = IntPtr.Zero;
             // Some PCs play every other app fine but won't open the wave API for her, so she tries WASAPI, which most apps use now.
             try
@@ -943,6 +957,7 @@ namespace CapriDesktop
                     Marshal.StructureToPtr(WaveFormat.Mono(rate), format, false);
                     // Shared mode with AUTOCONVERTPCM and SRC_DEFAULT_QUALITY, and a 200 ms buffer.
                     Check(client.Initialize(0, ConvertFlags, 2000000, 0, format, IntPtr.Zero), "initialize");
+                    Mixer.NoDucking(client);
                     Check(client.GetBufferSize(out frames), "buffer size");
                     if (frames <= 0) throw new VoiceException("Windows gave her no room on your speakers.");
                     render = suppliedRender;
@@ -2040,6 +2055,7 @@ namespace CapriDesktop
                 bool isFloat = tag == 3 && bits == 32;
                 if ((!isFloat && !(tag == 1 && (bits == 16 || bits == 32))) || channels < 1 || rate < 8000) return null;
                 if (client.Initialize(0, 0x00020000, 1000000, 0, format, IntPtr.Zero) != 0) return null;
+                Mixer.NoDucking(client);
                 Guid captureId = typeof(ISoundCapture).GUID;
                 object service;
                 if (client.GetService(ref captureId, out service) != 0) return null;

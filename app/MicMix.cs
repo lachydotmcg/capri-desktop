@@ -1048,6 +1048,7 @@ namespace CapriDesktop
                 shape = new PcmShape(format);
                 // 100 ms of room, so a slow pass loses nothing. Packets still come every period, which sets the delay.
                 Wasapi.Check(client.Initialize(0, Wasapi.Woken, 1000000, 0, format, IntPtr.Zero), "initialize");
+                Mixer.NoDucking(client);
                 period = Wasapi.Period(client, shape.Rate);
                 Wasapi.Check(client.SetEventHandle(ready.SafeWaitHandle.DangerousGetHandle()), "event");
                 Guid captureId = typeof(ISoundCapture).GUID;
@@ -1126,6 +1127,7 @@ namespace CapriDesktop
                 shape = new PcmShape(format);
                 // 50 ms of room. She only ever keeps about two periods in it.
                 Wasapi.Check(client.Initialize(0, Wasapi.Woken, 500000, 0, format, IntPtr.Zero), "initialize");
+                Mixer.NoDucking(client);
                 Wasapi.Check(client.GetBufferSize(out frames), "buffer size");
                 if (frames <= 0) throw new MixLost("Windows gave her no room on CABLE Input.");
                 period = Math.Min(Wasapi.Period(client, shape.Rate), frames / 2);

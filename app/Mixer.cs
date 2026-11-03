@@ -20,6 +20,62 @@ namespace CapriDesktop
     // game down" or "mute Spotify" is one call (Lachy, 3 Nov: "ensure they have the tools they need to perform everything themself").
     internal static class Mixer
     {
+        // Windows quiets every other app while one is on a call, and can count her mic or her voice as a call (Neco Arc, 3 Nov:
+        // "everything else on computer gets muted"). Each of her sounds opts out before it starts, and a failure never stops it.
+        // The smoke test swaps in its own sessions and opt-out.
+        internal static readonly Guid SessionId = new Guid("F4B1A599-7266-4319-A8CA-E70ACB11E8CD");
+        internal static Func<string, int, object> Session = OpenSession;
+        internal static Func<object, bool, int> Ducking = delegate(object session, bool optOut) { return ((ISound)session).SetDuckingPreference(optOut); };
+
+        // A WASAPI sound of hers, after Initialize and before Start.
+        internal static void NoDucking(ISoundClient client)
+        {
+            object session = null;
+            try
+            {
+                Guid id = SessionId;
+                if (client.GetService(ref id, out session) >= 0 && session != null) Ducking(session, true);
+            }
+            catch (Exception) { }
+            finally { Drop(session); }
+        }
+
+        // A wave API sound of hers plays in her default session on its device: Windows' default when there's no id.
+        internal static void NoDucking(string id, int flow)
+        {
+            object session = null;
+            try
+            {
+                session = Session(id, flow);
+                if (session != null) Ducking(session, true);
+            }
+            catch (Exception) { }
+            finally { Drop(session); }
+        }
+
+        private static object OpenSession(string id, int flow)
+        {
+            ISoundDevices devices = null;
+            ISoundDevice device = null;
+            object manager = null;
+            IntPtr control = IntPtr.Zero;
+            try
+            {
+                devices = (ISoundDevices)new SoundDevices();
+                int result = string.IsNullOrEmpty(id) ? devices.GetDefaultAudioEndpoint(flow, 0, out device) : devices.GetDevice(id, out device);
+                if (result < 0 || device == null) return null;
+                Guid managerId = typeof(ISoundManager).GUID;
+                if (device.Activate(ref managerId, 23, IntPtr.Zero, out manager) < 0 || manager == null) return null;
+                if (((ISoundManager)manager).GetAudioSessionControl(IntPtr.Zero, 0, out control) < 0 || control == IntPtr.Zero) return null;
+                return Marshal.GetObjectForIUnknown(control);
+            }
+            finally
+            {
+                if (control != IntPtr.Zero) Marshal.Release(control);
+                Drop(manager); Drop(device); Drop(devices);
+            }
+        }
+
         // Every app's sounds in the mixer right now, or null when Windows won't say. An app only has one once it has made sound.
         internal static List<AppSound> Sounds()
         {
@@ -141,7 +197,7 @@ namespace CapriDesktop
             [PreserveSig] int GetSession(int index, [MarshalAs(UnmanagedType.IUnknown)] out object session);
         }
 
-        // IAudioSessionControl2, up to GetProcessId.
+        // IAudioSessionControl2.
         [ComImport, Guid("BFB7FF88-7239-4FC9-8FA2-07C950BE9C6D"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         private interface ISound
         {
@@ -157,6 +213,8 @@ namespace CapriDesktop
             [PreserveSig] int GetSessionIdentifier(out IntPtr identifier);
             [PreserveSig] int GetSessionInstanceIdentifier(out IntPtr identifier);
             [PreserveSig] int GetProcessId(out int processId);
+            [PreserveSig] int IsSystemSoundsSession();
+            [PreserveSig] int SetDuckingPreference([MarshalAs(UnmanagedType.Bool)] bool optOut);
         }
     }
 }

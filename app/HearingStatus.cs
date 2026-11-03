@@ -4,13 +4,14 @@ using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Json;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
 namespace CapriDesktop
 {
-    internal enum HearingAction { Sound, Type, Privacy, Speech, Own, Windows, Test, Pick }
+    internal enum HearingAction { Sound, Type, Privacy, Speech, Own, Windows, Test, Pick, Output }
 
     internal sealed class HearingStatus
     {
@@ -26,6 +27,14 @@ namespace CapriDesktop
         }
 
         internal static readonly string[] Choices = { "Auto", "Her own ears", "Windows speech" };
+        // VB-CABLE's input as Windows' default speakers sends every app's sound into the cable, where nobody hears it, and its
+        // setup can leave it that way (Neco Arc, 3 Nov: "I stop hear everything else"). Voicemeeter's input is meant to be the
+        // default, and Steam's is only while it streams, so only VB-Audio's cables count.
+        internal const string CableSpeakers = "Default speakers are CABLE Input";
+        internal const string CableNotice = "Your PC's sound is going into CABLE Input, so you can't hear your other apps. Pick your speakers or headphones in Windows Sound settings.";
+        // A Bluetooth headset's mic puts it on a call, which quiets everything else it plays. She still hears, so it's only a note.
+        internal const string BluetoothMic = "Bluetooth mic: call mode quiets other apps";
+        internal static bool CableOutput(string name) { return Regex.IsMatch(name ?? "", @"^(Hi-Fi )?CABLE(-[A-D])? Input\b", RegexOptions.IgnoreCase); }
         internal static int Choice(int value) { return value >= 0 && value < Choices.Length ? value : 0; }
         internal static bool Own(int choice, bool ready) { return Choice(choice) != 2 && ready; }
         internal static string Name(HearingAction action)
@@ -33,6 +42,7 @@ namespace CapriDesktop
             switch (action)
             {
                 case HearingAction.Sound: return "Open Sound settings";
+                case HearingAction.Output: return "Open output settings";
                 case HearingAction.Type: return "Type instead";
                 case HearingAction.Privacy: return "Open mic privacy";
                 case HearingAction.Speech: return "Open speech settings";
@@ -55,6 +65,8 @@ namespace CapriDesktop
     {
         private Func<List<Mic>> hearingDevices = Ears.List;
         private Func<string> hearingDefault = Ears.DefaultDevice;
+        private Func<string> hearingOutput = HearingOutput;
+        private Func<string, string, bool> hearingHandsFree = Ears.IsHandsFree;
         private Func<bool> hearingPrivacy = Ears.PrivacyBlocked;
         private Func<bool?> hearingOnline = HearingWatch.OnlineSpeech;
         private Action<string> hearingDownloadNotice;
@@ -62,6 +74,9 @@ namespace CapriDesktop
         private HearingWatch hearingWatch;
         private List<Mic> hearingMics = new List<Mic>();
         private string hearingDefaultId;
+        private bool hearingCableOut;
+        private bool hearingCableSaid;
+        private Action<string, bool> hearingSoundNotice;
         private bool hearingBlocked;
         private string hearingCaptureProblem, hearingSpeechProblem, hearingResultProblem;
         private string hearingInstallProblem;
@@ -78,6 +93,7 @@ namespace CapriDesktop
 
         private void StartHearingStatus()
         {
+            hearingSoundNotice = EarsNote;
             hearingDownloadNotice = delegate(string text) { Notice.Tell(mainframe, text, "Her own ears", false); };
             hearingDownload = DownloadHearing;
             if (testing) hearingOnline = delegate { return null; };
@@ -100,6 +116,7 @@ namespace CapriDesktop
             hearingMics = hearingDevices();
             hearingDefaultId = hearingDefault();
             hearingBlocked = hearingPrivacy();
+            hearingCableOut = HearingStatus.CableOutput(hearingOutput());
             bool? online = hearingOnline();
             bool speechChanged = online == true && hearingSpeechProblem == Dictation.PrivacyOff;
             if (speechChanged) hearingSpeechProblem = null;
@@ -128,6 +145,33 @@ namespace CapriDesktop
             get { return chatting ? !local : voice.Key != null && voice.VoiceId != null && !ChatUsesEars(preferences.ListenCapri, preferences.Quiet, preferences.Silent, true) && !CallModeOn; }
         }
 
+        // Windows' default speakers' name, for the cable check. Games and calls can each have their own default, so either counts.
+        private static string HearingOutput()
+        {
+            string speakers = Ears.FullName(Ears.DefaultDevice(0, 0));
+            string voice = Ears.FullName(Ears.DefaultDevice(0, 1));
+            return HearingStatus.CableOutput(speakers) ? speakers : voice ?? speakers;
+        }
+
+        // The mic she hears through: Windows speech's, the one her ears opened, or the one they'd open, which is never VB-CABLE's.
+        private Mic HearingMic(bool windows)
+        {
+            Mic chosen = Ears.Find(preferences.Mic, hearingMics);
+            string id = windows && !hearingOffline ? dictation != null ? dictationMic : hearingDefaultId : ears.Listening ? ears.OpenedId : chosen == null ? hearingDefaultId : chosen.Id;
+            Mic device = Ears.Find(id, hearingMics);
+            if (device == null && windows && !string.IsNullOrEmpty(id)) foreach (Mic mic in hearingMics) if (id.IndexOf(mic.Id, StringComparison.OrdinalIgnoreCase) >= 0) { device = mic; break; }
+            if (device == null && (!windows || hearingOffline) && MicMix.IsCableOut(Ears.FullName(id)) && hearingMics.Count > 0) device = hearingMics[0];
+            return device;
+        }
+
+        // The cable as their speakers is said once a run, when she isn't thinking, talking or on a job.
+        private void CheckSoundNotice()
+        {
+            if (hearingCableSaid || !hearingCableOut || talkState == TalkState.Thinking || StillSaying || job != null || working != null) return;
+            hearingCableSaid = true;
+            hearingSoundNotice(HearingStatus.CableNotice, true);
+        }
+
         private HearingStatus ReadHearing()
         {
             if (hearingBlocked || hearingCaptureProblem == Dictation.MicBlocked || hearingSpeechProblem == Dictation.MicBlocked)
@@ -136,6 +180,7 @@ namespace CapriDesktop
                 return new HearingStatus("No mic found", true, HearingAction.Sound, HearingAction.Type);
             if (hearingCaptureProblem != null)
                 return new HearingStatus("Mic failed: " + HearingStatus.Reason(hearingCaptureProblem), true, HearingAction.Sound, HearingAction.Type);
+            if (hearingCableOut) return new HearingStatus(HearingStatus.CableSpeakers, true, HearingAction.Output);
             if (ears.Muted) return new HearingStatus("Mic muted", true);
             if (hearingWindowsMuted) return new HearingStatus("Mic muted in Windows", true, HearingAction.Sound, HearingAction.Test);
             bool ownFits = parakeet.Fits;
@@ -170,10 +215,11 @@ namespace CapriDesktop
                 if (settingUpEars || SettingUpVoice) return windows && earsReady ? new HearingStatus("Her ears are downloading: " + progress + " · Windows speech on", false) : new HearingStatus("Her ears are downloading: " + progress, false, HearingAction.Type);
                 return new HearingStatus("Her ears aren't installed", true, HearingAction.Own, HearingAction.Windows);
             }
+            // Only once nothing's wrong, so it never hides a problem.
+            Mic device = HearingMic(windows);
+            if (device != null && hearingHandsFree(device.Id, device.Name))
+                return windows && ownFits ? new HearingStatus(HearingStatus.BluetoothMic, false, HearingAction.Pick, HearingAction.Own) : new HearingStatus(HearingStatus.BluetoothMic, false, HearingAction.Pick);
             string engineName = HearingLink ? "ElevenLabs" : windows ? hearingOffline ? "Windows offline speech" : "Windows speech" : "her own ears";
-            string id = windows && !hearingOffline ? dictation != null ? dictationMic : hearingDefaultId : ears.Listening ? ears.OpenedId : chosen == null ? hearingDefaultId : chosen.Id;
-            Mic device = Ears.Find(id, hearingMics);
-            if (device == null && windows && !string.IsNullOrEmpty(id)) foreach (Mic mic in hearingMics) if (id.IndexOf(mic.Id, StringComparison.OrdinalIgnoreCase) >= 0) { device = mic; break; }
             string name = device == null ? windows && !hearingOffline ? "default mic" : "mic" : device.Name;
             if (windows && !hearingOffline && device != null) name = "default mic (" + name + ")";
             bool open = chatting && (local ? earsReady : ears.Listening);
@@ -192,6 +238,7 @@ namespace CapriDesktop
         private bool HearingNote(bool always = false)
         {
             UpdateHearing();
+            if (hearingStatus.Text == HearingStatus.CableSpeakers) { CheckSoundNotice(); return true; }
             if (!always && !hearingStatus.Problem) return false;
             if (hearingSaid != hearingStatus.Text)
             {
@@ -273,6 +320,7 @@ namespace CapriDesktop
             switch (action)
             {
                 case HearingAction.Sound: Browse("ms-settings:sound"); break;
+                case HearingAction.Output: Browse("ms-settings:sound"); break;
                 case HearingAction.Privacy: Browse("ms-settings:privacy-microphone"); break;
                 case HearingAction.Speech: OpenSpeechSettings(); break;
                 case HearingAction.Type: if (!typer.Visible) OpenTyper(); break;
@@ -326,6 +374,8 @@ namespace CapriDesktop
             Preferences preferencesWas = preferences;
             Func<List<Mic>> devicesWas = hearingDevices;
             Func<string> defaultWas = hearingDefault, speechDefaultWas = Dictation.DefaultMic;
+            Func<string> outputWas = hearingOutput;
+            Func<string, string, bool> handsFreeWas = hearingHandsFree;
             Func<bool> privacyWas = hearingPrivacy;
             Func<bool?> onlineWas = hearingOnline;
             Func<Dictation> makeWas = Dictation.Make;
@@ -357,6 +407,8 @@ namespace CapriDesktop
                 bool privacy = false;
                 hearingDevices = delegate { return new List<Mic>(devices); };
                 hearingDefault = delegate { return currentDefault; };
+                hearingOutput = delegate { return "Speakers"; };
+                hearingHandsFree = delegate { return false; };
                 Dictation.DefaultMic = delegate { return currentDefault; };
                 hearingPrivacy = delegate { return privacy; };
                 bool? online = null;
@@ -623,8 +675,34 @@ namespace CapriDesktop
                 notifications.OnDeviceRemoved("usb");
                 notifications.OnDeviceStateChanged("usb", 1);
                 notifications.OnPropertyValueChanged("usb", new HearingProperty());
-                if (changes != 5) throw new Exception("Mic changes weren't event driven or playback-only default changes were included.");
-                checks.Add("PASS hearing recovery: sustained good input with no results offers the other engine; partial or final words clear the problem; recognizer errors are immediate; Windows stays selected when ears arrive, speech privacy changes restart a fallback session, unsupported own-ear languages explain the limit, and synthetic endpoint events update without polling");
+                if (changes != 6) throw new Exception("Mic or speaker changes weren't event driven.");
+                // A burst of changes from Windows reads her mics once, and the next change waits out the second.
+                int told = 0;
+                long firstAt = -1, secondAt = -1;
+                System.Diagnostics.Stopwatch burstClock = System.Diagnostics.Stopwatch.StartNew();
+                using (HearingWatch burst = new HearingWatch(delegate
+                {
+                    long at = burstClock.ElapsedMilliseconds;
+                    if (Interlocked.Increment(ref told) == 1) Interlocked.Exchange(ref firstAt, at); else Interlocked.Exchange(ref secondAt, at);
+                }, false))
+                {
+                    Func<int, bool> reached = delegate(int count)
+                    {
+                        System.Diagnostics.Stopwatch waited = System.Diagnostics.Stopwatch.StartNew();
+                        while (Volatile.Read(ref told) < count && waited.ElapsedMilliseconds < 5000) Thread.Sleep(20);
+                        return Volatile.Read(ref told) >= count;
+                    };
+                    for (int i = 0; i < 200; i++) burst.Poke();
+                    bool once = reached(1);
+                    Thread.Sleep(burst.Settle);
+                    int afterBurst = Volatile.Read(ref told);
+                    burst.Poke();
+                    bool again = reached(2);
+                    long apart = Interlocked.Read(ref secondAt) - Interlocked.Read(ref firstAt);
+                    if (!once || afterBurst != 1 || !again || apart < burst.Spacing - 50)
+                        throw new Exception("A burst of mic changes wasn't read once, or the next one came within a second: " + afterBurst + " then " + Volatile.Read(ref told) + ", " + apart + " ms apart.");
+                }
+                checks.Add("PASS hearing recovery: sustained good input with no results offers the other engine; partial or final words clear the problem; recognizer errors are immediate; Windows stays selected when ears arrive, speech privacy changes restart a fallback session, unsupported own-ear languages explain the limit, and synthetic endpoint events update without polling, a burst of them as one read at most once a second");
                 checks.Add("PASS hearing choice saves and loads Auto, Her own ears and Windows speech; missing and invalid values mean Auto; Auto preserves own-then-Windows order and explicit choices stay on their engine while models arrive");
 
                 ownEarsTest = true;
@@ -673,6 +751,7 @@ namespace CapriDesktop
                 typer.Hide();
                 preferences = preferencesWas;
                 hearingDevices = devicesWas; hearingDefault = defaultWas; hearingPrivacy = privacyWas; hearingOnline = onlineWas;
+                hearingOutput = outputWas; hearingHandsFree = handsFreeWas;
                 Dictation.DefaultMic = speechDefaultWas; Dictation.Make = makeWas;
                 Browse = browseWas; hearingDownloadNotice = noticeWas; hearingDownload = downloadWas;
                 ownEarsTest = ownWas; earsComingTest = comingWas;
@@ -716,13 +795,19 @@ namespace CapriDesktop
         public int OnDeviceStateChanged(string id, int state) { changed(); return 0; }
         public int OnDeviceAdded(string id) { changed(); return 0; }
         public int OnDeviceRemoved(string id) { changed(); return 0; }
-        public int OnDefaultDeviceChanged(int flow, int role, string id) { if (flow == 1) changed(); return 0; }
+        public int OnDefaultDeviceChanged(int flow, int role, string id) { if (flow == 0 || flow == 1) changed(); return 0; }
         public int OnPropertyValueChanged(string id, HearingProperty key) { changed(); return 0; }
     }
 
+    // Windows can tell of a change many times a second: a driver rewriting a headset's properties, any app opening a mic, a
+    // Bluetooth headset going on a call. Each one read every mic again on her window's thread, so a burst of them could hold
+    // her up (Neco Arc, 3 Nov: she lagged and froze with Mainframe half drawn). A burst now settles and comes as one, at most
+    // once a second.
     internal sealed class HearingWatch : IDisposable
     {
+        internal int Settle = 300, Spacing = 1000;
         private readonly ManualResetEvent closed = new ManualResetEvent(false);
+        private readonly AutoResetEvent poked = new AutoResetEvent(false);
         private readonly List<RegistryKey> keys = new List<RegistryKey>();
         private readonly List<AutoResetEvent> changes = new List<AutoResetEvent>();
         private ISoundDevices devices;
@@ -743,37 +828,62 @@ namespace CapriDesktop
             catch (IOException) { return null; }
         }
 
-        internal HearingWatch(Action notify)
+        internal HearingWatch(Action notify) : this(notify, true) { }
+
+        // The smoke test watches nothing of Windows' and pokes it itself.
+        internal HearingWatch(Action notify, bool windows)
         {
-            try
+            if (windows)
             {
-                devices = (ISoundDevices)new SoundDevices();
-                endpoints = new HearingChanges(notify);
-                Marshal.ThrowExceptionForHR(devices.RegisterEndpointNotificationCallback(endpoints));
+                try
+                {
+                    devices = (ISoundDevices)new SoundDevices();
+                    endpoints = new HearingChanges(Poke);
+                    Marshal.ThrowExceptionForHR(devices.RegisterEndpointNotificationCallback(endpoints));
+                }
+                catch (Exception error) { Brain.Log("ears", -1, "Mic change notifications: " + Voice.Short(error.Message)); }
+                foreach (RegistryKey root in new[] { Registry.CurrentUser, Registry.LocalMachine })
+                    foreach (string path in new[] { @"SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore", @"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio", @"SOFTWARE\Microsoft\Multimedia\Audio", @"SOFTWARE\Microsoft\Speech_OneCore\Settings" })
+                    {
+                        try { RegistryKey key = root.OpenSubKey(path); if (key != null) { keys.Add(key); changes.Add(new AutoResetEvent(false)); } }
+                        catch (System.Security.SecurityException) { }
+                        catch (UnauthorizedAccessException) { }
+                        catch (IOException) { }
+                    }
             }
-            catch (Exception error) { Brain.Log("ears", -1, "Mic change notifications: " + Voice.Short(error.Message)); }
-            foreach (RegistryKey root in new[] { Registry.CurrentUser, Registry.LocalMachine })
-                foreach (string path in new[] { @"SOFTWARE\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore", @"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio", @"SOFTWARE\Microsoft\Multimedia\Audio", @"SOFTWARE\Microsoft\Speech_OneCore\Settings" })
-                {
-                    try { RegistryKey key = root.OpenSubKey(path); if (key != null) { keys.Add(key); changes.Add(new AutoResetEvent(false)); } }
-                    catch (System.Security.SecurityException) { }
-                    catch (UnauthorizedAccessException) { }
-                    catch (IOException) { }
-                }
-            worker = new Thread(delegate()
-            {
-                List<WaitHandle> signals = new List<WaitHandle> { closed };
-                signals.AddRange(changes.ToArray());
-                for (int i = 0; i < keys.Count; i++) RegNotifyChangeKeyValue(keys[i].Handle.DangerousGetHandle(), true, 5, changes[i].SafeWaitHandle.DangerousGetHandle(), true);
-                while (!closed.WaitOne(0))
-                {
-                    int at = WaitHandle.WaitAny(signals.ToArray());
-                    if (at == 0) return;
-                    RegNotifyChangeKeyValue(keys[at - 1].Handle.DangerousGetHandle(), true, 5, changes[at - 1].SafeWaitHandle.DangerousGetHandle(), true);
-                    notify();
-                }
-            }) { IsBackground = true, Name = "Capri hearing changes" };
+            worker = new Thread(delegate() { Watch(notify); }) { IsBackground = true, Name = "Capri hearing changes" };
             worker.Start();
+        }
+
+        // Windows' endpoint changes come on its own threads, so they only wake her watcher.
+        internal void Poke()
+        {
+            try { poked.Set(); }
+            catch (ObjectDisposedException) { }
+        }
+
+        private void Watch(Action notify)
+        {
+            List<WaitHandle> signals = new List<WaitHandle> { closed, poked };
+            signals.AddRange(changes.ToArray());
+            WaitHandle[] waits = signals.ToArray();
+            for (int i = 0; i < keys.Count; i++) RegNotifyChangeKeyValue(keys[i].Handle.DangerousGetHandle(), true, 5, changes[i].SafeWaitHandle.DangerousGetHandle(), true);
+            System.Diagnostics.Stopwatch clock = System.Diagnostics.Stopwatch.StartNew();
+            long due = -1, told = -Spacing;
+            while (true)
+            {
+                int at = WaitHandle.WaitAny(waits, due < 0 ? Timeout.Infinite : (int)Math.Max(0, due - clock.ElapsedMilliseconds));
+                if (at == 0) return;
+                if (at == WaitHandle.WaitTimeout)
+                {
+                    due = -1;
+                    told = clock.ElapsedMilliseconds;
+                    notify();
+                    continue;
+                }
+                if (at >= 2) RegNotifyChangeKeyValue(keys[at - 2].Handle.DangerousGetHandle(), true, 5, changes[at - 2].SafeWaitHandle.DangerousGetHandle(), true);
+                if (due < 0) due = Math.Max(clock.ElapsedMilliseconds + Settle, told + Spacing);
+            }
         }
 
         public void Dispose()
@@ -788,6 +898,7 @@ namespace CapriDesktop
             foreach (RegistryKey key in keys) key.Dispose();
             foreach (AutoResetEvent change in changes) change.Dispose();
             closed.Dispose();
+            poked.Dispose();
         }
     }
 }

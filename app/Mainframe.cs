@@ -3381,6 +3381,7 @@ namespace CapriDesktop
         }
 
         internal string HearingText { get { return hearingNote.Text; } }
+        internal bool HearingTextFits { get { return TextRenderer.MeasureText(hearingNote.Text, hearingNote.Font).Width <= hearingNote.ClientSize.Width; } }
         internal bool HearingWarning { get { return hearingNote.ForeColor == Hot; } }
         internal string HearingButtons { get { return string.Join(" | ", Array.ConvertAll(hearingActions, HearingStatus.Name)); } }
         internal string HearingShown { get { return hearingChoice.Text; } }
