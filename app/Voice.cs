@@ -98,6 +98,10 @@ namespace CapriDesktop
 
         internal bool Ready { get { return Key != null && VoiceId != null; } }
 
+#if !CROSS
+        internal bool Busy { get { return player.Busy; } }
+#endif
+
 #if CROSS
         internal static string Protect(string key) { throw new PlatformNotSupportedException("Saving keys isn't ready on this system yet."); }
 

@@ -67,7 +67,7 @@ namespace CapriDesktop
         private void CheckFollowUp(double now)
         {
             if (followTicket == asking && !followLogged && !FollowDelivery(followTicket)) { asking++; CloseTalk(); }
-            bool finished = talkState == TalkState.Off && now >= voiceUntil && !speaker.Busy && answerVoice != asking && (!chatting || !earsShut);
+            bool finished = talkState == TalkState.Off && !LineBusy && (!chatting || !earsShut);
             string line = followUp.Take(now, asking, FollowInput(), micTalked, FollowUpAllowed(), finished);
             if (line == null) return;
             followTicket = asking + 1;

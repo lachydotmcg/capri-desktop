@@ -461,7 +461,7 @@ namespace CapriDesktop
         {
             if (ticket < 0) ticket = asking;
             if (IsDisposed || ticket != asking) return;
-            if (talkState == TalkState.Off)
+            if (talkState == TalkState.Off && !LineBusy)
             {
                 int previous = asking;
                 Remark("", line);
@@ -507,6 +507,7 @@ namespace CapriDesktop
         {
             LogVoiceInterruption(source, audioTurn, false);
             CancelAnswerAudio();
+            voicePreview = null;
             bargeIns++;
             double now = clock.Elapsed.TotalSeconds;
             asideVoice++;
@@ -649,6 +650,25 @@ namespace CapriDesktop
         private bool pushUnmuted;
         private int pushCallVersion;
         private List<short[]> pushed;
+
+        // Windows keeps keys from her while a game that runs as admin is in front, so in Genshin Impact her push-to-talk and her
+        // other keys did nothing (john_sandevistan, 3 Nov). She says why, once for each game while she runs; anything else that
+        // runs as admin, like Task Manager, gets nothing.
+        private IntPtr keyFront;
+        private readonly HashSet<string> keyWarnings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private const string AdminKeys = "This game runs as admin, so Windows hides your keys from me while it's in front. Start me as admin to use push-to-talk here.";
+
+        private void CheckKeyAccess()
+        {
+            IntPtr front = Hands.Foreground();
+            if (front == keyFront) return;
+            keyFront = front;
+            if (!Computer.AboveHer(front)) return;
+            string game = GameAhead();
+            if (game == null || !keyWarnings.Add(game)) return;
+            mainframe.VoiceNote(AdminKeys, false);
+            SayOwn("keys", AdminKeys);
+        }
 
         private bool PushHeld()
         {

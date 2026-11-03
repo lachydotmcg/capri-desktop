@@ -60,6 +60,7 @@ namespace CapriDesktop
 
         internal void ToggleCallMode()
         {
+            if (!CallModeOn && AfterLine(ToggleCallMode)) return;
             bool wasChatting = chatting;
             bool on = !CallModeOn;
             callSession.Change(on);
