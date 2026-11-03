@@ -1466,6 +1466,8 @@ namespace CapriDesktop
         private bool hotkey;
         private double leanAngle;
         private Ledge seat;
+        // Where she was stood up beside something full screen, like to doze or by a display change, until she moves.
+        private Point? asideAt;
         private bool falling;
         private Ledge fallTo;
         private double fallSpeed;
@@ -2807,8 +2809,8 @@ namespace CapriDesktop
             {
                 Point restHip = Hip();
                 Rectangle restArea = Screen.FromPoint(restHip).WorkingArea;
-                int restX;
-                bool restLeft;
+                int restX = restHip.X;
+                bool restLeft = facingLeft;
                 if (seat != null && LiePlace(seat, restHip, restArea, preferences.Size, facingLeft, out restX, out restLeft))
                 {
                     facingLeft = restLeft;
@@ -2817,8 +2819,9 @@ namespace CapriDesktop
                     LieDown();
                     return;
                 }
-                System.Collections.Generic.List<Ledge> places = napLedges == null ? Around() : napLedges();
-                Ledge restPlace = NapPlace(places, restHip, restArea, preferences.Size, facingLeft, out restX, out restLeft);
+                // Beside something full screen she dozes there standing, not lying down over the bottom of the game, and gets down
+                // once it's gone (john_sandevistan, 3 Nov).
+                Ledge restPlace = Aside ? null : NapPlace(Around(), restHip, restArea, preferences.Size, facingLeft, out restX, out restLeft);
                 if (restPlace != null)
                 {
                     SitUp(false);
@@ -2834,7 +2837,7 @@ namespace CapriDesktop
                     frames.Start();
                     return;
                 }
-                if (!doze) { ownRest = false; return; }
+                if (!doze) { ownRest = false; nextLie = -1; return; }
                 StandUp();
             }
             if (!doze) return;
@@ -3328,8 +3331,39 @@ namespace CapriDesktop
         {
             if (IsDisposed) return;
             Ledges.Invalidate();
-            // Her clones' room was the old screen, so they go, and the windows they had go back if their spots are still on a screen.
-            BeginInvoke((Action)delegate { if (cloneWindow != null) ClonesOff(); if (seat != null) StandUp(); anchor = KeepOnScreen(anchor); Location = anchor; RenderFrame(); });
+            BeginInvoke((Action)Rescreen);
+        }
+
+        // Her clones' room was the old screen, so they go, and the windows they had go back if their spots are still on a screen. On
+        // the taskbar she stays on it as it is now, still lying or asleep: a monitor waking up stood her up off it and left her
+        // floating above it (john_sandevistan, 3 Nov). Stood up beside something full screen, she still gets down once it's gone.
+        private void Rescreen()
+        {
+            if (cloneWindow != null) ClonesOff();
+            if (!Refloor())
+            {
+                bool aside = Aside;
+                if (seat != null) StandUp();
+                anchor = KeepOnScreen(anchor);
+                if (aside) asideAt = anchor;
+            }
+            Location = anchor;
+            RenderFrame();
+        }
+
+        private bool Refloor()
+        {
+            if (seat == null || !seat.Floor || seat.Free || walking) return false;
+            Point hip = Hip();
+            Rectangle area = Screen.FromPoint(hip).WorkingArea;
+            Ledge floor = new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom };
+            int x = Math.Max(area.Left + (int)Math.Ceiling(preferences.Size * (SitX - PerchedBody.Left)), Math.Min(hip.X, area.Right - (int)Math.Ceiling(preferences.Size * (PerchedBody.Right - SitX))));
+            bool way = facingLeft;
+            if (lying && !LiePlace(floor, hip, area, preferences.Size, facingLeft, out x, out way)) return false;
+            seat = floor;
+            facingLeft = way;
+            anchor = Seated(x, floor.Y);
+            return true;
         }
 
         protected override void OnMouseDown(MouseEventArgs e)
@@ -3707,6 +3741,7 @@ namespace CapriDesktop
 
         private System.Collections.Generic.List<Ledge> Around()
         {
+            if (napLedges != null) return napLedges();
             System.Collections.Generic.List<IntPtr> skip = Skip();
             IntPtr own = mainframe.IsHandleCreated ? mainframe.Handle : IntPtr.Zero;
             skip.Remove(own);
@@ -6403,6 +6438,7 @@ namespace CapriDesktop
             Halt();
             hanging = false;
             walking = false;
+            if (seat != null) asideAt = seat.Aside ? anchor : (Point?)null;
             seat = null;
             coveredSince = -1;
             seatLost = -1;
@@ -6938,11 +6974,11 @@ namespace CapriDesktop
             RectangleF shape = seat != null ? PerchedBody : Body;
             Point to = Within(new Point(anchor.X + away * hop, anchor.Y), area, shape);
             if (Math.Abs(to.X - anchor.X) < size / 3) to = Within(new Point(anchor.X - away * hop, anchor.Y), area, shape);
-            bool free = seat != null && seat.Free, drop = seat != null && !free && !preferences.NoSitting;
+            bool free = seat != null && seat.Free, drop = seat != null && !free && !preferences.NoSitting, beside = free && seat.Aside;
             int freeY = free ? seat.Y : 0, shift = to.X - anchor.X;
             GlitchOut(delegate
             {
-                if (free) { int freeX = Hip().X + shift; Hop(new Ledge { Left = freeX - 8, Right = freeX + 8, Y = freeY, Floor = true, Free = true }, freeX); return; }
+                if (free) { int freeX = Hip().X + shift; Hop(new Ledge { Left = freeX - 8, Right = freeX + 8, Y = freeY, Floor = true, Free = true, Aside = beside }, freeX); return; }
                 SitUp(false);
                 seat = null;
                 hanging = false;
@@ -7145,7 +7181,7 @@ namespace CapriDesktop
         {
             bool full = FullScreen();
             CheckFullScreen(full);
-            if (!full) LeaveAside();
+            if (!full) LeaveAside(now);
             if (now < frontChecked) return;
             frontChecked = now + 1;
             Sight ahead = Computer.Glimpse();
@@ -7167,16 +7203,32 @@ namespace CapriDesktop
 
         internal bool FullScreenDisplay { get { return fullThrough || (!testing && Native.FillsScreen()); } }
 
-        // Beside something full screen she sits on nothing, clear of the game or video. Once it's gone she goes back to a real
-        // ledge instead of staying in the middle of their screen, sitting or standing up there after a nap (john_sandevistan, 1 Nov).
-        private void LeaveAside()
+        // Beside something full screen she sits on nothing, clear of the game or video. Once it's gone she drops onto what's under
+        // her, the taskbar if nothing else, even mid-nap or stood up there by a display change, instead of staying in the middle of
+        // their screen (john_sandevistan, 1 and 3 Nov).
+        private void LeaveAside(double now)
         {
-            if (seat == null || !seat.Aside || hidden || docked || dragging || pressed || riding || walking || falling || hanging || outro != null || working != null || ownRest || napping) return;
-            seat.Aside = false;
-            if (Wander() || outro != null || seat == null || !seat.Free) return;
-            Ledge under = Ledges.Below(Around(), Hip(), 0, int.MaxValue, 0, Headroom());
-            if (under != null) GlitchOut(delegate { Hop(under, Hip().X); }, false);
+            if (!Aside || hidden || docked || dragging || pressed || riding || walking || falling || hanging || outro != null || working != null) return;
+            Point hip = Hip();
+            Ledge under = Ledges.Below(Around(), hip, 0, int.MaxValue, 0, Headroom());
+            if (under == null)
+            {
+                Rectangle area = Screen.FromPoint(hip).WorkingArea;
+                under = new Ledge { Floor = true, Left = area.Left, Right = area.Right, Y = area.Bottom };
+            }
+            LoseSeat();
+            asideAt = null;
+            fallTo = under;
+            falling = true;
+            thrown = false;
+            fallSpeed = 0;
+            fallStep = now;
+            Play(dangle);
+            frames.Start();
         }
+
+        // Beside something full screen: on her spot there, or stood up on it and not moved since.
+        private bool Aside { get { return seat != null ? seat.Aside : asideAt == anchor; } }
 
         private void StopExplore()
         {
@@ -12843,6 +12895,7 @@ namespace CapriDesktop
         {
             NapScaleChecks(checks);
             Point napHome = anchor;
+            Point? napAsideWas = asideAt;
             Ledge napSeatWas = seat, napFallWas = fallTo;
             Clip napClipWas = clip;
             double napClipStartWas = clipStart, napNextWas = nextNap, napLieWas = nextLie, napUntilWas = restUntil, napVoiceWas = voiceUntil, napMeetWas = meetAt;
@@ -12877,6 +12930,7 @@ namespace CapriDesktop
                 voiceUntil = 0;
                 meetAt = lieBy = nextNap = nextLie = restUntil = -1;
                 seat = fallTo = null;
+                asideAt = null;
                 facingLeft = false;
                 anchor = Seated(napArea.Left + napArea.Width / 2, napShelf.Y - 30);
                 Play(idle);
@@ -12950,21 +13004,68 @@ namespace CapriDesktop
                 preferences.Motion = true;
                 preferences.NoSitting = false;
                 checks.Add("PASS nap from floor, window ledge, hanging, walking, drag and dance with a stand-in clock, even with motion or automatic sitting off; asked naps hush comments and Watch and ignore PC input until clicked; on the floor she lies on its line, never lifted off it");
-                // Moved aside for something full screen, she leaves that spot once it's gone; a spot they chose with Sit here stays.
-                napReset();
-                preferences.Motion = false;
-                Ledge napAside = new Ledge { Left = napArea.Left + napArea.Width * 3 / 4 - 8, Right = napArea.Left + napArea.Width * 3 / 4 + 8, Y = napArea.Top + napArea.Height / 2, Floor = true, Free = true, Aside = true };
-                seat = napAside;
-                anchor = Seated(napAside.Left + 8, napAside.Y);
-                LeaveAside();
-                if (seat == napAside || (seat != null && seat.Aside)) throw new Exception("She stayed sitting on nothing beside a full screen that had gone.");
+                // Moved aside for something full screen, she gets down once it's gone: onto the taskbar with no window or nothing at
+                // all under her, after a display change stood her up there, and from a nap she takes there standing, never down over
+                // the bottom of the game. A spot they chose with Sit here stays.
+                Func<System.Collections.Generic.List<Ledge>> napBoth = napLedges;
+                Ledge napAside = null;
+                Action napBeside = delegate
+                {
+                    napReset();
+                    napAside = new Ledge { Left = napArea.Left + napArea.Width * 3 / 4 - 8, Right = napArea.Left + napArea.Width * 3 / 4 + 8, Y = napArea.Top + napArea.Height / 2, Floor = true, Free = true, Aside = true };
+                    seat = napAside;
+                    anchor = Seated(napAside.Left + 8, napAside.Y);
+                    Play(perch);
+                };
+                napLedges = delegate { return new System.Collections.Generic.List<Ledge> { napFloor }; };
+                napBeside();
+                LeaveAside(napNow);
+                napTicks(0, 100);
+                if (seat != napFloor || falling || Hip().Y != napFloor.Y) throw new Exception("With no window under her she stayed beside a full screen that had gone.");
+                napBeside();
+                Rescreen();
+                if (seat != null || !Aside) throw new Exception("A display change beside a full screen lost her spot there.");
+                LeaveAside(napNow);
+                napTicks(0, 100);
+                if (seat != napFloor || falling) throw new Exception("Stood up beside a full screen by a display change, she stayed there once it had gone.");
+                napBeside();
+                napTicks(120001, 200);
+                if (!Asleep || lying || seat != null || !Aside || Hip() != new Point(napAside.Left + 8, napAside.Y)) throw new Exception("Her nap beside a full screen left her spot.");
+                LeaveAside(napNow);
+                napTicks(120001, 200);
+                if (!Asleep || !lying || seat != napFloor || Hip().Y != napFloor.Y) throw new Exception("Asleep beside a full screen that had gone, she didn't get down and sleep on the taskbar.");
+                CheckIdle(napNow, 0);
+                if (Asleep || lying || seat != null || anchor.Y + PaddingSize + (int)(preferences.Size * StandY) != napFloor.Y) throw new Exception("Woken by the mouse after that nap, she didn't stand on the taskbar.");
+                napBeside();
+                Nap(true);
+                napTicks(0, 200);
+                if (!Asleep || !napping || seat != null || !Aside) throw new Exception("An asked-for nap beside a full screen left her spot.");
+                LeaveAside(napNow);
+                napTicks(0, 200);
+                if (!Asleep || !napping || !lying || seat != napFloor) throw new Exception("An asked-for nap beside a full screen that had gone didn't carry on on the taskbar.");
+                napLedges = delegate { return new System.Collections.Generic.List<Ledge>(); };
+                napBeside();
+                LeaveAside(napNow);
+                napTicks(0, 100);
+                if (seat == null || !seat.Floor || seat.Free || seat.Y != napArea.Bottom || Hip().Y != seat.Y) throw new Exception("With nothing at all under her she didn't get down to the taskbar.");
+                napLedges = napBoth;
                 Ledge napChosen = new Ledge { Left = napAside.Left, Right = napAside.Right, Y = napAside.Y, Floor = true, Free = true };
+                napReset();
                 seat = napChosen;
                 anchor = Seated(napChosen.Left + 8, napChosen.Y);
-                LeaveAside();
+                LeaveAside(napNow);
                 if (seat != napChosen) throw new Exception("Leaving a full screen's side moved her off a spot chosen with Sit here.");
-                preferences.Motion = true;
-                checks.Add("PASS beside something full screen she sits on nothing only while it lasts, and a spot chosen with Sit here stays put");
+                // A display change, like a monitor waking up, keeps her asleep on the taskbar as it is now.
+                napReset();
+                seat = new Ledge { Floor = true, Left = napArea.Left, Right = napArea.Right, Y = napArea.Bottom - preferences.Size };
+                anchor = Seated(napArea.Left + napArea.Width / 2, seat.Y);
+                Play(perch);
+                LieDown();
+                Play(laydownSleep);
+                napping = true;
+                Rescreen();
+                if (!lying || !Asleep || !napping || seat == null || !seat.Floor || seat.Y != napArea.Bottom || Hip().Y != napArea.Bottom) throw new Exception("A display change didn't keep her asleep on the taskbar as it is now.");
+                checks.Add("PASS beside something full screen she sits on nothing only while it lasts and naps there standing; once it's gone she gets down onto the taskbar with no window or nothing at all under her, after a display change stood her up there, and mid-nap, which carries on there until the mouse stands her up on it; a spot chosen with Sit here stays put; a display change keeps her asleep on the taskbar as it is now");
                 napReset();
                 Ledge napNarrow = new Ledge { Left = napArea.Left + napArea.Width / 2 - 12, Right = napArea.Left + napArea.Width / 2 + 12, Y = napShelf.Y - 10 };
                 seat = napNarrow;
@@ -13232,7 +13333,7 @@ namespace CapriDesktop
                 gaming.Find = napGameWas; gaming.Changed = napGameChangedWas; gaming.Dock = napGameDockWas; gaming.Undock = napGameUndockWas;
                 napLedges = napPlacesWas; Think = napThinkWas; stopTest = napStopWas;
                 preferences.Motion = napMotionWas; preferences.NoSitting = napSittingWas; preferences.SleepAfter = napAfterWas; preferences.Silent = napSilentWas;
-                anchor = napHome; seat = napSeatWas; fallTo = napFallWas; clip = napClipWas; clipStart = napClipStartWas;
+                anchor = napHome; asideAt = napAsideWas; seat = napSeatWas; fallTo = napFallWas; clip = napClipWas; clipStart = napClipStartWas;
                 facingLeft = napLeftWas; falling = napFallingWas; hanging = napHangingWas; walking = napWalkingWas; lying = napLyingWas;
                 napAsked = napAskedWas; napping = napNappingWas; ownRest = napOwnWas; ownNap = napOwnNapWas; ownLie = napOwnLieWas;
                 nextNap = napNextWas; nextLie = napLieWas; restUntil = napUntilWas; voiceUntil = napVoiceWas; meetAt = napMeetWas;
