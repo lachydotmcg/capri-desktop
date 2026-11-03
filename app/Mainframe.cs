@@ -2183,6 +2183,7 @@ namespace CapriDesktop
 
         protected override void Dispose(bool disposing)
         {
+            if (disposing) { glide.Stop(); glide.Dispose(); if (languageFont != null) languageFont.Dispose(); }
             if (disposing) DisposeHints();
             if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); }
             if (disposing && languageFont != null) languageFont.Dispose();
@@ -2648,6 +2649,8 @@ namespace CapriDesktop
 
         internal int Scrolled { get { return pageScroll; } }
 
+        internal bool Gliding { get { return glide.Enabled; } }
+
         internal int ScrollMost { get { return Math.Max(0, PageNow - pageView); } }
 
         internal int BackTop { get { return more.Top; } }
@@ -2672,12 +2675,12 @@ namespace CapriDesktop
         }
 
         // Turns the mouse wheel over the perch slider, so it reaches the page the way a real wheel does.
-        internal void Wheel(int notches)
+        internal void Wheel(int notches, bool settle = true)
         {
             Point at = perchFps.PointToScreen(new Point(perchFps.Width / 2, perchFps.Height / 2));
             for (int i = 0; i < Math.Abs(notches); i++)
                 Native.SendMessage(perchFps.Handle, 0x020A, new IntPtr((notches > 0 ? 120 : -120) << 16), new IntPtr((at.Y << 16) | (at.X & 0xFFFF)));
-            Settle();
+            if (settle) Settle();
         }
 
         // Tabs through Settings from Back and names the first control that gets focus without all of it showing, or null.
@@ -5563,8 +5566,8 @@ namespace CapriDesktop
             internal void Sync()
             {
                 Companion capri = owner.capri;
-                bool cable = capri.CableReady, on = capri.VoiceInMic;
                 MixDevice there = capri.MixOutput;
+                bool cable = there != null, on = capri.VoiceInMic;
                 string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine, far = MicMix.FarName(there);
                 syncing = true;
                 onOff.Checked = on;

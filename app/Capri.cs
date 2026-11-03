@@ -7451,6 +7451,7 @@ namespace CapriDesktop
         // Her settings tool turns it off without her line, since her brain says so.
         internal void Silence(bool say = true)
         {
+            voiceOffTurn++;
             ownLines.Clear();
             voicePreview = null;
             if (preferences.Silent) return;
@@ -7491,13 +7492,13 @@ namespace CapriDesktop
                 SavePreferences();
             }
             bool wasSilent = preferences.Silent;
-            preferences.Silent = false;
+            if (!keepVoiceOff) preferences.Silent = false;
             if (wasSilent)
             {
                 preferences.Quiet = !paid;
                 SavePreferences();
                 if (!paid) GetFreeVoice();
-                if (!hidden && !IsDisposed && (!paid || voice.Key != null))
+                if (!preferences.Silent && !hidden && !IsDisposed && (!paid || voice.Key != null))
                 {
                     heard = "settings";
                     box.Prompt = "> sys: ";
@@ -9186,6 +9187,8 @@ namespace CapriDesktop
         private readonly System.Collections.Generic.Queue<Action> voiceChanges = new System.Collections.Generic.Queue<Action>();
         private readonly System.Collections.Generic.Queue<Action> ownLines = new System.Collections.Generic.Queue<Action>();
         private Action voicePreview;
+        private int voiceOffTurn;
+        private bool keepVoiceOff, changingVoice;
 
         // Her voice is still being made or played, past its estimate too: an answer's, a reaction's, a clone's or voice chat's.
         private bool Voicing
@@ -9200,8 +9203,16 @@ namespace CapriDesktop
 
         private bool AfterLine(Action change)
         {
-            if (!Voicing) return false;
-            voiceChanges.Enqueue(change);
+            if (!Voicing && (changingVoice || voiceChanges.Count == 0)) return false;
+            int turn = voiceOffTurn;
+            voiceChanges.Enqueue(delegate
+            {
+                bool held = keepVoiceOff, changing = changingVoice;
+                keepVoiceOff = held || preferences.Silent && turn != voiceOffTurn;
+                changingVoice = true;
+                try { change(); }
+                finally { keepVoiceOff = held; changingVoice = changing; }
+            });
             return true;
         }
 
@@ -9991,7 +10002,7 @@ namespace CapriDesktop
             preferences.ServerVoice = true;
             if (Cloudy(address, api)) preferences.CloudVoice = VoiceServer.CloudName(api);
             bool wasSilent = preferences.Silent;
-            preferences.Silent = false;
+            if (!keepVoiceOff) preferences.Silent = false;
             if (wasSilent || (voice.Key != null && !preferences.Quiet))
             {
                 preferences.Quiet = true;
@@ -10003,7 +10014,7 @@ namespace CapriDesktop
             if (wasSilent || api == VoiceServer.Files) GetFreeVoice();
             mainframe.Sync();
             ShowVoice();
-            TestVoice();
+            if (!preferences.Silent) TestVoice();
         }
 
         // Forget in its panel drops the key saved for that server, in use or kept aside.
@@ -21825,6 +21836,20 @@ namespace CapriDesktop
             ReactMust(!slow && !failed && !cut && rested && back && onlyHers,
                 "A slow or failing brain put something up, or wasn't asked less: slow " + slow + ", failed " + failed + ", cut " + cut + ", rested " + rested + ", back " + back + ", " + ReactShown(rig));
             checks.Add("PASS live reactions show nothing, never a fixed line, when her brain answers after 2.5 s or fails, and a brain late three times running is only asked every 30 s until it's quick again");
+            Func<string> gameWas = Commentary.Game;
+            int thread = Thread.CurrentThread.ManagedThreadId, fedBefore;
+            lock (rig.Fed) fedBefore = rig.Fed.Count;
+            try
+            {
+                rig.Now += Reactions.SlowAsk;
+                rig.Quick = ask => "this moment was from the old game";
+                Commentary.Game = delegate { return Thread.CurrentThread.ManagedThreadId == thread ? "Hollow Abyss" : "Another game"; };
+                ReactMust(Reactions.React("death"), "The queued game change check did not start.");
+                ReactSettle(0);
+                lock (rig.Fed) ReactMust(rig.Fed.Count == fedBefore, "A queued reaction followed a moment into another game.");
+            }
+            finally { Commentary.Game = gameWas; }
+            checks.Add("PASS a reaction keeps the game where its moment happened and drops it if the game changes before its worker starts");
         }
 
         // Her brain's look follows when it lands in time and is dropped when it's late, and a slow brain is asked less.
@@ -24434,6 +24459,12 @@ namespace CapriDesktop
             bool talkingWas = cloneTalking, hideFullWas = preferences.HideFullScreen, fullHiddenWas = fullScreenHidden, throughWas = fullThrough;
             double cloneAtWas = cloneTalkAt;
             int micWas = micTalked;
+            int offWas = voiceOffTurn;
+            bool keepOffWas = keepVoiceOff, changingWas = changingVoice;
+            string cloudWas = preferences.CloudVoice;
+            string[] serverWas = { server.Url, server.Api, server.Model, server.Speaker, server.Key };
+            string[] savedServer = { preferences.ServerUrl, preferences.ServerApi, preferences.ServerModel, preferences.ServerSpeaker, preferences.ServerKey };
+            string[] savedAside = { preferences.AsideUrl, preferences.AsideApi, preferences.AsideModel, preferences.AsideSpeaker, preferences.AsideKey };
             Func<bool> fullWas = FullScreen;
             try
             {
@@ -24527,6 +24558,50 @@ namespace CapriDesktop
                 cloneWindow = clonesWas; clonesHere.Dispose(); clonesHere = null;
                 checks.Add("PASS reactions and clone lines wait for sound still playing past its estimate");
 
+                working = "Waiting for her answer's voice.";
+                talkState = TalkState.Online;
+                if (!ReactionVoiceFree()) throw new Exception("The pending answer check started with reactions blocked.");
+                answerVoice = asking;
+                if (ReactionVoiceFree()) throw new Exception("A reaction spoke while an answer's audio was still being made.");
+                answerVoice = -1;
+                hdSpeaking = asking;
+                if (ReactionVoiceFree()) throw new Exception("A reaction spoke while HD answer audio was still being made.");
+                hdSpeaking = -1;
+                working = null;
+                CloseTalk();
+                checks.Add("PASS reactions wait for pending answer audio during a job after its text appears");
+
+                voice.Play(wav);
+                ticket = asking;
+                ChooseVoiceTier(false);
+                ChooseVoiceModel("muted-next-model");
+                Silence(false);
+                CheckNextLine();
+                if (!preferences.Silent || !LoadPreferences().Silent || !preferences.Quiet || voice.Model != "muted-next-model" || asking != ticket || voiceChanges.Count != 0 || voicePreview != null || Voicing)
+                    throw new Exception("A queued voice choice undid a newer voice OFF.");
+                ChooseVoiceTier(false);
+                if (preferences.Silent) throw new Exception("A new voice choice after OFF could not turn her voice on.");
+                CloseTalk();
+                preferences.Quiet = false;
+                voice.Play(wav);
+                ticket = asking;
+                UseVoiceServer("http://127.0.0.1:9", "muted-next-voice", null, null, VoiceServer.OpenAi);
+                Silence(false);
+                CheckNextLine();
+                if (!preferences.Silent || !LoadPreferences().Silent || !preferences.ServerVoice || server.Url != "http://127.0.0.1:9" || server.Model != "muted-next-voice" || asking != ticket || voiceChanges.Count != 0 || voicePreview != null || Voicing)
+                    throw new Exception("A queued voice server undid a newer voice OFF.");
+                preferences.Silent = preferences.Quiet = preferences.ServerVoice = false;
+                CloseTalk();
+                checks.Add("PASS queued voice and server choices keep their settings after a newer OFF without speaking, and a later voice choice can turn her voice back on");
+
+                voice.Play(wav);
+                ChooseVoiceModel("older-queued-model");
+                voice.Stop();
+                ChooseVoiceModel("newer-queued-model");
+                CheckNextLine();
+                if (voice.Model != "newer-queued-model" || voiceChanges.Count != 0) throw new Exception("An older queued setting replaced a newer choice after speech ended.");
+                checks.Add("PASS settings keep their order when speech ends before the waiting settings are applied");
+
                 Begin(++asking, "Keep playing while settings change.", TalkState.Talking, wav);
                 voice.Play(wav);
                 Action[] changes = {
@@ -24564,6 +24639,11 @@ namespace CapriDesktop
                 VoiceFx.Pitch = pitchWas; VoiceFx.Speed = speedWas; VoiceFx.Robot = robotWas; VoiceFx.Glitch = glitchWas; VoiceFx.Layers = layersWas;
                 preferences.VoicePitch = savedPitchWas; preferences.VoiceSpeed = savedSpeedWas; preferences.VoiceRobot = savedRobotWas; preferences.VoiceGlitch = savedGlitchWas;
                 preferences.VoiceLayers = savedLayers.On; preferences.LayerPitch1 = savedLayers.Pitch1; preferences.LayerDelay1 = savedLayers.Delay1; preferences.LayerPitch2 = savedLayers.Pitch2; preferences.LayerDelay2 = savedLayers.Delay2;
+                preferences.CloudVoice = cloudWas;
+                preferences.ServerUrl = savedServer[0]; preferences.ServerApi = savedServer[1]; preferences.ServerModel = savedServer[2]; preferences.ServerSpeaker = savedServer[3]; preferences.ServerKey = savedServer[4];
+                preferences.AsideUrl = savedAside[0]; preferences.AsideApi = savedAside[1]; preferences.AsideModel = savedAside[2]; preferences.AsideSpeaker = savedAside[3]; preferences.AsideKey = savedAside[4];
+                lock (server.Changing) { server.Url = serverWas[0]; server.Api = serverWas[1]; server.Model = serverWas[2]; server.Speaker = serverWas[3]; server.Key = serverWas[4]; }
+                voiceOffTurn = offWas; keepVoiceOff = keepOffWas; changingVoice = changingWas;
                 SavePreferences();
                 if (signalsWas) signals.Start();
             }
@@ -25463,7 +25543,9 @@ namespace CapriDesktop
                 Clock = delegate { return own.Elapsed.TotalSeconds; };
             }
 
-            public MixDevice Cable(string chosen) { return CableThere; }
+            internal Func<MixDevice> CableRead;
+
+            public MixDevice Cable(string chosen) { return CableRead == null ? CableThere : CableRead(); }
 
             // Explicit, since Cables is also the list of cables the mix opened.
             System.Collections.Generic.List<MixDevice> IMixDevices.Cables()
@@ -33643,6 +33725,16 @@ namespace CapriDesktop
                             double scrollFrame = mainframe.FrameCost();
                             if (mainframe.Scrolled != 0) throw new Exception("Timing Settings' scrolling left the page moved.");
                             checks.Add((scrollFrame <= 34 ? "PASS" : "LIMIT") + " Settings scrolls at " + scrollFrame.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " ms a frame here, with every control moved in one batch and the page painted");
+                            using (Mainframe scrolling = new Mainframe(this, null, "0.8.2"))
+                            {
+                                scrolling.ShortScreen = 480;
+                                scrolling.ShowSettings(true);
+                                scrolling.Wheel(-1, false);
+                                if (!scrolling.Gliding) throw new Exception("The scrolling cleanup check did not start a glide.");
+                                scrolling.Dispose();
+                                if (scrolling.Gliding) throw new Exception("A disposed Mainframe kept its scrolling timer running.");
+                            }
+                            checks.Add("PASS disposing a Mainframe during a glide stops its scrolling timer");
                             // Her Mainframe size (Zenni's Virtual Super Resolution ask): 150% grows Settings with nothing overlapping or poking
                             // out and is saved, and Auto puts it back as it was.
                             float sizedFrom = mainframe.Zoom;
@@ -33904,6 +33996,23 @@ namespace CapriDesktop
                                     toolValid = Hands.Valid("mainframe", new ToolArguments { Name = "mixer" });
                                     toolSaid = MainframeTool("mixer");
                                     toolShown = mainframe.MixShown;
+                                    preferences.VoiceInMic = false;
+                                    StandInDevices refreshPc = new StandInDevices();
+                                    int cableReads = 0;
+                                    refreshPc.CableRead = delegate
+                                    {
+                                        if (cableReads++ == 0) { cableLooked = -10; return steamCable; }
+                                        return null;
+                                    };
+                                    MicMix.Devices = refreshPc;
+                                    cableLooked = -10;
+                                    mainframe.ShowMixWindow();
+                                    if (cableReads != 1) throw new Exception("The mixer read its cable twice during one refresh.");
+                                    mainframe.ShowMixWindow();
+                                    if (cableReads != 2 || mainframe.MixShown.IndexOf("No virtual mic yet.", StringComparison.Ordinal) < 0) throw new Exception("The mixer did not handle a cable disappearing between refreshes.");
+                                    MicMix.Devices = setupPc;
+                                    cableLooked = -10;
+                                    checks.Add("PASS the mixer keeps one cable snapshot per refresh and handles it disappearing on the next refresh");
                                 }
                                 finally
                                 {

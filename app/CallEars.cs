@@ -66,6 +66,7 @@ namespace CapriDesktop
                 int pid = 0;
                 try { pid = Find(); }
                 catch (Exception) { }
+                if (!Live(mine)) break;
                 if (pid == 0) { Say(mine, NotOpen); Rest(mine, 2000); continue; }
                 Tap tap = null;
                 try
@@ -87,7 +88,7 @@ namespace CapriDesktop
                     while (Live(mine))
                     {
                         Thread.Sleep(10);
-                        if (!tap.Read(this)) { Brain.Log("call ears", -1, "Discord's sound stopped coming. Opening it again."); break; }
+                        if (!tap.Read(this, mine)) { Brain.Log("call ears", -1, "Discord's sound stopped coming. Opening it again."); break; }
                         if (Environment.TickCount - lookedAt < 1000) continue;
                         lookedAt = Environment.TickCount;
                         if (Gone(pid)) break;
@@ -133,10 +134,11 @@ namespace CapriDesktop
         }
 
         // What Discord played, onto the end of her ring, with its loudness kept every tenth of a second.
-        internal void Add(short[] samples, int length)
+        internal void Add(short[] samples, int length, int? mine = null)
         {
             lock (gate)
             {
+                if (mine.HasValue && !Live(mine.Value)) return;
                 for (int i = 0; i < length; i++)
                 {
                     ring[(start + count) % ring.Length] = samples[i];
@@ -208,6 +210,8 @@ namespace CapriDesktop
                 failed = null;
                 IntPtr parameters = Marshal.AllocHGlobal(12), blob = Marshal.AllocHGlobal(8 + 2 * IntPtr.Size), format = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(WaveFormat)));
                 ISoundClient client = null;
+                IActivation operation = null;
+                CallActivated done = new CallActivated();
                 try
                 {
                     // AUDIOCLIENT_ACTIVATION_PARAMS: process loopback (1) of this process, its children included (0).
@@ -220,8 +224,6 @@ namespace CapriDesktop
                     Marshal.WriteInt32(blob, 8, 12);
                     Marshal.WriteIntPtr(blob, 8 + IntPtr.Size, parameters);
                     Guid clientId = typeof(ISoundClient).GUID;
-                    CallActivated done = new CallActivated();
-                    IActivation operation;
                     int result;
                     try { result = ActivateAudioInterfaceAsync(@"VAD\Process_Loopback", ref clientId, blob, done, out operation); }
                     catch (EntryPointNotFoundException) { failed = Refused(-1); return null; }
@@ -252,6 +254,8 @@ namespace CapriDesktop
                     Marshal.FreeHGlobal(blob);
                     Marshal.FreeHGlobal(format);
                     Wasapi.Release(client);
+                    Wasapi.Release(operation);
+                    done.Dispose();
                 }
             }
 
@@ -261,10 +265,11 @@ namespace CapriDesktop
             }
 
             // Everything Windows has for her since the last read, into her ring. False when the capture broke.
-            internal bool Read(CallEars into)
+            internal bool Read(CallEars into, int mine)
             {
                 while (true)
                 {
+                    if (!into.Live(mine)) return true;
                     int waiting;
                     if (capture.GetNextPacketSize(out waiting) != 0) return false;
                     if (waiting == 0) return true;
@@ -277,7 +282,7 @@ namespace CapriDesktop
                         if (samples.Length < frames) samples = new short[frames];
                         if ((flags & 2) != 0 || data == IntPtr.Zero) Array.Clear(samples, 0, frames);
                         else Marshal.Copy(data, samples, 0, frames);
-                        into.Add(samples, frames);
+                        into.Add(samples, frames, mine);
                     }
                     finally { capture.ReleaseBuffer(frames); }
                 }
@@ -329,6 +334,15 @@ namespace CapriDesktop
                 if (ears.Problem != NotOpen || ears.Hearing) throw new Exception("Call ears with no Discord said: " + ears.Problem);
                 ears.Stop();
                 if (ears.Problem != null || ears.Level != 0) throw new Exception("Stopped call ears kept a problem or a level.");
+                int stopped = ears.generation;
+                ears.Add(discord, discord.Length, stopped - 1);
+                ears.Mix(new short[Ears.Chunk], out mine, out theirs);
+                if (theirs != 0 || ears.Level != 0) throw new Exception("A stopped call listener put old sound back into the ring.");
+                ears.Start();
+                ears.Add(discord, discord.Length, stopped - 1);
+                ears.Mix(new short[Ears.Chunk], out mine, out theirs);
+                if (theirs != 0 || ears.Level != 0) throw new Exception("A restarted call listener accepted the old listener's sound.");
+                ears.Stop();
             }
             finally
             {
@@ -336,6 +350,15 @@ namespace CapriDesktop
                 Find = findWas;
             }
             checks.Add("PASS call ears without Discord: they say Discord isn't open, and stopping clears it");
+            checks.Add("PASS stopped and restarted call ears reject sound from the old listener");
+
+            using (CallActivated activation = new CallActivated())
+            {
+                if (activation.Finished.WaitOne(0) || activation.ActivateCompleted(null) != 0 || !activation.Finished.WaitOne(0)) throw new Exception("A call activation did not signal its result.");
+                activation.Dispose();
+                if (!activation.Finished.SafeWaitHandle.IsClosed || activation.ActivateCompleted(null) != 0) throw new Exception("A late call activation touched a closed wait handle.");
+            }
+            checks.Add("PASS call activation closes its wait handle and accepts a late Windows callback after cleanup");
 
             short[] alone = new short[Ears.Chunk];
             ears.Add(discord, discord.Length);
@@ -435,14 +458,26 @@ namespace CapriDesktop
 
     // Windows calls this when the capture she asked for is ready, from its own thread.
     [ComVisible(true), ClassInterface(ClassInterfaceType.None)]
-    internal sealed class CallActivated : IActivated, IAgileObject
+    internal sealed class CallActivated : IActivated, IAgileObject, IDisposable
     {
         internal readonly ManualResetEvent Finished = new ManualResetEvent(false);
+        private readonly object gate = new object();
+        private bool closed;
 
         public int ActivateCompleted(IActivation operation)
         {
-            Finished.Set();
+            lock (gate) if (!closed) Finished.Set();
             return 0;
+        }
+
+        public void Dispose()
+        {
+            lock (gate)
+            {
+                if (closed) return;
+                closed = true;
+                Finished.Dispose();
+            }
         }
     }
 }

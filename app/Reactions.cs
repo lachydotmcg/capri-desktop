@@ -142,6 +142,8 @@ namespace CapriDesktop
             string key = KindOf(kind);
             Func<string, string, string> ask = Ask;
             if (key == null || ask == null || !Running) return false;
+            string game = Commentary.Game();
+            if (game == null) return false;
             int now = Clock();
             string what;
             string[] examples, recent;
@@ -166,21 +168,20 @@ namespace CapriDesktop
                 recent = said.ToArray();
             }
             Stopwatch took = Stopwatch.StartNew();
-            ThreadPool.QueueUserWorkItem(delegate { Answer(ask, key, what, detail, examples, recent, took); });
+            ThreadPool.QueueUserWorkItem(delegate { Answer(ask, key, game, what, detail, examples, recent, took); });
             return true;
         }
 
         // Her brain's quick line, off her UI thread and her game watching. It goes up only while her reactions run and the same game
         // is in front.
-        private static void Answer(Func<string, string, string> ask, string key, string what, string detail, string[] examples, string[] recent, Stopwatch took)
+        private static void Answer(Func<string, string, string> ask, string key, string game, string what, string detail, string[] examples, string[] recent, Stopwatch took)
         {
             string line = "";
             bool asked = false, broke = false, kept = false;
             long spent = 0;
             try
             {
-                string game = Commentary.Game();
-                if (game == null) return;
+                if (!Running || Commentary.Game() != game) return;
                 asked = true;
                 line = Written(ask(Brain.Character + Rules, Prompt(game, what, detail, examples, Computer.LinesFor(recent, game))), examples, game);
                 spent = took.ElapsedMilliseconds;
@@ -1031,8 +1032,7 @@ namespace CapriDesktop
         private bool ReactionVoiceFree()
         {
             if (Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
-            double now = clock.Elapsed.TotalSeconds;
-            if (pushing || transcribing || typer.Visible || voice.Busy || speaker.Busy || chatTail.Enabled || now < voiceUntil || (speech != null && working == null)) return false;
+            if (pushing || transcribing || typer.Visible || Voicing || (speech != null && working == null)) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);
         }
