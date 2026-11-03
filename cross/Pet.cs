@@ -3535,10 +3535,6 @@ namespace CapriDesktop
             int ticket = ++asking;
             Brain.Cancel();
             voice.Stop();
-            bool askPlease;
-            string heard = text;
-            text = Hands.Manners(text, out askPlease);
-            if (askPlease) { Reply(ticket, heard, Hands.SayPlease); return; }
             string tool;
             ToolArguments args;
             bool noted;

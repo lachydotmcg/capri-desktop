@@ -212,19 +212,38 @@ namespace CapriDesktop
             // Her lying art loads off her thread in the seconds before, so the crash doesn't hitch as it opens.
             if (!held) { laydownSleep.Warm(false); laydownGlitch.Warm(false); laydownTalk.Warm(false); }
             if (held || now < chaosScreenAt) return;
+            ShowCrash();
+        }
+
+        // fake_crash: her fake blue screen when they ask, clones or not, never over full screen, a stream or a mouse job; stop
+        // closes it.
+        private string CrashTool(string action)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string>(CrashTool), action);
+            if (action == "stop") { ChaosOff(); return "Stopped my fake blue screen."; }
+            if (chaosScreen != null) return "My fake blue screen is already showing.";
+            if (quitting || ChaosHeld()) return "I can't show that during full screen, a stream or a mouse job.";
+            return ShowCrash() ? "Showing my fake blue screen." : "Couldn't show my fake blue screen.";
+        }
+
+        // Opens her fake blue screen on the monitor she's on, and says whether it opened.
+        private bool ShowCrash()
+        {
             Point centre = new Point(anchor.X + Width / 2, anchor.Y + Height / 2);
             ChaosScreen opened = new ChaosScreen(Screen.FromPoint(centre).Bounds, clock, preferences.Motion, ChaosHeld, laydownSleep, laydownGlitch, laydownTalk);
             try
             {
-                if (!opened.Open()) { opened.Dispose(); return; }
+                if (!opened.Open()) { opened.Dispose(); return false; }
                 chaosScreenUsed = true;
                 chaosScreen = opened;
                 opened.FormClosed += delegate { if (chaosScreen == opened) chaosScreen = null; };
+                return true;
             }
             catch (Exception)
             {
                 chaosScreenUsed = true;
                 opened.Dispose();
+                return false;
             }
         }
 

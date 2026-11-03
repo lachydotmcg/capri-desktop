@@ -2868,7 +2868,8 @@ namespace CapriDesktop
             input.BorderStyle = BorderStyle.None;
             input.BackColor = Neon.Well;
             input.ForeColor = Neon.White;
-            input.MaxLength = 240;
+            // No limit, so her brain reads a long request whole.
+            input.MaxLength = 0;
             input.AccessibleName = Text;
             input.HandleCreated += delegate { Native.SendMessage(input.Handle, 0x1501, new IntPtr(1), "Say something to Capri"); };
             input.KeyDown += delegate(object sender, KeyEventArgs key)

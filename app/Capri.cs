@@ -2134,12 +2134,21 @@ namespace CapriDesktop
             }
             Hands.Gamey = Computer.IsGame;
             Hands.Icons = IconTool;
+            Hands.Crash = CrashTool;
+            Hands.VoiceChat = VoiceChatTool;
+            Hands.StopSpeech = SpeechTool;
+            Hands.JobControl = JobTool;
+            Hands.Quit = QuitTool;
+            Hands.Mainframe = MainframeTool;
+            Hands.Updates = UpdateTool;
+            Hands.MiniPlayer = MiniPlayerTool;
+            Hands.OpenClip = OpenClipTool;
             Hands.Upset = UpsetTool;
             Hands.Cloning = delegate { return cloneWindow != null; };
             Hands.WatchAlong = WatchAlongTool;
             WatchAlong.Active = delegate { return watchAlong != null; };
             Hands.SaveClip = clips.Clip;
-            clips.Saved = delegate(string saved, double seconds, string game, string monitor) { Post(delegate { Clipped(saved, seconds, game, monitor); }); };
+            clips.Saved = delegate(string saved, double seconds, string game, string monitor) { lastClip = saved; Post(delegate { Clipped(saved, seconds, game, monitor); }); };
             // Her brains hear Clip my games is off, and where to turn it on (F69).
             Hands.ClipsOn = delegate { return preferences.ClipGames; };
             PcEars.Speaking = delegate { return speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil; };
@@ -2646,7 +2655,7 @@ namespace CapriDesktop
             checkItem.Enabled = true;
             updateItem.Enabled = updateFile != null;
             Version current = Assembly.GetExecutingAssembly().GetName().Version;
-            if (problem != null) { ForgetUpdate(); mainframe.UpdateNote(problem, true); return; }
+            if (problem != null) { updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote(problem, true); return; }
             if (ready != null)
             {
                 bool fresh = updateFile == null || updateFile.Path != ready.Path;
@@ -2665,8 +2674,10 @@ namespace CapriDesktop
                     tray.BalloonTipIcon = ToolTipIcon.Info;
                     if (!testing) tray.ShowBalloonTip(8000);
                 }
+                if (updateInstallAsked) { updateInstallAsked = false; InstallUpdate(); }
                 return;
             }
+            updateInstallAsked = false;
             ForgetUpdate();
             if (asked || !UsableRelease(found)) mainframe.UpdateNote(UsableRelease(found) ? "You're on the latest version (" + current.ToString(3) + ")." : "Couldn't check for updates. I'll try again in 3 hours.", !UsableRelease(found));
         }
@@ -4578,8 +4589,10 @@ namespace CapriDesktop
             return Security.Reply(results) ?? string.Join(" ", results.ToArray());
         }
 
-        private string DoTool(string tool, ToolArguments args, int ticket)
+        private string DoTool(string tool, ToolArguments args, int ticket, bool beside = false)
         {
+            if (CallModeOn) return "I can only talk in call mode.";
+            if (args != null) args.Ticket = ticket;
             // Esc ends the whole ask: once it stops a job, the rest of that ask's tools and jobs don't run.
             if (ticket == escAsk) return "";
             // A please on the end of a message job stays out of the message, however her brain wrote the job.
@@ -4590,7 +4603,7 @@ namespace CapriDesktop
             string asked = Security.Gate(tool, args);
             if (asked != null) return asked;
             // With Use your mouse and keyboard for jobs off, her quick tools stay quick instead of taking the mouse.
-            string task = preferences.QuickHands || args == null || brain.Model == null || !Security.On(Security.Mouse) ? null : CursorJob(tool, args);
+            string task = beside || preferences.QuickHands || args == null || brain.Model == null || !Security.On(Security.Mouse) ? null : CursorJob(tool, args);
             bool mouse = task != null || tool == "use_computer";
             string done;
             bool lost = false, held = false;
@@ -4621,6 +4634,200 @@ namespace CapriDesktop
 
         // The ask whose job Esc stopped.
         private volatile int escAsk = -1;
+
+        // SECURITY's yes runs what she held, tied to her reply to their yes rather than the one she asked in.
+        private string ResumeTool(string tool, ToolArguments args)
+        {
+            if (args != null) args.Reply = 0;
+            return DoTool(tool, args);
+        }
+
+        // Something a tool does once its reply is over, like switching voice chat or quitting: the ask and reply it waits for,
+        // and whether that reply has shown, is being said, or came beside a job.
+        private sealed class ToolEnd
+        {
+            internal Action Run;
+            internal int Ask, Reply, Voice;
+            internal bool Replied, Voicing, Aside;
+            internal double At;
+        }
+
+        // What tools do after their replies, the count of replies beside jobs so each knows its own, voice chat's switch so a
+        // newer one replaces it, and the timer that runs them.
+        private readonly System.Collections.Generic.List<ToolEnd> toolEnds = new System.Collections.Generic.List<ToolEnd>();
+        private int toolAside;
+        private ToolEnd voiceChatEnd;
+        private System.Windows.Forms.Timer afterToolTimer;
+
+        // Holds an action until the reply its tool came with is over, on her window's thread.
+        private ToolEnd AfterTool(Action action, int reply = 0, int ticket = -1)
+        {
+            if (InvokeRequired) return (ToolEnd)Invoke(new Func<Action, int, int, ToolEnd>(AfterTool), action, reply, ticket);
+            ToolEnd end = new ToolEnd { Run = action, Ask = ticket < 0 ? asking : ticket, Reply = reply };
+            toolEnds.Add(end);
+            if (afterToolTimer == null)
+            {
+                afterToolTimer = new System.Windows.Forms.Timer { Interval = 150 };
+                afterToolTimer.Tick += delegate { DrainTool(); };
+            }
+            afterToolTimer.Start();
+            return end;
+        }
+
+        // Her reply to an ask, or one beside a job, has started, so what waits for it can run once it's over.
+        private void ToolReplied(int reply, bool aside = false)
+        {
+            foreach (ToolEnd end in toolEnds)
+            {
+                if (end.Ask != asking || end.Reply != reply) continue;
+                end.Replied = true;
+                end.Aside = aside;
+                end.At = clock.Elapsed.TotalSeconds;
+            }
+        }
+
+        // A reply beside a job is being said, and then it's done: what waits for it waits until then.
+        private void ToolVoicing(int reply, int turn)
+        {
+            foreach (ToolEnd end in toolEnds)
+                if (end.Ask == asking && end.Reply == reply && end.Replied) { end.Voicing = true; end.Voice = turn; }
+        }
+
+        private void ToolVoiced(int turn)
+        {
+            foreach (ToolEnd end in toolEnds) if (end.Voice == turn) end.Voicing = false;
+        }
+
+        // Runs what waited for replies that are over: up a second, nothing being said, and the ask's own reply finished unless it
+        // came beside a job. A new ask drops what an old one left waiting.
+        private void DrainTool()
+        {
+            double now = clock.Elapsed.TotalSeconds;
+            System.Collections.Generic.List<Action> ready = new System.Collections.Generic.List<Action>();
+            for (int i = 0; i < toolEnds.Count;)
+            {
+                ToolEnd end = toolEnds[i];
+                if (end.Ask != asking || quitting || CallModeOn) { toolEnds.RemoveAt(i); continue; }
+                if (!end.Replied || end.Voicing || now < end.At + 1 || speaker.Busy || chatTail.Enabled || now < voiceUntil || answerVoice == asking || hdSpeaking == asking
+                    || !end.Aside && (replyDone < 0 || talkState == TalkState.Thinking)) { i++; continue; }
+                ready.Add(end.Run);
+                toolEnds.RemoveAt(i);
+            }
+            if (toolEnds.Count == 0 && afterToolTimer != null) afterToolTimer.Stop();
+            foreach (Action action in ready) action();
+        }
+
+        // voice_chat: its status now, or on or off once this reply is over, since switching inside its own tool call would cut
+        // off the voice chat that's answering.
+        private string VoiceChatTool(ToolArguments args)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(VoiceChatTool), args);
+            if (CallModeOn) return "I can only talk in call mode.";
+            string action = args.Action;
+            if (action == "status") return chatting ? "Voice chat is on." : "Voice chat is off.";
+            bool on = action == "on";
+            if (voiceChatEnd != null) { toolEnds.Remove(voiceChatEnd); voiceChatEnd = null; }
+            if (chatting == on) return on ? "Voice chat is already on." : "Voice chat is already off.";
+            voiceChatEnd = AfterTool(delegate { voiceChatEnd = null; if (chatting != on) ToggleChat(); }, args.Reply, args.Ticket ?? asking);
+            return on ? "I'll turn voice chat on after this reply." : "I'll turn voice chat off after this reply.";
+        }
+
+        // speech: stops what she's saying now and keeps her voice on.
+        private string SpeechTool()
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string>(SpeechTool));
+            BargeIn();
+            return "Stopped talking.";
+        }
+
+        // job_control: the running job's status, stopping it, or a change in their words, in the order they made them.
+        private string JobTool(ToolArguments args)
+        {
+            Job running = args.Job ?? job;
+            if (args.Job != null && args.Job != job) return "That job has ended.";
+            if (!MidJob(running)) return "I'm not on a job right now.";
+            if (args.Action == "status") return Asides.Status(running.Report(), "status");
+            if (args.Action == "stop") { StopJob("You asked me to stop."); return "Stopped my job."; }
+            if (args.Sequence.HasValue) running.Change(args.Task, args.Sequence.Value);
+            else running.Change(args.Task);
+            return "Changed what my job should do.";
+        }
+
+        // quit: closes Capri once this reply is over.
+        private string QuitTool(ToolArguments args)
+        {
+            AfterTool(Quit, args.Reply, args.Ticket ?? asking);
+            return "I'll quit after this reply.";
+        }
+
+        // mainframe: opens Capri Mainframe or one of its pages, and changes nothing on it.
+        private string MainframeTool(string page)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string>(MainframeTool), page);
+            return mainframe.OpenTool(page) ? "Opened Capri Mainframe." : "Couldn't find that Mainframe page.";
+        }
+
+        // updates: check and status never install. install runs once this reply is over, through her usual checked installer,
+        // after a check if none has found the update yet.
+        private bool updateInstallAsked;
+
+        private string UpdateTool(ToolArguments args)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(UpdateTool), args);
+            if (args.Action == "status") return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
+            if (installing) return "The update is already installing.";
+            if (args.Action == "check")
+            {
+                CheckForUpdates(true);
+                return "I'm checking for an update.";
+            }
+            AfterTool(delegate
+            {
+                updateInstallAsked = true;
+                if (!updating && updateFile != null) { updateInstallAsked = false; InstallUpdate(); }
+                else if (!updating) CheckForUpdates(true);
+            }, args.Reply, args.Ticket ?? asking);
+            return "I'll check the update and install it after this reply.";
+        }
+
+        // mini_player: hides it for now, or shows it again, turning Mini player on if it was off.
+        private string MiniPlayerTool(string action)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string>(MiniPlayerTool), action);
+            if (action == "hide") { playerClosed = true; HidePlayer(); return "Hid my mini player."; }
+            if (!PlayerOn) TogglePlayer();
+            playerClosed = false;
+            tuneAt = -10;
+            CheckPlayer(clock.Elapsed.TotalSeconds);
+            return "My mini player will show when music is playing.";
+        }
+
+        // clip's open_folder and open_last: her clips folder, or the clip she saved last, or else the newest one in the folder.
+        private volatile string lastClip;
+
+        private string OpenClipTool(string action)
+        {
+            string folder = ClipOptions.Folder;
+            if (action == "open_folder")
+            {
+                Directory.CreateDirectory(folder);
+                Hands.Run(folder);
+                return "Opened your clips folder.";
+            }
+            string path = lastClip;
+            if (path == null || !File.Exists(path))
+            {
+                DateTime latest = DateTime.MinValue;
+                if (Directory.Exists(folder)) foreach (string clipPath in Directory.GetFiles(folder, "*.mp4"))
+                {
+                    DateTime savedAt = File.GetLastWriteTimeUtc(clipPath);
+                    if (savedAt > latest) { latest = savedAt; path = clipPath; }
+                }
+            }
+            if (path == null || !File.Exists(path)) return "No saved clip was found.";
+            Hands.Run(path);
+            return "Opened your last clip.";
+        }
 
         internal static string CursorJob(string tool, ToolArguments args)
         {
@@ -4855,6 +5062,7 @@ namespace CapriDesktop
         // silent and it's clear where clips go. If they hid her themselves it only chimes (Lachy, 2 Nov).
         private void Clipped(string saved, double seconds, string game, string monitor)
         {
+            lastClip = saved;
             clipsChimed++;
             if (!testing) ClipToast.Ring();
             if (manualHidden) return;
@@ -7849,7 +8057,7 @@ namespace CapriDesktop
         private string ResumeJob(string text)
         {
             // Her asking first for SECURITY: their yes runs what she held, and their no leaves it.
-            string answered = Security.Resume(text, DoTool);
+            string answered = Security.Resume(text, ResumeTool);
             if (answered != null) return answered;
             Job waiting = job;
             if (waiting == null || !waiting.Asking) return null;
@@ -7997,7 +8205,7 @@ namespace CapriDesktop
             SayAside(line, running);
         }
 
-        private void SayAside(string line, Job running)
+        private void SayAside(string line, Job running, int toolReply = -1)
         {
             if ((testing && !asideVoiceTest) || preferences.Silent || Hushed || (chatting && !local && !Computer.Streaming)) return;
             Func<string, byte[]> free;
@@ -8005,23 +8213,26 @@ namespace CapriDesktop
             if (speak == null) return;
             string words = Voice.Spoken(line);
             int turn = ++asideVoice;
+            ToolVoicing(toolReply, turn);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem;
                 byte[] wav = Voiced(speak, free, words, out problem, false);
-                if (wav == null) { if (problem != null) Brain.Log("job line", -1, problem); return; }
+                if (wav == null) { if (problem != null) Brain.Log("job line", -1, problem); Post(delegate { ToolVoiced(turn); }); return; }
                 int tries = 0;
                 Action play = null;
                 play = delegate
                 {
-                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local && !Computer.Streaming) || preferences.Silent || Hushed) return;
+                    if (job != running || turn != asideVoice || IsDisposed || (chatting && !local && !Computer.Streaming) || preferences.Silent || Hushed) { ToolVoiced(turn); return; }
                     double now = clock.Elapsed.TotalSeconds;
                     if (voiceUntil > now)
                     {
                         if (tries++ < 16) ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(500); Post(play); });
+                        else ToolVoiced(turn);
                         return;
                     }
                     voiceUntil = now + Voice.Seconds(wav) + 0.6;
+                    ToolVoiced(turn);
                     playVoiced = voiceUntil;
                     CheckEars(now);
                     Played(wav);
@@ -10688,6 +10899,7 @@ namespace CapriDesktop
                     if (Unprompted()) { dropping = true; checkedIn = true; Hush(); return; }
                     stirred = Environment.TickCount;
                     speaker.Play(ChatVoice(samples));
+                    foreach (ToolEnd end in toolEnds) if (end.Replied) end.At = clock.Elapsed.TotalSeconds;
                     if (!frames.Enabled && (!hidden || docked)) frames.Start();
                 });
             };
@@ -10798,6 +11010,9 @@ namespace CapriDesktop
         private int shortcutAt;
         private string shortcutResult;
         private bool toolAsked;
+        // The voice shortcut's call and ask, so only the same call in the same ask reuses its result.
+        private string shortcutCall;
+        private int shortcutAsk;
         private string toolDone;
         private string heardLast;
         private volatile int stirred;
@@ -10892,7 +11107,7 @@ namespace CapriDesktop
             lock (shortcutGate)
             {
                 toolAsked = true;
-                if (tool == shortcutTool && (Environment.TickCount - shortcutAt < 10000 || tool == "listen" && PcEars.Active)) return shortcutResult ?? "Already doing that.";
+                if (shortcutAsk == asking && shortcutCall == Hands.CallKey(tool, args) && tool == shortcutTool && (Environment.TickCount - shortcutAt < 10000 || tool == "listen" && PcEars.Active)) return shortcutResult ?? "Already doing that.";
             }
             if (tool == "find_file" && args != null && (string.IsNullOrEmpty(args.Action) || args.Action == "search")) return Later(opened, tool, args, "find_file " + args.Description);
             string key = Security.Asks(tool, args) ? null : MouseKey(tool, args);
@@ -10917,7 +11132,12 @@ namespace CapriDesktop
             ThreadPool.QueueUserWorkItem(delegate
             {
                 int began = Environment.TickCount;
-                string result = Security.Resume(text, delegate(string held, ToolArguments heldArgs) { return DoTool(held, heldArgs, ticket); }) ?? Security.Left;
+                string result = Security.Resume(text, delegate(string held, ToolArguments heldArgs)
+                {
+                    if (heldArgs != null) heldArgs.Reply = 0;
+                    lock (shortcutGate) { shortcutTool = held; shortcutCall = Hands.CallKey(held, heldArgs); shortcutAsk = ticket; }
+                    return DoTool(held, heldArgs, ticket);
+                }) ?? Security.Left;
                 lock (shortcutGate) shortcutResult = result;
                 stirred = Environment.TickCount;
                 if (result != Security.Left && unchecked(Environment.TickCount - began) > 8000) { Finished(asker, resumed, result, ticket); return; }
@@ -10970,7 +11190,7 @@ namespace CapriDesktop
                 Agent told = agent;
                 string key = MouseKey(tool, args);
                 bool claimed = key != null && Claim(key);
-                lock (shortcutGate) { shortcutTool = tool; shortcutAt = Environment.TickCount; shortcutResult = null; }
+                lock (shortcutGate) { shortcutTool = tool; shortcutCall = Hands.CallKey(tool, args); shortcutAsk = ticket; shortcutAt = Environment.TickCount; shortcutResult = null; }
                 ThreadPool.QueueUserWorkItem(delegate
                 {
                     int began = Environment.TickCount;
@@ -11021,6 +11241,7 @@ namespace CapriDesktop
             reply = said;
             lock (shortcutGate) if (toolDone != null && toolDone.StartsWith("The closest match is ", StringComparison.Ordinal)) reply = toolDone;
             replyStart = clock.Elapsed.TotalSeconds;
+            ToolReplied(0);
             replyDone = -1;
             talkState = TalkState.Talking;
             box.Leaving = -1;
@@ -11216,7 +11437,6 @@ namespace CapriDesktop
             if (Hands.StreamAsked(text)) Computer.Streaming = true;
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
-            if (text.Length > 240 && planned.Key == null && !fileMessage) text = text.Substring(0, 240);
             if (prompt == "> you: " && HearMini(text)) return;
             // Mid-job, what they say goes to the job instead of cancelling it: she says she's got it, does it, then carries on
             // (Lachy, 29 Oct: "she needs to actually listen to me mid way through").
@@ -11251,9 +11471,6 @@ namespace CapriDesktop
                     return;
                 }
             }
-            bool askPlease = false;
-            if (planned.Key == null && !fileMessage) text = Hands.Manners(text, out askPlease);
-            if (askPlease) { Answer(ticket, Hands.SayPlease, TalkState.Talking); return; }
             bool followAllowed = preferences.FollowUps && prompt == "> you: " && agent == null && (!chatting || local);
             int followInput = FollowInput(), followMic = micTalked;
             string followLine = "";
@@ -11264,7 +11481,7 @@ namespace CapriDesktop
             // Their yes or no to her asking first (SECURITY) works before she has a brain too; anything else drops what she held.
             if (think == null && brain.Model == null && Security.Holding != null)
             {
-                if (Security.Agrees(text) || Security.Declines(text)) think = delegate { return Security.Resume(text, DoTool) ?? Security.Left; };
+                if (Security.Agrees(text) || Security.Declines(text)) think = delegate { return Security.Resume(text, ResumeTool) ?? Security.Left; };
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
@@ -11478,6 +11695,7 @@ namespace CapriDesktop
             if (slowWarned && brain.Remote != null && state != TalkState.Dormant) mainframe.ShowCloud(brain.Remote, cloudModels);
             reply = said;
             replyStart = clock.Elapsed.TotalSeconds;
+            ToolReplied(0);
             replyDone = -1;
             talkState = state;
             thinkingSince = double.NaN;
@@ -12061,6 +12279,8 @@ namespace CapriDesktop
             if (disposing)
             {
                 quitting = true;
+                if (afterToolTimer != null) afterToolTimer.Dispose();
+                toolEnds.Clear();
                 ChaosOff();
                 CheckKeepAwake();
                 clips.Dispose();
@@ -14174,6 +14394,15 @@ namespace CapriDesktop
                 ChaosTick(clock.Elapsed.TotalSeconds);
                 if (chaosScreen != null || !chaosQuit.IsDisposed || chaosQuit.Running || chaosQuit.Canvas != null) throw new Exception("Quitting left her fake crash alive.");
                 checks.Add("PASS chaos fake crash and its pending schedule are cleared when displays change or she quits");
+                quitting = false;
+                ClonesOff();
+                chaosFull = false;
+                if (CrashTool("show") != "Showing my fake blue screen." || chaosScreen == null || cloneWindow != null) throw new Exception("The fake crash tool needed clones.");
+                ChaosScreen manualCrash = chaosScreen;
+                if (CrashTool("stop") != "Stopped my fake blue screen." || chaosScreen != null || !manualCrash.IsDisposed) throw new Exception("The fake crash stop tool left it open.");
+                chaosFull = true;
+                if (CrashTool("show") != "I can't show that during full screen, a stream or a mouse job." || chaosScreen != null) throw new Exception("The fake crash tool ignored full screen.");
+                checks.Add("PASS fake_crash shows without clones, stops cleanly and keeps the full screen guard");
                 checks.Add("LIMIT chaos fake crash: check physical monitor scaling, real Esc and mouse input, and switching a real game into borderless or exclusive full screen on an interactive bench");
             }
             finally
@@ -16001,6 +16230,494 @@ namespace CapriDesktop
             }
         }
 
+        // Every new action is in her schemas, text parsers, SECURITY and dispatch, and a fake brain picks each one from a
+        // suggestion with none of its words.
+        private void SmokeActions(System.Collections.Generic.List<string> checks)
+        {
+            string[,] cases =
+            {
+                { "voice_chat", "{\"action\":\"on\"}", "We could talk out loud for a while" },
+                { "voice_chat", "{\"action\":\"off\"}", "Typing together would suit me better now" },
+                { "voice_chat", "{\"action\":\"status\"}", "I wonder whether your voice chat is on" },
+                { "speech", "{\"action\":\"stop\"}", "A little silence from you would help" },
+                { "job_control", "{\"action\":\"stop\"}", "That task can be dropped now" },
+                { "job_control", "{\"action\":\"status\"}", "I wonder where you got to with the task" },
+                { "job_control", "{\"action\":\"change\",\"task\":\"Use Firefox instead\"}", "Firefox would be better for that task" },
+                { "quit", "{\"action\":\"quit\"}", "You can close yourself for the evening" },
+                { "mainframe", "{}", "Your controls would be handy right now" },
+                { "mainframe", "{\"name\":\"clips\"}", "We could have a look at your clips settings" },
+                { "updates", "{\"action\":\"check\"}", "There might be a newer Capri available" },
+                { "updates", "{\"action\":\"status\"}", "I wonder how that update is going" },
+                { "updates", "{\"action\":\"install\"}", "Let's install the Capri update now" },
+                { "mini_player", "{\"action\":\"hide\"}", "The little music panel could go away for now" },
+                { "mini_player", "{\"action\":\"show\"}", "It would be nice to see your music panel again" },
+                { "clip", "{\"action\":\"open_folder\"}", "We could browse the clips you saved" },
+                { "clip", "{\"action\":\"open_last\"}", "It would be fun to watch your latest saved clip" },
+                { "fake_crash", "{\"action\":\"show\"}", "That pretend blue screen of yours would be funny" },
+                { "fake_crash", "{\"action\":\"stop\"}", "The pretend blue screen can go away now" },
+                { "listen", "{\"action\":\"stop\"}", "You have heard enough of the PC audio now" },
+                { "media", "{\"action\":\"pause\"}", "We could pause the song for a moment" },
+                { "media", "{\"action\":\"resume\"}", "We could resume that song now" },
+                { "media", "{\"action\":\"seek\",\"seconds\":\"90\"}", "The part at one minute thirty would be good" },
+                { "media", "{\"action\":\"like\"}", "This track belongs in my liked songs" },
+                { "media", "{\"action\":\"unlike\"}", "This track no longer belongs in my liked songs" },
+                { "media", "{\"action\":\"open_player\"}", "The app playing this song would be useful to see" },
+                { "gaming_mode", "{\"action\":\"on\"}", "I could use your reactions while I play" },
+                { "capri_settings", "{\"action\":\"off\",\"name\":\"gaming_mode\"}", "I could do without your reactions while I play" }
+            };
+            string[,] samples =
+            {
+                { "open_app", "{\"name\":\"Spotify\"}" }, { "open_website", "{\"site\":\"example.com\"}" },
+                { "media", "{\"action\":\"pause\"}" }, { "look_at_screen", "{}" }, { "play_music", "{\"song\":\"I Really Want to Stay at Your House\"}" },
+                { "app_window", "{\"name\":\"Spotify\",\"action\":\"minimize\"}" }, { "use_computer", "{\"task\":\"Open the notes\"}" },
+                { "stream", "{\"action\":\"stop\"}" }, { "shortcut", "{\"name\":\"screenshot\"}" }, { "remember", "{\"text\":\"They like blue\"}" },
+                { "find_file", "{\"description\":\"notes.txt\"}" }, { "website_nickname", "{\"action\":\"list\"}" }, { "read_file", "{\"path\":\"C:\\\\notes.txt\"}" },
+                { "remind", "{\"action\":\"list\"}" }, { "routine", "{\"action\":\"list\"}" }, { "power", "{\"action\":\"cancel\"}" },
+                { "nap", "{\"action\":\"wake\"}" }, { "move_yourself", "{\"action\":\"show\"}" }, { "animate", "{\"name\":\"blink\"}" },
+                { "draw", "{\"action\":\"clear\"}" }, { "clone", "{\"action\":\"stop\"}" }, { "hologram", "{\"action\":\"off\"}" },
+                { "desktop_icons", "{\"action\":\"back\"}" }, { "watch_along", "{\"action\":\"stop\"}" }, { "gaming_mode", "{\"action\":\"on\"}" },
+                { "clip", "{}" }, { "mini_game", "{\"name\":\"chess\"}" }, { "watch_for", "{\"action\":\"list\"}" }, { "listen", "{\"action\":\"stop\"}" },
+                { "fake_crash", "{\"action\":\"stop\"}" }, { "voice_chat", "{\"action\":\"status\"}" }, { "speech", "{\"action\":\"stop\"}" },
+                { "job_control", "{\"action\":\"status\"}" }, { "quit", "{\"action\":\"quit\"}" }, { "mainframe", "{}" }, { "updates", "{\"action\":\"status\"}" },
+                { "mini_player", "{\"action\":\"hide\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
+                { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" }
+            };
+            for (int i = 0; i < Hands.Count; i++)
+            {
+                string tool = Hands.Name(i), sample = null;
+                for (int j = 0; j < samples.GetLength(0); j++) if (samples[j, 0] == tool) sample = samples[j, 1];
+                string parsed;
+                ToolArguments parsedArgs;
+                if (sample == null || !Hands.Typed(tool + sample, out parsed, out parsedArgs) || parsed != tool || Hands.Written(tool + sample).Count != 1
+                    || Hands.Written("{\"name\":" + Voice.Quote(tool) + ",\"arguments\":" + sample + "}").Count != 1)
+                    throw new Exception("An advertised tool was missing from a text parser: " + tool);
+            }
+            checks.Add("PASS text parsers know every tool in Specs, including stream, checks, clone, hologram and desktop_icons");
+            Func<string, string> crashWas = Hands.Crash, frameWas = Hands.Mainframe, miniWas = Hands.MiniPlayer, clipWas = Hands.OpenClip, gamingWas = Hands.GamingMode;
+            Func<string> speechWas = Hands.StopSpeech;
+            Func<ToolArguments, string> chatWas = Hands.VoiceChat, quitWas = Hands.Quit, jobWas = Hands.JobControl, updatesWas = Hands.Updates;
+            Func<System.Collections.Generic.List<Tune>> sessionsWas = Hands.Sessions;
+            Func<Tune, string, bool> pressWas = Hands.SessionPress;
+            Func<Tune, bool> openWas = Hands.OpenPlayer;
+            Func<string, bool?> settingWas = Hands.SettingOn;
+            Func<string, bool, string> setWas = Hands.SetSetting;
+            Func<string> gameWas = Hands.GameOpen;
+            string addressWas = Brain.OpenAi, saved = Security.Saved, shortcutWas = shortcutTool, shortcutKeyWas = shortcutCall, shortcutResultWas = shortcutResult;
+            int shortcutAskWas = shortcutAsk, shortcutAtWas = shortcutAt;
+            bool wakeWas = Security.On(Security.Wake), keepingWas = Brain.Keeping;
+            System.Net.Sockets.TcpListener fake = null;
+            System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>();
+            Tune tune = new Tune { App = "Spotify.exe", Title = "Test song", Artist = "Test artist", Playing = true, Length = 180, CanSeek = true };
+            try
+            {
+                Security.Load("1111111111");
+                Brain.Keeping = false;
+                Hands.GameOpen = delegate { return null; };
+                Func<string, string, string> ran = delegate(string tool, string action) { did.Add(tool + ":" + action); return "Done."; };
+                Hands.VoiceChat = delegate(ToolArguments args) { return ran("voice_chat", args.Action); };
+                Hands.StopSpeech = delegate { return ran("speech", "stop"); };
+                Hands.JobControl = delegate(ToolArguments args) { return ran("job_control", args.Action); };
+                Hands.Quit = delegate { return ran("quit", "quit"); };
+                Hands.Mainframe = delegate(string page) { return ran("mainframe", page); };
+                Hands.Updates = delegate(ToolArguments args) { return ran("updates", args.Action); };
+                Hands.MiniPlayer = delegate(string action) { return ran("mini_player", action); };
+                Hands.OpenClip = delegate(string action) { return ran("clip", action); };
+                Hands.Crash = delegate(string action) { return ran("fake_crash", action); };
+                Hands.GamingMode = delegate(string action) { return ran("gaming_mode", action); };
+                bool ownOn = true;
+                Hands.SettingOn = delegate { return ownOn; };
+                Hands.SetSetting = delegate(string name, bool on) { ownOn = on; return ran("capri_settings", on ? "on" : "off"); };
+                Hands.Sessions = delegate { return new System.Collections.Generic.List<Tune> { tune }; };
+                Hands.SessionPress = delegate(Tune heard, string action) { did.Add("media:" + action); if (action == "pause") heard.Playing = false; if (action == "play") heard.Playing = true; return true; };
+                Hands.OpenPlayer = delegate(Tune heard) { did.Add("media:open_player"); return heard == tune; };
+                for (int i = 0; i < cases.GetLength(0); i++)
+                {
+                    string tool = cases[i, 0], json = cases[i, 1], suggestion = cases[i, 2];
+                    ToolArguments args = Hands.Read(json);
+                    int spec = -1;
+                    for (int j = 0; j < Hands.Count; j++) if (Hands.Name(j) == tool) spec = j;
+                    if (spec < 0 || !Hands.Valid(tool, args) || !Hands.Tools.Contains("\"name\":" + Voice.Quote(tool)) || !Hands.Listing.Contains(tool + "{")
+                        || !Hands.KitFor().Brief.Contains("- " + tool + ":") || args.Action != null && !Hands.Schema(spec).Contains(Voice.Quote(args.Action)))
+                        throw new Exception("An action was missing from its schema or ability lines: " + tool + json);
+                    string parsed;
+                    ToolArguments parsedArgs;
+                    if (!Hands.Typed(tool + json, out parsed, out parsedArgs) || parsed != tool || Hands.Written(tool + json).Count != 1) throw new Exception("An action was missing from the text parser: " + tool + json);
+                    int needs = tool == "media" ? args.Action == "open_player" ? Security.Windows : Security.Media : tool == "clip" || tool == "updates" && args.Action == "install" ? Security.Open : tool == "job_control" && args.Action == "change" ? Security.Mouse : -1;
+                    if (Security.Needs(tool, args) != needs) throw new Exception("An action used the wrong SECURITY toggle: " + tool + json);
+                    Security.Load("0000000000");
+                    if ((Security.Gate(tool, args) != null) != (needs >= 0)) throw new Exception("An action skipped its SECURITY toggle: " + tool + json);
+                    Security.Drop();
+                    Security.Load("1111111111");
+                    tune.Playing = args.Action != "resume";
+                    ownOn = true;
+                    did.Clear();
+                    string result = DoTool(tool, args, asking, true);
+                    if (tool != "listen" && did.Count != 1 || tool == "listen" && result != "I'm not listening to PC sound.") throw new Exception("An action did not dispatch once: " + tool + json + " / " + result);
+                    System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>();
+                    string call = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"a1\",\"type\":\"function\",\"function\":{\"name\":" + Voice.Quote(tool) + ",\"arguments\":" + Voice.Quote(json) + "}}]}}]}";
+                    Brain.OpenAi = FakeServer(new[] { call, "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Done.\"}}]}" }, asked, out fake);
+                    Brain picker = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini"), OwnSteps = true };
+                    System.Collections.Generic.List<string> picked = new System.Collections.Generic.List<string>();
+                    picker.Act = delegate(string name, ToolArguments chosen) { picked.Add(name + ":" + chosen.Action); return DoTool(name, chosen, asking, true); };
+                    tune.Playing = args.Action != "resume";
+                    ownOn = true;
+                    picker.Ask(suggestion);
+                    fake.Stop(); fake = null;
+                    if (picked.Count != 1 || picked[0] != tool + ":" + args.Action || asked.Count != 2 || !asked[0].Contains(suggestion) || !asked[0].Contains("\"tools\":"))
+                        throw new Exception("A brain's action from a suggestion did not run: " + tool + json);
+                }
+                foreach (string tool in new[] { "voice_chat", "speech", "job_control", "quit", "updates", "mini_player", "fake_crash", "listen", "clip", "media" })
+                    if (Hands.Valid(tool, new ToolArguments { Action = "wrong" })) throw new Exception("A bad action was accepted: " + tool);
+                foreach (string seconds in new[] { "-1", "NaN", "Infinity", "1e99", "later" })
+                    if (Hands.Valid("media", new ToolArguments { Action = "seek", Seconds = seconds })) throw new Exception("A bad seek position was accepted: " + seconds);
+                did.Clear();
+                tune.CanSeek = false;
+                if (Hands.Do("media", new ToolArguments { Action = "seek", Seconds = "90" }) != "This player doesn't let me seek.") throw new Exception("An unsupported player was told it sought.");
+                tune.CanSeek = true;
+                if (Hands.Do("media", new ToolArguments { Action = "seek", Seconds = "181" }) != "That position is past the end.") throw new Exception("A seek beyond the track was sent.");
+                tune.App = "VLC.exe";
+                if (Hands.Do("media", new ToolArguments { Action = "like" }) != "I can only like songs in Spotify." || did.Count != 0) throw new Exception("A like was sent to the wrong player.");
+                tune.App = "Spotify.exe";
+                tune.Playing = false;
+                Hands.Do("media", new ToolArguments { Action = "pause" });
+                tune.Playing = true;
+                Hands.Do("media", new ToolArguments { Action = "resume" });
+                if (did.Count != 0) throw new Exception("Pause or resume toggled a player already in that state.");
+                Hands.Sessions = delegate { return null; };
+                if (Hands.Do("media", new ToolArguments { Action = "open_player" }) != "Nothing's playing that I can see.") throw new Exception("Opening the player guessed an app.");
+                if (Hands.Valid("job_control", new ToolArguments { Action = "change" }) || Hands.Valid("mainframe", new ToolArguments { Name = "change_api_key" })
+                    || Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = "security" }) || Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = "hey_capri" }))
+                    throw new Exception("A private setting or empty job change was accepted.");
+                foreach (string name in new[] { "api_key", "brain", "voice_service", "security", "hey_capri", "memories" })
+                    if (Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = name }) || Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = name, Level = "1" })) throw new Exception("A Mainframe-only setting became a tool: " + name);
+                if (!Hands.Checking("voice_chat", new ToolArguments { Action = "status" }) || !Hands.Checking("job_control", new ToolArguments { Action = "status" }) || !Hands.Checking("updates", new ToolArguments { Action = "status" })) throw new Exception("A status read became a remembered job.");
+                ToolArguments first = new ToolArguments { Action = "on", Reply = 7 }, same = new ToolArguments { Action = "on", Reply = 8 };
+                if (Hands.CallKey("voice_chat", first) != Hands.CallKey("voice_chat", same) || Hands.CallKey("voice_chat", first) == Hands.CallKey("voice_chat", new ToolArguments { Action = "off" })) throw new Exception("Voice shortcut keys lost their arguments or kept private routing fields.");
+                shortcutTool = "voice_chat"; shortcutCall = Hands.CallKey("voice_chat", first); shortcutAsk = asking; shortcutAt = Environment.TickCount; shortcutResult = "Cached.";
+                did.Clear();
+                if (AgentAct(new Agent(), "voice_chat", same) != "Cached." || did.Count != 0) throw new Exception("The same instant voice shortcut ran twice.");
+                AgentAct(new Agent(), "voice_chat", new ToolArguments { Action = "off" });
+                if (did.Count != 1 || did[0] != "voice_chat:off") throw new Exception("An instant shortcut swallowed a different brain choice.");
+                checks.Add("PASS action schemas, text calls, validation, SECURITY and dispatch, with fake brains choosing every new action from suggestions");
+            }
+            finally
+            {
+                if (fake != null) fake.Stop();
+                Hands.VoiceChat = chatWas; Hands.StopSpeech = speechWas; Hands.JobControl = jobWas; Hands.Quit = quitWas; Hands.Mainframe = frameWas; Hands.Updates = updatesWas;
+                Hands.MiniPlayer = miniWas; Hands.OpenClip = clipWas; Hands.Crash = crashWas; Hands.GamingMode = gamingWas; Hands.SettingOn = settingWas; Hands.SetSetting = setWas;
+                Hands.Sessions = sessionsWas; Hands.SessionPress = pressWas; Hands.OpenPlayer = openWas; Hands.GameOpen = gameWas;
+                Brain.OpenAi = addressWas; Brain.Keeping = keepingWas; Security.Drop(); Security.Load(saved, wakeWas);
+                shortcutTool = shortcutWas; shortcutCall = shortcutKeyWas; shortcutResult = shortcutResultWas; shortcutAsk = shortcutAskWas; shortcutAt = shortcutAtWas;
+            }
+        }
+
+        // Voice chat, quitting and installing an update wait for their own reply to be over; speech, job control, Mainframe, the
+        // mini player and saved clips use what was already there.
+        private void SmokeActionEnds(System.Collections.Generic.List<string> checks, string output)
+        {
+            int askWas = asking, answerWas = answerVoice, hdWas = hdSpeaking;
+            TalkState stateWas = talkState;
+            double voiceWas = voiceUntil, doneWas = replyDone;
+            bool chattingWas = chatting, updatingWas = updating, installingWas = installing, installWas = updateInstallAsked, quitWas = quitting;
+            UpdateFile updateWas = updateFile;
+            Job jobWas = job;
+            string workWas = working, clipFolderWas = preferences.ClipFolder, lastWas = lastClip;
+            Action<string> runWas = Hands.Run, stopWas = stopTest;
+            Func<Tune> tuneWas = Tunes.Read;
+            Func<bool> fullWas = FullScreen;
+            bool playerWas = preferences.NoPlayer, closedWas = playerClosed, hiddenWas = hidden, dockedWas = docked;
+            bool mainWas = mainframe.Visible, settingsWas = mainframe.SettingsShown, silentWas = preferences.Silent;
+            FormWindowState frameWas = mainframe.WindowState;
+            try
+            {
+                if (toolEnds.Count != 0) throw new Exception("A previous tool end was still queued.");
+                quitting = false;
+                answerVoice = hdSpeaking = -1;
+                voiceUntil = 0;
+                speaker.Clear();
+                chatTail.Stop();
+                talkState = TalkState.Thinking;
+                replyDone = -1;
+                int ran = 0;
+                AfterTool(delegate { ran++; });
+                ToolReplied(31, true);
+                toolEnds[0].At = clock.Elapsed.TotalSeconds - 2;
+                DrainTool();
+                if (ran != 0 || toolEnds[0].Replied) throw new Exception("An aside released an outer tool turn.");
+                ToolReplied(0);
+                toolEnds[0].At -= 2;
+                DrainTool();
+                if (ran != 0) throw new Exception("A switch interrupted its own thinking turn.");
+                talkState = TalkState.Online;
+                replyDone = clock.Elapsed.TotalSeconds;
+                DrainTool();
+                if (ran != 1 || toolEnds.Count != 0) throw new Exception("A finished reply did not release its switch once.");
+                AfterTool(delegate { ran++; }, 32);
+                ToolReplied(31, true);
+                DrainTool();
+                if (ran != 1 || toolEnds[0].Replied) throw new Exception("One aside released another aside's switch.");
+                ToolReplied(32, true);
+                ToolVoicing(32, 99);
+                toolEnds[0].At -= 2;
+                DrainTool();
+                if (ran != 1) throw new Exception("A switch ran while its reply was being voiced.");
+                ToolVoiced(99);
+                DrainTool();
+                if (ran != 2) throw new Exception("An aside's spoken result did not release its switch.");
+                AfterTool(delegate { ran++; });
+                asking++;
+                DrainTool();
+                if (ran != 2 || toolEnds.Count != 0) throw new Exception("An old switch survived a new turn.");
+                chatting = false;
+                if (VoiceChatTool(new ToolArguments { Action = "status" }) != "Voice chat is off." || toolEnds.Count != 0) throw new Exception("Voice chat status switched it.");
+                VoiceChatTool(new ToolArguments { Action = "on" });
+                if (chatting || toolEnds.Count != 1 || toolEnds[0].Replied) throw new Exception("Voice chat switched inside its tool call.");
+                VoiceChatTool(new ToolArguments { Action = "off" });
+                if (chatting || toolEnds.Count != 0) throw new Exception("A newer off request left a queued on switch.");
+                VoiceChatTool(new ToolArguments { Action = "on" });
+                toolEnds.Clear();
+                voiceChatEnd = null;
+                QuitTool(new ToolArguments { Action = "quit" });
+                if (quitting || toolEnds.Count != 1 || toolEnds[0].Replied) throw new Exception("Quit ran inside its tool call.");
+                toolEnds.Clear();
+                AfterTool(delegate { ran++; }, 33);
+                AsideAfter("A pending result.", 41, 33);
+                if (toolEnds.Count != 1 || toolEnds[0].Replied) throw new Exception("A long final reply lost its pending tool result.");
+                toolEnds.Clear();
+                asking++;
+                bool quietBefore = preferences.Silent;
+                preferences.Silent = true;
+                talkState = TalkState.Off;
+                AfterTool(delegate { ran++; }, 34);
+                AsideAfter("A delivered result.", 0, 34);
+                preferences.Silent = quietBefore;
+                if (toolEnds.Count != 1 || toolEnds[0].Ask != asking || toolEnds[0].Reply != 0 || !toolEnds[0].Replied || toolEnds[0].Aside) throw new Exception("An ended job did not transfer its pending result to the new reply.");
+                toolEnds.Clear();
+                updating = true;
+                installing = updateInstallAsked = false;
+                updateFile = new UpdateFile { Version = "99.0.0", Path = "unused" };
+                UpdateTool(new ToolArguments { Action = "status" });
+                UpdateTool(new ToolArguments { Action = "check" });
+                if (updateInstallAsked || toolEnds.Count != 0 || installing) throw new Exception("An update check or status asked to install.");
+                UpdateTool(new ToolArguments { Action = "install" });
+                if (installing || updateInstallAsked || toolEnds.Count != 1) throw new Exception("An install skipped its reply.");
+                Action install = toolEnds[0].Run;
+                toolEnds.Clear();
+                install();
+                if (!updateInstallAsked || installing) throw new Exception("An install request was lost during a refresh.");
+                updateInstallAsked = false;
+                checks.Add("PASS voice chat, quit and update installation wait for their own reply and audio; unrelated asides cannot release them, checks never install, and install intent survives a refresh");
+
+                Job running = new Job("Draft the note");
+                job = running; working = "Drafting.";
+                long earlier = running.Sequence(), later = running.Sequence();
+                JobTool(new ToolArguments { Action = "change", Task = "Use Firefox", Job = running, Sequence = later });
+                JobTool(new ToolArguments { Action = "change", Task = "Use Chrome", Job = running, Sequence = earlier });
+                string changed = running.Changed();
+                if (!changed.Contains("Use Firefox") || changed.Contains("Use Chrome") || string.IsNullOrEmpty(JobTool(new ToolArguments { Action = "status" }))) throw new Exception("A late tool correction overwrote a newer one.");
+                int stops = 0;
+                stopTest = delegate { stops++; };
+                JobTool(new ToolArguments { Action = "stop" });
+                if (stops != 1 || job != running) throw new Exception("Job stop did not reach her stop handler.");
+                job = new Job("A different task");
+                if (JobTool(new ToolArguments { Action = "change", Task = "Stale change", Job = running }) != "That job has ended." || job.Changed() != "") throw new Exception("An old tool changed a replacement job.");
+                job = null; working = null;
+                if (JobTool(new ToolArguments { Action = "status" }) != "I'm not on a job right now.") throw new Exception("Job control invented a running job.");
+                int barged = bargeIns;
+                SpeechTool();
+                if (bargeIns != barged + 1 || preferences.Silent != silentWas) throw new Exception("Stopping speech changed the voice setting.");
+                checks.Add("PASS speech stops only the current reply, and job status, stop and ordered corrections use the running job");
+
+                MainframeTool(null);
+                if (!mainframe.Visible || mainframe.SettingsShown) throw new Exception("The Mainframe tool did not open its main page.");
+                MainframeTool("clips");
+                if (!mainframe.SettingsShown || !mainframe.ClipsSectionShown) throw new Exception("The Mainframe tool did not open clips.");
+                FullScreen = delegate { return false; };
+                hidden = docked = false;
+                preferences.NoPlayer = false;
+                Tunes.Read = delegate { return null; };
+                MiniPlayerTool("hide");
+                if (player.Visible || !playerClosed || preferences.NoPlayer) throw new Exception("Hiding the mini player turned its setting off.");
+                MiniPlayerTool("show");
+                Stopwatch playerWait = Stopwatch.StartNew();
+                while (tuneBusy && playerWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (tuneBusy) throw new Exception("The mini player's fake read stayed pending.");
+                if (playerClosed || preferences.NoPlayer) throw new Exception("Showing the mini player stayed dismissed.");
+                string folder = Path.Combine(output, "action-clips");
+                Directory.CreateDirectory(folder);
+                string old = Path.Combine(folder, "old.mp4"), latest = Path.Combine(folder, "latest.mp4");
+                File.WriteAllText(old, "old"); File.WriteAllText(latest, "latest");
+                File.SetLastWriteTimeUtc(old, DateTime.UtcNow.AddMinutes(-2));
+                File.SetLastWriteTimeUtc(latest, DateTime.UtcNow.AddMinutes(-1));
+                preferences.ClipFolder = folder;
+                lastClip = null;
+                System.Collections.Generic.List<string> opened = new System.Collections.Generic.List<string>();
+                Hands.Run = delegate(string path) { opened.Add(path); };
+                OpenClipTool("open_folder"); OpenClipTool("open_last");
+                lastClip = old;
+                OpenClipTool("open_last");
+                if (opened.Count != 3 || opened[0] != folder || opened[1] != latest || opened[2] != old) throw new Exception("Clip opening lost its folder or last saved clip.");
+                checks.Add("PASS Mainframe pages, temporary mini player visibility and saved clip opening use their existing controls and folder");
+            }
+            finally
+            {
+                toolEnds.Clear(); voiceChatEnd = null; if (afterToolTimer != null) afterToolTimer.Stop();
+                asking = askWas; answerVoice = answerWas; hdSpeaking = hdWas; talkState = stateWas; voiceUntil = voiceWas; replyDone = doneWas;
+                chatting = chattingWas; updating = updatingWas; installing = installingWas; updateInstallAsked = installWas; quitting = quitWas; updateFile = updateWas;
+                job = jobWas; working = workWas; stopTest = stopWas; Hands.Run = runWas; preferences.ClipFolder = clipFolderWas; lastClip = lastWas;
+                Tunes.Read = tuneWas; FullScreen = fullWas; preferences.NoPlayer = playerWas; playerClosed = closedWas; hidden = hiddenWas; docked = dockedWas;
+                mainframe.ShowSettings(settingsWas); if (mainframe.WindowState != frameWas) mainframe.WindowState = frameWas; if (!mainWas) mainframe.Hide();
+            }
+        }
+
+        // Nothing before her brain cuts or holds a request, and her second look after act keeps every tool.
+        private void SmokeChoiceGates(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, string> thinkWas = Think;
+            string modelWas = brain.Model, addressWas = Brain.OpenAi;
+            Func<string> gameWas = Hands.GameOpen;
+            bool silentWas = preferences.Silent, keepingWas = Brain.Keeping;
+            Job jobWas = job;
+            string workWas = working;
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                job = null; working = null;
+                brain.Model = "test";
+                preferences.Silent = true;
+                string heardAll = null;
+                Think = delegate(string request) { heardAll = request; return "Heard it."; };
+                foreach (string request in new[] { "open spotify", new string('x', 300) + ". A little dancing would be nice, then show the latest clip." })
+                {
+                    heardAll = null;
+                    Hear(request, request, "> you: ");
+                    Stopwatch wait = Stopwatch.StartNew();
+                    while (heardAll == null && wait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                    if (heardAll != request) throw new Exception("The brain lost words or held its request.");
+                    Application.DoEvents();
+                }
+                foreach (Control control in typer.Controls)
+                {
+                    TextBox input = control as TextBox;
+                    if (input != null && input.MaxLength != 0) throw new Exception("The type box still cuts off long requests.");
+                }
+                System.Collections.Generic.List<string> asked = new System.Collections.Generic.List<string>(), picked = new System.Collections.Generic.List<string>();
+                Func<string, string> says = delegate(string line) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(line) + "}}]}"; };
+                Brain.OpenAi = FakeServer(new[] { says("act"), says("chat"), "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"r1\",\"type\":\"function\",\"function\":{\"name\":\"animate\",\"arguments\":\"{\\\"name\\\":\\\"dance\\\"}\"}}]}}]}", says("Dancing.") }, asked, out fake);
+                Hands.GameOpen = delegate { return null; };
+                Brain.Keeping = false;
+                Brain picker = new Brain { Model = "gpt-5-mini", Remote = new Cloud("sk-proj-test", "gpt-5-mini") };
+                picker.Act = delegate(string name, ToolArguments args) { picked.Add(name + ":" + args.Name); return "Dancing."; };
+                try { picker.Ask("A little dancing would be nice"); }
+                catch (BrainException error) { throw new Exception(error.Message + " after " + asked.Count + " requests: " + string.Join(" | ", asked.ConvertAll(delegate(string body) { return body.Length > 160 ? body.Substring(body.Length - 160) : body; }).ToArray())); }
+                if (picked.Count != 1 || picked[0] != "animate:dance" || asked.Count != 4 || !asked[2].Contains("Your chat head chose to act") || !asked[2].Contains("\"name\":\"clone\"")) throw new Exception("The second try stripped the action choice.");
+                fake.Stop(); fake = null;
+                asked.Clear(); picked.Clear();
+                // "and turn ..." after opening an app reads as an errand for her mouse, but a setting her brain picked stays picked.
+                string both = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"p1\",\"type\":\"function\",\"function\":{\"name\":\"open_app\",\"arguments\":\"{\\\"name\\\":\\\"Spotify\\\"}\"}},{\"id\":\"p2\",\"type\":\"function\",\"function\":{\"name\":\"capri_settings\",\"arguments\":\"{\\\"action\\\":\\\"off\\\",\\\"name\\\":\\\"quiet\\\"}\"}}]}}]}";
+                Brain.OpenAi = FakeServer(new[] { both, says("Done.") }, asked, out fake);
+                picker.Forget();
+                picker.Act = delegate(string name, ToolArguments args) { picked.Add(name); return "Done."; };
+                picker.Ask("open spotify and turn your quiet mode off");
+                if (string.Join(",", picked.ToArray()) != "open_app,capri_settings") throw new Exception("A phrase fallback replaced the brain's chosen tools: " + string.Join(",", picked.ToArray()));
+                checks.Add("PASS long typed requests reach the brain whole, nothing holds them for a please, an act retry keeps the full tool kit, and a setting her brain picked beside an app isn't turned into a mouse job");
+            }
+            finally
+            {
+                if (fake != null) fake.Stop();
+                Think = thinkWas; brain.Model = modelWas; Hands.GameOpen = gameWas; Brain.OpenAi = addressWas;
+                preferences.Silent = silentWas; Brain.Keeping = keepingWas; job = jobWas; working = workWas;
+                CloseTalk();
+            }
+        }
+
+        // Her fast head beside a job picks her tools from suggestions, keeps SECURITY and call mode, and falls back to written
+        // calls for a brain without tools.
+        private void SmokeAsideTools(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, string, byte[][], string> headWas = headTest;
+            Action<string> asideWas = asideTest;
+            Func<string, string> animateWas = Hands.Animate;
+            Func<string, int, string> cloneWas = Hands.Clone;
+            Func<string, bool?> settingWas = Hands.SettingOn;
+            Func<string, bool, string> setWas = Hands.SetSetting;
+            Func<System.Collections.Generic.List<Tune>> sessionsWas = Hands.Sessions;
+            Func<Tune, string, bool> pressWas = Hands.SessionPress;
+            Cloud remoteWas = brain.Remote;
+            string modelWas = brain.Model, addressWas = Brain.OpenAi, saved = Security.Saved;
+            bool wakeWas = Security.On(Security.Wake), chattingWas = chatting, keepingWas = Brain.Keeping, callWas = CallModeOn;
+            Job jobWas = job;
+            string workWas = working;
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                Security.Load("1111111111");
+                Brain.Keeping = false;
+                chatting = false;
+                headTest = null;
+                brain.Remote = new Cloud("sk-proj-test", "gpt-5-mini");
+                brain.Model = "gpt-5-mini";
+                Job running = new Job("Keep drafting");
+                job = running; working = "Drafting.";
+                System.Collections.Generic.List<string> did = new System.Collections.Generic.List<string>(), lines = new System.Collections.Generic.List<string>(), asked = new System.Collections.Generic.List<string>();
+                Hands.Animate = delegate(string name) { did.Add("animate:" + name); return "Dancing."; };
+                Hands.Clone = delegate(string action, int count) { did.Add("clone:" + action + ":" + count); return "Made two clones."; };
+                bool ownOn = true;
+                Hands.SettingOn = delegate { return ownOn; };
+                Hands.SetSetting = delegate(string name, bool on) { ownOn = on; did.Add("setting:" + name); return null; };
+                asideTest = delegate(string line) { lines.Add(line); };
+                Func<string, string, string> call = delegate(string tool, string json) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"s1\",\"type\":\"function\",\"function\":{\"name\":" + Voice.Quote(tool) + ",\"arguments\":" + Voice.Quote(json) + "}}]}}]}"; };
+                Brain.OpenAi = FakeServer(new[] { call("animate", "{\"name\":\"dance\"}"), call("clone", "{\"action\":\"spawn\",\"count\":2}"), call("capri_settings", "{\"action\":\"off\",\"name\":\"quiet\"}"), call("media", "{\"action\":\"like\"}") }, asked, out fake);
+                string[] suggestions = { "Some movement from you would brighten this up", "A couple more of you would be fun", "You could be more talkative", "This song belongs in my likes" };
+                for (int i = 0; i < suggestions.Length; i++)
+                {
+                    if (i == 3) Security.Load("0000000000");
+                    HeardMidJob(suggestions[i], running);
+                    Stopwatch wait = Stopwatch.StartNew();
+                    while (lines.Count <= i && wait.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                    if (lines.Count != i + 1 || job != running || running.Heard() != null || running.Changed() != "") throw new Exception("A side tool became chat or a mouse instruction.");
+                }
+                if (string.Join(",", did.ToArray()) != "animate:dance,clone:spawn:2,setting:quiet" || Security.Holding != "media" || asked.Count != 4) throw new Exception("Side tools lost a choice or bypassed SECURITY.");
+                foreach (string request in asked)
+                    foreach (string tool in new[] { "animate", "clone", "capri_settings", "voice_chat", "job_control", "updates" })
+                        if (!request.Contains("\"name\":" + Voice.Quote(tool))) throw new Exception("The fast head missed a tool: " + tool);
+                Hands.Sessions = delegate { return new System.Collections.Generic.List<Tune> { new Tune { App = "Spotify.exe", Title = "Test", Playing = true } }; };
+                Hands.SessionPress = delegate(Tune tune, string action) { did.Add("media:" + action); return true; };
+                Security.Resume("yes", DoTool);
+                if (did[did.Count - 1] != "media:like") throw new Exception("SECURITY's yes lost a side tool.");
+                ToolArguments installArgs = new ToolArguments { Action = "install" };
+                int lineCount = lines.Count;
+                AsideTool("Install the Capri update", "updates", installArgs, running);
+                Stopwatch heldWait = Stopwatch.StartNew();
+                while (lines.Count == lineCount && heldWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                int heldReply = installArgs.Reply;
+                if (Security.Holding != "updates") throw new Exception("A side install skipped SECURITY.");
+                HeardMidJob("yes", running);
+                Stopwatch yesWait = Stopwatch.StartNew();
+                while (lines.Count < lineCount + 2 && yesWait.ElapsedMilliseconds < 3000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (toolEnds.Count != 1 || !toolEnds[0].Replied || toolEnds[0].Reply <= 0 || toolEnds[0].Reply == heldReply) throw new Exception("An approved side install lost its new reply owner.");
+                toolEnds.Clear(); if (afterToolTimer != null) afterToolTimer.Stop();
+                fake.Stop(); fake = null;
+                asked.Clear();
+                Brain.OpenAi = FakeServer(new[] { "!400 {\"error\":{\"message\":\"tools are not supported\"}}", "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"clone{\\\"action\\\":\\\"spawn\\\",\\\"count\\\":2}\"}}]}" }, asked, out fake);
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+                brain.QuickTools("Pick a tool for their suggestion.", "A couple more of you would be fun", 300, calls, Hands.KitFor());
+                if (calls.Count != 1 || calls[0].Key != "clone" || calls[0].Value.Count != 2 || asked.Count != 2 || !asked[1].Contains("clone{")) throw new Exception("A head without native tools lost its full text tool kit.");
+                callSession.Change(true);
+                int before = did.Count;
+                if (DoTool("animate", new ToolArguments { Name = "dance" }) != "I can only talk in call mode." || did.Count != before) throw new Exception("Call mode let a tool through.");
+                checks.Add("PASS the fast head picks dance, clone and settings tools from suggestions beside a job, keeps SECURITY and call isolation, and falls back to the full text tool kit");
+            }
+            finally
+            {
+                if (fake != null) fake.Stop();
+                toolEnds.Clear(); if (afterToolTimer != null) afterToolTimer.Stop();
+                headTest = headWas; asideTest = asideWas; Hands.Animate = animateWas; Hands.Clone = cloneWas; Hands.SettingOn = settingWas; Hands.SetSetting = setWas;
+                Hands.Sessions = sessionsWas; Hands.SessionPress = pressWas; brain.Remote = remoteWas; brain.Model = modelWas; Brain.OpenAi = addressWas;
+                chatting = chattingWas; job = jobWas; working = workWas; Brain.Keeping = keepingWas; Security.Drop(); Security.Load(saved, wakeWas); callSession.Change(callWas);
+            }
+        }
+
         // 0.8.0: she knows which of her tools work here. On this PC with a brain that can see, her tool lists and prompts are what
         // they always were. A brain that can't see pictures has no look_at_screen, is told why, and says so instead of looking,
         // and her help lists what she can do from the tools she has, mini games and chess included.
@@ -16051,7 +16768,7 @@ namespace CapriDesktop
                 if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
                     throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
             }
-            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 2200 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
+            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 3200 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
                 || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
                 throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
             // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
@@ -16062,10 +16779,10 @@ namespace CapriDesktop
                 Hands.Kit clipsOn = Hands.KitFor();
                 Hands.ClipsOn = delegate { return false; };
                 Hands.Kit clipsOff = Hands.KitFor();
-                const string offLine = "Off right now: game clips (turn on Clip my games in Settings > CLIPS).";
+                const string offLine = "Off right now: game clips (turn on Clip my games in Settings > CLIPS to save; opening saved clips still works).";
                 if (ReferenceEquals(clipsOn, clipsOff) || !ReferenceEquals(clipsOff, Hands.KitFor()) || clipsOff.Missing.Count != 0 || clipsOn.Off.Count != 0 || !clipsOff.Off.ContainsKey("clip") || clipsOff.Tools != clipsOn.Tools
                     || clipsOff.Unable("clip", new ToolArguments()) != null || !clipsOff.Noted.Contains(offLine) || clipsOn.Noted.Contains("Off right now") || clipsOn.Brief.Contains("off right now")
-                    || !clipsOff.Brief.Contains("\n- clip: clip their game (off right now: turn on Clip my games in Settings > CLIPS)") || !clipsOff.ChatOnly.Contains("(off right now: ")
+                    || !clipsOff.Brief.Contains("\n- clip: save game clips or open saved clips (off right now: turn on Clip my games in Settings > CLIPS to save; opening saved clips still works)") || !clipsOff.ChatOnly.Contains("(off right now: ")
                     || !(SelfKnow.Matching("what can you do?", clipsOff) ?? "").Contains(offLine) || (SelfKnow.Matching("what can you do?", clipsOn) ?? "").Contains("Off right now"))
                     throw new Exception("Clip my games being off didn't reach her brains or her help: " + clipsOff.Switched);
             }
@@ -17000,16 +17717,17 @@ namespace CapriDesktop
                     listenPartial.Add(listenStereo, 48000);
                     if (StopListening("listen to me")) throw new Exception("Listening treated conversation as stop.");
                     if (++listenStops == 1) Hear("stop", "stop", "> you: ");
-                    else { chatting = true; ChatHeard("stop"); }
+                    else if (listenStops == 2) { chatting = true; ChatHeard("stop"); }
+                    else if (Hands.Do("listen", new ToolArguments { Action = "stop" }) != "Stopping listening to PC sound.") throw new Exception("The stop tool did not end listening.");
                     if (!listenStopped()) throw new Exception("Typed or spoken stop did not finish listening early.");
                     return listenPartial;
                 };
-                for (int listenStopCase = 0; listenStopCase < 2; listenStopCase++)
+                for (int listenStopCase = 0; listenStopCase < 3; listenStopCase++)
                 {
                     string listenShort = Hands.Do("listen", new ToolArguments());
                     if (!listenShort.Contains("last 1 seconds") || !listenShort.EndsWith("the words before stop", StringComparison.Ordinal)) throw new Exception("Stopping discarded the words already captured.");
                 }
-                checks.Add("PASS typed and spoken stop use her existing stop phrases and return the words captured so far");
+                checks.Add("PASS typed, spoken and tool stops return the words captured so far");
 
                 string listenTool;
                 ToolArguments listenArgs;
@@ -18918,14 +19636,6 @@ namespace CapriDesktop
             }
             finally { Ink.Active = inkActiveWas; }
             if (Ink.Request("erase that") != null || Ink.Request("rub it out") != null || Ink.Request("remove it") != null || Ink.Request("get rid of that") != null || Ink.Request("clear your drawing") == null) throw new Exception("Erase took a request with nothing drawn, or clear your drawing stopped working.");
-            Func<int> inkPleaseWas = Hands.PleaseRoll;
-            try
-            {
-                Hands.PleaseRoll = delegate { return 0; };
-                bool inkPlease;
-                if (Hands.Manners("draw me a cat", out inkPlease) != "draw me a cat" || inkPlease || Hands.Manners("clear your drawing", out inkPlease) != "clear your drawing" || inkPlease) throw new Exception("Ink added a please step.");
-            }
-            finally { Hands.PleaseRoll = inkPleaseWas; }
             foreach (string diagramAsk in new[] { "Capri, can you make a diagram and help me understand linear algebra?", "make me a diagram of how neural networks work", "make a diagram of a vector", "show me a diagram of gradient descent", "draw me a diagram of a matrix", "explain eigenvectors with a diagram", "help me understand linear algebra with a diagram", "help me understand vectors and make a diagram", "make a flowchart of how a bill becomes law", "make me a mind map of machine learning", "create a bar chart of the planets by size", "make a diagram of how data gets to the model", "I'm learning machine learning, can you make a diagram of a neuron?", "so like capri can you make a diagram and help me understand linear algebra" })
             {
                 string diagramTool;
@@ -19538,7 +20248,7 @@ namespace CapriDesktop
                 says("chat"), says(nope[1]), says("Już gram."),
                 calls("use_computer", "{\"task\":\"kliknij deathmatch\"}"), says("Kliknęłam."),
                 says("chat"), says("Clean shot, choom."),
-                says("act"), says("chat"), says("Hah, you wish."),
+                says("act"), says("chat"), says("chat"), says("Hah, you wish."),
                 says(nope[0]), says("chat"), says("chat")
             }, asked, out fake);
             try
@@ -19894,6 +20604,7 @@ namespace CapriDesktop
                 Hands.Foreground = delegate { return new IntPtr(12); };
                 Hands.GameOpen = delegate { return "Counter-Strike 2"; };
                 Computer.GameOpen = delegate { return "Counter-Strike 2"; };
+                state["gaming_mode"] = true;
                 Brain.OpenAi = FakeServer(new[]
                 {
                     calls("list_windows", "{}"), says("You're in Discord, with Spotify and CS up too."),
@@ -24842,6 +25553,10 @@ namespace CapriDesktop
             Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
             Section(checks, "SmokeSelfKnow", delegate { SmokeSelfKnow(checks); });
             Section(checks, "SmokeToolKit", delegate { SmokeToolKit(checks); });
+            Section(checks, "SmokeActions", delegate { SmokeActions(checks); });
+            Section(checks, "SmokeActionEnds", delegate { SmokeActionEnds(checks, output); });
+            Section(checks, "SmokeChoiceGates", delegate { SmokeChoiceGates(checks); });
+            Section(checks, "SmokeAsideTools", delegate { SmokeAsideTools(checks); });
             Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
@@ -25162,7 +25877,6 @@ namespace CapriDesktop
             SmokeInput smokeInput = new SmokeInput();
             Application.AddMessageFilter(smokeInput);
             FormClosed += delegate { Application.RemoveMessageFilter(smokeInput); };
-            Hands.PleaseRoll = delegate { return 1; };
             Hands.Opened = delegate { return ""; };
             Func<string> findGame = Computer.GameOpen;
             Computer.GameOpen = delegate { return null; };
@@ -31252,27 +31966,23 @@ namespace CapriDesktop
                                         && Brain.Effort("gpt-5-mini", true) == "low" && Brain.Effort("gpt-6-luna", true) == "none" && Brain.Effort("deepseek-flash", false) == null && Brain.Unescape("set it to \\\"none\\\" \\u00e9") == "set it to \"none\" é";
                                     if (!lunaRight || !effortsRead) throw new Exception("gpt-6-luna's reasoning_effort wasn't fixed: " + lunaSkipped + " / " + lunaChat + " / " + lunaSent.Length + " requests / errors read " + effortsRead + (lunaSent.Length > 1 ? " / " + lunaSent[1] : ""));
                                     checks.Add("PASS gpt-6-luna and newer OpenAI models: when OpenAI turns down the reasoning_effort, like gpt-6-luna with tools, she asks again once with the value its error names, keeps it for that model, and reads errors with quoted values whole");
-                                    // A brain reaching for Gaming Mode with nobody asking gets dropped and she answers. Asked for, it still runs.
+                                    // A brain's Gaming Mode pick runs from a suggestion with no Gaming Mode, game or HUD words in it (Lachy, 3 Nov).
                                     System.Collections.Generic.List<string> strayAsked = new System.Collections.Generic.List<string>(), straySwitched = new System.Collections.Generic.List<string>();
                                     System.Net.Sockets.TcpListener strayFake;
                                     string strayCall = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"g1\",\"type\":\"function\",\"function\":{\"name\":\"gaming_mode\",\"arguments\":\"{\\\"action\\\":\\\"on\\\"}\"}}]}}]}";
-                                    Brain.OpenAi = FakeServer(new string[] { strayCall, "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Doing fine, choom.\"}}]}", strayCall }, strayAsked, out strayFake);
+                                    Brain.OpenAi = FakeServer(new[] { strayCall, "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Gaming Mode is on.\"}}]}" }, strayAsked, out strayFake);
                                     Func<string> strayGame = Hands.GameOpen;
                                     Func<string, string> straySwitch = Hands.GamingMode;
-                                    Hands.GameOpen = delegate { return "Roblox"; };
-                                    Hands.GamingMode = delegate(string action) { straySwitched.Add(action); return "Gaming Mode on, choom."; };
-                                    cloudy.Forget();
-                                    string strayChat = cloudy.Ask("how's your day going");
-                                    int strayTurned = straySwitched.Count;
-                                    cloudy.Forget();
-                                    string strayAsk = cloudy.Ask("bring your game overlay up");
-                                    Hands.GameOpen = strayGame;
-                                    Hands.GamingMode = straySwitch;
-                                    strayFake.Stop();
-                                    cloudy.Forget();
-                                    if (strayChat != "Doing fine, choom." || strayTurned != 0 || straySwitched.Count != 1 || straySwitched[0] != "on" || strayAsk != "Gaming Mode on, choom." || !Hands.GamingTalk("mets le mode jeu") || Hands.GamingTalk("how's your day going"))
-                                        throw new Exception("A brain's Gaming Mode call wasn't held to what was asked: " + strayChat + " / " + strayTurned + " / " + strayAsk);
-                                    checks.Add("PASS a brain's Gaming Mode call needs talk of games or her HUD: anything else gets her answer, and the setting stays as it was");
+                                    try
+                                    {
+                                        Hands.GameOpen = delegate { return "Roblox"; };
+                                        Hands.GamingMode = delegate(string action) { straySwitched.Add(action); return "Gaming Mode is on."; };
+                                        cloudy.Forget();
+                                        string strayAsk = cloudy.Ask("you could react alongside me");
+                                        if (straySwitched.Count != 1 || straySwitched[0] != "on" || strayAsk != "Gaming Mode is on." || Hands.GamingTalk("you could react alongside me")) throw new Exception("Her picker lost a Gaming Mode choice from a suggestion.");
+                                        checks.Add("PASS her picker keeps its Gaming Mode choice from a suggestion without Gaming Mode, game or HUD words");
+                                    }
+                                    finally { Hands.GameOpen = strayGame; Hands.GamingMode = straySwitch; strayFake.Stop(); cloudy.Forget(); }
                                     if (!mainframe.TextStatus.StartsWith("tier 0 | ", StringComparison.Ordinal) || !mainframe.TextStatus.EndsWith("| no key row", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("The brain tiers are wrong with no key: " + mainframe.TextStatus);
                                     mainframe.ShowTiers(1, null, null);
                                     if (!mainframe.TextStatus.EndsWith("| NVIDIA / Google AI Studio / OpenRouter | Connect", StringComparison.Ordinal) || !mainframe.TiersFit) throw new Exception("MEDIUM INTELLIGENCE without a key is wrong: " + mainframe.TextStatus);
@@ -32404,67 +33114,11 @@ namespace CapriDesktop
                             CloseTalk();
                             if (!namedRight || !rudeName || !trimmedName || !clearedName) throw new Exception("The nickname box went wrong: named " + namedRight + ", rude " + rudeName + ", trimmed " + trimmedName + ", cleared " + clearedName);
                             checks.Add("PASS nickname: What should she call you? saves a cleaned-up name, rude ones too since it's their call, she says got it, her brain is told to use it now and then, and choom or an empty box goes back to choom");
-                            Func<int> pleaseWas = Hands.PleaseRoll;
-                            Hands.PleaseRoll = delegate { return 0; };
-                            bool asksPlease, keptAsking, politeAsked, chatAsked, droppedAsked, forgotAsked;
-                            Hands.Manners("open spotify", out asksPlease);
-                            string pleaseIn = Hands.Manners("please", out keptAsking);
-                            bool heldRequest = asksPlease && !keptAsking && pleaseIn == "open spotify";
-                            Hands.Manners("open spotify please", out politeAsked);
-                            Hands.Manners("how was your day", out chatAsked);
-                            Hands.Manners("open spotify", out asksPlease);
-                            string movedOn = Hands.Manners("actually never mind", out droppedAsked);
-                            string latePlease = Hands.Manners("please", out forgotAsked);
-                            bool letGo = movedOn == "actually never mind" && latePlease == "please" && !droppedAsked && !forgotAsked;
-                            bool germanAsked, germanKept, germanPolite, japanesePolite, hindiPolite, turkishPolite, arabicAsked, arabicKept;
-                            Hands.Manners("öffne Spotify", out germanAsked);
-                            string bitte = Hands.Manners("bitte", out germanKept);
-                            Hands.Manners("öffne bitte Spotify", out germanPolite);
-                            Hands.Manners("Spotifyを開いてください", out japanesePolite);
-                            Hands.Manners("Spotify खोलो प्लीज", out hindiPolite);
-                            Hands.Manners("Spotify'ı aç lütfen", out turkishPolite);
-                            Hands.Manners("افتح سبوتيفاي", out arabicAsked);
-                            string minFadlak = Hands.Manners("من فضلك", out arabicKept);
-                            bool spellings = true;
-                            foreach (string spelled in new[] { "abre Spotify porfavor", "apri Spotify perfavore", "открой Spotify плз", "ouvre Spotify sil te plait", "Spotify ဖွင့်ပေးပါ", "ကျေးဇူးပြုပြီး Spotify ဖွင့်ပေး", "გახსენი Spotify გთხოვ", "Spotify-ը բացիր, խնդրում եմ" })
-                            {
-                                bool spelledAsked;
-                                Hands.Manners(spelled, out spelledAsked);
-                                if (spelledAsked) spellings = false;
-                            }
-                            bool spelledFirst, spelledKept;
-                            Hands.Manners("abre Spotify", out spelledFirst);
-                            string porfavor = Hands.Manners("porfavor", out spelledKept);
-                            bool burmeseFirst, burmeseKept;
-                            Hands.Manners("Spotify ဖွင့်ပေး", out burmeseFirst);
-                            string kyayZuPyuPi = Hands.Manners("ကျေးဇူးပြုပြီး", out burmeseKept);
-                            bool georgianFirst, georgianKept;
-                            Hands.Manners("გახსენი Spotify", out georgianFirst);
-                            string gtkhov = Hands.Manners("გთხოვ", out georgianKept);
-                            bool anyLanguage = germanAsked && !germanKept && bitte == "öffne Spotify" && !germanPolite && !japanesePolite && !hindiPolite && !turkishPolite && arabicAsked && minFadlak == "افتح سبوتيفاي" && !arabicKept
-                                && spellings && spelledFirst && !spelledKept && porfavor == "abre Spotify" && burmeseFirst && !burmeseKept && kyayZuPyuPi == "Spotify ဖွင့်ပေး"
-                                && georgianFirst && !georgianKept && gtkhov == "გახსენი Spotify";
-                            // A misspelt please runs what she held as they said it, counts as manners in a request, and stays out of a message job.
-                            bool misspelt = true;
-                            foreach (string typo in new[] { "plsease", "pleas", "pls", "plz", "Pleeease!" })
-                            {
-                                bool typoFirst, typoKept;
-                                Hands.Manners("text hi to my alt on discord", out typoFirst);
-                                if (!typoFirst || Hands.Manners(typo, out typoKept) != "text hi to my alt on discord" || typoKept) misspelt = false;
-                            }
-                            bool typoPolite;
-                            Hands.Manners("text hi to my alt plsease", out typoPolite);
-                            bool unpleased = Hands.Unpleased("text hi to my alt on discord plsease") == "text hi to my alt on discord" && Hands.Unpleased("text my alt hi, pls!") == "text my alt hi" && Hands.Unpleased("dm him gg please capri") == "dm him gg"
-                                && Hands.Unpleased("text him meet me at the plaza") == "text him meet me at the plaza" && Hands.Unpleased("open spotify please") == "open spotify please" && Hands.Unpleased(null) == null;
-                            Hear("open spotify");
-                            bool askedInChat = reply == Hands.SayPlease;
-                            CloseTalk();
-                            Hands.PleaseRoll = pleaseWas;
-                            Hands.Manners("never mind", out droppedAsked);
-                            bool rareAsked;
-                            Hands.Manners("open spotify", out rareAsked);
-                            if (!heldRequest || politeAsked || chatAsked || !letGo || !askedInChat || rareAsked || !anyLanguage || !misspelt || typoPolite || !unpleased) throw new Exception("Say please went wrong: held " + heldRequest + ", polite " + politeAsked + ", chat " + chatAsked + ", let go " + letGo + ", asked in chat " + askedInChat + ", other rolls " + rareAsked + ", other languages " + anyLanguage + ", misspelt " + misspelt + ", misspelt polite " + typoPolite + ", out of messages " + unpleased);
-                            checks.Add("PASS say please: on a 1 in 10 roll a request without please gets Say please, a reply of please in any of her languages (bitte, من فضلك) or misspelt (plsease, pleas, pls, plz) runs the request as they said it, polite asks in any of her languages and plain chat never get it, moving on drops the held request, and a please on the end of a message job stays out of the message");
+                            // A please on the end of a message job stays out of the message, however it's spelt.
+                            if (Hands.Unpleased("text hi to my alt on discord plsease") != "text hi to my alt on discord" || Hands.Unpleased("text my alt hi, pls!") != "text my alt hi" || Hands.Unpleased("dm him gg please capri") != "dm him gg"
+                                || Hands.Unpleased("text him meet me at the plaza") != "text him meet me at the plaza" || Hands.Unpleased("open spotify please") != "open spotify please" || Hands.Unpleased(null) != null)
+                                throw new Exception("A trailing please entered a message job.");
+                            checks.Add("PASS a please on the end of a message job, however it's spelt, stays out of the message");
                             SetVolume(150);
                             if (Voice.Louder(new short[] { 30000 })[0] != 32767) throw new Exception("A loud voice was not clipped.");
                             SetVolume(100);
@@ -37957,7 +38611,7 @@ namespace CapriDesktop
                 headGo.Set();
                 waitFor(delegate { return asides.Count > 0; });
                 must(asides.Count == 1 && asides[0] == "Because he never reads them." && busy.Heard() == null && busy.Changed() == "" && stops.Count == 0 && job == busy, "Chat mid-job touched the job or went unanswered: " + string.Join(" | ", asides.ToArray()));
-                must(headSystem.EndsWith(Asides.Head, StringComparison.Ordinal) && headAsked.IndexOf("send jake the notes", StringComparison.Ordinal) >= 0 && headAsked.IndexOf("why does jake even need these", StringComparison.Ordinal) >= 0, "Her fast head wasn't told about the job: " + headAsked);
+                must(headSystem.Contains(Asides.Head) && headSystem.Contains("clone{") && headSystem.Contains("capri_settings{") && headAsked.IndexOf("send jake the notes", StringComparison.Ordinal) >= 0 && headAsked.IndexOf("why does jake even need these", StringComparison.Ordinal) >= 0, "Her fast head wasn't told about the job: " + headAsked);
                 headSays = "SORT: ADD\nSAY: Yep, pdf too.";
                 asides.Clear();
                 Hear("attach the pdf as well");

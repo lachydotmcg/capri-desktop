@@ -75,7 +75,6 @@ namespace CapriDesktop
         {
             this.pet = pet;
             this.folder = folder;
-            Hands.PleaseRoll = delegate { return 1; };
             Directory.CreateDirectory(folder);
             if (File.Exists(Path.Combine(folder, "me.md"))) File.Delete(Path.Combine(folder, "me.md"));
             if (File.Exists(pet.LoginFile)) File.Delete(pet.LoginFile);

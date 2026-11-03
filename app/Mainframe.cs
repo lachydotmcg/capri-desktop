@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -1905,6 +1906,35 @@ namespace CapriDesktop
                 Activate();
             }
             finally { restoringFullScreen = busy; }
+        }
+
+        // Her mainframe tool: opens Mainframe at one of its pages, turning on advanced settings for a page only they show, and
+        // scrolls to its heading. Nothing on it changes.
+        internal bool OpenTool(string name)
+        {
+            string page = (name ?? "main").Trim().ToLowerInvariant();
+            if (page.Length == 0) page = "main";
+            if (!Regex.IsMatch(page, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|personality|memories)\z")) return false;
+            bool settings = page != "main" && page != "brain" && page != "voice";
+            ShowSettings(settings);
+            if (settings && page != "settings" && !capri.AdvancedSettings)
+            {
+                capri.ToggleAdvancedSettings();
+                ShowSettings(true);
+            }
+            Restore();
+            if (page == "security") { ShowSecurity(); return true; }
+            if (page == "extras") { ShowExtras(); return true; }
+            if (page == "layers") { ShowLayersWindow(); return true; }
+            if (page == "main" || page == "settings") return true;
+            string heading = page == "personality" || page == "memories" ? "BRAIN >" : page.ToUpperInvariant() + " >";
+            foreach (Control control in Controls)
+            {
+                if (control.Text != heading || control.Left >= Far || Folded(control)) continue;
+                ScrollPage(pageScroll + (int)Math.Floor((control.Top - Scaled(12)) / Unit()));
+                return true;
+            }
+            return true;
         }
 
         internal void Sync()

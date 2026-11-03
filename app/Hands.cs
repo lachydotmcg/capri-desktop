@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -32,6 +33,11 @@ namespace CapriDesktop
         internal string Asked;
         // Voice chat called it, so a change that would end the call waits until her reply is out.
         internal bool FromAgent;
+        // The reply and the ask a tool call came with, so what it does once its reply is over waits for that reply, and where a
+        // correction to her job falls among the others they made.
+        internal int Reply;
+        internal int? Ticket;
+        internal long? Sequence;
         [DataMember(Name = "target")] public string Target;
         [DataMember(Name = "text")] public string Text;
         [DataMember(Name = "description")] public string Description;
@@ -77,6 +83,8 @@ namespace CapriDesktop
         [DataMember(Name = "stop")] public string Stop;
         [DataMember(Name = "shapes")] public string Shapes;
 #if !CROSS
+        // The job a tool beside it came in for, so one that lands after that job ended never changes the next.
+        internal Job Job;
         internal Picture Drawing;
         internal bool DrawingGrid;
         internal List<InkShape> DrawingShapes;
@@ -243,7 +251,7 @@ namespace CapriDesktop
             switch (tool)
             {
                 case "open_app": case "open_website": return Open;
-                case "media": return action == "now_playing" || action == "volume_now" ? -1 : Media;
+                case "media": return action == "now_playing" || action == "volume_now" ? -1 : action == "open_player" ? Windows : Media;
                 case "play_music": return Media;
                 case "shortcut": return Shortcuts;
                 case "app_window": return Windows;
@@ -251,6 +259,10 @@ namespace CapriDesktop
                 case "power": return action == "cancel" ? -1 : Power;
                 case "use_computer": return Mouse;
                 case "stream": return action == "stop" ? -1 : Mouse;
+                case "job_control": return action == "change" ? Mouse : -1;
+                case "clip": return action == "open_folder" || action == "open_last" ? Open : -1;
+                case "updates": return action == "install" ? Open : -1;
+                case "voice_chat": case "speech": case "quit": case "mainframe": case "mini_player": case "fake_crash": case "listen": return -1;
                 default: return -1;
             }
         }
@@ -377,6 +389,12 @@ namespace CapriDesktop
                     switch (a.Action)
                     {
                         case "play_pause": return "play or pause what's playing";
+                        case "pause": return "pause what's playing";
+                        case "resume": return "resume what's playing";
+                        case "seek": return "seek to " + Plain(a.Seconds, "that") + " seconds";
+                        case "like": return "like the current song";
+                        case "unlike": return "unlike the current song";
+                        case "open_player": return "open the player that's playing";
                         case "next": return "skip to the next track";
                         case "previous": return "go back a track";
                         case "volume_up": return "turn the volume up";
@@ -397,6 +415,9 @@ namespace CapriDesktop
                         case "unmute": return "unmute " + sounding;
                         default: return "check how loud " + sounding + " is";
                     }
+                case "clip": return a.Action == "open_folder" ? "open your clips folder" : "open your last clip";
+                case "updates": return "install the Capri update";
+                case "job_control": return "change the job to " + Plain(a.Task, "that");
                 case "play_music": return "play " + Plain(a.Song, "some music") + (a.App == "spotify" ? " on Spotify" : a.App == "youtube" ? " on YouTube" : "");
                 case "shortcut":
                     switch (a.Name)
@@ -826,7 +847,7 @@ namespace CapriDesktop
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
             { "game_comments", "what you say about their game; for no comments at all, turn it and watch_my_screen off" },
-            { "live_reactions", "your quick reactions over their games" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
+            { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "keep_awake", "their PC stays awake for your jobs and watches" }, { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
             { "listen_for_capri", "voice chat that starts when they say your name, apart from Hey Capri" },
@@ -946,8 +967,13 @@ namespace CapriDesktop
 #endif
               "Set browser only when they named a browser; otherwise leave it out for their default.",
               "{\"type\":\"object\",\"properties\":{\"site\":{\"type\":\"string\",\"description\":\"The site's name or address, like youtube.com\"},\"search\":{\"type\":\"string\",\"description\":\"Words to search for on that site, if any\"},\"browser\":{\"type\":\"string\",\"description\":\"Only the browser they named\",\"enum\":[\"chrome\",\"edge\",\"firefox\",\"opera\",\"opera gx\",\"brave\",\"vivaldi\"]}},\"required\":[\"site\"]}", "open websites and search Google, YouTube and other sites", "open sites and search Google or YouTube" },
-            { "media", "Control the music or video playing on their PC, the PC's volume (up, down, set to a level, mute or unmute), or check what song is playing or what the volume is at.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"next\",\"previous\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\",\"volume_now\"]},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, the volume from 0 to 100. For volume_up or volume_down, how many percent to change it, only if they said\"}},\"required\":[\"action\"]}", "control your music and your PC's volume", "play, pause, skip and set the volume" },
+#if !CROSS
+            { "media", "Control their music, video or PC volume when they ask, suggest or hint at it. Pause, resume, skip, seek to seconds from the start, like or unlike the current Spotify song, open the player that's playing, or read the song or volume. Seek and likes need a player that supports them.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"pause\",\"resume\",\"next\",\"previous\",\"seek\",\"like\",\"unlike\",\"open_player\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\",\"volume_now\"]},\"seconds\":{\"type\":\"string\",\"description\":\"For seek, seconds from the start, like 90 for 1:30\"},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, 0 to 100. For volume_up or volume_down, how many percent, only if they said\"}},\"required\":[\"action\"]}", "control music and volume, seek, like songs or open the player", "control music and volume, seek, like songs or open the player" },
+#else
+            { "media", "Control their music, video or PC volume when they ask, suggest or hint at it. Pause, resume, skip, set or read the volume, or read the current song.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"play_pause\",\"pause\",\"resume\",\"next\",\"previous\",\"volume_up\",\"volume_down\",\"volume_set\",\"mute\",\"unmute\",\"now_playing\",\"volume_now\"]},\"level\":{\"type\":\"string\",\"description\":\"For volume_set, 0 to 100. For volume_up or volume_down, how many percent, only if they said\"}},\"required\":[\"action\"]}", "control music and PC volume", "pause, resume, skip or set the volume" },
+#endif
             { "look_at_screen", "Take a screenshot of their screen and look at it right now: what they're doing, playing or showing you. Use it whenever they ask you to check, look at or see their screen, or ask what something on it is. You can always look, so never say you can't see their screen." + LookingAt,
               "{\"type\":\"object\",\"properties\":{\"focus\":{\"type\":\"string\",\"description\":\"What to look at, if they said\"}" + LookPlace + "}}", "look at your screen", "look at their screen" },
             { "play_music", "Play a song, playlist, album or artist they name, on Spotify or YouTube, including open Spotify and play requests. Only for things to listen to: a game, match or board is never this, even when they say play. Use this instead of a clicking job. For their liked songs, use kind playlist and song Liked Songs. For their own named playlist, keep my before its name so it searches Spotify itself instead of choosing a public playlist URI with that name. If they leave the pick to you, pick a track from the Cyberpunk 2077 or Edgerunners soundtrack.",
@@ -992,16 +1018,32 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"mess scatters them, hide makes them vanish, back puts them all back\",\"enum\":[\"mess\",\"hide\",\"back\"]}},\"required\":[\"action\"]}", "mess up or hide your desktop icons and put them back", "mess up or hide their desktop icons, then put them back" },
             { "watch_along", "Watch a video, stream or film together on any window. Start when they ask watch this with me, let's watch this or react to this. Hear the PC's words, look at the screen and react now and then until they ask to stop or it ends. Use action stop to finish watching together; watch_for is for a particular event.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"start\",\"stop\"]}},\"required\":[\"action\"]}", "watch videos with you and react", "watch videos with them" },
-            { "gaming_mode", "Turn Gaming Mode on or off, only when they ask for Gaming Mode by name: you watch their game and react when something happens, until it closes.",
+            { "gaming_mode", "Turn Gaming Mode on or off: you watch their game and react when something happens, until it closes. Use it when they ask, suggest or hint at your game overlay or reactions, however they word it. Playing the game yourself uses use_computer.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"on\",\"off\",\"up\",\"down\",\"left\",\"right\",\"reset\"]}},\"required\":[\"action\"]}", "react to your games in Gaming Mode", "turn Gaming Mode on or off" },
-            { "clip", "Save recent game video to their chosen clips folder on this PC. Use this when they ask to clip a game, including clip that and scroll that BD. Clip my games in Settings > CLIPS must be on. Omit seconds to use their chosen default length; seconds can request a different stretch of the buffered video.",
-              "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}", "clip your games", "clip their game" },
+            { "clip", "Save recent game video, open their clips folder or open the last saved clip when they ask, suggest or hint at it. save is the default and needs Clip my games on. Omit seconds for their default length. Opening saved clips works with recording off.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"save by default, open_folder or open_last\",\"enum\":[\"save\",\"open_folder\",\"open_last\"]},\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to save, if they said\"}}}", "clip games or open your clips", "save game clips or open saved clips" },
             { "mini_game", "Play your own tic-tac-toe, connect four, rock paper scissors or native chess board beside you. Online play goes to their browser. A move uses their square, column or rock/paper/scissors as text; chess moves use the mouse. again starts a new round; close closes your board. Chess also has undo, hint, resign and level. Chess needs no brain or key; choose easy, normal or hard and their side, white by default.",
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Which desktop board\",\"enum\":[\"tic_tac_toe\",\"connect_four\",\"rock_paper_scissors\",\"chess\"]},\"action\":{\"type\":\"string\",\"description\":\"What to do on the board\",\"enum\":[\"open\",\"move\",\"again\",\"close\",\"undo\",\"hint\",\"resign\",\"level\"]},\"text\":{\"type\":\"string\",\"description\":\"Their move on a non-chess board\"},\"level\":{\"type\":\"string\",\"description\":\"Chess strength\",\"enum\":[\"easy\",\"normal\",\"hard\"]},\"side\":{\"type\":\"string\",\"description\":\"Their chess pieces\",\"enum\":[\"white\",\"black\"]}},\"required\":[\"name\"]}", "play her mini games with you (tic-tac-toe, connect four, rock paper scissors and chess) on her own desktop boards, even without a brain", "play tic-tac-toe, connect four, rock paper scissors or chess" },
             { "watch_for", "Watch for something that will show on their screen: tell me when, let me know when, warn me if, keep an eye on, or watch for. Stay quiet until it happens. Use remind for anything that goes by the clock. Watches last until she closes; list names them, stop with text stops a matching watch, and stop without text stops them all.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to watch for, in their words, or which watch to stop\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; watch by default\",\"enum\":[\"watch\",\"list\",\"stop\"]},\"often\":{\"type\":\"string\",\"description\":\"Once by default, or every time after the condition clears\",\"enum\":[\"once\",\"every_time\"]}}}", "watch your screen for something and tell you when it happens", "tell them when something shows on their screen" },
-            { "listen", "Capture what's playing on their PC, like a video, a call, a stream or a game's dialogue, and give back the words. Listen from now for 15 seconds by default, after your own voice finishes. Use it when they ask what someone said, to listen to this, or to translate what someone is saying. It cannot replay earlier sound or identify songs by ear.",
-              "{\"type\":\"object\",\"properties\":{\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to listen from now; defaults to 15\"},\"focus\":{\"type\":\"string\",\"description\":\"What they want to know or translate, if they said\"}}}", "listen to what's playing on your PC and tell you what was said, or translate it", "hear what's playing and translate it" },
+            { "fake_crash", "Show your five-second fake blue screen or stop it when they ask, suggest or hint at the prank. It never crashes their PC and won't start over full screen, a stream or a mouse job.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or stop the prank\",\"enum\":[\"show\",\"stop\"]}},\"required\":[\"action\"]}", "show or stop her fake blue screen", "show or stop your fake blue screen" },
+            { "voice_chat", "Turn your voice chat on or off, or read its status when they ask, suggest or hint at talking with you. The switch waits for this tool turn to finish.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"on, off or status\",\"enum\":[\"on\",\"off\",\"status\"]}},\"required\":[\"action\"]}", "turn voice chat on or off and check it", "turn voice chat on or off and check it" },
+            { "speech", "Stop your current spoken reply when they ask, suggest or hint that you stop talking. Your voice stays enabled for later replies.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"stop talking now\",\"enum\":[\"stop\"]}},\"required\":[\"action\"]}", "stop her current spoken reply", "stop your current spoken reply" },
+            { "job_control", "Stop the running mouse job, read its status or change what it does when they ask, suggest or hint at it. For change, task is their new instruction in their words.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"stop, status or change\",\"enum\":[\"stop\",\"status\",\"change\"]},\"task\":{\"type\":\"string\",\"description\":\"For change, the new instruction in their words\"}},\"required\":[\"action\"]}", "stop, check or change a running job", "stop, check or change your running job" },
+            { "quit", "Quit Capri after your reply is said when they ask, suggest or hint that you close yourself. This leaves their PC running.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"quit Capri\",\"enum\":[\"quit\"]}},\"required\":[\"action\"]}", "quit Capri after her reply", "quit Capri after your reply" },
+            { "mainframe", "Open Capri Mainframe or a page when they ask, suggest or hint at seeing your controls. name is an optional page. This only opens it; keys, brains, voice services, SECURITY, Hey Capri and memories are changed there by them.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The page to open; omit for Mainframe\",\"enum\":[\"main\",\"settings\",\"brain\",\"voice\",\"you\",\"moves\",\"keys\",\"capri\",\"watch\",\"habits\",\"games\",\"clips\",\"security\",\"extras\",\"layers\",\"personality\",\"memories\"]}}}", "open Mainframe or one of its pages", "open Mainframe or one of its pages" },
+            { "updates", "Check for a Capri update or read its status when they ask, suggest or hint at it. Install only when they clearly ask to install or update Capri, through the usual update checks. A status question or hint alone never authorizes installation.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"check, status or install; install needs a clear request\",\"enum\":[\"check\",\"status\",\"install\"]}},\"required\":[\"action\"]}", "check Capri updates or install when asked", "check Capri updates or install when asked" },
+            { "mini_player", "Show or hide your mini music player for now when they ask, suggest or hint at it. Showing turns its setting on if needed; hiding leaves the setting on.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"show or hide the mini player\",\"enum\":[\"show\",\"hide\"]}},\"required\":[\"action\"]}", "show or hide her mini player", "show or hide your mini player" },
+            { "listen", "Capture PC dialogue and return or translate the words when they ask, suggest or hint at it. start listens from now for 15 seconds by default, after your voice finishes. stop ends a running capture; its original call returns the words so far. It cannot replay earlier sound or identify songs by ear.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"start by default, or stop a running capture\",\"enum\":[\"start\",\"stop\"]},\"seconds\":{\"type\":\"string\",\"description\":\"How many seconds to listen from now; defaults to 15\"},\"focus\":{\"type\":\"string\",\"description\":\"What they want to know or translate, if they said\"}}}", "listen to PC dialogue or stop listening", "hear PC dialogue, translate it or stop listening" },
 #endif
             // Her checks, for every brain: her hands' one-shot pick and voice chat as well as one that works jobs out (Lachy, 2 Nov: "ensure
             // they have the tools they need to perform everything themself", and 3 Nov: every brain must know what it can do).
@@ -1023,7 +1065,7 @@ namespace CapriDesktop
 
         // A check her brain made only to find out where things stand, which changes nothing: it isn't a job for her transcript,
         // where window titles would end up in her memories, and it isn't something she did.
-        internal static bool Checking(string tool, ToolArguments args) { return tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
+        internal static bool Checking(string tool, ToolArguments args) { return (tool == "voice_chat" || tool == "job_control" || tool == "updates") && args != null && args.Action == "status" || tool == "list_windows" || tool == "check_app" || tool == "capri_settings" && (args == null || args.Action != "on" && args.Action != "off" && args.Action != "set") || tool == "app_volume" && (args == null || args.Action == "now") || tool == "pc_status" || tool == "internet_status"; }
 
         // Her tools as her brains get them, made from the ones that work here. On a Windows PC with a brain that can see, that's
         // all of them, the same as they always were.
@@ -1234,6 +1276,17 @@ namespace CapriDesktop
         internal static Func<bool> Cloning = delegate { return false; };
         // Messes up, hides or puts back their desktop icons, and says how it went. Her window sets it.
         internal static Func<string, string> Icons = delegate { return "Couldn't do that just now."; };
+        // Her own actions as tools: her fake blue screen, voice chat, stopping what she's saying, her running job, quitting,
+        // Mainframe, updates, her mini player and her saved clips. Her window sets them.
+        internal static Func<string, string> Crash = delegate { return "Couldn't show my fake blue screen."; };
+        internal static Func<ToolArguments, string> VoiceChat = delegate { return "Couldn't change voice chat."; };
+        internal static Func<string> StopSpeech = delegate { return "Stopped talking."; };
+        internal static Func<ToolArguments, string> JobControl = delegate { return "I'm not on a job right now."; };
+        internal static Func<ToolArguments, string> Quit = delegate { return "Couldn't quit Capri."; };
+        internal static Func<string, string> Mainframe = delegate { return "Couldn't open Mainframe."; };
+        internal static Func<ToolArguments, string> Updates = delegate { return "Couldn't check for an update."; };
+        internal static Func<string, string> MiniPlayer = delegate { return "Couldn't show my mini player."; };
+        internal static Func<string, string> OpenClip = delegate { return "Couldn't open your clips."; };
 #endif
         // Mac and Linux have no clones, hologram or icon tricks yet, so asking for them gets this straight away instead of a joke from her brain.
         internal const string NoClones = "Clones and chaos mode are Windows-only for now, choom.";
@@ -1408,6 +1461,14 @@ namespace CapriDesktop
                 if (tool == "clone") return Clone(args.Action, args.Count ?? 0);
                 if (tool == "hologram") return Hologram(args.Action);
                 if (tool == "desktop_icons") return Icons(args.Action);
+                if (tool == "fake_crash") return Valid(tool, args) ? Crash(args.Action) : "Couldn't find that fake crash action.";
+                if (tool == "voice_chat") return Valid(tool, args) ? VoiceChat(args) : "Couldn't find that voice chat action.";
+                if (tool == "speech") return Valid(tool, args) ? StopSpeech() : "Couldn't find that speech action.";
+                if (tool == "job_control") return Valid(tool, args) ? JobControl(args) : "Couldn't find that job instruction.";
+                if (tool == "quit") return Valid(tool, args) ? Quit(args) : "Couldn't find that quit action.";
+                if (tool == "mainframe") return Valid(tool, args) ? Mainframe(args.Name) : "Couldn't find that Mainframe page.";
+                if (tool == "updates") return Valid(tool, args) ? Updates(args) : "Couldn't find that update action.";
+                if (tool == "mini_player") return Valid(tool, args) ? MiniPlayer(args.Action) : "Couldn't find that mini player action.";
                 if (tool == "website_nickname") return Websites == null ? "Couldn't open your website nicknames just now." : Websites.Do(args);
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
@@ -1422,6 +1483,10 @@ namespace CapriDesktop
                 if (tool == "gaming_mode") return GamingMode(args.Action);
                 if (tool == "clip")
                 {
+                    if (!Valid(tool, args)) return "Couldn't find that clip action or duration.";
+#if !CROSS
+                    if (args.Action == "open_folder" || args.Action == "open_last") return OpenClip(args.Action);
+#endif
                     int clipSeconds = 0;
                     if (!string.IsNullOrEmpty(args.Seconds) && (!int.TryParse(args.Seconds, out clipSeconds) || clipSeconds <= 0)) return "How many seconds should I clip?";
                     return SaveClip(clipSeconds);
@@ -1431,6 +1496,13 @@ namespace CapriDesktop
                 if (tool == "watch_along") return WatchAlong(args.Action);
                 if (tool == "listen")
                 {
+                    if (!Valid(tool, args)) return "Couldn't find that listening action or duration.";
+                    if (args.Action == "stop")
+                    {
+                        if (!PcEars.Active) return "I'm not listening to PC sound.";
+                        PcEars.Stop();
+                        return "Stopping listening to PC sound.";
+                    }
                     int listenSeconds = 15;
                     if (!string.IsNullOrEmpty(args.Seconds) && (!int.TryParse(args.Seconds, out listenSeconds) || listenSeconds <= 0)) return "How many seconds should I listen?";
                     return PcEars.Text(listenSeconds, args.Focus);
@@ -1584,7 +1656,7 @@ namespace CapriDesktop
         private static readonly string[] MacPresses = { "screenshot", "task_manager" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves that only Windows has so far.
         private static readonly string[] WindowsMoves = { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off", "move_mainframe" };
-        private static readonly string[] WindowsTools = { "find_file", "website_nickname", "read_file", "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen" };
+        private static readonly string[] WindowsTools = { "find_file", "website_nickname", "read_file", "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player" };
         // Her window tool's arranging, which only Windows has so far.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
@@ -1629,7 +1701,7 @@ namespace CapriDesktop
         {
             List<string[]> off = new List<string[]>();
 #if !CROSS
-            if (!ClipsOn()) off.Add(new[] { "clip", "turn on Clip my games in Settings > CLIPS" });
+            if (!ClipsOn()) off.Add(new[] { "clip", "turn on Clip my games in Settings > CLIPS to save; opening saved clips still works" });
 #endif
             return off;
         }
@@ -1667,6 +1739,14 @@ namespace CapriDesktop
             { "clone", "clones and chaos mode", NoClones },
             { "hologram", "hologram mode", NoHologram },
             { "desktop_icons", "messing with their desktop icons", NoIcons },
+            { "fake_crash", "the fake blue screen", "My fake blue screen is only on Windows for now." },
+            { "voice_chat", "voice chat", "Voice chat is only on Windows for now." },
+            { "speech", "stopping the current spoken reply", "Stopping my current reply with a tool is only on Windows for now." },
+            { "job_control", "controlling the running job", "Job control is only on Windows for now." },
+            { "quit", "quitting Capri with a tool", "Quitting with a tool is only on Windows for now." },
+            { "mainframe", "Mainframe", "My Mainframe is only on Windows for now." },
+            { "updates", "Capri updates", "Checking my updates with a tool is only on Windows for now." },
+            { "mini_player", "the mini player", "My mini player is only on Windows for now." },
             { "watch_along", "watching videos together", "Watching videos together is only on Windows for now, choom." },
             { "gaming_mode", "Gaming Mode", "Gaming Mode is only on Windows for now, choom." },
             { "clip", "game clips", "Game clips are only on Windows for now, choom." },
@@ -2011,52 +2091,8 @@ namespace CapriDesktop
             return false;
         }
 
-        internal const string SayPlease = "Say please.";
         // Please however it's typed, like plz, pleas or plsease, but not plaza or pleases.
         private const string Plea = @"pl(?!aza\b|eases\b)(?=[aeisz]*[sz])[aeisz]{1,6}\b";
-        // Please and thanks in all her languages, so "öffne bitte Spotify" never gets Say please and "bitte" runs what was held.
-        // Chinese, Japanese, Korean, Thai and the Indian scripts have no word breaks a \b can see, so they match anywhere.
-        private static readonly Regex Polite = new Regex(@"\b(please|pls|plz|pleas|" + Plea + @"|thank you|thanks|por favor|porfavor|porfa|porfis|gracias|merci|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
-            @"|bitte|danke|per favore|perfavore|per piacere|grazie|pfv|obrigad[oa]|si us plau|sisplau|siusplau|gr[àa]cies|grazas|mesedez|eskerrik asko|alsjeblieft|alstublieft|a\.?u\.?b|dank je|dankjewel|bedankt|asseblief|dankie" +
-            @"|snälla|snalla|tack|vær så snill|vennligst|venligst|takk|tak|vinsamlegast|ole hyvä|ole kiltti|kiitos|palun|aitäh|aitah|lūdzu|ludzu|paldies|prašau|prasau|ačiū|aciu" +
-            @"|proszę|prosze|dzięki|dzieki|dziękuję|dziekuje|prosím|prosim|díky|diky|děkuji|dekuji|ďakujem|dakujem|kérlek|kerlek|légyszi|legyszi|köszi|koszi|köszönöm|hvala|molim|молим|хвала" +
-            @"|të lutem|te lutem|ju lutem|faleminderit|te rog|vă rog|va rog|mersi|mulțumesc|multumesc|le do thoil|go raibh maith agat|plîs|plis|os gwelwch yn dda|diolch|jekk jogħġbok|jekk joghgbok|grazzi" +
-            @"|lütfen|lutfen|teşekkürler|tesekkurler|sağ ?ol|sag ?ol|zəhmət olmasa|xahiş edirəm|təşəkkürlər|iltimos|rahmat" +
-            @"|пожалуйста|пожалуста|плиз|плз|пж|спасибо|будь ласка|дякую|калі ласка|дзякуй|моля|благодаря|мерси|те молам|ве молам|фала|благодарам|өтінемін|рахмет|гуйя|баярлалаа|παρακαλώ|παρακαλω|ευχαριστώ|ευχαριστω" +
-            @"|làm ơn|lam on|cảm ơn|cám ơn|cam on|tolong|mohon|terima kasih|makasih|sila|tulung|mangga|matur nuwun|suwun|pakiusap|paki\w*|salamat|tafadhali|asante|don allah|dan allah|na gode" +
-            @"|jọ̀wọ́|jọwọ|jowo|o ṣeun|o seun|biko|daalụ|daalu|ngiyacela|ngicela|sicela|ngiyabonga|siyabonga|ndiyacela|ndicela|enkosi|fadlan|mahadsanid" +
-            @"|من فضلك|لو سمحت|رجاء|رجاءً|الرجاء|شكرا|شكراً|براہ کرم|مہربانی|پلیز|شکریہ|لطفا|لطفاً|ممنون|مرسی|בבקשה|תודה|እባክህ|እባክሽ|እባካችሁ|እባክዎ|አመሰግናለሁ|እናመሰግናለን|გთხოვ|გთხოვთ|მადლობა|გმადლობ|გმადლობთ|խնդրում եմ|խնդրեմ|շնորհակալություն|շնորհակալ եմ|մերսի)\b" +
-            @"|请|請|麻烦|麻煩|拜托|拜託|谢谢|謝謝|ください|下さい|お願い|おねがい|ありがとう|주세요|부탁|제발|고마워|감사|กรุณา|รบกวน|ขอบคุณ|ກະລຸນາ|ຂອບໃຈ|សូម|អរគុណ|ကျေးဇူးပြု၍|ကျေးဇူးပြုပြီး|ကျေးဇူးတင်|ကျေးဇူးပဲ|ပါ(ဦး|ဥ\u102Eး|နော်)?[။၊!?.\s]*$" +
-            @"|कृपया|प्लीज़|प्लीज|प्लिज|धन्यवाद|शुक्रिया|দয়া করে|প্লিজ|প্লীজ|ধন্যবাদ|કૃપા કરીને|પ્લીઝ|આભાર|ਕਿਰਪਾ ਕਰਕੇ|ਪਲੀਜ਼|ਪਲੀਜ|ਧੰਨਵਾਦ" +
-            @"|தயவுசெய்து|ப்ளீஸ்|பிளீஸ்|நன்றி|దయచేసి|ప్లీజ్|ధన్యవాదాలు|ದಯವಿಟ್ಟು|ಪ್ಲೀಸ್|ಧನ್ಯವಾದ|ദയവായി|പ്ലീസ്|നന്ദി", RegexOptions.IgnoreCase);
-        private static readonly Regex JustPlease = new Regex(@"^\W*((ok|okay|fine|sorry|vale|perd[oó]n|d[ée]sol[ée])\W+)?(pretty\s+)?(please+|pls|plz|pleas+e*|" + Plea + @"|por favor|porfavor|porfa|porfis|s'il (te|vous) pla[iî]t|sil (te|vous) pla[iî]t|stp|svp" +
-            @"|bitte( sehr| schön)?|per favore|perfavore|per piacere|pfv|si us plau|sisplau|siusplau|mesedez|alsjeblieft|alstublieft|a\.?u\.?b\.?|asseblief|snälla|snalla|vær så snill|vennligst|venligst|vinsamlegast|ole hyvä|ole kiltti|palun|lūdzu|ludzu|prašau|prasau" +
-            @"|proszę|prosze|prosím|prosim|kérlek|kerlek|légyszi|legyszi|molim( te| vas)?|молим( те)?|të lutem|te lutem|ju lutem|te rog|vă rog|va rog|le do thoil|plîs|plis|os gwelwch yn dda|jekk jogħġbok|jekk joghgbok" +
-            @"|lütfen|lutfen|zəhmət olmasa|xahiş edirəm|iltimos|пожалуйста|пожалуста|плиз|плз|пж|будь ласка|калі ласка|моля|те молам|ве молам|өтінемін|гуйя|παρακαλώ|παρακαλω" +
-            @"|làm ơn|lam on|tolong|mohon|sila|tulung|mangga|pakiusap|tafadhali|don allah|dan allah|jọ̀wọ́|jọwọ|jowo|biko|ngiyacela|ngicela|sicela|ndiyacela|ndicela|fadlan" +
-            @"|请|請|拜托|拜託|お願い(します)?|おねがい(します)?|ください|부탁(해|해요|합니다)|제발|กรุณา|ขอร้อง|ກະລຸນາ|សូម(មេត្តា)?|ကျေးဇူးပြု၍|ကျေးဇူးပြုပြီး" +
-            @"|कृपया|प्लीज़|प्लीज|प्लिज|দয়া করে|প্লিজ|প্লীজ|કૃપા કરીને|પ્લીઝ|ਕਿਰਪਾ ਕਰਕੇ|ਪਲੀਜ਼|ਪਲੀਜ|தயவுசெய்து|ப்ளீஸ்|பிளீஸ்|దయచేసి|ప్లీజ్|ದಯವಿಟ್ಟು|ಪ್ಲೀಸ್|ദയവായി|പ്ലീസ്" +
-            @"|من فضلك|لو سمحت|رجاء|رجاءً|الرجاء|براہ کرم|پلیز|لطفا|لطفاً|בבקשה|እባክህ|እባክሽ|እባካችሁ|እባክዎ|გთხოვ|გთხოვთ|խնդրում եմ|խնդրեմ)(\s+capri)?\W*$", RegexOptions.IgnoreCase);
-        private static readonly Random Dice = new Random();
-        internal static Func<int> PleaseRoll = delegate { lock (Dice) return Dice.Next(10); };
-        private static string heldForPlease;
-
-        internal static string Manners(string said, out bool askPlease)
-        {
-            askPlease = false;
-            string held = heldForPlease;
-            heldForPlease = null;
-            // Their please runs what she held as they said it. Added on the end, it went out as part of their message (a tester, 2 Nov).
-            if (held != null && JustPlease.IsMatch(said ?? "")) return held;
-#if !CROSS
-            if (Ink.Request(Asked(said)) != null) return said;
-#endif
-            if (Polite.IsMatch(said ?? "") || !Wants(said) || PleaseRoll() != 0) return said;
-            heldForPlease = said;
-            askPlease = true;
-            return said;
-        }
-
         // A please on the end of a message job is manners, not part of the message: "text hi to my alt plsease" sends hi.
         private static readonly Regex PleaseAfter = new Regex(@"[\s,]+(?:please+|" + Plea + @"|stp|s'il te pla[iî]t|sil te pla[iî]t|por favor|porfavor|porfa|porfis|bitte|per favore|perfavore|per piacere|proszę|prosze|пожалуйста|плз|пж|будь ласка|lütfen|lutfen|alsjeblieft|alstublieft)(?:\s+capri)?[\s.!?]*$", RegexOptions.IgnoreCase);
 
@@ -2080,6 +2116,10 @@ namespace CapriDesktop
             }
             return false;
         }
+
+        // Her own abilities and her checks, which her mouse can't do for her: a pick of one stays picked whatever else they said
+        // (Lachy, 3 Nov: phrase matches never throw away what her brain chose).
+        private static readonly string[] Herself = { "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
 
         // Fixes the calls a brain picked for what they said. True when it needs her mouse and keyboard and the kit doesn't have
         // them: the calls are cleared then, so she says she can't instead of doing something else.
@@ -2116,7 +2156,7 @@ namespace CapriDesktop
             if (calls.Exists(drawn => drawn.Key == "draw")) return false;
 #endif
             if (calls.Exists(call => call.Key == "use_computer" || call.Key == "look_at_screen" || call.Key == "listen" || call.Key == "media" || call.Key == "play_music")) return false;
-            if (Wants(said) && ((Errand(said) && !calls.Exists(call => call.Key == "shortcut" || call.Key == "remember")) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
+            if (!calls.Exists(call => Array.IndexOf(Herself, call.Key) >= 0) && Wants(said) && ((Errand(said) && !calls.Exists(call => call.Key == "shortcut" || call.Key == "remember")) || Regex.IsMatch(text, @"\s(and|then|&)\s+(then\s+)?(\w+\s+)?(search|look|type|click|go|make|create|write|find|open|sign|log|send|start|join|watch|check|put|add|draw|set|turn|say|tell|message|text|dm|reply|post|ask|paste|share|ping|install|uninstall|reinstall|download|upload|update|upgrade)\b", RegexOptions.IgnoreCase)))
             {
                 calls.Clear();
                 if (!mouse) return true;
@@ -3220,6 +3260,8 @@ namespace CapriDesktop
             return tool != null;
         }
 
+        // Her tools' names for reading calls a brain wrote as text, from Specs, so no tool she offers goes unread.
+        private static readonly string ToolNames = NamesOfSpecs();
         private static readonly Regex LooseText = new Regex(@"\b(" + ToolNames + @")\s*(\{[^{}]*\}|\([^()]*\))");
 
         // "Play chess", or having her pull it up.
@@ -3311,11 +3353,13 @@ namespace CapriDesktop
             return true;
         }
 
-        private const string ToolNames = "open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|remember|read_file|remind|routine|power|nap|move_yourself|animate|gaming_mode|clip|list_windows|check_app"
-#if !CROSS
-            + "|find_file|website_nickname|mini_game|watch_for|listen|draw|watch_along|capri_settings"
-#endif
-            ;
+        // Every name in Specs, escaped for her parsers' patterns.
+        private static string NamesOfSpecs()
+        {
+            List<string> names = new List<string>();
+            for (int i = 0; i < Specs.GetLength(0); i++) names.Add(Regex.Escape(Specs[i, 0]));
+            return string.Join("|", names.ToArray());
+        }
         private static readonly Regex NamedBefore = new Regex(@"(?<![\p{L}\p{N}_])(" + ToolNames + @")\s*\z");
         private static readonly Regex NamedInside = new Regex(@"""name""\s*:\s*""(" + ToolNames + @")""");
         private static readonly Regex GivenInside = new Regex(@"""(?:arguments|parameters)""\s*:\s*\{");
@@ -3375,6 +3419,16 @@ namespace CapriDesktop
             return loose == json ? null : Strict(loose);
         }
 
+        // A tool call as text, its tool and the arguments a brain gave, so the same call can be told from a different one.
+        internal static string CallKey(string tool, ToolArguments args)
+        {
+            using (MemoryStream data = new MemoryStream())
+            {
+                new DataContractJsonSerializer(typeof(ToolArguments)).WriteObject(data, args ?? new ToolArguments());
+                return tool + Encoding.UTF8.GetString(data.ToArray());
+            }
+        }
+
         private static ToolArguments Strict(string json)
         {
             try
@@ -3431,10 +3485,19 @@ namespace CapriDesktop
             if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
             if (tool == "desktop_icons") return args != null && (args.Action == "mess" || args.Action == "hide" || args.Action == "back");
             if (tool == "watch_along") return args != null && (args.Action == "start" || args.Action == "stop");
+            if (tool == "fake_crash") return args != null && (args.Action == "show" || args.Action == "stop");
+            if (tool == "voice_chat") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(on|off|status)\z");
+            if (tool == "speech") return args != null && args.Action == "stop";
+            if (tool == "job_control") return args != null && (args.Action == "stop" || args.Action == "status" || args.Action == "change" && Named(args.Task));
+            if (tool == "quit") return args != null && args.Action == "quit";
+            if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|personality|memories)\z"));
+            if (tool == "updates") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(check|status|install)\z");
+            if (tool == "mini_player") return args != null && (args.Action == "show" || args.Action == "hide");
             if (tool == "listen")
             {
                 int listenDuration;
-                return args != null && (string.IsNullOrEmpty(args.Seconds) || (int.TryParse(args.Seconds, out listenDuration) && listenDuration > 0));
+                return args != null && (string.IsNullOrEmpty(args.Action) || args.Action == "start" || args.Action == "stop")
+                    && (args.Action == "stop" || string.IsNullOrEmpty(args.Seconds) || int.TryParse(args.Seconds, out listenDuration) && listenDuration > 0);
             }
 #endif
             if (tool == "stream") return args == null || args.Action == null || args.Action == "start" || args.Action == "stop";
@@ -3442,7 +3505,8 @@ namespace CapriDesktop
             if (tool == "clip")
             {
                 int duration;
-                return args != null && (string.IsNullOrEmpty(args.Seconds) || (int.TryParse(args.Seconds, out duration) && duration > 0));
+                return args != null && (string.IsNullOrEmpty(args.Action) || args.Action == "save" || args.Action == "open_folder" || args.Action == "open_last")
+                    && (args.Action == "open_folder" || args.Action == "open_last" || string.IsNullOrEmpty(args.Seconds) || int.TryParse(args.Seconds, out duration) && duration > 0);
             }
             if (args == null) return false;
             if (tool == "mini_game")
@@ -3471,6 +3535,14 @@ namespace CapriDesktop
             if (tool == "look_at_screen") return true;
             if (tool == "media")
             {
+#if !CROSS
+                if (args.Action == "seek")
+                {
+                    double seconds;
+                    return double.TryParse(args.Seconds, NumberStyles.Float, CultureInfo.InvariantCulture, out seconds) && !double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds >= 0 && seconds <= TimeSpan.MaxValue.TotalSeconds;
+                }
+                if (args.Action == "like" || args.Action == "unlike" || args.Action == "open_player") return true;
+#endif
                 int level;
                 bool leveled = int.TryParse(args.Level, out level) && level >= 0 && level <= 100;
                 if (args.Action == "volume_set") return leveled;
@@ -4220,7 +4292,25 @@ namespace CapriDesktop
 
         private static string Media(ToolArguments args)
         {
+            if (!Valid("media", args)) return "Couldn't find that media action or position.";
             string action = args.Action;
+#if !CROSS
+            if (action == "seek" || action == "like" || action == "unlike" || action == "open_player")
+            {
+                Tune tune = Sounding(Sessions());
+                if (tune == null) return "Nothing's playing that I can see.";
+                if (action == "open_player") return OpenPlayer(tune) ? "Opened " + Tunes.AppName(tune.App) + "." : "Couldn't open the player.";
+                if (action == "seek")
+                {
+                    double seconds = double.Parse(args.Seconds, CultureInfo.InvariantCulture);
+                    if (!tune.CanSeek || tune.Length <= 0) return "This player doesn't let me seek.";
+                    if (seconds > tune.Length) return "That position is past the end.";
+                    return SessionPress(tune, "seek:" + seconds.ToString("0.###", CultureInfo.InvariantCulture)) ? "Moved to " + seconds.ToString("0.###", CultureInfo.InvariantCulture) + " seconds." : "Couldn't seek in this player.";
+                }
+                if (!tune.Spotify) return "I can only like songs in Spotify.";
+                return SessionPress(tune, action) ? action == "like" ? "Liked the song." : "Removed the song from your likes." : "Couldn't change this song's like.";
+            }
+#endif
             if (action == "play_pause" || action == "pause" || action == "resume") return Toggle(action);
             if (action == "next" || action == "previous")
             {
@@ -4353,6 +4443,8 @@ namespace CapriDesktop
         // player.
         internal static Func<List<Tune>> Sessions = delegate { return null; };
         internal static Func<Tune, string, bool> SessionPress = delegate { return false; };
+        // Brings up the app that's playing. Tests swap it.
+        internal static Func<Tune, bool> OpenPlayer = Tunes.Open;
         internal static Func<Tune, Tune> SessionRead = Again;
 
         // The player that's playing, or the first paused one with something on, or null when there's neither.
