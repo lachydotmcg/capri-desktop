@@ -569,6 +569,7 @@ namespace CapriDesktop
                 if (Hands.Match(lookalikes, "minecraft").Count != 0 || Hands.Match(lookalikes, "minecraftle").Count != 1 || Hands.Match(lookalikes, "kate").Count != 1 || Hands.Match(lookalikes, "Kate text editor").Count != 1)
                     throw new Exception("An app was opened by part of a word: " + Hands.Match(lookalikes, "minecraft").Count);
                 checks.Add("PASS whole words: an app opens only when its name has the whole word they said, so \"open minecraft\" never opens Minecraftle, and \"Kate text editor\" still opens Kate");
+                MinecraftChecks();
                 SecurityChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
@@ -670,6 +671,7 @@ namespace CapriDesktop
                 Eyes.Shoot = shootWas;
                 if (!toolsRight || !shrunk || noShot != Eyes.Missing || Eyes.Jpeg(new byte[] { 1, 2, 3 }, 1280) != null) throw new Exception("Check my screen went wrong: " + toolsRight + " | " + shrunk + " | " + noShot);
                 checks.Add("PASS check my screen: the right screenshot tool for Mac, X11, KDE, GNOME or wlroots desktops, shrunk to a 1280-wide JPEG for her brain, and a plain answer when no tool works");
+                KdeChecks();
                 // Her Discord status: the switch, plain states, and Discord's socket found by name in its temp folder.
                 string ipcFolder = Path.Combine(folder, "ipc");
                 Directory.CreateDirectory(ipcFolder);
@@ -849,6 +851,7 @@ namespace CapriDesktop
                 for (int hologramTool = 0; hologramTool < Hands.Count; hologramTool++) if (Hands.Name(hologramTool) == "hologram") throw new Exception("Hologram tool was exposed on Mac or Linux.");
                 if (Hands.Do("hologram", new ToolArguments { Action = "on" }) != Hands.NoHologram || Hands.Do("hologram", new ToolArguments { Action = "off" }) != Hands.NoHologram || Hands.Pulled(Hands.NoHologram) != Hands.NoHologram) throw new Exception("Hologram tool failed its Windows-only guard.");
                 checks.Add("PASS hologram on and off explain Windows-only immediately with or without a brain, and the tool stays Windows-only");
+                MiniChecks();
                 pet.Think = delegate(string words) { return words == "hey" ? "Just vibing, choom." : "wrong words"; };
                 pet.Talk.Pill.Press(1);
                 if (!pet.Talk.Typing) throw new Exception("The pencil didn't open the typing box.");
@@ -1345,6 +1348,237 @@ namespace CapriDesktop
                 return false;
             }
             return false;
+        }
+
+        private void KdeChecks()
+        {
+            string sessionWas = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), desktopWas = Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"), displayWas = Environment.GetEnvironmentVariable("WAYLAND_DISPLAY");
+            Func<string, string[], string> runWas = Music.Run;
+            Action<string, string[]> launchWas = Limbs.Launch;
+            Func<byte[]> shootWas = Eyes.Shoot, choreShotWas = Chores.Shoot;
+            Action<string, System.Text.Json.JsonElement> doingWas = Chores.Doing;
+            try
+            {
+                foreach (string desktop in new[] { "KDE", "kde", "KDE:Plasma", "KDE:GNOME" })
+                {
+                    List<string[]> tools = Eyes.Tools(false, "wayland", desktop), quiet = Eyes.QuietTools(false, "wayland", desktop);
+                    if (tools.Count != 1 || string.Join(" ", tools[0]) != "spectacle -b -n -f -o {0}" || quiet.Count != 1 || string.Join(" ", quiet[0]) != string.Join(" ", tools[0])) throw new Exception("KDE screenshots used the wrong tool: " + desktop);
+                    foreach (string line in new[] { Eyes.MissingFor(false, "wayland", desktop), Eyes.MissingFor(false, "x11", desktop), Eyes.UnwatchableFor(false, "wayland", desktop) })
+                        if (!line.Contains("Spectacle") || line.IndexOf("gnome", StringComparison.OrdinalIgnoreCase) >= 0 || line.Contains("grim")) throw new Exception("KDE got another desktop's screenshot advice: " + line);
+                }
+                if (!Eyes.MissingFor(false, "wayland", "ubuntu:GNOME").Contains("gnome-screenshot") || !Eyes.MissingFor(false, "wayland", "Hyprland").Contains("grim") || !Eyes.MissingFor(false, "x11", "XFCE").Contains("scrot")) throw new Exception("Screenshot advice lost the other desktops.");
+                Environment.SetEnvironmentVariable("XDG_CURRENT_DESKTOP", "KDE");
+                Environment.SetEnvironmentVariable("XDG_SESSION_TYPE", null);
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "wayland-1");
+                if (Eyes.Session != "wayland" || Eyes.Tools(false, Eyes.Session, "KDE")[0][0] != "spectacle") throw new Exception("KDE lost Wayland when XDG_SESSION_TYPE was missing.");
+                Environment.SetEnvironmentVariable("XDG_SESSION_TYPE", "x11");
+                if (Eyes.Session != "x11") throw new Exception("The screenshot session ignored XDG_SESSION_TYPE.");
+                Environment.SetEnvironmentVariable("XDG_SESSION_TYPE", null);
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", null);
+                if (Eyes.Session != "x11") throw new Exception("Screenshots lost their X11 fallback.");
+                Environment.SetEnvironmentVariable("XDG_SESSION_TYPE", "wayland");
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", "wayland-1");
+                Eyes.Shoot = delegate { return null; };
+                Chores.Shoot = delegate { return null; };
+                Chores.Doing = delegate { throw new Exception("A missing screenshot still moved the mouse."); };
+                string look = Hands.Do("look_at_screen", new ToolArguments()), job = Chores.Run(new Brain { Model = "screen-test" }, "click the folder", null);
+                if (look != Eyes.Missing || job != Eyes.Missing || (!OperatingSystem.IsMacOS() && Eyes.Missing != Eyes.MissingFor(false, "wayland", "KDE"))) throw new Exception("A folder job lost its screenshot failure: " + look + " / " + job);
+                Music.Run = delegate { return null; };
+                Limbs.Launch = delegate { throw new Exception("A missing system monitor was launched."); };
+                string monitor = Limbs.Shortcut("task_manager", false);
+                if (monitor != "Couldn't find a system monitor. Install plasma-systemmonitor, then ask again.") throw new Exception("KDE got GNOME system monitor advice: " + monitor);
+                Environment.SetEnvironmentVariable("XDG_CURRENT_DESKTOP", "XFCE");
+                if (Limbs.Shortcut("task_manager", false) != "Couldn't find a system monitor. Install a system monitor, then ask again.") throw new Exception("The system monitor advice guessed a desktop.");
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("XDG_SESSION_TYPE", sessionWas);
+                Environment.SetEnvironmentVariable("XDG_CURRENT_DESKTOP", desktopWas);
+                Environment.SetEnvironmentVariable("WAYLAND_DISPLAY", displayWas);
+                Music.Run = runWas;
+                Limbs.Launch = launchWas;
+                Eyes.Shoot = shootWas;
+                Chores.Shoot = choreShotWas;
+                Chores.Doing = doingWas;
+            }
+            checks.Add("PASS KDE screenshots use Spectacle for the whole desktop, quiet watches use it too, and failed looks, folder jobs and system monitors give KDE advice");
+        }
+
+        private void MinecraftChecks()
+        {
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<IntPtr> frontWas = Hands.Foreground;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> openedWas = Hands.Opened;
+            Func<string, string, string> workWas = Hands.Work;
+            Func<string, string, bool> runningWas = Hands.Running;
+            Func<string, bool> existsWas = Hands.Exists;
+            Func<string, KeyValuePair<string, ToolArguments>> planWas = Hands.Plan;
+            Func<string, string[], string> commandWas = Music.Run;
+            Func<int, string> processWas = Limbs.ProcessName;
+            string blindWas = Limbs.Blind;
+            bool ownWas = Hands.OwnHands;
+            List<InstalledApp> apps = new List<InstalledApp>();
+            List<OpenWindow> windows = new List<OpenWindow>();
+            List<string> ran = new List<string>(), jobs = new List<string>();
+            try
+            {
+                Hands.Catalog = delegate { return apps; };
+                Hands.Windows = delegate { return windows; };
+                Hands.Foreground = delegate { return windows.Count == 0 ? IntPtr.Zero : windows[0].Handle; };
+                Hands.Run = ran.Add;
+                Hands.Opened = delegate { return ""; };
+                Hands.Work = delegate(string job, string asked) { jobs.Add(job); return "Did it."; };
+                Hands.Running = delegate { return false; };
+                Hands.Exists = delegate { return false; };
+                Hands.Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
+                Hands.OwnHands = true;
+                string[,] launchers =
+                {
+                    { "Modrinth App", "/usr/bin/flatpak run com.modrinth.ModrinthApp %U" }, { "Prism Launcher", "prismlauncher %U" },
+                    { "Minecraft Launcher", "/usr/bin/flatpak run com.mojang.Minecraft %U" }, { "MultiMC", "multimc" }, { "PolyMC", "polymc" },
+                    { "ATLauncher", "atlauncher" }, { "GDLauncher", "gdlauncher" }, { "Lunar Client", "lunarclient" }
+                };
+                for (int i = 0; i < launchers.GetLength(0); i++)
+                {
+                    InstalledApp launcher = Limbs.Desktop(new[] { "[Desktop Entry]", "Type=Application", "Name=" + launchers[i, 0], "Exec=" + launchers[i, 1] });
+                    apps = new List<InstalledApp> { launcher };
+                    Hands.Forget();
+                    ran.Clear();
+                    string tool;
+                    ToolArguments args;
+                    if (!Hands.Installed("Minecraft") || Hands.Match(apps, "Minecraft").Count != 1 || !Hands.Direct("play minecraft", out tool, out args) || tool != "open_app" || args.Name != "minecraft") throw new Exception("Minecraft missed its launcher: " + launcher.Name);
+                    if (Hands.Do(tool, args) != "Opened " + launcher.Name + "." || ran.Count != 1 || ran[0] != launcher.Id || !Hands.CheckApp("Minecraft").StartsWith(launcher.Name + " is installed", StringComparison.Ordinal)) throw new Exception("Minecraft opened the wrong launcher: " + launcher.Name);
+                }
+                InstalledApp modrinth = Limbs.Desktop(new[] { "[Desktop Entry]", "Type=Application", "Name=Modrinth App", "Exec=flatpak run com.modrinth.ModrinthApp %U" });
+                InstalledApp minecraft = new InstalledApp("Minecraft", "exec:minecraft"), official = new InstalledApp("Minecraft Launcher", "exec:official");
+                if (Hands.Match(new List<InstalledApp> { modrinth, minecraft }, "Minecraft")[0] != minecraft || Hands.Match(new List<InstalledApp> { modrinth, official }, "Minecraft")[0] != official) throw new Exception("A launcher beat Minecraft's own app name.");
+                foreach (string id in new[] { "com.modrinth.ModrinthApp", "com.mojang.Minecraft" })
+                    if (Hands.Match(new List<InstalledApp> { new InstalledApp("Custom Launcher", "exec:flatpak run " + id) }, "Minecraft").Count != 1) throw new Exception("Minecraft missed a launcher ID: " + id);
+                apps = new List<InstalledApp> { new InstalledApp("Minecraftle", "exec:minecraftle"), new InstalledApp("Modrinth Music", "exec:music"), new InstalledApp("Prism Photo Editor", "exec:prism") };
+                Hands.Forget();
+                if (Hands.Installed("Minecraft") || Hands.Match(apps, "Minecraft").Count != 0) throw new Exception("An unrelated app became a Minecraft launcher.");
+                apps = new List<InstalledApp> { modrinth };
+                Hands.Forget();
+                string launchTool;
+                ToolArguments launchArgs;
+                if (!Hands.Heard("open minecraft from my modrinth launcher", out launchTool, out launchArgs) || launchTool != "open_app" || launchArgs.Name != "modrinth") throw new Exception("An explicit Modrinth request went to the browser.");
+                Music.Run = delegate(string file, string[] args) { return file == "wmctrl" ? "0x01e00003 0 99999997 java.java host Minecraft 1.21.4 - Singleplayer\n" : file == "xprop" ? "_NET_ACTIVE_WINDOW(WINDOW): window id # 0x01e00003\n" : null; };
+                Limbs.ProcessName = delegate { return "java"; };
+                windows = Limbs.Windows(false);
+                Hands.Foreground = frontWas;
+                if (windows.Count != 1 || Limbs.Front(false) != windows[0].Handle || Limbs.Front(true) != IntPtr.Zero || !Hands.Gamey(windows[0]) || Hands.GameOpen() != windows[0].Title || !Hands.ListWindows(null).Contains(", a game")) throw new Exception("The Java Minecraft window wasn't a game.");
+                OpenWindow game = windows[0];
+                windows.Insert(0, new OpenWindow(new IntPtr(3), "Minecraft Launcher", "minecraft-launcher"));
+                windows.Add(new OpenWindow(new IntPtr(4), "Modrinth App", "modrinth-app"));
+                string checkedGame = Hands.CheckApp("Minecraft");
+                if (!checkedGame.Contains("Minecraft 1.21.4 - Singleplayer") || !checkedGame.StartsWith("Modrinth App is installed and open:", StringComparison.Ordinal)) throw new Exception("The launcher hid a running Minecraft window: " + checkedGame);
+                ran.Clear();
+                foreach (string words in new[] { "play minecraft", "let's play minecraft", "play mc" })
+                {
+                    string tool;
+                    ToolArguments args;
+                    if (!Hands.Heard(words, out tool, out args) || tool != "use_computer" || args.Task != words || Hands.Do(tool, args) != "Did it.") throw new Exception("A running Minecraft game wasn't played: " + words);
+                }
+                if (ran.Count != 0 || jobs.Count != 3) throw new Exception("Playing an open Minecraft game launched something else.");
+                apps.Clear();
+                Hands.Forget();
+                checkedGame = Hands.CheckApp("Minecraft");
+                if (!checkedGame.StartsWith("Minecraft is open:", StringComparison.Ordinal) || checkedGame.Contains("is installed")) throw new Exception("An open Minecraft window needed an app entry: " + checkedGame);
+                if (Limbs.Game(new OpenWindow(new IntPtr(5), "Minecraft wiki - Mozilla Firefox", "firefox")) || Limbs.Game(new OpenWindow(new IntPtr(6), "Minecraft Launcher", "java")) || Limbs.Game(new OpenWindow(new IntPtr(7), "Minecraftle", "java")) || !Limbs.Game(new OpenWindow(new IntPtr(8), "Minecraft* 1.21", "javaw")) || !Limbs.Game(game)) throw new Exception("Minecraft game windows matched the wrong app.");
+                Music.Run = delegate { return null; };
+                if (Limbs.Front(false) != IntPtr.Zero || !Hands.ListWindows(null).Contains(game.Title)) throw new Exception("A missing foreground query hid Minecraft's window.");
+                Music.Run = delegate { return "_NET_ACTIVE_WINDOW: not a window"; };
+                if (Limbs.Front(false) != IntPtr.Zero) throw new Exception("A broken foreground query made up a window.");
+            }
+            finally
+            {
+                Hands.Catalog = catalogWas;
+                Hands.Windows = windowsWas;
+                Hands.Foreground = frontWas;
+                Hands.Run = runWas;
+                Hands.Opened = openedWas;
+                Hands.Work = workWas;
+                Hands.Running = runningWas;
+                Hands.Exists = existsWas;
+                Hands.Plan = planWas;
+                Hands.OwnHands = ownWas;
+                Music.Run = commandWas;
+                Limbs.ProcessName = processWas;
+                Limbs.Blind = blindWas;
+                Hands.Forget();
+            }
+            checks.Add("PASS Minecraft opens an installed launcher, keeps a real Minecraft app first, finds Java game windows and plays an open game without launching music or another app");
+        }
+
+        private void MiniChecks()
+        {
+            bool macWas = Hands.OnMac, ownWas = Hands.OwnHands;
+            Func<string, string> thinkWas = pet.Think;
+            Func<string, KeyValuePair<string, ToolArguments>> planWas = Hands.Plan;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string, bool> existsWas = Hands.Exists;
+            Action<string> runWas = Hands.Run;
+            Func<string, string> fetchWas = Hands.Fetch;
+            int opened = 0, searched = 0;
+            const string line = "My mini games are only on Windows for now, choom.";
+            try
+            {
+                Hands.Plan = delegate { return new KeyValuePair<string, ToolArguments>(); };
+                Hands.Catalog = delegate { return new List<InstalledApp>(); };
+                Hands.Windows = delegate { return new List<OpenWindow>(); };
+                Hands.Exists = delegate { return false; };
+                Hands.Forget();
+                Hands.Run = delegate { opened++; };
+                Hands.Fetch = delegate { searched++; return ""; };
+                foreach (bool mac in new[] { false, true })
+                {
+                    Hands.OnMac = mac;
+                    foreach (bool own in new[] { false, true })
+                    {
+                        Hands.OwnHands = own;
+                        foreach (string words in new[] { "play chess", "let's play chess", "open chess", "play a game of chess with me", "play chess on hard as black", "play tic-tac-toe", "play connect four", "play rock paper scissors" })
+                        {
+                            string tool;
+                            ToolArguments args;
+                            if (!Hands.Direct(words, out tool, out args) || tool != "mini_game" || !Hands.Valid(tool, args) || Hands.Do(tool, args) != line || Hands.KitFor().Lacking(words) != line) throw new Exception("A mini game became music on Mac or Linux: " + words);
+                            List<KeyValuePair<string, ToolArguments>> calls = new List<KeyValuePair<string, ToolArguments>> { new KeyValuePair<string, ToolArguments>("play_music", new ToolArguments { Song = "Chess", Kind = "album" }) };
+                            Hands.Rescue(words, calls);
+                            if (calls.Count != 1 || calls[0].Key != "mini_game" || Hands.Do(calls[0].Key, calls[0].Value) != line) throw new Exception("A brain's chess album choice wasn't corrected.");
+                        }
+                        string musicTool;
+                        ToolArguments musicArgs;
+                        if (!Hands.Direct("play Chess by The Artist", out musicTool, out musicArgs) || musicTool != "play_music" || musicArgs.Song != "Chess by The Artist" || Hands.KitFor().Lacking("play Chess by The Artist") != null) throw new Exception("A Chess song became a mini game.");
+                        foreach (string words in new[] { "play chess online", "play chess on chess.com" })
+                            if (!Hands.Direct(words, out musicTool, out musicArgs) || musicTool != "open_website") throw new Exception("Online chess became music: " + words);
+                    }
+                    foreach (bool brain in new[] { false, true })
+                    {
+                        bool asked = false;
+                        pet.Think = brain ? delegate(string words) { asked = true; return "wrong reply"; } : (Func<string, string>)null;
+                        pet.Hear("play chess");
+                        if (pet.Talk.Reply != line || asked) throw new Exception("Chess didn't give its Windows-only line locally.");
+                        pet.Talk.Dismiss();
+                    }
+                }
+                if (opened != 0 || searched != 0) throw new Exception("A mini game searched or opened Spotify.");
+            }
+            finally
+            {
+                Hands.OnMac = macWas;
+                Hands.OwnHands = ownWas;
+                pet.Think = thinkWas;
+                Hands.Plan = planWas;
+                Hands.Catalog = catalogWas;
+                Hands.Windows = windowsWas;
+                Hands.Exists = existsWas;
+                Hands.Forget();
+                Hands.Run = runWas;
+                Hands.Fetch = fetchWas;
+            }
+            checks.Add("PASS mini games on Mac and Linux give the Windows-only line without Spotify, with or without a brain or uinput, while Chess by an artist stays music and online chess opens a site");
         }
 
         // Security on Mac and Linux, like Windows' SECURITY window: each preset ticks its toggles, a flip makes it Custom and is

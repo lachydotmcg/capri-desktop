@@ -14836,6 +14836,7 @@ namespace CapriDesktop
                     { "Capri, can you open spotify and play Blinding Lights for me?", "play_music" },
                     { "let's watch some youtube", "open_website" }, { "lets watch youtube", "open_website" },
                     { "let's play minecraft", "open_app" }, { "let's listen to some music", "play_music" },
+                    { "play chess", "mini_game" }, { "open chess", "mini_game" }, { "play Chess by The Artist", "play_music" },
                     { "wanna watch some youtube", "open_website" }, { "we should open spotify", "open_app" },
                     { "how about some youtube", "open_website" }, { "time for some youtube", "open_website" }, { "put on some youtube", "open_website" },
                     { "answer the questions on my screen", "use_computer" }, { "do this quiz", "use_computer" },

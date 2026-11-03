@@ -11,18 +11,32 @@ namespace CapriDesktop
     internal static class Eyes
     {
         // A whole-screen picture's file bytes, or null when no tool here could take one. The smoke test hands in its own.
-        internal static Func<byte[]> Shoot = delegate { return Screenshot(Tools(OperatingSystem.IsMacOS(), Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))); };
+        internal static Func<byte[]> Shoot = delegate { return Screenshot(Tools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))); };
         // The same for Watch my screen, with only the tools that don't flash, play a shutter sound or ask first.
-        internal static Func<byte[]> Peek = delegate { return Recordable() ? Screenshot(QuietTools(OperatingSystem.IsMacOS(), Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))) : null; };
+        internal static Func<byte[]> Peek = delegate { return Recordable() ? Screenshot(QuietTools(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"))) : null; };
+
+        internal static string Session
+        {
+            get
+            {
+                string session = Environment.GetEnvironmentVariable("XDG_SESSION_TYPE");
+                return !string.IsNullOrWhiteSpace(session) ? session : string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY")) ? "x11" : "wayland";
+            }
+        }
 
         internal static string Unwatchable
         {
             get
             {
-                return OperatingSystem.IsMacOS()
-                    ? "I can't watch your screen yet. Allow Capri under System Settings > Privacy & Security > Screen Recording, then open me again. If I'm already on that list, remove me with the minus button first."
-                    : "I can't watch your screen quietly here: this desktop's screenshots flash or ask first. I'll still look whenever you ask me to check your screen. On X11, installing scrot or maim fixes it.";
+                return UnwatchableFor(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"));
             }
+        }
+
+        internal static string UnwatchableFor(bool mac, string session, string desktop)
+        {
+            if (mac) return "I can't watch your screen yet. Allow Capri under System Settings > Privacy & Security > Screen Recording, then open me again. If I'm already on that list, remove me with the minus button first.";
+            if (Kde(desktop) && string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase)) return "I can't watch your screen yet. Install Spectacle for KDE, then ask again.";
+            return "I can't watch your screen quietly here: this desktop's screenshots flash or ask first. I'll still look whenever you ask me to check your screen. On X11, installing scrot or maim fixes it.";
         }
 
         private const string Graphics = "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics";
@@ -69,11 +83,19 @@ namespace CapriDesktop
         {
             get
             {
-                return OperatingSystem.IsMacOS()
-                    ? "You couldn't take a screenshot. Tell them to allow Capri under System Settings > Privacy & Security > Screen Recording, then open you again. If Capri is already on that list, they should remove it with the minus button first."
-                    : "You couldn't take a screenshot. Tell them to install grim (Wayland), scrot (X11) or gnome-screenshot (GNOME), then ask again.";
+                return MissingFor(OperatingSystem.IsMacOS(), Session, Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP"));
             }
         }
+
+        internal static string MissingFor(bool mac, string session, string desktop)
+        {
+            if (mac) return "You couldn't take a screenshot. Tell them to allow Capri under System Settings > Privacy & Security > Screen Recording, then open you again. If Capri is already on that list, they should remove it with the minus button first.";
+            string tool = Kde(desktop) ? "Spectacle for KDE" : string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase)
+                ? (desktop ?? "").ToLowerInvariant().Contains("gnome") ? "gnome-screenshot for GNOME" : "grim for your desktop" : "scrot or maim";
+            return "Couldn't take a screenshot. Install " + tool + ", then ask again.";
+        }
+
+        private static bool Kde(string desktop) { return (desktop ?? "").ToLowerInvariant().Contains("kde"); }
 
         // The tools that can take a screenshot here, best first, with "{0}" where the file to write goes.
         internal static List<string[]> Tools(bool mac, string session, string desktop)
@@ -89,10 +111,10 @@ namespace CapriDesktop
             string[] gnome = { "gnome-screenshot", "-f", "{0}" };
             if (string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase))
             {
-                if (where.Contains("kde")) tools.Add(spectacle);
+                if (Kde(desktop)) { tools.Add(spectacle); return tools; }
                 if (where.Contains("gnome")) tools.Add(gnome);
                 tools.Add(new[] { "grim", "{0}" });
-                if (!where.Contains("kde")) tools.Add(spectacle);
+                tools.Add(spectacle);
                 if (!where.Contains("gnome")) tools.Add(gnome);
                 return tools;
             }
@@ -112,7 +134,7 @@ namespace CapriDesktop
         {
             List<string[]> quiet = new List<string[]>();
             bool wayland = string.Equals(session, "wayland", StringComparison.OrdinalIgnoreCase);
-            bool kde = (desktop ?? "").ToLowerInvariant().Contains("kde");
+            bool kde = Kde(desktop);
             foreach (string[] tool in Tools(mac, session, desktop))
             {
                 if (tool[0] == "gnome-screenshot" || tool[0] == "xfce4-screenshooter") continue;

@@ -87,7 +87,7 @@ namespace CapriDesktop
                 if (Grabbed()) return "You grabbed the mouse, so you stopped. Say what to do next.";
                 byte[] picture = Shoot();
                 byte[] shot = Eyes.Jpeg(picture, 1280);
-                if (shot == null) return "Couldn't do that: " + Eyes.Missing.Replace("You couldn't take a screenshot. ", "");
+                if (shot == null) return Eyes.Missing;
                 int width, height;
                 if (!Size(shot, out width, out height)) return "Couldn't do that: the screenshot couldn't be read.";
                 minute.Due(live.Elapsed.TotalSeconds);

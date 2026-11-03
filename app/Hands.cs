@@ -1451,9 +1451,6 @@ namespace CapriDesktop
             { "read_file", @"^read (?:this|that|the|my) (?:file|pdf|document|doc|spreadsheet)\b|^read (?:[a-z]:[\\/]|~/|/)\S|^(?:what does|summari[sz]e) (?:this|that|the|my) (?:file|pdf|document|doc)\b" }
         };
 
-        // Chess by name, which MiniName only knows where her board has it.
-        private static readonly Regex ChessAsk = new Regex(@"^(?:(?:let'?s|wanna|can we)\s+)?play\s+(?:a game of |some |a round of )?chess(?:\s+(?:with|against)\s+(?:me|you|us))?$", RegexOptions.IgnoreCase);
-
         // What comes out of her prompts and tool descriptions when something's missing. Edits go in this order, looking before
         // mouse and keyboard jobs, so the ones made together still fit.
         private static readonly string[,] Unsaid =
@@ -1755,7 +1752,7 @@ namespace CapriDesktop
             if (tool == "gaming_mode") return GamingFor(text) != null;
             // "Clip that" is her default length, which ClipSeconds gives as -1.
             if (tool == "clip") return ClipSeconds(said) != 0;
-            if (tool == "mini_game") return MiniName(text) != null || ChessAsk.IsMatch(text);
+            if (tool == "mini_game") return MiniName(text) != null;
             if (tool == "listen") return ListenFor(said);
             if (tool == "watch_for")
             {
@@ -2138,7 +2135,7 @@ namespace CapriDesktop
         }
 
         // What she should have done instead of asking: their own words as a mouse and keyboard job.
-        // The title of a game open on their PC, or null. Set where her hands can look, which is Windows so far.
+        // The title of a game open on their PC, or null. Each app sets it where it can see their windows.
         internal static Func<string> GameOpen = delegate { return null; };
 
         // "Play minecraft and punch a tree" is more than opening it, so all of it goes to her hands.
@@ -2805,13 +2802,16 @@ namespace CapriDesktop
                 args.Name = text.Substring(5); args.Task = said; return true;
             }
             if (ListenFor(text)) { tool = "listen"; args.Focus = said; return true; }
+#endif
             Match chessWeb = Regex.Match(text, @"^(?:open|play chess on|play chess at)\s+(?:https?://)?(?:www\.)?(chess\.com)(?:/)?$", RegexOptions.IgnoreCase);
             if (chessWeb.Success) { tool = "open_website"; args.Site = "chess.com"; return true; }
             string miniName = MiniName(text);
             if (miniName != null)
             {
+#if !CROSS
                 // "This match" with a chess site up means that match, so a job plays it rather than her board opening over it.
                 if (Regex.IsMatch(text, @"\b(?:this|that)\b", RegexOptions.IgnoreCase) && MiniBoard().Length == 0 && Showing(miniName.Replace('_', ' '))) { tool = "use_computer"; args.Task = said; return true; }
+#endif
                 tool = "mini_game"; args.Name = miniName; args.Action = "open";
                 if (miniName == "chess")
                 {
@@ -2827,6 +2827,7 @@ namespace CapriDesktop
             {
                 tool = "open_website"; args.Site = "google"; args.Search = text; return true;
             }
+#if !CROSS
             ToolArguments miniMove = MiniInput(text);
             if (miniMove != null) { tool = "mini_game"; args = miniMove; return true; }
 #endif
@@ -2915,6 +2916,9 @@ namespace CapriDesktop
                 if (Regex.IsMatch(target, @"^(the|this|that|my|our) (game|match|round|level|map)\b", RegexOptions.IgnoreCase)) return false;
                 if (!found.Groups[3].Success && ByHand(target)) return false;
                 target = Regex.Replace(target, @"\s+(?:yourself|urself)$", "", RegexOptions.IgnoreCase);
+#if CROSS
+                if (!found.Groups[3].Success && GameShown(Nickname(target) ?? target)) { tool = "use_computer"; args.Task = said; return true; }
+#endif
                 if (!found.Groups[3].Success && (Installed(target) || Installed(Nickname(target)))) { tool = "open_app"; args.Name = target; return true; }
                 if (Regex.IsMatch(target, @"^(with|along|around|a game|games?\b|dead|nice|fair|it\b|me\b|us\b|together|this$|that$|((a|any|some|random) )?playlists?$)", RegexOptions.IgnoreCase)) return false;
                 // "play the wasd minigame" is a game, not a song to search Spotify for (a tester, 30 Oct), and so is a game that's open.
@@ -2988,9 +2992,7 @@ namespace CapriDesktop
 
         internal static string MiniName(string text)
         {
-#if !CROSS
             if (Regex.IsMatch((text ?? "").Replace('\u2019', '\''), "^" + MiniOpen + MiniThe + @"(?:native )?chess" + MiniAfter + @"(?:\s+(?:on\s+)?(?:easy|normal|hard))?(?:(?:,?\s+i(?:'ll| will) be|\s+as)\s+(?:white|black))?$", RegexOptions.IgnoreCase)) return "chess";
-#endif
             Match mini = Regex.Match(text ?? "", "^" + MiniOpen + MiniThe + @"(tic[ -]?tac[ -]?toe|connect[ -](four|4)|rock[ ,]+paper[ ,]+scissors)" + MiniAfter + "$", RegexOptions.IgnoreCase);
             if (!mini.Success) return null;
             string name = mini.Groups[1].Value.ToLowerInvariant();
@@ -3289,6 +3291,9 @@ namespace CapriDesktop
             {
                 foreach (InstalledApp app in Apps())
                     if (Score(app, want) >= 3) return true;
+#if CROSS
+                if (want == "minecraft" && Apps().Exists(MinecraftLauncher)) return true;
+#endif
             }
             catch (Exception) { }
             return false;
@@ -3314,6 +3319,25 @@ namespace CapriDesktop
             catch (Exception) { }
             return false;
         }
+
+#if CROSS
+        private static bool GameShown(string name)
+        {
+            try
+            {
+                List<OpenWindow> open = Windows() ?? new List<OpenWindow>();
+                return OpenedWindow(open.FindAll(window => Gamey(window)), name) != null;
+            }
+            catch (Exception) { return false; }
+        }
+
+        private static bool MinecraftLauncher(InstalledApp app)
+        {
+            string name = AppName(app);
+            return name.Length > 0 && (Regex.IsMatch(name, @"^(?:modrinth(?: app)?|prism launcher|minecraft launcher|multi ?mc|poly ?mc|at ?launcher|gd ?launcher|lunar client)$")
+                || Regex.IsMatch(app.Id, @"(?<![\w.])(?:com\.modrinth\.ModrinthApp|com\.mojang\.Minecraft)(?![\w.])", RegexOptions.IgnoreCase));
+        }
+#endif
 
         // Games that go by one plain word, so "play solitaire" isn't a song to search Spotify for.
         private static readonly Regex PlainGame = new Regex(@"^(?:(?:a|some|another)\s+)?(?:(?:game|round|hand)\s+of\s+)?(?:chess|checkers|poker|blackjack|solitaire|sudoku|tetris|minesweeper|wordle|uno)$", RegexOptions.IgnoreCase);
@@ -3407,7 +3431,8 @@ namespace CapriDesktop
 #if CROSS
             // Mac and Linux list every .app and .desktop name, so part of a word doesn't count there: "minecraft" can't open an app
             // that merely has it inside a longer name (a Bazzite user).
-            if (score == 1 && name.Contains(want)) return 0;
+            if (score == 1 && name.Contains(want)) score = 0;
+            if (score == 0 && want == "minecraft" && MinecraftLauncher(app)) return 1;
 #endif
             return score;
         }
@@ -4844,10 +4869,20 @@ namespace CapriDesktop
                 front = Foreground();
             }
             catch (Exception) { open = new List<OpenWindow>(); front = IntPtr.Zero; }
+#if CROSS
+            OpenWindow shown = OpenedWindow(open.FindAll(window => Gamey(window)), Nickname(wanted) ?? wanted) ?? OpenedWindow(open, wanted) ?? (name == wanted ? null : OpenedWindow(open, name));
+#else
             OpenWindow shown = OpenedWindow(open, name) ?? (name == wanted ? null : OpenedWindow(open, wanted));
+#endif
             string where = chosen == null ? "No app called " + wanted + " is installed on this PC" : name + " is installed" + Through(chosen);
             if (shown != null)
-                return where + (chosen == null ? ", but a window of it is open: " : " and open: ") + Titled(shown) + (open.IndexOf(shown) == FrontOf(open, front) ? " is in front." : Minimized(shown) ? " is minimized." : " is open behind other windows.");
+            {
+                string state = where + (chosen == null ? ", but a window of it is open: " : " and open: ");
+#if CROSS
+                if (chosen == null) state = wanted + " is open: ";
+#endif
+                return state + Titled(shown) + (open.IndexOf(shown) == FrontOf(open, front) ? " is in front." : Minimized(shown) ? " is minimized." : " is open behind other windows.");
+            }
             bool running;
             try { running = Running(name, chosen == null ? null : chosen.Id); }
             catch (Exception) { running = false; }
