@@ -59,8 +59,13 @@ namespace CapriDesktop
     // Where her mix finds its devices, so the smoke test can hand it stand-ins and never open a real one.
     internal interface IMixDevices
     {
-        // The cable to play into, with its far end when Windows lists it (MicMix.CableFor), or null.
-        MixDevice Cable();
+        // The cable to play into, with its far end when Windows lists it: the chosen one while it's there, else VB-CABLE's
+        // before Steam's (MicMix.CableFor), or null.
+        MixDevice Cable(string chosen);
+        // Every cable there is to choose from, VB-CABLE's before Steam's, each with its far end when Windows lists it.
+        List<MixDevice> Cables();
+        // The programs hearing a mic right now, like "Discord", for Settings to say Discord has picked the cable's far end.
+        List<string> Listening(string mic);
         // How many dB Windows' volume on the cable's far end adds, and whether Windows has it muted. False when it can't say.
         bool Boost(MixDevice cable, out double boost, out bool muted);
         // The mic for their pick: the picked one while it's plugged in, else Windows' default, else any other, but never a
@@ -74,7 +79,8 @@ namespace CapriDesktop
     // virtual cable: VB-CABLE when it's there, else Steam's own virtual mic, which Steam puts on many gamers' PCs. Without either,
     // Settings runs VB-Audio's own VB-CABLE setup from the copy she carries (CableSetup). While the switch is on she plays their
     // real mic plus her voice into the cable, they pick its far end (CABLE Output, or Steam Streaming Microphone) as the mic in
-    // Discord or Roblox, and friends hear them both. Her voice still plays on their speakers, her sound effects stay out, and
+    // Discord or Roblox, and friends hear them both, her at a steady speaking level whatever her speakers' volume. Her voice
+    // still plays on their speakers, her sound effects stay out, and
     // her own ears never listen to the cable's far end. Steam's far end turns everything up 30 dB through Windows' own volume on
     // it, so she plays under by whatever that volume adds, read four times a second. A cable whose far end is turned off in
     // Windows can't reach Discord or Roblox, so one with its far end on comes first, and Settings says to turn it on.
@@ -104,6 +110,10 @@ namespace CapriDesktop
         // How often she reads Windows' volume on the cable's far end, in seconds, so turning it up can't blast friends for long,
         // and what Steam's far end adds, in dB, while Windows won't say.
         internal const double TrimGap = 0.25, SteamBoost = 30;
+        // Her voice goes in at a steady speaking level whatever her speakers' volume: her voiced moments (20 ms pieces over 1% of
+        // full scale) are brought to about -17 dBFS, by a quarter to four times her own level, and the limiter keeps her peaks
+        // under full scale (Lachy, 3 Nov: friends on Discord found her "too quiet for it to come through legible" at volume 50).
+        internal const double Speaking = 0.14, Voiced = 0.01, LeastLift = 0.25, MostLift = 4;
         // Her voice waits at most this many seconds for the cable, so a stalled cable can't pile it up.
         private const int MostWaiting = 120;
         // How the mic's clock is steered to keep its queue level: as a part of its rate for each second of audio the level is
@@ -119,7 +129,7 @@ namespace CapriDesktop
         private volatile bool stopping;
         private volatile bool open;
         private volatile bool relook;
-        private volatile string chosen;
+        private volatile string chosen, cableChosen;
         // What's wrong for Settings in a few words, or null while it's mixing their mic.
         internal volatile string Problem;
         // For the smoke test and errors.txt: opens and losses, frames written and frames the mic queue ran short.
@@ -157,10 +167,15 @@ namespace CapriDesktop
         // Their mic pick, an endpoint id, or null for Windows' default. A new pick is opened on the next pass.
         internal string Chosen { get { return chosen; } set { chosen = value; relook = true; wake.Set(); } }
 
+        // Their cable pick on Settings' Output, an endpoint id, or null for VB-CABLE's before Steam's. Moves her on the next pass.
+        internal string CableChosen { get { return cableChosen; } set { cableChosen = value; relook = true; wake.Set(); } }
+
         // Mixing into CABLE Input right now.
         internal bool Mixing { get { return open; } }
 
         internal string MicName { get { MixDevice device = micDevice; return device == null ? null : device.Name; } }
+
+        internal string CableName { get { MixDevice device = cableDevice; return device == null || !open ? null : device.Name; } }
 
         // How far the mic's clock is being steered, as a part of its rate, for the smoke test.
         internal double Steered { get { MixResampler resampler = micRate; return resampler == null ? 0 : resampler.Step / resampler.Ratio - 1; } }
@@ -186,21 +201,38 @@ namespace CapriDesktop
         // Settings' note for an end, short enough for its column.
         internal static string PickLine(string end) { return end == SteamEnd ? "Pick Steam Streaming Microphone in Discord or Roblox." : "Pick " + end + " as your mic in Discord or Roblox."; }
 
-        // The cable from Windows' active speakers and mics, with its far end: VB-CABLE's before Steam's, since they installed it
-        // for this, and either with its far end on before one Windows has turned off. Without a far end it's still the cable, for
-        // Settings to say to turn it on. Null when there's no cable.
-        internal static MixDevice CableFor(List<MixDevice> speakers, List<MixDevice> mics)
+        // The cable from Windows' active speakers and mics, with its far end: the one they picked on Settings' Output while it's
+        // there, else VB-CABLE's before Steam's, since they installed it for this, and either with its far end on before one
+        // Windows has turned off. Without a far end it's still the cable, for Settings to say to turn it on. Null when there's no cable.
+        internal static MixDevice CableFor(List<MixDevice> speakers, List<MixDevice> mics, string chosen = null)
         {
-            MixDevice lone = null;
+            List<MixDevice> cables = Cables(speakers, mics);
+            if (!string.IsNullOrEmpty(chosen)) foreach (MixDevice cable in cables) if (cable.Id == chosen) return cable;
+            foreach (MixDevice cable in cables) if (cable.Far != null) return cable;
+            return cables.Count > 0 ? cables[0] : null;
+        }
+
+        // Every cable from Windows' active speakers, VB-CABLE's before Steam's, each with its far end when Windows lists it.
+        internal static List<MixDevice> Cables(List<MixDevice> speakers, List<MixDevice> mics)
+        {
+            List<MixDevice> cables = new List<MixDevice>();
             foreach (bool steam in new[] { false, true })
                 foreach (MixDevice found in speakers)
                 {
                     if (!(steam ? IsSteam(found.Name) : IsCableIn(found.Name))) continue;
                     MixDevice far = FarFor(found, mics);
-                    if (far != null) return new MixDevice(found.Id, found.Name, far.Id);
-                    if (lone == null) lone = new MixDevice(found.Id, found.Name);
+                    cables.Add(new MixDevice(found.Id, found.Name, far == null ? null : far.Id));
                 }
-            return lone;
+            return cables;
+        }
+
+        // What Discord or Roblox lists a cable's far end as, like "Microphone (Steam Streaming Microphone)": Windows' name for it,
+        // or while Windows has it off, its usual one.
+        internal static string FarName(MixDevice cable)
+        {
+            string named = cable == null || cable.Far == null ? null : Ears.ListedName(cable.Far);
+            if (!string.IsNullOrEmpty(named)) return named;
+            return cable != null && IsSteam(cable.Name) ? "Microphone (" + SteamEnd + ")" : "CABLE Output (VB-Audio Virtual Cable)";
         }
 
         // The line in Settings when Windows has a cable's far end muted, so friends hear nothing.
@@ -234,10 +266,11 @@ namespace CapriDesktop
         }
 
         // Her speakers hand over what they play here. Only her voice's speakers do, so her sound effects stay out of their mic.
+        // It comes at her own level, not her speakers' volume, and goes in at Speaking.
         internal static void Hear(object speaker, short[] samples, int rate)
         {
             MicMix running = Current;
-            if (running != null && samples != null && samples.Length > 0 && rate > 0) running.Take(speaker, samples, rate);
+            if (running != null && samples != null && samples.Length > 0 && rate > 0) running.Take(speaker, samples, rate, true);
         }
 
         // A speaker stopped or was cut off: what it had waiting for the cable goes too.
@@ -247,7 +280,8 @@ namespace CapriDesktop
             if (running != null) running.Drop(speaker);
         }
 
-        internal void Take(object speaker, short[] samples, int rate)
+        // Leveled, it's lifted or lowered to Speaking on its way in; otherwise it goes in at its own level.
+        internal void Take(object speaker, short[] samples, int rate, bool leveled = false)
         {
             // Nothing waits while there's no cable to play it into. A copy waits, since a speaker's caller may reuse its own.
             if (!open) return;
@@ -257,7 +291,7 @@ namespace CapriDesktop
                 if (!open) return;
                 Lane lane = lanes.Find(delegate(Lane each) { return each.Owner == speaker; });
                 if (lane == null) { lane = new Lane(speaker); lanes.Add(lane); }
-                lane.Add(copy, rate);
+                lane.Add(copy, rate, leveled);
             }
         }
 
@@ -373,7 +407,7 @@ namespace CapriDesktop
             MixDevice wantCable, wantMic;
             try
             {
-                wantCable = devices.Cable();
+                wantCable = devices.Cable(cableChosen);
                 wantMic = devices.Mic(chosen);
             }
             catch (Exception) { return; }
@@ -427,7 +461,7 @@ namespace CapriDesktop
         {
             cableAt = now + RetryGap;
             MixDevice found;
-            try { found = devices.Cable(); }
+            try { found = devices.Cable(cableChosen); }
             catch (Exception error) { cableProblem = Unopened; Note("Windows wouldn't list its speakers for her mic mix: " + error.Message); return; }
             if (found == null) { cableProblem = Missing; Problem = Missing; return; }
             try { cable = devices.OpenCable(found); }
@@ -655,15 +689,21 @@ namespace CapriDesktop
             private int rate, queued;
             private bool tail;
             private float[] fed = new float[0], heard = new float[0];
+            // How loud her voiced moments have been, 0 before any or for a lane that keeps its own level.
+            private double spoken;
 
             internal Lane(object owner) { Owner = owner; }
 
             internal int Waiting { get { return queued; } }
 
-            internal void Add(short[] samples, int sampleRate)
+            // What her voice is multiplied by on its way into the mix.
+            internal float Lift { get { return spoken > 0 ? (float)Math.Max(LeastLift, Math.Min(MostLift, Speaking / spoken)) : 1; } }
+
+            internal void Add(short[] samples, int sampleRate, bool leveled)
             {
                 // A speaker reopens for a new rate, which clears it first, so what's waiting is all at one rate.
                 if (sampleRate != rate) { Clear(); rate = sampleRate; }
+                if (leveled) Measure(samples, sampleRate);
                 waiting.Enqueue(samples);
                 queued += samples.Length;
                 while (queued > MostWaiting * rate && waiting.Count > 1) queued -= waiting.Dequeue().Length;
@@ -677,6 +717,26 @@ namespace CapriDesktop
                 tail = false;
             }
 
+            // Her voiced moments in what just came, folded into how loud she's been, so the lift settles within a line or two
+            // and a quiet word doesn't swing it.
+            private void Measure(short[] samples, int sampleRate)
+            {
+                int piece = Math.Max(1, sampleRate / 50), pieces = 0;
+                double total = 0;
+                for (int at = 0; at + piece <= samples.Length; at += piece)
+                {
+                    double energy = 0;
+                    for (int i = at; i < at + piece; i++) energy += (double)samples[i] * samples[i];
+                    energy /= piece * 32768.0 * 32768.0;
+                    if (energy < Voiced * Voiced) continue;
+                    total += energy;
+                    pieces++;
+                }
+                if (pieces == 0) return;
+                double level = Math.Sqrt(total / pieces);
+                spoken = spoken > 0 ? spoken * 0.7 + level * 0.3 : level;
+            }
+
             // Adds the next count samples of her voice at the cable's rate into the mix. Once she runs out, a moment of silence
             // goes in after her last sample so it comes out too.
             internal void Mix(float[] into, int count, int to)
@@ -684,6 +744,7 @@ namespace CapriDesktop
                 if (rate == 0) return;
                 if (resampler == null || resampler.To != to) resampler = new MixResampler(rate, to);
                 if (heard.Length < count) heard = new float[count];
+                float lift = Lift / 32768f;
                 int got = 0;
                 while (got < count)
                 {
@@ -694,7 +755,7 @@ namespace CapriDesktop
                         short[] next = waiting.Dequeue();
                         queued -= next.Length;
                         if (fed.Length < next.Length) fed = new float[next.Length];
-                        for (int i = 0; i < next.Length; i++) fed[i] = next[i] / 32768f;
+                        for (int i = 0; i < next.Length; i++) fed[i] = next[i] * lift;
                         resampler.Push(fed, 0, next.Length);
                         tail = true;
                     }
@@ -1199,7 +1260,89 @@ namespace CapriDesktop
         private ISpeakerVolume volume;
         private string volumeOf;
 
-        public MixDevice Cable() { return MicMix.CableFor(Active(0), Active(1)); }
+        public MixDevice Cable(string chosen) { return MicMix.CableFor(Active(0), Active(1), chosen); }
+
+        public List<MixDevice> Cables() { return MicMix.Cables(Active(0), Active(1)); }
+
+        // Windows' audio sessions on the mic that are hearing it now, by program, like "Discord". Discord opens its mic while
+        // it's in a call or testing it.
+        public List<string> Listening(string mic)
+        {
+            List<string> names = new List<string>();
+            if (string.IsNullOrEmpty(mic)) return names;
+            ISoundDevices devices = null;
+            ISoundDevice device = null;
+            object manager = null;
+            IMixSessions sessions = null;
+            try
+            {
+                devices = (ISoundDevices)new SoundDevices();
+                if (devices.GetDevice(mic, out device) != 0 || device == null) return names;
+                Guid managerId = typeof(IMixSessionManager).GUID;
+                if (device.Activate(ref managerId, 23, IntPtr.Zero, out manager) != 0 || manager == null) return names;
+                int count;
+                if (((IMixSessionManager)manager).GetSessionEnumerator(out sessions) != 0 || sessions == null || sessions.GetCount(out count) != 0) return names;
+                for (int i = 0; i < count; i++)
+                {
+                    object control = null;
+                    try
+                    {
+                        if (sessions.GetSession(i, out control) != 0 || control == null) continue;
+                        IMixSession session = control as IMixSession;
+                        int state, pid;
+                        // 1 is AudioSessionStateActive: the program has the mic open now, not just earlier.
+                        if (session == null || session.GetState(out state) != 0 || state != 1 || session.GetProcessId(out pid) != 0 || pid == 0) continue;
+                        using (Process program = Process.GetProcessById(pid)) if (!names.Contains(program.ProcessName)) names.Add(program.ProcessName);
+                    }
+                    catch (Exception) { }
+                    finally { Wasapi.Release(control); }
+                }
+                return names;
+            }
+            catch (Exception) { return names; }
+            finally
+            {
+                Wasapi.Release(sessions);
+                Wasapi.Release(manager);
+                Wasapi.Release(device);
+                Wasapi.Release(devices);
+            }
+        }
+
+        // IAudioSessionManager2, up to its sessions.
+        [ComImport, Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IMixSessionManager
+        {
+            [PreserveSig] int GetAudioSessionControl(IntPtr session, int flags, out IntPtr control);
+            [PreserveSig] int GetSimpleAudioVolume(IntPtr session, int flags, out IntPtr volume);
+            [PreserveSig] int GetSessionEnumerator(out IMixSessions sessions);
+        }
+
+        // IAudioSessionEnumerator.
+        [ComImport, Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IMixSessions
+        {
+            [PreserveSig] int GetCount(out int count);
+            [PreserveSig] int GetSession(int index, [MarshalAs(UnmanagedType.IUnknown)] out object session);
+        }
+
+        // IAudioSessionControl2, up to its program.
+        [ComImport, Guid("BFB7FF88-7239-4FC9-8FA2-07C950BE9C6D"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IMixSession
+        {
+            [PreserveSig] int GetState(out int state);
+            [PreserveSig] int GetDisplayName(out IntPtr name);
+            [PreserveSig] int SetDisplayName(IntPtr name, IntPtr context);
+            [PreserveSig] int GetIconPath(out IntPtr path);
+            [PreserveSig] int SetIconPath(IntPtr path, IntPtr context);
+            [PreserveSig] int GetGroupingParam(out Guid group);
+            [PreserveSig] int SetGroupingParam(ref Guid group, IntPtr context);
+            [PreserveSig] int RegisterAudioSessionNotification(IntPtr notification);
+            [PreserveSig] int UnregisterAudioSessionNotification(IntPtr notification);
+            [PreserveSig] int GetSessionIdentifier(out IntPtr identifier);
+            [PreserveSig] int GetSessionInstanceIdentifier(out IntPtr identifier);
+            [PreserveSig] int GetProcessId(out int processId);
+        }
 
         public bool Boost(MixDevice cable, out double boost, out bool muted)
         {

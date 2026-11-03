@@ -179,6 +179,24 @@ namespace CapriDesktop
             catch (Exception) { return null; }
         }
 
+        // The name Windows' Sound settings, Discord and Roblox list an endpoint under, "Microphone (Steam Streaming Microphone)"
+        // where FullName says "Steam Streaming Microphone", or null.
+        internal static string ListedName(string id)
+        {
+            try
+            {
+                using (RegistryKey key = Properties(id))
+                {
+                    if (key == null) return null;
+                    string kind = key.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2") as string;
+                    string name = key.GetValue("{b3f8fa53-0004-438e-9003-51a46e139bfc},6") as string;
+                    if (string.IsNullOrEmpty(kind) || string.IsNullOrEmpty(name)) return string.IsNullOrEmpty(kind) ? (string.IsNullOrEmpty(name) ? null : name) : kind;
+                    return kind + " (" + name + ")";
+                }
+            }
+            catch (Exception) { return null; }
+        }
+
         // The mic Start opens for a pick, by endpoint id: the picked one while it's plugged in, or Windows' default, or when that's
         // VB-CABLE's output, the first other mic. Null when there's none.
         internal static string Opens(string chosen)
@@ -768,10 +786,11 @@ namespace CapriDesktop
             leftover.RemoveRange(0, at);
             if (!Plain)
             {
-                samples = Voice.Louder(samples);
-                // Her voice in their mic (F66): everything she says goes into VB-CABLE too while the switch is on, at her volume.
-                // Her sound effects play through Plain speakers, so they stay out.
+                // Her voice in their mic (F66): everything she says goes into the cable too while the switch is on, at her own
+                // level rather than her speakers' volume, for the mix to bring to a speaking level. Her sound effects play
+                // through Plain speakers, so they stay out.
                 MicMix.Hear(this, samples, rate);
+                samples = Voice.Louder(samples);
             }
             if (silent || (device == IntPtr.Zero && modern == null)) return;
             if (modern != null) { modern.Write(samples); return; }
