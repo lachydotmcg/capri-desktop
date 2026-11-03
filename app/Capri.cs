@@ -1580,6 +1580,7 @@ namespace CapriDesktop
         internal Func<string, string> Think;
         internal Func<string, byte[]> Speak;
         internal Func<string, byte[]> FreeSpeak;
+        private int voiceLanguageNoted;
         private volatile bool voiceBroke;
         private readonly Voice voice = new Voice();
         private readonly LocalVoice kokoro;
@@ -11159,7 +11160,8 @@ namespace CapriDesktop
         private Func<string, byte[]> PickVoice(bool quiet, out Func<string, byte[]> free, bool fallback = true)
         {
             Func<string, byte[]> own = FreeSpeak ?? (testing || !kokoro.Installed ? null : new Func<string, byte[]>(kokoro.Speak));
-            free = preferences.Quiet && !FreeChatOn ? null : preferences.ServerVoice ? Served(fallback ? own : null) : FreeSpeak ?? (testing ? null : Hd(fallback || !preferences.HdVoice ? own : null));
+            own = Readable(own);
+            free = preferences.Quiet && !FreeChatOn ? null : preferences.ServerVoice ? (server.Api == VoiceServer.Files ? Readable(Served(fallback ? own : null)) : Served(fallback ? own : null)) : FreeSpeak != null ? own : (testing ? null : Hd(fallback || !preferences.HdVoice ? own : null));
             if (!fallback && voiceBroke && !quiet && !preferences.Quiet && (Speak != null || voice.Key != null)) return null;
             // Free chat stays free. A job's lines and Listen for Capri share its ears but keep the voice they picked.
             bool freeOnly = quiet || (fallback && local && !jobEars && !preferences.ListenCapri && !CallModeOn);
@@ -11167,6 +11169,43 @@ namespace CapriDesktop
             if (picked == null && !freeOnly && !voiceBroke && !testing && voice.Ready && !preferences.Quiet) picked = voice.Speak;
             if (picked == null && (voice.Key == null || freeOnly || voiceBroke || preferences.Quiet)) picked = free;
             return preferences.Silent ? null : picked;
+        }
+
+        // A line her English free voice can't read, like Russian, never comes out spelled letter by letter (ticket 99): a custom
+        // voice they added for that language speaks it, then a Windows voice for it, and otherwise she stays quiet for that line,
+        // its bubble still shows, and once a run VOICE says how to add a voice for it.
+        private Func<string, byte[]> Readable(Func<string, byte[]> own)
+        {
+            if (own == null) return null;
+            string language = Brain.Language;
+            string[] folders = { preferences.ServerApi == VoiceServer.Files ? preferences.ServerUrl : null, preferences.AsideApi == VoiceServer.Files ? preferences.AsideUrl : null };
+            string[] languages = { preferences.ServerModel, preferences.AsideModel };
+            string[] speakers = { preferences.ServerSpeaker, preferences.AsideSpeaker };
+            return delegate(string words)
+            {
+                string code = VoiceLanguage.Tongue(words, language);
+                if (code == null) return own(words);
+                foreach (string folder in ModelFile.Find(code, folders, languages))
+                {
+                    try
+                    {
+                        VoiceServer custom = new VoiceServer { Url = folder, Api = VoiceServer.Files, Model = code };
+                        for (int i = 0; i < folders.Length; i++)
+                            if (string.Equals(folder, ModelFile.Clean(folders[i]), StringComparison.OrdinalIgnoreCase)) { custom.Model = languages[i]; custom.Speaker = speakers[i]; break; }
+                        byte[] wav = custom.Speak(words);
+                        if (wav != null && Voice.Seconds(wav) > 0) return wav;
+                    }
+                    catch (Exception) { }
+                }
+                byte[] windows = WindowsVoice.Speak(code, words);
+                if (windows != null) return windows;
+                if (Interlocked.CompareExchange(ref voiceLanguageNoted, 1, 0) == 0)
+                {
+                    string note = VoiceLanguage.Missing(code.Length == 0 ? Brain.LanguageCode(language) : code, language);
+                    Post(delegate { mainframe.VoiceNote(note, false); });
+                }
+                return null;
+            };
         }
 
         private byte[] Voiced(Func<string, byte[]> speak, Func<string, byte[]> free, string words, out string problem, bool fallback = true)
@@ -23937,6 +23976,7 @@ namespace CapriDesktop
             Section(checks, "SmokeOpening", delegate { SmokeOpening(checks); });
             Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
             Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
+            Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeVoiceInMic", delegate { SmokeVoiceInMic(checks, output); });
@@ -24071,6 +24111,225 @@ namespace CapriDesktop
             };
             backdrop.Show();
             return backdrop;
+        }
+
+        private void SmokeVoiceLanguages(System.Collections.Generic.List<string> checks, string output)
+        {
+            Preferences preferencesWas = preferences;
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            Func<System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>> catalogWas = WindowsVoice.Catalog;
+            Func<string, string, byte[]> windowsWas = WindowsVoice.Run;
+            ModelFile.Generate modelWas = ModelFile.Run;
+            string languageWas = Brain.Language, shelfWas = ModelFile.Shelf, keyWas = voice.Key, noteWas = mainframe.VoiceNoteText;
+            bool localWas = local, chattingWas = chatting, brokeWas = voiceBroke, brokenWas = voiceBroken;
+            int notedWas = voiceLanguageNoted, pitchWas = VoiceFx.Pitch, speedWas = VoiceFx.Speed, robotWas = VoiceFx.Robot, glitchWas = VoiceFx.Glitch;
+            int serverRobotWas = VoiceFx.ServerRobot, serverGlitchWas = VoiceFx.ServerGlitch;
+            VoiceFx.Layering layersWas = VoiceFx.Layers;
+            try
+            {
+                CloseTalk();
+                preferences = new Preferences();
+                local = chatting = voiceBroke = false;
+                Speak = null;
+                voice.Key = null;
+                Brain.Language = "Russian";
+                voiceLanguageNoted = 0;
+                VoiceFx.Pitch = VoiceFx.Robot = VoiceFx.Glitch = VoiceFx.ServerRobot = VoiceFx.ServerGlitch = 0;
+                VoiceFx.Speed = 100;
+                VoiceFx.Layers = VoiceFx.Layering.Off;
+                string root = Path.Combine(output, "voice-languages"), shelf = Path.Combine(root, "models"), empty = Path.Combine(root, "empty");
+                string russian = Path.Combine(root, "renamed-voice"), english = Path.Combine(root, "vits-piper-en_US-test-medium");
+                string shelved = Path.Combine(shelf, "vits-piper-ru_RU-irina-medium"), unknown = Path.Combine(root, "unknown-voice");
+                Action<string> model = delegate(string folder)
+                {
+                    Directory.CreateDirectory(folder);
+                    File.WriteAllBytes(Path.Combine(folder, "model.onnx"), new byte[] { 1 });
+                    File.WriteAllText(Path.Combine(folder, "tokens.txt"), "a 0");
+                };
+                foreach (string folder in new[] { russian, english, shelved, unknown }) model(folder);
+                File.WriteAllText(Path.Combine(russian, "model.onnx.json"), "{\"language\":{\"code\":\"ru_RU\"},\"espeak\":{\"voice\":\"ru\"}}");
+                Directory.CreateDirectory(empty);
+                ModelFile.Shelf = empty;
+                short[] samples = new short[2400];
+                for (int i = 0; i < samples.Length; i++) samples[i] = (short)(4000 * Math.Sin(i * 0.1));
+                byte[] wav = Voice.Wave(samples, 24000);
+                int ownCalls = 0, modelCalls = 0, windowsCalls = 0, catalogCalls = 0;
+                string ownWords = null, modelFolder = null, modelSpeaker = null, modelWords = null, windowsName = null, windowsWords = null;
+                bool modelFails = false;
+                string failedModel = null;
+                FreeSpeak = delegate(string words) { ownCalls++; ownWords = words; return wav; };
+                ModelFile.Run = delegate(string folder, string lang, string speakerId, string words, out int rate)
+                {
+                    modelCalls++; modelFolder = folder; modelSpeaker = speakerId; modelWords = words; rate = 24000;
+                    if (modelFails || folder == failedModel) throw new VoiceException("The fake model failed.");
+                    return samples;
+                };
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>> installed = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, string>>();
+                installed.Add(new System.Collections.Generic.KeyValuePair<string, string>("English", "en-AU"));
+                installed.Add(new System.Collections.Generic.KeyValuePair<string, string>("Russian", "ru-RU"));
+                WindowsVoice.Catalog = delegate { catalogCalls++; return installed; };
+                WindowsVoice.Run = delegate(string name, string words) { windowsCalls++; windowsName = name; windowsWords = words; return wav; };
+                Func<string, byte[]> free;
+                string problem, line = "Привет, мир.";
+                preferences.ServerApi = VoiceServer.Files;
+                preferences.ServerUrl = "\"" + russian + "\"";
+                preferences.ServerModel = "en-us";
+                preferences.ServerSpeaker = "2";
+                byte[] made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || problem != null || modelFolder != russian || modelSpeaker != "2" || modelWords != line || modelCalls != 1 || windowsCalls != 0 || catalogCalls != 0 || ownCalls != 0 || preferences.ServerVoice || voiceLanguageNoted != 0)
+                    throw new Exception("Russian did not use its saved custom voice before Windows.");
+                preferences.AsideApi = preferences.ServerApi;
+                preferences.AsideUrl = preferences.ServerUrl;
+                preferences.AsideModel = preferences.ServerModel;
+                preferences.AsideSpeaker = "3";
+                preferences.ServerApi = preferences.ServerUrl = preferences.ServerModel = preferences.ServerSpeaker = null;
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || modelFolder != russian || modelSpeaker != "3" || modelCalls != 2 || windowsCalls != 0) throw new Exception("Russian missed the custom voice kept aside.");
+                preferences.AsideApi = preferences.AsideUrl = preferences.AsideModel = preferences.AsideSpeaker = null;
+                preferences.ServerApi = VoiceServer.Files;
+                preferences.ServerUrl = english;
+                preferences.ServerModel = "ru";
+                ModelFile.Shelf = shelf;
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || modelFolder != shelved || modelCalls != 3 || windowsCalls != 0 || ModelFile.Language(english, "ru") != "en" || ModelFile.Language(unknown, "ru") != "")
+                    throw new Exception("An imported Russian package was missed or an English model was treated as Russian.");
+                string pending = Path.Combine(shelf, "vits-piper-ru_RU-pending-medium.new"), kokoroFiles = Path.Combine(root, "english-kokoro");
+                model(pending);
+                model(kokoroFiles);
+                File.WriteAllBytes(Path.Combine(kokoroFiles, "voices.bin"), new byte[] { 1 });
+                File.WriteAllText(Path.Combine(kokoroFiles, "lexicon-us-en.txt"), "hello h");
+                System.Collections.Generic.List<string> found = ModelFile.Find("ru", new[] { "bad\0path", Path.Combine(root, "gone"), shelved }, new[] { "ru", "ru", "ru" });
+                if (found.Count != 1 || found[0] != shelved || ModelFile.Language(kokoroFiles, "ru") != "") throw new Exception("A pending import, broken path, duplicate model or English Kokoro entered the Russian choices.");
+                File.WriteAllText(Path.Combine(unknown, "model.onnx.json"), "{\"espeak\":{\"voice\":\"ru\"}}");
+                if (ModelFile.Language(unknown, null) != "ru") throw new Exception("Piper's speech language was missed.");
+                File.WriteAllText(Path.Combine(unknown, "model.onnx.json"), "broken");
+                if (ModelFile.Language(unknown, "ru") != "") throw new Exception("Broken Piper metadata became a language claim.");
+                checks.Add("PASS Russian uses matching CUSTOM LOCAL metadata, a voice kept aside, or an imported ru_RU package before Windows; the picked row stays the same");
+                ModelFile.Shelf = empty;
+                preferences.ServerUrl = russian;
+                modelFails = true;
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || problem != null || modelCalls != 4 || windowsCalls != 1 || windowsName != "Russian" || windowsWords != line || ownCalls != 0) throw new Exception("A failed Russian model did not hand the line to Russian Windows speech.");
+                modelFails = false;
+                preferences.ServerUrl = english;
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || modelCalls != 4 || windowsCalls != 2 || windowsName != "Russian" || ownCalls != 0) throw new Exception("Russian without a custom model did not use the matching Windows voice.");
+                int catalogsBefore = catalogCalls;
+                if (WindowsVoice.Speak("en", "Hello.") != null || WindowsVoice.Speak("ru", "こんにちは") != null || catalogCalls != catalogsBefore) throw new Exception("Windows speech accepted English or a script its language cannot read.");
+                installed.Insert(1, new System.Collections.Generic.KeyValuePair<string, string>("Broken Russian", "ru-RU"));
+                WindowsVoice.Run = delegate(string name, string words)
+                {
+                    windowsCalls++; windowsName = name; windowsWords = words;
+                    if (name == "Broken Russian") throw new VoiceException("The fake Windows voice failed.");
+                    return wav;
+                };
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || windowsCalls != 4 || windowsName != "Russian" || ownCalls != 0) throw new Exception("One broken Windows voice hid another Russian voice.");
+                installed.RemoveAt(1);
+                preferences.ServerVoice = true;
+                LoadServer();
+                made = Voiced(PickVoice(false, out free, false), free, line, out problem, false);
+                if (made == null || modelCalls != 4 || windowsCalls != 5 || ownCalls != 0) throw new Exception("A selected English custom model received Russian instead of its language fallback.");
+                preferences.ServerVoice = false;
+                checks.Add("PASS Russian falls back to a matching Windows culture after a missing, wrong-language or failed custom model, tries another Windows voice after a failure, and never uses the English default");
+                installed.RemoveAt(1);
+                installed.Add(new System.Collections.Generic.KeyValuePair<string, string>("French", "fr-FR"));
+                voiceLanguageNoted = 0;
+                mainframe.VoiceNote("Waiting.", false);
+                Answer(++asking, line, TalkState.Talking);
+                WaitVoice(delegate { return reply == line && answerVoice < 0 && mainframe.VoiceNoteText == VoiceLanguage.Missing("ru", "Russian"); }, "A silent Russian reply lost its bubble or its setup note.");
+                if (voiceUntil != 0 || mouths != null || ownCalls != 0 || windowsCalls != 5 || voiceLanguageNoted != 1) throw new Exception("Russian was spoken by an unrelated voice when no Russian voice existed.");
+                mainframe.VoiceNote("Keep this note.", false);
+                Answer(++asking, "Ещё одна строка.", TalkState.Talking);
+                WaitVoice(delegate { return reply == "Ещё одна строка." && answerVoice < 0; }, "The second silent Russian reply did not finish.");
+                Brain.Language = "Japanese";
+                Answer(++asking, "こんにちは。", TalkState.Talking);
+                WaitVoice(delegate { return reply == "こんにちは。" && answerVoice < 0; }, "A silent Japanese reply did not finish.");
+                if (mainframe.VoiceNoteText != "Keep this note." || voiceUntil != 0 || ownCalls != 0 || windowsCalls != 5) throw new Exception("The missing-language note repeated within one run.");
+                checks.Add("PASS without a matching voice, replies keep their bubble and stay silent; one Russian CUSTOM LOCAL setup note appears per run, including across language changes");
+                string[,] scripts = { { "Привет", "Russian", "ru" }, { "Привіт", "Ukrainian", "uk" }, { "Γεια", "Greek", "el" }, { "გამარჯობა", "Georgian", "ka" }, { "Բարեւ", "Armenian", "hy" },
+                    { "ሰላም", "Amharic", "am" }, { "สวัสดี", "Thai", "th" }, { "ສະບາຍດີ", "Lao", "lo" }, { "សួស្តី", "Khmer", "km" }, { "မင်္ဂလာပါ", "Burmese", "my" },
+                    { "你好", "Simplified Chinese", "zh" }, { "漢字", "Japanese", "ja" }, { "こんにちは世界", "Japanese", "ja" }, { "안녕", "Korean", "ko" }, { "नमस्ते", "Hindi", "hi" }, { "नमस्कार", "Marathi", "mr" },
+                    { "নমস্কার", "Bengali", "bn" }, { "નમસ્તે", "Gujarati", "gu" }, { "ਸਤਿ", "Punjabi", "pa" }, { "வணக்கம்", "Tamil", "ta" }, { "నమస్కారం", "Telugu", "te" }, { "ನಮಸ್ಕಾರ", "Kannada", "kn" }, { "നമസ്കാരം", "Malayalam", "ml" },
+                    { "مرحبا", "Arabic", "ar" }, { "سلام", "Persian", "fa" }, { "سلام", "Urdu", "ur" }, { "שלום", "Hebrew", "he" } };
+                for (int i = 0; i < scripts.GetLength(0); i++)
+                {
+                    if (VoiceLanguage.Reads(scripts[i, 0], "en") || VoiceLanguage.Tongue(scripts[i, 0], scripts[i, 1]) != scripts[i, 2]) throw new Exception("The English free voice accepted " + scripts[i, 1] + " letters.");
+                    installed.Clear();
+                    installed.Add(new System.Collections.Generic.KeyValuePair<string, string>(scripts[i, 1], scripts[i, 2]));
+                    Brain.Language = scripts[i, 1];
+                    made = Voiced(PickVoice(false, out free), free, scripts[i, 0], out problem);
+                    if (made == null || problem != null || windowsName != scripts[i, 1] || windowsWords != scripts[i, 0] || modelCalls != 4 || ownCalls != 0) throw new Exception("The language fallback failed for " + scripts[i, 1] + ".");
+                }
+                for (int i = 0; i < Brain.Languages.GetLength(0); i++)
+                {
+                    string hint = VoiceLanguage.Missing(Brain.Languages[i, 2], Brain.Languages[i, 1]);
+                    if (!hint.Contains("CUSTOM LOCAL") || !hint.Contains("Mainframe") || Brain.Languages[i, 2] != "en" && hint == VoiceLanguage.Missing("en", null)) throw new Exception("The voice setup note was not translated for " + Brain.Languages[i, 1] + ".");
+                }
+                if (VoiceLanguage.Missing("zh", "Traditional Chinese") == VoiceLanguage.Missing("zh", "Simplified Chinese")) throw new Exception("The voice note lost Traditional Chinese.");
+                int windowsBefore = windowsCalls;
+                Brain.Language = "French";
+                string mixed = "Привет こんにちは", unfamiliar = char.ConvertFromUtf32(0x10400);
+                if (VoiceLanguage.Tongue(mixed, "Russian") != "" || VoiceLanguage.Tongue(unfamiliar, "French") != "" || Voiced(PickVoice(false, out free), free, mixed, out problem) != null || Voiced(PickVoice(false, out free), free, unfamiliar, out problem) != null || windowsCalls != windowsBefore || ownCalls != 0)
+                    throw new Exception("Mixed or unfamiliar scripts reached a voice that cannot read them.");
+                bool ownBlocked = false, modelBlocked = false;
+                try { kokoro.Speak(line); }
+                catch (VoiceException) { ownBlocked = true; }
+                try { int rate; ModelFile.Speak(english, "ru", "0", line, out rate); }
+                catch (VoiceException) { modelBlocked = true; }
+                if (!ownBlocked || !modelBlocked || modelCalls != 4) throw new Exception("An English native voice accepted Cyrillic.");
+                checks.Add("PASS other scripts use their selected language, including shared scripts and Japanese kanji; mixed and unfamiliar scripts stay quiet, all offered languages have a setup note, and native English synthesis rejects Cyrillic");
+                Brain.Language = "Russian";
+                preferences.ServerUrl = russian;
+                foreach (string words in new[] { "Hello, choom.", "Bonjour, ça va ?", "¡Hola, cómo estás?", "Cafe\u0301" })
+                {
+                    made = Voiced(PickVoice(false, out free), free, words, out problem);
+                    if (made != wav || problem != null || ownWords != words || windowsCalls != windowsBefore || modelCalls != 4) throw new Exception("A Latin-script line changed its free voice.");
+                }
+                int ownBefore = ownCalls, paidCalls = 0;
+                Speak = delegate(string words) { paidCalls++; return wav; };
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || problem != null || paidCalls != 1 || ownCalls != ownBefore || windowsCalls != windowsBefore) throw new Exception("Language routing replaced the picked cloud voice.");
+                installed.Clear();
+                installed.Add(new System.Collections.Generic.KeyValuePair<string, string>("Russian", "ru-RU"));
+                preferences.ServerUrl = english;
+                Speak = delegate { throw new VoiceException("Out of ElevenLabs credits."); };
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || !voiceBroke || windowsName != "Russian" || windowsCalls != windowsBefore + 1 || ownCalls != ownBefore || modelCalls != 4) throw new Exception("The out-of-credits fallback sent Cyrillic to the English free voice.");
+                checks.Add("PASS English, French and Spanish keep their existing free voice even with Russian selected; cloud speech stays picked, and its out-of-credits fallback also protects Cyrillic");
+                Speak = null;
+                voiceBroke = false;
+                preferences.ServerUrl = russian;
+                ModelFile.Shelf = shelf;
+                failedModel = russian;
+                made = Voiced(PickVoice(false, out free), free, line, out problem);
+                if (made == null || modelCalls != 6 || modelFolder != shelved || windowsCalls != windowsBefore + 1) throw new Exception("A broken custom voice hid another matching custom voice.");
+                failedModel = null;
+                preferences.ServerUrl = english;
+                preferences.ServerSpeaker = "4";
+                preferences.ServerVoice = true;
+                LoadServer();
+                made = Voiced(PickVoice(false, out free), free, "Hello.", out problem);
+                if (made == null || modelCalls != 7 || modelFolder != english || modelSpeaker != "4" || modelWords != "Hello." || windowsCalls != windowsBefore + 1 || ownCalls != ownBefore) throw new Exception("An English line lost its selected custom voice.");
+                WindowsVoice.Catalog = delegate { throw new InvalidOperationException("The fake catalog failed."); };
+                if (WindowsVoice.Speak("ru", line) != null || windowsCalls != windowsBefore + 1) throw new Exception("An unavailable Windows voice catalog reached synthesis.");
+                checks.Add("PASS custom discovery skips incomplete imports, broken metadata, stale paths and duplicates; another matching custom voice survives a failure, English keeps its selected custom voice, and an unavailable Windows catalog stays silent");
+            }
+            finally
+            {
+                asking++;
+                CloseTalk();
+                preferences = preferencesWas;
+                Speak = speakWas; FreeSpeak = freeWas;
+                WindowsVoice.Catalog = catalogWas; WindowsVoice.Run = windowsWas; ModelFile.Run = modelWas;
+                Brain.Language = languageWas; ModelFile.Shelf = shelfWas; voice.Key = keyWas;
+                local = localWas; chatting = chattingWas; voiceBroke = brokeWas; voiceBroken = brokenWas;
+                voiceLanguageNoted = notedWas;
+                VoiceFx.Pitch = pitchWas; VoiceFx.Speed = speedWas; VoiceFx.Robot = robotWas; VoiceFx.Glitch = glitchWas;
+                VoiceFx.ServerRobot = serverRobotWas; VoiceFx.ServerGlitch = serverGlitchWas; VoiceFx.Layers = layersWas;
+                LoadServer();
+                mainframe.VoiceNote(noteWas, false);
+            }
         }
 
         internal void StartSmokeTest(string output, SmokeOptions options)
