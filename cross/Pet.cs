@@ -3530,7 +3530,6 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
-            if (text.Length > 240) text = text.Substring(0, 240);
             if (meeting.Asking) { Met(text); return; }
             int ticket = ++asking;
             Brain.Cancel();

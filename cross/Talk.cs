@@ -180,7 +180,8 @@ namespace CapriDesktop
             prompt = new TextBlock { Text = "> you:", FontFamily = Look.Mono, FontStyle = FontStyle.Italic, FontSize = Sheet.Type, Foreground = new SolidColorBrush(Look.Dim), VerticalAlignment = VerticalAlignment.Center };
             input.FontFamily = Look.Mono;
             input.FontSize = Sheet.Type;
-            input.MaxLength = 240;
+            // No limit, so her brain reads a long request whole.
+            input.MaxLength = 0;
             input.BorderThickness = new Thickness(0);
             input.Padding = new Thickness(0);
             input.MinHeight = 0;
@@ -217,7 +218,7 @@ namespace CapriDesktop
             set
             {
                 input.PasswordChar = value ? '\u2022' : '\0';
-                input.MaxLength = value ? 200 : 240;
+                input.MaxLength = value ? 200 : 0;
                 prompt.Text = value ? "> key:" : "> you:";
                 if (value) input.Text = "";
             }
