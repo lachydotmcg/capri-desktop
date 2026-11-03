@@ -9205,8 +9205,9 @@ namespace CapriDesktop
             return true;
         }
 
-        // A preview they asked for waits for her voice and for them talking, but plays over a line still showing in her bubble.
-        private bool PreviewBusy { get { return Voicing || pushing || transcribing || talkState == TalkState.Thinking; } }
+        // A preview they asked for waits for her voice and for them talking, but plays over a line still showing in her bubble,
+        // and a newer preview cuts off the one she's saying, so sliding a slider hears where it ended up.
+        private bool PreviewBusy { get { return pushing || transcribing || (heard != "voice check" && (Voicing || talkState == TalkState.Thinking)); } }
 
         private bool PreviewAfterLine(Action preview)
         {

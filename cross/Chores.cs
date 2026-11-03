@@ -78,11 +78,11 @@ namespace CapriDesktop
         internal static string Run(Brain brain, string job, string asked)
         {
             if (Hands.StreamAsked(job) || Hands.StreamAsked(asked)) Hands.Streaming = true;
-            try { return Steps(brain, job, asked); }
+            try { return Work(brain, job, asked); }
             finally { Hands.Streaming = false; }
         }
 
-        private static string Steps(Brain brain, string job, string asked)
+        private static string Work(Brain brain, string job, string asked)
         {
             string problem = Fingers.Problem;
             if (problem != null && Doing == null) return problem;
