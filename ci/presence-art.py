@@ -101,19 +101,6 @@ def cursor():
     return Image.open(ROOT / 'assets' / 'cursor.png').convert('RGBA')
 
 
-def floating(picture, width, spot, count, seed, push=5, bands=3, every=1):
-    rng = random.Random(seed)
-    size = (width, picture.height * width // picture.width)
-    small = picture.resize(size, Image.LANCZOS)
-    frames = []
-    for frame in range(count):
-        layer = Image.new('RGBA', (SIZE, SIZE), (0, 0, 0, 0))
-        layer.alpha_composite(small, spot)
-        wild = frame % every == 0
-        frames.append(tear(layer, rng, rng.randrange(push // 2 + 1, push + 3) if wild else 1, bands if wild else 0))
-    return frames
-
-
 def live_tag(layer, on):
     drawing = ImageDraw.Draw(layer)
     drawing.rounded_rectangle((12, 12, 100, 44), radius=7, fill=(232, 28, 60, 255))
@@ -134,7 +121,7 @@ def save(name, frames, wait):
     print(name, len(picked), 'frames', (OUT / (name + '.gif')).stat().st_size // 1024, 'KB')
 
 
-def card(name, sprite, count, step, wait, seed, every=8, push=4, bands=3, above=None, room=0.92, tagged=False):
+def card(name, sprite, count, step, wait, seed, every=8, push=4, bands=3, room=0.92, tagged=False):
     rng = random.Random(seed)
     back = panel()
     frames = []
@@ -142,8 +129,6 @@ def card(name, sprite, count, step, wait, seed, every=8, push=4, bands=3, above=
     for i, body in enumerate(bodies):
         image = back.copy()
         image.alpha_composite(tear(body, rng, push, bands) if i % every == 0 or i % every == 1 else body)
-        if above is not None:
-            image.alpha_composite(above[i % len(above)])
         if tagged:
             live_tag(image, i % 4 < 2)
         frames.append(image)
@@ -188,9 +173,9 @@ card('dancing', 'perch_music', 60, 4, 130, 3)
 card('asleep', 'laydown_sleep', 60, 4, 170, 4, every=15)
 card('voice', 'laydown_talk', 60, 4, 130, 5)
 card('break', 'dangle', 24, 2, 130, 6)
-card('computer', 'perch', 60, 4, 130, 7, every=5, above=floating(arrow, 124, (126, 124), 15, 70, every=2))
-card('game', 'perch', 60, 4, 130, 8, every=6, above=floating(pad, 176, (40, 136), 15, 80))
-card('live', 'perch_talk', 60, 4, 130, 9, every=6, above=floating(pad, 150, (96, 150), 15, 90), tagged=True)
+card('computer', 'perch', 60, 4, 130, 7, every=5)
+card('game', 'perch', 60, 4, 130, 8, every=6)
+card('live', 'perch_talk', 60, 4, 130, 9, every=6, tagged=True)
 crowd('clones', 120, 10)
 badge('controller', pad, 220, 11)
 badge('cursor', arrow, 176, 12)
