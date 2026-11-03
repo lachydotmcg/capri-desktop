@@ -5338,7 +5338,7 @@ namespace CapriDesktop
         // read from Windows each second.
         private sealed class MixSheet : Form
         {
-            internal const int Wide = 620, Tall = 452;
+            internal const int Wide = 620, Tall = 478;
             internal const string NoCable = "No virtual mic yet. Pick Output, then Get VB-CABLE (free).", NoOutput = "None yet: pick to get VB-CABLE (free)";
             internal const string Off = "Off. Turn on Her voice in your mic above.", NotYet = "Discord isn't hearing it yet: do 1 and 2, then join a call.";
             internal readonly float Zoom;
@@ -5397,10 +5397,11 @@ namespace CapriDesktop
                 pickStep = Caption("2   Input Device:", 28, 266, Font, White);
                 pick = Caption("", 28, 266, Font, Cyan);
                 Caption("3   Output Device: your headphones, like before", 28, 292, Font, White);
-                Caption("4   Noise Suppression: None, so it can't cut her voice", 28, 318, Font, White);
-                Caption("5   Mic Test > Let's Check: you'll hear you, and her as she talks", 28, 344, Font, White);
-                live = Caption("", 28, 378, Font, Faint);
-                elsewhere = Caption("", 28, 412, Font, Faint);
+                Caption("4   Echo Cancellation: Off", 28, 318, Font, White);
+                Caption("5   Noise Suppression: None. Both can cut her voice after the first line.", 28, 344, Font, White);
+                Caption("6   Mic Test > Let's Check: you'll hear you, and her as she talks", 28, 370, Font, White);
+                live = Caption("", 28, 404, Font, Faint);
+                elsewhere = Caption("", 28, 438, Font, Faint);
                 ticks.Interval = 1000;
                 ticks.Tick += delegate { Sync(); };
                 Sync();

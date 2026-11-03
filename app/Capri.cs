@@ -25957,6 +25957,65 @@ namespace CapriDesktop
                         throw new Exception("Her speakers didn't hand her mic mix just her voice: " + waitingLine + " samples waiting, line " + line.ToString("0.000") + ", effect " + beep.ToString("0.000") + ", " + waitingCut + " left after the cut, then " + after.ToString("0.000"));
                 }
                 checks.Add("PASS her voice in your mic only takes her voice: a quiet line through her speaker code at volume 50 goes into the cable at her speaking level (" + Db(MicMix.Speaking) + " dB RMS) and stops when she's cut off, and her sound effects' speakers stay out");
+                foreach (int cableRate in new[] { 48000, 44100, 16000 })
+                    foreach (bool steam in new[] { false, true })
+                        foreach (bool streamed in new[] { false, true })
+                        {
+                            double[] now = { 0 };
+                            StandInDevices pc = MixPc(now, cableRate, 48000);
+                            pc.Level = 0;
+                            if (steam)
+                            {
+                                pc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
+                                pc.FarBoost = MicMix.SteamBoost;
+                            }
+                            using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                            using (Speaker voiced = new Speaker(true))
+                            {
+                                mix.Step();
+                                MicMix.Current = mix;
+                                Voice lines = new Voice(voiced);
+                                Voice.Loudness = 50;
+                                int rate = streamed ? 16000 : 24000;
+                                for (int line = 0; line < 3; line++)
+                                {
+                                    double began = now[0], hertz = 700 + line * 300;
+                                    short[] samples = new short[rate * 7 / 5];
+                                    short[] hum = Hum(rate, hertz, 0.05, 1);
+                                    Array.Copy(hum, 0, samples, rate / 5, hum.Length);
+                                    if (streamed)
+                                    {
+                                        voiced.Open(rate);
+                                        int sent = 0;
+                                        RunMix(mix, pc, now, 1.8, delegate(double at)
+                                        {
+                                            while (sent < samples.Length && sent < (at - began + 0.1) * rate)
+                                            {
+                                                short[] chunk = new short[Math.Min(rate / 20, samples.Length - sent)];
+                                                Array.Copy(samples, sent, chunk, 0, chunk.Length);
+                                                voiced.Play(chunk);
+                                                sent += chunk.Length;
+                                            }
+                                        });
+                                        if (sent != samples.Length) throw new Exception("A streamed mic mix line was not sent in full.");
+                                    }
+                                    else
+                                    {
+                                        lines.Play(Voice.Wave(samples, rate));
+                                        RunMix(mix, pc, now, 1.8, null);
+                                    }
+                                    float[] got = pc.Cables[0].Kept;
+                                    foreach (float sample in got) if (float.IsNaN(sample) || float.IsInfinity(sample)) throw new Exception("A mic mix line reached the cable with a bad sample.");
+                                    double level = ToneIn(got, cableRate, hertz, began + 0.5, 0.5) * Math.Pow(10, pc.FarBoost / 20) / Math.Sqrt(2);
+                                    double after = ToneIn(got, cableRate, hertz, began + 1.5, 0.2) * Math.Pow(10, pc.FarBoost / 20);
+                                    if (double.IsNaN(level) || double.IsInfinity(level) || Math.Abs(level / MicMix.Speaking - 1) > 0.03 || after > 0.001 || mix.Waiting != 0
+                                        || !mix.Mixing || mix.CableOpens != 1 || mix.CableLosses != 0 || mix.MicLosses != 0)
+                                        throw new Exception("Mic mix line " + (line + 1) + " came out wrong: " + (streamed ? "streamed" : "WAV") + ", " + (steam ? "Steam" : "VB-CABLE") + ", " + Khz(cableRate) + " kHz, level " + level.ToString("0.000") + ", after " + after.ToString("0.000") + ", waiting " + mix.Waiting);
+                                    if (line == 1) voiced.Clear();
+                                }
+                            }
+                        }
+                checks.Add("PASS three voice lines in a row reach the mic mix at speaking level through WAV playback and streamed chunks, across idle gaps and a clear, at 48, 44.1 and 16 kHz on VB-CABLE and Steam's trim; silence stays quiet and samples stay finite");
                 // On its own thread with stand-ins on a real clock: it starts, mixes the mic and her voice, and stops letting both go.
                 {
                     StandInDevices pc = new StandInDevices();
@@ -33656,6 +33715,15 @@ namespace CapriDesktop
                                     mainframe.ShowMixWindow();
                                     mainframe.ShowVoiceInMic();
                                     noCable = mainframe.MixShown;
+                                    bool echoStep = false, noiseStep = false;
+                                    foreach (Form sheet in mainframe.OwnedForms)
+                                        if (sheet.Text == "Her voice in your mic")
+                                            foreach (Control mixStep in sheet.Controls)
+                                            {
+                                                echoStep |= mixStep.Visible && mixStep.Text == "4   Echo Cancellation: Off";
+                                                noiseStep |= mixStep.Visible && mixStep.Text == "5   Noise Suppression: None. Both can cut her voice after the first line.";
+                                            }
+                                    if (!echoStep || !noiseStep) throw new Exception("The mixer setup left out Discord's echo or noise settings.");
                                     // Steam's virtual mic with the switch off: turn it on, and pick Steam's far end by its full name.
                                     setupPc.CableThere = steamCable;
                                     setupPc.Mics.Add(new MixDevice(MixMicId, "Microphone (stand-in)"));
@@ -33741,7 +33809,7 @@ namespace CapriDesktop
                                     || steamDiscord != "on | Microphone (stand-in) | " + steamName + " | On: your mic and her voice are going in. | " + steamName + " | Discord hears it now."
                                     || at100 != null || at150 != null || at200 != null || !toolValid || toolSaid != "Opened Capri Mainframe." || toolShown != steamDiscord)
                                     throw new Exception("Her voice in your mic's setup went wrong: " + string.Join(" / ", new[] { noCable, steamOff, steamFarOff, vbOn, vbObs, vbAll, rowsOwn, inputSaved.ToString(), earsLeft.ToString(), rowsBack, outputSaved.ToString(), outputBack.ToString(), steamDiscord, at100, at150, at200, toolValid.ToString(), toolSaid, toolShown }));
-                                checks.Add("PASS her voice in your mic's setup window: it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
+                                checks.Add("PASS her voice in your mic's setup window: it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Discord's steps turn Echo Cancellation off and Noise Suppression to None and say why; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
                             });
                             // A new install has them all off, and steps before this one leave Watch my screen on.
                             int launchWander = WanderLevel;
