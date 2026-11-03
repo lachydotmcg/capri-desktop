@@ -31,8 +31,6 @@ namespace CapriDesktop
         private const int Spacing = 4000;
         // Sending the same line again now and then is how she notices Discord quit and came back.
         private const int Refresh = 60000;
-        // Her line flickers on this beat, inside Discord's limit.
-        private const int Flicker = 6000;
         internal static Func<bool> ArtLive = OnSite;
 
         private readonly object gate = new object();
@@ -178,17 +176,15 @@ namespace CapriDesktop
             if (op != 1) { Note("Discord refused her: " + Reason(said)); return Refused; }
             bool moving = ArtLive();
             string sent = null;
-            int last = unchecked(Environment.TickCount - Refresh), beat = 0;
+            int last = unchecked(Environment.TickCount - Refresh);
             while (!closing)
             {
                 string doing = Wanted();
                 if (doing == null) return 0;
                 int since = unchecked(Environment.TickCount - last);
-                int next = plain ? Refresh : Flicker;
-                if (doing == sent && since < next) { nudge.WaitOne(next - since); continue; }
+                if (doing == sent && since < Refresh) { nudge.WaitOne(Refresh - since); continue; }
                 if (since < Spacing) { nudge.WaitOne(Spacing - since); continue; }
-                beat = doing == sent ? beat + 1 : 0;
-                Send(pipe, 1, Json(Activity(doing, beat, moving)));
+                Send(pipe, 1, Json(Activity(doing, moving)));
                 last = Environment.TickCount;
                 sent = doing;
                 if (Answer(pipe)) status = "Showing: " + doing;
@@ -224,16 +220,6 @@ namespace CapriDesktop
         // Voice chat reads "Listening to Capri" and Gaming Mode "Watching Capri". The rest stay "Playing Capri".
         internal static int Header(string doing) { return doing == "Voice chatting" ? 2 : doing == "Gaming" ? 3 : 0; }
 
-        // Every third update knocks a couple of letters out of her line, so it glitches on their profile.
-        internal static string Flickered(string words, int beat)
-        {
-            if (string.IsNullOrEmpty(words) || beat % 3 != 1) return words;
-            char[] letters = words.ToCharArray();
-            letters[beat * 7 % letters.Length] = '\u2588';
-            letters[(beat * 3 + 1) % letters.Length] = '\u2592';
-            return new string(letters);
-        }
-
         private static bool OnSite()
         {
             try
@@ -247,7 +233,7 @@ namespace CapriDesktop
             catch (IOException) { return false; }
         }
 
-        private DiscordCommand Activity(string doing, int beat, bool moving)
+        private DiscordCommand Activity(string doing, bool moving)
         {
             DiscordActivity activity = new DiscordActivity
             {
@@ -261,13 +247,14 @@ namespace CapriDesktop
             {
                 int crowd = Crowd;
                 string badge = Badge(doing);
-                activity.Details = Flickered(doing, beat);
+                // The version on the end makes Discord fetch her art again after an update, not a copy it kept.
+                string fresh = ".gif?v=" + version;
                 activity.Type = Header(doing);
                 if (crowd > 1) activity.Party = new DiscordParty { Id = "capri-clones", Size = new[] { crowd, Math.Max(crowd, 9999) } };
-                if (moving) activity.Assets.Image = Art + Look(doing) + ".gif";
+                if (moving) activity.Assets.Image = Art + Look(doing) + fresh;
                 if (moving && badge != null)
                 {
-                    activity.Assets.Small = Art + badge + ".gif";
+                    activity.Assets.Small = Art + badge + fresh;
                     activity.Assets.SmallText = doing;
                 }
             }
