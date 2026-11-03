@@ -486,6 +486,8 @@ namespace CapriDesktop
         [DataMember] public bool NvidiaGlm;
         [DataMember] public string VoiceKey;
         [DataMember] public bool CallMode;
+        // Switched off on the call panel: in call mode she hears only your mic, not Discord.
+        [DataMember] public bool CallDiscordOff;
         [DataMember] public string VoiceId;
         [DataMember] public string VoiceModel;
         [DataMember] public string AgentId;
@@ -617,6 +619,10 @@ namespace CapriDesktop
         [DataMember] public bool HdGameRest;
         // Her voice in your mic (F66): their mic and her voice go into VB-CABLE's input for Discord or Roblox. Off out of the box.
         [DataMember] public bool VoiceInMic;
+        // Her voice in your mic's Input and Output on Settings: the mic it hears, null for the one her ears use, and the cable it
+        // plays into, null for VB-CABLE's before Steam's. Endpoint ids.
+        [DataMember] public string MixMic;
+        [DataMember] public string MixCable;
         [DataMember] public int VoicePitch;
         [DataMember] public int VoiceSpeed = 100;
         [DataMember] public int VoiceRobot;
@@ -2320,6 +2326,8 @@ namespace CapriDesktop
             listenAt = clock.Elapsed.TotalSeconds + (GreetPause + 500) / 1000.0;
             if (!testing) AgentVoice();
             if (!testing && FreeChatOn) { GetFreeVoice(); GetFreeEars(); }
+            UpdateCallEars();
+            ShowCallPanel();
             // An update can move her HD voice to a new engine: the old pack goes, and with HD on, the new one comes down.
             if (!testing) ThreadPool.QueueUserWorkItem(delegate { qwen.Tidy(); });
             if (!testing && preferences.HdVoice && !qwen.Installed) SetUpHd();
@@ -2363,7 +2371,7 @@ namespace CapriDesktop
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
             if (!quitting && !testing && e.CloseReason != CloseReason.WindowsShutDown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
             // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock.
-            if (!e.Cancel) { quitting = true; if (heartbeat != null && e.CloseReason != CloseReason.WindowsShutDown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); }
+            if (!e.Cancel) { quitting = true; if (heartbeat != null && e.CloseReason != CloseReason.WindowsShutDown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); callEars.Stop(); }
         }
 
         private void Tick()
@@ -5371,6 +5379,10 @@ namespace CapriDesktop
         private MicMix micMix;
         private MixDevice cableThere;
         private double cableLooked = -10, micMixShown;
+        // Settings' Input row: the pick and device list it last read, and the mic's name then.
+        private string mixMicFor, mixMicName;
+        private IMixDevices mixMicFrom;
+        private double mixMicLooked = -10;
         // VB-CABLE's setup while it's open from Settings, the setup file it was unpacked to and the hold on it, and Settings' line
         // about it. The gate keeps Set up and the setup closing, which Windows reports on another thread, from crossing.
         private readonly object cableSetupGate = new object();
@@ -5393,7 +5405,7 @@ namespace CapriDesktop
                 if (now >= cableLooked + 3 || now < cableLooked)
                 {
                     cableLooked = now;
-                    try { cableThere = MicMix.Devices.Cable(); }
+                    try { cableThere = MicMix.Devices.Cable(preferences.MixCable); }
                     catch (Exception) { cableThere = null; }
                     // A cable that's come leaves the setup's last line behind.
                     if (cableThere != null && cableSetup == null) cableSetupLine = null;
@@ -5503,13 +5515,87 @@ namespace CapriDesktop
             if (preferences.VoiceInMic && micMix == null)
             {
                 micMix = new MicMix(MicMix.Devices, null);
-                micMix.Chosen = preferences.Mic;
+                micMix.Chosen = MixMicPick;
+                micMix.CableChosen = preferences.MixCable;
                 micMix.Start();
             }
             else if (!preferences.VoiceInMic && micMix != null)
             {
                 micMix.Stop();
                 micMix = null;
+            }
+        }
+
+        // The mic her mix hears: its own pick on Settings' Input, else the one her ears use.
+        private string MixMicPick { get { return preferences.MixMic ?? preferences.Mic; } }
+
+        internal string MixInputPick { get { return preferences.MixMic; } }
+
+        internal string MixOutputPick { get { return preferences.MixCable; } }
+
+        // Settings' Input for her mix (Lachy, 3 Nov: "we need to be able to change the input and output for the mixer"): a mic of
+        // its own, or null for the one her ears use.
+        internal void ChooseMixInput(string id)
+        {
+            preferences.MixMic = string.IsNullOrEmpty(id) ? null : id;
+            SavePreferences();
+            if (micMix != null) micMix.Chosen = MixMicPick;
+            mainframe.ShowVoiceInMic();
+        }
+
+        // Settings' Output for her mix: the cable she plays into, or null for VB-CABLE's before Steam's.
+        internal void ChooseMixOutput(string id)
+        {
+            preferences.MixCable = string.IsNullOrEmpty(id) ? null : id;
+            SavePreferences();
+            cableLooked = -10;
+            if (micMix != null) micMix.CableChosen = preferences.MixCable;
+            mainframe.ShowVoiceInMic();
+        }
+
+        // The mic her mix hears, by name: the one it opens for the pick, so a new pick shows at once, else the one it has open.
+        // Null when there's none. Settings asks each time it syncs, so Windows' list is read for a new pick, else at most every 3 s.
+        internal string MixInputName
+        {
+            get
+            {
+                double now = clock.Elapsed.TotalSeconds;
+                string pick = MixMicPick;
+                IMixDevices devices = MicMix.Devices;
+                if (pick != mixMicFor || devices != mixMicFrom || now >= mixMicLooked + 3 || now < mixMicLooked)
+                {
+                    mixMicFor = pick;
+                    mixMicFrom = devices;
+                    mixMicLooked = now;
+                    try { MixDevice mic = devices.Mic(pick); mixMicName = mic == null ? null : mic.Name; }
+                    catch (Exception) { mixMicName = null; }
+                }
+                if (mixMicName != null) return mixMicName;
+                MicMix running = micMix;
+                return running == null ? null : running.MicName;
+            }
+        }
+
+        // The cable her mix plays into, the chosen one or the one it picks itself, or null when there's none.
+        internal MixDevice MixOutput { get { return CableReady ? cableThere : null; } }
+
+        internal System.Collections.Generic.List<MixDevice> MixOutputs
+        {
+            get
+            {
+                try { return MicMix.Devices.Cables(); }
+                catch (Exception) { return new System.Collections.Generic.List<MixDevice>(); }
+            }
+        }
+
+        // The programs hearing her mix's far end right now, like Discord, for the setup steps to say it's working.
+        internal System.Collections.Generic.List<string> MixListeners
+        {
+            get
+            {
+                MixDevice cable = MixOutput;
+                try { return cable == null || cable.Far == null ? new System.Collections.Generic.List<string>() : MicMix.Devices.Listening(cable.Far); }
+                catch (Exception) { return new System.Collections.Generic.List<string>(); }
             }
         }
 
@@ -7950,6 +8036,7 @@ namespace CapriDesktop
             pill.Above = preferences.OnTop;
             box.Above = preferences.OnTop;
             typer.TopMost = preferences.OnTop;
+            if (callPanel != null) callPanel.TopMost = preferences.OnTop;
             if (minis != null)
             {
                 minis.Above = preferences.OnTop;
@@ -9062,7 +9149,7 @@ namespace CapriDesktop
             StopMicTest(false);
             preferences.Mic = string.IsNullOrEmpty(id) ? null : id;
             ears.Chosen = preferences.Mic;
-            if (micMix != null) micMix.Chosen = preferences.Mic;
+            if (micMix != null) micMix.Chosen = MixMicPick;
             SavePreferences();
             mainframe.ShowMic(MicName(preferences.Mic));
             hearingCaptureProblem = null;
@@ -9353,6 +9440,7 @@ namespace CapriDesktop
         private void HeardLevel(double value)
         {
             HearingLevel(value);
+            callYou = value;
             double level = local && (preferences.ListenCapri && !pushing || earsShut || transcribing || noiseHold || !earsReady) ? 0 : value;
             pill.SetLevel(level);
             if (docked) DockLevel(level);
@@ -10853,7 +10941,8 @@ namespace CapriDesktop
                 if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds)) { nameOver = false; return; }
                 transcribing = true;
                 transcribingAt = Environment.TickCount;
-                Post(delegate { Transcribe(taken, ticket, request, wake); });
+                bool fromCall = CallLine(taken.Length);
+                Post(delegate { Transcribe(taken, ticket, request, wake, fromCall); });
             }
         }
 
@@ -10901,7 +10990,7 @@ namespace CapriDesktop
             return voiced >= Ears.Rate * 3 / 10 && (voiced < Ears.Rate * 8 / 10 || high >= low * 1.2);
         }
 
-        private void Transcribe(short[][] taken, int ticket, int request, double wake = WakeLevel)
+        private void Transcribe(short[][] taken, int ticket, int request, double wake = WakeLevel, bool fromCall = false)
         {
             if (ticket != chatTicket || !local || !chatting) return;
             if (request != asking) { transcribing = false; nameOver = false; CheckEars(clock.Elapsed.TotalSeconds); return; }
@@ -10926,11 +11015,11 @@ namespace CapriDesktop
                 string problem = null;
                 try { text = Hearing.Text(samples); }
                 catch (Exception error) { problem = Voice.Short(error.Message); }
-                Post(delegate { HeardLocally(ticket, request, text, problem); });
+                Post(delegate { HeardLocally(ticket, request, text, problem, fromCall); });
             });
         }
 
-        private void HeardLocally(int ticket, int request, string text, string problem)
+        private void HeardLocally(int ticket, int request, string text, string problem, bool fromCall = false)
         {
             if (ticket != chatTicket || !chatting || !local) return;
             transcribing = false;
@@ -10947,7 +11036,7 @@ namespace CapriDesktop
             }
             if (string.IsNullOrEmpty(text)) { HearingResult(null, false); Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
             HearingResult(null, true);
-            if (CallModeOn) { HearCall(text); return; }
+            if (CallModeOn) { HearCall(text, false, fromCall); return; }
             if (!VoiceForHer(text)) return;
             if (preferences.ListenCapri && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy))
             {
@@ -11488,7 +11577,7 @@ namespace CapriDesktop
         {
             // Their push-to-talk key, held: what the mic hears is theirs until they let go.
             lock (waking) if (pushed != null) { pushed.Add(chunk); return; }
-            if (local) { Gather(chunk); return; }
+            if (local) { CallHear(chunk); return; }
             lock (waking)
             {
                 if (resting)
@@ -25249,7 +25338,20 @@ namespace CapriDesktop
                 Clock = delegate { return own.Elapsed.TotalSeconds; };
             }
 
-            public MixDevice Cable() { return CableThere; }
+            public MixDevice Cable(string chosen) { return CableThere; }
+
+            // Explicit, since Cables is also the list of cables the mix opened.
+            System.Collections.Generic.List<MixDevice> IMixDevices.Cables()
+            {
+                System.Collections.Generic.List<MixDevice> cables = new System.Collections.Generic.List<MixDevice>();
+                if (CableThere != null) cables.Add(CableThere);
+                return cables;
+            }
+
+            // The programs the smoke test says are hearing the cable's far end.
+            internal readonly System.Collections.Generic.List<string> Listeners = new System.Collections.Generic.List<string>();
+
+            public System.Collections.Generic.List<string> Listening(string mic) { lock (Listeners) return new System.Collections.Generic.List<string>(Listeners); }
 
             public bool Boost(MixDevice cable, out double boost, out bool muted) { boost = FarBoost; muted = FarMuted; return cable != null && cable.Far != null && !FarUnread; }
 
@@ -25812,8 +25914,8 @@ namespace CapriDesktop
                     mix.Stop();
                 }
                 checks.Add("PASS her voice in your mic recovers: a lost mic or cable opens again within a second while her voice keeps going, a new Windows default or a new pick moves it to that mic, a cable that goes away closes the mic too and comes back with it, a busy cable is tried again, and CABLE Output is never the mic it hears, so with no other mic her voice goes in alone");
-                // Her voice goes in from her own speakers' code, at her volume, and stops when she's cut off. Her sound effects' Plain
-                // speakers stay out.
+                // Her voice goes in from her own speakers' code at a speaking level whatever her volume, so a quiet line at volume 50
+                // comes in at Speaking, and stops when she's cut off. Her sound effects' Plain speakers stay out.
                 {
                     double[] now = { 0 };
                     StandInDevices pc = MixPc(now, 48000, 48000);
@@ -25827,7 +25929,7 @@ namespace CapriDesktop
                     using (Speaker effect = new Speaker(true) { Plain = true })
                     {
                         Voice.Loudness = 50;
-                        new Voice(voiced).Play(Voice.Wave(Hum(24000, 1000, 0.4, 2), 24000));
+                        new Voice(voiced).Play(Voice.Wave(Hum(24000, 1000, 0.05, 2), 24000));
                         effect.Open(Sfx.Rate);
                         effect.Play(Hum(Sfx.Rate, 2500, 0.4, 2));
                         waitingLine = mix.Waiting;
@@ -25842,10 +25944,11 @@ namespace CapriDesktop
                     }
                     MicMix.Current = null;
                     mix.Stop();
-                    if (waitingLine != 48000 || Math.Abs(line / 0.2 - 1) > 0.03 || beep > 0.001 || waitingCut != 0 || after > 0.001)
+                    // A sine at Speaking's RMS peaks at Speaking times root 2.
+                    if (waitingLine != 48000 || Math.Abs(line / (MicMix.Speaking * Math.Sqrt(2)) - 1) > 0.03 || beep > 0.001 || waitingCut != 0 || after > 0.001)
                         throw new Exception("Her speakers didn't hand her mic mix just her voice: " + waitingLine + " samples waiting, line " + line.ToString("0.000") + ", effect " + beep.ToString("0.000") + ", " + waitingCut + " left after the cut, then " + after.ToString("0.000"));
                 }
-                checks.Add("PASS her voice in your mic only takes her voice: a line through her speaker code goes into the cable at her volume and stops when she's cut off, and her sound effects' speakers stay out");
+                checks.Add("PASS her voice in your mic only takes her voice: a quiet line through her speaker code at volume 50 goes into the cable at her speaking level (" + Db(MicMix.Speaking) + " dB RMS) and stops when she's cut off, and her sound effects' speakers stay out");
                 // On its own thread with stand-ins on a real clock: it starts, mixes the mic and her voice, and stops letting both go.
                 {
                     StandInDevices pc = new StandInDevices();
@@ -25919,6 +26022,14 @@ namespace CapriDesktop
                     || MicMix.CableFor(speakersHere.GetRange(0, 1), heardBy) != null || steamOverOff == null || steamOverOff.Id != "{0.0.0.00000000}.{steam}" || steamOverOff.Far != "{0.0.1.00000000}.{steam}"
                     || bothOff == null || bothOff.Id != "{0.0.0.00000000}.{cable}" || bothOff.Far != null || renamed == null || renamed.Id != "{0.0.1.00000000}.{renamed}" || MicMix.EndOf(steamOnly) != MicMix.SteamEnd || MicMix.EndOf(bothThere) != MicMix.CableEnd)
                     throw new Exception("Her mic mix picked the wrong cable or far end: " + pairOf(steamOnly) + ", " + pairOf(bothThere) + ", " + pairOf(steamOverOff) + ", " + pairOf(bothOff) + ", " + pairOf(renamed));
+                // Settings' Output: the cable they picked while it's there, else the usual one, and every cable for its menu,
+                // VB-CABLE's first, each named as Discord lists its far end.
+                MixDevice pickedSteam = MicMix.CableFor(speakersHere, heardBy, "{0.0.0.00000000}.{steam}"), pickedGone = MicMix.CableFor(speakersHere, heardBy, "{0.0.0.00000000}.{unplugged}");
+                System.Collections.Generic.List<MixDevice> listed = MicMix.Cables(speakersHere, heardBy);
+                if (pickedSteam == null || pickedSteam.Id != "{0.0.0.00000000}.{steam}" || pickedSteam.Far != "{0.0.1.00000000}.{steam}" || pickedGone == null || pickedGone.Id != bothThere.Id
+                    || listed.Count != 2 || listed[0].Id != "{0.0.0.00000000}.{cable}" || listed[1].Id != "{0.0.0.00000000}.{steam}" || Ears.ListedName("{0.0.1.00000000}.{no-such-mic}") != null
+                    || MicMix.FarName(null) != "CABLE Output (VB-Audio Virtual Cable)" || MicMix.FarName(new MixDevice("{0.0.0.00000000}.{steam}", "Speakers (Steam Streaming Microphone)")) != "Microphone (Steam Streaming Microphone)")
+                    throw new Exception("Settings' Output picked the wrong cable: " + pairOf(pickedSteam) + ", " + pairOf(pickedGone) + ", " + listed.Count + " listed");
                 double[] steamNow = { 0 };
                 StandInDevices steamPc = MixPc(steamNow, 48000, 48000);
                 steamPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
@@ -25974,7 +26085,7 @@ namespace CapriDesktop
                     || Math.Abs(upTrim - Math.Pow(10, -1.5)) > 0.0005 || Math.Abs(keptTrim - Math.Pow(10, -1.5)) > 0.0005 || Math.Abs(guessedTrim - Math.Pow(10, -1.5)) > 0.0005
                     || mutedProblem != MicMix.MutedLine(MicMix.SteamEnd) || offProblem != MicMix.OffLine(MicMix.SteamEnd))
                     throw new Exception("Steam's virtual mic came out wrong: mic at " + Db(steamLevel) + " dBFS, trim " + steamTrim.ToString("0.0000") + " then " + turnedTrim.ToString("0.0000") + ", up " + upTrim.ToString("0.0000") + ", kept " + keptTrim.ToString("0.0000") + ", guessed " + guessedTrim.ToString("0.0000") + ", problems " + (steamProblem ?? "-") + " then " + (mutedProblem ?? "-") + " then " + (offProblem ?? "-"));
-                checks.Add("PASS her voice in your mic uses Steam's virtual mic when there's no VB-CABLE (VB-CABLE first when both are, and a cable whose far end is on before one Windows has turned off), finds each cable's own far end, renamed or not, plays 30 dB under Windows' +30 dB on Steam Streaming Microphone so their mic comes out at " + Db(steamLevel) + " dBFS like VB-CABLE's -12, follows that volume down or up within a quarter second, keeps the last trim or Steam's usual +30 dB when Windows won't say, and says when Windows has the far end muted or turned off");
+                checks.Add("PASS her voice in your mic uses Steam's virtual mic when there's no VB-CABLE (VB-CABLE first when both are, and a cable whose far end is on before one Windows has turned off), or the one picked on Settings' Output while it's there, finds each cable's own far end, renamed or not, names it as Discord lists it, plays 30 dB under Windows' +30 dB on Steam Streaming Microphone so their mic comes out at " + Db(steamLevel) + " dBFS like VB-CABLE's -12, follows that volume down or up within a quarter second, keeps the last trim or Steam's usual +30 dB when Windows won't say, and says when Windows has the far end muted or turned off");
                 checks.Add("LIMIT her voice in your mic on real devices needs a PC with VB-CABLE or Steam's virtual mic: friends in Discord or Roblox hearing you and her through CABLE Output or Steam Streaming Microphone, how it sounds, the cable's own delay on top of hers, a mic near speakers picking her up a second time (headphones avoid it), and a Bluetooth headset's mic dropping it to call quality while the mix has it open");
             }
             finally
@@ -33511,6 +33622,118 @@ namespace CapriDesktop
                                     || mixAlone != "on | open | " + MicMix.NoMic + " | -" + mixNote || mixGone != "on | open | " + MicMix.Missing + " | Set up" + creditNote || mixOff != mixMissing || !mixStopped || !mixUnsaved || mixSimpleFits != null)
                                     throw new Exception("Her voice in your mic's Settings went wrong: " + string.Join(" / ", new[] { mixMissing, mixMissingFits, mixRefused, mixStayedOff.ToString(), mixBrowsed, creditOpened, mixSetupOpen, setupUnpacked.ToString(), setupHeld.ToString(), mixSetupDone, setupTidied.ToString(), mixDeclined, mixSteam, mixSteamFits, mixSteamOff, mixReady, mixOn, mixSaved.ToString(), mixWired.ToString(), mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixStopped.ToString(), mixUnsaved.ToString(), mixSimpleFits }));
                                 checks.Add("PASS her voice in your mic in Settings: without a cable the switch is locked, the note credits VB-CABLE as donationware from vb-cable.com and opens its page, and the line says it needs VB-CABLE (free); Set up unpacks VB-Audio's pack as she carries it and opens its setup (a stand-in here) with the unpacked setup held so nothing can change it, says to click Install Driver while it's open and to restart once it closes, tidies the unpacked files and says so when Windows' prompt is turned down; with Steam's virtual mic the switch opens and the note says to pick Steam Streaming Microphone, and the line says to turn it on when Windows has it off; with VB-CABLE the switch starts the mix with the mic picked under VOICE and is saved, a new pick moves it, no mic says only her voice goes in, VB-CABLE going away says it's needed again and the switch still turns off and stops it, and the rows fit in Advanced and Simple Settings");
+                            });
+                            // Her voice in your mic's Input, Output and setup window (Lachy, 3 Nov: "we need to be able to change the input
+                            // and output for the mixer as well / And make it clear how to set it up too"), on stand-in devices: the window
+                            // says what to do first, the exact name to pick in Discord and who hears it now, and its switch starts the mix;
+                            // Input moves a running mix to a mic of its own and back, and her ears' pick leaves that one alone; Output's pick
+                            // is saved and reaches the mix; her mainframe tool opens the window as "mixer", and it fits at 100, 150 and 200%.
+                            Section(checks, "SmokeMixSetup", delegate
+                            {
+                                IMixDevices setupDevicesWas = MicMix.Devices;
+                                string setupMicWas = preferences.Mic, setupMixMicWas = preferences.MixMic, setupMixCableWas = preferences.MixCable;
+                                StandInDevices setupPc = new StandInDevices();
+                                const string setupHeadset = "{0.0.1.00000000}.{stand-in-headset}", setupCable = "{0.0.0.00000000}.{stand-in-cable}";
+                                const string vbName = "CABLE Output (VB-Audio Virtual Cable)", steamName = "Microphone (Steam Streaming Microphone)";
+                                MixDevice steamCable = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
+                                string noCable, steamOff, steamFarOff, vbOn, vbObs, vbAll, rowsOwn, rowsBack, steamDiscord, at100, at150, at200, toolSaid, toolShown;
+                                bool inputSaved, earsLeft, outputSaved, outputBack, toolValid;
+                                try
+                                {
+                                    preferences.MixMic = null;
+                                    preferences.MixCable = null;
+                                    // No cable yet: get VB-CABLE first, and VB-CABLE's far end is the one to pick in Discord.
+                                    MicMix.Devices = new StandInDevices();
+                                    cableLooked = -10;
+                                    mainframe.ShowMixWindow();
+                                    mainframe.ShowVoiceInMic();
+                                    noCable = mainframe.MixShown;
+                                    // Steam's virtual mic with the switch off: turn it on, and pick Steam's far end by its full name.
+                                    setupPc.CableThere = steamCable;
+                                    setupPc.Mics.Add(new MixDevice(MixMicId, "Microphone (stand-in)"));
+                                    setupPc.Mics.Add(new MixDevice(setupHeadset, "Headset Microphone (stand-in)"));
+                                    setupPc.DefaultMic = MixMicId;
+                                    MicMix.Devices = setupPc;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    steamOff = mainframe.MixShown;
+                                    // Its far end turned off in Windows: turn that on first.
+                                    setupPc.CableThere = new MixDevice(steamCable.Id, steamCable.Name);
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    steamFarOff = mainframe.MixShown;
+                                    // VB-CABLE, switched on from the window: going in, and who hears it, Discord's test builds as Discord.
+                                    setupPc.CableThere = new MixDevice(setupCable, "CABLE Input (VB-Audio Virtual Cable)", "{0.0.1.00000000}.{stand-in-cable-out}");
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mainframe.FlipMix();
+                                    MicMix setupMix = micMix;
+                                    WaitSound(delegate { return setupMix != null && setupMix.Mixing && setupMix.MicName == "Microphone (stand-in)" && setupMix.Problem == null; }, "The setup window's switch didn't start her voice in your mic.");
+                                    mainframe.ShowVoiceInMic();
+                                    vbOn = mainframe.MixShown;
+                                    lock (setupPc.Listeners) setupPc.Listeners.Add("obs64");
+                                    mainframe.ShowVoiceInMic();
+                                    vbObs = mainframe.MixShown;
+                                    lock (setupPc.Listeners) setupPc.Listeners.AddRange(new[] { "Discord", "RobloxPlayerBeta", "DiscordPTB" });
+                                    mainframe.ShowVoiceInMic();
+                                    vbAll = mainframe.MixShown;
+                                    // Input: a mic of its own moves the running mix and is saved, her ears' pick leaves it alone, and back.
+                                    ChooseMixInput(setupHeadset);
+                                    rowsOwn = mainframe.MixRowsShown;
+                                    WaitSound(delegate { return setupMix.MicName == "Headset Microphone (stand-in)"; }, "Settings' Input didn't move her voice in your mic: " + setupMix.MicName);
+                                    inputSaved = preferences.MixMic == setupHeadset && LoadPreferences().MixMic == setupHeadset;
+                                    ChooseMic(MixMicId);
+                                    earsLeft = setupMix.Chosen == setupHeadset;
+                                    ChooseMixInput(null);
+                                    rowsBack = mainframe.MixRowsShown;
+                                    WaitSound(delegate { return setupMix.MicName == "Microphone (stand-in)"; }, "Settings' Input didn't go back to her ears' mic: " + setupMix.MicName);
+                                    // Output: the pick is saved and reaches the mix, and Automatic clears it.
+                                    ChooseMixOutput(setupCable);
+                                    outputSaved = preferences.MixCable == setupCable && LoadPreferences().MixCable == setupCable && setupMix.CableChosen == setupCable;
+                                    ChooseMixOutput(null);
+                                    outputBack = preferences.MixCable == null && LoadPreferences().MixCable == null && setupMix.CableChosen == null;
+                                    // Steam's virtual mic with Discord hearing it, as on Lachy's PC, for the pictures.
+                                    setupPc.CableThere = steamCable;
+                                    setupMix.CableChosen = null;
+                                    WaitSound(delegate { return setupMix.Mixing && setupMix.CableName == steamCable.Name && setupMix.MicName != null && setupMix.Problem == null; }, "Her voice in your mic didn't move to Steam's virtual mic: " + setupMix.CableName + ", " + setupMix.Problem);
+                                    lock (setupPc.Listeners) { setupPc.Listeners.Clear(); setupPc.Listeners.Add("Discord"); }
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    steamDiscord = mainframe.MixShown;
+                                    snap("mainframe-settings-mixer-rows.png");
+                                    float setupMachine = mainframe.Px(1000) / 1000f;
+                                    at100 = mainframe.MixSheetAt(1f / setupMachine, Path.Combine(output, "mixer-100.png"));
+                                    at150 = mainframe.MixSheetAt(1.5f / setupMachine, Path.Combine(output, "mixer-150.png"));
+                                    at200 = mainframe.MixSheetAt(2f / setupMachine, Path.Combine(output, "mixer-200.png"));
+                                    // Her mainframe tool opens it as "mixer".
+                                    mainframe.CloseMix();
+                                    toolValid = Hands.Valid("mainframe", new ToolArguments { Name = "mixer" });
+                                    toolSaid = MainframeTool("mixer");
+                                    toolShown = mainframe.MixShown;
+                                }
+                                finally
+                                {
+                                    mainframe.CloseMix();
+                                    if (micMix != null) { micMix.Stop(); micMix = null; }
+                                    preferences.VoiceInMic = false;
+                                    preferences.MixMic = setupMixMicWas;
+                                    preferences.MixCable = setupMixCableWas;
+                                    if (preferences.Mic != setupMicWas) ChooseMic(setupMicWas);
+                                    SavePreferences();
+                                    MicMix.Devices = setupDevicesWas;
+                                    cableLooked = -10;
+                                    mainframe.ShowSettings(true);
+                                }
+                                string vbLine = "on | Microphone (stand-in) | " + vbName + " | On: your mic and her voice are going in. | " + vbName + " | ";
+                                if (noCable != "off | No mic found | None yet: pick to get VB-CABLE (free) | No virtual mic yet. Pick Output, then Get VB-CABLE (free). | " + vbName + " | "
+                                    || steamOff != "off | Microphone (stand-in) | " + steamName + " | Off. Turn on Her voice in your mic above. | " + steamName + " | "
+                                    || steamFarOff != "off | Microphone (stand-in) | " + steamName + " | " + MicMix.OffLine(MicMix.SteamEnd) + " | " + steamName + " | "
+                                    || vbOn != vbLine + "Discord isn't hearing it yet: do 1 and 2, then join a call." || vbObs != vbLine + "OBS hears it now. Discord doesn't yet." || vbAll != vbLine + "OBS, Discord and Roblox hear it now."
+                                    || rowsOwn != "Input: Headset Microphone (stand-in) | Output: " + MicMix.CableEnd || !inputSaved || !earsLeft || rowsBack != "Input: Microphone (stand-in) | Output: " + MicMix.CableEnd || !outputSaved || !outputBack
+                                    || steamDiscord != "on | Microphone (stand-in) | " + steamName + " | On: your mic and her voice are going in. | " + steamName + " | Discord hears it now."
+                                    || at100 != null || at150 != null || at200 != null || !toolValid || toolSaid != "Opened Capri Mainframe." || toolShown != steamDiscord)
+                                    throw new Exception("Her voice in your mic's setup went wrong: " + string.Join(" / ", new[] { noCable, steamOff, steamFarOff, vbOn, vbObs, vbAll, rowsOwn, inputSaved.ToString(), earsLeft.ToString(), rowsBack, outputSaved.ToString(), outputBack.ToString(), steamDiscord, at100, at150, at200, toolValid.ToString(), toolSaid, toolShown }));
+                                checks.Add("PASS her voice in your mic's setup window: it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
                             });
                             // A new install has them all off, and steps before this one leave Watch my screen on.
                             int launchWander = WanderLevel;

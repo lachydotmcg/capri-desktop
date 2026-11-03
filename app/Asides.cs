@@ -621,7 +621,9 @@ namespace CapriDesktop
                 if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake())) return true;
             }
             overHeld = false;
-            if (preferences.ListenCapri)
+            // Listen for Capri waits to hear whether the line was for her. On a call every line is, so talking over her stops
+            // her there and then (Lachy, 3 Nov).
+            if (preferences.ListenCapri && !CallModeOn)
             {
                 nameOver = true;
                 return true;
