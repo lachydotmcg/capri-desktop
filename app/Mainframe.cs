@@ -269,6 +269,11 @@ namespace CapriDesktop
         // The same for Simple Settings, with its hidden rows taken out.
         private const int SimpleTall = 890;
         private int wheel;
+        // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
+        private const double GlideMs = 140;
+        private readonly Timer glide = new Timer { Interval = 10 };
+        private readonly System.Diagnostics.Stopwatch glideClock = new System.Diagnostics.Stopwatch();
+        private int glideFrom, glideTo;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
         // Smoke tests pretend the screen's working area is this many px tall, before scaling; 0 uses the real one.
@@ -337,6 +342,7 @@ namespace CapriDesktop
 
         internal Mainframe(Companion owner, Icon icon, string version)
         {
+            glide.Tick += delegate { Glide(); };
             capri = owner;
             Text = "Capri Mainframe";
             Icon = icon;
@@ -1298,18 +1304,69 @@ namespace CapriDesktop
         // Moves the page and its header up by `to` px, as far as the page runs past the screen. Off Settings it's always 0.
         private void ScrollPage(int to)
         {
+            glide.Stop();
+            MovePage(to);
+        }
+
+        [DllImport("user32.dll")] private static extern IntPtr BeginDeferWindowPos(int count);
+        [DllImport("user32.dll")] private static extern IntPtr DeferWindowPos(IntPtr batch, IntPtr window, IntPtr after, int x, int y, int width, int height, int flags);
+        [DllImport("user32.dll")] private static extern bool EndDeferWindowPos(IntPtr batch);
+
+        private void MovePage(int to)
+        {
             DismissHint();
             int next = paged ? Math.Max(0, Math.Min(PageNow - pageView, to)) : 0;
             if (next == pageScroll) return;
             if (pageScroll == 0) foreach (Control control in scrolled) tops[control] = control.Top;
             pageScroll = next;
             int shift = Scaled(next);
-            // Every control moves at once, with no half-scrolled frame in between.
+            // Every control moves at once, in one batch Windows applies together, and the page paints once after.
+            // Moving them one by one sent Windows a few hundred moves for every turn of the wheel.
             Native.SendMessage(Handle, 0x000B, IntPtr.Zero, IntPtr.Zero);
             SuspendLayout();
-            try { foreach (Control control in scrolled) control.Top = tops[control] - shift; }
+            try
+            {
+                List<Control> batched = scrolled.FindAll(control => control.IsHandleCreated && control.Parent == this);
+                IntPtr batch = batched.Count > 0 ? BeginDeferWindowPos(batched.Count) : IntPtr.Zero;
+                foreach (Control control in batched)
+                {
+                    if (batch == IntPtr.Zero) break;
+                    batch = DeferWindowPos(batch, control.Handle, IntPtr.Zero, control.Left, tops[control] - shift, 0, 0, 0x0001 | 0x0004 | 0x0008 | 0x0010);
+                }
+                bool moved = batch != IntPtr.Zero && EndDeferWindowPos(batch);
+                foreach (Control control in scrolled) if (!moved || !batched.Contains(control)) control.Top = tops[control] - shift;
+            }
             finally { ResumeLayout(false); Native.SendMessage(Handle, 0x000B, new IntPtr(1), IntPtr.Zero); }
             Invalidate(true);
+            Update();
+        }
+
+        private void Glide()
+        {
+            if (IsDisposed || !paged) { glide.Stop(); return; }
+            double t = Math.Min(1, glideClock.Elapsed.TotalMilliseconds / GlideMs);
+            double eased = 1 - Math.Pow(1 - t, 3);
+            MovePage((int)Math.Round(glideFrom + (glideTo - glideFrom) * eased));
+            if (t >= 1) glide.Stop();
+        }
+
+        // Ends a glide where it was headed, for checks that read where the page is.
+        internal void Settle()
+        {
+            if (!glide.Enabled) return;
+            glide.Stop();
+            MovePage(glideTo);
+        }
+
+        // How long one frame of scrolling takes here, painting included, in ms. It leaves the page where it was.
+        internal double FrameCost()
+        {
+            Settle();
+            int start = pageScroll;
+            int step = start + ScrollRow <= PageNow - pageView ? ScrollRow : -ScrollRow;
+            System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
+            for (int frame = 1; frame <= 20; frame++) MovePage(frame % 2 == 1 ? start + step : start);
+            return took.Elapsed.TotalMilliseconds / 20;
         }
 
         // How much of the settings page the screen's working area has room for, before scaling.
@@ -1330,10 +1387,19 @@ namespace CapriDesktop
         {
             DismissHint();
             if (!paged || pageView >= PageNow) return;
-            wheel += delta;
-            int rows = wheel / 120;
-            wheel -= rows * 120;
-            if (rows != 0) ScrollPage(pageScroll - rows * ScrollRow);
+            // A notch is a row, and a touchpad's small turns move the page by as much as they turn, so it follows the finger.
+            wheel += delta * ScrollRow;
+            int by = wheel / 120;
+            wheel -= by * 120;
+            if (by == 0) return;
+            int from = glide.Enabled ? glideTo : pageScroll;
+            int to = Math.Max(0, Math.Min(PageNow - pageView, from - by));
+            if (to == from) return;
+            glideFrom = pageScroll;
+            glideTo = to;
+            glideClock.Restart();
+            glide.Start();
+            Glide();
         }
 
         private void Reachable(Control control, bool on)
@@ -2385,6 +2451,7 @@ namespace CapriDesktop
             Point at = perchFps.PointToScreen(new Point(perchFps.Width / 2, perchFps.Height / 2));
             for (int i = 0; i < Math.Abs(notches); i++)
                 Native.SendMessage(perchFps.Handle, 0x020A, new IntPtr((notches > 0 ? 120 : -120) << 16), new IntPtr((at.Y << 16) | (at.X & 0xFFFF)));
+            Settle();
         }
 
         // Tabs through Settings from Back and names the first control that gets focus without all of it showing, or null.
