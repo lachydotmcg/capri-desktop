@@ -34,6 +34,13 @@ namespace CapriDesktop
             if (quality.Fit(3840, 2160) != new Size(1280, 720) || quality.Fit(2560, 1080) != new Size(1280, 540)
                 || quality.Fit(1080, 1920) != new Size(404, 720) || quality.Fit(98, 66) != new Size(98, 66) || quality.Bits(1280, 720) != 12000000)
                 throw new Exception("Clip sizing lost aspect ratio, upscaled, or ignored the bitrate.");
+            if (!quality.Same(new ClipSettings(quality.Folder.ToUpperInvariant() + Path.DirectorySeparatorChar, 60, 60, 720, 12))
+                || quality.Same(new ClipSettings(quality.Folder, 30, 60, 720, 12)) || quality.Same(new ClipSettings(quality.Folder, 60, 30, 720, 12))
+                || quality.Same(new ClipSettings(quality.Folder, 60, 60, 480, 12)) || quality.Same(new ClipSettings(quality.Folder, 60, 60, 720, 8))
+                || quality.Same(new ClipSettings(Path.Combine(quality.Folder, "other"), 60, 60, 720, 12)) || quality.Same(null))
+                throw new Exception("Clip settings were not compared by all their values.");
+            if (defaults.Fit(3840, 2160) != new Size(1920, 1080) || defaults.Fit(98, 66) != new Size(98, 66)
+                || defaults.Bits(1920, 1080) != 8294400) throw new Exception("Auto clip sizing or bitrate changed.");
             checks.Add("PASS clip folder, length, FPS, resolution and bitrate survive saving; old and invalid preferences retain safe defaults, aspect ratio and no upscaling");
             string tidy = Path.Combine(Path.GetTempPath(), "Capri-custom-clips-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tidy);
@@ -51,11 +58,26 @@ namespace CapriDesktop
             finally { foreach (string file in Directory.GetFiles(tidy)) File.Delete(file); Directory.Delete(tidy); }
             checks.Add("PASS custom-folder cleanup recognizes only generated temporary clip names and preserves other files");
 
+            using (ClipTrack track = new ClipTrack())
+            {
+                track.Merge(new[] { new ClipPart { At = 10, Data = new byte[4] } });
+                track.Merge(new[] { new ClipPart { At = 5, Data = new byte[8] }, new ClipPart { At = 10, Data = new byte[4] } });
+                int count = 0;
+                foreach (ClipPart part in track.Read(true)) { count++; if (part.At != 10 || part.Data.Length != 4) throw new Exception("Prepending clip frames moved the newest frame offset."); }
+                if (count != 1) throw new Exception("The newest clip frame was not read once after prepending.");
+                track.Merge(new[] { new ClipPart { At = 15, Data = new byte[16] } });
+                count = 0;
+                foreach (ClipPart part in track.Read(true)) { count++; if (part.At != 15 || part.Data.Length != 16) throw new Exception("Appending clip frames lost the newest frame offset."); }
+                if (count != 1) throw new Exception("The newest clip frame was not read once after appending.");
+            }
+            checks.Add("PASS clip settings compare by value; Auto keeps its size and bitrate rules; merged tracks retain their newest frame");
+
             using (ManualResetEvent began = new ManualResetEvent(false))
             using (ManualResetEvent release = new ManualResetEvent(false))
             {
                 int written = 0;
                 long requestTime = 0;
+                Preferences repeatedOptions = new Preferences { ClipSeconds = 30, ClipFps = 24, ClipResolution = 720, ClipMbps = 4, ClipFolder = Path.GetTempPath() };
                 using (ClipBuffer buffer = new ClipBuffer(120, 8192, delegate(ClipSave save)
                 {
                     Interlocked.Increment(ref written);
@@ -65,24 +87,36 @@ namespace CapriDesktop
                 }, delegate { return requestTime; }))
                 try
                 {
+                    bool repeated;
+                    buffer.Configure(ClipSettings.Read(repeatedOptions));
+                    buffer.Follow(new GameSeen { Window = new IntPtr(42), Process = 123, Name = "Fake game" });
                     buffer.Keep(new byte[64], 0, 0, true);
-                    Task<ClipResult> first = buffer.Save("first.mp4", 30, true);
-                    if (!began.WaitOne(3000)) throw new Exception("The fake encoder did not begin.");
+                    Task<ClipResult> first = buffer.Save("first.mp4", 30, true, ClipSettings.Read(repeatedOptions), out repeated);
+                    if (repeated || !began.WaitOne(3000)) throw new Exception("The fake encoder did not begin a new save.");
+                    requestTime = 150000000;
                     buffer.Keep(new byte[64], 10000000, 10000000, true);
-                    Task<ClipResult> during = buffer.Save("duplicate.mp4", 30, true);
-                    if (!object.ReferenceEquals(first, during) || buffer.Pending != 0) throw new Exception("A repeated request queued a second file during encoding.");
+                    Task<ClipResult> during = buffer.Save("duplicate.mp4", 30, true, ClipSettings.Read(repeatedOptions), out repeated);
+                    if (!repeated || !object.ReferenceEquals(first, during) || buffer.Pending != 0) throw new Exception("A repeated request queued a second file during a long encode.");
                     release.Set();
                     ClipResult result = first.GetAwaiter().GetResult();
-                    Task<ClipResult> after = buffer.Save("another-duplicate.mp4", 30, true);
-                    if (!object.ReferenceEquals(first, after) || written != 1 || result.Path != "first.mp4" || !result.Announce() || result.Announce()) throw new Exception("A completed save or its notification was duplicated.");
-                    requestTime = 80000001;
+                    if (ClipBuffer.Spoken(ClipBuffer.Report(during.GetAwaiter().GetResult(), "Fake game", repeated)) != "That clip is already saved.") throw new Exception("A repeated active clip did not say it was already saved.");
+                    requestTime = 249999999;
+                    buffer.Follow(new GameSeen { Window = new IntPtr(43), Process = 123, Name = "Fake game" });
+                    Task<ClipResult> after = buffer.Save("another-duplicate.mp4", 30, true, ClipSettings.Read(repeatedOptions), out repeated);
+                    if (!repeated || !object.ReferenceEquals(first, after) || written != 1 || result.Path != "first.mp4" || !result.Announce() || result.Announce()
+                        || ClipBuffer.Report(result, "Fake game", repeated) != "That clip is already saved." || !ClipBuffer.Report(result, "Fake game", false).StartsWith("Saved ", StringComparison.Ordinal))
+                        throw new Exception("A completed save, its reply or its notification was duplicated.");
+                    requestTime = 250000000;
                     if (buffer.Save("later.mp4", 30, true).GetAwaiter().GetResult().Path != "later.mp4") throw new Exception("Duplicate suppression swallowed a later clip.");
                     if (buffer.Save("longer.mp4", 60, true).GetAwaiter().GetResult().Path != "longer.mp4") throw new Exception("A different duration was swallowed.");
                     buffer.Configure(quality);
                     if (buffer.Save("quality.mp4", 60, true).GetAwaiter().GetResult().Path != "quality.mp4") throw new Exception("New recording settings were swallowed.");
+                    buffer.Follow(new GameSeen { Window = new IntPtr(44), Process = 124, Name = "Other game" });
+                    buffer.Keep(new byte[64], 15000000, 15000000, true);
+                    if (buffer.Save("new-game.mp4", 60, true).GetAwaiter().GetResult().Path != "new-game.mp4") throw new Exception("A different game inherited duplicate suppression.");
                     buffer.Enable(false);
                     buffer.Keep(new byte[64], 20000000, 20000000, true);
-                    if (buffer.Save("new-session.mp4", 60, true).GetAwaiter().GetResult().Path != "new-session.mp4" || written != 5) throw new Exception("A new buffer session inherited duplicate suppression.");
+                    if (buffer.Save("new-session.mp4", 60, true).GetAwaiter().GetResult().Path != "new-session.mp4" || written != 6) throw new Exception("A new buffer session inherited duplicate suppression.");
                 }
                 finally { release.Set(); }
             }
@@ -93,7 +127,7 @@ namespace CapriDesktop
                 retry.Save("failed.mp4", 30, true).GetAwaiter().GetResult();
                 if (retry.Save("retry.mp4", 30, true).GetAwaiter().GetResult().Problem != null || attempts != 2) throw new Exception("A failed save could not be retried.");
             }
-            checks.Add("PASS repeated clip requests share the active or just-finished save and notify once; later requests, different durations, settings, sessions and retries still save");
+            checks.Add("PASS fresh settings objects share a long-running save and the first ten seconds after completion, say it is already saved and notify once; later requests, different durations, settings, games, sessions and retries still save");
             using (ManualResetEvent began = new ManualResetEvent(false))
             using (ManualResetEvent release = new ManualResetEvent(false))
             using (ClipBuffer buffer = new ClipBuffer(120, 8192, delegate(ClipSave save)
@@ -135,6 +169,8 @@ namespace CapriDesktop
                     Task<ClipResult> first = buffer.Save("active.mp4", 30);
                     if (!began.WaitOne(3000)) throw new Exception("The fake encoder did not begin.");
                     Task<ClipResult> queued = buffer.Save("queued.mp4", 30);
+                    ClipSettings equal = new ClipSettings(original.Folder, original.Seconds, original.Fps, original.Resolution, original.Mbps);
+                    if (!object.ReferenceEquals(queued, buffer.Save("same-settings.mp4", 30, false, equal))) throw new Exception("An equal settings object could not join the pending clip.");
                     buffer.Configure(quality);
                     ClipResult changed = buffer.Save("new-folder.mp4", 30, true).GetAwaiter().GetResult();
                     if (changed.Problem == null || !changed.Problem.Contains("previous recording settings") || buffer.Pending != 1) throw new Exception("A new folder or format silently merged into an old queued clip.");
@@ -175,18 +211,44 @@ namespace CapriDesktop
             Directory.CreateDirectory(folder);
             try
             {
+                double low = 0;
                 foreach (ClipSettings chosen in new[] { new ClipSettings(folder, 30, 15, 480, 2), new ClipSettings(folder, 30, 60, 1080, 20) })
                 using (ClipBuffer buffer = new ClipBuffer())
-                using (Bitmap picture = new Bitmap(1920, 1080))
                 {
+                    ClipSettings previous = new ClipSettings(folder, 30, 30, chosen.Resolution == 480 ? 1080 : 480);
+                    Size before = previous.Fit(1920, 1080), size = chosen.Fit(1920, 1080);
+                    buffer.Configure(previous);
+                    using (Bitmap picture = new Bitmap(before.Width, before.Height))
+                    {
+                        using (Graphics paint = Graphics.FromImage(picture)) paint.Clear(Color.Navy);
+                        buffer.AddFrame(picture, 0);
+                    }
                     buffer.Configure(chosen);
-                    using (Graphics paint = Graphics.FromImage(picture)) { paint.Clear(Color.Navy); paint.FillRectangle(Brushes.Cyan, 160, 180, 480, 300); }
-                    foreach (long at in new long[] { 0, 1000000, 4000000, 9000000 }) buffer.AddFrame(picture, at);
-                    buffer.Advance(12000000);
+                    // Moving shapes under HUD text, like a game: pure noise came out at 5 Mbps when 2 was chosen.
+                    using (Bitmap picture = new Bitmap(size.Width, size.Height))
+                    using (Graphics paint = Graphics.FromImage(picture))
+                    using (Font hud = new Font(FontFamily.GenericMonospace, size.Height / 20f, GraphicsUnit.Pixel))
+                        for (int frame = 1; frame < 60; frame++)
+                        {
+                            paint.Clear(Color.FromArgb(30, 40, 60));
+                            for (int shape = 0; shape < 40; shape++)
+                                using (SolidBrush brush = new SolidBrush(Color.FromArgb(shape * 37 % 256, shape * 91 % 256, (shape * 53 + frame) % 256)))
+                                    paint.FillEllipse(brush, (shape * 97 + frame * (3 + shape % 7) * 4) % size.Width, (shape * 53 + frame * (2 + shape % 5) * 3) % size.Height, size.Width / 8, size.Height / 6);
+                            for (int line = 0; line < 12; line++) paint.DrawString("HP 100  AMMO 30/90  frame " + frame + " line " + line, hud, Brushes.White, 10, 10 + line * size.Height / 14);
+                            buffer.AddFrame(picture, frame * 10000000L / 30 + frame % 3 * 20000);
+                        }
+                    buffer.Advance(20000000);
                     string path = Path.Combine(folder, chosen.Fps + ".mp4");
                     ClipResult made = buffer.Save(path, 30).GetAwaiter().GetResult();
                     if (made.Unavailable) { checks.Add("LIMIT clip settings encoder: " + made.Problem); return; }
                     if (made.Problem != null) throw new Exception("The chosen clip format failed: " + made.Problem);
+                    ClipFormat format = ClipMedia.Inspect(path);
+                    int bits = chosen.Bits(size.Width, size.Height);
+                    if (format.Size != size || Math.Abs(format.Fps - chosen.Fps) > 0.01 || Math.Abs(format.AverageFps - chosen.Fps) > 0.05)
+                        throw new Exception("The saved clip ignored its resolution or frame rate: " + format.Size + ", fps " + format.Fps + ", average " + format.AverageFps);
+                    if (format.Bitrate < bits * 0.5 || format.Bitrate > bits * 1.75) throw new Exception("The saved clip missed its bitrate: " + format.Bitrate + " instead of about " + bits);
+                    if (low == 0) low = format.Bitrate;
+                    else if (format.Bitrate < low * 3) throw new Exception("The two clip bitrate choices saved at nearly the same bitrate.");
                     double length, soundLength;
                     Bitmap decoded;
                     long[] times;
@@ -195,12 +257,26 @@ namespace CapriDesktop
                     ClipMedia.Inspect(path, out length, out decoded, out times, out sound, out soundLength, out peak);
                     using (decoded)
                     {
-                        if (decoded.Size != chosen.Fit(1920, 1080) || Math.Abs(length - 1.2) > 0.05 || times.Length != 4
-                            || times[0] != 0 || Math.Abs(times[1] - 1000000) > 10000 || Math.Abs(times[2] - 4000000) > 10000 || Math.Abs(times[3] - 9000000) > 10000)
-                            throw new Exception("The encoded clip ignored its chosen size or changed irregular timestamps: " + decoded.Size + ", seconds " + length);
+                        if (decoded == null || decoded.Size != size || Math.Abs(length - 2) > 0.05 || times.Length != chosen.Fps * 2)
+                            throw new Exception("The encoded clip ignored its size, frame count or duration.");
+                        for (int frame = 0; frame < times.Length; frame++)
+                            if (Math.Abs(times[frame] - frame * 10000000L / chosen.Fps) > 10000) throw new Exception("The saved frame times ignored the chosen frame rate.");
                     }
                 }
-                checks.Add("PASS synthetic clips negotiate 480p 15 fps at 2 Mbps and 1080p 60 fps at 20 Mbps, reopen at the selected size and retain original uneven sample times");
+                checks.Add("PASS game-like clips reopen at 480p 15 fps near 2 Mbps and 1080p 60 fps near 20 Mbps after a settings change; a picture from before a resolution change doesn't set the clip's size, and uneven capture keeps its length at the chosen frame rate");
+                using (ClipBuffer buffer = new ClipBuffer())
+                using (Bitmap first = new Bitmap(98, 66))
+                using (Bitmap last = new Bitmap(196, 132))
+                {
+                    buffer.AddFrame(first, 0);
+                    buffer.AddFrame(last, 1000000);
+                    buffer.Advance(2000000);
+                    string path = Path.Combine(folder, "auto.mp4");
+                    ClipResult made = buffer.Save(path, 30).GetAwaiter().GetResult();
+                    if (made.Problem != null) throw new Exception("The Auto clip failed: " + made.Problem);
+                    if (ClipMedia.Inspect(path).Size != first.Size) throw new Exception("Auto stopped using the first buffered frame's size.");
+                }
+                checks.Add("PASS Auto clips keep their previous output sizing when buffered frame sizes differ");
             }
             finally { foreach (string file in Directory.GetFiles(folder)) File.Delete(file); Directory.Delete(folder); }
         }
@@ -250,7 +326,7 @@ namespace CapriDesktop
                 SmokeFullscreenInput(checks);
                 mainframe.PickClipOptions(60, 24, 480, 4);
                 ClipSettings saved = ClipSettings.Read(LoadPreferences());
-                if (saved.Seconds != 60 || saved.Fps != 24 || saved.Resolution != 480 || saved.Mbps != 4 || clips.Settings.Seconds != 60) throw new Exception("The clips panel did not apply and save its recording controls.");
+                if (saved.Seconds != 60 || saved.Fps != 24 || saved.Resolution != 480 || saved.Mbps != 4 || !clips.Settings.Same(saved)) throw new Exception("The clips panel did not apply and save its recording controls.");
                 string customFolder = Path.Combine(output, "clips-folder-with-a-long-name-to-check-the-path-ellipsis");
                 Directory.CreateDirectory(customFolder);
                 if (SetClipFolder(customFolder) != null || clips.Settings.Folder != customFolder || ClipSettings.Read(LoadPreferences()).Folder != customFolder) throw new Exception("The clips folder did not save and reach the recorder.");

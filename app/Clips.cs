@@ -131,7 +131,7 @@ namespace CapriDesktop
                             inspectAt = tick + 2500000;
                             front = Enabled ? GameFinder.Front() : null;
                             ClipSettings chosen = Settings;
-                            if (!object.ReferenceEquals(recording, chosen))
+                            if (!recording.Same(chosen))
                             {
                                 recording = chosen;
                                 interval = 10000000.0 / recording.Fps;
@@ -399,6 +399,13 @@ namespace CapriDesktop
 
         internal Task<ClipResult> Save(string path, int seconds, bool reuse = false, ClipSettings chosen = null)
         {
+            bool repeated;
+            return Save(path, seconds, reuse, chosen, out repeated);
+        }
+
+        internal Task<ClipResult> Save(string path, int seconds, bool reuse, ClipSettings chosen, out bool repeated)
+        {
+            repeated = false;
             if (seconds <= 0) throw new ArgumentOutOfRangeException("seconds");
             lock (saving)
             {
@@ -410,10 +417,16 @@ namespace CapriDesktop
                     chosen = chosen ?? settings;
                     capturedSession = session;
                     if (pictures.Count == 0 || disposed) return Task.FromResult(new ClipResult { Problem = "I haven't buffered any game video yet." });
-                    // A repeated voice/tool request gets the same save, even after the writer took it off the queue (john sandevistan).
-                    if (reuse && recent != null && recentSession == session && recentSeconds == seconds && object.ReferenceEquals(recentSettings, chosen)
-                        && clock() - recentAt < 80000000 && (!recent.IsCompleted || recent.Result.Problem == null)) return recent;
-                    if (pending != null && !object.ReferenceEquals(pending.Settings, chosen)) return Task.FromResult(new ClipResult { Problem = "Couldn't save that clip: one with the previous recording settings is still queued. Try again once it finishes." });
+                    // A repeated voice or tool request gets the same save while it's written and for ten seconds after, even with fresh
+                    // settings of the same values, so a slow save or a repeat a few seconds later doesn't make a second file (john
+                    // sandevistan, 3 Nov).
+                    if (reuse && recent != null && recentSession == session && recentSeconds == seconds && recentSettings.Same(chosen)
+                        && (!recent.IsCompleted || (recent.Result.Problem == null && clock() - recentAt < 100000000)))
+                    {
+                        repeated = true;
+                        return recent;
+                    }
+                    if (pending != null && !pending.Settings.Same(chosen)) return Task.FromResult(new ClipResult { Problem = "Couldn't save that clip: one with the previous recording settings is still queued. Try again once it finishes." });
                     if (pending != null && pending.Session != capturedSession) return Task.FromResult(new ClipResult { Problem = "Couldn't save that clip: one from the previous game is still queued. Try again once it finishes." });
                     end = Math.Max(through, pictures.Last.Value.At + 1);
                     long cutoff = end - seconds * 10000000L;
@@ -472,6 +485,7 @@ namespace CapriDesktop
                 result.Path = save.Path;
                 result.Merged = save.Merged;
                 result.Monitor = save.Monitor;
+                lock (gate) if (object.ReferenceEquals(recent, save.Done.Task)) recentAt = clock();
                 save.Done.SetResult(result);
             }
         }
@@ -516,14 +530,22 @@ namespace CapriDesktop
             Directory.CreateDirectory(directory);
             ClipMedia.Tidy(directory);
             string path = Path.Combine(directory, title + " " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss-fff") + " " + Guid.NewGuid().ToString("N").Substring(0, 6) + ".mp4");
-            ClipResult result = Save(path, seconds, true, recording).GetAwaiter().GetResult();
+            bool repeated;
+            ClipResult result = Save(path, seconds, true, recording, out repeated).GetAwaiter().GetResult();
             saved = result.Problem == null;
-            if (saved)
+            if (saved && !repeated)
             {
                 Action<string, double, string, string> told = Saved;
                 if (told != null && result.Announce()) told(result.Path, result.Seconds, open, result.Monitor);
             }
-            return result.Problem ?? "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + open + (result.Sound ? "" : " without sound") + ": " + result.Path + (result.Merged ? " Merged your clip requests into this clip." : "");
+            return Report(result, open, repeated);
+        }
+
+        internal static string Report(ClipResult result, string game, bool repeated)
+        {
+            if (result.Problem != null) return result.Problem;
+            if (repeated) return "That clip is already saved.";
+            return "Saved " + result.Seconds.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture) + " seconds of " + game + (result.Sound ? "" : " without sound") + ": " + result.Path + (result.Merged ? " Merged your clip requests into this clip." : "");
         }
 
         public void Dispose()
@@ -557,6 +579,7 @@ namespace CapriDesktop
     {
         private FileStream data = Temporary();
         private long first = long.MaxValue, last = long.MinValue;
+        private long tail;
         internal long Count;
 
         private static FileStream Temporary() { return new FileStream(Path.Combine(Path.GetTempPath(), "Capri-clip-" + Guid.NewGuid().ToString("N")), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read, 65536, FileOptions.DeleteOnClose); }
@@ -589,6 +612,7 @@ namespace CapriDesktop
                     if (prefix != null)
                     {
                         data.Position = 0;
+                        tail += prefix.Length;
                         data.CopyTo(prefix);
                         data.Dispose();
                         data = prefix;
@@ -601,6 +625,7 @@ namespace CapriDesktop
             foreach (ClipPart newer in parts)
             {
                 if (newer.At <= last) continue;
+                tail = data.Position;
                 Put(data, newer);
                 first = Math.Min(first, newer.At);
                 last = newer.At;
@@ -609,9 +634,9 @@ namespace CapriDesktop
             data.Flush();
         }
 
-        internal IEnumerable<ClipPart> Read()
+        internal IEnumerable<ClipPart> Read(bool newest = false)
         {
-            data.Position = 0;
+            data.Position = newest ? tail : 0;
             BinaryReader input = new BinaryReader(data, System.Text.Encoding.UTF8, true);
             while (data.Position < data.Length)
             {
@@ -646,6 +671,12 @@ namespace CapriDesktop
         }
 
         public void Dispose() { Pictures.Dispose(); Sounds.Dispose(); }
+    }
+
+    internal sealed class ClipFormat
+    {
+        internal Size Size;
+        internal double Fps, AverageFps, Bitrate;
     }
 
     internal static class ClipMedia
@@ -727,7 +758,9 @@ namespace CapriDesktop
             IMFMediaType target = null, input = null, audioTarget = null, audioInput = null;
             IMFAttributes options = null;
             int width, height;
-            using (IEnumerator<ClipPart> opening = save.Pictures.Read().GetEnumerator())
+            // A chosen resolution goes by the newest picture: pictures from before they raised it kept clips small (john
+            // sandevistan, 3 Nov). Auto still goes by the first.
+            using (IEnumerator<ClipPart> opening = save.Pictures.Read(save.Settings.Resolution != 0).GetEnumerator())
             {
                 if (!opening.MoveNext()) throw new InvalidDataException("The clip has no pictures.");
                 using (MemoryStream firstBytes = new MemoryStream(opening.Current.Data, false))
@@ -767,7 +800,12 @@ namespace CapriDesktop
                     catch (COMException soundError) { throw new ClipSoundException(soundError); }
                 }
                 Check(sink.BeginWriting());
-                long audioAt = 0;
+                // Frames go in at the chosen frame rate, each the newest picture by then. At the capture's own times a clip had the
+                // capture's slower rate whatever was chosen, and the encoder, which shares the bitrate out per frame at the chosen rate,
+                // came in under it: a 60 fps 20 Mbps clip captured at 30 saved at about 10 Mbps (john sandevistan, 3 Nov). Held pictures
+                // add no new motion.
+                long audioAt = 0, videoAt = 0, duration = save.End - save.Start;
+                long videoFrames = (duration * save.Settings.Fps + 9999999) / 10000000;
                 long audioFrames = (save.End - save.Start) * 48000 / 10000000;
                 using (Bitmap canvas = new Bitmap(width, height, PixelFormat.Format32bppRgb))
                 using (IEnumerator<ClipPart> videoParts = save.Pictures.Read().GetEnumerator())
@@ -775,10 +813,12 @@ namespace CapriDesktop
                 {
                     ClipPart picture = videoParts.MoveNext() ? videoParts.Current : null;
                     ClipPart following = videoParts.MoveNext() ? videoParts.Current : null;
+                    ClipPart rendered = null;
+                    byte[] frame = null;
                     ClipPart heard = sound && soundParts.MoveNext() ? soundParts.Current : null;
-                    while (picture != null || (sound && audioAt < audioFrames))
+                    while (videoAt < videoFrames || (sound && audioAt < audioFrames))
                     {
-                        long videoTime = picture != null ? Math.Max(0, picture.At - save.Start) : long.MaxValue;
+                        long videoTime = videoAt < videoFrames ? videoAt * 10000000 / save.Settings.Fps : long.MaxValue;
                         long audioTime = audioAt * 10000000 / 48000;
                         if (sound && audioAt < audioFrames && audioTime < videoTime)
                         {
@@ -803,29 +843,36 @@ namespace CapriDesktop
                         }
                         else
                         {
-                            long end = following != null ? following.At : save.End;
-                            byte[] frame;
-                            using (MemoryStream bytes = new MemoryStream(picture.Data, false))
-                            using (Bitmap decoded = new Bitmap(bytes))
+                            while (following != null && following.At - save.Start <= videoTime)
                             {
-                                // A frame already the clip's size is read as it is; drawing it onto the canvas first cost about 2.5 ms
-                                // more a frame, a couple of seconds on every 30 s clip.
-                                if (decoded.Width == width && decoded.Height == height) frame = Pixels(decoded);
-                                else
-                                {
-                                    using (Graphics drawing = Graphics.FromImage(canvas))
-                                    {
-                                        drawing.Clear(Color.Black);
-                                        double scale = Math.Min((double)width / decoded.Width, (double)height / decoded.Height);
-                                        int across = (int)(decoded.Width * scale), down = (int)(decoded.Height * scale);
-                                        drawing.DrawImage(decoded, new Rectangle((width - across) / 2, (height - down) / 2, across, down));
-                                    }
-                                    frame = Pixels(canvas);
-                                }
+                                picture = following;
+                                following = videoParts.MoveNext() ? videoParts.Current : null;
                             }
-                            WriteSample(sink, videoStream, frame, videoTime, Math.Max(1, end - save.Start - videoTime));
-                            picture = following;
-                            following = videoParts.MoveNext() ? videoParts.Current : null;
+                            if (!object.ReferenceEquals(rendered, picture))
+                            {
+                                using (MemoryStream bytes = new MemoryStream(picture.Data, false))
+                                using (Bitmap decoded = new Bitmap(bytes))
+                                {
+                                    // A frame already the clip's size is read as it is; drawing it onto the canvas first cost about 2.5 ms
+                                    // more a frame, a couple of seconds on every 30 s clip.
+                                    if (decoded.Width == width && decoded.Height == height) frame = Pixels(decoded);
+                                    else
+                                    {
+                                        using (Graphics drawing = Graphics.FromImage(canvas))
+                                        {
+                                            drawing.Clear(Color.Black);
+                                            double scale = Math.Min((double)width / decoded.Width, (double)height / decoded.Height);
+                                            int across = (int)(decoded.Width * scale), down = (int)(decoded.Height * scale);
+                                            drawing.DrawImage(decoded, new Rectangle((width - across) / 2, (height - down) / 2, across, down));
+                                        }
+                                        frame = Pixels(canvas);
+                                    }
+                                }
+                                rendered = picture;
+                            }
+                            long end = Math.Min(duration, (videoAt + 1) * 10000000 / save.Settings.Fps);
+                            WriteSample(sink, videoStream, frame, videoTime, Math.Max(1, end - videoTime));
+                            videoAt++;
                         }
                     }
                 }
@@ -930,6 +977,66 @@ namespace CapriDesktop
                 Check(writer.WriteSample(stream, sample));
             }
             finally { Drop(sample); Drop(buffer); }
+        }
+
+        internal static ClipFormat Inspect(string path)
+        {
+            IMFSourceReader reader = null;
+            IMFMediaType type = null;
+            bool initialized = false, started = false;
+            try
+            {
+                Check(CoInitializeEx(IntPtr.Zero, 0));
+                initialized = true;
+                Check(MFStartup(0x20070, 0));
+                started = true;
+                Check(MFCreateSourceReaderFromURL(path, null, out reader));
+                Check(reader.GetNativeMediaType(FirstVideo, 0, out type));
+                long size, rate;
+                Check(((IMFAttributes)type).GetUINT64(FrameSize, out size));
+                Check(((IMFAttributes)type).GetUINT64(new Guid("c459a2e8-3d2c-4e44-b132-fee5156c7bb0"), out rate));
+                if ((uint)rate == 0) throw new InvalidDataException("The clip has no frame rate.");
+                ClipFormat format = new ClipFormat { Size = new Size((int)(size >> 32), (int)size), Fps = (uint)(rate >> 32) / (double)(uint)rate };
+                Check(reader.SetStreamSelection(unchecked((int)0xfffffffe), false));
+                Check(reader.SetStreamSelection(FirstVideo, true));
+                Check(reader.SetCurrentMediaType(FirstVideo, IntPtr.Zero, type));
+                long bytes = 0, frames = 0, first = long.MaxValue, end = long.MinValue;
+                while (true)
+                {
+                    IMFSample sample;
+                    IMFMediaBuffer buffer = null;
+                    int stream, flags;
+                    long at;
+                    Check(reader.ReadSample(FirstVideo, 0, out stream, out flags, out at, out sample));
+                    try
+                    {
+                        if (sample != null)
+                        {
+                            long duration;
+                            int length;
+                            Check(sample.GetSampleDuration(out duration));
+                            Check(sample.ConvertToContiguousBuffer(out buffer));
+                            Check(buffer.GetCurrentLength(out length));
+                            bytes += length;
+                            frames++;
+                            first = Math.Min(first, at);
+                            end = Math.Max(end, at + duration);
+                        }
+                    }
+                    finally { Drop(buffer); Drop(sample); }
+                    if ((flags & 2) != 0) break;
+                }
+                if (frames == 0 || end <= first) throw new InvalidDataException("The clip has no video samples.");
+                format.AverageFps = frames * 10000000.0 / (end - first);
+                format.Bitrate = bytes * 80000000.0 / (end - first);
+                return format;
+            }
+            finally
+            {
+                Drop(type); Drop(reader);
+                if (started) MFShutdown();
+                if (initialized) CoUninitialize();
+            }
         }
 
         internal static void Inspect(string path, out double seconds, out Bitmap first, out long[] times, out bool sound, out double audioSeconds, out int peak)

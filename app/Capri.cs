@@ -18484,9 +18484,9 @@ namespace CapriDesktop
                         ClipMedia.Inspect(clipPath, out length, out decoded, out actual, out audio, out audioLength, out audioPeak);
                         using (decoded)
                         {
-                            if (Math.Abs(length - 2.2) > 0.15 || actual.Length != expected.Length) throw new Exception("The clip changed duration or dropped encoded frames: " + length + " seconds, " + actual.Length + " frames.");
+                            if (Math.Abs(length - 2.2) > 0.15 || actual.Length != 66) throw new Exception("The clip changed duration or ignored its frame rate: " + length + " seconds, " + actual.Length + " frames.");
                             for (int at = 0; at < actual.Length; at++)
-                                if (Math.Abs(actual[at] - expected[at]) > 10000) throw new Exception("The clip changed a real frame time: " + actual[at] + " instead of " + expected[at]);
+                                if (Math.Abs(actual[at] - at * 10000000L / 30) > 10000) throw new Exception("The clip changed its saved frame cadence.");
                             if (decoded == null || decoded.Width != 98 || decoded.Height != 66) throw new Exception("The clip changed frame dimensions.");
                             Color top = decoded.GetPixel(10, 10), bottom = decoded.GetPixel(10, 55), right = decoded.GetPixel(82, 12);
                             if (top.R < top.B + 100 || bottom.B < bottom.R + 100 || right.G < right.R + 100)
@@ -18494,12 +18494,12 @@ namespace CapriDesktop
                             if (audio != made.Sound) throw new Exception("The saved clip's audio report was wrong.");
                             if (audio && (Math.Abs(audioLength - 2.2) > 0.15 || audioPeak < 1000)) throw new Exception("The clip's sound lost its samples or wasn't trimmed to the video: " + audioLength + " seconds, peak " + audioPeak);
                         }
-                        checks.Add("PASS clips save an H.264 MP4 that Media Foundation reopens at 2.2 seconds with uneven frame times, 98 x 66 pixels and the first frame the right way up");
+                        checks.Add("PASS clips save an H.264 MP4 that Media Foundation reopens at 2.2 seconds and 30 fps from uneven capture, with 98 x 66 pixels and the first frame the right way up");
                         checks.Add(made.Sound ? "PASS clips decode the matching AAC sound with its samples intact and trimmed to the video's length" : "LIMIT clips: this PC couldn't encode AAC; the video saved without sound");
                         if (lastResult.Problem != null || Math.Abs(lastResult.Seconds - 1) > 0.001) throw new Exception("The requested last second wasn't saved: " + lastResult.Problem);
                         ClipMedia.Inspect(lastPath, out length, out decoded, out actual, out audio, out audioLength, out audioPeak);
                         using (decoded)
-                            if (Math.Abs(length - 1) > 0.15 || actual.Length != 3 || actual[0] != 0 || Math.Abs(actual[1] - 2000000) > 10000 || Math.Abs(actual[2] - 7000000) > 10000)
+                            if (Math.Abs(length - 1) > 0.15 || actual.Length != 30 || actual[0] != 0 || Math.Abs(actual[1] - 10000000L / 30) > 10000 || Math.Abs(actual[29] - 290000000L / 30) > 10000)
                                 throw new Exception("A shorter clip lost its first held frame or changed speed.");
                         checks.Add("PASS queued clips keep their snapshots when capture stops, trim between captured frames, and release their memory after saving");
                     }
