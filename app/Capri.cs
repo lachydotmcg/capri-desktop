@@ -185,6 +185,9 @@ namespace CapriDesktop
                 Brain.Log("crash", -1, at);
                 if (++shown == 4) break;
             }
+            // Out of memory and drawing failures can mean she ran out of Windows' drawing objects rather than memory, so they
+            // also say what she holds.
+            if (error is OutOfMemoryException || error is System.Runtime.InteropServices.ExternalException) Brain.Log("crash", -1, "She holds " + WindowUse.Read() + ".");
         }
     }
 
@@ -17039,9 +17042,21 @@ namespace CapriDesktop
                 Brain.Log("ears", -1, new string('y', 400));
                 string[] stallKept = File.ReadAllLines(stallLog);
                 if (stallKept.Length != 2 || stallKept[0].IndexOf(stallLine, StringComparison.Ordinal) < 0 || stallKept[1].Length != 300) throw new Exception("errors.txt cut a freeze's line short, or let another line run long.");
+                // A crash out of memory or in drawing says what she holds too, and any other crash doesn't.
+                File.WriteAllText(stallLog, "");
+                string crashTag = Guid.NewGuid().ToString("N");
+                Program.Crashed(new InvalidOperationException("Test crash " + crashTag));
+                Program.Crashed(new OutOfMemoryException("Test out of memory " + crashTag));
+                Program.Crashed(new System.Runtime.InteropServices.ExternalException("Test drawing failure " + crashTag));
+                string[] crashKept = File.ReadAllLines(stallLog);
+                bool crashHeld = crashKept.Length == 5 && crashKept[0].EndsWith("| crash | - | InvalidOperationException: Test crash " + crashTag, StringComparison.Ordinal)
+                    && crashKept[1].EndsWith("| crash | - | OutOfMemoryException: Test out of memory " + crashTag, StringComparison.Ordinal) && crashKept[3].EndsWith("| crash | - | ExternalException: Test drawing failure " + crashTag, StringComparison.Ordinal);
+                foreach (int held in new[] { 2, 4 })
+                    crashHeld &= crashKept.Length == 5 && crashKept[held].IndexOf("| crash | - | She holds GDI ", StringComparison.Ordinal) > 0 && crashKept[held].IndexOf(", USER ", StringComparison.Ordinal) > 0 && crashKept[held].EndsWith(" MB.", StringComparison.Ordinal);
+                if (!crashHeld) throw new Exception("A crash out of memory or in drawing didn't say what she holds, or another crash did: " + string.Join(" / ", crashKept));
             }
             finally { Brain.LogPath = logWas; }
-            checks.Add("PASS a stall from 2 s goes in errors.txt once she answers, with how long, what she was doing, her GDI, USER, handles and memory, and where she was held up; another within the minute stays out, and errors.txt keeps the whole line");
+            checks.Add("PASS a stall from 2 s goes in errors.txt once she answers, with how long, what she was doing, her GDI, USER, handles and memory, and where she was held up; another within the minute stays out, and errors.txt keeps the whole line; a crash out of memory or in drawing says what she holds too");
         }
 
         // A stuck window goes in errors.txt with where it's stuck, and opening her again, a long freeze or a Quit that stalls
