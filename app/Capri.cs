@@ -9205,9 +9205,12 @@ namespace CapriDesktop
             return true;
         }
 
+        // A preview they asked for waits for her voice and for them talking, but plays over a line still showing in her bubble.
+        private bool PreviewBusy { get { return Voicing || pushing || transcribing || talkState == TalkState.Thinking; } }
+
         private bool PreviewAfterLine(Action preview)
         {
-            if (!LineBusy) return false;
+            if (!PreviewBusy) return false;
             voicePreview = preview;
             return true;
         }
@@ -9217,15 +9220,15 @@ namespace CapriDesktop
         {
             if (quitting || IsDisposed) return;
             while (voiceChanges.Count > 0 && !Voicing) voiceChanges.Dequeue()();
-            if ((hidden && !docked) || LineBusy) return;
-            if (voicePreview != null)
+            if (hidden && !docked) return;
+            if (voicePreview != null && !PreviewBusy)
             {
                 Action preview = voicePreview;
                 voicePreview = null;
                 preview();
                 return;
             }
-            if (ownLines.Count > 0) ownLines.Dequeue()();
+            if (!LineBusy && ownLines.Count > 0) ownLines.Dequeue()();
         }
 
         private void Tell(string shown, string line)
