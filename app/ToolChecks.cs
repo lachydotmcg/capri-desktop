@@ -644,12 +644,12 @@ namespace CapriDesktop
                     || Security.Needs("app_volume", new ToolArguments { Action = "now" }) != -1 || Security.Needs("app_volume", quieter) != Security.Media
                     || Security.Asking("app_volume", quieter) != "turn fortnite down" || Security.Asking("app_volume", new ToolArguments { Action = "set", Name = "Spotify", Level = "30" }) != "set Spotify to 30%")
                     throw new Exception("Her app volume's calls weren't checked.");
-                // Only a brain that works jobs out gets it: her one-shot hands and voice chat keep the tools they had.
+                // Every brain gets it: her one-shot hands and voice chat as well as a brain that works jobs out.
                 Hands.Kit kit = Hands.KitFor();
                 bool voiced = false;
                 for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "app_volume") voiced = true;
-                if (!kit.WorkTools.Contains("\"name\":\"app_volume\"") || kit.Tools.Contains("app_volume") || voiced || !Hands.WorkingOut.Contains("is app_volume; the whole PC's is media"))
-                    throw new Exception("Her app volume reached her one-shot hands or voice chat, or a planner doesn't get it.");
+                if (!kit.WorkTools.Contains("\"name\":\"app_volume\"") || !kit.Tools.Contains("app_volume") || !voiced || !Hands.WorkingOut.Contains("is app_volume; the whole PC's is media"))
+                    throw new Exception("Her app volume missed a brain or voice chat.");
                 // A brain that works jobs out reads the mixer, turns the game down, and hears where it ended up.
                 List<string> asked = new List<string>();
                 Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
@@ -723,13 +723,13 @@ namespace CapriDesktop
                     || absent != "Nothing called valorant is running. " + Totals || laptop != wanted + " Battery 54%, on battery." || unread != "Couldn't read how their PC is doing just now."
                     || Usage.Size(45 * Gigabyte) != "45 GB" || Usage.Size((long)(1.2 * 1024 * Gigabyte)) != "1.2 TB" || Usage.Size(Gigabyte / 2) != "0.5 GB")
                     throw new Exception("Her PC check didn't say how it's doing: " + all + " / " + chrome + " / " + game + " / " + absent + " / " + laptop + " / " + unread);
-                // A check: it never asks first, stays out of her transcript, and only a brain that works jobs out gets it.
+                // A check: it never asks first, stays out of her transcript, and every brain gets it, voice chat too.
                 Hands.Kit kit = Hands.KitFor();
                 bool voiced = false;
                 for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "pc_status") voiced = true;
                 if (!Hands.Valid("pc_status", new ToolArguments()) || !Hands.Checking("pc_status", new ToolArguments()) || Security.Needs("pc_status", new ToolArguments()) != -1
-                    || !kit.WorkTools.Contains("\"name\":\"pc_status\"") || kit.Tools.Contains("pc_status") || voiced || !Hands.WorkingOut.Contains("pc_status says how busy it is and what's using it"))
-                    throw new Exception("Her PC check asked first, or reached her one-shot hands or voice chat.");
+                    || !kit.WorkTools.Contains("\"name\":\"pc_status\"") || !kit.Tools.Contains("pc_status") || !voiced || !Hands.WorkingOut.Contains("pc_status says how busy it is and what's using it"))
+                    throw new Exception("Her PC check asked first, or missed a brain or voice chat.");
                 // A brain that works jobs out finds out what's using the PC before it says why a game is stuttering.
                 List<string> asked = new List<string>();
                 Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };
@@ -798,13 +798,13 @@ namespace CapriDesktop
                     || unplugged != "Their PC isn't connected to any network: no Ethernet or Wi-Fi is up." || unread != "Couldn't check their internet just now."
                     || site != fine || string.Join(",", pinged.ToArray()) != ",,,,,,google.com")
                     throw new Exception("Her internet check didn't say how the connection is: " + fine + " / " + drops + " / " + dead + " / " + dns + " / " + unplugged + " / " + unread + " / " + string.Join(",", pinged.ToArray()));
-                // A check: it never asks first, stays out of her transcript, and only a brain that works jobs out gets it.
+                // A check: it never asks first, stays out of her transcript, and every brain gets it, voice chat too.
                 Hands.Kit kit = Hands.KitFor();
                 bool voiced = false;
                 for (int i = 0; i < Hands.Count; i++) if (Hands.Name(i) == "internet_status") voiced = true;
                 if (!Hands.Valid("internet_status", new ToolArguments()) || !Hands.Checking("internet_status", new ToolArguments()) || Security.Needs("internet_status", new ToolArguments()) != -1
-                    || !kit.WorkTools.Contains("\"name\":\"internet_status\"") || kit.Tools.Contains("internet_status") || voiced || !Hands.WorkingOut.Contains("internet_status says whether their connection is the problem"))
-                    throw new Exception("Her internet check asked first, or reached her one-shot hands or voice chat.");
+                    || !kit.WorkTools.Contains("\"name\":\"internet_status\"") || !kit.Tools.Contains("internet_status") || !voiced || !Hands.WorkingOut.Contains("internet_status says whether their connection is the problem"))
+                    throw new Exception("Her internet check asked first, or missed a brain or voice chat.");
                 // A brain that works jobs out checks the connection before it blames the game.
                 List<string> asked = new List<string>();
                 Func<string, string> says = delegate(string text) { return "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":" + Voice.Quote(text) + "}}]}"; };

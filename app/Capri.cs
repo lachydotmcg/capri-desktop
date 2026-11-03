@@ -2043,6 +2043,7 @@ namespace CapriDesktop
             Hands.LookOn = LookAt;
             Hands.ReadFile = brain.ReadFile;
             Hands.Work = RunJob;
+            Hands.StopStream = delegate { if (streamLoop) Computer.Interrupt("You asked me to stop streaming."); };
             Hands.Plan = reminders.Route;
             Hands.Remind = reminders.Remind;
             Hands.Routine = RoutineTool;
@@ -7730,6 +7731,9 @@ namespace CapriDesktop
             polling.Start();
         }
 
+        // Her stream's job loop is running, so a stop from her stream tool ends it like their Esc.
+        private volatile bool streamLoop;
+
         private string RunJob(string task, string asked)
         {
             if (Hands.StreamAsked(task) || Hands.StreamAsked(asked)) Computer.Streaming = true;
@@ -7743,20 +7747,25 @@ namespace CapriDesktop
             // her, like a brain error or a run of turns without a move, starts the stream again after a breather, a longer one
             // each time it breaks again within two minutes, up to eight minutes.
             int rests = 0;
-            while (true)
+            streamLoop = true;
+            try
             {
-                Job running = new Job(task, asked);
-                int began = Environment.TickCount;
-                string result;
-                try { result = Work(running); }
-                catch (Exception error) { result = "That didn't work: " + error.Message; }
-                if (running.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
-                rests = unchecked(Environment.TickCount - began) < 120000 ? Math.Min(rests + 1, 5) : 0;
-                int wait = 15000 << rests;
-                Brain.Log("stream", -1, "stopped (" + (running.Outcome ?? "failed") + "): " + result + " Starting again in " + wait / 1000 + " s.");
-                Computer.Pause(wait);
-                if (Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
+                while (true)
+                {
+                    Job running = new Job(task, asked);
+                    int began = Environment.TickCount;
+                    string result;
+                    try { result = Work(running); }
+                    catch (Exception error) { result = "That didn't work: " + error.Message; }
+                    if (running.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
+                    rests = unchecked(Environment.TickCount - began) < 120000 ? Math.Min(rests + 1, 5) : 0;
+                    int wait = 15000 << rests;
+                    Brain.Log("stream", -1, "stopped (" + (running.Outcome ?? "failed") + "): " + result + " Starting again in " + wait / 1000 + " s.");
+                    Computer.Pause(wait);
+                    if (Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
+                }
             }
+            finally { streamLoop = false; }
         }
 
         private string ResumeJob(string text)
@@ -15755,14 +15764,15 @@ namespace CapriDesktop
                 || !pressing.StartsWith("Shortcuts she can press:", StringComparison.Ordinal) || !pressing.Contains("take a screenshot") || !pressing.Contains("open the Game Bar")
                 || !cloning.StartsWith("Clones and chaos mode:", StringComparison.Ordinal) || !cloning.Contains("Hold Esc"))
                 throw new Exception("Her help didn't say what she can do from her tools: " + doing + " / " + pressing + " / " + cloning);
-            // The brain she chats with always gets a short list of what she can do right now, by name and in a few words (F69).
+            // The brain she chats with always gets a short list of what she can do right now, every tool by name in a few words (F69),
+            // so it grows with her tools (Lachy, 3 Nov: every brain knows every tool it has).
             for (int i = 0; i < Hands.Count; i++)
             {
                 string tool = Hands.Name(i);
                 if (kit.Brief.IndexOf("\n- " + tool + ": ", StringComparison.Ordinal) < 0 || (tool == "look_at_screen" || tool == "watch_for") == blind.Brief.Contains("\n- " + tool + ": "))
                     throw new Exception("Her chat brain's list of what she can do missed or kept a tool: " + tool);
             }
-            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 1700 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
+            if (!Hands.Chat.StartsWith(kit.Brief, StringComparison.Ordinal) || !Hands.ChatOnly.StartsWith(kit.Brief, StringComparison.Ordinal) || kit.Brief.Length > 2200 || kit.Brief.Contains("\"tools\":") || kit.Brief.Contains("only the word")
                 || !blind.Chat.StartsWith(blind.Brief, StringComparison.Ordinal) || !blind.Brief.Contains(blindLine + " If they ask for one of these"))
                 throw new Exception("Her chat brain's list of what she can do wasn't short, first or honest: " + kit.Brief.Length + " characters");
             // Clip my games off keeps clip in her tools, and her brains and her help say where to turn it on (F69).
@@ -19277,12 +19287,78 @@ namespace CapriDesktop
                     || tray != "Steam is installed and running in the background with no window open, maybe in the tray." || closed != "VALORANT is installed through the Riot Client and isn't running."
                     || down != "Notepad is installed and open: \"notes.txt - Notepad\" (notepad) is minimized." || absent != "No app called minecraft is installed on this PC." || blank != "Which app, choom?")
                     throw new Exception("check_app didn't say what's installed and running: " + inFront + " / " + behind + " / " + tray + " / " + closed + " / " + down + " / " + absent + " / " + blank);
-                // Her checks go to the brain that works jobs out, never to her hands' one-shot pick or her chat brain's short list.
+                // Every brain gets her checks, her hands' one-shot pick and voice chat too, and her stream is a tool (Lachy, 3 Nov:
+                // "Ensure that it can be started if its even just suggested").
                 Hands.Kit kit = Hands.KitFor(), blind = Hands.KitFor(true);
-                if (!kit.WorkTools.StartsWith(Hands.Tools.Substring(0, Hands.Tools.Length - 1) + ",{\"type\":\"function\",\"function\":{\"name\":\"list_windows\"", StringComparison.Ordinal) || !kit.WorkTools.Contains("\"name\":\"check_app\"") || !kit.WorkTools.Contains("\"name\":\"capri_settings\"")
-                    || !kit.WorkClaudeTools.Contains("{\"name\":\"list_windows\",\"description\":") || !blind.WorkTools.Contains("\"name\":\"list_windows\"") || blind.WorkTools.Contains("\"name\":\"look_at_screen\"")
-                    || Hands.Tools.Contains("list_windows") || Hands.ClaudeTools.Contains("check_app") || Hands.Listing.Contains("capri_settings") || kit.Brief.Contains("list_windows") || Hands.Prompt.Contains("list_windows"))
-                    throw new Exception("Her checks reached her hands' one-shot pick, or missed her planner's tools.");
+                if (kit.WorkTools != kit.Tools || kit.WorkClaudeTools != kit.ClaudeTools || !Hands.Tools.Contains("\"name\":\"list_windows\"") || !Hands.ClaudeTools.Contains("{\"name\":\"check_app\",\"description\":")
+                    || !Hands.Listing.Contains("capri_settings{") || !kit.Brief.Contains("- app_volume:") || !kit.Brief.Contains("- pc_status:") || !kit.Brief.Contains("- stream:") || !Hands.Tools.Contains("\"name\":\"stream\"")
+                    || !Hands.Prompt.Contains("call stream") || !blind.WorkTools.Contains("\"name\":\"list_windows\"") || blind.WorkTools.Contains("\"name\":\"look_at_screen\""))
+                    throw new Exception("A brain missed her checks or her stream tool.");
+                bool voiceChecks = false, voiceStream = false;
+                for (int i = 0; i < Hands.Count; i++)
+                {
+                    if (Hands.Name(i) == "pc_status") voiceChecks = Hands.ElevenLabsTool(i).Contains("\"response_timeout_secs\":20");
+                    if (Hands.Name(i) == "stream") voiceStream = Hands.ElevenLabsTool(i).Contains("\"response_timeout_secs\":60");
+                }
+                if (!voiceChecks || !voiceStream) throw new Exception("Voice chat missed her checks or her stream tool.");
+                Func<string, string, string> streamWorkWas = Hands.Work;
+                Action streamStopWas = Hands.StopStream;
+                bool streamWas = Hands.Streaming;
+                string streamTask = null, streamAsked = null;
+                int streamStops = 0;
+                try
+                {
+                    Hands.Work = delegate(string streamJob, string streamWords) { streamTask = streamJob; streamAsked = streamWords; return Hands.Streaming ? "Streaming." : "Not streaming."; };
+                    Hands.StopStream = delegate { streamStops++; };
+                    Hands.Streaming = false;
+                    if (Hands.Do("stream", new ToolArguments { Action = "start", Name = "Minecraft", Asked = "you should stream minecraft" }) != "Streaming." || streamTask == null || !streamTask.Contains("Minecraft") || streamAsked != "you should stream minecraft"
+                        || Hands.Do("stream", new ToolArguments { Action = "stop" }) != "Stopped streaming." || Hands.Streaming || streamStops != 1 || Hands.Do("stream", new ToolArguments { Action = "stop" }) != "I'm not streaming right now."
+                        || Hands.Do("stream", new ToolArguments()) != "Streaming." || !streamTask.Contains("the game that's open") || !Hands.Valid("stream", new ToolArguments()) || Hands.Valid("stream", new ToolArguments { Action = "pause" }))
+                        throw new Exception("Her stream tool didn't start or stop her stream.");
+                    if (Security.Needs("stream", new ToolArguments { Action = "start" }) != Security.Needs("use_computer", new ToolArguments { Task = "play" }) || Security.Needs("stream", new ToolArguments { Action = "stop" }) != -1)
+                        throw new Exception("Her stream tool asks differently from her mouse and keyboard jobs.");
+                }
+                finally { Hands.Work = streamWorkWas; Hands.StopStream = streamStopWas; Hands.Streaming = streamWas; }
+                checks.Add("PASS every brain gets her tools: settings, app volume, PC and internet checks, open windows and installed apps reach her hands' pick and voice chat as well as brains that work jobs out, and stream is a tool that starts her stream from any wording or a suggestion, on the game they named or the one that's open, and stops it");
+                // Voice chat saves each of her tools on their ElevenLabs account once, after reading every page of the ones already there.
+                string voiceHostWas = Voice.Host;
+                int voicePatienceWas = Voice.Patience;
+                System.Net.Sockets.TcpListener voiceFake = null;
+                System.Collections.Generic.List<string> voiceAsked = new System.Collections.Generic.List<string>();
+                try
+                {
+                    System.Collections.Generic.List<string> kept = new System.Collections.Generic.List<string>(), voiceIds = new System.Collections.Generic.List<string>(), newOnes = new System.Collections.Generic.List<string>();
+                    for (int i = 0; i < Hands.Count; i++)
+                    {
+                        if (Hands.Name(i) == "stream" || Hands.Name(i) == "pc_status") { newOnes.Add(Hands.ElevenLabsTool(i)); voiceIds.Add(Voice.Quote("new_" + Hands.Name(i))); continue; }
+                        kept.Add("{\"id\":\"old_" + i + "\",\"tool_config\":{\"type\":\"client\",\"name\":" + Voice.Quote(Hands.Name(i)) + ",\"description\":" + Voice.Quote(Hands.Description(i)) + "}}");
+                        voiceIds.Add(Voice.Quote("old_" + i));
+                    }
+                    string[] voiceReplies =
+                    {
+                        "{\"tools\":[" + string.Join(",", kept.GetRange(0, 20).ToArray()) + "],\"has_more\":true,\"next_cursor\":\"c+/=\"}",
+                        "{\"tools\":[" + string.Join(",", kept.GetRange(20, kept.Count - 20).ToArray()) + "],\"has_more\":false}",
+                        "{\"id\":\"new_stream\"}", "{\"id\":\"new_pc_status\"}", "{\"agent_id\":\"agent_paged\"}"
+                    };
+                    Voice.Host = FakeServer(voiceReplies, voiceAsked, out voiceFake);
+                    Voice.Patience = 2000;
+                    string pagedAgent = Agent.Create("test", "voice_test");
+                    Func<int, string> voiceBody = delegate(int at) { return voiceAsked[at].Substring(voiceAsked[at].IndexOf("\r\n\r\n", StringComparison.Ordinal) + 4); };
+                    if (pagedAgent != "agent_paged" || voiceAsked.Count != 5 || !voiceAsked[0].StartsWith("GET /v1/convai/tools?page_size=100 HTTP/", StringComparison.Ordinal)
+                        || !voiceAsked[1].StartsWith("GET /v1/convai/tools?page_size=100&cursor=c%2B%2F%3D HTTP/", StringComparison.Ordinal)
+                        || !voiceAsked[2].StartsWith("POST /v1/convai/tools HTTP/", StringComparison.Ordinal) || voiceBody(2) != newOnes[0] || voiceBody(3) != newOnes[1]
+                        || !voiceAsked[4].StartsWith("POST /v1/convai/agents/create HTTP/", StringComparison.Ordinal) || !voiceBody(4).Contains("\"tool_ids\":[" + string.Join(",", voiceIds.ToArray()) + "]"))
+                        throw new Exception("Voice chat didn't read every page of her saved tools, or saved one twice: " + string.Join(" | ", voiceAsked.ToArray()));
+                    voiceFake.Stop();
+                    voiceAsked.Clear();
+                    Voice.Host = FakeServer(new[] { "{\"tools\":[],\"has_more\":true,\"next_cursor\":\"x\"}", "{\"tools\":[],\"has_more\":true,\"next_cursor\":\"x\"}" }, voiceAsked, out voiceFake);
+                    string loop = null;
+                    try { Agent.Create("test", "voice_test"); }
+                    catch (VoiceException error) { loop = error.Message; }
+                    if (loop != "ElevenLabs didn't list all her tools." || voiceAsked.Count != 2) throw new Exception("A tool list that pages in a loop wasn't caught: " + loop);
+                }
+                finally { Voice.Host = voiceHostWas; Voice.Patience = voicePatienceWas; if (voiceFake != null) voiceFake.Stop(); }
+                checks.Add("PASS voice chat reads every page of the tools saved on their ElevenLabs account, 100 at a time, saves only the ones missing, attaches all of them in order, and stops on a page list that loops");
                 string typedTool;
                 ToolArguments typedArgs;
                 if (Security.Needs("list_windows", null) != -1 || Security.Needs("check_app", new ToolArguments { Name = "Discord" }) != -1 || Security.Needs("capri_settings", new ToolArguments { Action = "off", Name = "voice" }) != -1

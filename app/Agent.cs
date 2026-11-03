@@ -45,6 +45,8 @@ namespace CapriDesktop
     internal sealed class AgentToolList
     {
         [DataMember(Name = "tools")] public AgentTool[] Tools;
+        [DataMember(Name = "has_more")] public bool More;
+        [DataMember(Name = "next_cursor")] public string Cursor;
     }
 
     [DataContract]
@@ -95,7 +97,7 @@ namespace CapriDesktop
     internal sealed class Agent : IDisposable
     {
         internal const double Pace = 15;
-        internal const int Version = 33;
+        internal const int Version = 34;
         private const string Patience = "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}";
         internal event Action<int> Opened;
         internal event Action<string> Heard;
@@ -149,14 +151,25 @@ namespace CapriDesktop
 
         private static string ToolIds(string key)
         {
-            AgentToolList found = Voice.Reply<AgentToolList>(Voice.Send(Voice.Open("/v1/convai/tools", key, "GET"), null), "/v1/convai/tools");
+            // ElevenLabs lists 30 tools a page unless asked for more, and she has more than that now, so it reads every page
+            // before saving any, or she'd save a copy of the ones on later pages each time.
+            List<AgentTool> saved = new List<AgentTool>();
+            HashSet<string> pages = new HashSet<string>();
+            string path = "/v1/convai/tools?page_size=100";
+            while (true)
+            {
+                AgentToolList found = Voice.Reply<AgentToolList>(Voice.Send(Voice.Open(path, key, "GET"), null), "/v1/convai/tools");
+                if (found.Tools != null) saved.AddRange(found.Tools);
+                if (!found.More) break;
+                if (string.IsNullOrEmpty(found.Cursor) || !pages.Add(found.Cursor)) throw new VoiceException("ElevenLabs didn't list all her tools.");
+                path = "/v1/convai/tools?page_size=100&cursor=" + Uri.EscapeDataString(found.Cursor);
+            }
             List<string> ids = new List<string>();
             for (int i = 0; i < Hands.Count; i++)
             {
                 string id = null;
-                if (found.Tools != null)
-                    foreach (AgentTool tool in found.Tools)
-                        if (tool.Config != null && tool.Config.Type == "client" && tool.Config.Name == Hands.Name(i) && tool.Config.Description == Hands.Description(i)) { id = tool.Id; break; }
+                foreach (AgentTool tool in saved)
+                    if (tool.Config != null && tool.Config.Type == "client" && tool.Config.Name == Hands.Name(i) && tool.Config.Description == Hands.Description(i)) { id = tool.Id; break; }
                 if (id == null) id = Voice.Reply<AgentTool>(Voice.Send(Voice.Open("/v1/convai/tools", key, "POST"), Encoding.UTF8.GetBytes(Hands.ElevenLabsTool(i))), "/v1/convai/tools").Id;
                 if (string.IsNullOrEmpty(id)) throw new VoiceException("ElevenLabs didn't save her tools.");
                 ids.Add(Voice.Quote(id));

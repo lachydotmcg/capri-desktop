@@ -1822,8 +1822,9 @@ namespace CapriDesktop
             string doable = null, rest = lacking == null && act != null && !fileChat ? kit.Rest(request, out doable) : null;
             if (rest != null && !planning) request = doable;
             if (lacking != null) unable = lacking;
-            // On stream, asking her to play starts her stream job however it's worded.
-            else if (act != null && Hands.Streaming && Hands.Streams(request))
+            // On stream, asking her to play starts her stream job however it's worded. A brain that works jobs out picks stream or
+            // use_computer itself, so this is only for her hands' pick.
+            else if (act != null && !planning && Hands.Streaming && Hands.Streams(request))
                 calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = request }));
             // Her "what should I remember?" is answered by their next message, which is saved as the note.
             else if (act != null && recent.Count == 2 && Hands.AskedWhat(recent[1].Content) && !Regex.IsMatch(text.Trim(), @"\?\s*$|^(no|nah|nope|nvm|never ?mind|nothing|cancel|forget it|stop)\b|^(yes|yeah|yep|ok|okay|sure|idk|hmm+)\W*$", RegexOptions.IgnoreCase))
@@ -1965,7 +1966,7 @@ namespace CapriDesktop
                 foreach (KeyValuePair<string, ToolArguments> call in calls)
                 {
                     Check(ticket);
-                    if (call.Key == "use_computer" && call.Value != null && call.Value.Asked == null) call.Value.Asked = request;
+                    if ((call.Key == "use_computer" || call.Key == "stream") && call.Value != null && call.Value.Asked == null) call.Value.Asked = request;
                     if (call.Key == "app_window" && call.Value != null) call.Value.Asked = request;
                     if (call.Key == "media") Hands.Aim(call.Value, request);
                     string result;
@@ -2130,7 +2131,7 @@ namespace CapriDesktop
                 {
                     Check(ticket);
                     ToolArguments args = call.Value ?? new ToolArguments();
-                    if (call.Key == "use_computer" && args.Asked == null) args.Asked = request;
+                    if ((call.Key == "use_computer" || call.Key == "stream") && args.Asked == null) args.Asked = request;
                     if (call.Key == "app_window") args.Asked = request;
                     if (call.Key == "media") Hands.Aim(args, request);
                     // The same job, app, site or song twice runs once: a small brain can call a job again that it thinks is still
