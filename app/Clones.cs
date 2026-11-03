@@ -968,7 +968,7 @@ namespace CapriDesktop
         private void CloneLine(List<KeyValuePair<int, string>> lines, int at, int turn)
         {
             if (turn != cloneTurn || cloneWindow == null) return;
-            if (working != null || speech != null || talkState != TalkState.Off) { CloneLater(400, lines, at, turn); return; }
+            if (working != null || speech != null || LineBusy || talkState != TalkState.Off) { CloneLater(400, lines, at, turn); return; }
             if (at >= lines.Count)
             {
                 cloneTalking = false;
@@ -994,9 +994,12 @@ namespace CapriDesktop
                 string trouble = null;
                 if (speak != null) wav = Voiced(speak, free, words, out trouble, false);
                 if (trouble != null) Brain.Log("clones", -1, trouble);
-                Post(delegate
+                Action play = null;
+                play = delegate
                 {
                     if (turn != cloneTurn || cloneWindow == null) return;
+                    if (LineBusy) { ownLines.Enqueue(play); return; }
+                    if (preferences.Silent || Hushed) wav = null;
                     double now = clock.Elapsed.TotalSeconds;
                     double seconds = wav != null ? Voice.Seconds(wav) : 1 + line.Length * 0.06;
                     if (who - 1 < cloneWindow.Swarm.Bodies.Count) cloneWindow.Say(cloneWindow.Swarm.Bodies[who - 1], line, now + seconds + 1);
@@ -1008,7 +1011,8 @@ namespace CapriDesktop
                         PlayVoice(wav);
                     }
                     CloneLater((int)(seconds * 1000) + 300, lines, at + 1, turn);
-                });
+                };
+                Post(play);
             });
         }
     }

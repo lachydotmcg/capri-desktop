@@ -921,7 +921,7 @@ namespace CapriDesktop
         {
             if (Hushed || preferences.Silent || quitting || (hidden && !docked) || (chatting && !local)) return false;
             double now = clock.Elapsed.TotalSeconds;
-            if (pushing || transcribing || typer.Visible || speaker.Busy || now < voiceUntil || (speech != null && working == null)) return false;
+            if (pushing || transcribing || typer.Visible || voice.Busy || speaker.Busy || chatTail.Enabled || now < voiceUntil || (speech != null && working == null)) return false;
             if (unchecked(Environment.TickCount - micTalked) < 1500) return false;
             return working != null || (talkState != TalkState.Thinking && talkState != TalkState.Talking);
         }

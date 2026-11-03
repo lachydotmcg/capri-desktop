@@ -1638,7 +1638,7 @@ namespace CapriDesktop
         internal Func<string, byte[]> FreeSpeak;
         private int voiceLanguageNoted;
         private volatile bool voiceBroke;
-        private readonly Voice voice = new Voice();
+        private readonly Voice voice;
         private readonly LocalVoice kokoro;
         private readonly QwenVoice qwen;
         private readonly VoiceServer server = new VoiceServer();
@@ -1879,6 +1879,7 @@ namespace CapriDesktop
             dance = new Clip(idle);
             Takeover.Face = LoadArt("Capri.Sprite.face.png");
             testing = smoke;
+            voice = new Voice(new Speaker(smoke));
             AllowDrop = true;
             instant = smoke;
             speaker = new Speaker(smoke);
@@ -2210,12 +2211,14 @@ namespace CapriDesktop
                 double signalNow = clock.Elapsed.TotalSeconds;
                 long signalIdle = Native.IdleMilliseconds();
                 if (!testing) CheckForeground(signalNow);
+                if (!testing) CheckKeyAccess();
                 if (!testing) CheckExplore(signalNow);
                 if (preferences.ExploreAway) signalIdle = awayInput.Quiet();
                 // Showing herself sends the new launch away. While she's quitting it waits, and takes her place once she's gone.
                 if (restore.WaitOne(0)) { RestoreAtCursor(); mainframe.Restore(); if (!quitting) shown.Set(); }
                 if (startMarker != null && clock.Elapsed.TotalSeconds >= 15) Settled();
                 CheckVoiceReady();
+                CheckNextLine();
                 if (!testing) CheckFollowUp(signalNow);
                 if (!testing) CheckWatchAlong(signalNow);
                 if (!testing) CheckIdle(signalIdle);
@@ -3936,7 +3939,7 @@ namespace CapriDesktop
             nudgeGap = NudgeGap;
             noticed = -1;
             nextGlance = -1;
-            if (shushed) voice.Stop();
+            if (shushed) { ownLines.Clear(); voicePreview = null; BargeIn("quiet key"); }
             if (docked) GameHud.Status(!preferences.Silent, shushed);
             if (say) Say(shushed ? "Going quiet. " + QuietKeyName + " when you want me back." : "I'm back, choom.");
         }
@@ -5640,6 +5643,7 @@ namespace CapriDesktop
 
         internal void SetVoicePitch(int semitones)
         {
+            if (chatting && !local && AfterLine(delegate { SetVoicePitch(semitones); })) return;
             VoiceFx.Pitch = Math.Max(-VoiceFx.MostPitch, Math.Min(VoiceFx.MostPitch, semitones));
             preferences.VoicePitch = VoiceFx.Pitch;
             SavePreferences();
@@ -5647,6 +5651,7 @@ namespace CapriDesktop
 
         internal void SetVoiceSpeed(int percent)
         {
+            if (chatting && !local && AfterLine(delegate { SetVoiceSpeed(percent); })) return;
             VoiceFx.Speed = Math.Max(VoiceFx.Slowest, Math.Min(VoiceFx.Fastest, percent));
             preferences.VoiceSpeed = VoiceFx.Speed;
             SavePreferences();
@@ -5654,6 +5659,7 @@ namespace CapriDesktop
 
         internal void SetVoiceRobot(int percent)
         {
+            if (chatting && !local && AfterLine(delegate { SetVoiceRobot(percent); })) return;
             int robot = Math.Max(0, Math.Min(100, percent));
             if (SpeaksHd) preferences.HdRobot = VoiceFx.HdRobot = robot;
             else if (SpeaksServer) preferences.ServerRobot = VoiceFx.ServerRobot = robot;
@@ -5663,6 +5669,7 @@ namespace CapriDesktop
 
         internal void SetVoiceGlitch(int percent)
         {
+            if (chatting && !local && AfterLine(delegate { SetVoiceGlitch(percent); })) return;
             int glitch = Math.Max(0, Math.Min(100, percent));
             if (SpeaksHd) preferences.HdVoiceGlitch = VoiceFx.HdGlitch = glitch;
             else if (SpeaksServer) preferences.ServerGlitch = VoiceFx.ServerGlitch = glitch;
@@ -5680,6 +5687,7 @@ namespace CapriDesktop
 
         internal void SetVoiceLayers(VoiceFx.Layering layers)
         {
+            if (chatting && !local && AfterLine(delegate { SetVoiceLayers(layers); })) return;
             VoiceFx.Layers = layers ?? VoiceFx.Layering.Off;
             preferences.VoiceLayers = VoiceFx.Layers.On;
             preferences.LayerPitch1 = VoiceFx.Layers.Pitch1;
@@ -7161,6 +7169,8 @@ namespace CapriDesktop
             if (through || fullThrough) { fullThrough = through; PassThrough(); }
             bool shouldHide = preferences.HideFullScreen && full && !gaming.Asked;
             if (fullScreenHidden == shouldHide) return;
+            // Hiding closes her bubble and her voice with it, so she finishes her line first.
+            if (shouldHide && Voicing) return;
             fullScreenHidden = shouldHide;
             if (!docked && hidden != (manualHidden || shouldHide)) ApplyHidden(manualHidden || shouldHide);
         }
@@ -7288,6 +7298,7 @@ namespace CapriDesktop
 
         internal void ToggleSpeaking()
         {
+            if (AfterLine(ToggleSpeaking)) return;
             preferences.Quiet = !preferences.Quiet;
             if (preferences.Quiet) { voice.Stop(); LeaveCall(); }
             SavePreferences();
@@ -7302,9 +7313,12 @@ namespace CapriDesktop
         // Her settings tool turns it off without her line, since her brain says so.
         internal void Silence(bool say = true)
         {
+            ownLines.Clear();
+            voicePreview = null;
             if (preferences.Silent) return;
             preferences.Silent = true;
-            voice.Stop();
+            BargeIn("voice off");
+            Hush();
             qwen.Stop();
             LeaveCall();
             SavePreferences();
@@ -7332,6 +7346,7 @@ namespace CapriDesktop
         // only clears Quiet for the key that comes next.
         internal void ChooseVoiceTier(bool paid)
         {
+            if (AfterLine(delegate { ChooseVoiceTier(paid); })) return;
             if (paid && preferences.CloudVoice != ElevenLabs)
             {
                 preferences.CloudVoice = ElevenLabs;
@@ -7974,6 +7989,7 @@ namespace CapriDesktop
 
         internal void ChooseLocalBrain(Cloud server, string model, Pick local)
         {
+            if (AfterLine(delegate { ChooseLocalBrain(server, model, local); })) return;
             ++cloudListing;
             cloudModels = null;
             brain.Cancel();
@@ -8225,7 +8241,7 @@ namespace CapriDesktop
                 {
                     if (job != running || turn != asideVoice || IsDisposed || (chatting && !local && !Computer.Streaming) || preferences.Silent || Hushed) { ToolVoiced(turn); return; }
                     double now = clock.Elapsed.TotalSeconds;
-                    if (voiceUntil > now)
+                    if (Voicing)
                     {
                         if (tries++ < 16) ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(500); Post(play); });
                         else ToolVoiced(turn);
@@ -8745,6 +8761,7 @@ namespace CapriDesktop
         internal void ChooseModel(string name, bool keep = true)
         {
             if (name == brain.Model) return;
+            if (keep && AfterLine(delegate { ChooseModel(name, keep); })) return;
             brain.Cancel();
             ++asking;
             CloseTalk();
@@ -8823,6 +8840,7 @@ namespace CapriDesktop
         internal void ChooseTier(int tier)
         {
             if (tier == preferences.Tier) return;
+            if (AfterLine(delegate { ChooseTier(tier); })) return;
             ++cloudListing;
             brain.Cancel();
             ++asking;
@@ -8868,6 +8886,7 @@ namespace CapriDesktop
 
         internal void ForgetText()
         {
+            if (AfterLine(ForgetText)) return;
             ++cloudListing;
             brain.Cancel();
             ++asking;
@@ -8943,6 +8962,7 @@ namespace CapriDesktop
 
         internal void ForgetVoice()
         {
+            if (AfterLine(ForgetVoice)) return;
             StopChat();
             voice.Stop();
             voice.Key = null;
@@ -8957,6 +8977,7 @@ namespace CapriDesktop
 
         internal void ChooseVoice(string id)
         {
+            if (AfterLine(delegate { ChooseVoice(id); })) return;
             id = (id ?? "").Trim();
             if (id.Length == 0) id = null;
             if (id == voice.VoiceId) { ShowVoice(false); return; }
@@ -8968,6 +8989,7 @@ namespace CapriDesktop
 
         internal void ChooseVoiceModel(string id)
         {
+            if (AfterLine(delegate { ChooseVoiceModel(id); })) return;
             voice.Model = string.IsNullOrEmpty(id) ? null : id;
             preferences.VoiceModel = voice.Model;
             SavePreferences();
@@ -9018,6 +9040,55 @@ namespace CapriDesktop
         internal const string SpeechSettings = "ms-settings:privacy-speech";
         internal void OpenSpeechSettings() { Browse(SpeechSettings); }
 
+        // A setting changed partway through her line, a preview of her voice, or a line she starts herself, like a comment, cut
+        // off the line she was saying (john_sandevistan, 3 Nov). A setting now waits for her voice to finish and applies from her
+        // next line. A preview or her own line also waits for her reply and for them talking, and only the newest preview plays.
+        // Talking over her, her quiet key and turning her voice off still stop her at once.
+        private readonly System.Collections.Generic.Queue<Action> voiceChanges = new System.Collections.Generic.Queue<Action>();
+        private readonly System.Collections.Generic.Queue<Action> ownLines = new System.Collections.Generic.Queue<Action>();
+        private Action voicePreview;
+
+        // Her voice is still being made or played, past its estimate too: an answer's, a reaction's, a clone's or voice chat's.
+        private bool Voicing
+        {
+            get
+            {
+                return voice.Busy || speaker.Busy || chatTail.Enabled || clock.Elapsed.TotalSeconds < voiceUntil || answerVoice == asking || hdSpeaking == asking;
+            }
+        }
+
+        private bool LineBusy { get { return Voicing || pushing || transcribing || talkState == TalkState.Thinking || talkState == TalkState.Talking; } }
+
+        private bool AfterLine(Action change)
+        {
+            if (!Voicing) return false;
+            voiceChanges.Enqueue(change);
+            return true;
+        }
+
+        private bool PreviewAfterLine(Action preview)
+        {
+            if (!LineBusy) return false;
+            voicePreview = preview;
+            return true;
+        }
+
+        // Settings go in even while she's hidden; her own lines would bring her back, so they wait.
+        private void CheckNextLine()
+        {
+            if (quitting || IsDisposed) return;
+            while (voiceChanges.Count > 0 && !Voicing) voiceChanges.Dequeue()();
+            if ((hidden && !docked) || LineBusy) return;
+            if (voicePreview != null)
+            {
+                Action preview = voicePreview;
+                voicePreview = null;
+                preview();
+                return;
+            }
+            if (ownLines.Count > 0) ownLines.Dequeue()();
+        }
+
         private void Tell(string shown, string line)
         {
             if (hidden) SetHidden(false);
@@ -9030,6 +9101,14 @@ namespace CapriDesktop
         // "> sys: watching" above them (Lachy, 30 Oct: testers found it too robotic).
         private void Remark(string shown, string line, bool bubbleOnly = false, byte[] prepared = null, bool ready = false)
         {
+            // Out loud it waits for her to finish and for them; in her bubble only it waits just for her own voice, so a reminder
+            // still shows in a call.
+            bool aloud = prepared != null || !(bubbleOnly || ready);
+            if (aloud ? LineBusy : voice.Busy || clock.Elapsed.TotalSeconds < voiceUntil || answerVoice == asking || hdSpeaking == asking)
+            {
+                ownLines.Enqueue(delegate { Remark(shown, line, bubbleOnly, prepared, ready); });
+                return;
+            }
             if (hidden) SetHidden(false);
             heard = shown;
             box.Prompt = "";
@@ -9451,6 +9530,7 @@ namespace CapriDesktop
 
         internal void ToggleHdCpu()
         {
+            if (AfterLine(ToggleHdCpu)) return;
             preferences.HdCpu = !preferences.HdCpu;
             qwen.CpuOnly = preferences.HdCpu;
             qwen.Stop();
@@ -9463,6 +9543,7 @@ namespace CapriDesktop
         // HD is opt-in: one download, then it wakes on the graphics card when she talks and hands back to her free voice while games run.
         private void ChooseHd()
         {
+            if (AfterLine(ChooseHd)) return;
             preferences.HdVoice = true;
             preferences.ServerVoice = false;
             hdRest = -1;
@@ -9574,6 +9655,7 @@ namespace CapriDesktop
 
         internal void ChooseVoiceStyle(string name)
         {
+            if (AfterLine(delegate { ChooseVoiceStyle(name); })) return;
             if (name == QwenVoice.Style) { ChooseHd(); return; }
             if (preferences.HdVoice || settingUpHd)
             {
@@ -9703,14 +9785,11 @@ namespace CapriDesktop
 
         internal void TestVoice()
         {
+            if (PreviewAfterLine(TestVoice)) return;
             if (preferences.Silent) { mainframe.VoiceNote(SilentNote, true); return; }
             if (voice.Key == null && Speak == null && !kokoro.Installed && !preferences.ServerVoice) { mainframe.VoiceNote("Get her free voice, or paste an ElevenLabs key.", true); return; }
             if (voice.Key != null && voice.VoiceId == null && Speak == null) { mainframe.VoiceNote("Paste your Voice ID first.", true); return; }
-            if (hidden) SetHidden(false);
-            brain.Cancel();
-            heard = "voice check";
-            box.Prompt = "> sys: ";
-            Answer(++asking, TestLine, TalkState.Talking);
+            CheckVoice(TestLine, false);
         }
 
         internal string ServerUrl { get { return server.Url; } }
@@ -9733,6 +9812,7 @@ namespace CapriDesktop
         // for that row comes back, HD and ElevenLabs step aside, and she says her check line through it.
         internal void UseVoiceServer(string url, string model, string speaker, string key, string api)
         {
+            if (AfterLine(delegate { UseVoiceServer(url, model, speaker, key, api); })) return;
             api = VoiceServer.Known(api);
             string address = ServerAddress(url, api);
             Bring(Cloudy(address, api));
@@ -9966,12 +10046,7 @@ namespace CapriDesktop
                     if (problem != null) { done(problem, true); return; }
                     done("It works. " + label + " said that in " + seconds.ToString("0.0") + " s.", false);
                     if (preferences.Silent) return;
-                    if (hidden) SetHidden(false);
-                    brain.Cancel();
-                    voice.Stop();
-                    heard = "voice check";
-                    box.Prompt = "> sys: ";
-                    Begin(++asking, TestLine, TalkState.Talking, wav);
+                    CheckVoice(TestLine, false, wav);
                 });
             });
         }
@@ -9996,6 +10071,7 @@ namespace CapriDesktop
         // ElevenLabs makes the line once; after that its audio is restyled here, so dragging around spends no more credits.
         internal void HearVoiceStyle()
         {
+            if (PreviewAfterLine(HearVoiceStyle)) return;
             bool paid = !preferences.Quiet && !voiceBroke && (Speak != null || voice.Ready);
             bool free = FreeSpeak != null || kokoro.Installed || (preferences.HdVoice && qwen.Installed) || preferences.ServerVoice;
             string line = preferences.Silent ? StyleSilent : paid || free ? StyleLine : StyleMissing;
@@ -10003,13 +10079,15 @@ namespace CapriDesktop
             CheckVoice(line, false);
         }
 
-        private void CheckVoice(string line, bool quiet)
+        private void CheckVoice(string line, bool quiet, byte[] prepared = null)
         {
+            if (PreviewAfterLine(delegate { CheckVoice(line, quiet, prepared); })) return;
             if (hidden) SetHidden(false);
             brain.Cancel();
             heard = "voice check";
             box.Prompt = "> sys: ";
-            Answer(++asking, line, TalkState.Talking, quiet);
+            if (prepared == null) Answer(++asking, line, TalkState.Talking, quiet);
+            else Begin(++asking, line, TalkState.Talking, prepared);
         }
 
         internal const string HdWaking = "One sec, waking my HD voice.";
@@ -10018,6 +10096,7 @@ namespace CapriDesktop
         // she wakes it and says the line once it's up.
         private bool WakeFor(string line)
         {
+            if (PreviewAfterLine(delegate { if (!WakeFor(line)) CheckVoice(line, true); })) return true;
             if (testing || !preferences.HdVoice || preferences.Silent || !qwen.Installed || qwen.Awake || HdStepsAside() || clock.Elapsed.TotalSeconds < hdRest) return false;
             hdLine = line;
             WakeHd();
@@ -11769,7 +11848,7 @@ namespace CapriDesktop
             }
             bool comment = remarkTicket == asking;
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
-            if (replyDone >= 0 && hdSpeaking != asking && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && now > replyDone + hold) box.Leaving = now;
+            if (replyDone >= 0 && hdSpeaking != asking && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
             if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
@@ -23922,6 +24001,217 @@ namespace CapriDesktop
             if (!done()) throw new Exception(problem);
         }
 
+        private void SmokeLineChanges(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            bool signalsWas = signals.Enabled, quietWas = preferences.Quiet, silentWas = preferences.Silent, hdWas = preferences.HdVoice, servedWas = preferences.ServerVoice;
+            bool chattingWas = chatting, localWas = local, hiddenWas = hidden, shushedWas = shushed, dockedWas = docked;
+            Job jobWas = job;
+            string workingWas = working, modelWas = voice.Model, savedModelWas = preferences.VoiceModel;
+            int pitchWas = VoiceFx.Pitch, speedWas = VoiceFx.Speed, robotWas = VoiceFx.Robot, glitchWas = VoiceFx.Glitch;
+            int savedPitchWas = preferences.VoicePitch, savedSpeedWas = preferences.VoiceSpeed, savedRobotWas = preferences.VoiceRobot, savedGlitchWas = preferences.VoiceGlitch;
+            int waitWas = VoiceWait, freeWaitWas = FreeWait, typingWas = preferences.Typing;
+            VoiceFx.Layering layersWas = VoiceFx.Layers, savedLayers = LayersOf(preferences);
+            CloneWindow clonesWas = cloneWindow, clonesHere = null;
+            bool talkingWas = cloneTalking, hideFullWas = preferences.HideFullScreen, fullHiddenWas = fullScreenHidden, throughWas = fullThrough;
+            double cloneAtWas = cloneTalkAt;
+            int micWas = micTalked;
+            Func<bool> fullWas = FullScreen;
+            try
+            {
+                signals.Stop();
+                CloseTalk(); Hush();
+                voiceChanges.Clear(); ownLines.Clear(); voicePreview = null;
+                FullScreen = delegate { return false; };
+                hidden = shushed = docked = chatting = local = false;
+                preferences.Quiet = preferences.Silent = preferences.HdVoice = preferences.ServerVoice = false;
+                preferences.Typing = 2;
+                job = null; working = null;
+                VoiceWait = FreeWait = 20;
+                VoiceFx.Pitch = VoiceFx.Robot = VoiceFx.Glitch = 0; VoiceFx.Speed = 100; VoiceFx.Layers = VoiceFx.Layering.Off;
+                short[] samples = new short[16000];
+                for (int at = 0; at < samples.Length; at++) samples[at] = (short)(5000 * Math.Sin(at * 0.05));
+                byte[] wav = Voice.Wave(samples, 16000);
+                Speak = FreeSpeak = delegate { return wav; };
+                Begin(++asking, "The first line is still playing.", TalkState.Talking, wav);
+                voice.Play(wav);
+                int ticket = asking, answer = answerTurn;
+                double until = voiceUntil;
+                SetVoicePitch(3);
+                HearVoiceStyle();
+                ChooseVoiceModel("next-line-model");
+                CheckNextLine();
+                if (!voice.Busy || voiceUntil != until || asking != ticket || answerTurn != answer || reply != "The first line is still playing." || voice.Model != modelWas || voicePreview == null || voiceChanges.Count != 1)
+                    throw new Exception("A voice setting or its preview cut the current line.");
+                WaitVoice(delegate { return !voice.Busy && clock.Elapsed.TotalSeconds >= until; }, "The fake setting line did not finish.");
+                CloseTalk();
+                CheckNextLine();
+                WaitVoice(delegate { return reply == StyleLine && voiceUntil > 0; }, "The held voice preview did not play next.");
+                if (voice.Model != "next-line-model" || voiceChanges.Count != 0 || voicePreview != null || VoiceFx.Pitch != 3) throw new Exception("A held voice setting was lost.");
+                checks.Add("PASS a voice setting and its preview leave a fake line playing to the end, then apply and preview the next line");
+                CloseTalk();
+
+                Begin(++asking, "Keep this line before her comment.", TalkState.Talking, wav);
+                voice.Play(wav);
+                ticket = asking; until = voiceUntil;
+                SayOwn("check-in", "Her queued check-in.");
+                Remark("watching", "Her queued prepared comment.", false, wav, true);
+                CheckNextLine();
+                if (!voice.Busy || asking != ticket || voiceUntil != until || ownLines.Count != 2 || reply != "Keep this line before her comment.") throw new Exception("Her own comment replaced a playing line.");
+                WaitVoice(delegate { return !voice.Busy && clock.Elapsed.TotalSeconds >= until; }, "The fake comment line did not finish.");
+                CloseTalk();
+                hidden = true; CheckNextLine();
+                if (ownLines.Count != 2 || asking != ticket) throw new Exception("A queued comment brought her back while hidden.");
+                hidden = false;
+                CheckNextLine();
+                WaitVoice(delegate { return reply == "Her queued check-in." && voiceUntil > 0; }, "Her queued check-in never spoke.");
+                ticket = asking; until = voiceUntil;
+                CheckNextLine();
+                if (asking != ticket || voiceUntil != until || ownLines.Count != 1) throw new Exception("A second own line cut off the queued check-in.");
+                voice.Play(wav);
+                int audio = audioTurn;
+                BargeIn();
+                if (voice.Busy || voiceUntil != 0 || audioTurn == audio) throw new Exception("Talking over her didn't stop her at once.");
+                CloseTalk();
+                CheckNextLine();
+                if (reply != "Her queued prepared comment." || ownLines.Count != 0 || voiceUntil <= 0) throw new Exception("A prepared comment was lost while it waited.");
+                checks.Add("PASS check-ins and prepared comments wait in order, leave the current line alone, and talking over her still stops her at once");
+                CloseTalk();
+
+                chatting = true;
+                VoiceFx.Pitch = VoiceFx.Robot = VoiceFx.Glitch = 0; VoiceFx.Speed = 100; VoiceFx.Layers = VoiceFx.Layering.Off;
+                speaker.Open(16000); speaker.Play(samples);
+                short[] piece = new short[320];
+                SetVoicePitch(4); SetVoiceSpeed(120); SetVoiceRobot(20); SetVoiceGlitch(10); SetVoiceLayers(layersWas.Turned(true));
+                CheckNextLine();
+                if (VoiceFx.Pitch != 0 || VoiceFx.Speed != 100 || VoiceFx.Robot != 0 || VoiceFx.Glitch != 0 || VoiceFx.Layers.On || ChatVoice(piece) != piece || voiceChanges.Count != 5 || !speaker.Busy)
+                    throw new Exception("A style change rebuilt the live voice partway through a line.");
+                WaitVoice(delegate { return !speaker.Busy; }, "The fake streamed line did not finish.");
+                CheckNextLine();
+                ChatVoice(piece);
+                if (VoiceFx.Pitch != 4 || VoiceFx.Speed != 120 || VoiceFx.Robot != 20 || VoiceFx.Glitch != 10 || !VoiceFx.Layers.On || chatFx == null || chatFx.Pitch != 4 || voiceChanges.Count != 0)
+                    throw new Exception("The next streamed line missed its new style.");
+                Hush(); chatting = false;
+                checks.Add("PASS pitch, speed, robot, glitch and layers keep the live line's style, then reach the next streamed line");
+
+                voice.Play(wav);
+                voiceUntil = 0;
+                speech = null; talkState = TalkState.Off; micTalked = Environment.TickCount - 5000;
+                if (ReactionVoiceFree()) throw new Exception("A reaction ignored sound still on the speakers.");
+                clonesHere = new CloneWindow(new Rectangle(0, 0, 300, 300), clock, idle, walk, grin, glitch, preferences.Size, Width, 1);
+                cloneWindow = clonesHere;
+                ticket = asking;
+                int clone = ++cloneTurn;
+                CloneLine(new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<int, string>> { new System.Collections.Generic.KeyValuePair<int, string>(1, "A clone line waits.") }, 0, clone);
+                if (!voice.Busy || asking != ticket) throw new Exception("A clone line cut sound still on the speakers.");
+                cloneTurn++;
+                voice.Stop();
+                cloneWindow = clonesWas; clonesHere.Dispose(); clonesHere = null;
+                checks.Add("PASS reactions and clone lines wait for sound still playing past its estimate");
+
+                Begin(++asking, "Keep playing while settings change.", TalkState.Talking, wav);
+                voice.Play(wav);
+                Action[] changes = {
+                    ToggleSpeaking, delegate { ChooseVoiceTier(true); }, delegate { ChooseLocalBrain(null, "line-guard-check", null); },
+                    delegate { ChooseModel("line-guard-check"); }, delegate { ChooseTier((preferences.Tier + 1) % 3); }, ForgetText, ForgetVoice,
+                    delegate { ChooseVoice("line-guard-check"); }, delegate { ChooseVoiceModel("line-guard-check"); }, ToggleHdCpu, ChooseHd,
+                    delegate { ChooseVoiceStyle(LocalVoice.Styles[0].Name); }, delegate { UseVoiceServer("http://127.0.0.1:9", "line-guard-check", null, null, VoiceServer.OpenAi); }, ToggleCallMode
+                };
+                ticket = asking; until = voiceUntil;
+                foreach (Action change in changes) change();
+                if (voiceChanges.Count != changes.Length || !voice.Busy || asking != ticket || voiceUntil != until) throw new Exception("A voice, brain or call setting stopped the current line.");
+                preferences.HideFullScreen = true; fullScreenHidden = false;
+                CheckFullScreen(true);
+                if (!gaming.Asked && (hidden || fullScreenHidden || !voice.Busy)) throw new Exception("Automatic full-screen hiding cut her voice.");
+                preferences.HideFullScreen = hideFullWas; fullScreenHidden = fullHiddenWas; fullThrough = throughWas;
+                PassThrough();
+                HearVoiceStyle(); SayOwn("check-in", "This waits for her voice.");
+                speaker.Open(16000); speaker.Play(samples); chatting = local = true;
+                Silence(false);
+                if (voice.Busy || speaker.Busy || voiceUntil != 0 || ownLines.Count != 0 || voicePreview != null || !preferences.Silent || voiceChanges.Count != changes.Length)
+                    throw new Exception("Turning her voice off left her talking, or lost a setting that was waiting.");
+                checks.Add("PASS voice, brain and call changes and full-screen hiding wait for her line, and turning her voice off stops both speakers at once, drops her waiting lines and keeps the waiting settings");
+            }
+            finally
+            {
+                voiceChanges.Clear(); ownLines.Clear(); voicePreview = null;
+                CloseTalk(); Hush(); FullScreen = fullWas;
+                cloneWindow = clonesWas; if (clonesHere != null) clonesHere.Dispose(); cloneTalking = talkingWas; cloneTalkAt = cloneAtWas;
+                preferences.HideFullScreen = hideFullWas; fullScreenHidden = fullHiddenWas; fullThrough = throughWas; micTalked = micWas; PassThrough();
+                Speak = speakWas; FreeSpeak = freeWas;
+                preferences.Quiet = quietWas; preferences.Silent = silentWas; preferences.HdVoice = hdWas; preferences.ServerVoice = servedWas;
+                chatting = chattingWas; local = localWas; hidden = hiddenWas; shushed = shushedWas; docked = dockedWas;
+                job = jobWas; working = workingWas; voice.Model = modelWas; preferences.VoiceModel = savedModelWas;
+                VoiceWait = waitWas; FreeWait = freeWaitWas; preferences.Typing = typingWas;
+                VoiceFx.Pitch = pitchWas; VoiceFx.Speed = speedWas; VoiceFx.Robot = robotWas; VoiceFx.Glitch = glitchWas; VoiceFx.Layers = layersWas;
+                preferences.VoicePitch = savedPitchWas; preferences.VoiceSpeed = savedSpeedWas; preferences.VoiceRobot = savedRobotWas; preferences.VoiceGlitch = savedGlitchWas;
+                preferences.VoiceLayers = savedLayers.On; preferences.LayerPitch1 = savedLayers.Pitch1; preferences.LayerDelay1 = savedLayers.Delay1; preferences.LayerPitch2 = savedLayers.Pitch2; preferences.LayerDelay2 = savedLayers.Delay2;
+                SavePreferences();
+                if (signalsWas) signals.Start();
+            }
+        }
+
+        private void SmokeAdminKeys(System.Collections.Generic.List<string> checks)
+        {
+            Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
+            Func<IntPtr> frontWas = Hands.Foreground;
+            Func<Sight> sightWas = Computer.Glimpse;
+            Func<IntPtr, bool> raisedWas = Computer.AboveHer;
+            Func<bool> fullWas = FullScreen;
+            bool signalsWas = signals.Enabled, silentWas = preferences.Silent, quietWas = preferences.Quiet, hiddenWas = hidden, shushedWas = shushed;
+            bool chattingWas = chatting, localWas = local, dockedWas = docked, hdWas = preferences.HdVoice, servedWas = preferences.ServerVoice;
+            int waitWas = VoiceWait, freeWaitWas = FreeWait;
+            Job jobWas = job;
+            IntPtr keyFrontWas = keyFront;
+            string[] warnedWas = new string[keyWarnings.Count]; keyWarnings.CopyTo(warnedWas);
+            try
+            {
+                signals.Stop(); CloseTalk(); Hush();
+                ownLines.Clear(); voicePreview = null;
+                hidden = shushed = chatting = local = docked = false;
+                preferences.Silent = preferences.Quiet = preferences.HdVoice = preferences.ServerVoice = false;
+                job = null;
+                VoiceWait = FreeWait = 20;
+                byte[] wav = Voice.Wave(new short[16000], 16000);
+                Speak = FreeSpeak = delegate { return wav; };
+                Sight genshin = new Sight { Window = new IntPtr(7101), Title = "Genshin Impact", Program = "GenshinImpact" };
+                Sight manager = new Sight { Window = new IntPtr(7102), Title = "Task Manager", Program = "Taskmgr" };
+                Sight roblox = new Sight { Window = new IntPtr(7103), Title = "Roblox", Program = "RobloxPlayerBeta" };
+                Sight front = genshin;
+                bool admin = false;
+                Hands.Foreground = delegate { return front.Window; };
+                Computer.Glimpse = delegate { return front; };
+                Computer.AboveHer = delegate(IntPtr window) { return !admin && window != IntPtr.Zero; };
+                FullScreen = delegate { return false; };
+                keyWarnings.Clear(); keyFront = IntPtr.Zero;
+                CheckKeyAccess();
+                WaitVoice(delegate { return reply == AdminKeys; }, "A game that runs as admin didn't say why her keys don't work there.");
+                CloseTalk();
+                int ticket = asking;
+                CheckKeyAccess();
+                front = manager; CheckKeyAccess();
+                front = genshin; CheckKeyAccess();
+                if (asking != ticket || reply != null || ownLines.Count != 0 || keyWarnings.Count != 1) throw new Exception("Task Manager or the same game again got her admin line.");
+                admin = true; front = roblox; CheckKeyAccess();
+                if (asking != ticket || reply != null || keyWarnings.Count != 1) throw new Exception("A game that doesn't run above her got her admin line.");
+                admin = false; front = manager; CheckKeyAccess(); front = roblox; CheckKeyAccess();
+                WaitVoice(delegate { return reply == AdminKeys; }, "A second game that runs as admin didn't get its own line.");
+                checks.Add("PASS a game that runs as admin, like Genshin Impact, gets one line on why her keys don't work there; Task Manager, the same game again and a game that doesn't run above her get nothing");
+                checks.Add("LIMIT whether Windows hides Genshin Impact's keys from her, and whether its token says it runs as admin, needs a real PC with the game");
+            }
+            finally
+            {
+                ownLines.Clear(); voicePreview = null; CloseTalk(); Hush();
+                Hands.Foreground = frontWas; Computer.Glimpse = sightWas; Computer.AboveHer = raisedWas; FullScreen = fullWas;
+                Speak = speakWas; FreeSpeak = freeWas; VoiceWait = waitWas; FreeWait = freeWaitWas; job = jobWas;
+                preferences.HdVoice = hdWas; preferences.ServerVoice = servedWas;
+                preferences.Silent = silentWas; preferences.Quiet = quietWas; hidden = hiddenWas; shushed = shushedWas; chatting = chattingWas; local = localWas; docked = dockedWas;
+                keyFront = keyFrontWas;
+                keyWarnings.Clear(); foreach (string warned in warnedWas) keyWarnings.Add(warned);
+                if (signalsWas) signals.Start();
+            }
+        }
+
         private void SmokeAnswerVoice(System.Collections.Generic.List<string> checks, string output)
         {
             Func<string, byte[]> speakWas = Speak, freeWas = FreeSpeak;
@@ -24078,11 +24368,12 @@ namespace CapriDesktop
                 asideVoiceTest = true;
                 int jobVoice = asideVoice;
                 SayAside("Private job line.", busy);
-                WaitVoice(delegate { return voiceUntil > 0; }, "The fake job line did not speak.");
                 if (asideVoice == jobVoice || answerTurn != asideTurn || audioTurn != asideAudio) throw new Exception("A job line changed the answer's audio identity.");
                 asideRelease.Set();
                 WaitVoice(delegate { return completed(asideTurn) && reply == "Private answer beside a job." && mouths != null; }, "A job voice invalidated its answer.");
-                checks.Add("PASS a job line changes its own voice generation while the pending answer still completes and speaks");
+                double answerUntil = voiceUntil;
+                WaitVoice(delegate { return voiceUntil > answerUntil; }, "The fake job line didn't speak after the answer it waited for.");
+                checks.Add("PASS a job line changes its own voice generation and waits for the answer being voiced beside it, which still completes and speaks first");
                 CloseTalk();
 
                 ManualResetEvent serverEntered = gate(), serverRelease = gate();
@@ -25500,6 +25791,8 @@ namespace CapriDesktop
             Section(checks, "SmokeComments", delegate { SmokeComments(checks); });
             Section(checks, "SmokeOpening", delegate { SmokeOpening(checks); });
             Section(checks, "SmokeVoiceWaits", delegate { SmokeVoiceWaits(checks); });
+            Section(checks, "SmokeLineChanges", delegate { SmokeLineChanges(checks); });
+            Section(checks, "SmokeAdminKeys", delegate { SmokeAdminKeys(checks); });
             Section(checks, "SmokeAnswerVoice", delegate { SmokeAnswerVoice(checks, output); });
             Section(checks, "SmokeVoiceLanguages", delegate { SmokeVoiceLanguages(checks, output); });
             Section(checks, "SmokeVault", delegate { SmokeVault(checks); });
