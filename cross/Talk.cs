@@ -832,6 +832,10 @@ namespace CapriDesktop
         internal double Pace { get { return pace; } }
         internal string Shown { get { return reply == null ? "" : reply.Substring(0, Math.Min(reply.Length, Math.Max(0, Bubble.Sheet.Revealed))); } }
         internal bool Typing { get { return Typer.IsVisible; } }
+        // When her voice for this reply ends, and whether she's done with it: not thinking, the reply shown in full and her voice
+        // over, with her typing box open or not.
+        private double audioEnd;
+        internal bool Finished { get { return !thinking && (reply == null || replyDone >= 0) && pet.Now >= audioEnd; } }
         internal bool Done { get { return reply != null && replyDone >= 0; } }
         internal bool Quiet { get { return reply == null && !thinking && !Typer.IsVisible; } }
         internal Control Face { get { return Bubble.Sheet; } }
@@ -885,6 +889,7 @@ namespace CapriDesktop
         {
             if (pet.Away) return;
             reply = answer;
+            audioEnd = pet.Now + Math.Max(0, seconds);
             thinking = false;
             pace = seconds < 0.2 ? LettersPerSecond : Math.Max(8, answer.Length / seconds);
             replyStart = pet.Now;

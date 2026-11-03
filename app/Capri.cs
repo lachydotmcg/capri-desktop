@@ -2118,8 +2118,12 @@ namespace CapriDesktop
             // Her brain reads and flips her own switches, and sees which open windows are games, only when it asks.
             Hands.SettingOn = SettingOn;
             Hands.SetSetting = SetSetting;
+            Hands.SetAgentSetting = delegate(string name, bool on) { return SetSetting(name, on, true); };
             Hands.LevelOf = LevelOf;
             Hands.SetLevel = SetLevel;
+            Hands.SettingAction = delegate(ToolArguments args) { return SettingAction(args.Action, args.FromAgent); };
+            Hands.SettingText = SettingText;
+            Hands.SetSettingText = SetSettingText;
             // Pause, play, skip and what's playing go by Windows' media session. The smoke test keeps its own, so no check reads or
             // presses their real player.
             if (!testing)
@@ -3824,7 +3828,7 @@ namespace CapriDesktop
         {
             string path = Path.Combine(Path.GetDirectoryName(settingsPath), "check-ins.md");
             if (!File.Exists(path)) File.WriteAllText(path, "# Capri's check-ins\n\n");
-            Process.Start(new ProcessStartInfo("notepad.exe", "\"" + path + "\""));
+            Hands.Run("\"" + Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "notepad.exe") + "\" \"" + path + "\"");
         }
 
         private void PopIn(double now)
@@ -5092,11 +5096,17 @@ namespace CapriDesktop
 
         internal bool TypingSound { get { return preferences.Typing == 1 || (preferences.Typing == 0 && !VoiceWorking); } }
 
-        internal void ToggleTyping()
+        // Her typing sound's mode: 0 Auto, only while her voice can't talk, 1 on and 2 off.
+        internal void SetTyping(int mode)
         {
-            preferences.Typing = TypingSound ? 2 : 1;
+            preferences.Typing = Math.Max(0, Math.Min(2, mode));
             SavePreferences();
             mainframe.Sync();
+        }
+
+        internal void ToggleTyping()
+        {
+            SetTyping(TypingSound ? 2 : 1);
             if (TypingSound) Sfx.Type("click clack", LettersPerSecond, 1);
         }
 
@@ -8142,6 +8152,8 @@ namespace CapriDesktop
         private bool? SettingOn(string name)
         {
             if (InvokeRequired) return (bool?)Invoke(new Func<string, bool?>(SettingOn), name);
+            int careKind = Array.IndexOf(Hands.CareSettings, name);
+            if (careKind >= 0) return CareOn((CareKind)careKind);
             switch (name)
             {
                 case "voice": return !preferences.Silent;
@@ -8166,16 +8178,31 @@ namespace CapriDesktop
                 case "follow_ups": return FollowUps;
                 case "hide_in_full_screen": return HideFullScreen;
                 case "glitch_in": return Intro;
+                case "keep_awake": return KeepAwake;
+                case "player_full_screen": return PlayerFullScreen;
+                case "explore_away": return ExploreAway;
+                case "fast_hands": return FastHandsOn;
+                case "cursor": return UsesCursor;
+                case "startup": return StartsWithWindows;
+                case "discord_presence": return OnDiscord;
+                case "voice_layers": return VoiceLayers.On;
+                case "show_advanced": return preferences.AdvancedSettings;
+                case "listen_for_capri": return ListenCapriOn;
+                case "voice_in_mic": return VoiceInMic;
                 default: return null;
             }
         }
 
         // Flips one of her switches the way its own switch in her Mainframe, menu or keys does, without her line about it, since her
         // brain tells them what happened (Lachy, 2 Nov: "ensure they have the tools they need to perform everything themself").
-        private string SetSetting(string name, bool on)
+        private string SetSetting(string name, bool on) { return SetSetting(name, on, false); }
+
+        private string SetSetting(string name, bool on, bool fromAgent)
         {
-            if (InvokeRequired) return (string)Invoke(new Func<string, bool, string>(SetSetting), name, on);
+            if (InvokeRequired) return (string)Invoke(new Func<string, bool, bool, string>(SetSetting), name, on, fromAgent);
             if (SettingOn(name) == on) return null;
+            int careKind = Array.IndexOf(Hands.CareSettings, name);
+            if (careKind >= 0) { ToggleCare((CareKind)careKind); return null; }
             switch (name)
             {
                 case "voice": if (on) Unsilence(); else Silence(false); return null;
@@ -8200,6 +8227,17 @@ namespace CapriDesktop
                 case "follow_ups": ToggleFollowUps(); return null;
                 case "hide_in_full_screen": ToggleHideFullScreen(); return null;
                 case "glitch_in": ToggleIntro(); return null;
+                case "keep_awake": ToggleKeepAwake(); return null;
+                case "player_full_screen": TogglePlayerFullScreen(); return null;
+                case "explore_away": ToggleExploreAway(); return null;
+                case "fast_hands": ToggleFastHands(); return null;
+                case "cursor": ToggleCursor(); return null;
+                case "startup": ToggleStartup(); return null;
+                case "discord_presence": ToggleDiscord(); return null;
+                case "voice_layers": SetVoiceLayers(VoiceLayers.Turned(on)); mainframe.Sync(); return null;
+                case "show_advanced": ToggleAdvancedSettings(); if (mainframe.SettingsShown) mainframe.ShowSettings(true); return null;
+                case "listen_for_capri": ToggleListenCapri(true, fromAgent); return null;
+                case "voice_in_mic": ToggleVoiceInMic(); return on && !VoiceInMic ? "Open Mainframe > VOICE > Her voice in your mic > Set up, install VB-CABLE, then restart your PC." : null;
                 default: return null;
             }
         }
@@ -8221,6 +8259,8 @@ namespace CapriDesktop
         private int LevelOf(string name)
         {
             if (InvokeRequired) return (int)Invoke(new Func<string, int>(LevelOf), name);
+            int careKind = Array.IndexOf(Hands.CareSettings, name);
+            if (careKind >= 0) return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), CareTime((CareKind)careKind)));
             switch (name)
             {
                 case "size": return Nearest(OwnSizes, CharacterSize);
@@ -8231,6 +8271,27 @@ namespace CapriDesktop
                 case "voice_speed": return Nearest(OwnPaces, VoiceSpeed);
                 case "replies": return Wordiness;
                 case "bubble": return BubbleTime;
+                case "explore_after": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), ExploreAfter));
+                case "glance_gap": { int at = Array.IndexOf(Hands.ValuesFor(name), GlanceGap); return at < 0 ? 5 : at; }
+                case "watch_memory": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), WatchMemoryLines));
+                case "voice_pitch": return VoicePitch + VoiceFx.MostPitch;
+                case "voice_robot": return Nearest(Hands.ValuesFor(name), VoiceRobot);
+                case "voice_glitch": return Nearest(Hands.ValuesFor(name), VoiceGlitch);
+                case "layer_1_pitch": return (int)Math.Round((VoiceLayers.Pitch1 + 12) * 2);
+                case "layer_2_pitch": return (int)Math.Round((VoiceLayers.Pitch2 + 12) * 2);
+                case "layer_1_delay": return (int)Math.Round(VoiceLayers.Delay1 / 5.0);
+                case "layer_2_delay": return (int)Math.Round(VoiceLayers.Delay2 / 5.0);
+                case "sounds": return Math.Max(0, Math.Min(10, (SoundLevel + 5) / 10));
+                case "mainframe_size": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), MainframeSize));
+                case "perch_fps": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), PerchFps));
+                case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
+                case "reply_limit": return ReplyLength;
+                case "game_comments": return CommentPace;
+                case "clip_length": return Array.IndexOf(ClipSettings.Lengths, ClipOptions.Seconds);
+                case "clip_fps": return Array.IndexOf(ClipSettings.Rates, ClipOptions.Fps);
+                case "clip_resolution": return Array.IndexOf(ClipSettings.Sizes, ClipOptions.Resolution);
+                case "clip_bitrate": return Array.IndexOf(ClipSettings.Bitrates, ClipOptions.Mbps);
+                case "typing_sound": return Math.Max(0, Math.Min(2, preferences.Typing));
                 default: return -1;
             }
         }
@@ -8239,6 +8300,17 @@ namespace CapriDesktop
         private string SetLevel(string name, int step)
         {
             if (InvokeRequired) return (string)Invoke(new Func<string, int, string>(SetLevel), name, step);
+            step = Hands.ClampLevel(name, step);
+            if (step < 0) return null;
+            int careKind = Array.IndexOf(Hands.CareSettings, name);
+            if (careKind >= 0) { SetCareTime((CareKind)careKind, Hands.ValuesFor(name)[step]); return null; }
+            VoiceFx.Layering layers = VoiceLayers;
+            if (name.StartsWith("layer_", StringComparison.Ordinal))
+            {
+                SetVoiceLayers(new VoiceFx.Layering(layers.On, name == "layer_1_pitch" ? step / 2.0 - 12 : layers.Pitch1, name == "layer_1_delay" ? step * 5 : layers.Delay1, name == "layer_2_pitch" ? step / 2.0 - 12 : layers.Pitch2, name == "layer_2_delay" ? step * 5 : layers.Delay2));
+                mainframe.Sync();
+                return null;
+            }
             switch (name)
             {
                 case "size": SetCharacterSize(OwnSizes[Math.Max(0, Math.Min(OwnSizes.Length - 1, step))]); break;
@@ -8249,10 +8321,61 @@ namespace CapriDesktop
                 case "voice_speed": SetVoiceSpeed(OwnPaces[Math.Max(0, Math.Min(OwnPaces.Length - 1, step))]); break;
                 case "replies": SetWordiness(step); break;
                 case "bubble": SetBubbleTime(step); break;
+                case "explore_after": SetExploreAfter(Hands.ValuesFor(name)[step]); break;
+                case "glance_gap": SetGlanceGap(Hands.ValuesFor(name)[step]); break;
+                case "watch_memory": SetWatchMemory(Hands.ValuesFor(name)[step]); break;
+                case "voice_pitch": SetVoicePitch(Hands.ValuesFor(name)[step]); break;
+                case "voice_robot": SetVoiceRobot(Hands.ValuesFor(name)[step]); break;
+                case "voice_glitch": SetVoiceGlitch(Hands.ValuesFor(name)[step]); break;
+                case "sounds": SetSoundLevel(step * 10); break;
+                case "mainframe_size": SetMainframeSize(Hands.ValuesFor(name)[step]); mainframe.ResizeSettings(); break;
+                case "perch_fps": SetPerchFps(Hands.ValuesFor(name)[step]); break;
+                case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
+                case "reply_limit": SetReplyLength(step); break;
+                case "game_comments": SetCommentPace(step); break;
+                case "clip_length": SetClipOptions(ClipSettings.Lengths[step], ClipOptions.Fps, ClipOptions.Resolution, ClipOptions.Mbps); break;
+                case "clip_fps": SetClipOptions(ClipOptions.Seconds, ClipSettings.Rates[step], ClipOptions.Resolution, ClipOptions.Mbps); break;
+                case "clip_resolution": SetClipOptions(ClipOptions.Seconds, ClipOptions.Fps, ClipSettings.Sizes[step], ClipOptions.Mbps); break;
+                case "clip_bitrate": SetClipOptions(ClipOptions.Seconds, ClipOptions.Fps, ClipOptions.Resolution, ClipSettings.Bitrates[step]); break;
+                case "typing_sound": SetTyping(step); break;
                 default: return null;
             }
             if (mainframe != null) mainframe.Sync();
             return null;
+        }
+
+        // Her settings tool's one setting that's text, her clips folder: how it's set, and setting it through CLIPS' own checks,
+        // which says why a folder couldn't be used.
+        private string SettingText(string name)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string>(SettingText), name);
+            return name == "clip_folder" ? ClipOptions.Folder : null;
+        }
+
+        private string SetSettingText(string name, string text)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, string, string>(SetSettingText), name, text);
+            return name == "clip_folder" ? SetClipFolder(text) : "Couldn't change that setting.";
+        }
+
+        // Her settings tool's actions: edit_check_in_lines opens her check-in lines like Habits' button, and preview_voice plays her
+        // voice as it's set now once the reply it came with is over, without touching her voice service.
+        private string SettingAction(string action, bool fromAgent)
+        {
+            if (InvokeRequired) return (string)Invoke(new Func<string, bool, string>(SettingAction), action, fromAgent);
+            if (action == "edit_check_in_lines") { OpenCare(); return "Opened your check-in lines."; }
+            if (action == "preview_voice")
+            {
+                if (preferences.Silent) return "My voice is off. Turn it on to hear a preview.";
+                bool ready = !preferences.Quiet && !voiceBroke && (Speak != null || voice.Ready) || FreeSpeak != null || kokoro.Installed || preferences.HdVoice && qwen.Installed || preferences.ServerVoice;
+                if (!ready) return "My voice isn't ready. Set it up in Mainframe > VOICE first.";
+                styleCheckDue = true;
+                styleAsked = asking;
+                styleAgent = fromAgent ? agent : null;
+                styleReply = chatReplies;
+                return "I'll play my current voice after this reply.";
+            }
+            return "Couldn't do that just now.";
         }
 
         internal bool HologramOn { get { return preferences.Hologram; } }
@@ -9336,9 +9459,32 @@ namespace CapriDesktop
             Brain.Log("ears", -1, "Mic test: peak RMS " + (micTestPeak <= 0 ? "silence" : (20 * Math.Log10(micTestPeak)).ToString("0.0") + " dBFS") + ". " + result);
         }
 
-        // Her voice landed by itself, so the check that says so waits its turn: it would cancel anything they've just asked.
+        // A voice preview her settings tool asked for, held until the reply it came with is over: styleAsked is the request it came
+        // with, and styleReply how many replies voice chat had sent then, out of chatReplies.
+        private bool styleCheckDue;
+        private int styleAsked, styleReply, chatReplies;
+        private Agent styleAgent;
+
+        // Whether the reply a settings change came with is over, so playing her voice or changing her ears won't cut it off: the
+        // voice chat that asked has sent the tool's result and replied since, and she isn't thinking, talking or working.
+        private bool SettingsReplyDone(Agent remote, int replies)
+        {
+            if (remote != null && remote == agent && (remote.ToolBusy || chatReplies <= replies)) return false;
+            return (talkState == TalkState.Off || talkState == TalkState.Dormant || talkState == TalkState.Online && replyDone >= 0)
+                && working == null && !speaker.Busy && speech == null && answerVoice != asking && hdSpeaking != asking && clock.Elapsed.TotalSeconds >= voiceUntil;
+        }
+
+        // Her voice landed by itself, so the check that says so waits its turn: it would cancel anything they've just asked. A
+        // preview her settings tool asked for waits for the reply it came with, and is dropped when they ask something else first.
         private void CheckVoiceReady()
         {
+            if (styleCheckDue && styleAsked != asking) styleCheckDue = false;
+            if (styleCheckDue && SettingsReplyDone(styleAgent, styleReply))
+            {
+                styleCheckDue = false;
+                HearVoiceStyle();
+                return;
+            }
             if (!voiceCheckDue || talkState != TalkState.Off || MidJob(job)) return;
             voiceCheckDue = false;
             TestVoice();
@@ -10195,8 +10341,20 @@ namespace CapriDesktop
             });
         }
 
+        // Listen for Capri changed by her settings tool, which opens or closes her ears only once the reply it came with is over,
+        // since that can end the voice chat that's answering.
+        private bool listenChangeDue;
+        private int listenReply;
+        private Agent listenAgent;
+
         private void KeepListening(double now)
         {
+            if (listenChangeDue)
+            {
+                if (!SettingsReplyDone(listenAgent, listenReply)) return;
+                listenChangeDue = false;
+                ApplyListenCapri();
+            }
             // Quiet only turns ElevenLabs off, so Fish Audio and her own voices listen too (Lachy, 31 Oct: "hey capri is basically unusable").
             // A job holds her talk state for as long as it runs and a stream runs for hours, and Gaming Mode hides her window, so neither keeps her ears shut (Lachy, 1 Nov).
             if (!preferences.ListenCapri || earsClosed || chatting || now < listenAt || (hidden && !docked) || quitting || (talkState != TalkState.Off && working == null) || speech != null) return;
@@ -10204,12 +10362,22 @@ namespace CapriDesktop
             ToggleChat();
         }
 
-        internal void ToggleListenCapri()
+        // Listen for Capri from her Mainframe, menu or settings tool, saved at once. Her settings tool's change (later) opens or
+        // closes her ears after its reply, which from voice chat is that call's.
+        internal void ToggleListenCapri(bool later = false, bool fromAgent = false)
         {
             preferences.ListenCapri = !preferences.ListenCapri;
             nameOver = false;
             SavePreferences();
             mainframe.Sync();
+            listenChangeDue = later;
+            if (later) { listenAgent = fromAgent ? agent : null; listenReply = chatReplies; return; }
+            ApplyListenCapri();
+        }
+
+        // Opens her ears for her name, or closes them, as Listen for Capri is set now.
+        private void ApplyListenCapri()
+        {
             if (!chatting)
             {
                 // Turning it on is them asking her to listen, so there's no key to press as well (Lachy, 31 Oct).
@@ -10718,6 +10886,8 @@ namespace CapriDesktop
         private string AgentAct(Agent opened, string tool, ToolArguments args)
         {
             if (CallModeOn) return "I can only talk in call mode.";
+            if (args == null) args = new ToolArguments();
+            args.FromAgent = opened != null;
             stirred = Environment.TickCount;
             lock (shortcutGate)
             {
@@ -10832,6 +11002,7 @@ namespace CapriDesktop
 
         private void ChatReplied(string text)
         {
+            chatReplies++;
             if (CallModeOn) return;
             if (!chatting) return;
             checkedIn = !spoke;
@@ -19670,7 +19841,7 @@ namespace CapriDesktop
                     { "dance_to_music", true }, { "head_pats", true }, { "chaos_when_upset", false }, { "sit_on_windows", true }, { "always_on_top", true }, { "mini_player", true }, { "typing_sound", false }, { "follow_ups", true }, { "hide_in_full_screen", false }, { "glitch_in", true }
                 };
                 System.Collections.Generic.List<string> flipped = new System.Collections.Generic.List<string>();
-                Hands.SettingOn = delegate(string name) { return state[name]; };
+                Hands.SettingOn = delegate(string name) { return state.ContainsKey(name) ? state[name] : null; };
                 // Her sliders have their own check (SmokeSettingsTool); here each sits on a fixed step.
                 Hands.LevelOf = delegate(string name) { return Array.IndexOf(new[] { "pop_ins", "replies", "bubble" }, name) >= 0 ? 1 : name == "size" ? 3 : name == "wander" ? 0 : name == "sleep" ? 3 : name == "volume" ? 8 : name == "voice_speed" ? 5 : -1; };
                 Hands.SetSetting = delegate(string name, bool on)
@@ -19684,9 +19855,9 @@ namespace CapriDesktop
                 string silent = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "voice" }), deaf = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "mic" });
                 string stuck = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "wander" }), gaming = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "gaming_mode" });
                 string uncommented = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "game_comments" });
-                if (settings != "How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; Watch my screen off; Game comments on; "
-                    + "Dance to music on; Head pats on; Chaos when upset off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; "
-                    + "my size: Medium; Wander: Off; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal."
+                if (!settings.StartsWith("How my settings are right now: my voice on; Quiet off; my voice chat mic: no voice chat on; Check in on me on; Clip my games off; Save big moments off; Live reactions on; Gaming Mode on; Hologram mode off; Watch my screen off; Game comments on; "
+                    + "Dance to music on; Head pats on; Chaos when upset off; Sit on windows on; Always on top on; Mini player on; Typing sound off; Follow-up messages on; Hide in full screen off; Glitch in at startup on; ", StringComparison.Ordinal)
+                    || !settings.Contains("my size: Medium; Wander: Off; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal;")
                     || uncommented != "Turned Game comments off."
                     || clipped != "Turned Clip my games on." || again != "Clip my games was already on." || silent != "Turned my voice off." || deaf != "Couldn't change my voice chat mic: voice chat isn't on."
                     || stuck != "Couldn't turn Wander on: it's still off." || gaming != "Turned Gaming Mode off. Gaming Mode off." || string.Join(",", flipped.ToArray()) != "clip_my_games on,voice off,wander on,gaming_mode off,game_comments off" || !Hands.Failed(stuck) || !Hands.Failed(deaf))
@@ -19737,17 +19908,18 @@ namespace CapriDesktop
                 flipped.Clear();
                 string whatsOpen = planner.Ask("what have I got open?");
                 string running = planner.Ask("is cs running?");
-                string reactions = planner.Ask("turn off your live reactions");
+                state["gaming_mode"] = true;
+                string reactions = planner.Ask("less clutter while I play, and no quick reactions please");
                 string[] sent;
                 lock (asked) sent = asked.ToArray();
                 if (whatsOpen != "You're in Discord, with Spotify and CS up too." || running != "CS is running, choom." || reactions != "Live reactions are off." || sent.Length != 7
-                    || string.Join(",", did.ToArray()) != "list_windows:,check_app:Counter-Strike 2,capri_settings:live_reactions" || string.Join(",", flipped.ToArray()) != "live_reactions off")
-                    throw new Exception("Her planner didn't ask, or changed Gaming Mode unasked: " + whatsOpen + " / " + running + " / " + reactions + " / " + string.Join(",", did.ToArray()) + " / " + string.Join(",", flipped.ToArray()) + " / " + sent.Length + " calls");
+                    || string.Join(",", did.ToArray()) != "list_windows:,check_app:Counter-Strike 2,capri_settings:gaming_mode,capri_settings:live_reactions" || string.Join(",", flipped.ToArray()) != "gaming_mode off,live_reactions off")
+                    throw new Exception("Her planner didn't use the settings it chose for their suggestion: " + whatsOpen + " / " + running + " / " + reactions + " / " + string.Join(",", did.ToArray()) + " / " + string.Join(",", flipped.ToArray()) + " / " + sent.Length + " calls");
                 foreach (string secret in new[] { "Capri Fans", "Spotify Premium", "notes.txt", "What's open on their", "No game is open", "The game open on their PC right now", "You glanced" })
                     if (sent[0].Contains(secret) || sent[2].Contains(secret) || sent[4].Contains(secret)) throw new Exception("Her planner was told about their windows before it asked: " + secret);
                 if (!sent[0].Contains("\"name\":\"list_windows\"") || !sent[0].Contains("\"name\":\"capri_settings\"") || !sent[0].Contains("Nobody tells you what's open on their PC") || !sent[0].Contains("do it with capri_settings")
                     || !sent[1].Contains("list_windows: ") || !sent[1].Contains("In front: ") || !sent[1].Contains("#general | Capri Fans - Discord with a title that runs on...") || !sent[1].Contains("You called list_windows{}") || !sent[3].Contains("Counter-Strike 2 is installed through Steam and open")
-                    || !sent[5].Contains("That didn't run: Gaming Mode only changes when they ask for it by name.") || !sent[6].Contains("Turned Live reactions off."))
+                    || !sent[5].Contains("Turned Gaming Mode off.") || !sent[6].Contains("Turned Live reactions off."))
                     throw new Exception("Her planner didn't get what it asked for: " + sent[1].Substring(Math.Max(0, sent[1].Length - 600)));
                 fake.Stop();
                 fake = null;
@@ -19764,7 +19936,7 @@ namespace CapriDesktop
                 lock (reached) handed = reached.ToArray();
                 if (localClick != "Clicked it, choom." || cloudClick != "Clicked it." || handed.Length != 4 || !handed[0].Contains("The game open on their PC right now is \\\"Counter-Strike 2\\\"") || handed[2].Contains("The game open on their PC right now"))
                     throw new Exception("Her game note went to the wrong brain: " + localClick + " / " + cloudClick + " / " + handed.Length + " calls");
-                checks.Add("PASS her planner asks instead of being told: its first message has no window titles and no game, list_windows gives the window in front, or the top one while she has focus, and the rest once each with long titles trimmed, games, minimized windows and other monitors marked, one app's windows, and empty, missing and failed lists; check_app says installed or not, through which launcher, and open in front, behind or minimized, in the tray, or not running; capri_settings lists her switches and reads one back after flipping it, Gaming Mode only by name; checks never ask first and stay out of her hands' one-shot pick; turning the volume up or down says where it ended up, how loud the PC is can be checked without asking first, and minimize says when a window stayed up; a brain on their PC keeps the game note and a cloud brain that can't ask doesn't get it");
+                checks.Add("PASS her planner asks instead of being told: its first message has no window titles and no game, list_windows gives the window in front, or the top one while she has focus, and the rest once each with long titles trimmed, games, minimized windows and other monitors marked, one app's windows, and empty, missing and failed lists; check_app says installed or not, through which launcher, and open in front, behind or minimized, in the tray, or not running; capri_settings lists her switches and reads one back after flipping it, settings chosen for a suggestion need no fixed words; checks never ask first and stay out of her hands' one-shot pick; turning the volume up or down says where it ended up, how loud the PC is can be checked without asking first, and minimize says when a window stayed up; a brain on their PC keeps the game note and a cloud brain that can't ask doesn't get it");
                 checks.Add("LIMIT list_windows and check_app on a real desktop: minimized windows, the monitor each window is on, games, and apps running in the tray come from Windows itself; ask \"what have I got open?\" and \"is discord running?\" with Discord in the tray and a game minimized on a second monitor");
             }
             finally
@@ -19796,6 +19968,314 @@ namespace CapriDesktop
                 Brain.LogPath = logWas;
                 Brain.Keeping = keepingWas;
                 if (fake != null) fake.Stop();
+            }
+        }
+
+        // A preview or a Listen for Capri change from her settings tool waits for the reply it came with: a typed one for her
+        // answer, one from voice chat for its tool result and its reply, and never for a voice chat it didn't come from.
+        private void SmokeSettingTurns(System.Collections.Generic.List<string> checks)
+        {
+            Agent agentWas = agent, styleAgentWas = styleAgent, listenAgentWas = listenAgent;
+            Agent remote = new Agent();
+            TalkState stateWas = talkState;
+            string speechWas = speech, workingWas = working;
+            double doneWas = replyDone, voiceWas = voiceUntil;
+            int answerWas = answerVoice, hdWas = hdSpeaking, repliesWas = chatReplies, styleReplyWas = styleReply, styleAskedWas = styleAsked, listenReplyWas = listenReply;
+            bool styleWas = styleCheckDue, listenWas = listenChangeDue, silentWas = preferences.Silent, nameWas = preferences.ListenCapri;
+            Func<string, byte[]> freeWas = FreeSpeak;
+            try
+            {
+                agent = remote;
+                preferences.Silent = false;
+                FreeSpeak = delegate { return Voice.Wave(new short[24000], 24000); };
+                talkState = TalkState.Thinking;
+                speech = working = null;
+                answerVoice = hdSpeaking = -1;
+                voiceUntil = 0;
+                replyDone = -1;
+                Hands.Do("capri_settings", new ToolArguments { Action = "preview_voice" });
+                if (!styleCheckDue || styleAgent != null || SettingsReplyDone(styleAgent, styleReply)) throw new Exception("Typed preview waited for a voice call or ran during thinking.");
+                talkState = TalkState.Online;
+                replyDone = 0;
+                if (!SettingsReplyDone(styleAgent, styleReply)) throw new Exception("Typed preview still needs its input box closed or a voice call's reply.");
+                Hands.Do("capri_settings", new ToolArguments { Action = "preview_voice", FromAgent = true });
+                if (styleAgent != remote || SettingsReplyDone(styleAgent, styleReply)) throw new Exception("Voice preview ran before its agent replied.");
+                chatReplies++;
+                System.Reflection.FieldInfo busy = typeof(Agent).GetField("toolBusy", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                busy.SetValue(remote, 1);
+                if (SettingsReplyDone(styleAgent, styleReply)) throw new Exception("Voice preview ran before its tool result was sent.");
+                busy.SetValue(remote, 0);
+                if (!SettingsReplyDone(styleAgent, styleReply)) throw new Exception("A finished voice reply still held its preview.");
+                preferences.ListenCapri = false;
+                Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "listen_for_capri", FromAgent = true });
+                if (!listenChangeDue || listenAgent != remote || !preferences.ListenCapri || !LoadPreferences().ListenCapri || SettingsReplyDone(listenAgent, listenReply)) throw new Exception("Listen for Capri changed the agent before its reply or did not save.");
+                chatReplies++;
+                if (!SettingsReplyDone(listenAgent, listenReply)) throw new Exception("Listen for Capri stayed held after its agent replied.");
+                Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "listen_for_capri" });
+                if (!listenChangeDue || listenAgent != null || preferences.ListenCapri || LoadPreferences().ListenCapri || !SettingsReplyDone(listenAgent, listenReply)) throw new Exception("Typed Listen for Capri waited for an unrelated voice reply.");
+                checks.Add("PASS setting turns: typed preview and name listening finish with their typing box open during a voice call; voice tools wait for their own result and reply before changing the connection or previewing");
+            }
+            finally
+            {
+                agent = agentWas;
+                remote.Dispose();
+                talkState = stateWas;
+                speech = speechWas;
+                working = workingWas;
+                replyDone = doneWas;
+                voiceUntil = voiceWas;
+                answerVoice = answerWas;
+                hdSpeaking = hdWas;
+                chatReplies = repliesWas;
+                styleCheckDue = styleWas;
+                styleAgent = styleAgentWas;
+                styleReply = styleReplyWas;
+                styleAsked = styleAskedWas;
+                listenChangeDue = listenWas;
+                listenAgent = listenAgentWas;
+                listenReply = listenReplyWas;
+                preferences.Silent = silentWas;
+                preferences.ListenCapri = nameWas;
+                FreeSpeak = freeWas;
+                SavePreferences();
+                mainframe.Sync();
+            }
+        }
+
+        // Every setting her settings tool gained on 3 Nov changes what her Mainframe shows and what's saved the way her Mainframe
+        // does, and clamps at its ends; clip_folder keeps CLIPS' checks, and voice_in_mic never installs a cable.
+        private void SmokeMoreSettings(System.Collections.Generic.List<string> checks)
+        {
+            System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
+            Func<string, object> shown = delegate(string name) { return typeof(Mainframe).GetField(name, fields).GetValue(mainframe); };
+            Func<Preferences, string, object> saved = delegate(Preferences value, string name) { return typeof(Preferences).GetField(name, fields).GetValue(value); };
+            System.Collections.Generic.Dictionary<string, bool> switches = new System.Collections.Generic.Dictionary<string, bool>();
+            System.Collections.Generic.Dictionary<string, int> levels = new System.Collections.Generic.Dictionary<string, int>();
+            Preferences preferencesWas = (Preferences)typeof(object).GetMethod("MemberwiseClone", fields).Invoke(preferences, null);
+            string languageWas = Brain.Language;
+            string runWas = Startup.RunKey, approvedWas = Startup.ApprovedKey;
+            string testKey = "Software\\CapriSmoke\\Settings-" + Guid.NewGuid().ToString("N");
+            string folderWas = preferences.ClipFolder;
+            bool startupWas = preferences.StartupSet, simpleWas = simpleTest, pageWas = mainframe.SettingsShown;
+            bool quietWas = preferences.Quiet, hdWas = preferences.HdVoice, serverWas = preferences.ServerVoice;
+            bool styleWas = styleCheckDue, listenWas = listenChangeDue, silentWas = preferences.Silent;
+            int styleTicketWas = styleAsked;
+            int hdRobotWas = preferences.HdRobot, hdGlitchWas = preferences.HdVoiceGlitch, serverRobotWas = preferences.ServerRobot, serverGlitchWas = preferences.ServerGlitch;
+            int askingWas = asking;
+            IMixDevices devicesWas = MicMix.Devices;
+            Func<string, Process> setupWas = CableSetup.Start;
+            Action<string> run = Hands.Run;
+            Action<string> folderCheckWas = ClipSettings.CheckFolder;
+            Action<short[]> typeWas = Sfx.TypeOut;
+            Func<string, byte[]> freeWas = FreeSpeak;
+            int setups = 0;
+            try
+            {
+                Startup.RunKey = testKey + "\\Run";
+                Startup.ApprovedKey = testKey + "\\Approved";
+                Sfx.TypeOut = null;
+                CableSetup.Start = delegate { setups++; return null; };
+                StandInDevices devices = new StandInDevices();
+                MicMix.Devices = devices;
+                cableLooked = -10;
+                simpleTest = true;
+                preferences.Quiet = true;
+                preferences.HdVoice = preferences.ServerVoice = false;
+                // A settings file that's been read once is tuned, so reading one back here never retunes a voice left at its start.
+                preferences.VoiceTuned = preferences.VoiceRetuned = true;
+                for (int i = 22; i < Hands.OwnSwitches.GetLength(0); i++) switches[Hands.OwnSwitches[i, 0]] = SettingOn(Hands.OwnSwitches[i, 0]) == true;
+                for (int i = 8; i < Hands.OwnLevels.GetLength(0); i++) levels[Hands.OwnLevels[i, 0]] = LevelOf(Hands.OwnLevels[i, 0]);
+                string[,] toggles =
+                {
+                    { "keep_awake", "keepAwake", "NoKeepAwake" }, { "player_full_screen", "playerFullScreen", "PlayerFullScreen" }, { "explore_away", "exploreAway", "ExploreAway" },
+                    { "fast_hands", "fastHands", "SlowHands" }, { "cursor", "cursor", "QuickHands" }, { "discord_presence", "discord", "NoDiscord" }, { "listen_for_capri", "listenCapri", "ListenCapri" }
+                };
+                for (int i = 0; i < toggles.GetLength(0); i++)
+                {
+                    string name = toggles[i, 0];
+                    foreach (bool on in new[] { true, false })
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = name });
+                        bool real = SettingOn(name) == true;
+                        bool persisted = (bool)saved(LoadPreferences(), toggles[i, 2]);
+                        if (name == "keep_awake" || name == "fast_hands" || name == "cursor" || name == "discord_presence") persisted = !persisted;
+                        if (real != on || ((CheckBox)shown(toggles[i, 1])).Checked != on || persisted != on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Setting switch disagreed with Mainframe or disk: " + name + " / " + line);
+                    }
+                    checks.Add("PASS setting " + name + " uses Mainframe's switch, saves and reads back both ways");
+                }
+                foreach (bool on in new[] { true, false })
+                {
+                    string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "startup" });
+                    if (StartsWithWindows != on || ((CheckBox)shown("startup")).Checked != on || !LoadPreferences().StartupSet || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Start at login did not use the shared Run entry: " + line);
+                    Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "show_advanced" });
+                    mainframe.ShowSettings(true);
+                    if (preferences.AdvancedSettings != on || LoadPreferences().AdvancedSettings != on || mainframe.AdvancedShown != on) throw new Exception("Advanced settings did not change its view and save.");
+                    Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "voice_layers" });
+                    if (VoiceLayers.On != on || LoadPreferences().VoiceLayers != on || mainframe.LayersKeyShown.Contains("(lit)") != on) throw new Exception("Voice layers switch did not reach Mainframe and disk.");
+                }
+                checks.Add("PASS start at login, advanced view and voice layers use the same state as Mainframe and save");
+                for (int i = 0; i < Hands.CareSettings.Length; i++)
+                {
+                    CareKind kind = (CareKind)i;
+                    string name = Hands.CareSettings[i];
+                    foreach (bool on in new[] { true, false })
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = name });
+                        if (CareOn(kind) != on || mainframe.CareShown(kind) != on || LoadPreferences().CareOn(kind) != on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Care switch did not read, change and save: " + name);
+                    }
+                    string[] steps = Hands.StepsOf(name);
+                    int[] times = Hands.ValuesFor(name);
+                    for (int step = 0; step < steps.Length; step++)
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = steps[step] });
+                        if (CareTime(kind) != times[step] || LoadPreferences().CareTime(kind) != times[step] || mainframe.CareTimeShown(kind) != steps[step] || LevelOf(name) != step || !line.Contains(steps[step])) throw new Exception("Care time did not match Mainframe: " + name + " / " + line);
+                    }
+                    SetLevel(name, int.MinValue);
+                    if (CareTime(kind) != times[0]) throw new Exception("Care time did not clamp low: " + name);
+                    SetLevel(name, int.MaxValue);
+                    if (CareTime(kind) != times[times.Length - 1]) throw new Exception("Care time did not clamp high: " + name);
+                    checks.Add("PASS setting " + name + " uses its care switch and every Mainframe time, clamps, saves and reads back");
+                }
+                string[,] sliders =
+                {
+                    { "explore_after", "exploreAfter", "ExploreAfter" }, { "glance_gap", "gap", "GlanceGap" }, { "watch_memory", "watchMemory", "WatchMemory" },
+                    { "voice_pitch", "pitchSlider", "VoicePitch" }, { "voice_robot", "robotSlider", "VoiceRobot" }, { "voice_glitch", "glitchSlider", "VoiceGlitch" },
+                    { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "perch_fps", "perchFps", "PerchFps" },
+                    { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
+                    { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" }
+                };
+                for (int i = 0; i < sliders.GetLength(0); i++)
+                {
+                    string name = sliders[i, 0];
+                    object slider = shown(sliders[i, 1]);
+                    Func<int> sliderValue = delegate { return (int)slider.GetType().GetProperty("Value", fields).GetValue(slider, null); };
+                    string[] choices = (string[])slider.GetType().GetProperty("Choices", fields).GetValue(slider, null);
+                    string[] steps = Hands.StepsOf(name);
+                    if (string.Join("|", choices) != string.Join("|", steps)) throw new Exception("Tool steps differ from Mainframe: " + name);
+                    foreach (int step in new[] { 0, steps.Length / 2, steps.Length - 1 })
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = steps[step] });
+                        if (sliderValue() != step || LevelOf(name) != step || !object.Equals(saved(LoadPreferences(), sliders[i, 2]), saved(preferences, sliders[i, 2])) || !line.Contains(steps[step])) throw new Exception("Setting slider did not show, save or read back: " + name + " / " + line);
+                    }
+                    SetLevel(name, int.MinValue);
+                    if (sliderValue() != 0) throw new Exception("Setting did not clamp low: " + name);
+                    SetLevel(name, int.MaxValue);
+                    if (sliderValue() != steps.Length - 1) throw new Exception("Setting did not clamp high: " + name);
+                    checks.Add("PASS setting " + name + " matches Mainframe's steps, clamps, saves and reports the value afterwards");
+                }
+                foreach (bool hd in new[] { true, false })
+                {
+                    preferences.HdVoice = hd;
+                    preferences.ServerVoice = !hd;
+                    Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "voice_robot", Level = "40%" });
+                    Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "voice_glitch", Level = "60%" });
+                    Preferences loaded = LoadPreferences();
+                    if (VoiceRobot != 40 || VoiceGlitch != 60 || (hd ? loaded.HdRobot : loaded.ServerRobot) != 40 || (hd ? loaded.HdVoiceGlitch : loaded.ServerGlitch) != 60 || mainframe.VoiceStyleStatus.IndexOf(hd ? "40% · HD | 60% · HD" : "40% · server | 60% · server", StringComparison.Ordinal) < 0) throw new Exception("Effects did not use the active voice's setters: " + mainframe.VoiceStyleStatus);
+                }
+                preferences.HdVoice = preferences.ServerVoice = false;
+                mainframe.ShowLayersWindow();
+                foreach (string name in new[] { "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay" })
+                {
+                    string[] steps = Hands.StepsOf(name);
+                    foreach (int step in new[] { 0, steps.Length / 2, steps.Length - 1 })
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = steps[step] });
+                        string expected = (VoiceLayers.On ? "On" : "Off") + " | " + Hands.StepsOf("voice_pitch")[LevelOf("voice_pitch")] + " | " + VoiceFx.Layering.PitchName(VoiceLayers.Pitch1) + ", " + VoiceFx.Layering.DelayName(VoiceLayers.Delay1) + " | " + VoiceFx.Layering.PitchName(VoiceLayers.Pitch2) + ", " + VoiceFx.Layering.DelayName(VoiceLayers.Delay2);
+                        if (LevelOf(name) != step || mainframe.LayersShown != expected || LayersOf(LoadPreferences()).Shown != VoiceLayers.Shown || !line.Contains(steps[step])) throw new Exception("Layer did not match its panel and saved value: " + name + " / " + line);
+                    }
+                    SetLevel(name, int.MinValue);
+                    if (LevelOf(name) != 0) throw new Exception("Layer did not clamp low.");
+                    SetLevel(name, int.MaxValue);
+                    if (LevelOf(name) != steps.Length - 1) throw new Exception("Layer did not clamp high.");
+                    checks.Add("PASS setting " + name + " matches the layers panel, clamps, saves and reads back");
+                }
+                foreach (string name in new[] { "language", "typing_sound" })
+                {
+                    string[] steps = Hands.StepsOf(name);
+                    // The top step first, since a language that follows Windows already reads as English and saves nothing.
+                    foreach (int step in new[] { steps.Length - 1, 0, 1 })
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = steps[step] });
+                        Preferences loaded = LoadPreferences();
+                        if (LevelOf(name) != step || !line.Contains(steps[step]) || (name == "language" ? loaded.Language != steps[step] || Language != steps[step] || !mainframe.LanguageIs(steps[step]) : loaded.Typing != step || preferences.Typing != step || mainframe.TypingShown != TypingSound)) throw new Exception("Language or typing mode did not read, show and save: " + line);
+                    }
+                    SetLevel(name, int.MinValue);
+                    if (LevelOf(name) != 0) throw new Exception("Language or typing mode did not clamp low.");
+                    SetLevel(name, int.MaxValue);
+                    if (LevelOf(name) != steps.Length - 1) throw new Exception("Language or typing mode did not clamp high.");
+                    checks.Add("PASS setting " + name + " matches Mainframe, clamps, saves and reads back");
+                }
+                string refused = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "voice_in_mic" });
+                if (!refused.Contains("VB-CABLE") || preferences.VoiceInMic || micMix != null || LoadPreferences().VoiceInMic || setups != 0) throw new Exception("A missing cable was enabled or installed: " + refused);
+                devices.CableThere = new MixDevice("settings-cable", "CABLE Input (VB-Audio Virtual Cable)", "settings-cable-out");
+                cableLooked = -10;
+                string enabled = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "voice_in_mic" });
+                if (!VoiceInMic || micMix == null || !LoadPreferences().VoiceInMic || !mainframe.VoiceInMicStatus.StartsWith("on |", StringComparison.Ordinal) || !enabled.StartsWith("Turned", StringComparison.Ordinal)) throw new Exception("A ready cable did not enable the existing mix.");
+                Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "voice_in_mic" });
+                if (VoiceInMic || micMix != null || LoadPreferences().VoiceInMic || setups != 0) throw new Exception("The mic mix did not turn off.");
+                checks.Add("PASS voice_in_mic refuses a missing cable with setup steps, never installs it, and uses the existing mix when ready");
+                string folder = Path.Combine(Path.GetDirectoryName(settingsPath), "settings-clips");
+                Directory.CreateDirectory(folder);
+                int probes = 0;
+                ClipSettings.CheckFolder = delegate { probes++; };
+                string picked = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "clip_folder", Path = folder });
+                if (ClipOptions.Folder != folder || LoadPreferences().ClipFolder != folder || !picked.Contains(folder) || ((Label)shown("clipPath")).Text != folder || probes != 1) throw new Exception("Clips folder skipped the shared checks or readback.");
+                ClipSettings.CheckFolder = delegate { probes++; throw new IOException("no write"); };
+                string denied = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "clip_folder", Path = Path.GetDirectoryName(settingsPath) });
+                string missing = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "clip_folder", Path = Path.Combine(folder, "missing") });
+                if (!Hands.Failed(denied) || !Hands.Failed(missing) || ClipOptions.Folder != folder || probes != 2) throw new Exception("A bad clips folder replaced the saved folder.");
+                checks.Add("PASS clip_folder uses the existing folder and write checks, saves and reports the resulting folder");
+                string editor = null;
+                Hands.Run = delegate(string line) { editor = line; };
+                string opened = Hands.Do("capri_settings", new ToolArguments { Action = "edit_check_in_lines" });
+                string carePath = Path.Combine(Path.GetDirectoryName(settingsPath), "check-ins.md");
+                if (editor != "\"" + Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "notepad.exe") + "\" \"" + carePath + "\"" || !File.Exists(carePath) || opened != "Opened your check-in lines.") throw new Exception("The check-in editor was not opened through its existing action.");
+                preferences.Silent = false;
+                FreeSpeak = delegate { return Voice.Wave(new short[24000], 24000); };
+                string provider = preferences.ServerUrl, voiceId = preferences.VoiceId;
+                styleCheckDue = false;
+                string preview = Hands.Do("capri_settings", new ToolArguments { Action = "preview_voice" });
+                if (!styleCheckDue || asking != askingWas || preferences.ServerUrl != provider || preferences.VoiceId != voiceId || preview != "I'll play my current voice after this reply.") throw new Exception("Voice preview changed the service or interrupted its own brain turn.");
+                styleCheckDue = false;
+                checks.Add("PASS preview_voice queues the existing current-voice preview without interrupting its tool turn or changing service settings; edit_check_in_lines opens their editor");
+            }
+            finally
+            {
+                styleCheckDue = false;
+                listenChangeDue = false;
+                foreach (System.Collections.Generic.KeyValuePair<string, bool> pair in switches) SetSetting(pair.Key, pair.Value);
+                foreach (System.Collections.Generic.KeyValuePair<string, int> pair in levels) SetLevel(pair.Key, pair.Value);
+                mainframe.CloseLayers();
+                simpleTest = simpleWas;
+                mainframe.ShowSettings(pageWas);
+                Startup.RunKey = runWas;
+                Startup.ApprovedKey = approvedWas;
+                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(testKey, false);
+                preferences = preferencesWas;
+                Brain.Language = languageWas;
+                preferences.StartupSet = startupWas;
+                preferences.ClipFolder = folderWas;
+                clips.Configure(ClipOptions);
+                preferences.Quiet = quietWas;
+                preferences.HdVoice = hdWas;
+                preferences.ServerVoice = serverWas;
+                preferences.Silent = silentWas;
+                preferences.HdRobot = VoiceFx.HdRobot = hdRobotWas;
+                preferences.HdVoiceGlitch = VoiceFx.HdGlitch = hdGlitchWas;
+                preferences.ServerRobot = VoiceFx.ServerRobot = serverRobotWas;
+                preferences.ServerGlitch = VoiceFx.ServerGlitch = serverGlitchWas;
+                styleCheckDue = styleWas;
+                styleAsked = styleTicketWas;
+                listenChangeDue = listenWas;
+                MicMix.Devices = devicesWas;
+                cableLooked = -10;
+                CableSetup.Start = setupWas;
+                Hands.Run = run;
+                ClipSettings.CheckFolder = folderCheckWas;
+                Sfx.TypeOut = typeWas;
+                FreeSpeak = freeWas;
+                SavePreferences();
+                mainframe.Sync();
             }
         }
 
@@ -24336,6 +24816,8 @@ namespace CapriDesktop
             Section(checks, "SmokeGameAsks", delegate { SmokeGameAsks(checks); });
             Section(checks, "SmokeWorkingOut", delegate { SmokeWorkingOut(checks); });
             Section(checks, "SmokePlannerChecks", delegate { SmokePlannerChecks(checks); });
+            Section(checks, "SmokeSettingTurns", delegate { SmokeSettingTurns(checks); });
+            Section(checks, "SmokeMoreSettings", delegate { SmokeMoreSettings(checks); });
             Section(checks, "SmokeOwnSettings", delegate { SmokeOwnSettings(checks); });
             Section(checks, "SmokeWindowTool", delegate { SmokeWindowTool(checks); });
             Section(checks, "SmokeWindowReal", delegate { SmokeWindowReal(checks); });

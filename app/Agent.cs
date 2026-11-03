@@ -97,7 +97,7 @@ namespace CapriDesktop
     internal sealed class Agent : IDisposable
     {
         internal const double Pace = 15;
-        internal const int Version = 34;
+        internal const int Version = 35;
         private const string Patience = "\"turn\":{\"turn_timeout\":30,\"silence_end_call_timeout\":45}";
         internal event Action<int> Opened;
         internal event Action<string> Heard;
@@ -184,6 +184,9 @@ namespace CapriDesktop
             return found.Url;
         }
 
+        // Tool calls whose result hasn't gone back yet, so a settings change can tell its reply hasn't started.
+        private int toolBusy;
+        internal bool ToolBusy { get { return Interlocked.CompareExchange(ref toolBusy, 0, 0) > 0; } }
         internal bool Ready { get { return ready; } }
 
         internal void Start(string url, string voiceId)
@@ -305,10 +308,15 @@ namespace CapriDesktop
                 AgentToolCall call = item.Call;
                 if (call.Name == "app_window" && call.Arguments != null) call.Arguments.Asked = lastHeard ?? "";
                 Func<string, ToolArguments, string> act = Act;
+                Interlocked.Increment(ref toolBusy);
                 ThreadPool.QueueUserWorkItem(delegate
                 {
-                    string result = act == null ? "Her tools are off." : act(call.Name, call.Arguments);
-                    Send("{\"type\":\"client_tool_result\",\"tool_call_id\":" + Voice.Quote(call.Id) + ",\"result\":" + Voice.Quote(result) + ",\"is_error\":false}");
+                    try
+                    {
+                        string result = act == null ? "Her tools are off." : act(call.Name, call.Arguments);
+                        Send("{\"type\":\"client_tool_result\",\"tool_call_id\":" + Voice.Quote(call.Id) + ",\"result\":" + Voice.Quote(result) + ",\"is_error\":false}");
+                    }
+                    finally { Interlocked.Decrement(ref toolBusy); }
                 });
             }
         }

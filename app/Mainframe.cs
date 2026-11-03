@@ -1081,6 +1081,15 @@ namespace CapriDesktop
 
         internal string LocalAddressShown { get { return localAddress.Box.Text; } }
 
+        // Whether her settings page shows its advanced settings, and whether her language menu has a language ticked, for her
+        // settings tool's check.
+        internal bool AdvancedShown { get { return !simple; } }
+        internal bool LanguageIs(string language)
+        {
+            foreach (ToolStripMenuItem item in languageMenu.Items) if ((string)item.Tag == language) return item.Checked;
+            return false;
+        }
+
         internal bool SettingsShown { get { return paged; } }
 
         internal void ShowFreeKeys()
@@ -1414,6 +1423,9 @@ namespace CapriDesktop
 
         // Auto's size on the screen she's on, kept for Settings to show.
         private float autoZoom = 1f;
+
+        // Her Mainframe at the size her settings tool just picked, as its own slider does.
+        internal void ResizeSettings() { Rezoom(Wanted()); ShowFrameSize(); }
 
         // Her Mainframe size as picked, or for Auto what her screen needs: how much bigger its desktop is than the panel showing
         // it, less what Windows' own scaling already makes up, to the nearest 5% from 100% to 200%. Zenni's Virtual Super

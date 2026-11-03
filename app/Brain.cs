@@ -2158,7 +2158,7 @@ namespace CapriDesktop
                     }
                     string result;
                     if (!Hands.Valid(call.Key, args)) result = "That didn't work: that " + call.Key + " call was missing what it needs.";
-                    else if ((call.Key == "gaming_mode" || call.Key == "capri_settings" && args.Name == "gaming_mode" && args.Action != "list") && !Hands.GamingTalk(request)) result = "That didn't run: Gaming Mode only changes when they ask for it by name.";
+                    else if (call.Key == "gaming_mode" && !Hands.GamingTalk(request)) result = "That didn't run: Gaming Mode only changes when they ask for it by name.";
 #if !CROSS
                     else if (call.Key == "read_file") result = ReadFile(args.Path, args.Page, args.Offset);
 #endif

@@ -570,6 +570,7 @@ namespace CapriDesktop
                     throw new Exception("An app was opened by part of a word: " + Hands.Match(lookalikes, "minecraft").Count);
                 checks.Add("PASS whole words: an app opens only when its name has the whole word they said, so \"open minecraft\" never opens Minecraftle, and \"Kate text editor\" still opens Kate");
                 MinecraftChecks();
+                SettingsChecks();
                 SecurityChecks();
                 pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
                 int brains = pet.BrainChoices;
@@ -1579,6 +1580,165 @@ namespace CapriDesktop
                 Hands.Fetch = fetchWas;
             }
             checks.Add("PASS mini games on Mac and Linux give the Windows-only line without Spotify, with or without a brain or uinput, while Chess by an artist stays music and online chess opens a site");
+        }
+
+        // A voice for the settings check's preview that only counts what it's asked to say.
+        private sealed class SettingsSpeaker : ISpeaker
+        {
+            internal int Calls;
+            public string Name { get { return "settings preview"; } }
+            public bool Ready { get { return true; } }
+            public byte[] Speak(string text) { Calls++; return Voice.Wave(new short[24000], 24000); }
+        }
+
+        private Settings SettingsCopy()
+        {
+            System.Runtime.Serialization.Json.DataContractJsonSerializer json = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings));
+            using (MemoryStream stream = new MemoryStream())
+            {
+                json.WriteObject(stream, pet.Saved);
+                stream.Position = 0;
+                return (Settings)json.ReadObject(stream);
+            }
+        }
+
+        // Her settings tool on Mac and Linux reads and changes what her menus show, in their own steps, saves it, and says the
+        // Windows-only ones are Windows-only.
+        private void SettingsChecks()
+        {
+            System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
+            Func<string, object> field = delegate(string name) { return typeof(Pet).GetField(name, fields).GetValue(pet); };
+            Func<string, int> ticked = delegate(string name)
+            {
+                List<MenuItem> picks = (List<MenuItem>)field(name);
+                for (int i = 0; i < picks.Count; i++) if (picks[i].IsChecked) return i;
+                return -1;
+            };
+            Func<Settings, string, object> value = delegate(Settings settings, string name) { return typeof(Settings).GetField(name, fields).GetValue(settings); };
+            System.Collections.Generic.Dictionary<string, bool> switches = new System.Collections.Generic.Dictionary<string, bool>();
+            System.Collections.Generic.Dictionary<string, int> levels = new System.Collections.Generic.Dictionary<string, int>();
+            object speakerWas = field("elevenLabs");
+            Settings before = SettingsCopy();
+            PixelPoint place = pet.Position;
+            SettingsSpeaker speaker = new SettingsSpeaker();
+            try
+            {
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, speaker);
+                for (int i = 0; i < Hands.OwnSwitches.GetLength(0); i++) if (Hands.CrossSetting(Hands.OwnSwitches[i, 0])) switches[Hands.OwnSwitches[i, 0]] = Hands.SettingOn(Hands.OwnSwitches[i, 0]) == true;
+                for (int i = 0; i < Hands.OwnLevels.GetLength(0); i++) if (Hands.CrossSetting(Hands.OwnLevels[i, 0])) levels[Hands.OwnLevels[i, 0]] = Hands.LevelOf(Hands.OwnLevels[i, 0]);
+                string[,] toggles =
+                {
+                    { "quiet", "quietItem", "" }, { "check_ins", "checkInsItem", "NoCheckIns" }, { "wander", "", "Wander" }, { "dance_to_music", "musicItem", "NoDance" },
+                    { "always_on_top", "onTopItem", "NotOnTop" }, { "typing_sound", "typingItem", "Typing" }, { "glitch_in", "introItem", "NoIntro" }, { "watch_my_screen", "watchItem", "Watch" },
+                    { "startup", "loginItem", "" }, { "discord_presence", "discordItem", "NoDiscord" }, { "voice_layers", "layersItem", "Layers" }
+                };
+                for (int i = 0; i < toggles.GetLength(0); i++)
+                {
+                    string name = toggles[i, 0];
+                    foreach (bool on in new[] { true, false })
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = name });
+                        Settings loaded = SettingsCopy();
+                        object stored = toggles[i, 2].Length == 0 ? null : value(loaded, toggles[i, 2]);
+                        bool persisted = name == "quiet" ? pet.Shushed : name == "startup" ? pet.StartsAtLogin : name == "wander" ? (int)stored > 0 : name == "typing_sound" ? (int)stored == 1 : name == "watch_my_screen" || name == "voice_layers" ? (bool)stored : !(bool)stored;
+                        if (Hands.SettingOn(name) != on || toggles[i, 1].Length > 0 && ((MenuItem)field(toggles[i, 1])).IsChecked != on || persisted != on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Cross setting switch disagreed with its menu or saved value: " + name + " / " + line);
+                    }
+                    checks.Add("PASS cross setting " + name + " reads and changes its menu's value through the shared setter");
+                }
+                foreach (bool on in new[] { false, true })
+                {
+                    string line = Hands.Do("capri_settings", new ToolArguments { Action = on ? "on" : "off", Name = "voice" });
+                    if (pet.Speaks != on || SettingsCopy().Silent == on || !line.EndsWith(on ? "on." : "off.", StringComparison.Ordinal)) throw new Exception("Cross voice switch did not use Speak replies: " + line);
+                }
+                string[,] sliders =
+                {
+                    { "size", "", "Size" }, { "wander", "wanderPicks", "Wander" }, { "pop_ins", "popPicks", "PopPace" }, { "sleep", "sleepPicks", "SleepAfter" }, { "volume", "volumePicks", "Volume" },
+                    { "voice_speed", "pacePicks", "Pace" }, { "replies", "replyPicks", "Replies" }, { "bubble", "bubblePicks", "Bubble" }, { "glance_gap", "gapPicks", "GlanceGap" },
+                    { "voice_pitch", "pitchPicks", "Pitch" }, { "voice_robot", "robotPicks", "Robot" }, { "voice_glitch", "glitchPicks", "Glitch" }, { "sounds", "soundPicks", "Sounds" }, { "language", "languagePicks", "Language" }, { "typing_sound", "", "Typing" }
+                };
+                for (int i = 0; i < sliders.GetLength(0); i++)
+                {
+                    string name = sliders[i, 0];
+                    string[] steps = Hands.StepsOf(name);
+                    if (sliders[i, 1].Length > 0 && name != "language" && name != "wander")
+                    {
+                        List<MenuItem> picks = (List<MenuItem>)field(sliders[i, 1]);
+                        if (picks.Count != steps.Length) throw new Exception("Cross steps differ from the actual menu: " + name);
+                        for (int step = 0; step < steps.Length; step++) if (picks[step].Header.ToString() != steps[step]) throw new Exception("Cross step label differs from the menu: " + name);
+                    }
+                    foreach (int step in new[] { 0, steps.Length / 2, steps.Length - 1 })
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = steps[step] });
+                        if (Hands.LevelOf(name) != step || sliders[i, 1].Length > 0 && ticked(sliders[i, 1]) != step || !object.Equals(value(SettingsCopy(), sliders[i, 2]), value(pet.Saved, sliders[i, 2])) || !line.Contains(steps[step])) throw new Exception("Cross slider did not show or save its value: " + name + " / " + line);
+                        if (name == "size" && (pet.BodySize != Pet.Sizes[step] || pet.Saved.Size != Pet.Sizes[step])) throw new Exception("Cross size did not use its six menu sizes.");
+                    }
+                    pet.SetLevel(name, int.MinValue);
+                    if (Hands.LevelOf(name) != 0) throw new Exception("Cross slider did not clamp low: " + name);
+                    pet.SetLevel(name, int.MaxValue);
+                    if (Hands.LevelOf(name) != steps.Length - 1) throw new Exception("Cross slider did not clamp high: " + name);
+                    checks.Add("PASS cross setting " + name + " uses its menu steps, clamps, saves and reads back");
+                }
+                foreach (string name in new[] { "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay" })
+                {
+                    string[] steps = Hands.StepsOf(name);
+                    for (int step = 0; step < steps.Length; step++)
+                    {
+                        string line = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = steps[step] });
+                        if (Hands.LevelOf(name) != step || pet.LayersShown != VoiceFx.Layers.Shown || Pet.LayersOf(SettingsCopy()).Shown != VoiceFx.Layers.Shown || !line.Contains(steps[step])) throw new Exception("Cross layer did not match its sparse menu and saved value: " + name);
+                    }
+                    pet.SetLevel(name, int.MinValue);
+                    if (Hands.LevelOf(name) != 0) throw new Exception("Cross layer did not clamp low.");
+                    pet.SetLevel(name, int.MaxValue);
+                    if (Hands.LevelOf(name) != steps.Length - 1) throw new Exception("Cross layer did not clamp high.");
+                    checks.Add("PASS cross setting " + name + " matches every layer menu step, clamps, saves and reads back");
+                }
+                // OpenAI refuses every tool when one's description runs past 1024 characters, so none of hers may.
+                for (int i = 0; i < Hands.Count; i++)
+                    if (Hands.Description(i).Length > 1024) throw new Exception("OpenAI would refuse " + Hands.Name(i) + "'s description: " + Hands.Description(i).Length + " characters.");
+                Hands.Kit kit = Hands.KitFor();
+                string tools = kit.Tools;
+                int at = tools.IndexOf("\"name\":\"capri_settings\"", StringComparison.Ordinal);
+                string spec = tools.Substring(at, tools.IndexOf("\"required\":[\"action\"]", at, StringComparison.Ordinal) - at);
+                foreach (string name in Hands.SettingNames())
+                {
+                    bool present = spec.Contains("\"" + name + "\"");
+                    if (present != Hands.CrossSetting(name)) throw new Exception("The cross settings enum advertises the wrong platform choice: " + name);
+                    if (!Hands.CrossSetting(name))
+                    {
+                        string refused = Hands.Do("capri_settings", new ToolArguments { Action = Array.IndexOf(Hands.SettingActions, name) >= 0 ? name : "on", Name = name });
+                        if (!refused.Contains("only on Windows")) throw new Exception("The cross kit did not explain its missing setting: " + name + " / " + refused);
+                    }
+                }
+                foreach (string name in new[] { "api_key", "brain", "voice_service", "security", "hey_capri", "memories", "remember" }) if (Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = name })) throw new Exception("Protected settings reached the cross tool.");
+                pet.SetLevel("volume", 8);
+                pet.SetLevel("replies", 0);
+                pet.SetSpeak(true);
+                pet.Talk.Open();
+                pet.Talk.Thinking("(settings)");
+                int asked = (int)field("asking");
+                string preview = Hands.Do("capri_settings", new ToolArguments { Action = "preview_voice" });
+                pet.CheckStyle();
+                if (speaker.Calls != 0 || (int)field("asking") != asked || !preview.Contains("after this reply")) throw new Exception("Cross preview interrupted its tool turn.");
+                pet.Talk.Answer("(settings)", "Done.");
+                pet.Talk.Update(pet.Now + 1);
+                if (!pet.Talk.Finished || !pet.Talk.Typing) throw new Exception("A completed cross reply still waits for its typing box to close.");
+                pet.CheckStyle();
+                if ((int)field("asking") != asked + 1 || (bool)field("styleCheckDue") || pet.Saved.VoiceProvider != before.VoiceProvider || pet.Saved.VoiceId != before.VoiceId) throw new Exception("Cross preview did not start the current voice after its reply.");
+                pet.Talk.Dismiss();
+                checks.Add("PASS cross preview waits for its reply, runs with the typing box open and keeps its provider and voice; unsupported settings are removed by the kit and explain why");
+            }
+            finally
+            {
+                typeof(Pet).GetField("styleCheckDue", fields).SetValue(pet, false);
+                typeof(Pet).GetField("asking", fields).SetValue(pet, (int)field("asking") + 1);
+                foreach (KeyValuePair<string, bool> pair in switches) pet.SetSetting(pair.Key, pair.Value);
+                foreach (KeyValuePair<string, int> pair in levels) pet.SetLevel(pair.Key, pair.Value);
+                pet.Saved = before;
+                pet.Resize(before.Size);
+                typeof(Pet).GetMethod("Move", fields, null, new[] { typeof(PixelPoint) }, null).Invoke(pet, new object[] { place });
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, speakerWas);
+                pet.Talk.Dismiss();
+            }
         }
 
         // Security on Mac and Linux, like Windows' SECURITY window: each preset ticks its toggles, a flip makes it Custom and is

@@ -1008,18 +1008,20 @@ namespace CapriDesktop
                     || Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = "size" }) || !Hands.Valid("capri_settings", new ToolArguments { Action = "off", Name = "sit_on_windows" }) || Hands.Valid("capri_settings", new ToolArguments { Action = "set", Name = "watch_my_screen", Level = "on" })
                     || Hands.Checking("capri_settings", bigger) || Security.Needs("capri_settings", bigger) != -1)
                     throw new Exception("Her settings tool's calls weren't checked.");
-                // Nothing she mustn't touch is in reach: keys, brains, her voice service, SECURITY, memories or "Hey Capri". Watch my screen and
-                // game comments are switches she turns off when asked (Lachy, 2 Nov), and nothing else that watches or comments is.
+                // Nothing she mustn't touch is in reach: keys, brains, her voice service, SECURITY, memories or "Hey Capri". Every one of
+                // her own settings is (Lachy, 3 Nov: her brain can change any of them).
                 string tools = Hands.KitFor().WorkTools;
                 int at = tools.IndexOf("\"name\":\"capri_settings\"", StringComparison.Ordinal);
                 string spec = at < 0 ? "" : tools.Substring(at, tools.IndexOf("}}", tools.IndexOf("\"level\"", at), StringComparison.Ordinal) - at);
                 string names = spec.Length == 0 ? "" : spec.Substring(spec.IndexOf("\"enum\":[\"voice\"", StringComparison.Ordinal));
                 names = names.Substring(0, names.IndexOf(']') + 1);
-                string others = names.Replace("\"watch_my_screen\",", "").Replace("\"game_comments\",", "");
-                foreach (string never in new[] { "key", "brain", "model", "elevenlabs", "service", "security", "blackwall", "preset", "watch", "comment", "remember", "memor", "listen", "hey", "startup", "start_with", "discord", "cursor", "password", "bypass" })
-                    if (others.IndexOf(never, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Her settings tool reached something she mustn't touch: " + never + " in " + names);
-                if (names != "\"enum\":[\"voice\",\"quiet\",\"mic\",\"check_ins\",\"wander\",\"dance_to_music\",\"head_pats\",\"chaos_when_upset\",\"sit_on_windows\",\"always_on_top\",\"mini_player\",\"typing_sound\",\"follow_ups\",\"hide_in_full_screen\",\"glitch_in\",\"clip_my_games\",\"save_big_moments\",\"live_reactions\",\"gaming_mode\",\"hologram\",\"watch_my_screen\",\"game_comments\",\"size\",\"pop_ins\",\"sleep\",\"volume\",\"voice_speed\",\"replies\",\"bubble\"]")
-                    throw new Exception("Her settings tool's names didn't match her switches and sliders: " + names);
+                foreach (string never in new[] { "api_key", "brain", "model", "voice_service", "security", "blackwall", "permissions", "remember", "memories", "hey_capri", "password", "bypass" })
+                    if (names.Contains("\"" + never + "\"")) throw new Exception("Her settings tool reached " + never + ".");
+                foreach (string name in Hands.SettingNames())
+                    if (Array.IndexOf(Hands.SettingActions, name) < 0 && !names.Contains("\"" + name + "\"")) throw new Exception("Her settings tool omitted " + name + ".");
+                // OpenAI refuses every tool when one's description runs past 1024 characters, so none of hers may.
+                for (int i = 0; i < Hands.Count; i++)
+                    if (Hands.Description(i).Length > 1024) throw new Exception("OpenAI would refuse " + Hands.Name(i) + "'s description: " + Hands.Description(i).Length + " characters.");
                 foreach (string name in new[] { "voice", "quiet", "mic", "check_ins", "wander", "dance_to_music", "head_pats", "chaos_when_upset", "sit_on_windows", "always_on_top", "mini_player", "typing_sound", "follow_ups", "hide_in_full_screen", "glitch_in", "clip_my_games", "save_big_moments", "live_reactions", "gaming_mode", "hologram", "watch_my_screen", "game_comments" })
                     if (!Hands.Valid("capri_settings", new ToolArguments { Action = "on", Name = name })) throw new Exception("Her settings tool's switch " + name + " wasn't taken.");
                 foreach (string name in new[] { "size", "wander", "pop_ins", "sleep", "volume", "voice_speed", "replies", "bubble" })
@@ -1150,7 +1152,7 @@ namespace CapriDesktop
                 string listed = Hands.Do("capri_settings", new ToolArguments { Action = "list" });
                 string bigger = set("size", "bigger"), giant = set("size", "giant"), wander = set("wander", "often"), still = set("wander", "off"), pops = set("pop_ins", "rarely"), sleep = set("sleep", "10 min");
                 string volume = set("volume", "50%"), speed = set("voice_speed", "faster"), replies = set("replies", "long"), bubble = set("bubble", "quick");
-                if (!listed.EndsWith("my size: Medium; Wander: Rarely; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal.", StringComparison.Ordinal)
+                if (!listed.Contains("my size: Medium; Wander: Rarely; Pop-ins: Sometimes; Sleep: 5 min; my voice's volume: 80%; my voice's speed: 1.2x; Replies: Medium; Bubble: Normal;")
                     || bigger != "Set my size to Medium+." || giant != "Set my size to Giant." || preferences.Size != MaxSize || Size != CanvasSize(MaxSize)
                     || wander != "Set Wander to Often." || still != "Set Wander to Off." || preferences.Wander || WanderLevel != 0 || preferences.WanderPace != 2
                     || pops != "Set Pop-ins to Rarely." || preferences.PopPace != 0 || sleep != "Set Sleep to 10 min." || preferences.SleepAfter != 600
