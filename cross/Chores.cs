@@ -82,12 +82,16 @@ namespace CapriDesktop
             finally { Hands.Streaming = false; }
         }
 
+        // Her pointer parks however the job ends, even one that can't start.
         private static string Work(Brain brain, string job, string asked)
         {
-            string problem = Fingers.Problem;
-            if (problem != null && Doing == null) return problem;
-            if (brain.Model == null) return "Couldn't do that: your brain is offline.";
-            try { return Steps(brain, job, asked); }
+            try
+            {
+                string problem = Fingers.Problem;
+                if (problem != null && Doing == null) return problem;
+                if (brain.Model == null) return "Couldn't do that: your brain is offline.";
+                return Steps(brain, job, asked);
+            }
             finally { Finish(); }
         }
 
