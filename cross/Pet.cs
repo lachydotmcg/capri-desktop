@@ -509,8 +509,13 @@ namespace CapriDesktop
             if (Program.Smoke == null)
             {
                 Hands.Work = delegate(string job, string asked) { return Chores.Run(Brain, job, asked); };
-                Chores.Mouse = delegate { return Dispatcher.UIThread.Invoke(MouseShare); };
+                Chores.Mouse = delegate { return Dispatcher.UIThread.Invoke(MouseShare) ?? KWinMouse.Ask(); };
                 Chores.Says = delegate(string line) { Dispatcher.UIThread.Post(delegate { Reply(asking, "(chat)", line); }); };
+                // Her own pointer, like Windows': it glides while their mouse stays put, and hides for her screenshots.
+                Chores.Track = delegate(double x, double y) { Dispatcher.UIThread.Post(delegate { HerPointer.Point(DesktopPixel(x, y)); }); };
+                Chores.Tapped = delegate { Dispatcher.UIThread.Post(delegate { HerPointer.Tap(); }); };
+                Chores.Hidden = delegate(bool hidden) { Dispatcher.UIThread.Invoke(delegate { if (hidden) HerPointer.Hide(); else if (herPointer != null) { HerPointer.Show(); Look.OnTopAgain(herPointer); } }); };
+                Chores.Parked = delegate { Dispatcher.UIThread.Post(delegate { if (herPointer != null) herPointer.Park(); }); };
             }
             if (Program.Smoke == null) presence = new Presence(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             // A cloud key they saved thinks for her instead of Ollama, on the model they picked.
@@ -536,6 +541,8 @@ namespace CapriDesktop
                 Sfx.TypeOut = delegate(short[] samples) { Limbs.Speak(Voice.Wave(samples, Sfx.Rate)); };
                 Sfx.Untyped = Limbs.Hush;
             }
+            Look.OverGames = !Saved.NotOnTop && Program.Smoke == null;
+            Look.AboveGames(this);
             Title = "Capri";
             SystemDecorations = SystemDecorations.None;
             Background = Brushes.Transparent;
@@ -923,6 +930,25 @@ namespace CapriDesktop
             try { board.SetTextAsync(Fingers.Setup); }
             catch (Exception) { return; }
             Talk.Answer("(mouse setup)", "Copied a command for you. Paste it in a terminal, type your password, then close and open me again so I can use your mouse and keyboard.");
+        }
+
+        private HerCursor herPointer;
+
+        private HerCursor HerPointer { get { if (herPointer == null) herPointer = new HerCursor { Topmost = true }; return herPointer; } }
+
+        // A spot 0 to 1 across the bounding box of every screen, in desktop pixels: where her pointer goes for it.
+        private PixelPoint DesktopPixel(double x, double y)
+        {
+            int left = int.MaxValue, top = int.MaxValue, right = int.MinValue, bottom = int.MinValue;
+            foreach (Screen screen in Screens.All)
+            {
+                left = Math.Min(left, screen.Bounds.X);
+                top = Math.Min(top, screen.Bounds.Y);
+                right = Math.Max(right, screen.Bounds.Right);
+                bottom = Math.Max(bottom, screen.Bounds.Bottom);
+            }
+            if (right <= left || bottom <= top) return new PixelPoint(0, 0);
+            return new PixelPoint(left + (int)Math.Round(x * (right - left - 1)), top + (int)Math.Round(y * (bottom - top - 1)));
         }
 
         // Where the mouse is, 0 to 1 across the bounding box of every screen, which is how her mouse and her screenshots map too.
@@ -4090,11 +4116,49 @@ namespace CapriDesktop
             if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
         }
 
+        // The settings 0.7.8 added, kept again in cross-new.json, which 0.7.6 and 0.7.7 never touch: an older copy rewrites
+        // cross.json without them, so coming back from one finds them here instead of starting over on ElevenLabs.
+        [DataContract]
+        internal sealed class NewSettings
+        {
+            [DataMember] internal string VoiceProvider;
+            [DataMember] internal string LocalVoiceUrl;
+            [DataMember] internal string LocalVoiceModel;
+            [DataMember] internal string LocalVoiceName;
+            [DataMember] internal string LocalVoiceFormat;
+            [DataMember] internal string BrainServer;
+            [DataMember] internal string ServerModel;
+        }
+
+        // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
+        internal static Settings Kept(Settings saved, NewSettings newer)
+        {
+            if (saved == null || newer == null || saved.VoiceProvider != null) return saved;
+            saved.VoiceProvider = newer.VoiceProvider;
+            saved.LocalVoiceUrl = newer.LocalVoiceUrl;
+            saved.LocalVoiceModel = newer.LocalVoiceModel;
+            saved.LocalVoiceName = newer.LocalVoiceName;
+            saved.LocalVoiceFormat = newer.LocalVoiceFormat;
+            saved.BrainServer = newer.BrainServer;
+            saved.ServerModel = newer.ServerModel;
+            return saved;
+        }
+
+        internal static NewSettings Newest(Settings saved)
+        {
+            return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel };
+        }
+
         private Settings Load()
         {
             try
             {
-                using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross.json"))) return (Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+                Settings saved;
+                using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross.json"))) saved = (Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+                NewSettings newer = null;
+                try { using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
+                catch (Exception) { }
+                return Kept(saved, newer);
             }
             // A new install starts in the computer's own language when she speaks it.
             catch (Exception) { return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) }; }
@@ -4110,6 +4174,7 @@ namespace CapriDesktop
             {
                 Directory.CreateDirectory(folder);
                 using (FileStream stream = File.Create(Path.Combine(folder, "cross.json"))) new DataContractJsonSerializer(typeof(Settings)).WriteObject(stream, Saved);
+                using (FileStream stream = File.Create(Path.Combine(folder, "cross-new.json"))) new DataContractJsonSerializer(typeof(NewSettings)).WriteObject(stream, Newest(Saved));
             }
             catch (Exception) { }
         }

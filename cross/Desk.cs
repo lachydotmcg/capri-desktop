@@ -613,4 +613,53 @@ namespace CapriDesktop
             if (reply.Trim() != "ok") Ask("dispatch " + classic + " address:" + address);
         }
     }
+
+    // KDE on Wayland won't tell an app where the mouse is, but KWin will tell a script. Her jobs ask it this way, only
+    // around a borrowed click, since it takes a few hundred milliseconds: a one-line script prints the cursor and the
+    // desktop's size to the journal under a fresh tag, and she reads it back. 0 to 1 across the desktop, or null.
+    internal static class KWinMouse
+    {
+        internal static bool Here
+        {
+            get
+            {
+                return OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") != null
+                    && (Environment.GetEnvironmentVariable("XDG_CURRENT_DESKTOP") ?? "").IndexOf("KDE", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+        }
+
+        internal static double[] Ask()
+        {
+            if (!Here) return null;
+            string tag = "CAPRIPOS" + Guid.NewGuid().ToString("N").Substring(0, 12);
+            string path = Path.Combine(Path.GetTempPath(), tag.ToLowerInvariant() + ".js");
+            try
+            {
+                File.WriteAllText(path, "print(\"" + tag + " \" + workspace.cursorPos.x + \" \" + workspace.cursorPos.y + \" \" + workspace.virtualScreenSize.width + \" \" + workspace.virtualScreenSize.height);");
+                string loaded = Music.Run("dbus-send", new[] { "--session", "--print-reply", "--dest=org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadScript", "string:" + path, "string:" + tag });
+                System.Text.RegularExpressions.Match id = System.Text.RegularExpressions.Regex.Match(loaded ?? "", @"int32\s+(\d+)");
+                if (!id.Success) return null;
+                Music.Run("dbus-send", new[] { "--session", "--print-reply", "--dest=org.kde.KWin", "/Scripting/Script" + id.Groups[1].Value, "org.kde.kwin.Script.run" });
+                double[] found = null;
+                for (int i = 0; i < 12 && found == null; i++)
+                {
+                    System.Threading.Thread.Sleep(60);
+                    string said = Music.Run("journalctl", new[] { "--user", "--since", "-10s", "-o", "cat", "--grep", tag });
+                    System.Text.RegularExpressions.Match line = System.Text.RegularExpressions.Regex.Match(said ?? "", tag + @" (-?[\d.]+) (-?[\d.]+) ([\d.]+) ([\d.]+)");
+                    if (!line.Success) continue;
+                    System.Globalization.CultureInfo plain = System.Globalization.CultureInfo.InvariantCulture;
+                    double x = double.Parse(line.Groups[1].Value, plain), y = double.Parse(line.Groups[2].Value, plain), w = double.Parse(line.Groups[3].Value, plain), h = double.Parse(line.Groups[4].Value, plain);
+                    if (w > 1 && h > 1) found = new[] { x / (w - 1), y / (h - 1) };
+                }
+                Music.Run("dbus-send", new[] { "--session", "--print-reply", "--dest=org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.unloadScript", "string:" + tag });
+                return found;
+            }
+            catch (Exception) { return null; }
+            finally
+            {
+                try { File.Delete(path); }
+                catch (IOException) { }
+            }
+        }
+    }
 }
