@@ -2303,7 +2303,7 @@ namespace CapriDesktop
                 case "show_advanced": SetAdvancedSettings(on); break;
             }
             Sync();
-            return name == "voice" && on && !Speaks ? "Set up a voice in Settings > Voice first." : null;
+            return name == "voice" && on && !Speaks ? "Set up a voice under VOICE in Capri Mainframe first." : null;
         }
 
         // The step nearest a value, for sliders whose value can sit between their steps.
@@ -2401,7 +2401,7 @@ namespace CapriDesktop
         {
             if (!Dispatcher.UIThread.CheckAccess()) return Dispatcher.UIThread.InvokeAsync(delegate { return SettingAction(action); }).GetAwaiter().GetResult();
             if (action != "preview_voice") return "That action is only on Windows for now.";
-            if (!Speaks) return "My voice isn't ready. Set it up in Settings > Voice first.";
+            if (!Speaks) return "My voice isn't ready. Set it up under VOICE in Capri Mainframe first.";
             styleCheckDue = true;
             styleAsked = asking;
             return "I'll play my current voice after this reply.";

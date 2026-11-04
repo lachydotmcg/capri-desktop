@@ -40,7 +40,7 @@ namespace CapriDesktop
             {
                 if (!OperatingSystem.IsLinux()) return "Using the mouse and keyboard isn't ready on this PC yet.";
                 if (!File.Exists(Device)) return "Using the mouse and keyboard isn't ready on this PC yet: there's no " + Device + ". Run sudo modprobe uinput, then ask again.";
-                if (access(Device, 2) != 0) return "Using the mouse and keyboard isn't ready on this PC yet: Capri can't write to " + Device + ". Add the udev rule from Settings > Security > Mouse and keyboard setup, then ask again.";
+                if (access(Device, 2) != 0) return "Using the mouse and keyboard isn't ready on this PC yet: Capri can't write to " + Device + ". Open Capri Mainframe > Settings > KEYS > Set up mouse and keyboard, run the command it copies, then ask again.";
                 return null;
             }
         }

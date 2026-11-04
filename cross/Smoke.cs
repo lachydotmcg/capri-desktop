@@ -1129,10 +1129,10 @@ namespace CapriDesktop
                 lock (spoken) voiced = spoken.Count;
                 bool shut = OperatingSystem.IsWindows() || File.GetUnixFileMode(keyPath) == (UnixFileMode.UserRead | UnixFileMode.UserWrite);
                 string last = asked.Length == 0 ? "" : asked[asked.Length - 1];
-                if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under Settings > Voice." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
+                if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under VOICE in Capri Mainframe." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
                 string voiceMenu = pet.VoiceMenu;
                 if (voiceMenu != "Provider: ElevenLabs | - | *Use ElevenLabs | - | *Capri Test | Adam | - | New key... | Remove key ending 1234") throw new Exception("The Voice menu listed the wrong things: " + voiceMenu);
-                checks.Add("PASS voice key: Settings > Voice asks for the key in a hidden box, explains and drops a rejected key, keeps a good one in a private file and picks their own voice first");
+                checks.Add("PASS voice key: VOICE asks for the key in a hidden box, explains and drops a rejected key, keeps a good one in a private file and picks their own voice first");
                 if (pet.TypingSound) throw new Exception("Typing sound stayed on while her ElevenLabs voice works.");
                 pet.Think = delegate(string words) { return "Preem question, choom."; };
                 pet.Hear("talk to me");
