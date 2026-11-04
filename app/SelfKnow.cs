@@ -40,7 +40,7 @@ namespace CapriDesktop
             new Topic("Settings pages", "settings button|back button in mainframe|settings pages",
                 "Settings at the top of Mainframe opens her settings page. Back returns to BRAIN, VOICE and CAPRI. Advanced Settings shows every row; Simple Settings keeps the main ones. Changes save as you make them.", "Mainframe.cs", "Settings"),
             new Topic("Mods", "mods page|mods button|mod menu|your mods|capri mods",
-                "Mods at the top of Mainframe opens her mods page. A .capri-mod file only changes settings. A .capri-code file runs code with full access to the PC, so she asks before running it and again if it's edited. Back returns to BRAIN, VOICE and CAPRI.", "Mainframe.cs", "Mods"),
+                "Mods in Mainframe's CAPRI band opens her mods page. A .capri-mod file only changes settings. A .capri-code file runs code with full access to the PC, so she asks before running it and again if it's edited. Back returns to BRAIN, VOICE and CAPRI.", "Mainframe.cs", "Mods"),
             new Topic("Import mod", "import a mod|import mod|install a mod|add a mod",
                 "Import mod lets you pick a .capri-mod, .capri-code or .capri-skin file and turns it on. Code mods ask first, and a skin changes how she looks. A mod with the same id is replaced, and a broken one is refused with the reason.", "MainframeMods.cs", "Import mod"),
             new Topic("Browse mods", "browse mods|mods directory|find mods|capri-mods",

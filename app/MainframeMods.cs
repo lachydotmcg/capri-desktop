@@ -123,17 +123,40 @@ namespace CapriDesktop
             modSearch.Box.Text = "";
         }
 
+        private void CheckModsKey()
+        {
+            if (more.Left != Scaled(146) || more.Text != "Settings" || modsKey.Top < more.Bottom || modsKey.Left >= Far) throw new Exception("Settings or Mods is in the wrong place.");
+            try
+            {
+                foreach (bool fallback in new[] { false, true })
+                {
+                    LayoutScale(96, 100, fallback);
+                    foreach (bool page in new[] { false, true })
+                    {
+                        ShowMods(page);
+                        string crowded = TextFits() ?? Overlap();
+                        if (crowded != null) throw new Exception("The Mods page or key overlaps" + (fallback ? " on the fallback font: " : ": ") + crowded);
+                    }
+                    ShowSettings(false);
+                    if (more.Text != "Back") throw new Exception("Settings lost Back while Mods was open.");
+                    more.PerformClick();
+                    if (modded || paged || more.Text != "Settings") throw new Exception("Back did not leave Mods.");
+                }
+            }
+            finally { LayoutScale(0, 0); ShowMods(false); }
+        }
+
         internal void ShowMods(bool on)
         {
             DismissHint();
             if (on && paged) ShowSettings(false);
             modded = on;
-            modsKey.Text = on ? "Back" : "Mods";
-            modsKey.Invalidate();
+            more.Text = on ? "Back" : "Settings";
+            more.Invalidate();
             Place();
             foreach (KeyValuePair<Control, int> entry in mainLeft) Reachable(entry.Key, !on);
             foreach (KeyValuePair<Control, int> entry in modLeft) Reachable(entry.Key, on);
-            if (Hidden(ActiveControl)) modsKey.Focus();
+            if (Hidden(ActiveControl)) more.Focus();
             if (!on) { modBrowsing = false; modBrowseTicket++; ClearSearch(); }
             if (on) FillMods();
             Arrange(expanded);
@@ -430,7 +453,7 @@ namespace CapriDesktop
             foreach (Mod old in mods.All.ToArray()) mods.Remove(old);
             if (Hands.HeardName("Nova, what time is it?") || !Hands.HeardName("Capri, what time is it?")) throw new Exception("Her names were wrong before any mod.");
             ShowMods(true);
-            if (!modsKey.Visible || !modded || modsKey.Text != "Back" || modStatus.Left >= Far || more.Text != "Settings") throw new Exception("The Mods page did not open.");
+            if (!modded || more.Text != "Back" || modStatus.Left >= Far || modsKey.Left < Far) throw new Exception("The Mods page did not open.");
             if (!ImportMod(good)) throw new Exception("A good mod was refused: " + modStatus.Text);
             if (mods.All.Count != 1 || !File.Exists(Path.Combine(mods.Folder, "custom-names" + Mods.Extension))) throw new Exception("An imported mod was not saved.");
             if (!Hands.HeardName("hey nova, what time is it") || !Hands.HeardName("BIG Z open notepad") || !Hands.HeardName("big   z") || !Hands.HeardName("ask capricorn") || !Hands.HeardName("Capri, hello"))
@@ -474,6 +497,8 @@ namespace CapriDesktop
             if (paged || !modded || modStatus.Left >= Far) throw new Exception("Mods did not take over from Settings.");
             ShowMods(false);
             if (modded || modStatus.Left < Far) throw new Exception("Back did not leave Mods.");
+            CheckModsKey();
+            checks.Add("PASS mods key: Mods sits in the CAPRI band, Settings stays where it was and turns into Back on the Mods page, and nothing overlaps with her own font or the fallback");
             using (Bitmap page = new Bitmap(Width, Height))
             {
                 DrawToBitmap(page, new Rectangle(Point.Empty, Size));

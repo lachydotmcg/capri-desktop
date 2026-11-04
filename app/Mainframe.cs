@@ -367,17 +367,14 @@ namespace CapriDesktop
             build = Caption("v" + version, 200, 20, small, Faint);
             build.AutoSize = false;
             build.TextAlign = ContentAlignment.MiddleRight;
-            build.Bounds = new Rectangle(234, 20, 62, 22);
+            build.Bounds = new Rectangle(230, 20, 62, 22);
             minimize = Make("", 300, 20, 26, 22, delegate { WindowState = FormWindowState.Minimized; });
             minimize.Glyph = 1;
             minimize.AccessibleName = "Minimize";
             close = Make("", 330, 20, 26, 22, delegate { Close(); });
             close.Glyph = 2;
             close.AccessibleName = "Close";
-            more = Make("Settings", 122, 20, 64, 22, delegate { ShowSettings(!paged); });
-            modsKey = Make("Mods", 190, 20, 42, 22, delegate { ShowMods(!modded); });
-            modsKey.Accent = Cyan;
-            modsKey.Loud = true;
+            more = Make("Settings", 146, 20, 84, 22, delegate { if (modded) ShowMods(false); else ShowSettings(!paged); });
             more.Accent = Cyan;
             more.Loud = true;
             int header = Controls.Count;
@@ -544,6 +541,7 @@ namespace CapriDesktop
             Lower(Section("CAPRI >", 0, 184 + v));
             Key support = Lower(Make("Support", 280, 181 + v, 76, 20, delegate { capri.OpenSupport(); }));
             support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
+            modsKey = Lower(Make("Mods", 216, 181 + v, 56, 20, delegate { ShowMods(true); }));
             showHide = Lower(Make("Hide Capri", 28, 206 + v, 104, 28, delegate { capri.ToggleHidden(); }));
             Lower(Make("Bring here", 140, 206 + v, 104, 28, delegate { capri.BringHere(); }));
             perch = Lower(Make("Ride cursor", 252, 206 + v, 104, 28, delegate { capri.TogglePerch(); }));
@@ -1462,7 +1460,7 @@ namespace CapriDesktop
             advancedKey.Text = simple ? "Advanced Settings" : "Simple Settings";
             advancedKey.AccessibleName = simple ? "Advanced Settings: show every setting" : "Simple Settings: show only the main settings";
             advancedKey.Invalidate();
-            more.Text = on ? "Back" : "Settings";
+            more.Text = on || modded ? "Back" : "Settings";
             more.Invalidate();
             Place();
             foreach (KeyValuePair<Control, int> entry in mainLeft) Reachable(entry.Key, !on);
@@ -1486,7 +1484,7 @@ namespace CapriDesktop
             foreach (KeyValuePair<Control, int> entry in pageLeft) entry.Key.Left = Scaled(entry.Value) + (paged && !Folded(entry.Key) ? 0 : Far);
             foreach (KeyValuePair<Control, int> entry in modLeft) entry.Key.Left = Scaled(entry.Value) + (modded ? 0 : Far);
             int edge = paged ? Column : 0;
-            build.Left = Scaled(234 + edge);
+            build.Left = Scaled(230 + edge);
             minimize.Left = Scaled(300 + edge);
             close.Left = Scaled(330 + edge);
         }
