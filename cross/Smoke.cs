@@ -217,12 +217,12 @@ namespace CapriDesktop
                 bool freeBefore = pet.Free;
                 pet.ToggleShush();
                 string hushed = pet.Talk.Reply;
-                bool quieted = pet.Shushed && pet.QuietShown && !pet.Free && hushed == "Going quiet. Right-click me > Quiet when you want me back.";
+                bool quieted = pet.Shushed && pet.QuietShown && !pet.Free && hushed == "Going quiet. Turn off Mute her in Capri Mainframe when you want me back.";
                 pet.ToggleShush();
                 bool unhushed = !pet.Shushed && !pet.QuietShown && pet.Talk.Reply == "I'm back, choom.";
                 pet.Talk.Dismiss();
                 if (!quieted || !unhushed || pet.Free != freeBefore) throw new Exception("Quiet went wrong: quiet " + quieted + " (" + hushed + "), back " + unhushed + ", free before " + freeBefore + " and after " + pet.Free);
-                checks.Add("PASS quiet: right-click > Quiet stops her pop-ins, check-ins, cheers, jokes and glances until it's turned off, and she says so both times");
+                checks.Add("PASS quiet: Mute her stops her pop-ins, check-ins, cheers, jokes and glances until it's turned off, and she says so both times");
                 pet.SetBubbleTime(2);
                 bool bubbleLong = pet.BubblePicked == "Long" && Talk.Hold(100, pet.BubbleTime) == 18 && Talk.Hold(1000, pet.BubbleTime) == 28;
                 pet.SetBubbleTime(0);
@@ -1326,7 +1326,6 @@ namespace CapriDesktop
                 pet.SetWatch(false);
                 if (!hushedQuiet || pet.Shushed || pet.WatchShown) throw new Exception("A glance that came back after Quiet went on was said: " + pet.Talk.Reply);
                 checks.Add("PASS quiet glance: a glance still out when Quiet goes on is dropped, like Windows");
-                Finish(null);
                 return true;
             }
             if (step == 29)
@@ -1346,6 +1345,12 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 hushGlance = true;
                 return false;
+            }
+            if (step == 30)
+            {
+                MainframeChecks();
+                Finish(null);
+                return true;
             }
             return false;
         }
@@ -1603,6 +1608,394 @@ namespace CapriDesktop
 
         // Her settings tool on Mac and Linux reads and changes what her menus show, in their own steps, saves it, and says the
         // Windows-only ones are Windows-only.
+        private void MainframeChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+            Settings before = SettingsCopy();
+            Cloud remote = pet.Brain.Remote;
+            string model = pet.Brain.Model, server = pet.Brain.Server;
+            string language = Brain.Language, nickname = Brain.Nickname;
+            int memory = Brain.MemorySize, reply = Brain.ReplyLength, recall = Brain.Recall, replies = Brain.Wordiness;
+            int volume = Voice.Loudness, sounds = Sfx.Level, pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.Robot, glitch = VoiceFx.Glitch;
+            VoiceFx.Layering layers = VoiceFx.Layers;
+            bool quiet = pet.Shushed, login = pet.StartsAtLogin, visible = pet.IsVisible, leaving = pet.Leaving;
+            PixelPoint anchor = pet.Anchor;
+            var timer = (Avalonia.Threading.DispatcherTimer)typeof(Pet).GetField("frames", fields).GetValue(pet);
+            object speaker = typeof(Pet).GetField("elevenLabs", fields).GetValue(pet);
+            var voice = (Voice)typeof(Pet).GetField("voice", fields).GetValue(pet);
+            string voiceKey = voice.Key, voiceId = voice.VoiceId, voiceModel = voice.Model;
+            object listing = typeof(Pet).GetField("voices", fields).GetValue(pet);
+            string permissions = Security.Saved;
+            timer.Stop();
+            try
+            {
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, new SettingsSpeaker());
+                pet.SetBrainTier(0); pet.Brain.Remote = null; pet.Brain.Server = null; pet.Brain.Model = "gemma4:e4b";
+                pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
+                pet.OpenMainframe();
+                Mainframe frame = pet.Frame;
+                foreach (string font in new[] { "BarlowSemiCondensed-Regular.ttf", "BarlowSemiCondensed-SemiBold.ttf", "BarlowCondensed-SemiBold.ttf" })
+                    if (!Avalonia.Platform.AssetLoader.Exists(new Uri("avares://Capri/Assets/" + font))) throw new Exception("The Mainframe font is missing: " + font);
+                var tray = pet.TrayMenu();
+                if (tray.Items.Count != pet.ContextMenu.Items.Count) throw new Exception("The tray and body menus have different rows.");
+                for (int i = 0; i < tray.Items.Count; i++)
+                {
+                    var bodyRow = pet.ContextMenu.Items[i] as MenuItem; var trayRow = tray.Items[i] as NativeMenuItem;
+                    if (bodyRow != null && (trayRow == null || trayRow.Header != bodyRow.Header as string || (bodyRow.Header as string) == "Brain" || (bodyRow.Header as string) == "Settings")) throw new Exception("The tray menu does not match the Mainframe menu.");
+                }
+                if (frame == null || frame.SystemDecorations != SystemDecorations.None || frame.Zoom != (Pet.FrameSize(before.MainframeSize) == 0 ? 1 : Pet.FrameSize(before.MainframeSize) / 100.0)) throw new Exception("Her Mainframe did not open with the saved scale.");
+                frame.Close();
+                if (pet.Frame != frame || frame.WindowState != WindowState.Minimized || pet.IsVisible != visible || pet.Leaving != leaving) throw new Exception("Closing her Mainframe stopped her or lost its taskbar window.");
+                string opened = Hands.Do("mainframe", new ToolArguments { Name = "settings" });
+                if (opened != "Opened Capri Mainframe." || pet.Frame != frame || !frame.SettingsShown || frame.WindowState != WindowState.Normal || !Hands.KitFor().Tools.Contains("\"name\":\"mainframe\"")) throw new Exception("Her Mainframe tool did not restore the window and open Settings: " + opened);
+                frame.Close(); pet.Hear("Open your Mainframe");
+                if (frame.WindowState != WindowState.Normal || frame.SettingsShown) throw new Exception("Asking for her Mainframe did not open the main page.");
+                pet.SetAdvancedSettings(false); Hands.Do("mainframe", new ToolArguments { Name = "moves" });
+                if (!frame.SettingsShown || !pet.Saved.AdvancedSettings || !frame.Row("Wander").IsVisible) throw new Exception("A tool page did not unfold its advanced rows.");
+                pet.Talk.Dismiss();
+                checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps her running and retains the taskbar window");
+                MainframeRows(frame, fields);
+                MainframeSheets(frame);
+                MainframeConnections(frame);
+                MainframeLayout(frame, voice);
+                foreach (string name in new[] { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" })
+                {
+                    string path = Path.Combine(folder, name);
+                    using (var image = new Bitmap(path)) if (image.PixelSize.Width < 380 || image.PixelSize.Height < 100) throw new Exception("The Mainframe picture is empty: " + name);
+                }
+                checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
+            }
+            finally
+            {
+                pet.CloseMainframe();
+                if (pet.Shushed != quiet) pet.ToggleShush(false);
+                pet.SetLogin(login, false); pet.SetOnTop(!before.NotOnTop); pet.SetWatch(before.Watch, false); pet.SetRemembering(!before.NoMemories);
+                pet.SetDanceToMusic(!before.NoDance); pet.SetIntro(!before.NoIntro); pet.SetWander(before.Wander); pet.SetCheckIns(!before.NoCheckIns); pet.SetPopPace(before.PopPace ?? 1);
+                pet.SetLanguage(language ?? "English"); Brain.Nickname = nickname; Brain.Recall = recall; Brain.Wordiness = replies;
+                Brain.MemorySize = memory; Brain.ReplyLength = reply;
+                Voice.Loudness = volume; Sfx.Level = sounds; VoiceFx.Pitch = pitch; VoiceFx.Speed = speed; VoiceFx.Robot = robot; VoiceFx.Glitch = glitch; VoiceFx.Layers = layers;
+                Security.Load(permissions);
+                pet.SetLocalVoice("url", before.LocalVoiceUrl); pet.SetLocalVoice("model", before.LocalVoiceModel); pet.SetLocalVoice("voice", before.LocalVoiceName); pet.SetLocalVoice("format", before.LocalVoiceFormat);
+                pet.Saved = before; pet.Brain.Remote = remote; pet.Brain.Model = model; pet.Brain.Server = server;
+                voice.Key = voiceKey; voice.VoiceId = voiceId; voice.Model = voiceModel;
+                typeof(Pet).GetField("voices", fields).SetValue(pet, listing);
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, speaker);
+                pet.Resize(before.Size); pet.Move(anchor); pet.Talk.Dismiss(); timer.Start();
+            }
+        }
+
+        private void MainframeRows(Mainframe frame, System.Reflection.BindingFlags fields)
+        {
+            pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+            string[,] toggles = {
+                { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
+                { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
+                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
+                { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" }
+            };
+            for (int i = 0; i < toggles.GetLength(0); i++)
+                foreach (bool on in new[] { true, false })
+                {
+                    string name = toggles[i, 0], field = toggles[i, 2];
+                    frame.Change(name, on ? 1 : 0);
+                    bool saved;
+                    if (field == "") saved = name == "Start at login" ? pet.StartsAtLogin : pet.Shushed;
+                    else if (field == "Typing") saved = SettingsCopy().Typing == 1;
+                    else { saved = (bool)typeof(Settings).GetField(field, fields).GetValue(SettingsCopy()); if (field.StartsWith("No", StringComparison.Ordinal) || field == "NotOnTop") saved = !saved; }
+                    if (saved != on || frame.Value(name) != (on ? "On" : "Off") || toggles[i, 1] != "" && pet.SettingOn(toggles[i, 1]) != on) throw new Exception("A Mainframe switch did not use its saved setter: " + name);
+                }
+            var values = new Dictionary<string, Func<int, object>> {
+                { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
+                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
+                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Every", i => Pet.GlanceGaps[i] }, { "Replies", i => i }, { "Memory", i => new[] { 8, 16, 32 }[i] },
+                { "Memory size", i => Brain.MemorySizes[i] }, { "Max reply", i => i }, { "Bubble", i => i }
+            };
+            string[,] sliders = {
+                { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
+                { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
+                { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Every", "GlanceGap", "glance_gap" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
+                { "Memory size", "MemorySize", "" }, { "Max reply", "ReplyLength", "reply_limit" }, { "Bubble", "Bubble", "bubble" }
+            };
+            for (int i = 0; i < sliders.GetLength(0); i++)
+            {
+                string name = sliders[i, 0]; var slider = (NeonSlider)frame.Row(name);
+                foreach (int at in new[] { 0, slider.Choices.Length / 2, slider.Choices.Length - 1 })
+                {
+                    frame.Change(name, at);
+                    object saved = typeof(Settings).GetField(sliders[i, 1], fields).GetValue(SettingsCopy());
+                    if (!object.Equals(saved, values[name](at)) || frame.Value(name) != slider.Choices[at] || sliders[i, 2] != "" && pet.LevelOf(sliders[i, 2]) != at) throw new Exception("A Mainframe slider did not use its saved setter: " + name + " / " + saved);
+                }
+            }
+            if (Brain.MemorySize != 65536 || Brain.ReplyLength != Brain.ReplySizes.Length - 1) throw new Exception("Memory size or Max reply did not reach the shared brain.");
+            for (int i = 0; i < Brain.Languages.GetLength(0); i++)
+            {
+                frame.Change("Language", i);
+                if ((Brain.Language ?? "English") != Brain.Languages[i, 1] || SettingsCopy().Language != pet.Saved.Language) throw new Exception("The Mainframe language picker did not save its choice.");
+            }
+            for (int i = 0; i < 3; i++) { frame.Change("Typing mode", i); if (pet.Saved.Typing != i || SettingsCopy().Typing != i) throw new Exception("The Mainframe lost Auto typing."); }
+            pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" }); frame.Change("Brain model", 1);
+            if (pet.Brain.Model != "qwen3:8b" || SettingsCopy().Model != "qwen3:8b") throw new Exception("The Mainframe model picker did not use PickBrain.");
+            var nameEntry = (NeonEntry)frame.Row("What should she call you?"); nameEntry.Box.Text = "Nova"; frame.Press("Save");
+            if (Brain.Nickname != "Nova" || SettingsCopy().Nickname != "Nova") throw new Exception("The Mainframe nickname did not save.");
+            nameEntry.Box.Text = "Draft"; pet.SetVolume(70); frame.Sync();
+            if (nameEntry.Box.Text != "Draft") throw new Exception("Refreshing another row erased an unsaved name.");
+            pet.SetNickname("V"); pet.SetVolume(70); pet.SetRecall(16);
+            if (nameEntry.Box.Text != "V" || frame.Value("Volume") != "70%" || frame.Value("Memory") != "Medium") throw new Exception("A Pet change did not show in the open Mainframe.");
+            Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "replies", Level = "Medium" });
+            if (frame.Value("Replies") != "Medium") throw new Exception("A tool change did not show in the open Mainframe.");
+            string tip = MainframeTips.Brief("Mainframe > Settings > VOICE > Volume changes how loud her voice plays.");
+            if (tip != "Volume changes how loud her voice plays." || ToolTip.GetTip(frame.Row("Volume")) == null) throw new Exception("The Mainframe lost a Windows hover tip.");
+            if (Pet.FrameSize(-1) != 0 || Pet.FrameSize(110) != 0 || Pet.FrameSize(200) != 200) throw new Exception("Unsupported Mainframe sizes did not become Auto.");
+            pet.SetMainframeSize(0); if (frame.Zoom != 1) throw new Exception("Auto scaled the Mainframe twice.");
+            var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local }));
+            if (recovered.MainframeSize != 150 || !recovered.AdvancedSettings || recovered.MemorySize != 16384 || recovered.ReplyLength != 3 || recovered.BrainTier != 2 || recovered.PaidModel != "paid-test") throw new Exception("The Mainframe settings did not survive the older settings copy.");
+            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing and scale persist; Pet and tool changes show without losing drafts");
+        }
+
+        private void MainframeSheets(Mainframe frame)
+        {
+            var voice = new MainframeSheet(pet, "VOICE MODEL", "server"); voice.Show(frame);
+            try
+            {
+                ((NeonPicker)voice.Rows["Format"]).Pick(1);
+                ((NeonEntry)voice.Rows["Address"]).Box.Text = "localhost:8844";
+                ((NeonEntry)voice.Rows["Model"]).Box.Text = "kokoro-test";
+                ((NeonEntry)voice.Rows["Voice"]).Box.Text = "voice-test";
+                ((NeonButton)voice.Rows["Save"]).Press();
+                Settings saved = SettingsCopy();
+                if (saved.LocalVoiceUrl != "localhost:8844" || saved.LocalVoiceModel != "kokoro-test" || saved.LocalVoiceName != "voice-test" || saved.LocalVoiceFormat != LocalSpeaker.Pcm) throw new Exception("The voice server panel did not save the existing settings.");
+                pet.SetLocalVoice("model", "changed-test");
+                if (((NeonEntry)voice.Rows["Model"]).Box.Text != "changed-test") throw new Exception("The open voice panel did not show a Pet change.");
+                ((NeonEntry)voice.Rows["Address"]).Box.Text = "ftp://bad"; ((NeonButton)voice.Rows["Test voice"]).Press();
+                if (SettingsCopy().LocalVoiceUrl != "localhost:8844") throw new Exception("An invalid voice address changed the saved server.");
+            }
+            finally { voice.Close(); }
+            var layers = new MainframeSheet(pet, "VOICE LAYERS", "layers"); layers.Show(frame);
+            try
+            {
+                var enabled = (NeonSwitch)layers.Rows["Voice layers"]; if (!enabled.Checked) enabled.Flip();
+                for (int layer = 1; layer <= 2; layer++)
+                {
+                    var pitchBar = (NeonSlider)layers.Rows["Layer " + layer + " pitch"];
+                    var delayBar = (NeonSlider)layers.Rows["Layer " + layer + " delay"];
+                    pitchBar.Slide(pitchBar.Choices.Length - 1); delayBar.Slide(delayBar.Choices.Length - 1);
+                    if (VoiceFx.Layers.PitchOf(layer) != VoiceFx.Layering.MostPitch || Pet.LayersOf(SettingsCopy()).DelayOf(layer) != VoiceFx.Layering.MostDelay) throw new Exception("The layers panel did not save a layer.");
+                }
+                ((NeonButton)layers.Rows["Defaults"]).Press();
+                if (VoiceFx.Layers.Pitch1 != VoiceFx.Layering.HigherPitch || VoiceFx.Layers.Delay2 != VoiceFx.Layering.Behind || !SettingsCopy().Layers) throw new Exception("The layers defaults changed their meaning.");
+            }
+            finally { layers.Close(); }
+            var security = new MainframeSheet(pet, "SECURITY", "security"); security.Show(frame);
+            try
+            {
+                for (int preset = 0; preset < 4; preset++)
+                {
+                    ((NeonPicker)security.Rows["Preset"]).Pick(preset);
+                    if (Security.Preset != preset || SettingsCopy().Permissions != Security.Saved) throw new Exception("The Security panel did not save its preset.");
+                }
+                for (int i = 0; i < Security.Count; i++) if (Security.Has(i))
+                {
+                    var toggle = (NeonSwitch)security.Rows[Security.Names[i]];
+                    foreach (bool on in new[] { true, false }) { if (toggle.Checked != on) toggle.Flip(); if (Security.On(i) != on || SettingsCopy().Permissions != Security.Saved) throw new Exception("The Security panel did not save " + Security.Names[i]); }
+                }
+            }
+            finally { security.Close(); }
+            checks.Add("PASS Mainframe panels: local voice address, model, voice and format, layer controls and every available Security choice save through their existing setters");
+        }
+
+        private void MainframeLayout(Mainframe frame, Voice voice)
+        {
+            pet.SetLanguage("English"); pet.SetMainframeSize(100);
+            foreach (int tier in new[] { 0, 1, 2 })
+                foreach (int mode in new[] { 0, 2, 3 })
+                    foreach (bool savedKey in new[] { false, true })
+                    {
+                        frame.PickBrainTier(tier);
+                        if (tier == 0) pet.Brain.Model = "gemma4:e4b";
+                        voice.Key = savedKey ? "mainframe-layout-key" : null;
+                        frame.PickVoiceTier(mode);
+                        foreach (int scale in new[] { 100, 150, 200 })
+                            for (int page = 0; page < 3; page++)
+                            {
+                                pet.SetAdvancedSettings(page == 2); pet.SetMainframeSize(scale); frame.ShowSettings(page != 0); frame.UpdateLayout();
+                                string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                                if (wrong != null) throw new Exception("Mainframe layout at " + scale + "%, page " + page + ", tier " + tier + ", voice " + mode + ": " + wrong);
+                                if (Math.Abs(frame.Zoom - scale / 100.0) > 0.001 || frame.Page.Width != (page == 0 ? 380 : 760)) throw new Exception("The Mainframe changed its design coordinates while scaling.");
+                            }
+                    }
+            frame.PickBrainTier(0); pet.Brain.Model = null; frame.Sync(); frame.ShowSettings(false);
+            string setupWrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+            if (setupWrong != null) throw new Exception("The expanded brain setup does not fit: " + setupWrong);
+            pet.Brain.Model = "gemma4:e4b"; voice.Key = null; frame.PickVoiceTier(0); pet.SetMainframeSize(100);
+            string[] names = { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" };
+            for (int page = 0; page < 3; page++)
+            {
+                pet.SetAdvancedSettings(page == 2); frame.ShowSettings(page != 0); frame.SavePicture(Path.Combine(folder, names[page]));
+            }
+            frame.Height = 260; frame.UpdateLayout(); frame.GlideTo(new Vector(0, double.MaxValue));
+            if (!frame.Gliding) throw new Exception("A short Mainframe did not start its glide.");
+            frame.Settle();
+            if (frame.Scroll.Offset.Y <= 0 || frame.Scroll.Offset.Y + frame.Scroll.Viewport.Height > frame.Scroll.Extent.Height + 1) throw new Exception("The Mainframe glide left its page or could not reach its bottom.");
+            frame.Row("Volume").BringIntoView();
+            frame.Top();
+            checks.Add("PASS Mainframe layout: main, Simple and Advanced fit at 100%, 150% and 200% with every brain and voice tier; Barlow labels, hints, flags, choices and cues fit; a short page glides to its end");
+        }
+
+        private static void MainframeWait(Func<bool> ready, string what)
+        {
+            Stopwatch wait = Stopwatch.StartNew();
+            while (!ready() && wait.ElapsedMilliseconds < 3000) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+            if (!ready()) throw new Exception("Mainframe did not finish " + what + ".");
+        }
+
+        private static void MainframeEnter(Mainframe frame, string row, string text)
+        {
+            var entry = (NeonEntry)frame.Row(row); entry.Box.Text = text;
+            entry.Box.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
+        }
+
+        private void MainframeConnections(Mainframe frame)
+        {
+            string nvidia = Brain.Nvidia, google = Brain.Google, router = Brain.OpenRouter, paid = Brain.OpenAi, ollama = Brain.Ollama, eleven = Voice.Host;
+            var files = new Dictionary<string, byte[]>();
+            foreach (string name in new[] { "brain-key", "brain-free-key", "brain-paid-key", "voice-key" }) { string path = Path.Combine(folder, name); files[path] = File.Exists(path) ? File.ReadAllBytes(path) : null; }
+            using (var server = new MainframeServer())
+            {
+                Brain.Nvidia = server.Address + "/nvidia"; Brain.Google = server.Address + "/google"; Brain.OpenRouter = server.Address + "/router";
+                Brain.OpenAi = server.Address + "/paid"; Brain.Ollama = server.Address + "/ollama"; Voice.Host = server.Address + "/voice";
+                try
+                {
+                    frame.PickBrainTier(0); pet.Brain.Model = null; frame.ShowSettings(false); frame.Press("Set up her brain");
+                    MainframeWait(() => !pet.MainframePulling && pet.Saved.Model == Pet.Starter, "her local brain download");
+                    frame.Press("Refresh"); MainframeWait(() => pet.MainframeModels.Length == 2, "her local model scan");
+                    frame.Change("Brain model", 1);
+                    if (pet.Saved.Model != "qwen3:8b") throw new Exception("Refresh did not fill the Mainframe model picker.");
+                    string[] keys = { "nvapi-mainframe-test", "AIzaMainframe-test", "sk-or-mainframe-test" };
+                    string[] kinds = { "nvidia", "google", "openrouter" };
+                    for (int i = 0; i < keys.Length; i++)
+                    {
+                        string key = keys[i]; frame.PickBrainTier(1); MainframeEnter(frame, "Brain API key", key);
+                        MainframeWait(() => pet.Brain.Remote != null && pet.Brain.Remote.Key == key, kinds[i] + " key connection");
+                        if (pet.Brain.Remote.Kind != kinds[i] || SettingsCopy().BrainTier != 1 || pet.MainframeModels.Length == 0) throw new Exception("MEDIUM did not connect its free provider.");
+                        if (kinds[i] == "openrouter") foreach (string choice in pet.MainframeModels) if (!choice.EndsWith(":free", StringComparison.Ordinal)) throw new Exception("MEDIUM offered a paid OpenRouter model.");
+                        frame.Change("Brain model", 0);
+                        if (pet.Saved.CloudModel != pet.MainframeModels[0]) throw new Exception("The cloud model picker did not save its model.");
+                        int reads = server.Requests.Count; pet.MainframeRefresh();
+                        MainframeWait(() => server.Requests.Count > reads && pet.MainframeModels.Length > 0, "a fresh cloud model scan");
+                    }
+                    frame.PickBrainTier(1); MainframeEnter(frame, "Brain API key", "sk-mainframe-paid");
+                    string paidLayout = frame.Overlap() ?? frame.Outside() ?? frame.TextFits();
+                    if (paidLayout != null || pet.MainframeTier != 1) throw new Exception("The paid-key offer did not stay on MEDIUM or fit its page: " + paidLayout);
+                    frame.Press("Move to MAX");
+                    MainframeWait(() => pet.Brain.Remote?.Key == "sk-mainframe-paid", "her paid key connection");
+                    if (SettingsCopy().BrainTier != 2 || pet.Brain.Remote.Kind != "openai") throw new Exception("MAX did not keep the paid key.");
+                    frame.PickBrainTier(1); if (pet.Brain.Remote?.Key != keys[2]) throw new Exception("Switching tiers lost the free key.");
+                    frame.PickBrainTier(2); if (pet.Brain.Remote?.Key != "sk-mainframe-paid") throw new Exception("Switching tiers lost the paid key.");
+                    MainframeEnter(frame, "Brain API key", ""); if (pet.Brain.Remote != null || pet.MainframeTier != 2) throw new Exception("Forget did not clear the chosen tier's key.");
+                    if (pet.MainframeModels.Length != 0) throw new Exception("A cloud tier without a key offered local models.");
+                    pet.MainframePickModel("local-wrong");
+                    if (pet.Brain.Model != null) throw new Exception("A local model started under a cloud tier.");
+                    server.Hold = "/nvidia/"; frame.PickBrainTier(1); MainframeEnter(frame, "Brain API key", "nvapi-mainframe-slow");
+                    MainframeWait(() => server.Held.IsSet, "a pending key request");
+                    frame.PickBrainTier(0); pet.Brain.Model = "qwen3:8b"; server.Release.Set();
+                    MainframeWait(() => !pet.MainframeConnecting, "the old key response");
+                    if (pet.MainframeTier != 0 || pet.Brain.Remote != null || pet.Brain.Model != "qwen3:8b") throw new Exception("A slow key response undid the later tier choice.");
+                    pet.UseCloud(keys[2], "test/paid", new List<string> { "test/model:free", "test/paid" }, 2);
+                    server.Held.Reset(); server.Release.Reset(); server.Hold = "/router/"; pet.MainframeRefresh();
+                    MainframeWait(() => server.Held.IsSet, "the old tier's model scan");
+                    frame.PickBrainTier(1); pet.MainframeRefresh(); server.Release.Set();
+                    MainframeWait(() => pet.MainframeModels.Length == 1 && pet.MainframeModels[0].EndsWith(":free", StringComparison.Ordinal), "the new tier's free models");
+                    if (pet.MainframeTier != 1) throw new Exception("The old model scan undid the later tier choice.");
+                    frame.PickVoiceTier(3); MainframeEnter(frame, "ElevenLabs API key", "voice-mainframe-test");
+                    MainframeWait(() => pet.MainframeVoiceKey == "voice-mainframe-test" && pet.MainframeVoiceIds.Length == 2, "ElevenLabs voice listing");
+                    frame.Change("Voice", 1);
+                    if (SettingsCopy().VoiceId != pet.MainframeVoiceIds[1]) throw new Exception("The Mainframe voice picker did not use ChooseVoice.");
+                    frame.Change("Speech model", 1);
+                    if (SettingsCopy().SpeechModel != "voice-model-test") throw new Exception("The Mainframe speech model did not save.");
+                    frame.Change("Speech model", 0);
+                    if (SettingsCopy().SpeechModel != null) throw new Exception("Default model did not keep the existing voice default.");
+                    MainframeEnter(frame, "ElevenLabs voice ID", "manual-voice");
+                    if (SettingsCopy().VoiceId != "manual-voice") throw new Exception("The Mainframe voice ID did not save.");
+                    MainframeEnter(frame, "ElevenLabs API key", ""); if (pet.MainframeVoiceKey != null) throw new Exception("Forget did not clear the voice key.");
+                    foreach (int mode in new[] { 0, 2, 3 })
+                    {
+                        frame.PickVoiceTier(mode);
+                        if (pet.MainframeVoiceMode != mode || mode == 0 && !SettingsCopy().Silent || mode == 2 && SettingsCopy().VoiceProvider != Speakers.Local || mode == 3 && SettingsCopy().VoiceProvider != Speakers.ElevenLabs) throw new Exception("The voice tiers changed their saved meaning.");
+                    }
+                    frame.PickBrainTier(0); pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+                    MainframeEnter(frame, "Local server address", server.Address);
+                    MainframeWait(() => pet.Saved.BrainServer == server.Address, "her own brain server");
+                    pet.MainframeRefresh(); MainframeWait(() => pet.MainframeModels.Length == 2 && pet.MainframeModels[0] == "server-test", "her server model scan");
+                    frame.Change("Brain model", 1);
+                    if (pet.Saved.ServerModel != "server-other") throw new Exception("The Mainframe did not save its server model.");
+                    MainframeEnter(frame, "Local server address", ""); MainframeWait(() => pet.Brain.Server == null && pet.Brain.Model != null && Array.IndexOf(pet.MainframeModels, Pet.Starter) >= 0, "returning to Ollama");
+                    if (!server.Requests.Exists(line => line.Contains("/api/pull") && line.Contains(Pet.Starter))) throw new Exception("Set up did not use the existing model download.");
+                    checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, and her own brain server use loopback fakes");
+                }
+                finally
+                {
+                    Brain.Nvidia = nvidia; Brain.Google = google; Brain.OpenRouter = router; Brain.OpenAi = paid; Brain.Ollama = ollama; Voice.Host = eleven;
+                    foreach (var file in files) { if (file.Value == null) { if (File.Exists(file.Key)) File.Delete(file.Key); } else File.WriteAllBytes(file.Key, file.Value); }
+                }
+            }
+        }
+
+        private sealed class MainframeServer : IDisposable
+        {
+            private readonly TcpListener server = new TcpListener(IPAddress.Loopback, 0);
+            internal readonly List<string> Requests = new List<string>();
+            internal string Hold;
+            internal readonly ManualResetEventSlim Held = new ManualResetEventSlim();
+            internal readonly ManualResetEventSlim Release = new ManualResetEventSlim();
+            internal string Address { get { return "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port; } }
+            internal MainframeServer()
+            {
+                server.Start();
+                var thread = new Thread(delegate()
+                {
+                    while (true)
+                    {
+                        TcpClient client;
+                        try { client = server.AcceptTcpClient(); }
+                        catch (Exception) { return; }
+                        try
+                        {
+                            using (client)
+                            {
+                                client.ReceiveTimeout = client.SendTimeout = 3000;
+                                var stream = client.GetStream();
+                                var reader = new StreamReader(stream, Encoding.UTF8, false, 1024, true);
+                                string request = reader.ReadLine() ?? "", line; int length = 0;
+                                while (!string.IsNullOrEmpty(line = reader.ReadLine())) if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase)) int.TryParse(line.Substring(15).Trim(), out length);
+                                var body = new char[length]; int read = 0;
+                                while (read < length) { int got = reader.Read(body, read, length - read); if (got <= 0) break; read += got; }
+                                lock (Requests) Requests.Add(request + " " + new string(body));
+                                if (Hold != null && request.Contains(Hold)) { Held.Set(); Release.Wait(3000); Hold = null; }
+                                string json = Reply(request);
+                                byte[] bytes = Encoding.UTF8.GetBytes(json), header = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
+                                stream.Write(header, 0, header.Length); stream.Write(bytes, 0, bytes.Length);
+                            }
+                        }
+                        catch (Exception) { }
+                    }
+                });
+                thread.IsBackground = true; thread.Start();
+            }
+            private static string Reply(string request)
+            {
+                if (request.Contains("/api/pull")) return "{\"status\":\"success\",\"total\":100,\"completed\":100}\n";
+                if (request.Contains("/api/tags")) return "{\"models\":[{\"name\":\"gemma4:e4b\"},{\"name\":\"qwen3:8b\"}]}";
+                if (request.Contains("/voice/v2/voices")) return "{\"voices\":[{\"voice_id\":\"v1\",\"name\":\"Nova\"},{\"voice_id\":\"v2\",\"name\":\"V\"}],\"has_more\":false}";
+                if (request.Contains("/voice/")) return "[{\"model_id\":\"voice-model-test\",\"name\":\"Voice test\",\"can_do_text_to_speech\":true}]";
+                if (request.Contains("/google/")) return "{\"data\":[{\"id\":\"gemini-2.5-flash\"}]}";
+                if (request.Contains("/router/")) return "{\"data\":[{\"id\":\"test/model:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"test/paid\"}]}";
+                if (request.Contains("/nvidia/")) return "{\"data\":[{\"id\":\"meta/llama-3.2-11b-vision-instruct\"}]}";
+                if (request.Contains("/paid/")) return "{\"data\":[{\"id\":\"gpt-4.1-mini\"}]}";
+                return "{\"data\":[{\"id\":\"server-test\"},{\"id\":\"server-other\"}]}";
+            }
+            public void Dispose() { server.Stop(); }
+        }
+
         private void SettingsChecks()
         {
             System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
@@ -2500,7 +2893,9 @@ namespace CapriDesktop
                 Self("move_yourself", "stand_up");
                 bool letGo = !pet.Hanging;
                 Self("move_yourself", "ride_cursor");
-                Self("move_yourself", "move_mainframe", "other");
+                string frameMoved = Self("move_yourself", "move_mainframe", "other");
+                if (pet.Frame == null || frameMoved != (pet.Screens.All.Count < 2 ? "There's no other screen to go to." : "Moved Capri Mainframe.")) throw new Exception("She did not open or move her Mainframe: " + frameMoved);
+                pet.CloseMainframe();
                 Self("animate", "glitch");
                 bool glitched = pet.Playing == "glitch";
                 Self("animate", "grin");
@@ -2553,10 +2948,10 @@ namespace CapriDesktop
             if (pet.Leaving || pet.Arriving || pet.Falling) return false;
             pet.MouseAt = null;
             string said = string.Join(" / ", moveLines);
-            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / My Mainframe is only on Windows so far. Here my settings are in my right-click menu."
-                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show her in my tray menu to bring me back. / Back. / I'm right here.";
+            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / " + moveLines[7]
+                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show Capri in my tray menu to bring me back. / Back. / I'm right here.";
             if (said != wanted) throw new Exception("Her moves said the wrong things: " + said);
-            checks.Add("PASS she moves herself: \"teleport here\" glitches her hip onto the mouse, she sits, stands, hangs and lets go where she is, goes to another screen " + (pet.Screens.All.Count > 1 ? "and lands there" : "only when there is one (one here)") + ", a hide waits for her line and \"show yourself\" brings her back, riding the cursor and the Mainframe say they're Windows-only so far, and glitch, grin, blink, idle and a dance until \"stop dancing\" play by name");
+            checks.Add("PASS she moves herself: teleport, sit, stand, hang, hide, show and named animations work; her Mainframe opens and moves to another screen when there is one; riding the cursor stays Windows-only");
             moveStage = 5;
             return true;
         }

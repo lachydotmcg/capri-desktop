@@ -72,6 +72,14 @@ namespace CapriDesktop
         // A server of their own that thinks for her instead of Ollama (llama-server, LM Studio, vLLM, TGI), and its model.
         [DataMember] internal string BrainServer;
         [DataMember] internal string ServerModel;
+        [DataMember] internal int MainframeSize;
+        [DataMember] internal bool AdvancedSettings;
+        [DataMember] internal int MemorySize;
+        [DataMember] internal int ReplyLength;
+        [DataMember] internal int? BrainTier;
+        [DataMember] internal string FreeModel;
+        [DataMember] internal string PaidModel;
+        [DataMember] internal string SpeechModel;
     }
 
     // The bits of GitHub's latest release she reads to tell them about an update.
@@ -156,7 +164,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed class Pet : Window
+    internal sealed partial class Pet : Window
     {
         internal const double SitX = 0.30;
         internal const double SitY = 0.79;
@@ -174,24 +182,24 @@ namespace CapriDesktop
         internal static readonly string[] WanderNames = { "Off", "Rarely", "Sometimes", "Often", "Restless" };
         private static readonly string[] Lengths = { "Short", "Medium", "Long" };
         private static readonly int[] Recalls = { 8, 16, 32 };
-        private static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
-        private static readonly int[] SoundLevels = { 0, 30, 60, 100 };
-        internal const string Offline = "My brain's offline. Install Ollama from ollama.com and open it, then right-click me > Brain > Download " + Starter + ".";
+        internal static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
+        internal static readonly int[] SoundLevels = { 0, 30, 60, 100 };
+        internal const string Offline = "My brain's offline. Open Capri Mainframe and set up her brain: " + Starter + ".";
         // The brain she downloads for herself through Ollama when it has none yet, so no terminal is needed.
         internal const string Starter = "gemma4:e4b";
         internal const string PullChoice = "Download " + Starter + ", her brain (a few GB)";
         internal const string NoOllama = "Ollama isn't running. Install it from ollama.com and open it.";
         private const string FreeKeyPage = "https://build.nvidia.com/settings/api-keys";
         internal const string KeyChoice = "Use an API key...";
-        internal const string NotAKey = "That doesn't look like an NVIDIA, OpenAI, Claude or DeepSeek key. NVIDIA's start with nvapi-.";
-        internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Then right-click me > Brain > " + KeyChoice + " and paste it.";
+        internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude or DeepSeek.";
+        internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
         internal const string DiscordPage = "https://discord.gg/F4fDHfGtFk";
         internal const string HelpPage = "https://capriai.app/help/";
         // Mac and Linux don't update themselves yet, so she checks GitHub's latest release now and then and offers its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
         private const string ReleasesPage = "https://github.com/lachydotmcg/capri-desktop/releases/latest";
         internal static readonly double[] Sizes = { 140, 170, 240, 320, 440, 560 };
-        private static readonly string[] SizeNames = { "Tiny", "Small", "Medium", "Large", "Huge", "Giant" };
+        internal static readonly string[] SizeNames = { "Tiny", "Small", "Medium", "Large", "Huge", "Giant" };
         internal readonly Brain Brain = new Brain();
         internal readonly Talk Talk;
         internal Desk Desk = Desk.Make();
@@ -467,8 +475,8 @@ namespace CapriDesktop
             // A copy that moved since they ticked it takes the login entry over, so it doesn't point at the old place.
             if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Environment.ProcessPath, true, OperatingSystem.IsMacOS());
             Brain.LogPath = Path.Combine(Program.Smoke ?? folder, "errors.txt");
-            Brain.BrainMenu = "in my right-click menu under Brain";
-            Brain.FreeKeyHow = "right-click me > Brain > Get a free NVIDIA key";
+            Brain.BrainMenu = "under BRAIN in Capri Mainframe";
+            Brain.FreeKeyHow = "Capri Mainframe > BRAIN > Free key";
             Brain.Bin = OperatingSystem.IsMacOS() ? "Trash" : "trash";
             Brain.MemoryPath = Path.Combine(Program.Smoke ?? folder, "me.md");
             // Their personality.md, made only when they pick Edit (back in 0.8.0). Her safety lines stay in her code after it.
@@ -485,6 +493,8 @@ namespace CapriDesktop
             Brain.Nickname = Brain.Nick(Saved.Nickname).Length == 0 ? null : Brain.Nick(Saved.Nickname);
             Brain.Wordiness = Math.Max(0, Math.Min(2, Saved.Replies));
             Brain.Recall = Saved.Recall == 16 || Saved.Recall == 32 ? Saved.Recall : 8;
+            Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, Saved.MemorySize) >= 0 ? Saved.MemorySize : 0;
+            Brain.ReplyLength = Math.Clamp(Saved.ReplyLength, 0, Brain.ReplySizes.Length - 1);
             Saved.Wander = Math.Max(0, Math.Min(4, Saved.Wander));
             Sfx.Level = Math.Max(0, Math.Min(100, Saved.Sounds ?? 60));
             Voice.Loudness = Math.Max(0, Math.Min(150, Saved.Volume ?? 100));
@@ -499,6 +509,7 @@ namespace CapriDesktop
             Hands.Look = LookAt;
             Hands.Nap = NapTool;
             Hands.MoveSelf = MoveTool;
+            Hands.Mainframe = MainframeTool;
             Hands.Animate = AnimateTool;
             // Her settings tool reads and changes what her menus show.
             Hands.SettingOn = SettingOn;
@@ -527,8 +538,10 @@ namespace CapriDesktop
             }
             Brain.Server = Brain.ServerAddress(Saved.BrainServer);
             if (Brain.Remote == null && Brain.Server != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
+            RestoreBrainTier();
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
+            voice.Model = Saved.SpeechModel;
             elevenLabs = new ElevenLabsSpeaker(voice);
             Saved.VoiceProvider = Speakers.Known(Saved.VoiceProvider);
             localVoice.Url = Saved.LocalVoiceUrl;
@@ -589,7 +602,7 @@ namespace CapriDesktop
                 {
                     int ticket = asking;
                     DispatcherTimer.RunOnce(() => Greet(ticket, DateTime.Now.Hour), TimeSpan.FromMilliseconds(1800));
-                    if (fresh) meetAt = Now + 4;
+                    if (fresh) { OpenMainframe(); meetAt = Now + 4; }
                 }
             };
         }
@@ -1428,7 +1441,7 @@ namespace CapriDesktop
 
         private ContextMenu Menu()
         {
-            ContextMenu menu = new ContextMenu();
+            ContextMenu menu = new ContextMenu { Background = MainframeTheme.Ground, Foreground = MainframeTheme.White, BorderBrush = MainframeTheme.Brim, BorderThickness = new Thickness(1), FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size };
             MenuItem talk = new MenuItem { Header = "Talk to her" };
             talk.Click += delegate { Talk.Open(); };
             quietItem = new MenuItem { Header = "Quiet", ToggleType = MenuItemToggleType.CheckBox };
@@ -1717,20 +1730,33 @@ namespace CapriDesktop
             help.Items.Add(copyErrors);
             MenuItem quit = new MenuItem { Header = "Quit Capri" };
             quit.Click += delegate { Quit(); };
-            menu.Items.Add(talk);
-            menu.Items.Add(quietItem);
-            menu.Items.Add(sitItem);
-            menu.Items.Add(hangItem);
-            menu.Items.Add(napItem);
-            menu.Items.Add(move);
+            move.Items.Clear();
+            move.Items.Add(sitItem);
+            move.Items.Add(hangItem);
+            move.Items.Add(napItem);
+            move.Items.Add(screenItem);
+            move.Items.Add(danceItem);
+            MenuItem wander = new MenuItem { Header = "Wander" };
+            wander.Click += delegate { SetWander(Saved.Wander == 0 ? 2 : 0); };
+            move.Items.Add(wander);
+            MenuItem title = new MenuItem { Header = "CAPRI / v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3), IsEnabled = false, Foreground = MainframeTheme.Rose };
+            MenuItem frame = new MenuItem { Header = "Open Capri Mainframe" };
+            frame.Click += delegate { OpenMainframe(); };
+            hideItem = new MenuItem { Header = "Hide Capri" };
+            hideItem.Click += delegate { if (Away) ComeBack(); else HideAway(); };
+            MenuItem update = new MenuItem { Header = "Check for updates" };
+            update.Click += delegate { CheckUpdate(); };
+            menu.Items.Add(title);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(frame);
+            menu.Items.Add(hideItem);
             menu.Items.Add(sizes);
-            menu.Items.Add(brainMenu);
-            menu.Items.Add(settings);
+            menu.Items.Add(move);
             menu.Items.Add(help);
-            menu.Items.Add(discord);
+            menu.Items.Add(update);
             menu.Items.Add(new Separator());
             menu.Items.Add(quit);
-            menu.Opening += delegate { Sync(); RefreshBrains(); RefreshVoice(); };
+            menu.Opening += delegate { Sync(); hideItem.Header = Away ? "Show Capri" : "Hide Capri"; };
             return menu;
         }
 
@@ -2046,11 +2072,12 @@ namespace CapriDesktop
         // before they get here.
         internal string MoveSelf(string action, string screen)
         {
+            if (action == "move_mainframe") return MoveMainframe(screen);
             if (action == "hide")
             {
                 if (away) return "Already hidden.";
                 hideAsked = true;
-                return "Hiding. Pick Show her in my tray menu to bring me back.";
+                return "Hiding. Pick Show Capri in my tray menu to bring me back.";
             }
             hideAsked = false;
             if (action == "show")
@@ -2249,6 +2276,7 @@ namespace CapriDesktop
                 case "startup": return StartsAtLogin;
                 case "discord_presence": return !Saved.NoDiscord;
                 case "voice_layers": return VoiceFx.Layers.On;
+                case "show_advanced": return Saved.AdvancedSettings;
                 default: return null;
             }
         }
@@ -2272,6 +2300,7 @@ namespace CapriDesktop
                 case "startup": SetLogin(on, false); break;
                 case "discord_presence": SetDiscord(on); break;
                 case "voice_layers": SetLayers(VoiceFx.Layers.Turned(on)); break;
+                case "show_advanced": SetAdvancedSettings(on); break;
             }
             Sync();
             return name == "voice" && on && !Speaks ? "Set up a voice in Settings > Voice first." : null;
@@ -2298,6 +2327,8 @@ namespace CapriDesktop
                 case "volume": return Nearest(Volumes, Voice.Loudness);
                 case "voice_speed": return Nearest(Paces, VoiceFx.Speed);
                 case "replies": return Brain.Wordiness;
+                case "reply_limit": return Brain.ReplyLength;
+                case "mainframe_size": return Array.IndexOf(new[] { 0, 100, 125, 150, 175, 200 }, FrameSize(Saved.MainframeSize));
                 case "bubble": return BubbleTime;
                 case "glance_gap": return Math.Max(0, Array.IndexOf(GlanceGaps, GlanceGap));
                 case "voice_pitch": return VoiceFx.Pitch + VoiceFx.MostPitch;
@@ -2341,6 +2372,8 @@ namespace CapriDesktop
                 case "volume": SetVolume(Volumes[step]); break;
                 case "voice_speed": SetPace(Paces[step]); break;
                 case "replies": SetReplies(step); break;
+                case "reply_limit": SetReplyLength(step); break;
+                case "mainframe_size": SetMainframeSize(new[] { 0, 100, 125, 150, 175, 200 }[step]); break;
                 case "bubble": SetBubbleTime(step); break;
                 case "glance_gap": SetGlanceGap(GlanceGaps[step]); break;
                 case "voice_pitch": SetPitch(step - VoiceFx.MostPitch); break;
@@ -2389,7 +2422,7 @@ namespace CapriDesktop
             nextGlance = -1;
             ForgetNudges();
             if (shushed) voice.Stop();
-            if (say) Talk.Answer("(quiet)", shushed ? "Going quiet. Right-click me > Quiet when you want me back." : "I'm back, choom.");
+            if (say) Talk.Answer("(quiet)", shushed ? "Going quiet. Turn off Mute her in Capri Mainframe when you want me back." : "I'm back, choom.");
             Sync();
             if (ShushChanged != null) ShushChanged();
         }
@@ -2590,8 +2623,10 @@ namespace CapriDesktop
 
         private void RefreshBrains()
         {
+            if (MainframeTier > 0 && Brain.Remote == null) { NotifySettings(); return; }
             if (Brain.Remote != null) { ShowCloud(); ListCloud(); return; }
             string server = Brain.Server;
+            int request = ++localRequests;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
@@ -2599,17 +2634,20 @@ namespace CapriDesktop
                 {
                     try { found = Brain.ServerModels(server); }
                     catch (Exception) { }
-                    Dispatcher.UIThread.Post(delegate { ShowServer(found); });
+                    Dispatcher.UIThread.Post(delegate { if (request == localRequests && MainframeTier == 0 && Brain.Server == server && Brain.Remote == null) ShowServer(found); });
                     return;
                 }
                 try { found = Brain.InstalledModels(); }
                 catch (Exception) { }
-                Dispatcher.UIThread.Post(delegate { ShowBrains(found); });
+                Dispatcher.UIThread.Post(delegate { if (request == localRequests && MainframeTier == 0 && Brain.Server == server && Brain.Remote == null) ShowBrains(found); });
             });
         }
 
         internal void ShowBrains(string[] found)
         {
+            frameModels = found ?? Array.Empty<string>();
+            if (MainframeTier == 0) frameProblem = found == null ? NoOllama : null;
+            NotifySettings();
             if (Brain.Remote != null) { ShowCloud(); return; }
             brainMenu.Items.Clear();
             if (found == null) brainMenu.Items.Add(new MenuItem { Header = NoOllama, IsEnabled = false });
@@ -2652,8 +2690,11 @@ namespace CapriDesktop
         // On their own server the Brain menu lists its models, and can change its address or go back to Ollama.
         internal void ShowServer(string[] found)
         {
+            frameModels = found ?? Array.Empty<string>();
+            NotifySettings();
             string server = Brain.Server;
             if (Brain.Remote != null || server == null) return;
+            frameProblem = found == null ? "Can't reach your server. Is it running?" : null;
             brainMenu.Items.Clear();
             brainMenu.Items.Add(new MenuItem { Header = "My server at " + server, IsEnabled = false });
             if (found == null) brainMenu.Items.Add(new MenuItem { Header = "Can't reach it. Is it running?", IsEnabled = false });
@@ -2717,6 +2758,7 @@ namespace CapriDesktop
                     if (Brain.Remote == null) Brain.Model = model;
                     Saved.ServerModel = model;
                     Save();
+                    if (MainframeTier == 0) ShowServer(found);
                     if (ticket == asking) Talk.Answer("(brain server)", "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
                 });
             });
@@ -2736,9 +2778,11 @@ namespace CapriDesktop
             Brain.Cancel();
             Brain.Server = null;
             Saved.BrainServer = null;
+            frameModels = Array.Empty<string>();
             if (Brain.Remote == null) Brain.Model = null;
             Save();
             FindBrain();
+            RefreshBrains();
         }
 
         // On a cloud key the Brain menu lists that key's chat models, and can go back to Ollama.
@@ -2775,13 +2819,16 @@ namespace CapriDesktop
             if (remote == null || cloudListing || cloudModels != null) return;
             cloudListing = true;
             string key = remote.Key;
+            bool freeOnly = MainframeTier == 1;
+            int request = ++cloudRequests;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 List<string> found = null;
-                try { found = Brain.CloudModels(key); }
+                try { found = Brain.CloudModels(key, freeOnly); }
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
+                    if (request != cloudRequests) return;
                     cloudListing = false;
                     if (found == null || Brain.Remote == null || Brain.Remote.Key != key) return;
                     cloudModels = found;
@@ -2853,7 +2900,7 @@ namespace CapriDesktop
             pulling = true;
             pulled = -1;
             pullingName = tag;
-            Talk.Answer(BrainHeard, "Downloading my brain, " + tag + ". It can be a few GB, so give me a while. Right-click me > Brain shows how far it's got.");
+            Talk.Answer(BrainHeard, "Downloading my brain, " + tag + ". It can be a few GB. BRAIN in Capri Mainframe shows its progress.");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string problem = null;
@@ -2867,9 +2914,11 @@ namespace CapriDesktop
                 {
                     pulling = false;
                     pulled = -1;
+                    if (MainframeTier == 0) frameProblem = problem;
+                    NotifySettings();
                     if (problem != null) { Talk.Answer(BrainHeard, problem); return; }
                     Saved.Model = tag;
-                    if (Brain.Remote == null && Brain.Server == null) Brain.Model = tag;
+                    if (MainframeTier == 0 && Brain.Remote == null && Brain.Server == null) Brain.Model = tag;
                     Save();
                     Talk.Answer(BrainHeard, "My brain's in. Talk to me, choom.");
                 });
@@ -3525,6 +3574,7 @@ namespace CapriDesktop
 
         internal void FindBrain()
         {
+            if (MainframeTier != 0) return;
             string saved = Saved.Model;
             string server = Brain.Server;
             string serverSaved = Saved.ServerModel;
@@ -3543,7 +3593,7 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (Brain.Model != null || model == null || Brain.Server != server) return;
+                    if (MainframeTier != 0 || Brain.Model != null || model == null || Brain.Server != server) return;
                     Brain.Model = model;
                     if (server == null) Saved.Model = model;
                     else Saved.ServerModel = model;
@@ -3561,6 +3611,11 @@ namespace CapriDesktop
             Brain.Cancel();
             voice.Stop();
             string tool;
+            if (System.Text.RegularExpressions.Regex.IsMatch(text, @"^(?:please )?(?:(?:can|could|would) you )?(?:open|show|bring up|let me see|can i see)(?: me)?(?: the| your| her| capri'?s?)? (?:capri )?main ?frame(?: window)?(?: please)?[.!?]*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            {
+                Reply(ticket, text, MainframeTool(null));
+                return;
+            }
             ToolArguments args;
             bool noted;
             try { noted = Hands.Heard(text, out tool, out args) && tool == "remember"; }
@@ -3585,7 +3640,7 @@ namespace CapriDesktop
                 return;
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
-            if (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate")) { Reply(ticket, text, Hands.Do(tool, args)); return; }
+            if (tool == "mainframe" || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline); FindBrain(); return; }
             Talk.Thinking(text);
             Ask(ticket, text, 0);
@@ -3654,9 +3709,9 @@ namespace CapriDesktop
             get
             {
                 string picked = Speakers.Known(Saved.VoiceProvider);
-                if (picked == Speakers.Off) return "My voice provider is off, choom. Settings > Voice > Provider picks one.";
-                if (picked == Speakers.Local) return localVoice.Ready ? "My voice is off, choom. Settings > Voice > Speak replies turns it back on." : "Set your local voice server under Settings > Voice to hear that, choom.";
-                return voice.Ready ? "My voice is off, choom. Settings > Voice > Use ElevenLabs turns it back on." : "Add an ElevenLabs key under Settings > Voice to hear that, choom.";
+                if (picked == Speakers.Off) return "My voice is off. Pick a voice under VOICE in Capri Mainframe.";
+                if (picked == Speakers.Local) return localVoice.Ready ? "My voice is off. Pick CUSTOM LOCAL under VOICE in Capri Mainframe." : "Set up CUSTOM LOCAL under VOICE in Capri Mainframe.";
+                return voice.Ready ? "My voice is off. Pick CLOUD VOICE under VOICE in Capri Mainframe." : "Add your ElevenLabs key under VOICE in Capri Mainframe.";
             }
         }
 
@@ -3694,7 +3749,7 @@ namespace CapriDesktop
             });
         }
 
-        private static string Mac(string problem) { return problem == Voice.Rejected ? "ElevenLabs rejected the key. Settings > Voice > New key." : problem; }
+        private static string Mac(string problem) { return problem == Voice.Rejected ? "ElevenLabs rejected the key. Paste a new one under VOICE in Capri Mainframe." : problem; }
 
         private string KeyFile { get { return Path.Combine(Program.Smoke ?? folder, "voice-key"); } }
 
@@ -3749,10 +3804,19 @@ namespace CapriDesktop
         // A key she checks by reading its models, then thinks with on its best chat model until they pick another under Brain.
         internal void SaveBrainKey(string key)
         {
+            SaveBrainKey(key, Cloud.MediumKind(Cloud.KindOf((key ?? "").Trim())) ? 1 : 2);
+        }
+
+        internal void SaveBrainKey(string key, int tier)
+        {
             key = (key ?? "").Trim();
             if (key.Length == 0) return;
             string kind = Cloud.KindOf(key);
-            if (kind == null) { Talk.Answer(BrainKeyHeard, NotAKey); return; }
+            if (kind == null) { frameProblem = NotAKey; NotifySettings(); Talk.Answer(BrainKeyHeard, NotAKey); return; }
+            frameProblem = null;
+            int pickedTier = tier == 1 && Cloud.MediumKind(kind) ? 1 : 2;
+            int request = ++brainRequests;
+            brainPending++;
             int ticket = ++asking;
             Talk.Thinking(BrainKeyHeard);
             ThreadPool.QueueUserWorkItem(delegate
@@ -3760,28 +3824,37 @@ namespace CapriDesktop
                 List<string> found = null;
                 string problem = null;
                 string company = new Cloud(key, null).Company;
-                try { found = Brain.CloudModels(key); }
+                try { found = Brain.CloudModels(key, pickedTier == 1); }
                 catch (BrainException error) { problem = error.Message; }
                 catch (Exception error) { Brain.Log(company + " models", -1, error.Message); problem = "Couldn't reach " + company + ". Check your internet, then paste the key again."; }
                 Dispatcher.UIThread.Post(delegate
                 {
+                    brainPending--;
+                    if (request != brainRequests) { NotifySettings(); return; }
                     string model = found == null ? null : Brain.DefaultCloudModel(kind, found);
                     if (problem == null && model == null) problem = "That key can't use any chat models.";
-                    if (problem != null) { if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
-                    UseCloud(key, model, found);
+                    if (problem != null) { frameProblem = problem; NotifySettings(); if (ticket == asking) Talk.Answer(BrainKeyHeard, problem); return; }
+                    UseCloud(key, model, found, pickedTier);
                     WriteSecret(BrainKeyFile, key, "brain key");
-                    if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under Brain in my right-click menu.");
+                    if (ticket == asking) Talk.Answer(BrainKeyHeard, "Key saved. I'm thinking with " + model + " now. Change it under BRAIN in Capri Mainframe.");
                 });
             });
         }
 
-        internal void UseCloud(string key, string model, List<string> models)
+        internal void UseCloud(string key, string model, List<string> models, int tier = -1)
         {
+            brainRequests++;
+            cloudRequests++;
+            frameProblem = null;
+            KeepBrainTier();
             Brain.Cancel();
             Brain.Remote = new Cloud(key, model);
             Brain.Model = model;
             Saved.CloudModel = model;
             cloudModels = models;
+            cloudListing = false;
+            Saved.BrainTier = tier >= 0 ? tier : Cloud.MediumKind(Brain.Remote.Kind) ? 1 : 2;
+            KeepBrainTier();
             Save();
         }
 
@@ -3793,17 +3866,22 @@ namespace CapriDesktop
             remote.Model = model;
             Brain.Model = model;
             Saved.CloudModel = model;
+            KeepBrainTier();
             Save();
         }
 
         // Back to Ollama: the key file goes, and she finds her Ollama model again.
         internal void ForgetBrainKey()
         {
+            brainRequests++;
+            cloudRequests++;
+            cloudListing = false;
             Brain.Cancel();
             Brain.Remote = null;
             Brain.Model = null;
             cloudModels = null;
             Saved.CloudModel = null;
+            Saved.BrainTier = 0;
             WriteSecret(BrainKeyFile, null, "brain key");
             Save();
             FindBrain();
@@ -3847,7 +3925,7 @@ namespace CapriDesktop
                     if (ticket != asking) return;
                     if (problem != null) Talk.Answer(KeyHeard, "Key saved, but " + voiceProblem);
                     else if (voice.VoiceId == null) Talk.Answer(KeyHeard, "Key saved, but your ElevenLabs account has no voices yet. Add one at elevenlabs.io.");
-                    else Reply(ticket, KeyHeard, "Key saved. I'll talk as " + VoiceName() + ". Change it under Settings > Voice.");
+                    else Reply(ticket, KeyHeard, "Key saved. I'll talk as " + VoiceName() + ". Change it under VOICE in Capri Mainframe.");
                 });
             });
         }
@@ -3905,7 +3983,7 @@ namespace CapriDesktop
                 : "Type the voice your server should use, like af_heart, and press Enter. A dash leaves it to the server.";
             Talk.AskFor(heard, ask, delegate(string typed)
             {
-                if (SetLocalVoice(part, typed)) Talk.Answer(heard, "Saved. Settings > Voice > Test voice to hear me through it.");
+                if (SetLocalVoice(part, typed)) Talk.Answer(heard, "Saved. Press Test voice in Capri Mainframe to hear it.");
             });
         }
 
@@ -4128,6 +4206,14 @@ namespace CapriDesktop
             [DataMember] internal string LocalVoiceFormat;
             [DataMember] internal string BrainServer;
             [DataMember] internal string ServerModel;
+            [DataMember] internal int MainframeSize;
+            [DataMember] internal bool AdvancedSettings;
+            [DataMember] internal int MemorySize;
+            [DataMember] internal int ReplyLength;
+            [DataMember] internal int? BrainTier;
+            [DataMember] internal string FreeModel;
+            [DataMember] internal string PaidModel;
+            [DataMember] internal string SpeechModel;
         }
 
         // Every copy from 0.7.8 on saves a provider, so a cross.json without one was last saved by an older copy.
@@ -4141,12 +4227,21 @@ namespace CapriDesktop
             saved.LocalVoiceFormat = newer.LocalVoiceFormat;
             saved.BrainServer = newer.BrainServer;
             saved.ServerModel = newer.ServerModel;
+            saved.MainframeSize = FrameSize(newer.MainframeSize);
+            saved.AdvancedSettings = newer.AdvancedSettings;
+            saved.MemorySize = newer.MemorySize;
+            saved.ReplyLength = newer.ReplyLength;
+            saved.BrainTier = newer.BrainTier;
+            saved.FreeModel = newer.FreeModel;
+            saved.PaidModel = newer.PaidModel;
+            saved.SpeechModel = newer.SpeechModel;
             return saved;
         }
 
         internal static NewSettings Newest(Settings saved)
         {
-            return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel };
+            return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
+                MainframeSize = saved.MainframeSize, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel };
         }
 
         private Settings Load()
@@ -4169,6 +4264,7 @@ namespace CapriDesktop
             Saved.X = anchor.X;
             Saved.Y = anchor.Y;
             Saved.Placed = true;
+            NotifySettings();
             if (Program.Smoke != null) return;
             try
             {
@@ -4183,6 +4279,7 @@ namespace CapriDesktop
         {
             if (quitting) return;
             quitting = true;
+            CloseMainframe();
             Brain.Cancel();
             voice.Stop();
             if (presence != null) presence.Dispose();
@@ -4197,6 +4294,7 @@ namespace CapriDesktop
 
         internal void Finish(int code)
         {
+            CloseMainframe();
             frames.Stop();
             Talk.Dismiss();
             desktop.Shutdown(code);
