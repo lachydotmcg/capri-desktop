@@ -35584,6 +35584,18 @@ namespace CapriDesktop
                                         || Computer.CardBox(new Target { Role = "box", Name = "First name", Line = true }) || Computer.CardBox(new Target { Role = "button", Name = "Card number" }) || Computer.Risk("click", new ToolArguments { Target = "1" }, new Sight { Targets = { new Target { Number = 1, Role = "link", Name = "Facebook" } } }) != null)
                                         throw new Exception("Payment pages went wrong: " + string.Join(" | ", payRuns.ToArray()) + " / " + string.Join(",", payOutcomes.ToArray()) + " / " + payActs + " / " + cardStep + " / " + pickRun + " / " + bookRun);
                                     checks.Add("PASS payment pages: she never types card numbers, an ask for card details or a job ending at a card form becomes \"put in your card details and pay yourself\", a false \"booked\" or \"paid\" never reaches them, an answer like the total is kept, Pay with the card boxes empty hands over too, and Pay after they've typed their card, or Book now, still asks first");
+                                    Sight hiddenSight = new Sight { Title = "Checkout", Program = "chrome" };
+                                    hiddenSight.Targets.Add(new Target { Number = 1, Role = "box", Name = "Card number", Line = true, Value = "4111 1111 1111 1111" });
+                                    hiddenSight.Targets.Add(new Target { Number = 2, Role = "box", Name = "Email", Line = true, Value = "lachy@example.com" });
+                                    hiddenSight.Targets.Add(new Target { Number = 3, Role = "box", Name = "Street address", Line = true, Value = "12 Baker Street" });
+                                    hiddenSight.Targets.Add(new Target { Number = 4, Role = "box", Name = "Search", Line = true, Value = "capri" });
+                                    hiddenSight.Targets.Add(new Target { Number = 5, Role = "box", Name = "Card number", Line = true });
+                                    string hiddenText = hiddenSight.Text;
+                                    string emptyCard = "";
+                                    foreach (string seenLine in hiddenText.Split('\n')) if (seenLine.StartsWith("[5]", StringComparison.Ordinal)) emptyCard = seenLine;
+                                    if (hiddenText.IndexOf("4111", StringComparison.Ordinal) >= 0 || hiddenText.IndexOf("lachy@example.com", StringComparison.Ordinal) >= 0 || hiddenText.IndexOf("Baker", StringComparison.Ordinal) >= 0 || hiddenText.IndexOf("(value hidden)", StringComparison.Ordinal) < 0 || hiddenText.IndexOf("capri", StringComparison.Ordinal) < 0 || emptyCard.Length == 0 || emptyCard.IndexOf("(value hidden)", StringComparison.Ordinal) >= 0 || emptyCard.IndexOf(" = ", StringComparison.Ordinal) >= 0)
+                                        throw new Exception("Hidden personal values went wrong: " + hiddenText);
+                                    checks.Add("PASS hidden values: a card number, an email box and a street address reach her brain as (value hidden), an empty card box still reads as empty, and an ordinary box still shows what it holds");
                                     // Blackwall mode: the card is theirs to give, so she types it and asks for one in her own words.
                                     bool cardBypassWas = Computer.Bypass;
                                     int blackwallActs = 0;
