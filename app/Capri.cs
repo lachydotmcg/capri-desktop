@@ -16110,7 +16110,6 @@ namespace CapriDesktop
             if (Lookout.Read("2, 1: Ammo's out.", pairNumbers, out pairHit, out pairHappening) != "Ammo's out." || pairHit != 2 || pairHappening.Count != 2 || Lookout.Read("9,1: Ammo's out.", pairNumbers, out pairHit, out pairHappening) == null || pairHit != 1 || pairHappening.Count != 1) throw new Exception("Her list of what's happening was read wrong.");
             checks.Add("PASS watches re-arm one by one, and two happening at once both get told even on a screen that holds still");
             SmokeGlance(checks, lookoutStill);
-            SmokeGameGlances(checks);
             SmokeLookoutDelivery(checks, lookoutStill);
         }
 
@@ -29394,6 +29393,7 @@ namespace CapriDesktop
             Section(checks, "SmokePausedExplore", delegate { SmokePausedExplore(checks); });
             Section(checks, "SmokeMiniChoices", delegate { SmokeMiniChoices(checks); });
             Section(checks, "SmokeLookout", delegate { SmokeLookout(checks); });
+            Section(checks, "SmokeGameGlances", delegate { SmokeGameGlances(checks); });
             Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
             Section(checks, "SmokeNews", delegate { SmokeNews(checks); });
             Section(checks, "SmokeSelfKnow", delegate { SmokeSelfKnow(checks); });
@@ -42701,6 +42701,7 @@ namespace CapriDesktop
                         {
                             Func<Rectangle, Bitmap> beforeGrab = Grab;
                             Func<IntPtr, Rectangle> beforeDisplay = Display;
+                            Func<Sight> beforeFront = Computer.Glimpse;
                             string beforeUrl = Brain.Nvidia;
                             Cloud beforeCloud = brain.Remote;
                             string beforeModel = brain.Model;
@@ -42724,6 +42725,7 @@ namespace CapriDesktop
                                 brain.Model = beforeModel;
                                 Grab = beforeGrab;
                                 Display = beforeDisplay;
+                                Computer.Glimpse = beforeFront;
                                 lastPrint = null;
                                 lastGlance = -1;
                                 nextGlance = -1;
@@ -42737,6 +42739,8 @@ namespace CapriDesktop
                             typer.Hide();
                             preferences.Watch = true;
                             preferences.GlanceGap = 120;
+                            Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(7), Program = "notepad", Title = "Notes" }; };
+                            if (GameAhead() != null) throw new Exception("The glance check needs a non-game window.");
                             nextGlance = 1000;
                             lastPrint = null;
                             lastGlance = -1;
