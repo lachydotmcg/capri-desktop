@@ -4,7 +4,7 @@
 
 3. In the Bot tab, turn on Message Content Intent and save.
 
-4. Invite Capri to the Capri server with `https://discord.com/oauth2/authorize?client_id=APP_ID&scope=bot&permissions=274877975552`, putting the new app's Application ID in place of `APP_ID`. This uses only the `bot` scope. Permissions `274877975552` give View Channels, Send Messages, Send Messages in Threads and Read Message History. Channel permission overrides must allow these too.
+4. Invite Capri to the Capri server with [this link](https://discord.com/oauth2/authorize?client_id=1567389764683038860&scope=bot&permissions=274877975552) (the help bot app, ID 1567389764683038860). This uses only the `bot` scope. Permissions `274877975552` give View Channels, Send Messages, Send Messages in Threads and Read Message History. Channel permission overrides must allow these too.
 
 5. Deploy the edited `worker/src/index.js` to the existing `capri-reactions` worker using the project's usual deployment. In the Cloudflare dashboard, open Workers & Pages, then `capri-reactions`, then Settings, Variables and Secrets. Add `DISCORD_RELAY_SECRET` as a Secret, the same way `ANTHROPIC_API_KEY` was set. Use a new random value and save it.
 
