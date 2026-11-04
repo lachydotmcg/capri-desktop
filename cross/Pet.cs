@@ -526,18 +526,15 @@ namespace CapriDesktop
                 Brain.Model = Saved.CloudModel;
             }
             string savedServer = Brain.ServerAddress(Saved.BrainServer);
-            string savedServerKey = savedServer == null ? null : ReadSecret(ServerKeyFile);
+            string savedServerKey = null;
             string pairServer, pairKey;
-            bool paired = ReadServerPair(ServerPairFile, out pairServer, out pairKey);
-            if (paired)
+            if (ReadServerPair(ServerPairFile, out pairServer, out pairKey))
             {
-                string validPair = Brain.ServerAddress(pairServer);
-                savedServer = validPair;
-                savedServerKey = validPair == null ? null : pairKey;
+                savedServer = Brain.ServerAddress(pairServer);
+                savedServerKey = savedServer == null ? null : pairKey;
             }
-            bool legacyPair = !paired && savedServer != null && savedServerKey != null && Brain.ServerKeySafe(savedServer);
+            WriteSecret(ServerKeyFile, null, "provider key");
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
-            if (legacyPair && WriteServerPair(ServerPairFile, savedServer, Brain.ServerKey)) WriteSecret(ServerKeyFile, null, "provider key");
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
@@ -2691,8 +2688,10 @@ namespace CapriDesktop
                     brainMenu.Items.Add(pick);
                 }
             brainMenu.Items.Add(new Separator());
-            MenuItem change = new MenuItem { Header = "Change server or provider address..." };
-            change.Click += delegate { if (serverKey == null) AskServer(); else AskProvider(); };
+            MenuItem change = new MenuItem { Header = "Change server address (no key)..." };
+            change.Click += delegate { AskServer(); };
+            MenuItem changeKey = new MenuItem { Header = "Change provider address with a key..." };
+            changeKey.Click += delegate { AskProvider(); };
             MenuItem key = new MenuItem { Header = serverKey == null ? "Set provider key..." : "Change provider key..." };
             key.Click += delegate { AskProviderKey(); };
             MenuItem forget = new MenuItem { Header = "Forget provider key" };
@@ -2700,6 +2699,7 @@ namespace CapriDesktop
             MenuItem back = new MenuItem { Header = "Stop using my server and use Ollama" };
             back.Click += delegate { LeaveServer(); };
             brainMenu.Items.Add(change);
+            brainMenu.Items.Add(changeKey);
             brainMenu.Items.Add(key);
             if (serverKey != null) brainMenu.Items.Add(forget);
             brainMenu.Items.Add(back);
@@ -3826,7 +3826,12 @@ namespace CapriDesktop
             string temp = path + ".new";
             try
             {
-                if (address == null) { File.Delete(path); return true; }
+                if (address == null)
+                {
+                    File.Delete(path);
+                    try { File.Delete(temp); } catch (Exception) { }
+                    return true;
+                }
                 FileStreamOptions options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
                 if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
                 using (FileStream stream = new FileStream(temp, options))
@@ -3835,7 +3840,6 @@ namespace CapriDesktop
                     using (StreamWriter writer = new StreamWriter(stream)) writer.Write(address + "\n" + (key ?? "") + "\n");
                 }
                 File.Move(temp, path, true);
-                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
                 return true;
             }
             catch (Exception error)

@@ -120,12 +120,13 @@ namespace CapriDesktop
                     string[] pairLines = File.Exists(secret) ? File.ReadAllText(secret).Split(new[] { '\n' }, StringSplitOptions.None) : new string[0];
                     if (pairLines.Length < 2 || pairLines[0] != a.Address || pairLines[1] != key || (!OperatingSystem.IsWindows() && File.GetUnixFileMode(secret) != (UnixFileMode.UserRead | UnixFileMode.UserWrite))) failures.Add("S3 pair file");
                     pet.ShowServer(new[] { "alpha" });
-                    if (!pet.BrainMenu.Contains("with a key") || pet.BrainMenu.Contains(key) || (pet.Talk.Reply ?? "").Contains(key)) failures.Add("S3 key status");
+                    if (!pet.BrainMenu.Contains("with a key") || !pet.BrainMenu.Contains("Change provider address with a key") || pet.BrainMenu.Contains(key) || (pet.Talk.Reply ?? "").Contains(key)) failures.Add("S3 key status");
                     a.Received.Reset(); a.Hold = true;
                     pet.UseServer(a.Address, "key-C");
                     if (!Wait(() => a.Received.IsSet)) failures.Add("S3 forget setup: discovery not held");
                     typeof(Pet).GetMethod("ForgetServerKey", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(pet, null);
                     a.Release.Set(); a.Hold = false;
+                    Thread.Sleep(300);
                     if (!Wait(() => pet.Brain.ServerKey == null)) failures.Add("S3 forgotten key restored");
                     if (File.Exists(secret) && File.ReadAllText(secret).Contains("key-C")) failures.Add("S3 forgotten key persisted");
                     Brain.LogPath = log; a.Error = true;
