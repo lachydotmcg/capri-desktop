@@ -2626,7 +2626,7 @@ namespace CapriDesktop
             {
                 ForgetUpdate();
                 checkItem.Enabled = true;
-                if (asked || string.IsNullOrEmpty(mainframe.UpdateStatus)) mainframe.UpdateNote("Update through " + package + ".", false);
+                mainframe.UpdateNote("Update through " + package + ".", false);
                 return;
             }
             updating = true;
@@ -2641,6 +2641,7 @@ namespace CapriDesktop
                 try
                 {
                     found = updater.Latest();
+                    if (updater.Package() != null) { Post(delegate { ShowUpdate(found, null, null, asked); }); return; }
                     if (UsableRelease(found) && IsNewer(found.Tag, Assembly.GetExecutingAssembly().GetName().Version))
                     {
                         Post(delegate { mainframe.UpdateNote("Downloading Capri " + found.Tag.TrimStart('v', 'V') + "...", false); });
@@ -2763,6 +2764,8 @@ namespace CapriDesktop
             {
                 string problem = null;
                 bool invalid = false;
+                string package = updater.Package();
+                if (package != null) { Post(delegate { ForgetUpdate(); mainframe.UpdateNote("Update through " + package + ".", false); }); return; }
                 try { updater.Install(ready, parent, started); }
                 catch (Exception error)
                 {

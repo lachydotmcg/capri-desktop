@@ -667,10 +667,22 @@ namespace CapriSetup
             try
             {
                 if (removing) { Program.BeginUninstall(); Close(); return; }
-                try { File.Delete(Path.Combine(Program.InstallPath, "Capri.package")); }
+                string package = Path.Combine(Program.InstallPath, "Capri.package");
+                string parked = package + ".old";
+                try
+                {
+                    if (File.Exists(parked)) File.Delete(parked);
+                    if (File.Exists(package) || Directory.Exists(package)) File.Move(package, parked);
+                }
                 catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
                 status.Text = "Making a little room for Capri…";
-                noShortcut = Program.Install(desktop.Checked);
+                try { noShortcut = Program.Install(desktop.Checked); }
+                catch (Exception)
+                {
+                    try { if (File.Exists(parked)) File.Move(parked, package); } catch (Exception) { }
+                    throw;
+                }
+                try { if (File.Exists(parked)) File.Delete(parked); } catch (Exception) { }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
             if (Environment.Is64BitOperatingSystem && !VoicePack.Complete(VoicePack.Folder(Program.InstallPath))) FetchVoice();
