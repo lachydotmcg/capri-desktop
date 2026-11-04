@@ -4,6 +4,59 @@ using Microsoft.Win32;
 
 namespace CapriDesktop
 {
+    internal static class SetupFiles
+    {
+        internal static int Mode(string[] args)
+        {
+            if (Array.IndexOf(args, "--silent") < 0) return 0;
+            bool remove = false;
+            foreach (string arg in args)
+            {
+                if (arg == "--uninstall") remove = true;
+                else if (arg != "--silent") throw new ArgumentException("That silent setup command is invalid.");
+            }
+            return remove ? 2 : 1;
+        }
+
+        internal static void ClearOld(string file) { Patiently(delegate { File.Delete(file + ".old"); }); }
+
+        internal static void RemoveApp(string file)
+        {
+            Startup.Clear(file);
+            Patiently(delegate { File.Delete(file); });
+        }
+
+        internal static void Retire(string file, bool running)
+        {
+            if (running)
+            {
+                ClearOld(file);
+                File.Move(file, file + ".old");
+            }
+            else Patiently(delegate { File.Delete(file); });
+            Gone(file);
+        }
+
+        internal static void Gone(string file)
+        {
+            try { File.GetAttributes(file); }
+            catch (FileNotFoundException) { return; }
+            catch (DirectoryNotFoundException) { return; }
+            throw new IOException("The uninstaller is still open. Close it and try removing Capri again.");
+        }
+
+        internal static void Patiently(Action remove)
+        {
+            for (int tries = 1; ; tries++)
+            {
+                try { remove(); return; }
+                catch (IOException) { if (tries == 10) throw; }
+                catch (UnauthorizedAccessException) { if (tries == 10) throw; }
+                System.Threading.Thread.Sleep(300);
+            }
+        }
+    }
+
     // Starting with Windows is her value in the user's Run key, the same entry Task Manager's Startup apps turns on and off.
     internal static class Startup
     {

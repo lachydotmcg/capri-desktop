@@ -368,7 +368,7 @@ namespace CapriDesktop
                         results.Add(result);
                         if (Security.IsHold(result)) break;
                     }
-                    catch (Exception error) { results.Add("That didn't work: " + error.Message); }
+                    catch (Exception error) { results.Add(Hands.Problem(error)); }
                 }
                 string resultLine = Security.Reply(results) ?? string.Join(" ", results.ToArray());
                 Post(delegate { AsideSay(string.IsNullOrEmpty(resultLine) ? Lines.Pick(Lines.GotIt) : resultLine, running, text, replyId); });

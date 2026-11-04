@@ -145,8 +145,8 @@ namespace CapriDesktop
                     Directory.CreateDirectory(Folder);
                     File.AppendAllText(place, "- " + line + Environment.NewLine);
                 }
-                catch (IOException error) { return "That didn't work: " + error.Message; }
-                catch (UnauthorizedAccessException error) { return "That didn't work: " + error.Message; }
+            catch (IOException error) { return Hands.Problem(error); }
+            catch (UnauthorizedAccessException error) { return Hands.Problem(error); }
             }
             return "Learned that for next time.";
         }

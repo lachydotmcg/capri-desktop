@@ -680,6 +680,30 @@ namespace CapriDesktop
 
         internal static string TurnView(ToolArguments args, Sight sight)
         {
+            if (sight == null || !Regex.IsMatch(sight.Program ?? "", @"^robloxplayer(?:beta)?(?:\.exe)?$", RegexOptions.IgnoreCase)) return TurnCamera(args, sight);
+            if (interrupted) return Why;
+            if (!StillFront(sight)) return "The game is no longer in front.";
+            Rectangle area = GameArea(sight);
+            bool pressed = false;
+            try
+            {
+                Borrow(new Point(area.X + area.Width / 2, area.Y + area.Height / 2));
+                if (interrupted) return Why;
+                if (!StillFront(sight)) return "The game is no longer in front.";
+                pressed = true;
+                Mouse(0x0008, 0);
+                Thread.Sleep(60);
+                return TurnCamera(args, sight);
+            }
+            finally
+            {
+                if (pressed) Mouse(0x0010, 0);
+                GiveBack();
+            }
+        }
+
+        private static string TurnCamera(ToolArguments args, Sight sight)
+        {
             if (string.Equals(args.Level, "yes", StringComparison.OrdinalIgnoreCase)) return Levelled(sight);
             Rectangle area = GameArea(sight);
             string game = sight == null ? "" : sight.Program ?? "";

@@ -5040,8 +5040,8 @@ namespace CapriDesktop
                 else
                 {
                     try { done = Hands.Work(task, null); }
-                    catch (WebException error) { done = "That didn't work: " + error.Message; lost = error.Status != WebExceptionStatus.RequestCanceled; }
-                    catch (Exception error) { done = "That didn't work: " + error.Message; lost = true; }
+                    catch (WebException error) { done = Hands.Problem(error); lost = error.Status != WebExceptionStatus.RequestCanceled; }
+                    catch (Exception error) { done = Hands.Problem(error); lost = true; }
                 }
             }
             finally { if (held) Monitor.Exit(mouseGate); if (args != null && args.Finished != null) args.Finished(); }
@@ -7771,14 +7771,19 @@ namespace CapriDesktop
             if (exploreBusy || now < exploreAt) return;
             exploreAt = now + 4 + random.NextDouble() * 5;
             Sight page = Computer.Glimpse();
-            if (!Computer.ExploreAllowed(page, false) || page.Window != Native.GetForegroundWindow()) { StopExplore(); return; }
+            if (!Computer.ExploreAllowed(page, false, true) || page.Window != Native.GetForegroundWindow()) { StopExplore(); return; }
             Point cursorAt = Computer.CursorAt();
             int awayTicket = exploreTicket;
             exploreBusy = true;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 Rectangle pageBounds = Rectangle.Empty;
-                try { pageBounds = Computer.ExplorePage(page, cursorAt); }
+                bool paused = false;
+                try
+                {
+                    paused = Computer.Media(page.Title) && Computer.ExplorePaused(page, Tunes.Shared());
+                    pageBounds = Computer.ExplorePage(page, cursorAt, paused);
+                }
                 catch (Exception) { }
                 Post(delegate
                 {
@@ -7799,7 +7804,7 @@ namespace CapriDesktop
                     exploreTo = new Point(pageBounds.Left + pageBounds.Width / 4 + random.Next(Math.Max(1, pageBounds.Width / 2)), pageBounds.Top + pageBounds.Height / 4 + random.Next(Math.Max(1, pageBounds.Height / 2)));
                     exploreMoved = clock.Elapsed.TotalSeconds;
                     if (!Computer.ScrollAway(page, pageBounds, still, cursorAt, Computer.CursorAt(), Native.GetAncestor(Native.WindowFromPoint(new Native.Point(cursorAt.X, cursorAt.Y)), 2), FullScreen(),
-                        delegate { return awayTicket == exploreTicket && Native.GetForegroundWindow() == page.Window && awayInput.Quiet() >= (long)ExploreAfter * 1000; })) StopExplore();
+                        delegate { return awayTicket == exploreTicket && Native.GetForegroundWindow() == page.Window && awayInput.Quiet() >= (long)ExploreAfter * 1000; }, paused)) StopExplore();
                     else { awayInput.Own(); CheckGlance(clock.Elapsed.TotalSeconds, humanQuiet, true); }
                     frames.Start();
                 });
@@ -8624,7 +8629,7 @@ namespace CapriDesktop
                     int began = Environment.TickCount;
                     string result;
                     try { result = Work(running); }
-                    catch (Exception error) { result = "That didn't work: " + error.Message; }
+                    catch (Exception error) { result = Hands.Problem(error); }
                     if (running.Outcome == "stopped" || Computer.Interrupted) { Computer.Streaming = Computer.StreamingAlways; return result; }
                     rests = unchecked(Environment.TickCount - began) < 120000 ? Math.Min(rests + 1, 5) : 0;
                     int wait = 15000 << rests;
@@ -13575,6 +13580,32 @@ namespace CapriDesktop
                     if (Computer.ExploreAllowed(new Sight { Window = new IntPtr(7), Program = "chrome", Title = desktopTitle }, false)) throw new Exception("Away exploring accepted " + desktopTitle + ".");
                 if (Computer.ExploreAllowed(new Sight { Window = new IntPtr(7), Program = "notepad", Title = "Notes" }, false)
                     || !Computer.ExploreAllowed(new Sight { Window = new IntPtr(7), Program = "SumatraPDF", Title = "Geography.pdf" }, false)) throw new Exception("Away exploring lost its browser and reader choices.");
+                Sight videoPage = new Sight { Window = desktopPage.Window, Program = "chrome", Title = "Quiet song - YouTube", Bounds = desktopPage.Bounds };
+                Tune video = new Tune { App = "chrome.exe", Title = "Quiet song", Video = true };
+                System.Collections.Generic.List<Tune> media = new System.Collections.Generic.List<Tune> { video };
+                bool paused = Computer.ExplorePaused(videoPage, media);
+                if (!paused || !Computer.ExploreAllowed(videoPage, false, paused)
+                    || !Computer.ScrollAway(videoPage, videoPage.Bounds, videoPage, desktopCursor, desktopCursor, videoPage.Window, false, delegate { return true; }, paused)
+                    || desktopWheels != 2) throw new Exception("Away exploring rejected a matching paused YouTube page.");
+                video.Playing = true;
+                paused = Computer.ExplorePaused(videoPage, media);
+                if (paused || Computer.ScrollAway(videoPage, videoPage.Bounds, videoPage, desktopCursor, desktopCursor, videoPage.Window, false, delegate { return true; }, paused) || desktopWheels != 2) throw new Exception("Away exploring scrolled a playing video.");
+                video.Playing = false;
+                video.Changing = true;
+                if (Computer.ExplorePaused(videoPage, media)) throw new Exception("Away exploring treated a loading video as paused.");
+                video.Changing = false;
+                video.App = "Spotify.exe";
+                if (Computer.ExplorePaused(videoPage, media)) throw new Exception("Away exploring used another app's paused music.");
+                video.App = "chrome.exe";
+                video.Title = "Another video";
+                if (Computer.ExplorePaused(videoPage, media)) throw new Exception("Away exploring used another tab's paused video.");
+                video.Title = "Quiet song";
+                media.Add(new Tune { App = "Spotify.exe", Title = "Background music", Playing = true });
+                if (Computer.ExplorePaused(videoPage, media)) throw new Exception("Away exploring ignored other playing media.");
+                if (Computer.ExplorePaused(videoPage, null) || Computer.ExplorePaused(videoPage, new Tune[0])
+                    || Computer.ExploreAllowed(videoPage, true, true)
+                    || Computer.ExploreAllowed(new Sight { Window = videoPage.Window, Program = "chrome", Title = "Checkout - Quiet song - YouTube" }, false, true)) throw new Exception("Paused media bypassed unknown playback, fullscreen or form checks.");
+                checks.Add("PASS away exploring scrolls matching paused media pages and rejects playing, loading, unknown or unrelated media and protected pages");
             }
             finally { Computer.SendMouse = desktopMouse; }
             checks.Add("PASS away exploring sends only a wheel through her hands, leaves their cursor alone, and rejects cancellation, moved cursors, other windows, unreadable pages, full screen, games and Computer's blocked title groups");
@@ -20587,6 +20618,111 @@ namespace CapriDesktop
             }
         }
 
+        private static void SmokeJobProblems(System.Collections.Generic.List<string> checks)
+        {
+            Action<string> runWas = Hands.Run;
+            try
+            {
+                foreach (Exception error in new Exception[] { new Exception(""), new BrainException(""), new WebException(""), new IOException(" \r\n\t"), new UnauthorizedAccessException("") })
+                {
+                    string expected = "That didn't work: no error details came back.";
+                    Hands.Run = delegate { throw error; };
+                    string result = Hands.Do("open_website", new ToolArguments { Site = "https://example.invalid" });
+                    if (result != expected || Hands.Problem(error) != expected || !Hands.Failed(result) || !Computer.Failed(result)) throw new Exception("An empty tool error lost its failure or showed no explanation.");
+                }
+                Hands.Run = delegate { throw new IOException("catalog offline"); };
+                if (Hands.Do("open_website", new ToolArguments { Site = "https://example.invalid" }) != "That didn't work: catalog offline") throw new Exception("A tool error lost the reason it supplied.");
+                checks.Add("PASS tool and job errors keep their supplied reason, explain missing details and still count as failures");
+            }
+            finally { Hands.Run = runWas; }
+        }
+
+        private static void SmokeSetupFiles(System.Collections.Generic.List<string> checks, string output)
+        {
+            if (SetupFiles.Mode(new string[0]) != 0 || SetupFiles.Mode(new[] { "--uninstall" }) != 0 || SetupFiles.Mode(new[] { "--silent" }) != 1 || SetupFiles.Mode(new[] { "--uninstall", "--silent" }) != 2 || SetupFiles.Mode(new[] { "--silent", "--uninstall" }) != 2) throw new Exception("Silent setup flags chose the wrong path.");
+            foreach (string flag in new[] { "--update", "--remove-files", "--verify", "--unknown" })
+            {
+                bool refused = false;
+                try { SetupFiles.Mode(new[] { "--silent", flag }); }
+                catch (ArgumentException) { refused = true; }
+                if (!refused) throw new Exception("Silent setup accepted " + flag + ".");
+            }
+            checks.Add("PASS silent install and uninstall flags work in either order, reject other commands and leave windowed setup flags alone");
+            string folder = Path.Combine(output, "setup-files-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            string file = Path.Combine(folder, "Uninstall.exe"), old = file + ".old", marker = Path.Combine(folder, ".capri-install"), other = Path.Combine(folder, "Uninstall-other.old");
+            string runWas = Startup.RunKey, approvedWas = Startup.ApprovedKey;
+            string startupRoot = "Software\\CapriSmoke\\Setup-" + Guid.NewGuid().ToString("N");
+            try
+            {
+                Startup.RunKey = startupRoot + "\\Run";
+                Startup.ApprovedKey = startupRoot + "\\Approved";
+                File.WriteAllText(marker, "installed");
+                File.WriteAllText(file, "current uninstaller");
+                File.WriteAllText(old, "previous uninstaller");
+                File.WriteAllText(other, "keep this");
+                bool stillThere = false;
+                try { SetupFiles.Gone(file); }
+                catch (IOException) { stillThere = true; }
+                if (!stillThere) throw new Exception("An uninstaller that still exists counted as gone.");
+                SetupFiles.Retire(file, true);
+                SetupFiles.Gone(file);
+                if (File.ReadAllText(old) != "current uninstaller" || File.ReadAllText(other) != "keep this" || !File.Exists(marker)) throw new Exception("Retiring the uninstaller changed another file or lost its contents.");
+                SetupFiles.ClearOld(file);
+                SetupFiles.Gone(old);
+                SetupFiles.Gone(Path.Combine(folder, "missing", "Uninstall.exe"));
+                File.WriteAllText(file, "retry uninstaller");
+                File.WriteAllText(old, "locked uninstaller");
+                bool blocked = false;
+                using (FileStream kept = new FileStream(old, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    try { SetupFiles.Retire(file, true); }
+                    catch (IOException) { blocked = true; }
+                    catch (UnauthorizedAccessException) { blocked = true; }
+                    if (!blocked || !File.Exists(file) || !File.Exists(marker)) throw new Exception("A locked old uninstaller did not leave the install retryable.");
+                }
+                SetupFiles.Retire(file, true);
+                SetupFiles.Gone(file);
+                if (File.ReadAllText(old) != "retry uninstaller") throw new Exception("Retrying the uninstaller did not replace its old file.");
+                blocked = false;
+                using (FileStream kept = new FileStream(old, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    try { SetupFiles.ClearOld(file); }
+                    catch (IOException) { blocked = true; }
+                    catch (UnauthorizedAccessException) { blocked = true; }
+                    if (!blocked) throw new Exception("Install ignored a locked old uninstaller.");
+                }
+                SetupFiles.ClearOld(file);
+                File.WriteAllText(file, "external uninstaller");
+                SetupFiles.Retire(file, false);
+                SetupFiles.Gone(file);
+                if (File.Exists(old) || File.ReadAllText(other) != "keep this" || !File.Exists(marker)) throw new Exception("Removing an idle uninstaller changed another file.");
+                checks.Add("PASS uninstall uses one old filename, verifies the source is gone, keeps locked cleanup retryable, removes the old file on install and leaves other files alone");
+                string app = Path.Combine(folder, "Capri.exe");
+                File.WriteAllText(app, "installed app");
+                if (!Startup.Set(app, true) || !Startup.On(app)) throw new Exception("The uninstall check could not make a test startup entry.");
+                blocked = false;
+                using (FileStream kept = new FileStream(app, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    try { SetupFiles.RemoveApp(app); }
+                    catch (IOException) { blocked = true; }
+                    catch (UnauthorizedAccessException) { blocked = true; }
+                    if (!blocked || Startup.On(app) || !File.Exists(marker)) throw new Exception("A failed uninstall kept a startup entry for the app it was removing.");
+                }
+                SetupFiles.RemoveApp(app);
+                SetupFiles.Gone(app);
+                checks.Add("PASS uninstall clears only its startup entry before removing the app, even when file cleanup fails");
+            }
+            finally
+            {
+                Startup.RunKey = runWas;
+                Startup.ApprovedKey = approvedWas;
+                Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
+                foreach (string each in Directory.GetFiles(folder)) File.Delete(each);
+                Directory.Delete(folder);
+            }
+        }
+
         // A made-up game: a view into a big patterned world that slides as the mouse moves, to prove her camera finds any game's mouse.
         private static void SmokeCamera(System.Collections.Generic.List<string> checks)
         {
@@ -20680,6 +20816,84 @@ namespace CapriDesktop
                 }
                 round = false;
                 checks.Add("PASS her camera learns any game's mouse from slow to fast, measures a full turn at any field of view, looks level, lands turns within a few pixels, works out games that look the other way, always turns away from open sky, and says when a view stays still");
+                Action<int, int> sendWas = Computer.SendMouse;
+                Action<Point> putWas = Computer.PutCursor;
+                Func<Point> cursorWas = Computer.CursorAt;
+                Func<bool> hiddenWas = Computer.CursorHidden, escapeWas = Computer.Escape;
+                Func<Point, bool> underWas = Computer.GameUnder;
+                Func<IntPtr> frontWas = Computer.Front;
+                Action<bool> lendingWas = Computer.Lending;
+                Action haltedWas = Computer.Halted;
+                bool streamWas = Computer.Streaming, rightHeld = false;
+                int downs = 0, ups = 0;
+                Point cursor = new Point(-200, 80), original = cursor;
+                IntPtr front = new IntPtr(123);
+                try
+                {
+                    Computer.Streaming = false;
+                    Computer.Escape = delegate { return false; };
+                    Computer.Halted = delegate { };
+                    Computer.Arm();
+                    Computer.PutCursor = delegate(Point at) { cursor = at; };
+                    Computer.CursorAt = delegate { return cursor; };
+                    Computer.CursorHidden = delegate { return false; };
+                    Computer.GameUnder = delegate { return false; };
+                    Computer.Front = delegate { return front; };
+                    Computer.Lending = delegate { };
+                    Computer.SendMouse = delegate(int flags, int amount)
+                    {
+                        if (flags == 0x0008) { rightHeld = true; downs++; }
+                        if (flags == 0x0010) { rightHeld = false; ups++; }
+                    };
+                    Computer.Nudge = delegate(int dx, int dy)
+                    {
+                        if (!rightHeld || cursor != new Point(area.X + area.Width / 2, area.Y + area.Height / 2)) throw new Exception("Roblox's camera moved without holding right over the game.");
+                        mouse(dx, dy);
+                    };
+                    game.Program = "RobloxPlayerBeta";
+                    game.Window = front;
+                    truth = 1.7;
+                    cameraX = cameraY = 0;
+                    round = true;
+                    Computer.TurnView(new ToolArguments { Right = 90 }, game);
+                    if (Math.Abs((cameraX % worldWidth + worldWidth) % worldWidth - worldWidth / 4.0) > 24 || rightHeld || downs != 1 || ups != 1 || cursor != original) throw new Exception("Roblox's camera did not turn or let go of the mouse.");
+                    Computer.TurnView(new ToolArguments { Level = "yes" }, game);
+                    if (Math.Abs(cameraY - (400 - worldWidth / 4.0)) > 24 || rightHeld || downs != 2 || ups != 2 || cursor != original) throw new Exception("Roblox's camera did not level or let go of the mouse.");
+                    bool failed = false;
+                    Computer.Nudge = delegate { throw new IOException("camera failed"); };
+                    try { Computer.TurnView(new ToolArguments { Right = 20 }, game); }
+                    catch (IOException) { failed = true; }
+                    if (!failed || rightHeld || downs != 3 || ups != 3 || cursor != original) throw new Exception("A failed Roblox turn held the mouse.");
+                    Computer.Nudge = delegate { Computer.Interrupt(Computer.Escaped); };
+                    string stopped = Computer.TurnView(new ToolArguments { Right = 20 }, game);
+                    if (stopped != Computer.Escaped || rightHeld || downs != 4 || ups != 4 || cursor != original) throw new Exception("Esc did not release Roblox's camera.");
+                    Computer.TurnView(new ToolArguments { Right = 20 }, game);
+                    if (downs != 4) throw new Exception("A stopped Roblox turn pressed the mouse again.");
+                    Computer.Arm();
+                    front = new IntPtr(124);
+                    Computer.TurnView(new ToolArguments { Right = 20 }, game);
+                    if (downs != 4 || cursor != original) throw new Exception("Roblox's camera took the mouse with another window in front.");
+                    Computer.Nudge = mouse;
+                    game.Program = "smoke-round-1.7";
+                    game.Window = IntPtr.Zero;
+                    Computer.TurnView(new ToolArguments { Right = 20 }, game);
+                    if (downs != 4 || ups != 4) throw new Exception("Another game's camera pressed Roblox's mouse button.");
+                    checks.Add("PASS Roblox camera turns and levels with right held over the game, returns the cursor, releases on failure or Esc, leaves other windows alone and keeps other games' controls");
+                }
+                finally
+                {
+                    Computer.Arm();
+                    Computer.SendMouse = sendWas;
+                    Computer.PutCursor = putWas;
+                    Computer.CursorAt = cursorWas;
+                    Computer.CursorHidden = hiddenWas;
+                    Computer.GameUnder = underWas;
+                    Computer.Front = frontWas;
+                    Computer.Lending = lendingWas;
+                    Computer.Halted = haltedWas;
+                    Computer.Escape = escapeWas;
+                    Computer.Streaming = streamWas;
+                }
             }
             finally
             {
@@ -27863,6 +28077,8 @@ namespace CapriDesktop
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
+            Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
+            Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
             Section(checks, "SmokeReactions", delegate { SmokeReactions(checks); });

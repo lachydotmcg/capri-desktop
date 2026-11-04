@@ -1548,8 +1548,10 @@ namespace CapriDesktop
 #endif
                 return "There's no tool called " + tool + ".";
             }
-            catch (Exception error) { return "That didn't work: " + error.Message; }
+            catch (Exception error) { return Problem(error); }
         }
+
+        internal static string Problem(Exception error) { return "That didn't work: " + (string.IsNullOrWhiteSpace(error.Message) ? "no error details came back." : error.Message); }
 
         internal static void Forget() { lock (gate) cached = null; }
 
