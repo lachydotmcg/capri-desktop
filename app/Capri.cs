@@ -30038,7 +30038,12 @@ namespace CapriDesktop
                 if (leaks.Contains("S3cretPw") || leaks.Contains("gh-env-secret") || leaks.Contains("HuskSecret3") || leaks.Contains("pw secret4") || leaks.Contains("huskslack") || leaks.Contains("AKIAHUSK")
                     || !leaks.Contains("postgresql://admin:[redacted]@prod-db/app") || !leaks.Contains("GITHUB_TOKEN=[redacted]") || !leaks.Contains("Authorization: token [redacted]") || !leaks.StartsWith("psql ", StringComparison.Ordinal))
                     throw new Exception("A password or token in a command wasn't redacted: " + leaks);
-                checks.Add("PASS husk Codex mapping: apply_patch update/add/delete files, both shell tools, approval text, question/title fallback, invalid input and separate Codex session IDs; keys, tokens and passwords are scrubbed from every event");
+                string logins = Brain.Redacted("curl -u admin:hunter2 x && mysql -u root -pS3cretPass db && docker login -u me -p D0ckerPw r.io && gh auth login --auth-token abc123secret && redis-cli -u redis://:Pw0rd9@cache:6379\nCookie: session=abc; csrftoken=zzz999\n{\"password\":\"hunter22\"} hf_abcdefghijklmnopqrstuvwxyz123456");
+                string counts = "max_tokens=4096 --max-tokens 4096 if (token == null) git push -u origin main docker run -u 1000:1000 image";
+                foreach (string secretWord in new[] { "hunter2", "S3cretPass", "D0ckerPw", "abc123secret", "Pw0rd9", "zzz999", "abcdefghijklmnop" })
+                    if (logins.Contains(secretWord)) throw new Exception("A login, cookie or token wasn't redacted: " + logins);
+                if (Brain.Redacted(counts) != counts) throw new Exception("Redaction hid a count, a comparison or a git or docker flag: " + Brain.Redacted(counts));
+                checks.Add("PASS husk Codex mapping: apply_patch update/add/delete files, both shell tools, approval text, question/title fallback, invalid input and separate Codex session IDs; keys, tokens, passwords, logins and cookies are scrubbed from every event, and counts and comparisons stay readable");
 
                 SmokeHuskEvents(checks, folder, exe, permission, questionEvent, out watch);
             }

@@ -3878,16 +3878,23 @@ namespace CapriDesktop
             return plain.Length == 0 || plain.Length > 200 || plain[0] == '<' ? null : Redacted(plain);
         }
 
-        // Keys, tokens and passwords never reach her logs, her errors or a Husk caption: provider keys, GitHub, GitLab, Slack and
-        // AWS tokens, the password in an address, NAME_TOKEN= or PASSWORD= settings, --password and --token flags, and what
-        // follows an authorization header and its scheme.
+        // Keys, tokens and passwords never reach her logs, her errors or a Husk caption: provider keys, GitHub, GitLab, Slack,
+        // Hugging Face, npm, Stripe and AWS tokens, the password in an address, NAME_TOKEN= or PASSWORD= settings, password, token,
+        // secret and key flags, the password in curl's user:password and in docker, sshpass and mysql logins, "password": values,
+        // cookies, and what follows an authorization header and its scheme. Counts like max_tokens=4096 and checks like
+        // token == null stay readable.
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprs]-)[A-Za-z0-9_-]+|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"(://[^/\s:@]+:)[^/\s@]+@", "$1[redacted]@");
-            clean = Regex.Replace(clean, @"(\b[A-Za-z0-9_]*(?:token|secret|password|passwd)[A-Za-z0-9_]*\s*=\s*)(?:""[^""]*""|'[^']*'|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:password|passwd|token|secret|api-key)(?:=|\s+))(?:""[^""]*""|'[^']*'|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
+            clean = Regex.Replace(clean, @"(\b[A-Za-z0-9_]*(?:token(?!s\b)|secret|password|passwd)[A-Za-z0-9_]*\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u|--user)(?:=|\s+)[""']?[^\s""':]+:)(?!//|\d+\b)[^\s""']+", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:sshpass|(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login)\b[^\r\n]*?\s-p(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n]*?\s-p)[^\s""']+", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:set-)?cookie\s*:\s*)[^\r\n]+", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*[""']?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
+            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
         }
 
         internal static string ScreenProblem(Exception error, string provider)
