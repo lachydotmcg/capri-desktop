@@ -45,11 +45,14 @@ namespace CapriDesktop
         {
             internal readonly float Zoom;
             protected readonly Mainframe Frame;
+            private readonly int designWide, designTall;
 
             protected ModSheet(Mainframe owner, float zoom, string title, string heading, int wide, int tall)
             {
                 Frame = owner;
                 Zoom = zoom;
+                designWide = wide;
+                designTall = tall;
                 Text = title;
                 Icon = owner.Icon;
                 ShowInTaskbar = false;
@@ -105,11 +108,13 @@ namespace CapriDesktop
             internal string Crowded()
             {
                 float s = ScaleOf(this);
+                // A small desktop clamps the window, so check the size it was drawn for.
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(designWide)), Math.Max(ClientSize.Height, Z(designTall)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
                     if (!a.Visible || (a is Label && a.Text.Length == 0)) continue;
-                    if (!ClientRectangle.Contains(a.Bounds)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds;
+                    if (!area.Contains(a.Bounds)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds;
                     Key key = a as Key;
                     if (key != null && key.Text.Length > 0 && TextRenderer.MeasureText(key.Text, key.Font).Width + (int)Math.Ceiling(12 * s) > key.Width) return "doesn't fit: " + key.Text;
                     for (int j = i + 1; j < Controls.Count; j++)

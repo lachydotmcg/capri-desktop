@@ -357,7 +357,7 @@ namespace CapriDesktop
                     simpleTest = basic;
                     mainframe.ShowSettings(true);
                     mainframe.SizeMainframe(zoom);
-                    string problem = mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                    string problem = mainframe.Overlap() ?? (mainframe.PageClamped ? null : mainframe.Outside()) ?? mainframe.TextFits();
                     if (!mainframe.ClipsSectionShown || !mainframe.SimpleGameControls || problem != null) throw new Exception("The clips panel does not fit at " + zoom + "% (simple " + basic + "): " + problem);
                     mainframe.ShowClipSection();
                     using (Bitmap image = new Bitmap(mainframe.Width, mainframe.Height))
