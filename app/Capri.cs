@@ -766,6 +766,7 @@ namespace CapriDesktop
         [DataMember] public int HuskMode;
         // Switched off on the call panel: in call mode she hears only your mic, not Discord.
         [DataMember] public bool CallDiscordOff;
+        [DataMember] public bool CallCaptionsOff;
         [DataMember] public string VoiceId;
         [DataMember] public string VoiceModel;
         [DataMember] public string AgentId;
@@ -2510,6 +2511,7 @@ namespace CapriDesktop
             box.Dismissed += delegate { if (box.Leaving < 0) box.Leaving = clock.Elapsed.TotalSeconds; };
             typer.Submitted += Hear;
             callSession.Change(preferences.CallMode);
+            if (preferences.CallMode) ResetCall();
             PcEars.CanListen = delegate { return !CallModeOn; };
             PcEars.Generation = delegate { return callSession.Generation; };
             typer.CallMode = CallModeOn;
@@ -8403,6 +8405,7 @@ namespace CapriDesktop
             box.Above = preferences.OnTop;
             typer.TopMost = preferences.OnTop;
             if (callPanel != null) callPanel.TopMost = preferences.OnTop;
+            if (callPill != null) { callPill.Above = preferences.OnTop; callPill.TopMost = preferences.OnTop; }
             if (minis != null)
             {
                 minis.Above = preferences.OnTop;
@@ -12320,6 +12323,7 @@ namespace CapriDesktop
             double seconds = wav == null ? 0 : Voice.Seconds(wav);
             pace = seconds < 0.2 ? LettersPerSecond : Math.Max(8, said.Length / seconds);
             Say(said);
+            CallSpoke(ticket, said, state);
             PlayReply(said, wav);
             if (seconds < 0.2 && state != TalkState.Dormant && TypingSound) Sfx.Type(said, pace, ticket);
             else Sfx.Untype();
@@ -12918,6 +12922,7 @@ namespace CapriDesktop
                 pill.Dispose();
                 box.Dispose();
                 typer.Dispose();
+                CloseCallWindows();
                 mainframe.Dispose();
                 Clip.DisposeAll();
                 if (bodySurface != null) bodySurface.Dispose();
@@ -27539,6 +27544,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
+            Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
             Section(checks, "SmokeGivingWay", delegate { SmokeGivingWay(checks); });

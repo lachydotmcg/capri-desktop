@@ -180,6 +180,12 @@ namespace CapriDesktop
         internal volatile int MicOpens, CableOpens, MicLosses, CableLosses;
         internal long Written, Starved;
         internal volatile int Loudness = 100;
+        private double output;
+        private int outputAt;
+
+        internal double Output { get { return LastOutput(Environment.TickCount); } }
+
+        internal double LastOutput(int now) { return !open || unchecked(now - Volatile.Read(ref outputAt)) >= 300 ? 0 : Volatile.Read(ref output); }
 
         internal static int Level(int percent) { return (Math.Max(50, Math.Min(200, percent)) + 5) / 10 * 10; }
 
@@ -190,7 +196,7 @@ namespace CapriDesktop
         private MixResampler micRate;
         private Ring queue;
         private SoftLimiter limiter;
-        private float[] heard = new float[0], made = new float[0], mix = new float[0];
+        private float[] heard = new float[0], made = new float[0], mix = new float[0], alone = new float[0];
         private WaitHandle[] handles;
         private double cableAt, micAt, lookAt, heardAt, trimAt;
         private int target, period, cushion, jump;
@@ -525,6 +531,7 @@ namespace CapriDesktop
             queue = new Ring(rate);
             limiter = new SoftLimiter(rate);
             mix = new float[Math.Max(target, rate / 5)];
+            alone = new float[mix.Length];
             made = new float[rate / 2];
             if (mic != null) Tune();
             cableProblem = null;
@@ -595,6 +602,7 @@ namespace CapriDesktop
         private void CloseCable()
         {
             open = false;
+            Volatile.Write(ref output, 0);
             IMixCable closing = cable;
             cable = null;
             cableDevice = null;
@@ -646,6 +654,7 @@ namespace CapriDesktop
                 }
             }
             else Array.Clear(mix, 0, want);
+            Array.Copy(mix, alone, want);
             List<Share> shares = new List<Share>();
             lock (gate)
             {
@@ -657,11 +666,16 @@ namespace CapriDesktop
             bool wrote = false;
             try
             {
+                // Her level is what her lanes added on top of your mic, so the call panel's meter shows her voice alone.
+                double power = 0;
+                for (int i = 0; i < want; i++) { double hers = mix[i] - alone[i]; power += hers * hers; }
                 limiter.Run(mix, want);
                 if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
                 // A pass that was stuck in a device call when the switch went off writes nothing once it comes back.
                 if (stopping) return;
                 cable.Write(mix, want);
+                Volatile.Write(ref output, Math.Min(1, Math.Sqrt(power / want) * trim));
+                Volatile.Write(ref outputAt, Environment.TickCount);
                 wrote = true;
                 Interlocked.Add(ref Written, want);
             }
