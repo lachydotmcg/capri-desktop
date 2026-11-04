@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Globalization;
 using System.IO;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
@@ -12,8 +16,19 @@ namespace CapriDesktop
 {
     internal sealed class ModListing
     {
-        internal string Folder, FileName, Sha;
+        internal string Folder, FileName, Sha, PreviewSha;
         internal long Size;
+        internal int Downloads, Votes;
+        internal double Rating;
+        internal string Title
+        {
+            get
+            {
+                string[] words = Folder.Split(new[] { '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < words.Length; i++) words[i] = char.ToUpperInvariant(words[i][0]) + words[i].Substring(1);
+                return string.Join(" ", words);
+            }
+        }
         internal string Kind
         {
             get
@@ -33,6 +48,12 @@ namespace CapriDesktop
         }
     }
 
+    internal sealed class ModStats
+    {
+        internal int Downloads, Votes;
+        internal double Rating;
+    }
+
     internal static class ModDirectory
     {
         internal const string Page = "https://github.com/lachydotmcg/capri-mods";
@@ -40,6 +61,14 @@ namespace CapriDesktop
         private const string Api = "https://api.github.com/repos/lachydotmcg/capri-mods/git/";
         private const long Largest = 96L * 1024 * 1024;
         private const long LargestList = 16L * 1024 * 1024;
+        private const long LargestPreview = 2L * 1024 * 1024;
+        private const int WidestPreview = 4096, PreviewWide = 444;
+        private const string Raw = "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/mods/";
+        internal const string StatsPage = "https://capri-reactions.lachydotmcg.workers.dev/mods";
+        private static readonly byte[] PngStart = { 137, 80, 78, 71, 13, 10, 26, 10 };
+        private static readonly Regex PreviewFile = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/preview\.png$");
+        internal static string PreviewFolder = Path.Combine(Path.GetTempPath(), "capri-mod-previews");
+        internal static Func<string, string, byte[]> Post = Push;
         private static readonly Regex Listed = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/([A-Za-z0-9][A-Za-z0-9._-]{0,63}\.capri-(?:mod|code|skin))$");
         private static readonly Regex Blob = new Regex(@"^[0-9a-f]{40}$");
         internal static Func<string, long, byte[]> Get = Fetch;
@@ -59,6 +88,21 @@ namespace CapriDesktop
             [DataMember(Name = "size")] public long Size;
         }
 
+        [DataContract]
+        private sealed class StatsBody
+        {
+            [DataMember(Name = "mods")] public StatsEntry[] Mods;
+        }
+
+        [DataContract]
+        private sealed class StatsEntry
+        {
+            [DataMember(Name = "folder")] public string Folder;
+            [DataMember(Name = "downloads")] public int Downloads;
+            [DataMember(Name = "rating")] public double Rating;
+            [DataMember(Name = "votes")] public int Votes;
+        }
+
         internal static List<ModListing> Browse() { return Parse(Get(Api + "trees/HEAD?recursive=1", LargestList)); }
 
         internal static List<ModListing> Parse(byte[] json)
@@ -70,12 +114,21 @@ namespace CapriDesktop
             }
             catch (SerializationException) { throw new ModException("The mods directory sent something I can't read."); }
             List<ModListing> found = new List<ModListing>();
+            Dictionary<string, string> previews = new Dictionary<string, string>();
+            foreach (TreeEntry entry in tree.Entries ?? new TreeEntry[0])
+            {
+                if (entry == null || entry.Type != "blob" || entry.Path == null || entry.Sha == null || entry.Size <= 0 || entry.Size > LargestPreview || !Blob.IsMatch(entry.Sha)) continue;
+                Match picture = PreviewFile.Match(entry.Path);
+                if (picture.Success && !picture.Groups[1].Value.Contains("..")) previews[picture.Groups[1].Value] = entry.Sha;
+            }
             foreach (TreeEntry entry in tree.Entries ?? new TreeEntry[0])
             {
                 if (entry == null || entry.Type != "blob" || entry.Path == null || entry.Sha == null || entry.Size <= 0 || entry.Size > Largest || !Blob.IsMatch(entry.Sha)) continue;
                 Match match = Listed.Match(entry.Path);
                 if (!match.Success || match.Groups[1].Value.Contains("..") || match.Groups[2].Value.Contains("..")) continue;
-                found.Add(new ModListing { Folder = match.Groups[1].Value, FileName = match.Groups[2].Value, Sha = entry.Sha, Size = entry.Size });
+                string previewSha;
+                previews.TryGetValue(match.Groups[1].Value, out previewSha);
+                found.Add(new ModListing { Folder = match.Groups[1].Value, FileName = match.Groups[2].Value, Sha = entry.Sha, Size = entry.Size, PreviewSha = previewSha });
             }
             found.Sort(delegate(ModListing a, ModListing b) { return StringComparer.OrdinalIgnoreCase.Compare(a.Folder + "/" + a.FileName, b.Folder + "/" + b.FileName); });
             return found;
@@ -102,6 +155,134 @@ namespace CapriDesktop
             string file = Path.Combine(folder, Path.GetFileName(listing.FileName));
             File.WriteAllBytes(file, bytes);
             return file;
+        }
+
+        internal static byte[] Preview(ModListing listing, string cache)
+        {
+            if (listing.PreviewSha == null) return null;
+            string kept = Path.Combine(cache, listing.PreviewSha + ".png");
+            try
+            {
+                if (File.Exists(kept))
+                {
+                    byte[] saved = File.ReadAllBytes(kept);
+                    if (saved.Length <= LargestPreview && BlobSha(saved) == listing.PreviewSha) return saved;
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            byte[] bytes = Get(Raw + listing.Folder + "/preview.png", LargestPreview);
+            if (BlobSha(bytes) != listing.PreviewSha || !IsPng(bytes)) throw new ModException(listing.Folder + "'s preview didn't match what the directory listed.");
+            try
+            {
+                Directory.CreateDirectory(cache);
+                File.WriteAllBytes(kept, bytes);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return bytes;
+        }
+
+        private static bool IsPng(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length < 24) return false;
+            for (int i = 0; i < PngStart.Length; i++) if (bytes[i] != PngStart[i]) return false;
+            return true;
+        }
+
+        private static long BigEndian(byte[] bytes, int at)
+        {
+            return ((long)bytes[at] << 24) | ((long)bytes[at + 1] << 16) | ((long)bytes[at + 2] << 8) | bytes[at + 3];
+        }
+
+        internal static Image Picture(byte[] bytes)
+        {
+            if (!IsPng(bytes)) return null;
+            long wide = BigEndian(bytes, 16), tall = BigEndian(bytes, 20);
+            if (wide < 1 || tall < 1 || wide > WidestPreview || tall > WidestPreview) return null;
+            try
+            {
+                using (MemoryStream body = new MemoryStream(bytes))
+                using (Image read = Image.FromStream(body))
+                {
+                    int width = Math.Min(PreviewWide, read.Width), height = Math.Max(1, (int)Math.Round(read.Height * (double)width / read.Width));
+                    Bitmap small = new Bitmap(width, height);
+                    using (Graphics paint = Graphics.FromImage(small))
+                    {
+                        paint.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        paint.DrawImage(read, 0, 0, width, height);
+                    }
+                    return small;
+                }
+            }
+            catch (ArgumentException) { return null; }
+            catch (ExternalException) { return null; }
+            catch (OutOfMemoryException) { return null; }
+        }
+
+        internal static Dictionary<string, ModStats> Stats()
+        {
+            StatsBody body;
+            try
+            {
+                using (MemoryStream read = new MemoryStream(Get(StatsPage, LargestPreview))) body = (StatsBody)new DataContractJsonSerializer(typeof(StatsBody)).ReadObject(read);
+            }
+            catch (SerializationException) { throw new ModException("The mods directory's numbers couldn't be read."); }
+            Dictionary<string, ModStats> found = new Dictionary<string, ModStats>(StringComparer.OrdinalIgnoreCase);
+            foreach (StatsEntry entry in body.Mods ?? new StatsEntry[0])
+                if (entry != null && entry.Folder != null) found[entry.Folder] = new ModStats { Downloads = Math.Max(0, entry.Downloads), Rating = Math.Max(0, Math.Min(5, entry.Rating)), Votes = Math.Max(0, entry.Votes) };
+            return found;
+        }
+
+        internal static void Apply(List<ModListing> listings, Dictionary<string, ModStats> stats)
+        {
+            foreach (ModListing listing in listings)
+            {
+                ModStats found;
+                if (!stats.TryGetValue(listing.Folder, out found)) continue;
+                listing.Downloads = found.Downloads;
+                listing.Rating = found.Rating;
+                listing.Votes = found.Votes;
+            }
+        }
+
+        internal static string RatingLine(ModListing listing)
+        {
+            return listing.Votes == 0 ? "No ratings" : listing.Rating.ToString("0.0", CultureInfo.InvariantCulture) + " (" + listing.Votes + ")";
+        }
+
+        internal static string DownloadLine(ModListing listing)
+        {
+            string count = listing.Downloads >= 1000000 ? (listing.Downloads / 1000000.0).ToString("0.#", CultureInfo.InvariantCulture) + "M" : listing.Downloads >= 1000 ? (listing.Downloads / 1000.0).ToString("0.#", CultureInfo.InvariantCulture) + "K" : listing.Downloads.ToString(CultureInfo.InvariantCulture);
+            return count + (listing.Downloads == 1 ? " download" : " downloads");
+        }
+
+        internal static void CountDownload(string folder)
+        {
+            Post(StatsPage + "/download", "{\"folder\":\"" + folder + "\"}");
+        }
+
+        internal static ModStats Rate(string folder, int stars)
+        {
+            byte[] answer = Post(StatsPage + "/rate", "{\"folder\":\"" + folder + "\",\"stars\":" + stars + "}");
+            StatsEntry entry;
+            try
+            {
+                using (MemoryStream read = new MemoryStream(answer)) entry = (StatsEntry)new DataContractJsonSerializer(typeof(StatsEntry)).ReadObject(read);
+            }
+            catch (SerializationException) { throw new ModException("Your rating's answer couldn't be read."); }
+            return new ModStats { Downloads = Math.Max(0, entry.Downloads), Rating = Math.Max(0, Math.Min(5, entry.Rating)), Votes = Math.Max(0, entry.Votes) };
+        }
+
+        internal static string PublishSteps(Mod mod)
+        {
+            string id = mod.File.Id, file = Path.GetFileName(mod.Path);
+            return "1. Press Fork capri-mods and make your own copy on GitHub. You'll need a free account.\n\n"
+                + "2. In your copy, add a folder called mods/" + id + "/.\n\n"
+                + "3. Put in " + file + " and a short README.md that says what it does and who made it.\n\n"
+                + "4. Add a picture called preview.png, around 16:9. It's what people see in the mods window.\n\n"
+                + "5. Open a pull request to capri-mods. Every mod is checked for malware before it goes up."
+                + (mod.Code ? "\n\nThis is a code mod, so Capri will ask people before running it." : "");
         }
 
         internal static string BlobSha(byte[] bytes)
@@ -134,6 +315,26 @@ namespace CapriDesktop
                     if (kept.Length + read > most) throw new ModException("That's too big to come from the mods directory.");
                     kept.Write(chunk, 0, read);
                 }
+                return kept.ToArray();
+            }
+        }
+
+        private static byte[] Push(string url, string json)
+        {
+            ServicePointManager.SecurityProtocol |= (SecurityProtocolType)3072;
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+            request.Method = "POST";
+            request.UserAgent = "Capri-Desktop";
+            request.ContentType = "application/json";
+            request.Timeout = 15000;
+            request.ReadWriteTimeout = 15000;
+            byte[] sent = Encoding.UTF8.GetBytes(json);
+            using (Stream body = request.GetRequestStream()) body.Write(sent, 0, sent.Length);
+            using (WebResponse response = request.GetResponse())
+            using (Stream body = response.GetResponseStream())
+            using (MemoryStream kept = new MemoryStream())
+            {
+                body.CopyTo(kept);
                 return kept.ToArray();
             }
         }
