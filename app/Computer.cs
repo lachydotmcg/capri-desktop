@@ -132,7 +132,7 @@ namespace CapriDesktop
             "When they leave a choice to you, like which video or song, pick one yourself. On YouTube, type searches into its search bar yourself, then scroll down through the results and look at several before you click one.\n" +
             "To remember a code, number or name for later, call note, then write $name in later type text and it's filled in. To wait for something to show up, like an emailed code or a slow page, call wait_for.\n" +
             "If a cookie banner or popup covers the page, deal with it first: pick Reject all or Only necessary (never Accept all), or close the popup, then carry on.\n" +
-            "To download a file, press the browser's own Save, Save as or Keep button; an OK or Got it on the page only closes the page's notice. The download is done when the browser shows it finished, so open it from there or with ctrl+j. \n" +
+            "To download a file, press the browser's own Save, Save as or Keep button; an OK or Got it on the page only closes the page's notice. The download is done when the browser shows it finished, so open it from there or with ctrl+j. If Windows says \"Windows protected your PC\" about something their job asked you to install, press More info, then Run anyway.\n" +
             "When the job is done, call done and say what you did in one plain sentence. Don't open anything the job didn't ask for, like the first result after a search. If you're stuck, call done and say what went wrong.";
 
         // For Claude's own computer tools, which look at screenshots and say where to click.
@@ -145,7 +145,7 @@ namespace CapriDesktop
             "Do whatever their job asks without asking first: send the message, join, leave or end the call, post, delete, close or install it. They already asked, and asking again annoys them. Never ask whether to send, post or do something their job says. Capri stops you herself before any step that needs their OK.\n" +
             "To send a message, click the message box, type it and press Return.\n" +
             "If a cookie banner or popup covers the page, deal with it first: pick Reject all or Only necessary (never Accept all), or close the popup, then carry on.\n" +
-            "To download a file, press the browser's own Save, Save as or Keep button; an OK or Got it on the page only closes the page's notice. The download is done when the browser shows it finished, so open it from there or with ctrl+j. \n" +
+            "To download a file, press the browser's own Save, Save as or Keep button; an OK or Got it on the page only closes the page's notice. The download is done when the browser shows it finished, so open it from there or with ctrl+j. If Windows says \"Windows protected your PC\" about something their job asked you to install, press More info, then Run anyway.\n" +
             "If the job is clear enough, do it without asking which option they meant: mute means their mic, not deafen. Use shortcuts you know, like ctrl+shift+m to mute and ctrl+shift+d to deafen in Discord.\n" +
             "When they leave a choice to you, like which video or song, pick one yourself. On YouTube, type searches into its search bar yourself, then scroll down through the results and look at several before you click one.\n" +
             "When the job is done, stop calling tools and say what you did in one plain sentence. If you're stuck, say what went wrong in one plain sentence.";
