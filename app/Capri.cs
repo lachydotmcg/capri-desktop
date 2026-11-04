@@ -25536,7 +25536,9 @@ namespace CapriDesktop
             string log = Path.Combine(output, "voice-cutoff.txt");
             System.Collections.Generic.List<ManualResetEvent> gates = new System.Collections.Generic.List<ManualResetEvent>();
             Func<ManualResetEvent> gate = delegate { ManualResetEvent made = new ManualResetEvent(false); gates.Add(made); return made; };
-            Func<int, bool> completed = delegate(int turn) { return File.Exists(log) && File.ReadAllText(log).Contains(" | answer=" + turn + " audio="); };
+            // Her log rewrites the whole file under its lock, and an answer's cable note can land on a pool thread mid-read.
+            Func<string> logNow = delegate { lock (typeof(Brain)) return File.Exists(log) ? File.ReadAllText(log) : ""; };
+            Func<int, bool> completed = delegate(int turn) { return logNow().Contains(" | answer=" + turn + " audio="); };
             Action<int> settle = delegate(int milliseconds)
             {
                 Stopwatch waited = Stopwatch.StartNew();
@@ -25586,7 +25588,7 @@ namespace CapriDesktop
                             cutMix.Step();
                             MicMix.Current = cutMix;
                             WaitSound(delegate { return !MicAnswer.Writing; }, "Earlier cable delivery notes did not finish.");
-                            int reportsBefore = Regex.Matches(File.ReadAllText(log), @"\| mic delivery \|").Count;
+                            int reportsBefore = Regex.Matches(logNow(), @"\| mic delivery \|").Count;
                             voice.Play(wav);
                             RunMix(cutMix, cutPc, cutNow, 0.12, null);
                             if (afterText)
@@ -25603,7 +25605,7 @@ namespace CapriDesktop
                             for (int at = cutAt; at < cutSound.Length; at++)
                                 if (Math.Abs(cutSound[at]) > 0.00001) throw new Exception("Talking over her left the cable playing waiting speech.");
                             WaitSound(delegate { return !MicAnswer.Writing; }, "The cut-off answer did not log its cable delivery.");
-                            MatchCollection reports = Regex.Matches(File.ReadAllText(log), @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
+                            MatchCollection reports = Regex.Matches(logNow(), @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
                             if (reports.Count != reportsBefore + 1) throw new Exception("A cut-off answer did not log exactly once.");
                             Match report = reports[reports.Count - 1];
                             double cableSeconds = double.Parse(report.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
@@ -25683,7 +25685,7 @@ namespace CapriDesktop
                     int turn = answerTurn;
                     WaitVoice(delegate { return completed(turn) && voiceUntil > 0; }, "A queued old talk-over stopped the replacement voice.");
                     string source = wakeMic ? "wake mic talk-over" : "local chat talk-over";
-                    if (bargeIns != barges || reply != "Private talk-over replacement." || !File.ReadAllText(log).Contains("detected=" + oldAudio + " ignored=True")) throw new Exception("A queued " + source + " was not detected or stopped a newer answer.");
+                    if (bargeIns != barges || reply != "Private talk-over replacement." || !logNow().Contains("detected=" + oldAudio + " ignored=True")) throw new Exception("A queued " + source + " was not detected or stopped a newer answer.");
                     CloseTalk();
                 }
                 checks.Add("PASS queued local chat and wake mic talk-over events leave a replacement answer on the same asking ticket speaking");
@@ -25741,7 +25743,7 @@ namespace CapriDesktop
                 if (job != busy || working != "On it. Esc stops me." || Computer.Interrupted != interrupted || callSession.Generation != callVersion) throw new Exception("Voice delivery changed the job or call session.");
                 checks.Add("PASS server interruption rejects pending audio, the next valid reply speaks, and jobs, asking, computer interruption and call generation stay intact");
 
-                string logged = File.ReadAllText(log);
+                string logged = logNow();
                 foreach (string source in new[] { "explicit input", "wake mic talk-over", "local chat talk-over", "server interruption" })
                     if (!logged.Contains(" | voice interruption | - | " + source + " answer=") || !logged.Contains("played_ms=") || !logged.Contains("remaining_ms=")) throw new Exception("An interruption source or playback timing was missing from her log.");
                 if (logged.Contains("Private ") || logged.Contains("ticket35-private-key-marker")) throw new Exception("Voice interruption diagnostics included speech or a key.");
