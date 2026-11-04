@@ -35446,7 +35446,7 @@ namespace CapriDesktop
                             mainframe.SizeMainframe(150);
                             float sizedTo = mainframe.Zoom;
                             int sizedBig = mainframe.ClientSize.Width;
-                            string sizedCrowd = mainframe.Overlap() ?? mainframe.Outside();
+                            string sizedCrowd = mainframe.Overlap() ?? (mainframe.PageClamped ? null : mainframe.Outside());
                             bool sizedSaved = preferences.MainframeSize == 150 && LoadPreferences().MainframeSize == 150 && mainframe.FrameSizeShown == "150%";
                             snap("mainframe-settings-150.png");
                             mainframe.SizeMainframe(0);
