@@ -30,5 +30,7 @@
     <EmbeddedResource Include="../assets/chip.png" LogicalName="Capri.Chip.png" />
     <EmbeddedResource Include="../assets/cursor.png" LogicalName="Capri.Cursor.png" />
     <AvaloniaResource Include="../assets/fonts/ShareTechMono-Regular.ttf" Link="Assets/ShareTechMono-Regular.ttf" />
+    <AvaloniaResource Include="../assets/fonts/Barlow*.ttf" Link="Assets/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../assets/fonts/Barlow-OFL.txt" LogicalName="Capri.Font.Barlow-OFL.txt" />
   </ItemGroup>
 </Project>
