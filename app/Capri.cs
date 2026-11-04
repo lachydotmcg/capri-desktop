@@ -860,7 +860,10 @@ namespace CapriDesktop
         internal string Package()
         {
             string path = Path.Combine(Path.GetDirectoryName(app), "Capri.package");
-            if (!File.Exists(path)) return null;
+            try { File.GetAttributes(path); }
+            catch (FileNotFoundException) { return null; }
+            catch (DirectoryNotFoundException) { return null; }
+            catch (Exception) { return "your package manager"; }
             try
             {
                 string name = File.ReadAllText(path).Trim();
