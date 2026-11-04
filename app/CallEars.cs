@@ -108,7 +108,11 @@ namespace CapriDesktop
                 // In Auto, the app she's hearing keeps her while it still makes sound, even when an app higher on the list does too.
                 CallApp now = current;
                 CallPick still = selected == "Auto" && keep != 0 && now.InAuto ? PickApp(now, processes, sounds, true) : null;
-                picked = still != null && still.Id == keep ? still : Pick(selected, processes, sounds);
+                if (still != null && still.Id == keep) picked = still;
+                // A quiet spell on her call, like you talking or a pause, isn't the call moving: only another call app's sound
+                // takes her off it, so a silent Discord that's open can't take her for good.
+                else if (holding) picked = Audible(processes, sounds);
+                else picked = Pick(selected, processes, sounds);
             }
             lock (gate)
             {
@@ -139,6 +143,19 @@ namespace CapriDesktop
                 if (!other.InAuto) continue;
                 CallPick picked = PickApp(other, processes, sounds, true);
                 if (picked != null) return picked;
+            }
+            return null;
+        }
+
+        // The first call app in Auto that's making sound, Discord included, or null when none is.
+        private static CallPick Audible(List<CallProcess> processes, List<AppSound> sounds)
+        {
+            if (processes == null) return null;
+            foreach (CallApp app in Apps)
+            {
+                if (!app.InAuto) continue;
+                CallPick heard = PickApp(app, processes, sounds, true);
+                if (heard != null) return heard;
             }
             return null;
         }
@@ -620,11 +637,15 @@ namespace CapriDesktop
                 CallApps.Heard(90, owner);
                 two.Add(new CallProcess { Id = 93, Name = "Discord" });
                 if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("A silent Discord opening pulled Auto off the call she's hearing.");
-                playing.Remove(zoom);
-                if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 93 || CallApps.Current.Name != "Discord") throw new Exception("Auto didn't go back to Discord once the call she was hearing went quiet.");
+                playing.Remove(zoom); playing.Remove(slack);
+                if (CallApps.Find() != 0 || CallApps.Find() != 0 || CallApps.Find() != 0 || CallApps.Find() != 0 || CallApps.Current.Name != "Zoom") throw new Exception("A quiet spell on the call she's hearing moved Auto to a silent Discord.");
+                AppSound discord = new AppSound { Id = 93, Playing = true, Level = 1, Peak = 0.1f };
+                playing.Add(discord);
+                if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 93 || CallApps.Current.Name != "Discord") throw new Exception("Auto didn't go back to Discord once Discord made sound and the call she was hearing stayed quiet.");
                 CallApps.Left(90, owner);
+                playing.Remove(discord); playing.Add(slack);
                 two.RemoveAt(two.Count - 1);
-                checks.Add("PASS Auto never takes a browser video for the call, stays on the app she's hearing through a ping elsewhere, Discord opening or while it still makes sound, and moves after about three seconds");
+                checks.Add("PASS Auto never takes a browser video for the call, stays on the app she's hearing through a ping elsewhere, Discord opening, a quiet spell or while it still makes sound, and moves after about three seconds of another call app's sound");
                 playing.Add(zoom);
                 CallApps.Choose("Zoom"); CallApps.Heard(90, owner);
                 CallApps.Choose("Auto");
