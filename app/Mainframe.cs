@@ -91,6 +91,8 @@ namespace CapriDesktop
         private readonly Key models;
         private readonly ContextMenuStrip modelMenu;
         private readonly Key refresh;
+        private readonly Key provider;
+        private ProviderSheet providerSheet;
         private readonly Label[] steps = new Label[3];
         private readonly string[] stepText = new string[3];
         private readonly Key setup;
@@ -406,7 +408,9 @@ namespace CapriDesktop
             brainName = Caption("", 28, 79, Type(11f, true), White);
             brainName.AutoSize = false;
             brainName.AutoEllipsis = true;
-            brainName.Size = new Size(328, 20);
+            brainName.Size = new Size(244, 20);
+            provider = Make("Provider", 280, 79, 76, 20, delegate { OpenProvider(); });
+            provider.AccessibleName = "OpenAI-compatible provider address and key";
             brainNote = Caption("", 28, 101, Font, Faint);
             modelMenu = Dropdown();
             models = Make("", 28, 134, 244, 28, delegate { modelMenu.Show(models, new Point(0, models.Height)); });
@@ -2384,6 +2388,8 @@ namespace CapriDesktop
             if (form == null) return 1f;
             Mainframe main = form as Mainframe;
             if (main != null) return main.Unit();
+            ProviderSheet provider = form as ProviderSheet;
+            if (provider != null) return form.CurrentAutoScaleDimensions.Width / 96f * provider.Zoom;
             SecuritySheet guarded = form as SecuritySheet;
             LayersSheet layers = form as LayersSheet;
             MixSheet mix = form as MixSheet;
@@ -3097,6 +3103,73 @@ namespace CapriDesktop
 
         internal string[] BrainChoices { get { List<string> choices = new List<string>(); foreach (ToolStripItem item in modelMenu.Items) choices.Add(item.Text); return choices.ToArray(); } }
 
+        internal void ShowProvider(string address, bool keyed, string model, string[] found)
+        {
+            brainName.Text = "My provider" + (model == null ? "" : " · " + model);
+            brainNote.Text = keyed ? "Using your provider with a key" : "Using your server with no key";
+            models.Text = model;
+            models.Visible = model != null;
+            hint.Visible = false;
+            menuRemote = null;
+            menuModels = null;
+            List<ToolStripItem> choices = new List<ToolStripItem>();
+            foreach (string name in found ?? new string[0])
+            {
+                string pick = name;
+                choices.Add(Choice(pick, pick == model, delegate { capri.ChooseProviderModel(address, pick, found); }));
+            }
+            modelMenu.SuspendLayout();
+            modelMenu.Items.Clear();
+            modelMenu.Items.AddRange(choices.ToArray());
+            modelMenu.ResumeLayout();
+            Arrange(false);
+        }
+
+        internal void OpenProvider()
+        {
+            if (providerSheet != null && !providerSheet.IsDisposed && providerSheet.Zoom != zoom) providerSheet.Close();
+            if (providerSheet == null || providerSheet.IsDisposed) providerSheet = new ProviderSheet(this, zoom);
+            providerSheet.Fill();
+            if (!providerSheet.Visible) providerSheet.Show(this);
+            else providerSheet.Activate();
+        }
+
+        internal void ProviderProblem(string text)
+        {
+            if (providerSheet != null && !providerSheet.IsDisposed) providerSheet.Say(text);
+            ShowProblem(text);
+        }
+
+        internal void TypeProvider(string address, string key) { providerSheet.Type(address, key); }
+
+        internal void ConnectProvider() { providerSheet.Connect(); }
+
+        internal string ProviderNote { get { return providerSheet == null || providerSheet.IsDisposed ? "" : providerSheet.Status; } }
+
+        internal bool ProviderMaskedAndEmpty { get { return providerSheet != null && !providerSheet.IsDisposed && providerSheet.MaskedAndEmpty; } }
+
+        internal bool ProviderSavedEnabled { get { return providerSheet != null && !providerSheet.IsDisposed && providerSheet.SavedEnabled; } }
+
+        internal void PressProvider(string button) { providerSheet.Press(button); }
+
+        internal void CloseProvider() { if (providerSheet != null && !providerSheet.IsDisposed) providerSheet.Close(); }
+
+        internal string ProviderAt(float zoom)
+        {
+            using (ProviderSheet drawn = new ProviderSheet(this, zoom))
+            {
+                drawn.Fill();
+                drawn.Show(this);
+                foreach (string status in new[] { "Provider forgotten.", "That address doesn't work. Try https://... or http://localhost:1234.", "Use https:// for a provider elsewhere. A key over plain http isn't safe.", "Stopped using it. Couldn't remove the saved provider." })
+                {
+                    drawn.Say(status);
+                    string problem = drawn.Crowded();
+                    if (problem != null) return problem;
+                }
+                return null;
+            }
+        }
+
         internal void PickBrain(int index) { ((ToolStripMenuItem)modelMenu.Items[index]).PerformClick(); }
 
         // The cloud brain and list her model menu was last built from.
@@ -3171,6 +3244,7 @@ namespace CapriDesktop
         {
             get
             {
+                if (brainName.Bounds.IntersectsWith(provider.Bounds) || provider.Bottom > brainNote.Top || provider.Right > Scaled(356)) return "Provider overlaps the brain name or note";
                 Rectangle last = rungs[rungs.Length - 1].Bounds;
                 if (textEntry.Visible && textEntry.Top < last.Bottom) return "the key box (top " + textEntry.Top + ") overlaps the last rung (bottom " + last.Bottom + ")";
                 if (textEntry.Visible && textConnect.Right > ClientSize.Width) return "Connect (right " + textConnect.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
@@ -4857,6 +4931,172 @@ namespace CapriDesktop
                 if (!(e.ToolStrip is ToolStripDropDown) || e.Vertical) { base.OnRenderSeparator(e); return; }
                 float s = Unit(e.ToolStrip);
                 using (Brush line = new SolidBrush(Edge)) e.Graphics.FillRectangle(line, 10 * s, e.Item.Height / 2, e.Item.Width - 20 * s, Math.Max(1, (int)s));
+            }
+        }
+
+        private sealed class ProviderSheet : Form
+        {
+            private readonly Mainframe owner;
+            private readonly Entry address;
+            private readonly Entry key;
+            private readonly Key saved;
+            private readonly Label note;
+            internal readonly float Zoom;
+
+            internal ProviderSheet(Mainframe owner, float zoom)
+            {
+                this.owner = owner;
+                Zoom = zoom;
+                Text = "Brain provider";
+                Icon = owner.Icon;
+                ShowInTaskbar = false;
+                FormBorderStyle = FormBorderStyle.None;
+                StartPosition = FormStartPosition.Manual;
+                AutoScaleMode = AutoScaleMode.Dpi;
+                AutoScaleDimensions = new SizeF(96, 96);
+                Font = Mainframe.Type(9.5f);
+                BackColor = Ground;
+                ForeColor = White;
+                DoubleBuffered = true;
+                ClientSize = new Size(Wide, 356);
+                Heading(this, "BRAIN PROVIDER >", new Point(24, 15), Display(14f), Rose, 0);
+                Key close = Make("", 330, 20, 26, delegate { Close(); });
+                close.Height = 22;
+                close.Glyph = 2;
+                close.AccessibleName = "Close";
+                CancelButton = close;
+                Caption("OpenAI-compatible server or provider.", 52, 20, Faint);
+                Caption("Address", 80, 18, Rose);
+                address = Input(100, "http://localhost:1234/v1", "Provider base URL");
+                Caption("Key", 136, 18, Rose);
+                key = Input(156, "Optional. Blank means no key.", "Provider API key, optional");
+                key.Box.UseSystemPasswordChar = true;
+                address.Box.TextChanged += delegate { key.Box.Clear(); Kept(); };
+                key.Box.TextChanged += delegate { Kept(); };
+                Caption("Keys go only to this address.\nThey stay encrypted on this computer.", 196, 36, Faint);
+                Key connect = Make("Connect", 28, 240, 104, delegate { Connect(); });
+                connect.Accent = Cyan;
+                connect.Loud = true;
+                saved = Make("Use saved", 140, 240, 104, delegate { key.Box.Clear(); owner.capri.UseSavedProvider(); });
+                Key forget = Make("Forget", 252, 240, 104, delegate { key.Box.Clear(); address.Box.Clear(); owner.capri.ForgetProvider(); });
+                forget.Accent = Hot;
+                note = Caption("", 280, 60, Faint);
+                AcceptButton = connect;
+                key.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; Connect(); } };
+                FormClosed += delegate { key.Box.Clear(); };
+                if (zoom != 1f) { Grow(this, zoom); Scale(new SizeF(zoom, zoom)); }
+            }
+
+            internal void Fill()
+            {
+                address.Box.Text = owner.capri.ProviderAddress;
+                key.Box.Clear();
+                Say(owner.capri.ProviderKeySaved ? "Address and key saved. Use saved to reconnect." : "Blank key means no key.");
+            }
+
+            internal void Say(string text)
+            {
+                note.Text = text;
+                Kept();
+            }
+
+            private void Kept()
+            {
+                if (saved == null) return;
+                string kept = owner.capri.ProviderAddress;
+                saved.Enabled = kept.Length > 0 && kept == Brain.ServerAddress(address.Box.Text) && key.Box.Text.Length == 0;
+            }
+
+            internal string Status { get { return note.Text; } }
+
+            internal bool MaskedAndEmpty { get { return key.Box.UseSystemPasswordChar && key.Box.Text.Length == 0; } }
+
+            internal bool SavedEnabled { get { return saved.Enabled; } }
+
+            internal void Press(string button)
+            {
+                foreach (Control control in Controls)
+                {
+                    Key key = control as Key;
+                    if (key != null && key.Text == button) { key.PerformClick(); return; }
+                }
+                throw new Exception("That provider button was not found.");
+            }
+
+            internal void Type(string url, string secret) { address.Box.Text = url; key.Box.Text = secret; }
+
+            internal void Connect()
+            {
+                string url = address.Box.Text, secret = key.Box.Text;
+                key.Box.Clear();
+                owner.capri.UseProvider(url, secret);
+            }
+
+            internal string Crowded()
+            {
+                for (int first = 0; first < Controls.Count; first++)
+                {
+                    Control a = Controls[first];
+                    if (!ClientRectangle.Contains(a.Bounds)) return "a provider row leaves the panel";
+                    for (int second = first + 1; second < Controls.Count; second++)
+                        if (a.Bounds.IntersectsWith(Controls[second].Bounds)) return "provider rows overlap";
+                    using (Bitmap paper = new Bitmap(1, 1))
+                    using (Graphics graphics = Graphics.FromImage(paper))
+                    {
+                        string problem = CheckText(graphics, a, Point.Empty, null, a.Visible);
+                        if (problem != null) return problem;
+                    }
+                }
+                if (!key.Box.UseSystemPasswordChar) return "the provider key is visible";
+                return null;
+            }
+
+            private Label Caption(string text, int y, int height, Color colour)
+            {
+                Label made = new Note { Text = text, ForeColor = colour, BackColor = Ground, Bounds = new Rectangle(28, y, 328, height) };
+                Controls.Add(made);
+                return made;
+            }
+
+            private Entry Input(int y, string cue, string name)
+            {
+                Entry made = new Entry { Bounds = new Rectangle(28, y, 328, 28), Cue = cue };
+                made.Box.AccessibleName = made.AccessibleName = name;
+                Controls.Add(made);
+                return made;
+            }
+
+            private Key Make(string text, int x, int y, int width, EventHandler click)
+            {
+                Key made = new Key { Text = text, Font = Mainframe.Type(9f, true), Bounds = new Rectangle(x, y, width, 28) };
+                made.Click += click;
+                Controls.Add(made);
+                return made;
+            }
+
+            protected override void OnLoad(EventArgs e)
+            {
+                base.OnLoad(e);
+                float s = ScaleOf(this);
+                Rectangle area = Screen.FromControl(owner).WorkingArea;
+                int x = owner.Left + (owner.Width - Width) / 2, y = owner.Top + (int)(48 * s);
+                Location = new Point(Math.Max(area.Left, Math.Min(area.Right - Width, x)), Math.Max(area.Top, Math.Min(area.Bottom - Height, y)));
+            }
+
+            protected override void OnSizeChanged(EventArgs e) { base.OnSizeChanged(e); Clip(this, ScaleOf(this)); Invalidate(true); }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                Backdrop(e.Graphics, this, ScaleOf(this));
+                Edging(e.Graphics, this, ScaleOf(this));
+            }
+
+            protected override void WndProc(ref Message message)
+            {
+                base.WndProc(ref message);
+                if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
             }
         }
 

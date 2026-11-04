@@ -755,6 +755,9 @@ namespace CapriDesktop
         [DataMember] public string LocalAddress;
         [DataMember] public int BrainPort;
         [DataMember] public string BrainAddress;
+        [DataMember] public string BrainProvider;
+        [DataMember] public string ProviderModel;
+        [DataMember] public bool ProviderOn;
         [DataMember] public string LocalModel;
         [DataMember] public bool Welcomed;
         // She's asked to get to know them, after setup or from Settings, so setting up a new brain doesn't ask again.
@@ -1898,6 +1901,8 @@ namespace CapriDesktop
         private System.Collections.Generic.List<string> cloudModels;
         private int cloudListing;
         private int cloudRefresh;
+        private volatile int providerListing;
+        private string[] providerModels;
         private readonly System.Collections.Generic.HashSet<string> stalled = new System.Collections.Generic.HashSet<string>();
         private readonly TalkPill pill = new TalkPill();
         private readonly SpeechBox box = new SpeechBox();
@@ -2496,6 +2501,7 @@ namespace CapriDesktop
                 if (!testing) SavePreferences();
             }
             SplitKeys();
+            LoadProvider();
             brain.Remote = TierCloud();
             ShowTiers();
             voice.VoiceId = string.IsNullOrEmpty(preferences.VoiceId) ? null : preferences.VoiceId;
@@ -8526,6 +8532,7 @@ namespace CapriDesktop
                 ListCloud(remote.Key, false);
                 return;
             }
+            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) { RefreshProvider(); return; }
             if (SettingUp) return;
             mainframe.Searching();
             if (finding) return;
@@ -8533,6 +8540,7 @@ namespace CapriDesktop
             string address = preferences.LocalAddress;
             int port = preferences.BrainPort;
             string selected = preferences.BrainAddress;
+            int listing = providerListing;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] installed = null;
@@ -8543,6 +8551,7 @@ namespace CapriDesktop
                 Post(delegate
                 {
                     finding = false;
+                    if (listing != providerListing) { if (brain.Server == null && brain.Remote == null) FindBrain(); return; }
                     if (address != preferences.LocalAddress) { FindBrain(); return; }
                     mainframe.ShowServers(servers, installed, local);
                     if (brain.Remote == null && preferences.Tier == 0 && (installed == null || installed.Length == 0) && local == null && servers.Count > 0)
@@ -8573,6 +8582,9 @@ namespace CapriDesktop
         internal void ChooseLocalBrain(Cloud server, string model, Pick local)
         {
             if (AfterLine(delegate { ChooseLocalBrain(server, model, local); })) return;
+            ++providerListing;
+            preferences.ProviderOn = false;
+            brain.SetServer(null, null);
             ++cloudListing;
             cloudModels = null;
             brain.Cancel();
@@ -8588,6 +8600,163 @@ namespace CapriDesktop
             if (server != null) preferences.LocalModel = model;
             else preferences.Model = model;
             SavePreferences();
+        }
+
+        private bool SavedProvider(out string address, out string key)
+        {
+            address = key = null;
+            string pair = Voice.Unprotect(preferences.BrainProvider);
+            if (pair == null) return false;
+            int split = pair.IndexOf('\n');
+            if (split < 0) return false;
+            address = Brain.ServerAddress(pair.Substring(0, split));
+            key = pair.Substring(split + 1);
+            if (key.Length == 0) key = null;
+            if (address == null || key != null && (Regex.IsMatch(key, @"\s|[\x00-\x1f\x7f]") || !Brain.ServerKeySafe(address))) { address = key = null; return false; }
+            return true;
+        }
+
+        internal string ProviderAddress { get { string address, key; return SavedProvider(out address, out key) ? address : ""; } }
+
+        internal bool ProviderKeySaved { get { string address, key; return SavedProvider(out address, out key) && key != null; } }
+
+        private void LoadProvider()
+        {
+            brain.SetServer(null, null);
+            if (preferences.Tier != 0 || !preferences.ProviderOn) return;
+            string address, key;
+            if (!SavedProvider(out address, out key)) { preferences.ProviderOn = false; return; }
+            brain.SetServer(address, key);
+            brain.Model = preferences.ProviderModel;
+        }
+
+        internal void UseSavedProvider()
+        {
+            string address, key;
+            if (SavedProvider(out address, out key)) UseProvider(address, key);
+        }
+
+        internal void UseProvider(string typed, string key)
+        {
+            int listing = ++providerListing;
+            string address = Brain.ServerAddress(typed);
+            if (address == null) { mainframe.ProviderProblem("That address doesn't work. Try https://... or http://localhost:1234."); return; }
+            key = (key ?? "").Trim();
+            if (key.Length == 0) key = null;
+            if (key != null && Regex.IsMatch(key, @"\s|[\x00-\x1f\x7f]")) { mainframe.ProviderProblem("That key doesn't work. Paste it on one line."); return; }
+            if (key != null && !Brain.ServerKeySafe(address)) { mainframe.ProviderProblem("Use https:// for a provider elsewhere. A key over plain http isn't safe."); return; }
+            ++cloudListing;
+            mainframe.ProviderProblem("Checking provider...");
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                if (listing != providerListing) return;
+                string[] found = null;
+                try { found = Brain.ServerModels(address, key); }
+                catch (Exception) { }
+                Post(delegate
+                {
+                    if (listing != providerListing) return;
+                    if (found == null || found.Length == 0)
+                    {
+                        mainframe.ProviderProblem(found == null ? "Can't reach that provider. Check the address and key." : "Your server lists no models. Load one in it first.");
+                        return;
+                    }
+                    string pair;
+                    try { pair = Voice.Protect(address + "\n" + (key ?? "")); }
+                    catch (System.Security.Cryptography.CryptographicException) { mainframe.ProviderProblem("Couldn't save the provider address and key."); return; }
+                    string previous = preferences.BrainProvider, previousModel = preferences.ProviderModel;
+                    bool previousOn = preferences.ProviderOn;
+                    int previousTier = preferences.Tier;
+                    string model = found[0];
+                    string savedAddress, savedKey;
+                    if (SavedProvider(out savedAddress, out savedKey) && savedAddress == address && Array.IndexOf(found, previousModel) >= 0) model = previousModel;
+                    preferences.BrainProvider = pair;
+                    preferences.ProviderModel = model;
+                    preferences.ProviderOn = true;
+                    preferences.Tier = 0;
+                    Mirror();
+                    if (!SavePreferences())
+                    {
+                        preferences.BrainProvider = previous;
+                        preferences.ProviderModel = previousModel;
+                        preferences.ProviderOn = previousOn;
+                        preferences.Tier = previousTier;
+                        Mirror();
+                        mainframe.ProviderProblem("Couldn't save the provider address and key.");
+                        return;
+                    }
+                    brain.Cancel();
+                    ++asking;
+                    CloseTalk();
+                    brain.Remote = null;
+                    brain.Local = null;
+                    brain.SetServer(address, key);
+                    brain.Model = model;
+                    cloudModels = null;
+                    providerModels = found;
+                    ShowTiers();
+                    mainframe.ProviderProblem("Provider connected.");
+                    mainframe.ShowProvider(address, key != null, model, found);
+                });
+            });
+        }
+
+        private void RefreshProvider()
+        {
+            string address, key;
+            brain.GetServer(out address, out key);
+            int listing = ++providerListing;
+            mainframe.ShowProvider(address, key != null, brain.Model, providerModels);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                if (listing != providerListing) return;
+                string[] found = null;
+                try { found = Brain.ServerModels(address, key); }
+                catch (Exception) { }
+                Post(delegate
+                {
+                    string currentAddress, currentKey;
+                    brain.GetServer(out currentAddress, out currentKey);
+                    if (listing != providerListing || preferences.Tier != 0 || brain.Remote != null || currentAddress != address || currentKey != key) return;
+                    if (found == null || found.Length == 0) { mainframe.ProviderProblem(found == null ? "Can't reach your provider. Check the address and key." : "Your server lists no models. Load one in it first."); return; }
+                    providerModels = found;
+                    if (Array.IndexOf(found, brain.Model) < 0) { ChooseProviderModel(address, found[0], found); if (Array.IndexOf(found, brain.Model) < 0) return; }
+                    mainframe.ShowProvider(address, key != null, brain.Model, found);
+                });
+            });
+        }
+
+        internal void ChooseProviderModel(string address, string model, string[] listed)
+        {
+            if (!preferences.ProviderOn || preferences.Tier != 0 || brain.Remote != null || brain.Server != address || providerModels != listed || Array.IndexOf(listed, model) < 0) return;
+            if (AfterLine(delegate { ChooseProviderModel(address, model, listed); })) return;
+            ChooseModel(model, false);
+            preferences.ProviderModel = model;
+            SavePreferences();
+            mainframe.ShowProvider(address, brain.ServerKey != null, brain.Model, listed);
+        }
+
+        internal void ForgetProvider()
+        {
+            ++providerListing;
+            ++cloudListing;
+            bool active = brain.Server != null && brain.Remote == null;
+            preferences.BrainProvider = null;
+            preferences.ProviderModel = null;
+            preferences.ProviderOn = false;
+            providerModels = null;
+            brain.SetServer(null, null);
+            if (active)
+            {
+                brain.Cancel();
+                ++asking;
+                CloseTalk();
+                brain.Model = null;
+                mainframe.Searching();
+            }
+            bool saved = SavePreferences();
+            mainframe.ProviderProblem(saved ? "Provider forgotten." : "Stopped using it. Couldn't remove the saved provider.");
+            if (active && !testing) FindBrain();
         }
 
         private void Post(Action action)
@@ -9274,6 +9443,11 @@ namespace CapriDesktop
             fit = Engine.Fit(found);
             ollamaRunning = installed != null;
             Cloud remote = brain.Remote;
+            if (remote == null && preferences.ProviderOn && brain.Server != null)
+            {
+                mainframe.ShowProvider(brain.Server, brain.ServerKey != null, brain.Model, providerModels);
+                return;
+            }
             if (remote != null)
             {
                 brain.Local = null;
@@ -9366,6 +9540,11 @@ namespace CapriDesktop
             if (remote != null) remote.Model = name;
             if (!keep) return;
             if (remote != null) Keep(remote);
+            else if (preferences.ProviderOn && brain.Server != null)
+            {
+                preferences.ProviderModel = name;
+                SavePreferences();
+            }
             else
             {
                 preferences.Model = name;
@@ -9402,6 +9581,7 @@ namespace CapriDesktop
 
         private Cloud TierCloud()
         {
+            if (preferences.Tier == 0 && preferences.ProviderOn && brain.Server != null) return null;
             if (preferences.Tier == 0 && preferences.BrainPort > 0 && preferences.BrainPort <= 65535 && !string.IsNullOrEmpty(preferences.LocalModel)) return new Cloud(preferences.BrainPort, preferences.LocalModel, preferences.BrainAddress);
             string key = Voice.Unprotect(preferences.Tier == 1 ? preferences.NvidiaKey : preferences.Tier == 2 ? preferences.PaidKey : null);
             string model = preferences.Tier == 1 ? preferences.NvidiaModel : preferences.PaidModel;
@@ -9437,14 +9617,16 @@ namespace CapriDesktop
             if (tier == preferences.Tier) return;
             if (AfterLine(delegate { ChooseTier(tier); })) return;
             ++cloudListing;
+            ++providerListing;
             brain.Cancel();
             ++asking;
             CloseTalk();
             preferences.Tier = tier;
+            LoadProvider();
             Mirror();
             SavePreferences();
             brain.Remote = TierCloud();
-            brain.Model = brain.Remote == null ? null : brain.Remote.Model;
+            brain.Model = brain.Remote == null ? brain.Server == null ? null : preferences.ProviderModel : brain.Remote.Model;
             cloudModels = null;
             ShowTiers();
             FindBrain();
@@ -9462,6 +9644,7 @@ namespace CapriDesktop
 
         private void ConnectText(string key, int targetTier)
         {
+            ++providerListing;
             ++cloudListing;
             key = (key ?? "").Trim();
             string kind = Cloud.KindOf(key);
@@ -9483,6 +9666,7 @@ namespace CapriDesktop
         {
             if (AfterLine(ForgetText)) return;
             ++cloudListing;
+            ++providerListing;
             brain.Cancel();
             ++asking;
             CloseTalk();
@@ -9500,6 +9684,7 @@ namespace CapriDesktop
                 preferences.PaidModel = null;
             }
             preferences.Tier = 0;
+            LoadProvider();
             Mirror();
             SavePreferences();
             ShowTiers();
@@ -9528,6 +9713,7 @@ namespace CapriDesktop
                         Cloud remote = new Cloud(key, Brain.DefaultCloudModel(probe.Kind, found));
                         if (remote.Model == null) { TextProblem("That key can't use any chat models.", true); return; }
                         brain.Cancel();
+                        brain.SetServer(null, null);
                         brain.Remote = remote;
                         if (pickedTier == 1) preferences.NvidiaKey = Voice.Protect(key);
                         else preferences.PaidKey = Voice.Protect(key);
@@ -13054,7 +13240,7 @@ namespace CapriDesktop
             catch { return Preferences.Fresh(); }
         }
 
-        private void SavePreferences()
+        private bool SavePreferences()
         {
             // On the task panel she's only visiting, so where she sat before is what's kept. Lying, it's where she'd sit, since
             // she comes back sitting.
@@ -13069,9 +13255,10 @@ namespace CapriDesktop
                 string temporary = settingsPath + ".new";
                 using (FileStream stream = File.Create(temporary)) new DataContractJsonSerializer(typeof(Preferences)).WriteObject(stream, preferences);
                 if (File.Exists(settingsPath)) File.Replace(temporary, settingsPath, null); else File.Move(temporary, settingsPath);
+                return true;
             }
-            catch (IOException) { }
-            catch (UnauthorizedAccessException) { }
+            catch (IOException) { return false; }
+            catch (UnauthorizedAccessException) { return false; }
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
@@ -24516,6 +24703,303 @@ namespace CapriDesktop
             return "{\"choices\":[{\"message\":{\"content\":" + Voice.Quote(content) + "},\"finish_reason\":\"stop\"}]}";
         }
 
+        private void SmokeProviders(System.Collections.Generic.List<string> checks, string output)
+        {
+            Preferences preferencesWas = preferences;
+            Cloud remoteWas = brain.Remote;
+            Engine localWas = brain.Local;
+            Pick pickWas = brain.LocalPick, fitWas = fit;
+            Machine machineWas = machine;
+            string modelWas = brain.Model, addressWas, keyWas, logWas = Brain.LogPath;
+            brain.GetServer(out addressWas, out keyWas);
+            string[] modelsWas = providerModels;
+            System.Collections.Generic.List<string> cloudWas = cloudModels;
+            Func<string, string> thinkWas = Think;
+            bool findingWas = finding, signalsWas = signals.Enabled, settingsWas = mainframe.SettingsShown;
+            bool ollamaWas = ollamaRunning, typedWas = localAddressTyped;
+            byte[] savedWas = File.Exists(settingsPath) ? File.ReadAllBytes(settingsPath) : null;
+            string catalog = "{\"data\":[{\"id\":\"vendor/alpha\"},{\"id\":\"vendor/beta\"}]}";
+            const string keyA = "opaque-provider-test-A", keyB = "sk-ant-provider-test-B";
+            System.Collections.Generic.List<System.Net.Sockets.TcpListener> servers = new System.Collections.Generic.List<System.Net.Sockets.TcpListener>();
+            System.Collections.Generic.List<ManualResetEvent> gates = new System.Collections.Generic.List<ManualResetEvent>();
+            Func<string[], System.Collections.Generic.List<string>, ManualResetEvent, string, string> serve = delegate(string[] replies, System.Collections.Generic.List<string> asked, ManualResetEvent release, string headers)
+            {
+                System.Net.Sockets.TcpListener server;
+                string address = FakeServer(replies, asked, out server, headers: headers, release: release);
+                servers.Add(server);
+                return address;
+            };
+            Func<System.Collections.Generic.List<string>, int> count = delegate(System.Collections.Generic.List<string> asked) { lock (asked) return asked.Count; };
+            Func<string, string, string, Brain> head = delegate(string address, string key, string model)
+            {
+                Brain one = new Brain { Model = model };
+                one.SetServer(address, key);
+                return one;
+            };
+            Action settle = delegate
+            {
+                Stopwatch waited = Stopwatch.StartNew();
+                while (waited.ElapsedMilliseconds < 300) { Application.DoEvents(); Thread.Sleep(5); }
+            };
+            try
+            {
+                signals.Stop();
+                finding = true;
+                preferences = Preferences.Fresh();
+                preferences.Tiered = true;
+                preferences.Silent = true;
+                preferences.MainframeSize = 100;
+                brain.Remote = null;
+                brain.Local = null;
+                brain.SetServer(null, null);
+                brain.Model = null;
+                mainframe.ShowSettings(false);
+                ShowTiers();
+                mainframe.OpenProvider();
+                foreach (string bad in new[] { "", "file:///tmp/model", "ftp://example.com", "https://user:secret@example.com/v1", "https://example.com/v1?key=secret", "https://example.com/#secret", "https://bad host/v1", "https://example.com\\other" })
+                {
+                    mainframe.TypeProvider(bad, keyA);
+                    mainframe.ConnectProvider();
+                    if (!mainframe.ProviderNote.StartsWith("That address doesn't work.", StringComparison.Ordinal) || brain.Server != null || preferences.BrainProvider != null || !mainframe.ProviderMaskedAndEmpty) throw new Exception("A bad provider address was accepted or its key stayed visible.");
+                }
+                UseProvider("http://example.com/v1", keyA);
+                if (!mainframe.ProviderNote.StartsWith("Use https://", StringComparison.Ordinal)) throw new Exception("A key was allowed over remote plain HTTP.");
+                UseProvider("http://localhost:1234", "first\nsecond");
+                if (mainframe.ProviderNote != "That key doesn't work. Paste it on one line.") throw new Exception("A multiline provider key was accepted.");
+                if (Brain.ServerAddress("https://openrouter.ai/api/v1/") != "https://openrouter.ai/api" || Brain.ServerAddress("localhost:1234/v1/chat/completions") != "http://localhost:1234") throw new Exception("A provider base URL lost its path or version.");
+                checks.Add("PASS provider addresses reject other schemes, credentials, queries, fragments, spaces and backslashes; remote keys require HTTPS and one line");
+
+                System.Collections.Generic.List<string> a = new System.Collections.Generic.List<string>(), b = new System.Collections.Generic.List<string>();
+                ManualResetEvent refreshGate = new ManualResetEvent(true);
+                gates.Add(refreshGate);
+                string addressA = serve(new[] { catalog, LocalReply("Provider A answered."), catalog, catalog }, a, refreshGate, "") + "/provider";
+                string addressB = serve(new[] { catalog, LocalReply("Provider B answered."), catalog, catalog, catalog, LocalReply("Local answered.") }, b, null, "");
+                mainframe.TypeProvider(addressA + "/v1", keyA);
+                mainframe.ConnectProvider();
+                WaitVoice(delegate { return brain.Server == addressA && mainframe.ProviderNote == "Provider connected."; }, "The provider panel did not connect.");
+                if (brain.Remote != null || brain.ServerKey != keyA || !mainframe.ProviderMaskedAndEmpty || mainframe.BrainChoices.Length != 2) throw new Exception("The provider panel lost its key, models or dispatch.");
+                ToolStripMenuItem stale = (ToolStripMenuItem)((ContextMenuStrip)typeof(Mainframe).GetField("modelMenu", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(mainframe)).Items[0];
+                mainframe.PickBrain(1);
+                if (brain.Model != "vendor/beta" || preferences.ProviderModel != "vendor/beta") throw new Exception("The provider model picker did not keep its choice.");
+                if (head(brain.Server, brain.ServerKey, brain.Model).Ask("hello test") != "Provider A answered.") throw new Exception("The provider did not answer a chat.");
+                Preferences reloaded = LoadPreferences();
+                if (Voice.Unprotect(reloaded.BrainProvider) != addressA + "\n" + keyA || reloaded.ProviderModel != "vendor/beta" || !reloaded.ProviderOn || File.ReadAllText(settingsPath).Contains(keyA)) throw new Exception("The provider address and key were not saved as one DPAPI pair.");
+                preferences = reloaded;
+                brain.SetServer(null, null);
+                LoadProvider();
+                brain.Remote = TierCloud();
+                if (brain.Server != addressA || brain.ServerKey != keyA || brain.Model != "vendor/beta" || brain.Remote != null) throw new Exception("The saved provider did not reload together.");
+                UseBrain(new[] { "old-ollama" }, new Machine { Ram = 8L << 30 }, null);
+                if (brain.Server != addressA || brain.Model != "vendor/beta") throw new Exception("A late local scan replaced the chosen provider.");
+                ChooseTier(2);
+                if (brain.Server != null || brain.ServerKey != null) throw new Exception("A cloud tier left the custom provider active.");
+                string[] beforeRefresh = providerModels;
+                ChooseTier(0);
+                WaitVoice(delegate { return count(a) == 3 && providerModels != beforeRefresh; }, "Returning to NORMAL did not refresh the saved provider.");
+                if (brain.Server != addressA || brain.ServerKey != keyA || brain.Model != "vendor/beta") throw new Exception("Returning to NORMAL mismatched the saved provider pair.");
+                refreshGate.Reset();
+                FindBrain();
+                WaitVoice(delegate { return count(a) == 4; }, "The provider refresh did not reach the held socket.");
+                UseProvider(addressB, keyB);
+                WaitVoice(delegate { return brain.Server == addressB && brain.ServerKey == keyB; }, "The second provider did not connect.");
+                refreshGate.Set();
+                settle();
+                if (brain.Server != addressB || brain.ServerKey != keyB || brain.Model != "vendor/alpha") throw new Exception("An old refresh replaced the new provider pair.");
+                stale.PerformClick();
+                if (brain.Model != "vendor/alpha") throw new Exception("An old provider menu changed the new provider's model.");
+                if (head(brain.Server, brain.ServerKey, brain.Model).Ask("hello test") != "Provider B answered.") throw new Exception("A prefixed key bypassed its own address.");
+                foreach (string request in a) if (!request.Contains("Authorization: Bearer " + keyA) || request.Contains(keyB)) throw new Exception("Provider A received the wrong key.");
+                foreach (string request in b) if (!request.Contains("Authorization: Bearer " + keyB) || request.Contains(keyA) || request.IndexOf("x-api-key:", StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Provider B did not get only its own Bearer key.");
+                if (!a[0].StartsWith("GET /provider/v1/models ", StringComparison.Ordinal) || !a[1].StartsWith("POST /provider/v1/chat/completions ", StringComparison.Ordinal) || !a[1].Contains("\"model\":\"vendor/beta\"")) throw new Exception("Provider requests lost the base path or selected model.");
+                checks.Add("PASS add a provider, list and pick its models, chat, and reload its encrypted address/key pair; opaque and recognised key prefixes go only to their supplied address");
+                checks.Add("PASS tier changes restore the same provider pair and an older refresh keeps its own key without replacing a newer provider");
+
+                ChooseLocalBrain(null, "ollama-test", null);
+                if (preferences.ProviderOn || brain.Server != null || ProviderAddress != addressB) throw new Exception("Choosing a local model lost the saved provider or left it active.");
+                mainframe.OpenProvider();
+                mainframe.TypeProvider(addressA, keyA);
+                if (mainframe.ProviderSavedEnabled) throw new Exception("Use saved offered a key beside another address.");
+                mainframe.TypeProvider(addressB, "");
+                if (!mainframe.ProviderSavedEnabled || !mainframe.ProviderMaskedAndEmpty) throw new Exception("The saved provider did not show an empty masked key field.");
+                mainframe.PressProvider("Use saved");
+                WaitVoice(delegate { return brain.Server == addressB && brain.ServerKey == keyB; }, "Use saved did not reconnect its paired address and key.");
+                string keptPair = preferences.BrainProvider;
+                System.Collections.Generic.List<string> unsaved = new System.Collections.Generic.List<string>();
+                string unsavedAddress = serve(new[] { catalog }, unsaved, null, "");
+                using (FileStream locked = new FileStream(settingsPath, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    UseProvider(unsavedAddress, keyA);
+                    WaitVoice(delegate { return mainframe.ProviderNote == "Couldn't save the provider address and key."; }, "A provider save failure was not reported.");
+                    if (brain.Server != addressB || brain.ServerKey != keyB || preferences.BrainProvider != keptPair) throw new Exception("A failed save replaced the current provider pair.");
+                    ForgetProvider();
+                    if (brain.Server != null || brain.ServerKey != null || preferences.BrainProvider != null || mainframe.ProviderNote != "Stopped using it. Couldn't remove the saved provider.") throw new Exception("A failed provider removal kept the key active or claimed it was removed.");
+                }
+                ForgetProvider();
+                if (LoadPreferences().BrainProvider != null) throw new Exception("Retrying Forget did not remove the saved provider.");
+                UseProvider(addressB, keyB);
+                WaitVoice(delegate { return brain.Server == addressB && brain.ServerKey == keyB; }, "Re-entering the provider did not connect.");
+                checks.Add("PASS choosing a local model stops the provider, Use saved reconnects the paired credentials, and a failed settings write keeps the prior pair");
+
+                mainframe.TypeProvider(addressB + "/v1", "");
+                mainframe.ConnectProvider();
+                WaitVoice(delegate { return brain.Server == addressB && brain.ServerKey == null && mainframe.ProviderNote == "Provider connected."; }, "The keyless local server did not connect.");
+                if (head(brain.Server, brain.ServerKey, brain.Model).Ask("hello test") != "Local answered.") throw new Exception("The keyless server did not answer.");
+                for (int i = 4; i < b.Count; i++) if (b[i].IndexOf("Authorization:", StringComparison.OrdinalIgnoreCase) >= 0 || b[i].Contains(keyA) || b[i].Contains(keyB)) throw new Exception("An empty provider key reused a saved key.");
+                mainframe.PressProvider("Forget");
+                if (preferences.BrainProvider != null || preferences.ProviderOn || brain.Server != null || brain.ServerKey != null || brain.Model != null || LoadPreferences().BrainProvider != null) throw new Exception("Forgetting left a saved or active provider.");
+                if (mainframe.ProviderSavedEnabled) throw new Exception("Use saved stayed enabled after forgetting its key.");
+                UseSavedProvider();
+                if (brain.Server != null || count(b) != 6) throw new Exception("A forgotten provider was reused.");
+                checks.Add("PASS a local server sends no key, blank replaces a saved key, and Forget removes the provider from memory and settings");
+
+                ManualResetEvent held = new ManualResetEvent(false);
+                gates.Add(held);
+                System.Collections.Generic.List<string> pending = new System.Collections.Generic.List<string>();
+                string pendingAddress = serve(new[] { catalog }, pending, held, "");
+                UseProvider(pendingAddress, keyA);
+                WaitVoice(delegate { return count(pending) == 1; }, "Provider discovery did not reach the held socket.");
+                ForgetProvider();
+                held.Set();
+                settle();
+                if (brain.Server != null || brain.ServerKey != null || preferences.BrainProvider != null || LoadPreferences().BrainProvider != null || mainframe.ProviderNote != "Provider forgotten.") throw new Exception("A late model list restored a forgotten provider.");
+                checks.Add("PASS forgetting during model discovery prevents its late reply from saving or restoring the key");
+
+                ManualResetEvent chatGate = new ManualResetEvent(true), chatDone = new ManualResetEvent(false);
+                gates.Add(chatGate);
+                gates.Add(chatDone);
+                System.Collections.Generic.List<string> chatting = new System.Collections.Generic.List<string>();
+                string truncated = "{\"choices\":[{\"message\":{\"content\":\"\",\"reasoning_content\":\"thinking\"},\"finish_reason\":\"length\"}]}";
+                string chatAddress = serve(new[] { catalog, truncated, LocalReply("Should not retry.") }, chatting, chatGate, "");
+                UseProvider(chatAddress, keyA);
+                WaitVoice(delegate { return brain.Server == chatAddress; }, "The chat provider did not connect.");
+                chatGate.Reset();
+                Think = delegate(string text)
+                {
+                    try { return brain.Complete(chatAddress, "vendor/alpha", new System.Collections.Generic.List<ChatMessage> { new ChatMessage("user", text) }, false, new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>(), null, 90, -1, false, named: "vendor/alpha", key: keyA); }
+                    finally { chatDone.Set(); }
+                };
+                Hear("hello provider test");
+                WaitVoice(delegate { return count(chatting) == 2; }, "The chat did not reach the held socket.");
+                int turn = asking;
+                ForgetProvider();
+                chatGate.Set();
+                WaitVoice(delegate { return chatDone.WaitOne(0); }, "Forgetting did not stop the provider chat.");
+                settle();
+                if (asking <= turn || talkState != TalkState.Off || reply != null || brain.ServerKey != null || count(chatting) != 2) throw new Exception("A forgotten provider retried or returned a late chat.");
+                checks.Add("PASS forgetting a provider cancels its active chat, closes her reply and prevents a reasoning retry or late answer");
+
+                System.Collections.Generic.List<string> moved = new System.Collections.Generic.List<string>(), destination = new System.Collections.Generic.List<string>();
+                string other = serve(new[] { LocalReply("Wrong address.") }, destination, null, "");
+                string redirect = serve(new[] { "!302 {}", "!302 {}" }, moved, null, "Location: " + other + "/stolen\r\n");
+                int refused = 0;
+                try { Brain.ServerModels(redirect, keyA); } catch (BrainException) { refused++; }
+                try { head(redirect, keyA, "vendor/alpha").Ask("hello test"); } catch (BrainException) { refused++; }
+                if (refused != 2 || count(destination) != 0) throw new Exception("A provider redirect carried its key elsewhere.");
+                Brain.LogPath = Path.Combine(output, "provider-errors.txt");
+                System.Collections.Generic.List<string> errors = new System.Collections.Generic.List<string>();
+                string echoed = "!400 {\"error\":{\"message\":\"Rejected " + keyA + "\"}}";
+                string failure = serve(new[] { echoed, echoed }, errors, null, "");
+                int scrubbed = 0;
+                try { Brain.ServerModels(failure, keyA); }
+                catch (BrainException error) { if (!error.Message.Contains(keyA) && !(error.Detail ?? "").Contains(keyA)) scrubbed++; }
+                try { head(failure, keyA, "vendor/alpha").Ask("hello test"); }
+                catch (BrainException error) { if (!error.Message.Contains(keyA) && !(error.Detail ?? "").Contains(keyA)) scrubbed++; }
+                System.Net.Sockets.TcpListener streamServer;
+                string streamAddress = FakeServer(new[] { "data: {\"error\":{\"message\":\"Rejected " + keyA + "\"}}\n\n" }, errors, out streamServer, contentType: "text/event-stream");
+                servers.Add(streamServer);
+                try { head(streamAddress, keyA, "vendor/alpha").Ask("hello test"); }
+                catch (BrainException error) { if (!error.Message.Contains(keyA) && !(error.Detail ?? "").Contains(keyA)) scrubbed++; }
+                if (scrubbed != 3 || File.Exists(Brain.LogPath) && File.ReadAllText(Brain.LogPath).Contains(keyA) || mainframe.TextStatus.Contains(keyA) || mainframe.ProviderNote.Contains(keyA)) throw new Exception("A provider key reached an error, log or Mainframe label.");
+                checks.Add("PASS provider model lists and chats reject redirects and redact echoed keys from errors and logs");
+
+                System.Collections.Generic.List<string> sideRequests = new System.Collections.Generic.List<string>();
+                string sideAddress = serve(new[] { LocalReply("An aside."), LocalReply("A picture."), LocalReply("Quick view."), LocalReply("A file picture."), LocalReply("## Today\n- They like chess.") }, sideRequests, null, "");
+                Brain side = head(sideAddress, keyA, "vendor/alpha");
+                Func<string, bool> seesWas = Brain.LocalSees;
+                string transcriptWas = Brain.TranscriptPath, memoriesWas = Brain.MemoriesPath;
+                try
+                {
+                    Brain.LocalSees = delegate { return false; };
+                    if (side.Aside("Speak", "hello test", 90) != "An aside." || side.See(new byte[] { 1, 2, 3 }, "Look", "What is here?", 90) != "A picture." || side.Quick("Look", "What changed?", 90, new byte[] { 1, 2, 3 }) != "Quick view.") throw new Exception("A provider side request or picture used another brain.");
+                    string fileView = (string)typeof(Brain).GetMethod("FileSight", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(side, new object[] { new byte[] { 1, 2, 3 } });
+                    if (fileView != "A file picture.") throw new Exception("A provider picture file was sent to Ollama's eyes.");
+                    Brain.TranscriptPath = Path.Combine(output, "provider-fold");
+                    Directory.CreateDirectory(Brain.TranscriptPath);
+                    Brain.MemoriesPath = Path.Combine(Brain.TranscriptPath, "memories.md");
+                    File.WriteAllText(Brain.MemoriesPath, "");
+                    File.WriteAllText(Path.Combine(Brain.TranscriptPath, "unfolded.txt"), "2026-11-04 20:00 You: We played chess today.\n");
+                    if (side.Fold() != null || !File.ReadAllText(Brain.MemoriesPath).Contains("They like chess.")) throw new Exception("A provider memory fold lost its credentials.");
+                    foreach (string request in sideRequests) if (!request.Contains("Authorization: Bearer " + keyA) || !request.Contains("\"model\":\"vendor/alpha\"")) throw new Exception("A provider side request lost its own key or model.");
+                    if (count(sideRequests) != 5) throw new Exception("A provider side request used another address.");
+                    for (int i = 1; i <= 3; i++) if (!sideRequests[i].Contains("image_url") || !sideRequests[i].Contains("data:image/jpeg;base64,AQID") || sideRequests[i].Contains("\"images\"")) throw new Exception("A provider picture used Ollama's image format.");
+                }
+                finally { Brain.LocalSees = seesWas; Brain.TranscriptPath = transcriptWas; Brain.MemoriesPath = memoriesWas; }
+                checks.Add("PASS side requests, memory folding, screen pictures and picture files keep the selected provider's address, Bearer key and model");
+
+                ManualResetEvent sideGate = new ManualResetEvent(false);
+                gates.Add(sideGate);
+                System.Collections.Generic.List<string> sideRetry = new System.Collections.Generic.List<string>();
+                string sideRetryAddress = serve(new[] { truncated, LocalReply("Should not retry.") }, sideRetry, sideGate, "");
+                Brain parent = head(sideRetryAddress, keyA, "vendor/alpha");
+                System.Threading.Tasks.Task<string> sideChat = System.Threading.Tasks.Task.Run(delegate { return parent.Aside("Speak", "hello test", 90, true); });
+                WaitVoice(delegate { return count(sideRetry) == 1; }, "The side request did not reach its held socket.");
+                parent.SetServer(null, null);
+                sideGate.Set();
+                WaitVoice(delegate { return sideChat.IsCompleted; }, "The side request did not stop after forgetting its key.");
+                settle();
+                WebException stopped = sideChat.IsFaulted ? sideChat.Exception.GetBaseException() as WebException : null;
+                if (stopped == null || stopped.Status != WebExceptionStatus.RequestCanceled || count(sideRetry) != 1) throw new Exception("A copied brain reused its parent's forgotten provider key.");
+                checks.Add("PASS a copied brain checks its parent's provider before retrying, so a forgotten key is never reused by a side request");
+
+                foreach (int dpi in new[] { 96, 144, 192 })
+                {
+                    mainframe.LayoutScale(dpi, 100);
+                    mainframe.ShowProvider("http://localhost:1234", true, "vendor/long-model-name", new[] { "vendor/long-model-name" });
+                    string problem = mainframe.TiersProblem;
+                    if (problem != null) throw new Exception("Provider BRAIN rows overlap at " + dpi + " DPI: " + problem);
+                }
+                mainframe.LayoutScale(96, 100);
+                foreach (float zoom in new[] { 1f, 1.5f, 2f })
+                {
+                    string problem = mainframe.ProviderAt(zoom);
+                    if (problem != null) throw new Exception("Provider panel rows overlap at scale " + zoom + ": " + problem);
+                }
+                checks.Add("PASS provider BRAIN controls and address/key panel fit at 100%, 150% and 200%, including refusal and forget messages");
+            }
+            finally
+            {
+                ++providerListing;
+                ++cloudListing;
+                foreach (ManualResetEvent gate in gates) gate.Set();
+                foreach (System.Net.Sockets.TcpListener server in servers) server.Stop();
+                brain.Cancel();
+                ++asking;
+                CloseTalk();
+                mainframe.CloseProvider();
+                preferences = preferencesWas;
+                brain.Remote = remoteWas;
+                brain.Local = localWas;
+                brain.LocalPick = pickWas;
+                brain.SetServer(addressWas, keyWas);
+                brain.Model = modelWas;
+                providerModels = modelsWas;
+                cloudModels = cloudWas;
+                Think = thinkWas;
+                finding = findingWas;
+                machine = machineWas;
+                fit = fitWas;
+                ollamaRunning = ollamaWas;
+                localAddressTyped = typedWas;
+                signals.Enabled = signalsWas;
+                Brain.LogPath = logWas;
+                ShowTiers();
+                mainframe.LayoutScale(0, 0);
+                if (remoteWas != null) mainframe.ShowCloud(remoteWas, cloudWas);
+                mainframe.ShowSettings(settingsWas);
+                if (savedWas == null) File.Delete(settingsPath); else File.WriteAllBytes(settingsPath, savedWas);
+            }
+        }
+
         private static void SmokeLocalBrains(System.Collections.Generic.List<string> checks)
         {
             for (int port = 1; port <= 65535; port++)
@@ -28441,6 +28925,7 @@ namespace CapriDesktop
             Section(checks, "SmokeLocalBrains", delegate { SmokeLocalBrains(checks); });
             Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
+            Section(checks, "SmokeProviders", delegate { SmokeProviders(checks, output); });
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
