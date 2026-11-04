@@ -683,9 +683,16 @@ namespace CapriDesktop
     {
         // Makes Open act as if Windows' wave API failed, so a test can try her WASAPI speakers.
         internal static bool SkipWave;
+        internal static string Chosen;
+        internal static string DefaultId;
+        internal static string WaveDefaultId;
+        internal static Action<string> Missing;
+        internal static Func<List<Output>> Devices = ReadDevices;
         private static bool fellBack;
         private readonly bool silent;
-        private readonly Func<int, SoundOut> open;
+        private readonly Func<int, string, SoundOut> open;
+        private string openedId;
+        private int openedIndex;
         internal bool Plain;
         private readonly List<IntPtr> pending = new List<IntPtr>();
         private readonly List<int> shapes = new List<int>();
@@ -707,10 +714,109 @@ namespace CapriDesktop
         [DllImport("winmm.dll")] private static extern int waveOutWrite(IntPtr device, IntPtr header, int size);
         [DllImport("winmm.dll")] private static extern int waveOutReset(IntPtr device);
         [DllImport("winmm.dll")] private static extern int waveOutClose(IntPtr device);
+        [DllImport("winmm.dll")] private static extern int waveOutGetNumDevs();
+        [DllImport("winmm.dll", CharSet = CharSet.Unicode)] private static extern int waveOutGetDevCaps(IntPtr id, ref OutputCaps caps, int size);
+        [DllImport("winmm.dll")] private static extern int waveOutMessage(IntPtr device, int message, out int size, IntPtr unused);
+        [DllImport("winmm.dll", CharSet = CharSet.Unicode)] private static extern int waveOutMessage(IntPtr device, int message, StringBuilder text, IntPtr size);
 
-        internal Speaker(bool quiet) : this(quiet, delegate(int sampleRate) { return new SoundOut(sampleRate); }) { }
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+        private struct OutputCaps
+        {
+            internal short Maker, Product;
+            internal int Driver;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] internal string Name;
+            internal int Formats;
+            internal short Channels, Reserved;
+            internal int Support;
+        }
 
-        internal Speaker(bool quiet, Func<int, SoundOut> output) { silent = quiet; open = output; }
+        [ComImport, Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IOutputs
+        {
+            [PreserveSig] int GetCount(out int count);
+            [PreserveSig] int Item(int index, out ISoundDevice device);
+        }
+
+        internal sealed class Output
+        {
+            internal readonly string Id, Name;
+            internal readonly int Index;
+
+            internal Output(string id, string name, int index = -2) { Id = id; Name = name; Index = index; }
+        }
+
+        internal static Output Find(string id, List<Output> devices)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            return devices.Find(delegate(Output output) { return string.Equals(output.Id, id, StringComparison.OrdinalIgnoreCase); });
+        }
+
+        internal static Output Resolve(List<Output> devices)
+        {
+            string id = Chosen;
+            Output found = Find(id, devices);
+            if (found == null && !string.IsNullOrEmpty(id) && Interlocked.CompareExchange(ref Chosen, null, id) == id)
+            {
+                Action<string> missing = Missing;
+                if (missing != null) missing(id);
+            }
+            return found;
+        }
+
+        private static List<Output> ReadDevices()
+        {
+            List<Output> wave = new List<Output>(), found = new List<Output>();
+            for (int i = 0; i < waveOutGetNumDevs(); i++)
+            {
+                OutputCaps caps = new OutputCaps();
+                int size;
+                if (waveOutGetDevCaps(new IntPtr(i), ref caps, Marshal.SizeOf(typeof(OutputCaps))) != 0 || waveOutMessage(new IntPtr(i), 0x0812, out size, IntPtr.Zero) != 0 || size <= 0) continue;
+                StringBuilder text = new StringBuilder(size / 2 + 1);
+                if (waveOutMessage(new IntPtr(i), 0x0811, text, new IntPtr(size)) != 0 || text.Length == 0) continue;
+                string id = text.ToString();
+                wave.Add(new Output(id, Ears.FullName(id) ?? caps.Name, i));
+            }
+            ISoundDevices devices = null;
+            IOutputs outputs = null;
+            IntPtr listed = IntPtr.Zero;
+            try
+            {
+                devices = (ISoundDevices)new SoundDevices();
+                if (devices.EnumAudioEndpoints(0, 1, out listed) != 0 || listed == IntPtr.Zero) return wave;
+                outputs = (IOutputs)Marshal.GetObjectForIUnknown(listed);
+                int count;
+                if (outputs.GetCount(out count) != 0) return wave;
+                for (int i = 0; i < count; i++)
+                {
+                    ISoundDevice device = null;
+                    try
+                    {
+                        string id;
+                        if (outputs.Item(i, out device) != 0 || device == null || device.GetId(out id) != 0 || string.IsNullOrEmpty(id)) continue;
+                        Output old = Find(id, wave);
+                        found.Add(new Output(id, Ears.ListedName(id) ?? Ears.FullName(id) ?? (old == null ? "Output " + (i + 1) : old.Name), old == null ? -2 : old.Index));
+                    }
+                    finally { if (device != null) Marshal.ReleaseComObject(device); }
+                }
+                return found;
+            }
+            catch (Exception) { return wave; }
+            finally
+            {
+                if (outputs != null) Marshal.ReleaseComObject(outputs);
+                if (listed != IntPtr.Zero) Marshal.Release(listed);
+                if (devices != null) Marshal.ReleaseComObject(devices);
+            }
+        }
+
+        internal Speaker(bool quiet) : this(quiet, delegate(int sampleRate, string id) { return new SoundOut(sampleRate, id); }) { }
+
+        internal Speaker(bool quiet, Func<int, SoundOut> output) : this(quiet, delegate(int sampleRate, string id) { return output(sampleRate); }) { }
+
+        internal Speaker(bool quiet, Func<int, string, SoundOut> output) { silent = quiet; open = output; }
+
+        internal string OpenedId { get { return openedId; } }
+        internal int OpenedIndex { get { return openedIndex; } }
 
         internal static double Loudness(short[] samples, int start, int count)
         {
@@ -722,23 +828,30 @@ namespace CapriDesktop
 
         internal void Open(int sampleRate)
         {
-            if (sampleRate == rate && (silent || device != IntPtr.Zero || (modern != null && modern.Alive))) return;
+            Output picked = string.IsNullOrEmpty(Chosen) ? null : Resolve(Devices());
+            string id = picked == null ? (modern == null ? WaveDefaultId : DefaultId) : picked.Id;
+            int index = picked == null ? -1 : picked.Index;
+            if (sampleRate == rate && string.Equals(openedId, id, StringComparison.OrdinalIgnoreCase) && openedIndex == index && (silent || device != IntPtr.Zero || (modern != null && modern.Alive))) return;
             Close(false);
             rate = sampleRate;
+            openedId = id;
+            openedIndex = index;
             if (silent) return;
             WaveFormat format = WaveFormat.Mono(rate);
-            int failed = SkipWave ? 6 : waveOutOpen(out device, -1, ref format, IntPtr.Zero, IntPtr.Zero, 0);
-            if (failed == 0) { Mixer.NoDucking(null, 0); return; }
+            int failed = SkipWave || index == -2 ? 6 : waveOutOpen(out device, index, ref format, IntPtr.Zero, IntPtr.Zero, 0);
+            if (failed == 0) { Mixer.NoDucking(picked == null ? null : picked.Id, 0); return; }
             device = IntPtr.Zero;
             // Some PCs play every other app fine but won't open the wave API for her, so she tries WASAPI, which most apps use now.
             try
             {
-                modern = open(rate);
+                modern = open(rate, picked == null ? null : picked.Id);
+                openedId = picked == null ? DefaultId : picked.Id;
                 if (!fellBack && !SkipWave) Brain.Log("Speakers", -1, "Windows' wave API wouldn't open the speakers (error " + failed + "), so she plays through WASAPI. Process " + Process.GetCurrentProcess().Id + ", " + rate + " Hz mono PCM.");
                 fellBack = !SkipWave;
                 return;
             }
             catch (Exception error) { Brain.Log("Speakers", -1, "Windows' wave API wouldn't open the speakers (error " + failed + ") and nor would WASAPI: " + error.Message); }
+            if (picked != null && Resolve(Devices()) == null) { Open(sampleRate); return; }
             throw new VoiceException(Speakers(failed));
         }
 
@@ -780,7 +893,7 @@ namespace CapriDesktop
         private void Write(short[] samples)
         {
             if (rate == 0 || samples.Length == 0) return;
-            if (modern != null && !modern.Alive) Open(rate);
+            if (!string.Equals(openedId, Chosen ?? (modern == null ? WaveDefaultId : DefaultId), StringComparison.OrdinalIgnoreCase) || (modern != null && !modern.Alive)) Open(rate);
             Sweep();
             long now = Stopwatch.GetTimestamp();
             if (now >= Interlocked.Read(ref until)) { began = now; shapes.Clear(); leftover.Clear(); lock (levels) levels.Clear(); Interlocked.Exchange(ref until, now); }
@@ -808,8 +921,26 @@ namespace CapriDesktop
                 MicMix.Hear(this, samples, rate, answer);
                 samples = Voice.Louder(samples);
             }
+            Send(samples);
+        }
+
+        private bool ReopenGone()
+        {
+            if (!string.IsNullOrEmpty(Chosen) && Resolve(Devices()) != null) return false;
+            if (string.Equals(openedId, Chosen ?? (modern == null ? WaveDefaultId : DefaultId), StringComparison.OrdinalIgnoreCase)) return false;
+            Open(rate);
+            return true;
+        }
+
+        private void Send(short[] samples)
+        {
             if (silent || (device == IntPtr.Zero && modern == null)) return;
-            if (modern != null) { modern.Write(samples); return; }
+            if (modern != null)
+            {
+                try { modern.Write(samples); }
+                catch (VoiceException) { if (!ReopenGone()) throw; Send(samples); }
+                return;
+            }
             int size = Marshal.SizeOf(typeof(WaveHeader));
             WaveHeader header = new WaveHeader { Data = Marshal.AllocHGlobal(samples.Length * 2), Length = samples.Length * 2 };
             Marshal.Copy(samples, 0, header.Data, samples.Length);
@@ -822,6 +953,7 @@ namespace CapriDesktop
                 if (prepared == 0) waveOutUnprepareHeader(device, pointer, size);
                 Marshal.FreeHGlobal(header.Data);
                 Marshal.FreeHGlobal(pointer);
+                if (ReopenGone()) { Send(samples); return; }
                 Clear();
                 string problem = "Windows' wave API " + (prepared == 0 ? "write" : "prepare") + " failed (error " + written + ", " + rate + " Hz, " + samples.Length + " samples).";
                 Brain.Log("Speakers", -1, problem);
@@ -905,6 +1037,7 @@ namespace CapriDesktop
     {
         internal const int ConvertFlags = unchecked((int)0x88000000);
         private readonly int rate;
+        private readonly string id;
         private readonly ISoundClient suppliedClient;
         private readonly ISoundRender suppliedRender;
         private readonly object gate = new object();
@@ -920,11 +1053,16 @@ namespace CapriDesktop
         internal long Fed;
         internal long Played;
 
-        internal SoundOut(int rate) : this(rate, null, null) { }
+        internal SoundOut(int rate) : this(rate, null, null, null) { }
 
-        internal SoundOut(int rate, ISoundClient output, ISoundRender writer)
+        internal SoundOut(int rate, string id) : this(rate, id, null, null) { }
+
+        internal SoundOut(int rate, ISoundClient output, ISoundRender writer) : this(rate, null, output, writer) { }
+
+        internal SoundOut(int rate, string id, ISoundClient output, ISoundRender writer)
         {
             this.rate = rate;
+            this.id = id;
             suppliedClient = output;
             suppliedRender = writer;
             feeder = new Thread(Run) { IsBackground = true, Name = "Capri speakers" };
@@ -991,7 +1129,7 @@ namespace CapriDesktop
                     if (client == null)
                     {
                         devices = (ISoundDevices)new SoundDevices();
-                        Check(devices.GetDefaultAudioEndpoint(0, 1, out device), "default speakers");
+                        Check(string.IsNullOrEmpty(id) ? devices.GetDefaultAudioEndpoint(0, 1, out device) : devices.GetDevice(id, out device), "speakers");
                         if (device == null) throw new VoiceException("Windows found no WASAPI speakers.");
                         Guid clientId = typeof(ISoundClient).GUID;
                         object found;

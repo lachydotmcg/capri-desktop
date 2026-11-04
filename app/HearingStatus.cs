@@ -110,6 +110,7 @@ namespace CapriDesktop
         internal void RefreshHearingDevices()
         {
             if (mainframe == null || mainframe.IsDisposed) return;
+            RefreshSpeakers();
             List<Mic> before = hearingMics;
             string defaultBefore = hearingDefaultId;
             bool blockedBefore = hearingBlocked;
