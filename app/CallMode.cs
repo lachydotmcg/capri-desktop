@@ -145,6 +145,8 @@ namespace CapriDesktop
         private int callAnswer = -1;
         private int callUser = -1, callUserVersion = -1;
         private bool callJoining, callMicWarned;
+        private int callJoinedAsk = -1;
+        private const string CallMicNotice = "The call won't hear me until Her voice in your mic is set up.";
         private readonly List<string> callLines = new List<string>();
         private int callLineAsk = -1;
         internal bool CallModeOn { get { return callSession.Enabled; } }
@@ -316,7 +318,7 @@ namespace CapriDesktop
                 try { ToggleCallMode(); }
                 finally { callJoining = false; }
             }
-            callUser = callAnswer = ticket;
+            callUser = callAnswer = callJoinedAsk = ticket;
             callUserVersion = callSession.Generation;
             if (!chatting && !testing)
             {
@@ -327,7 +329,7 @@ namespace CapriDesktop
             if (!callMicWarned && (MicMix.Current == null || !MicMix.Current.Mixing))
             {
                 callMicWarned = true;
-                QueueCallLine(ticket, "The call won't hear me until Her voice in your mic is set up.");
+                QueueCallLine(ticket, CallMicNotice);
             }
             return "Call mode is on. Use call_say for their message and call_errand for the call's choice.";
         }
@@ -347,6 +349,34 @@ namespace CapriDesktop
                 if (callLineAsk != ticket) { callLines.Clear(); callLineAsk = ticket; }
                 callLines.Add(text.Trim());
             }
+        }
+
+        // Her first words once she's joined for you are written on purpose by her brain, from what you asked her to pass on: you're
+        // away for some cheeky reason, you asked her to hop in, and she'll launch whatever they're playing (Lachy, 4 Nov: she said
+        // just "Lachy's on in 15, so which game are we playing"). Her reply to you isn't said on the call then; she's talking to them.
+        private string JoinSpeech(int ticket, string asked, string said)
+        {
+            if (ticket != callJoinedAsk) return said;
+            callJoinedAsk = -1;
+            List<string> lines = new List<string>();
+            bool notice = false;
+            lock (callLines)
+            {
+                if (callLineAsk != ticket) return said;
+                foreach (string line in callLines) if (line == CallMicNotice) notice = true; else lines.Add(line);
+            }
+            CallErrand waiting = callSession.Waiting;
+            string spoken;
+            try { spoken = brain.CallJoined(asked, lines, waiting == null ? null : waiting.Action); }
+            catch (Exception) { return said; }
+            if (string.IsNullOrWhiteSpace(spoken) || spoken.Length > 400) return said;
+            lock (callLines)
+            {
+                if (callLineAsk != ticket) return said;
+                callLines.Clear();
+                if (notice) callLines.Add(CallMicNotice);
+            }
+            return spoken;
         }
 
         private string CallLine(int ticket, string said)

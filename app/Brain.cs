@@ -1789,6 +1789,15 @@ namespace CapriDesktop
             return wanted.Length > 0 && (" " + source + " ").Contains(" " + wanted + " ") ? name : null;
         }
 
+        // Her first words to a call she's just joined for them, from what they asked her to pass on: no tools, none of their chat.
+        internal string CallJoined(string asked, List<string> lines, string action)
+        {
+            string message = lines.Count == 0 ? "" : " Their message to pass on: " + Voice.Quote(string.Join(" ", lines.ToArray())) + ".";
+            string choice = action == null ? "" : " Then say you'll " + (action == "open_app" ? "launch whatever they're playing today" : "put on whatever song they want") + " and ask them what it'll be.";
+            string raw = Aside(Persona + Speech() + Called() + "\nYou've just hopped on a Discord voice call for the user, who asked you: " + Voice.Quote(asked) + ". Say your first words to the people on the call in one or two short spoken sentences, talking to them about the user by their name, in your own words and with your personality. Cheeky or a bit unhinged is good: say the user's away with a funny made-up reason, like <their name>'s away, probably taking a fat shit, and that they asked you to hop in." + message + choice + " Don't claim anything else happened.", "Your first words to the call:", 120);
+            return Clean(raw ?? "").Trim();
+        }
+
         // Her line to the call once she's opened what they picked: in her own words, with no tools and none of their chat.
         internal string CallDone(string text, string done)
         {

@@ -12155,7 +12155,7 @@ namespace CapriDesktop
                 TalkState state = TalkState.Talking;
                 string problem = null;
                 bool stuck = false;
-                try { said = Computer.Mask(think(text)); }
+                try { said = JoinSpeech(ticket, text, Computer.Mask(think(text))); }
                 catch (BrainException error) { said = error.Message == Brain.Offline ? Brain.Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Message; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
                 catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
                 if (string.IsNullOrWhiteSpace(said)) { said = "My brain sent an empty reply. Try again."; problem = said; state = TalkState.Dormant; }
@@ -28563,16 +28563,17 @@ namespace CapriDesktop
                 string join = "Join the Discord call with my friends";
                 int beforeJoin = callSession.Generation;
                 if (FinishCallJoin(join, "asked", asking, "Which channel?") != "Which channel?" || FinishCallJoin(join, "failed", asking, "Couldn't join.") != "Couldn't join." || FinishCallJoin(join, "done", asking - 1, "Old join.") != "Old join." || CallModeOn) throw new Exception("An unfinished, failed or stale join enabled call mode.");
-                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}") + "," + tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"What are we playing today?\"}")), LocalReply("Waiting for their pick.") });
+                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}") + "," + tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"What are we playing today?\"}")), LocalReply("Waiting for their pick."), LocalReply("Lachy's away, probably taking a fat shit, so he asked me to hop in. He's on in 15, and I'll launch whatever you're playing today, so what's it gonna be?") });
                 Hear("Hey Capri, join the discord call with my friends in it and tell them I'll be on in 15, then load up whichever game they say we're playing today.", "call request", "> you: ");
-                wait("Waiting for their pick.");
+                wait("probably taking a fat shit");
                 if (!CallModeOn || callSession.Generation == beforeJoin || !preferences.CallMode || !typer.CallMode || jobs.Count != 1 || callSession.Waiting == null || callSession.Waiting.Action != "open_app") throw new Exception("Joining did not enable call mode and arm the user's game errand.");
                 if (!jobs[0].Contains("voice channel with people in it") || !jobs[0].Contains("DM call's Join button") || !jobs[0].Contains("Stop once connected") || !jobs[0].Contains("Join button for a voice channel is already on screen") || !jobs[0].Contains("never open Discord's Friends page")) throw new Exception("The join job lost its Discord instructions.");
-                if (!reply.Contains("Lachy's on in 15.") || !reply.Contains("What are we playing today?") || !reply.Contains("The call won't hear me until Her voice in your mic is set up.")) throw new Exception("The call lost its message, question or missing-mic notice.");
+                if (reply.Contains("Waiting for their pick.") || !reply.Contains("The call won't hear me until Her voice in your mic is set up.")) throw new Exception("The call heard her reply to the user, or lost the missing-mic notice: " + reply);
+                if (requests.Count != 3 || requests[2].Contains("\"tools\":") || !requests[2].Contains("Lachy's on in 15.") || !requests[2].Contains("What are we playing today?") || !requests[2].Contains("launch whatever they're playing today") || !requests[2].Contains("taking a fat shit")) throw new Exception("Her first words to the call weren't written from the user's message without tools: " + requests.Count);
                 if (CallLine(asking, "next").Contains("The call won't hear me") || CallLine(asking, "next") != "next") throw new Exception("The call's queued speech repeated.");
                 JoinedCall(asking);
                 if (CallLine(asking, "next") != "next") throw new Exception("The missing-mic notice was repeated on the same call.");
-                checks.Add("PASS the user's whole request joins with use_computer, enables call mode, speaks the user's message and question, arms one game errand and warns once if her mic route is missing");
+                checks.Add("PASS the user's whole request joins with use_computer, enables call mode, arms one game errand, has her brain write her first words to the call from the user's message and question with no tools, and warns once if her mic route is missing");
 
                 serve(new[] { LocalReply("Roblox"), LocalReply("Lachy's still on the toilet, so I'm booting Roblox up for him!") });
                 HearCall("let's play Roblox", false, true);
