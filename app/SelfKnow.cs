@@ -45,6 +45,8 @@ namespace CapriDesktop
                 "Import mod lets you pick a .capri-mod, .capri-code or .capri-skin file and turns it on. Code mods ask first, and a skin changes how she looks. A mod with the same id is replaced, and a broken one is refused with the reason.", "MainframeMods.cs", "Import mod"),
             new Topic("Browse mods", "browse mods|mods directory|find mods|capri-mods",
                 "Browse mods opens the mods window: what's in her mods directory on GitHub, 3 across, each with its picture, title, downloads and rating. Every mod is checked for malware before it goes up. It only goes online when you press it.", "MainframeMods.cs", "Browse mods"),
+            new Topic("Capri VR", "capri vr|capri room|virtual reality|meta quest|quest 3|in vr|vr version|oculus",
+                "Capri Room is her mixed-reality version for Meta Quest 3 and 3S, made by fadievr: she walks around your real room and sits on your furniture. It's Capri-VR-Quest.apk on her GitHub release page. Install it in Developer Mode with SideQuest or Meta Quest Developer Hub, then open it from Library > Unknown Sources and allow spatial data and the microphone. In the headset, Y opens her settings; her brain and voice keys stay on the headset.", null, null),
             new Topic("Search mods", "search mods|search the directory",
                 "Search narrows the mods directory by name as you type. A mod has to match every word.", "MainframeModsWindow.cs", "Search mods"),
             new Topic("Mod filter", "filter mods|only skins|only code mods",
