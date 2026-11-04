@@ -8122,12 +8122,12 @@ namespace CapriDesktop
             if (nextGlance < 0) nextGlance = now + Math.Min(20, GlanceGap);
             if (now < nextGlance || (quiet > 600000 && !exploring) || brain.Model == null || (hidden && !docked) || (MicOpen && !exploring) || PlayingGame || dragging || typer.Visible || talkState != TalkState.Off) return;
             nextGlance = now + GlanceGap * (0.8 + random.NextDouble() * 0.4);
-            // In a game with her comments on, what happens in it sets when she talks, not this timer.
             if (Unseeing() != null) return;
             if (!exploring) RefreshWatchScreens();
             Sight front = Computer.Glimpse();
             if (!exploring) front = WatchedFront(front);
-            if (Commentary.Pace != Commentary.Off && GameAhead() != null && (string.IsNullOrEmpty(preferences.WatchScreen) || front != null)) return;
+            string game = string.IsNullOrEmpty(preferences.WatchScreen) || front != null ? GameAhead() : null;
+            if (game != null && (GamePace == Commentary.Off || !CommentFree() || Voicing)) return;
             string title = front == null ? null : front.Title;
             byte[] shot;
             try
@@ -8168,11 +8168,11 @@ namespace CapriDesktop
                         Brain.Log("glance", -1, error.GetType().Name + ": " + error.Message);
                     }
                 }
-                Post(delegate { FinishGlance(ticket, watch, said, problem, saw, front, awayWatch); });
+                Post(delegate { FinishGlance(ticket, watch, said, problem, saw, front, awayWatch, game); });
             });
         }
 
-        private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null, Sight front = null, int awayWatch = -1)
+        private void FinishGlance(int ticket, int watch, string said, string problem, string saw = null, Sight front = null, int awayWatch = -1, string game = null)
         {
             glancing = false;
             // A slow look, like a brain on a busy PC, waits twice as long as it took before the next one, so their chats aren't
@@ -8197,7 +8197,8 @@ namespace CapriDesktop
                 if (current == null || current.Window != front.Window || current.Title != front.Title) { lastPrint = null; return; }
             }
             if (string.IsNullOrEmpty(said)) { Glimpsed(saw); return; }
-            if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || Hushed || (hidden && !docked) || dragging) { lastPrint = null; Glimpsed(saw); return; }
+            if (ticket != asking || talkState != TalkState.Off || typer.Visible || (MicOpen && !exploring) || PlayingGame || Hushed || (hidden && !docked) || dragging
+                || (game != null && (GamePace == Commentary.Off || GameAhead() != game || !CommentFree() || Voicing))) { lastPrint = null; Glimpsed(saw); return; }
             // A line about something she already brought up is dropped like a SKIP, so the same scene waits before she tries again.
             if (Glances.Repeats(said, RecentGlances(clock.Elapsed.TotalSeconds), Brain.Nickname)) { Glimpsed(saw); return; }
             // She can look every 10 seconds, but talking that often wears on people (Lachy, 31 Oct), so a look within twice her Every gap
@@ -16032,6 +16033,7 @@ namespace CapriDesktop
             if (Lookout.Read("2, 1: Ammo's out.", pairNumbers, out pairHit, out pairHappening) != "Ammo's out." || pairHit != 2 || pairHappening.Count != 2 || Lookout.Read("9,1: Ammo's out.", pairNumbers, out pairHit, out pairHappening) == null || pairHit != 1 || pairHappening.Count != 1) throw new Exception("Her list of what's happening was read wrong.");
             checks.Add("PASS watches re-arm one by one, and two happening at once both get told even on a screen that holds still");
             SmokeGlance(checks, lookoutStill);
+            SmokeGameGlances(checks);
             SmokeLookoutDelivery(checks, lookoutStill);
         }
 
@@ -16312,6 +16314,134 @@ namespace CapriDesktop
                 Brain.Ollama = glanceOllama;
                 Brain.LocalSees = glanceSees;
                 Brain.LocalEyes = glanceEyes;
+            }
+        }
+
+        private void SmokeGameGlances(System.Collections.Generic.List<string> checks)
+        {
+            Preferences prefsWas = preferences;
+            Cloud remoteWas = brain.Remote;
+            string modelWas = brain.Model, unseenWas = brain.Unsighted, urlWas = Brain.Nvidia;
+            Func<Sight> frontWas = Computer.Glimpse;
+            Func<bool> fullWas = FullScreen;
+            Func<Rectangle, Bitmap> grabWas = Grab;
+            Func<IntPtr, Rectangle> displayWas = Display;
+            Job jobWas = job;
+            string workingWas = working;
+            bool signalsWas = signals.Enabled, hiddenWas = hidden, shushWas = shushed, napWas = napAsked, nappingWas = napping, ownWas = ownNap;
+            bool chattingWas = chatting, localWas = local, pushWas = pushing, transcribeWas = transcribing, dragWas = dragging;
+            int paceWas = Commentary.Pace, micWas = micTalked;
+            double nextWas = nextGlance, lastWas = lastGlance;
+            byte[] printWas = lastPrint;
+            Rectangle areaWas = lastArea;
+            Clip clipWas = clip;
+            List<Tuple<double, string>> linesWas = new List<Tuple<double, string>>(glanced);
+            TcpListener fake = null;
+            List<string> requests = new List<string>();
+            try
+            {
+                if (GamingOn) throw new Exception("The game glance check needs Gaming Mode off.");
+                signals.Stop();
+                CloseTalk();
+                preferences = new Preferences { Watch = true, GlanceGap = 30, CommentPace = Commentary.Events, Silent = true, NoGaming = true };
+                hidden = shushed = napAsked = napping = ownNap = chatting = local = pushing = transcribing = dragging = false;
+                job = null;
+                working = null;
+                micTalked = Environment.TickCount - 5000;
+                Play(idle);
+                Commentary.Pace = Commentary.Events;
+                Rectangle area = new Rectangle(0, 0, 640, 360);
+                Sight front = new Sight { Window = new IntPtr(7), Program = "RobloxPlayerBeta", Title = "Roblox", Bounds = area };
+                Computer.Glimpse = delegate { return front; };
+                Display = delegate { return area; };
+                int captures = 0;
+                Grab = delegate(Rectangle bounds)
+                {
+                    captures++;
+                    Bitmap shot = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format24bppRgb);
+                    using (Graphics graphics = Graphics.FromImage(shot)) graphics.Clear(Color.SteelBlue);
+                    return shot;
+                };
+                string[] lines = { "That chest is bait.", "Those lava pools look nasty." };
+                Brain.Nvidia = FakeServer(new[]
+                {
+                    "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"SAW: a chest beside your character SAY: That chest is bait.\"}}]}",
+                    "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"SAW: lava pools beside a bridge SAY: Those lava pools look nasty.\"}}]}",
+                    "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"A game with a chest beside your character.\"}}]}"
+                }, requests, out fake);
+                brain.Remote = new Cloud("nvapi-test", "google/gemma-4-31b-it");
+                brain.Model = brain.Remote.Model;
+                brain.Unsighted = null;
+                for (int mode = 0; mode < 2; mode++)
+                {
+                    bool full = mode == 1;
+                    FullScreen = delegate { return full; };
+                    preferences.CaughtUp = full;
+                    nextGlance = lastGlance = -1;
+                    lastPrint = null;
+                    glanced.Clear();
+                    double start = 1000 + mode * 100;
+                    for (double now = start; now <= start + GlanceGap && !glancing; now += 0.25) CheckGlance(now, 0);
+                    if (!glancing || lastGlance > start + GlanceGap || captures != mode + 1) throw new Exception("Constant game input stopped a scheduled glance.");
+                    WaitVoice(delegate { return !glancing; }, "The fake game glance did not finish.");
+                    if (reply != lines[mode] || heard != "watching") throw new Exception("A game glance did not deliver its comment.");
+                    CloseTalk();
+                }
+                lock (requests)
+                    if (requests.Count != 2 || !requests[0].Contains("A game scene, scoreboard, inventory or quiet moment is enough") || !requests[0].Contains("data:image/jpeg;base64,")) throw new Exception("The game glance lost its picture or prompt.");
+                checks.Add("PASS game glances: constant keyboard and mouse input still gets a comment within Every in windowed and full-screen play, with screen memory on or off");
+                int heldCaptures = captures;
+                Action held = delegate
+                {
+                    nextGlance = 1300;
+                    CheckGlance(1300, 0);
+                    if (captures != heldCaptures || glancing || reply != null) throw new Exception("A blocked game glance captured or spoke.");
+                };
+                preferences.CommentPace = Commentary.Off;
+                held();
+                if (LookAt(null) != "You looked at their screen. You see: A game with a chest beside your character." || captures != 3) throw new Exception("Comments off blocked an on-demand game check.");
+                lock (requests)
+                    if (requests.Count != 3 || !requests[2].Contains("Describe what's on this screen") || requests[2].Contains("SAW:")) throw new Exception("The on-demand check used the glance prompt.");
+                heldCaptures = captures;
+                glanced.Clear();
+                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Roblox");
+                if (reply != null) throw new Exception("A game glance spoke after Comments were turned off.");
+                preferences.CommentPace = Commentary.Events;
+                pushing = true; held(); pushing = false;
+                transcribing = true; held(); transcribing = false;
+                micTalked = Environment.TickCount; held(); micTalked = Environment.TickCount - 5000;
+                chatting = true; held(); chatting = false;
+                answerVoice = asking; held(); answerVoice = -1;
+                hdSpeaking = asking; held(); hdSpeaking = -1;
+                pushing = true;
+                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Roblox");
+                pushing = false;
+                if (reply != null) throw new Exception("A game glance talked over the user after its capture.");
+                Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(8), Program = "Discord", Title = "Discord", Bounds = area }; };
+                FinishGlance(asking, watchTicket, "That chest is bait.", null, null, front, -1, "Roblox");
+                if (reply != null) throw new Exception("A game glance spoke after the game left the foreground.");
+                Preferences defaults = Preferences.Fresh();
+                if (defaults.Watch || defaults.CommentPace != Commentary.Off || defaults.NoGaming) throw new Exception("Game watching defaults changed.");
+                string help = SelfKnow.Setting("Mainframe.cs", "Watch my screen").Facts;
+                if (!help.Contains("Comments off and Gaming Mode off") || !help.Contains("Events only and Watch my screen off")) throw new Exception("Her watching help did not explain quiet games.");
+                checks.Add("PASS game glance gates: Comments off blocks capture and pending lines, calls and user speech still pause comments, on-demand checks still work, game changes drop old lines, defaults stay put and watching help explains quiet games");
+            }
+            finally
+            {
+                watchTicket++;
+                brain.Cancel();
+                if (fake != null) fake.Stop();
+                CloseTalk();
+                preferences = prefsWas;
+                brain.Remote = remoteWas; brain.Model = modelWas; brain.Unsighted = unseenWas; Brain.Nvidia = urlWas;
+                Computer.Glimpse = frontWas; FullScreen = fullWas; Grab = grabWas; Display = displayWas;
+                job = jobWas; working = workingWas; Commentary.Pace = paceWas; micTalked = micWas;
+                hidden = hiddenWas; shushed = shushWas; napAsked = napWas; napping = nappingWas; ownNap = ownWas;
+                chatting = chattingWas; local = localWas; pushing = pushWas; transcribing = transcribeWas; dragging = dragWas;
+                nextGlance = nextWas; lastGlance = lastWas; lastPrint = printWas; lastArea = areaWas;
+                glanced.Clear(); glanced.AddRange(linesWas);
+                Play(clipWas);
+                if (signalsWas) signals.Start();
             }
         }
 
@@ -24553,6 +24683,20 @@ namespace CapriDesktop
                 front = game;
                 gaming.Check(9000);
                 bool plainStayed = plainArmed == "Gaming Mode's armed. I'll watch as soon as a game's up." && GamingOn && !docked && !hidden && !GameHud.Showing && GamePace == Commentary.Events && Doing == "Gaming" && said.Count == 1 && said[0] == "Gaming Mode on, " + name + ". I'll stay out here with you until you close the game.";
+                Func<Sight> aheadWas = Computer.Glimpse;
+                Func<bool> aheadFullWas = FullScreen;
+                Job aheadJobWas = job;
+                try
+                {
+                    job = null;
+                    FullScreen = delegate { return false; };
+                    Computer.Glimpse = delegate { return new Sight { Window = game.Window, Program = "unlisted-game", Title = "An unlisted window", Bounds = game.Bounds }; };
+                    if (GameAhead() != "An unlisted window") throw new Exception("Commentary lost a windowed game already recognized by Gaming Mode.");
+                    Computer.Glimpse = delegate { return new Sight { Window = new IntPtr(-1), Program = "unlisted-game", Title = "Another window", Bounds = game.Bounds }; };
+                    if (GameAhead() != null) throw new Exception("Gaming Mode made another window count as its game.");
+                    checks.Add("PASS commentary accepts Gaming Mode's recognized windowed game and still rejects another unknown window");
+                }
+                finally { Computer.Glimpse = aheadWas; FullScreen = aheadFullWas; job = aheadJobWas; }
                 string plainMove = GamingMode("down");
                 GamingMode("off");
                 front = null;
