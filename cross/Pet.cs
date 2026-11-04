@@ -391,6 +391,7 @@ namespace CapriDesktop
         private MenuItem screenItem;
         // Their mouse, which "teleport here" goes to. The smoke test hands in its own.
         internal Func<PixelPoint?> MouseAt;
+        internal Action<PixelPoint> MoveTo;
         // Getting to know them, like on Windows: on a new install it starts once she's said hello, and Settings > Get to know me
         // starts it again.
         private readonly Meeting meeting = new Meeting();
@@ -454,6 +455,10 @@ namespace CapriDesktop
         private PixelPoint anchor;
         private PixelPoint grab;
         private PixelPoint downAt;
+        private PixelPoint dragAt;
+        private bool dragPending;
+        // Window positions she asked for that the desktop hasn't confirmed yet, oldest first.
+        private readonly List<PixelPoint> asked = new List<PixelPoint>();
         private Point pointer = new Point(-1, -1);
         private double fallSpeed;
         private double fallStep;
@@ -592,6 +597,9 @@ namespace CapriDesktop
             RenderOptions.SetBitmapInterpolationMode(body, BitmapInterpolationMode.HighQuality);
             Content = body;
             Fit();
+            // A Linux window manager can put her window somewhere other than where she asked, like KWin keeping it off a panel,
+            // so she follows where it really went. A Mac moves her window right away, as asked.
+            if (OperatingSystem.IsLinux()) PositionChanged += delegate(object sender, PixelPointEventArgs e) { FollowPosition(e.Point); };
             Play(idle);
             nextGlitch = 30 + random.NextDouble() * 30;
             ContextMenu = Menu();
@@ -679,7 +687,21 @@ namespace CapriDesktop
         internal void Move(PixelPoint to)
         {
             anchor = to;
-            Position = new PixelPoint(to.X + Px(FrameX), to.Y + Px(FrameY));
+            PixelPoint at = new PixelPoint(to.X + Px(FrameX), to.Y + Px(FrameY));
+            if (asked.Count >= 8) asked.RemoveAt(0);
+            asked.Add(at);
+            if (MoveTo != null) MoveTo(at);
+            else Position = at;
+        }
+
+        // Where the desktop says her window is. A move she asked for, arriving late, changes nothing, so walking and falling
+        // never step back to an older spot; anywhere else means the desktop put her there, and she carries on from it.
+        internal void FollowPosition(PixelPoint at)
+        {
+            int was = asked.IndexOf(at);
+            if (was >= 0) { asked.RemoveRange(0, was + 1); return; }
+            asked.Clear();
+            if (!dragging) anchor = new PixelPoint(at.X - Px(FrameX), at.Y - Px(FrameY));
         }
 
         private void Fit()
@@ -802,6 +824,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = Now;
+            DragFrame();
             TickHusk();
             CheckStyle();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
@@ -1297,7 +1320,8 @@ namespace CapriDesktop
             pressed = true;
             clicks++;
             dragging = false;
-            downAt = this.PointToScreen(at);
+            dragPending = false;
+            downAt = DragPoint(at);
             grab = new PixelPoint(downAt.X - anchor.X, downAt.Y - anchor.Y);
             e.Pointer.Capture(this);
         }
@@ -1307,12 +1331,34 @@ namespace CapriDesktop
             base.OnPointerMoved(e);
             pointer = e.GetPosition(this);
             if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
-            PixelPoint at = this.PointToScreen(pointer);
+            PixelPoint at = DragPoint(pointer);
             int dx = at.X - downAt.X;
             int dy = at.Y - downAt.Y;
             if (!dragging && dx * dx + dy * dy < 25) return;
             if (!dragging) Grab();
-            Move(new PixelPoint(at.X - grab.X, at.Y - grab.Y));
+            dragAt = at;
+            dragPending = true;
+        }
+
+        private PixelPoint DragPoint(Point at)
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                try
+                {
+                    PixelPoint? screen = MouseAt != null ? MouseAt() : Desk.Grabbed();
+                    if (screen != null) return screen.Value;
+                }
+                catch (Exception) { }
+            }
+            return this.PointToScreen(at);
+        }
+
+        internal void DragFrame()
+        {
+            if (!pressed || !dragging || !dragPending) return;
+            dragPending = false;
+            Move(new PixelPoint(dragAt.X - grab.X, dragAt.Y - grab.Y));
         }
 
         protected override void OnPointerExited(PointerEventArgs e)
@@ -1325,6 +1371,12 @@ namespace CapriDesktop
         {
             base.OnPointerReleased(e);
             if (!pressed || e.InitialPressMouseButton != MouseButton.Left) return;
+            if (dragging)
+            {
+                dragAt = DragPoint(e.GetPosition(this));
+                dragPending = true;
+                DragFrame();
+            }
             pressed = false;
             e.Pointer.Capture(null);
             if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);

@@ -9,6 +9,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -153,6 +155,7 @@ namespace CapriDesktop
                 if (pet.Falling) return false;
                 if (!Sitting()) throw new Exception("A dropped Capri didn't sit down again.");
                 checks.Add("PASS drag and drop: grabbing her lifts her off, dropping her near a ledge makes her fall and sit on it");
+                DragChecks();
                 PixelPoint hip = pet.Hip;
                 pet.Resize(320);
                 if (pet.Hip != hip) throw new Exception("Resizing moved her off her seat: " + hip + " to " + pet.Hip + ".");
@@ -1362,6 +1365,175 @@ namespace CapriDesktop
                 return true;
             }
             return false;
+        }
+
+        private void Press(IPointer mouse, Point at)
+        {
+            pet.RaiseEvent(new PointerPressedEventArgs(pet, mouse, pet, at, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+        }
+
+        private void Pull(IPointer mouse, Point at)
+        {
+            pet.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, pet, mouse, pet, at, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other), KeyModifiers.None));
+        }
+
+        private void Release(IPointer mouse, Point at, bool here, MouseButton button = MouseButton.Left)
+        {
+            pet.RaiseEvent(new PointerReleasedEventArgs(pet, mouse, pet, at, 0, new PointerPointProperties(RawInputModifiers.None, button == MouseButton.Left ? PointerUpdateKind.LeftButtonReleased : PointerUpdateKind.RightButtonReleased), here ? KeyModifiers.Shift : KeyModifiers.None, button));
+        }
+
+        private Point Client(PixelPoint at)
+        {
+            Point point = pet.PointToClient(at);
+            return new Point(point.X + Math.Sign(at.X) * 0.25 / pet.RenderScaling, point.Y + Math.Sign(at.Y) * 0.25 / pet.RenderScaling);
+        }
+
+        private void DragChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            Dictionary<string, object> before = new Dictionary<string, object>();
+            foreach (string name in new[] { "anchor", "pressed", "dragging", "dragAt", "dragPending", "downAt", "grab", "pointer", "clicks", "seat", "walking", "hanging", "dropAfter", "falling", "fallTo", "fallSpeed", "fallStep", "clip", "clipStart", "idleCycle", "blinkWith", "coveredSince", "seatLost", "napAsked" }) before[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            Desk desk = pet.Desk;
+            Func<PixelPoint?> mouseAt = pet.MouseAt;
+            Action<PixelPoint> moveTo = pet.MoveTo;
+            int savedX = pet.Saved.X, savedY = pet.Saved.Y;
+            bool placed = pet.Saved.Placed, broken = false;
+            PixelPoint reported = pet.Position;
+            PixelPoint? cursor = null;
+            List<PixelPoint> moves = new List<PixelPoint>();
+            using (Avalonia.Input.Pointer mouse = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true))
+            try
+            {
+                pet.Desk = new BareDesk { HeldAt = delegate { if (broken) throw new Exception("No pointer."); return cursor; } };
+                pet.MouseAt = null;
+                pet.MoveTo = delegate(PixelPoint to) { moves.Add(to); };
+                pet.FollowPosition(reported);
+                PixelPoint start = pet.Anchor;
+                PixelPoint frame = new PixelPoint(reported.X - start.X, reported.Y - start.Y);
+                Point? spot = pet.BodySpot();
+                if (spot == null) throw new Exception("Couldn't find her body to drag.");
+                Point at = spot.Value;
+                PixelPoint fallback = pet.PointToScreen(at);
+                bool linux = OperatingSystem.IsLinux();
+                PixelPoint down = linux ? new PixelPoint(fallback.X + 700, fallback.Y - 300) : fallback;
+                cursor = new PixelPoint(fallback.X + 700, fallback.Y - 300);
+                if (pet.Desk.Grabbed() != cursor || pet.Desk.Pointer() != null || pet.Desk.Windows(new long[0]).Count != 0 || pet.Desk.Find(1) != null || pet.Desk.Alive(1)) throw new Exception("The held-pointer desk changed her window list or gave a mouse position outside a drag.");
+                Press(mouse, at);
+                if (mouse.Captured != pet || pet.Dragging || (PixelPoint)typeof(Pet).GetField("downAt", fields).GetValue(pet) != down || (PixelPoint)typeof(Pet).GetField("grab", fields).GetValue(pet) != new PixelPoint(down.X - start.X, down.Y - start.Y)) throw new Exception("Pressing her used the wrong pointer or grab offset.");
+                foreach (PixelPoint offset in new[] { new PixelPoint(30, -50), new PixelPoint(80, -20), new PixelPoint(-10, -90) })
+                {
+                    cursor = new PixelPoint(down.X + offset.X, down.Y + offset.Y);
+                    Pull(mouse, linux ? new Point(at.X + 900, at.Y - 600) : Client(cursor.Value));
+                }
+                if (!pet.Dragging || moves.Count != 0 || pet.Anchor != start) throw new Exception("Pointer events moved her before a frame.");
+                pet.DragFrame();
+                PixelPoint target = new PixelPoint(start.X - 10, start.Y - 90);
+                if (moves.Count != 1 || pet.Anchor != target || moves[0] != new PixelPoint(target.X + frame.X, target.Y + frame.Y) || pet.Position != reported) throw new Exception("A drag didn't follow the latest pointer while her window lagged.");
+                pet.DragFrame();
+                if (moves.Count != 1) throw new Exception("A frame repeated an old drag move.");
+                checks.Add(linux ? "PASS Linux drag follows the desk pointer while the reported window position lags" : "PASS Mac drag keeps PointToScreen even when a desk pointer is available");
+                pet.PlatformImpl.PositionChanged(new PixelPoint(reported.X + 2, reported.Y - 3));
+                foreach (int y in new[] { 60, -120, 90, -30 })
+                {
+                    cursor = new PixelPoint(down.X + 15, down.Y + y);
+                    Pull(mouse, linux ? new Point(at.X - 800, at.Y + 500) : Client(cursor.Value));
+                }
+                if (moves.Count != 1) throw new Exception("Fast pointer events sent extra window moves.");
+                pet.DragFrame();
+                if (moves.Count != 2 || pet.Anchor != new PixelPoint(start.X + 15, start.Y - 30)) throw new Exception("Fast drag moves added to each other.");
+                checks.Add("PASS drag sends one move per frame to the newest point");
+                cursor = new PixelPoint(down.X + 90, down.Y - 120);
+                Release(mouse, linux ? at : Client(cursor.Value), false, MouseButton.Right);
+                if (!pet.Dragging || mouse.Captured != pet || moves.Count != 2) throw new Exception("A right release ended a left drag.");
+                Release(mouse, linux ? at : Client(cursor.Value), false);
+                if (moves.Count != 3 || pet.Anchor != new PixelPoint(start.X + 90, start.Y - 120) || pet.Dragging || mouse.Captured != null || !pet.Falling) throw new Exception("Release didn't move her to the pointer before dropping.");
+                pet.DragFrame();
+                if (moves.Count != 3) throw new Exception("A drag move ran after release.");
+                checks.Add("PASS left release lands at the current pointer before dropping and clears pending moves");
+
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = down;
+                Press(mouse, at);
+                cursor = new PixelPoint(down.X + 40, down.Y - 70);
+                Pull(mouse, linux ? at : Client(cursor.Value));
+                cursor = new PixelPoint(down.X + 70, down.Y - 100);
+                Release(mouse, linux ? at : Client(cursor.Value), true);
+                target = new PixelPoint(start.X + 70, start.Y - 100);
+                if (moves.Count < 1 || moves[0] != new PixelPoint(target.X + frame.X, target.Y + frame.Y) || pet.Anchor != target || pet.Dragging || pet.Falling || pet.Seat == null || !pet.Seat.Free || pet.Hip.Y != pet.Seat.Y || mouse.Captured != null) throw new Exception("Shift-release didn't finish the pending drag before sitting.");
+                int satMoves = moves.Count;
+                pet.DragFrame();
+                if (moves.Count != satMoves) throw new Exception("A pending drag moved her off her Shift seat.");
+                checks.Add("PASS Shift-release finishes a pending drag and sits at the pointer");
+
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = down;
+                pet.MouseAt = delegate { return cursor; };
+                typeof(Pet).GetField("clip", fields).SetValue(pet, pet.Arrival);
+                Press(mouse, at);
+                cursor = new PixelPoint(down.X + 2, down.Y + 3);
+                Pull(mouse, linux ? new Point(at.X + 400, at.Y - 400) : Client(cursor.Value));
+                pet.DragFrame();
+                if (pet.Dragging || moves.Count != 0) throw new Exception("A press under five pixels started a drag.");
+                Release(mouse, linux ? at : Client(cursor.Value), false);
+                if (moves.Count != 0 || pet.Anchor != start || pet.Dragging || pet.Falling || pet.Showing != (Clip)typeof(Pet).GetField("glitch", fields).GetValue(pet) || mouse.Captured != null) throw new Exception("A short press didn't stay a click.");
+                pet.MouseAt = null;
+                checks.Add("PASS a press under five pixels stays a click");
+
+                for (int failure = 0; failure < 2; failure++)
+                {
+                    pet.StandUp();
+                    pet.Move(start);
+                    moves.Clear();
+                    cursor = null;
+                    broken = failure == 1;
+                    Press(mouse, at);
+                    if ((PixelPoint)typeof(Pet).GetField("downAt", fields).GetValue(pet) != fallback) throw new Exception("A press without a desk pointer didn't use PointToScreen.");
+                    PixelPoint edge = new PixelPoint(fallback.X + 3, fallback.Y - 4);
+                    Pull(mouse, Client(edge));
+                    if (!pet.Dragging || moves.Count != 0) throw new Exception("A five pixel move didn't start a drag.");
+                    pet.DragFrame();
+                    if (moves.Count != 1 || pet.Anchor != new PixelPoint(start.X + 3, start.Y - 4)) throw new Exception("A drag without a desk pointer didn't use PointToScreen.");
+                    PixelPoint end = new PixelPoint(fallback.X + 40, fallback.Y - 60);
+                    Release(mouse, Client(end), false);
+                    if (moves.Count != 2 || pet.Anchor != new PixelPoint(start.X + 40, start.Y - 60) || pet.Dragging || mouse.Captured != null) throw new Exception("Release without a desk pointer used the wrong point.");
+                }
+                broken = false;
+                checks.Add("PASS a missing or failed desk pointer uses PointToScreen for press, move and release; five pixels starts a drag");
+
+                if (linux)
+                {
+                    pet.StandUp();
+                    pet.Move(start);
+                    moves.Clear();
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, true);
+                    typeof(Pet).GetField("seat", fields).SetValue(pet, new Ledge { Floor = true, Left = start.X, Right = start.X + Px(800), Y = start.Y + Px(pet.BodySize * 0.99) });
+                    pet.PlatformImpl.PositionChanged(new PixelPoint(reported.X + 20, reported.Y - 40));
+                    if (pet.Anchor != new PixelPoint(start.X + 20, start.Y - 40) || pet.Feet != start.Y - 40 + Px(pet.BodySize * 0.99) || pet.Hip.Y != pet.Feet || moves.Count != 0) throw new Exception("Her walking anchor didn't follow a corrected window position.");
+                    // Late news of moves she asked for never steps her back: two steps, then the first one confirmed.
+                    PixelPoint one = new PixelPoint(start.X + 30, start.Y - 40), two = new PixelPoint(start.X + 40, start.Y - 40);
+                    pet.Move(one);
+                    pet.Move(two);
+                    pet.PlatformImpl.PositionChanged(new PixelPoint(one.X + frame.X, one.Y + frame.Y));
+                    if (pet.Anchor != two || moves.Count != 2) throw new Exception("A late confirmation of an earlier move stepped her back.");
+                    pet.Move(new PixelPoint(start.X + 90, start.Y + 90));
+                    pet.FollowPosition(pet.Position);
+                    if (pet.Anchor != start || moves.Count != 3) throw new Exception("A refused window move left her anchor behind.");
+                    checks.Add("PASS on Linux walking follows the desktop's position corrections, including a refused move, and late confirmations of her own moves never step her back");
+                }
+            }
+            finally
+            {
+                mouse.Capture(null);
+                pet.Desk = desk;
+                pet.MouseAt = mouseAt;
+                pet.MoveTo = moveTo;
+                foreach (KeyValuePair<string, object> item in before) typeof(Pet).GetField(item.Key, fields).SetValue(pet, item.Value);
+                pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
+            }
         }
 
         private void KdeChecks()
