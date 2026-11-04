@@ -166,7 +166,7 @@ namespace CapriDesktop
         private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 194, 278 }, new[] { 400, 428 }, new[] { 634, 662 }, new[] { 876, 904 }, new[] { 978, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 222, 278 }, new[] { 400, 428 }, new[] { 876, 904 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -300,6 +300,7 @@ namespace CapriDesktop
             Toggle("Always on top", 380, 138, () => pet.OnTop, pet.SetOnTop);
             var frameSize = Slider("Mainframe size", FrameNames, 380, 166, () => Array.IndexOf(FrameSizes, Pet.FrameSize(pet.Saved.MainframeSize)), i => { }); frameSize.Deferred = true;
             frameSize.Released += () => { if (!syncing) pet.SetMainframeSize(FrameSizes[frameSize.Value]); };
+            Toggle("Head pats", 380, 194, () => pet.HeadPats, pet.SetHeadPats);
             Section("WATCH", 380, 292);
             Toggle("Watch my screen", 380, 316, () => pet.Saved.Watch, on => pet.SetWatch(on));
             Toggle("Remember what she sees", 380, 344, () => !pet.Saved.NoCaughtUp, pet.SetCaughtUp).Switch = 68;
@@ -311,6 +312,7 @@ namespace CapriDesktop
             Slider("Memory size", new[] { "Auto", "4K", "8K", "16K", "32K", "64K" }, 380, 550, () => Array.IndexOf(Brain.MemorySizes, Brain.MemorySize), i => pet.SetMemorySize(Brain.MemorySizes[i]));
             Slider("Max reply", new[] { "Auto", "256", "2K", "8K" }, 380, 578, () => Brain.ReplyLength, pet.SetReplyLength);
             Slider("Bubble", Pet.BubbleNames, 380, 606, () => pet.BubbleTime, pet.SetBubbleTime);
+            Toggle("Follow-up messages", 380, 634, () => pet.FollowUps, pet.SetFollowUps).Switch = 68;
             custom = Entry("Custom model name", "Custom model name", 408, 665, 244, 22, () => pet.MainframePickModel(custom.Box.Text));
             Key("Use", 660, 665, 76, 22, () => pet.MainframePickModel(custom.Box.Text));
             Caption("A model in Ollama, on your local server or on your key.", 408, 694, 328, 22, MainframeTheme.Faint, 34.0 / 3);
@@ -318,6 +320,7 @@ namespace CapriDesktop
             localAddress = Entry("Local server address", "http://127.0.0.1:1234", 408, 755, 244, 22, () => UseServer());
             Key("Save", 660, 755, 76, 22, UseServer);
             Section("HABITS", 380, 796);
+            Key("Obsidian vault", 484, 793, 112, 20, OpenVault);
             Key("Open her memories", 600, 793, 136, 20, () => pet.OpenMemories());
             Toggle("Start at login", 380, 820, () => pet.StartsAtLogin, on => pet.SetLogin(on, false));
             Toggle("Show on Discord", 380, 848, () => !pet.Saved.NoDiscord, pet.SetDiscord);
@@ -325,6 +328,19 @@ namespace CapriDesktop
             var security = Key("Security: " + Security.PresetName, 408, 935, 328, 22, OpenSecurity);
             var securityNote = Caption(Security.Short, 408, 959, 328, 18, MainframeTheme.Faint, 34.0 / 3); securityNote.Align = TextAlignment.Right; securityNote.Ellipsis = true;
             readers.Add(() => { security.Text = "Security: " + Security.PresetName; securityNote.Text = Security.Short; securityNote.InvalidateVisual(); });
+            Toggle("Keep PC awake for jobs", 380, 1028, () => pet.KeepAwake, pet.SetKeepAwake).Switch = 68;
+            for (int i = 0; i < Care.Names.Length; i++)
+            {
+                CareKind kind = (CareKind)i;
+                var on = Toggle(Care.Names[i], 380, 1180 + i * 28, () => pet.CareOn(kind), value => pet.SetCare(kind, value));
+                on.Width = 224; on.Switch = 68;
+                int[] times = Hands.ValuesFor(Hands.CareSettings[i]);
+                string[] names = new string[times.Length];
+                for (int t = 0; t < times.Length; t++) names[t] = CareTimeName(kind, times[t]);
+                var time = Picker(Care.Names[i] + " time", 640, 1183 + i * 28, 96, () => Math.Max(0, Array.IndexOf(times, pet.CareTime(kind))), at => pet.SetCareTime(kind, times[at]));
+                time.Height = 22; time.Options(names);
+            }
+            Key("Edit check-in lines", 408, 1380, 328, 20, pet.OpenCare);
             status.Tick += (_, _) => Sync();
             pet.SettingsChanged += Sync;
             heartbeat.Tick += (_, _) => Heartbeat();
@@ -415,6 +431,7 @@ namespace CapriDesktop
             return 0;
         }
         private static int Nearest(int[] values, int value) { int at = 0; for (int i = 1; i < values.Length; i++) if (Math.Abs(values[i] - value) < Math.Abs(values[at] - value)) at = i; return at; }
+        internal static string CareTimeName(CareKind kind, int time) { return kind == CareKind.Late ? (time % 12 == 0 ? 12 : time % 12) + (time < 12 ? " am" : " pm") : time >= 60 && time % 60 == 0 ? time / 60 + " h" : time + " min"; }
         private static int Nearest(double[] values, double value) { int at = 0; for (int i = 1; i < values.Length; i++) if (Math.Abs(values[i] - value) < Math.Abs(values[at] - value)) at = i; return at; }
         private void Read(NeonEntry entry, string text)
         {
@@ -609,5 +626,6 @@ namespace CapriDesktop
         internal void OpenServer() { ShowSheet(new MainframeSheet(pet, "CUSTOM LOCAL", "server")); }
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
+        internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
     }
 }

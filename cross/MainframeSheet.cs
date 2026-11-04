@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 
 namespace CapriDesktop
@@ -20,11 +22,11 @@ namespace CapriDesktop
         internal MainframeSheet(Pet owner, string title, string kind) : base(title)
         {
             pet = owner;
-            wide = kind == "layers" ? 760 : 380;
+            wide = kind == "layers" ? 760 : kind == "vault" ? 520 : 380;
             ShowInTaskbar = false;
             Put(Page, new NeonCaption { Text = title, Size = 20, Bold = true, Display = true }, 24, 15, 288, 29);
             var close = Button("", (int)wide - 50, 20, 26, 22, Close); close.Glyph = 2;
-            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : SecurityRows();
+            double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
             status.Tick += (_, _) => Sync();
@@ -134,6 +136,50 @@ namespace CapriDesktop
             }
             if (pet.MainframeInputSetup) { Button("Set up mouse and keyboard", 28, y + 8, 328, 28, pet.MainframeSetupInput); y += 44; }
             return y + 24;
+        }
+        private double Vault()
+        {
+            var vaults = pet.VaultList();
+            var paths = new List<string> { "" };
+            var names = new List<string> { "Her own notes (no vault)" };
+            foreach (var found in vaults) { names.Add("Vault: " + found.Key); paths.Add(Path.Combine(found.Value, Pet.VaultNote)); }
+            var picker = Put(Page, new NeonPicker { Ellipsis = true }, 28, 62, 352, 24, "Obsidian vault"); Rows["Obsidian vault"] = picker;
+            var note = Put(Page, new TextBlock { Foreground = MainframeTheme.Faint, FontSize = 34.0 / 3, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 3 }, 28, 100, 464, 56, "Vault note"); Rows["Vault note"] = note;
+            string last = null;
+            bool here = pet.VaultHere;
+            Action read = () =>
+            {
+                string current = Pet.NotesIn(pet.Vault) ?? "";
+                int at = paths.FindIndex(path => string.Equals(path, current, OperatingSystem.IsLinux() ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase));
+                if (at < 0) { paths.Add(current); names.Add("Note: " + Path.GetFileName(current)); at = paths.Count - 1; }
+                picker.Options(names.ToArray()); picker.Selected = at;
+                if (last == pet.Vault && here == pet.VaultHere) return;
+                last = pet.Vault; here = pet.VaultHere;
+                note.Text = pet.Vault.Length > 0 ? pet.VaultHere ? "She saves her memories to " + Path.GetFileName(Pet.NotesIn(pet.Vault)) + "." : "That vault wasn't there when she started, so she's using her own notes." : vaults.Count > 0 ? "Pick one of your Obsidian vaults and her memories go in a Capri Memories note there." : "No Obsidian vaults found on this PC. Open one in Obsidian first, or Browse to a note.";
+            };
+            Action<string> use = path => { string said = pet.SetVault(path); read(); note.Text = said; };
+            picker.Changed += at => { if (!syncing) use(paths[at]); };
+            readers.Add(read);
+            var browse = Button("Browse", 388, 62, 104, 24, () => { });
+            browse.Click += async (_, _) =>
+            {
+                if (!StorageProvider.CanSave) { note.Text = "Couldn't open the note picker."; return; }
+                try
+                {
+                    string current = Pet.NotesIn(pet.Vault);
+                    if (current == null && vaults.Count > 0) current = Path.Combine(vaults[0].Value, Pet.VaultNote);
+                    var start = current != null && Directory.Exists(Path.GetDirectoryName(current)) ? await StorageProvider.TryGetFolderFromPathAsync(Path.GetDirectoryName(current)) : null;
+                    var picked = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
+                        Title = "Pick the note her memories go in", SuggestedFileName = current == null ? Pet.VaultNote : Path.GetFileName(current),
+                        SuggestedStartLocation = start, DefaultExtension = "md", ShowOverwritePrompt = false,
+                        FileTypeChoices = new[] { new FilePickerFileType("Notes") { Patterns = new[] { "*.md" } } } });
+                    string path = picked?.TryGetLocalPath();
+                    if (!closed && path != null) use(path);
+                }
+                catch (Exception) { if (!closed) note.Text = "Couldn't open the note picker."; }
+            };
+            Button("Close", 388, 164, 104, 26, Close);
+            return 214;
         }
         private void Sync()
         {

@@ -162,6 +162,11 @@ namespace CapriDesktop
                 if (petSpot == null) throw new Exception("Couldn't find her body to pet.");
                 PixelPoint petLeft = pet.PointToScreen(new Point(petSpot.Value.X - 12, petSpot.Value.Y));
                 PixelPoint petRight = pet.PointToScreen(new Point(petSpot.Value.X + 12, petSpot.Value.Y));
+                pet.SetHeadPats(false);
+                int offPets = pet.Pets;
+                for (int i = 0; i < 12; i++) pet.Stroke(i % 2 == 0 ? petRight : petLeft);
+                if (pet.Pets != offPets || pet.Smiling || !SettingsCopy().NoHeadPats) throw new Exception("Head pats off still reacted to a stroke.");
+                pet.SetHeadPats(true);
                 int petsBefore = pet.Pets;
                 for (int i = 0; i < 6; i++) pet.Stroke(petLeft);
                 pet.Stroke(petRight);
@@ -177,6 +182,7 @@ namespace CapriDesktop
                 pet.ForgetPets();
                 if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled);
                 checks.Add("PASS petting: rubbing the cursor back and forth over her makes her smile and say a short line, not too easily and not again for 20 s");
+                checks.Add("PASS Head pats saves Off and ignores strokes; On brings back her pat reaction");
                 pet.SetWander(3);
                 pet.SetLanguage("French");
                 pet.SetReplies(1);
@@ -1656,6 +1662,10 @@ namespace CapriDesktop
                 checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps her running and retains the taskbar window");
                 MainframePictures(frame, voice);
                 MainframeRows(frame, fields);
+                CareChecks(frame);
+                FollowChecks();
+                AwakeChecks(fields);
+                VaultChecks(frame, fields);
                 MainframeSheets(frame);
                 MainframeConnections(frame);
                 MainframeLayout(frame, voice);
@@ -1692,7 +1702,8 @@ namespace CapriDesktop
                 { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
                 { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
                 { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
-                { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" }
+                { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
+                { "Head pats", "head_pats", "NoHeadPats" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" }
             };
             for (int i = 0; i < toggles.GetLength(0); i++)
                 foreach (bool on in new[] { true, false })
@@ -1751,6 +1762,255 @@ namespace CapriDesktop
             var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local }));
             if (recovered.MainframeSize != 150 || !recovered.AdvancedSettings || recovered.MemorySize != 16384 || recovered.ReplyLength != 3 || recovered.BrainTier != 2 || recovered.PaidModel != "paid-test") throw new Exception("The Mainframe settings did not survive the older settings copy.");
             checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing and scale persist; Pet and tool changes show without losing drafts");
+        }
+
+        private static string CareSaid(Care care, Settings saved, long quiet = 0, bool free = true, string game = "Game A", double noticed = 0)
+        {
+            return care.Check(saved.CareOn, saved.CareTime, ref saved.CareNight, quiet, free, game, noticed, 1);
+        }
+
+        private void CareChecks(Mainframe frame)
+        {
+            double now = 0;
+            DateTime day = new DateTime(2026, 11, 4, 10, 0, 0);
+            Func<Settings> off = () => { var saved = new Settings(); for (int i = 0; i < 7; i++) saved.SetCare((CareKind)i, false, saved.CareTime((CareKind)i)); return saved; };
+            Func<Care> make = () => new Care(() => now, () => day.AddSeconds(now), kind => kind.ToString());
+            int[] defaults = { 60, 90, 25, 1, 360, 120, 60 };
+            Settings old;
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("{}"))) old = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+            for (int i = 0; i < 7; i++)
+                if (old.CareTime((CareKind)i) != defaults[i] || old.CareOn((CareKind)i) != (i != 2)) throw new Exception("Care defaults differ from Windows.");
+            if (old.NoHeadPats || old.NoFollowUps || old.NoKeepAwake) throw new Exception("A new switch defaulted off in older settings.");
+            foreach (CareKind kind in new[] { CareKind.Water, CareKind.Stretch, CareKind.Eyes, CareKind.Game, CareKind.Bored })
+            {
+                now = 0;
+                var saved = off(); saved.SetCare(kind, true, defaults[(int)kind]);
+                Care care = make(); double due = defaults[(int)kind] * 60;
+                if (CareSaid(care, saved) != null) throw new Exception("Care fired on startup: " + kind);
+                now = due - 1; if (CareSaid(care, saved) != null) throw new Exception("Care fired early: " + kind);
+                now = due; if (CareSaid(care, saved) != kind.ToString()) throw new Exception("Care missed its time: " + kind);
+                now = due * 2; if (CareSaid(care, saved, Care.Away + 1) != null) throw new Exception("Care spoke while away: " + kind);
+                now = due * 3; if (CareSaid(care, saved) != null) throw new Exception("Care kept idle time: " + kind);
+                now = due * 4 - 1; if (CareSaid(care, saved) != null) throw new Exception("Care reset ended early: " + kind);
+                now++; if (CareSaid(care, saved) != kind.ToString()) throw new Exception("Care did not restart after idle: " + kind);
+                saved.SetCare(kind, false, defaults[(int)kind]); now += due;
+                if (CareSaid(care, saved) != null) throw new Exception("Care ignored Off: " + kind);
+            }
+            now = 0; day = new DateTime(2026, 11, 4, 23, 0, 0);
+            var night = off(); night.SetCare(CareKind.Late, true, 1); Care late = make();
+            if (CareSaid(late, night) != null) throw new Exception("Sleep nudge came before 1 am.");
+            now = 7200; if (CareSaid(late, night) != "Late" || night.CareNight == 0) throw new Exception("Sleep nudge missed 1 am.");
+            if (CareSaid(make(), night) != null) throw new Exception("Sleep nudge repeated after a restart.");
+            now += 86400; if (CareSaid(late, night) != "Late") throw new Exception("Sleep nudge missed the next night.");
+            now = 0; day = new DateTime(2026, 11, 4, 11, 0, 0);
+            var meals = off(); meals.SetCare(CareKind.Meal, true, 360); Care meal = make(); CareSaid(meal, meals);
+            now = 3599; if (CareSaid(meal, meals) != null) throw new Exception("Meals came before noon.");
+            now = 3600; if (CareSaid(meal, meals) != "Meal") throw new Exception("Meals missed noon.");
+            now = 25200; if (CareSaid(meal, meals) != "Meal") throw new Exception("Meals ignored the saved interval.");
+            if (CareSaid(make(), meals) != null) throw new Exception("Meals counted a start after lunch.");
+            now = 0; day = new DateTime(2026, 11, 4, 10, 0, 0);
+            var game = off(); game.SetCare(CareKind.Game, true, 120); Care gaming = make(); CareSaid(gaming, game);
+            now = 7200; if (CareSaid(gaming, game, 0, true, "Game B") != null) throw new Exception("Game break combined two games.");
+            now = 14400; if (CareSaid(gaming, game, 0, false, "Game B") != null || CareSaid(gaming, game, 0, true, null) != "Game") throw new Exception("Game break did not wait for full screen to end.");
+            var held = off(); held.SetCare(CareKind.Water, true, 60); held.SetCare(CareKind.Stretch, true, 90); now = 0;
+            Care waiting = make(); CareSaid(waiting, held); now = 5400;
+            if (CareSaid(waiting, held, 0, false) != null || CareSaid(waiting, held) == null || CareSaid(waiting, held) != null) throw new Exception("Care queued a pile of overdue lines.");
+            string path = Path.Combine(folder, "care-lines.md"); var lines = new CareLines(path);
+            if (!lines.Create()) throw new Exception("Care could not make its lines.");
+            foreach (CareKind kind in Enum.GetValues(typeof(CareKind))) if (lines.Pick(kind) == null) throw new Exception("A default check-in has no lines: " + kind);
+            File.WriteAllText(path, "## Water\n- A sip.\n## Bored\n");
+            if (lines.Pick(CareKind.Water) != "A sip." || lines.Pick(CareKind.Bored) != null) throw new Exception("Care ignored edited or removed lines.");
+            pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+            for (int i = 0; i < 7; i++)
+            {
+                CareKind kind = (CareKind)i; string name = Care.Names[i], setting = Hands.CareSettings[i];
+                foreach (bool on in new[] { true, false })
+                {
+                    frame.Change(name, on ? 1 : 0);
+                    if (pet.CareOn(kind) != on || SettingsCopy().CareOn(kind) != on || frame.Value(name) != (on ? "On" : "Off")) throw new Exception("A Care switch did not save or show: " + name);
+                    Hands.Do("capri_settings", new ToolArguments { Action = on ? "off" : "on", Name = setting });
+                    if (pet.CareOn(kind) == on || pet.SettingOn(setting) == on) throw new Exception("A Care tool switch did not change: " + setting);
+                }
+                int[] times = Hands.ValuesFor(setting);
+                for (int t = 0; t < times.Length; t++)
+                {
+                    frame.Change(name + " time", t);
+                    if (SettingsCopy().CareTime(kind) != times[t] || frame.Value(name + " time") != Mainframe.CareTimeName(kind, times[t]) || pet.LevelOf(setting) != t) throw new Exception("A Care time did not save or show: " + name);
+                }
+            }
+            Action<string, string[]> launch = Limbs.Launch;
+            try
+            {
+                string opened = null; int count = 0;
+                Limbs.Launch = (file, args) => { count++; if (file != (OperatingSystem.IsMacOS() ? "open" : "xdg-open") || args.Length != 1) throw new Exception("The check-in editor command is wrong."); opened = args[0]; };
+                frame.Press("Edit check-in lines");
+                if (count != 1 || opened != Path.Combine(folder, "check-ins.md") || !File.Exists(opened)) throw new Exception("Edit check-in lines did not open check-ins.md.");
+            }
+            finally { Limbs.Launch = launch; }
+            checks.Add("PASS Care: Windows defaults and lines, each due time, idle resets, nights, meals, game changes, held lines, edited lines and saved Mainframe switches and times");
+        }
+
+        private void FollowChecks()
+        {
+            var follow = new FollowUp(); follow.Hold("Again.", 1, 2, 3);
+            if (follow.Take(0, 1, 2, 3, true, false) != null || follow.Take(10, 1, 2, 3, true, true) != null || follow.Take(11.9, 1, 2, 3, true, true) != null || follow.Take(12, 1, 2, 3, true, true) != "Again." || follow.Take(13, 1, 2, 3, true, true) != null) throw new Exception("A follow-up missed its beat or repeated.");
+            for (int changed = 0; changed < 4; changed++)
+            {
+                follow.Hold("Drop.", 1, 2, 3); follow.Take(0, 1, 2, 3, true, true);
+                if (follow.Take(3, changed == 0 ? 9 : 1, changed == 1 ? 9 : 2, changed == 2 ? 9 : 3, changed != 3, true) != null || follow.Line != null) throw new Exception("A follow-up survived input, speech, a new answer or Off.");
+            }
+            bool silent = pet.Saved.Silent, off = pet.Saved.NoFollowUps;
+            pet.Saved.Silent = true; pet.SetFollowUps(true); Security.Drop();
+            try
+            {
+                pet.Talk.Answer("test", ""); pet.Talk.Dismiss(); pet.HoldFollowUp("Second thought.");
+                pet.CheckFollowUp(100); if (pet.Talk.Reply != null) throw new Exception("A follow-up spoke without its beat.");
+                pet.CheckFollowUp(102); if (pet.Talk.Reply != "Second thought.") throw new Exception("A held follow-up did not reach her bubble.");
+                pet.Talk.Dismiss(); pet.HoldFollowUp("Typed over."); pet.CheckFollowUp(100); pet.Typed(); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("Typing did not drop a held follow-up.");
+                pet.HoldFollowUp("Old answer."); pet.CheckFollowUp(100); pet.Talk.Answer("test", "New answer."); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != "New answer.") throw new Exception("A new answer did not drop the old follow-up.");
+                pet.Talk.Dismiss(); pet.HoldFollowUp("Off."); pet.SetFollowUps(false); pet.CheckFollowUp(100); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("Follow-up messages Off kept a held thought.");
+                pet.SetFollowUps(true); pet.ObserveInput(200, 200, 20); pet.HoldFollowUp("Other typing."); pet.CheckFollowUp(100); pet.ObserveInput(201, 201, 0); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("Desktop input did not drop the follow-up.");
+                pet.ObserveInput(400, 400.02, 20); pet.HoldFollowUp("Quiet desktop."); pet.CheckFollowUp(100); pet.ObserveInput(400.5, 400.54, 20.52); pet.CheckFollowUp(102);
+                if (pet.Talk.Reply != "Quiet desktop.") throw new Exception("Idle query timing dropped a follow-up without input.");
+                pet.Talk.Dismiss(); pet.ObserveInput(500, 500.02, 0.02); pet.HoldFollowUp("Quick typing."); pet.CheckFollowUp(100); pet.ObserveInput(500.5, 500.52, 0.45); pet.CheckFollowUp(102);
+                if (pet.Talk.Reply != null) throw new Exception("A quick input change did not drop the follow-up.");
+                pet.HoldFollowUp("A job started."); pet.BeginWork(); pet.CheckFollowUp(100); pet.EndWork(); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("A job did not drop the follow-up.");
+                var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                int ticket = (int)typeof(Pet).GetField("asking", fields).GetValue(pet);
+                int input = (int)typeof(Pet).GetField("inputTurn", fields).GetValue(pet);
+                int answer = (int)typeof(Pet).GetField("answerTurn", fields).GetValue(pet);
+                pet.Talk.Answer("test", "New answer while voice loads.");
+                pet.ShowReply(ticket, "test", "Earlier answer.", 0, "An old second thought.", false, input, answer);
+                pet.Talk.Dismiss(); pet.CheckFollowUp(100); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("An old voice response restored a dropped follow-up.");
+                Action<Action> queue = pet.FollowQueue; Func<double> idle = pet.Idle;
+                try
+                {
+                    Action pending = null; bool shown = false;
+                    pet.FollowQueue = run => pending = run; pet.Idle = () => 0;
+                    typeof(Pet).GetField("inputSampled", fields).SetValue(pet, false);
+                    typeof(Pet).GetField("inputHandled", fields).SetValue(pet, pet.Now - 10);
+                    input = (int)typeof(Pet).GetField("inputTurn", fields).GetValue(pet);
+                    answer = (int)typeof(Pet).GetField("answerTurn", fields).GetValue(pet);
+                    pet.PresentReply(ticket, "test", "A late thought.", 0, null, true, input, answer, () => shown = true);
+                    pending();
+                    if (shown || pet.Talk.Reply != null) throw new Exception("Typing during voice fetch did not cancel delivery.");
+                }
+                finally { pet.FollowQueue = queue; pet.Idle = idle; }
+            }
+            finally { pet.SetFollowUps(!off); pet.Saved.Silent = silent; pet.Talk.Dismiss(); }
+            checks.Add("PASS follow-ups wait for her answer and a beat, say once, and drop on typing, speech, another answer or Off");
+        }
+
+        private sealed class Inhibitor : IDisposable
+        {
+            private Action stop;
+            internal Inhibitor(Action stop) { this.stop = stop; }
+            public void Dispose() { Action old = stop; stop = null; old?.Invoke(); }
+        }
+
+        private void AwakeChecks(System.Reflection.BindingFlags fields)
+        {
+            foreach (bool mac in new[] { false, true })
+            {
+                var commands = new List<string>(); int stopped = 0;
+                using (var awake = new Awake(mac) { Queue = run => run(), Run = (name, args) => { commands.Add(name + " " + string.Join(" ", args)); return new Inhibitor(() => stopped++); }, Inhibit = () => { throw new Exception("Unexpected D-Bus fallback."); } })
+                {
+                    awake.Set(true); awake.Set(true);
+                    string expected = mac ? "caffeinate -dims -w " + Environment.ProcessId : "systemd-inhibit --what=idle:sleep --who=Capri --why=Capri is doing your job --mode=block sleep infinity";
+                    if (commands.Count != 1 || commands[0] != expected) throw new Exception("The inhibitor command is wrong.");
+                    awake.Set(false); awake.Set(false); if (stopped != 1) throw new Exception("The inhibitor did not stop with the job.");
+                    awake.Set(true); awake.Dispose(); awake.Set(true);
+                    if (commands.Count != 2 || stopped != 2) throw new Exception("Quitting kept or restarted an inhibitor.");
+                }
+            }
+            int fallback = 0, released = 0;
+            using (var awake = new Awake(false) { Queue = run => run(), Run = (_, _) => null, Inhibit = () => { fallback++; return new Inhibitor(() => released++); } }) { awake.Set(true); awake.Set(false); }
+            if (fallback != 1 || released != 1) throw new Exception("The ScreenSaver fallback did not release its cookie.");
+            Action queued = null; int late = 0;
+            using (var awake = new Awake(false) { Queue = run => queued = run, Run = (_, _) => { late++; return new Inhibitor(() => { }); }, Inhibit = () => null }) { awake.Set(true); awake.Set(false); queued(); }
+            if (late != 0) throw new Exception("An ended job started a queued inhibitor.");
+            int races = 0; Awake racing = null;
+            racing = new Awake(false) { Queue = run => run(), Run = (_, _) => { racing.Dispose(); return new Inhibitor(() => races++); }, Inhibit = () => null };
+            racing.Set(true); if (races != 1) throw new Exception("Quitting during startup left an inhibitor.");
+            Awake before = pet.Wakeful; bool enabled = pet.KeepAwake, glancing = pet.Glancing; string security = Security.Saved;
+            int starts = 0, stops = 0;
+            pet.Wakeful = new Awake(false) { Queue = run => run(), Run = (_, _) => { starts++; return new Inhibitor(() => stops++); }, Inhibit = () => null };
+            try
+            {
+                pet.SetKeepAwake(true); pet.BeginWork(); pet.BeginWork();
+                if (starts != 1) throw new Exception("Nested job work started extra inhibitors.");
+                pet.EndWork(); if (stops != 0) throw new Exception("An inhibitor stopped before the job ended.");
+                pet.EndWork(); if (stops != 1) throw new Exception("The last job did not release its inhibitor.");
+                Security.Set(Security.Open, false); Security.Gate("open_app", new ToolArguments { Name = "Fake app" }); pet.CheckKeepAwake();
+                if (starts != 2) throw new Exception("Waiting for an answer did not keep the screen awake.");
+                Security.Drop(); pet.CheckKeepAwake(); if (stops != 2) throw new Exception("Dropping a held job kept an inhibitor.");
+                pet.BeginWork(); pet.SetKeepAwake(false); if (stops != 3) throw new Exception("The saved Off switch kept an inhibitor.");
+                pet.SetKeepAwake(true); typeof(Pet).GetField("quitting", fields).SetValue(pet, true); pet.CheckKeepAwake();
+                if (stops != 4) throw new Exception("Quitting did not stop the job inhibitor.");
+                typeof(Pet).GetField("quitting", fields).SetValue(pet, false); pet.EndWork();
+                typeof(Pet).GetField("glancing", fields).SetValue(pet, true); pet.CheckKeepAwake();
+                if (starts != 5) throw new Exception("A screen watch did not keep the screen awake.");
+                typeof(Pet).GetField("glancing", fields).SetValue(pet, false); pet.CheckKeepAwake();
+                if (stops != 5) throw new Exception("A finished screen watch kept an inhibitor.");
+                var catalog = Hands.Catalog; var run = Hands.Run; var opened = Hands.Opened;
+                try
+                {
+                    Security.Set(Security.Open, true);
+                    Hands.Catalog = () => new List<InstalledApp> { new InstalledApp("Awake app", "exec:awake-test") };
+                    Hands.Opened = _ => ""; Hands.Forget();
+                    int did = 0;
+                    Hands.Run = _ => { if (starts != 6 || stops != 5) throw new Exception("A real tool entered without its inhibitor."); did++; };
+                    pet.Brain.Act("open_app", new ToolArguments { Name = "Awake app" });
+                    if (did != 1 || stops != 6) throw new Exception("The tool boundary did not release its inhibitor.");
+                    Hands.Run = _ => { throw new InvalidOperationException("fake tool failure"); };
+                    try { pet.Brain.Act("open_app", new ToolArguments { Name = "Awake app" }); }
+                    catch (InvalidOperationException) { }
+                    if (starts != 7 || stops != 7) throw new Exception("A failed tool kept its inhibitor.");
+                }
+                finally { Hands.Catalog = catalog; Hands.Run = run; Hands.Opened = opened; Hands.Forget(); }
+            }
+            finally { pet.StopAwake(); pet.Wakeful = before; typeof(Pet).GetField("quitting", fields).SetValue(pet, false); typeof(Pet).GetField("workCount", fields).SetValue(pet, 0); typeof(Pet).GetField("glancing", fields).SetValue(pet, glancing); Security.Drop(); Security.Load(security); pet.SetKeepAwake(enabled); }
+            checks.Add("PASS keep awake uses fake Mac and Linux processes, falls back to ScreenSaver, spans nested work and held answers, and releases on completion, Off, cancelled startup and quit");
+        }
+
+        private void VaultChecks(Mainframe frame, System.Reflection.BindingFlags fields)
+        {
+            string root = Path.Combine(folder, "obsidian-test"), first = Path.Combine(root, "A vault"), second = Path.Combine(root, "B vault");
+            Directory.CreateDirectory(first); Directory.CreateDirectory(second);
+            string json = System.Text.Json.JsonSerializer.Serialize(new { vaults = new Dictionary<string, object> { { "a", new { path = first } }, { "gone", new { path = Path.Combine(root, "gone") } } } });
+            foreach (string list in new[] { Path.Combine(root, ".config", "obsidian", "obsidian.json"), Path.Combine(root, "Library", "Application Support", "obsidian", "obsidian.json") }) { Directory.CreateDirectory(Path.GetDirectoryName(list)); File.WriteAllText(list, json); }
+            string flatpak = Path.Combine(root, ".var", "app", "md.obsidian.Obsidian", "config", "obsidian", "obsidian.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(flatpak)); File.WriteAllText(flatpak, System.Text.Json.JsonSerializer.Serialize(new { vaults = new Dictionary<string, object> { { "a", new { path = first } }, { "b", new { path = second } } } }));
+            var linux = Pet.ObsidianVaults(root, false); var mac = Pet.ObsidianVaults(root, true);
+            if (linux.Count != 2 || mac.Count != 1 || linux[0].Key != "A vault" || linux[1].Value != second || Pet.VaultsIn("not json").Count != 0) throw new Exception("Obsidian's Mac, Linux or Flatpak lists read wrong.");
+            var listed = pet.VaultList; string pathWas = Brain.MemoryPath, vaultWas = Brain.VaultFolder, savedWas = pet.Saved.Vault;
+            string own = (string)typeof(Pet).GetField("ownNotes", fields).GetValue(pet);
+            string content = File.Exists(own) ? File.ReadAllText(own) : null;
+            MainframeSheet sheet = null;
+            try
+            {
+                pet.VaultList = () => linux; pet.Saved.Vault = null; Brain.MemoryPath = own; Brain.VaultFolder = null;
+                File.WriteAllText(own, Brain.NotesHead + "- Likes tea\n");
+                frame.ShowSettings(true); frame.Press("Obsidian vault");
+                var sheets = (List<Window>)typeof(Mainframe).GetField("sheets", fields).GetValue(frame); sheet = (MainframeSheet)sheets[sheets.Count - 1];
+                var picker = (NeonPicker)sheet.Rows["Obsidian vault"]; picker.Pick(1);
+                string note = Path.Combine(first, Pet.VaultNote);
+                if (Brain.MemoryPath != note || Brain.VaultFolder != first || SettingsCopy().Vault != note || !File.ReadAllText(note).Contains("- Likes tea")) throw new Exception("Picking a vault did not move her notes.");
+                Brain.Note("Likes walks");
+                if (!File.ReadAllText(note).Contains("- Likes walks")) throw new Exception("New notes did not go to the vault.");
+                string custom = Path.Combine(second, "Chosen.md"); File.WriteAllText(custom, Brain.NotesHead + "- Likes tea\n- Likes games\n"); pet.SetVault(custom);
+                if (picker.Text != "Note: Chosen.md" || !File.ReadAllText(custom).Contains("- Likes walks") || System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(custom), "- Likes tea").Count != 1) throw new Exception("A chosen note lost or duplicated memories.");
+                picker.Pick(0);
+                if (Brain.MemoryPath != own || Brain.VaultFolder != null || SettingsCopy().Vault != null || !File.ReadAllText(own).Contains("- Likes games") || !File.Exists(note) || !File.Exists(custom)) throw new Exception("Her own notes did not bring memories back and keep the vault copies.");
+            }
+            finally { sheet?.Close(); pet.VaultList = listed; Brain.MemoryPath = pathWas; Brain.VaultFolder = vaultWas; pet.Saved.Vault = savedWas; if (content == null) File.Delete(own); else File.WriteAllText(own, content); }
+            checks.Add("PASS vaults read Mac, Linux and Flatpak lists, keep unique existing vaults, move notes through the Mainframe picker, merge a chosen note and bring notes home");
         }
 
         private void MainframeSheets(Mainframe frame)
