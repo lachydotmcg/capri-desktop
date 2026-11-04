@@ -26290,6 +26290,8 @@ namespace CapriDesktop
 
         private void SmokeLanguageBounds(ToolStripDropDown menu, Rectangle area, bool[] seen)
         {
+            // A Mainframe across two screens drops the menu on the one under its button, so each menu has to fit the screen it's on.
+            if (Screen.AllScreens.Length > 1) area = Screen.FromRectangle(menu.Bounds).WorkingArea;
             if (!menu.Visible || !area.Contains(menu.Bounds)) throw new Exception("The language menu leaves its screen: " + menu.Bounds + " in " + area);
             foreach (ToolStripItem item in menu.Items)
             {
