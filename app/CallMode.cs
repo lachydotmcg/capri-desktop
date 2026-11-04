@@ -353,10 +353,15 @@ namespace CapriDesktop
             }
         }
 
-        // What she says to the call for you is written on purpose by her brain, from what you asked her to pass on, whether she
-        // just joined or was already there: you're away for some cheeky reason, you sent her, and she'll launch whatever they're
-        // playing (Lachy, 4 Nov: she said just "Lachy's on in 15, so which game are we playing", and already in the call she
-        // never got here). Her reply to you isn't said on the call then; she's talking to them.
+        private string CallReply(int ticket, string asked)
+        {
+            lock (callLines)
+            {
+                if (callLineAsk != ticket || ticket != Volatile.Read(ref asking) || !callLines.Exists(line => line != CallMicNotice)) return null;
+            }
+            return Computer.Mask(CallLine(ticket, JoinSpeech(ticket, asked, "Got it.")));
+        }
+
         private string JoinSpeech(int ticket, string asked, string said)
         {
             List<string> lines = new List<string>();
@@ -413,15 +418,12 @@ namespace CapriDesktop
 
         private string FillCallErrand(string text, int version, int ticket, CallErrand waiting)
         {
-            string name = brain.CallPick(text, waiting.Action);
+            string line;
+            string name = brain.CallPick(text, waiting.Action, out line);
             if (name == null) return null;
             bool opened;
             string done = OpenCallPick(name, version, ticket, waiting, out opened);
-            // Done, she tells the call in her own words, joking about you if she likes (Lachy, 4 Nov: "Lachy's taking a fat shit
-            // so in the meantime I'll boot cyberpunk up for him!"). Her brain gets the line it's answering and what she did, no tools.
-            if (!opened) return done;
-            try { string line = brain.CallDone(text, done); return string.IsNullOrWhiteSpace(line) || line.Length > 240 ? done : line; }
-            catch (Exception) { return done; }
+            return opened && !string.IsNullOrWhiteSpace(line) ? line : done;
         }
 
         private string OpenCallPick(string name, int version, int ticket, CallErrand waiting, out bool opened)

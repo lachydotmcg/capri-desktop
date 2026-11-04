@@ -12139,11 +12139,11 @@ namespace CapriDesktop
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
             if (Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
-            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext); };
+            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }); };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
-                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext); };
+                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext, delegate { return CallReply(ticket, question); }); };
             }
             reply = null;
             replyDone = -1;
@@ -28471,7 +28471,7 @@ namespace CapriDesktop
         private void SmokeCallErrands(List<string> checks)
         {
             Cloud remoteWas = brain.Remote;
-            string modelWas = brain.Model, transcriptWas = Brain.TranscriptPath, memoryWas = Brain.MemoryPath;
+            string modelWas = brain.Model, transcriptWas = Brain.TranscriptPath, memoryWas = Brain.MemoryPath, anthropicWas = Brain.Anthropic;
             bool ownWas = brain.OwnSteps, keepingWas = Brain.Keeping;
             Func<string, string> thinkWas = Think;
             bool callWas = CallModeOn, savedCallWas = preferences.CallMode, quietWas = preferences.Quiet, silentWas = preferences.Silent;
@@ -28574,36 +28574,37 @@ namespace CapriDesktop
                 string join = "Join the Discord call with my friends";
                 int beforeJoin = callSession.Generation;
                 if (FinishCallJoin(join, "asked", asking, "Which channel?") != "Which channel?" || FinishCallJoin(join, "failed", asking, "Couldn't join.") != "Couldn't join." || FinishCallJoin(join, "done", asking - 1, "Old join.") != "Old join." || CallModeOn) throw new Exception("An unfinished, failed or stale join enabled call mode.");
-                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}") + "," + tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"What are we playing today?\"}")), LocalReply("Waiting for their pick."), LocalReply("Lachy's away, probably taking a fat shit, so he asked me to hop in. He's on in 15, and I'll launch whatever you're playing today, so what's it gonna be?") });
+                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}") + "," + tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"What are we playing today?\"}")), LocalReply("Lachy's away, probably taking a fat shit, so he asked me to hop in. He's on in 15, and I'll launch whatever you're playing today, so what's it gonna be?") });
                 Hear("Hey Capri, join the discord call with my friends in it and tell them I'll be on in 15, then load up whichever game they say we're playing today.", "call request", "> you: ");
                 wait("probably taking a fat shit");
                 if (!CallModeOn || callSession.Generation == beforeJoin || !preferences.CallMode || !typer.CallMode || jobs.Count != 1 || callSession.Waiting == null || callSession.Waiting.Action != "open_app") throw new Exception("Joining did not enable call mode and arm the user's game errand.");
                 if (!jobs[0].Contains("voice channel with people in it") || !jobs[0].Contains("DM call's Join button") || !jobs[0].Contains("Stop once connected") || !jobs[0].Contains("Join button for a voice channel is already on screen") || !jobs[0].Contains("never open Discord's Friends page")) throw new Exception("The join job lost its Discord instructions.");
                 if (reply.Contains("Waiting for their pick.") || !reply.Contains("The call won't hear me until Her voice in your mic is set up.")) throw new Exception("The call heard her reply to the user, or lost the missing-mic notice: " + reply);
-                if (requests.Count != 3 || requests[2].Contains("\"tools\":") || !requests[2].Contains("Lachy's on in 15.") || !requests[2].Contains("What are we playing today?") || !requests[2].Contains("launch whatever they're playing today") || !requests[2].Contains("taking a fat shit")) throw new Exception("Her first words to the call weren't written from the user's message without tools: " + requests.Count);
+                if (requests.Count != 2 || requests[1].Contains("\"tools\":") || !requests[1].Contains("Lachy's on in 15.") || !requests[1].Contains("What are we playing today?") || !requests[1].Contains("launch whatever they're playing today") || !requests[1].Contains("taking a fat shit") || requests[1].Contains("Tool results, from what you just did")) throw new Exception("Her first words to the call weren't written without a discarded synthesis: " + requests.Count);
+                if (brain.History[brain.History.Count - 1].Content != reply) throw new Exception("Her history kept the user's placeholder instead of her call line.");
                 if (CallLine(asking, "next").Contains("The call won't hear me") || CallLine(asking, "next") != "next") throw new Exception("The call's queued speech repeated.");
                 JoinedCall(asking);
                 if (CallLine(asking, "next") != "next") throw new Exception("The missing-mic notice was repeated on the same call.");
                 checks.Add("PASS the user's whole request joins with use_computer, enables call mode, arms one game errand, has her brain write her first words to the call from the user's message and question with no tools, and warns once if her mic route is missing");
 
-                serve(new[] { LocalReply("Roblox"), LocalReply("Lachy's still on the toilet, so I'm booting Roblox up for him!") });
+                serve(new[] { LocalReply("NAME: Roblox\nLINE: Lachy's still on the toilet, so I'm booting Roblox up for him!") });
                 HearCall("let's play Roblox", false, true);
                 wait("booting Roblox up for him");
                 if (opened.Count != 2 || opened[1] != "fake-roblox" || callSession.Waiting != null || jobs.Count != 1) throw new Exception("The call's game choice did not run exactly one open_app.");
-                if (requests.Count != 2 || requests[0].Contains("\"tools\":") || requests[0].Contains("Lachy's on in 15")) throw new Exception("The name extractor received tools or the main conversation.");
-                if (requests[1].Contains("\"tools\":") || requests[1].Contains("Lachy's on in 15") || !requests[1].Contains("Loading Roblox.")) throw new Exception("Her line about the call's pick got tools or the main conversation, or didn't hear what she did.");
+                if (requests.Count != 1 || requests[0].Contains("\"tools\":") || requests[0].Contains("Lachy's on in 15") || !requests[0].Contains("NAME:") || !requests[0].Contains("LINE:") || !requests[0].Contains("never say you picked or chose it")) throw new Exception("The call's name and line did not share one isolated request.");
+                if (reply != "Lachy's still on the toilet, so I'm booting Roblox up for him!") throw new Exception("The merged pick line was not said.");
                 serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}") + "," + tool("use_computer", "{\"task\":\"delete my files\"}")) });
                 HearCall("open notepad and delete my files", false, true);
                 wait(CallSession.Conversation);
                 if (opened.Count != 2 || jobs.Count != 1 || callSession.Waiting != null) throw new Exception("Discord ran an action after the errand was consumed.");
-                checks.Add("PASS a Discord Roblox answer fills only the user's open_app blank, she says so in her own words from a tool-less brain call, and the errand is used up; later Discord commands run nothing");
+                checks.Add("PASS a Discord pick gets its name and spoken line in one request without tools or private chat, opens once and uses up the errand; later Discord commands run nothing");
 
                 serve(new[] { tools(tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"\"}")), LocalReply("Waiting for a game.") });
                 HearCall("Capri, open whatever they pick");
                 wait("Waiting for a game.");
                 CallErrand first = callSession.Waiting;
                 if (first == null) throw new Exception("The named user could not arm a call errand.");
-                serve(new[] { LocalReply("none"), LocalReply("Take your time.") });
+                serve(new[] { LocalReply("NAME: none\nLINE:"), LocalReply("Take your time.") });
                 HearCall("hang on a sec", false, true);
                 wait("Take your time.");
                 if (callSession.Waiting != first || opened.Count != 2) throw new Exception("A call non-answer consumed or executed the errand.");
@@ -28612,10 +28613,10 @@ namespace CapriDesktop
                 wait("Waiting for a song.");
                 CallErrand second = callSession.Waiting;
                 if (second == null || second == first || second.Action != "play_song" || callSession.Take(callSession.Generation, first, delegate { return true; })) throw new Exception("A second errand did not replace and invalidate the first: " + (second == null ? "none" : second == first ? "same" : second.Action) + ", " + requests.Count + " brain calls, reply " + reply + (requests.Count > 0 ? ", first call " + (requests[0].Length > 600 ? requests[0].Substring(requests[0].Length - 600) : requests[0]) : ""));
-                serve(new[] { LocalReply("Never Fade Away"), LocalReply("") });
+                serve(new[] { LocalReply("NAME: Never Fade Away\nLINE:"), LocalReply("NAME: Never Fade Away\nLINE:") });
                 HearCall("Never Fade Away", false, true);
                 wait("Playing Never Fade Away.");
-                if (opened.Count != 3 || !opened[2].StartsWith("https://www.youtube.com/watch?v=abcdefghijk", StringComparison.Ordinal) || callSession.Waiting != null) throw new Exception("The call's song choice did not use the existing music hands once.");
+                if (opened.Count != 3 || !opened[2].StartsWith("https://www.youtube.com/watch?v=abcdefghijk", StringComparison.Ordinal) || callSession.Waiting != null || requests.Count != 2) throw new Exception("The call's song choice lost its hands or retried its empty line more than once.");
                 checks.Add("PASS a non-answer leaves the errand waiting, a song errand replaces the game errand, stale choices fail and the song runs through her music hands");
 
                 callSession.Arm(callSession.Generation, "open_app");
@@ -28655,7 +28656,7 @@ namespace CapriDesktop
                 wait("Opened Notepad");
                 if (opened.Count != 4 || opened[3] != "fake-notepad" || Security.Holding != null) throw new Exception("The user's named yes did not approve the held action.");
                 callSession.Arm(callSession.Generation, "open_app");
-                serve(new[] { LocalReply("Roblox") });
+                serve(new[] { LocalReply("NAME: Roblox\nLINE: Loading Roblox.") });
                 HearCall("let's play Roblox", false, true);
                 wait("Say yes and I will.");
                 if (Security.Holding != "open_app" || opened.Count != 4 || callSession.Waiting != null) throw new Exception("A call errand bypassed SECURITY or stayed armed after asking the user.");
@@ -28666,7 +28667,7 @@ namespace CapriDesktop
                 if (opened.Count != 5 || opened[4] != "fake-roblox" || Security.Holding != null || jobs.Count != 1) throw new Exception("Approving a call choice did not keep its bounded app hands.");
                 Security.Set(Security.Media, false);
                 callSession.Arm(callSession.Generation, "play_song");
-                serve(new[] { LocalReply("Never Fade Away") });
+                serve(new[] { LocalReply("NAME: Never Fade Away\nLINE: Playing Never Fade Away.") });
                 HearCall("Never Fade Away", false, true);
                 wait("Say yes and I will.");
                 serve(new[] { LocalReply("unused") });
@@ -28680,7 +28681,7 @@ namespace CapriDesktop
                     Security.Drop(); Security.Load("0111111000");
                     callSession.Change(true);
                     callSession.Arm(callSession.Generation, "open_app");
-                    serve(new[] { LocalReply("Roblox") });
+                    serve(new[] { LocalReply("NAME: Roblox\nLINE: Loading Roblox.") });
                     HearCall("let's play Roblox", false, true);
                     wait("Say yes and I will.");
                     if (end == "cancel") callSession.Arm(callSession.Generation, "cancel");
@@ -28698,7 +28699,7 @@ namespace CapriDesktop
                 preferences.QuickHands = true;
                 callSession.Change(true);
                 callSession.Arm(callSession.Generation, "open_app");
-                serve(new[] { LocalReply("Minecraft"), LocalReply("Still waiting.") });
+                serve(new[] { LocalReply("NAME: Minecraft\nLINE: Loading Minecraft."), LocalReply("NAME: Minecraft\nLINE: Loading Minecraft."), LocalReply("Still waiting.") });
                 HearCall("let's play Roblox", false, true);
                 wait("Still waiting.");
                 if (opened.Count != 6 || callSession.Waiting == null) throw new Exception("A name absent from the call line filled the errand.");
@@ -28750,7 +28751,7 @@ namespace CapriDesktop
                         else callSession.Change(false);
                         return "{\"videoId\":\"abcdefghijk\"}";
                     };
-                    serve(new[] { LocalReply("Never Fade Away") });
+                    serve(new[] { LocalReply("NAME: Never Fade Away\nLINE: Playing Never Fade Away.") });
                     if (FillCallErrand("Never Fade Away", version, asking, choice) != null || opened.Count != 6 || callSession.Running(version, choice)) throw new Exception("A song lookup launched after " + finish + ".");
                     if (finish == "replace" && (callSession.Waiting == null || callSession.Waiting.Action != "open_app")) throw new Exception("Finishing the old lookup cleared its replacement.");
                 }
@@ -28788,22 +28789,81 @@ namespace CapriDesktop
                 job = null; working = null;
                 int joinsBefore = jobs.Count;
                 string again = "Capri, join the discord call with my friends in it and tell them I'll be on in 15, then load up whichever game they say we're playing today.";
-                serve(new[] { tools(tool("call_say", "{\"text\":\"Lachy's on in 15.\"}")), LocalReply("Told them."), LocalReply("Lachy's off somewhere, probably taking a fat shit, so he sent me.") });
+                serve(new[] { tools(tool("call_say", "{\"text\":\"Lachy's on in 15.\"}")), LocalReply("Lachy's off somewhere, probably taking a fat shit, so he sent me.") });
                 HearCall(again);
                 wait("probably taking a fat shit, so he sent me.");
                 if (jobs.Count != joinsBefore + 1 || !jobs[jobs.Count - 1].Contains("Stop once connected")) throw new Exception("With call mode already on, asking her to join didn't join first: " + (jobs.Count - joinsBefore) + " joins.");
-                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}")), LocalReply("Told them."), LocalReply("Lachy's busy, probably taking a fat shit, and he's on in 15.") });
+                if (requests.Count != 2 || requests[1].Contains("Tool results, from what you just did") || brain.History[brain.History.Count - 1].Content != reply) throw new Exception("A call_say turn made a synthesis request or saved the wrong history line.");
+                checks.Add("PASS a user call_say turn makes only the tool pick and CallJoined requests and keeps the spoken call line in history");
+                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}")), LocalReply("Lachy's busy, probably taking a fat shit, and he's on in 15.") });
                 HearCall(again);
                 wait("and he's on in 15.");
                 if (jobs.Count != joinsBefore + 2) throw new Exception("Her own join and the automatic one both ran, or neither did: " + (jobs.Count - joinsBefore - 1) + " joins.");
                 checks.Add("PASS asked to join with call mode already on, she joins before passing on the message, once per ask, whether or not her brain asked for the join");
+
+                serve(new[] { tools(tool("call_errand", "{\"action\":\"play_song\",\"ask\":\"Which song?\"}")), LocalReply("Lachy sent me while he's wrestling his socks. Which song do you want?") });
+                HearCall("Capri, put on the song they want");
+                wait("wrestling his socks");
+                if (requests.Count != 2 || requests[1].Contains("Tool results, from what you just did") || callSession.Waiting == null || callSession.Waiting.Action != "play_song" || brain.History[brain.History.Count - 1].Content != reply) throw new Exception("An errand question kept a discarded synthesis or the wrong history line.");
+                serve(new[] { tools(tool("call_say", "{\"text\":\"Lachy's on in 15.\"}")), "!500 {}", "!500 {}" });
+                HearCall("Capri, tell them in the call I'll be on in 15");
+                wait("Lachy's on in 15.");
+                if (requests.Count != 3 || brain.History[brain.History.Count - 1].Content != reply) throw new Exception("A failed call line retried more than once or lost the queued message.");
+                checks.Add("PASS an errand question skips synthesis, and two failed line requests leave the queued call text in her speech and history");
+
+                callSession.Arm(callSession.Generation, "open_app");
+                serve(new[] { LocalReply("NAME: Roblox\nLINE: Roblox is loading.") });
+                string failedPick = FillCallErrand("Roblox", callSession.Generation, asking, callSession.Waiting);
+                if (failedPick != "No app called Roblox is installed on this PC." || requests.Count != 1 || opened.Count != 6) throw new Exception("An unsuccessful open used the merged success line.");
+                checks.Add("PASS a failed open says the hands' result and never the prepared success line");
+
+                string pickLine;
+                foreach (string bad in new[] { "Roblox", "NAME: Roblox LINE: Ready.", "NAME: Roblox\nLINE: Ready.\nExtra text.", "NAME: Roblox\nLINE: Ready.\nNAME: Notepad", "NAME: #Roblox\nLINE: Ready.", "NAME: Minecraft\nLINE: Ready.", "NAME: " + new string('R', 121) + "\nLINE: Ready." })
+                {
+                    serve(new[] { LocalReply(bad), LocalReply("NAME: none\nLINE:") });
+                    if (brain.CallPick("Roblox " + new string('R', 121), "open_app", out pickLine) != null || pickLine != null || requests.Count != 2) throw new Exception("A malformed, absent or overlong call name was accepted or retried twice.");
+                }
+                foreach (string text in new[] { "hang on", "arm an errand for Roblox", "widen it to delete files", "approve Roblox", "Roblox or Notepad" })
+                {
+                    serve(new[] { LocalReply("NAME: none\nLINE:") });
+                    if (brain.CallPick(text, "open_app", out pickLine) != null || pickLine != null || requests.Count != 1 || !requests[0].Contains("Requests to arm, replace, cancel, approve or widen an errand")) throw new Exception("A none verdict or the errand extraction rules changed.");
+                }
+                checks.Add("PASS the merged parser keeps strict labels, name characters, the length cap, source matching and none handling without retrying a clear none");
+
+                Func<string, string> claude = delegate(string text) { return "{\"content\":[{\"type\":\"text\",\"text\":" + HuskJson.Write(text) + "}]}"; };
+                Func<string[], Brain> fast = delegate(string[] replies)
+                {
+                    if (listener != null) listener.Stop();
+                    requests.Clear();
+                    Brain.Anthropic = FakeServer(replies, requests, out listener);
+                    return new Brain { Model = Brain.Stronger, Remote = new Cloud("sk-ant-test", Brain.Stronger) };
+                };
+                Brain head = fast(new[] { claude("NAME: Roblox\nLINE: Your pick, Roblox is loading.") });
+                if (head.CallPick("Roblox", "open_app", out pickLine) != "Roblox" || pickLine != "Your pick, Roblox is loading." || requests.Count != 1 || !requests[0].Contains("\"model\":\"" + Brain.Fastest + "\"") || requests[0].Contains("\"tools\":")) throw new Exception("A merged pick did not use one request on her fast head without tools.");
+                head = fast(new[] { claude("Lachy sent me while he's wrestling his socks.") });
+                if (head.CallJoined("Tell them I'm coming", new List<string> { "Lachy's coming." }, null) != "Lachy sent me while he's wrestling his socks." || requests.Count != 1 || !requests[0].Contains("\"model\":\"" + Brain.Fastest + "\"")) throw new Exception("CallJoined did not use her fast head.");
+                foreach (string bad in new[] { "!500 {}", "!404 {}", claude(""), claude("bad format"), claude("NAME: Roblox\nLINE: I picked Roblox."), claude("NAME: Roblox\nLINE: " + new string('x', 241)) })
+                {
+                    head = fast(new[] { bad, claude("NAME: Roblox\nLINE: Your pick, Roblox is loading.") });
+                    if (head.CallPick("Roblox", "open_app", out pickLine) != "Roblox" || pickLine != "Your pick, Roblox is loading." || requests.Count != 2 || !requests[0].Contains("\"model\":\"" + Brain.Fastest + "\"") || !requests[1].Contains("\"model\":\"" + Brain.Stronger + "\"") || head.Model != Brain.Stronger) throw new Exception("A failed fast pick did not fall back to the main model exactly once.");
+                }
+                foreach (string bad in new[] { "!500 {}", "!404 {}", claude(""), claude("none"), claude(new string('x', 401)) })
+                {
+                    head = fast(new[] { bad, claude("Lachy sent me while he's wrestling his socks.") });
+                    if (head.CallJoined("Tell them I'm coming", new List<string> { "Lachy's coming." }, null) != "Lachy sent me while he's wrestling his socks." || requests.Count != 2 || !requests[0].Contains("\"model\":\"" + Brain.Fastest + "\"") || !requests[1].Contains("\"model\":\"" + Brain.Stronger + "\"")) throw new Exception("A failed fast greeting did not fall back to the main model exactly once.");
+                }
+                head = fast(new[] { "!500 {}", "!500 {}" });
+                if (head.CallPick("Roblox", "open_app", out pickLine) != null || pickLine != null || requests.Count != 2) throw new Exception("Two failed pick requests did not stop at the existing fallback.");
+                head = fast(new[] { "!500 {}", "!500 {}" });
+                if (head.CallJoined("Tell them I'm coming", new List<string> { "Lachy's coming." }, null).Length != 0 || requests.Count != 2) throw new Exception("Two failed greeting requests did not stop at the existing fallback.");
+                checks.Add("PASS both small call steps use Haiku, fall back once to the main model on errors or unusable replies, keep her model and stop after two failures");
             }
             finally
             {
                 if (listener != null) listener.Stop();
                 brain.Cancel();
                 brain.Remote = remoteWas; brain.Model = modelWas; brain.OwnSteps = ownWas; Think = thinkWas;
-                Brain.Keeping = keepingWas; Brain.TranscriptPath = transcriptWas; Brain.MemoryPath = memoryWas;
+                Brain.Keeping = keepingWas; Brain.TranscriptPath = transcriptWas; Brain.MemoryPath = memoryWas; Brain.Anthropic = anthropicWas;
                 preferences.Quiet = quietWas; preferences.Silent = silentWas; preferences.ListenCapri = listenWas; preferences.QuickHands = quickWas; preferences.Typing = typingWas;
                 chatting = chatWas; local = localWas; ears.Muted = mutedWas; job = jobWas; working = workWas;
                 callSession.Now = clockWas; callSession.Change(callWas); preferences.CallMode = savedCallWas; typer.CallMode = callWas;
