@@ -17236,7 +17236,8 @@ namespace CapriDesktop
                 { "fake_crash", "{\"action\":\"stop\"}" }, { "voice_chat", "{\"action\":\"status\"}" }, { "speech", "{\"action\":\"stop\"}" },
                 { "job_control", "{\"action\":\"status\"}" }, { "quit", "{\"action\":\"quit\"}" }, { "mainframe", "{}" }, { "updates", "{\"action\":\"status\"}" },
                 { "mini_player", "{\"action\":\"hide\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
-                { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" }
+                { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
+                { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" }
             };
             for (int i = 0; i < Hands.Count; i++)
             {
@@ -28598,7 +28599,7 @@ namespace CapriDesktop
                 HearCall("Capri, put on the song they want");
                 wait("Waiting for a song.");
                 CallErrand second = callSession.Waiting;
-                if (second == null || second == first || second.Action != "play_song" || callSession.Take(callSession.Generation, first, delegate { return true; })) throw new Exception("A second errand did not replace and invalidate the first.");
+                if (second == null || second == first || second.Action != "play_song" || callSession.Take(callSession.Generation, first, delegate { return true; })) throw new Exception("A second errand did not replace and invalidate the first: " + (second == null ? "none" : second == first ? "same" : second.Action) + ", " + requests.Count + " brain calls, reply " + reply + (requests.Count > 0 ? ", first call " + (requests[0].Length > 600 ? requests[0].Substring(requests[0].Length - 600) : requests[0]) : ""));
                 serve(new[] { LocalReply("Never Fade Away"), LocalReply("") });
                 HearCall("Never Fade Away", false, true);
                 wait("Playing Never Fade Away.");

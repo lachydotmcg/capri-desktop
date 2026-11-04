@@ -998,9 +998,9 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The note, about them in the third person, or what to forget\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"remember\",\"forget\"]}},\"required\":[\"text\"]}", "keep notes about you in me.md", "save notes about them in me.md" },
 #if !CROSS
             { "call_errand", "Only when the user asks, let people on the call choose one app or game to open, or one song to play. Call mode must be on; join first with use_computer if asked. The next answering call line supplies only its name. One errand replaces the last and lasts ten minutes. Use cancel when the user cancels it. ask is an optional short line to say on the call with this reply; keep it empty if no question is needed.",
-              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"open_app\",\"play_song\",\"cancel\"]},\"ask\":{\"type\":\"string\"}},\"required\":[\"action\"]}", "let your call choose one game, app or song when you ask", "let the call fill one choice set by the user" },
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What the call gets to choose, or cancel to drop it\",\"enum\":[\"open_app\",\"play_song\",\"cancel\"]},\"ask\":{\"type\":\"string\",\"description\":\"A short question to say on the call, or empty\"}},\"required\":[\"action\"]}", "let your call choose one game, app or song when you ask", "let the call fill one choice set by the user" },
             { "call_say", "Say a short message on the call that the user asked you to pass on. Speak about the user in your words, such as Lachy's on in 15. Join first if needed. This line will be spoken with your reply, so do not repeat it in your answer.",
-              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}},\"required\":[\"text\"]}", "pass your message to the call", "say the user's message on the call" },
+              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The message, about the user in your own words\"}},\"required\":[\"text\"]}", "pass your message to the call", "say the user's message on the call" },
             { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files and folders" },
             { "website_nickname", "Remember a website by a nickname, forget it, or list saved websites. For the website in their front browser, leave site empty; its address is read without moving their mouse or keyboard. Open a saved nickname with open_website.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"save\",\"forget\",\"list\"]},\"name\":{\"type\":\"string\",\"description\":\"The whole nickname\"},\"site\":{\"type\":\"string\",\"description\":\"The address they gave, or omit for the front browser\"}},\"required\":[\"action\"]}", "remember websites by nicknames", "save nicknames for websites" },
@@ -2116,6 +2116,8 @@ namespace CapriDesktop
             if (HologramOn.IsMatch(Asked(said)) || HologramOff.IsMatch(Asked(said))) return true;
 #if !CROSS
             if (Ink.Request(Asked(said)) != null) return true;
+            // "Put on the song they want" leaves the call a choice, which is call_errand's job.
+            if (CallSession.Blank(said)) return true;
             if (Files.PathIn(said) != null) return true;
             if (WatchRequest(Asked(said)) != null) return true;
             if (CapriDesktop.Websites.Request(Asked(said)) != null || FileFinder.Request(Asked(said), Finder.Busy, Finder.Found) != null) return true;
