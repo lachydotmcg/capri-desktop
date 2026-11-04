@@ -1555,7 +1555,7 @@ namespace CapriDesktop
                     preferences.HuskMode = husk.Mode;
                     SavePreferences();
                     mainframe.Sync();
-                    string note = mode == 0 ? "Husk mode off. My hooks are removed."
+                    string note = mode == 0 ? "Code/Husk Mode off. My hooks are removed."
                         : mode == 1 ? "Restart Claude Code to use my hooks."
                         : mode == 2 ? "Restart Codex and trust my hooks when it asks."
                         : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";

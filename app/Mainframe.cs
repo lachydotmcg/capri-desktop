@@ -744,12 +744,12 @@ namespace CapriDesktop
             watchMemory.Changed += delegate { if (!syncing) capri.SetWatchMemory(WatchLines[watchMemory.Value]); };
             int afterWatchMemory = Controls.Count;
             Section("BRAIN >", c, 330);
-            Named("Husk mode", c, 354);
+            Named("Code/Husk Mode", c, 354);
             huskMenu = Dropdown();
-            huskMenu.AccessibleName = "Husk mode choices";
-            huskMode = Make("Off", ValueAt + c, 357, ValueWide, 22, delegate { huskMenu.Show(huskMode, new Point(0, huskMode.Height)); }, "Husk mode");
+            huskMenu.AccessibleName = "Code/Husk Mode choices";
+            huskMode = Make("Off", ValueAt + c, 357, ValueWide, 22, delegate { huskMenu.Show(huskMode, new Point(0, huskMode.Height)); }, "Code/Husk Mode");
             huskMode.Chevron = true;
-            huskMode.AccessibleName = "Husk mode";
+            huskMode.AccessibleName = "Code/Husk Mode";
             for (int i = 0; i < HuskNames.Length; i++)
             {
                 int choice = i;

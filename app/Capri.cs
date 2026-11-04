@@ -27662,7 +27662,7 @@ namespace CapriDesktop
             }
             finally { Hands.Windows = windowsWas; }
             mainframe.Sync();
-            if (mainframe.HuskShown != "Codex" || !mainframe.HuskPicker || !mainframe.HuskTip || SelfKnow.Setting("Mainframe.cs", "Husk mode") == null || new Preferences().HuskMode != 0) throw new Exception("Husk Settings lost its picker, mode, help, tip or off default.");
+            if (mainframe.HuskShown != "Codex" || !mainframe.HuskPicker || !mainframe.HuskTip || SelfKnow.Setting("Mainframe.cs", "Code/Husk Mode") == null || new Preferences().HuskMode != 0) throw new Exception("Husk Settings lost its picker, mode, help, tip or off default.");
             watch.Change(1, exe);
             mainframe.Sync();
             beforeDuplicate = acts.Count;
