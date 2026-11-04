@@ -18,7 +18,7 @@ namespace CapriDesktop
         private float SheetZoom(int wide, int tall)
         {
             Rectangle area = Screen.FromControl(this).WorkingArea;
-            float dpi = DeviceDpi / 96f;
+            float dpi = DeviceScale() * TextScale();
             return Math.Max(0.75f, Math.Min(zoom, Math.Min(area.Width / (wide * dpi), area.Height / (tall * dpi))));
         }
 
@@ -48,6 +48,7 @@ namespace CapriDesktop
 
             protected ModSheet(Mainframe owner, float zoom, string title, string heading, int wide, int tall)
             {
+                SuspendLayout();
                 Frame = owner;
                 Zoom = zoom;
                 Text = title;
@@ -55,8 +56,7 @@ namespace CapriDesktop
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
-                AutoScaleDimensions = new SizeF(96, 96);
+                AutoScaleMode = AutoScaleMode.None;
                 Font = Type(9.5f * zoom);
                 BackColor = Ground;
                 ForeColor = White;
@@ -356,6 +356,7 @@ namespace CapriDesktop
                 empty = Words("", 28, 250, 688, 24, Font, Faint);
                 empty.TextAlign = ContentAlignment.MiddleCenter;
                 status = Words("", 28, 608, 688, 36, Font, Faint);
+                Frame.Fit(this);
                 Fill();
             }
 
@@ -605,6 +606,7 @@ namespace CapriDesktop
                 fork.Loud = true;
                 Make("Show my mod file", 186, 298, 150, 26, delegate { Open("explorer.exe", "/select,\"" + mod.Path + "\""); });
                 status = Words("", 28, 330, 464, 26, Small(), Rose);
+                Frame.Fit(this);
             }
 
             private void Open(string what, string how)
