@@ -36,22 +36,32 @@ namespace CapriSetup
                 Console.Error.WriteLine("Capri doesn't know that command: " + string.Join(" ", args));
                 return 2;
             }
-            if (mode == Mode.SilentInstall) return SilentInstall();
+            if (mode == Mode.SilentInstall) return SilentInstall(null);
+            if (mode == Mode.SilentInstallPackage) return SilentInstall(args[2]);
             using (SetupWindow window = new SetupWindow(mode == Mode.RemoveWindow)) Application.Run(window);
             return 0;
         }
 
-        internal enum Mode { Window, RemoveWindow, SilentInstall, Invalid }
+        internal enum Mode { Window, RemoveWindow, SilentInstall, SilentInstallPackage, Invalid }
 
         internal static Mode Read(string[] args)
         {
             if (args.Length == 0) return Mode.Window;
             if (args.Length == 1 && args[0] == "--uninstall") return Mode.RemoveWindow;
             if (args.Length == 1 && args[0] == "--silent") return Mode.SilentInstall;
+            if (args.Length == 3 && args[0] == "--silent" && args[1] == "--package" && Package(args[2])) return Mode.SilentInstallPackage;
             return Mode.Invalid;
         }
 
-        private static int SilentInstall()
+        private static bool Package(string name)
+        {
+            if (string.IsNullOrEmpty(name) || name.Length > 32) return false;
+            foreach (char c in name)
+                if ((c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-') return false;
+            return true;
+        }
+
+        private static int SilentInstall(string package)
         {
             try
             {
@@ -61,6 +71,7 @@ namespace CapriSetup
                     Console.Error.WriteLine("Capri couldn't save her shortcut: " + unsaved);
                     return 1;
                 }
+                File.WriteAllText(Path.Combine(InstallPath, "Capri.package"), package ?? "package");
                 return 0;
             }
             catch (Exception error)
@@ -159,8 +170,8 @@ namespace CapriSetup
                     told.Close();
                     failed.Close();
                 }
-                if (Read(new string[0]) != Mode.Window || Read(new[] { "--uninstall" }) != Mode.RemoveWindow || Read(new[] { "--silent" }) != Mode.SilentInstall || Read(new[] { "--uninstall", "--silent" }) != Mode.Invalid || Read(new[] { "--silent", "--uninstall" }) != Mode.Invalid || Read(new[] { "/S" }) != Mode.Invalid) throw new InvalidDataException("A package manager's silent command isn't read the way it sends it.");
-                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS --silent is read the way a package manager sends it, and a wrong flag fails instead of opening a window\nLIMIT installation and uninstallation were not performed\nLIMIT the silent install was not performed in this check\n");
+                if (Read(new string[0]) != Mode.Window || Read(new[] { "--uninstall" }) != Mode.RemoveWindow || Read(new[] { "--silent" }) != Mode.SilentInstall || Read(new[] { "--silent", "--package", "winget" }) != Mode.SilentInstallPackage || Read(new[] { "--silent", "--package", "Winget!" }) != Mode.Invalid || Read(new[] { "--silent", "--package" }) != Mode.Invalid || Read(new[] { "--uninstall", "--silent" }) != Mode.Invalid || Read(new[] { "/S" }) != Mode.Invalid) throw new InvalidDataException("A package manager's silent command isn't read the way it sends it.");
+                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS --silent and --silent --package <name> are read the way a package manager sends them, and a wrong flag fails instead of opening a window\nLIMIT installation and uninstallation were not performed\nLIMIT the silent install was not performed in this check\nLIMIT the package marker was not written in this check\n");
                 return 0;
             }
             catch (Exception error) { Directory.CreateDirectory(output); File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString()); return 1; }
@@ -661,6 +672,7 @@ namespace CapriSetup
                 if (removing) { Program.BeginUninstall(); Close(); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
+                try { File.Delete(Path.Combine(Program.InstallPath, "Capri.package")); } catch (Exception) { }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
             if (Environment.Is64BitOperatingSystem && !VoicePack.Complete(VoicePack.Folder(Program.InstallPath))) FetchVoice();

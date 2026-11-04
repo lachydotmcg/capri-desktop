@@ -857,6 +857,21 @@ namespace CapriDesktop
         // Where updates download. A smoke worker keeps its data in a folder of its own, so its check asks here.
         internal string Folder { get { return folder; } }
 
+        internal string Package()
+        {
+            string path = Path.Combine(Path.GetDirectoryName(app), "Capri.package");
+            if (!File.Exists(path)) return null;
+            try
+            {
+                string name = File.ReadAllText(path).Trim();
+                if (name.Length == 0 || name.Length > 32) return "your package manager";
+                foreach (char c in name)
+                    if ((c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-') return "your package manager";
+                return string.Equals(name, "package", StringComparison.Ordinal) ? "your package manager" : name;
+            }
+            catch (Exception) { return "your package manager"; }
+        }
+
         internal static ReleaseAsset Installer(Release release)
         {
             ReleaseAsset first = null;
@@ -2602,10 +2617,18 @@ namespace CapriDesktop
         private void CheckForUpdates(bool asked)
         {
             if (updating || installing) return;
-            updating = true;
-            updateStarted = true;
+            string package = updater.Package();
             preferences.UpdateCheckedAt = DateTime.UtcNow.Ticks;
             SavePreferences();
+            if (package != null)
+            {
+                ForgetUpdate();
+                checkItem.Enabled = true;
+                if (asked || string.IsNullOrEmpty(mainframe.UpdateStatus)) mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
+            updating = true;
+            updateStarted = true;
             checkItem.Enabled = false;
             updateItem.Enabled = false;
             if (asked) mainframe.UpdateNote("Checking for updates...", false);
@@ -28667,6 +28690,20 @@ namespace CapriDesktop
                             long now = DateTime.UtcNow.Ticks;
                             if (!UpdateDue(0, now) || UpdateDue(now - 3 * TimeSpan.TicksPerHour + 1, now) || !UpdateDue(now - 3 * TimeSpan.TicksPerHour, now) || !UpdateDue(now + 1, now) || UpdateDue(now, now, 19.9, false) || !UpdateDue(now, now, 20, false) || UpdateDue(now, now, 20, true)) throw new Exception("Three-hour or startup update timing failed.");
                             checks.Add("PASS update versions, three-hour boundary, startup check and clock rollback");
+                            string packageFolder = Path.Combine(Path.GetDirectoryName(updater.Folder), "package-marker");
+                            Directory.CreateDirectory(packageFolder);
+                            string packageExe = Path.Combine(packageFolder, "Capri.exe");
+                            File.WriteAllText(packageExe, "app");
+                            Updater packageUpdater = new Updater(packageFolder, packageExe, true);
+                            if (packageUpdater.Package() != null) throw new Exception("A missing package marker was read as a manager.");
+                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "winget\n");
+                            if (packageUpdater.Package() != "winget") throw new Exception("A winget package marker was not read.");
+                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "Winget!");
+                            if (packageUpdater.Package() != "your package manager") throw new Exception("A bad package marker did not block her own updater.");
+                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "package");
+                            if (packageUpdater.Package() != "your package manager") throw new Exception("The generic package marker was not read.");
+                            File.Delete(Path.Combine(packageFolder, "Capri.package"));
+                            checks.Add("PASS package marker: winget is read, a bad or generic marker still blocks her own updater, and no marker leaves her updater alone");
                             Release release;
                             using (MemoryStream sample = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"tag_name\":\"v9.0.0\",\"draft\":false,\"prerelease\":false,\"assets\":[{\"id\":1,\"name\":\"Capri.exe\"},{\"id\":2,\"name\":\"Capri-Setup.exe\"},{\"id\":3,\"name\":\"Capri-Setup-9.0.0.exe\",\"size\":10,\"browser_download_url\":\"https://github.com/lachydotmcg/capri-desktop/releases/download/v9.0.0/Capri-Setup-9.0.0.exe\"},{\"id\":4,\"name\":\"SHA256SUMS.txt\"}]}"))) release = ParseRelease(sample);
                             ReleaseAsset installer = Updater.Installer(release);
