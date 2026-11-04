@@ -4093,10 +4093,10 @@ namespace CapriDesktop
                 if (Heart && Enabled)
                 {
                     // The heart and the text are centred together, 5 px apart.
-                    int wide = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, flags).Width;
+                    int wide = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
                     float left = (Width - (17 * s + wide)) / 2;
                     DrawHeart(graphics, left + 6 * s, y, s * Swell);
-                    area = new Rectangle((int)(left + 17 * s), 0, wide + 2, Height);
+                    area = new Rectangle((int)(left + 17 * s), 0, Width - (int)(left + 17 * s), Height);
                     flags = (flags & ~TextFormatFlags.HorizontalCenter) | TextFormatFlags.Left;
                 }
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
