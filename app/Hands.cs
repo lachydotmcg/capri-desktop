@@ -2212,7 +2212,8 @@ namespace CapriDesktop
                 calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = said }));
                 return false;
             }
-            if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine" || planned.Key == "game_notes")) return false;
+            // A call line or errand is the whole plan: she joins first by herself, so "join and tell them I'll be on in 15" keeps the message.
+            if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine" || planned.Key == "game_notes" || planned.Key == "call_say" || planned.Key == "call_errand")) return false;
 #if !CROSS
             if (calls.Exists(watched => watched.Key == "watch_for")) return false;
             if (Ink.ScreenRequest(said))
