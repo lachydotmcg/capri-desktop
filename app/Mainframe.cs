@@ -1535,7 +1535,8 @@ namespace CapriDesktop
             Place();
             foreach (KeyValuePair<Control, int> entry in mainLeft) Reachable(entry.Key, !on);
             foreach (KeyValuePair<Control, int> entry in pageLeft) Reachable(entry.Key, on && !Folded(entry.Key));
-            if (Hidden(ActiveControl)) more.Focus();
+            Reachable(modsKey, !on);
+            if (Hidden(ActiveControl) || on && ActiveControl == modsKey) more.Focus();
             if (on) Sync();
             wheel = 0;
             CloseGaps();
@@ -1554,6 +1555,8 @@ namespace CapriDesktop
             foreach (KeyValuePair<Control, int> entry in pageLeft) entry.Key.Left = Scaled(entry.Value) + (paged && !Folded(entry.Key) ? 0 : Far);
             foreach (KeyValuePair<Control, int> entry in modLeft) entry.Key.Left = Scaled(entry.Value) + (modded ? 0 : Far);
             int edge = paged ? Column : 0;
+            // Settings' own Advanced Settings key takes Mods' place by Back, so Mods waits off the page there.
+            modsKey.Left = Scaled(234) + (paged ? Far : 0);
             minimize.Left = Scaled(300 + edge);
             close.Left = Scaled(330 + edge);
         }
