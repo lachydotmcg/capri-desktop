@@ -115,9 +115,12 @@ namespace CapriDesktop
             {
                 save = Regex.Match(text ?? "", @"^(?:in|for) (.+?),\s*remember (?:that )?(.+)$", RegexOptions.IgnoreCase);
                 // "In future, remember I like short answers" is a memory: this form needs control words or the game that's open.
-                string open = Hands.GameOpen();
-                if (save.Success && !Regex.IsMatch(save.Groups[2].Value, @"\b(?:keys?|buttons?|click|press|hold|tap|wasd|mouse|controller|gamepad|joystick|sticks?|triggers?|bumpers?|jump|crouch|sprint|shift|ctrl|alt|space(?:bar)?|esc|escape|tab|enter|arrows?|scroll|f\d{1,2})\b", RegexOptions.IgnoreCase)
-                    && (string.IsNullOrEmpty(open) || open.IndexOf(save.Groups[1].Value.Trim(), StringComparison.OrdinalIgnoreCase) < 0)) save = Match.Empty;
+                // Only that last case looks for the open game, since it scans every window and this runs for each thing she hears.
+                if (save.Success && !Regex.IsMatch(save.Groups[2].Value, @"\b(?:keys?|buttons?|click|press|hold|tap|wasd|mouse|controller|gamepad|joystick|sticks?|triggers?|bumpers?|jump|crouch|sprint|shift|ctrl|alt|space(?:bar)?|esc|escape|tab|enter|arrows?|scroll|f\d{1,2})\b", RegexOptions.IgnoreCase))
+                {
+                    string open = Hands.GameOpen();
+                    if (string.IsNullOrEmpty(open) || open.IndexOf(save.Groups[1].Value.Trim(), StringComparison.OrdinalIgnoreCase) < 0) save = Match.Empty;
+                }
             }
             if (save.Success && Name(save.Groups[1].Value).Length > 0) return new ToolArguments { Name = save.Groups[1].Value.Trim(), Text = save.Groups[2].Value.Trim(), Action = "save" };
             Match read = Regex.Match(text ?? "", @"^(?:show|read|list)(?: me)? (?:the |my )?(?:controls|instructions) for (.+)$", RegexOptions.IgnoreCase);

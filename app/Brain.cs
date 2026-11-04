@@ -3834,10 +3834,16 @@ namespace CapriDesktop
             return plain.Length == 0 || plain.Length > 200 || plain[0] == '<' ? null : Redacted(plain);
         }
 
+        // Keys, tokens and passwords never reach her logs, her errors or a Husk caption: provider keys, GitHub, GitLab, Slack and
+        // AWS tokens, the password in an address, NAME_TOKEN= or PASSWORD= settings, --password and --token flags, and what
+        // follows an authorization header and its scheme.
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza)[A-Za-z0-9_-]+|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
-            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token)[""']?\s*[:=]\s*[""']?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprs]-)[A-Za-z0-9_-]+|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(://[^/\s:@]+:)[^/\s@]+@", "$1[redacted]@");
+            clean = Regex.Replace(clean, @"(\b[A-Za-z0-9_]*(?:token|secret|password|passwd)[A-Za-z0-9_]*\s*=\s*)(?:""[^""]*""|'[^']*'|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"((?:^|\s)--?(?:password|passwd|token|secret|api-key)(?:=|\s+))(?:""[^""]*""|'[^']*'|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
         }
 
         internal static string ScreenProblem(Exception error, string provider)

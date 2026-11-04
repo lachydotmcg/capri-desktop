@@ -553,6 +553,8 @@ namespace CapriDesktop
         {
             string exe = string.IsNullOrWhiteSpace(image) ? process : image;
             if (string.IsNullOrWhiteSpace(exe) || !exe.StartsWith("/", StringComparison.Ordinal) || exe.IndexOfAny(new[] { '\0', '\r', '\n' }) >= 0) throw new BrainException("I need Capri's full app path to set up hooks.");
+            // A Mac app opened straight from Downloads can run from a temporary copy, and hooks pointing there break after a restart.
+            if (exe.IndexOf("/AppTranslocation/", StringComparison.Ordinal) >= 0) throw new BrainException("Move Capri into Applications and open her from there, then turn Code/Husk Mode on.");
             return exe;
         }
 
@@ -807,6 +809,15 @@ namespace CapriDesktop
 
         private static void Save(string file, string text)
         {
+#if CROSS
+            // A settings file linked in from a dotfiles folder stays a link: she writes the file it points to.
+            FileInfo linked = new FileInfo(file);
+            if (linked.Exists && linked.LinkTarget != null)
+            {
+                FileSystemInfo target = linked.ResolveLinkTarget(true);
+                if (target != null) file = target.FullName;
+            }
+#endif
             Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(file)));
             string temp = file + ".capri-" + Guid.NewGuid().ToString("N") + ".tmp";
             try
@@ -815,8 +826,16 @@ namespace CapriDesktop
                 Encoding encoding = new UTF8Encoding(false);
                 if (File.Exists(file))
                     using (StreamReader reader = new StreamReader(file, encoding, true)) { reader.ReadToEnd(); encoding = reader.CurrentEncoding; }
-                File.WriteAllText(temp, text, encoding);
-                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(temp, File.Exists(file) ? File.GetUnixFileMode(file) : UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                if (OperatingSystem.IsWindows()) File.WriteAllText(temp, text, encoding);
+                else
+                {
+                    // The new copy is born as private as the file it replaces, so a settings file holding secrets is never open to others.
+                    UnixFileMode mode = File.Exists(file) ? File.GetUnixFileMode(file) : UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                    FileStreamOptions options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, UnixCreateMode = mode };
+                    using (FileStream stream = new FileStream(temp, options))
+                    using (StreamWriter writer = new StreamWriter(stream, encoding)) writer.Write(text);
+                    File.SetUnixFileMode(temp, mode);
+                }
 #else
                 File.WriteAllText(temp, text, new UTF8Encoding(false));
 #endif

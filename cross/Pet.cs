@@ -621,7 +621,7 @@ namespace CapriDesktop
                 if (Program.Smoke != null) smoke = new Smoke(this, Program.Smoke);
                 else
                 {
-                    if (Saved.HuskMode != 0) SetHusk(Saved.HuskMode);
+                    if (Saved.HuskMode != 0) SetHusk(Saved.HuskMode, true);
                     int ticket = asking;
                     DispatcherTimer.RunOnce(() => Greet(ticket, DateTime.Now.Hour), TimeSpan.FromMilliseconds(1800));
                     if (fresh) { OpenMainframe(); meetAt = Now + 4; }
@@ -4537,6 +4537,9 @@ namespace CapriDesktop
 
         private void PrepareHusk()
         {
+            // Her listener file goes with her even when she closes without Quit: at logout, shutdown or a kill signal.
+            AppDomain.CurrentDomain.ProcessExit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
+            desktop.Exit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
             Saved.HuskMode = Math.Max(0, Math.Min(3, Saved.HuskMode));
             husk = new HuskWatch(Program.Smoke ?? folder);
             husk.Clock = delegate { return Now; };
@@ -4547,10 +4550,14 @@ namespace CapriDesktop
                 if (Dispatcher.UIThread.CheckAccess()) ShowHusk(act);
                 else Dispatcher.UIThread.Post(delegate { ShowHusk(act); });
             };
-            Brain.HuskFacts = delegate { return "\n" + HuskHelp + husk.Context(); };
+            // What the coding assistants did stays out of her brain once Code/Husk Mode is off.
+            Brain.HuskFacts = delegate { return "\n" + HuskHelp + (husk.Mode != 0 ? husk.Context() : ""); };
         }
 
-        internal void SetHusk(int mode)
+        internal void SetHusk(int mode) { SetHusk(mode, false); }
+
+        // At startup only a problem is said, so her hello isn't swapped for a restart note every time she opens.
+        private void SetHusk(int mode, bool starting)
         {
             if (quitting || huskChanging || husk == null) return;
             mode = Math.Max(0, Math.Min(3, mode));
@@ -4574,7 +4581,7 @@ namespace CapriDesktop
                         : mode == 1 ? "Restart Claude Code to use my hooks."
                         : mode == 2 ? "Restart Codex and trust my hooks when it asks."
                         : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
-                    Talk.Answer("(code/husk mode)", problem ?? note);
+                    if (problem != null || !starting) Talk.Answer("(code/husk mode)", problem ?? note);
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });
@@ -4630,7 +4637,9 @@ namespace CapriDesktop
         private void SayHusk(HuskAct act)
         {
             if (quitting || away || husk == null || !husk.Current(act) || !husk.Waiting(act)) return;
-            bool aloud = act.Aloud && !Hushed && Speaks && Voice.Loudness > 0;
+            // Mac and Linux can't tell whether the coding window is in front, so a finished turn shows in her bubble without
+            // being read out. Approvals and errors still speak.
+            bool aloud = act.Aloud && act.Kind != "done" && !Hushed && Speaks && Voice.Loudness > 0;
             if (HuskSaid != null) { HuskSaid(act.Line, aloud); return; }
             Talk.Answer("(code/husk mode)", act.Line);
             if (!aloud) return;

@@ -98,7 +98,10 @@ namespace CapriDesktop
             lock (gate) { version = setting; selected = choice; keep = hearing; }
             List<CallProcess> processes = Processes();
             CallPick picked = Pick(selected, processes, null);
-            if (selected == "Auto" ? picked == null : Get(selected) != Apps[0])
+            // Discord counts by its process alone, so while she's hearing another call, its sound gets checked first: Discord
+            // opening or restarting mid-call doesn't take her off it.
+            bool holding = selected == "Auto" && keep != 0 && current.InAuto && current != Apps[0];
+            if (selected == "Auto" ? picked == null || holding : Get(selected) != Apps[0])
             {
                 List<AppSound> sounds = Sounds();
                 // In Auto, the app she's hearing keeps her while it still makes sound, even when an app higher on the list does too.
@@ -611,7 +614,14 @@ namespace CapriDesktop
                 if (CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Current.Name != "Slack") throw new Exception("Auto left the app she's hearing while it still made sound.");
                 CallApps.Left(91);
                 if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Auto stayed with an app after her ears let go of it.");
-                checks.Add("PASS Auto never takes a browser video for the call, stays on the app she's hearing through a ping elsewhere or while it still makes sound, and moves after about three seconds");
+                CallApps.Heard(90);
+                two.Add(new CallProcess { Id = 93, Name = "Discord" });
+                if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("A silent Discord opening pulled Auto off the call she's hearing.");
+                playing.Remove(zoom);
+                if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 93 || CallApps.Current.Name != "Discord") throw new Exception("Auto didn't go back to Discord once the call she was hearing went quiet.");
+                CallApps.Left(90);
+                two.RemoveAt(two.Count - 1);
+                checks.Add("PASS Auto never takes a browser video for the call, stays on the app she's hearing through a ping elsewhere, Discord opening or while it still makes sound, and moves after about three seconds");
             }
             finally { Find = findWas; CallApps.Processes = processesWas; CallApps.Sounds = soundsWas; CallApps.Left(90); CallApps.Left(91); CallApps.Choose(was); }
             checks.Add("PASS call capture keeps its swappable finder, names the chosen app when it isn't open and rejects a lookup from an old setting");
@@ -945,16 +955,18 @@ namespace CapriDesktop
             }
         }
 
+        // Words from a stretch where the call's echo was as loud as them are labelled the call's, the way Sure leaves them out,
+        // so her brain never reads a friend heard through speakers as "You".
         internal string Text
         {
             get
             {
-                if (Parts.Count == 1) return (Parts[0].FromCall ? CallSession.Others : "") + Parts[0].Words;
+                if (Parts.Count == 1) return (Parts[0].FromCall || Parts[0].Echo ? CallSession.Others : "") + Parts[0].Words;
                 StringBuilder text = new StringBuilder();
                 foreach (CallPart part in Parts)
                 {
                     if (text.Length > 0) text.Append('\n');
-                    text.Append(part.FromCall ? App.Label + ": " : "You: ").Append(part.Words);
+                    text.Append(part.FromCall || part.Echo ? App.Label + ": " : "You: ").Append(part.Words);
                 }
                 return text.ToString();
             }

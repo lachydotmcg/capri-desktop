@@ -161,6 +161,8 @@ namespace CapriDesktop
             fresh.Tier = old.Tier; fresh.Tiered = old.Tiered; fresh.NvidiaGlm = old.NvidiaGlm;
             fresh.ServerUrl = old.ServerUrl; fresh.ServerApi = old.ServerApi; fresh.ServerModel = old.ServerModel; fresh.ServerSpeaker = old.ServerSpeaker; fresh.ServerKey = old.ServerKey;
             fresh.AsideUrl = old.AsideUrl; fresh.AsideApi = old.AsideApi; fresh.AsideModel = old.AsideModel; fresh.AsideSpeaker = old.AsideSpeaker; fresh.AsideKey = old.AsideKey;
+            // Their provider too, so a fresh start never sends their chats to a brain they moved away from.
+            fresh.BrainProvider = old.BrainProvider; fresh.ProviderModel = old.ProviderModel; fresh.ProviderOn = old.ProviderOn;
             fresh.CloudVoice = old.CloudVoice;
             fresh.TalkMods = old.TalkMods; fresh.TalkVk = old.TalkVk; fresh.MuteMods = old.MuteMods; fresh.MuteVk = old.MuteVk;
             fresh.TypeMods = old.TypeMods; fresh.TypeVk = old.TypeVk; fresh.HideMods = old.HideMods; fresh.HideVk = old.HideVk;
@@ -8044,6 +8046,8 @@ namespace CapriDesktop
             Cloud remote = brain.Remote;
             if (remote != null) return !brain.Sighted(remote) ? Brain.Sightless(remote) : null;
             if (brain.Model == null) return "I can't see your screen while my brain is offline. Pick a brain under BRAIN in Capri Mainframe.";
+            // A provider sees through its own model, so there's no Ollama to ask, the way FileSight and Looker skip it.
+            if (brain.Server != null) return null;
             Engine local = brain.Local;
             Pick pick = brain.LocalPick;
             if (local == null && !Brain.LocalSees(brain.Model) && Brain.LocalEyes() == null) return Brain.NoEyes;
@@ -29776,7 +29780,11 @@ namespace CapriDesktop
                 if (HuskWatch.Sentence("Fixed Mainframe.cs. Tests passed.", 1) != "Fixed Mainframe.cs." || HuskWatch.Sentence("全部完成。测试通过。", 1) != "全部完成。") throw new Exception("Husk's first-sentence fallback split a filename or missed a sentence.");
                 Dictionary<string, object> secret = HuskWatch.Scrub(HuskEvent("PreToolUse", "tool_name", "Bash", "tool_input", HuskJson.Map("command", "curl -H \"Authorization: Bearer sk-husk-secret\" https://x", "list", new List<object> { "nvapi-husksecret" }), "last_assistant_message", "Saved api_key=husk-secret-two.")) as Dictionary<string, object>;
                 if (HuskJson.Write(secret).IndexOf("husk-secret", StringComparison.Ordinal) >= 0 || HuskJson.Write(secret).IndexOf("husksecret", StringComparison.Ordinal) >= 0 || HuskJson.Text(secret, "tool_name") != "Bash") throw new Exception("Husk events kept a key or token: " + HuskJson.Write(secret));
-                checks.Add("PASS husk Codex mapping: apply_patch update/add/delete files, both shell tools, approval text, question/title fallback, invalid input and separate Codex session IDs; keys and tokens are scrubbed from every event");
+                string leaks = Brain.Redacted("psql \"postgresql://admin:S3cretPw@prod-db/app\" && export GITHUB_TOKEN=gh-env-secret && curl -H \"Authorization: token ghp_HuskSecret3\" --password 'pw secret4' xoxb-1-huskslack AKIAHUSKSECRET123456");
+                if (leaks.Contains("S3cretPw") || leaks.Contains("gh-env-secret") || leaks.Contains("HuskSecret3") || leaks.Contains("pw secret4") || leaks.Contains("huskslack") || leaks.Contains("AKIAHUSK")
+                    || !leaks.Contains("postgresql://admin:[redacted]@prod-db/app") || !leaks.Contains("GITHUB_TOKEN=[redacted]") || !leaks.Contains("Authorization: token [redacted]") || !leaks.StartsWith("psql ", StringComparison.Ordinal))
+                    throw new Exception("A password or token in a command wasn't redacted: " + leaks);
+                checks.Add("PASS husk Codex mapping: apply_patch update/add/delete files, both shell tools, approval text, question/title fallback, invalid input and separate Codex session IDs; keys, tokens and passwords are scrubbed from every event");
 
                 SmokeHuskEvents(checks, folder, exe, permission, questionEvent, out watch);
             }

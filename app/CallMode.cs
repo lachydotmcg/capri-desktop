@@ -1290,7 +1290,9 @@ namespace CapriDesktop
                 if (InvokeRequired) Post(delegate { HuskShow(act); });
                 else HuskShow(act);
             };
-            brain.HuskFacts = husk.Context;
+            // What the coding assistants did stays out of her brain once Code/Husk Mode is off.
+            HuskWatch watching = husk;
+            brain.HuskFacts = delegate { return watching.Mode != 0 ? watching.Context() : ""; };
             Shown += delegate { if (!testing && preferences.HuskMode != 0) SetHusk(preferences.HuskMode); };
         }
 
@@ -1413,7 +1415,7 @@ namespace CapriDesktop
 
         private void TellHusk(Action<string> tell)
         {
-            if (husk != null) tell(husk.Context() + "\nUse these observations only when they ask about the coding assistants. Do not announce them otherwise.");
+            if (husk != null && husk.Mode != 0) tell(husk.Context() + "\nUse these observations only when they ask about the coding assistants. Do not announce them otherwise.");
         }
 
         private void CheckHuskFront(double now)
