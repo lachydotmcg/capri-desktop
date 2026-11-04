@@ -3971,7 +3971,8 @@ namespace CapriDesktop
         {
             get
             {
-                if (string.IsNullOrEmpty(hearingNote.AccessibleName) || hearingNote.Bottom > hearingFixes[0].Top || hearingFixes[0].Bottom > muteShortcut.Top) return false;
+                if (string.IsNullOrEmpty(hearingNote.AccessibleName) || hearingNote.Bottom > muteShortcut.Top) return false;
+                if (hearingActions.Length > 0 && (hearingNote.Bottom > hearingFixes[0].Top || hearingFixes[0].Bottom > muteShortcut.Top)) return false;
                 for (int i = 0; i < hearingFixes.Length; i++)
                     if (hearingFixes[i].Visible != (i < hearingActions.Length) || i < hearingActions.Length && (string.IsNullOrEmpty(hearingFixes[i].AccessibleName) || hearingFixes[i].Text != HearingStatus.Name(hearingActions[i]))) return false;
                 return !hearingFixes[0].Bounds.IntersectsWith(hearingFixes[1].Bounds);
