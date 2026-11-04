@@ -670,6 +670,7 @@ namespace CapriDesktop
         private bool pushUnmuted;
         private int pushCallVersion;
         private List<short[]> pushed;
+        private List<CallChunk> pushedCall;
 
         // Windows keeps keys from her while a game that runs as admin is in front, so in Genshin Impact her push-to-talk and her
         // other keys did nothing (john_sandevistan, 3 Nov). She says why, once for each game while she runs; anything else that
@@ -720,14 +721,18 @@ namespace CapriDesktop
                 return;
             }
             if (chatting && ears.Muted) { pushUnmuted = true; ears.Muted = false; }
-            lock (waking) pushed = new List<short[]>();
+            lock (waking)
+            {
+                pushed = new List<short[]>();
+                pushedCall = CallModeOn ? new List<CallChunk>() : null;
+            }
             try
             {
                 if (!testing && !ears.Listening) { ears.Start(); pushOpened = true; }
             }
             catch (VoiceException error)
             {
-                lock (waking) pushed = null;
+                lock (waking) { pushed = null; pushedCall = null; }
                 mainframe.VoiceNote(error.Message, true);
             }
         }
@@ -738,7 +743,8 @@ namespace CapriDesktop
             pushing = false;
             if (pushUnmuted) { pushUnmuted = false; ears.Muted = true; if (chatting) pill.SetChat(true, true); }
             List<short[]> taken;
-            lock (waking) { taken = pushed; pushed = null; }
+            CallChunk[] callLine;
+            lock (waking) { taken = pushed; pushed = null; callLine = pushedCall == null ? null : pushedCall.ToArray(); pushedCall = null; }
             if (pushOpened) { pushOpened = false; ears.Stop(); }
             if (taken == null) { Commentary.Stage.Hear("", true); return; }
             int total = 0;
@@ -754,15 +760,20 @@ namespace CapriDesktop
             {
                 string text = null;
                 string problem = null;
-                try { text = Hearing.Text(samples); }
+                CallTranscript line = null;
+                try
+                {
+                    if (callLine == null) text = Hearing.Text(samples);
+                    else { line = CallTranscript.Read(callLine); text = line.Text; }
+                }
                 catch (Exception error) { problem = Voice.Short(error.Message); }
-                Post(delegate { if (callSession.Current(callVersion)) PushHeard(text, problem); });
+                Post(delegate { if (callSession.Current(callVersion)) PushHeard(text, problem, line); });
             });
         }
 
-        private void PushHeard(string text, string problem)
+        private void PushHeard(string text, string problem, CallTranscript line = null)
         {
-            if (CallModeOn) { if (problem == null) HearCall(text, true); else mainframe.VoiceNote(problem, true); return; }
+            if (CallModeOn) { if (problem != null) mainframe.VoiceNote(problem, true); else if (line != null) HearCall(line, true); return; }
             if (problem != null) { mainframe.VoiceNote(problem, true); return; }
             if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote("I couldn't make out any words. Try closer to the mic.", false); return; }
             mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);

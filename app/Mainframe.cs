@@ -661,7 +661,7 @@ namespace CapriDesktop
             hdGames.Visible = false;
             voiceInMic = Switch("Her voice in your mic", 0, MixAt, delegate { if (!syncing) capri.ToggleVoiceInMic(); });
             voiceInMic.Switch = 68;
-            voiceInMic.AccessibleName = "Her voice in your mic. Your mic and her voice go into a virtual mic, VB-CABLE or Steam's, so friends in Discord or Roblox hear you both";
+            voiceInMic.AccessibleName = "Her voice plays into your mic only in call mode. Pick CABLE Output or Steam Streaming Microphone in Discord or Roblox.";
             voiceInMicNote = Caption(MicMix.PickLine(MicMix.CableEnd), 28, MixAt + 26, small, Faint);
             // Without a cable the note credits VB-CABLE, and opens its page, where they can donate.
             voiceInMicNote.Click += delegate { if (voiceInMicNote.Text == CableSetup.Credit) capri.OpenCablePage(); };
@@ -1424,7 +1424,7 @@ namespace CapriDesktop
             voiceInMic.Enabled = cable || on;
             micLoudness.Value = (capri.MicLoudness - 50) / 10;
             syncing = was;
-            voiceInMicNote.Text = cable ? vb ? MicMix.PickLine(capri.CableEnd) : CableSetup.Better : CableSetup.Credit;
+            voiceInMicNote.Text = cable ? MicMix.PickLine(capri.CableEnd) : CableSetup.Credit;
             voiceInMicNote.Cursor = cable ? Cursors.Default : Cursors.Hand;
             voiceInMicState.Text = !vb && setup != null ? setup : !cable ? MicMix.Missing : on && problem != null ? problem : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
@@ -5884,7 +5884,7 @@ namespace CapriDesktop
                 shut.AccessibleName = "Close";
                 shut.Click += delegate { Close(); };
                 Controls.Add(shut);
-                note = Caption("Your mic and her voice go into one virtual mic, and Discord hears that.", 28, 52, small, Faint);
+                note = Caption("Her voice joins your mic only in call mode.", 28, 52, small, Faint);
                 onOff = new Toggle();
                 onOff.Text = "Her voice in your mic";
                 onOff.Font = Font;

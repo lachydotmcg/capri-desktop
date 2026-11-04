@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 
 namespace CapriDesktop
@@ -18,6 +19,7 @@ namespace CapriDesktop
         private readonly object gate = new object();
         // Two seconds of Discord at her ears' rate. Only the newest two chunks of it are ever mixed in.
         private readonly short[] ring = new short[Ears.Rate * 2];
+        private readonly CallEcho echo = new CallEcho();
         private int start, count;
         private double heard, level;
         private int heardCount, levelAt = Environment.TickCount - 100000;
@@ -48,10 +50,9 @@ namespace CapriDesktop
         // Her thread sees this within 10 ms, or once Windows answers a capture it's opening, and closes the capture itself.
         internal void Stop()
         {
-            if (!running) return;
             running = false;
             Interlocked.Increment(ref generation);
-            lock (gate) { start = count = 0; heard = 0; heardCount = 0; level = 0; }
+            lock (gate) { start = count = 0; heard = 0; heardCount = 0; level = 0; echo.Clear(); }
         }
 
         public void Dispose() { Stop(); }
@@ -181,18 +182,15 @@ namespace CapriDesktop
             return mixed;
         }
 
-        // Whether Discord was most of the sound in the newest `chunks` of her ears' chunks, given each chunk's loudness from
-        // your mic and from Discord, oldest first, with `total` chunks taken so far: someone on the call said that line.
-        internal static bool FromCall(double[] mine, double[] theirs, int total, int chunks)
+        internal CallChunk Split(short[] chunk)
         {
-            double own = 0, call = 0;
-            for (int i = 1; i <= Math.Min(chunks, Math.Min(total, mine.Length)); i++)
+            lock (gate)
             {
-                int at = (total - i) % mine.Length;
-                own += mine[at] * mine[at];
-                call += theirs[at] * theirs[at];
+                double mine, theirs;
+                short[] call = new short[chunk.Length];
+                Mix(chunk, out mine, out theirs, call);
+                return echo.Split(chunk, call);
             }
-            return call > own;
         }
 
         [DllImport("Mmdevapi.dll", ExactSpelling = true)]
@@ -317,12 +315,7 @@ namespace CapriDesktop
             if (after[0] != 30000 || theirs != 0) throw new Exception("More than Discord's newest two chunks were mixed in.");
             checks.Add("PASS call ears: Discord's sound adds into the mic's chunks and clips instead of wrapping, only its newest 0.2 s is mixed in, and its loudness is measured");
 
-            double[] own = new double[10], call = new double[10];
-            for (int i = 0; i < 6; i++) { own[i] = 0.05; call[i] = 0.001; }
-            for (int i = 6; i < 10; i++) { own[i] = 0.004; call[i] = 0.03; }
-            if (!FromCall(own, call, 10, 4) || FromCall(own, call, 10, 10) || FromCall(own, call, 6, 3)) throw new Exception("A line's speaker came out wrong.");
-            if (!FromCall(own, call, 20, 2) || FromCall(own, call, 13, 2) || FromCall(own, call, 0, 4)) throw new Exception("Whose line it is broke once her chunk count wrapped.");
-            checks.Add("PASS call lines: a line that's mostly Discord's sound counts as someone else on the call, and one that's mostly the mic's as the user's");
+            SmokeSources(checks);
 
             Func<int> findWas = Find;
             try
@@ -401,6 +394,261 @@ namespace CapriDesktop
             for (int i = 0; i < 2; i++) offStopped |= off.Heard(0.4, 0.1, 0.02);
             if (laughed || stoppedAt != TalkOver.CallNeeds - 1 || !offStopped) throw new Exception("Your mic talking over her on a call came out wrong: laugh " + laughed + ", stopped at chunk " + stoppedAt + ", off a call " + offStopped + ".");
             checks.Add("PASS your mic on a call: a laugh lets her finish and about a second of you talking over her stops her; off a call a fifth of a second still does");
+        }
+
+        internal static short[] Pattern(int length, int seed)
+        {
+            Random random = new Random(seed);
+            short[] samples = new short[length];
+            double level = 0;
+            for (int i = 0; i < length; i++) { level += 0.4 * (random.Next(-14000, 14001) - level); samples[i] = (short)level; }
+            return samples;
+        }
+
+        private static void SmokeSources(List<string> checks)
+        {
+            CallEars ears = new CallEars();
+            CallChunk[] chunks = new CallChunk[12];
+            for (int i = 0; i < chunks.Length; i++)
+            {
+                bool user = i / 3 % 2 == 0;
+                short[] sound = Pattern(Ears.Chunk, i + 1), quiet = new short[Ears.Chunk];
+                ears.Add(user ? quiet : sound, Ears.Chunk);
+                chunks[i] = ears.Split(user ? sound : quiet);
+                if (chunks[i].Source != (user ? CallSource.User : CallSource.Discord)) throw new Exception("The call run lost its source at chunk " + i + ".");
+            }
+            if (ears.Split(new short[Ears.Chunk]).Source != CallSource.Quiet) throw new Exception("Quiet call audio gained a speaker.");
+            Func<short[], string> runWas = CapriDesktop.Hearing.Run;
+            try
+            {
+                int decoded = 0;
+                string[] words = { "the", "in", "cat", "the" };
+                CapriDesktop.Hearing.Run = delegate(short[] samples)
+                {
+                    if (samples.Length != Ears.Chunk * 3 + Ears.Rate * 3 / 10 || decoded >= words.Length) throw new Exception("The recognizer got the wrong source run.");
+                    return words[decoded++];
+                };
+                CallTranscript line = CallTranscript.Read(chunks);
+                string user, discord;
+                line.Words(out user, out discord);
+                if (decoded != 4 || line.Text != "You: the\nDiscord: cat\nYou: in\nDiscord: the" || user != "the in" || discord != "cat the") throw new Exception("Recognized call runs lost their order or their speaker.");
+            }
+            finally { CapriDesktop.Hearing.Run = runWas; }
+            checks.Add("PASS call sources: user, Discord, user, Discord and quiet keep their chunk labels, and fake recognition keeps each word in speaking order with separate user and Discord words");
+
+            short[] reference = Pattern(Ears.Chunk * 14, 71), voice = Pattern(reference.Length, 83);
+            foreach (int lag in new[] { 0, Ears.Rate * 120 / 1000, Ears.Rate * 237 / 1000, Ears.Rate * 4 / 10 })
+            {
+                CallEcho leak = new CallEcho(), overlap = new CallEcho();
+                Random noise = new Random(97);
+                for (int at = 0; at < reference.Length; at += Ears.Chunk)
+                {
+                    short[] call = new short[Ears.Chunk], mic = new short[Ears.Chunk], both = new short[Ears.Chunk];
+                    for (int i = 0; i < Ears.Chunk; i++)
+                    {
+                        if (at + i < Ears.Chunk * 8) call[i] = reference[at + i];
+                        int delayed = at + i - lag;
+                        mic[i] = (short)((delayed >= 0 && delayed < Ears.Chunk * 8 ? reference[delayed] * 0.3 : 0) + noise.Next(-20, 21));
+                        both[i] = (short)(mic[i] + voice[at + i]);
+                    }
+                    CallChunk copied = leak.Split(mic, call), spoken = overlap.Split(both, call);
+                    bool playing = Speaker.Loudness(call, 0, call.Length) >= 0.003;
+                    bool copiedSound = Speaker.Loudness(mic, 0, mic.Length) >= 0.003;
+                    if (copied.Source != (playing || copiedSound ? CallSource.Discord : CallSource.Quiet) || Speaker.Loudness(copied.User, 0, copied.User.Length) != 0) throw new Exception("A Discord leak gained user words at lag " + lag + ".");
+                    if (spoken.Source != (playing ? CallSource.Both : CallSource.User) || Speaker.Loudness(spoken.User, 0, spoken.User.Length) < 0.02) throw new Exception("Talking over a Discord leak lost the user at lag " + lag + ".");
+                }
+                leak.Clear();
+                if (leak.Split(new short[Ears.Chunk], new short[Ears.Chunk]).Source != CallSource.Quiet) throw new Exception("A cleared call kept its echo reference.");
+            }
+            checks.Add("PASS call leaks: normalized delayed fits at 0, 120, 237 and 400 ms remove a 0.3 Discord copy with room noise, while user speech over it keeps its own source");
+        }
+    }
+
+    internal enum CallSource { Quiet, User, Discord, Both }
+
+    internal sealed class CallChunk
+    {
+        internal readonly short[] User, Discord, Samples;
+        internal readonly CallSource Source;
+
+        internal CallChunk(short[] user, short[] discord, bool leak = false)
+        {
+            bool own = Speaker.Loudness(user, 0, user.Length) >= 0.003;
+            bool call = Speaker.Loudness(discord, 0, discord.Length) >= 0.003;
+            Source = own ? call ? CallSource.Both : CallSource.User : call || leak ? CallSource.Discord : CallSource.Quiet;
+            User = own ? user : new short[user.Length];
+            Discord = call ? discord : new short[discord.Length];
+            Samples = new short[user.Length];
+            for (int i = 0; i < Samples.Length; i++) Samples[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, User[i] + Discord[i]));
+        }
+    }
+
+    internal sealed class CallEcho
+    {
+        private const int Lags = Ears.Rate * 4 / 10;
+        private readonly short[] recent = new short[Lags + Ears.Chunk];
+
+        internal void Clear() { Array.Clear(recent, 0, recent.Length); }
+
+        internal CallChunk Split(short[] mic, short[] discord)
+        {
+            int length = mic.Length;
+            if (length == 0) return new CallChunk(mic, discord);
+            if (length > Ears.Chunk || discord.Length != length) throw new ArgumentException("The call chunk has the wrong length.");
+            Array.Copy(recent, length, recent, 0, recent.Length - length);
+            Array.Copy(discord, 0, recent, recent.Length - length, length);
+            int at = recent.Length - length, points = (length + 7) / 8;
+            int[] lags = new int[64];
+            double[] scores = new double[64];
+            double own = 0, ownSum = 0;
+            bool reference = false;
+            foreach (short sample in recent) if (Math.Abs((int)sample) > 16) { reference = true; break; }
+            for (int i = 0; i < length; i += 8) { own += (double)mic[i] * mic[i]; ownSum += mic[i]; }
+            own -= ownSum * ownSum / points;
+            for (int lag = 0; reference && own >= points * 0.003 * 0.003 * 32768.0 * 32768.0 && lag <= Lags; lag++)
+            {
+                double dot = 0, power = 0, sum = 0;
+                for (int i = 0; i < length; i += 8)
+                {
+                    double sample = recent[at + i - lag];
+                    dot += mic[i] * sample;
+                    power += sample * sample;
+                    sum += sample;
+                }
+                dot -= ownSum * sum / points;
+                power -= sum * sum / points;
+                double fit = power > points * 16 ? dot * dot / power : 0;
+                if (fit <= scores[scores.Length - 1]) continue;
+                int slot = scores.Length - 1;
+                while (slot > 0 && fit > scores[slot - 1]) { scores[slot] = scores[slot - 1]; lags[slot] = lags[slot - 1]; slot--; }
+                scores[slot] = fit;
+                lags[slot] = lag;
+            }
+            short[] user = (short[])mic.Clone();
+            bool leak = false;
+            double micSum = 0, micPower = 0, score = 0, gain = 0, mean = 0;
+            int best = 0;
+            for (int i = 0; i < length; i++) { micSum += mic[i]; micPower += (double)mic[i] * mic[i]; }
+            micPower -= micSum * micSum / length;
+            for (int candidate = 0; candidate < lags.Length && scores[candidate] > 0; candidate++)
+            {
+                int lag = lags[candidate];
+                double dot = 0, power = 0, sum = 0;
+                for (int i = 0; i < length; i++)
+                {
+                    double sample = recent[at + i - lag];
+                    dot += mic[i] * sample;
+                    power += sample * sample;
+                    sum += sample;
+                }
+                dot -= micSum * sum / length;
+                power -= sum * sum / length;
+                double fit = power > 0 ? dot * dot / power : 0;
+                if (fit <= score || fit < micPower * 0.04) continue;
+                score = fit;
+                best = lag;
+                gain = Math.Max(-2, Math.Min(2, dot / power));
+                mean = sum / length;
+            }
+            leak = score / length >= 0.003 * 0.003 * 32768.0 * 32768.0;
+            if (leak)
+                for (int i = 0; i < length; i++) user[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, Math.Round(mic[i] - micSum / length - gain * (recent[at + i - best] - mean))));
+            return new CallChunk(user, (short[])discord.Clone(), leak);
+        }
+    }
+
+    internal sealed class CallPart
+    {
+        internal bool FromCall;
+        internal string Words;
+        internal int At;
+    }
+
+    internal sealed class CallTranscript
+    {
+        internal readonly List<CallPart> Parts = new List<CallPart>();
+
+        internal CallTranscript() { }
+
+        internal CallTranscript(string text, bool fromCall)
+        {
+            string words = Hearing.Clean(text);
+            if (words.Length > 0) Parts.Add(new CallPart { Words = words, FromCall = fromCall });
+        }
+
+        internal void Words(out string user, out string discord)
+        {
+            StringBuilder own = new StringBuilder(), call = new StringBuilder();
+            foreach (CallPart part in Parts) (part.FromCall ? call : own).Append(part.Words).Append(' ');
+            user = own.ToString().Trim();
+            discord = call.ToString().Trim();
+        }
+
+        internal string Text
+        {
+            get
+            {
+                if (Parts.Count == 1) return (Parts[0].FromCall ? CallSession.Others : "") + Parts[0].Words;
+                StringBuilder text = new StringBuilder();
+                foreach (CallPart part in Parts)
+                {
+                    if (text.Length > 0) text.Append('\n');
+                    text.Append(part.FromCall ? "Discord: " : "You: ").Append(part.Words);
+                }
+                return text.ToString();
+            }
+        }
+
+        internal static CallTranscript Read(CallChunk[] chunks)
+        {
+            CallTranscript line = new CallTranscript();
+            foreach (bool fromCall in new[] { false, true })
+            {
+                int i = 0;
+                while (i < chunks.Length)
+                {
+                    if (!Active(chunks[i], fromCall)) { i++; continue; }
+                    int first = i++, last = i;
+                    while (i < chunks.Length)
+                    {
+                        if (Active(chunks[i], fromCall)) { last = ++i; continue; }
+                        int gap = i;
+                        while (i < chunks.Length && chunks[i].Source == CallSource.Quiet && i - gap < 2) i++;
+                        if (i < chunks.Length && Active(chunks[i], fromCall)) continue;
+                        break;
+                    }
+                    int count = 0;
+                    for (int j = first; j < last; j++) count += chunks[j].Samples.Length;
+                    short[] samples = new short[count + Ears.Rate * 3 / 10];
+                    int at = Ears.Rate * 15 / 100;
+                    for (int j = first; j < last; j++)
+                    {
+                        short[] part = fromCall ? chunks[j].Discord : chunks[j].User;
+                        Array.Copy(part, 0, samples, at, part.Length);
+                        at += part.Length;
+                    }
+                    string words = Hearing.Text(samples);
+                    if (words.Length > 0) line.Parts.Add(new CallPart { FromCall = fromCall, Words = words, At = first });
+                }
+            }
+            line.Parts.Sort(delegate(CallPart left, CallPart right)
+            {
+                int order = left.At.CompareTo(right.At);
+                return order == 0 ? left.FromCall.CompareTo(right.FromCall) : order;
+            });
+            for (int i = line.Parts.Count - 1; i > 0; i--)
+            {
+                if (line.Parts[i - 1].FromCall != line.Parts[i].FromCall) continue;
+                line.Parts[i - 1].Words += " " + line.Parts[i].Words;
+                line.Parts.RemoveAt(i);
+            }
+            return line;
+        }
+
+        private static bool Active(CallChunk chunk, bool fromCall)
+        {
+            return fromCall ? chunk.Source == CallSource.Discord && Speaker.Loudness(chunk.Discord, 0, chunk.Discord.Length) >= 0.003 || chunk.Source == CallSource.Both
+                : chunk.Source == CallSource.User || chunk.Source == CallSource.Both;
         }
     }
 
