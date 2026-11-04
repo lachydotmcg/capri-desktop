@@ -25,6 +25,11 @@
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />
     <Compile Include="../app/Hands.cs" Link="Shared/Hands.cs" />
     <Compile Include="../app/Presence.cs" Link="Shared/Presence.cs" />
+    <Compile Include="../app/Mods.cs" Link="Shared/Mods.cs" />
+    <Compile Include="../app/ModDirectory.cs" Link="Shared/ModDirectory.cs" />
+    <Compile Include="../app/ArtColors.cs" Link="Shared/ArtColors.cs" />
+    <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
+    <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />
     <EmbeddedResource Include="../assets/sprites/*.png" LogicalName="Capri.Sprite.%(Filename)%(Extension)" />

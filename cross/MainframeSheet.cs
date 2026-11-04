@@ -1,15 +1,438 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 
 namespace CapriDesktop
 {
+    internal sealed class ModPreview : Control
+    {
+        internal Bitmap Picture;
+
+        public override void Render(DrawingContext context)
+        {
+            Rect box = new Rect(Bounds.Size);
+            context.DrawRectangle(MainframeTheme.Well, new Pen(MainframeTheme.WellEdge, 1), box);
+            if (Picture == null) MainframeTheme.Write(context, "NO PREVIEW", box, MainframeTheme.Faint, 12, false, TextAlignment.Center);
+            else
+            {
+                double scale = Math.Max(box.Width / Picture.Size.Width, box.Height / Picture.Size.Height);
+                double width = Picture.Size.Width * scale, height = Picture.Size.Height * scale;
+                using (context.PushClip(box)) context.DrawImage(Picture, new Rect((box.Width - width) / 2, (box.Height - height) / 2, width, height));
+            }
+        }
+    }
+
+    internal sealed class ModsWindow : MainframeWindow
+    {
+        internal const int Wide = 760, Tall = 796;
+        private const int Cards = 2, Rows = 4;
+        private readonly Pet pet;
+        private readonly NeonEntry search;
+        private readonly NeonButton refresh, back, next, installedBack, installedNext;
+        private readonly NeonCaption directoryNote, status, page, installedPage;
+        private readonly NeonButton[] kinds = new NeonButton[4];
+        private readonly ModPreview[] previews = new ModPreview[Cards];
+        private readonly NeonCaption[] titles = new NeonCaption[Cards], metas = new NeonCaption[Cards], numbers = new NeonCaption[Cards];
+        private readonly NeonButton[] downloads = new NeonButton[Cards];
+        private readonly NeonPicker[] ratings = new NeonPicker[Cards];
+        private readonly NeonCaption[] names = new NeonCaption[Rows], abouts = new NeonCaption[Rows];
+        private readonly NeonButton[] switches = new NeonButton[Rows], removes = new NeonButton[Rows];
+        private readonly NeonEntry[] colours = new NeonEntry[ArtColors.Slots];
+        private readonly Dictionary<string, Bitmap> pictures = new Dictionary<string, Bitmap>();
+        private readonly HashSet<string> fetching = new HashSet<string>();
+        private readonly HashSet<string> failed = new HashSet<string>();
+        private List<ModListing> listings = new List<ModListing>(), shown = new List<ModListing>();
+        private int first, installedFirst, kind, ticket;
+        private bool closed, syncing, working, loading, statsLive;
+        internal string StatusText { get { return status.Text; } }
+        internal bool Working { get { return working || loading; } }
+        internal bool PreviewsPending { get { return fetching.Count != 0; } }
+        internal string PageText { get { return page.Text; } }
+        internal string InstalledPageText { get { return installedPage.Text; } }
+
+        internal ModsWindow(Pet owner) : base("Mods")
+        {
+            pet = owner;
+            ShowInTaskbar = false;
+            Label("MODS", 24, 15, 320, 29, MainframeTheme.Rose, 20, true).Display = true;
+            Button("", 710, 20, 26, 22, Close).Glyph = 2;
+            Put(Page, new NeonHead { Text = "DIRECTORY" }, 14, 52, 352, 24);
+            Put(Page, new NeonHead { Text = "INSTALLED" }, 394, 52, 352, 24);
+            search = Put(Page, new NeonEntry("Search mods"), 28, 84, 236, 28, "Search mods");
+            search.Box.TextChanged += delegate { first = 0; FillDirectory(); };
+            refresh = Button("Refresh", 272, 84, 84, 28, LoadMods);
+            for (int i = 0; i < kinds.Length; i++)
+            {
+                int choice = i;
+                kinds[i] = Button(ModDirectory.Kinds[i], 28 + i * 84, 120, 76, 24, delegate { PickKind(choice); });
+            }
+            directoryNote = Label("Browse mods, or import a file.", 28, 152, 328, 32);
+            for (int i = 0; i < Cards; i++)
+            {
+                int card = i, y = 194 + i * 252;
+                previews[i] = Put(Page, new ModPreview(), 28, y, 328, 128, "Mod preview");
+                titles[i] = Label("", 28, y + 136, 328, 20, MainframeTheme.White, 44.0 / 3, true);
+                metas[i] = Label("", 28, y + 158, 328, 18);
+                numbers[i] = Label("", 28, y + 180, 328, 18);
+                downloads[i] = Button("Download", 28, y + 204, 100, 28, delegate { Install(card); });
+                downloads[i].Accent = MainframeTheme.Cyan;
+                ratings[i] = Put(Page, new NeonPicker(), 136, y + 204, 220, 28, "Rate mod");
+                ratings[i].Check = false;
+                ratings[i].Options(new[] { "1 star", "2 stars", "3 stars", "4 stars", "5 stars" });
+                ratings[i].Changed += delegate(int stars) { Rate(card, stars + 1); };
+            }
+            back = Button("Back", 28, 700, 60, 24, delegate { first -= Cards; FillDirectory(); });
+            page = Label("", 96, 700, 192, 24); page.Align = TextAlignment.Center;
+            next = Button("Next", 296, 700, 60, 24, delegate { first += Cards; FillDirectory(); });
+            Button("View on GitHub", 28, 738, 156, 28, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
+            NeonButton import = Button("Import mod", 408, 84, 160, 28, delegate { });
+            import.Accent = MainframeTheme.Cyan;
+            import.Click += async delegate
+            {
+                try
+                {
+                    if (!StorageProvider.CanOpen) { Say("Couldn't open the mod picker."); return; }
+                    System.Collections.Generic.IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+                        Title = "Import mod", AllowMultiple = false,
+                        FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*.capri-mod", "*.capri-skin", "*.capri-code" } } } });
+                    if (!closed && files.Count > 0)
+                    {
+                        string path = files[0].TryGetLocalPath();
+                        if (path == null) Say("That mod needs to be a local file.");
+                        else ImportMod(path);
+                    }
+                    foreach (IStorageFile file in files) file.Dispose();
+                }
+                catch (Exception) { if (!closed) Say("Couldn't open the mod picker."); }
+            };
+            Button("Mods folder", 576, 84, 160, 28, delegate
+            {
+                try { Directory.CreateDirectory(pet.ModList.Folder); if (Program.Smoke == null) Pet.Browse(pet.ModList.Folder); }
+                catch (Exception error) { Say("Couldn't open the mods folder. " + error.Message); }
+            });
+            for (int i = 0; i < Rows; i++)
+            {
+                int row = i, y = 130 + i * 72;
+                names[i] = Label("", 408, y, 188, 22, MainframeTheme.White, 44.0 / 3, true);
+                switches[i] = Button("On", 604, y, 56, 22, delegate { SwitchMod(row); });
+                removes[i] = Button("Remove", 668, y, 68, 22, delegate { RemoveMod(row); });
+                abouts[i] = Label("", 408, y + 28, 328, 32);
+            }
+            installedBack = Button("Back", 408, 434, 60, 24, delegate { installedFirst -= Rows; Sync(); });
+            installedPage = Label("", 476, 434, 192, 24); installedPage.Align = TextAlignment.Center;
+            installedNext = Button("Next", 676, 434, 60, 24, delegate { installedFirst += Rows; Sync(); });
+            status = Label("Import a settings mod or a skin.", 408, 470, 328, 42);
+            if (pet.ModList.Problems.Count > 0) status.Text = pet.ModList.Problems[0];
+            Put(Page, new NeonHead { Text = "COLORS" }, 394, 528, 352, 24);
+            for (int i = 0; i < colours.Length; i++)
+            {
+                Label(ArtColors.Names[i], 408, 566 + i * 32, 84, 28);
+                colours[i] = Put(Page, new NeonEntry(ArtColors.Usual[i]), 500, 566 + i * 32, 236, 28, ArtColors.Names[i] + " color");
+                colours[i].Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { SaveColours(); e.Handled = true; } };
+            }
+            Button("Save colors", 408, 738, 160, 28, SaveColours).Accent = MainframeTheme.Cyan;
+            Button("Reset colors", 576, 738, 160, 28, delegate
+            {
+                try { pet.ModList.ResetColours(); Say("Her colors are back."); Sync(); }
+                catch (Exception error) { Say(error.Message); }
+            });
+            Opened += delegate { Sync(); if (Program.Smoke == null) LoadMods(); };
+            pet.SettingsChanged += Sync;
+            Closed += delegate
+            {
+                closed = true; pet.SettingsChanged -= Sync;
+                foreach (NeonPicker rating in ratings) rating.CloseMenu();
+                foreach (Bitmap picture in pictures.Values) picture.Dispose();
+                pictures.Clear();
+            };
+            Sync();
+        }
+
+        private NeonCaption Label(string text, int x, int y, int width, int height, IBrush ink = null, double size = MainframeTheme.Size, bool bold = false)
+        {
+            return Put(Page, new NeonCaption { Text = text, Ink = ink ?? MainframeTheme.Faint, Size = size, Bold = bold, Ellipsis = true }, x, y, width, height);
+        }
+
+        private NeonButton Button(string text, int x, int y, int width, int height, Action action)
+        {
+            NeonButton button = Put(Page, new NeonButton { Text = text }, x, y, width, height, text.Length == 0 ? "Close" : text);
+            button.Click += delegate { action(); };
+            return button;
+        }
+
+        private void Say(string line) { status.Text = line; status.InvalidateVisual(); }
+        private void DirectorySays(string line) { directoryNote.Text = line; directoryNote.InvalidateVisual(); }
+
+        internal void Sync()
+        {
+            if (closed || syncing) return;
+            syncing = true;
+            try
+            {
+                FillInstalled(); FillDirectory();
+                refresh.IsEnabled = !loading && !working;
+                string[] now = pet.ModList.ColoursNow;
+                for (int i = 0; i < colours.Length; i++) if (!colours[i].Box.IsKeyboardFocusWithin) colours[i].Box.Text = now[i] ?? "";
+                Fit(Wide, Tall, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0);
+            }
+            finally { syncing = false; }
+        }
+
+        internal void LoadMods()
+        {
+            if (closed || loading || working) return;
+            loading = true; statsLive = false; refresh.IsEnabled = false;
+            failed.Clear();
+            int mine = ++ticket;
+            DirectorySays("Loading mods...");
+            FillDirectory();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                List<ModListing> found = null;
+                string problem = null; bool stats = false;
+                try
+                {
+                    found = ModDirectory.Browse();
+                    try { ModDirectory.Apply(found, ModDirectory.Stats()); stats = true; }
+                    catch (Exception) { problem = "Download counts and ratings are unavailable."; }
+                }
+                catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't reach the mods directory."; }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (closed || mine != ticket) return;
+                    loading = false; refresh.IsEnabled = true; statsLive = stats;
+                    listings = found ?? new List<ModListing>(); first = 0;
+                    DirectorySays(problem ?? (listings.Count == 0 ? "No mods in the directory yet." : "Pick a mod to download."));
+                    FillDirectory();
+                });
+            });
+        }
+
+        internal void PickKind(int choice) { kind = choice; first = 0; FillDirectory(); }
+        internal void Search(string words) { search.Box.Text = words; }
+        internal void NextPage() { first += Cards; FillDirectory(); }
+        internal void NextInstalledPage() { installedFirst += Rows; Sync(); }
+        internal string TitleOf(int card) { return titles[card].IsVisible ? titles[card].Text : null; }
+        internal bool HasPreview(int card) { return previews[card].Picture != null; }
+        internal bool CanDownload(int card) { return downloads[card].IsVisible && downloads[card].IsEnabled; }
+        internal string DownloadText(int card) { return downloads[card].Text; }
+        internal string MetaOf(int card) { return metas[card].Text; }
+
+        private void FillDirectory()
+        {
+            shown = ModDirectory.Filter(listings, search.Box.Text, kind);
+            first = Math.Max(0, Math.Min(first, Math.Max(0, (shown.Count - 1) / Cards) * Cards));
+            for (int i = 0; i < kinds.Length; i++) { kinds[i].Picked = i == kind; kinds[i].InvalidateVisual(); }
+            for (int i = 0; i < Cards; i++)
+            {
+                ModListing mod = first + i < shown.Count ? shown[first + i] : null;
+                previews[i].IsVisible = titles[i].IsVisible = metas[i].IsVisible = numbers[i].IsVisible = downloads[i].IsVisible = ratings[i].IsVisible = mod != null;
+                if (mod == null) { previews[i].Picture = null; continue; }
+                bool installed = pet.ModList.All.Exists(m => m.File.Id == mod.Id);
+                titles[i].Text = mod.Title;
+                metas[i].Text = mod.KindIndex == 2 ? Mods.WindowsOnly : mod.Kind + (installed ? " Installed." : "");
+                numbers[i].Text = statsLive ? ModDirectory.DownloadLine(mod) + "  |  " + ModDirectory.RatingLine(mod) : loading ? "Loading counts and ratings..." : "Counts and ratings unavailable.";
+                downloads[i].Text = installed ? "Reinstall" : "Download";
+                downloads[i].IsEnabled = !working && mod.KindIndex != 2;
+                ratings[i].IsEnabled = !working && statsLive && installed;
+                ratings[i].Text = "Rate this mod";
+                Bitmap picture = null;
+                if (mod.PreviewSha != null) pictures.TryGetValue(mod.PreviewSha, out picture);
+                previews[i].Picture = picture;
+                foreach (Control control in new Control[] { titles[i], metas[i], numbers[i], downloads[i], ratings[i], previews[i] }) control.InvalidateVisual();
+                if (picture == null && mod.PreviewSha != null) LoadPreview(mod);
+            }
+            page.Text = shown.Count == 0 ? "No matching mods" : "Page " + (first / Cards + 1) + " of " + ((shown.Count + Cards - 1) / Cards);
+            page.InvalidateVisual();
+            back.IsEnabled = first > 0; next.IsEnabled = first + Cards < shown.Count;
+        }
+
+        private void LoadPreview(ModListing mod)
+        {
+            if (failed.Contains(mod.PreviewSha) || !fetching.Add(mod.PreviewSha)) return;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                Bitmap made = null;
+                try { made = ModDirectory.Picture(ModDirectory.Preview(mod, Path.Combine(pet.ModList.Folder, "previews"))); }
+                catch (Exception) { }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (closed) { if (made != null) made.Dispose(); return; }
+                    fetching.Remove(mod.PreviewSha);
+                    if (made == null) { failed.Add(mod.PreviewSha); return; }
+                    pictures[mod.PreviewSha] = made;
+                    FillDirectory();
+                });
+            });
+        }
+
+        private void FillInstalled()
+        {
+            List<Mod> all = pet.ModList.All;
+            installedFirst = Math.Max(0, Math.Min(installedFirst, Math.Max(0, (all.Count - 1) / Rows) * Rows));
+            for (int i = 0; i < Rows; i++)
+            {
+                Mod mod = installedFirst + i < all.Count ? all[installedFirst + i] : null;
+                names[i].IsVisible = abouts[i].IsVisible = switches[i].IsVisible = removes[i].IsVisible = mod != null;
+                if (mod == null) continue;
+                names[i].Text = mod.File.Name;
+                abouts[i].Text = (mod.File.Author == null ? "" : "by " + mod.File.Author + "  ") + (mod.File.Description ?? (mod.Skin ? "Skin" : "Settings"));
+                switches[i].Text = mod.On ? "On" : "Off"; switches[i].Picked = mod.On;
+                switches[i].IsEnabled = !working; removes[i].IsEnabled = !working;
+                names[i].InvalidateVisual(); abouts[i].InvalidateVisual(); switches[i].InvalidateVisual();
+            }
+            installedPage.Text = all.Count == 0 ? "No mods installed" : "Page " + (installedFirst / Rows + 1) + " of " + ((all.Count + Rows - 1) / Rows);
+            installedPage.InvalidateVisual();
+            installedBack.IsEnabled = installedFirst > 0; installedNext.IsEnabled = installedFirst + Rows < all.Count;
+        }
+
+        internal bool ImportMod(string file)
+        {
+            try
+            {
+                Mod mod = pet.ModList.Import(file, null);
+                Say(mod.File.Name + " is on."); Sync(); return true;
+            }
+            catch (Exception error)
+            {
+                if (!(error is ModException || error is IOException || error is UnauthorizedAccessException)) throw;
+                Say(error.Message); Sync(); return false;
+            }
+        }
+
+        internal void SwitchMod(int row)
+        {
+            try
+            {
+                Mod mod = pet.ModList.All[installedFirst + row];
+                pet.ModList.Set(mod, !mod.On, null);
+                Say(mod.File.Name + (mod.On ? " is on." : " is off."));
+            }
+            catch (Exception error) { Say(error.Message); }
+            Sync();
+        }
+
+        internal void RemoveMod(int row)
+        {
+            try
+            {
+                Mod mod = pet.ModList.All[installedFirst + row];
+                pet.ModList.Remove(mod); Say("Removed " + mod.File.Name + ".");
+            }
+            catch (Exception error) { Say(error.Message); }
+            Sync();
+        }
+
+        internal void SaveColours()
+        {
+            try
+            {
+                ModColors picked = new ModColors();
+                string[] values = new string[colours.Length];
+                bool any = false;
+                for (int i = 0; i < values.Length; i++) { string value = (colours[i].Box.Text ?? "").Trim(); values[i] = value.Length == 0 ? null : value; any |= values[i] != null; }
+                picked.Hair = values[0]; picked.Accent = values[1]; picked.Eyes = values[2]; picked.Edges = values[3]; picked.Body = values[4];
+                pet.ModList.SaveColours(picked, any);
+                Say("Her colors are saved."); Sync();
+            }
+            catch (Exception error) { Say(error.Message); }
+        }
+
+        internal void Install(int card)
+        {
+            if (closed || working || first + card >= shown.Count) return;
+            ModListing mod = shown[first + card];
+            if (mod.KindIndex == 2) { Say(Mods.WindowsOnly); return; }
+            working = true; Say("Downloading " + mod.Title + "..."); Sync();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                string file = null, problem = null;
+                try { file = ModDirectory.Download(mod, Path.Combine(Path.GetTempPath(), "capri-mod-downloads")); }
+                catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't download that mod."; }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    try
+                    {
+                        if (closed) return;
+                        if (problem != null) Say(problem);
+                        else if (ImportMod(file))
+                        {
+                            mod.Downloads++;
+                            ThreadPool.QueueUserWorkItem(delegate { try { ModDirectory.CountDownload(mod.Folder); } catch (Exception error) { Brain.Log("mods", -1, error.Message); } });
+                        }
+                    }
+                    finally { if (file != null) ModDirectory.Clean(file); working = false; Sync(); }
+                });
+            });
+        }
+
+        internal void Rate(int card, int stars)
+        {
+            if (closed || working || !statsLive || stars < 1 || stars > 5 || first + card >= shown.Count) return;
+            ModListing mod = shown[first + card];
+            if (!pet.ModList.All.Exists(m => m.File.Id == mod.Id)) return;
+            working = true; Say("Saving your rating..."); Sync();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                ModStats stats = null; string problem = null;
+                try { stats = ModDirectory.Rate(mod.Folder, stars); }
+                catch (Exception error) { problem = error is ModException ? error.Message : "Couldn't save your rating."; }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (closed) return;
+                    working = false;
+                    if (stats != null) { mod.Downloads = stats.Downloads; mod.Rating = stats.Rating; mod.Votes = stats.Votes; }
+                    Say(problem ?? "Rating saved."); Sync();
+                });
+            });
+        }
+
+        internal string Crowded()
+        {
+            Rect pageBox = new Rect(0, 0, Wide, Tall);
+            for (int i = 0; i < Page.Children.Count; i++)
+            {
+                Control a = Page.Children[i];
+                if (!a.IsVisible) continue;
+                Rect box = Box(a);
+                if (!pageBox.Contains(box)) return "Outside: " + NameOf(a);
+                NeonCaption caption = a as NeonCaption;
+                NeonButton button = a as NeonButton;
+                NeonEntry entry = a as NeonEntry;
+                string wrong = caption != null ? caption.TextFits() : button != null ? button.TextFits() : entry != null ? entry.TextFits() : null;
+                if (wrong != null) return "Text: " + wrong;
+                for (int j = i + 1; j < Page.Children.Count; j++)
+                {
+                    Control b = Page.Children[j]; if (!b.IsVisible) continue;
+                    Rect overlap = box.Intersect(Box(b));
+                    if (overlap.Width > 0.5 && overlap.Height > 0.5) return NameOf(a) + " / " + NameOf(b);
+                }
+            }
+            return null;
+        }
+
+        private static Rect Box(Control control)
+        {
+            double x = Canvas.GetLeft(control), y = Canvas.GetTop(control);
+            NeonHead head = control as NeonHead;
+            if (head != null) return new Rect(x + 14, y + 5, MainframeTheme.Words(head.Text, 40.0 / 3, true).Width, 19);
+            return new Rect(x, y, control.Width, control.Height);
+        }
+
+        private static string NameOf(Control control)
+        {
+            return Avalonia.Automation.AutomationProperties.GetName(control) ?? (control as NeonCaption == null ? control.GetType().Name : ((NeonCaption)control).Text);
+        }
+    }
+
     internal sealed class MainframeSheet : MainframeWindow
     {
         private readonly Pet pet;

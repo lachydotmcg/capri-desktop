@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.Globalization;
 using System.IO;
 using System.Net;
+#if !CROSS
+using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
+#endif
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
@@ -183,18 +185,19 @@ namespace CapriDesktop
             return bytes;
         }
 
-        private static bool IsPng(byte[] bytes)
+        internal static bool IsPng(byte[] bytes)
         {
             if (bytes == null || bytes.Length < 24) return false;
             for (int i = 0; i < PngStart.Length; i++) if (bytes[i] != PngStart[i]) return false;
             return true;
         }
 
-        private static long BigEndian(byte[] bytes, int at)
+        internal static long BigEndian(byte[] bytes, int at)
         {
             return ((long)bytes[at] << 24) | ((long)bytes[at + 1] << 16) | ((long)bytes[at + 2] << 8) | bytes[at + 3];
         }
 
+#if !CROSS
         internal static Image Picture(byte[] bytes)
         {
             if (!IsPng(bytes)) return null;
@@ -219,6 +222,22 @@ namespace CapriDesktop
             catch (ExternalException) { return null; }
             catch (OutOfMemoryException) { return null; }
         }
+#else
+        internal static Avalonia.Media.Imaging.Bitmap Picture(byte[] bytes)
+        {
+            if (!IsPng(bytes)) return null;
+            long wide = BigEndian(bytes, 16), tall = BigEndian(bytes, 20);
+            if (wide < 1 || tall < 1 || wide > WidestPreview || tall > WidestPreview) return null;
+            try
+            {
+                using (MemoryStream body = new MemoryStream(bytes))
+                    return Avalonia.Media.Imaging.Bitmap.DecodeToWidth(body, (int)Math.Min(PreviewWide, wide));
+            }
+            catch (ArgumentException) { return null; }
+            catch (InvalidOperationException) { return null; }
+            catch (NotSupportedException) { return null; }
+        }
+#endif
 
         internal static Dictionary<string, ModStats> Stats()
         {

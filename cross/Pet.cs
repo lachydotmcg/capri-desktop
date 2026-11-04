@@ -94,7 +94,9 @@ namespace CapriDesktop
 
     internal sealed class Clip
     {
-        internal readonly Bitmap Strip;
+        private Bitmap strip;
+        internal Bitmap Strip { get { if (strip == null) strip = Pet.ReadArt(name); return strip; } }
+        private readonly string name;
         internal readonly int Count;
         internal readonly double Fps;
         internal readonly double Height;
@@ -103,14 +105,20 @@ namespace CapriDesktop
 
         internal Clip(string name, int count, double fps, double height, double shiftX = 0, double shiftY = 0)
         {
+            this.name = "Capri.Sprite." + name + ".png";
             Count = count;
             Fps = fps;
             Height = height;
             ShiftX = shiftX;
             ShiftY = shiftY;
-            Stream stream = typeof(Clip).Assembly.GetManifestResourceStream("Capri.Sprite." + name + ".png");
-            if (stream == null) throw new FileNotFoundException("Capri's " + name + " animation is missing.");
-            using (stream) Strip = new Bitmap(stream);
+            Reload();
+        }
+
+        internal void Reload()
+        {
+            Bitmap old = strip;
+            strip = null;
+            if (old != null) old.Dispose();
         }
 
         internal bool Even { get { return Strip.PixelSize.Width % Count == 0; } }
@@ -474,6 +482,7 @@ namespace CapriDesktop
             // A copy that moved since they ticked it takes the login entry over, so it doesn't point at the old place.
             if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Environment.ProcessPath, true, OperatingSystem.IsMacOS());
             Brain.LogPath = Path.Combine(Program.Smoke ?? folder, "errors.txt");
+            StartMods();
             Brain.BrainMenu = "under BRAIN in Capri Mainframe";
             Brain.FreeKeyHow = "Capri Mainframe > BRAIN > Free key";
             Brain.Bin = OperatingSystem.IsMacOS() ? "Trash" : "trash";
@@ -3717,6 +3726,7 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            ModList.LogHearing(text, true);
             Typed();
             if (meeting.Asking) { Met(text); return; }
             int ticket = ++asking;

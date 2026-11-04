@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+#if !CROSS
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.IO;
 using System.Runtime.InteropServices;
+#endif
 
 namespace CapriDesktop
 {
@@ -27,8 +29,8 @@ namespace CapriDesktop
         private static int[] Build(string[] colours)
         {
             int[] made = new int[1 << 18];
-            Color?[] slots = new Color?[Slots];
-            for (int i = 0; i < Slots; i++) if (colours[i] != null) slots[i] = ColorTranslator.FromHtml(colours[i]);
+            int?[] slots = new int?[Slots];
+            for (int i = 0; i < Slots; i++) if (colours[i] != null) slots[i] = Convert.ToInt32(colours[i].Substring(1), 16);
             for (int key = 0; key < made.Length; key++)
             {
                 int r = Middle(key >> 12), g = Middle((key >> 6) & 63), b = Middle(key & 63);
@@ -39,7 +41,7 @@ namespace CapriDesktop
 
         private static int Middle(int six) { return six == 63 ? 255 : six == 0 ? 0 : six * 4 + 2; }
 
-        private static int Map(int r, int g, int b, Color?[] slots)
+        private static int Map(int r, int g, int b, int?[] slots)
         {
             int high = Math.Max(r, Math.Max(g, b)), low = Math.Min(r, Math.Min(g, b));
             double v = high / 255.0, s = high == 0 ? 0 : (high - low) / (double)high;
@@ -47,18 +49,18 @@ namespace CapriDesktop
             {
                 int slot = NearestHue(r, g, b, high, low);
                 if (slots[slot] == null) return Pack(r, g, b);
-                Color to = slots[slot].Value;
+                int to = slots[slot].Value;
                 double colourful = Math.Min(1, s / 0.9), grey = v * 255;
                 return Pack(
-                    (int)(grey + (to.R * v - grey) * colourful),
-                    (int)(grey + (to.G * v - grey) * colourful),
-                    (int)(grey + (to.B * v - grey) * colourful));
+                    (int)(grey + (((to >> 16) & 255) * v - grey) * colourful),
+                    (int)(grey + (((to >> 8) & 255) * v - grey) * colourful),
+                    (int)(grey + ((to & 255) * v - grey) * colourful));
             }
             if (v < 0.38 && slots[Body] != null)
             {
-                Color to = slots[Body].Value;
+                int to = slots[Body].Value;
                 double depth = Math.Min(1, 0.72 + v * 1.6);
-                return Pack((int)(to.R * depth), (int)(to.G * depth), (int)(to.B * depth));
+                return Pack((int)(((to >> 16) & 255) * depth), (int)(((to >> 8) & 255) * depth), (int)((to & 255) * depth));
             }
             return Pack(r, g, b);
         }
@@ -85,6 +87,20 @@ namespace CapriDesktop
             return (Math.Max(0, Math.Min(255, r)) << 16) | (Math.Max(0, Math.Min(255, g)) << 8) | Math.Max(0, Math.Min(255, b));
         }
 
+        internal static void Apply(int[] pixels)
+        {
+            int[] map = table;
+            if (map == null) return;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                int pixel = pixels[i];
+                if (((uint)pixel >> 24) == 0) continue;
+                int key = ((pixel >> 18) & 63) << 12 | ((pixel >> 10) & 63) << 6 | ((pixel >> 2) & 63);
+                pixels[i] = (pixel & unchecked((int)0xFF000000)) | map[key];
+            }
+        }
+
+#if !CROSS
         internal static Bitmap Apply(Bitmap art)
         {
             int[] map = table;
@@ -117,6 +133,7 @@ namespace CapriDesktop
             finally { copy.UnlockBits(data); }
             return copy;
         }
+#endif
     }
 
     internal sealed partial class Mods
@@ -159,6 +176,15 @@ namespace CapriDesktop
             StringBuilderJson(now);
         }
 
+#if CROSS
+        internal void SaveColours(ModColors colours, bool any)
+        {
+            if (!any) { ResetColours(); return; }
+            CheckColours(colours);
+            StringBuilderJson(colours.AsSlots());
+        }
+#endif
+
         private void StringBuilderJson(string[] slots)
         {
             List<string> parts = new List<string>();
@@ -186,6 +212,7 @@ namespace CapriDesktop
         }
     }
 
+#if !CROSS
     internal sealed partial class Companion
     {
         private void CheckColours(List<string> checks, string output)
@@ -278,4 +305,5 @@ namespace CapriDesktop
             checks.Add("PASS colours: all presets import and work with and without the Maid Suit");
         }
     }
+#endif
 }

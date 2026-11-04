@@ -1,10 +1,15 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+#if CROSS
+using Companion = CapriDesktop.Pet;
+using Size = Avalonia.PixelSize;
+#else
+using System.Drawing;
+using System.Drawing.Imaging;
+#endif
 
 namespace CapriDesktop
 {
@@ -132,8 +137,16 @@ namespace CapriDesktop
             int width = head[16] << 24 | head[17] << 16 | head[18] << 8 | head[19], height = head[20] << 24 | head[21] << 16 | head[22] << 8 | head[23];
             Size wanted = Companion.ArtSize("Capri.Sprite." + name);
             if (width != wanted.Width || height != wanted.Height) throw new ModException("\"" + name + "\" is " + width + " x " + height + ". It has to match hers, " + wanted.Width + " x " + wanted.Height + ".");
+#if CROSS
+            try { using (Avalonia.Media.Imaging.Bitmap decoded = new Avalonia.Media.Imaging.Bitmap(file)) if (decoded.PixelSize != wanted) throw new ModException("\"" + name + "\" is the wrong size."); }
+#else
             try { using (Bitmap decoded = new Bitmap(file)) if (decoded.Size != wanted) throw new ModException("\"" + name + "\" is the wrong size."); }
+#endif
             catch (ArgumentException) { throw new ModException("\"" + name + "\" is a damaged picture."); }
+#if CROSS
+            catch (InvalidOperationException) { throw new ModException("\"" + name + "\" is a damaged picture."); }
+            catch (NotSupportedException) { throw new ModException("\"" + name + "\" is a damaged picture."); }
+#endif
         }
 
         private void SetSkin(Mod mod, bool on)
@@ -188,6 +201,7 @@ namespace CapriDesktop
         }
     }
 
+#if !CROSS
     internal sealed partial class Companion
     {
         internal static volatile string SkinFolder;
@@ -337,4 +351,5 @@ namespace CapriDesktop
             using (Stream into = zip.CreateEntry(name).Open()) into.Write(bytes, 0, bytes.Length);
         }
     }
+#endif
 }

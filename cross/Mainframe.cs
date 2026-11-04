@@ -141,6 +141,7 @@ namespace CapriDesktop
         private readonly Dictionary<string, Control> rows = new Dictionary<string, Control>();
         private readonly Dictionary<string, Action<int>> changes = new Dictionary<string, Action<int>>();
         private readonly List<Window> sheets = new List<Window>();
+        internal ModsWindow Mods { get; private set; }
         private readonly DispatcherTimer status = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         // Support's heart beats twice every 7 seconds while her main page shows, and its rim lights with it (Lachy, 4 Nov).
         private const double BeatMs = 7000;
@@ -240,6 +241,7 @@ namespace CapriDesktop
             var voiceTest = Key("Test voice", 280, 499, 76, 22, () => { if (Program.Smoke == null) pet.HearStyle(); });
             items[items.Count - 1].When = () => pet.MainframeVoiceMode != 0;
             Section("CAPRI", 0, 540);
+            Key("Mods", 190, 539, 70, 18, OpenMods).Accent = MainframeTheme.Cyan;
             // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
             support = Key("Support", 268, 539, 88, 18, () => { if (Program.Smoke == null) Pet.Browse("https://ko-fi.com/lachysdev"); });
             support.Heart = true;
@@ -459,6 +461,7 @@ namespace CapriDesktop
                 for (int i = 0; i < voices.Length; i++) if (voices[i] != null) { voices[i].Checked = i == pet.MainframeVoiceMode; voices[i].InvalidateVisual(); }
                 brainName.Text = pet.Brain.Remote != null ? pet.Brain.Remote.Name + " · " + pet.Brain.Model : pet.Brain.Model ?? "Her brain isn't set up yet";
                 brainNote.Text = pet.MainframeTier > 0 && pet.MainframeConnecting ? "Checking the key..." : pet.MainframeProblem ?? pet.MainframeProgress ?? (pet.Brain.Remote != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier > 0 ? "Paste a brain key and press Connect." : pet.Brain.Server != null ? pet.Brain.Server : pet.Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model · Ollama");
+                brainNote.Text = Brain.Brief(brainNote.Text) ?? brainNote.Text;
                 tierNote.Text = pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
                 textKey.Cue = pet.MainframeBrainKey != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
                 textConnect.Text = pet.MainframeBrainKey == null || !string.IsNullOrWhiteSpace(textKey.Box.Text) ? "Connect" : "Forget";
@@ -482,6 +485,7 @@ namespace CapriDesktop
         internal void OpenPage(string name)
         {
             name = (name ?? "main").Trim().ToLowerInvariant();
+            if (name == "mods") { OpenMods(); return; }
             ShowSettings(!string.IsNullOrEmpty(name) && name != "main" && name != "brain" && name != "voice");
             if (paged && name != "settings" && !pet.Saved.AdvancedSettings) { pet.SetAdvancedSettings(true); ShowSettings(true); }
             if (name == "layers") { OpenLayers(); return; }
@@ -619,7 +623,7 @@ namespace CapriDesktop
             }
             return null;
         }
-        private void ShowSheet(MainframeSheet sheet)
+        private void ShowSheet(MainframeWindow sheet)
         {
             sheets.Add(sheet); sheet.Closed += (_, _) => sheets.Remove(sheet); sheet.Show(this);
         }
@@ -627,5 +631,16 @@ namespace CapriDesktop
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
+        internal void OpenMods()
+        {
+            if (Mods == null)
+            {
+                ModsWindow sheet = new ModsWindow(pet);
+                Mods = sheet;
+                sheet.Closed += delegate { Mods = null; };
+                ShowSheet(sheet);
+            }
+            else { Mods.WindowState = WindowState.Normal; Mods.Activate(); }
+        }
     }
 }

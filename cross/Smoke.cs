@@ -1663,6 +1663,8 @@ namespace CapriDesktop
                 pet.Talk.Dismiss();
                 checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps her running and retains the taskbar window");
                 MainframePictures(frame, voice);
+                PlainChecks(frame, fields);
+                ModsChecks(frame);
                 MainframeRows(frame, fields);
                 CareChecks(frame);
                 FollowChecks();
@@ -2064,6 +2066,286 @@ namespace CapriDesktop
             }
             finally { security.Close(); }
             checks.Add("PASS Mainframe panels: local voice address, model, voice and format, layer controls and every available Security choice save through their existing setters");
+        }
+
+        private void PlainChecks(Mainframe frame, System.Reflection.BindingFlags fields)
+        {
+            string bin = Brain.Bin;
+            System.Reflection.FieldInfo problem = typeof(Pet).GetField("frameProblem", fields);
+            object before = problem.GetValue(pet);
+            NeonCaption note = (NeonCaption)typeof(Mainframe).GetField("brainNote", fields).GetValue(frame);
+            try
+            {
+                foreach (string trash in new[] { "Trash", "trash" })
+                {
+                    Brain.Bin = trash;
+                    foreach (string raw in new[] { "write /models/blob: no space left on device", "ENOSPC", "disk is full" })
+                    {
+                        BrainException error = new BrainException(raw);
+                        if (!error.Told || !error.Message.StartsWith("Your storage is full", StringComparison.Ordinal) || !error.Message.Contains("empty the " + trash)) throw new Exception("The full-storage line was not plain: " + raw);
+                        problem.SetValue(pet, error.Message); frame.Sync();
+                        if (note.Text != "Your storage is full. Free up space, then try again.") throw new Exception("Mainframe did not shorten the storage line.");
+                    }
+                }
+                foreach (string raw in new[] { "model requires more system memory (8.8 GiB) than is available (4.8 GiB)", "out of memory", "failed to allocate buffer" })
+                {
+                    BrainException error = new BrainException(raw);
+                    if (!error.Told || !error.Message.Contains("free RAM")) throw new Exception("The RAM line was not plain: " + raw);
+                    problem.SetValue(pet, error.Message); frame.Sync();
+                    if (!note.Text.StartsWith("Not enough free RAM", StringComparison.Ordinal) || note.Text.Length > 60) throw new Exception("Mainframe did not shorten the RAM line.");
+                }
+                problem.SetValue(pet, "model not found"); frame.Sync();
+                if (note.Text != "model not found" || new BrainException("model not found").Told || Brain.Plain("model runner stopped") != null) throw new Exception("An unrelated error became a RAM or storage error.");
+                checks.Add("PASS plain errors: shared RAM and storage lines reach Mac and Linux, use their trash name, and Mainframe shows the short line");
+            }
+            finally { Brain.Bin = bin; problem.SetValue(pet, before); frame.Sync(); }
+        }
+
+        private static SkiaSharp.SKColor ModPixel(Bitmap art, int x, int y)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                art.Save(stream); stream.Position = 0;
+                using (SkiaSharp.SKBitmap pixels = SkiaSharp.SKBitmap.Decode(stream)) return pixels.GetPixel(x, y);
+            }
+        }
+
+        private static string ModSample(string into, string id, string changes)
+        {
+            string file = Path.Combine(into, id + Mods.Extension);
+            File.WriteAllText(file, "{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\",\"description\":\"Smoke test mod\"," + changes + "}");
+            return file;
+        }
+
+        private static void ModEntry(System.IO.Compression.ZipArchive zip, string name, byte[] bytes)
+        {
+            using (Stream stream = zip.CreateEntry(name).Open()) stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private static NeonEntry ModColour(ModsWindow sheet, string name)
+        {
+            foreach (Control control in sheet.Page.Children)
+                if (Avalonia.Automation.AutomationProperties.GetName(control) == name + " color") return (NeonEntry)control;
+            throw new Exception("No mod color entry: " + name);
+        }
+
+        private static string ModSkin(string into, string id, string picture, int width, int height)
+        {
+            string file = Path.Combine(into, id + Mods.SkinExtension);
+            if (File.Exists(file)) File.Delete(file);
+            using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"}"));
+                using (SkiaSharp.SKBitmap art = new SkiaSharp.SKBitmap(width, height))
+                {
+                    art.Erase(new SkiaSharp.SKColor(255, 0, 70));
+                    using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(art))
+                    using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) ModEntry(zip, picture, png.ToArray());
+                }
+            }
+            return file;
+        }
+
+        private static byte[] ModPreviewBytes()
+        {
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Sprite.idle.png"))
+            using (SkiaSharp.SKBitmap art = SkiaSharp.SKBitmap.Decode(stream))
+            using (SkiaSharp.SKBitmap preview = new SkiaSharp.SKBitmap(320, 180))
+            {
+                preview.Erase(new SkiaSharp.SKColor(12, 11, 20));
+                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(preview)) canvas.DrawBitmap(art, new SkiaSharp.SKRect(0, 0, 240, 384), new SkiaSharp.SKRect(104, 0, 216.5f, 180));
+                using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(preview))
+                using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) return png.ToArray();
+            }
+        }
+
+        private void ModsChecks(Mainframe frame)
+        {
+            Mods mods = pet.ModList;
+            string input = Path.Combine(folder, "mod-inputs"); Directory.CreateDirectory(input);
+            if (mods.Folder != Path.Combine(folder, "mods")) throw new Exception("Mods are not beside her settings.");
+            frame.ShowSettings(false); frame.Press("Mods");
+            ModsWindow sheet = frame.Mods;
+            if (sheet == null || sheet.SystemDecorations != SystemDecorations.None) throw new Exception("The CAPRI band's Mods key did not open her Mods window.");
+            frame.OpenPage("mods");
+            if (frame.Mods != sheet) throw new Exception("The Mods page opened a second window.");
+            try
+            {
+                string settings = ModSample(input, "smoke-names", "\"wake_names\":[\"Vee\",\"Cap\"],\"heard_as\":[\"coffee\"],\"sounds_like\":true,\"hearing_log\":true");
+                if (!sheet.ImportMod(settings) || mods.All.Count != 1 || !mods.All[0].On || mods.WakeNames.Length != 2 || !Hands.HeardName("hey Vee") || !Hands.HeardName("coffee") || !Hands.HeardName("capp") || !Hands.AlsoCalled().Contains("Vee")) throw new Exception("A settings mod did not add her names and spellings.");
+                Func<string, string> think = pet.Think;
+                try
+                {
+                    pet.Think = delegate { return "Heard the mod test."; };
+                    pet.Hear("hey Vee");
+                    MainframeWait(delegate { return pet.Talk.Reply == "Heard the mod test."; }, "a mod hearing log line");
+                    pet.Talk.Dismiss();
+                }
+                finally { pet.Think = think; }
+                if (!File.Exists(mods.LogPath) || !File.ReadAllText(mods.LogPath).Contains("FOR HER | hey Vee")) throw new Exception("A settings mod did not keep its hearing log.");
+                sheet.SwitchMod(0); mods.Load();
+                if (mods.All[0].On || Hands.HeardName("Vee") || Hands.HeardName("coffee") || Hands.HeardName("capp") || Hands.AlsoCalled().Length != 0 || File.Exists(mods.LogPath)) throw new Exception("Turning a settings mod off did not undo it or survive reload.");
+                sheet.SwitchMod(0); mods.Load();
+                if (!mods.All[0].On || !Hands.HeardName("Vee")) throw new Exception("Turning a settings mod on did not survive reload.");
+                sheet.RemoveMod(0);
+                if (mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, "smoke-names" + Mods.Extension)) || Hands.HeardName("Vee")) throw new Exception("Removing a settings mod left it applied.");
+                checks.Add("PASS mods settings: import, on, off, reload and remove share Windows' names, spellings, sounds-like and hearing-log behavior");
+
+                Clip idle = pet.Clips[0], walk = pet.Clips[10];
+                SkiaSharp.SKColor original = ModPixel(idle.Strip, 95, 90), accent = ModPixel(idle.Strip, 120, 200);
+                string blue = ModSample(input, "smoke-blue", "\"colors\":{\"hair\":\"#0000FF\"}");
+                if (!sheet.ImportMod(blue)) throw new Exception("A colour mod was refused.");
+                SkiaSharp.SKColor hair = ModPixel(idle.Strip, 95, 90), sameAccent = ModPixel(idle.Strip, 120, 200);
+                if (hair.Blue < 200 || hair.Red > 30 || hair.Alpha != original.Alpha || Math.Abs(sameAccent.Green - accent.Green) > 4) throw new Exception("A colour mod did not recolour her hair alone.");
+                mods.Load();
+                if (ModPixel(idle.Strip, 95, 90).Blue < 200) throw new Exception("A colour mod did not survive reload.");
+                sheet.SwitchMod(0);
+                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("A colour mod did not restore her original art when off.");
+                sheet.SwitchMod(0);
+                mods.SetColour(ArtColors.Eyes, "#FFAA00");
+                if (mods.All.FindAll(m => m.On && m.File.Colors != null).Count != 1 || mods.ColoursNow[ArtColors.Hair] != "#0000FF") throw new Exception("Picked colors lost the other slots or left two sets on.");
+                sheet.Sync();
+                ModColour(sheet, "Hair").Box.Text = "#00FF00"; ModColour(sheet, "Eyes").Box.Text = "#12";
+                sheet.SaveColours();
+                if (mods.ColoursNow[ArtColors.Hair] != "#0000FF" || !sheet.StatusText.Contains("isn't a colour")) throw new Exception("Invalid color entry saved part of a change.");
+                ModColour(sheet, "Eyes").Box.Text = "#FFAA00"; sheet.SaveColours(); mods.Load();
+                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 95, 90).Green < 200) throw new Exception("The Mods window did not save and apply picked colors.");
+                mods.ResetColours();
+                if (ModPixel(idle.Strip, 95, 90) != original || ArtColors.Active) throw new Exception("Reset did not restore her colors.");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                foreach (string bad in new[] { "red", "#12", "#GGGGGG" })
+                {
+                    try { mods.Import(ModSample(input, "smoke-bad", "\"colors\":{\"hair\":\"" + bad + "\"}"), null); throw new Exception("A bad color was let in."); }
+                    catch (ModException) { }
+                }
+                checks.Add("PASS mods colors: an art pixel changes with the shared mapping, alpha and accents stay, one set is on, and off, reset and reload work");
+
+                PixelSize size = Pet.ArtSize("Capri.Sprite.idle.png");
+                SkiaSharp.SKColor walkWas = ModPixel(walk.Strip, 0, 0);
+                string skin = ModSkin(input, "smoke-skin", "idle.png", size.Width, size.Height);
+                if (!sheet.ImportMod(skin) || ModPixel(idle.Strip, 0, 0).Red != 255 || ModPixel(walk.Strip, 0, 0) != walkWas) throw new Exception("A skin did not swap its strip or changed a strip it doesn't hold.");
+                sheet.SwitchMod(0);
+                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("Turning a skin off did not restore her art.");
+                sheet.SwitchMod(0); mods.Load();
+                if (ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("A skin did not survive reload.");
+                sheet.ImportMod(blue);
+                if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                if (Pet.SkinFolder != null || ModPixel(idle.Strip, 95, 90) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
+                string[] badSkins = { ModSkin(input, "smoke-size", "idle.png", 10, 10), ModSkin(input, "smoke-path", "../idle.png", size.Width, size.Height), ModSkin(input, "smoke-unknown", "other.png", size.Width, size.Height) };
+                foreach (string bad in badSkins)
+                {
+                    try { mods.Import(bad, null); throw new Exception("A bad skin was let in."); }
+                    catch (ModException) { }
+                }
+                if (Directory.GetDirectories(mods.Folder, "skin-import-*").Length != 0) throw new Exception("A refused skin left its temporary folder.");
+                checks.Add("PASS mods skins: import swaps art, missing strips keep hers, off and removal restore it, reload and colors work, and invalid sizes and paths are refused");
+
+                string code = Path.Combine(input, "smoke-code" + Mods.CodeExtension); File.WriteAllText(code, "This must never be compiled.");
+                bool asked = false;
+                try { mods.Import(code, delegate { asked = true; return true; }); throw new Exception("A code mod was let in."); }
+                catch (ModException error) { if (error.Message != Mods.WindowsOnly) throw new Exception("A code mod gave the wrong line."); }
+                if (asked || sheet.ImportMod(code) || sheet.StatusText != Mods.WindowsOnly || mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, Path.GetFileName(code)))) throw new Exception("A code mod asked, saved or gave a different line.");
+                string dropped = Path.Combine(mods.Folder, Path.GetFileName(code)); File.Copy(code, dropped, true);
+                mods.Load();
+                if (mods.All.Count != 0 || !mods.Problems.Exists(p => p.Contains(Mods.WindowsOnly))) throw new Exception("A code mod dropped into the folder was not refused.");
+                File.Delete(dropped); mods.Load();
+                checks.Add("PASS mods code: import and files dropped in the folder are refused with Windows only for now, without asking or compiling");
+
+                ModDirectoryChecks(sheet, input, blue, skin);
+            }
+            finally
+            {
+                sheet.Close();
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+            }
+        }
+
+        private void ModDirectoryChecks(ModsWindow sheet, string input, string blue, string skin)
+        {
+            Func<string, long, byte[]> get = ModDirectory.Get;
+            Func<string, string, byte[]> post = ModDirectory.Post;
+            Dictionary<string, byte[]> blobs = new Dictionary<string, byte[]>();
+            byte[] preview = ModPreviewBytes(); string previewSha = ModDirectory.BlobSha(preview);
+            string names = ModSample(input, "smoke-directory-names", "\"wake_names\":[\"Vee\"]");
+            string[] folders = { "a-blue-hair", "b-sample-skin", "c-code-sample", "d-names" };
+            string[] files = { blue, skin, Path.Combine(input, "smoke-code" + Mods.CodeExtension), names };
+            StringBuilder tree = new StringBuilder("{\"tree\":[");
+            for (int i = 0; i < folders.Length; i++)
+            {
+                byte[] bytes = File.ReadAllBytes(files[i]); string sha = ModDirectory.BlobSha(bytes); blobs[sha] = bytes;
+                if (i > 0) tree.Append(',');
+                tree.Append("{\"path\":\"mods/" + folders[i] + "/" + Path.GetFileName(files[i]) + "\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":" + bytes.Length + "},");
+                tree.Append("{\"path\":\"mods/" + folders[i] + "/preview.png\",\"type\":\"blob\",\"sha\":\"" + previewSha + "\",\"size\":" + preview.Length + "}");
+            }
+            tree.Append(",{\"path\":\"mods/../escape.capri-mod\",\"type\":\"blob\",\"sha\":\"" + previewSha + "\",\"size\":10}]}");
+            byte[] json = Encoding.UTF8.GetBytes(tree.ToString());
+            List<ModListing> parsed = ModDirectory.Parse(json);
+            if (parsed.Count != 4 || parsed[0].PreviewSha != previewSha || parsed[1].KindIndex != 3 || parsed[2].KindIndex != 2 || ModDirectory.Filter(parsed, "blue hair", 1).Count != 1) throw new Exception("The directory did not parse its tree, previews and kinds.");
+            int counted = 0, rated = 0, fetched = 0;
+            ModDirectory.Get = delegate(string url, long most)
+            {
+                if (url.Contains("/trees/")) return json;
+                if (url == ModDirectory.StatsPage) return Encoding.UTF8.GetBytes("{\"mods\":[{\"folder\":\"a-blue-hair\",\"downloads\":12,\"rating\":4.5,\"votes\":2}]}");
+                if (url.EndsWith("/preview.png", StringComparison.Ordinal)) return preview;
+                if (url.Contains("/blobs/")) { Interlocked.Increment(ref fetched); return blobs[url.Substring(url.LastIndexOf('/') + 1)]; }
+                throw new Exception("Unexpected mods request: " + url);
+            };
+            ModDirectory.Post = delegate(string url, string body)
+            {
+                if (url == ModDirectory.StatsPage + "/download") { Interlocked.Increment(ref counted); return Encoding.UTF8.GetBytes("{}"); }
+                if (url == ModDirectory.StatsPage + "/rate" && body.Contains("\"stars\":5")) { Interlocked.Increment(ref rated); return Encoding.UTF8.GetBytes("{\"downloads\":13,\"rating\":4.7,\"votes\":3}"); }
+                throw new Exception("Unexpected mods post: " + url);
+            };
+            try
+            {
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working && sheet.HasPreview(0) && sheet.HasPreview(1); }, "the mods directory and previews");
+                if (sheet.TitleOf(0) != "A Blue Hair" || sheet.PageText != "Page 1 of 2" || !sheet.CanDownload(0)) throw new Exception("The Mods window did not show its first directory page.");
+                sheet.NextPage();
+                if (sheet.TitleOf(0) != "C Code Sample") throw new Exception("The directory did not change page.");
+                sheet.PickKind(2);
+                if (sheet.CanDownload(0) || sheet.MetaOf(0) != Mods.WindowsOnly) throw new Exception("A code mod looked installable.");
+                sheet.Install(0);
+                if (sheet.StatusText != Mods.WindowsOnly || fetched != 0) throw new Exception("A code mod was downloaded.");
+                sheet.PickKind(1); sheet.Search("names");
+                if (sheet.TitleOf(0) != "D Names" || sheet.TitleOf(1) != null) throw new Exception("The directory search or settings filter did not work.");
+                sheet.Search(""); sheet.PickKind(0); sheet.Install(0);
+                MainframeWait(delegate { return !sheet.Working && counted == 1; }, "a directory download");
+                if (pet.ModList.All.Count != 1 || fetched != 1 || !sheet.CanDownload(0) || sheet.DownloadText(0) != "Reinstall") throw new Exception("Downloading a settings mod did not install it and count the download.");
+                sheet.Install(0); MainframeWait(delegate { return !sheet.Working && counted == 2; }, "a mod reinstall");
+                if (pet.ModList.All.Count != 1 || fetched != 2) throw new Exception("Reinstalling a mod duplicated it.");
+                sheet.Rate(0, 5); MainframeWait(delegate { return !sheet.Working; }, "a mod rating");
+                if (rated != 1 || sheet.StatusText != "Rating saved.") throw new Exception("A mod rating did not reach the worker.");
+                sheet.Install(1); MainframeWait(delegate { return !sheet.Working && counted == 3; }, "a directory skin");
+                if (!pet.ModList.All.Exists(m => m.Skin && m.On)) throw new Exception("A directory skin did not install.");
+                sheet.ImportMod(names);
+                sheet.ImportMod(ModSample(input, "smoke-extra-a", "\"wake_names\":[\"Ari\"]"));
+                sheet.ImportMod(ModSample(input, "smoke-extra-b", "\"wake_names\":[\"Bea\"]"));
+                sheet.NextInstalledPage();
+                if (sheet.InstalledPageText != "Page 2 of 2") throw new Exception("Installed mods did not reach their second page.");
+                sheet.SwitchMod(0);
+                if (pet.ModList.All.Find(m => m.File.Id == "smoke-skin").On) throw new Exception("The second installed page switched the wrong mod.");
+                sheet.RemoveMod(0);
+                if (pet.ModList.All.Count != 4 || sheet.InstalledPageText != "Page 1 of 1") throw new Exception("Removing the last installed page did not bring the list back.");
+                foreach (Mod extra in pet.ModList.All.ToArray()) if (extra.File.Id.StartsWith("smoke-extra-", StringComparison.Ordinal)) pet.ModList.Remove(extra);
+                sheet.ImportMod(skin);
+                foreach (int scale in new[] { 100, 150, 200 })
+                {
+                    pet.SetMainframeSize(scale); sheet.Sync(); sheet.UpdateLayout();
+                    string wrong = sheet.Crowded();
+                    if (wrong != null || Math.Abs(sheet.Zoom - scale / 100.0) > 0.001) throw new Exception("Mods layout at " + scale + "%: " + wrong);
+                    sheet.SavePicture(Path.Combine(folder, "mainframe-mods-" + scale + ".png"));
+                }
+                pet.SetMainframeSize(100); sheet.Sync(); sheet.SavePicture(Path.Combine(folder, "mainframe-mods.png"));
+                using (Bitmap picture = new Bitmap(Path.Combine(folder, "mainframe-mods.png"))) if (picture.PixelSize.Width < 380 || picture.PixelSize.Height < 100) throw new Exception("The Mods window picture is empty.");
+                checks.Add("PASS mods directory: fake GitHub tree, previews, filters, pages, verified downloads, worker counts and ratings; code mods stay Windows only");
+                checks.Add("PASS mods window: Barlow and cut corners fit at 100%, 150% and 200% without overlaps; Mainframe pictures include mainframe-mods.png");
+            }
+            finally
+            {
+                try { MainframeWait(delegate { return !sheet.PreviewsPending && !sheet.Working; }, "pending mod requests"); }
+                finally { ModDirectory.Get = get; ModDirectory.Post = post; }
+            }
         }
 
         private void MainframePictures(Mainframe frame, Voice voice)
