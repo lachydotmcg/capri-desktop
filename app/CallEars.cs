@@ -368,35 +368,36 @@ namespace CapriDesktop
             for (int i = 0; i < loud.Length; i++) loud[i] = (short)(i % 2 == 0 ? 3000 : -3000);
             Func<short[], double> level = delegate(short[] chunk) { return chunk[0] == 0 ? 0 : 0.09; };
             CallOver over = new CallOver();
-            // A laugh: three loud chunks, then quiet. She talks on, and nothing of it is kept for her ears.
+            // A laugh: six loud chunks, then quiet. She talks on, and nothing of it is kept for her ears.
             bool fired = false;
-            foreach (short[] chunk in new[] { loud, loud, loud, quiet, quiet, quiet, quiet, quiet }) fired |= over.Heard(chunk, level(chunk), 0.02);
+            foreach (short[] chunk in new[] { loud, loud, loud, loud, loud, loud, quiet, quiet, quiet, quiet, quiet, quiet, quiet }) fired |= over.Heard(chunk, level(chunk), 0.02);
             if (fired || over.Release().Count != 0) throw new Exception("A laugh on the call stopped her or was kept as a line.");
-            // A line: the fifth loud chunk of seven stops her, once, and her ears get the newest second of it from its start.
+            // A line: the ninth loud chunk of twelve stops her, once, and her ears get the newest 1.4 s of it from its start.
             int firedAt = -1;
-            bool[] talking = { false, true, true, false, true, true, true, true, true, true, true, true };
+            bool[] talking = { false, true, true, false, true, true, true, true, true, true, true, true, true, true, true, true };
             short[][] line = new short[talking.Length][];
             for (int i = 0; i < line.Length; i++) line[i] = (short[])(talking[i] ? loud : quiet).Clone();
             for (int i = 0; i < line.Length; i++) if (over.Heard(line[i], level(line[i]), 0.02)) { if (firedAt >= 0) throw new Exception("Talking over her stopped her twice."); firedAt = i; }
             List<short[]> kept = over.Release();
-            if (firedAt != 6 || kept.Count != CallOver.Kept || kept[0] != line[line.Length - CallOver.Kept] || kept[kept.Count - 1] != line[line.Length - 1] || over.Release().Count != 0)
+            if (firedAt != 10 || kept.Count != CallOver.Kept || kept[0] != line[line.Length - CallOver.Kept] || kept[kept.Count - 1] != line[line.Length - 1] || over.Release().Count != 0)
                 throw new Exception("Talking over her came out wrong: stopped at chunk " + firedAt + ", " + kept.Count + " chunks kept.");
             // Her newer answer ignored the stop: still talked over, it stops that one too.
-            for (int i = 0; i < 5; i++) over.Heard(loud, 0.09, 0.02);
+            for (int i = 0; i < CallOver.Needs; i++) over.Heard(loud, 0.09, 0.02);
             over.Rearm();
             if (!over.Heard(loud, 0.09, 0.02)) throw new Exception("Being talked over again didn't stop her newer answer.");
             over.Reset();
-            checks.Add("PASS call talk-over: half a second of someone on the call talking over her stops her once and hands her ears their line from its start, a laugh doesn't, and a newer answer can be stopped too");
+            checks.Add("PASS call talk-over: about a second of someone on the call talking over her stops her once and hands her ears their line from its start, a laugh doesn't, and a newer answer can be stopped too");
         }
     }
 
-    // Someone on the call talking over her. While she talks her ears get your mic alone, and Discord's sound waits here: once five
-    // of its last seven chunks are a voice's level, half a second of them inside 0.7 s, she stops, and once she has her ears get
-    // its newest second, the start of their line included. A laugh or a "yeah" is shorter, so it lets her finish (Lachy, 3 Nov:
-    // "maybe we need some interruption and stuff like that when someone talks over as well").
+    // Someone on the call talking over her. While she talks her ears get your mic alone, and Discord's sound waits here: once nine
+    // of its last twelve chunks are a voice's level, about a second of talking inside 1.2 s, she stops, and once she has her ears
+    // get its newest 1.4 s, the start of their line included. A laugh, a "yeah" or a "nah nah" is shorter, so it lets her finish
+    // (Lachy, 3 Nov: "maybe we need some interruption and stuff like that when someone talks over as well"; 4 Nov: half a second
+    // cut her off mid-answer on a real call).
     internal sealed class CallOver
     {
-        internal const int Window = 7, Needs = 5, Kept = 10;
+        internal const int Window = 12, Needs = 9, Kept = 14;
         private readonly bool[] loud = new bool[Window];
         private readonly List<short[]> held = new List<short[]>();
         private int at;
