@@ -81,14 +81,18 @@ namespace CapriSetup
         internal static void WriteMarker(string package)
         {
             string marker = Path.Combine(InstallPath, "Capri.package");
-            string temporary = marker + ".new";
+            string temporary = marker + "." + Guid.NewGuid().ToString("N") + ".new";
+            bool created = false;
             try
             {
-                File.WriteAllText(temporary, package);
+                FileStream stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                created = true;
+                using (stream)
+                using (StreamWriter writer = new StreamWriter(stream)) writer.Write(package);
                 if (File.Exists(marker)) File.Replace(temporary, marker, null);
                 else File.Move(temporary, marker);
             }
-            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            finally { if (created && File.Exists(temporary)) File.Delete(temporary); }
         }
 
         [DllImport("user32.dll")] private static extern bool SetProcessDpiAwarenessContext(IntPtr context);
