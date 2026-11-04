@@ -2117,7 +2117,7 @@ namespace CapriDesktop
 #if !CROSS
             if (Ink.Request(Asked(said)) != null) return true;
             // "Put on the song they want" leaves the call a choice, which is call_errand's job.
-            if (CallSession.Blank(said)) return true;
+            if (CallSession.Blank(said) || Regex.IsMatch(said ?? "", @"\b(?:cancel|drop|forget|stop)\b.{0,30}\berrand\b", RegexOptions.IgnoreCase)) return true;
             if (Files.PathIn(said) != null) return true;
             if (WatchRequest(Asked(said)) != null) return true;
             if (CapriDesktop.Websites.Request(Asked(said)) != null || FileFinder.Request(Asked(said), Finder.Busy, Finder.Found) != null) return true;
