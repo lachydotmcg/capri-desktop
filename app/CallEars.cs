@@ -899,7 +899,8 @@ namespace CapriDesktop
             foreach (short sample in recent) if (Math.Abs((int)sample) > 16) { reference = true; break; }
             for (int i = 0; i < length; i += 8) { own += (double)mic[i] * mic[i]; ownSum += mic[i]; }
             own -= ownSum * ownSum / points;
-            for (int lag = 0; reference && own >= points * 0.003 * 0.003 * 32768.0 * 32768.0 && lag <= Lags; lag++)
+            // Every 8th sample can come out under the level that makes a chunk theirs, so the search starts at half of it.
+            for (int lag = 0; reference && own >= points * 0.0015 * 0.0015 * 32768.0 * 32768.0 && lag <= Lags; lag++)
             {
                 double dot = 0, power = 0, sum = 0;
                 for (int i = 0; i < length; i += 8)
@@ -954,8 +955,10 @@ namespace CapriDesktop
                     left += (double)user[i] * user[i];
                     taken += took * took;
                 }
-            // One tap never takes all of a room's echo, so what's left only speaks for them when it's well over what came out.
-            return new CallChunk(user, (short[])discord.Clone(), leak, leak && left < taken * 4);
+            // One tap never takes all of a room's echo, so what's left only speaks for them when it's well over what came out. An echo
+            // too faint to take out, like a room's tail after they stop, gets the same test against what it would have taken.
+            bool echo = leak ? left < taken * 4 : score > 0 && micPower - score < score * 4;
+            return new CallChunk(user, (short[])discord.Clone(), leak, echo);
         }
     }
 
