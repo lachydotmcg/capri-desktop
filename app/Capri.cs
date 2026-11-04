@@ -4991,7 +4991,16 @@ namespace CapriDesktop
             if (args != null) args.Ticket = ticket;
             // Esc ends the whole ask: once it stops a job, the rest of that ask's tools and jobs don't run.
             if (ticket == escAsk) return "";
+            // Asked to join, she joins before passing anything on, even with call mode already on: on means she hears Discord, not
+            // that she's in the call (Lachy, 4 Nov: with call mode on she said his message was on the call without ever joining it).
+            if ((tool == "call_errand" || tool == "call_say") && ticket == callAskTicket && callJoinTicket != ticket && callJoinTried != ticket && CallSession.Joining(callAskText))
+            {
+                callJoinTried = ticket;
+                string joined = DoTool("use_computer", new ToolArguments { Task = CallSession.JoinAsk }, ticket, beside);
+                if (callJoinTicket != ticket) return joined;
+            }
             if (tool == "call_errand" || tool == "call_say") return Hands.Valid(tool, args) ? CallTool(tool, args, ticket) : "Couldn't read that call request.";
+            if (tool == "use_computer" && args != null && callJoinTicket == ticket && CallSession.Joining(args.Task)) return "You've already joined the call for this ask.";
             // A please on the end of a message job stays out of the message, however her brain wrote the job.
             if (tool == "use_computer" && args != null) args.Task = Hands.Unpleased(args.Task);
             if (tool == "use_computer" && args != null && CallSession.Blank(args.Task) && !CallSession.Joining(args.Task)) return "Use call_errand for the call's choice.";
@@ -12098,6 +12107,8 @@ namespace CapriDesktop
             voice.Stop();
             int ticket = ++asking;
             if (callVersion >= 0) { callUser = callAnswer = ticket; callUserVersion = callVersion; }
+            callAskText = text;
+            callAskTicket = ticket;
             heard = shown;
             box.Prompt = prompt;
             if (sorry && OnlyApology(text)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
@@ -28773,6 +28784,19 @@ namespace CapriDesktop
                 while (side == null && sideWait.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
                 if (side == null || !side.Contains("Which game?") || callSession.Waiting == null) throw new Exception("A named request beside a job lost its call errand or spoken question.");
                 checks.Add("PASS named user requests beside a job keep call context and speak their errand question through the usual side reply");
+
+                job = null; working = null;
+                int joinsBefore = jobs.Count;
+                string again = "Capri, join the discord call with my friends in it and tell them I'll be on in 15, then load up whichever game they say we're playing today.";
+                serve(new[] { tools(tool("call_say", "{\"text\":\"Lachy's on in 15.\"}")), LocalReply("Told them."), LocalReply("Lachy's off somewhere, probably taking a fat shit, so he sent me.") });
+                HearCall(again);
+                wait("probably taking a fat shit, so he sent me.");
+                if (jobs.Count != joinsBefore + 1 || !jobs[jobs.Count - 1].Contains("Stop once connected")) throw new Exception("With call mode already on, asking her to join didn't join first: " + (jobs.Count - joinsBefore) + " joins.");
+                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}")), LocalReply("Told them."), LocalReply("Lachy's busy, probably taking a fat shit, and he's on in 15.") });
+                HearCall(again);
+                wait("and he's on in 15.");
+                if (jobs.Count != joinsBefore + 2) throw new Exception("Her own join and the automatic one both ran, or neither did: " + (jobs.Count - joinsBefore - 1) + " joins.");
+                checks.Add("PASS asked to join with call mode already on, she joins before passing on the message, once per ask, whether or not her brain asked for the join");
             }
             finally
             {
