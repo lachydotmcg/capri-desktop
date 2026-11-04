@@ -4515,17 +4515,17 @@ namespace CapriDesktop
             Security.Pick(Security.Trusted);
             Security.Set(Security.Open, false);
             string customShown = mainframe.JobsStatus + " / " + Security.Saved;
-            bool custom = Security.Preset == Security.Custom && preferences.Permissions == "01111110000" && customShown == "cursor | Security: Custom / 01111110000";
+            bool custom = Security.Preset == Security.Custom && preferences.Permissions == "0111111000" && customShown == "cursor | Security: Custom / 0111111000";
             Security.Set(Security.Open, true);
-            bool backToTrusted = Security.Preset == Security.Trusted && preferences.Permissions == "11111110000" && !HeyCapriOn;
+            bool backToTrusted = Security.Preset == Security.Trusted && preferences.Permissions == "1111111000" && !HeyCapriOn;
             if (wrong.Count > 0 || !custom || !backToTrusted) throw new Exception("SECURITY's presets went wrong: " + string.Join(" / ", wrong.ToArray()) + " / custom " + customShown + " / back " + backToTrusted);
             checks.Add("PASS SECURITY presets: Lockdown turns every toggle off, Guarded the first three on, Trusted the first seven and Blackwall the original eleven; friend requests stay off, and flipping a toggle makes it Custom and saves");
 
             DataContractJsonSerializer json = new DataContractJsonSerializer(typeof(Preferences));
             Func<string, Preferences> older = delegate(string text) { return (Preferences)json.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text))); };
             Preferences wasBlackwall = older("{\"Bypass\":true,\"Size\":240}"), wasDefault = older("{\"Size\":240}"), wasMixed = older("{\"Bypass\":true,\"Permissions\":\"1010000000\",\"Size\":240}");
-            bool movedBlackwall = Migrate(wasBlackwall) && wasBlackwall.Permissions == "11111111110" && wasBlackwall.HeyCapri;
-            bool movedDefault = Migrate(wasDefault) && wasDefault.Permissions == "11111110000" && !wasDefault.HeyCapri;
+            bool movedBlackwall = Migrate(wasBlackwall) && wasBlackwall.Permissions == "1111111111" && wasBlackwall.HeyCapri;
+            bool movedDefault = Migrate(wasDefault) && wasDefault.Permissions == "1111111000" && !wasDefault.HeyCapri;
             bool keptMixed = !Migrate(wasMixed) && wasMixed.Permissions == "1010000000" && !Migrate(wasBlackwall);
             Security.Load(wasBlackwall.Permissions);
             bool loadedBlackwall = Computer.Bypass && Security.On(Security.Mouse);
@@ -4784,7 +4784,7 @@ namespace CapriDesktop
             string at150 = mainframe.SecurityAt(1.5f / machine, Path.Combine(output, "security-150.png"));
             string at200 = mainframe.SecurityAt(2f / machine, Path.Combine(output, "security-200.png"));
             Security.Pick(Security.Trusted);
-            if (opened == null || !opened.StartsWith("Trusted | Trusted | 111111100000 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 011111100000 | Your own mix", StringComparison.Ordinal) || flippedSaved != "01111110000"
+            if (opened == null || !opened.StartsWith("Trusted | Trusted | 111111100000 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 011111100000 | Your own mix", StringComparison.Ordinal) || flippedSaved != "0111111000"
                 || !tapped.StartsWith("Trusted | Trusted | 111111100000", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 000000000000 | Everything is off", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 111111111110 | She never asks", StringComparison.Ordinal) || !walledHey || !walledSettings || HeyCapriOn)
                 throw new Exception("The SECURITY window went wrong: " + opened + " // " + flipped + " // " + tapped + " // " + locked + " // " + walled + " // " + walledSettings);
             if (!friendRow) throw new Exception("The SECURITY friend request row did not toggle and save.");
@@ -16563,7 +16563,8 @@ namespace CapriDesktop
                 sessions.Add(new Tune { App = "chrome", Title = "Another tab", Playing = true });
                 if (Computer.ExploreAllowed(page, false)) throw new Exception("Another playing tab in the same browser was ignored.");
                 sessions[1].App = "firefox";
-                if (!Computer.ExploreAllowed(page, false)) throw new Exception("A different browser's media blocked a paused page.");
+                if (Computer.ExploreAllowed(page, false)) throw new Exception("Media playing in another browser didn't stop exploring a paused page.");
+                sessions.RemoveAt(1);
                 video.Title = "A different video";
                 if (Computer.ExploreAllowed(page, false)) throw new Exception("A paused session from another page was used.");
                 video.Title = "Quiet forests";
@@ -30462,11 +30463,12 @@ namespace CapriDesktop
                 checks.Add("PASS a friend request holds open_app and asks once; Discord yes, do it and approve do nothing; the user's plain mic yes runs it once");
 
                 pick("Notepad"); first = callSession.Friend;
-                pick("Roblox");
-                if (callSession.Friend == first) throw new Exception("A newer friend request did not replace the old one.");
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Roblox\"}")) });
+                HearCall("open Roblox", false, true); wait(CallSession.OneAtATime);
+                if (callSession.Friend != first) throw new Exception("A newer friend request replaced the one she asked about.");
                 serve(new[] { LocalReply("unused") });
-                Hear("yes", "yes", "> you: "); wait("Opened Roblox");
-                if (opened.Count != 2 || opened[1] != "fake-roblox" || callSession.Friend != null) throw new Exception("Typed yes did not match only the newest friend request.");
+                Hear("yes", "yes", "> you: "); wait("Opened Notepad");
+                if (opened.Count != 2 || opened[1] != "fake-notepad" || callSession.Friend != null) throw new Exception("Typed yes did not run only the request she asked about.");
 
                 pick("Notepad"); first = callSession.Friend;
                 now = now.AddSeconds(60).AddTicks(-1);
@@ -30479,7 +30481,7 @@ namespace CapriDesktop
                 serve(new[] { LocalReply("unused") });
                 HearCall("yes"); wait("That call request has ended.");
                 if (opened.Count != 2) throw new Exception("The user's yes ran an expired friend request.");
-                checks.Add("PASS typed yes runs only the replacement friend request, and a fake-clock request expires at 60 seconds");
+                checks.Add("PASS a second friend request waits its turn, typed yes runs only the one she asked about, and a fake-clock request expires at 60 seconds");
 
                 foreach (string drop in new[] { "no", "other mic", "changed yes", "other typing", "switch", "call mode" })
                 {
@@ -30504,7 +30506,12 @@ namespace CapriDesktop
                 Hear("yes", "yes", "> you: "); wait("That call request has ended.");
                 if (requests.Count != 0 || opened.Count != 2) throw new Exception("Typed input revived a friend request with call mode off.");
                 ToggleCallMode();
-                checks.Add("PASS user no, other mic or typed input, switching friend asks off and ending call mode drop a held request; Discord is unheard with call mode off");
+                pick("Notepad");
+                bool refusedLine, endedLine;
+                if (callSession.AnswerFriend("stop the music", out refusedLine, out endedLine) != null || refusedLine || endedLine || callSession.FriendAsked || callSession.Friend != null) throw new Exception("A command starting with stop answered a friend request.");
+                List<KeyValuePair<string, ToolArguments>> longJob = new List<KeyValuePair<string, ToolArguments>> { new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = "open Notepad and type a long hello to everyone on the call, then delete everything in his Documents folder" }) };
+                if (callSession.HoldFriend(callSession.Generation, callSession.FriendTurn, "a long job", longJob) != null || callSession.Friend != null) throw new Exception("A friend request too long to say in full was held.");
+                checks.Add("PASS user no, other mic or typed input, switching friend asks off and ending call mode drop a held request; Discord is unheard with call mode off; a line starting with stop answers nothing, and a request too long to say in full isn't held");
 
                 pick("Notepad");
                 Security.Set(Security.Open, false); preferences.QuickHands = false;

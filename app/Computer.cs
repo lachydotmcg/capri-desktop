@@ -1067,19 +1067,8 @@ namespace CapriDesktop
         private static bool PausedPage(Sight sight)
         {
             if (!Browsers.IsMatch(sight.Program ?? "") || !Regex.IsMatch(sight.Title ?? "", @"\byoutube\b", RegexOptions.IgnoreCase)) return false;
-            try
-            {
-                List<Tune> sessions = ExploreMedia();
-                if (sessions == null) return false;
-                bool paused = false;
-                foreach (Tune tune in sessions)
-                {
-                    if (tune == null || !string.Equals(Tunes.AppName(tune.App), Tunes.AppName(sight.Program), StringComparison.OrdinalIgnoreCase)) continue;
-                    if (tune.Playing || tune.Changing) return false;
-                    if (!string.IsNullOrWhiteSpace(tune.Title) && sight.Title.IndexOf(tune.Title, StringComparison.OrdinalIgnoreCase) >= 0) paused = true;
-                }
-                return paused;
-            }
+            // The same rule as ExplorePaused: anything playing anywhere and she leaves the page alone.
+            try { return ExplorePaused(sight, ExploreMedia()); }
             catch (Exception) { return false; }
         }
 

@@ -766,19 +766,28 @@ namespace CapriDesktop
             short[] reference = Pattern(Ears.Chunk * 14, 71), voice = Pattern(reference.Length, 83);
             foreach (int lag in new[] { 0, Ears.Rate * 120 / 1000, Ears.Rate * 237 / 1000, Ears.Rate * 4 / 10 })
             {
-                CallEcho leak = new CallEcho(), overlap = new CallEcho();
+                CallEcho leak = new CallEcho(), overlap = new CallEcho(), room = new CallEcho();
                 Random noise = new Random(97);
                 for (int at = 0; at < reference.Length; at += Ears.Chunk)
                 {
-                    short[] call = new short[Ears.Chunk], mic = new short[Ears.Chunk], both = new short[Ears.Chunk];
+                    short[] call = new short[Ears.Chunk], mic = new short[Ears.Chunk], both = new short[Ears.Chunk], reverb = new short[Ears.Chunk];
                     for (int i = 0; i < Ears.Chunk; i++)
                     {
                         if (at + i < Ears.Chunk * 8) call[i] = reference[at + i];
                         int delayed = at + i - lag;
                         mic[i] = (short)((delayed >= 0 && delayed < Ears.Chunk * 8 ? reference[delayed] * 0.3 : 0) + noise.Next(-20, 21));
                         both[i] = (short)(mic[i] + voice[at + i]);
+                        double tail = noise.Next(-20, 21);
+                        foreach (KeyValuePair<int, double> tap in new[] { new KeyValuePair<int, double>(0, 0.3), new KeyValuePair<int, double>(Ears.Rate * 40 / 1000, 0.15), new KeyValuePair<int, double>(Ears.Rate * 90 / 1000, 0.08) })
+                        {
+                            int back = delayed - tap.Key;
+                            if (back >= 0 && back < Ears.Chunk * 8) tail += reference[back] * tap.Value;
+                        }
+                        reverb[i] = (short)tail;
                     }
-                    CallChunk copied = leak.Split(mic, call), spoken = overlap.Split(both, call);
+                    CallChunk copied = leak.Split(mic, call), spoken = overlap.Split(both, call), echoed = room.Split(reverb, call);
+                    if (lag < Ears.Rate * 4 / 10 && (echoed.Source == CallSource.User || echoed.Source == CallSource.Both) && !echoed.Echo) throw new Exception("A room echo of the call could speak as the user at lag " + lag + ".");
+                    if (spoken.Echo) throw new Exception("Talking over a call leak was taken for its echo at lag " + lag + ".");
                     bool playing = Speaker.Loudness(call, 0, call.Length) >= 0.003;
                     bool copiedSound = Speaker.Loudness(mic, 0, mic.Length) >= 0.003;
                     if (copied.Source != (playing || copiedSound ? CallSource.Discord : CallSource.Quiet) || Speaker.Loudness(copied.User, 0, copied.User.Length) != 0) throw new Exception("A Discord leak gained user words at lag " + lag + ".");
@@ -797,10 +806,13 @@ namespace CapriDesktop
     {
         internal readonly short[] User, Discord, Samples;
         internal readonly CallSource Source;
+        // Their part here came with the call's echo and wasn't clearly louder than it: it shows as theirs, but it can't wake her or say yes.
+        internal readonly bool Echo;
 
-        internal CallChunk(short[] user, short[] discord, bool leak = false)
+        internal CallChunk(short[] user, short[] discord, bool leak = false, bool echo = false)
         {
             bool own = Speaker.Loudness(user, 0, user.Length) >= 0.003;
+            Echo = own && echo;
             bool call = Speaker.Loudness(discord, 0, discord.Length) >= 0.003;
             Source = own ? call ? CallSource.Both : CallSource.User : call || leak ? CallSource.Discord : CallSource.Quiet;
             User = own ? user : new short[user.Length];
@@ -878,9 +890,17 @@ namespace CapriDesktop
                 mean = sum / length;
             }
             leak = score / length >= 0.003 * 0.003 * 32768.0 * 32768.0;
+            double left = 0, taken = 0;
             if (leak)
-                for (int i = 0; i < length; i++) user[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, Math.Round(mic[i] - micSum / length - gain * (recent[at + i - best] - mean))));
-            return new CallChunk(user, (short[])discord.Clone(), leak);
+                for (int i = 0; i < length; i++)
+                {
+                    double took = gain * (recent[at + i - best] - mean);
+                    user[i] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue, Math.Round(mic[i] - micSum / length - took)));
+                    left += (double)user[i] * user[i];
+                    taken += took * took;
+                }
+            // One tap never takes all of a room's echo, so what's left only speaks for them when it's well over what came out.
+            return new CallChunk(user, (short[])discord.Clone(), leak, leak && left < taken * 4);
         }
     }
 
@@ -890,6 +910,7 @@ namespace CapriDesktop
         internal string Who;
         internal string Words;
         internal int At;
+        internal bool Echo;
     }
 
     internal sealed class CallTranscript
@@ -911,6 +932,17 @@ namespace CapriDesktop
             foreach (CallPart part in Parts) (part.FromCall ? call : own).Append(part.Words).Append(' ');
             user = own.ToString().Trim();
             discord = call.ToString().Trim();
+        }
+
+        // Their words that can wake her or answer her: none from a stretch where the call's echo was as loud as they were.
+        internal string Sure
+        {
+            get
+            {
+                StringBuilder own = new StringBuilder();
+                foreach (CallPart part in Parts) if (!part.FromCall && !part.Echo) own.Append(part.Words).Append(' ');
+                return own.ToString().Trim();
+            }
         }
 
         internal string Text
@@ -947,7 +979,8 @@ namespace CapriDesktop
                         break;
                     }
                     int count = 0;
-                    for (int j = first; j < last; j++) count += chunks[j].Samples.Length;
+                    bool echo = false;
+                    for (int j = first; j < last; j++) { count += chunks[j].Samples.Length; echo |= !fromCall && chunks[j].Echo; }
                     short[] samples = new short[count + Ears.Rate * 3 / 10];
                     int at = Ears.Rate * 15 / 100;
                     for (int j = first; j < last; j++)
@@ -957,7 +990,7 @@ namespace CapriDesktop
                         at += part.Length;
                     }
                     string words = Hearing.Text(samples);
-                    if (words.Length > 0) line.Parts.Add(new CallPart { FromCall = fromCall, Words = words, At = first });
+                    if (words.Length > 0) line.Parts.Add(new CallPart { FromCall = fromCall, Words = words, At = first, Echo = echo });
                 }
             }
             line.Parts.Sort(delegate(CallPart left, CallPart right)
@@ -969,6 +1002,7 @@ namespace CapriDesktop
             {
                 if (line.Parts[i - 1].FromCall != line.Parts[i].FromCall) continue;
                 line.Parts[i - 1].Words += " " + line.Parts[i].Words;
+                line.Parts[i - 1].Echo |= line.Parts[i].Echo;
                 line.Parts.RemoveAt(i);
             }
             return line;

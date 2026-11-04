@@ -233,11 +233,14 @@ namespace CapriDesktop
         // A preset's toggles 1 to 10 the way Saved writes them.
         internal static string Of(int preset) { return Marks(Masks[preset]); }
 
+        // Friend requests take an 11th mark only when they're on, so a build from before them still reads the save instead of
+        // falling back to Trusted.
         private static string Marks(int bits)
         {
-            char[] marks = new char[Wake + 1];
+            bool friends = (bits & (1 << Friends)) != 0;
+            char[] marks = new char[friends ? Wake + 1 : Wake];
             for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
-            marks[Wake] = (bits & (1 << Friends)) != 0 ? '1' : '0';
+            if (friends) marks[Wake] = '1';
             return new string(marks);
         }
 

@@ -159,7 +159,10 @@ namespace CapriSetup
                 }
             }
             Directory.CreateDirectory(destination);
-            SetupFiles.ClearOld(Path.Combine(destination, "Uninstall.exe"));
+            // Best-effort: an uninstaller still exiting, or antivirus holding its old copy, mustn't fail the install.
+            try { SetupFiles.ClearOld(Path.Combine(destination, "Uninstall.exe")); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
             File.WriteAllText(marker, "Capri desktop companion " + version);
             string target = Path.Combine(destination, "Capri.exe");

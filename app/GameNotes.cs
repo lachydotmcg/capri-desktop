@@ -111,7 +111,14 @@ namespace CapriDesktop
         internal static ToolArguments Request(string text)
         {
             Match save = Regex.Match(text ?? "", @"^(?:remember|save|set) (?:the )?(?:controls|instructions) for (.+?)(?:\s*:\s*| are\s+)(.+)$", RegexOptions.IgnoreCase);
-            if (!save.Success) save = Regex.Match(text ?? "", @"^(?:in|for) (.+?),\s*remember (?:that )?(.+)$", RegexOptions.IgnoreCase);
+            if (!save.Success)
+            {
+                save = Regex.Match(text ?? "", @"^(?:in|for) (.+?),\s*remember (?:that )?(.+)$", RegexOptions.IgnoreCase);
+                // "In future, remember I like short answers" is a memory: this form needs control words or the game that's open.
+                string open = Hands.GameOpen();
+                if (save.Success && !Regex.IsMatch(save.Groups[2].Value, @"\b(?:keys?|buttons?|click|press|hold|tap|wasd|mouse|controller|gamepad|joystick|sticks?|triggers?|bumpers?|jump|crouch|sprint|shift|ctrl|alt|space(?:bar)?|esc|escape|tab|enter|arrows?|scroll|f\d{1,2})\b", RegexOptions.IgnoreCase)
+                    && (string.IsNullOrEmpty(open) || open.IndexOf(save.Groups[1].Value.Trim(), StringComparison.OrdinalIgnoreCase) < 0)) save = Match.Empty;
+            }
             if (save.Success && Name(save.Groups[1].Value).Length > 0) return new ToolArguments { Name = save.Groups[1].Value.Trim(), Text = save.Groups[2].Value.Trim(), Action = "save" };
             Match read = Regex.Match(text ?? "", @"^(?:show|read|list)(?: me)? (?:the |my )?(?:controls|instructions) for (.+)$", RegexOptions.IgnoreCase);
             return read.Success ? new ToolArguments { Name = read.Groups[1].Value.Trim(), Action = "read" } : null;
