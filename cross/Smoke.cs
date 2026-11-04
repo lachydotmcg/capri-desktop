@@ -1435,7 +1435,7 @@ namespace CapriDesktop
                 pet.DragFrame();
                 if (moves.Count != 1) throw new Exception("A frame repeated an old drag move.");
                 checks.Add(linux ? "PASS Linux drag follows the desk pointer while the reported window position lags" : "PASS Mac drag keeps PointToScreen even when a desk pointer is available");
-                pet.PlatformImpl.PositionChanged(new PixelPoint(reported.X + 2, reported.Y - 3));
+                pet.FollowPosition(new PixelPoint(reported.X + 2, reported.Y - 3));
                 foreach (int y in new[] { 60, -120, 90, -30 })
                 {
                     cursor = new PixelPoint(down.X + 15, down.Y + y);
@@ -1514,13 +1514,13 @@ namespace CapriDesktop
                     moves.Clear();
                     typeof(Pet).GetField("walking", fields).SetValue(pet, true);
                     typeof(Pet).GetField("seat", fields).SetValue(pet, new Ledge { Floor = true, Left = start.X, Right = start.X + Px(800), Y = start.Y + Px(pet.BodySize * 0.99) });
-                    pet.PlatformImpl.PositionChanged(new PixelPoint(reported.X + 20, reported.Y - 40));
+                    pet.FollowPosition(new PixelPoint(reported.X + 20, reported.Y - 40));
                     if (pet.Anchor != new PixelPoint(start.X + 20, start.Y - 40) || pet.Feet != start.Y - 40 + Px(pet.BodySize * 0.99) || pet.Hip.Y != pet.Feet || moves.Count != 0) throw new Exception("Her walking anchor didn't follow a corrected window position.");
                     // Late news of moves she asked for never steps her back: two steps, then the first one confirmed.
                     PixelPoint one = new PixelPoint(start.X + 30, start.Y - 40), two = new PixelPoint(start.X + 40, start.Y - 40);
                     pet.Move(one);
                     pet.Move(two);
-                    pet.PlatformImpl.PositionChanged(new PixelPoint(one.X + frame.X, one.Y + frame.Y));
+                    pet.FollowPosition(new PixelPoint(one.X + frame.X, one.Y + frame.Y));
                     if (pet.Anchor != two || moves.Count != 2) throw new Exception("A late confirmation of an earlier move stepped her back.");
                     pet.Move(new PixelPoint(start.X + 90, start.Y + 90));
                     pet.FollowPosition(pet.Position);
