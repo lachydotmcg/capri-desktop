@@ -302,7 +302,7 @@ namespace CapriDesktop
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
                 string loginText = File.Exists(pet.LoginFile) ? File.ReadAllText(pet.LoginFile) : "";
-                bool loginOn = pet.StartsAtLogin && pet.LoginShown && loginText == Limbs.LoginEntry(Environment.ProcessPath, OperatingSystem.IsMacOS());
+                bool loginOn = pet.StartsAtLogin && pet.LoginShown && loginText == Limbs.LoginEntry(Limbs.SelfPath(), OperatingSystem.IsMacOS());
                 File.SetLastWriteTimeUtc(pet.LoginFile, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
                 pet.SetLogin(true);
                 bool loginKept = File.GetLastWriteTimeUtc(pet.LoginFile).Year == 2001;
@@ -310,8 +310,21 @@ namespace CapriDesktop
                 bool loginOff = !File.Exists(pet.LoginFile) && !pet.LoginShown;
                 string linuxLogin = Limbs.LoginEntry("/home/me/My Apps/Capri", false), macLogin = Limbs.LoginEntry("/Applications/Capri.app/Contents/MacOS/Capri", true), bareLogin = Limbs.LoginEntry("/Users/me/capri/Capri", true);
                 bool macRight = macLogin.Contains("\t\t<string>/usr/bin/open</string>\n\t\t<string>-g</string>\n\t\t<string>-b</string>\n\t\t<string>" + Limbs.MacBundle + "</string>\n") && !macLogin.Contains("/Applications/") && macLogin.Contains("<key>RunAtLoad</key>") && macLogin.Contains("<string>Interactive</string>") && macLogin.Contains("<key>AssociatedBundleIdentifiers</key>\n\t<array>\n\t\t<string>" + Limbs.MacBundle + "</string>") && bareLogin.Contains("\t\t<string>/Users/me/capri/Capri</string>\n") && !bareLogin.Contains("AssociatedBundleIdentifiers");
-                if (!loginNew || !loginOn || !loginKept || !loginOff || !linuxLogin.Contains("\nExec=\"/home/me/My Apps/Capri\"\n") || !macRight) throw new Exception("Start at login went wrong: new " + loginNew + ", on " + loginOn + ", kept " + loginKept + ", off " + loginOff + ", mac " + macRight + " | " + loginText);
-                checks.Add("PASS start at login: off until ticked, then an autostart entry on Linux that starts this copy, or a LaunchAgent on Mac that opens her app by its id wherever it's kept; left alone when unchanged, gone again when unticked");
+                string imageWas = Environment.GetEnvironmentVariable("APPIMAGE"), dirWas = Environment.GetEnvironmentVariable("APPDIR"), selfWas = Limbs.SelfPath();
+                bool imageInside = true;
+                string insideDir = Environment.GetEnvironmentVariable("APPDIR");
+                if (!string.IsNullOrEmpty(imageWas) && !string.IsNullOrEmpty(insideDir) && Environment.ProcessPath.StartsWith(insideDir.TrimEnd('/') + "/", StringComparison.Ordinal))
+                    imageInside = loginText == Limbs.LoginEntry(imageWas, OperatingSystem.IsMacOS());
+                Environment.SetEnvironmentVariable("APPIMAGE", "/home/me/Other.AppImage");
+                Environment.SetEnvironmentVariable("APPDIR", Path.Combine(folder, "other-image"));
+                pet.SetLogin(true);
+                bool imageInherited = Limbs.SelfPath() == Environment.ProcessPath && File.Exists(pet.LoginFile) && File.ReadAllText(pet.LoginFile) == Limbs.LoginEntry(Environment.ProcessPath, OperatingSystem.IsMacOS());
+                Environment.SetEnvironmentVariable("APPIMAGE", imageWas);
+                Environment.SetEnvironmentVariable("APPDIR", dirWas);
+                pet.SetLogin(false);
+                bool selfAgain = Limbs.SelfPath() == selfWas;
+                if (!loginNew || !loginOn || !loginKept || !loginOff || !linuxLogin.Contains("\nExec=\"/home/me/My Apps/Capri\"\n") || !macRight || !imageInside || !imageInherited || !selfAgain) throw new Exception("Start at login went wrong: new " + loginNew + ", on " + loginOn + ", kept " + loginKept + ", off " + loginOff + ", mac " + macRight + ", image " + imageInside + ", inherited " + imageInherited + ", back " + selfAgain + " | " + loginText);
+                checks.Add("PASS start at login: off until ticked, then an autostart entry on Linux that starts this copy, or a LaunchAgent on Mac that opens her app by its id wherever it's kept; inside an AppImage it starts the AppImage, not the temporary mount, and an AppImage variable inherited from another program doesn't redirect it; left alone when unchanged, gone again when unticked");
                 bool introNew = pet.IntroShown && !pet.Saved.NoIntro;
                 pet.SetIntro(false);
                 PixelPoint introHip = pet.Hip;

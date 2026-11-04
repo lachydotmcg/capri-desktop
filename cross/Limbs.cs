@@ -280,6 +280,16 @@ namespace CapriDesktop
             catch (Exception) { return false; }
         }
 
+        // The copy to start again: an AppImage runs from a temporary mount, so the file they keep is the one that lasts.
+        internal static string SelfPath()
+        {
+            string image = Environment.GetEnvironmentVariable("APPIMAGE");
+            string dir = Environment.GetEnvironmentVariable("APPDIR");
+            string self = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(image) || string.IsNullOrEmpty(dir) || string.IsNullOrEmpty(self) || !self.StartsWith(dir.TrimEnd('/') + "/", StringComparison.Ordinal)) return self;
+            return image;
+        }
+
         // Start at login: a LaunchAgent on Mac, an XDG autostart entry on Linux. Either one starts this copy of Capri.
         internal static string LoginFile()
         {
