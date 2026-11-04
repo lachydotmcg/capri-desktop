@@ -1318,9 +1318,10 @@ namespace CapriDesktop
 
         private bool cableOffered;
 
-        // Input ends where Get VB-CABLE starts, or where it would end, measured from where both are now so any size fits. A
-        // new Mainframe size puts every control back as built, so Rezoom calls this again.
-        private void FitMixInput() { mixInput.Width = (cableOffered ? cableKey.Left - cableKey.Height / 3 : cableKey.Right) - mixInput.Left; }
+        // Input ends just before Get VB-CABLE (at 244) or runs the whole column. It goes by the built layout, since Settings moves
+        // hidden pages' controls off to the side, and a new Mainframe size puts every control back as built, so Rezoom calls
+        // this again.
+        private void FitMixInput() { mixInput.Width = Scaled(cableOffered ? 208 : 328); }
 
         private static void Retext(Control control, string text)
         {
