@@ -23,9 +23,16 @@ namespace CapriRoom
         [Tooltip("How long to wait for the room scan before using the flat floor.")]
         public float waitForRoomSeconds = 8f;
 
-        private const MRUKAnchor.SceneLabels Furniture =
-            MRUKAnchor.SceneLabels.TABLE | MRUKAnchor.SceneLabels.COUCH | MRUKAnchor.SceneLabels.BED |
-            MRUKAnchor.SceneLabels.STORAGE | MRUKAnchor.SceneLabels.OTHER;
+        // Anything in your scan with a flat top counts as a ledge: tables, desks, couches, beds, shelves, screens,
+        // lamps, "other" and unlabeled objects. Only the room's shell (floor, ceiling, walls, doors, windows,
+        // wall art and the room mesh) is left out.
+        private const MRUKAnchor.SceneLabels NotFurniture =
+            MRUKAnchor.SceneLabels.FLOOR | MRUKAnchor.SceneLabels.CEILING | MRUKAnchor.SceneLabels.WALL_FACE |
+            MRUKAnchor.SceneLabels.INNER_WALL_FACE | MRUKAnchor.SceneLabels.INVISIBLE_WALL_FACE |
+            MRUKAnchor.SceneLabels.DOOR_FRAME | MRUKAnchor.SceneLabels.WINDOW_FRAME |
+            MRUKAnchor.SceneLabels.WALL_ART | MRUKAnchor.SceneLabels.GLOBAL_MESH;
+        private const MRUKAnchor.SceneLabels Furniture = ~NotFurniture;
+        private const float SmallestTop = 0.12f;   // tops narrower than this (about a hand) are too small to sit on
         private const MRUKAnchor.SceneLabels Ground = Furniture | MRUKAnchor.SceneLabels.FLOOR;
 
         public bool Ready { get; private set; }
@@ -96,7 +103,20 @@ namespace CapriRoom
             MRUKAnchor hit;
             Vector3 normal;
             Pose pose = room.GetBestPoseFromRaycast(down, 4f, new LabelFilter(Ground), out hit, out normal);
-            return hit != null ? pose.position.y : FloorY;
+            float ground = hit != null ? pose.position.y : FloorY;
+            // A ray that starts inside a piece of furniture misses it. That happens when you let go of her
+            // just above a desk, because she dangles below your hand. So also catch any furniture top
+            // she's over that is no more than half a metre above her.
+            foreach (MRUKAnchor top in Tops())
+            {
+                Rect rect; float topZ;
+                TopRect(top, out rect, out topZ);
+                Vector3 local = top.transform.InverseTransformPoint(point);
+                if (!rect.Contains(new Vector2(local.x, local.y))) continue;
+                float y = top.transform.TransformPoint(new Vector3(local.x, local.y, topZ)).y;
+                if (y > ground && y <= point.y + 0.5f) ground = y;
+            }
+            return ground;
         }
 
         public bool Inside(Vector3 point)
@@ -128,7 +148,9 @@ namespace CapriRoom
             if (room == null) return tops;
             foreach (MRUKAnchor anchor in room.Anchors)
             {
-                if ((anchor.Label & Furniture) == 0 || !anchor.PlaneRect.HasValue) continue;
+                Rect rect;
+                if ((anchor.Label & Furniture) == 0 || !TopRect(anchor, out rect, out _)) continue;
+                if (rect.width < SmallestTop || rect.height < SmallestTop) continue;
                 if (Vector3.Dot(anchor.transform.forward, Vector3.up) < 0.9f) continue;   // only flat tops facing up
                 tops.Add(anchor);
             }
@@ -151,7 +173,9 @@ namespace CapriRoom
             float bestDistance = reach;
             foreach (MRUKAnchor top in Tops())
             {
-                float height = top.transform.InverseTransformPoint(feet).z;   // how far above the top her feet are
+                Rect rect; float topZ;
+                TopRect(top, out rect, out topZ);
+                float height = top.transform.InverseTransformPoint(feet).z - topZ;   // how far above the top her feet are
                 if (height < -0.35f || height > 0.6f) continue;
                 float distance;
                 Surface edge = EdgeOf(top, feet, out distance);
@@ -160,11 +184,34 @@ namespace CapriRoom
             return best;
         }
 
+        // The flat top of a piece of furniture, in the anchor's own coordinates (x and y across it, z up out of it).
+        // Space Setup furniture is usually a 3D box (VolumeBounds) rather than a flat plane, so use the box's top face.
+        private static bool TopRect(MRUKAnchor anchor, out Rect rect, out float topZ)
+        {
+            if (anchor.VolumeBounds.HasValue)
+            {
+                Bounds b = anchor.VolumeBounds.Value;
+                rect = new Rect(b.min.x, b.min.y, b.size.x, b.size.y);
+                topZ = b.max.z;
+                return true;
+            }
+            if (anchor.PlaneRect.HasValue)
+            {
+                rect = anchor.PlaneRect.Value;
+                topZ = 0f;
+                return true;
+            }
+            rect = default(Rect);
+            topZ = 0f;
+            return false;
+        }
+
         // The point on a top's edge nearest to "near", 3 cm in from the edge, and how far "near" is from it across the surface.
         private static Surface EdgeOf(MRUKAnchor top, Vector3 near, out float distance)
         {
             // Work in the top's own flat coordinates: x and y across the surface, z out of it.
-            Rect rect = top.PlaneRect.Value;
+            Rect rect; float topZ;
+            TopRect(top, out rect, out topZ);
             Vector3 local = top.transform.InverseTransformPoint(near);
             Vector2 at = new Vector2(local.x, local.y);
             Vector2 inside = new Vector2(Mathf.Clamp(at.x, rect.xMin, rect.xMax), Mathf.Clamp(at.y, rect.yMin, rect.yMax));
@@ -183,7 +230,7 @@ namespace CapriRoom
             if (outward.x != 0) inside.x = outward.x < 0 ? rect.xMin + 0.03f : rect.xMax - 0.03f;
             else inside.y = outward.y < 0 ? rect.yMin + 0.03f : rect.yMax - 0.03f;
             Vector3 outwardWorld = Flat(top.transform.TransformDirection(new Vector3(outward.x, outward.y, 0))).normalized;
-            Vector3 point = top.transform.TransformPoint(new Vector3(inside.x, inside.y, 0));
+            Vector3 point = top.transform.TransformPoint(new Vector3(inside.x, inside.y, topZ));
             return new Surface { Point = point, Raised = true, Edge = true, EdgeOutward = outwardWorld };
         }
 

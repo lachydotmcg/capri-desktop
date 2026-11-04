@@ -13,8 +13,8 @@ namespace CapriRoom.EditorTools
     {
         public const string AppName = "Capri Room";
         public const string AppId = "com.capriroom.quest";
-        public const string Version = "1.0.0";
-        public const int VersionCode = 1;
+        public const string Version = "1.0.1";
+        public const int VersionCode = 2;
         private const string Alias = "capri";
 
         private static string Folder { get { return Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Keystore")); } }

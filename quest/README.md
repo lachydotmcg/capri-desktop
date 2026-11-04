@@ -7,11 +7,13 @@
 ## Install (sideload)
 
 1. **Turn on Developer Mode.** Make a free account at [developers.meta.com](https://developers.meta.com/horizon/sign-up), then in the Meta Horizon phone app go to **Devices → your Quest → Developer Mode → On**.
-2. **Download** `CapriRoom-v1.0.0.apk` from the [Capri Room releases](https://github.com/fadievr/capri-room/releases/latest).
+2. **Download** the newest `CapriRoom-v….apk` from the [Capri Room releases](https://github.com/fadievr/capri-room/releases/latest).
 3. **Install it** with [SideQuest](https://sidequestvr.com) or [Meta Quest Developer Hub](https://developers.meta.com/horizon/documentation/unity/ts-mqdh/): plug in your Quest, allow USB debugging in the headset, and drag the APK onto the app.
 4. In the headset, open **Library → Unknown Sources → Capri Room**. Allow **spatial data** (so she can see your room) and the **microphone** (so she can hear you).
 
 Do **Space Setup** first (**Settings → Physical Space → Space Setup**) so she knows where your floor, tables, couches and beds are.
+
+What's new in each version: [patch notes](CHANGELOG.md).
 
 ## Talking to her
 

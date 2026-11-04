@@ -405,7 +405,7 @@ namespace CapriRoom
                 if (!room.Inside(next)) { ComeHere(); return; }
                 if (ground > room.FloorY + 0.15f)
                 {
-                    Surface ledge = room.LedgeNear(next, 0.2f);   // landed near the edge of furniture: sit on it
+                    Surface ledge = room.LedgeNear(next, 0.6f);   // landed on furniture: sit on its nearest edge
                     if (ledge != null) { if (thrown) Say(Pick(TossLines)); SitOn(ledge); return; }
                 }
                 standingOn = ground > room.FloorY + 0.15f ? new Surface { Point = next, Raised = true } : null;
