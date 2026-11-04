@@ -379,10 +379,6 @@ namespace CapriDesktop
             ClientSize = new Size(Wide, Tall + SetupHeight + KeyRow);
             Font small = Look.Mono(8.5f, FontStyle.Regular, GraphicsUnit.Point);
             Caption("MAINFRAME", 24, 15, Display(16f), Rose);
-            build = Caption("v" + version, 200, 20, small, Faint);
-            build.AutoSize = false;
-            build.TextAlign = ContentAlignment.MiddleRight;
-            build.Bounds = new Rectangle(230, 20, 62, 22);
             minimize = Make("", 300, 20, 26, 22, delegate { WindowState = FormWindowState.Minimized; });
             minimize.Glyph = 1;
             minimize.AccessibleName = "Minimize";
@@ -392,6 +388,8 @@ namespace CapriDesktop
             more = Make("Settings", 146, 20, 84, 22, delegate { if (modded) ShowMods(false); else ShowSettings(!paged); });
             more.Accent = Cyan;
             more.Loud = true;
+            // Mods sits right beside Settings in her title bar (Lachy, 4 Nov: "I like mods better next to settings").
+            modsKey = Make("Mods", 234, 20, 56, 22, delegate { ShowMods(!modded); });
             int header = Controls.Count;
             for (int i = 0; i < header; i++) Scrolls(Controls[i]);
             Section("BRAIN >", 0, 58);
@@ -558,7 +556,11 @@ namespace CapriDesktop
             support = Lower(Make("Support", 268, 183 + v, 88, 18, delegate { capri.OpenSupport(); }));
             support.Heart = true;
             support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
-            modsKey = Lower(Make("Mods", 204, 183 + v, 56, 18, delegate { ShowMods(true); }));
+            // Her version sits where Mods was, beside Support, now Mods is up by Settings.
+            build = Lower(Caption("v" + version, 196, 183 + v, small, Faint));
+            build.AutoSize = false;
+            build.TextAlign = ContentAlignment.MiddleRight;
+            build.Bounds = new Rectangle(196, 183 + v, 66, 18);
             showHide = Lower(Make("Hide Capri", 28, 206 + v, 104, 28, delegate { capri.ToggleHidden(); }));
             Lower(Make("Bring here", 140, 206 + v, 104, 28, delegate { capri.BringHere(); }));
             perch = Lower(Make("Ride cursor", 252, 206 + v, 104, 28, delegate { capri.TogglePerch(); }));
@@ -1552,7 +1554,6 @@ namespace CapriDesktop
             foreach (KeyValuePair<Control, int> entry in pageLeft) entry.Key.Left = Scaled(entry.Value) + (paged && !Folded(entry.Key) ? 0 : Far);
             foreach (KeyValuePair<Control, int> entry in modLeft) entry.Key.Left = Scaled(entry.Value) + (modded ? 0 : Far);
             int edge = paged ? Column : 0;
-            build.Left = Scaled(230 + edge);
             minimize.Left = Scaled(300 + edge);
             close.Left = Scaled(330 + edge);
         }

@@ -91,7 +91,7 @@ namespace CapriDesktop
 
         private void CheckModsKey()
         {
-            if (more.Left != Scaled(146) || more.Text != "Settings" || modsKey.Top < more.Bottom || modsKey.Left >= Far) throw new Exception("Settings or Mods is in the wrong place.");
+            if (more.Left != Scaled(146) || more.Text != "Settings" || modsKey.Top != more.Top || modsKey.Left < more.Right || modsKey.Right > minimize.Left) throw new Exception("Settings or Mods is in the wrong place.");
             try
             {
                 foreach (bool fallback in new[] { false, true })
@@ -308,7 +308,7 @@ namespace CapriDesktop
             foreach (Mod old in mods.All.ToArray()) mods.Remove(old);
             if (Hands.HeardName("Nova, what time is it?") || !Hands.HeardName("Capri, what time is it?")) throw new Exception("Her names were wrong before any mod.");
             ShowMods(true);
-            if (!modded || more.Text != "Back" || modStatus.Left >= Far || modsKey.Left < Far) throw new Exception("The Mods page did not open.");
+            if (!modded || more.Text != "Back" || modStatus.Left >= Far || modsKey.Left >= Far) throw new Exception("The Mods page did not open.");
             if (!ImportMod(good)) throw new Exception("A good mod was refused: " + modStatus.Text);
             if (mods.All.Count != 1 || !File.Exists(Path.Combine(mods.Folder, "custom-names" + Mods.Extension))) throw new Exception("An imported mod was not saved.");
             if (!Hands.HeardName("hey nova, what time is it") || !Hands.HeardName("BIG Z open notepad") || !Hands.HeardName("big   z") || !Hands.HeardName("ask capricorn") || !Hands.HeardName("Capri, hello"))
