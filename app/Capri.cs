@@ -5689,6 +5689,7 @@ namespace CapriDesktop
         // Her voice in your mic (F66): the mix while the switch is on, or null.
         private MicMix micMix;
         private MixDevice cableThere;
+        private bool vbCable;
         private double cableLooked = -10, micMixShown;
         // Settings' Input row: the pick and device list it last read, and the mic's name then.
         private string mixMicFor, mixMicName;
@@ -5718,8 +5719,13 @@ namespace CapriDesktop
                     cableLooked = now;
                     try { cableThere = MicMix.Devices.Cable(preferences.MixCable); }
                     catch (Exception) { cableThere = null; }
-                    // A cable that's come leaves the setup's last line behind.
-                    if (cableThere != null && cableSetup == null) cableSetupLine = null;
+                    vbCable = cableThere != null && !MicMix.IsSteam(cableThere.Name);
+                    if (cableThere != null && !vbCable)
+                    {
+                        try { vbCable = MicMix.Devices.Cables().Exists(delegate(MixDevice each) { return !MicMix.IsSteam(each.Name); }); }
+                        catch (Exception) { }
+                    }
+                    if (vbCable && cableSetup == null) cableSetupLine = null;
                 }
                 return cableThere != null;
             }
@@ -5727,6 +5733,8 @@ namespace CapriDesktop
 
         // What they pick as their mic in Discord or Roblox for the cable that's there.
         internal string CableEnd { get { return CableReady ? MicMix.EndOf(cableThere) : MicMix.CableEnd; } }
+
+        internal bool VbCableReady { get { return vbCable; } }
 
         // The cable that's there has its far end turned off in Windows, so Discord or Roblox can't pick it yet.
         internal bool CableFarOff { get { MixDevice there = CableReady ? cableThere : null; return there != null && there.Far == null; } }
@@ -26033,6 +26041,7 @@ namespace CapriDesktop
             internal Func<double> Clock;
             // Null for a PC without a cable, VB-CABLE's or Steam's.
             internal MixDevice CableThere;
+            internal System.Collections.Generic.List<MixDevice> CableChoices;
             internal readonly System.Collections.Generic.List<MixDevice> Mics = new System.Collections.Generic.List<MixDevice>();
             internal string DefaultMic;
             internal int MicRate = 48000, CableRate = 48000;
@@ -26060,6 +26069,7 @@ namespace CapriDesktop
             // Explicit, since Cables is also the list of cables the mix opened.
             System.Collections.Generic.List<MixDevice> IMixDevices.Cables()
             {
+                if (CableChoices != null) return new System.Collections.Generic.List<MixDevice>(CableChoices);
                 System.Collections.Generic.List<MixDevice> cables = new System.Collections.Generic.List<MixDevice>();
                 if (CableThere != null) cables.Add(CableThere);
                 return cables;
@@ -34282,15 +34292,17 @@ namespace CapriDesktop
                                 IMixDevices mixDevicesWas = MicMix.Devices;
                                 Action<string> mixBrowseWas = Browse;
                                 Func<string, Process> setupWas = CableSetup.Start;
-                                string mixMicWas = preferences.Mic, mixBrowsed = null, setupRan = null, setupDeclined = null;
+                                string mixMicWas = preferences.Mic, mixCableWas = preferences.MixCable, mixBrowsed = null, setupRan = null, setupDeclined = null;
                                 StandInDevices mixPc = new StandInDevices();
                                 MicMix mixRunning = null;
                                 const string mixHeadset = "{0.0.1.00000000}.{stand-in-headset}";
                                 string mixNote = " | " + MicMix.PickLine(MicMix.CableEnd), creditNote = " | " + CableSetup.Credit;
                                 string mixMissing, mixMissingFits, mixRefused, mixSetupOpen, mixSetupDone, mixDeclined, mixSteam, mixSteamFits, mixSteamOff, mixReady, mixOn, mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixSimpleFits, creditOpened;
+                                string mixSteamMenu, mixSteamSimple, mixSteamSimpleFits, mixSteamOffFits, mixSteamDeclined, mixSteamFinish, mixUpgrade, mixVbMenu, mixVbSimple, mixVbSimpleFits, mixBoth, mixBothMenu;
                                 bool mixStayedOff, setupUnpacked, setupHeld, setupTidied, mixSaved, mixWired, mixStopped, mixUnsaved;
                                 try
                                 {
+                                    preferences.MixCable = null;
                                     Browse = delegate(string mixPage) { mixBrowsed = mixPage; };
                                     MicMix.Devices = new StandInDevices();
                                     cableLooked = -10;
@@ -34329,27 +34341,76 @@ namespace CapriDesktop
                                     mainframe.PressCable();
                                     mixDeclined = mainframe.VoiceInMicStatus;
                                     setupTidied &= setupDeclined != null && !Directory.Exists(Path.GetDirectoryName(setupDeclined));
-                                    // Steam's virtual mic: the switch opens up and the note says to pick it.
-                                    mixPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
+                                    MixDevice mixSteamCable = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
+                                    mixPc.CableThere = mixSteamCable;
                                     MicMix.Devices = mixPc;
+                                    cableSetupLine = null;
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     mixSteam = mainframe.VoiceInMicStatus;
                                     mixSteamFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside();
+                                    mixSteamMenu = mainframe.MixOutputChoices();
+                                    simpleTest = true;
+                                    mainframe.ShowSettings(true);
+                                    mixSteamSimple = mainframe.VoiceInMicStatus;
+                                    mixSteamSimpleFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                                    simpleTest = false;
+                                    mainframe.ShowSettings(true);
                                     // Its far end turned off in Windows: the line says to turn it on.
                                     mixPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)");
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     mixSteamOff = mainframe.VoiceInMicStatus;
+                                    mixSteamOffFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside();
+                                    mainframe.PressCable();
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixSteamDeclined = mainframe.VoiceInMicStatus;
+                                    setupTidied &= setupDeclined != null && !Directory.Exists(Path.GetDirectoryName(setupDeclined));
                                     // VB-CABLE installed: the switch opens up, and turning it on starts the mix with the mic picked under VOICE.
-                                    mixPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-cable}", "CABLE Input (VB-Audio Virtual Cable)", "{0.0.1.00000000}.{stand-in-cable-out}");
                                     mixPc.Mics.Add(new MixDevice(MixMicId, "Microphone (stand-in)"));
                                     mixPc.Mics.Add(new MixDevice(mixHeadset, "Headset Microphone (stand-in)"));
                                     mixPc.DefaultMic = MixMicId;
-                                    MicMix.Devices = mixPc;
+                                    mixPc.CableThere = mixSteamCable;
+                                    cableSetupLine = null;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mainframe.FlipVoiceInMic();
+                                    MicMix upgrading = micMix;
+                                    WaitSound(delegate { return upgrading != null && upgrading.Mixing && upgrading.CableName == mixSteamCable.Name && upgrading.Problem == null; }, "Her voice in your mic didn't start on Steam's virtual mic.");
+                                    cableSetupLine = CableSetup.Finish;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixSteamFinish = mainframe.VoiceInMicStatus;
+                                    MixDevice mixVbCable = new MixDevice("{0.0.0.00000000}.{stand-in-cable}", "CABLE Input (VB-Audio Virtual Cable)", "{0.0.1.00000000}.{stand-in-cable-out}");
+                                    mixPc.CableThere = mixVbCable;
+                                    mixPc.CableChoices = new System.Collections.Generic.List<MixDevice> { mixVbCable, mixSteamCable };
+                                    WaitSound(delegate { return upgrading.Mixing && upgrading.CableName == mixVbCable.Name && upgrading.Problem == null; }, "Her voice in your mic didn't move from Steam to VB-CABLE by itself.");
+                                    if (preferences.MixCable != null || upgrading.CableChosen != null) throw new Exception("Her voice in your mic changed the automatic Output pick.");
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixUpgrade = mainframe.VoiceInMicStatus;
+                                    mainframe.FlipVoiceInMic();
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     mixReady = mainframe.VoiceInMicStatus;
+                                    mixVbMenu = mainframe.MixOutputChoices();
+                                    simpleTest = true;
+                                    mainframe.ShowSettings(true);
+                                    mixVbSimple = mainframe.VoiceInMicStatus;
+                                    mixVbSimpleFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                                    simpleTest = false;
+                                    mainframe.ShowSettings(true);
+                                    preferences.MixCable = mixSteamCable.Id;
+                                    mixPc.CableThere = mixSteamCable;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixBoth = mainframe.VoiceInMicStatus;
+                                    mixBothMenu = mainframe.MixOutputChoices();
+                                    preferences.MixCable = null;
+                                    mixPc.CableThere = mixVbCable;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
                                     mainframe.FlipVoiceInMic();
                                     mixRunning = micMix;
                                     MicMix mixWatched = mixRunning;
@@ -34372,6 +34433,7 @@ namespace CapriDesktop
                                     mixAlone = mainframe.VoiceInMicStatus;
                                     // VB-CABLE uninstalled while it's on: the line says it needs it again, and the switch still goes off.
                                     mixPc.CableThere = null;
+                                    mixPc.CableChoices = null;
                                     mixWatched.Chosen = mixWatched.Chosen;
                                     WaitSound(delegate { return mixWatched.Problem == MicMix.Missing && !mixWatched.Mixing; }, "Her voice in your mic didn't notice VB-CABLE go: " + mixWatched.Problem);
                                     cableLooked = -10;
@@ -34392,6 +34454,7 @@ namespace CapriDesktop
                                     if (micMix != null) { micMix.Stop(); micMix = null; }
                                     if (mixRunning != null) mixRunning.Stop();
                                     preferences.VoiceInMic = false;
+                                    preferences.MixCable = mixCableWas;
                                     if (preferences.Mic != mixMicWas) ChooseMic(mixMicWas);
                                     SavePreferences();
                                     MicMix.Devices = mixDevicesWas;
@@ -34402,14 +34465,19 @@ namespace CapriDesktop
                                     simpleTest = false;
                                     mainframe.ShowSettings(true);
                                 }
-                                if (mixMissing != "off | locked | " + MicMix.Missing + " | Set up" + creditNote || mixMissingFits != null || mixRefused != mixMissing || !mixStayedOff || mixBrowsed != null
-                                    || mixSetupOpen != "off | locked | " + CableSetup.Running + " | -" + creditNote || !setupUnpacked || !setupHeld || mixSetupDone != "off | locked | " + CableSetup.Finish + " | Set up" + creditNote || !setupTidied
-                                    || mixDeclined != "off | locked | " + CableSetup.Declined + " | Set up" + creditNote || mixSteam != "off | open | - | - | " + MicMix.PickLine(MicMix.SteamEnd) || mixSteamFits != null
-                                    || mixSteamOff != "off | open | " + MicMix.OffLine(MicMix.SteamEnd) + " | - | " + MicMix.PickLine(MicMix.SteamEnd) || creditOpened != CableSetup.Page
+                                if (mixMissing != "off | locked | " + MicMix.Missing + " | Get VB-CABLE" + creditNote || mixMissingFits != null || mixRefused != mixMissing || !mixStayedOff || mixBrowsed != null
+                                    || mixSetupOpen != "off | locked | " + CableSetup.Running + " | -" + creditNote || !setupUnpacked || !setupHeld || mixSetupDone != "off | locked | " + CableSetup.Finish + " | Get VB-CABLE" + creditNote || !setupTidied
+                                    || mixDeclined != "off | locked | " + CableSetup.Declined + " | Get VB-CABLE" + creditNote || mixSteam != "off | open | - | Get VB-CABLE | " + CableSetup.Better || mixSteamFits != null
+                                    || mixSteamOff != "off | open | " + MicMix.OffLine(MicMix.SteamEnd) + " | Get VB-CABLE | " + CableSetup.Better || mixSteamOffFits != null || creditOpened != CableSetup.Page
+                                    || mixSteamMenu != "Automatic: VB-CABLE, else Steam's | Microphone (Steam Streaming Microphone) | Get VB-CABLE (free)..." || mixSteamSimple != mixSteam || mixSteamSimpleFits != null
+                                    || mixSteamDeclined != "off | open | " + CableSetup.Declined + " | Get VB-CABLE | " + CableSetup.Better || mixUpgrade != "on | open | - | -" + mixNote
+                                    || mixSteamFinish != "on | open | " + CableSetup.Finish + " | Get VB-CABLE | " + CableSetup.Better
+                                    || mixVbMenu != "Automatic: VB-CABLE, else Steam's | CABLE Output (VB-Audio Virtual Cable) | Microphone (Steam Streaming Microphone)" || mixVbSimple != mixReady || mixVbSimpleFits != null
+                                    || mixBoth != "off | open | - | - | " + MicMix.PickLine(MicMix.SteamEnd) || mixBothMenu != mixVbMenu
                                     || mixReady != "off | open | - | -" + mixNote || mixOn != "on | open | - | -" + mixNote || !mixSaved || !mixWired || mixOnFits != null || mixMoved != "Headset Microphone (stand-in)"
-                                    || mixAlone != "on | open | " + MicMix.NoMic + " | -" + mixNote || mixGone != "on | open | " + MicMix.Missing + " | Set up" + creditNote || mixOff != mixMissing || !mixStopped || !mixUnsaved || mixSimpleFits != null)
-                                    throw new Exception("Her voice in your mic's Settings went wrong: " + string.Join(" / ", new[] { mixMissing, mixMissingFits, mixRefused, mixStayedOff.ToString(), mixBrowsed, creditOpened, mixSetupOpen, setupUnpacked.ToString(), setupHeld.ToString(), mixSetupDone, setupTidied.ToString(), mixDeclined, mixSteam, mixSteamFits, mixSteamOff, mixReady, mixOn, mixSaved.ToString(), mixWired.ToString(), mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixStopped.ToString(), mixUnsaved.ToString(), mixSimpleFits }));
-                                checks.Add("PASS her voice in your mic in Settings: without a cable the switch is locked, the note credits VB-CABLE as donationware from vb-cable.com and opens its page, and the line says it needs VB-CABLE (free); Set up unpacks VB-Audio's pack as she carries it and opens its setup (a stand-in here) with the unpacked setup held so nothing can change it, says to click Install Driver while it's open and to restart once it closes, tidies the unpacked files and says so when Windows' prompt is turned down; with Steam's virtual mic the switch opens and the note says to pick Steam Streaming Microphone, and the line says to turn it on when Windows has it off; with VB-CABLE the switch starts the mix with the mic picked under VOICE and is saved, a new pick moves it, no mic says only her voice goes in, VB-CABLE going away says it's needed again and the switch still turns off and stops it, and the rows fit in Advanced and Simple Settings");
+                                    || mixAlone != "on | open | " + MicMix.NoMic + " | -" + mixNote || mixGone != "on | open | " + MicMix.Missing + " | Get VB-CABLE" + creditNote || mixOff != mixMissing || !mixStopped || !mixUnsaved || mixSimpleFits != null)
+                                    throw new Exception("Her voice in your mic's Settings went wrong: " + string.Join(" / ", new[] { mixMissing, mixMissingFits, mixRefused, mixStayedOff.ToString(), mixBrowsed, creditOpened, mixSetupOpen, setupUnpacked.ToString(), setupHeld.ToString(), mixSetupDone, setupTidied.ToString(), mixDeclined, mixSteam, mixSteamFits, mixSteamMenu, mixSteamSimple, mixSteamSimpleFits, mixSteamOff, mixSteamOffFits, mixSteamDeclined, mixSteamFinish, mixUpgrade, mixVbMenu, mixVbSimple, mixVbSimpleFits, mixBoth, mixBothMenu, mixReady, mixOn, mixSaved.ToString(), mixWired.ToString(), mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixStopped.ToString(), mixUnsaved.ToString(), mixSimpleFits }));
+                                checks.Add("PASS her voice in your mic in Settings: without a cable the switch is locked, the note credits VB-CABLE as donationware from vb-cable.com and opens its page, and the line says it needs VB-CABLE (free); Get VB-CABLE unpacks VB-Audio's pack as she carries it and opens its setup (a stand-in here) with the unpacked setup held so nothing can change it, says to click Install Driver while it's open and to restart once it closes, tidies the unpacked files and says so when Windows' prompt is turned down, with Steam's mic there too; with only Steam's virtual mic the button and Output menu offer VB-CABLE and the note says it usually sounds better, and the line says to turn Steam's mic on when Windows has it off; VB-CABLE arriving moves the running mix by itself and the note says to pick CABLE Output, and hides the offer even with Steam picked; with VB-CABLE the switch starts the mix with the mic picked under VOICE and is saved, a new pick moves it, no mic says only her voice goes in, VB-CABLE going away says it's needed again and the switch still turns off and stops it, and the rows fit in Advanced and Simple Settings");
                             });
                             // Her voice in your mic's Input, Output and setup window (Lachy, 3 Nov: "we need to be able to change the input
                             // and output for the mixer as well / And make it clear how to set it up too"), on stand-in devices: the window
@@ -34425,7 +34493,7 @@ namespace CapriDesktop
                                 const string vbName = "CABLE Output (VB-Audio Virtual Cable)", steamName = "Microphone (Steam Streaming Microphone)";
                                 MixDevice steamCable = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
                                 string noCable, steamOff, steamFarOff, vbOn, vbObs, vbAll, rowsOwn, rowsBack, steamDiscord, at100, at150, at200, toolSaid, toolShown;
-                                bool inputSaved, earsLeft, outputSaved, outputBack, toolValid;
+                                bool inputSaved, earsLeft, outputSaved, outputBack, toolValid, steamAdvice, vbAdvice;
                                 try
                                 {
                                     preferences.MixMic = null;
@@ -34454,6 +34522,11 @@ namespace CapriDesktop
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     steamOff = mainframe.MixShown;
+                                    steamAdvice = false;
+                                    foreach (Form sheet in mainframe.OwnedForms)
+                                        if (sheet.Text == "Her voice in your mic")
+                                            foreach (Control mixStep in sheet.Controls)
+                                                steamAdvice |= mixStep.Visible && mixStep.Text == CableSetup.Better + " Pick Output to get it.";
                                     // Its far end turned off in Windows: turn that on first.
                                     setupPc.CableThere = new MixDevice(steamCable.Id, steamCable.Name);
                                     cableLooked = -10;
@@ -34468,6 +34541,11 @@ namespace CapriDesktop
                                     WaitSound(delegate { return setupMix != null && setupMix.Mixing && setupMix.MicName == "Microphone (stand-in)" && setupMix.Problem == null; }, "The setup window's switch didn't start her voice in your mic.");
                                     mainframe.ShowVoiceInMic();
                                     vbOn = mainframe.MixShown;
+                                    vbAdvice = false;
+                                    foreach (Form sheet in mainframe.OwnedForms)
+                                        if (sheet.Text == "Her voice in your mic")
+                                            foreach (Control mixStep in sheet.Controls)
+                                                vbAdvice |= mixStep.Visible && mixStep.Text == "Your mic and her voice go into one virtual mic, and Discord hears that.";
                                     lock (setupPc.Listeners) setupPc.Listeners.Add("obs64");
                                     mainframe.ShowVoiceInMic();
                                     vbObs = mainframe.MixShown;
@@ -34540,14 +34618,14 @@ namespace CapriDesktop
                                 }
                                 string vbLine = "on | Microphone (stand-in) | " + vbName + " | On: your mic and her voice are going in. | " + vbName + " | ";
                                 if (noCable != "off | No mic found | None yet: pick to get VB-CABLE (free) | No virtual mic yet. Pick Output, then Get VB-CABLE (free). | " + vbName + " | "
-                                    || steamOff != "off | Microphone (stand-in) | " + steamName + " | Off. Turn on Her voice in your mic above. | " + steamName + " | "
+                                    || steamOff != "off | Microphone (stand-in) | " + steamName + " | Off. Turn on Her voice in your mic above. | " + steamName + " | " || !steamAdvice
                                     || steamFarOff != "off | Microphone (stand-in) | " + steamName + " | " + MicMix.OffLine(MicMix.SteamEnd) + " | " + steamName + " | "
-                                    || vbOn != vbLine + "Discord isn't hearing it yet: do 1 and 2, then join a call." || vbObs != vbLine + "OBS hears it now. Discord doesn't yet." || vbAll != vbLine + "OBS, Discord and Roblox hear it now."
+                                    || vbOn != vbLine + "Discord isn't hearing it yet: do 1 and 2, then join a call." || !vbAdvice || vbObs != vbLine + "OBS hears it now. Discord doesn't yet." || vbAll != vbLine + "OBS, Discord and Roblox hear it now."
                                     || rowsOwn != "Input: Headset Microphone (stand-in) | Output: " + MicMix.CableEnd || !inputSaved || !earsLeft || rowsBack != "Input: Microphone (stand-in) | Output: " + MicMix.CableEnd || !outputSaved || !outputBack
                                     || steamDiscord != "on | Microphone (stand-in) | " + steamName + " | On: your mic and her voice are going in. | " + steamName + " | Discord hears it now."
                                     || at100 != null || at150 != null || at200 != null || !toolValid || toolSaid != "Opened Capri Mainframe." || toolShown != steamDiscord)
-                                    throw new Exception("Her voice in your mic's setup went wrong: " + string.Join(" / ", new[] { noCable, steamOff, steamFarOff, vbOn, vbObs, vbAll, rowsOwn, inputSaved.ToString(), earsLeft.ToString(), rowsBack, outputSaved.ToString(), outputBack.ToString(), steamDiscord, at100, at150, at200, toolValid.ToString(), toolSaid, toolShown }));
-                                checks.Add("PASS her voice in your mic's setup window: it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Discord's steps turn Echo Cancellation off and Noise Suppression to None and say why; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
+                                    throw new Exception("Her voice in your mic's setup went wrong: " + string.Join(" / ", new[] { noCable, steamOff, steamAdvice.ToString(), steamFarOff, vbOn, vbAdvice.ToString(), vbObs, vbAll, rowsOwn, inputSaved.ToString(), earsLeft.ToString(), rowsBack, outputSaved.ToString(), outputBack.ToString(), steamDiscord, at100, at150, at200, toolValid.ToString(), toolSaid, toolShown }));
+                                checks.Add("PASS her voice in your mic's setup window: with only Steam's mic it says VB-CABLE usually sounds better and to pick Output to get it, and leaves that advice behind with VB-CABLE installed; it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Discord's steps turn Echo Cancellation off and Noise Suppression to None and say why; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
                             });
                             // A new install has them all off, and steps before this one leave Watch my screen on.
                             int launchWander = WanderLevel;

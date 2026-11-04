@@ -643,8 +643,8 @@ namespace CapriDesktop
             // Without a cable the note credits VB-CABLE, and opens its page, where they can donate.
             voiceInMicNote.Click += delegate { if (voiceInMicNote.Text == CableSetup.Credit) capri.OpenCablePage(); };
             voiceInMicState = Caption("", 28, MixAt + 50, small, Faint);
-            cableKey = Make("Set up", 264, MixAt + 47, 92, 20, delegate { capri.SetUpCable(); }, "Her voice in your mic");
-            cableKey.AccessibleName = "Set up VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC. VB-CABLE is donationware from vb-cable.com";
+            cableKey = Make("Get VB-CABLE", 244, MixAt + 76, 112, 22, delegate { capri.SetUpCable(); }, "Her voice in your mic");
+            cableKey.AccessibleName = "Get VB-CABLE: opens VB-Audio's own setup, which Windows asks you to let run. Click Install Driver in it, then restart your PC. VB-CABLE is donationware from vb-cable.com";
             cableKey.Visible = false;
             mixInputMenu = Dropdown();
             mixInput = Make("Input: default", 28, MixAt + 76, 328, 22, delegate { ShowMixInputs(mixInput); }, "Her voice in your mic");
@@ -1287,22 +1287,25 @@ namespace CapriDesktop
         private int lifted;
 
         // Without a cable the switch can't go on: the note credits VB-CABLE with a link to its page, and the line under it says it's
-        // needed, beside Set up, then where VB-Audio's setup is at. With one, the note says which mic to pick in Discord or Roblox,
-        // VB-CABLE's or Steam's, and the line says to turn it on when Windows has it off, or while it's on what's wrong, if
-        // anything. The switch still goes off if the cable went away while it was on.
+        // needed, then where VB-Audio's setup is at. With Steam's mic only, the note says VB-CABLE usually sounds better and Get
+        // VB-CABLE stays (a tester's Steam mic sounded bad to their friends, 4 Nov). With VB-CABLE, the note says to pick CABLE
+        // Output, and the line says to turn it on when Windows has it off, or while it's on what's wrong, if anything. The switch
+        // still goes off if the cable went away while it was on.
         internal void ShowVoiceInMic()
         {
             bool was = syncing, cable = capri.CableReady, on = capri.VoiceInMic;
+            bool vb = capri.VbCableReady;
             string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine;
             syncing = true;
             voiceInMic.Checked = on;
             voiceInMic.Enabled = cable || on;
             syncing = was;
-            voiceInMicNote.Text = cable ? MicMix.PickLine(capri.CableEnd) : CableSetup.Credit;
+            voiceInMicNote.Text = cable ? vb ? MicMix.PickLine(capri.CableEnd) : CableSetup.Better : CableSetup.Credit;
             voiceInMicNote.Cursor = cable ? Cursors.Default : Cursors.Hand;
-            voiceInMicState.Text = !cable ? setup ?? MicMix.Missing : on && problem != null ? problem : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
+            voiceInMicState.Text = !vb && setup != null ? setup : !cable ? MicMix.Missing : on && problem != null ? problem : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
-            cableKey.Visible = !cable && !capri.CableSetupOpen;
+            cableKey.Visible = !vb && !capri.CableSetupOpen;
+            mixInput.Width = Scaled(cableKey.Visible ? 208 : 328);
             Retext(mixInput, "Input: " + (capri.MixInputName ?? "no mic found"));
             Retext(mixOutput, "Output: " + (cable ? MicMix.EndOf(capri.MixOutput) : "none yet"));
             voiceInMic.Invalidate();
@@ -1394,6 +1397,15 @@ namespace CapriDesktop
 
         internal string MixRowsShown { get { return mixInput.Text + " | " + mixOutput.Text; } }
 
+        internal string MixOutputChoices()
+        {
+            ShowMixOutputs(mixOutput);
+            List<string> choices = new List<string>();
+            foreach (ToolStripItem item in mixOutputMenu.Items) if (item is ToolStripMenuItem) choices.Add(item.Text);
+            mixOutputMenu.Close();
+            return string.Join(" | ", choices.ToArray());
+        }
+
         // The switch, whether it can be clicked, the line under the note, the button and the note, for the smoke test.
         internal string VoiceInMicStatus { get { return (voiceInMic.Checked ? "on" : "off") + " | " + (voiceInMic.Enabled ? "open" : "locked") + " | " + (voiceInMicState.Text.Length > 0 ? voiceInMicState.Text : "-") + " | " + (cableKey.Visible ? cableKey.Text : "-") + " | " + voiceInMicNote.Text; } }
 
@@ -1413,13 +1425,11 @@ namespace CapriDesktop
             foreach (Control row in MixControls)
                 if (row.Visible && !(row is Label && row.Text.Length == 0) && (!page.Contains(row.Bounds) || row.Right > column)) return (row.Text.Length > 0 ? row.Text : row.AccessibleName) + " pokes out";
             if (voiceInMicNote.Top < voiceInMic.Bottom || voiceInMicState.Top < voiceInMicNote.Bottom) return "the note or the line overlaps the row above it";
-            if (cableKey.Visible && (cableKey.Left < voiceInMicState.Right || cableKey.Top < voiceInMicNote.Bottom)) return "the button covers the line";
-            if (mixInput.Top < Math.Max(voiceInMicState.Bottom, cableKey.Bottom) || mixOutput.Top < mixInput.Bottom || mixHow.Top < mixInput.Bottom || mixHow.Left < mixOutput.Right) return "Input, Output or How to overlaps a row";
-            // Every line it can show fits: the ones without a cable beside the button, the rest inside the column. So does every note.
-            string[] beside = { MicMix.Missing, CableSetup.Finish, CableSetup.Declined, CableSetup.Failed };
+            if (cableKey.Visible && (cableKey.Left < mixInput.Right + Scaled(4) || cableKey.Top < voiceInMicState.Bottom || TextRenderer.MeasureText(cableKey.Text, cableKey.Font).Width + Scaled(12) > cableKey.Width)) return "the button covers Input or doesn't fit";
+            if (mixInput.Top < voiceInMicState.Bottom || mixOutput.Top < Math.Max(mixInput.Bottom, cableKey.Bottom) || mixHow.Top < mixInput.Bottom || mixHow.Left < mixOutput.Right) return "Input, Output or How to overlaps a row";
             foreach (string line in new[] { MicMix.Missing, CableSetup.Finish, CableSetup.Declined, CableSetup.Failed, CableSetup.Running, MicMix.Unopened, MicMix.NoMic, MicMix.MicGone, MicMix.MutedLine(MicMix.CableEnd), MicMix.MutedLine(MicMix.SteamEnd), MicMix.OffLine(MicMix.CableEnd), MicMix.OffLine(MicMix.SteamEnd) })
-                if (voiceInMicState.Left + TextRenderer.MeasureText(line, voiceInMicState.Font).Width > (Array.IndexOf(beside, line) >= 0 ? cableKey.Left - Scaled(4) : column)) return "\"" + line + "\" doesn't fit";
-            foreach (string note in new[] { MicMix.PickLine(MicMix.CableEnd), MicMix.PickLine(MicMix.SteamEnd), CableSetup.Credit })
+                if (voiceInMicState.Left + TextRenderer.MeasureText(line, voiceInMicState.Font).Width > column) return "\"" + line + "\" doesn't fit";
+            foreach (string note in new[] { MicMix.PickLine(MicMix.CableEnd), MicMix.PickLine(MicMix.SteamEnd), CableSetup.Credit, CableSetup.Better })
                 if (voiceInMicNote.Left + TextRenderer.MeasureText(note, voiceInMicNote.Font).Width > column) return "\"" + note + "\" doesn't fit";
             int below = int.MaxValue;
             foreach (KeyValuePair<Control, int> entry in underVoice)
@@ -5470,7 +5480,7 @@ namespace CapriDesktop
             private readonly Mainframe owner;
             private readonly Toggle onOff;
             private readonly Key input, output;
-            private readonly Label state, pickStep, pick, live, elsewhere;
+            private readonly Label note, state, pickStep, pick, live, elsewhere;
             private readonly System.Windows.Forms.Timer ticks = new System.Windows.Forms.Timer();
             private bool syncing;
 
@@ -5499,7 +5509,7 @@ namespace CapriDesktop
                 shut.AccessibleName = "Close";
                 shut.Click += delegate { Close(); };
                 Controls.Add(shut);
-                Caption("Your mic and her voice go into one virtual mic, and Discord hears that.", 28, 52, small, Faint);
+                note = Caption("Your mic and her voice go into one virtual mic, and Discord hears that.", 28, 52, small, Faint);
                 onOff = new Toggle();
                 onOff.Text = "Her voice in your mic";
                 onOff.Font = Font;
@@ -5568,11 +5578,13 @@ namespace CapriDesktop
                 Companion capri = owner.capri;
                 MixDevice there = capri.MixOutput;
                 bool cable = there != null, on = capri.VoiceInMic;
+                bool vb = capri.VbCableReady;
                 string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine, far = MicMix.FarName(there);
                 syncing = true;
                 onOff.Checked = on;
                 onOff.Enabled = cable || on;
                 syncing = false;
+                Retext(note, cable && !vb ? CableSetup.Better + " Pick Output to get it." : "Your mic and her voice go into one virtual mic, and Discord hears that.");
                 Retext(input, capri.MixInputName ?? "No mic found");
                 Retext(output, cable ? far : NoOutput);
                 Retext(pick, far);
@@ -5580,7 +5592,8 @@ namespace CapriDesktop
                 Retext(elsewhere, "Roblox or any other app: pick " + far + " as its mic.");
                 string said;
                 Color colour = Hot;
-                if (!cable) said = setup ?? NoCable;
+                if (!vb && setup != null) said = setup;
+                else if (!cable) said = NoCable;
                 else if (there.Far == null) said = MicMix.OffLine(MicMix.EndOf(there));
                 else if (!on) said = Off;
                 else if (problem != null) said = problem;
