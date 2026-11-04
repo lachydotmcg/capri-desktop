@@ -28755,6 +28755,14 @@ namespace CapriDesktop
                             }
                             File.Delete(Path.Combine(packageFolder, "Capri.package"));
                             checks.Add("PASS package marker: winget is read, a bad or generic marker still blocks her own updater, and no marker leaves her updater alone");
+                            if (updater.Package() == null && !updating && !installing)
+                            {
+                                string previous = mainframe.UpdateStatus;
+                                mainframe.UpdateNote("Update through winget.", false);
+                                string status = UpdateTool(new ToolArguments { Action = "status" });
+                                mainframe.UpdateNote(previous, false);
+                                if (status == "Update through winget.") throw new Exception("A stale package status stayed after the marker was gone.");
+                            }
                             Release release;
                             using (MemoryStream sample = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"tag_name\":\"v9.0.0\",\"draft\":false,\"prerelease\":false,\"assets\":[{\"id\":1,\"name\":\"Capri.exe\"},{\"id\":2,\"name\":\"Capri-Setup.exe\"},{\"id\":3,\"name\":\"Capri-Setup-9.0.0.exe\",\"size\":10,\"browser_download_url\":\"https://github.com/lachydotmcg/capri-desktop/releases/download/v9.0.0/Capri-Setup-9.0.0.exe\"},{\"id\":4,\"name\":\"SHA256SUMS.txt\"}]}"))) release = ParseRelease(sample);
                             ReleaseAsset installer = Updater.Installer(release);
