@@ -867,10 +867,8 @@ namespace CapriDesktop
             try
             {
                 string name = File.ReadAllText(path).Trim();
-                if (name.Length == 0 || name.Length > 32) return "your package manager";
-                foreach (char c in name)
-                    if ((c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-') return "your package manager";
-                return string.Equals(name, "package", StringComparison.Ordinal) ? "your package manager" : name;
+                if (name == "winget" || name == "scoop" || name == "chocolatey" || name == "pacman") return name;
+                return "your package manager";
             }
             catch (Exception) { return "your package manager"; }
         }
@@ -2620,6 +2618,7 @@ namespace CapriDesktop
         private void CheckForUpdates(bool asked)
         {
             if (updating || installing) return;
+            updateStarted = true;
             string package = updater.Package();
             preferences.UpdateCheckedAt = DateTime.UtcNow.Ticks;
             SavePreferences();
@@ -2631,7 +2630,6 @@ namespace CapriDesktop
                 return;
             }
             updating = true;
-            updateStarted = true;
             checkItem.Enabled = false;
             updateItem.Enabled = false;
             if (asked) mainframe.UpdateNote("Checking for updates...", false);
@@ -2692,6 +2690,13 @@ namespace CapriDesktop
         {
             updating = false;
             checkItem.Enabled = true;
+            string package = updater.Package();
+            if (package != null)
+            {
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
             updateItem.Enabled = updateFile != null;
             Version current = Assembly.GetExecutingAssembly().GetName().Version;
             if (problem != null) { updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote(problem, true); return; }
@@ -2738,6 +2743,13 @@ namespace CapriDesktop
 
         private void InstallUpdate()
         {
+            string package = updater.Package();
+            if (package != null)
+            {
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
             if (updating || installing || updateFile == null) return;
             installing = true;
             updateItem.Enabled = false;
@@ -4846,6 +4858,13 @@ namespace CapriDesktop
         private string UpdateTool(ToolArguments args)
         {
             if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(UpdateTool), args);
+            string package = updater.Package();
+            if (package != null)
+            {
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return "Update through " + package + ".";
+            }
             if (args.Action == "status") return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
             if (installing) return "The update is already installing.";
             if (args.Action == "check")
@@ -28705,6 +28724,11 @@ namespace CapriDesktop
                             if (packageUpdater.Package() != "your package manager") throw new Exception("A bad package marker did not block her own updater.");
                             File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "package");
                             if (packageUpdater.Package() != "your package manager") throw new Exception("The generic package marker was not read.");
+                            foreach (string bad in new[] { "apt", "0", "-" })
+                            {
+                                File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), bad);
+                                if (packageUpdater.Package() != "your package manager") throw new Exception("Invalid package marker was accepted: " + bad);
+                            }
                             File.Delete(Path.Combine(packageFolder, "Capri.package"));
                             checks.Add("PASS package marker: winget is read, a bad or generic marker still blocks her own updater, and no marker leaves her updater alone");
                             Release release;

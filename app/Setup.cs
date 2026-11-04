@@ -55,10 +55,7 @@ namespace CapriSetup
 
         private static bool Package(string name)
         {
-            if (string.IsNullOrEmpty(name) || name.Length > 32) return false;
-            foreach (char c in name)
-                if ((c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '-') return false;
-            return true;
+            return name == "winget" || name == "scoop" || name == "chocolatey" || name == "pacman";
         }
 
         private static int SilentInstall(string package)
@@ -670,9 +667,10 @@ namespace CapriSetup
             try
             {
                 if (removing) { Program.BeginUninstall(); Close(); return; }
+                try { File.Delete(Path.Combine(Program.InstallPath, "Capri.package")); }
+                catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
-                try { File.Delete(Path.Combine(Program.InstallPath, "Capri.package")); } catch (Exception) { }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
             if (Environment.Is64BitOperatingSystem && !VoicePack.Complete(VoicePack.Folder(Program.InstallPath))) FetchVoice();

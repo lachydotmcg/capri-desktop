@@ -24,7 +24,13 @@ try {
     Run '--silent'
     if (!(Test-Path $marker)) { throw 'The generic package marker is missing.' }
     if ((Get-Content $marker -Raw).Trim() -ne 'package') { throw 'A plain silent install did not write the generic marker.' }
-    Write-Output 'PASS package marker: --silent --package winget writes winget, and a plain --silent writes package'
+    foreach ($n in 'apt','0','-') {
+        $before = (Get-FileHash $marker -Algorithm SHA256).Hash
+        $p = Start-Process $setup -ArgumentList "--silent --package $n" -Wait -PassThru -RedirectStandardError $err
+        if ($p.ExitCode -ne 2) { throw "Invalid manager $n exited $($p.ExitCode)." }
+        if ((Get-FileHash $marker -Algorithm SHA256).Hash -ne $before) { throw "Invalid manager $n changed the marker." }
+    }
+    Write-Output 'PASS package marker: --silent --package winget writes winget, a plain --silent writes package, and invalid names are rejected'
 }
 finally {
     if (Test-Path $err) { Remove-Item $err -Force }
