@@ -1439,8 +1439,17 @@ namespace CapriDesktop
         {
             for (double y = Bounds.Height / 4; y < Bounds.Height * 3 / 4; y += 3)
                 for (double x = 20; x < Bounds.Width - 20; x += 3)
-                    if (Opaque(new Point(x - 12, y)) && Opaque(new Point(x + 12, y))) return new Point(x, y);
+                    if (Inside(new Point(x - 12, y)) && Inside(new Point(x + 12, y))) return new Point(x, y);
             return null;
+        }
+
+        // A trip through screen pixels can round a point a pixel off her, so a test spot keeps 3 px of her on every side.
+        private bool Inside(Point at)
+        {
+            for (int dx = -3; dx <= 3; dx += 3)
+                for (int dy = -3; dy <= 3; dy += 3)
+                    if (!Opaque(new Point(at.X + dx, at.Y + dy))) return false;
+            return true;
         }
 
         internal void Stroke(PixelPoint cursor)

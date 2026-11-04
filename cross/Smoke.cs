@@ -172,6 +172,7 @@ namespace CapriDesktop
                 for (int i = 0; i < 12; i++) pet.Stroke(i % 2 == 0 ? petRight : petLeft);
                 if (pet.Pets != offPets || pet.Smiling || !SettingsCopy().NoHeadPats) throw new Exception("Head pats off still reacted to a stroke.");
                 pet.SetHeadPats(true);
+                string strokeState = StrokeState(petLeft, petRight);
                 int petsBefore = pet.Pets;
                 for (int i = 0; i < 6; i++) pet.Stroke(petLeft);
                 pet.Stroke(petRight);
@@ -185,7 +186,7 @@ namespace CapriDesktop
                 bool cooled = pet.Pets == petsBefore + 1;
                 pet.Talk.Dismiss();
                 pet.ForgetPets();
-                if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled);
+                if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled + " (" + strokeState + ")");
                 checks.Add("PASS petting: rubbing the cursor back and forth over her makes her smile and say a short line, not too easily and not again for 20 s");
                 checks.Add("PASS Head pats saves Off and ignores strokes; On brings back her pat reaction");
                 pet.SetWander(3);
@@ -1393,6 +1394,14 @@ namespace CapriDesktop
         private void Release(IPointer mouse, Point at, bool here, MouseButton button = MouseButton.Left)
         {
             pet.RaiseEvent(new PointerReleasedEventArgs(pet, mouse, pet, at, 0, new PointerPointProperties(RawInputModifiers.None, button == MouseButton.Left ? PointerUpdateKind.LeftButtonReleased : PointerUpdateKind.RightButtonReleased), here ? KeyModifiers.Shift : KeyModifiers.None, button));
+        }
+
+        // What a stroke's guards say before the petting check, so a failure shows which one stopped her.
+        private string StrokeState(PixelPoint left, PixelPoint right)
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            System.Reflection.MethodInfo opaque = typeof(Pet).GetMethod("Opaque", fields);
+            return "over her " + opaque.Invoke(pet, new object[] { pet.PointToClient(left) }) + " and " + opaque.Invoke(pet, new object[] { pet.PointToClient(right) }) + ", pressed " + typeof(Pet).GetField("pressed", fields).GetValue(pet) + ", dragging " + pet.Dragging + ", falling " + pet.Falling + ", typing " + pet.Talk.Typing;
         }
 
         private Point Client(PixelPoint at)
