@@ -2439,7 +2439,13 @@ namespace CapriDesktop
             Hands.Plan = reminders.Route;
             Hands.Remind = reminders.Remind;
             Hands.Routine = RoutineTool;
-            brain.Act = DoTool;
+            // Her brain hears a saved clip without its path, so she never reads a long folder out loud; the CLIP SAVED popup shows
+            // where it went (Ribbed_Mystery, 4 Nov).
+            brain.Act = delegate(string tool, ToolArguments args)
+            {
+                string result = DoTool(tool, args);
+                return tool == "clip" && result != null && result.StartsWith("Saved ", StringComparison.Ordinal) ? ClipBuffer.Spoken(result) + " The CLIP SAVED popup shows where it went." : result;
+            };
             brain.OwnSteps = !testing;
             Hands.Resume = ResumeJob;
             Hands.Rename = CallThem;
