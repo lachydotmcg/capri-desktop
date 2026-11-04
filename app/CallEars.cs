@@ -810,6 +810,13 @@ namespace CapriDesktop
             }
             finally { CapriDesktop.Hearing.Run = runWas; }
             checks.Add("PASS call sources: user, Discord, user, Discord and quiet keep their chunk labels, and fake recognition keeps each word in speaking order with separate user and Discord words");
+            CallTranscript crosstalk = new CallTranscript();
+            crosstalk.Parts.Add(new CallPart { Words = "open my notes", Echo = true, Chunks = 10, Echoes = 1 });
+            crosstalk.Parts.Add(new CallPart { FromCall = true, Words = "nice" });
+            crosstalk.Parts.Add(new CallPart { Words = "see you later", Echo = true, Chunks = 4, Echoes = 3 });
+            string caller = crosstalk.App.Label;
+            if (crosstalk.Text != "You: open my notes\n" + caller + ": nice\n" + caller + ": see you later" || crosstalk.Sure.Length != 0 || crosstalk.Parts[0].Leaked || !crosstalk.Parts[2].Leaked) throw new Exception("A moment of crosstalk relabelled their sentence, or echo could wake or answer her.");
+            checks.Add("PASS a sentence with a moment of crosstalk stays theirs, one that's mostly their speakers' echo is the call's, and neither can wake or answer her");
 
             short[] reference = Pattern(Ears.Chunk * 14, 71), voice = Pattern(reference.Length, 83);
             foreach (int lag in new[] { 0, Ears.Rate * 120 / 1000, Ears.Rate * 237 / 1000, Ears.Rate * 4 / 10 })
@@ -959,6 +966,12 @@ namespace CapriDesktop
         internal string Words;
         internal int At;
         internal bool Echo;
+        // How many of its chunks went into it, and how many of those had the call's echo as loud as them.
+        internal int Chunks, Echoes;
+
+        // Mostly the call's sound through their speakers, so it's the call's words. A quick bit of crosstalk in their own
+        // sentence leaves it theirs, though Sure still keeps all of it from waking or answering her.
+        internal bool Leaked { get { return Echo && Echoes * 2 >= Chunks; } }
     }
 
     internal sealed class CallTranscript
@@ -993,18 +1006,18 @@ namespace CapriDesktop
             }
         }
 
-        // Words from a stretch where the call's echo was as loud as them are labelled the call's, the way Sure leaves them out,
-        // so her brain never reads a friend heard through speakers as "You".
+        // Words from a stretch that was mostly the call's echo are labelled the call's, so her brain never reads a friend heard
+        // through speakers as "You".
         internal string Text
         {
             get
             {
-                if (Parts.Count == 1) return (Parts[0].FromCall || Parts[0].Echo ? CallSession.Others : "") + Parts[0].Words;
+                if (Parts.Count == 1) return (Parts[0].FromCall || Parts[0].Leaked ? CallSession.Others : "") + Parts[0].Words;
                 StringBuilder text = new StringBuilder();
                 foreach (CallPart part in Parts)
                 {
                     if (text.Length > 0) text.Append('\n');
-                    text.Append(part.FromCall || part.Echo ? App.Label + ": " : "You: ").Append(part.Words);
+                    text.Append(part.FromCall || part.Leaked ? App.Label + ": " : "You: ").Append(part.Words);
                 }
                 return text.ToString();
             }
@@ -1028,9 +1041,8 @@ namespace CapriDesktop
                         if (i < chunks.Length && Active(chunks[i], fromCall)) continue;
                         break;
                     }
-                    int count = 0;
-                    bool echo = false;
-                    for (int j = first; j < last; j++) { count += chunks[j].Samples.Length; echo |= !fromCall && chunks[j].Echo; }
+                    int count = 0, echoes = 0;
+                    for (int j = first; j < last; j++) { count += chunks[j].Samples.Length; if (!fromCall && chunks[j].Echo) echoes++; }
                     short[] samples = new short[count + Ears.Rate * 3 / 10];
                     int at = Ears.Rate * 15 / 100;
                     for (int j = first; j < last; j++)
@@ -1040,7 +1052,7 @@ namespace CapriDesktop
                         at += part.Length;
                     }
                     string words = Hearing.Text(samples);
-                    if (words.Length > 0) line.Parts.Add(new CallPart { FromCall = fromCall, Words = words, At = first, Echo = echo });
+                    if (words.Length > 0) line.Parts.Add(new CallPart { FromCall = fromCall, Words = words, At = first, Echo = echoes > 0, Chunks = last - first, Echoes = echoes });
                 }
             }
             line.Parts.Sort(delegate(CallPart left, CallPart right)
@@ -1053,6 +1065,8 @@ namespace CapriDesktop
                 if (line.Parts[i - 1].FromCall != line.Parts[i].FromCall) continue;
                 line.Parts[i - 1].Words += " " + line.Parts[i].Words;
                 line.Parts[i - 1].Echo |= line.Parts[i].Echo;
+                line.Parts[i - 1].Chunks += line.Parts[i].Chunks;
+                line.Parts[i - 1].Echoes += line.Parts[i].Echoes;
                 line.Parts.RemoveAt(i);
             }
             return line;

@@ -674,7 +674,8 @@ namespace CapriDesktop
             callCaptionRun = true;
             foreach (CallPart part in line.Parts)
             {
-                if (part.FromCall) part.Who = line.App.Caption;
+                // Captions name the speaker the way her brain reads the line: their speakers' echo is the call's.
+                if (part.FromCall || part.Leaked) part.Who = line.App.Caption;
                 callCaptions.Enqueue(part);
             }
             CallCaptionNext(DateTime.UtcNow, first);
