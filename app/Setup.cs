@@ -30,8 +30,44 @@ namespace CapriSetup
             if (args.Length == 2 && args[0] == "--verify") return Verify(args[1]);
             if (args.Length == 2 && args[0] == "--verify-voice") return VerifyVoice(args[1]);
             if (args.Length == 1 && args[0] == "--remove-files") return RemoveFiles();
-            using (SetupWindow window = new SetupWindow(args.Length == 1 && args[0] == "--uninstall")) Application.Run(window);
+            Mode mode = Read(args);
+            if (mode == Mode.Invalid)
+            {
+                Console.Error.WriteLine("Capri doesn't know that command: " + string.Join(" ", args));
+                return 2;
+            }
+            if (mode == Mode.SilentInstall) return SilentInstall();
+            using (SetupWindow window = new SetupWindow(mode == Mode.RemoveWindow)) Application.Run(window);
             return 0;
+        }
+
+        internal enum Mode { Window, RemoveWindow, SilentInstall, Invalid }
+
+        internal static Mode Read(string[] args)
+        {
+            if (args.Length == 0) return Mode.Window;
+            if (args.Length == 1 && args[0] == "--uninstall") return Mode.RemoveWindow;
+            if (args.Length == 1 && args[0] == "--silent") return Mode.SilentInstall;
+            return Mode.Invalid;
+        }
+
+        private static int SilentInstall()
+        {
+            try
+            {
+                string unsaved = Install(false);
+                if (unsaved != null)
+                {
+                    Console.Error.WriteLine("Capri couldn't save her shortcut: " + unsaved);
+                    return 1;
+                }
+                return 0;
+            }
+            catch (Exception error)
+            {
+                Console.Error.WriteLine("Capri couldn't install: " + error.Message);
+                return 1;
+            }
         }
 
         [DllImport("user32.dll")] private static extern bool SetProcessDpiAwarenessContext(IntPtr context);
@@ -123,7 +159,8 @@ namespace CapriSetup
                     told.Close();
                     failed.Close();
                 }
-                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nLIMIT installation and uninstallation were not performed\n");
+                if (Read(new string[0]) != Mode.Window || Read(new[] { "--uninstall" }) != Mode.RemoveWindow || Read(new[] { "--silent" }) != Mode.SilentInstall || Read(new[] { "--uninstall", "--silent" }) != Mode.Invalid || Read(new[] { "--silent", "--uninstall" }) != Mode.Invalid || Read(new[] { "/S" }) != Mode.Invalid) throw new InvalidDataException("A package manager's silent command isn't read the way it sends it.");
+                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS --silent is read the way a package manager sends it, and a wrong flag fails instead of opening a window\nLIMIT installation and uninstallation were not performed\nLIMIT the silent install was not performed in this check\n");
                 return 0;
             }
             catch (Exception error) { Directory.CreateDirectory(output); File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString()); return 1; }

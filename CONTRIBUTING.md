@@ -28,6 +28,8 @@ Thanks for helping her out, choom.
 
 This builds `out/windows/Capri.exe` and `Capri-Setup.exe`, then runs her smoke test. Every line should say `PASS`.
 
+Package managers run her setup with no window. `Capri-Setup.exe --silent` installs to `%LOCALAPPDATA%\Capri`, saves her Start menu shortcut and exits 0, or non-zero with the reason on stderr. The silent install skips the local speech model; get it later in her Mainframe.
+
 **Mac and Linux** (needs the [.NET 10 SDK](https://dotnet.microsoft.com/download)):
 
 ```bash
