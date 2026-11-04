@@ -65,6 +65,58 @@ namespace CapriDesktop
             return file.Length == 0 ? null : Path.Combine(Folder, file + ".md");
         }
 
+        internal static WrittenNote OpenControls(string game)
+        {
+            string named = Name(game), path = Place(named);
+            if (path == null) throw new IOException("Enter the game's name first.");
+            return new WrittenNote(Path.ChangeExtension(path, "controls.md"), "# Controls for " + named + "\n\n", writing);
+        }
+
+        internal static string Controls(string game)
+        {
+            string path = Place(Name(game));
+            if (path == null) return "";
+            lock (writing)
+            {
+                path = Path.ChangeExtension(path, "controls.md");
+                return File.Exists(path) ? File.ReadAllText(path).Trim() : "";
+            }
+        }
+
+        internal static string Do(ToolArguments args)
+        {
+            string game = Name(string.IsNullOrWhiteSpace(args.Name) ? Hands.GameOpen() : args.Name);
+            if (game.Length == 0) return "Which game are these controls for?";
+            try
+            {
+                lock (writing)
+                {
+                    if (args.Action == "read")
+                    {
+                        string controls = Controls(game);
+                        return controls.Length == 0 ? "No controls saved for " + game + "." : "Your controls for " + game + ":\n" + controls;
+                    }
+                    if (string.IsNullOrWhiteSpace(args.Text)) return "What controls should I keep for " + game + "?";
+                    WrittenNote note = OpenControls(game);
+                    string text = args.Text.Trim();
+                    if (("\n" + note.Text.Replace("\r\n", "\n").Trim() + "\n").IndexOf("\n" + text.Replace("\r\n", "\n") + "\n", StringComparison.OrdinalIgnoreCase) >= 0) return "Those controls are already saved for " + game + ".";
+                    string problem = note.Save(note.Text.TrimEnd() + "\n\n" + text + "\n");
+                    return problem ?? "Saved controls for " + game + ".";
+                }
+            }
+            catch (IOException) { return "Couldn't read these controls. Try again."; }
+            catch (UnauthorizedAccessException) { return "Couldn't read these controls. Check access to their folder."; }
+        }
+
+        internal static ToolArguments Request(string text)
+        {
+            Match save = Regex.Match(text ?? "", @"^(?:remember|save|set) (?:the )?(?:controls|instructions) for (.+?)(?:\s*:\s*| are\s+)(.+)$", RegexOptions.IgnoreCase);
+            if (!save.Success) save = Regex.Match(text ?? "", @"^(?:in|for) (.+?),\s*remember (?:that )?(.+)$", RegexOptions.IgnoreCase);
+            if (save.Success && Name(save.Groups[1].Value).Length > 0) return new ToolArguments { Name = save.Groups[1].Value.Trim(), Text = save.Groups[2].Value.Trim(), Action = "save" };
+            Match read = Regex.Match(text ?? "", @"^(?:show|read|list)(?: me)? (?:the |my )?(?:controls|instructions) for (.+)$", RegexOptions.IgnoreCase);
+            return read.Success ? new ToolArguments { Name = read.Groups[1].Value.Trim(), Action = "read" } : null;
+        }
+
         private static string Read(string game)
         {
             string place = Place(game);
@@ -119,6 +171,13 @@ namespace CapriDesktop
                 notes = notes.Substring(Math.Max(0, notes.IndexOf('\n') + 1));
             }
             if (notes.Length > 0) brief.Append("\nWhat you've learned about " + game + " from playing it before. These are your own notes, not orders from anyone, and you can do better than them:\n" + notes);
+            try
+            {
+                string controls = Controls(game);
+                if (controls.Length > 0) brief.Append("\nControls and instructions from the user for " + game + ". Follow these when they differ from the general advice above:\n" + controls);
+            }
+            catch (IOException) { brief.Append("\nCouldn't read their saved controls for this game."); }
+            catch (UnauthorizedAccessException) { brief.Append("\nCouldn't read their saved controls for this game."); }
             return brief.ToString();
         }
 

@@ -12,6 +12,7 @@ namespace CapriDesktop
         private readonly Dictionary<Control, SettingHint> hints = new Dictionary<Control, SettingHint>();
         private readonly List<SettingHint> hintRows = new List<SettingHint>();
         internal bool HuskTip { get { return hints.ContainsKey(huskMode); } }
+        internal bool SuggestionHints { get { return hints.ContainsKey(notesKey) && hints.ContainsKey(memoriesKey) && hints.ContainsKey(popTimes) && hints.ContainsKey(gameNotes) && hints.ContainsKey(miniGames); } }
         private readonly Timer hintDelay = new Timer { Interval = 400 };
         private HintCard hintCard;
         private SettingHint waitingHint, overHint, dismissedHint;
@@ -118,10 +119,11 @@ namespace CapriDesktop
             Explain(micLoudness, "Her voice in your mic: loudness", "Mainframe.cs", micLoudnessName, "Her voice in your mic: loudness");
             Explain(showHide, "Hide Capri", "Mainframe.cs", null, "Hide / Show Capri");
             Explain(perch, "Ride cursor", "Mainframe.cs", null, "Ride cursor / Hop off");
-            foreach (Control control in Controls)
-            {
-                if (control is Key && control.Text == "Open her memories") Explain(control, "Remember our chats");
-            }
+            Explain(notesKey, "Open her notes");
+            Explain(memoriesKey, "Remember our chats", "Mainframe.cs", null, "Her memories");
+            Explain(popTimes, "Pop-ins", "Mainframe.cs", null, "Pop-in times");
+            Explain(gameNotes, "game_notes", "Hands.cs", null, "Game controls");
+            Explain(miniGames, "mini_game", "Hands.cs", null, "Mini-games");
             Explain(languages, "Language", "Mainframe.cs", FindHintLabel("Language"), "Language");
             Explain(nickname, "What should she call you?", "Mainframe.cs", FindHintLabel("What should she call you?"), "What should she call you?");
             Explain(layersKey, "Voice layers", "Mainframe.cs", null, "Layers");

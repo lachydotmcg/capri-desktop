@@ -335,6 +335,8 @@ namespace CapriDesktop
         private readonly Readout wanderName;
         private readonly Slider pops;
         private readonly Readout popsName;
+        private readonly Key popTimes, gameNotes, miniGames;
+        private readonly Key notesKey, memoriesKey;
         private readonly Toggle dance;
         private readonly Slider replies;
         private readonly Readout repliesName;
@@ -580,7 +582,8 @@ namespace CapriDesktop
             advancedKey.Accent = Cyan;
             advancedKey.Loud = true;
             Section("YOU >", 0, 58);
-            Make("Open her notes", 236, 55, 120, 20, delegate { capri.OpenNotes(); }).AccessibleName = "Open her notes: me.md, her notes about you";
+            notesKey = Make("Open her notes", 236, 55, 120, 20, delegate { EditNotes(false); });
+            notesKey.AccessibleName = "Open her notes: edit me.md here, or her note in your Obsidian vault";
             // Their personality.md (back in 0.8.0): the key says whose personality she's using, and its menu edits or resets it.
             personalityMenu = Dropdown();
             personalityKey = Make("Her personality", 92, 55, 136, 20, delegate { ShowPersonalityMenu(); });
@@ -685,6 +688,8 @@ namespace CapriDesktop
             micLoudness.Changed += delegate { if (!syncing) capri.SetMicLoudness(50 + micLoudness.Value * 10); };
             int afterVoice = Controls.Count;
             Section("MOVES >", 0, 442);
+            popTimes = Make("Pop-in times", 236, 439, 120, 20, delegate { using (PopWindow dialog = new PopWindow(capri)) dialog.ShowDialog(this); });
+            popTimes.AccessibleName = "Pop-in times: set the shortest and longest wait in minutes";
             // Her mini player shows what's playing while music plays, with her perched on it.
             miniPlayer = Switch("Mini player", 0, 466, delegate { if (!syncing) capri.TogglePlayer(); });
             miniPlayer.AccessibleName = "Mini player. It shows what's playing while music plays, and she sits on it";
@@ -833,7 +838,8 @@ namespace CapriDesktop
             Make("Save", 280 + c, 615, 76, 22, delegate { UseLocalAddress(); }, "Local server address");
             Section("HABITS >", c, 656);
             Make("Obsidian vault", 104 + c, 653, 112, 20, delegate { ShowMemoryVault(); }).AccessibleName = "Obsidian vault: keep her notes in your Obsidian vault";
-            Make("Open her memories", 220 + c, 653, 136, 20, delegate { capri.OpenMemories(); }).AccessibleName = "Open her memories: memories.md and her chat transcripts, kept on this PC";
+            memoriesKey = Make("Open her memories", 220 + c, 653, 136, 20, delegate { EditNotes(true); });
+            memoriesKey.AccessibleName = "Open her memories: edit memories.md here";
             startup = Switch("Start with Windows", c, 680, delegate { if (!syncing) capri.ToggleStartup(); });
             discord = Switch("Show on Discord", c, 708, delegate { if (!syncing) capri.ToggleDiscord(); });
             cursor = Switch("Use her cursor", c, 736, delegate { if (!syncing) capri.ToggleCursor(); });
@@ -869,6 +875,10 @@ namespace CapriDesktop
             exploreAfter.Changed += delegate { if (!syncing) capri.SetExploreAfter(AwayTimes[exploreAfter.Value]); };
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
+            miniGames = Make("Play...", 140, 911, 96, 20, delegate { ShowMiniGames(); });
+            miniGames.AccessibleName = "Play a mini-game with Capri";
+            gameNotes = Make("Controls", 244, 911, 112, 20, delegate { ShowGameNotes(); });
+            gameNotes.AccessibleName = "Game controls: teach her the keys before she plays";
             // What she says about a game they're playing, from what happens in it rather than on a timer.
             comments = Setting("Comments", Commentary.PaceNames, 0, 938, "Game comments run separately from Watch my screen and Gaming Mode. Off stops them; Events only and Chatty let her watch your game");
             commentsName = new Readout(comments);
@@ -952,6 +962,73 @@ namespace CapriDesktop
             Button button = new Button { Text = text, Bounds = new Rectangle(x, y, width, 30), FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Look.Ink, UseVisualStyleBackColor = false };
             button.FlatAppearance.BorderColor = accent;
             return button;
+        }
+
+        private void EditNotes(bool memories)
+        {
+            try
+            {
+                using (NoteWindow dialog = new NoteWindow(Brain.OpenNote(memories), memories ? "Her memories" : "Her notes about you")) dialog.ShowDialog(this);
+            }
+            catch (System.IO.IOException) { Notice.Tell(this, "Couldn't read this note. Try opening it again.", "Her notes", true); }
+            catch (UnauthorizedAccessException) { Notice.Tell(this, "Couldn't read this note. Check access to its folder.", "Her notes", true); }
+        }
+
+        private void ShowGameNotes()
+        {
+            using (Form dialog = new Form())
+            {
+                dialog.Text = "Game controls";
+                dialog.AutoScaleMode = AutoScaleMode.Dpi;
+                dialog.StartPosition = FormStartPosition.CenterParent;
+                dialog.ShowInTaskbar = false;
+                dialog.FormBorderStyle = FormBorderStyle.FixedDialog;
+                dialog.MaximizeBox = dialog.MinimizeBox = false;
+                dialog.BackColor = Ground;
+                dialog.ForeColor = White;
+                dialog.Font = Look.Mono(10f, FontStyle.Regular, GraphicsUnit.Point);
+                dialog.ClientSize = new Size(480, 172);
+                Label label = new Label { Text = "Game name", Bounds = new Rectangle(16, 16, 448, 20) };
+                TextBox game = new TextBox { Text = GameNotes.Name(Hands.GameOpen()), Bounds = new Rectangle(16, 42, 448, 24), BackColor = Field, ForeColor = White, BorderStyle = BorderStyle.FixedSingle, AccessibleName = "Game name for controls" };
+                Label note = new Label { Text = "She reads these controls before each game job.", Bounds = new Rectangle(16, 78, 448, 30), ForeColor = Faint };
+                Button edit = DialogButton("Edit controls", 16, 122, 128, Cyan);
+                Button close = DialogButton("Close", 364, 122, 100, Edge);
+                edit.Click += delegate
+                {
+                    if (GameNotes.Name(game.Text).Length == 0) { note.Text = "Enter the game's name first."; return; }
+                    try
+                    {
+                        using (NoteWindow page = new NoteWindow(GameNotes.OpenControls(game.Text), "Game controls")) page.ShowDialog(dialog);
+                    }
+                    catch (System.IO.IOException) { note.Text = "Couldn't read these controls. Check the game's name and folder."; }
+                    catch (UnauthorizedAccessException) { note.Text = "Couldn't read these controls. Check access to their folder."; }
+                };
+                close.Click += delegate { dialog.Close(); };
+                dialog.AcceptButton = edit;
+                dialog.CancelButton = close;
+                dialog.Controls.AddRange(new Control[] { label, game, note, edit, close });
+                dialog.ShowDialog(this);
+            }
+        }
+
+        internal ContextMenuStrip MiniChoices()
+        {
+            ContextMenuStrip games = Dropdown();
+            string[] names = { "chess", "connect_four", "tic_tac_toe", "rock_paper_scissors" };
+            string[] titles = { "Chess", "Connect four", "Tic-tac-toe", "Rock, paper, scissors" };
+            for (int i = 0; i < names.Length; i++)
+            {
+                string name = names[i];
+                games.Items.Add(Choice(titles[i], false, delegate { capri.PlayMini(name); }));
+            }
+            return games;
+        }
+
+        private void ShowMiniGames()
+        {
+            ContextMenuStrip games = MiniChoices();
+            games.Closed += delegate { games.Dispose(); };
+            games.Show(miniGames, new Point(0, miniGames.Height));
         }
 
         private void SaveClipOptions()
@@ -2426,7 +2503,7 @@ namespace CapriDesktop
             wander.Value = capri.WanderLevel;
             wanderName.Text = WanderNames[wander.Value];
             pops.Value = Math.Max(0, Math.Min(PopNames.Length - 1, capri.PopPace));
-            popsName.Text = PopNames[pops.Value];
+            popsName.Text = capri.PopRange ? capri.PopMin + " to " + capri.PopMax + " min" : PopNames[pops.Value];
             dance.Checked = capri.Dancing;
             headPats.Checked = capri.HeadPats;
             upsetChaos.Checked = capri.UpsetChaos;
@@ -4343,8 +4420,115 @@ namespace CapriDesktop
             }
         }
 
-        // A slider's value, shown inside its own box where a label beside it used to be. Code that set that label's text or
-        // colour sets these instead.
+        internal sealed class NoteWindow : Form
+        {
+            private readonly WrittenNote note;
+            private readonly TextBox draft;
+            private readonly Label status;
+            private readonly Button close, reload;
+            private bool discard;
+
+            internal NoteWindow(WrittenNote page, string title)
+            {
+                note = page;
+                Text = title;
+                AutoScaleMode = AutoScaleMode.Dpi;
+                StartPosition = FormStartPosition.CenterParent;
+                ShowInTaskbar = false;
+                MinimizeBox = false;
+                BackColor = Ground;
+                ForeColor = White;
+                Font = Look.Mono(10f, FontStyle.Regular, GraphicsUnit.Point);
+                ClientSize = new Size(580, 460);
+                MinimumSize = new Size(380, 300);
+                Label path = new Label { Text = note.Path, Bounds = new Rectangle(16, 14, 548, 24), AutoEllipsis = true, ForeColor = Faint, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right, AccessibleName = "Note file" };
+                draft = new TextBox { Text = note.Text, Multiline = true, AcceptsReturn = true, AcceptsTab = true, WordWrap = true, ScrollBars = ScrollBars.Vertical, MaxLength = int.MaxValue, Bounds = new Rectangle(16, 44, 548, 324), BorderStyle = BorderStyle.FixedSingle, BackColor = Field, ForeColor = White, Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right, AccessibleName = title };
+                status = new Label { Bounds = new Rectangle(16, 376, 548, 34), ForeColor = Cyan, Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
+                Button save = DialogButton("Save", 16, 414, 100, Cyan);
+                reload = DialogButton("Reload", 124, 414, 164, Edge);
+                close = DialogButton("Close", 464, 414, 100, Edge);
+                save.Anchor = reload.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
+                close.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+                save.Click += delegate { SaveDraft(); };
+                reload.Click += delegate { ReloadNote(true); };
+                close.Click += delegate { discard = true; Close(); };
+                draft.TextChanged += delegate { close.Text = Dirty ? "Discard" : "Close"; reload.Text = Dirty ? "Discard + reload" : "Reload"; status.Text = Dirty ? "Unsaved changes." : ""; };
+                FormClosing += delegate(object sender, FormClosingEventArgs e)
+                {
+                    if (!discard && Dirty && e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; status.Text = "Save your changes, or press Discard."; }
+                };
+                Controls.AddRange(new Control[] { path, draft, status, save, reload, close });
+            }
+
+            private bool Dirty { get { return draft.Text.Replace("\r\n", "\n") != note.Text.Replace("\r\n", "\n"); } }
+            internal string Draft { get { return draft.Text; } set { draft.Text = value; } }
+            internal string Status { get { return status.Text; } }
+
+            internal bool SaveDraft()
+            {
+                string problem = note.Save(draft.Text);
+                status.Text = problem ?? "Saved.";
+                status.ForeColor = problem == null ? Cyan : Hot;
+                close.Text = Dirty ? "Discard" : "Close";
+                reload.Text = Dirty ? "Discard + reload" : "Reload";
+                return problem == null;
+            }
+
+            internal void ReloadNote(bool discard = false)
+            {
+                if (Dirty && !discard) { status.Text = "Save your changes, or press Discard + reload."; return; }
+                try { note.Reload(); draft.Text = note.Text; status.Text = "Reloaded."; }
+                catch (System.IO.IOException) { status.Text = "Couldn't reload this note. Your changes are still here."; }
+                catch (UnauthorizedAccessException) { status.Text = "Couldn't reload this note. Your changes are still here."; }
+            }
+        }
+
+        internal sealed class PopWindow : Form
+        {
+            private readonly Companion capri;
+            private readonly NumericUpDown low, high;
+            private readonly Label status;
+
+            internal PopWindow(Companion owner)
+            {
+                capri = owner;
+                Text = "Pop-in times";
+                AutoScaleMode = AutoScaleMode.Dpi;
+                StartPosition = FormStartPosition.CenterParent;
+                ShowInTaskbar = false;
+                FormBorderStyle = FormBorderStyle.FixedDialog;
+                MaximizeBox = MinimizeBox = false;
+                BackColor = Ground;
+                ForeColor = White;
+                Font = Look.Mono(10f, FontStyle.Regular, GraphicsUnit.Point);
+                ClientSize = new Size(440, 214);
+                Label shortest = new Label { Text = "Shortest wait (minutes)", Bounds = new Rectangle(16, 18, 272, 24) };
+                Label longest = new Label { Text = "Longest wait (minutes)", Bounds = new Rectangle(16, 56, 272, 24) };
+                low = new NumericUpDown { Minimum = 1, Maximum = int.MaxValue, Value = capri.PopMin, Bounds = new Rectangle(296, 16, 128, 26), BackColor = Field, ForeColor = White, AccessibleName = "Shortest pop-in wait in minutes" };
+                high = new NumericUpDown { Minimum = 1, Maximum = int.MaxValue, Value = capri.PopMax, Bounds = new Rectangle(296, 54, 128, 26), BackColor = Field, ForeColor = White, AccessibleName = "Longest pop-in wait in minutes" };
+                status = new Label { Text = "Check in on me still decides whether she visits.", Bounds = new Rectangle(16, 94, 408, 64), ForeColor = Faint };
+                Button save = DialogButton("Save", 16, 168, 96, Cyan);
+                Button preset = DialogButton("Use preset", 120, 168, 128, Edge);
+                Button close = DialogButton("Close", 328, 168, 96, Edge);
+                save.Click += delegate { if (Apply()) Close(); };
+                preset.Click += delegate { capri.SetPopPace(capri.PopPace); Close(); };
+                close.Click += delegate { Close(); };
+                AcceptButton = save;
+                CancelButton = close;
+                Controls.AddRange(new Control[] { shortest, longest, low, high, status, save, preset, close });
+            }
+
+            internal int Low { get { return (int)low.Value; } set { low.Value = value; } }
+            internal int High { get { return (int)high.Value; } set { high.Value = value; } }
+            internal bool Apply()
+            {
+                if (capri.SetPopRange(Low, High)) return true;
+                status.Text = "The longest wait must be at least the shortest wait.";
+                status.ForeColor = Hot;
+                return false;
+            }
+        }
+
         private sealed class Readout
         {
             private readonly Slider slider;

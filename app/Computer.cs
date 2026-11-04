@@ -1062,12 +1062,34 @@ namespace CapriDesktop
             return picked == null ? new Sight() : Framed(picked);
         }
 
+        internal static Func<List<Tune>> ExploreMedia = delegate { return Tunes.Shared(); };
+
+        private static bool PausedPage(Sight sight)
+        {
+            if (!Browsers.IsMatch(sight.Program ?? "") || !Regex.IsMatch(sight.Title ?? "", @"\byoutube\b", RegexOptions.IgnoreCase)) return false;
+            try
+            {
+                List<Tune> sessions = ExploreMedia();
+                if (sessions == null) return false;
+                bool paused = false;
+                foreach (Tune tune in sessions)
+                {
+                    if (tune == null || !string.Equals(Tunes.AppName(tune.App), Tunes.AppName(sight.Program), StringComparison.OrdinalIgnoreCase)) continue;
+                    if (tune.Playing || tune.Changing) return false;
+                    if (!string.IsNullOrWhiteSpace(tune.Title) && sight.Title.IndexOf(tune.Title, StringComparison.OrdinalIgnoreCase) >= 0) paused = true;
+                }
+                return paused;
+            }
+            catch (Exception) { return false; }
+        }
+
         internal static bool ExploreAllowed(Sight sight, bool fullScreen)
         {
             if (sight == null || sight.Window == IntPtr.Zero || fullScreen) return false;
             string program = sight.Program ?? "", title = sight.Title ?? "";
             bool reader = Regex.IsMatch(program, @"^(acrobat|acrord32|sumatrapdf|calibre|ebook-viewer|kindle)(\.exe)?$", RegexOptions.IgnoreCase);
-            return (Browsers.IsMatch(program) || reader) && !GameTitles.IsMatch(title) && !GameWords.IsMatch(title) && !Watching.IsMatch(title)
+            bool paused = Watching.IsMatch(title) && PausedPage(sight);
+            return (Browsers.IsMatch(program) || reader) && (paused || !GameTitles.IsMatch(title) && !GameWords.IsMatch(title) && !Watching.IsMatch(title))
                 && !Talky.IsMatch(title) && !Risky.IsMatch(title) && !SignInWords.IsMatch(title) && !PersonalField.IsMatch(title);
         }
 

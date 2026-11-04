@@ -743,6 +743,11 @@ namespace CapriDesktop
         internal static int Budget { get { return Budgets[Math.Max(0, Math.Min(2, Wordiness))]; } }
 
         internal static string MemoryPath;
+
+        internal static WrittenNote OpenNote(bool memories)
+        {
+            return new WrittenNote(memories ? MemoriesPath : MemoryPath, memories ? MemoriesHead : NotesHead, memories ? writing : noting);
+        }
         // Their Obsidian vault folder when her notes live there, so she can say where they are.
         internal static volatile string VaultFolder;
         internal static string Greeting(int hour) { return hour >= 5 && hour < 12 ? "Good morning, choom." : hour >= 22 || hour < 5 ? "Isn't it late, choom?" : "Miss me, choom?"; }
@@ -1061,8 +1066,13 @@ namespace CapriDesktop
             if (queuePath == null || memoriesPath == null) return "Her memories have no folder.";
             if (model == null) return Offline;
             string[] waiting;
-            lock (writing) waiting = File.Exists(queuePath) ? File.ReadAllLines(queuePath) : new string[0];
-            if (waiting.Length == 0) return null;
+            string original;
+            lock (writing)
+            {
+                waiting = File.Exists(queuePath) ? File.ReadAllLines(queuePath) : new string[0];
+                if (waiting.Length == 0) return null;
+                original = File.Exists(memoriesPath) ? File.ReadAllText(memoriesPath) : null;
+            }
             // A long backlog goes a chunk at a time, oldest first, so no request outgrows her brain.
             int take = 0, size = 0;
             while (take < waiting.Length && (take == 0 || size + waiting[take].Length < FoldBudget * 2)) size += waiting[take++].Length + 1;
@@ -1102,6 +1112,7 @@ namespace CapriDesktop
             }
             lock (writing)
             {
+                if (!string.Equals(original, File.Exists(memoriesPath) ? File.ReadAllText(memoriesPath) : null, StringComparison.Ordinal)) return "Her memories changed while she was updating them. She'll try again.";
                 if (after != null) File.WriteAllText(memoriesPath, MemoriesHead + after + "\n");
                 // Lines written while she was folding wait for next time.
                 string[] now = File.Exists(queuePath) ? File.ReadAllLines(queuePath) : new string[0];
@@ -4279,8 +4290,62 @@ namespace CapriDesktop
         }
     }
 
-    // Her set lines, a few ways of saying each, so what she says on her own doesn't sound like a recording. Shared by Windows,
-    // Mac and Linux.
+    internal sealed class WrittenNote
+    {
+        internal readonly string Path;
+        internal string Text { get; private set; }
+        private readonly string head;
+        private readonly object gate;
+        private bool existed;
+
+        internal WrittenNote(string path, string heading, object writing)
+        {
+            if (string.IsNullOrEmpty(path)) throw new IOException("This note has no folder yet.");
+            Path = path;
+            head = heading;
+            gate = writing;
+            Reload();
+        }
+
+        internal void Reload()
+        {
+            lock (gate)
+            {
+                bool found = File.Exists(Path);
+                string read = found ? File.ReadAllText(Path) : head;
+                Text = read;
+                existed = found;
+            }
+        }
+
+        internal string Save(string text)
+        {
+            lock (gate)
+            {
+                string temporary = Path + "." + Guid.NewGuid().ToString("N") + ".new";
+                try
+                {
+                    bool found = File.Exists(Path);
+                    if (found != existed || found && !string.Equals(File.ReadAllText(Path), Text, StringComparison.Ordinal)) return "This note changed. Reload it before saving.";
+                    Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
+                    File.WriteAllText(temporary, text ?? "");
+                    if (found) File.Replace(temporary, Path, null); else File.Move(temporary, Path);
+                    Text = text ?? "";
+                    existed = true;
+                    return null;
+                }
+                catch (IOException) { return "Couldn't save this note."; }
+                catch (UnauthorizedAccessException) { return "Couldn't save this note."; }
+                finally
+                {
+                    try { if (File.Exists(temporary)) File.Delete(temporary); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
+            }
+        }
+    }
+
     internal static class Lines
     {
         internal static readonly string[] OnIt = { "On it. Esc stops me.", "Hands on. Esc if you change your mind.", "Mine now. Esc pulls me off.", "Okay, driving. Esc to bail.", "Watch this. Esc if I get weird.", "Going in. Esc stops me any time.", "Leave it with me. Esc if it goes sideways.", "Say less. Esc takes it back." };

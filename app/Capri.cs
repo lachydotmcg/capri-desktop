@@ -857,6 +857,8 @@ namespace CapriDesktop
         [DataMember] public int WanderPace = 1;
         // How often she pops in while Check in on me is on: 0 rarely, 1 sometimes (every 8 to 20 minutes, as before), 2 often.
         [DataMember] public int PopPace = 1;
+        [DataMember] public int PopMin;
+        [DataMember] public int PopMax;
         // Frames a second of her perch: 10, 15, 20, 30, 40, 50 or 60. 30 shows the art as drawn.
         [DataMember] public int PerchFps = 30;
         // Her Mainframe's size: 0 for Auto, which grows it on a screen whose desktop is bigger than its panel (Virtual Super
@@ -5456,6 +5458,11 @@ namespace CapriDesktop
             catch (Exception) { Tell("open notes", "Couldn't open my notes. They live in " + path + "."); }
         }
 
+        internal string PlayMini(string name)
+        {
+            return Hands.Do("mini_game", new ToolArguments { Name = name, Action = "open" });
+        }
+
         internal void OpenPersonality()
         {
             string path = Brain.PersonalityPath;
@@ -5672,8 +5679,25 @@ namespace CapriDesktop
         internal void SetPopPace(int pace)
         {
             preferences.PopPace = Math.Max(0, Math.Min(2, pace));
+            preferences.PopMin = preferences.PopMax = 0;
             nextPopIn = -1;
             SavePreferences();
+            mainframe.Sync();
+        }
+
+        internal bool PopRange { get { return preferences.PopMin > 0 && preferences.PopMax >= preferences.PopMin; } }
+        internal int PopMin { get { return PopRange ? preferences.PopMin : (int)PopPaces[Math.Max(0, Math.Min(2, preferences.PopPace)), 0] / 60; } }
+        internal int PopMax { get { int pace = Math.Max(0, Math.Min(2, preferences.PopPace)); return PopRange ? preferences.PopMax : (int)(PopPaces[pace, 0] + PopPaces[pace, 1]) / 60; } }
+
+        internal bool SetPopRange(int low, int high)
+        {
+            if (low <= 0 || high < low) return false;
+            preferences.PopMin = low;
+            preferences.PopMax = high;
+            nextPopIn = -1;
+            SavePreferences();
+            mainframe.Sync();
+            return true;
         }
 
         internal int MainframeSize { get { return Preferences.FrameSize(preferences.MainframeSize); } }
@@ -5684,7 +5708,7 @@ namespace CapriDesktop
             SavePreferences();
         }
 
-        internal double PopGap() { int pace = Math.Max(0, Math.Min(2, preferences.PopPace)); return PopPaces[pace, 0] + random.NextDouble() * PopPaces[pace, 1]; }
+        internal double PopGap() { return ((double)PopMin + random.NextDouble() * ((double)PopMax - PopMin)) * 60; }
 
         internal int WanderLevel { get { return preferences.Wander ? preferences.WanderPace + 1 : 0; } }
 
@@ -15912,6 +15936,300 @@ namespace CapriDesktop
                 Brain.LocalSees = glanceSees;
                 Brain.LocalEyes = glanceEyes;
             }
+        }
+
+        private void SmokeNoteEditor(List<string> checks)
+        {
+            string folder = Path.Combine(Path.GetDirectoryName(settingsPath), "note-editor-" + Guid.NewGuid().ToString("N"));
+            string notesWas = Brain.MemoryPath, memoriesWas = Brain.MemoriesPath, transcriptsWas = Brain.TranscriptPath, vaultWas = Brain.VaultFolder;
+            bool keepingWas = Brain.Keeping;
+            TcpListener server = null;
+            Thread fold = null;
+            ManualResetEvent release = new ManualResetEvent(false);
+            try
+            {
+                Brain.MemoryPath = Path.Combine(folder, "vault", "Capri Memories.md");
+                Brain.MemoriesPath = Path.Combine(folder, "memories.md");
+                Brain.TranscriptPath = Path.Combine(folder, "transcripts");
+                Brain.VaultFolder = Path.Combine(folder, "vault");
+                Brain.Keeping = true;
+                WrittenNote page = Brain.OpenNote(false);
+                if (page.Path != Brain.MemoryPath || File.Exists(page.Path)) throw new Exception("Opening an unsaved note changed its file or ignored the vault.");
+                using (Mainframe.NoteWindow editor = new Mainframe.NoteWindow(page, "Her notes about you"))
+                {
+                    editor.Draft = "- They like café music.\n- They play chess.\n";
+                    if (!editor.SaveDraft() || editor.Status != "Saved." || !Brain.Notes().Contains("café music")) throw new Exception("The notes editor did not save to the file her brain reads.");
+                    Brain.Note("They prefer quiet mornings");
+                    string changed = File.ReadAllText(page.Path);
+                    editor.Draft = "- An unsaved replacement.\n";
+                    if (editor.SaveDraft() || File.ReadAllText(page.Path) != changed || !editor.Draft.Contains("unsaved replacement")) throw new Exception("The editor overwrote a new note or lost its draft after a conflict.");
+                    editor.ReloadNote();
+                    if (!editor.Draft.Contains("unsaved replacement")) throw new Exception("Reload silently discarded an unsaved draft.");
+                    editor.ReloadNote(true);
+                    if (!editor.Draft.Contains("quiet mornings")) throw new Exception("Discard and reload did not read the changed note.");
+                    editor.Draft = "";
+                    if (!editor.SaveDraft() || File.ReadAllText(page.Path) != "" || Brain.Notes() != "") throw new Exception("The editor could not clear her notes.");
+                }
+                WrittenNote removed = Brain.OpenNote(false);
+                File.Delete(removed.Path);
+                if (removed.Save("replacement") == null || File.Exists(removed.Path)) throw new Exception("An editor silently recreated a note deleted elsewhere.");
+                WrittenNote created = Brain.OpenNote(false);
+                File.WriteAllText(created.Path, "Written in Obsidian.");
+                if (created.Save("replacement") == null || File.ReadAllText(created.Path) != "Written in Obsidian.") throw new Exception("An editor overwrote a file created after it opened.");
+                string blockedPath = Path.Combine(folder, "blocked.md");
+                WrittenNote blocked = new WrittenNote(blockedPath, "", new object());
+                Directory.CreateDirectory(blockedPath);
+                using (Mainframe.NoteWindow editor = new Mainframe.NoteWindow(blocked, "Her notes"))
+                {
+                    editor.Draft = "Keep this draft.";
+                    if (editor.SaveDraft() || editor.Draft != "Keep this draft." || Directory.GetFiles(folder, "*.new").Length != 0) throw new Exception("A failed note save lost its draft or left a temporary file.");
+                }
+                checks.Add("PASS Mainframe note editor follows her vault, saves Unicode for the next chat, clears notes, preserves drafts on failures and detects files changed, created or deleted elsewhere");
+
+                using (Mainframe.NoteWindow editor = new Mainframe.NoteWindow(Brain.OpenNote(true), "Her memories"))
+                {
+                    editor.Draft = "## Today\n- They like quiet visits.\n";
+                    if (!editor.SaveDraft() || !Brain.Memories().Contains("quiet visits")) throw new Exception("The memories editor did not update the memories her brain reads.");
+                }
+                Directory.CreateDirectory(Brain.TranscriptPath);
+                string queue = Path.Combine(Brain.TranscriptPath, "unfolded.txt");
+                string pending = "2026-11-04 14:00 You: I finished a chess game\n";
+                File.WriteAllText(queue, pending);
+                List<string> asked = new List<string>();
+                string address = FakeServer(new[] { LocalReply("## Today\n- They finished a chess game."), LocalReply("## Today\n- They prefer quieter visits.\n- They finished a chess game.") }, asked, out server, release: release);
+                Brain folderBrain = new Brain { Model = "fold-test", Remote = new Cloud(Brain.LocalPort(address), "fold-test") };
+                string problem = null;
+                Exception failed = null;
+                fold = new Thread(delegate()
+                {
+                    try { problem = folderBrain.Fold(); }
+                    catch (Exception error) { failed = error; }
+                });
+                fold.IsBackground = true;
+                fold.Start();
+                Stopwatch waiting = Stopwatch.StartNew();
+                bool requested = false;
+                while (waiting.ElapsedMilliseconds < 5000)
+                {
+                    lock (asked) requested = asked.Count > 0;
+                    if (requested) break;
+                    Thread.Sleep(10);
+                }
+                if (!requested) throw new Exception("The memory fold never reached its fake server.");
+                WrittenNote edited = Brain.OpenNote(true);
+                if (edited.Save("## Today\n- They prefer quieter visits.\n") != null) throw new Exception("Couldn't edit memories while a fold was waiting.");
+                string kept = File.ReadAllText(Brain.MemoriesPath);
+                release.Set();
+                if (!fold.Join(5000) || failed != null || problem == null || File.ReadAllText(Brain.MemoriesPath) != kept || File.ReadAllText(queue) != pending) throw new Exception("A waiting fold overwrote edited memories or consumed their pending chat.");
+                if (folderBrain.Fold() != null || !File.ReadAllText(Brain.MemoriesPath).Contains("quieter visits") || File.ReadAllText(queue) != "") throw new Exception("A memory fold could not retry after an editor change.");
+                checks.Add("PASS the memories editor feeds her next chat and a fold preserves concurrent edits and queued chat, then retries from the edited memories");
+            }
+            finally
+            {
+                release.Set();
+                if (fold != null && fold.IsAlive) fold.Join(5000);
+                if (server != null) server.Stop();
+                release.Dispose();
+                Brain.MemoryPath = notesWas; Brain.MemoriesPath = memoriesWas; Brain.TranscriptPath = transcriptsWas; Brain.VaultFolder = vaultWas; Brain.Keeping = keepingWas;
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+            }
+        }
+
+        private void SmokePopTimes(List<string> checks)
+        {
+            int pace = preferences.PopPace, low = preferences.PopMin, high = preferences.PopMax;
+            double next = nextPopIn;
+            bool checkIns = preferences.CheckIns;
+            try
+            {
+                SetPopPace(1);
+                using (Mainframe.PopWindow dialog = new Mainframe.PopWindow(this))
+                {
+                    if (dialog.Low != 8 || dialog.High != 20) throw new Exception("Pop-in times did not open with the current preset.");
+                    dialog.Low = 12; dialog.High = 5;
+                    if (dialog.Apply() || PopRange || preferences.CheckIns != checkIns) throw new Exception("Reversed pop-in times changed settings.");
+                    dialog.High = 25;
+                    if (!dialog.Apply() || !PopRange || PopMin != 12 || PopMax != 25 || mainframe.PopsShown != "12 to 25 min" || nextPopIn != -1) throw new Exception("Custom pop-in times did not save and show.");
+                    Preferences saved = LoadPreferences();
+                    if (saved.PopMin != 12 || saved.PopMax != 25) throw new Exception("Custom pop-in times did not survive saving.");
+                    for (int i = 0; i < 100; i++) { double gap = PopGap(); if (gap < 720 || gap > 1500) throw new Exception("A pop-in left the chosen time range."); }
+                    dialog.Low = dialog.High = 7;
+                    if (!dialog.Apply() || PopGap() != 420 || SetPopRange(0, 7) || SetPopRange(8, 7) || PopGap() != 420) throw new Exception("Fixed pop-in times or rejected values changed their meaning.");
+                    if (!SetPopRange(int.MaxValue, int.MaxValue) || PopGap() != int.MaxValue * 60d) throw new Exception("A large pop-in time overflowed.");
+                }
+                preferences.PopMin = 50; preferences.PopMax = 2;
+                if (PopRange || PopMin != 8 || PopMax != 20) throw new Exception("Broken saved pop-in times did not fall back to the preset.");
+                SetPopPace(2);
+                if (PopRange || LoadPreferences().PopMin != 0 || LoadPreferences().PopMax != 0 || PopMin != 3 || PopMax != 8) throw new Exception("Choosing a preset did not clear custom pop-in times.");
+                Preferences older = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"PopPace\":0}")));
+                if (older.PopMin != 0 || older.PopMax != 0 || older.PopPace != 0 || new Preferences().PopMin != 0) throw new Exception("Older settings opted into custom pop-in times.");
+                checks.Add("PASS exact pop-in times save and reload, stay within their range, allow a fixed wait, reject reversed values, keep Check in on me unchanged, and return to presets with old settings unchanged");
+            }
+            finally { preferences.PopPace = pace; preferences.PopMin = low; preferences.PopMax = high; nextPopIn = next; SavePreferences(); mainframe.Sync(); }
+        }
+
+        private void SmokeCalendarReminders(List<string> checks)
+        {
+            DateTime now = new DateTime(2026, 11, 4, 14, 10, 0);
+            string[,] dates =
+            {
+                { "on 2026-12-05 at 9am", "2026-12-05 09:00" }, { "2026-12-05 17:30", "2026-12-05 17:30" },
+                { "on 5 December 2026 at noon", "2026-12-05 12:00" }, { "on December 5, 2026 at 9pm", "2026-12-05 21:00" },
+                { "on 5th Dec at 9", "2026-12-05 09:00" }, { "on November 4 at 3pm", "2026-11-04 15:00" },
+                { "on 4 November at 9am", "2027-11-04 09:00" }, { "on 2027-01-01", "2027-01-01 09:00" },
+                { "on 29 February at 8am", "2028-02-29 08:00" }, { "in 3 days", "2026-11-07 14:10" },
+                { "in two weeks", "2026-11-18 14:10" }, { "in half a day", "2026-11-05 02:10" }
+            };
+            for (int i = 0; i < dates.GetLength(0); i++)
+            {
+                DateTime due;
+                if (!Reminders.Parse(dates[i, 0], now, out due) || due.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) != dates[i, 1]) throw new Exception("A calendar reminder date was wrong: " + dates[i, 0]);
+            }
+            DateTime leap;
+            if (!Reminders.Parse("on 29 February", new DateTime(2097, 3, 1), out leap) || leap != new DateTime(2104, 2, 29, 9, 0, 0)) throw new Exception("A yearless leap day did not reach the next real occurrence.");
+            foreach (string bad in new[] { "on 2026-11-04 at 9am", "on 2025-12-05", "on 2026-02-29", "on 31 November", "on 5 December at 25:00", "on 11/12/2026", "on 5 December at 9:65", "in 0 days", "in -2 weeks", "in 999999999999999 weeks" })
+            {
+                DateTime due;
+                if (Reminders.Parse(bad, now, out due)) throw new Exception("An invalid calendar date was accepted: " + bad);
+            }
+            string folder = Path.Combine(Path.GetDirectoryName(settingsPath), "calendar-reminders-" + Guid.NewGuid().ToString("N"));
+            Func<string, KeyValuePair<string, ToolArguments>> planWas = Hands.Plan;
+            Func<ToolArguments, string> remindWas = Hands.Remind;
+            try
+            {
+                Reminders calendar = new Reminders(folder, now);
+                calendar.Now = delegate { return now; };
+                Hands.Plan = calendar.Route;
+                Hands.Remind = calendar.Remind;
+                string tool;
+                ToolArguments args;
+                if (!Hands.Heard("Capri, remind me on 5 December 2026 at 9am to call Mum", out tool, out args) || tool != "remind" || args.When != "on 5 December 2026 at 9am" || args.Text != "call Mum" || !Hands.Valid(tool, args)) throw new Exception("A dated reminder did not reach her tool with its full time.");
+                if (!Hands.Do(tool, args).StartsWith("I'll remind you ", StringComparison.Ordinal)) throw new Exception("The dated reminder tool did not save.");
+                foreach (string bad in new[] { "remind me on 5 December at 25 to call Mum", "remind me on 5 December at 9am tomorrow to call Mum", "remind me on 5 December 2025 to call Mum" })
+                    if (Hands.Heard(bad, out tool, out args)) throw new Exception("A partial or past date was saved as reminder text: " + bad);
+                DateTime dueAt = new DateTime(2026, 12, 5, 9, 0, 0);
+                Reminders restarted = new Reminders(folder, now);
+                if (restarted.Take(dueAt.AddSeconds(-1)) != null || restarted.Take(dueAt) != "Reminder: call Mum" || restarted.Take(dueAt) != null || new Reminders(folder, dueAt).Take(dueAt) != null) throw new Exception("A saved calendar reminder was early, repeated, or lost on restart.");
+                calendar = new Reminders(folder, now);
+                calendar.Now = delegate { return now; };
+                calendar.Remind(new ToolArguments { Text = "water the plants", When = "in 3 days" });
+                Reminders overdue = new Reminders(folder, now.AddDays(4));
+                string late = overdue.Take(now.AddDays(4));
+                if (late == null || !late.StartsWith("Late reminder, due ", StringComparison.Ordinal) || !late.EndsWith(": water the plants", StringComparison.Ordinal)) throw new Exception("A calendar reminder missed while closed was not marked late.");
+                calendar = new Reminders(folder, now);
+                calendar.Now = delegate { return now; };
+                calendar.Remind(new ToolArguments { Text = "book club", When = "on 2027-01-02 at noon" });
+                if (!calendar.Remind(new ToolArguments { Action = "list" }).Contains("book club") || calendar.Remind(new ToolArguments { Action = "cancel", Text = "book club" }) != "Cancelled your reminder: book club" || new Reminders(folder, now).Take(new DateTime(2028, 1, 1)) != null) throw new Exception("Dated reminders could not be listed or cancelled.");
+                checks.Add("PASS dated reminders parse named and ISO dates, local times, days and weeks, year rollover and leap days; reject bad and past dates; route through her hands; survive restart and deliver once, including late reminders, listing and cancellation");
+            }
+            finally { Hands.Plan = planWas; Hands.Remind = remindWas; if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+        }
+
+        private void SmokeGameControls(List<string> checks)
+        {
+            string folder = Path.Combine(Path.GetDirectoryName(settingsPath), "game-controls-" + Guid.NewGuid().ToString("N"));
+            string folderWas = GameNotes.Folder;
+            Func<string> openWas = Hands.GameOpen;
+            try
+            {
+                GameNotes.Folder = folder;
+                Hands.GameOpen = delegate { return "The Binding of Isaac - Repentance"; };
+                string tool;
+                ToolArguments args;
+                string request = "remember the controls for The Binding of Isaac: shoot with the arrow keys";
+                if (!Hands.Wants(request) || !Hands.Heard("Capri, " + request, out tool, out args) || tool != "game_notes" || args.Name != "The Binding of Isaac" || args.Text != "shoot with the arrow keys" || !Hands.Valid(tool, args)) throw new Exception("Teaching a game's controls did not reach her hands intact.");
+                if (Hands.Do(tool, args) != "Saved controls for The Binding of Isaac." || Hands.Do(tool, args) != "Those controls are already saved for The Binding of Isaac.") throw new Exception("Game controls did not save once.");
+                if (!Hands.Typed("game_notes{\"name\":\"The Binding of Isaac\",\"action\":\"read\"}", out tool, out args) || tool != "game_notes" || !Hands.Do(tool, args).Contains("shoot with the arrow keys")) throw new Exception("The new game-controls tool could not be read from a brain's written call.");
+                using (FileStream locked = File.Open(Path.Combine(folder, "the-binding-of-isaac.controls.md"), FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                    if (!GameNotes.Brief("The Binding of Isaac").Contains("Couldn't read their saved controls") || Hands.Do("game_notes", new ToolArguments { Name = "The Binding of Isaac", Action = "read" }) != "Couldn't read these controls. Try again.") throw new Exception("Locked game controls stopped a game brief or pretended to be readable.");
+                GameNotes.Learn("The Binding of Isaac", "Guess: shoot with Space.");
+                string brief = GameNotes.Brief("The Binding of Isaac");
+                if (!brief.Contains("shoot with the arrow keys") || brief.IndexOf("Controls and instructions from the user", StringComparison.Ordinal) < brief.IndexOf("Guess: shoot with Space", StringComparison.Ordinal) || !File.Exists(Path.Combine(folder, "the-binding-of-isaac.controls.md"))) throw new Exception("A game job did not receive the user's controls after her learned notes.");
+                if (!Hands.Heard("in The Binding of Isaac, remember that move with WASD", out tool, out args) || tool != "game_notes" || !Hands.Do(tool, args).StartsWith("Saved controls", StringComparison.Ordinal)) throw new Exception("A second control was not kept for the same game.");
+                if (!Hands.Heard("show my controls for The Binding of Isaac", out tool, out args) || tool != "game_notes" || args.Action != "read" || !Hands.Do(tool, args).Contains("move with WASD")) throw new Exception("Her saved controls could not be read back.");
+                if (Hands.Do("game_notes", new ToolArguments { Text = "Open the map with Tab" }) != "Saved controls for The Binding of Isaac.") throw new Exception("The game open now did not supply a missing game name.");
+                if (Hands.Valid("game_notes", new ToolArguments { Action = "erase", Text = "x" }) || Hands.Valid("game_notes", new ToolArguments()) || Hands.Valid("game_notes", null)) throw new Exception("Bad game-control actions were accepted.");
+                using (Mainframe.NoteWindow editor = new Mainframe.NoteWindow(GameNotes.OpenControls("The Binding of Isaac - Repentance"), "Game controls"))
+                {
+                    if (!editor.Draft.Contains("Open the map with Tab")) throw new Exception("The controls editor did not use the same file as her tool.");
+                    editor.Draft = "Move with WASD.\nShoot with the arrow keys.\n";
+                    if (!editor.SaveDraft() || !GameNotes.Brief("The Binding of Isaac").Contains("Shoot with the arrow keys.")) throw new Exception("Editing game controls did not update the next game job.");
+                    editor.Draft = "";
+                    if (!editor.SaveDraft() || GameNotes.Brief("The Binding of Isaac").Contains("Controls and instructions from the user")) throw new Exception("Cleared game controls stayed in her game brief.");
+                }
+                WrittenNote inside = GameNotes.OpenControls("..\\..\\Outside");
+                if (!Path.GetFullPath(inside.Path).StartsWith(Path.GetFullPath(folder) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) throw new Exception("A game name escaped the game-controls folder.");
+                Hands.GameOpen = delegate { return null; };
+                if (Hands.Do("game_notes", new ToolArguments { Text = "Jump with Space" }) != "Which game are these controls for?") throw new Exception("Game controls were saved without a named or open game.");
+                if (GameNotes.Request("in general, I like cats") != null || GameNotes.Request("what are the controls for this game?") != null || GameNotes.Request("remember that I like chess") != null) throw new Exception("The game-controls route stole ordinary conversation.");
+                string facts = SelfKnow.Matching("What are your saved controls?");
+                string settings = SelfKnow.Matching("How do game controls work in Capri?");
+                if (facts == null || !facts.Contains("GAMES > Controls") || settings == null || !settings.Contains("GAMES > Controls")) throw new Exception("She did not know how to teach or edit game controls.");
+                checks.Add("PASS taught game controls route without a brain, save separately from learned notes, reach the next game brief, survive editor changes, read back, use the open game's title, and keep names inside their folder");
+            }
+            finally { GameNotes.Folder = folderWas; Hands.GameOpen = openWas; if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+        }
+
+        private static void SmokePausedExplore(List<string> checks)
+        {
+            Func<List<Tune>> mediaWas = Computer.ExploreMedia;
+            Action<int, int> mouseWas = Computer.SendMouse;
+            try
+            {
+                Sight page = new Sight { Window = new IntPtr(7), Program = "chrome", Title = "Quiet forests - YouTube", Bounds = new Rectangle(0, 0, 800, 600) };
+                Tune video = new Tune { App = "chrome.exe", Title = "Quiet forests", Video = true, Playing = false };
+                List<Tune> sessions = new List<Tune> { video };
+                Computer.ExploreMedia = delegate { return sessions; };
+                int wheels = 0;
+                Computer.SendMouse = delegate(int flags, int data) { if (flags != 0x0800 || data != -120) throw new Exception("Exploring a paused video did more than scroll."); wheels++; };
+                Point at = new Point(200, 200);
+                if (!Computer.ExploreAllowed(page, false) || !Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }) || wheels != 1) throw new Exception("A paused YouTube page could not be explored.");
+                video.Playing = true;
+                if (Computer.ExploreAllowed(page, false) || Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }) || wheels != 1) throw new Exception("Exploring did not stop when the browser resumed its video.");
+                video.Playing = false; video.Changing = true;
+                if (Computer.ExploreAllowed(page, false)) throw new Exception("A browser changing media was treated as paused.");
+                video.Changing = false;
+                sessions.Add(new Tune { App = "chrome", Title = "Another tab", Playing = true });
+                if (Computer.ExploreAllowed(page, false)) throw new Exception("Another playing tab in the same browser was ignored.");
+                sessions[1].App = "firefox";
+                if (!Computer.ExploreAllowed(page, false)) throw new Exception("A different browser's media blocked a paused page.");
+                video.Title = "A different video";
+                if (Computer.ExploreAllowed(page, false)) throw new Exception("A paused session from another page was used.");
+                video.Title = "Quiet forests";
+                if (Computer.ExploreAllowed(page, true) || Computer.ScrollAway(page, page.Bounds, page, at, new Point(201, 200), page.Window, false, delegate { return true; }) || Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return false; })) throw new Exception("Paused-page exploring ignored full screen or returning input.");
+                foreach (string title in new[] { "Quiet forests - YouTube - Sign in", "Quiet forests - YouTube - Checkout", "Roblox" })
+                    if (Computer.ExploreAllowed(new Sight { Window = page.Window, Program = "chrome", Title = title }, false)) throw new Exception("Paused-page exploring bypassed an existing window check.");
+                video.Title = "Minecraft gameplay";
+                Sight gameVideo = new Sight { Window = page.Window, Program = "chrome", Title = "Minecraft gameplay - YouTube" };
+                if (!Computer.ExploreAllowed(gameVideo, false)) throw new Exception("A paused game video was mistaken for a game window.");
+                video.Playing = true;
+                if (Computer.ExploreAllowed(gameVideo, false)) throw new Exception("A game video kept the paused-page exception after resuming.");
+                sessions.Clear();
+                if (Computer.ExploreAllowed(page, false)) throw new Exception("A video with no media session was assumed paused.");
+                Computer.ExploreMedia = delegate { throw new IOException("Media unavailable"); };
+                if (Computer.ExploreAllowed(page, false) || !Computer.ExploreAllowed(new Sight { Window = page.Window, Program = "chrome", Title = "Geography - Wikipedia" }, false)) throw new Exception("Missing media information broke ordinary exploring or opened a video.");
+                checks.Add("PASS away exploring scrolls a matching paused YouTube page, rechecks before each wheel, and keeps playing tabs, unknown media, returning input and existing window checks out of the paused-page path");
+            }
+            finally { Computer.ExploreMedia = mediaWas; Computer.SendMouse = mouseWas; }
+        }
+
+        private void SmokeMiniChoices(List<string> checks)
+        {
+            Func<ToolArguments, string> miniWas = Hands.Mini;
+            List<string> opened = new List<string>();
+            try
+            {
+                Hands.Mini = delegate(ToolArguments args) { opened.Add(args.Name + ":" + args.Action); return "Opened."; };
+                using (ContextMenuStrip games = mainframe.MiniChoices())
+                {
+                    if (games.Items.Count != 4) throw new Exception("Mainframe's mini-game menu lost a board.");
+                    foreach (ToolStripMenuItem game in games.Items) game.PerformClick();
+                }
+                if (string.Join(",", opened.ToArray()) != "chess:open,connect_four:open,tic_tac_toe:open,rock_paper_scissors:open") throw new Exception("A mini-game menu choice did not use its existing board tool.");
+                if (!mainframe.SuggestionHints || mainframe.Overlap() != null) throw new Exception("The new Mainframe controls lost a hover tip or overlapped another control.");
+                checks.Add("PASS Mainframe's mini-game menu opens all four existing boards through their tool, and the new controls have hover help and fit the existing rows");
+            }
+            finally { Hands.Mini = miniWas; }
         }
 
         private void SmokeReminders(System.Collections.Generic.List<string> checks)
@@ -27575,6 +27893,12 @@ namespace CapriDesktop
             Section(checks, "SmokeFrames", delegate { SmokeFrames(checks); });
             Section(checks, "SmokeGameKeys", delegate { SmokeGameKeys(checks); });
             Section(checks, "SmokeReminders", delegate { SmokeReminders(checks); });
+            Section(checks, "SmokeNoteEditor", delegate { SmokeNoteEditor(checks); });
+            Section(checks, "SmokePopTimes", delegate { SmokePopTimes(checks); });
+            Section(checks, "SmokeCalendarReminders", delegate { SmokeCalendarReminders(checks); });
+            Section(checks, "SmokeGameControls", delegate { SmokeGameControls(checks); });
+            Section(checks, "SmokePausedExplore", delegate { SmokePausedExplore(checks); });
+            Section(checks, "SmokeMiniChoices", delegate { SmokeMiniChoices(checks); });
             Section(checks, "SmokeLookout", delegate { SmokeLookout(checks); });
             Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
             Section(checks, "SmokeSelfKnow", delegate { SmokeSelfKnow(checks); });

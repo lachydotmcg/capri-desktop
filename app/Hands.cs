@@ -1026,7 +1026,11 @@ namespace CapriDesktop
               "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"The exact path the user gave\"},\"page\":{\"type\":\"integer\",\"description\":\"First PDF page, starting at 1; read up to four pages\"},\"offset\":{\"type\":\"integer\",\"description\":\"Text character offset, starting at 0; for PDFs, within the selected pages\"}},\"required\":[\"path\"]}", "read files you hand her, like PDFs, Word and Excel files and pictures", "read files they hand you" },
 #endif
             { "remind", "Save a reminder on their PC, list their reminders, or cancel a reminder. Times use their local clock. Give the reminder in their words; the PC works out when it is due.",
-              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to remind them about, or which reminder to cancel\"},\"when\":{\"type\":\"string\",\"description\":\"When, like in 20 minutes, at 5pm, at 17:30, tomorrow at 9, tonight or at half past five\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"cancel\"]}}}", "set reminders", "set reminders" },
+              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"What to remind them about, or which reminder to cancel\"},\"when\":{\"type\":\"string\",\"description\":\"Local time, like in 20 minutes, in 3 days, at 5pm, tomorrow at 9, on 2026-12-05 at 9am or on 5 December at noon. Use YYYY-MM-DD for dates in any language\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"cancel\"]}}}", "set reminders", "set reminders" },
+#if !CROSS
+            { "game_notes", "Keep controls or instructions the user teaches you for a game before you play it, or read them back. These are separate from what you learn while playing and you read them before every game job. Keep their actual controls in text.",
+              "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The game's window title, or leave out for the game open now\"},\"text\":{\"type\":\"string\",\"description\":\"Controls or instructions to keep in their words\"},\"action\":{\"type\":\"string\",\"description\":\"Save by default, or read the saved controls\",\"enum\":[\"save\",\"read\"]}}}", "keep game controls you teach her", "keep or read controls for a game" },
+#endif
             { "routine", "Save steps to run when they say a phrase, list their routines, forget one, or run one. Saving only keeps the steps for later. Keep the steps in their words, just like an ordinary request to Capri.",
               "{\"type\":\"object\",\"properties\":{\"phrase\":{\"type\":\"string\",\"description\":\"The phrase that starts the routine\"},\"steps\":{\"type\":\"string\",\"description\":\"Everything to do when they say the phrase\"},\"action\":{\"type\":\"string\",\"description\":\"What to do; save by default\",\"enum\":[\"save\",\"list\",\"forget\",\"run\"]}}}", "save routines that run when you say a phrase", "save routines for a phrase" },
             { "power", "Shut down, restart, sleep, lock or sign out of their PC, or cancel a shutdown. Do it as soon as they ask, without asking if they're sure. \"Go to sleep\" or \"take a nap\" said to you is about you, not their PC: use nap.",
@@ -1506,6 +1510,7 @@ namespace CapriDesktop
                 if (tool == "find_file") return Finder.Do(args, null);
                 if (tool == "read_file") return ReadFile(args.Path, args.Page, args.Offset);
                 if (tool == "watch_for") return WatchFor(args);
+                if (tool == "game_notes") return Valid(tool, args) ? GameNotes.Do(args) : "What game controls should I keep?";
 #endif
                 if (tool == "remind") return Remind(args);
                 if (tool == "routine") return Routine(args);
@@ -1713,7 +1718,7 @@ namespace CapriDesktop
         private static readonly string[] MacPresses = { "screenshot", "task_manager" }, LinuxPresses = { "screenshot", "show_desktop", "task_manager" };
         // Her moves that only Windows has so far.
         private static readonly string[] WindowsMoves = { "sit_on", "lie_down", "sit_up", "walk_around", "wander", "ride_cursor", "hop_off" };
-        private static readonly string[] WindowsTools = { "find_file", "website_nickname", "read_file", "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "speech", "job_control", "quit", "updates", "mini_player" };
+        private static readonly string[] WindowsTools = { "find_file", "website_nickname", "read_file", "draw", "clone", "hologram", "desktop_icons", "watch_along", "gaming_mode", "clip", "mini_game", "watch_for", "listen", "fake_crash", "voice_chat", "speech", "job_control", "quit", "updates", "mini_player", "game_notes" };
         // Her window tool's arranging, which only Windows has so far.
         private static readonly string[] WindowsArranging = { "maximize", "restore", "snap_left", "snap_right", "snap_top", "snap_bottom", "move_to_screen", "move", "resize", "pin_on_top", "unpin" };
 #endif
@@ -1806,6 +1811,7 @@ namespace CapriDesktop
             { "gaming_mode", "Gaming Mode", "Gaming Mode is only on Windows for now, choom." },
             { "clip", "game clips", "Game clips are only on Windows for now, choom." },
             { "mini_game", "mini games", "My mini games are only on Windows for now, choom." },
+            { "game_notes", "saved game controls", "Saved game controls are only on Windows for now, choom." },
             { "watch_for", "watching their screen for something", "Watching your screen for something is only on Windows for now, choom." },
             { "listen", "listening to what's playing", "Listening to what's playing is only on Windows for now, choom." }
         };
@@ -2158,6 +2164,7 @@ namespace CapriDesktop
             if (HologramOn.IsMatch(Asked(said)) || HologramOff.IsMatch(Asked(said))) return true;
 #if !CROSS
             if (Ink.Request(Asked(said)) != null) return true;
+            if (GameNotes.Request(Asked(said)) != null) return true;
             // "Put on the song they want" leaves the call a choice, which is call_errand's job.
             if (CallSession.Blank(said) || Regex.IsMatch(said ?? "", @"\b(?:cancel|drop|forget|stop)\b.{0,30}\berrand\b", RegexOptions.IgnoreCase)) return true;
             if (Files.PathIn(said) != null) return true;
@@ -2176,7 +2183,7 @@ namespace CapriDesktop
 
         // Her own abilities and her checks, which her mouse can't do for her: a pick of one stays picked whatever else they said
         // (Lachy, 3 Nov: phrase matches never throw away what her brain chose).
-        private static readonly string[] Herself = { "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
+        private static readonly string[] Herself = { "capri_settings", "voice_chat", "speech", "job_control", "quit", "mainframe", "updates", "mini_player", "fake_crash", "clone", "hologram", "desktop_icons", "animate", "nap", "move_yourself", "gaming_mode", "clip", "watch_along", "stream", "mini_game", "game_notes", "app_volume", "pc_status", "internet_status", "power", "list_windows", "check_app" };
 
         // Fixes the calls a brain picked for what they said. True when it needs her mouse and keyboard and the kit doesn't have
         // them: the calls are cleared then, so she says she can't instead of doing something else.
@@ -2200,7 +2207,7 @@ namespace CapriDesktop
                 calls.Add(new KeyValuePair<string, ToolArguments>("use_computer", new ToolArguments { Task = said }));
                 return false;
             }
-            if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine")) return false;
+            if (calls.Exists(planned => planned.Key == "remind" || planned.Key == "routine" || planned.Key == "game_notes")) return false;
 #if !CROSS
             if (calls.Exists(watched => watched.Key == "watch_for")) return false;
             if (Ink.ScreenRequest(said))
@@ -3102,6 +3109,8 @@ namespace CapriDesktop
             if (Moon.IsMatch(said ?? "")) { tool = "play_music"; args.Song = MoonSong; args.Kind = "song"; return true; }
             string text = Asked(said);
 #if !CROSS
+            ToolArguments controls = GameNotes.Request(text);
+            if (controls != null) { tool = "game_notes"; args = controls; return true; }
             ToolArguments drawing = Ink.Request(text);
             if (drawing != null) { tool = drawing.Task == null ? "draw" : "use_computer"; args = drawing; if (drawing.Task != null) args.Task = said; return true; }
             string together = CapriDesktop.WatchAlong.Request(text);
@@ -3625,6 +3634,7 @@ namespace CapriDesktop
             if (tool == "website_nickname") return args.Action == "list" || (Named(args.Name) && (args.Action == "forget" || args.Action == "save"));
             if (tool == "read_file") return Named(args.Path) && (!args.Page.HasValue || args.Page.Value >= 1) && (!args.Offset.HasValue || args.Offset.Value >= 0);
             if (tool == "watch_for") return (string.IsNullOrEmpty(args.Often) || args.Often == "once" || args.Often == "every_time") && (args.Action == "list" || args.Action == "stop" || ((string.IsNullOrEmpty(args.Action) || args.Action == "watch") && Named(args.Text)));
+            if (tool == "game_notes") return args != null && (args.Action == "read" || (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text));
 #endif
             if (tool == "remind") return args.Action == "list" || (args.Action == "cancel" ? Named(args.Text) : (string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Text) && Named(args.When));
             if (tool == "routine") return args.Action == "list" || (Named(args.Phrase) && (args.Action == "forget" || args.Action == "run" || ((string.IsNullOrEmpty(args.Action) || args.Action == "save") && Named(args.Steps))));
