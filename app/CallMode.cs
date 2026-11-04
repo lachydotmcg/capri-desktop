@@ -61,6 +61,13 @@ namespace CapriDesktop
         internal bool CallModeOn { get { return callSession.Enabled; } }
         private readonly CallEars callEars = new CallEars();
         private CallPanel callPanel;
+        private CallPill callPill;
+        private System.Windows.Forms.Timer callEndTicks;
+        private bool callSmall, callPillPlaced, callDismissed, callWindowsTest;
+        private int callAnswers, callCounted = -1;
+        private string callWho, callSaid;
+        private DateTime callSaidAt, callEndedAt;
+        private TimeSpan callLength;
         private DateTime callSince = DateTime.UtcNow;
         // Your mic's loudness as her ears last measured it, for the call panel.
         private double callYou;
@@ -76,9 +83,10 @@ namespace CapriDesktop
             if (!CallModeOn && AfterLine(ToggleCallMode)) return;
             bool wasChatting = chatting;
             bool on = !CallModeOn;
+            if (on) ResetCall(); else EndCallView();
             callSession.Change(on);
             preferences.CallMode = on;
-            if (on) { EndWatchAlong(); PcEars.Stop(); callSince = DateTime.UtcNow; }
+            if (on) { EndWatchAlong(); PcEars.Stop(); }
             else { voice.Stop(); Hush(); }
             if (asking == callAnswer) { asking++; CloseTalk(); }
             callAnswer = -1;
@@ -107,39 +115,180 @@ namespace CapriDesktop
             mainframe.VoiceNote(preferences.CallDiscordOff ? "On calls she hears only your mic now." : "On calls she hears Discord too.", false);
         }
 
-        // The call panel shows while call mode is on, top right of her screen the first time, and stays where it's dragged.
         private void ShowCallPanel()
         {
-            if (testing) return;
-            if (!CallModeOn) { if (callPanel != null) callPanel.Hide(); return; }
-            if (callPanel == null)
-            {
-                callPanel = new CallPanel(Takeover.Face, CallViewNow);
-                callPanel.MicPressed += delegate { if (!chatting) ToggleChat(); else ToggleMic(); };
-                callPanel.DiscordPressed += ToggleCallDiscord;
-                callPanel.EndPressed += delegate { if (CallModeOn) ToggleCallMode(); };
-                Rectangle work = Screen.FromControl(this).WorkingArea;
-                callPanel.Location = new Point(work.Right - callPanel.Width - 40, work.Top + 80);
-            }
-            // It stays over other windows the way she does, so clicking into Discord or a game doesn't bury it (Lachy, 3 Nov: "it
-            // should be an overlay its a bit annoying that it keeps dissapeairng each time i click").
+            if (testing && !callWindowsTest) return;
+            if (!CallModeOn && (callDismissed || callEndedAt == DateTime.MinValue || (DateTime.UtcNow - callEndedAt).TotalSeconds >= 6)) { HideCallWindows(); return; }
+            if (callPanel == null) MakeCallWindows(CallViewNow);
             callPanel.TopMost = preferences.OnTop;
-            if (callPanel.WindowState == FormWindowState.Minimized) callPanel.WindowState = FormWindowState.Normal;
-            if (!callPanel.Visible) callPanel.Show();
+            callPill.Above = preferences.OnTop;
+            callPill.TopMost = preferences.OnTop;
+            CallView next = CallViewNow();
+            callPanel.Take(next);
+            callPill.Take(next);
+            ShowCallWindow();
+        }
+
+        private void MakeCallWindows(Func<CallView> read)
+        {
+            callPanel = new CallPanel(Takeover.Face, read);
+            callPill = new CallPill(Takeover.Face, read, callPanel.UnitScale);
+            callPanel.MicPressed += CallMic;
+            callPill.MicPressed += CallMic;
+            callPanel.DiscordPressed += ToggleCallDiscord;
+            callPanel.CaptionsPressed += ToggleCallCaptions;
+            callPanel.EndPressed += CallEnd;
+            callPill.EndPressed += CallEnd;
+            callPanel.AgainPressed += CallAgain;
+            callPill.AgainPressed += CallAgain;
+            callPanel.MinimizePressed += MinimizeCallPanel;
+            callPill.ExpandPressed += ExpandCallPanel;
+            Rectangle work = Screen.FromControl(this).WorkingArea;
+            callPanel.Location = new Point(work.Right - callPanel.Width - 40, work.Top + 80);
+        }
+
+        private void ShowCallWindow()
+        {
+            if (callSmall)
+            {
+                if (!callPillPlaced)
+                {
+                    callPill.Location = new Point(callPanel.Right - callPill.Width, callPanel.Top);
+                    callPillPlaced = true;
+                }
+                callPanel.Hide();
+                callPill.Open();
+            }
+            else
+            {
+                callPill.Hide();
+                callPanel.Open();
+            }
+        }
+
+        private void MinimizeCallPanel()
+        {
+            if (callPanel.Ended) { callDismissed = true; HideCallWindows(); return; }
+            callSmall = true;
+            ShowCallWindow();
+        }
+
+        private void ExpandCallPanel() { callSmall = false; ShowCallWindow(); }
+        private void CallEnd() { if (CallModeOn) ToggleCallMode(); }
+        private void CallAgain() { if (!CallModeOn) ToggleCallMode(); }
+        private void CallMic()
+        {
+            if (!CallModeOn) return;
+            if (!chatting) ToggleChat();
+            else ToggleMic();
+        }
+
+        private void ToggleCallCaptions()
+        {
+            preferences.CallCaptionsOff = !preferences.CallCaptionsOff;
+            SavePreferences();
+            if (callPanel != null) callPanel.Take(CallViewNow());
+            if (callPill != null) callPill.Take(CallViewNow());
+        }
+
+        private void HideCallWindows()
+        {
+            if (callPanel != null) callPanel.Hide();
+            if (callPill != null) callPill.Hide();
+        }
+
+        private void ResetCall()
+        {
+            if (callEndTicks != null) callEndTicks.Stop();
+            callSince = DateTime.UtcNow;
+            callEndedAt = DateTime.MinValue;
+            callLength = TimeSpan.Zero;
+            callAnswers = 0;
+            callCounted = -1;
+            callWho = callSaid = null;
+            callSaidAt = DateTime.MinValue;
+            callDismissed = false;
+            callYou = 0;
+        }
+
+        private void EndCallView()
+        {
+            callEndedAt = DateTime.UtcNow;
+            callLength = callEndedAt - callSince;
+            if (callLength < TimeSpan.Zero) callLength = TimeSpan.Zero;
+            callDismissed = false;
+            if (testing && !callWindowsTest) return;
+            if (callEndTicks == null)
+            {
+                callEndTicks = new System.Windows.Forms.Timer { Interval = 6000 };
+                callEndTicks.Tick += delegate { FinishCallCard(); };
+            }
+            callEndTicks.Stop();
+            callEndTicks.Start();
+        }
+
+        private void FinishCallCard() { if (callEndTicks != null) callEndTicks.Stop(); if (!CallModeOn) { callDismissed = true; HideCallWindows(); } }
+
+        private void CloseCallWindows()
+        {
+            if (callEndTicks != null) { callEndTicks.Dispose(); callEndTicks = null; }
+            if (callPanel != null) { callPanel.Dispose(); callPanel = null; }
+            if (callPill != null) { callPill.Dispose(); callPill = null; }
+        }
+
+        private void CallSaid(string who, string words)
+        {
+            if (!CallModeOn || string.IsNullOrWhiteSpace(words)) return;
+            callWho = who;
+            callSaid = words.Trim();
+            callSaidAt = DateTime.UtcNow;
+        }
+
+        private void CallSpoke(int ticket, string words, TalkState state)
+        {
+            if (!CallModeOn || ticket != asking || ticket != callAnswer || ticket == callCounted || state != TalkState.Talking) return;
+            string seen = Brain.Visible(words ?? "");
+            if (string.IsNullOrWhiteSpace(seen)) return;
+            callCounted = ticket;
+            callAnswers++;
+            CallSaid("CAPRI", seen);
+        }
+
+        private double CallHerLevel(double now)
+        {
+            if (!StillSaying || speech == null) return 0;
+            int step = Math.Max(0, (int)((now - speechStart) * MouthRate));
+            if (mouths != null) return step < mouths.Length ? CallInk.Unit(mouths[step] / 4.0) : 0;
+            int letter = (int)(step / MouthRate * LettersPerSecond);
+            return letter < speech.Length ? CallInk.Unit(MouthFor(speech[letter], step) / 4.0) : 0;
         }
 
         private CallView CallViewNow()
         {
+            bool on = CallModeOn;
+            MicMix mix = MicMix.Current;
+            bool inMic = on && mix != null && mix.Mixing;
             return new CallView
             {
                 Listening = chatting && local,
                 Muted = ears.Muted,
                 Discord = !preferences.CallDiscordOff,
                 DiscordNote = preferences.CallDiscordOff ? null : CallDiscordNote,
-                Talking = StillSaying,
-                You = callYou,
-                Call = callEars.Level,
-                Length = DateTime.UtcNow - callSince
+                Talking = on && (talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil),
+                You = on ? callYou : 0,
+                Call = on ? callEars.Level : 0,
+                Her = on ? CallHerLevel(clock.Elapsed.TotalSeconds) : 0,
+                InMic = inMic,
+                Mic = inMic ? mix.Output : 0,
+                Thinking = on && callAnswer == asking && talkState == TalkState.Thinking,
+                Who = callWho,
+                Said = callSaid,
+                SaidAt = callSaidAt,
+                Answers = callAnswers,
+                Captions = !preferences.CallCaptionsOff,
+                Motion = preferences.Motion,
+                Ended = !on && callEndedAt != DateTime.MinValue && !callDismissed,
+                Length = on ? DateTime.UtcNow - callSince : callLength
             };
         }
 
@@ -208,6 +357,7 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (!CallModeOn || text.Length == 0 || ears.Muted && !pushedLine) return;
+            CallSaid(fromCall ? "DISCORD" : "YOU", text);
             int version = callSession.Generation;
             LogVoiceInterruption("explicit input", audioTurn, false);
             CancelAnswerAudio();
@@ -240,6 +390,175 @@ namespace CapriDesktop
                     Answer(ticket, string.IsNullOrWhiteSpace(said) ? "My brain sent an empty reply. Try again." : said, state, quiet);
                 });
             });
+        }
+
+        private void SmokeCallDisplay(List<string> checks)
+        {
+            CallPanel panelWas = callPanel;
+            CallPill pillWas = callPill;
+            System.Windows.Forms.Timer endTicksWas = callEndTicks;
+            bool panelUp = panelWas != null && panelWas.Visible, pillUp = pillWas != null && pillWas.Visible;
+            bool onWas = CallModeOn, savedOn = preferences.CallMode, smallWas = callSmall, placedWas = callPillPlaced, dismissedWas = callDismissed, testWas = callWindowsTest;
+            bool captionsWas = preferences.CallCaptionsOff, discordWas = preferences.CallDiscordOff, motionWas = preferences.Motion, topWas = preferences.OnTop;
+            bool chatWas = chatting, localWas = local, mutedWas = ears.Muted, changingWas = changingVoice;
+            int askingWas = asking, answerWas = callAnswer, countedWas = callCounted, answersWas = callAnswers, hdWas = hdSpeaking;
+            string whoWas = callWho, saidWas = callSaid, speechWas = speech, replyWas = reply;
+            DateTime sinceWas = callSince, saidAtWas = callSaidAt, endedAtWas = callEndedAt;
+            TimeSpan lengthWas = callLength;
+            double youWas = callYou, speechAtWas = speechStart, untilWas = voiceUntil;
+            int[] mouthsWas = mouths;
+            TalkState stateWas = talkState;
+            Job jobWas = job;
+            MicMix mixWas = MicMix.Current;
+            HideCallWindows();
+            callPanel = null; callPill = null; callEndTicks = null;
+            try
+            {
+                callWindowsTest = true;
+                callSmall = callPillPlaced = false;
+                chatting = false; local = true; ears.Muted = false;
+                speech = reply = null; mouths = null; voiceUntil = 0; hdSpeaking = -1; talkState = TalkState.Off;
+                changingVoice = true;
+                job = null;
+                preferences.Motion = true;
+                preferences.OnTop = false;
+                preferences.CallCaptionsOff = false;
+                ResetCall();
+                callSession.Change(true);
+                preferences.CallMode = true;
+                callAnswer = ++asking;
+                DateTime before = DateTime.UtcNow;
+                CallSaid("YOU", "  Can you hear me?  ");
+                CallView view = CallViewNow();
+                if (view.Who != "YOU" || view.Said != "Can you hear me?" || view.SaidAt < before || !view.Captions) throw new Exception("The user's call caption was not kept.");
+                CallSaid("DISCORD", "We can hear you.");
+                view = CallViewNow();
+                if (view.Who != "DISCORD" || view.Said != "We can hear you.") throw new Exception("Discord's call caption was not kept.");
+                CallSpoke(asking - 1, "Old answer.", TalkState.Talking);
+                CallSpoke(asking, "An error.", TalkState.Dormant);
+                if (callAnswers != 0) throw new Exception("An old call answer or an error was counted.");
+                CallSpoke(asking, "[hurt] [Sighing] I heard you.", TalkState.Talking);
+                CallSpoke(asking, "Repeated playback.", TalkState.Talking);
+                view = CallViewNow();
+                if (view.Answers != 1 || view.Who != "CAPRI" || view.Said != Brain.Visible("[hurt] [Sighing] I heard you.") || view.Said.Contains("[hurt]") || view.Said.Contains("[Sighing]")) throw new Exception("A call answer was counted twice or its cues reached captions.");
+                for (int i = 0; i < 5; i++) { callAnswer = ++asking; CallSpoke(asking, "Another answer.", TalkState.Talking); }
+                if (CallViewNow().Answers != 6) throw new Exception("The call did not count six separate answers.");
+                talkState = TalkState.Thinking;
+                hdSpeaking = asking;
+                view = CallViewNow();
+                if (!view.Thinking || view.Talking) throw new Exception("Voice generation was shown as speaking instead of thinking.");
+                hdSpeaking = -1;
+                talkState = TalkState.Talking;
+                speech = "O";
+                speechStart = clock.Elapsed.TotalSeconds;
+                mouths = new[] { 0, 4 };
+                if (CallHerLevel(speechStart) != 0 || CallHerLevel(speechStart + 1.1 / MouthRate) != 1 || CallHerLevel(speechStart + 3 / MouthRate) != 0) throw new Exception("Her call level did not follow the mouth envelope.");
+                mouths = null;
+                if (CallHerLevel(speechStart) != 1) throw new Exception("Her call level did not use the letter mouth fallback.");
+                speech = "m";
+                if (CallHerLevel(speechStart) != 0) throw new Exception("A closed mouth lit her call ring.");
+                speech = null; talkState = TalkState.Off;
+                if (CallHerLevel(speechStart) != 0) throw new Exception("Her call level stayed up after speaking.");
+                checks.Add("PASS call view: captions keep each speaker and time, answer cues stay hidden, each begun answer counts once, thinking stays distinct, and her level follows mouth audio or letters");
+
+                double[] now = { 0 };
+                StandInDevices pc = MixPc(now, 48000, 48000);
+                pc.Level = 0.2;
+                using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                {
+                    mix.Step();
+                    MicMix.Current = mix;
+                    RunMix(mix, pc, now, 0.2, null);
+                    view = CallViewNow();
+                    if (!view.InMic || view.Mic > 0.001) throw new Exception("The call cable meter lit up for your own mic: " + view.Mic + ".");
+                    MicMix.Hear(mix, Hum(48000, 440, 0.3, 1), 48000);
+                    RunMix(mix, pc, now, 0.2, null);
+                    view = CallViewNow();
+                    if (!view.InMic || view.Mic < 0.05) throw new Exception("The call cable meter missed her voice in the cable: " + view.Mic + ".");
+                    if (mix.LastOutput(unchecked(Environment.TickCount + 301)) != 0) throw new Exception("The call cable meter kept stale audio.");
+                    mix.Stop();
+                    view = CallViewNow();
+                    if (mix.Output != 0 || view.InMic || view.Mic != 0) throw new Exception("The call cable meter stayed on after the mix stopped.");
+                }
+                MicMix.Current = null;
+                checks.Add("PASS call cable meter: your own mic leaves it at zero, her voice in the stand-in cable lights it, it expires after 300 ms and clears when the mix stops");
+
+                MakeCallWindows(CallViewNow);
+                ShowCallPanel();
+                Point panelAt = callPanel.Location;
+                if (!callPanel.Visible || callPill.Visible || callPanel.ShowInTaskbar || callPill.ShowInTaskbar) throw new Exception("The first call did not open only its panel.");
+                callPanel.PressButton(5);
+                if (callPanel.Visible || !callPill.Visible || callPill.Right != callPanel.Right || callPill.Top != callPanel.Top) throw new Exception("Minimize did not align and show the call pill.");
+                Point pillAt = new Point(callPill.Left + 17, callPill.Top + 11);
+                callPill.Location = pillAt;
+                callPill.Press(7);
+                if (!callPanel.Visible || callPill.Visible || callPanel.Location != panelAt) throw new Exception("Expand did not restore the call panel in place.");
+                callPanel.PressButton(3);
+                if (!preferences.CallCaptionsOff || !LoadPreferences().CallCaptionsOff || callPanel.Height != (int)Math.Round(334 * callPanel.UnitScale)) throw new Exception("CC did not save captions off or shorten the panel.");
+                CallSaid("YOU", "A line while captions are off.");
+                if (CallViewNow().Said != "A line while captions are off." || CallViewNow().Captions) throw new Exception("Turning captions off lost the call's latest line.");
+                callPanel.PressButton(3);
+                if (preferences.CallCaptionsOff || LoadPreferences().CallCaptionsOff || callPanel.Height != (int)Math.Round(392 * callPanel.UnitScale)) throw new Exception("CC did not save captions on or restore the strip.");
+                using (MemoryStream input = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}")))
+                    if (((Preferences)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Preferences)).ReadObject(input)).CallCaptionsOff || new Preferences().CallCaptionsOff) throw new Exception("Old or new settings started with captions off.");
+                preferences.Motion = false;
+                callPanel.Take(CallViewNow());
+                if (callPanel.Animating) throw new Exception("Motion off left the call panel animating.");
+                callPanel.PressButton(5);
+                if (callPill.Location != pillAt || callPill.Animating || callPanel.Animating) throw new Exception("The call pill forgot its place or Motion off.");
+                preferences.Motion = true;
+                callPill.Take(CallViewNow());
+                if (!callPill.Animating || callPanel.Animating) throw new Exception("Only the visible call window should animate.");
+                preferences.OnTop = true;
+                ShowCallPanel();
+                if (!callPill.TopMost || !callPanel.TopMost) throw new Exception("The call windows did not follow Always on top.");
+                preferences.OnTop = false;
+                ShowCallPanel();
+                if (callPill.TopMost || callPanel.TopMost) throw new Exception("The call windows stayed on top after it was switched off.");
+                checks.Add("PASS call windows: minimize and expand drive the real handlers, preserve both places, save and load CC including old settings, follow Always on top, and stop hidden or disabled animation");
+
+                callSince = DateTime.UtcNow.AddSeconds(-754);
+                callPill.Press(4);
+                view = CallViewNow();
+                if (CallModeOn || !view.Ended || !callPill.Visible || !callPill.Ended || callPanel.Visible || view.Answers != 6 || Math.Abs(view.Length.TotalSeconds - 754) > 2
+                    || callEndTicks == null || !callEndTicks.Enabled || callEndTicks.Interval != 6000 || callPill.Animating) throw new Exception("The pill did not hold its ended card for six seconds.");
+                TimeSpan endedLength = view.Length;
+                callSince = DateTime.UtcNow.AddHours(-2);
+                CallSpoke(asking, "Too late.", TalkState.Talking);
+                view = CallViewNow();
+                if (view.Length != endedLength || view.Answers != 6) throw new Exception("An ended call's length or answers changed.");
+                callPill.Press(6);
+                if (!CallModeOn || callAnswers != 0 || callSaid != null || callPill.Ended || !callPill.Visible || callPill.Location != pillAt || callEndTicks.Enabled) throw new Exception("Call again did not reset and restore the last call window.");
+                ToggleCallMode();
+                if (!callPill.Ended || !callPill.Visible) throw new Exception("Ending from another control skipped the pill ended card.");
+                FinishCallCard();
+                if (callPanel.Visible || callPill.Visible) throw new Exception("The ended card timeout did not hide both call windows.");
+                ToggleCallMode();
+                callPill.Press(7);
+                callPanel.PressButton(4);
+                if (!callPanel.Ended || !callPanel.Visible || callPill.Visible) throw new Exception("The panel hang-up skipped its ended card.");
+                callPanel.PressButton(5);
+                ShowCallPanel();
+                if (callPanel.Visible || callPill.Visible) throw new Exception("Minimize did not dismiss the ended call.");
+                checks.Add("PASS call endings: either hang-up and another control keep the last window's ended card for six seconds, freeze length and answers, dismiss on minimize or timeout, and Call again resets the call in its last window");
+            }
+            finally
+            {
+                CloseCallWindows();
+                callPanel = panelWas; callPill = pillWas; callEndTicks = endTicksWas;
+                callWindowsTest = testWas; callSmall = smallWas; callPillPlaced = placedWas; callDismissed = dismissedWas;
+                callSession.Change(onWas); preferences.CallMode = savedOn;
+                preferences.CallCaptionsOff = captionsWas; preferences.CallDiscordOff = discordWas; preferences.Motion = motionWas; preferences.OnTop = topWas;
+                chatting = chatWas; local = localWas; ears.Muted = mutedWas; changingVoice = changingWas;
+                asking = askingWas; callAnswer = answerWas; callCounted = countedWas; callAnswers = answersWas; hdSpeaking = hdWas;
+                callWho = whoWas; callSaid = saidWas; callSince = sinceWas; callSaidAt = saidAtWas; callEndedAt = endedAtWas; callLength = lengthWas;
+                callYou = youWas; speech = speechWas; speechStart = speechAtWas; mouths = mouthsWas; voiceUntil = untilWas; reply = replyWas; talkState = stateWas; job = jobWas;
+                MicMix.Current = mixWas;
+                typer.CallMode = onWas;
+                SavePreferences();
+                if (panelUp && panelWas != null) panelWas.Show();
+                if (pillUp && pillWas != null) pillWas.Open();
+            }
         }
 
         internal static void SmokeCallMode(List<string> checks, string folder)

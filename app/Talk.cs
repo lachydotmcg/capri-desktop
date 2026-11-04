@@ -629,7 +629,7 @@ namespace CapriDesktop
             Native.DrawLayered(Handle, image, at);
             Bitmap old = shown;
             shown = image;
-            if (old != null) old.Dispose();
+            if (old != null && old != image) old.Dispose();
         }
 
         protected override void WndProc(ref Message message)

@@ -258,7 +258,7 @@ namespace CapriDesktop
             if (hintCard != null) hintCard.Dispose();
         }
 
-        private sealed class HintCard : Form
+        internal sealed class HintCard : Form
         {
             private const TextFormatFlags Wrap = TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.TextBoxControl;
             private Font titleFont, bodyFont;
@@ -386,6 +386,30 @@ namespace CapriDesktop
                         if (area.Contains(Bounds) && !Bounds.IntersectsWith(control)) return true;
                     }
                 return false;
+            }
+
+            internal bool Place(string name, float unit, Rectangle control, Rectangle area)
+            {
+                scale = unit;
+                if (titleFont != null) titleFont.Dispose();
+                if (bodyFont != null) bodyFont.Dispose();
+                titleFont = Neon.Type(10f * 96f / 72f * unit, true, GraphicsUnit.Pixel);
+                bodyFont = Ink(unit);
+                title = name;
+                Body = "";
+                int pad = (int)Math.Ceiling(12 * unit), gap = (int)Math.Ceiling(8 * unit);
+                Size words = TextRenderer.MeasureText(name, titleFont, Size.Empty, Wrap);
+                titleBox = new Rectangle(pad, pad, words.Width, words.Height);
+                bodyBox = Rectangle.Empty;
+                ClientSize = new Size(words.Width + pad * 2, words.Height + pad * 2);
+                int x = Math.Max(area.Left, Math.Min(control.Left, area.Right - Width));
+                int y = control.Bottom + gap;
+                if (y + Height > area.Bottom) y = control.Top - gap - Height;
+                Location = new Point(x, Math.Max(area.Top, y));
+                AccessibleName = title;
+                AccessibleDescription = title;
+                Neon.Clip(this, 9 * unit, 3 * unit);
+                return area.Contains(Bounds) && !Bounds.IntersectsWith(control);
             }
 
             protected override void WndProc(ref Message message)
