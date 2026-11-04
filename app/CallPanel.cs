@@ -53,7 +53,7 @@ namespace CapriDesktop
         }
 
         internal bool Lit(int index) { return index == 0 ? You : index == 1 ? Her : Discord; }
-        internal double Level(int index) { return !Lit(index) ? 0 : CallInk.Unit(index == 0 ? View.You : index == 1 ? View.Her : View.Call); }
+        internal double Level(int index) { return !Lit(index) ? 0 : index == 1 ? CallInk.Unit(View.Her) : CallInk.Loud(index == 0 ? View.You : View.Call); }
         internal float Ripple(int index) { return (float)((CallInk.Time - ripple[index]) % 1.2 / 1.2); }
 
         internal string State(bool pill)
@@ -62,7 +62,7 @@ namespace CapriDesktop
             if (v.Ended) return "ended|" + CallPanel.Clock(v.Length) + "|" + v.Answers;
             string state = string.Join("|", new object[] { You, Her, Discord, v.Listening, v.Muted, v.Discord, v.DiscordNote != null,
                 v.Motion, CallPanel.Clock(v.Length), Step(Level(0)), Step(Level(1)), Step(Level(2)) });
-            if (!pill) state += "|" + v.InMic + "|" + v.Thinking + "|" + v.Captions + "|" + v.DiscordNote + "|" + (v.InMic ? Step(v.Mic) : 0);
+            if (!pill) state += "|" + v.InMic + "|" + v.Thinking + "|" + v.Captions + "|" + v.DiscordNote + "|" + (v.InMic ? Step(CallInk.Loud(v.Mic)) : 0);
             if (v.Captions && (!pill || v.Recent(DateTime.UtcNow)))
                 state += "|" + v.Who + "|" + v.Said + "|" + v.SaidAt.Ticks + "|" + (pill ? 100 : (int)(CallInk.Fade(v, DateTime.UtcNow) * 100));
             return state;
@@ -107,6 +107,9 @@ namespace CapriDesktop
 
         internal static double Time { get { return (double)System.Diagnostics.Stopwatch.GetTimestamp() / System.Diagnostics.Stopwatch.Frequency; } }
         internal static double Unit(double value) { return double.IsNaN(value) ? 0 : Math.Max(0, Math.Min(1, value)); }
+        // A voice's loudness on a meter's scale, by decibels like a real one: -48 dB is empty and -12 dB is full, so ordinary
+        // talking, around -20 dB, fills about three quarters (Lachy, 4 Nov: her volume looked tiny on the call panel).
+        internal static double Loud(double rms) { return double.IsNaN(rms) || rms <= 0 ? 0 : Unit((20 * Math.Log10(rms) + 48) / 36); }
         internal static float RingWidth(double level) { return 2 + 5 * (float)Unit(level); }
         internal static int Dot(bool motion, double time) { return motion ? (int)Math.Round(255 * (0.675 + 0.325 * Math.Cos(time * Math.PI * 2 / 1.4))) : 255; }
         internal static double Fade(CallView view, DateTime now)
@@ -912,7 +915,7 @@ namespace CapriDesktop
             CallInk.Text(graphics, view.InMic ? "IN YOUR MIC" : "NOT IN YOUR MIC", fonts.Tiny, TileWords(index, 175, 14), view.InMic ? Neon.Cyan : Neon.Faint, true);
             RectangleF meter = TileWords(index, 192, 3);
             CallInk.Round(graphics, meter, 1.5f * s, Neon.Field, Neon.WellEdge, 0);
-            float width = meter.Width * (float)(view.InMic ? CallInk.Unit(view.Mic) : 0);
+            float width = meter.Width * (float)(view.InMic ? CallInk.Loud(view.Mic) : 0);
             if (width > 0) CallInk.Round(graphics, new RectangleF(meter.Left, meter.Top, width, meter.Height), Math.Min(width, meter.Height) / 2, Neon.Cyan, Neon.Cyan, 0);
         }
 
@@ -1088,6 +1091,7 @@ namespace CapriDesktop
                     }
             }
             if (CallInk.RingWidth(0) >= CallInk.RingWidth(1)) throw new Exception("Call rings do not grow with loudness.");
+            if (CallInk.Loud(0) != 0 || CallInk.Loud(1) != 1 || CallInk.Loud(0.1) < 0.7 || CallInk.Loud(0.1) > 0.85 || CallInk.Loud(0.01) < 0.15 || CallInk.Loud(0.01) > 0.3) throw new Exception("Call levels are not on a decibel scale: " + CallInk.Loud(0.1) + ", " + CallInk.Loud(0.01) + ".");
             if (EndLine(new CallView { Length = TimeSpan.FromSeconds(754), Answers = 1 }) != "12:34 · she answered 1 time"
                 || EndLine(new CallView { Length = TimeSpan.FromSeconds(754), Answers = 6 }) != "12:34 · she answered 6 times"
                 || Clock(TimeSpan.FromSeconds(3725)) != "1:02:05" || Clock(TimeSpan.FromSeconds(-1)) != "00:00") throw new Exception("The ended call wording or clock changed.");
