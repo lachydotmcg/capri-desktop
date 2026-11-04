@@ -1234,6 +1234,26 @@ namespace CapriDesktop
             }
         }
 
+        internal static void ReloadAll()
+        {
+            Clip[] clips;
+            lock (all) clips = all.ToArray();
+            foreach (Clip clip in clips) clip.Reload();
+        }
+
+        private void Reload()
+        {
+            if (source != null) return;
+            lock (gate)
+            {
+                Bitmap wasStrip = strip, wasFlipped = flipped;
+                strip = lazy ? null : Companion.LoadArt(Resource(false));
+                flipped = null;
+                if (wasStrip != null) wasStrip.Dispose();
+                if (wasFlipped != null) wasFlipped.Dispose();
+            }
+        }
+
         // How much of her art is in memory, in bytes, for her smoke test.
         internal static long Loaded()
         {
@@ -1626,6 +1646,7 @@ namespace CapriDesktop
         private bool veiled;
         private double veilUntil = -1;
         private bool arrivalDue;
+        internal Mods ModList { get; private set; }
         private readonly Mainframe mainframe;
         private readonly Engine engine;
         private Machine machine;
@@ -2103,6 +2124,11 @@ namespace CapriDesktop
             tray.DoubleClick += delegate { RestoreAtCursor(); };
             tray.BalloonTipClicked += delegate { BalloonClicked(); };
             tray.Visible = !testing;
+            ModList = new Mods(data);
+            ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
+            ModList.SkinChanged = Reskinned;
+            if (SkinFolder != null || ArtColors.Active) Clip.ReloadAll();
+            Shown += delegate { ModList.StartCode(Post); };
             mainframe = new Mainframe(this, tray.Icon, Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             mainframe.VisibleChanged += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
             mainframe.Resize += delegate { mainframeOpen = mainframe.Visible && mainframe.WindowState != FormWindowState.Minimized; };
@@ -2302,10 +2328,14 @@ namespace CapriDesktop
             Ledges.Enabled = !testing;
             if (!testing) Native.WatchScreen(Handle);
             bool spawn = !instant && preferences.Motion && !preferences.NoIntro && !preferences.NoSitting;
-            if (spawn) SpawnInMiddle();
-            Play(instant || !preferences.Motion || preferences.NoIntro ? grin : arrive);
-            RenderFrame();
-            if (!preferences.NoIntro) Static(true, Cue.Arrive, spawn);
+            Action arrival = delegate
+            {
+                if (spawn) SpawnInMiddle();
+                Play(instant || !preferences.Motion || preferences.NoIntro ? grin : arrive);
+                RenderFrame();
+                if (!preferences.NoIntro) Static(true, Cue.Arrive, spawn);
+            };
+            if (!HoldForIntro(arrival, spawn)) arrival();
             UpdateAnimation();
             if (testing || preferences.Welcomed)
             {
@@ -2451,19 +2481,13 @@ namespace CapriDesktop
 
         internal static Bitmap LoadArt(string name)
         {
+            Bitmap skinned = SkinArt(name);
+            if (skinned != null) return skinned;
             using (Stream image = Assembly.GetExecutingAssembly().GetManifestResourceStream(name))
             {
                 if (image == null) return null;
                 using (Bitmap original = new Bitmap(image))
-                {
-                    Bitmap copy = new Bitmap(original.Width, original.Height, PixelFormat.Format32bppPArgb);
-                    using (Graphics graphics = Graphics.FromImage(copy))
-                    {
-                        graphics.CompositingMode = CompositingMode.SourceCopy;
-                        graphics.DrawImage(original, new Rectangle(0, 0, copy.Width, copy.Height));
-                    }
-                    return copy;
-                }
+                    return Finished(original);
             }
         }
 
@@ -10842,6 +10866,13 @@ namespace CapriDesktop
 
         private bool VoiceForHer(string text)
         {
+            bool forHer = VoiceCounts(text);
+            ModList.LogHearing(text, forHer);
+            return forHer;
+        }
+
+        private bool VoiceCounts(string text)
+        {
             if (watchAlong != null && (WatchAlong.Request(text) == "stop" || VoiceStop(text))) return true;
             if (!preferences.ListenCapri || pushing || Hands.HeardName(text)) return true;
             return (MidJob(job) || PcEars.Active || talkState == TalkState.Talking || clock.Elapsed.TotalSeconds < voiceUntil || speaker.Busy)
@@ -10953,7 +10984,12 @@ namespace CapriDesktop
                     Post(delegate { if (ticket == chatTicket && local) Missed("I heard 15 seconds without a pause. Try a shorter line or lower your mic volume.", false); });
                     return;
                 }
-                if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds)) { nameOver = false; return; }
+                if (!LineCounts(taken, wake, clock.Elapsed.TotalSeconds))
+                {
+                    nameOver = false;
+                    Post(delegate { ModList.LogHearing("(a sound too short or quiet to count as speech)", false); });
+                    return;
+                }
                 transcribing = true;
                 transcribingAt = Environment.TickCount;
                 bool fromCall = CallLine(taken.Length);
@@ -11049,7 +11085,7 @@ namespace CapriDesktop
                 mainframe.VoiceNote(problem, true);
                 return;
             }
-            if (string.IsNullOrEmpty(text)) { HearingResult(null, false); Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
+            if (string.IsNullOrEmpty(text)) { ModList.LogHearing("(heard speech, but made out no words)", false); HearingResult(null, false); Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
             HearingResult(null, true);
             if (CallModeOn) { HearCall(text, false, fromCall); return; }
             if (!VoiceForHer(text)) return;
@@ -11652,6 +11688,7 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            if (prompt == "> you: " && ModList.Heard(text)) return;
             WakeRest(!SleepBusy);
             followUp.Drop();
             if (StopWatchAlong(text)) return;
@@ -12511,6 +12548,7 @@ namespace CapriDesktop
 
         protected override void Dispose(bool disposing)
         {
+            if (disposing && ModList != null) ModList.StopCode();
             if (disposing)
             {
                 quitting = true;
@@ -26389,6 +26427,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });

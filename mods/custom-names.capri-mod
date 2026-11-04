@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "id": "custom-names",
+  "name": "Custom Names",
+  "version": "3.0.0",
+  "author": "Avery",
+  "description": "Lets her answer to Choom and Choomie as well as Capri.",
+  "wake_names": ["Choom", "Choomie"],
+  "heard_as": ["Chum", "Chewm", "Choomy", "Chewmie", "Chumi", "Chummy", "Chung", "Chew Me"]
+}

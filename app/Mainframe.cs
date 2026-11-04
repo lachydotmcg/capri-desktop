@@ -374,7 +374,7 @@ namespace CapriDesktop
             close = Make("", 330, 20, 26, 22, delegate { Close(); });
             close.Glyph = 2;
             close.AccessibleName = "Close";
-            more = Make("Settings", 146, 20, 84, 22, delegate { ShowSettings(!paged); });
+            more = Make("Settings", 146, 20, 84, 22, delegate { if (modded) ShowMods(false); else ShowSettings(!paged); });
             more.Accent = Cyan;
             more.Loud = true;
             int header = Controls.Count;
@@ -541,6 +541,7 @@ namespace CapriDesktop
             Lower(Section("CAPRI >", 0, 184 + v));
             Key support = Lower(Make("Support", 280, 181 + v, 76, 20, delegate { capri.OpenSupport(); }));
             support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
+            modsKey = Lower(Make("Mods", 216, 181 + v, 56, 20, delegate { ShowMods(true); }));
             showHide = Lower(Make("Hide Capri", 28, 206 + v, 104, 28, delegate { capri.ToggleHidden(); }));
             Lower(Make("Bring here", 140, 206 + v, 104, 28, delegate { capri.BringHere(); }));
             perch = Lower(Make("Ride cursor", 252, 206 + v, 104, 28, delegate { capri.TogglePerch(); }));
@@ -890,6 +891,7 @@ namespace CapriDesktop
                 // Clicking into anything else while a key is being picked keeps the old key, so typing in a box is never swallowed.
                 control.Enter += delegate { if (capturing != 0 && control != confirmKeys && control != cancelKeys && control != clearKeys && control != PickedKey) CancelKeys(); };
             }
+            BuildMods();
             Controls.Add(topRim);
             Controls.Add(bottomRim);
             topRim.BringToFront();
@@ -1451,13 +1453,14 @@ namespace CapriDesktop
         {
             DismissHint();
             if (!on) CancelKeys();
+            if (on && modded) ShowMods(false);
             ScrollPage(0);
             paged = on;
             simple = !capri.AdvancedSettings;
             advancedKey.Text = simple ? "Advanced Settings" : "Simple Settings";
             advancedKey.AccessibleName = simple ? "Advanced Settings: show every setting" : "Simple Settings: show only the main settings";
             advancedKey.Invalidate();
-            more.Text = on ? "Back" : "Settings";
+            more.Text = on || modded ? "Back" : "Settings";
             more.Invalidate();
             Place();
             foreach (KeyValuePair<Control, int> entry in mainLeft) Reachable(entry.Key, !on);
@@ -1477,8 +1480,9 @@ namespace CapriDesktop
         // the right end of whichever page shows.
         private void Place()
         {
-            foreach (KeyValuePair<Control, int> entry in mainLeft) entry.Key.Left = Scaled(entry.Value) + (paged ? Far : 0);
+            foreach (KeyValuePair<Control, int> entry in mainLeft) entry.Key.Left = Scaled(entry.Value) + (paged || modded ? Far : 0);
             foreach (KeyValuePair<Control, int> entry in pageLeft) entry.Key.Left = Scaled(entry.Value) + (paged && !Folded(entry.Key) ? 0 : Far);
+            foreach (KeyValuePair<Control, int> entry in modLeft) entry.Key.Left = Scaled(entry.Value) + (modded ? 0 : Far);
             int edge = paged ? Column : 0;
             build.Left = Scaled(230 + edge);
             minimize.Left = Scaled(300 + edge);
@@ -1637,11 +1641,11 @@ namespace CapriDesktop
 
         private bool Hidden(Control control)
         {
-            List<KeyValuePair<Control, int>> hidden = paged ? mainLeft : pageLeft;
+            List<KeyValuePair<Control, int>> hidden = paged || modded ? mainLeft : pageLeft;
             for (Control top = control; top != null && top != this; top = top.Parent)
             {
                 if (Folded(top)) return true;
-                foreach (KeyValuePair<Control, int> entry in hidden) if (entry.Key == top) return true;
+                foreach (KeyValuePair<Control, int> entry in hidden) if (entry.Key == top) return true; foreach (KeyValuePair<Control, int> entry in modded ? pageLeft : modLeft) if (entry.Key == top) return true;
             }
             return false;
         }

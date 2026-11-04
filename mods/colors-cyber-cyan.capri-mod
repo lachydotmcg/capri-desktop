@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "id": "colors-cyber-cyan",
+  "name": "Colors: Cyber Cyan",
+  "version": "1.0.0",
+  "author": "Avery",
+  "description": "A Cyber Cyan color set for her. Works with skins too.",
+  "colors": {
+    "hair": "#00D8FF",
+    "accent": "#FF2BD6",
+    "eyes": "#FFD000",
+    "edges": "#7A5CFF"
+  }
+}
