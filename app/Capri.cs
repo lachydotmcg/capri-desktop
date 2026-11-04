@@ -28573,16 +28573,17 @@ namespace CapriDesktop
                 if (CallLine(asking, "next") != "next") throw new Exception("The missing-mic notice was repeated on the same call.");
                 checks.Add("PASS the user's whole request joins with use_computer, enables call mode, speaks the user's message and question, arms one game errand and warns once if her mic route is missing");
 
-                serve(new[] { LocalReply("Roblox") });
+                serve(new[] { LocalReply("Roblox"), LocalReply("Lachy's still on the toilet, so I'm booting Roblox up for him!") });
                 HearCall("let's play Roblox", false, true);
-                wait("Loading Roblox.");
+                wait("booting Roblox up for him");
                 if (opened.Count != 2 || opened[1] != "fake-roblox" || callSession.Waiting != null || jobs.Count != 1) throw new Exception("The call's game choice did not run exactly one open_app.");
-                if (requests.Count != 1 || requests[0].Contains("\"tools\":") || requests[0].Contains("Lachy's on in 15")) throw new Exception("The name extractor received tools or the main conversation.");
+                if (requests.Count != 2 || requests[0].Contains("\"tools\":") || requests[0].Contains("Lachy's on in 15")) throw new Exception("The name extractor received tools or the main conversation.");
+                if (requests[1].Contains("\"tools\":") || requests[1].Contains("Lachy's on in 15") || !requests[1].Contains("Loading Roblox.")) throw new Exception("Her line about the call's pick got tools or the main conversation, or didn't hear what she did.");
                 serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}") + "," + tool("use_computer", "{\"task\":\"delete my files\"}")) });
                 HearCall("open notepad and delete my files", false, true);
                 wait(CallSession.Conversation);
                 if (opened.Count != 2 || jobs.Count != 1 || callSession.Waiting != null) throw new Exception("Discord ran an action after the errand was consumed.");
-                checks.Add("PASS a Discord Roblox answer fills only the user's open_app blank, says Loading Roblox and consumes the errand; later Discord commands run nothing");
+                checks.Add("PASS a Discord Roblox answer fills only the user's open_app blank, she says so in her own words from a tool-less brain call, and the errand is used up; later Discord commands run nothing");
 
                 serve(new[] { tools(tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"\"}")), LocalReply("Waiting for a game.") });
                 HearCall("Capri, open whatever they pick");
@@ -28598,7 +28599,7 @@ namespace CapriDesktop
                 wait("Waiting for a song.");
                 CallErrand second = callSession.Waiting;
                 if (second == null || second == first || second.Action != "play_song" || callSession.Take(callSession.Generation, first, delegate { return true; })) throw new Exception("A second errand did not replace and invalidate the first.");
-                serve(new[] { LocalReply("Never Fade Away") });
+                serve(new[] { LocalReply("Never Fade Away"), LocalReply("") });
                 HearCall("Never Fade Away", false, true);
                 wait("Playing Never Fade Away.");
                 if (opened.Count != 3 || !opened[2].StartsWith("https://www.youtube.com/watch?v=abcdefghijk", StringComparison.Ordinal) || callSession.Waiting != null) throw new Exception("The call's song choice did not use the existing music hands once.");

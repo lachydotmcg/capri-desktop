@@ -383,6 +383,18 @@ namespace CapriDesktop
         {
             string name = brain.CallPick(text, waiting.Action);
             if (name == null) return null;
+            bool opened;
+            string done = OpenCallPick(name, version, ticket, waiting, out opened);
+            // Done, she tells the call in her own words, joking about you if she likes (Lachy, 4 Nov: "Lachy's taking a fat shit
+            // so in the meantime I'll boot cyberpunk up for him!"). Her brain gets the line it's answering and what she did, no tools.
+            if (!opened) return done;
+            try { string line = brain.CallDone(text, done); return string.IsNullOrWhiteSpace(line) || line.Length > 240 ? done : line; }
+            catch (Exception) { return done; }
+        }
+
+        private string OpenCallPick(string name, int version, int ticket, CallErrand waiting, out bool opened)
+        {
+            opened = false;
             lock (mouseGate)
             {
                 if (!callSession.Take(version, waiting, delegate { return ticket == Volatile.Read(ref asking) && !quitting && ticket != escAsk; })) return null;
@@ -399,6 +411,7 @@ namespace CapriDesktop
                     string done = Hands.Do(tool, args);
                     if (!args.Current()) return null;
                     if (Hands.Failed(done) || Computer.Stopped(done)) return done;
+                    opened = true;
                     return (tool == "open_app" ? "Loading " : "Playing ") + name + ".";
                 }
                 finally { if (!held) callSession.Finish(waiting); }
