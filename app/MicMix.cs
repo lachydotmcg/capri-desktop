@@ -649,21 +649,23 @@ namespace CapriDesktop
             List<Share> shares = new List<Share>();
             lock (gate)
             {
-                bool wrote = false;
-                try
-                {
-                    if (stopping) return;
-                    float loudness = Math.Max(50, Math.Min(200, Loudness)) / 100f;
-                    foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate, loudness, shares);
-                    limiter.Run(mix, want);
-                    if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
-                    if (stopping) return;
-                    cable.Write(mix, want);
-                    wrote = true;
-                    Interlocked.Add(ref Written, want);
-                }
-                finally { foreach (Share share in shares) share.Answer.Reach(wrote ? share.Seconds : 0, share.Last); }
+                if (stopping) return;
+                float loudness = Math.Max(50, Math.Min(200, Loudness)) / 100f;
+                foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate, loudness, shares);
             }
+            // The cable is written outside the gate, so her speakers never wait on a device call that's stuck.
+            bool wrote = false;
+            try
+            {
+                limiter.Run(mix, want);
+                if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
+                // A pass that was stuck in a device call when the switch went off writes nothing once it comes back.
+                if (stopping) return;
+                cable.Write(mix, want);
+                wrote = true;
+                Interlocked.Add(ref Written, want);
+            }
+            finally { foreach (Share share in shares) share.Answer.Reach(wrote ? share.Seconds : 0, share.Last); }
         }
 
         // Keeps a packet and a half of the mic queued after each top-up, counting what the mic has heard since its last packet,
