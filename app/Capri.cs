@@ -6076,7 +6076,6 @@ namespace CapriDesktop
         {
             Voice.Loudness = Math.Max(0, Math.Min(150, percent));
             preferences.Volume = Voice.Loudness;
-            if (Voice.Loudness == 0) { BargeIn("voice volume muted"); Hush(); }
             SavePreferences();
         }
 
@@ -25468,7 +25467,7 @@ namespace CapriDesktop
                     if (!logged.Contains(" | voice interruption | - | " + source + " answer=") || !logged.Contains("played_ms=") || !logged.Contains("remaining_ms=")) throw new Exception("An interruption source or playback timing was missing from her log.");
                 if (logged.Contains("Private ") || logged.Contains("ticket35-private-key-marker")) throw new Exception("Voice interruption diagnostics included speech or a key.");
                 checks.Add("PASS voice interruption logs name the source with generations and playback timing without reply text or keys");
-                foreach (string stop in new[] { "Stop", "mute", "volume mute", "call ending" })
+                foreach (string stop in new[] { "Stop", "mute", "call ending" })
                 {
                     local = chatting = false;
                     preferences.Silent = false;
@@ -25493,12 +25492,6 @@ namespace CapriDesktop
                             if (!sounded) throw new Exception("The " + stop + " check sent no voice to the cable.");
                             if (stop == "Stop") { voice.Stop(); Hush(); }
                             else if (stop == "mute") Silence(false);
-                            else if (stop == "volume mute")
-                            {
-                                SetVolume(0);
-                                voice.Play(wav);
-                                speaker.Play(samples);
-                            }
                             else
                             {
                                 voice.Finish();
@@ -25517,7 +25510,7 @@ namespace CapriDesktop
                         finally { voice.Stop(); Hush(); mix.Stop(); MicMix.Current = currentWas; }
                     }
                 }
-                checks.Add("PASS Stop, voice off, volume mute and ending call mode drop queued WAV and streamed voice, including a finished answer's tail whose ticket is no longer current");
+                checks.Add("PASS Stop, voice off and ending call mode drop queued WAV and streamed voice, including a finished answer's tail whose ticket is no longer current");
                 checks.Add("LIMIT ticket 35 guards a confirmed delivery race; the recorded two-word cutoff and live mic echo still need device reproduction, and in-flight paid requests are not cancelled");
             }
             finally

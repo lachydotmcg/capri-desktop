@@ -805,7 +805,7 @@ namespace CapriDesktop
                 // through Plain speakers, so they stay out.
                 if (answer == null) BeginAnswer();
                 if (answer != null) answer.Give(samples.Length, rate);
-                if (Voice.Loudness > 0) MicMix.Hear(this, samples, rate, answer);
+                MicMix.Hear(this, samples, rate, answer);
                 samples = Voice.Louder(samples);
             }
             if (silent || (device == IntPtr.Zero && modern == null)) return;
