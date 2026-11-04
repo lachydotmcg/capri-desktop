@@ -688,6 +688,10 @@ namespace CapriDesktop
         internal static string WaveDefaultId;
         internal static Action<string> Missing;
         internal static Func<List<Output>> Devices = ReadDevices;
+        private static readonly object gate = new object();
+        private static Func<List<Output>> listed;
+        private static List<Output> outputs;
+        private static string missingId;
         private static bool fellBack;
         private readonly bool silent;
         private readonly Func<int, string, SoundOut> open;
@@ -753,14 +757,32 @@ namespace CapriDesktop
 
         internal static Output Resolve(List<Output> devices)
         {
-            string id = Chosen;
-            Output found = Find(id, devices);
-            if (found == null && !string.IsNullOrEmpty(id) && Interlocked.CompareExchange(ref Chosen, null, id) == id)
+            string id;
+            Output found;
+            Action<string> missing = null;
+            lock (gate)
             {
-                Action<string> missing = Missing;
-                if (missing != null) missing(id);
+                id = Chosen;
+                found = Find(id, devices);
+                if (found != null || string.IsNullOrEmpty(id)) missingId = null;
+                else if (!string.Equals(missingId, id, StringComparison.OrdinalIgnoreCase))
+                {
+                    missingId = id;
+                    missing = Missing;
+                }
             }
+            if (missing != null) missing(id);
             return found;
+        }
+
+        internal static List<Output> List(bool fresh = false)
+        {
+            lock (gate)
+            {
+                Func<List<Output>> read = Devices;
+                if (fresh || listed != read) { outputs = read(); listed = read; }
+                return outputs;
+            }
         }
 
         private static List<Output> ReadDevices()
@@ -828,7 +850,7 @@ namespace CapriDesktop
 
         internal void Open(int sampleRate)
         {
-            Output picked = string.IsNullOrEmpty(Chosen) ? null : Resolve(Devices());
+            Output picked = string.IsNullOrEmpty(Chosen) ? null : Resolve(List());
             string id = picked == null ? (modern == null ? WaveDefaultId : DefaultId) : picked.Id;
             int index = picked == null ? -1 : picked.Index;
             if (sampleRate == rate && string.Equals(openedId, id, StringComparison.OrdinalIgnoreCase) && openedIndex == index && (silent || device != IntPtr.Zero || (modern != null && modern.Alive))) return;
@@ -851,7 +873,7 @@ namespace CapriDesktop
                 return;
             }
             catch (Exception error) { Brain.Log("Speakers", -1, "Windows' wave API wouldn't open the speakers (error " + failed + ") and nor would WASAPI: " + error.Message); }
-            if (picked != null && Resolve(Devices()) == null) { Open(sampleRate); return; }
+            if (picked != null && Resolve(List(true)) == null) { Open(sampleRate); return; }
             throw new VoiceException(Speakers(failed));
         }
 
@@ -893,7 +915,8 @@ namespace CapriDesktop
         private void Write(short[] samples)
         {
             if (rate == 0 || samples.Length == 0) return;
-            if (!string.Equals(openedId, Chosen ?? (modern == null ? WaveDefaultId : DefaultId), StringComparison.OrdinalIgnoreCase) || (modern != null && !modern.Alive)) Open(rate);
+            Output picked = string.IsNullOrEmpty(Chosen) ? null : Resolve(List());
+            if (!string.Equals(openedId, picked == null ? (modern == null ? WaveDefaultId : DefaultId) : picked.Id, StringComparison.OrdinalIgnoreCase) || (picked != null && openedIndex != picked.Index) || (modern != null && !modern.Alive)) Open(rate);
             Sweep();
             long now = Stopwatch.GetTimestamp();
             if (now >= Interlocked.Read(ref until)) { began = now; shapes.Clear(); leftover.Clear(); lock (levels) levels.Clear(); Interlocked.Exchange(ref until, now); }

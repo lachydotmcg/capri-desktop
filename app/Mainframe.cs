@@ -4075,12 +4075,14 @@ namespace CapriDesktop
             speakerMenu.Items.Clear();
             speakerMenu.Items.Add(Choice("Default (follows Windows)", string.IsNullOrEmpty(capri.SpeakerId), delegate { capri.ChooseSpeaker(null); }));
             List<Speaker.Output> found = capri.SpeakerDevices;
-            if (found.Count > 0) speakerMenu.Items.Add(new ToolStripSeparator());
+            bool missing = !string.IsNullOrEmpty(capri.SpeakerId) && Speaker.Find(capri.SpeakerId, found) == null;
+            if (found.Count > 0 || missing) speakerMenu.Items.Add(new ToolStripSeparator());
             foreach (Speaker.Output output in found)
             {
                 string id = output.Id;
                 speakerMenu.Items.Add(Choice(output.Name, string.Equals(id, capri.SpeakerId, StringComparison.OrdinalIgnoreCase), delegate { capri.ChooseSpeaker(id); }));
             }
+            if (missing) speakerMenu.Items.Add(new ToolStripMenuItem(capri.SpeakerName) { Checked = true, Enabled = false });
         }
 
         private void ShowSpeakers() { SpeakerChoices(); speakerMenu.Show(speakers, new Point(0, speakers.Height)); }
@@ -4098,12 +4100,14 @@ namespace CapriDesktop
             screenMenu.Items.Clear();
             screenMenu.Items.Add(Choice("All screens", string.IsNullOrEmpty(capri.WatchScreenId), delegate { capri.ChooseWatchScreen(null); }));
             List<Companion.WatchScreen> found = capri.WatchScreens;
-            if (found.Count > 0) screenMenu.Items.Add(new ToolStripSeparator());
+            bool missing = !string.IsNullOrEmpty(capri.WatchScreenId) && !found.Exists(delegate(Companion.WatchScreen screen) { return string.Equals(screen.Id, capri.WatchScreenId, StringComparison.OrdinalIgnoreCase); });
+            if (found.Count > 0 || missing) screenMenu.Items.Add(new ToolStripSeparator());
             foreach (Companion.WatchScreen screen in found)
             {
                 string id = screen.Id;
                 screenMenu.Items.Add(Choice(screen.Name, string.Equals(id, capri.WatchScreenId, StringComparison.OrdinalIgnoreCase), delegate { capri.ChooseWatchScreen(id); }));
             }
+            if (missing) screenMenu.Items.Add(new ToolStripMenuItem(capri.WatchScreenName) { Checked = true, Enabled = false });
         }
 
         private void ShowScreens() { ScreenChoices(); screenMenu.Show(screens, new Point(0, screens.Height)); }

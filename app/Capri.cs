@@ -9834,35 +9834,41 @@ namespace CapriDesktop
         internal string MicId { get { return preferences.Mic; } }
 
         private System.Collections.Generic.List<Speaker.Output> speakerDevices = new System.Collections.Generic.List<Speaker.Output>();
+        private Speaker.Output speakerPick;
         private Action<string> deviceNotice;
         private Func<int, string> speakerDefault = delegate(int role) { return Ears.DefaultDevice(0, role); };
-        internal const string SpeakerMissing = "That speaker is gone. I'm using the Windows default now.";
-        internal const string ScreenMissing = "That monitor is gone. I'm watching all screens now.";
+        internal const string SpeakerMissing = "That speaker is gone. I'm using the Windows default until it's back.";
+        internal const string ScreenMissing = "That monitor is gone. I'm watching all screens until it's back.";
 
         internal string SpeakerId { get { return preferences.Speaker; } }
         internal System.Collections.Generic.List<Speaker.Output> SpeakerDevices { get { return new System.Collections.Generic.List<Speaker.Output>(speakerDevices); } }
+        internal string SpeakerName
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(preferences.Speaker)) return null;
+                Speaker.Output picked = Speaker.Find(preferences.Speaker, speakerDevices);
+                return picked != null ? picked.Name : (speakerPick != null && string.Equals(speakerPick.Id, preferences.Speaker, StringComparison.OrdinalIgnoreCase) ? speakerPick.Name : preferences.Speaker) + " (missing)";
+            }
+        }
 
         internal void RefreshSpeakers()
         {
             if (mainframe == null || mainframe.IsDisposed) return;
-            speakerDevices = Speaker.Devices();
+            speakerDevices = Speaker.List(true);
             Speaker.DefaultId = speakerDefault(1);
             Speaker.WaveDefaultId = speakerDefault(0);
-            Speaker.Output picked = Speaker.Find(preferences.Speaker, speakerDevices);
-            if (!string.IsNullOrEmpty(preferences.Speaker) && picked == null)
-            {
-                Speaker.Chosen = null;
-                SpeakerGone(preferences.Speaker);
-            }
-            mainframe.ShowSpeaker(picked == null ? null : picked.Name);
+            Speaker.Output picked = Speaker.Resolve(speakerDevices);
+            if (picked != null) speakerPick = picked;
+            mainframe.ShowSpeaker(SpeakerName);
         }
 
         private void SpeakerGone(string id)
         {
-            if (!string.Equals(preferences.Speaker, id, StringComparison.OrdinalIgnoreCase) || Speaker.Chosen != null) return;
-            preferences.Speaker = null;
-            SavePreferences();
-            mainframe.ShowSpeaker(null);
+            if (!string.Equals(preferences.Speaker, id, StringComparison.OrdinalIgnoreCase) || !string.Equals(Speaker.Chosen, id, StringComparison.OrdinalIgnoreCase)) return;
+            speakerDevices = Speaker.List();
+            if (Speaker.Find(id, speakerDevices) != null) return;
+            mainframe.ShowSpeaker(SpeakerName);
             if (deviceNotice != null) deviceNotice(SpeakerMissing);
         }
 
@@ -9887,9 +9893,19 @@ namespace CapriDesktop
 
         private Func<System.Collections.Generic.List<WatchScreen>> watchDisplays = ReadWatchScreens;
         private System.Collections.Generic.List<WatchScreen> watchScreens = new System.Collections.Generic.List<WatchScreen>();
+        private WatchScreen watchPick;
+        private string screenMissing;
         internal string WatchScreenId { get { return preferences.WatchScreen; } }
         internal System.Collections.Generic.List<WatchScreen> WatchScreens { get { return new System.Collections.Generic.List<WatchScreen>(watchScreens); } }
-        internal string WatchScreenName { get { WatchScreen picked = WatchedScreen(); return picked == null ? null : picked.Name; } }
+        internal string WatchScreenName
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(preferences.WatchScreen)) return null;
+                WatchScreen picked = WatchedScreen();
+                return picked != null ? picked.Name : (watchPick != null && string.Equals(watchPick.Id, preferences.WatchScreen, StringComparison.OrdinalIgnoreCase) ? watchPick.Name : preferences.WatchScreen) + " (missing)";
+            }
+        }
 
         private static System.Collections.Generic.List<WatchScreen> ReadWatchScreens()
         {
@@ -9914,15 +9930,22 @@ namespace CapriDesktop
             WatchScreen before = WatchedScreen();
             watchScreens = watchDisplays();
             WatchScreen picked = WatchedScreen();
-            if (before != null && picked != null && before.Bounds != picked.Bounds) ResetWatchScreen();
+            if (picked != null)
+            {
+                if (screenMissing != null || (before != null && before.Bounds != picked.Bounds)) ResetWatchScreen();
+                watchPick = picked;
+            }
             if (!string.IsNullOrEmpty(preferences.WatchScreen) && picked == null)
             {
-                preferences.WatchScreen = null;
-                ResetWatchScreen();
-                SavePreferences();
-                if (deviceNotice != null) deviceNotice(ScreenMissing);
+                if (!string.Equals(screenMissing, preferences.WatchScreen, StringComparison.OrdinalIgnoreCase))
+                {
+                    screenMissing = preferences.WatchScreen;
+                    ResetWatchScreen();
+                    if (deviceNotice != null) deviceNotice(ScreenMissing);
+                }
             }
-            if (mainframe != null) mainframe.ShowWatchScreen(picked == null ? null : picked.Name);
+            else screenMissing = null;
+            if (mainframe != null) mainframe.ShowWatchScreen(WatchScreenName);
         }
 
         internal void ChooseWatchScreen(string id)
@@ -28123,6 +28146,9 @@ namespace CapriDesktop
             double untilWas = voiceUntil, glanceWas = lastGlance, nextWas = nextGlance;
             byte[] printWas = lastPrint;
             Rectangle areaWas = lastArea;
+            Speaker.Output pickWas = speakerPick;
+            WatchScreen watchWas = watchPick;
+            string screenMissingWas = screenMissing;
             System.Collections.Generic.List<Speaker.Output> outputs = new System.Collections.Generic.List<Speaker.Output>
             {
                 new Speaker.Output("speakers", "Speakers (stand-in)", 3),
@@ -28135,13 +28161,15 @@ namespace CapriDesktop
             System.Collections.Generic.List<string> notices = new System.Collections.Generic.List<string>(), routes = new System.Collections.Generic.List<string>();
             System.Collections.Generic.List<SoundCheck> sounds = new System.Collections.Generic.List<SoundCheck>();
             string currentDefault = "speakers", currentWaveDefault = "speakers";
+            int deviceReads = 0;
             Rectangle frontArea = first.Bounds, grabbed = Rectangle.Empty;
             try
             {
                 voice.Stop(); speaker.Close(); chatTail.Stop();
                 voiceUntil = 0; answerVoice = hdSpeaking = -1; changingVoice = true;
                 preferences.Speaker = preferences.WatchScreen = Speaker.Chosen = null;
-                Speaker.Devices = delegate { return new System.Collections.Generic.List<Speaker.Output>(outputs); };
+                screenMissing = null; speakerPick = null; watchPick = null;
+                Speaker.Devices = delegate { deviceReads++; return new System.Collections.Generic.List<Speaker.Output>(outputs); };
                 Speaker.Missing = SpeakerGone;
                 speakerDefault = delegate(int role) { return role == 0 ? currentWaveDefault : currentDefault; };
                 deviceNotice = notices.Add;
@@ -28161,6 +28189,7 @@ namespace CapriDesktop
                     if (loaded.Speaker != null || loaded.WatchScreen != null || new Preferences().Speaker != null || new Preferences().WatchScreen != null) throw new Exception("Device choices changed old or new defaults.");
                 }
                 if (mainframe.SpeakerChoicesShown != "Default (follows Windows) (picked) | Speakers (stand-in) | Headphones (stand-in) | HDMI output (stand-in)" || notices.Count != 0 || SelfKnow.Setting("Mainframe.cs", "Her speaker") == null || SelfKnow.Setting("Mainframe.cs", "Screens") == null) throw new Exception("Her device menus missed fake outputs or their help lines.");
+                if (!mainframe.SpeakerTip.Contains("stays saved") || !mainframe.SpeakerTip.Contains("until it's back") || !mainframe.ScreenTip.Contains("stays saved") || !mainframe.ScreenTip.Contains("until it's back")) throw new Exception("The device tips did not explain the saved missing choices.");
                 mainframe.PickSpeakerChoice(2);
                 if (preferences.Speaker != "headphones" || Speaker.Chosen != "headphones" || LoadPreferences().Speaker != "headphones" || mainframe.SpeakerShown != "Her speaker: Headphones (stand-in)" || !mainframe.SpeakerChoicesShown.Contains("Headphones (stand-in) (picked)")) throw new Exception("Her speaker menu did not show, route or save its choice.");
                 preferences.Speaker = LoadPreferences().Speaker;
@@ -28170,6 +28199,7 @@ namespace CapriDesktop
                 Func<int, string, SoundOut> open = delegate(int rate, string id)
                 {
                     routes.Add(id ?? "default");
+                    if (id != null && Speaker.Find(id, outputs) == null) throw new VoiceException("The fake output is gone.");
                     SoundCheck sound = new SoundCheck(); sounds.Add(sound);
                     return new SoundOut(rate, id, sound, sound);
                 };
@@ -28178,11 +28208,22 @@ namespace CapriDesktop
                 using (Speaker playback = new Speaker(false, open))
                 using (Speaker effect = new Speaker(false, open) { Plain = true })
                 {
+                    int reads = deviceReads;
                     Voice said = new Voice(playback);
                     said.Play(Voice.Wave(samples, 24000));
                     effect.Open(24000); effect.Play(samples);
                     WaitSound(delegate { return playback.ModernPlayed >= samples.Length && effect.ModernPlayed >= samples.Length; }, "The selected fake output did not play voice and effects.");
                     if (playback.OpenedId != "headphones" || playback.OpenedIndex != 7 || effect.OpenedId != "headphones" || routes.Count != 2 || routes[0] != "headphones" || routes[1] != "headphones") throw new Exception("Voice or effects lost the selected endpoint in WASAPI fallback.");
+                    playback.Open(16000); playback.Open(24000); effect.Open(24000);
+                    if (deviceReads != reads) throw new Exception("Opening a picked speaker re-read its devices.");
+                    Func<System.Collections.Generic.List<Speaker.Output>> fake = Speaker.Devices;
+                    Speaker.Devices = delegate { deviceReads++; return new System.Collections.Generic.List<Speaker.Output> { new Speaker.Output("headphones", "Swapped headphones", 4) }; };
+                    playback.Open(24000); effect.Open(24000);
+                    if (playback.OpenedIndex != 4 || effect.OpenedIndex != 4 || deviceReads != reads + 1) throw new Exception("A swapped speaker list was hidden by the cache or read twice.");
+                    Speaker.Devices = fake;
+                    playback.Open(24000);
+                    if (playback.OpenedIndex != 7 || deviceReads != reads + 2) throw new Exception("Restoring the speaker reader kept the swapped list.");
+                    checks.Add("PASS picked speakers open from the shared list without new reads, including rate changes; swapping the reader takes effect on the next open");
                     outputs[1] = new Speaker.Output("headphones", "Headphones renamed", 1);
                     outputs.Reverse(); RefreshSpeakers(); playback.Open(24000);
                     if (playback.OpenedId != "headphones" || playback.OpenedIndex != 1 || LoadPreferences().Speaker != "headphones" || mainframe.SpeakerShown != "Her speaker: Headphones renamed") throw new Exception("Renaming or reordering outputs changed the saved endpoint.");
@@ -28193,7 +28234,7 @@ namespace CapriDesktop
                     outputs.RemoveAll(delegate(Speaker.Output each) { return each.Id == "headphones"; });
                     RefreshSpeakers(); RefreshSpeakers();
                     playback.Open(24000); effect.Open(24000);
-                    if (preferences.Speaker != null || Speaker.Chosen != null || LoadPreferences().Speaker != null || playback.OpenedId != "speakers" || effect.OpenedId != "speakers" || routes[routes.Count - 1] != "default" || notices.Count != 1 || notices[0] != SpeakerMissing || mainframe.SpeakerShown != "Her speaker: Default") throw new Exception("A missing speaker did not save Default and say so once.");
+                    if (preferences.Speaker != "headphones" || Speaker.Chosen != "headphones" || LoadPreferences().Speaker != "headphones" || playback.OpenedId != "speakers" || effect.OpenedId != "speakers" || routes[routes.Count - 1] != "default" || notices.Count != 1 || notices[0] != SpeakerMissing || mainframe.SpeakerShown != "Her speaker: Headphones renamed (missing)" || !mainframe.SpeakerChoicesShown.Contains("Headphones renamed (missing) (picked)") || mainframe.SpeakerChoicesShown.StartsWith("Default (follows Windows) (picked)", StringComparison.Ordinal)) throw new Exception("A missing speaker lost its saved choice, fallback, missing mark or single notice.");
                     currentDefault = "hdmi"; RefreshSpeakers();
                     playback.Play(samples); effect.Play(samples);
                     if (playback.OpenedId != "hdmi" || effect.OpenedId != "hdmi" || playback.OpenedIndex != -1 || routes[routes.Count - 1] != "default" || notices.Count != 1) throw new Exception("Default did not follow a Windows output change quietly.");
@@ -28205,19 +28246,38 @@ namespace CapriDesktop
                         if (wave.OpenedId != "hdmi" || notices.Count != 1) throw new Exception("Default wave output did not follow its Windows role change.");
                     }
                     outputs.Add(new Speaker.Output("headphones", "Headphones (stand-in)", 5));
-                    ChooseSpeaker("headphones"); playback.Open(24000);
+                    RefreshSpeakers(); playback.Play(samples);
+                    SoundCheck removed = sounds[sounds.Count - 1];
+                    effect.Play(samples);
+                    if (playback.OpenedId != "headphones" || effect.OpenedId != "headphones" || playback.OpenedIndex != 5 || LoadPreferences().Speaker != "headphones" || notices.Count != 1 || mainframe.SpeakerShown != "Her speaker: Headphones (stand-in)" || !mainframe.SpeakerChoicesShown.Contains("Headphones (stand-in) (picked)")) throw new Exception("A returning speaker did not resume the saved choice on its own.");
                     outputs.RemoveAll(delegate(Speaker.Output each) { return each.Id == "headphones"; });
-                    sounds[sounds.Count - 1].Fail = "padding";
+                    removed.Fail = "padding";
                     WaitSound(delegate { return playback.ModernFailure != null; }, "The fake removed speaker stayed alive.");
+                    reads = deviceReads;
                     playback.Play(samples);
-                    if (playback.OpenedId != "hdmi" || LoadPreferences().Speaker != null || notices.Count != 2) throw new Exception("Playback did not fall back when a speaker disappeared before its change notification.");
+                    playback.Open(24000); effect.Open(24000);
+                    if (playback.OpenedId != "hdmi" || LoadPreferences().Speaker != "headphones" || Speaker.Chosen != "headphones" || notices.Count != 2 || notices[1] != SpeakerMissing || deviceReads != reads + 1) throw new Exception("A failed open did not refresh once, retain its choice and fall back before the change notification.");
                 }
                 preferences.Speaker = Speaker.Chosen = "missing-at-start";
+                SavePreferences();
                 RefreshSpeakers(); RefreshSpeakers();
-                if (LoadPreferences().Speaker != null || notices.Count != 3 || notices[2] != SpeakerMissing) throw new Exception("A saved missing output repeated its startup warning or kept the bad choice.");
+                using (Speaker saved = new Speaker(true))
+                {
+                    saved.Open(24000); saved.Open(24000);
+                    if (saved.OpenedIndex != -1 || saved.OpenedId != currentWaveDefault) throw new Exception("A saved missing output did not use the Windows default.");
+                }
+                if (LoadPreferences().Speaker != "missing-at-start" || Speaker.Chosen != "missing-at-start" || notices.Count != 3 || notices[2] != SpeakerMissing || mainframe.SpeakerShown != "Her speaker: missing-at-start (missing)" || !mainframe.SpeakerChoicesShown.Contains("missing-at-start (missing) (picked)")) throw new Exception("A saved missing output lost its choice or repeated its startup warning.");
                 mainframe.PickSpeakerChoice(0);
                 if (LoadPreferences().Speaker != null || Speaker.Chosen != null || !mainframe.SpeakerChoicesShown.StartsWith("Default (follows Windows) (picked)", StringComparison.Ordinal)) throw new Exception("The Default speaker menu item did not clear its saved choice.");
-                checks.Add("PASS her speaker lists fake outputs after Default, saves endpoint ids across reload, rename and reorder, routes voice and effects to the same WASAPI endpoint with or without a wave index, follows Windows on Default, and saves Default with one notice when a selected or saved device disappears");
+                using (Speaker playback = new Speaker(false, open))
+                using (Speaker wave = new Speaker(true) { Plain = true })
+                {
+                    playback.Open(24000); wave.Open(24000);
+                    currentDefault = currentWaveDefault = "speakers"; RefreshSpeakers();
+                    playback.Play(samples); wave.Play(samples);
+                    if (playback.OpenedId != "speakers" || wave.OpenedId != "speakers" || LoadPreferences().Speaker != null || notices.Count != 3) throw new Exception("Picking Default did not follow Windows quietly.");
+                }
+                checks.Add("PASS her speaker keeps its output menus, saved ids, rename and reorder, voice and effects routing and Windows default roles; missing choices stay saved and marked, use the default with one notice per loss, and return on their own, including a fresh read after a failed open");
 
                 if (mainframe.ScreenChoicesShown != "All screens (picked) | Monitor 1 (1920 x 1080) | Monitor 2 (2560 x 1440)") throw new Exception("WATCH did not list the fake two-screen layout.");
                 using (Bitmap shot = CaptureWatchScreen())
@@ -28240,17 +28300,37 @@ namespace CapriDesktop
                 monitors.Clear(); monitors.Add(moved); monitors.Add(first); RefreshWatchScreens();
                 using (Bitmap shot = CaptureWatchScreen())
                     if (grabbed != moved.Bounds || preferences.WatchScreen != moved.Id || mainframe.WatchScreenShown != moved.Name) throw new Exception("A reordered, resized or moved display was matched by its number instead of its device name.");
+                lastPrint = new byte[1]; lastGlance = 10; ticket = watchTicket;
                 monitors[0] = new WatchScreen(@"\\.\DISPLAY4", 4, moved.Bounds);
                 RefreshWatchScreens(); RefreshWatchScreens();
                 using (Bitmap shot = CaptureWatchScreen())
-                    if (grabbed != frontArea || preferences.WatchScreen != null || LoadPreferences().WatchScreen != null || mainframe.WatchScreenShown != "All screens" || notices.Count != 4 || notices[3] != ScreenMissing) throw new Exception("A changed monitor did not fall back to All screens once.");
+                    if (grabbed != frontArea || preferences.WatchScreen != second.Id || LoadPreferences().WatchScreen != second.Id || mainframe.WatchScreenShown != moved.Name + " (missing)" || notices.Count != 4 || notices[3] != ScreenMissing || lastPrint != null || lastGlance != -1 || watchTicket == ticket || !mainframe.ScreenChoicesShown.Contains(moved.Name + " (missing) (picked)") || mainframe.ScreenChoicesShown.StartsWith("All screens (picked)", StringComparison.Ordinal)) throw new Exception("A missing monitor lost its saved choice, fallback, missing mark, reset or single notice.");
+                lastPrint = new byte[1]; lastGlance = 10; ticket = watchTicket;
+                monitors[0] = moved;
+                using (Bitmap shot = CaptureWatchScreen())
+                    if (grabbed != moved.Bounds || LoadPreferences().WatchScreen != second.Id || mainframe.WatchScreenShown != moved.Name || notices.Count != 4 || lastPrint != null || lastGlance != -1 || watchTicket == ticket || !mainframe.ScreenChoicesShown.Contains(moved.Name + " (picked)")) throw new Exception("A returning monitor did not resume its saved capture and clear the fallback glance on its own.");
+                monitors.Remove(moved); RefreshWatchScreens(); RefreshWatchScreens();
+                using (Bitmap shot = CaptureWatchScreen())
+                    if (grabbed != frontArea || LoadPreferences().WatchScreen != second.Id || notices.Count != 5 || notices[4] != ScreenMissing) throw new Exception("A monitor's next loss did not keep its choice and say so once again.");
                 ChooseWatchScreen(first.Id); monitors.Remove(first);
                 using (Bitmap shot = CaptureWatchScreen())
-                    if (grabbed != frontArea || LoadPreferences().WatchScreen != null || notices.Count != 5 || notices[4] != ScreenMissing) throw new Exception("Capture did not fall back when the selected monitor went away.");
+                    if (grabbed != frontArea || LoadPreferences().WatchScreen != first.Id || notices.Count != 6 || notices[5] != ScreenMissing) throw new Exception("Capture did not retain its choice and fall back when the selected monitor went away.");
                 monitors.Clear(); monitors.Add(first); monitors.Add(second); RefreshWatchScreens();
+                using (Bitmap shot = CaptureWatchScreen())
+                    if (grabbed != first.Bounds || LoadPreferences().WatchScreen != first.Id || notices.Count != 6) throw new Exception("Capture did not return to the newly picked monitor on its own.");
                 mainframe.PickScreenChoice(1); mainframe.PickScreenChoice(0);
                 if (LoadPreferences().WatchScreen != null || !mainframe.ScreenChoicesShown.StartsWith("All screens (picked)", StringComparison.Ordinal)) throw new Exception("All screens did not clear the saved monitor choice.");
-                checks.Add("PASS WATCH lists a fake two-screen layout by number and size, saves and reloads device names, captures the chosen monitor after focus moves, keeps the same device after position, size and order change, clears stale glances and saves All screens with one notice after removal or replacement");
+                preferences.WatchScreen = second.Id; watchPick = null; watchScreens.Clear();
+                monitors.Remove(second); SavePreferences();
+                RefreshWatchScreens(); RefreshWatchScreens();
+                using (Bitmap shot = CaptureWatchScreen())
+                    if (grabbed != frontArea || LoadPreferences().WatchScreen != second.Id || mainframe.WatchScreenShown != second.Id + " (missing)" || notices.Count != 7 || notices[6] != ScreenMissing || !mainframe.ScreenChoicesShown.Contains(second.Id + " (missing) (picked)")) throw new Exception("A saved missing monitor lost its choice or repeated its startup warning.");
+                monitors.Add(second);
+                using (Bitmap shot = CaptureWatchScreen())
+                    if (grabbed != second.Bounds || LoadPreferences().WatchScreen != second.Id || notices.Count != 7) throw new Exception("A monitor missing at startup did not return on its own.");
+                mainframe.PickScreenChoice(0);
+                if (LoadPreferences().WatchScreen != null || mainframe.WatchScreenShown != "All screens") throw new Exception("All screens did not replace a returned saved monitor.");
+                checks.Add("PASS WATCH keeps its screen list, saved ids, capture bounds, foreground and layout handling; missing monitors stay saved and marked, use all screens with one notice per loss, clear stale glances and return on their own, including after startup");
 
                 outputs.Add(new Speaker.Output("long-output", "Headphones with a very long full device name (stand-in)", 9));
                 ChooseSpeaker("long-output"); ChooseWatchScreen(second.Id);
@@ -28277,6 +28357,7 @@ namespace CapriDesktop
                 Speaker.Devices = devicesWas; Speaker.Missing = missingWas; Speaker.SkipWave = waveWas;
                 Speaker.Chosen = chosenWas; Speaker.DefaultId = outputWas; Speaker.WaveDefaultId = waveOutputWas; speakerDefault = defaultWas;
                 preferences.Speaker = speakerWas; preferences.WatchScreen = screenWas;
+                speakerPick = pickWas; watchPick = watchWas; screenMissing = screenMissingWas;
                 watchDisplays = displaysWas; Display = displayWas; Grab = grabWas; deviceNotice = noticeWas;
                 simpleTest = simpleWas; preferences.AdvancedSettings = advancedWas; preferences.MainframeSize = sizeWas;
                 changingVoice = changingWas; answerVoice = answerWas; hdSpeaking = hdWas; voiceUntil = untilWas;

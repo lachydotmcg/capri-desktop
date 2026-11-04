@@ -64,6 +64,7 @@ namespace CapriDesktop
         private static volatile CallApp current = Apps[0];
         // The process tree her call ears have open (0 when none), and how many looks in a row found another app instead.
         private static int hearing, drift;
+        private static object owner;
 
         internal static string Choice { get { return choice; } }
         internal static CallApp Current { get { return current; } }
@@ -123,8 +124,8 @@ namespace CapriDesktop
         }
 
         // Her call ears say which process tree they opened, and let go of it when they close.
-        internal static void Heard(int pid) { lock (gate) { hearing = pid; drift = 0; } }
-        internal static void Left(int pid) { lock (gate) if (hearing == pid) { hearing = 0; drift = 0; } }
+        internal static void Heard(int pid, object who) { lock (gate) { hearing = pid; owner = who; drift = 0; } }
+        internal static void Left(int pid, object who) { lock (gate) if (hearing == pid && object.ReferenceEquals(owner, who)) { hearing = 0; owner = null; drift = 0; } }
 
         internal static CallPick Pick(string selected, List<CallProcess> processes, List<AppSound> sounds)
         {
@@ -284,6 +285,7 @@ namespace CapriDesktop
 
         private void Listen(int mine)
         {
+            object owner = new object();
             string told = null;
             while (Live(mine))
             {
@@ -307,7 +309,7 @@ namespace CapriDesktop
                         continue;
                     }
                     told = null;
-                    CallApps.Heard(pid);
+                    CallApps.Heard(pid, owner);
                     Say(mine, null);
                     Brain.Log("call ears", -1, "Hearing " + app.Name + ": process " + pid + " and the ones it started, as 16000 Hz mono 16-bit PCM.");
                     int lookedAt = Environment.TickCount;
@@ -332,7 +334,7 @@ namespace CapriDesktop
                     Brain.Log("call ears", -1, error.Message);
                     Rest(mine, 5000);
                 }
-                finally { if (tap != null) { tap.Dispose(); CallApps.Left(pid); } }
+                finally { if (tap != null) { tap.Dispose(); CallApps.Left(pid, owner); } }
             }
         }
 
@@ -573,6 +575,7 @@ namespace CapriDesktop
             Func<List<CallProcess>> processesWas = CallApps.Processes;
             Func<List<AppSound>> soundsWas = CallApps.Sounds;
             Func<int> findWas = Find;
+            object owner = new object(), nextOwner = new object();
             try
             {
                 CallApps.Processes = delegate { return new List<CallProcess> { new CallProcess { Id = 71, Name = "Zoom" } }; };
@@ -604,26 +607,40 @@ namespace CapriDesktop
                 if (CallApps.Find() != 0) throw new Exception("Auto took a browser playing a video for the call.");
                 playing.Add(zoom);
                 if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Auto didn't take Zoom next to a browser video.");
-                CallApps.Heard(90);
+                CallApps.Heard(90, owner);
                 playing.Remove(zoom); playing.Add(slack);
                 if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("A ping in another app pulled Auto off the call.");
                 if (CallApps.Find() != 91 || CallApps.Current.Name != "Slack") throw new Exception("Auto never moved to the app that kept making sound.");
-                CallApps.Left(90);
-                CallApps.Heard(91);
+                CallApps.Left(90, owner);
+                CallApps.Heard(91, owner);
                 playing.Add(zoom);
                 if (CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Find() != 91 || CallApps.Current.Name != "Slack") throw new Exception("Auto left the app she's hearing while it still made sound.");
-                CallApps.Left(91);
+                CallApps.Left(91, owner);
                 if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Auto stayed with an app after her ears let go of it.");
-                CallApps.Heard(90);
+                CallApps.Heard(90, owner);
                 two.Add(new CallProcess { Id = 93, Name = "Discord" });
                 if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("A silent Discord opening pulled Auto off the call she's hearing.");
                 playing.Remove(zoom);
                 if (CallApps.Find() != 90 || CallApps.Find() != 90 || CallApps.Find() != 93 || CallApps.Current.Name != "Discord") throw new Exception("Auto didn't go back to Discord once the call she was hearing went quiet.");
-                CallApps.Left(90);
+                CallApps.Left(90, owner);
                 two.RemoveAt(two.Count - 1);
                 checks.Add("PASS Auto never takes a browser video for the call, stays on the app she's hearing through a ping elsewhere, Discord opening or while it still makes sound, and moves after about three seconds");
+                playing.Add(zoom);
+                CallApps.Choose("Zoom"); CallApps.Heard(90, owner);
+                CallApps.Choose("Auto");
+                if (CallApps.Find() != 90) throw new Exception("The new call ears did not find the same process.");
+                CallApps.Heard(90, nextOwner);
+                playing.Remove(zoom);
+                if (CallApps.Find() != 90) throw new Exception("The new ears did not hold their process.");
+                CallApps.Left(90, owner);
+                if (CallApps.Find() != 90 || CallApps.Find() != 91) throw new Exception("Old ears cleared the new hold or reset its drift.");
+                playing.Add(zoom); CallApps.Heard(91, nextOwner);
+                if (CallApps.Find() != 91) throw new Exception("The new ears did not keep their sounding app.");
+                CallApps.Left(91, nextOwner);
+                if (CallApps.Find() != 90) throw new Exception("The owning ears did not release their hold.");
+                checks.Add("PASS old call ears cannot clear a new hold on the same pid or reset its drift; the owning ears still release it");
             }
-            finally { Find = findWas; CallApps.Processes = processesWas; CallApps.Sounds = soundsWas; CallApps.Left(90); CallApps.Left(91); CallApps.Choose(was); }
+            finally { Find = findWas; CallApps.Processes = processesWas; CallApps.Sounds = soundsWas; CallApps.Left(90, owner); CallApps.Left(91, owner); CallApps.Left(90, nextOwner); CallApps.Left(91, nextOwner); CallApps.Choose(was); }
             checks.Add("PASS call capture keeps its swappable finder, names the chosen app when it isn't open and rejects a lookup from an old setting");
         }
 

@@ -1487,9 +1487,9 @@ The security picker is bigger. On Blackwall it turns red and glitches. With Moti
 ## 16. Watch my screen
 
 ### Pick her speaker and the screens she watches (0.8.3)
-Right-click her > Open Capri Mainframe > VOICE > Her speaker picks where her voice and sounds play. Default follows Windows. If that speaker disappears, she returns to Default and tells you once.
+Right-click her > Open Capri Mainframe > VOICE > Her speaker picks where her voice and sounds play. Default follows Windows. If that speaker disappears, like headphones turned off, she plays on Default and tells you once, then goes back to it by herself when it's back. Your pick stays saved.
 
-Right-click her > Open Capri Mainframe > Settings > WATCH > Screens picks a monitor for Watch my screen. All screens follows the app in front. If a chosen monitor disappears, she returns to All screens and tells you once. Asking her to look at a named screen still works separately.
+Right-click her > Open Capri Mainframe > Settings > WATCH > Screens picks a monitor for Watch my screen. All screens follows the app in front. If a chosen monitor disappears, like one that's asleep or off, she watches all screens and tells you once, then goes back to it by herself when it's back. Your pick stays saved. Asking her to look at a named screen still works separately.
 
 ### How do I turn it on?
 Mainframe > Settings > WATCH > Watch my screen. The Every slider sets how often she looks (10 s to 10 min). On Mac and Linux: right-click her > Settings > Watch my screen, and Glance every.

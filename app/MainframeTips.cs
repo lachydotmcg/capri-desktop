@@ -13,6 +13,8 @@ namespace CapriDesktop
         private readonly List<SettingHint> hintRows = new List<SettingHint>();
         internal bool HuskTip { get { return hints.ContainsKey(huskMode); } }
         internal bool SuggestionHints { get { return hints.ContainsKey(notesKey) && hints.ContainsKey(memoriesKey) && hints.ContainsKey(popTimes) && hints.ContainsKey(gameNotes) && hints.ContainsKey(miniGames); } }
+        internal string SpeakerTip { get { return speakers.AccessibleDescription; } }
+        internal string ScreenTip { get { return screens.AccessibleDescription; } }
         private readonly Timer hintDelay = new Timer { Interval = 400 };
         private HintCard hintCard;
         private SettingHint waitingHint, overHint, dismissedHint;
