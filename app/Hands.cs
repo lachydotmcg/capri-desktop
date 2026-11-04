@@ -503,13 +503,15 @@ namespace CapriDesktop
     internal static class Hands
     {
         internal const string SpokenName = @"(?:\b[ck]app?r(?:i|ee|ie|y)\b|\b(?:kopri|recovery|капри|كابري)\b|(?<![\p{L}\p{M}\p{N}_])कैप्री(?![\p{L}\p{M}\p{N}_])|カプリ|卡普里|카프리)";
-        internal static bool HeardName(string words) { return Regex.IsMatch(words ?? "", SpokenName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant); }
+        internal static bool HeardName(string words) { return Regex.IsMatch(words ?? "", SpokenName, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant) || AlsoHeard(words); }
+        internal static Func<string, bool> AlsoHeard = delegate { return false; };
+        internal static Func<string> AlsoCalled = delegate { return ""; };
 
         // Her chat and voice chat line about her tools, with what isn't here and SECURITY's line after it while one of her tools'
         // toggles is off.
         internal static string Note { get { return NoteFor(KitFor()); } }
 
-        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote; }
+        internal static string NoteFor(Kit kit) { return Here(kit.Noted) + Security.Note + MiniNote + MiniBoard() + DrawingNote + AlsoCalled(); }
 
 #if CROSS
         private const string MiniNote = "";

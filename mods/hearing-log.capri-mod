@@ -1,0 +1,9 @@
+{
+  "format": 1,
+  "id": "hearing-log",
+  "name": "Hearing Log",
+  "version": "1.0.0",
+  "author": "Avery",
+  "description": "While on, keeps a local list of what her ears heard and if it counted. Removing it deletes the list.",
+  "hearing_log": true
+}

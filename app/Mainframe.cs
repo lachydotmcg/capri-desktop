@@ -367,14 +367,17 @@ namespace CapriDesktop
             build = Caption("v" + version, 200, 20, small, Faint);
             build.AutoSize = false;
             build.TextAlign = ContentAlignment.MiddleRight;
-            build.Bounds = new Rectangle(230, 20, 62, 22);
+            build.Bounds = new Rectangle(234, 20, 62, 22);
             minimize = Make("", 300, 20, 26, 22, delegate { WindowState = FormWindowState.Minimized; });
             minimize.Glyph = 1;
             minimize.AccessibleName = "Minimize";
             close = Make("", 330, 20, 26, 22, delegate { Close(); });
             close.Glyph = 2;
             close.AccessibleName = "Close";
-            more = Make("Settings", 146, 20, 84, 22, delegate { ShowSettings(!paged); });
+            more = Make("Settings", 122, 20, 64, 22, delegate { ShowSettings(!paged); });
+            modsKey = Make("Mods", 190, 20, 42, 22, delegate { ShowMods(!modded); });
+            modsKey.Accent = Cyan;
+            modsKey.Loud = true;
             more.Accent = Cyan;
             more.Loud = true;
             int header = Controls.Count;
@@ -890,6 +893,7 @@ namespace CapriDesktop
                 // Clicking into anything else while a key is being picked keeps the old key, so typing in a box is never swallowed.
                 control.Enter += delegate { if (capturing != 0 && control != confirmKeys && control != cancelKeys && control != clearKeys && control != PickedKey) CancelKeys(); };
             }
+            BuildMods();
             Controls.Add(topRim);
             Controls.Add(bottomRim);
             topRim.BringToFront();
@@ -1451,6 +1455,7 @@ namespace CapriDesktop
         {
             DismissHint();
             if (!on) CancelKeys();
+            if (on && modded) ShowMods(false);
             ScrollPage(0);
             paged = on;
             simple = !capri.AdvancedSettings;
@@ -1477,10 +1482,11 @@ namespace CapriDesktop
         // the right end of whichever page shows.
         private void Place()
         {
-            foreach (KeyValuePair<Control, int> entry in mainLeft) entry.Key.Left = Scaled(entry.Value) + (paged ? Far : 0);
+            foreach (KeyValuePair<Control, int> entry in mainLeft) entry.Key.Left = Scaled(entry.Value) + (paged || modded ? Far : 0);
             foreach (KeyValuePair<Control, int> entry in pageLeft) entry.Key.Left = Scaled(entry.Value) + (paged && !Folded(entry.Key) ? 0 : Far);
+            foreach (KeyValuePair<Control, int> entry in modLeft) entry.Key.Left = Scaled(entry.Value) + (modded ? 0 : Far);
             int edge = paged ? Column : 0;
-            build.Left = Scaled(230 + edge);
+            build.Left = Scaled(234 + edge);
             minimize.Left = Scaled(300 + edge);
             close.Left = Scaled(330 + edge);
         }
@@ -1637,11 +1643,11 @@ namespace CapriDesktop
 
         private bool Hidden(Control control)
         {
-            List<KeyValuePair<Control, int>> hidden = paged ? mainLeft : pageLeft;
+            List<KeyValuePair<Control, int>> hidden = paged || modded ? mainLeft : pageLeft;
             for (Control top = control; top != null && top != this; top = top.Parent)
             {
                 if (Folded(top)) return true;
-                foreach (KeyValuePair<Control, int> entry in hidden) if (entry.Key == top) return true;
+                foreach (KeyValuePair<Control, int> entry in hidden) if (entry.Key == top) return true; foreach (KeyValuePair<Control, int> entry in modded ? pageLeft : modLeft) if (entry.Key == top) return true;
             }
             return false;
         }
