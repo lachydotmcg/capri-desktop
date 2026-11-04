@@ -3052,6 +3052,8 @@ namespace CapriDesktop
             tool = null;
             args = new ToolArguments();
 #if !CROSS
+            // "Put on the song they want" leaves the call a choice: her brain's call_errand stays, instead of a song called that.
+            if (CallSession.Blank(said)) return false;
             string filePath = Files.PathIn(said);
             if (filePath != null) { tool = "read_file"; args.Path = filePath; return true; }
 #endif
