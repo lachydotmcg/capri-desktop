@@ -132,6 +132,7 @@ namespace CapriDesktop
             Explain(custom, "Custom model name", "Mainframe.cs", null, "Custom model name");
             Explain(localAddress, "Local server address", "Mainframe.cs", FindHintLabel("Local server address"), "Local server address");
             Explain(security, "SECURITY >", "Mainframe.cs", null, "Security");
+            Explain(checkIns, "Check in on me");
             for (int i = 0; i < careTimes.Length; i++) Explain(careTimes[i], Care.Names[i], "Care.cs", null, Care.Names[i] + " time");
             Explain(clipChoose, "Save folder", "Mainframe.cs", FindHintLabel("Save folder"), "Save folder");
             Explain(clipsFolder, "Save folder", "Mainframe.cs", null, "Open clips folder");

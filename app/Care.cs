@@ -17,11 +17,11 @@ namespace CapriDesktop
         private readonly bool[] pending = new bool[7];
         private readonly bool[] enabled = new bool[7];
         private readonly int[] times = new int[7];
-        private bool started, resting;
+        private bool started, resting, paused;
         private DateTime since;
         private string game;
         private long night, meal;
-        private double attentionAt = -1, attentionRate = 1;
+        private double attentionAt = -1, attentionRate = 1, activeAt;
         private int turn;
         internal CareKind Said;
 
@@ -34,16 +34,18 @@ namespace CapriDesktop
 
         internal string Check(Preferences settings, long quiet, bool free, string playing, double noticed, double attentionGap)
         {
+            if (!settings.CheckIns) { Reset(); return null; }
             double now = seconds();
             DateTime today = local();
             if (!started || resting || quiet > Away)
             {
                 since = today;
+                activeAt = now;
                 game = playing;
                 for (int reset = 0; reset < next.Length; reset++)
                 {
                     CareKind resetKind = (CareKind)reset;
-                    next[reset] = now + settings.CareTime(resetKind) * 60.0;
+                    next[reset] = now + settings.CareTime(resetKind) * 60.0 * (resetKind == CareKind.Bored ? attentionGap : 1);
                     pending[reset] = false;
                     enabled[reset] = settings.CareOn(resetKind);
                     times[reset] = settings.CareTime(resetKind);
@@ -70,7 +72,7 @@ namespace CapriDesktop
                 attentionAt = noticed;
                 attentionRate = attentionGap;
                 pending[(int)CareKind.Bored] = false;
-                next[(int)CareKind.Bored] = (noticed < 0 ? now : noticed) + settings.CareTime(CareKind.Bored) * 60.0 * attentionGap;
+                next[(int)CareKind.Bored] = (noticed < 0 ? now : Math.Max(noticed, activeAt)) + settings.CareTime(CareKind.Bored) * 60.0 * attentionGap;
             }
             if (!string.Equals(game, playing, StringComparison.OrdinalIgnoreCase))
             {
@@ -96,6 +98,8 @@ namespace CapriDesktop
             int hour = settings.CareTime(CareKind.Late);
             DateTime bedtime = evening.AddDays(hour < 12 ? 1 : 0).AddHours(hour);
             bool late = today >= bedtime && today < evening.AddDays(1).AddHours(6);
+            if (paused && late && enabled[(int)CareKind.Late]) night = evening.Ticks;
+            paused = false;
             if (!late || night != evening.Ticks) pending[(int)CareKind.Late] = false;
             if (enabled[(int)CareKind.Late] && late && night != evening.Ticks && settings.CareNight != evening.Ticks)
             {
@@ -130,6 +134,13 @@ namespace CapriDesktop
                 if (pending[cleared]) next[cleared] = now + times[cleared] * 60.0 * (cleared == (int)CareKind.Bored ? attentionGap : 1);
             Array.Clear(pending, 0, pending.Length);
             return line;
+        }
+
+        internal void Reset()
+        {
+            started = false;
+            paused = true;
+            Array.Clear(pending, 0, pending.Length);
         }
     }
 

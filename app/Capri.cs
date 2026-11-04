@@ -4161,7 +4161,7 @@ namespace CapriDesktop
 
         private void CheckCare(double now, long quiet)
         {
-            if (preferences.CareGame && quiet <= Care.Away && now >= careGameAt)
+            if (preferences.CheckIns && preferences.CareGame && quiet <= Care.Away && now >= careGameAt)
             {
                 careGameAt = now + 15;
                 careGame = Computer.GameOpen() ?? GameAhead();
@@ -4268,8 +4268,10 @@ namespace CapriDesktop
         internal void ToggleCheckIns()
         {
             preferences.CheckIns = !preferences.CheckIns;
+            care.Reset();
             nextPopIn = -1;
             nudgeOut = -1;
+            boredAsk = false;
             nudgeGap = NudgeGap;
             noticed = -1;
             SavePreferences();
@@ -4300,7 +4302,7 @@ namespace CapriDesktop
         // With Check in on me on, ignored for a while when they're at the PC, she comes over and asks for attention: a click gets a happy line, silence gets a sulk and a longer wait.
         private void CheckNudge(double now, long quiet)
         {
-            if (quiet > Care.Away) { noticed = -1; nudgeOut = -1; nudgeGap = NudgeGap; boredAsk = false; return; }
+            if (!preferences.CheckIns || quiet > Care.Away) { noticed = -1; nudgeOut = -1; nudgeGap = NudgeGap; boredAsk = false; return; }
             if (boredAsk && !preferences.CareBored) { nudgeOut = -1; boredAsk = false; }
             // Her own bubble isn't them noticing her: their clicks, typing and menus are.
             bool attending = clicks != noticedClicks || dragging || pressed || InChat || typer.Visible || menu.Visible || (talkState != TalkState.Off && remarkTicket != asking) || onPanel;
@@ -4326,7 +4328,7 @@ namespace CapriDesktop
                 }
                 return;
             }
-            if (preferences.CareBored || !preferences.CheckIns || Hushed || hidden || quiet > 30000 || now - noticed < nudgeGap || (lastGlance >= 0 && now - lastGlance < 300)) return;
+            if (preferences.CareBored || Hushed || hidden || quiet > 30000 || now - noticed < nudgeGap || (lastGlance >= 0 && now - lastGlance < 300)) return;
             if (quitting || riding || onPanel || falling || hanging || typer.Visible || speech != null || outro != null || popOut >= 0 || (clip != idle && clip != perch)) return;
             if (!PopFree(now, quiet)) return;
             Nudge(now);
@@ -17026,13 +17028,13 @@ namespace CapriDesktop
                     foreach (Match selfControl in Regex.Matches(selfSources["Mainframe.cs"], "(?:Switch|Setting|Named)\\(\"([^\"]+)\""))
                         if (!selfLabels.Contains(selfControl.Groups[1].Value)) throw new Exception("Self knowledge is missing a setting: " + selfControl.Groups[1].Value);
                     foreach (string selfCareName in Care.Names)
-                        if (!selfLabels.Contains(selfCareName)) throw new Exception("Self knowledge is missing a HABITS check-in: " + selfCareName);
+                        if (!selfLabels.Contains(selfCareName)) throw new Exception("Self knowledge is missing a CAPRI check-in: " + selfCareName);
                     foreach (string selfPermission in Security.Names)
                         if (!selfLabels.Contains(selfPermission)) throw new Exception("Self knowledge is missing a SECURITY toggle: " + selfPermission);
                     foreach (string selfPreset in Security.Presets)
                         if (SelfKnow.Matching("Explain the Security setting").IndexOf(selfPreset, StringComparison.Ordinal) < 0)
                             throw new Exception("Self knowledge is missing a SECURITY preset: " + selfPreset);
-                    checks.Add("PASS self knowledge names: every available topic label is a checked string in its source, every Mainframe switch and slider, HABITS check-in and SECURITY preset and toggle is covered");
+                    checks.Add("PASS self knowledge names: every available topic label is a checked string in its source, every Mainframe switch and slider, CAPRI check-in and SECURITY preset and toggle is covered");
                 }
             }
 
@@ -17999,6 +18001,60 @@ namespace CapriDesktop
             }
             checks.Add("PASS care timers: water at 60 minutes, stretch at 90, eyes at 25, the same game at 120 and boredom at 60, with independent repeats, Off and changed intervals on a fake clock");
 
+            for (int gateKind = 0; gateKind < Care.Names.Length; gateKind++)
+            {
+                CareKind kind = (CareKind)gateKind;
+                careNow = 0;
+                careDay = new DateTime(2026, 10, 30, kind == CareKind.Late ? 23 : kind == CareKind.Meal ? 11 : 10, 0, 0);
+                Preferences gatedSettings = careOff();
+                gatedSettings.SetCare(kind, true, gatedSettings.CareTime(kind));
+                int picked = 0;
+                Care gatedCare = new Care(careClock, careCalendar, delegate(CareKind saidKind) { picked++; return saidKind.ToString(); });
+                double due = kind == CareKind.Late ? 7200 : kind == CareKind.Meal ? 3600 : gatedSettings.CareTime(kind) * 60.0;
+                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null, kind + " fired before its gated timer started.");
+                careNow = due;
+                careMust(gatedCare.Check(gatedSettings, 0, false, "Game A", 0, 1) == null, kind + " escaped its busy hold.");
+                gatedSettings.CheckIns = false;
+                foreach (double offAt in new[] { due, due + 1, due + 900 })
+                {
+                    careNow = offAt;
+                    careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null && picked == 0, kind + " ignored Check in on me off.");
+                    Care offCare = new Care(careClock, careCalendar, delegate { picked++; return "Off"; });
+                    careMust(offCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null && picked == 0, kind + " bypassed the gate on startup.");
+                }
+                careMust(gatedSettings.CareNight == 0, "the disabled sleep nudge was saved as spoken.");
+                gatedSettings.CheckIns = true;
+                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null, kind + " delivered a held line when re-enabled.");
+                double freshDue = kind == CareKind.Late ? 93600 : kind == CareKind.Meal ? 90000 : careNow + due;
+                if (kind == CareKind.Meal)
+                {
+                    careNow = 25200;
+                    careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null, "Meals kept the old morning session after re-enabling.");
+                }
+                careNow = freshDue - 1;
+                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", kind == CareKind.Bored ? 1 : 0, 1) == null, kind + " resumed on an old timer.");
+                careNow = freshDue;
+                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", kind == CareKind.Bored ? 1 : 0, 1) == kind.ToString() && picked == 1, kind + " did not return on its fresh timer.");
+                for (int savedKind = 0; savedKind < Care.Names.Length; savedKind++)
+                    careMust(gatedSettings.CareOn((CareKind)savedKind) == (savedKind == gateKind) && gatedSettings.CareTime((CareKind)savedKind) == new Preferences().CareTime((CareKind)savedKind), "the master switch changed a care choice.");
+            }
+            careDay = new DateTime(2026, 10, 30, 10, 0, 0);
+            checks.Add("PASS Check in on me gates all seven care kinds before choosing words, including queued and startup sleep and meal nudges; interval timers restart, missed nights are skipped, meals need a fresh morning session, and saved care choices stay intact");
+
+            foreach (string question in new[] { "why are you ignoring my settings", "you're disobeying my settings", "you ignored my settings", "I turned that off", "I already switched it off", "why aren't you respecting my settings", "I disabled that", "I turned this setting off", "I turned that off for game comments" })
+            {
+                string facts = SelfKnow.Matching(question) ?? "";
+                careMust(facts.StartsWith("Settings ignored:", StringComparison.Ordinal) && facts.Contains("Check in on me stops every check-in") && facts.Contains("Watch my screen stops screen comments") && facts.Contains("GAMES > Comments > Off") && facts.Contains("run on their own") && facts.Contains("outside Gaming Mode") && facts.Contains("Gaming Mode also runs them") && facts.Contains("Quiet stops her speaking on her own"), "settings help missed the real switches for: " + question);
+            }
+            for (int careTopic = 0; careTopic < Care.Names.Length; careTopic++)
+                careMust(SelfKnow.Setting("Care.cs", Care.Names[careTopic]).Facts.Contains("CAPRI > Check in on me > " + Care.Names[careTopic]), "a care topic kept its HABITS path.");
+            careMust(SelfKnow.Setting("Mainframe.cs", "Edit check-in lines").Facts.Contains("CAPRI > Check in on me > Edit check-in lines"), "Edit check-in lines kept its HABITS path.");
+            careMust(SelfKnow.Setting("Mainframe.cs", "Comments").Facts.Contains("turn Comments and Gaming Mode off"), "Comments help missed Gaming Mode's independent game reactions.");
+            foreach (string[,] rows in new[] { Hands.OwnSwitches, Hands.OwnLevels })
+                for (int row = 0; row < rows.GetLength(0); row++)
+                    if (Array.IndexOf(Hands.CareSettings, rows[row, 0]) >= 0) careMust(rows[row, 2] == "Capri", "the settings tool kept a care control under Habits.");
+            checks.Add("PASS settings help: complaints, including statements and game-comment wording, name the four real switches; every care topic and Edit check-in lines points under CAPRI > Check in on me");
+
             Preferences heldSettings = careOff();
             heldSettings.CareWater = heldSettings.CareStretch = heldSettings.CareEyes = true;
             careNow = 0;
@@ -18159,14 +18215,64 @@ namespace CapriDesktop
                 {
                     CareKind uiKind = (CareKind)careUi;
                     bool uiOn = preferences.CareOn(uiKind);
-                    careMust(mainframe.CareShown(uiKind) == uiOn, "a HABITS toggle disagreed with its setting.");
+                    careMust(mainframe.CareShown(uiKind) == uiOn, "a CAPRI care toggle disagreed with its setting.");
                     mainframe.FlipCare(uiKind);
-                    careMust(preferences.CareOn(uiKind) != uiOn && LoadPreferences().CareOn(uiKind) != uiOn, "a HABITS toggle did not save.");
+                    careMust(preferences.CareOn(uiKind) != uiOn && LoadPreferences().CareOn(uiKind) != uiOn, "a CAPRI care toggle did not save.");
                     int uiTime = uiKind == CareKind.Late ? 23 : uiKind == CareKind.Meal ? 240 : 30;
                     mainframe.PickCareTime(uiKind, uiTime);
-                    careMust(preferences.CareTime(uiKind) == uiTime && LoadPreferences().CareTime(uiKind) == uiTime && mainframe.CareTimeShown(uiKind) == (uiKind == CareKind.Late ? "11 pm" : uiKind == CareKind.Meal ? "4 h" : "30 min"), "a HABITS time did not show and save.");
+                    careMust(preferences.CareTime(uiKind) == uiTime && LoadPreferences().CareTime(uiKind) == uiTime && mainframe.CareTimeShown(uiKind) == (uiKind == CareKind.Late ? "11 pm" : uiKind == CareKind.Meal ? "4 h" : "30 min"), "a CAPRI care time did not show and save.");
                 }
-                checks.Add("PASS care HABITS: seven compact toggle and time rows match defaults and save every on/off and timing change");
+                Preferences choices = LoadPreferences();
+                foreach (bool chat in new[] { false, true })
+                {
+                    mainframe.FlipCheckIns();
+                    careMust(!preferences.CheckIns && !LoadPreferences().CheckIns, "the master switch did not save Off.");
+                    Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "check_ins", FromAgent = chat });
+                    string paused = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "check_ins", FromAgent = chat });
+                    careMust(!preferences.CheckIns && !LoadPreferences().CheckIns && paused.Contains("Every check-in is paused"), "the settings tool did not turn all check-ins off.");
+                    foreach (string name in Hands.CareSettings)
+                    {
+                        CareKind kind = (CareKind)Array.IndexOf(Hands.CareSettings, name);
+                        bool on = preferences.CareOn(kind);
+                        string changed = Hands.Do("capri_settings", new ToolArguments { Action = on ? "off" : "on", Name = name, FromAgent = chat });
+                        string unchanged = Hands.Do("capri_settings", new ToolArguments { Action = on ? "off" : "on", Name = name, FromAgent = chat });
+                        string listedCare = Hands.Do("capri_settings", new ToolArguments { Action = "list", Name = name });
+                        string time = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = Hands.StepsOf(name)[0], FromAgent = chat });
+                        string sameTime = Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = name, Level = Hands.StepsOf(name)[0], FromAgent = chat });
+                        foreach (string line in new[] { changed, unchanged, listedCare, time, sameTime })
+                            careMust(line.Contains("Check in on me is off, so this check-in stays paused."), "the settings tool promised a disabled check-in: " + name);
+                        mainframe.FlipCare(kind);
+                        mainframe.PickCareTime(kind, choices.CareTime(kind));
+                    }
+                    string offAgain = Hands.Do("capri_settings", new ToolArguments { Action = "off", Name = "check_ins", FromAgent = chat });
+                    careMust(offAgain.Contains("Every check-in is paused") && offAgain.Contains("stay saved"), "the master tool readback hid its care gate.");
+                    string resumed = Hands.Do("capri_settings", new ToolArguments { Action = "on", Name = "check_ins", FromAgent = chat });
+                    careMust(preferences.CheckIns && LoadPreferences().CheckIns && resumed.Contains("Enabled check-ins start fresh timers."), "the master tool did not explain fresh timers.");
+                    Preferences restored = LoadPreferences();
+                    for (int savedKind = 0; savedKind < Care.Names.Length; savedKind++)
+                    {
+                        CareKind kind = (CareKind)savedKind;
+                        careMust(preferences.CareOn(kind) == choices.CareOn(kind) && restored.CareOn(kind) == choices.CareOn(kind) && restored.CareTime(kind) == choices.CareTime(kind), "toggling Check in on me lost a saved care choice.");
+                    }
+                }
+                preferences = careOff();
+                preferences.CareWater = true;
+                careNow = 0;
+                care = new Care(careClock, careCalendar, careWords);
+                care.Check(preferences, 0, true, null, 0, 1);
+                careNow = 3600;
+                care.Check(preferences, 0, false, null, 0, 1);
+                nudgeOut = careNow + 20;
+                boredAsk = true;
+                ToggleCheckIns();
+                ToggleCheckIns();
+                careMust(nudgeOut < 0 && !boredAsk, "a quick off/on kept an attention reply.");
+                careMust(care.Check(preferences, 0, true, null, 0, 1) == null, "a quick off/on kept a queued check-in.");
+                careNow = 7199;
+                careMust(care.Check(preferences, 0, true, null, 0, 1) == null, "a quick off/on kept an old timer.");
+                careNow = 7200;
+                careMust(care.Check(preferences, 0, true, null, 0, 1) == "Water", "a quick off/on did not start a new timer.");
+                checks.Add("PASS care CAPRI controls and tool: every switch and time saves; dimmed rows remain editable; typed and voice-chat readbacks explain the master gate, including unchanged values; saved choices survive off/on, and a toggle between scheduler ticks clears queued care and restarts its timer");
                 preferences = careOff();
                 preferences.CareBored = true;
                 preferences.CheckIns = true;
@@ -18244,6 +18350,19 @@ namespace CapriDesktop
                 CheckCare(careNow, 0);
                 careMust(speech == "Bored", "attention left boredom on the old longer wait.");
                 CloseTalk();
+                preferences.CheckIns = false;
+                foreach (bool attending in new[] { false, true })
+                {
+                    nudgeOut = careNow + 20;
+                    boredAsk = true;
+                    noticedClicks = attending ? clicks - 1 : clicks;
+                    CheckNudge(careNow + 21, 0);
+                    careMust(speech == null && nudgeOut < 0 && !boredAsk, "a boredom reply escaped Check in on me off.");
+                }
+                CheckCare(careNow + 3600, 0);
+                careMust(speech == null, "care delivery bypassed Check in on me off.");
+                preferences.CheckIns = true;
+                checks.Add("PASS care master delivery: both noticed and ignored boredom replies stop when Check in on me is off, and CheckCare stays silent");
                 CheckNudge(careNow, Care.Away + 1);
                 careMust(noticed < 0 && nudgeOut < 0, "idle did not reset the shared attention clock.");
                 CheckNudge(careNow + 1, 0);
@@ -21685,6 +21804,8 @@ namespace CapriDesktop
                     if (VoiceLayers.On != on || LoadPreferences().VoiceLayers != on || mainframe.LayersKeyShown.Contains("(lit)") != on) throw new Exception("Voice layers switch did not reach Mainframe and disk.");
                 }
                 checks.Add("PASS start at login, advanced view and voice layers use the same state as Mainframe and save");
+                preferences.CheckIns = true;
+                mainframe.Sync();
                 for (int i = 0; i < Hands.CareSettings.Length; i++)
                 {
                     CareKind kind = (CareKind)i;
@@ -21874,7 +21995,7 @@ namespace CapriDesktop
                 // Her voice chat mic only has a setting during voice chat, which the smoke test isn't in.
                 bool calling = chatting;
                 if (!calling) said.Add(set("mic", "off"));
-                string wanted = "Turned Clip my games on. | Turned Save big moments on. | Turned Clip my games off. | Turned Live reactions off. | Turned Check in on me off. | Turned Wander on. | Turned Quiet on. | Turned Quiet off. | Turned my voice off. | Turned my voice on. | "
+                string wanted = "Turned Clip my games on. | Turned Save big moments on. | Turned Clip my games off. | Turned Live reactions off. | Turned Check in on me off. Every check-in is paused; your care switches and times stay saved. | Turned Wander on. | Turned Quiet on. | Turned Quiet off. | Turned my voice off. | Turned my voice on. | "
                     + "Turned Hologram mode on. Hologram mode on. Clicks go through me. Turn it off from my tray icon, or say hologram off. | Turned Hologram mode off. Hologram mode off. You can click me again." + (calling ? "" : " | Couldn't change my voice chat mic: voice chat isn't on.");
                 string joined = string.Join(" | ", said.ToArray());
                 // Her other switches and sliders have their own check (SmokeOwnSliders).
@@ -24526,6 +24647,7 @@ namespace CapriDesktop
         private void SmokeBrainLayout(System.Collections.Generic.List<string> checks)
         {
             bool wasSettings = mainframe.SettingsShown;
+            bool wasSimple = simpleTest, wasAdvanced = preferences.AdvancedSettings, wasCheckIns = preferences.CheckIns;
             int wasSize = preferences.MainframeSize;
             foreach (int storedSize in new[] { 0, 100, 125, 150, 175, 200, -1, 50, 110, 250, int.MaxValue })
             {
@@ -24539,6 +24661,8 @@ namespace CapriDesktop
             checks.Add("PASS Mainframe size upgrades: missing and unsupported saved sizes become Auto, and every supported size is kept");
             try
             {
+                simpleTest = false;
+                preferences.AdvancedSettings = false;
                 mainframe.ShowSettings(true);
                 foreach (int size in new[] { 100, 125, 150, 175, 200 })
                 {
@@ -24573,21 +24697,31 @@ namespace CapriDesktop
                             {
                                 mainframe.LayoutScale(frameDpi, frameText, frameFallback);
                                 mainframe.SizeMainframe(framePercent);
-                                foreach (bool framePage in new[] { false, true })
-                                {
-                                    mainframe.ShowSettings(framePage);
-                                    int frameWidth = (int)Math.Round((framePage ? 760 : 380) * frameDpi / 96f * frameText / 100f * mainframe.Zoom);
-                                    string frameProblem = mainframe.TextFits() ?? mainframe.Overlap() ?? (framePage && mainframe.ClientSize.Width == frameWidth ? mainframe.Outside() : null);
-                                    bool frameWidthFits = frameWidth > SystemInformation.MaxWindowTrackSize.Width || mainframe.ClientSize.Width == frameWidth;
-                                    if (frameProblem != null || !frameWidthFits) frameProblems.Add(frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? "Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
-                                }
+                                foreach (bool frameSimple in new[] { false, true })
+                                    foreach (bool framePage in new[] { false, true })
+                                    {
+                                        simpleTest = frameSimple;
+                                        mainframe.ShowSettings(framePage);
+                                        int frameWidth = (int)Math.Round((framePage ? 760 : 380) * frameDpi / 96f * frameText / 100f * mainframe.Zoom);
+                                        string frameProblem = mainframe.TextFits() ?? mainframe.Overlap() ?? (framePage && mainframe.ClientSize.Width == frameWidth ? mainframe.Outside() : null);
+                                        if (framePage)
+                                            foreach (bool frameCheckIns in new[] { false, true })
+                                            {
+                                                preferences.CheckIns = frameCheckIns;
+                                                mainframe.Sync();
+                                                frameProblem = frameProblem ?? mainframe.CareFits();
+                                            }
+                                        bool frameWidthFits = frameWidth > SystemInformation.MaxWindowTrackSize.Width || mainframe.ClientSize.Width == frameWidth;
+                                        if (frameProblem != null || !frameWidthFits) frameProblems.Add(frameDpi + " DPI, text " + frameText + "%, size " + framePercent + "%, " + (framePage ? frameSimple ? "Simple Settings" : "Advanced Settings" : "Brain and Voice") + (frameFallback ? ", fallback font" : "") + ": " + (frameProblem ?? "width scaled twice"));
+                                    }
                             }
                 if (frameProblems.Count > 0) throw new Exception("Mainframe layout, " + frameProblems.Count + " problems:\r\n" + string.Join("\r\n", frameProblems.ToArray()));
                 checks.Add("PASS Mainframe text: every control on both pages, including tier hints and flags, switch names, slider choices and input cues, fits without overlaps at Auto, 100%, 175% and 200% size on simulated 100%, 150% and 200% DPI with 100% and 225% text and fallback fonts; returning to 100% keeps the original scale");
+                checks.Add("PASS care Settings layout: seven toggle/time rows and Edit check-in lines sit directly under Check in on me in Advanced Settings and fold out of Simple Settings with no gap; both master states, accessible parent names, dimming and editable controls pass with her own and fallback fonts at every simulated DPI, text and Mainframe size");
                 checks.Add("LIMIT Mainframe display scaling: simulated pixel layouts do not confirm Windows text-setting notifications, real monitor moves, or high-DPI rendering; Windows may constrain simulated windows wider than this desktop, so those check text and overlaps without the viewport-edge check");
             }
             catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT Mainframe text measurement: Windows text rendering is unavailable on this desktop"); }
-            finally { mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
+            finally { simpleTest = wasSimple; preferences.AdvancedSettings = wasAdvanced; preferences.CheckIns = wasCheckIns; mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); SavePreferences(); }
         }
 
         private void SmokeLanguageBounds(ToolStripDropDown menu, Rectangle area, bool[] seen)
@@ -34289,7 +34423,21 @@ namespace CapriDesktop
                             mainframe.ShowSettings(true);
                             // Settings opens a second column beside the first. With four voice sliders and her perch row it can be taller than the main page too.
                             if (!mainframe.SettingsShown || mainframe.ClientSize.Width <= mainWide || mainframe.SettingsStatus != "English | 100% | 60% | Off | 2 min | dance | intro | Short | Short | Normal") throw new Exception("The settings page did not open right: " + mainframe.SettingsStatus + " / " + mainWide + " to " + mainframe.ClientSize.Width + " wide, " + mainTall + " to " + mainframe.ClientSize.Height + " tall");
-                            snap("mainframe-settings.png");
+                            bool pictureCheckIns = preferences.CheckIns;
+                            try
+                            {
+                                if (!preferences.CheckIns) mainframe.FlipCheckIns();
+                                string carePage = mainframe.CareFits() ?? mainframe.TextFits() ?? mainframe.Overlap();
+                                if (carePage != null) throw new Exception("The care rows do not fit Advanced Settings: " + carePage);
+                                long careLit = mainframe.CareLight();
+                                snap("mainframe-settings.png");
+                                mainframe.FlipCheckIns();
+                                carePage = mainframe.CareFits();
+                                if (carePage != null || mainframe.CareLight() >= careLit) throw new Exception("The care rows did not draw dimmed: " + carePage);
+                                snap("mainframe-settings-check-ins-off.png");
+                                checks.Add("PASS care dimming: the seven switches, time pickers and Edit check-in lines render darker with Check in on me off and stay editable; enabled and paused Advanced Settings pictures are saved");
+                            }
+                            finally { if (preferences.CheckIns != pictureCheckIns) mainframe.FlipCheckIns(); }
                             string pageTabs = mainframe.TabWalk();
                             if (pageTabs != null) throw new Exception("Settings page keyboard: " + pageTabs);
                             string pageOverlap = mainframe.Overlap();
@@ -34432,7 +34580,7 @@ namespace CapriDesktop
                             checks.Add("PASS her Mainframe size: 150% grows Settings with nothing overlapping or poking out and is saved, and Auto puts it back as it was (Auto is " + mainframe.FrameSizeShown + " here)");
                             simpleTest = true;
                             mainframe.ShowSettings(true);
-                            string simpleCrowd = mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                            string simpleCrowd = mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits() ?? mainframe.CareFits();
                             int simpleTall = mainframe.ClientSize.Height, simpleScroll = mainframe.ScrollMost;
                             snap("mainframe-settings-simple.png");
                             simpleTest = false;
