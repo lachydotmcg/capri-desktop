@@ -180,6 +180,10 @@ namespace CapriDesktop
         internal bool Loud, Picked, Chevron, Ellipsis;
         internal int Glyph;
         internal double TextSize = MainframeTheme.Size;
+        // Heart puts a beating heart before its text, like Support's; Swell is the heart's size and Beat how lit its rim is.
+        internal bool Heart;
+        internal double Swell = 1, Beat;
+        private static readonly Geometry HeartShape = Geometry.Parse("M6 10.4C6 10.4 0.8 7 0.8 3.8C0.8 2 2.2 0.8 3.7 0.8C4.8 0.8 5.6 1.5 6 2.3C6.4 1.5 7.2 0.8 8.3 0.8C9.8 0.8 11.2 2 11.2 3.8C11.2 7 6 10.4 6 10.4Z");
         internal string Text { get { return Content as string ?? ""; } set { if (Text == value) return; Content = value; InvalidateVisual(); } }
         internal NeonButton()
         {
@@ -207,10 +211,24 @@ namespace CapriDesktop
             else if (Picked) { face = hot ? MainframeTheme.Brush("#A0F8FB") : MainframeTheme.Cyan; rim = face; ink = MainframeTheme.OnInk; }
             else if (Accent == MainframeTheme.Cyan) { face = IsPressed ? MainframeTheme.Brush("#123E43") : hot ? MainframeTheme.Brush("#0D2D31") : MainframeTheme.Deep; rim = lit ? MainframeTheme.Cyan : Loud ? MainframeTheme.DeepEdge : MainframeTheme.Brush("#1C545C"); ink = MainframeTheme.Cyan; }
             else if (Accent == MainframeTheme.Hot) { face = IsPressed ? MainframeTheme.Brush("#48121E") : hot ? MainframeTheme.Brush("#36101C") : MainframeTheme.Brush("#220C16"); rim = lit ? MainframeTheme.Brush("#FF7C7A") : MainframeTheme.Hot; ink = MainframeTheme.Brush("#FFA6A2"); }
+            else if (Heart) { face = IsPressed ? MainframeTheme.Pressed : hot ? MainframeTheme.Brush("#2E1222") : Toward(Color.Parse("#200E18"), Color.Parse("#361220"), Beat); rim = lit ? MainframeTheme.Rose : Toward(Color.Parse("#9C2838"), Color.Parse("#FF5D66"), Beat); ink = MainframeTheme.Brush(hot ? "#FFC2C5" : "#FF8A90"); }
             else { face = IsPressed ? MainframeTheme.Pressed : hot ? MainframeTheme.Hover : MainframeTheme.Field; rim = lit ? MainframeTheme.Hot : MainframeTheme.Edge; ink = Chevron ? MainframeTheme.Cyan : Accent; }
             context.DrawGeometry(face, new Pen(rim, 1), MainframeTheme.Cut(box));
             if (Chevron) MainframeTheme.Drop(context, w - 19, y, hot);
+            if (Heart && IsEnabled)
+            {
+                // The heart and the text are centred together, 5 px apart.
+                double wide = MainframeTheme.Words(Text, TextSize).Width, left = (w - (17 + wide)) / 2;
+                using (context.PushTransform(Matrix.CreateTranslation(-6, -5.6) * Matrix.CreateScale(Swell, Swell) * Matrix.CreateTranslation(left + 6, y)))
+                    context.DrawGeometry(MainframeTheme.Rose, null, HeartShape);
+                MainframeTheme.Write(context, Text, new Rect(left + 17, 0, wide + 2, h), ink, TextSize);
+                return;
+            }
             MainframeTheme.Write(context, Text, Chevron ? new Rect(10, 0, Math.Max(0, w - 32), h) : new Rect(Bounds.Size), ink, TextSize, false, Chevron ? TextAlignment.Left : TextAlignment.Center);
+        }
+        private static IBrush Toward(Color from, Color to, double amount)
+        {
+            return new SolidColorBrush(Color.FromRgb((byte)(from.R + (to.R - from.R) * amount), (byte)(from.G + (to.G - from.G) * amount), (byte)(from.B + (to.B - from.B) * amount)));
         }
         internal virtual string TextFits()
         {

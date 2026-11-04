@@ -136,6 +136,11 @@ namespace CapriDesktop
         private readonly Dictionary<string, Action<int>> changes = new Dictionary<string, Action<int>>();
         private readonly List<Window> sheets = new List<Window>();
         private readonly DispatcherTimer status = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        // Support's heart beats twice every 7 seconds while her main page shows, and its rim lights with it (Lachy, 4 Nov).
+        private const double BeatMs = 7000;
+        private readonly DispatcherTimer heartbeat = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+        private readonly Stopwatch beatClock = Stopwatch.StartNew();
+        private readonly NeonButton support;
         private readonly NeonCaption brainName, brainNote, tierNote, voiceNote, updateNote;
         private readonly NeonButton more, advanced, minimize, close, setup, refresh, textConnect, voiceConnect, customVoice, showHide;
         private readonly NeonCaption build;
@@ -229,7 +234,9 @@ namespace CapriDesktop
             var voiceTest = Key("Test voice", 280, 499, 76, 22, () => { if (Program.Smoke == null) pet.HearStyle(); });
             items[items.Count - 1].When = () => pet.MainframeVoiceMode != 0;
             Section("CAPRI", 0, 540);
-            Key("Support", 280, 537, 76, 20, () => { if (Program.Smoke == null) Pet.Browse("https://ko-fi.com/lachysdev"); });
+            // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
+            support = Key("Support", 268, 539, 88, 18, () => { if (Program.Smoke == null) Pet.Browse("https://ko-fi.com/lachysdev"); });
+            support.Heart = true;
             showHide = Key("Hide Capri", 28, 562, 104, 28, pet.MainframeToggleHidden);
             Key("Bring here", 140, 562, 104, 28, pet.Bring);
             Key("Talk to her", 252, 562, 104, 28, () => pet.Talk.Open());
@@ -314,8 +321,9 @@ namespace CapriDesktop
             readers.Add(() => { security.Text = "Security: " + Security.PresetName; securityNote.Text = Security.Short; securityNote.InvalidateVisual(); });
             status.Tick += (_, _) => Sync();
             pet.SettingsChanged += Sync;
-            Opened += (_, _) => { Sync(); status.Start(); };
-            Closed += (_, _) => { closed = true; status.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
+            heartbeat.Tick += (_, _) => Heartbeat();
+            Opened += (_, _) => { Sync(); status.Start(); heartbeat.Start(); };
+            Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
             Closing += (_, e) => { if (!finishing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
             Sync();
         }
@@ -336,6 +344,25 @@ namespace CapriDesktop
         {
             var label = Caption(text, x + 28, y + 6, 146, 16);
             MainframeTips.Explain(label, text);
+        }
+        private void Heartbeat()
+        {
+            double swell = 1, beat = 0;
+            if (WindowState != WindowState.Minimized && support.IsVisible) Pulse(beatClock.Elapsed.TotalMilliseconds, out swell, out beat);
+            if (swell == support.Swell && beat == support.Beat) return;
+            support.Swell = swell; support.Beat = beat; support.InvalidateVisual();
+        }
+        // Where Support is in its beat: two quick swells of the heart, the rim lit across both, then rest.
+        internal static void Pulse(double ms, out double swell, out double beat)
+        {
+            double t = ms % BeatMs / BeatMs;
+            swell = Between(t, new[] { 0, .04, .08, .12, .16 }, new[] { 1, 1.22, 1, 1.12, 1 });
+            beat = Between(t, new[] { 0, .05, .13, .22 }, new[] { 0, 1, 1, 0.0 });
+        }
+        private static double Between(double t, double[] at, double[] value)
+        {
+            for (int i = 1; i < at.Length; i++) if (t < at[i]) return value[i - 1] + (value[i] - value[i - 1]) * (t - at[i - 1]) / (at[i] - at[i - 1]);
+            return value[value.Length - 1];
         }
         private NeonButton Key(string text, double x, double y, double width, double height, Action action)
         {
