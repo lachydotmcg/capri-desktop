@@ -112,7 +112,8 @@ namespace CapriDesktop
             Explain(freeSetup, "Get free voice");
             Explain(mics, "Mic: default", "Mainframe.cs", null, "Microphone");
             Explain(speakers, "Her speaker", "Mainframe.cs", null, "Her speaker");
-            Explain(screens, "Screens to watch", "Mainframe.cs", FindHintLabel("Screens"), "Screens to watch");
+            Explain(screens, "Screens", "Mainframe.cs", FindHintLabel("Screens"), "Screens to watch");
+            Explain(callApp, "Call app", "Mainframe.cs", callAppName, "Call app");
             Explain(shortcut, "KEYS >", "Mainframe.cs", null, "Talk key");
             Explain(muteShortcut, "Mic: default", "Mainframe.cs", null, "Mute mic key");
             Explain(voiceNote, "Mic: default", "Mainframe.cs", null, "Voice status");

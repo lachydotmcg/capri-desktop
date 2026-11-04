@@ -13909,9 +13909,11 @@ namespace CapriDesktop
             Sight desktopPage = new Sight { Window = new IntPtr(7), Program = "chrome", Title = "Geography - Wikipedia", Bounds = new Rectangle(0, 0, 800, 600) };
             Point desktopCursor = new Point(200, 200);
             Action<int, int> desktopMouse = Computer.SendMouse;
+            Func<List<Tune>> desktopMedia = Computer.ExploreMedia;
             int desktopWheels = 0;
             try
             {
+                Computer.ExploreMedia = delegate { return new List<Tune>(); };
                 Computer.SendMouse = delegate(int desktopFlags, int desktopData)
                 {
                     if (desktopFlags != 0x0800 || desktopData != -120) throw new Exception("Away exploring tried something other than a wheel step.");
@@ -13930,6 +13932,7 @@ namespace CapriDesktop
                 Sight videoPage = new Sight { Window = desktopPage.Window, Program = "chrome", Title = "Quiet song - YouTube", Bounds = desktopPage.Bounds };
                 Tune video = new Tune { App = "chrome.exe", Title = "Quiet song", Video = true };
                 System.Collections.Generic.List<Tune> media = new System.Collections.Generic.List<Tune> { video };
+                Computer.ExploreMedia = delegate { return media; };
                 bool paused = Computer.ExplorePaused(videoPage, media);
                 if (!paused || !Computer.ExploreAllowed(videoPage, false, paused)
                     || !Computer.ScrollAway(videoPage, videoPage.Bounds, videoPage, desktopCursor, desktopCursor, videoPage.Window, false, delegate { return true; }, paused)
@@ -13954,7 +13957,7 @@ namespace CapriDesktop
                     || Computer.ExploreAllowed(new Sight { Window = videoPage.Window, Program = "chrome", Title = "Checkout - Quiet song - YouTube" }, false, true)) throw new Exception("Paused media bypassed unknown playback, fullscreen or form checks.");
                 checks.Add("PASS away exploring scrolls matching paused media pages and rejects playing, loading, unknown or unrelated media and protected pages");
             }
-            finally { Computer.SendMouse = desktopMouse; }
+            finally { Computer.SendMouse = desktopMouse; Computer.ExploreMedia = desktopMedia; }
             checks.Add("PASS away exploring sends only a wheel through her hands, leaves their cursor alone, and rejects cancellation, moved cursors, other windows, unreadable pages, full screen, games and Computer's blocked title groups");
             foreach (string desktopTopic in new[] { "Hide in full screen", "Mini player over full screen", "Explore while I'm away", "Explore after" })
             {
@@ -16691,8 +16694,10 @@ namespace CapriDesktop
                 Computer.SendMouse = delegate(int flags, int data) { if (flags != 0x0800 || data != -120) throw new Exception("Exploring a paused video did more than scroll."); wheels++; };
                 Point at = new Point(200, 200);
                 if (!Computer.ExploreAllowed(page, false) || !Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }) || wheels != 1) throw new Exception("A paused YouTube page could not be explored.");
+                bool paused = Computer.ExplorePaused(page, sessions);
+                if (!paused || !Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }, paused) || wheels != 2) throw new Exception("A checked paused page could not be explored.");
                 video.Playing = true;
-                if (Computer.ExploreAllowed(page, false) || Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }) || wheels != 1) throw new Exception("Exploring did not stop when the browser resumed its video.");
+                if (Computer.ExploreAllowed(page, false) || Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }) || Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }, paused) || wheels != 2) throw new Exception("Exploring did not stop when the browser resumed its video.");
                 video.Playing = false; video.Changing = true;
                 if (Computer.ExploreAllowed(page, false)) throw new Exception("A browser changing media was treated as paused.");
                 video.Changing = false;
@@ -16715,7 +16720,7 @@ namespace CapriDesktop
                 sessions.Clear();
                 if (Computer.ExploreAllowed(page, false)) throw new Exception("A video with no media session was assumed paused.");
                 Computer.ExploreMedia = delegate { throw new IOException("Media unavailable"); };
-                if (Computer.ExploreAllowed(page, false) || !Computer.ExploreAllowed(new Sight { Window = page.Window, Program = "chrome", Title = "Geography - Wikipedia" }, false)) throw new Exception("Missing media information broke ordinary exploring or opened a video.");
+                if (Computer.ExploreAllowed(page, false) || Computer.ScrollAway(page, page.Bounds, page, at, at, page.Window, false, delegate { return true; }, paused) || wheels != 2 || !Computer.ExploreAllowed(new Sight { Window = page.Window, Program = "chrome", Title = "Geography - Wikipedia" }, false)) throw new Exception("Missing media information broke ordinary exploring or opened a video.");
                 checks.Add("PASS away exploring scrolls a matching paused YouTube page, rechecks before each wheel, and keeps playing tabs, unknown media, returning input and existing window checks out of the paused-page path");
             }
             finally { Computer.ExploreMedia = mediaWas; Computer.SendMouse = mouseWas; }
@@ -17886,6 +17891,10 @@ namespace CapriDesktop
                 { "how do I turn off chaos when upset?", "Chaos when upset" },
                 { "where did my settings go?", "Advanced Settings" },
                 { "what is the extras window?", "Extras" },
+                { "what is the call app setting?", "Call app" },
+                { "what is the call mode setting?", "Call mode" },
+                { "how do friend requests work?", "Friends on a call can ask, you confirm" },
+                { "what is the Screens to watch setting?", "Screens to watch" },
                 { "how do I put your voice in my mic?", "Her voice in your mic" }
             };
             for (int selfSample = 0; selfSample < selfSamples.GetLength(0); selfSample++)
@@ -27932,6 +27941,8 @@ namespace CapriDesktop
             Func<Rectangle, Bitmap> grabWas = Grab;
             string speakerWas = preferences.Speaker, screenWas = preferences.WatchScreen, chosenWas = Speaker.Chosen, outputWas = Speaker.DefaultId, waveOutputWas = Speaker.WaveDefaultId;
             bool waveWas = Speaker.SkipWave, simpleWas = simpleTest, advancedWas = preferences.AdvancedSettings, settingsWas = mainframe.SettingsShown, changingWas = changingVoice, tailWas = chatTail.Enabled;
+            bool shownWas = mainframe.Visible;
+            FormWindowState stateWas = mainframe.WindowState;
             int sizeWas = preferences.MainframeSize, answerWas = answerVoice, hdWas = hdSpeaking, ticketWas = watchTicket;
             double untilWas = voiceUntil, glanceWas = lastGlance, nextWas = nextGlance;
             byte[] printWas = lastPrint;
@@ -27973,7 +27984,7 @@ namespace CapriDesktop
                     Preferences loaded = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(old);
                     if (loaded.Speaker != null || loaded.WatchScreen != null || new Preferences().Speaker != null || new Preferences().WatchScreen != null) throw new Exception("Device choices changed old or new defaults.");
                 }
-                if (mainframe.SpeakerChoicesShown != "Default (follows Windows) (picked) | Speakers (stand-in) | Headphones (stand-in) | HDMI output (stand-in)" || notices.Count != 0 || SelfKnow.Setting("Mainframe.cs", "Her speaker") == null || SelfKnow.Setting("Mainframe.cs", "Screens to watch") == null) throw new Exception("Her device menus missed fake outputs or their help lines.");
+                if (mainframe.SpeakerChoicesShown != "Default (follows Windows) (picked) | Speakers (stand-in) | Headphones (stand-in) | HDMI output (stand-in)" || notices.Count != 0 || SelfKnow.Setting("Mainframe.cs", "Her speaker") == null || SelfKnow.Setting("Mainframe.cs", "Screens") == null) throw new Exception("Her device menus missed fake outputs or their help lines.");
                 mainframe.PickSpeakerChoice(2);
                 if (preferences.Speaker != "headphones" || Speaker.Chosen != "headphones" || LoadPreferences().Speaker != "headphones" || mainframe.SpeakerShown != "Her speaker: Headphones (stand-in)" || !mainframe.SpeakerChoicesShown.Contains("Headphones (stand-in) (picked)")) throw new Exception("Her speaker menu did not show, route or save its choice.");
                 preferences.Speaker = LoadPreferences().Speaker;
@@ -28097,8 +28108,12 @@ namespace CapriDesktop
                 RefreshSpeakers(); RefreshWatchScreens();
                 watchTicket = ticketWas; lastArea = areaWas; lastPrint = printWas; lastGlance = glanceWas; nextGlance = nextWas;
                 mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(sizeWas); mainframe.ShowSettings(settingsWas);
+                mainframe.WindowState = stateWas;
+                if (!shownWas) mainframe.Hide();
                 SavePreferences();
             }
+            if (mainframe.Visible != shownWas || mainframe.WindowState != stateWas || mainframe.SettingsShown != settingsWas || preferences.MainframeSize != sizeWas) throw new Exception("The device checks did not restore the Mainframe.");
+            checks.Add("PASS device checks restore the Mainframe window, page and size");
         }
 
         private static void SmokeSound(System.Collections.Generic.List<string> checks, string output)

@@ -1123,6 +1123,11 @@ namespace CapriDesktop
 
         internal static bool ScrollAway(Sight page, Rectangle bounds, Sight current, Point before, Point cursor, IntPtr under, bool full, Func<bool> away, bool paused = false)
         {
+            if (paused)
+            {
+                try { if (!ExplorePaused(current, ExploreMedia())) return false; }
+                catch (Exception) { return false; }
+            }
             if (page == null || current == null || !ExploreAllowed(current, full, paused) || current.Window != page.Window || current.Title != page.Title
                 || under != page.Window || before != cursor || bounds.IsEmpty || !bounds.Contains(cursor) || !away()) return false;
             SendMouse(0x0800, -120);

@@ -3051,7 +3051,7 @@ namespace CapriDesktop
                 for (int i = 0; i <= Security.Power; i++) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
                 return string.Join(" | ", want);
             };
-            string[] presetBits = { "00000000000", "11100000000", "11111110000", "11111111111" };
+            string[] presetBits = { "000000000000", "111000000000", "111111100000", "111111111110" };
             List<string> wrong = new List<string>();
             string first = pet.SecurityShown;
             bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, 0x7F);
@@ -3075,15 +3075,19 @@ namespace CapriDesktop
             pet.ClickSecurity(-1, Security.Open);
             bool back = Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000" && pet.SecurityShown == menu(Security.Trusted, 0x7F);
             bool windowsOnly = customShown.IndexOf("mouse and keyboard", StringComparison.Ordinal) < 0 && customShown.IndexOf("Hey Capri", StringComparison.Ordinal) < 0 && customShown.IndexOf("passwords", StringComparison.Ordinal) < 0 && customShown.IndexOf("Pay, buy", StringComparison.Ordinal) < 0;
-            bool lines = Security.PresetLine(Security.Trusted) == "She does what you ask without asking first." && Security.PresetLine(Security.Blackwall) == "Everything is on: she never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
+            bool lines = Security.PresetLine(Security.Trusted) == "She does what you ask without asking first." && Security.PresetLine(Security.Blackwall) == "She never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
             Settings older = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Model\":\"qwen3:8b\",\"Watch\":true}")));
             Security.Load(older.Permissions);
             bool olderTrusted = older.Permissions == null && Security.Preset == Security.Trusted;
+            Security.Load("0111111000");
+            bool olderBits = Security.Preset == Security.Custom && Security.Saved == "0111111000" && !Security.On(Security.Friends);
+            Security.Load("01111110001");
+            olderBits &= Security.On(Security.Friends) && Security.Saved == "01111110001";
             Security.Load("not toggles");
             bool unreadable = Security.Preset == Security.Trusted;
             Security.Load(pet.Saved.Permissions);
-            if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !unreadable)
-                throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + unreadable);
+            if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !olderBits || !unreadable)
+                throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + olderBits + " " + unreadable);
             checks.Add("PASS Security menu: Settings > Security starts on Trusted; Lockdown, Guarded, Trusted and Blackwall tick the toggles under them (the five Mac and Linux have, each with its plain line), a toggle click makes it Custom and is saved for next time, ticking it again is Trusted, and settings from before it, or unreadable ones, get Trusted");
 
             // A toggle that's off holds the call and she asks first; a yes runs it once, a no leaves it and anything else drops it.

@@ -545,7 +545,7 @@ namespace CapriDesktop
             micTest = Lower(Make("Test", 280, 382, 76, 28, delegate { capri.TestMic(); }));
             micTest.AccessibleName = "Test microphone input";
             speakerMenu = Dropdown();
-            speakers = Lower(Make("Her speaker: Default", 28, 418, 328, 28, delegate { ShowSpeakers(); }));
+            speakers = Lower(Make("Her speaker: Default", 28, 418, 328, 28, delegate { ShowSpeakers(); }, "Her speaker"));
             speakers.Chevron = true;
             speakers.Ellipsis = true;
             speakers.AccessibleName = "Her speaker: Default (follows Windows)";
@@ -813,7 +813,7 @@ namespace CapriDesktop
             watch.AccessibleName = "Watch my screen. She comments now and then about the desktop. Game comments have their own Comments setting under GAMES";
             Named("Screens", c, 260);
             screenMenu = Dropdown();
-            screens = Make("All screens", ValueAt + c, 263, ValueWide, 22, delegate { ShowScreens(); }, "Screens to watch");
+            screens = Make("All screens", ValueAt + c, 263, ValueWide, 22, delegate { ShowScreens(); }, "Screens");
             screens.Chevron = true;
             screens.Ellipsis = true;
             screens.AccessibleName = "Screens to watch: All screens";
