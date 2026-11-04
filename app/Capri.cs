@@ -27314,6 +27314,112 @@ namespace CapriDesktop
             }
         }
 
+        private static void TarEntry(Stream into, string name, char kind, byte[] body, string prefix = "")
+        {
+            byte[] header = new byte[512];
+            System.Text.Encoding.UTF8.GetBytes(name).CopyTo(header, 0);
+            System.Text.Encoding.ASCII.GetBytes("0000755\0").CopyTo(header, 100);
+            System.Text.Encoding.ASCII.GetBytes(Convert.ToString((long)body.Length, 8).PadLeft(11, '0') + "\0").CopyTo(header, 124);
+            for (int i = 148; i < 156; i++) header[i] = 32;
+            header[156] = (byte)kind;
+            System.Text.Encoding.ASCII.GetBytes("ustar\0" + "00").CopyTo(header, 257);
+            System.Text.Encoding.UTF8.GetBytes(prefix).CopyTo(header, 345);
+            int sum = 0;
+            foreach (byte b in header) sum += b;
+            System.Text.Encoding.ASCII.GetBytes(Convert.ToString(sum, 8).PadLeft(6, '0') + "\0 ").CopyTo(header, 148);
+            into.Write(header, 0, header.Length);
+            into.Write(body, 0, body.Length);
+            int padding = (512 - body.Length % 512) % 512;
+            into.Write(new byte[padding], 0, padding);
+        }
+
+        private static byte[] TarPax(string path)
+        {
+            string record = " path=" + path + "\n";
+            int length = System.Text.Encoding.UTF8.GetByteCount(record) + 1;
+            for (;;)
+            {
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(length.ToString(System.Globalization.CultureInfo.InvariantCulture) + record);
+                if (bytes.Length == length) return bytes;
+                length = bytes.Length;
+            }
+        }
+
+        private static void TarChecks(System.Collections.Generic.List<string> checks, string output)
+        {
+            string root = Path.Combine(output, "tar-reader-test"), into = Path.Combine(root, "into");
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+            Directory.CreateDirectory(root);
+            byte[] empty = new byte[0], small = { 7, 8, 9 }, large = new byte[(1 << 20) + 517];
+            new Random(60).NextBytes(large);
+            string longName = "pack/" + new string('n', 120) + ".bin", paxName = "pack/pax-\u00e9.txt", prefix = "pack/prefix/" + new string('p', 105);
+            try
+            {
+                using (MemoryStream tar = new MemoryStream())
+                {
+                    TarEntry(tar, "pack/", '5', empty);
+                    TarEntry(tar, "././@LongLink", 'L', System.Text.Encoding.UTF8.GetBytes(longName + "\0"));
+                    TarEntry(tar, "short.bin", '0', large);
+                    TarEntry(tar, "pack/after-gnu.bin", '\0', small);
+                    TarEntry(tar, "PaxHeader", 'x', TarPax(paxName));
+                    TarEntry(tar, "short.txt", '0', small);
+                    TarEntry(tar, "prefix.bin", '0', small, prefix);
+                    TarEntry(tar, "pack/nested/deep/", '5', empty);
+                    TarEntry(tar, "pack/nested/deep/empty.bin", '0', empty);
+                    TarEntry(tar, "GlobalHeader", 'g', TarPax("pack/global.bin"));
+                    TarEntry(tar, "pack/after-pax.bin", '0', small);
+                    foreach (char kind in new[] { '1', '2', '3', '7' }) TarEntry(tar, "pack/skipped-" + kind, kind, small);
+                    tar.Write(new byte[512], 0, 512);
+                    tar.WriteByte(1);
+                    tar.Position = 0;
+                    TarReader.Unpack(tar, into);
+                }
+                byte[] unpacked = File.ReadAllBytes(Path.Combine(into, longName));
+                if (!System.Linq.Enumerable.SequenceEqual(unpacked, large)) throw new Exception("The tar reader changed a file across its buffer boundary.");
+                foreach (string name in new[] { paxName, prefix + "/prefix.bin", "pack/after-gnu.bin", "pack/after-pax.bin" })
+                    if (!System.Linq.Enumerable.SequenceEqual(File.ReadAllBytes(Path.Combine(into, name)), small)) throw new Exception("The tar reader lost a name or file: " + name);
+                if (!Directory.Exists(Path.Combine(into, "pack/nested/deep")) || new FileInfo(Path.Combine(into, "pack/nested/deep/empty.bin")).Length != 0
+                    || Directory.GetFiles(into, "*", SearchOption.AllDirectories).Length != 6) throw new Exception("The tar reader lost an empty file or unpacked a skipped entry.");
+                checks.Add("PASS ears tar reader: an archive built in memory keeps GNU long names, a UTF-8 pax path, a ustar prefix, nested directories, NUL file types and an empty file; a file crosses 1 MB unchanged, links and other types are skipped, and the first zero block stops reading");
+                Directory.Delete(into, true);
+                foreach (string problem in new[] { "parent", "absolute", "drive", "prefix", "long", "pax", "checksum", "file", "header", "padding", "end" })
+                {
+                    byte[] broken;
+                    using (MemoryStream tar = new MemoryStream())
+                    {
+                        TarEntry(tar, "partial.bin", '0', small);
+                        int at = (int)tar.Position;
+                        if (problem == "parent") TarEntry(tar, "../escaped.bin", '0', small);
+                        else if (problem == "absolute") TarEntry(tar, "/escaped.bin", '0', small);
+                        else if (problem == "drive") TarEntry(tar, "C:\\escaped.bin", '0', small);
+                        else if (problem == "prefix") TarEntry(tar, "escaped.bin", '0', small, "..");
+                        else if (problem == "long")
+                        {
+                            TarEntry(tar, "LongLink", 'L', System.Text.Encoding.UTF8.GetBytes("../escaped.bin\0"));
+                            TarEntry(tar, "short.bin", '0', small);
+                        }
+                        else if (problem == "pax")
+                        {
+                            TarEntry(tar, "PaxHeader", 'x', TarPax("../escaped.bin"));
+                            TarEntry(tar, "short.bin", '0', small);
+                        }
+                        else TarEntry(tar, "file.bin", '0', large);
+                        broken = tar.ToArray();
+                        if (problem == "checksum") broken[at] ^= 1;
+                        else if (problem == "file") Array.Resize(ref broken, at + 512 + 17);
+                        else if (problem == "header") Array.Resize(ref broken, at + 100);
+                        else if (problem == "padding") Array.Resize(ref broken, broken.Length - 1);
+                    }
+                    string message = null;
+                    try { using (MemoryStream tar = new MemoryStream(broken)) TarReader.Unpack(tar, into); }
+                    catch (IOException error) { message = error.Message; }
+                    if (message != "The ears download is damaged." || Directory.Exists(into) || File.Exists(Path.Combine(root, "escaped.bin"))) throw new Exception("The tar reader left files or the wrong error for " + problem + ": " + message);
+                    checks.Add("PASS ears tar reader refuses " + problem + " with the damaged-download error and removes the unpacked folder");
+                }
+            }
+            finally { if (Directory.Exists(root)) Directory.Delete(root, true); }
+        }
+
         internal void StartSmokeTest(string output, SmokeOptions options)
         {
             // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
@@ -37035,6 +37141,7 @@ namespace CapriDesktop
                             if (!vsHintPlace.StartsWith("fits", StringComparison.Ordinal)) throw new Exception("Fish Audio's voice panel has controls on top of each other: " + vsHintPlace);
                             checks.Add("PASS voice panel hint: Fish Audio's hint, consent line and all, moves Voice from and the rows under it down instead of running under them, and nothing in the panel overlaps");
                             checks.Add("PASS voice models:Fish Audio or OpenAI under CLOUD VOICE opens a panel with only those two, starting on Fish Audio's cloud with its free tier's model and no Address box, since their addresses never change, and CUSTOM LOCAL's Set up opens one with only a voice model file, Fish Speech on your PC, Kokoro or any OpenAI-style server, which her own voices' menu no longer lists; each row keeps its own setup and key (one waits aside while the other is in use, and its panel shows only its own key), and picking the row brings it back and says her check line through it; CLOUD VOICE's menu lists Fish Audio first and starts on it when there's no ElevenLabs key, stays up with Set up Fish Audio... while nothing's set up, and keeps the service used there last; a voice model file (Piper, Kokoro or Kitten for sherpa-onnx, told apart by its files) asks for its folder, language and speaker with Browse in place of a key, and a .tar.bz2 or .zip of one is unpacked into her models folder (one with no model is refused in plain words); Test speaks through it before anything's saved and Use this server keeps it, the key sealed like her other keys (a blank box keeps it for that server only, Forget drops it); she POSTs only the words to /v1/audio/speech with a Bearer key when there is one, and to Fish Audio's /v1/tts with the voice's ID from its fish.audio link and its model in a header; a picked Fish Audio shows by name; a 16-bit 22 kHz WAV, a float WAV streamed in chunks" + (vsMp3 != null ? " and an MP3" : "") + " become her 24 kHz voice; her pitch moves it and its own robot and glitch (saved apart, shown as · server) change it; a 404, a 500, a refused key, no answer within its 20 s (0.8 s here) or no server at all hand the line to her free voice and say why once; picking one of her own styles or HD turns it off and keeps it saved");
+                            TarChecks(checks, output);
                             string earsRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "ears-test");
                             if (Directory.Exists(earsRoot)) Directory.Delete(earsRoot, true);
                             string earsSource = Path.Combine(earsRoot, "source");
@@ -37155,6 +37262,7 @@ namespace CapriDesktop
                             bool systemBzip = LocalEars.SystemBzip;
                             int tarTimeout = LocalEars.TarTimeout;
                             Func<ProcessStartInfo, Process> tarStart = LocalEars.StartTar;
+                            string tarPath = LocalEars.TarPath;
                             string tarUrl = LocalEars.PackUrl, tarSha = LocalEars.PackSha;
                             long tarSize = LocalEars.PackSize;
                             string unpackedSha = "", trickySha = "", damagedProblem = null;
@@ -37171,7 +37279,19 @@ namespace CapriDesktop
                                 }
                                 emptyKept = File.Exists(Path.Combine(Path.Combine(bunzipInto, "pack"), "empty.bin"));
                                 cleaned = !File.Exists(bunzipTar) && !File.Exists(Path.Combine(bunzipRoot, "pack.tar"));
-                                foreach (string tarTest in new[] { "pipes", "failure", "start", "hang", "plain-hang", "plain-failure", "plain-empty" })
+                                File.WriteAllBytes(bunzipTar, bunzipPack);
+                                File.WriteAllText(Path.Combine(bunzipInto, "partial.txt"), "partial");
+                                LocalEars.TarPath = Path.Combine(bunzipRoot, "missing-tar.exe");
+                                LocalEars.SystemBzip = true;
+                                LocalEars.StartTar = delegate { throw new Exception("She tried starting a missing tar.exe."); };
+                                LocalEars.Untar(bunzipTar, bunzipInto);
+                                if (shaOf(File.ReadAllBytes(Path.Combine(Path.Combine(bunzipInto, "pack"), "tricky.bin"))) != shaOf(trickyBytes)
+                                    || new FileInfo(Path.Combine(Path.Combine(bunzipInto, "pack"), "empty.bin")).Length != 0 || File.Exists(Path.Combine(bunzipInto, "partial.txt"))
+                                    || File.Exists(bunzipTar) || File.Exists(Path.ChangeExtension(bunzipTar, null))) throw new Exception("Her ears did not unpack without tar.exe.");
+                                LocalEars.TarPath = tarPath;
+                                LocalEars.StartTar = tarStart;
+                                checks.Add("PASS ears without tar.exe: a missing TarPath uses Bunzip and her tar reader, keeps the files unchanged and removes the plain archive and stale folder contents");
+                                foreach (string tarTest in new[] { "pipes", "failure", "start", "hang", "plain-hang", "plain-failure", "plain-empty", "plain-start" })
                                 {
                                     string tarInstallRoot = Path.Combine(bunzipRoot, "install");
                                     string tarFolder = Path.Combine(Path.Combine(tarInstallRoot, "ears"), LocalEars.Pack);
@@ -37200,7 +37320,7 @@ namespace CapriDesktop
                                                 return tarStart(info);
                                             }
                                             File.WriteAllText(tarPartial, "partial");
-                                            if (tarTest == "start") throw new System.ComponentModel.Win32Exception(2);
+                                            if (tarTest == "start" || tarTest == "plain-start") throw new System.ComponentModel.Win32Exception(2);
                                             if (tarTest == "failure" || tarTest == "plain-failure" || tarTest == "plain-empty")
                                             {
                                                 info.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
@@ -37246,12 +37366,9 @@ namespace CapriDesktop
                                         {
                                             try { LocalEars.Untar(bunzipTar, bunzipInto); }
                                             catch (IOException problem) { tarProblem = problem.Message; }
-                                            if (tarTest == "plain-hang" || tarTest == "plain-failure" || tarTest == "plain-empty")
-                                            {
-                                                string expected = "Couldn't unpack her ears: " + (tarTest == "plain-hang" ? "Windows tar took too long." : tarTest == "plain-empty" ? "Windows tar couldn't unpack the download." : "tar test failed");
-                                                if (tarProblem != expected || Directory.Exists(bunzipInto)) throw new Exception("Failed plain tar left files or the wrong problem: " + tarProblem);
-                                            }
-                                            else if (tarProblem != null || shaOf(File.ReadAllBytes(Path.Combine(Path.Combine(bunzipInto, "pack"), "tricky.bin"))) != shaOf(trickyBytes))
+                                            tarWaited.Stop();
+                                            if (tarProblem != null || shaOf(File.ReadAllBytes(Path.Combine(Path.Combine(bunzipInto, "pack"), "tricky.bin"))) != shaOf(trickyBytes)
+                                                || (tarTest != "pipes" && File.Exists(tarPartial)))
                                                 throw new Exception("Tar did not unpack after " + tarTest + ": " + tarProblem);
                                         }
                                         if (tarCalls != (LocalEars.SystemBzip ? 2 : 1) || File.Exists(Path.Combine(bunzipRoot, "pack.tar"))) throw new Exception("Tar used the wrong path or left its plain archive after " + tarTest + ".");
@@ -37265,7 +37382,7 @@ namespace CapriDesktop
                                         if (tarChild != null) tarChild.Dispose();
                                     }
                                 }
-                                checks.Add("PASS ears tar: both output pipes drain; a failed or missing tar falls back; a hung tar and its child are killed at the test timeout and setup finishes through bzip2; failed plain tar leaves no unpacked folder or plain archive");
+                                checks.Add("PASS ears tar: both output pipes drain; failed compressed tar falls back to Bunzip then plain tar; failed, missing, empty-error or timed-out plain tar falls back to her reader; a hung tar and its child are killed, partial files are cleared and no plain archive stays behind");
                                 LocalEars.SystemBzip = false;
                                 Directory.CreateDirectory(bunzipInto);
                                 File.WriteAllText(Path.Combine(bunzipInto, "partial.txt"), "partial");
@@ -37279,6 +37396,7 @@ namespace CapriDesktop
                                 LocalEars.SystemBzip = systemBzip;
                                 LocalEars.TarTimeout = tarTimeout;
                                 LocalEars.StartTar = tarStart;
+                                LocalEars.TarPath = tarPath;
                                 LocalEars.PackUrl = tarUrl;
                                 LocalEars.PackSha = tarSha;
                                 LocalEars.PackSize = tarSize;
