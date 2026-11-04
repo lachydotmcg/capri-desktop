@@ -21,12 +21,12 @@ jobs:
       - uses: actions/checkout@v5
       - name: Build and smoke test
         shell: pwsh
-        run: ./ci/build-windows.ps1 -OutputDirectory out/windows
+        run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 180
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: smoke-windows
-          path: out/windows.
+          path: out/windows/smoke
 
   linux:
     runs-on: ubuntu-24.04
