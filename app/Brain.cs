@@ -1649,7 +1649,7 @@ namespace CapriDesktop
             {
                 if (error.Response != null)
                 {
-                    BrainException failure = Problem(error, true, kind);
+                    BrainException failure = Problem(error, true, kind, key);
                     if (OtherDoor(key, request.RequestUri.AbsoluteUri, failure))
                     {
                         try { return CloudModels(key, freeOnly); }
@@ -3848,14 +3848,16 @@ namespace CapriDesktop
             string url = error.Response.ResponseUri.AbsoluteUri;
             int status = (int)((HttpWebResponse)error.Response).StatusCode;
             string retry = error.Response.Headers["Retry-After"];
+            string broken = null;
             using (WebResponse response = error.Response)
             {
                 // An error page that breaks off still has its status, which says what went wrong, like a rejected key.
                 try { using (StreamReader incoming = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) text = incoming.ReadToEnd(); }
-                catch (IOException failure) { Log(url, -1, failure.Message); }
-                catch (WebException failure) { Log(url, -1, failure.Message); }
-                catch (ObjectDisposedException failure) { Log(url, -1, failure.Message); }
+                catch (IOException failure) { broken = failure.Message; }
+                catch (WebException failure) { broken = failure.Message; }
+                catch (ObjectDisposedException failure) { broken = failure.Message; }
             }
+            if (broken != null) Log(url, -1, string.IsNullOrEmpty(secret) ? broken : broken.Replace(secret, "[redacted]"));
             string said = ProblemText(text);
             if (string.IsNullOrWhiteSpace(said)) said = error.Message;
             if (!string.IsNullOrEmpty(secret)) said = said.Replace(secret, "[redacted]");
