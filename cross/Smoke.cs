@@ -1879,8 +1879,9 @@ namespace CapriDesktop
                     if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
                 foreach (string fact in new[] { "BRAIN, VOICE and CAPRI", "Simple Settings", "Advanced Settings", "CAPRI > Mods", "colour sets and skins", "Code/Husk Mode", "OpenAI-compatible", "Check in on me", "Head pats", "Follow-up messages", "Keep PC awake for jobs", "Obsidian vault" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
+                // Whole words, so "requests for your OK" isn't read as Quest.
                 foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "code mods", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
-                    if (News.Facts.IndexOf(windowsOnly, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Cross update help promised " + windowsOnly);
+                    if (Regex.IsMatch(News.Facts, @"\b" + Regex.Escape(windowsOnly) + @"\b", RegexOptions.IgnoreCase)) throw new Exception("Cross update help promised " + windowsOnly);
                 foreach (string ordinary in new[] { "what changed in my game?", "what's new in Cyberpunk?", "I bought new shoes" })
                     if (News.Matching(ordinary) != null) throw new Exception("Cross update help matched ordinary chat.");
                 pet.Talk.Dismiss(); pet.Think = null; pet.Hear("what's new?");
