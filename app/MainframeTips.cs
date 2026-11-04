@@ -114,6 +114,7 @@ namespace CapriDesktop
             Explain(voiceNote, "Mic: default", "Mainframe.cs", null, "Voice status");
             foreach (Key fix in hearingFixes) Explain(fix, "Hearing status", "Mainframe.cs", null, "Hearing fix");
             Explain(hearingChoice, "Hearing engine", "Mainframe.cs", null, "Hearing");
+            Explain(micLoudness, "Her voice in your mic: loudness", "Mainframe.cs", micLoudnessName, "Her voice in your mic: loudness");
             Explain(showHide, "Hide Capri", "Mainframe.cs", null, "Hide / Show Capri");
             Explain(perch, "Ride cursor", "Mainframe.cs", null, "Ride cursor / Hop off");
             foreach (Control control in Controls)

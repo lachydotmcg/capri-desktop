@@ -892,6 +892,7 @@ namespace CapriDesktop
         [DataMember] public bool HdGameRest;
         // Her voice in your mic (F66): their mic and her voice go into VB-CABLE's input for Discord or Roblox. Off out of the box.
         [DataMember] public bool VoiceInMic;
+        [DataMember] public int MicLoudness = 100;
         // Her voice in your mic's Input and Output on Settings: the mic it hears, null for the one her ears use, and the cable it
         // plays into, null for VB-CABLE's before Steam's. Endpoint ids.
         [DataMember] public string MixMic;
@@ -983,6 +984,7 @@ namespace CapriDesktop
         private void Defaults(StreamingContext context)
         {
             VoiceSpeed = 100;
+            MicLoudness = 100;
             HdRobot = VoiceFx.HdRobotDefault;
             LayerPitch1 = VoiceFx.Layering.HigherPitch;
             LayerDelay1 = VoiceFx.Layering.Behind;
@@ -1032,7 +1034,7 @@ namespace CapriDesktop
         }
 
         [OnDeserialized]
-        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); }
+        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MicLoudness = MicMix.Level(MicLoudness); }
 
         internal bool CareOn(CareKind kind)
         {
@@ -5741,6 +5743,15 @@ namespace CapriDesktop
 
         internal string VoiceInMicProblem { get { MicMix running = micMix; return running == null ? null : running.Problem; } }
 
+        internal int MicLoudness { get { return MicMix.Level(preferences.MicLoudness); } }
+
+        internal void SetMicLoudness(int percent)
+        {
+            preferences.MicLoudness = MicMix.Level(percent);
+            if (micMix != null) micMix.Loudness = preferences.MicLoudness;
+            SavePreferences();
+        }
+
         // Where VB-CABLE's setup is at, for Settings' line under the note, or null before Set up.
         internal string CableSetupLine { get { return cableSetupLine; } }
 
@@ -5834,6 +5845,7 @@ namespace CapriDesktop
             if (preferences.VoiceInMic && micMix == null)
             {
                 micMix = new MicMix(MicMix.Devices, null);
+                micMix.Loudness = MicLoudness;
                 micMix.Chosen = MixMicPick;
                 micMix.CableChosen = preferences.MixCable;
                 micMix.Start();
@@ -6064,6 +6076,7 @@ namespace CapriDesktop
         {
             Voice.Loudness = Math.Max(0, Math.Min(150, percent));
             preferences.Volume = Voice.Loudness;
+            if (Voice.Loudness == 0) { BargeIn("voice volume muted"); Hush(); }
             SavePreferences();
         }
 
@@ -11708,6 +11721,7 @@ namespace CapriDesktop
 
         private void ChatHeard(string text)
         {
+            speaker.EndAnswer();
             if (CallModeOn) return;
             if (!chatting || !VoiceForHer(text)) return;
             WakeRest(!SleepBusy);
@@ -11874,6 +11888,7 @@ namespace CapriDesktop
         private void Rest()
         {
             if (!chatting) return;
+            speaker.EndAnswer();
             Agent closing = agent;
             agent = null;
             chatTicket++;
@@ -12288,11 +12303,11 @@ namespace CapriDesktop
             }
         }
 
-        private void CloseTalk()
+        private void CloseTalk(bool cut = true)
         {
             answerTurn++;
             CancelAnswerAudio();
-            voice.Stop();
+            if (cut) voice.Stop(); else voice.Finish();
             Sfx.Untype();
             hdSpeaking = -1;
             voiceUntil = 0;
@@ -12324,7 +12339,7 @@ namespace CapriDesktop
             bool comment = remarkTicket == asking;
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
             if (replyDone >= 0 && hdSpeaking != asking && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
-            if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(); return; }
+            if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(false); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
@@ -25234,6 +25249,9 @@ namespace CapriDesktop
             bool quietWas = preferences.Quiet, silentWas = preferences.Silent, servedWas = preferences.ServerVoice, hdWas = preferences.HdVoice;
             bool localWas = local, chattingWas = chatting, readyWas = earsReady, mutedWas = ears.Muted, transcribingWas = transcribing, nameWas = preferences.ListenCapri;
             bool brokenWas = voiceBroken, brokeWas = voiceBroke, asideWas = asideVoiceTest;
+            bool callWas = CallModeOn, savedCallWas = preferences.CallMode;
+            int callAnswerWas = callAnswer, offTurnWas = voiceOffTurn;
+            int volumeWas = preferences.Volume, volumeLevelWas = Voice.Loudness;
             int waitWas = VoiceWait, freeWaitWas = FreeWait, typingWas = preferences.Typing;
             Job jobWas = job;
             string workingWas = working, logWas = Brain.LogPath, keyWas = voice.Key;
@@ -25279,7 +25297,42 @@ namespace CapriDesktop
                     WaitVoice(delegate { return entered.WaitOne(0); }, "The fake voice did not start.");
                     if (afterText) WaitVoice(delegate { return reply == line; }, "The pending voice hid its text fallback.");
                     double textStart = replyStart;
-                    BargeIn();
+                    MicMix cutWas = MicMix.Current;
+                    double[] cutNow = { 0 };
+                    StandInDevices cutPc = MixPc(cutNow, 48000, 48000);
+                    cutPc.Level = 0;
+                    using (MicMix cutMix = new MicMix(cutPc, delegate { return cutNow[0]; }))
+                    {
+                        try
+                        {
+                            cutMix.Step();
+                            MicMix.Current = cutMix;
+                            WaitSound(delegate { return !MicAnswer.Writing; }, "Earlier cable delivery notes did not finish.");
+                            int reportsBefore = Regex.Matches(File.ReadAllText(log), @"\| mic delivery \|").Count;
+                            voice.Play(wav);
+                            RunMix(cutMix, cutPc, cutNow, 0.12, null);
+                            if (afterText)
+                            {
+                                int beforeBarge = bargeIns;
+                                QueueBargeIn(ticket, audio, "call talk-over");
+                                WaitVoice(delegate { return bargeIns > beforeBarge; }, "A friend's talk-over did not stop her.");
+                            }
+                            else BargeIn();
+                            if (cutMix.Waiting != 0) throw new Exception("Talking over her left voice queued for the cable.");
+                            int cutAt = cutPc.Cables[0].Kept.Length;
+                            RunMix(cutMix, cutPc, cutNow, 0.25, null);
+                            float[] cutSound = cutPc.Cables[0].Kept;
+                            for (int at = cutAt; at < cutSound.Length; at++)
+                                if (Math.Abs(cutSound[at]) > 0.00001) throw new Exception("Talking over her left the cable playing waiting speech.");
+                            WaitSound(delegate { return !MicAnswer.Writing; }, "The cut-off answer did not log its cable delivery.");
+                            MatchCollection reports = Regex.Matches(File.ReadAllText(log), @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
+                            if (reports.Count != reportsBefore + 1) throw new Exception("A cut-off answer did not log exactly once.");
+                            Match report = reports[reports.Count - 1];
+                            double cableSeconds = double.Parse(report.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+                            if (report.Groups[1].Value != "1.000" || cableSeconds <= 0 || cableSeconds >= 0.5) throw new Exception("A cut-off answer's cable count included unplayed speech.");
+                        }
+                        finally { cutMix.Stop(); MicMix.Current = cutWas; }
+                    }
                     if (answerTurn != turn || audioTurn == audio || answerVoice != -1 || hdSpeaking != -1) throw new Exception("Talking over her cancelled the answer's text or kept its pending audio.");
                     release.Set();
                     WaitVoice(delegate { return completed(turn) && reply == line; }, "An interrupted answer lost its text or never completed.");
@@ -25288,6 +25341,8 @@ namespace CapriDesktop
                     checks.Add(afterText ? "PASS talking over her after text appears keeps that text and rejects the late WAV" : "PASS talking over her before text appears keeps its fallback and rejects the late WAV");
                     CloseTalk();
                 }
+
+                checks.Add("PASS talking over her drops both waiting packets and speech already held by the cable resampler");
 
                 foreach (bool failOld in new[] { false, true })
                 {
@@ -25413,6 +25468,56 @@ namespace CapriDesktop
                     if (!logged.Contains(" | voice interruption | - | " + source + " answer=") || !logged.Contains("played_ms=") || !logged.Contains("remaining_ms=")) throw new Exception("An interruption source or playback timing was missing from her log.");
                 if (logged.Contains("Private ") || logged.Contains("ticket35-private-key-marker")) throw new Exception("Voice interruption diagnostics included speech or a key.");
                 checks.Add("PASS voice interruption logs name the source with generations and playback timing without reply text or keys");
+                foreach (string stop in new[] { "Stop", "mute", "volume mute", "call ending" })
+                {
+                    local = chatting = false;
+                    preferences.Silent = false;
+                    preferences.Volume = 100;
+                    Voice.Loudness = 100;
+                    MicMix currentWas = MicMix.Current;
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0;
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    {
+                        try
+                        {
+                            mix.Step();
+                            MicMix.Current = mix;
+                            voice.Play(wav);
+                            speaker.Open(24000);
+                            speaker.Play(samples);
+                            RunMix(mix, pc, now, 0.1, null);
+                            bool sounded = false;
+                            foreach (float sample in pc.Cables[0].Kept) if (Math.Abs(sample) > 0.01) sounded = true;
+                            if (!sounded) throw new Exception("The " + stop + " check sent no voice to the cable.");
+                            if (stop == "Stop") { voice.Stop(); Hush(); }
+                            else if (stop == "mute") Silence(false);
+                            else if (stop == "volume mute")
+                            {
+                                SetVolume(0);
+                                voice.Play(wav);
+                                speaker.Play(samples);
+                            }
+                            else
+                            {
+                                voice.Finish();
+                                callSession.Change(true);
+                                preferences.CallMode = true;
+                                callAnswer = -1;
+                                ToggleCallMode();
+                            }
+                            int stoppedAt = pc.Cables[0].Kept.Length;
+                            RunMix(mix, pc, now, 0.25, null);
+                            float[] got = pc.Cables[0].Kept;
+                            if (mix.Waiting != 0) throw new Exception(stop + " left her cable voice queued.");
+                            for (int at = stoppedAt; at < got.Length; at++)
+                                if (Math.Abs(got[at]) > 0.00001) throw new Exception(stop + " left waiting speech in the cable.");
+                        }
+                        finally { voice.Stop(); Hush(); mix.Stop(); MicMix.Current = currentWas; }
+                    }
+                }
+                checks.Add("PASS Stop, voice off, volume mute and ending call mode drop queued WAV and streamed voice, including a finished answer's tail whose ticket is no longer current");
                 checks.Add("LIMIT ticket 35 guards a confirmed delivery race; the recorded two-word cutoff and live mic echo still need device reproduction, and in-flight paid requests are not cancelled");
             }
             finally
@@ -25425,6 +25530,8 @@ namespace CapriDesktop
                 preferences.Typing = typingWas; VoiceWait = waitWas; FreeWait = freeWaitWas;
                 local = localWas; chatting = chattingWas; earsReady = readyWas; ears.Muted = mutedWas; transcribing = transcribingWas; nameOver = false;
                 voiceBroken = brokenWas; voiceBroke = brokeWas; asideVoiceTest = asideWas;
+                callSession.Change(callWas); preferences.CallMode = savedCallWas; callAnswer = callAnswerWas; typer.CallMode = callWas; voiceOffTurn = offTurnWas;
+                preferences.Volume = volumeWas; Voice.Loudness = volumeLevelWas;
                 job = jobWas; working = workingWas; Brain.LogPath = logWas; voice.Key = keyWas;
                 spokenLevels = null;
                 talkOver.Reset(); wakeOver.Reset();
@@ -25963,7 +26070,7 @@ namespace CapriDesktop
         {
             private readonly Func<double> clock;
             private readonly double opened;
-            private readonly int rate, period;
+            private readonly int rate, period, room;
             private readonly object gate = new object();
             private readonly System.Collections.Generic.List<float> kept = new System.Collections.Generic.List<float>();
             // Where each period Windows took started in what it was given, and when it took it.
@@ -25974,15 +26081,17 @@ namespace CapriDesktop
             internal int Starved;
             internal volatile bool Lost, Disposed;
 
-            internal StandInCable(Func<double> clock, int rate)
+            internal StandInCable(Func<double> clock, int rate, int frames = 0)
             {
                 this.clock = clock;
                 this.rate = rate;
-                period = rate / 100;
+                room = frames > 0 ? frames : rate / 20;
+                period = Math.Min(rate / 100, Math.Max(1, room / 2));
                 opened = clock();
             }
 
             public int Rate { get { return rate; } }
+            public int Room { get { return room; } }
             public int Period { get { return period; } }
             public WaitHandle Ready { get { return null; } }
 
@@ -26015,6 +26124,7 @@ namespace CapriDesktop
                 lock (gate)
                 {
                     Take();
+                    if (count > room - (kept.Count - played)) throw new MixLost("Stand-in cable is full.");
                     for (int i = 0; i < count; i++) kept.Add(mono[i]);
                 }
             }
@@ -26045,6 +26155,7 @@ namespace CapriDesktop
             internal readonly System.Collections.Generic.List<MixDevice> Mics = new System.Collections.Generic.List<MixDevice>();
             internal string DefaultMic;
             internal int MicRate = 48000, CableRate = 48000;
+            internal int CableRoom;
             internal double Level = 0.25, Fast = 1, Phase, Late;
             internal long Click = -1;
             // Each mic's hum, by id. Any other hums at 440 Hz.
@@ -26096,7 +26207,7 @@ namespace CapriDesktop
             public IMixCable OpenCable(MixDevice cable)
             {
                 if (CableBusy) throw new MixLost("Stand-in cable busy (0x88890008).");
-                StandInCable made = new StandInCable(Clock, CableRate);
+                StandInCable made = new StandInCable(Clock, CableRate, CableRoom);
                 lock (Cables) Cables.Add(made);
                 return made;
             }
@@ -26207,7 +26318,7 @@ namespace CapriDesktop
                             outputSpeaker.Play(sound);
                             WaitSound(delegate { return outputs.Count == 2 && outputSpeaker.ModernPlayed >= sound.Length; }, "The next voice chunk didn't reopen a failed stream.");
                             outputVoice.Play(Voice.Wave(sound, soundRate));
-                            WaitSound(delegate { return outputs.Count == 3 && outputSpeaker.ModernPlayed >= sound.Length; }, "A second finished voice line reused a closed stream.");
+                            WaitSound(delegate { return outputs.Count == 2 && outputSpeaker.ModernPlayed >= sound.Length * 2; }, "A second finished voice line did not join the open stream.");
                             outputVoice.Stop();
                             if (outputSpeaker.Modern) throw new Exception("Stopping a voice left its stream open.");
                         }
@@ -26388,6 +26499,201 @@ namespace CapriDesktop
         private static string Db(double level) { return (20 * Math.Log10(Math.Max(1e-9, level))).ToString("0", System.Globalization.CultureInfo.InvariantCulture); }
 
         // Her voice in your mic (F66) on stand-in devices and a pretend clock: no real device opens.
+        private void SmokeMicLoudness(System.Collections.Generic.List<string> checks)
+        {
+            int loudnessWas = preferences.MicLoudness, sizeWas = preferences.MainframeSize, speakerWas = Voice.Loudness;
+            bool simpleWas = simpleTest, advancedWas = preferences.AdvancedSettings, hdWas = preferences.HdVoice, settingsWas = mainframe.SettingsShown;
+            MicMix mixWas = micMix;
+            double[] now = { 0 };
+            StandInDevices pc = MixPc(now, 48000, 48000);
+            using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+            {
+                try
+                {
+                    micMix = mix;
+                    mix.Loudness = MicLoudness;
+                    mix.Step();
+                    mainframe.ShowVoiceInMic();
+                    for (int step = 0; step < 16; step++)
+                    {
+                        mainframe.SlideMicLoudness(step);
+                        int expected = 50 + step * 10;
+                        if (MicLoudness != expected || mix.Loudness != expected || LoadPreferences().MicLoudness != expected || mainframe.MicLoudnessShown != expected + "%" || Voice.Loudness != speakerWas)
+                            throw new Exception("Her mic loudness slider did not save or reach the mix at " + expected + "%.");
+                    }
+                    mainframe.SlideMicLoudness(5);
+                    if (SelfKnow.Setting("Mainframe.cs", "Her voice in your mic: loudness") == null) throw new Exception("Her mic loudness has no help line.");
+                    foreach (int size in new[] { 100, 150, 200 })
+                        foreach (bool simple in new[] { false, true })
+                            foreach (bool hd in new[] { false, true })
+                            {
+                                preferences.AdvancedSettings = false;
+                                simpleTest = simple;
+                                preferences.HdVoice = hd;
+                                mainframe.SizeMainframe(size);
+                                mainframe.ShowSettings(true);
+                                string problem = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                                if (problem != null || mainframe.MicLoudnessShown != "100%") throw new Exception("Her mic loudness row does not fit at " + size + "%: " + problem);
+                            }
+                    DataContractJsonSerializer json = new DataContractJsonSerializer(typeof(Preferences));
+                    foreach (string saved in new[] { "{}", "{\"MicLoudness\":-10}", "{\"MicLoudness\":999}", "{\"MicLoudness\":126}" })
+                        using (MemoryStream input = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(saved)))
+                        {
+                            Preferences loaded = (Preferences)json.ReadObject(input);
+                            int expected = saved == "{}" ? 100 : saved.Contains("-10") ? 50 : saved.Contains("999") ? 200 : 130;
+                            if (loaded.MicLoudness != expected || new Preferences().MicLoudness != 100) throw new Exception("Her mic loudness default or saved range is wrong.");
+                        }
+                    checks.Add("PASS the mic loudness slider saves all 16 steps from 50% to 200%, updates the running mix, defaults to 100% in new and old settings, clamps saved values, and fits Simple and Advanced Settings with HD on or off at 100, 150 and 200%");
+                }
+                finally
+                {
+                    micMix = mixWas;
+                    preferences.MicLoudness = loudnessWas;
+                    preferences.AdvancedSettings = advancedWas;
+                    preferences.HdVoice = hdWas;
+                    simpleTest = simpleWas;
+                    mainframe.SizeMainframe(sizeWas);
+                    SavePreferences();
+                    mainframe.ShowSettings(settingsWas);
+                }
+            }
+        }
+
+        private static void MixLog(string path, int count, double seconds)
+        {
+            WaitSound(delegate { return !MicAnswer.Writing; }, "Her cable delivery log did not finish.");
+            MatchCollection reports = Regex.Matches(File.ReadAllText(path), @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
+            if (reports.Count != count) throw new Exception("Her cable log wrote " + reports.Count + " lines for " + count + " answers.");
+            foreach (Match report in reports)
+            {
+                double given = double.Parse(report.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                double reached = double.Parse(report.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+                if (Math.Abs(given - seconds) > 0.001 || Math.Abs(reached - seconds) > 0.001) throw new Exception("Her cable log lost speech: " + report.Value);
+            }
+        }
+
+        private static void SmokeMicDelivery(System.Collections.Generic.List<string> checks, string output)
+        {
+            MicMix currentWas = MicMix.Current;
+            string logWas = Brain.LogPath;
+            int loudnessWas = Voice.Loudness;
+            bool waveWas = Speaker.SkipWave;
+            try
+            {
+                WaitSound(delegate { return !MicAnswer.Writing && !MicMix.Noting; }, "Earlier cable notes did not finish.");
+                Voice.Loudness = 100;
+                foreach (int room in new[] { 0, 128, 256, 512 })
+                  foreach (bool separate in new[] { false, true })
+                {
+                    string path = Path.Combine(output, (separate ? "mic-queued-lines-" : "mic-whole-answer-") + room + ".txt");
+                    Brain.LogPath = path;
+                    File.WriteAllText(path, "");
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0;
+                    pc.CableRoom = room;
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    using (Speaker outputSpeaker = new Speaker(true))
+                    {
+                        mix.Step();
+                        MicMix.Current = mix;
+                        int start = pc.Cables[0].Kept.Length;
+                        short[] whole = new short[14400];
+                        Voice lines = new Voice(outputSpeaker);
+                        for (int line = 0; line < 3; line++)
+                        {
+                            short[] samples = new short[4800];
+                            for (int at = 0; at < samples.Length; at++) samples[at] = (short)(((at / (line + 2)) & 1) == 0 ? 2048 : -2048);
+                            Array.Copy(samples, 0, whole, line * samples.Length, samples.Length);
+                            if (separate) lines.Play(Voice.Wave(samples, 48000));
+                        }
+                        if (!separate) lines.Play(Voice.Wave(whole, 48000));
+                        RunMix(mix, pc, now, 0.1, null);
+                        lines.Finish();
+                        RunMix(mix, pc, now, 0.3, null);
+                        float[] got = pc.Cables[0].Kept;
+                        if (got.Length < start + whole.Length || pc.Cables[0].Starved != 0 || mix.CableLosses != 0) throw new Exception("The cable did not keep the full three-line answer without gaps.");
+                        for (int at = 0; at < whole.Length; at++)
+                            if (Math.Abs(got[start + at] - whole[at] / 2048.0 * MicMix.Speaking) > 0.00001) throw new Exception("The cable lost or reordered sample " + at + " of a three-line answer.");
+                        for (int at = start + whole.Length; at < got.Length; at++)
+                            if (Math.Abs(got[at]) > 0.00001) throw new Exception("The cable repeated part of an answer.");
+                        MixLog(path, separate ? 3 : 1, separate ? 0.1 : 0.3);
+                    }
+                }
+                checks.Add("PASS every sample of a three-line answer reaches the stand-in cable in order without gaps, repeats or starvation, as one WAV and as three queued WAVs, with 50 ms buffers and buffers of 128, 256 and 512 frames; normal completion keeps the tail, and each answer logs once after the cable accepts it");
+
+                Brain.LogPath = Path.Combine(output, "mic-rate-changes.txt");
+                File.WriteAllText(Brain.LogPath, "");
+                foreach (int rate in new[] { 16000, 24000, 44100 })
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0;
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    using (Speaker outputSpeaker = new Speaker(true))
+                    {
+                        mix.Step();
+                        MicMix.Current = mix;
+                        outputSpeaker.BeginAnswer();
+                        foreach (int from in new[] { 24000, rate, 16000 })
+                        {
+                            outputSpeaker.Open(from);
+                            outputSpeaker.Play(Hum(from, from == rate ? 1000 : 700, 0.1, 0.3));
+                        }
+                        outputSpeaker.EndAnswer();
+                        RunMix(mix, pc, now, 1.05, null);
+                        float[] got = pc.Cables[0].Kept;
+                        int[] sources = { 24000, rate, 16000 };
+                        for (int line = 0; line < sources.Length; line++)
+                        {
+                            double hertz = sources[line] == rate ? 1000 : 700;
+                            double level = ToneIn(got, 48000, hertz, 0.07 + line * 0.3, 0.2) / Math.Sqrt(2);
+                            if (Math.Abs(level / MicMix.Speaking - 1) > 0.03) throw new Exception("A speaker rate change lost line " + (line + 1) + ".");
+                        }
+                    }
+                }
+                checks.Add("PASS queued voice keeps its order across speaker rate changes at 16, 24 and 44.1 kHz");
+
+                Speaker.SkipWave = true;
+                Voice.Loudness = 50;
+                Brain.LogPath = Path.Combine(output, "mic-loudness.txt");
+                File.WriteAllText(Brain.LogPath, "");
+                foreach (int percent in new[] { 50, 200 })
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0.1;
+                    using (SoundCheck heard = new SoundCheck())
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    using (Speaker outputSpeaker = new Speaker(false, delegate(int rate) { return new SoundOut(rate, heard, heard); }))
+                    {
+                        mix.Loudness = percent;
+                        mix.Step();
+                        MicMix.Current = mix;
+                        short[] samples = Hum(24000, 1000, 0.1, 0.6), before = (short[])samples.Clone();
+                        Voice lines = new Voice(outputSpeaker);
+                        lines.Play(Voice.Wave(samples, 24000));
+                        WaitSound(delegate { return outputSpeaker.ModernPlayed >= samples.Length; }, "The stand-in speakers did not get the whole answer.");
+                        int peak = 0;
+                        foreach (short sample in Voice.Louder(samples)) peak = Math.Max(peak, Math.Abs((int)sample));
+                        if (heard.Peak != peak || heard.VolumeChanges != 0 || Voice.Loudness != 50) throw new Exception("Cable loudness changed her speakers.");
+                        for (int at = 0; at < samples.Length; at++) if (samples[at] != before[at]) throw new Exception("Cable loudness changed her source samples.");
+                        RunMix(mix, pc, now, 0.7, null);
+                        float[] got = pc.Cables[0].Kept;
+                        double voiceLevel = ToneIn(got, 48000, 1000, 0.15, 0.3) / Math.Sqrt(2), micLevel = ToneIn(got, 48000, 440, 0.15, 0.3);
+                        if (Math.Abs(voiceLevel / (MicMix.Speaking * percent / 100) - 1) > 0.03 || Math.Abs(micLevel / pc.Level - 1) > 0.02)
+                            throw new Exception("Cable loudness changed the wrong level at " + percent + "%.");
+                        mix.Take(new object(), Hum(24000, 1000, 0.9, 0.4), 24000);
+                        RunMix(mix, pc, now, 0.5, null);
+                        foreach (float sample in pc.Cables[0].Kept)
+                            if (float.IsNaN(sample) || float.IsInfinity(sample) || Math.Abs(sample) >= SoftLimiter.Ceiling) throw new Exception("Cable loudness clipped the mix.");
+                    }
+                }
+                checks.Add("PASS cable loudness at 50% and 200% scales her voice by that amount below the limiter, keeps her speaker PCM and the user's mic level unchanged, and keeps loud peaks below the limiter ceiling");
+            }
+            finally { MicMix.Current = currentWas; Brain.LogPath = logWas; Voice.Loudness = loudnessWas; Speaker.SkipWave = waveWas; }
+        }
+
         private static void SmokeVoiceInMic(System.Collections.Generic.List<string> checks, string output)
         {
             string logWas = Brain.LogPath;
@@ -26900,6 +27206,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDucking", delegate { SmokeDucking(checks, output); });
             Section(checks, "SmokeVoiceInMic", delegate { SmokeVoiceInMic(checks, output); });
+            Section(checks, "SmokeMicDelivery", delegate { SmokeMicDelivery(checks, output); });
             Section(checks, "SmokeMicSources", delegate { SmokeMicSources(checks, output); });
             Section(checks, "SmokeMicTest", delegate { SmokeMicTest(checks); });
             Section(checks, "SmokeHearingStatus", delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
@@ -34289,6 +34596,7 @@ namespace CapriDesktop
                             // says what's wrong, and the rows fit in Advanced and Simple Settings.
                             Section(checks, "SmokeVoiceInMicRows", delegate
                             {
+                                Section(checks, "SmokeMicLoudness", delegate { SmokeMicLoudness(checks); });
                                 IMixDevices mixDevicesWas = MicMix.Devices;
                                 Action<string> mixBrowseWas = Browse;
                                 Func<string, Process> setupWas = CableSetup.Start;

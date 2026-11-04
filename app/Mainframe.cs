@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 1728;
+        private const int PageTall = 1784;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -62,6 +62,7 @@ namespace CapriDesktop
         private static readonly string[] AmountNames = { "Off", "5%", "10%", "15%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%" };
         private static readonly int[] Volumes = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 125, 150 };
         private static readonly string[] VolumeNames = { "Mute", "10%", "20%", "30%", "40%", "50%", "60%", "70%", "80%", "90%", "100%", "125%", "150%" };
+        private static readonly string[] MicLevels = { "50%", "60%", "70%", "80%", "90%", "100%", "110%", "120%", "130%", "140%", "150%", "160%", "170%", "180%", "190%", "200%" };
         private static readonly int[] SizeSteps = { 140, 170, 200, 240, 280, 320, 380, 440, 500, 560 };
         private static readonly string[] SizeNames = { "Tiny", "Small", "Small+", "Medium", "Medium+", "Large", "Large+", "Huge", "Huge+", "Giant" };
         private static readonly int[] Sleeps = { 0, 60, 120, 300, 600, 1800 };
@@ -260,14 +261,14 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 644, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 700, 1177 }, new[] { 1288, 1340 }, new[] { 1340, 1368 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 946;
+        private const int SimpleTall = 1002;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -311,10 +312,12 @@ namespace CapriDesktop
         // Its Input and Output (Lachy, 3 Nov: "we need to be able to change the input and output for the mixer"), and How to,
         // which opens its setup steps: "make it clear how to set it up too".
         private readonly Key mixInput, mixOutput, mixHow;
+        private readonly Slider micLoudness;
+        private readonly Label micLoudnessName;
         private readonly ContextMenuStrip mixInputMenu, mixOutputMenu;
         private MixSheet mixSheet;
         private const int MixAt = 506;
-        private const int MixRows = 128;
+        private const int MixRows = 184;
         private readonly Toggle miniPlayer;
         private readonly Readout sleepName;
         private readonly Readout soundsName;
@@ -656,6 +659,13 @@ namespace CapriDesktop
             mixOutput.AccessibleName = "Her mix's output: the virtual mic it plays into, which you pick as your mic in Discord or Roblox";
             mixHow = Make("How to", 280, MixAt + 104, 76, 22, delegate { OpenMix(); }, "Her voice in your mic");
             mixHow.AccessibleName = "How to set up her voice in your mic: the steps in Discord, and whether Discord hears it";
+            micLoudnessName = Caption("Her voice in your mic: loudness", 28, MixAt + 134, Type(9.5f), Rose);
+            micLoudness = new Slider(MicLevels);
+            micLoudness.Font = Type(9.5f);
+            micLoudness.Bounds = new Rectangle(28, MixAt + 158, 328, 22);
+            micLoudness.AccessibleName = "Her voice in your mic: loudness";
+            Controls.Add(micLoudness);
+            micLoudness.Changed += delegate { if (!syncing) capri.SetMicLoudness(50 + micLoudness.Value * 10); };
             int afterVoice = Controls.Count;
             Section("MOVES >", 0, 442);
             // Her mini player shows what's playing while music plays, with her perched on it.
@@ -1299,6 +1309,7 @@ namespace CapriDesktop
             syncing = true;
             voiceInMic.Checked = on;
             voiceInMic.Enabled = cable || on;
+            micLoudness.Value = (capri.MicLoudness - 50) / 10;
             syncing = was;
             voiceInMicNote.Text = cable ? vb ? MicMix.PickLine(capri.CableEnd) : CableSetup.Better : CableSetup.Credit;
             voiceInMicNote.Cursor = cable ? Cursors.Default : Cursors.Hand;
@@ -1330,7 +1341,11 @@ namespace CapriDesktop
             control.Invalidate();
         }
 
-        private Control[] MixControls { get { return new Control[] { voiceInMic, voiceInMicNote, voiceInMicState, cableKey, mixInput, mixOutput, mixHow }; } }
+        private Control[] MixControls { get { return new Control[] { voiceInMic, voiceInMicNote, voiceInMicState, cableKey, mixInput, mixOutput, mixHow, micLoudnessName, micLoudness }; } }
+
+        internal string MicLoudnessShown { get { return micLoudness.Shown; } }
+
+        internal void SlideMicLoudness(int index) { micLoudness.Slide(index); }
 
         // Her mix's Input: the mic her ears use, or one of its own. Never a cable's far end, which carries her voice.
         private void ShowMixInputs(Control under)
@@ -1443,7 +1458,9 @@ namespace CapriDesktop
             int below = int.MaxValue;
             foreach (KeyValuePair<Control, int> entry in underVoice)
                 if (entry.Key.Visible && entry.Key.Left < Scaled(Column) && !Folded(entry.Key) && entry.Key.Top > voiceInMic.Top && Array.IndexOf(MixControls, entry.Key) < 0) below = Math.Min(below, entry.Key.Top);
-            int last = Math.Max(mixOutput.Bottom, mixHow.Bottom);
+            if (micLoudnessName.Top < Math.Max(mixOutput.Bottom, mixHow.Bottom) || micLoudness.Top < micLoudnessName.Bottom) return "loudness overlaps a row";
+            if (TextRenderer.MeasureText(micLoudnessName.Text, micLoudnessName.Font).Width > Scaled(328)) return "the loudness name doesn't fit";
+            int last = micLoudness.Bottom;
             return below - Scaled(5) < last ? "the next section starts on top of it" : null;
         }
 

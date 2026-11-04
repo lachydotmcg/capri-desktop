@@ -497,14 +497,14 @@ namespace CapriDesktop
             lock (PcEars.VoiceGate)
             {
                 if (PcEars.Capturing) { Brain.Log("Voice playback", -1, "Speech held while she records the PC's sound."); return; }
-                Stop();
                 int rate;
                 short[] samples = Samples(wav, out rate);
                 if (samples.Length == 0) throw new VoiceException("Her voice returned no PCM samples to play.");
                 if (Loudness == 0) Brain.Log("Voice playback", -1, "Her voice volume is 0%; speech is muted, while her other sounds have their own volume.");
                 else if (Speaker.Loudness(samples, 0, samples.Length) == 0) Brain.Log("Voice playback", -1, "Her voice returned silent PCM: " + samples.Length + " samples at " + rate + " Hz.");
-                player.Open(rate);
-                player.Play(samples);
+                player.BeginAnswer();
+                try { player.Open(rate); player.Play(samples); }
+                finally { player.EndAnswer(); }
             }
 #endif
         }
@@ -524,6 +524,8 @@ namespace CapriDesktop
         }
 
 #if !CROSS
+        internal void Finish() { player.EndAnswer(); player.Close(false); }
+
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
         private static string Stopper()
         {

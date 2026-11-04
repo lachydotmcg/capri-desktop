@@ -699,6 +699,7 @@ namespace CapriDesktop
         private long until;
         // How loud each twelfth of a second of what she's playing is, so her ears know how much of the mic is her.
         private readonly List<double> levels = new List<double>();
+        private MicAnswer answer;
 
         [DllImport("winmm.dll")] private static extern int waveOutOpen(out IntPtr device, int id, ref WaveFormat format, IntPtr callback, IntPtr instance, int flags);
         [DllImport("winmm.dll")] private static extern int waveOutPrepareHeader(IntPtr device, IntPtr header, int size);
@@ -722,7 +723,7 @@ namespace CapriDesktop
         internal void Open(int sampleRate)
         {
             if (sampleRate == rate && (silent || device != IntPtr.Zero || (modern != null && modern.Alive))) return;
-            Close();
+            Close(false);
             rate = sampleRate;
             if (silent) return;
             WaveFormat format = WaveFormat.Mono(rate);
@@ -763,6 +764,19 @@ namespace CapriDesktop
             lock (PcEars.VoiceGate) if (!PcEars.Capturing) Write(samples);
         }
 
+        internal void BeginAnswer()
+        {
+            EndAnswer();
+            if (!Plain && MicMix.Current != null) answer = new MicAnswer();
+        }
+
+        internal void EndAnswer()
+        {
+            MicAnswer done = answer;
+            answer = null;
+            if (done != null) done.End();
+        }
+
         private void Write(short[] samples)
         {
             if (rate == 0 || samples.Length == 0) return;
@@ -789,7 +803,9 @@ namespace CapriDesktop
                 // Her voice in their mic (F66): everything she says goes into the cable too while the switch is on, at her own
                 // level rather than her speakers' volume, for the mix to bring to a speaking level. Her sound effects play
                 // through Plain speakers, so they stay out.
-                MicMix.Hear(this, samples, rate);
+                if (answer == null) BeginAnswer();
+                if (answer != null) answer.Give(samples.Length, rate);
+                if (Voice.Loudness > 0) MicMix.Hear(this, samples, rate, answer);
                 samples = Voice.Louder(samples);
             }
             if (silent || (device == IntPtr.Zero && modern == null)) return;
@@ -835,9 +851,14 @@ namespace CapriDesktop
 
         internal void Clear()
         {
+            Clear(true);
+        }
+
+        private void Clear(bool cut)
+        {
             if (device != IntPtr.Zero) waveOutReset(device);
             if (modern != null) modern.Clear();
-            MicMix.Hush(this);
+            if (cut) { MicMix.Hush(this); EndAnswer(); }
             Sweep();
             shapes.Clear();
             leftover.Clear();
@@ -861,7 +882,12 @@ namespace CapriDesktop
 
         internal void Close()
         {
-            Clear();
+            Close(true);
+        }
+
+        internal void Close(bool cut)
+        {
+            Clear(cut);
             if (device != IntPtr.Zero) waveOutClose(device);
             device = IntPtr.Zero;
             if (modern != null) modern.Dispose();
