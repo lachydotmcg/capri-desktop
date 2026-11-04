@@ -558,7 +558,7 @@ namespace CapriDesktop
             support = Lower(Make("Support", 268, 183 + v, 88, 18, delegate { capri.OpenSupport(); }));
             support.Heart = true;
             support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
-            modsKey = Lower(Make("Mods", 216, 181 + v, 56, 20, delegate { ShowMods(true); }));
+            modsKey = Lower(Make("Mods", 204, 183 + v, 56, 18, delegate { ShowMods(true); }));
             showHide = Lower(Make("Hide Capri", 28, 206 + v, 104, 28, delegate { capri.ToggleHidden(); }));
             Lower(Make("Bring here", 140, 206 + v, 104, 28, delegate { capri.BringHere(); }));
             perch = Lower(Make("Ride cursor", 252, 206 + v, 104, 28, delegate { capri.TogglePerch(); }));
