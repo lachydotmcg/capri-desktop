@@ -1700,7 +1700,7 @@ namespace CapriDesktop
                     frame.Change(name, on ? 1 : 0);
                     bool saved;
                     if (field == "") saved = name == "Start at login" ? pet.StartsAtLogin : pet.Shushed;
-                    else if (field == "Typing") saved = SettingsCopy().Typing == 1;
+                    else if (field == "Typing") saved = pet.TypingSound && SettingsCopy().Typing != 2;
                     else { saved = (bool)typeof(Settings).GetField(field, fields).GetValue(SettingsCopy()); if (field.StartsWith("No", StringComparison.Ordinal) || field == "NotOnTop") saved = !saved; }
                     if (saved != on || frame.Value(name) != (on ? "On" : "Off") || toggles[i, 1] != "" && pet.SettingOn(toggles[i, 1]) != on) throw new Exception("A Mainframe switch did not use its saved setter: " + name);
                 }
