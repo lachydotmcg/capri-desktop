@@ -1305,10 +1305,9 @@ namespace CapriDesktop
             voiceInMicState.Text = !vb && setup != null ? setup : !cable ? MicMix.Missing : on && problem != null ? problem : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
             // Visible reads false while Settings isn't on screen, so the width goes by what it was set to.
-            bool offer = !vb && !capri.CableSetupOpen;
-            cableKey.Visible = offer;
-            // Input ends where Get VB-CABLE starts, or where it would end, measured from where both are now so any zoom fits.
-            mixInput.Width = (offer ? cableKey.Left - cableKey.Height / 3 : cableKey.Right) - mixInput.Left;
+            cableOffered = !vb && !capri.CableSetupOpen;
+            cableKey.Visible = cableOffered;
+            FitMixInput();
             Retext(mixInput, "Input: " + (capri.MixInputName ?? "no mic found"));
             Retext(mixOutput, "Output: " + (cable ? MicMix.EndOf(capri.MixOutput) : "none yet"));
             voiceInMic.Invalidate();
@@ -1316,6 +1315,12 @@ namespace CapriDesktop
             voiceInMicState.Invalidate();
             if (mixSheet != null && !mixSheet.IsDisposed && mixSheet.Visible) mixSheet.Sync();
         }
+
+        private bool cableOffered;
+
+        // Input ends where Get VB-CABLE starts, or where it would end, measured from where both are now so any size fits. A
+        // new Mainframe size puts every control back as built, so Rezoom calls this again.
+        private void FitMixInput() { mixInput.Width = (cableOffered ? cableKey.Left - cableKey.Height / 3 : cableKey.Right) - mixInput.Left; }
 
         private static void Retext(Control control, string text)
         {
@@ -1775,6 +1780,7 @@ namespace CapriDesktop
                 CloseGaps();
                 freeVoices.Width = Scaled(freeReady && !yoursShown ? 328 : 196);
                 customVoice.Width = Scaled(freeReady ? 328 : 196);
+                FitMixInput();
                 Place();
                 Arrange(expanded);
                 foreach (Control control in Controls) control.PerformLayout();
