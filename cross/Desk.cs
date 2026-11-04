@@ -670,8 +670,10 @@ namespace CapriDesktop
             catch (Exception) { return null; }
             finally
             {
+                // Losing access to the cursor script must not discard a finished pointer query.
                 try { File.Delete(path); }
-                catch (IOException) { }
+                catch (IOException error) { Brain.Log("mouse", -1, error.Message); }
+                catch (UnauthorizedAccessException error) { Brain.Log("mouse", -1, error.Message); }
             }
         }
     }

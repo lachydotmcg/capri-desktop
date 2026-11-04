@@ -267,7 +267,8 @@ namespace CapriDesktop
 
         private void LoadPreview(ModListing mod)
         {
-            if (failed.Contains(mod.PreviewSha) || !fetching.Add(mod.PreviewSha)) return;
+            // Fast paging must not queue every page's image downloads and decodes at once.
+            if (fetching.Count >= Cards || failed.Contains(mod.PreviewSha) || !fetching.Add(mod.PreviewSha)) return;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 Bitmap made = null;
@@ -277,9 +278,20 @@ namespace CapriDesktop
                 {
                     if (closed) { if (made != null) made.Dispose(); return; }
                     fetching.Remove(mod.PreviewSha);
-                    if (made == null) { failed.Add(mod.PreviewSha); return; }
-                    pictures[mod.PreviewSha] = made;
+                    if (made == null) failed.Add(mod.PreviewSha);
+                    else pictures[mod.PreviewSha] = made;
                     FillDirectory();
+                    // Paging through many mods used to keep every decoded preview until this window closed.
+                    foreach (string key in new List<string>(pictures.Keys))
+                    {
+                        if (pictures.Count <= 8) break;
+                        Bitmap old = pictures[key];
+                        bool visible = false;
+                        foreach (ModPreview preview in previews) if (preview.Picture == old) visible = true;
+                        if (visible) continue;
+                        pictures.Remove(key);
+                        old.Dispose();
+                    }
                 });
             });
         }
@@ -309,6 +321,8 @@ namespace CapriDesktop
             try
             {
                 Mod mod = pet.ModList.Import(file, null);
+                // A file removed during import can be missing from the reloaded mod list.
+                if (mod == null) throw new ModException("Couldn't load that mod. Check the mods folder.");
                 Say(mod.File.Name + " is on."); Sync(); return true;
             }
             catch (Exception error)

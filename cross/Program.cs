@@ -16,6 +16,8 @@ namespace CapriDesktop
     {
         internal static string Smoke;
         internal static int[] Shelf;
+        private static string lastCrash;
+        private static int lastCrashAt;
 
         [STAThread]
         private static int Main(string[] args)
@@ -27,7 +29,30 @@ namespace CapriDesktop
                 return AppBuilder.Configure<ShelfApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
             }
             if (args.Length >= 2 && args[0] == "--smoke") Smoke = Path.GetFullPath(args[1]);
+            // Whatever ends her leaves a line in errors.txt. A bad click or timer is caught once her app is up (CapriApp).
+            if (Smoke == null) AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs crash) { Crashed(crash.ExceptionObject as Exception); };
             return AppBuilder.Configure<CapriApp>().UsePlatformDetect().With(new MacOSPlatformOptions { ShowInDock = false }).StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
+        }
+
+        internal static void Crashed(Exception error)
+        {
+            if (error == null) return;
+            while (error.InnerException != null) error = error.InnerException;
+            string what = error.GetType().Name + ": " + error.Message;
+            lock (typeof(Program))
+            {
+                if (what == lastCrash && unchecked(Environment.TickCount - lastCrashAt) < 60000) return;
+                lastCrash = what;
+                lastCrashAt = Environment.TickCount;
+                try
+                {
+                    if (Brain.LogPath == null) Brain.LogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri", "errors.txt");
+                    Directory.CreateDirectory(Path.GetDirectoryName(Brain.LogPath));
+                }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+            Brain.Log("crash", -1, what);
         }
     }
 
@@ -41,6 +66,9 @@ namespace CapriDesktop
 
         public override void OnFrameworkInitializationCompleted()
         {
+            // A bad click or timer used to end her on Mac and Linux. Now it's written down and she carries on, like on Windows.
+            // This waits until now because Avalonia's UI dispatcher is made from the platform on first use, and in Main there's none yet.
+            if (Program.Smoke == null) Dispatcher.UIThread.UnhandledException += delegate(object sender, DispatcherUnhandledExceptionEventArgs crash) { crash.Handled = true; Program.Crashed(crash.Exception); };
             IClassicDesktopStyleApplicationLifetime desktop = ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
             if (desktop != null)
             {

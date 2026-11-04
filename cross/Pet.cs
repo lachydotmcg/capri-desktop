@@ -614,6 +614,8 @@ namespace CapriDesktop
             if (!OnTop) Stack(false);
             frames.Interval = TimeSpan.FromMilliseconds(33);
             frames.Tick += delegate { Tick(); };
+            // Closing her while held must not leave the frame timer moving a closed window.
+            Closed += delegate { pressed = dragging = dragPending = false; frames.Stop(); };
             Opened += delegate
             {
                 if (opened) return;
@@ -1385,9 +1387,33 @@ namespace CapriDesktop
             else React();
         }
 
+        protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+        {
+            base.OnPointerCaptureLost(e);
+            // A lost capture has no release event, so she used to stay held after the mouse left her.
+            if (!pressed) return;
+            pressed = false;
+            dragPending = false;
+            if (!dragging) return;
+            if (quitting || !IsVisible) { dragging = false; return; }
+            Let(false);
+        }
+
         // Letting go of her: she falls onto the window below, or with Shift held sits right there, like on Windows.
         internal void Let(bool here)
         {
+            // Letting go outside every screen used to save her where nobody could reach her.
+            PixelPoint hip = Hip;
+            if (Screens.ScreenFromPoint(new PixelPoint(hip.X, hip.Y - 1)) == null)
+            {
+                Screen screen = ScreenHere() ?? (Screens.All.Count > 0 ? Screens.All[0] : null);
+                if (screen != null)
+                {
+                    PixelRect area = screen.WorkingArea;
+                    int size = Px(body.Size);
+                    Move(new PixelPoint(Math.Max(area.X, Math.Min(anchor.X, area.Right - size)), Math.Max(area.Y, Math.Min(anchor.Y, area.Bottom - size))));
+                }
+            }
             if (!here) { Drop(); return; }
             dragging = false;
             SitHere();
