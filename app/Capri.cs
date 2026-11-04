@@ -28566,7 +28566,7 @@ namespace CapriDesktop
                 Hear("Hey Capri, join the discord call with my friends in it and tell them I'll be on in 15, then load up whichever game they say we're playing today.", "call request", "> you: ");
                 wait("Waiting for their pick.");
                 if (!CallModeOn || callSession.Generation == beforeJoin || !preferences.CallMode || !typer.CallMode || jobs.Count != 1 || callSession.Waiting == null || callSession.Waiting.Action != "open_app") throw new Exception("Joining did not enable call mode and arm the user's game errand.");
-                if (!jobs[0].Contains("voice channel with people in it") || !jobs[0].Contains("DM call's Join button") || !jobs[0].Contains("Stop once connected")) throw new Exception("The join job lost its Discord instructions.");
+                if (!jobs[0].Contains("voice channel with people in it") || !jobs[0].Contains("DM call's Join button") || !jobs[0].Contains("Stop once connected") || !jobs[0].Contains("Join button for a voice channel is already on screen") || !jobs[0].Contains("never open Discord's Friends page")) throw new Exception("The join job lost its Discord instructions.");
                 if (!reply.Contains("Lachy's on in 15.") || !reply.Contains("What are we playing today?") || !reply.Contains("The call won't hear me until Her voice in your mic is set up.")) throw new Exception("The call lost its message, question or missing-mic notice.");
                 if (CallLine(asking, "next").Contains("The call won't hear me") || CallLine(asking, "next") != "next") throw new Exception("The call's queued speech repeated.");
                 JoinedCall(asking);
