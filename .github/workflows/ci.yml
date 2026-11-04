@@ -26,7 +26,7 @@ jobs:
         if: always()
         with:
           name: smoke-windows
-          path: out/windows
+          path: out/windows.
 
   linux:
     runs-on: ubuntu-24.04
