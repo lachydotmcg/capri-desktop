@@ -809,6 +809,9 @@ namespace CapriDesktop
 
         private static void Save(string file, string text)
         {
+            // Her copy from before the change goes beside the settings file they use, even when it links into a dotfiles folder,
+            // so a copy of settings that can hold keys never lands in a repo they might push.
+            string opened = file;
 #if CROSS
             // A settings file linked in from a dotfiles folder stays a link: she writes the file it points to.
             FileInfo linked = new FileInfo(file);
@@ -823,28 +826,43 @@ namespace CapriDesktop
             try
             {
 #if CROSS
-                Encoding encoding = new UTF8Encoding(false);
-                if (File.Exists(file))
-                    using (StreamReader reader = new StreamReader(file, encoding, true)) { reader.ReadToEnd(); encoding = reader.CurrentEncoding; }
-                if (OperatingSystem.IsWindows()) File.WriteAllText(temp, text, encoding);
-                else
+                try { Write(temp, file, text, false); }
+                catch (Exception error)
                 {
-                    // The new copy is born as private as the file it replaces, so a settings file holding secrets is never open to others.
-                    UnixFileMode mode = File.Exists(file) ? File.GetUnixFileMode(file) : UnixFileMode.UserRead | UnixFileMode.UserWrite;
-                    FileStreamOptions options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, UnixCreateMode = mode };
-                    using (FileStream stream = new FileStream(temp, options))
-                    using (StreamWriter writer = new StreamWriter(stream, encoding)) writer.Write(text);
-                    File.SetUnixFileMode(temp, mode);
+                    if (file == opened || !(error is UnauthorizedAccessException || error is IOException)) throw;
+                    // A link into somewhere she can't write, like Nix's read-only store, is replaced by the file itself, as before.
+                    if (File.Exists(temp)) File.Delete(temp);
+                    file = opened;
+                    temp = file + ".capri-" + Guid.NewGuid().ToString("N") + ".tmp";
+                    Write(temp, file, text, true);
                 }
 #else
                 File.WriteAllText(temp, text, new UTF8Encoding(false));
 #endif
-                Backup(file);
+                Backup(opened);
                 if (File.Exists(file)) File.Replace(temp, file, null);
                 else File.Move(temp, file);
             }
             finally { if (File.Exists(temp)) File.Delete(temp); }
         }
+
+#if CROSS
+        // The new copy keeps the file's encoding and is born as private as the file it replaces, so a settings file holding
+        // secrets is never open to others. One standing in for a read-only link stays theirs to edit.
+        private static void Write(string temp, string file, string text, bool editable)
+        {
+            Encoding encoding = new UTF8Encoding(false);
+            if (File.Exists(file))
+                using (StreamReader reader = new StreamReader(file, encoding, true)) { reader.ReadToEnd(); encoding = reader.CurrentEncoding; }
+            if (OperatingSystem.IsWindows()) { File.WriteAllText(temp, text, encoding); return; }
+            UnixFileMode mode = File.Exists(file) ? File.GetUnixFileMode(file) : UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            if (editable) mode |= UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            FileStreamOptions options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, UnixCreateMode = mode };
+            using (FileStream stream = new FileStream(temp, options))
+            using (StreamWriter writer = new StreamWriter(stream, encoding)) writer.Write(text);
+            File.SetUnixFileMode(temp, mode);
+        }
+#endif
 
         internal static void Configure(int mode, string exe)
         {

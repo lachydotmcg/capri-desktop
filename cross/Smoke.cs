@@ -2114,6 +2114,33 @@ namespace CapriDesktop
                     if (hooks.Count != 2 || HuskJson.List(HuskJson.Get(hooks, "Stop")).Count != 2) throw new Exception("Husk Off left empty event groups or removed another group.");
                 }
                 checks.Add("PASS cross husk install/remove: exact event sets, async and bounded hooks, shared groups, raw settings and other hooks kept, original backup, encoding, idempotence and invalid-config refusal");
+                if (!OperatingSystem.IsWindows())
+                {
+                    // A settings file linked in from a dotfiles folder stays a link, and her backups go beside the link, never into the dotfiles.
+                    string link = HuskHooks.PathFor("claude"), dotfiles = Path.Combine(own, "dotfiles"), target = Path.Combine(dotfiles, "settings.json"), pattern = Path.GetFileName(link) + ".capri-backup-*";
+                    byte[] plain = File.ReadAllBytes(link);
+                    UnixFileMode plainMode = File.GetUnixFileMode(link);
+                    Directory.CreateDirectory(dotfiles);
+                    File.WriteAllBytes(target, plain);
+                    foreach (string old in Directory.GetFiles(Path.GetDirectoryName(link), pattern)) File.Delete(old);
+                    File.Delete(link);
+                    File.CreateSymbolicLink(link, target);
+                    try
+                    {
+                        HuskHooks.Configure(1, mac);
+                        if (new FileInfo(link).LinkTarget == null || !File.ReadAllText(target).Contains("CAPRI_HUSK=1") || Directory.GetFiles(dotfiles).Length != 1 || Directory.GetFiles(Path.GetDirectoryName(link), pattern).Length != 1) throw new Exception("Husk replaced a linked settings file or put its backup in the dotfiles folder.");
+                        HuskHooks.Configure(0, null);
+                        if (new FileInfo(link).LinkTarget == null || File.ReadAllText(target).Contains("CAPRI_HUSK=1") || Directory.GetFiles(dotfiles).Length != 1) throw new Exception("Husk Off replaced a linked settings file or left her hooks in it.");
+                    }
+                    finally
+                    {
+                        File.Delete(link);
+                        File.WriteAllBytes(link, plain);
+                        File.SetUnixFileMode(link, plainMode);
+                        Directory.Delete(dotfiles, true);
+                    }
+                    checks.Add("PASS on Mac and Linux a linked settings file stays a link through Code/Husk Mode on and off, and her backups stay beside the link, out of the dotfiles folder");
+                }
 
                 pet.HuskQueue = delegate(Action action) { action(); };
                 pet.HuskExe = delegate { return mac; };
