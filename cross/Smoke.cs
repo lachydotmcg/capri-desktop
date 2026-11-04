@@ -1394,6 +1394,8 @@ namespace CapriDesktop
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
             Dictionary<string, object> before = new Dictionary<string, object>();
             foreach (string name in new[] { "anchor", "pressed", "dragging", "dragAt", "dragPending", "downAt", "grab", "pointer", "clicks", "seat", "walking", "hanging", "dropAfter", "falling", "fallTo", "fallSpeed", "fallStep", "clip", "clipStart", "idleCycle", "blinkWith", "coveredSince", "seatLost", "napAsked" }) before[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            List<PixelPoint> asked = (List<PixelPoint>)typeof(Pet).GetField("asked", fields).GetValue(pet);
+            PixelPoint[] askedWas = asked.ToArray();
             Desk desk = pet.Desk;
             Func<PixelPoint?> mouseAt = pet.MouseAt;
             Action<PixelPoint> moveTo = pet.MoveTo;
@@ -1533,6 +1535,8 @@ namespace CapriDesktop
                 pet.MouseAt = mouseAt;
                 pet.MoveTo = moveTo;
                 foreach (KeyValuePair<string, object> item in before) typeof(Pet).GetField(item.Key, fields).SetValue(pet, item.Value);
+                asked.Clear();
+                asked.AddRange(askedWas);
                 pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
             }
         }
