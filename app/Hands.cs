@@ -5799,7 +5799,7 @@ namespace CapriDesktop
         internal static bool Front(IntPtr handle)
         {
             if (!IsWindow(handle)) return false;
-            if (IsIconic(handle)) ShowWindowAsync(handle, 9);
+            if (IsIconic(handle)) { SmokeRun.NoteAsync(handle, "Hands.Front restore"); ShowWindowAsync(handle, 9); }
             Message pending;
             PeekMessage(out pending, IntPtr.Zero, 0, 0, 0);
             int ignored;

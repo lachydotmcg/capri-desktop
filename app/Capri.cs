@@ -2150,6 +2150,7 @@ namespace CapriDesktop
             bool hiddenWas = hidden, manualWas = manualHidden, fullWas = fullScreenHidden;
             FormWindowState mainframeState = mainframe.WindowState;
             mainframe.RestoredBy = null;
+            string asyncWas = SmokeRun.OwnAsync;
             try { run(); }
             catch (Exception problem) { TestFailed = true; checks.Add("FAIL section " + name + ": " + problem.Message); }
             finally
@@ -2159,8 +2160,13 @@ namespace CapriDesktop
                 string after = SmokeState();
                 if (after != before)
                 {
-                    TestFailed = true;
-                    checks.Add("FAIL section " + name + " left her changed: " + before + " became " + after + (mainframe.RestoredBy != null ? " (the Mainframe came up from " + mainframe.RestoredBy + ")" : ""));
+                    // A minimised Mainframe brought up by a queued window move, with nothing else changed and no Restore or later-run
+                    // move of her own in the section, came from outside it: on 5 Nov it landed in a different section each run.
+                    bool outside = mainframeState == FormWindowState.Minimized && mainframe.RestoredBy != null && SmokeRun.OwnAsync == asyncWas
+                        && mainframe.RestoredBy.IndexOf("Mainframe.Restore", StringComparison.Ordinal) < 0 && mainframe.RestoredBy.IndexOf("Mainframe.OpenTool", StringComparison.Ordinal) < 0
+                        && after == before.Replace("Mainframe Minimized,", "Mainframe Normal,");
+                    if (!outside) TestFailed = true;
+                    checks.Add((outside ? "LIMIT section " + name + ": something outside it brought the minimised Mainframe up while it ran, and it was put back" : "FAIL section " + name + " left her changed: " + before + " became " + after) + (mainframe.RestoredBy != null ? " (the Mainframe came up from " + mainframe.RestoredBy + ")" : "") + (SmokeRun.OwnAsync != null ? " (last later-run show or move of her own window: " + SmokeRun.OwnAsync + ")" : ""));
                     if (menu.Visible) menu.Close();
                     if (mainframe.FreeKeysShown) mainframe.CloseFreeKeys();
                     if (playerMenu != null && playerMenu.Visible) playerMenu.Close();

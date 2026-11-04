@@ -60,6 +60,28 @@ namespace CapriDesktop
         // What each open section interrupted, so leaving a child goes back to its parent's (or step's) deadline.
         private static readonly Stack<string[]> outer = new Stack<string[]>();
         internal static bool Worker { get { return Environment.GetEnvironmentVariable(WorkerVariable) == "1"; } }
+        private static string ownAsync;
+        // The last time she showed or moved one of her own windows in a way Windows carries out later on its thread, and from where.
+        internal static string OwnAsync { get { return Volatile.Read(ref ownAsync); } }
+
+        internal static void NoteAsync(IntPtr window, string what)
+        {
+            if (!Worker) return;
+            int process;
+            Native.GetWindowThreadProcessId(window, out process);
+            if (process != Process.GetCurrentProcess().Id) return;
+            List<string> found = new List<string>();
+            foreach (string line in Environment.StackTrace.Split('\n'))
+            {
+                string frame = line.Trim();
+                if (frame.StartsWith("at ", StringComparison.Ordinal)) frame = frame.Substring(3);
+                int place = frame.IndexOf(" in ", StringComparison.Ordinal);
+                if (place > 0) frame = frame.Substring(0, place);
+                if (frame.StartsWith("CapriDesktop.", StringComparison.Ordinal) && frame.IndexOf(".NoteAsync", StringComparison.Ordinal) < 0) found.Add(frame);
+                if (found.Count == 6) break;
+            }
+            Volatile.Write(ref ownAsync, what + " on thread " + Thread.CurrentThread.ManagedThreadId + " from " + string.Join(" < ", found.ToArray()));
+        }
         internal static int NextStep
         {
             get { int next = 0; while (stepsDone.ContainsKey(next)) next++; return next; }
