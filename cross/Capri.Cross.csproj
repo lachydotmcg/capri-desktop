@@ -24,6 +24,7 @@
     <Compile Include="../app/Care.cs" Link="Shared/Care.cs" />
     <Compile Include="../app/Engine.cs" Link="Shared/Engine.cs" />
     <Compile Include="../app/Hands.cs" Link="Shared/Hands.cs" />
+    <Compile Include="../app/Husk.cs" Link="Shared/Husk.cs" />
     <Compile Include="../app/Presence.cs" Link="Shared/Presence.cs" />
     <Compile Include="../app/Mods.cs" Link="Shared/Mods.cs" />
     <Compile Include="../app/ModDirectory.cs" Link="Shared/ModDirectory.cs" />

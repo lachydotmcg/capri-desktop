@@ -155,6 +155,8 @@ namespace CapriDesktop
         private readonly NeonRung[] brains = new NeonRung[3];
         private readonly NeonRung[] voices = new NeonRung[4];
         private readonly NeonPicker models, freeKeys, voicePicker, speechModels;
+        private readonly NeonPicker huskMode;
+        private readonly NeonCaption huskLabel;
         private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress;
         private bool paged, syncing, closed, finishing;
         private string layout;
@@ -308,6 +310,12 @@ namespace CapriDesktop
             Toggle("Remember what she sees", 380, 344, () => !pet.Saved.NoCaughtUp, pet.SetCaughtUp).Switch = 68;
             Slider("Every", Pet.GlanceGapNames, 380, 372, () => Nearest(Pet.GlanceGaps, pet.GlanceGap), i => pet.SetGlanceGap(Pet.GlanceGaps[i]));
             Section("BRAIN", 380, 442);
+            huskLabel = Caption("Code/Husk Mode", 408, 472, 146, 16);
+            huskMode = Picker("Code/Husk Mode", 564, 469, 172, delegate { return pet.HuskMode; }, pet.SetHusk);
+            huskMode.Height = 22;
+            huskMode.Options(Pet.HuskNames);
+            readers.Add(delegate { huskMode.IsEnabled = !pet.HuskChanging; });
+            ToolTip.SetTip(huskMode, "Watch Claude Code or Codex through her hooks. Restart the coding app after changing this.");
             Toggle("Stay on my model", 380, 466, () => pet.Saved.StayOnModel, pet.SetStay);
             Slider("Replies", Lengths, 380, 494, () => Brain.Wordiness, pet.SetReplies);
             Slider("Memory", Lengths, 380, 522, () => Array.IndexOf(Recalls, Brain.Recall), i => pet.SetRecall(Recalls[i]));
@@ -524,6 +532,7 @@ namespace CapriDesktop
                     int[][] missing = right ? MissingRight : MissingLeft;
                     if (!right && pet.MainframeInputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
                     y = Lift(anchor, missing, right ? FoldedRight : FoldedLeft, simple) - (control is NeonHead ? 5 : 0);
+                    if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel) y += 28;
                 }
                 if (item.Page == 0)
                 {

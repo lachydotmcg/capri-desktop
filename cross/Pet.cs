@@ -39,6 +39,7 @@ namespace CapriDesktop
         [DataMember] internal string CloudModel;
         [DataMember] internal string UpdateSeen;
         [DataMember] internal bool StayOnModel;
+        [DataMember] internal int HuskMode;
         [DataMember] internal bool NoMemories;
         [DataMember] internal bool NoCheckIns;
         [DataMember] internal int? PopPace;
@@ -597,6 +598,7 @@ namespace CapriDesktop
             // A saved key's models are read now, so a stuck NVIDIA model has others to hand over to.
             if (Brain.Remote != null && Program.Smoke == null) ListCloud();
             Talk = new Talk(this);
+            PrepareHusk();
             // Her bubble and pill come up by themselves with her, so they leave the keyboard alone too. Her typing box takes it.
             Unfocus(Talk.Bubble);
             Unfocus(Talk.Pill);
@@ -619,6 +621,7 @@ namespace CapriDesktop
                 if (Program.Smoke != null) smoke = new Smoke(this, Program.Smoke);
                 else
                 {
+                    if (Saved.HuskMode != 0) SetHusk(Saved.HuskMode);
                     int ticket = asking;
                     DispatcherTimer.RunOnce(() => Greet(ticket, DateTime.Now.Hour), TimeSpan.FromMilliseconds(1800));
                     if (fresh) { OpenMainframe(); meetAt = Now + 4; }
@@ -799,6 +802,7 @@ namespace CapriDesktop
         private void Tick()
         {
             double now = Now;
+            TickHusk();
             CheckStyle();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
@@ -1076,6 +1080,17 @@ namespace CapriDesktop
             bool settled = !dragging && clip != dangle && clip != sleep;
             body.Breathe = settled ? Math.Sin(now * 1.75) * 2.2 : 0;
             body.Tilt = settled ? Math.Sin(now * 0.95) * 0.65 : 0;
+            if (settled)
+            {
+                double age = now - huskMoodAt;
+                if (age >= 0 && age < 1.2)
+                {
+                    double dip = Math.Sin(age / 1.2 * Math.PI);
+                    if (huskMood == "prompt" || huskMood == "done") body.Breathe -= 9 * dip;
+                    if (huskMood == "error") { body.Breathe += 14 * dip; body.Tilt -= 8 * dip; }
+                    if (huskMood == "failure" && age < 0.5) body.Tilt += 8 * Math.Sin(age * 50) * (1 - age * 2);
+                }
+            }
             body.Shown = shown;
             body.Cell = cell;
             body.Talking = clip == idle && shown != blinkGlitch ? Talk.MouthCell(now) : -1;
@@ -4381,6 +4396,7 @@ namespace CapriDesktop
         [DataContract]
         internal sealed class NewSettings
         {
+            [DataMember] internal int HuskMode;
             [DataMember] internal string VoiceProvider;
             [DataMember] internal string LocalVoiceUrl;
             [DataMember] internal string LocalVoiceModel;
@@ -4431,6 +4447,7 @@ namespace CapriDesktop
             saved.NoFollowUps = newer.NoFollowUps;
             saved.NoKeepAwake = newer.NoKeepAwake;
             saved.Vault = newer.Vault;
+            saved.HuskMode = newer.HuskMode;
             return saved;
         }
 
@@ -4438,7 +4455,7 @@ namespace CapriDesktop
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
                 MainframeSize = saved.MainframeSize, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
-                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault };
+                CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode };
         }
 
         private Settings Load()
@@ -4476,6 +4493,7 @@ namespace CapriDesktop
         {
             if (quitting) return;
             quitting = true;
+            if (husk != null) husk.Dispose();
             StopAwake();
             CloseMainframe();
             Brain.Cancel();
@@ -4492,11 +4510,144 @@ namespace CapriDesktop
 
         internal void Finish(int code)
         {
+            if (husk != null) husk.Dispose();
             StopAwake();
             CloseMainframe();
             frames.Stop();
             Talk.Dismiss();
             desktop.Shutdown(code);
+        }
+
+        private HuskWatch husk;
+        private bool huskChanging;
+        private readonly HashSet<string> huskAgents = new HashSet<string>();
+        private readonly Queue<HuskAct> huskLines = new Queue<HuskAct>();
+        private string huskMood;
+        private double huskMoodAt = -10;
+        internal static readonly string[] HuskNames = { "Off", "Claude Code", "Codex", "Both" };
+        internal const string HuskHelp = "Code/Husk Mode works on Windows, Mac and Linux. Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode picks Off, Claude Code, Codex or Both. It installs only Capri's hooks and backs up settings first. Restart Claude Code or Codex after picking a mode, and trust her hooks in Codex when it asks. She watches prompts, tools, failures, approvals, completion, subagents and compacting. Tool captions are silent and at least four seconds apart. Approvals get her attention and voice when it is on; answer in the coding app. On Mac and Linux she shows a short completion answer and a subagent count in her bubble. With a cloud brain, observed actions go to that brain when you ask about them, with keys and tokens removed first. Off stops the listener and removes only her hooks. She never approves or controls the coding assistant. Use these facts only when asked about Code/Husk Mode.";
+        internal Action<Action> HuskQueue = delegate(Action action) { ThreadPool.QueueUserWorkItem(delegate { action(); }); };
+        internal Func<string> HuskExe = HuskHooks.Executable;
+        internal Action<string, bool> HuskSaid;
+        internal int HuskMode { get { return huskChanging ? Saved.HuskMode : husk == null ? 0 : husk.Mode; } }
+        internal bool HuskChanging { get { return huskChanging; } }
+        internal HuskWatch Husk { get { return husk; } }
+        internal string HuskMood { get { return huskMood; } }
+        internal int HuskAgents { get { return huskAgents.Count; } }
+
+        private void PrepareHusk()
+        {
+            Saved.HuskMode = Math.Max(0, Math.Min(3, Saved.HuskMode));
+            husk = new HuskWatch(Program.Smoke ?? folder);
+            husk.Clock = delegate { return Now; };
+            husk.Language = delegate { return Brain.Language; };
+            husk.Dispatch = delegate(Action action) { Dispatcher.UIThread.Post(action); };
+            husk.Show = delegate(HuskAct act)
+            {
+                if (Dispatcher.UIThread.CheckAccess()) ShowHusk(act);
+                else Dispatcher.UIThread.Post(delegate { ShowHusk(act); });
+            };
+            Brain.HuskFacts = delegate { return "\n" + HuskHelp + husk.Context(); };
+        }
+
+        internal void SetHusk(int mode)
+        {
+            if (quitting || huskChanging || husk == null) return;
+            mode = Math.Max(0, Math.Min(3, mode));
+            if (mode == 0) { husk.Stop(); huskAgents.Clear(); huskLines.Clear(); }
+            Saved.HuskMode = mode;
+            Save();
+            huskChanging = true;
+            NotifySettings();
+            HuskQueue(delegate
+            {
+                string problem = null;
+                try { husk.Change(mode, mode == 0 ? null : HuskExe()); }
+                catch (Exception error) { problem = error.Message; }
+                Action finish = delegate
+                {
+                    huskChanging = false;
+                    if (quitting) return;
+                    Saved.HuskMode = husk.Mode;
+                    Save();
+                    string note = mode == 0 ? "Code/Husk Mode off. My hooks are removed."
+                        : mode == 1 ? "Restart Claude Code to use my hooks."
+                        : mode == 2 ? "Restart Codex and trust my hooks when it asks."
+                        : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
+                    Talk.Answer("(code/husk mode)", problem ?? note);
+                };
+                if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
+            });
+        }
+
+        private void ShowHusk(HuskAct act)
+        {
+            if (quitting) return;
+            if (act.Kind == "agentstop") huskAgents.Remove(act.Key);
+            if (husk == null || husk.Mode == 0 || !husk.Current(act)) return;
+            if (act.Kind == "agentstart") huskAgents.Add(act.Key);
+            if (act.Kind == "agentstart" || act.Kind == "agentstop") act.Line = "Subagents: " + huskAgents.Count;
+            bool attention = act.Kind == "approval" || act.Kind == "input";
+            if (act.Kind == "prompt" || attention)
+            {
+                napAsked = napping = false;
+                if (clip == sleep) Wake();
+            }
+            if (attention) { hideAsked = false; ComeBack(); Raise(Now + 6); }
+            huskMood = act.Kind;
+            huskMoodAt = Now;
+            if (!away && !dragging && !falling && !walking && !hanging && outro == null)
+            {
+                if (attention || act.Kind == "compact" || act.Kind == "failure") Play(seat == null ? glitch : perchGlitch);
+                else if (act.Kind == "done" && seat == null) Play(grin);
+                else if (act.Kind == "error") { Play(seat == null ? idle : perch); blinkWith = seat == null ? blink : perchBlink; }
+            }
+            if (!Hushed && !away && (attention || act.Kind == "failure" || act.Kind == "error")) Sfx.Play(Cue.Bonk);
+            else if (!Hushed && !away && act.Kind == "done") Sfx.Play(Cue.Click);
+            if (string.IsNullOrWhiteSpace(act.Line)) return;
+            if (!Talk.Quiet && HuskSaid == null)
+            {
+                if (act.Kind != "caption") { while (huskLines.Count >= 32) huskLines.Dequeue(); huskLines.Enqueue(act); }
+                return;
+            }
+            SayHusk(act);
+        }
+
+        private void TickHusk()
+        {
+            if (husk == null) return;
+            husk.Tick();
+            if (!Talk.Quiet || away || huskChanging) return;
+            while (huskLines.Count > 0)
+            {
+                HuskAct act = huskLines.Dequeue();
+                if (!husk.Current(act) || !husk.Waiting(act)) continue;
+                SayHusk(act);
+                break;
+            }
+        }
+
+        private void SayHusk(HuskAct act)
+        {
+            if (quitting || away || husk == null || !husk.Current(act) || !husk.Waiting(act)) return;
+            bool aloud = act.Aloud && !Hushed && Speaks && Voice.Loudness > 0;
+            if (HuskSaid != null) { HuskSaid(act.Line, aloud); return; }
+            Talk.Answer("(code/husk mode)", act.Line);
+            if (!aloud) return;
+            int ticket = asking;
+            ISpeaker speaker = Speaker;
+            HuskQueue(delegate
+            {
+                byte[] wav = null;
+                try { wav = VoiceFx.Styled(speaker.Speak(act.Line), act.Line); }
+                catch (Exception) { }
+                Dispatcher.UIThread.Post(delegate
+                {
+                    if (wav == null || quitting || away || Hushed || ticket != asking || !husk.Current(act) || !husk.Waiting(act) || Talk.Reply != act.Line) return;
+                    Talk.Answer("(code/husk mode)", act.Line, Voice.Seconds(wav));
+                    voice.Play(wav);
+                });
+            });
         }
     }
 }

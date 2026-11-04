@@ -1667,6 +1667,7 @@ namespace CapriDesktop
                 PlainChecks(frame, fields);
                 ModsChecks(frame);
                 MainframeRows(frame, fields);
+                HuskChecks(frame);
                 CareChecks(frame);
                 FollowChecks();
                 AwakeChecks(fields);
@@ -1697,6 +1698,306 @@ namespace CapriDesktop
                 typeof(Pet).GetField("voices", fields).SetValue(pet, listing);
                 typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, speaker);
                 pet.Resize(before.Size); pet.Move(anchor); pet.Talk.Dismiss(); timer.Start();
+            }
+        }
+
+        private static Dictionary<string, object> HuskEvent(string name, params object[] fields)
+        {
+            Dictionary<string, object> evt = HuskJson.Map("hook_event_name", name, "session_id", "cross-husk");
+            for (int i = 0; i < fields.Length; i += 2) evt[(string)fields[i]] = fields[i + 1];
+            return evt;
+        }
+
+        private void HuskFeed(string source, string name, params object[] fields) { pet.Husk.Receive(HuskHook.Adapt(HuskEvent(name, fields), source)); }
+
+        private sealed class HuskInput : MemoryStream
+        {
+            internal int Reads;
+            internal HuskInput(string text) : base(Encoding.UTF8.GetBytes(text)) { }
+            public override int Read(byte[] buffer, int offset, int count) { Reads++; return base.Read(buffer, offset, count); }
+        }
+
+        private void HuskChecks(Mainframe frame)
+        {
+            string own = Path.Combine(folder, "husk", Guid.NewGuid().ToString("N"));
+            string claudeWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), codexWas = Environment.GetEnvironmentVariable("CODEX_HOME"), imageWas = Environment.GetEnvironmentVariable("APPIMAGE");
+            Action<Action> queueWas = pet.HuskQueue;
+            Func<string> exeWas = pet.HuskExe;
+            Action<string, bool> saidWas = pet.HuskSaid;
+            Action<HuskAct> showWas = pet.Husk.Show;
+            Func<double> clockWas = pet.Husk.Clock;
+            Action<short[]> soundWas = Sfx.Out;
+            int volumeWas = Voice.Loudness, soundLevelWas = Sfx.Level;
+            bool silentWas = pet.Saved.Silent, quietWas = pet.Shushed, topWas = pet.OnTop, advancedWas = pet.Saved.AdvancedSettings;
+            string providerWas = pet.Saved.VoiceProvider, languageWas = Brain.Language;
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            Dictionary<string, object> scene = new Dictionary<string, object>();
+            foreach (string name in new[] { "seat", "clip", "clipStart", "falling", "fallTo", "walking", "hanging", "dropAfter", "napAsked", "napping", "sleptAt", "outro", "away", "huskMood", "huskMoodAt" }) scene[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            try
+            {
+                Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", Path.Combine(own, "Claude config"));
+                Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(own, "Codex config"));
+                string mac = "/Applications/Capri Test.app/Contents/MacOS/Capri", linux = "/home/test/Capri folder/Capri", image = "/home/test/My Capri's $build `test`.AppImage";
+                foreach (string exe in new[] { mac, linux, image })
+                    foreach (string source in new[] { "claude", "codex" })
+                    {
+                        string command = HuskHooks.Command(exe, source);
+                        if (command != "CAPRI_HUSK=1 '" + exe.Replace("'", "'\\''") + "' --hook " + source || !HuskHooks.Ours(command, source) || HuskHooks.Ours(command, source == "claude" ? "codex" : "claude")) throw new Exception("A cross hook did not quote or own its exact executable.");
+                    }
+                if (HuskHooks.Executable(mac, null) != mac || HuskHooks.Executable(linux, "") != linux || HuskHooks.Executable("/tmp/.mount_Capri/usr/bin/Capri", image) != image) throw new Exception("Husk did not use the Mac binary, Linux app or original AppImage path.");
+                Environment.SetEnvironmentVariable("APPIMAGE", image);
+                if (HuskHooks.Executable() != image) throw new Exception("Husk did not read APPIMAGE.");
+                foreach (string command in new[] { "echo Capri --hook claude", "'/other/Watcher' --hook claude", HuskHooks.Command(mac, "claude") + " && echo extra", "CAPRI_HUSK=1 '/other/Watcher' --hook codex" })
+                    if (HuskHooks.Ours(command, "claude")) throw new Exception("Husk removal matched another command.");
+                checks.Add("PASS cross husk commands: Mac bundle binary, Linux executable, spaces, shell quotes and APPIMAGE; removal owns only her marked command");
+
+                Dictionary<string, string> originals = new Dictionary<string, string>();
+                string setting = "  \"other\" : { \"a/b\" : \"x\", \"_x0041_\" : \"literal\" },\r\n  \"number\" : 1.00000000000000001 ,\r\n";
+                string hook = "{ \"type\" : \"command\", \"command\" : \"echo existing\", \"timeout\" : 7 }";
+                string other = "{ \"matcher\" : \"untouched\", \"hooks\" : [ { \"type\" : \"command\", \"command\" : \"echo another\" } ] }";
+                foreach (string source in new[] { "claude", "codex" })
+                {
+                    string file = HuskHooks.PathFor(source);
+                    Directory.CreateDirectory(Path.GetDirectoryName(file));
+                    string initial = "{\r\n" + setting + "  \"hooks\" : {\r\n    \"Stop\" : [ { \"matcher\" : \"keep\", \"hooks\" : [ " + hook + ", {\"type\":\"command\",\"command\":" + HuskJson.Write(HuskHooks.Command("/old folder/Capri", source)) + "} ] }, " + other + " ],\r\n    \"Untouched\" : []\r\n  },\r\n  \"tail\" : \"kept\"\r\n}\r\n";
+                    originals[source] = initial;
+                    File.WriteAllText(file, initial, new UTF8Encoding(true));
+                    if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                }
+                HuskHooks.Configure(3, mac);
+                Dictionary<string, string> installed = new Dictionary<string, string>();
+                foreach (string source in new[] { "claude", "codex" })
+                {
+                    string file = HuskHooks.PathFor(source), text = File.ReadAllText(file);
+                    installed[source] = text;
+                    byte[] bytes = File.ReadAllBytes(file);
+                    string[] backups = Directory.GetFiles(Path.GetDirectoryName(file), Path.GetFileName(file) + ".capri-backup-*");
+                    if (backups.Length != 1 || File.ReadAllText(backups[0]) != originals[source] || bytes.Length < 3 || bytes[0] != 239 || bytes[1] != 187 || bytes[2] != 191) throw new Exception("Husk missed the original backup or settings encoding.");
+                    if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(file) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("Husk changed another app's settings file permissions.");
+                    if (!text.Contains(setting) || !text.Contains(hook) || !text.Contains(other) || !text.Contains("    \"Untouched\" : []")) throw new Exception("Husk rewrote another setting or hook's raw text.");
+                    Dictionary<string, object> hooks = HuskJson.Get(HuskJson.Read(text) as Dictionary<string, object>, "hooks") as Dictionary<string, object>;
+                    foreach (string name in source == "claude" ? HuskHooks.ClaudeEvents : HuskHooks.CodexEvents)
+                    {
+                        int ours = 0;
+                        foreach (object group in HuskJson.List(HuskJson.Get(hooks, name)))
+                            foreach (object entry in HuskJson.List(HuskJson.Get(group as Dictionary<string, object>, "hooks")))
+                            {
+                                Dictionary<string, object> command = entry as Dictionary<string, object>;
+                                if (!HuskHooks.Ours(HuskJson.Text(command, "command"), source)) continue;
+                                ours++;
+                                if (HuskJson.Text(command, "command") != HuskHooks.Command(mac, source) || HuskJson.Write(HuskJson.Get(command, "timeout")) != (source == "claude" ? "10" : "3") || (source == "claude" ? HuskJson.Write(HuskJson.Get(command, "async")) != "true" : command.ContainsKey("async"))) throw new Exception("A cross hook used the wrong app, timeout or async flag.");
+                            }
+                        if (ours != 1) throw new Exception("A cross husk event has missing or duplicate hooks: " + name);
+                    }
+                }
+                HuskHooks.Configure(3, mac);
+                foreach (string source in new[] { "claude", "codex" })
+                    if (File.ReadAllText(HuskHooks.PathFor(source)) != installed[source] || Directory.GetFiles(Path.GetDirectoryName(HuskHooks.PathFor(source))).Length != 2) throw new Exception("Cross husk installation was not idempotent.");
+                foreach (string broken in new[] { "{bad", "{\"hooks\":[]}", "{\"hooks\":{\"Stop\":[{}]}}" })
+                {
+                    File.WriteAllText(HuskHooks.PathFor("codex"), broken, new UTF8Encoding(true));
+                    bool refused = false;
+                    try { HuskHooks.Configure(1, linux); } catch (BrainException) { refused = true; }
+                    if (!refused || File.ReadAllText(HuskHooks.PathFor("codex")) != broken || File.ReadAllText(HuskHooks.PathFor("claude")) != installed["claude"]) throw new Exception("Husk overwrote invalid config or partly changed the other app.");
+                }
+                File.WriteAllText(HuskHooks.PathFor("codex"), installed["codex"], new UTF8Encoding(true));
+                HuskHooks.Configure(0, null);
+                foreach (string source in new[] { "claude", "codex" })
+                {
+                    string text = File.ReadAllText(HuskHooks.PathFor(source));
+                    if (!text.Contains(setting) || !text.Contains(hook) || !text.Contains(other) || !text.Contains("\"Untouched\" : []") || text.Contains("CAPRI_HUSK=1")) throw new Exception("Husk Off left her hooks or changed someone else's entries.");
+                    Dictionary<string, object> hooks = HuskJson.Get(HuskJson.Read(text) as Dictionary<string, object>, "hooks") as Dictionary<string, object>;
+                    if (hooks.Count != 2 || HuskJson.List(HuskJson.Get(hooks, "Stop")).Count != 2) throw new Exception("Husk Off left empty event groups or removed another group.");
+                }
+                checks.Add("PASS cross husk install/remove: exact event sets, async and bounded hooks, shared groups, raw settings and other hooks kept, original backup, encoding, idempotence and invalid-config refusal");
+
+                pet.HuskQueue = delegate(Action action) { action(); };
+                pet.HuskExe = delegate { return mac; };
+                pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+                for (int mode = 0; mode < 4; mode++)
+                {
+                    frame.Change("Code/Husk Mode", mode);
+                    if (pet.HuskMode != mode || frame.Value("Code/Husk Mode") != Pet.HuskNames[mode] || SettingsCopy().HuskMode != mode || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).HuskMode != mode) throw new Exception("The cross Husk picker did not save, load or show its mode.");
+                }
+                Action pending = null;
+                pet.HuskQueue = delegate(Action action) { pending = action; };
+                frame.Change("Code/Husk Mode", 1);
+                if (!pet.HuskChanging || frame.Row("Code/Husk Mode").IsEnabled || pending == null) throw new Exception("The Husk picker stayed enabled while hooks were changing.");
+                pending();
+                if (pet.HuskChanging || !frame.Row("Code/Husk Mode").IsEnabled || pet.HuskMode != 1) throw new Exception("The Husk picker did not finish its hook change.");
+                pet.HuskQueue = delegate(Action action) { action(); };
+                string codexGood = File.ReadAllText(HuskHooks.PathFor("codex"));
+                File.WriteAllText(HuskHooks.PathFor("codex"), "{bad");
+                frame.Change("Code/Husk Mode", 3);
+                if (pet.HuskChanging || pet.HuskMode != 1 || SettingsCopy().HuskMode != 1 || frame.Value("Code/Husk Mode") != "Claude Code" || pet.Husk.Bridge == null) throw new Exception("A failed hook setup lost the previous mode or listener.");
+                File.WriteAllText(HuskHooks.PathFor("codex"), codexGood);
+                pet.SetAdvancedSettings(false); frame.Sync();
+                if (frame.Row("Code/Husk Mode").IsVisible) throw new Exception("Husk mode did not fold with Advanced Settings.");
+                pet.SetAdvancedSettings(true); frame.Sync();
+                if (!frame.Row("Code/Husk Mode").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk row did not fit under BRAIN.");
+                checks.Add("PASS cross Husk Mainframe row: Off, Claude Code, Codex and Both; settings round trip and older-copy recovery; busy picker disabled; Advanced BRAIN layout");
+
+                List<HuskAct> acts = new List<HuskAct>();
+                List<string> lines = new List<string>();
+                List<bool> aloud = new List<bool>();
+                List<short[]> cues = new List<short[]>();
+                pet.Husk.Show = delegate(HuskAct act) { acts.Add(act); showWas(act); };
+                pet.HuskSaid = delegate(string line, bool spoken) { lines.Add(line); aloud.Add(spoken); };
+                Sfx.Out = cues.Add; Sfx.Level = 60; Voice.Loudness = 100;
+                pet.MainframeVoiceModePick(3);
+                if (pet.Shushed) pet.ToggleShush(false);
+                Brain.Language = "English";
+                pet.Talk.Dismiss(); pet.StandUp(); pet.Animate("idle");
+                double now = 1000;
+                pet.Husk.Clock = delegate { return now; };
+                HuskFeed("codex", "UserPromptSubmit");
+                if (acts.Count != 0) throw new Exception("Claude-only Husk mode acted a Codex event.");
+                pet.SetHusk(2); HuskFeed("claude", "UserPromptSubmit");
+                if (acts.Count != 0) throw new Exception("Codex-only Husk mode acted a Claude event.");
+                pet.SetHusk(3); pet.Talk.Dismiss();
+                HuskFeed("claude", "SessionStart");
+                if (pet.HuskMood != "hi" || lines[lines.Count - 1] != HuskWords.Line("English", 12, "Claude Code")) throw new Exception("A Claude session did not get her hello.");
+                pet.Nap(true); pet.Animate("idle"); pet.Nap(true); pet.CheckNap();
+                HuskFeed("claude", "UserPromptSubmit", "prompt", "Fix the file.");
+                if (pet.HuskMood != "prompt" || pet.Napping || lines[lines.Count - 1] != HuskWords.Line("English", 0, "Claude Code") || aloud[aloud.Count - 1]) throw new Exception("A cross Husk prompt did not wake her with the Windows words.");
+                int before = lines.Count, cueCount = cues.Count;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Edit", "tool_input", HuskJson.Map("file_path", "/project/Pet.cs"));
+                if (pet.HuskMood != "caption" || lines.Count != before + 1 || lines[lines.Count - 1] != HuskWords.Line("English", 1, "Pet.cs") || aloud[aloud.Count - 1] || cues.Count != cueCount) throw new Exception("A cross tool caption used the wrong words or made sound.");
+                before = lines.Count;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Read", "tool_input", HuskJson.Map("file_path", "one.cs"));
+                HuskFeed("claude", "PreToolUse", "tool_name", "Read", "tool_input", HuskJson.Map("file_path", "two.cs"));
+                if (lines.Count != before) throw new Exception("Cross Husk tool captions were not throttled.");
+                now += 4; pet.Husk.Tick();
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 4, 2)) throw new Exception("Cross Husk did not combine queued reads.");
+                now += 5;
+                HuskFeed("codex", "PreToolUse", "tool_name", "exec_command", "tool_input", HuskJson.Map("cmd", "dotnet test"));
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 2, "dotnet test") || aloud[aloud.Count - 1]) throw new Exception("A Codex shell tool missed the shared running caption.");
+                now += 5;
+                HuskFeed("codex", "PreToolUse", "tool_name", "apply_patch", "tool_input", HuskJson.Map("command", "*** Update File: /project/Pet.cs\n*** End Patch"));
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 1, "Pet.cs")) throw new Exception("A Codex patch missed the shared editing caption.");
+                now += 5;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Grep", "tool_input", HuskJson.Map("pattern", "Husk"));
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 5, "Husk")) throw new Exception("A search missed her search caption.");
+                now += 5;
+                HuskFeed("claude", "PreToolUse", "tool_name", "CustomTool");
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 6, "CustomTool")) throw new Exception("Another tool missed her using caption.");
+                now += 5;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Bash", "tool_input", HuskJson.Map("command", "api_key=secret-value"));
+                if (lines[lines.Count - 1].Contains("secret-value") || pet.Brain.HuskFacts().Contains("secret-value")) throw new Exception("A key reached her cross Husk bubble or brain facts.");
+                before = acts.Count;
+                HuskFeed("claude", "PostToolUse", "tool_name", "Read");
+                if (acts.Count != before) throw new Exception("A successful tool added an extra Husk reaction.");
+                HuskFeed("claude", "PostToolUseFailure");
+                if (pet.HuskMood != "failure" || pet.Playing != "glitch" || lines[lines.Count - 1] != HuskWords.Line("English", 7, "Claude Code") || cues.Count <= cueCount) throw new Exception("A cross tool failure did not glitch with her snag line and sound.");
+                HuskFeed("claude", "PostToolUse", "error", "failed");
+                if (pet.HuskMood != "failure") throw new Exception("An error in PostToolUse missed the failure reaction.");
+                pet.SetOnTop(false); pet.HideAway();
+                HuskFeed("claude", "Notification", "notification_type", "permission_prompt", "message", "Run tests?");
+                if (pet.Away || !pet.Raised || pet.HuskMood != "approval" || lines[lines.Count - 1] != "Claude Code needs your OK. Run tests?" || !aloud[aloud.Count - 1]) throw new Exception("A Claude approval did not bring her back and ask for their attention.");
+                HuskFeed("codex", "PermissionRequest", "tool_name", "exec_command", "tool_input", HuskJson.Map("description", "Run tests?", "cmd", "dotnet test"));
+                if (pet.HuskMood != "approval" || lines[lines.Count - 1] != "Codex needs your OK. Run tests?") throw new Exception("Codex approval did not use the shared adapter and attention line.");
+                HuskFeed("codex", "PreToolUse", "tool_name", "request_user_input", "tool_input", HuskJson.Map("questions", new List<object> { HuskJson.Map("question", "Which file?") }));
+                if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Codex", "Which file?")) throw new Exception("A Codex question did not ask for their input.");
+                pet.Saved.Silent = true;
+                HuskFeed("claude", "PermissionRequest", "message", "Voice off?");
+                if (aloud[aloud.Count - 1]) throw new Exception("A cross approval ignored her voice setting.");
+                pet.Saved.Silent = false;
+                pet.ToggleShush(false);
+                HuskFeed("claude", "PermissionRequest", "tool_input", HuskJson.Map("description", "Quiet approval?"));
+                if (aloud[aloud.Count - 1]) throw new Exception("A cross approval ignored Quiet.");
+                pet.ToggleShush(false);
+                before = acts.Count;
+                HuskFeed("claude", "Notification", "notification_type", "info", "message", "noise");
+                if (acts.Count != before) throw new Exception("An unrelated notification got a Husk reaction.");
+                pet.StandUp();
+                HuskFeed("claude", "SubagentStart", "agent_id", "one");
+                HuskFeed("codex", "SubagentStart", "agent_id", "two");
+                if (pet.HuskAgents != 2 || lines[lines.Count - 1] != "Subagents: 2") throw new Exception("Cross subagents did not get a clear count.");
+                before = acts.Count; HuskFeed("claude", "SubagentStart", "agent_id", "one");
+                if (acts.Count != before || pet.HuskAgents != 2) throw new Exception("A duplicate subagent changed the count.");
+                HuskFeed("claude", "SubagentStop", "agent_id", "one");
+                if (pet.HuskAgents != 1 || lines[lines.Count - 1] != "Subagents: 1") throw new Exception("A stopped subagent did not leave the count.");
+                HuskFeed("claude", "PreCompact");
+                if (pet.HuskMood != "compact" || pet.Playing != "glitch" || lines[lines.Count - 1] != HuskWords.Line("English", 14)) throw new Exception("Compacting did not get her glitch and memory line.");
+                HuskFeed("claude", "Stop", "last_assistant_message", "Changed the file. Tests passed.");
+                if (pet.HuskMood != "done" || pet.Playing != "grin" || lines[lines.Count - 1] != "Claude Code: Changed the file." || acts[acts.Count - 1].Reply != "Changed the file. Tests passed.") throw new Exception("Completion did not grin and show what Claude answered.");
+                before = acts.Count; HuskFeed("claude", "Stop");
+                if (acts.Count != before) throw new Exception("Duplicate completion played twice.");
+                HuskFeed("codex", "Stop", "last_assistant_message", "Done.");
+                if (pet.HuskAgents != 0 || lines[lines.Count - 1] != "Codex: Done.") throw new Exception("Completion did not recall Codex's subagents or show its answer.");
+                HuskFeed("claude", "UserPromptSubmit"); HuskFeed("claude", "Stop");
+                if (pet.HuskMood != "done" || lines[lines.Count - 1] != HuskWords.Line("English", 10, "Claude Code")) throw new Exception("An empty completion missed her finished fallback.");
+                HuskFeed("claude", "UserPromptSubmit"); HuskFeed("claude", "StopFailure");
+                if (pet.HuskMood != "error" || !pet.Blinking || lines[lines.Count - 1] != HuskWords.Line("English", 11, "Claude Code")) throw new Exception("A failed completion missed her error reaction.");
+                HuskFeed("codex", "Interrupt");
+                if (pet.HuskMood != "interrupt" || lines[lines.Count - 1] != HuskWords.Line("English", 15, "Codex")) throw new Exception("A Codex interrupt did not show its paused line.");
+                now += 601; HuskFeed("claude", "SessionEnd");
+                if (pet.HuskMood != "bye" || lines[lines.Count - 1] != HuskWords.Line("English", 13, "Claude Code")) throw new Exception("Ending a session did not get her goodbye.");
+                if (!pet.Brain.HuskFacts().Contains("Code/Husk Mode works on Windows, Mac and Linux") || !pet.Brain.HuskFacts().Contains("never approves or controls")) throw new Exception("Her cross self-knowledge missed Husk mode or its observer role.");
+                checks.Add("PASS cross husk acting: both source filters, prompt wake, silent throttled tools, failures, approvals and questions, Quiet, completion answer, subagent count, compacting, interrupt and session words; self-knowledge stays observational");
+
+                pet.HuskSaid = null; pet.Talk.Answer("(husk test)", "Keep this reply.");
+                HuskFeed("claude", "PermissionRequest", "message", "Old approval?");
+                if (pet.Talk.Reply != "Keep this reply.") throw new Exception("A Husk approval interrupted her current reply.");
+                HuskFeed("claude", "UserPromptSubmit");
+                pet.HuskSaid = delegate(string line, bool spoken) { lines.Add(line); };
+                pet.Talk.Dismiss(); before = lines.Count;
+                typeof(Pet).GetMethod("TickHusk", fields).Invoke(pet, null);
+                foreach (string line in lines.GetRange(before, lines.Count - before)) if (line.Contains("Old approval?")) throw new Exception("A stale approval was spoken after the assistant moved on.");
+                pet.Husk.Show = showWas;
+                pet.HuskSaid = delegate(string line, bool spoken)
+                {
+                    if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) throw new Exception("A Husk line reached her bubble off the UI thread.");
+                    lines.Add(line);
+                };
+                HuskFeed("codex", "SubagentStart", "agent_id", "worker");
+                pet.HuskQueue = queueWas;
+                pet.SetHusk(1);
+                MainframeWait(delegate { return !pet.HuskChanging; }, "a Husk mode change with an active subagent");
+                if (pet.HuskAgents != 0 || pet.HuskMode != 1 || pet.Talk.Reply != "Restart Claude Code to use my hooks.") throw new Exception("A worker's Husk mode change did not safely recall the other source's subagent.");
+                pet.HuskQueue = delegate(Action action) { action(); };
+                pet.Husk.Show = delegate(HuskAct act) { acts.Add(act); showWas(act); };
+                pet.SetHusk(0); before = acts.Count;
+                HuskFeed("claude", "UserPromptSubmit");
+                if (acts.Count != before || pet.Husk.Mode != 0 || File.Exists(Path.Combine(folder, HuskHook.Discovery))) throw new Exception("Husk Off kept listening or acting.");
+
+                string route = Path.Combine(own, "bridge");
+                Dictionary<string, object> received = null;
+                using (HuskBridge bridge = new HuskBridge(route))
+                using (ManualResetEvent delivered = new ManualResetEvent(false))
+                {
+                    bridge.Received = delegate(Dictionary<string, object> evt) { received = evt; delivered.Set(); };
+                    bridge.Start();
+                    if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(Path.Combine(route, HuskHook.Discovery)) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("The cross Husk discovery token was not private to its user.");
+                    using (HuskInput input = new HuskInput(HuskJson.Write(HuskEvent("PermissionRequest", "tool_name", "exec_command", "tool_input", HuskJson.Map("description", "Local tests?")))))
+                        if (HuskHook.Run("codex", input, Path.Combine(route, HuskHook.Discovery)) != 0 || !delivered.WaitOne(1000) || HuskJson.Text(received, "hook_event_name") != "Notification" || HuskJson.Text(received, "session_id") != "codex:cross-husk") throw new Exception("The cross hook did not deliver and adapt a loopback event.");
+                }
+                if (File.Exists(Path.Combine(route, HuskHook.Discovery))) throw new Exception("Closing the Husk bridge left a live discovery file.");
+                foreach (string source in new[] { "claude", "codex" })
+                using (HuskInput input = new HuskInput("do not read"))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    if (HuskHook.Run(source, input, Path.Combine(route, HuskHook.Discovery)) != 0 || input.Reads != 0 || watch.ElapsedMilliseconds > 1500) throw new Exception("A hook without Capri waited on stdin or failed.");
+                }
+                using (HuskInput input = new HuskInput("invalid"))
+                    if (HuskHook.Run("unknown", input, Path.Combine(route, HuskHook.Discovery)) != 0 || input.Reads != 0) throw new Exception("An unknown hook source did not exit quietly.");
+                checks.Add("PASS cross husk bridge: local authenticated event delivery and Codex adaptation; Off stops acting and removes discovery; no running Capri exits fast with success without reading stdin");
+            }
+            finally
+            {
+                pet.HuskQueue = delegate(Action action) { action(); };
+                pet.SetHusk(0);
+                pet.HuskQueue = queueWas; pet.HuskExe = exeWas; pet.HuskSaid = saidWas;
+                pet.Husk.Show = showWas; pet.Husk.Clock = clockWas;
+                Sfx.Out = soundWas; Sfx.Level = soundLevelWas; Voice.Loudness = volumeWas;
+                pet.Saved.Silent = silentWas; pet.Saved.VoiceProvider = providerWas; Brain.Language = languageWas;
+                if (pet.Shushed != quietWas) pet.ToggleShush(false);
+                pet.SetOnTop(topWas); pet.CheckRaised(double.MaxValue); pet.SetAdvancedSettings(advancedWas);
+                foreach (KeyValuePair<string, object> item in scene) typeof(Pet).GetField(item.Key, fields).SetValue(pet, item.Value);
+                pet.Talk.Dismiss();
+                Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", claudeWas);
+                Environment.SetEnvironmentVariable("CODEX_HOME", codexWas);
+                Environment.SetEnvironmentVariable("APPIMAGE", imageWas);
             }
         }
 
