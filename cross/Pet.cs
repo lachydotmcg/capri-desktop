@@ -2747,6 +2747,7 @@ namespace CapriDesktop
 
         private void ForgetServerKey()
         {
+            Brain.Cancel();
             ++asking;
             string server;
             string ignored;

@@ -1346,6 +1346,16 @@ namespace CapriDesktop
                 || (IPAddress.TryParse(parsed.Host.Trim('[', ']'), out host) && IPAddress.IsLoopback(host));
         }
 
+        // A request already in flight keeps the pair it started with. If the user forgets the key or switches
+        // providers, a later retry must not send the old credential again.
+        private void EnsureServer(string address, string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            string currentServer, currentKey;
+            GetServer(out currentServer, out currentKey);
+            if (currentServer != address || currentKey != key) throw new WebException("Reply cancelled.", WebExceptionStatus.RequestCanceled);
+        }
+
         // The models a server lists at /v1/models. A provider that wants a key gets it as a Bearer token, and a redirect
         // never carries that key to another address.
         internal static string[] ServerModels(string address, string key = null)
@@ -2775,6 +2785,7 @@ namespace CapriDesktop
         internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null, bool job = false, string named = null, string key = null)
         {
             if (!string.IsNullOrEmpty(key) && !ServerKeySafe(address)) throw new BrainException("Use https for a provider elsewhere. A key over plain http isn't safe.", true);
+            EnsureServer(address, key);
             string thinking = address + "|" + model;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
             CompletionRequest asking = new CompletionRequest { Messages = messages.ToArray(), Limit = ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing) };
@@ -2787,6 +2798,7 @@ namespace CapriDesktop
             {
                 thinker = thinking;
                 asking.Limit = ReplyLimit(limit + 2048, job || routing);
+                EnsureServer(address, key);
                 reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key);
                 choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             }
@@ -2794,6 +2806,7 @@ namespace CapriDesktop
             if (routing && Stopped(reply) && cut != null && Unfinished(cut.Content, cut.Calls != null, cut.Thinking ?? cut.Reasoning))
                 reply = Longer(reply, asking.Limit, Stopped, Whole, delegate(int room)
                 {
+                    EnsureServer(address, key);
                     asking.Limit = room;
                     return Send<CompletionReply>(address + "/v1/chat/completions", asking, Math.Max(180000, room * 150), listed, sign, parts, ticket, key);
                 });

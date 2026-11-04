@@ -18,7 +18,7 @@ namespace CapriDesktop
             internal readonly ManualResetEventSlim Received = new ManualResetEventSlim(), Release = new ManualResetEventSlim();
             internal readonly List<string> Requests = new List<string>();
             internal readonly string Address;
-            internal volatile bool Hold, Error, Redirect, StreamError;
+            internal volatile bool Hold, Error, Redirect, StreamError, Retry;
             internal string Destination;
             internal Server()
             {
@@ -39,6 +39,7 @@ namespace CapriDesktop
                     string body = Error && chat ? "{\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}"
                         : chat ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}"
                         : "{\"data\":[{\"id\":\"alpha\"}]}";
+                    if (chat && Retry) body = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"thinking\"},\"finish_reason\":\"length\"}]}";
                     if (chat && StreamError)
                     {
                         body = "data: {\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}\n\n";
@@ -129,6 +130,25 @@ namespace CapriDesktop
                     Thread.Sleep(300);
                     if (!Wait(() => pet.Brain.ServerKey == null)) failures.Add("S3 forgotten key restored");
                     if (File.Exists(secret) && File.ReadAllText(secret).Contains("key-C")) failures.Add("S3 forgotten key persisted");
+                    using (Server c = new Server())
+                    {
+                        c.Retry = true; c.Hold = true;
+                        Brain live = new Brain { Model = "alpha" };
+                        live.SetServer(c.Address, "key-D");
+                        System.Threading.Tasks.Task.Run(() =>
+                        {
+                            try { live.Complete(c.Address, "alpha", new List<ChatMessage> { new ChatMessage("user", "hello test") }, false, new List<KeyValuePair<string, ToolArguments>>(), null, 90, -1, false, null, false, "alpha", "key-D"); }
+                            catch (Exception) { }
+                        });
+                        if (!Wait(() => c.Received.IsSet)) failures.Add("S3 forget-chat setup: chat not held");
+                        live.SetServer(c.Address, null);
+                        c.Release.Set(); c.Hold = false;
+                        Thread.Sleep(500);
+                        int chats;
+                        lock (c.Requests) chats = c.Requests.FindAll(x => x.StartsWith("/v1/chat/completions", StringComparison.Ordinal)).Count;
+                        if (chats != 1) failures.Add("S3 forgotten key retried a chat: " + string.Join(" | ", c.Requests.ToArray()));
+                    }
+                    a.Retry = false;
                     Brain.LogPath = log; a.Error = true;
                     try { new Brain { Server = a.Address, ServerKey = key, Model = "alpha" }.Ask("hello test"); }
                     catch (Exception e) { if (e.Message.Contains(key)) failures.Add("S3 error exposed key"); }
