@@ -1,0 +1,38 @@
+# Unity's cache and build output (rebuilt automatically, several GB)
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Bb]uild/
+[Bb]uilds/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+.utmp/
+*.apk
+*.aab
+*.unitypackage
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+crashlytics-buildid.txt
+sysinfo.txt
+
+# IDE files
+.vs/
+.vscode/
+.idea/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+
+# The signing key: never upload it (anyone with it could sign fake updates)
+Keystore/
+*.keystore
+*.jks
+
+# OS junk
+.DS_Store
+Thumbs.db
