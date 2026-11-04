@@ -110,7 +110,12 @@ namespace CapriDesktop
         internal void SavePicture(string path)
         {
             Top(); UpdateLayout();
-            using (var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(Width), (int)Math.Ceiling(Height)), new Vector(96, 96))) { bitmap.Render((Control)Content); bitmap.Save(path); }
+            // Linux's window manager can still be catching up on a new size, so the picture lays her out at the size she asked for
+            // and leaves the window to lay out again at its own.
+            var surface = (Control)Content; var size = new Size(Width, Height);
+            surface.Measure(size); surface.Arrange(new Rect(size));
+            using (var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(Width), (int)Math.Ceiling(Height)), new Vector(96, 96))) { bitmap.Render(surface); bitmap.Save(path); }
+            surface.InvalidateMeasure();
         }
         internal static T Put<T>(Canvas canvas, T control, double x, double y, double width, double height, string name = null) where T : Control
         {
