@@ -1,10 +1,10 @@
 1. Use Node.js 24 or newer. Open a terminal in this `discord-bot` folder.
 
-2. Open [Capri's existing app in the Discord Developer Portal](https://discord.com/developers/applications/1564889759157850182/bot). It is the app Lachy made for her Discord status. In the Bot tab, set her bot name to Capri and choose Reset Token. Keep the token for your local `.env` file.
+2. In the [Discord Developer Portal](https://discord.com/developers/applications), choose New Application and name it Capri. Use a new app: her Discord status app has too many users to turn on Message Content Intent. In the Bot tab, choose Reset Token and keep the token for your local `.env` file. Turn Public Bot off, so only you can add her to servers.
 
 3. In the Bot tab, turn on Message Content Intent and save.
 
-4. [Invite Capri to the Capri server](https://discord.com/oauth2/authorize?client_id=1564889759157850182&scope=bot&permissions=274877975552). This uses only the `bot` scope. Permissions `274877975552` give View Channels, Send Messages, Send Messages in Threads and Read Message History. Channel permission overrides must allow these too.
+4. Invite Capri to the Capri server with `https://discord.com/oauth2/authorize?client_id=APP_ID&scope=bot&permissions=274877975552`, putting the new app's Application ID in place of `APP_ID`. This uses only the `bot` scope. Permissions `274877975552` give View Channels, Send Messages, Send Messages in Threads and Read Message History. Channel permission overrides must allow these too.
 
 5. Deploy the edited `worker/src/index.js` to the existing `capri-reactions` worker using the project's usual deployment. In the Cloudflare dashboard, open Workers & Pages, then `capri-reactions`, then Settings, Variables and Secrets. Add `DISCORD_RELAY_SECRET` as a Secret, the same way `ANTHROPIC_API_KEY` was set. Use a new random value and save it.
 
