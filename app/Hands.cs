@@ -733,8 +733,8 @@ namespace CapriDesktop
             { "dance_to_music", "Dance to music", "Moves" }, { "head_pats", "Head pats", "Capri" }, { "chaos_when_upset", "Chaos when upset", "Capri" }, { "sit_on_windows", "Sit on windows", "Moves" }, { "always_on_top", "Always on top", "Capri" },
             { "mini_player", "Mini player", "Moves" }, { "typing_sound", "Typing sound", "Voice" }, { "follow_ups", "Follow-up messages", "Brain" }, { "hide_in_full_screen", "Hide in full screen", "Habits" }, { "glitch_in", "Glitch in at startup", "Moves" },
             { "keep_awake", "Keep PC awake for jobs", "Habits" }, { "player_full_screen", "Mini player over full screen", "Habits" }, { "explore_away", "Explore while away", "Habits" },
-            { "care_water", "Water check-in", "Habits" }, { "care_stretch", "Stretch check-in", "Habits" }, { "care_eyes", "Look away check-in", "Habits" }, { "care_late_night", "Sleep nudge", "Habits" },
-            { "care_meals", "Meals check-in", "Habits" }, { "care_long_game", "Game break check-in", "Habits" }, { "care_boredom", "Bored check-in", "Habits" },
+            { "care_water", "Water check-in", "Capri" }, { "care_stretch", "Stretch check-in", "Capri" }, { "care_eyes", "Look away check-in", "Capri" }, { "care_late_night", "Sleep nudge", "Capri" },
+            { "care_meals", "Meals check-in", "Capri" }, { "care_long_game", "Game break check-in", "Capri" }, { "care_boredom", "Bored check-in", "Capri" },
             { "fast_hands", "Fast hands in games", "Games" }, { "cursor", "Use her cursor", "Habits" }, { "startup", "Start at login", "Habits" }, { "discord_presence", "Show on Discord", "Habits" },
             { "voice_layers", "Voice layers", "Voice" }, { "show_advanced", "Advanced settings", "Capri" }, { "listen_for_capri", "Listen for Capri", "Voice" }, { "voice_in_mic", "My voice in your mic", "Voice" }
         };
@@ -746,8 +746,8 @@ namespace CapriDesktop
             { "size", "my size", "Capri" }, { "wander", "Wander", "Moves" }, { "pop_ins", "Pop-ins", "Moves" }, { "sleep", "Sleep", "Moves" },
             { "volume", "my voice's volume", "Voice" }, { "voice_speed", "my voice's speed", "Voice" }, { "replies", "Replies", "Brain" }, { "bubble", "Bubble", "Brain" },
             { "explore_after", "Explore after", "Habits" }, { "glance_gap", "Time between glances", "Watch" }, { "watch_memory", "Watch-along context", "Watch" },
-            { "care_water", "Water interval", "Habits" }, { "care_stretch", "Stretch interval", "Habits" }, { "care_eyes", "Look away interval", "Habits" }, { "care_late_night", "Sleep nudge after", "Habits" },
-            { "care_meals", "Meals interval", "Habits" }, { "care_long_game", "Game break interval", "Habits" }, { "care_boredom", "Bored interval", "Habits" },
+            { "care_water", "Water interval", "Capri" }, { "care_stretch", "Stretch interval", "Capri" }, { "care_eyes", "Look away interval", "Capri" }, { "care_late_night", "Sleep nudge after", "Capri" },
+            { "care_meals", "Meals interval", "Capri" }, { "care_long_game", "Game break interval", "Capri" }, { "care_boredom", "Bored interval", "Capri" },
             { "voice_pitch", "my voice's pitch", "Voice" }, { "voice_robot", "Voice robot", "Voice" }, { "voice_glitch", "Voice glitch", "Voice" },
             { "layer_1_pitch", "Layer 1 pitch", "Voice" }, { "layer_1_delay", "Layer 1 delay", "Voice" }, { "layer_2_pitch", "Layer 2 pitch", "Voice" }, { "layer_2_delay", "Layer 2 delay", "Voice" },
             { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
@@ -845,10 +845,11 @@ namespace CapriDesktop
         private static readonly Dictionary<string, string> SettingMeanings = new Dictionary<string, string>
         {
             { "voice", "you talking out loud; off, you type" }, { "quiet", "no pop-ins, comments or check-ins" }, { "mic", "your ears in voice chat, while it's on" },
+            { "check_ins", "every check-in, including water, stretch, look away, sleep, meals, game breaks and boredom; off keeps their switches and times saved" },
             { "hologram", "clicks pass through you" }, { "head_pats", "they pat your head with their cursor" }, { "chaos_when_upset", "an insult sets your clones off" },
             { "sit_on_windows", "you sit on their windows' top edges" }, { "mini_player", "your music player" }, { "follow_ups", "your second thought after an answer" },
             { "glitch_in", "your entrance when Capri starts" }, { "watch_my_screen", "your timed glances at their screen" },
-            { "game_comments", "what you say about their game; for no comments at all, turn it and watch_my_screen off" },
+            { "game_comments", "game comments run on their own; Off stops them outside Gaming Mode" },
             { "live_reactions", "your quick reactions over their games" }, { "gaming_mode", "you watch their game and react when something happens" }, { "clip_my_games", "keeps their game's video for clips" }, { "save_big_moments", "clips big moments by itself" },
             { "keep_awake", "their PC stays awake for your jobs and watches" }, { "explore_away", "you explore while they're away" },
             { "cursor", "your visible pointer for YouTube searches and Spotify's volume" }, { "fast_hands", "games on Claude Haiku, faster and cheaper, with a Claude key" },
@@ -904,7 +905,7 @@ namespace CapriDesktop
                 if (parts.Count > 0) groups.Add(group + ": " + string.Join("; ", parts.ToArray()));
             }
             return "The switch or slider; optional for list. " + string.Join(". ", groups.ToArray()) + "."
-                + (HasSetting(kit, "care_water") ? " Each check-in's level is how often it comes, and care_late_night's is the hour it starts." : "")
+                + (HasSetting(kit, "care_water") ? " Care switches and times sit under Check in on me in CAPRI; check_ins off pauses them all, and on starts fresh timers for the ones enabled. Each check-in's level is how often it comes, and care_late_night's is the hour it starts." : "")
                 + (HasSetting(kit, "clip_folder") ? " clip_folder is where their clips are saved." : "");
         }
 
@@ -5574,7 +5575,7 @@ namespace CapriDesktop
                 }
                 if (HasSetting(kit, "clip_folder") && (string.IsNullOrEmpty(args.Name) || args.Name == "clip_folder")) each.Add("Clips folder: " + SettingText("clip_folder"));
                 if (each.Count == 0) return "There's no setting of mine called " + (args.Name ?? "that") + ".";
-                return "How my settings are right now: " + string.Join("; ", each.ToArray()) + ".";
+                return "How my settings are right now: " + string.Join("; ", each.ToArray()) + "." + SettingsNote(args.Name, false);
             }
             if (args.Action == "set") return Leveled(args);
             int row = OwnRow(args.Name);
@@ -5583,11 +5584,22 @@ namespace CapriDesktop
             bool want = way == "on";
             bool? was = SettingOn(args.Name);
             if (was == null) return args.Name == "mic" ? "Couldn't change my voice chat mic: voice chat isn't on." : "Couldn't read " + label + " just now.";
-            if (was.Value == want) return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + ".";
+            if (was.Value == want) return char.ToUpperInvariant(label[0]) + label.Substring(1) + " was already " + way + "." + SettingsNote(args.Name, false);
             string note = args.FromAgent ? SetAgentSetting(args.Name, want) : SetSetting(args.Name, want);
             bool? now = SettingOn(args.Name);
             note = string.IsNullOrEmpty(note) ? "" : " " + note;
-            return now == want ? "Turned " + label + " " + way + "." + note : "Couldn't turn " + label + " " + way + ": it's still " + (now == true ? "on" : now == false ? "off" : "unreadable") + "." + note;
+            return now == want ? "Turned " + label + " " + way + "." + note + SettingsNote(args.Name, true) : "Couldn't turn " + label + " " + way + ": it's still " + (now == true ? "on" : now == false ? "off" : "unreadable") + "." + note;
+        }
+
+        private static string SettingsNote(string name, bool changed)
+        {
+#if !CROSS
+            if (name != "check_ins" && Array.IndexOf(CareSettings, name) < 0) return "";
+            bool? on = SettingOn("check_ins");
+            if (name == "check_ins" && on != null) return on.Value ? changed ? " Enabled check-ins start fresh timers." : " Your enabled check-ins can run." : " Every check-in is paused; your care switches and times stay saved.";
+            if (Array.IndexOf(CareSettings, name) >= 0 && on == false) return " Check in on me is off, so this check-in stays paused.";
+#endif
+            return "";
         }
 
         // Moves one of her sliders and reads it back. A step past either end says it's already as far as it goes.
@@ -5601,11 +5613,11 @@ namespace CapriDesktop
             if (was < 0 || was >= steps.Length) return "Couldn't read " + label + " just now.";
             int want = StepFor(args.Name, args.Level, was);
             if (want < 0) return "There's no " + (args.Level ?? "step like that") + " for " + label + ". It goes " + string.Join(", ", steps) + ".";
-            if (want == was) return named + " is already " + steps[was] + (Nudge(Spoken(args.Level)) != 0 ? ", as far as it goes." : ".");
+            if (want == was) return named + " is already " + steps[was] + (Nudge(Spoken(args.Level)) != 0 ? ", as far as it goes." : ".") + SettingsNote(args.Name, false);
             string note = SetLevel(args.Name, want);
             int now = LevelOf(args.Name);
             note = string.IsNullOrEmpty(note) ? "" : " " + note;
-            return now == want ? "Set " + label + " to " + steps[want] + "." + note : "Couldn't set " + label + " to " + steps[want] + ": it's still " + (now < 0 || now >= steps.Length ? "unreadable" : steps[now]) + "." + note;
+            return now == want ? "Set " + label + " to " + steps[want] + "." + note + SettingsNote(args.Name, true) : "Couldn't set " + label + " to " + steps[want] + ": it's still " + (now < 0 || now >= steps.Length ? "unreadable" : steps[now]) + "." + note;
         }
 
         private static List<OpenWindow> ReadWindows()

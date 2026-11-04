@@ -148,6 +148,7 @@ namespace CapriDesktop
         private static readonly string[] AwayNames = { "1 min", "2 min", "5 min", "10 min", "15 min", "30 min" };
         private readonly Toggle[] careToggles = new Toggle[7];
         private readonly Key[] careTimes = new Key[7];
+        private readonly Key careEdit;
         private readonly ContextMenuStrip careMenu;
         private readonly Toggle liveReactions;
         private readonly Toggle clipGames;
@@ -262,7 +263,7 @@ namespace CapriDesktop
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 700, 1177 }, new[] { 1288, 1340 }, new[] { 1340, 1368 } };
-        private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 624, 1006 }, new[] { 1202, 2028 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -724,6 +725,22 @@ namespace CapriDesktop
             sizeName = new Readout(sizeSlider);
             sizeSlider.Changed += delegate { if (syncing) return; sizeName.Text = SizeNames[sizeSlider.Value]; capri.SetCharacterSize(SizeSteps[sizeSlider.Value]); };
             checkIns = Switch("Check in on me", c, 110, delegate { if (!syncing) capri.ToggleCheckIns(); });
+            careMenu = Dropdown();
+            for (int careRow = 0; careRow < careToggles.Length; careRow++)
+            {
+                CareKind careKind = (CareKind)careRow;
+                Toggle careToggle = Switch(Care.Names[careRow], c, 138 + careRow * Row, delegate { if (!syncing) capri.ToggleCare(careKind); });
+                careToggle.Width = 224;
+                careToggle.Switch = 68;
+                careToggle.AccessibleName = "Check in on me: " + Care.Names[careRow] + " check-in" + (careKind == CareKind.Eyes ? ", look away for 20 seconds" : careKind == CareKind.Meal ? ", mealtimes from noon, if you've been here since before lunch" : "");
+                careToggles[careRow] = careToggle;
+                Key careTime = Make("", 260 + c, 141 + careRow * Row, 96, 22, delegate { ChooseCareTime(careKind); });
+                careTime.Chevron = true;
+                careTimes[careRow] = careTime;
+            }
+            careEdit = Make("Edit check-in lines", 28 + c, 338, 328, 20, delegate { capri.OpenCare(); });
+            careEdit.AccessibleName = "Check in on me: edit her check-in lines in check-ins.md; remove lines to silence a check-in";
+            int afterCare = Controls.Count;
             onTop = Switch("Always on top", c, 138, delegate { if (!syncing) capri.ToggleOnTop(); });
             // Zenni's ask (30 Oct): under Virtual Super Resolution her Mainframe came out tiny. Auto grows it by how much bigger
             // the desktop is than the panel showing it; 100% to 200% sizes it by hand.
@@ -823,20 +840,6 @@ namespace CapriDesktop
             exploreAfter = Setting("Explore after", AwayNames, c, 1000, "How long you are away before she scrolls a browser or reader");
             exploreAfterName = new Readout(exploreAfter);
             exploreAfter.Changed += delegate { if (!syncing) capri.SetExploreAfter(AwayTimes[exploreAfter.Value]); };
-            careMenu = Dropdown();
-            for (int careRow = 0; careRow < careToggles.Length; careRow++)
-            {
-                CareKind careKind = (CareKind)careRow;
-                Toggle careToggle = Switch(Care.Names[careRow], c, 1040 + careRow * 28, delegate { if (!syncing) capri.ToggleCare(careKind); });
-                careToggle.Width = 224;
-                careToggle.Switch = 68;
-                careToggle.AccessibleName = Care.Names[careRow] + " check-in" + (careKind == CareKind.Eyes ? ": look away for 20 seconds" : careKind == CareKind.Meal ? ": mealtimes from noon, if you've been here since before lunch" : "");
-                careToggles[careRow] = careToggle;
-                Key careTime = Make("", 260 + c, 1043 + careRow * 28, 96, 22, delegate { ChooseCareTime(careKind); });
-                careTime.Chevron = true;
-                careTimes[careRow] = careTime;
-            }
-            Make("Edit check-in lines", 28 + c, 1240, 328, 20, delegate { capri.OpenCare(); }).AccessibleName = "Edit her check-in lines in check-ins.md; remove lines to silence a check-in";
             int gamesFrom = Controls.Count;
             Section("GAMES >", 0, 914);
             // What she says about a game they're playing, from what happens in it rather than on a timer.
@@ -884,6 +887,8 @@ namespace CapriDesktop
             // Head pats, Chaos when upset and Hologram each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 3;
+            for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
+                if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
             // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
             for (int gameRow = gamesFrom; gameRow < gamesTo; gameRow++)
             {
@@ -2316,9 +2321,12 @@ namespace CapriDesktop
             {
                 CareKind careSetting = (CareKind)careSync;
                 careToggles[careSync].Checked = capri.CareOn(careSetting);
+                careToggles[careSync].Dimmed = !capri.CheckIns;
                 careTimes[careSync].Text = CareTimeName(careSetting, capri.CareTime(careSetting));
-                careTimes[careSync].AccessibleName = Care.Names[careSync] + (careSetting == CareKind.Late ? " after " : " every ") + careTimes[careSync].Text;
+                careTimes[careSync].Dimmed = !capri.CheckIns;
+                careTimes[careSync].AccessibleName = "Check in on me: " + Care.Names[careSync] + (careSetting == CareKind.Late ? " after " : " every ") + careTimes[careSync].Text;
             }
+            careEdit.Dimmed = !capri.CheckIns;
             ShowPersonality();
             liveReactions.Checked = capri.ReactionsOn;
             clipGames.Checked = capri.ClipsOn;
@@ -2453,6 +2461,54 @@ namespace CapriDesktop
         internal string CareTimeShown(CareKind kind) { return careTimes[(int)kind].Text; }
 
         internal void FlipCare(CareKind kind) { careToggles[(int)kind].Checked = !careToggles[(int)kind].Checked; }
+
+        internal void FlipCheckIns() { checkIns.Checked = !checkIns.Checked; }
+
+        internal string CareFits()
+        {
+            if (!paged) return null;
+            if (Hidden(checkIns) || !checkIns.TabStop) return "Check in on me is hidden";
+            Control above = checkIns;
+            for (int row = 0; row < careToggles.Length; row++)
+            {
+                Toggle toggle = careToggles[row];
+                Key time = careTimes[row];
+                if (Hidden(toggle) != simple || Hidden(time) != simple || toggle.TabStop == simple || time.TabStop == simple) return "a care row has the wrong Settings view";
+                if (!toggle.Enabled || !time.Enabled || toggle.Dimmed != !capri.CheckIns || time.Dimmed != !capri.CheckIns) return "a care row is locked or has the wrong dimming";
+                if (!(toggle.AccessibleName ?? "").StartsWith("Check in on me: ", StringComparison.Ordinal) || !(time.AccessibleName ?? "").StartsWith("Check in on me: ", StringComparison.Ordinal)) return "a care row has lost its parent name";
+                if (!simple && (Math.Abs(toggle.Top - above.Top - Scaled(Row)) > 1 || Math.Abs(toggle.Top - time.Top) > 1 || toggle.Left != checkIns.Left || toggle.Right > time.Left)) return "a care row is out of place";
+                above = toggle;
+            }
+            if (Hidden(careEdit) != simple || careEdit.TabStop == simple || !careEdit.Enabled || careEdit.Dimmed != !capri.CheckIns) return "Edit check-in lines has the wrong view or dimming";
+            if (!(careEdit.AccessibleName ?? "").StartsWith("Check in on me: ", StringComparison.Ordinal)) return "Edit check-in lines has lost its parent name";
+            if (!simple && (careEdit.Top < above.Bottom || careEdit.Bottom > onTop.Top || careEdit.Left != checkIns.Left)) return "Edit check-in lines is out of place";
+            if (simple && Math.Abs(onTop.Top - checkIns.Top - Scaled(Row)) > 1) return "Simple Settings left a gap under Check in on me";
+            string tip = checkIns.AccessibleDescription ?? "";
+            foreach (string kind in new[] { "visits", "attention", "cheers", "busy-PC", "water", "stretch", "look away", "sleep", "meals", "game breaks", "boredom" })
+                if (!tip.Contains(kind)) return "Check in on me's tip missed " + kind;
+            return null;
+        }
+
+        internal long CareLight()
+        {
+            List<Control> rows = new List<Control>();
+            rows.AddRange(careToggles);
+            rows.AddRange(careTimes);
+            rows.Add(careEdit);
+            long light = 0;
+            foreach (Control row in rows)
+                using (Bitmap paper = new Bitmap(row.Width, row.Height))
+                {
+                    row.DrawToBitmap(paper, row.ClientRectangle);
+                    for (int y = 0; y < paper.Height; y++)
+                        for (int x = 0; x < paper.Width; x++)
+                        {
+                            Color ink = paper.GetPixel(x, y);
+                            light += ink.R + ink.G + ink.B;
+                        }
+                }
+            return light;
+        }
 
         internal void PickCareTime(CareKind kind, int time)
         {
@@ -4014,6 +4070,8 @@ namespace CapriDesktop
         private sealed class Key : Button
         {
             internal Color Accent = Rose;
+            private bool dimmed;
+            internal bool Dimmed { get { return dimmed; } set { dimmed = value; Invalidate(); } }
             internal bool Loud;
             internal bool Picked;
             internal bool StateValue;
@@ -4079,7 +4137,7 @@ namespace CapriDesktop
                 }
                 bool lit = hot || (Focused && ShowFocusCues);
                 Color face, rim, ink;
-                if (!Enabled) { face = Field; rim = Color.FromArgb(52, 22, 32); ink = Color.FromArgb(112, 94, 104); }
+                if (!Enabled || Dimmed) { face = Field; rim = Color.FromArgb(52, 22, 32); ink = Color.FromArgb(112, 94, 104); }
                 else if (Picked) { face = hot ? Color.FromArgb(160, 248, 251) : Cyan; rim = face; ink = OnInk; }
                 else if (Accent == Cyan) { face = down ? Color.FromArgb(18, 62, 67) : hot ? Color.FromArgb(13, 45, 49) : Deep; rim = lit ? Cyan : Loud ? DeepEdge : Color.FromArgb(28, 84, 92); ink = Cyan; }
                 else if (Accent == Hot) { face = down ? Color.FromArgb(72, 18, 30) : hot ? Color.FromArgb(54, 16, 28) : Color.FromArgb(34, 12, 22); rim = lit ? Color.FromArgb(255, 124, 122) : Hot; ink = Color.FromArgb(255, 166, 162); }
@@ -4089,7 +4147,7 @@ namespace CapriDesktop
                     using (Brush brush = new SolidBrush(face)) graphics.FillPath(brush, plate);
                     using (Pen pen = new Pen(rim, line)) graphics.DrawPath(pen, plate);
                 }
-                if (Chevron) Drop(graphics, Width - 19 * s, y, s, Enabled ? Cyan : ink, hot);
+                if (Chevron) Drop(graphics, Width - 19 * s, y, s, Enabled && !Dimmed ? Cyan : ink, hot);
                 Rectangle area = Chevron ? new Rectangle((int)(10 * s), 0, Width - (int)(32 * s), Height) : ClientRectangle;
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | (Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter);
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
@@ -6087,6 +6145,8 @@ namespace CapriDesktop
         // flips it.
         private sealed class Toggle : CheckBox
         {
+            private bool dimmed;
+            internal bool Dimmed { get { return dimmed; } set { dimmed = value; Invalidate(); } }
             // Which part the mouse is on: -1 the name, 0 OFF, 1 ON, 2 off it.
             private int over = 2;
             private Font small;
@@ -6172,6 +6232,14 @@ namespace CapriDesktop
                     onRim = over == 1 ? DeepEdge : Color.FromArgb(16, 44, 48);
                     onInk = over == 1 ? Color.FromArgb(110, 210, 216) : Color.FromArgb(28, 68, 72);
                 }
+                if (Dimmed)
+                {
+                    offFill = Checked ? Field : Color.FromArgb(52, 22, 32);
+                    offRim = Checked ? Color.FromArgb(52, 22, 32) : Brim;
+                    onFill = Checked ? Deep : Field;
+                    onRim = Checked ? DeepEdge : Color.FromArgb(52, 22, 32);
+                    offInk = onInk = Color.FromArgb(112, 94, 104);
+                }
                 if (!Enabled) { offFill = onFill = Field; offRim = onRim = Color.FromArgb(52, 22, 32); offInk = onInk = Color.FromArgb(112, 94, 104); }
                 TextFormatFlags centre = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
                 using (GraphicsPath plate = Cut(off, 0, 0, 0, 5 * s))
@@ -6192,7 +6260,7 @@ namespace CapriDesktop
                         graphics.DrawPath(pen, around);
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 int room = NameRoom;
-                TextRenderer.DrawText(graphics, Text, Font, new Rectangle(0, 0, room, Height), Enabled ? Rose : Faint, flags);
+                TextRenderer.DrawText(graphics, Text, Font, new Rectangle(0, 0, room, Height), Enabled && !Dimmed ? Rose : Faint, flags);
                 if (Hint == null) return;
                 TextFormatFlags measure = TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
                 int after = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, measure).Width + (int)(10 * s);

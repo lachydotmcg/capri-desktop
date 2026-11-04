@@ -1459,6 +1459,166 @@ namespace CapriDesktop
         }
     }
 
+    // Her own tar reader, for a Windows without tar.exe or one whose tar can't read the archive (a modified Windows 10, #60).
+    // Only files and folders come out, and only inside the folder she's unpacking into.
+    internal static class TarReader
+    {
+        private static IOException Damaged() { return new IOException("The ears download is damaged."); }
+
+        private static void Read(Stream from, byte[] buffer, int count)
+        {
+            int at = 0;
+            while (at < count)
+            {
+                int read = from.Read(buffer, at, count - at);
+                if (read == 0) throw Damaged();
+                at += read;
+            }
+        }
+
+        private static int Copy(Stream from, Stream into, long size, byte[] buffer)
+        {
+            int last = -1;
+            while (size > 0)
+            {
+                int count = (int)Math.Min(size, buffer.Length);
+                Read(from, buffer, count);
+                if (into != null) into.Write(buffer, 0, count);
+                last = buffer[count - 1];
+                size -= count;
+            }
+            return last;
+        }
+
+        private static long Number(byte[] header, int at, int count)
+        {
+            long value = 0;
+            bool ended = false, digits = false;
+            for (int i = at; i < at + count; i++)
+            {
+                byte c = header[i];
+                if (c == 0 || c == 32) { if (digits) ended = true; continue; }
+                if (ended || c < '0' || c > '7' || value > (long.MaxValue >> 3)) throw Damaged();
+                value = (value << 3) + c - '0';
+                digits = true;
+            }
+            return value;
+        }
+
+        private static string Text(byte[] bytes, int at, int count)
+        {
+            int end = at;
+            while (end < at + count && bytes[end] != 0) end++;
+            return Encoding.UTF8.GetString(bytes, at, end - at);
+        }
+
+        private static string Target(string root, string name)
+        {
+            if (string.IsNullOrEmpty(name) || name[0] == '/' || name[0] == '\\' || name.IndexOf(':') >= 0) throw Damaged();
+            foreach (string part in name.Replace('\\', '/').Split('/'))
+                if (part == ".." || (part != "." && part.TrimEnd(' ', '.') != part)) throw Damaged();
+            string path;
+            try { path = Path.GetFullPath(Path.Combine(root, name.Replace('/', Path.DirectorySeparatorChar))); }
+            catch (ArgumentException) { throw Damaged(); }
+            catch (NotSupportedException) { throw Damaged(); }
+            catch (PathTooLongException) { throw Damaged(); }
+            if (path != root.TrimEnd(Path.DirectorySeparatorChar) && !path.StartsWith(root, StringComparison.OrdinalIgnoreCase)) throw Damaged();
+            return path;
+        }
+
+        private static string Pax(Stream from, long size, byte[] buffer)
+        {
+            string path = null;
+            while (size > 0)
+            {
+                long available = size, length = 0;
+                int head = 0;
+                for (;;)
+                {
+                    if (size-- == 0) throw Damaged();
+                    int c = from.ReadByte();
+                    head++;
+                    if (c == ' ' && head > 1) break;
+                    if (c < '0' || c > '9' || length > (long.MaxValue - 9) / 10) throw Damaged();
+                    length = length * 10 + c - '0';
+                }
+                if (length <= head || length > available) throw Damaged();
+                long count = length - head;
+                int prefix = (int)Math.Min(5, count);
+                Read(from, buffer, prefix);
+                int last = buffer[prefix - 1];
+                if (prefix == 5 && Encoding.ASCII.GetString(buffer, 0, 5) == "path=")
+                {
+                    long text = count - prefix;
+                    if (text < 1 || text > buffer.Length) throw Damaged();
+                    Read(from, buffer, (int)text);
+                    last = buffer[(int)text - 1];
+                    path = Encoding.UTF8.GetString(buffer, 0, (int)text - 1);
+                }
+                else if (count > prefix) last = Copy(from, null, count - prefix, buffer);
+                if (last != '\n') throw Damaged();
+                size -= count;
+            }
+            return path;
+        }
+
+        internal static void Unpack(Stream from, string into)
+        {
+            bool complete = false;
+            try
+            {
+                string root = Path.GetFullPath(into).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+                Directory.CreateDirectory(into);
+                byte[] header = new byte[512], buffer = new byte[1 << 20];
+                string longName = null, paxPath = null;
+                for (;;)
+                {
+                    Read(from, header, header.Length);
+                    bool zero = true;
+                    int sum = 0;
+                    for (int i = 0; i < header.Length; i++)
+                    {
+                        if (header[i] != 0) zero = false;
+                        sum += i >= 148 && i < 156 ? 32 : header[i];
+                    }
+                    if (zero) { complete = true; return; }
+                    if (Number(header, 148, 8) != sum) throw Damaged();
+                    long size = Number(header, 124, 12);
+                    char kind = (char)header[156];
+                    string name = Text(header, 0, 100), prefix = Text(header, 257, 6) == "ustar" ? Text(header, 345, 155) : "";
+                    if (prefix.Length > 0) name = prefix + "/" + name;
+                    if (kind == 'L')
+                    {
+                        if (size > buffer.Length) throw Damaged();
+                        Read(from, buffer, (int)size);
+                        longName = Text(buffer, 0, (int)size);
+                        Target(root, longName);
+                    }
+                    else if (kind == 'x')
+                    {
+                        string path = Pax(from, size, buffer);
+                        if (path != null) { Target(root, path); paxPath = path; }
+                    }
+                    else if (kind == 'g') Copy(from, null, size, buffer);
+                    else
+                    {
+                        string path = Target(root, paxPath ?? longName ?? name);
+                        longName = paxPath = null;
+                        if (kind == '5') Directory.CreateDirectory(path);
+                        if (kind == '0' || kind == '\0')
+                        {
+                            Directory.CreateDirectory(Path.GetDirectoryName(path));
+                            using (FileStream file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20)) Copy(from, file, size, buffer);
+                        }
+                        else Copy(from, null, size, buffer);
+                    }
+                    Copy(from, null, (512 - size % 512) % 512, buffer);
+                }
+            }
+            finally { if (!complete && Directory.Exists(into)) Directory.Delete(into, true); }
+        }
+    }
+
     // Her own ears: NVIDIA's Parakeet TDT 0.6B (CC-BY-4.0), run by the sherpa-onnx her free voice ships. v2 hears English;
     // v3 hears 25 European languages and works out which one it's hearing. They hear whichever mic is picked, offline,
     // without Windows' online speech setting.
@@ -1551,18 +1711,18 @@ namespace CapriDesktop
         internal static bool SystemBzip = true;
         internal static int TarTimeout = 600000;
         internal static Func<ProcessStartInfo, Process> StartTar = Process.Start;
+        internal static string TarPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe");
 
         // Windows 10 and 11 ship bsdtar, but only Windows 11's reads bzip2. When tar can't, she unpacks the bzip2 layer herself and tar gets the plain archive.
-        // The checksum was already matched, so this is the known archive.
+        // With no tar.exe, or one that fails on the plain archive, her own reader unpacks it. The checksum was already matched, so this is the known archive.
         internal static void Untar(string tarball, string into)
         {
-            string tar = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "tar.exe");
-            if (!File.Exists(tar)) throw new IOException("Windows is missing tar.exe, which unpacks her ears.");
+            string tar = TarPath;
             string plain = Path.ChangeExtension(tarball, null);
             bool complete = false;
             try
             {
-                if (SystemBzip && Tar(tar, "-xjf \"" + tarball + "\" -C \"" + into + "\"", into) == null) { complete = true; return; }
+                if (File.Exists(tar) && SystemBzip && Tar(tar, "-xjf \"" + tarball + "\" -C \"" + into + "\"", into) == null) { complete = true; return; }
                 using (FileStream packed = new FileStream(tarball, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20))
                 using (FileStream opened = new FileStream(plain, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 20))
                 {
@@ -1573,8 +1733,11 @@ namespace CapriDesktop
                 File.Delete(tarball);
                 if (Directory.Exists(into)) Directory.Delete(into, true);
                 Directory.CreateDirectory(into);
-                string problem = Tar(tar, "-xf \"" + plain + "\" -C \"" + into + "\"", into);
-                if (problem != null) throw new IOException("Couldn't unpack her ears: " + Voice.Short(problem));
+                if (!File.Exists(tar) || Tar(tar, "-xf \"" + plain + "\" -C \"" + into + "\"", into) != null)
+                {
+                    if (Directory.Exists(into)) Directory.Delete(into, true);
+                    using (FileStream archive = new FileStream(plain, FileMode.Open, FileAccess.Read, FileShare.Read, 1 << 20)) TarReader.Unpack(archive, into);
+                }
                 complete = true;
             }
             finally
