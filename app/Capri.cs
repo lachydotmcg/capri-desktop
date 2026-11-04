@@ -65,19 +65,22 @@ namespace CapriDesktop
                     // Whatever ends her, their own cursor comes back, and a crash goes in errors.txt.
                     AppDomain.CurrentDomain.ProcessExit += delegate { HerCursor.Off(); };
                     AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs crash) { HerCursor.Off(); Crashed(crash.ExceptionObject as Exception); };
+                    RunMark running = smoke || bench ? null : new RunMark(data);
+                    if (running != null) running.Recover(null);
                     if (!smoke)
                     {
                         // A crash in a timer or a click is written down and she carries on.
                         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
                         Application.ThreadException += delegate(object sender, ThreadExceptionEventArgs crash) { Crashed(crash.Exception); };
-                        StartedFresh = Starting(data);
+                        if (!bench) StartedFresh = Starting(data);
                     }
                     else Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
-                    using (Companion app = new Companion(smoke ? Environment.GetEnvironmentVariable("CAPRI_SMOKE_DATA") ?? data : data, restore, shown, smoke))
+                    using (Companion app = new Companion(smoke ? Environment.GetEnvironmentVariable("CAPRI_SMOKE_DATA") ?? data : data, restore, shown, smoke, running))
                     {
                         if (smoke) app.StartSmokeTest(data, smokeOptions);
                         if (bench) app.StartBench(data);
                         Application.Run(app);
+                        if (running != null) running.Clear();
                         HerCursor.Off();
                         if (smoke && !app.TestFinished)
                         {
@@ -191,6 +194,269 @@ namespace CapriDesktop
         }
     }
 
+    internal sealed class RunMark
+    {
+        internal const string Marker = "running.on";
+        internal const string Notice = "Capri closed unexpectedly last time. If it keeps happening, right-click her > Help > Copy error details and send it to us.";
+        internal static Func<DateTime, DateTime, Record[]> Events = ReadEvents;
+        private readonly string file, log, version, exe;
+        private readonly int pid;
+        private readonly DateTime start;
+        private bool ended;
+        private int notice, recovering;
+
+        internal sealed class Record
+        {
+            internal DateTime At;
+            internal int Id;
+            internal string Source, Text, Name, Pid, Module, Code, Error;
+        }
+
+        internal RunMark(string data)
+        {
+            file = Path.Combine(data, Marker);
+            log = Path.Combine(data, "errors.txt");
+            using (Process own = Process.GetCurrentProcess()) { pid = own.Id; start = own.StartTime.ToUniversalTime(); }
+            version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
+            exe = Path.GetFileName(Application.ExecutablePath);
+        }
+
+        internal void Mark()
+        {
+            lock (this)
+            {
+                if (ended) return;
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(file));
+                    File.WriteAllLines(file, new[] { pid.ToString(System.Globalization.CultureInfo.InvariantCulture), start.ToString("o"), version, exe });
+                }
+                catch (Exception error) { Note("Couldn't write her running marker: " + Short(error.Message, 180)); }
+            }
+        }
+
+        internal void Clear()
+        {
+            lock (this)
+            {
+                ended = true;
+                try { File.Delete(file); }
+                catch (Exception error) { Note("Couldn't remove her running marker: " + Short(error.Message, 180)); }
+            }
+        }
+
+        internal bool TakeNotice() { return Interlocked.Exchange(ref notice, 0) != 0; }
+
+        internal void Recover(Action done)
+        {
+            try
+            {
+                if (Interlocked.Exchange(ref recovering, 1) != 0) { if (done != null) done(); return; }
+                if (!File.Exists(file)) { if (done != null) done(); return; }
+                string[] lines = File.ReadAllLines(file);
+                int oldPid;
+                DateTime oldStart;
+                DateTime found = DateTime.UtcNow;
+                if (lines.Length < 3 || !int.TryParse(lines[0], out oldPid) || oldPid <= 0
+                    || !DateTime.TryParseExact(lines[1], "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out oldStart)
+                    || oldStart.ToUniversalTime() > found)
+                {
+                    Note("Couldn't read her last running marker.");
+                    Forget(lines);
+                    if (done != null) done();
+                    return;
+                }
+                oldStart = oldStart.ToUniversalTime();
+                string oldVersion = Short(lines[2], 40), oldExe = lines.Length > 3 ? Path.GetFileName(lines[3]) : exe;
+                Func<DateTime, DateTime, Record[]> read = Events;
+                ThreadPool.QueueUserWorkItem(delegate
+                {
+                    bool reported = false;
+                    try
+                    {
+                        string earlier = "";
+                        try { if (CrashLogged(oldStart, found, oldPid, oldVersion)) { reported = true; return; } }
+                        catch (Exception error) { earlier = " Couldn't check her earlier crash log: " + Short(error.Message, 180) + "."; }
+                        DateTime closed;
+                        string why = Windows(read, oldStart, found, oldPid, oldExe, out closed);
+                        string when = closed == DateTime.MinValue
+                            ? "; started " + oldStart.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") + ", found " + found.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") + ", ran up to " + Seconds(found - oldStart) + " s"
+                            : " around " + closed.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") + " after about " + Seconds(closed - oldStart) + " s; started " + oldStart.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                        reported = Note("Capri v" + oldVersion + " (PID " + oldPid + ") closed unexpectedly" + when + ". " + why + earlier);
+                        Interlocked.Exchange(ref notice, 1);
+                    }
+                    catch (Exception error)
+                    {
+                        reported = Note("Capri v" + oldVersion + " (PID " + oldPid + ") closed unexpectedly; started " + oldStart.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+                            + ", found " + found.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") + ", ran up to " + Seconds(found - oldStart) + " s. Couldn't check Windows' crash log: " + Short(error.Message, 180));
+                        Interlocked.Exchange(ref notice, 1);
+                    }
+                    finally { if (reported) Forget(lines); try { if (done != null) done(); } catch (Exception) { } }
+                });
+            }
+            catch (Exception error)
+            {
+                Note("Couldn't read her last running marker: " + Short(error.Message, 180));
+                try { if (done != null) done(); } catch (Exception) { }
+            }
+        }
+
+        private bool Note(string line)
+        {
+            try { return Brain.LogAt(log, "closed", -1, line); }
+            catch (Exception) { }
+            return false;
+        }
+
+        private void Forget(string[] old)
+        {
+            lock (this)
+            {
+                try { if (File.Exists(file) && string.Join("\n", File.ReadAllLines(file)) == string.Join("\n", old)) File.Delete(file); }
+                catch (Exception error) { Note("Couldn't remove her last running marker: " + Short(error.Message, 180)); }
+            }
+        }
+
+        private bool CrashLogged(DateTime from, DateTime to, int oldPid, string oldVersion)
+        {
+            string[] lines;
+            lock (typeof(Brain))
+            {
+                if (!File.Exists(log)) return false;
+                lines = File.ReadAllLines(log);
+            }
+            string report = "Capri v" + oldVersion + " (PID " + oldPid + ") closed unexpectedly", began = "started " + from.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+            from = from.AddTicks(-(from.Ticks % TimeSpan.TicksPerSecond));
+            foreach (string line in lines)
+            {
+                DateTime at;
+                if (line.Length >= 19
+                    && DateTime.TryParseExact(line.Substring(0, 19), "yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeLocal, out at)
+                    && at.ToUniversalTime() >= from && at.ToUniversalTime() <= to
+                    // Only this close's own report counts: a crash she caught and carried on from earlier in the run says
+                    // nothing about what ended her.
+                    && line.Contains(" | closed | ") && line.Contains(report) && line.Contains(began)) return true;
+            }
+            return false;
+        }
+
+        private static string Seconds(TimeSpan elapsed) { return Math.Max(0, (long)elapsed.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture); }
+        private static string Short(string text, int cap)
+        {
+            string line = Regex.Replace(text ?? "", @"\s+", " ").Trim();
+            return line.Length > cap ? line.Substring(0, cap) : line;
+        }
+
+        private static string Windows(Func<DateTime, DateTime, Record[]> read, DateTime from, DateTime to, int pid, string exe, out DateTime closed)
+        {
+            closed = DateTime.MinValue;
+            Record[] records = null;
+            Exception failed = null;
+            Thread reader = new Thread(delegate()
+            {
+                try { records = read(from, to); }
+                catch (Exception error) { failed = error; }
+            }) { IsBackground = true };
+            reader.Start();
+            if (!reader.Join(2000)) return "Windows' crash log did not answer within 2 s.";
+            if (failed != null) return "Couldn't read Windows' Application log: " + failed.GetType().Name + ": " + Short(failed.Message, 180) + ".";
+            Record app = null, runtime = null, report = null;
+            if (records != null)
+                for (int i = 0; i < records.Length && i < 64; i++)
+                {
+                    Record record = records[i];
+                    if (record == null || record.At < from || record.At > to || !Matches(record, pid, exe)) continue;
+                    if (record.Source == "Application Error" && record.Id == 1000 && (app == null || record.At > app.At)) app = record;
+                    if (record.Source == ".NET Runtime" && record.Id == 1026 && (runtime == null || record.At > runtime.At)) runtime = record;
+                    if (record.Source == "Windows Error Reporting" && record.Id == 1001 && (report == null || record.At > report.At)) report = record;
+                }
+            if (app == null && runtime == null && report == null) return "Windows has no crash record, so something ended her from outside, like an antivirus, Task Manager or the PC losing power.";
+            System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
+            if (app != null)
+            {
+                closed = app.At;
+                string module = app.Module, code = app.Code;
+                if (string.IsNullOrEmpty(module)) module = Regex.Match(app.Text ?? "", @"Faulting module name:\s*([^,\r\n]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+                if (string.IsNullOrEmpty(code)) code = Regex.Match(app.Text ?? "", @"Exception code:\s*(0x[0-9a-f]+|[0-9a-f]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+                parts.Add("Application Error: module " + Short(string.IsNullOrEmpty(module) ? "unknown" : module, 100) + "; exception " + Short(string.IsNullOrEmpty(code) ? "unknown" : code, 40) + ".");
+            }
+            if (runtime != null)
+            {
+                if (closed == DateTime.MinValue) closed = runtime.At;
+                parts.Add(".NET Runtime: " + Stack(runtime.Text));
+            }
+            if (report != null && parts.Count == 0) { closed = report.At; parts.Add("Windows Error Reporting recorded the close."); }
+            foreach (Record record in new[] { app, runtime, report })
+                if (record != null && !string.IsNullOrEmpty(record.Error)) parts.Add("Couldn't read the event's message: " + Short(record.Error, 180) + ".");
+            return string.Join(" ", parts.ToArray());
+        }
+
+        private static bool Matches(Record record, int pid, string exe)
+        {
+            if (string.IsNullOrEmpty(exe)) return false;
+            string text = record.Text ?? "";
+            if (!string.IsNullOrEmpty(record.Name))
+            {
+                if (!string.Equals(Path.GetFileName(record.Name), exe, StringComparison.OrdinalIgnoreCase)) return false;
+            }
+            else if (!Regex.IsMatch(text, @"(?<![\w.-])" + Regex.Escape(exe) + @"(?![\w.-])", RegexOptions.IgnoreCase)) return false;
+            string value = record.Pid;
+            if (string.IsNullOrEmpty(value)) value = Regex.Match(text, @"\b(?:Faulting process id|Process\s*ID)\s*:\s*(0x[0-9a-f]+|\d+)", RegexOptions.IgnoreCase).Groups[1].Value;
+            if (string.IsNullOrEmpty(value)) return true;
+            long found;
+            bool hex = value.StartsWith("0x", StringComparison.OrdinalIgnoreCase);
+            return long.TryParse(hex ? value.Substring(2) : value, hex ? System.Globalization.NumberStyles.HexNumber : System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out found) && found == pid;
+        }
+
+        private static string Stack(string text)
+        {
+            System.Collections.Generic.List<string> frames = new System.Collections.Generic.List<string>();
+            string exception = "";
+            foreach (string raw in (text ?? "").Split('\n'))
+            {
+                string line = raw.Trim();
+                if (line.StartsWith("Exception Info:", StringComparison.OrdinalIgnoreCase)) exception = Short(line, 180) + " | ";
+                if (line.StartsWith("at ", StringComparison.OrdinalIgnoreCase) && frames.Count < 3) frames.Add(Short(line, 180));
+            }
+            if (frames.Count > 0) return exception + string.Join(" | ", frames.ToArray());
+            foreach (string raw in (text ?? "").Split('\n'))
+            {
+                string line = raw.Trim();
+                if (line.Length == 0 || line.StartsWith("Application:", StringComparison.OrdinalIgnoreCase) || line.StartsWith("Framework Version:", StringComparison.OrdinalIgnoreCase)) continue;
+                frames.Add(Short(line, 180));
+                if (frames.Count == 3) break;
+            }
+            return frames.Count == 0 ? "Windows recorded the close." : string.Join(" | ", frames.ToArray());
+        }
+
+        private static string Field(string xml, string name)
+        {
+            return WebUtility.HtmlDecode(Regex.Match(xml, @"<Data\s+Name=['""]" + Regex.Escape(name) + @"['""]>([\s\S]*?)</Data>").Groups[1].Value);
+        }
+
+        private static Record[] ReadEvents(DateTime from, DateTime to)
+        {
+            string query = "*[System[((Provider[@Name='Application Error'] and EventID=1000) or (Provider[@Name='.NET Runtime'] and EventID=1026) or (Provider[@Name='Windows Error Reporting'] and EventID=1001)) and TimeCreated[@SystemTime>='"
+                + from.ToString("o", System.Globalization.CultureInfo.InvariantCulture) + "' and @SystemTime<='" + to.ToString("o", System.Globalization.CultureInfo.InvariantCulture) + "']]]";
+            System.Diagnostics.Eventing.Reader.EventLogQuery search = new System.Diagnostics.Eventing.Reader.EventLogQuery("Application", System.Diagnostics.Eventing.Reader.PathType.LogName, query) { ReverseDirection = true };
+            System.Collections.Generic.List<Record> records = new System.Collections.Generic.List<Record>();
+            Stopwatch clock = Stopwatch.StartNew();
+            using (System.Diagnostics.Eventing.Reader.EventLogReader reader = new System.Diagnostics.Eventing.Reader.EventLogReader(search))
+                for (int i = 0; i < 64 && clock.ElapsedMilliseconds < 1800; i++)
+                    using (System.Diagnostics.Eventing.Reader.EventRecord record = reader.ReadEvent(TimeSpan.FromMilliseconds(100)))
+                    {
+                        if (record == null) break;
+                        if (!record.TimeCreated.HasValue) continue;
+                        string xml = record.ToXml(), text, error = null;
+                        try { text = record.FormatDescription(); }
+                        catch (Exception failed) { text = WebUtility.HtmlDecode(Regex.Replace(xml, @"<[^>]+>", "\n")); error = failed.Message; }
+                        records.Add(new Record { At = record.TimeCreated.Value.ToUniversalTime(), Id = record.Id, Source = record.ProviderName, Text = text,
+                            Name = Field(xml, record.Id == 1001 ? "P1" : "AppName"), Pid = Field(xml, "ProcessId"), Module = Field(xml, "ModuleName"), Code = Field(xml, "ExceptionCode"), Error = error });
+                    }
+            return records.ToArray();
+        }
+    }
+
     // How many of Windows' drawing objects and how much memory she holds, for the lines a freeze leaves in errors.txt. A window
     // out of GDI or USER objects (10,000 of each) draws only part of itself and stops, so the numbers show if that's why.
     internal sealed class WindowUse
@@ -251,6 +517,7 @@ namespace CapriDesktop
         internal Action<string> Note = delegate(string line) { Brain.Log("frozen", -1, line); };
         // Ends her, starting her again when asked. The smoke test swaps it for one that only counts.
         internal Action<bool> End = Stop;
+        internal Action Replaced;
 
         internal Heartbeat(Control window, EventWaitHandle reopened)
         {
@@ -339,8 +606,7 @@ namespace CapriDesktop
                     Stopwatch grace = Stopwatch.StartNew();
                     while (grace.ElapsedMilliseconds < Grace && Volatile.Read(ref answered) != Volatile.Read(ref sent)) Thread.Sleep(50);
                     if (Volatile.Read(ref answered) == Volatile.Read(ref sent)) { try { reopened.Set(); } catch (ObjectDisposedException) { } continue; }
-                    Noted("She was stuck for " + (clock.ElapsedMilliseconds - Interlocked.Read(ref sentAt)) / 1000 + " s and got opened again, so she ended herself for the new one.");
-                    Ended(false);
+                    Replace(clock.ElapsedMilliseconds - Interlocked.Read(ref sentAt));
                     return;
                 }
                 // A window that never answered at all is still starting, and starting again would only get stuck again.
@@ -386,6 +652,13 @@ namespace CapriDesktop
             stopped = true;
             Action<bool> end = End;
             end(again);
+        }
+
+        internal void Replace(long stuck)
+        {
+            Noted("a stuck Capri was ended when you opened her again. She was stuck for " + stuck / 1000 + " s.");
+            try { if (Replaced != null) Replaced(); } catch (Exception) { }
+            Ended(false);
         }
 
         // Where her UI thread is stuck, read by pausing it for a moment on a thread of its own. Empty if it can't be read.
@@ -619,6 +892,7 @@ namespace CapriDesktop
         [DataMember] public bool HdGameRest;
         // Her voice in your mic (F66): their mic and her voice go into VB-CABLE's input for Discord or Roblox. Off out of the box.
         [DataMember] public bool VoiceInMic;
+        [DataMember] public int MicLoudness = 100;
         // Her voice in your mic's Input and Output on Settings: the mic it hears, null for the one her ears use, and the cable it
         // plays into, null for VB-CABLE's before Steam's. Endpoint ids.
         [DataMember] public string MixMic;
@@ -710,6 +984,7 @@ namespace CapriDesktop
         private void Defaults(StreamingContext context)
         {
             VoiceSpeed = 100;
+            MicLoudness = 100;
             HdRobot = VoiceFx.HdRobotDefault;
             LayerPitch1 = VoiceFx.Layering.HigherPitch;
             LayerDelay1 = VoiceFx.Layering.Behind;
@@ -759,7 +1034,7 @@ namespace CapriDesktop
         }
 
         [OnDeserialized]
-        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); }
+        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MicLoudness = MicMix.Level(MicLoudness); }
 
         internal bool CareOn(CareKind kind)
         {
@@ -1596,6 +1871,8 @@ namespace CapriDesktop
         private Action updateExit;
         // Deleted once she's been up a while, so a crash while starting leaves it behind for the next start to find.
         private string startMarker;
+        private RunMark running;
+        private Action<string> closeNotice;
         private bool updating;
         private bool updateStarted;
         private bool installing;
@@ -1902,8 +2179,9 @@ namespace CapriDesktop
         internal bool TestFinished;
         internal string TestStep = "startup";
 
-        internal Companion(string data, EventWaitHandle signal, EventWaitHandle shownSignal, bool smoke)
+        internal Companion(string data, EventWaitHandle signal, EventWaitHandle shownSignal, bool smoke, RunMark running)
         {
+            this.running = running;
             groove = new Groove(delegate { return clock.Elapsed.TotalSeconds; });
             dance = new Clip(idle);
             Takeover.Face = LoadArt("Capri.Sprite.face.png");
@@ -1941,8 +2219,8 @@ namespace CapriDesktop
             Computer.Lending = Lend;
             taskPanel.Moved += delegate { if (onPanel) { HoldPanel(); Location = anchor; } };
             updater = new Updater(data, Application.ExecutablePath, smoke);
-            updateExit = delegate { quitting = true; Close(); };
-            startMarker = smoke ? null : Path.Combine(data, Program.StartMarker);
+            updateExit = delegate { quitting = true; ClearMarks(); Close(); };
+            startMarker = running == null ? null : Path.Combine(data, Program.StartMarker);
             Brain.LogPath = Path.Combine(data, "errors.txt");
             Brain.MemoryPath = Path.Combine(data, "me.md");
             // personality.md is made only when they press Edit, so an old one from 0.7.4 or 0.7.5 is read as it is.
@@ -2251,6 +2529,7 @@ namespace CapriDesktop
                 // Showing herself sends the new launch away. While she's quitting it waits, and takes her place once she's gone.
                 if (restore.WaitOne(0)) { RestoreAtCursor(); mainframe.Restore(); if (!quitting) shown.Set(); }
                 if (startMarker != null && clock.Elapsed.TotalSeconds >= 15) Settled();
+                ShowCloseNotice();
                 CheckVoiceReady();
                 CheckNextLine();
                 if (!testing) CheckFollowUp(signalNow);
@@ -2383,25 +2662,55 @@ namespace CapriDesktop
                 balloonMainframe = true;
                 tray.ShowBalloonTip(12000, "Capri started fresh", "She closed while starting twice in a row, so her settings were reset. Your keys stayed. The old settings are in settings.crashed.json.", ToolTipIcon.Warning);
             }
+            ShowCloseNotice();
         }
 
-        // She's been up long enough to count as started, or she's closing cleanly: either way she didn't crash while starting.
         private void Settled()
         {
-            if (startMarker == null) return;
-            try { File.Delete(startMarker); }
+            string marker = Interlocked.Exchange(ref startMarker, null);
+            if (marker == null) return;
+            try { File.Delete(marker); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
-            startMarker = null;
+            if (!quitting && running != null) running.Mark();
+        }
+
+        private void ClearMarks()
+        {
+            if (running != null) running.Clear();
+            string marker = Interlocked.Exchange(ref startMarker, null);
+            if (marker == null) return;
+            try { File.Delete(marker); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
+        private void SessionEnded(bool ended)
+        {
+            if (!ended) return;
+            quitting = true;
+            ClearMarks();
+        }
+
+        private void ShowCloseNotice()
+        {
+            if (running == null || quitting || !running.TakeNotice()) return;
+            balloonPage = null;
+            balloonUpdate = false;
+            balloonMainframe = false;
+            if (closeNotice != null) closeNotice(RunMark.Notice);
+            else tray.ShowBalloonTip(12000, "Capri closed unexpectedly", RunMark.Notice, ToolTipIcon.Warning);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
+            bool shutdown = e.CloseReason == CloseReason.WindowsShutDown;
             // Something outside Capri closing her window, like a pop-up blocker, goes in errors.txt.
-            if (!quitting && !testing && e.CloseReason != CloseReason.WindowsShutDown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
-            // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock.
-            if (!e.Cancel) { quitting = true; if (heartbeat != null && e.CloseReason != CloseReason.WindowsShutDown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); callEars.Stop(); }
+            if (!quitting && !testing && !shutdown) Brain.Log("quit", -1, "Her window was closed from outside Capri (" + e.CloseReason + ").");
+            // Windows asks before it shuts down, and the shutdown can still be called off, so that doesn't start her quit clock
+            // or clear her running marker: WM_ENDSESSION clears it once the shutdown is certain.
+            if (!e.Cancel) { quitting = true; if (!shutdown) ClearMarks(); if (heartbeat != null && !shutdown) heartbeat.Closing(); ClonesOff(); CheckKeepAwake(); Computer.Close(); callEars.Stop(); }
         }
 
         private void Tick()
@@ -3631,6 +3940,7 @@ namespace CapriDesktop
 
         protected override void WndProc(ref Message message)
         {
+            if (message.Msg == 0x0016) SessionEnded(message.WParam != IntPtr.Zero);
             if ((message.Msg == 0x0219 || message.Msg == 0x001A) && mainframe != null) RefreshHearingDevices();
             if (message.Msg == 0x0218 && message.WParam.ToInt64() == 0x8013) screenOff = Native.ScreenOff(message.LParam);
             if (message.Msg == 0x0084 && frame != null)
@@ -3825,7 +4135,9 @@ namespace CapriDesktop
             string[] lines = new string[0];
             try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
             int from = Math.Max(0, lines.Length - 25);
-            return head + Environment.NewLine + (lines.Length == 0 ? "No errors logged." : string.Join(Environment.NewLine, lines, from, lines.Length - from));
+            System.Collections.Generic.List<string> details = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < lines.Length; i++) if (i >= from || lines[i].Contains(" | closed | ")) details.Add(lines[i]);
+            return head + Environment.NewLine + (details.Count == 0 ? "No errors logged." : string.Join(Environment.NewLine, details.ToArray()));
         }
 
         private void CopyErrors()
@@ -5035,11 +5347,12 @@ namespace CapriDesktop
             frames.Start();
         }
 
-        internal void Quit() { quitting = true; if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); quitClose = Close; GlitchOut(quitClose); }
+        internal void Quit() { quitting = true; ClearMarks(); if (heartbeat != null) heartbeat.Closing(); CheckKeepAwake(); quitClose = Close; GlitchOut(quitClose); }
 
         private void StartHeartbeat()
         {
             heartbeat = new Heartbeat(this, restore);
+            heartbeat.Replaced = ClearMarks;
             // Fields only: this is read on the heartbeat's thread while hers is stuck.
             heartbeat.Doing = delegate
             {
@@ -5402,6 +5715,7 @@ namespace CapriDesktop
         // Her voice in your mic (F66): the mix while the switch is on, or null.
         private MicMix micMix;
         private MixDevice cableThere;
+        private bool vbCable;
         private double cableLooked = -10, micMixShown;
         // Settings' Input row: the pick and device list it last read, and the mic's name then.
         private string mixMicFor, mixMicName;
@@ -5431,8 +5745,13 @@ namespace CapriDesktop
                     cableLooked = now;
                     try { cableThere = MicMix.Devices.Cable(preferences.MixCable); }
                     catch (Exception) { cableThere = null; }
-                    // A cable that's come leaves the setup's last line behind.
-                    if (cableThere != null && cableSetup == null) cableSetupLine = null;
+                    vbCable = cableThere != null && !MicMix.IsSteam(cableThere.Name);
+                    if (cableThere != null && !vbCable)
+                    {
+                        try { vbCable = MicMix.Devices.Cables().Exists(delegate(MixDevice each) { return !MicMix.IsSteam(each.Name); }); }
+                        catch (Exception) { }
+                    }
+                    if (vbCable && cableSetup == null) cableSetupLine = null;
                 }
                 return cableThere != null;
             }
@@ -5441,10 +5760,21 @@ namespace CapriDesktop
         // What they pick as their mic in Discord or Roblox for the cable that's there.
         internal string CableEnd { get { return CableReady ? MicMix.EndOf(cableThere) : MicMix.CableEnd; } }
 
+        internal bool VbCableReady { get { return vbCable; } }
+
         // The cable that's there has its far end turned off in Windows, so Discord or Roblox can't pick it yet.
         internal bool CableFarOff { get { MixDevice there = CableReady ? cableThere : null; return there != null && there.Far == null; } }
 
         internal string VoiceInMicProblem { get { MicMix running = micMix; return running == null ? null : running.Problem; } }
+
+        internal int MicLoudness { get { return MicMix.Level(preferences.MicLoudness); } }
+
+        internal void SetMicLoudness(int percent)
+        {
+            preferences.MicLoudness = MicMix.Level(percent);
+            if (micMix != null) micMix.Loudness = preferences.MicLoudness;
+            SavePreferences();
+        }
 
         // Where VB-CABLE's setup is at, for Settings' line under the note, or null before Set up.
         internal string CableSetupLine { get { return cableSetupLine; } }
@@ -5539,6 +5869,7 @@ namespace CapriDesktop
             if (preferences.VoiceInMic && micMix == null)
             {
                 micMix = new MicMix(MicMix.Devices, null);
+                micMix.Loudness = MicLoudness;
                 micMix.Chosen = MixMicPick;
                 micMix.CableChosen = preferences.MixCable;
                 micMix.Start();
@@ -11425,6 +11756,7 @@ namespace CapriDesktop
 
         private void ChatHeard(string text)
         {
+            speaker.EndAnswer();
             if (CallModeOn) return;
             if (!chatting || !VoiceForHer(text)) return;
             WakeRest(!SleepBusy);
@@ -11591,6 +11923,7 @@ namespace CapriDesktop
         private void Rest()
         {
             if (!chatting) return;
+            speaker.EndAnswer();
             Agent closing = agent;
             agent = null;
             chatTicket++;
@@ -12006,11 +12339,11 @@ namespace CapriDesktop
             }
         }
 
-        private void CloseTalk()
+        private void CloseTalk(bool cut = true)
         {
             answerTurn++;
             CancelAnswerAudio();
-            voice.Stop();
+            if (cut) voice.Stop(); else voice.Finish();
             Sfx.Untype();
             hdSpeaking = -1;
             voiceUntil = 0;
@@ -12042,7 +12375,7 @@ namespace CapriDesktop
             bool comment = remarkTicket == asking;
             double hold = reply == null ? 0 : comment ? CommentHold(reply.Length, BubbleTime) : BubbleHold(reply.Length);
             if (replyDone >= 0 && hdSpeaking != asking && box.Leaving < 0 && (comment || (!box.Scrollable && !typer.Visible && !(local && !earsReady && asking == earsNotice))) && now > voiceUntil && !voice.Busy && !speaker.Busy && !chatTail.Enabled && now > replyDone + hold) box.Leaving = now;
-            if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(); return; }
+            if (box.Leaving >= 0 && now - box.Leaving > 0.25) { CloseTalk(false); return; }
             if (docked) { DockTalk(); return; }
             if (!box.Visible && box.Opened < 0) box.Opened = now;
             box.State = talkState;
@@ -12497,6 +12830,7 @@ namespace CapriDesktop
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
+            ClearMarks();
             if (hearingWatch != null) hearingWatch.Dispose();
             StopMicTest(false);
             EndWatchAlong();
@@ -12542,7 +12876,6 @@ namespace CapriDesktop
             taskPanel.Close();
             tray.Visible = false;
             SavePreferences();
-            Settled();
             base.OnFormClosed(e);
         }
 
@@ -12578,6 +12911,205 @@ namespace CapriDesktop
                 if (inBetween != null) inBetween.Dispose();
             }
             base.Dispose(disposing);
+        }
+
+        private void SmokeRunning(string output, System.Collections.Generic.List<string> checks)
+        {
+            string folder = Path.Combine(output, "running-check");
+            string mark = Path.Combine(folder, RunMark.Marker), start = Path.Combine(folder, Program.StartMarker), log = Path.Combine(folder, "errors.txt");
+            Func<DateTime, DateTime, RunMark.Record[]> eventsWas = RunMark.Events;
+            RunMark runningWas = running;
+            Action<string> noticeWas = closeNotice;
+            string startWas = startMarker, logWas = Brain.LogPath;
+            bool quitWas = quitting;
+            Action outroWas = outro, quitCloseWas = quitClose;
+            DateTime began = DateTime.UtcNow.AddMinutes(-3);
+            int notices = 0, ui = Thread.CurrentThread.ManagedThreadId;
+            bool offUi = false;
+            Action prepare = delegate
+            {
+                File.WriteAllText(log, "");
+                File.WriteAllLines(mark, new[] { "1234", began.ToString("o"), "9.8.7", "Capri.exe" });
+                running = new RunMark(folder);
+                startMarker = null;
+                quitting = false;
+                notices = 0;
+            };
+            Action recover = delegate
+            {
+                using (ManualResetEvent done = new ManualResetEvent(false))
+                {
+                    Stopwatch queued = Stopwatch.StartNew();
+                    running.Recover(delegate { done.Set(); });
+                    if (queued.ElapsedMilliseconds > 1000) throw new Exception("Checking the last close held up startup.");
+                    if (!done.WaitOne(5000)) throw new Exception("Checking the last close did not finish.");
+                }
+                ShowCloseNotice();
+                ShowCloseNotice();
+            };
+            try
+            {
+                if (running != null || startMarker != null) throw new Exception("A smoke run wrote startup or running markers.");
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+                Directory.CreateDirectory(folder);
+                Brain.LogPath = log;
+                closeNotice = delegate(string text) { if (text != RunMark.Notice) throw new Exception("The last-close notice lost its help steps."); notices++; };
+                RunMark.Events = delegate(DateTime from, DateTime to)
+                {
+                    offUi = Thread.CurrentThread.ManagedThreadId != ui;
+                    if (from != began || to < began) throw new Exception("The Windows crash window lost her start time.");
+                    return new[] { new RunMark.Record { At = began.AddMinutes(1), Id = 1000, Source = "Application Error",
+                        Text = "Faulting application name: Capri.exe, version: 9.8.7\r\nFaulting module name: sherpa-onnx-c-api.dll, version: 1.0\r\nException code: 0xc0000005\r\nFaulting process id: 0x4d2" } };
+                };
+                prepare();
+                recover();
+                string[] lines = File.ReadAllLines(log);
+                if (File.Exists(mark) || lines.Length != 1 || !offUi || notices != 1 || !lines[0].Contains("closed unexpectedly") || !lines[0].Contains("v9.8.7")
+                    || !lines[0].Contains("after about 60 s") || !lines[0].Contains("sherpa-onnx-c-api.dll") || !lines[0].Contains("0xc0000005")) throw new Exception("The last close lost its time, version, native crash details or single notice: " + string.Join(" / ", lines));
+                recover();
+                if (File.ReadAllLines(log).Length != 1 || notices != 1) throw new Exception("The same close was reported twice.");
+                File.WriteAllLines(mark, new[] { "1234", began.ToString("o"), "9.8.7", "Capri.exe" });
+                running = new RunMark(folder);
+                recover();
+                if (File.Exists(mark) || File.ReadAllLines(log).Length != 1 || notices != 1) throw new Exception("An already reported marker got another line or notice.");
+                for (int i = 0; i < 30; i++) Brain.Log("ears", -1, "Later line " + i);
+                string copied = ErrorDetails();
+                if (!copied.Contains(lines[0]) || !copied.Contains("sherpa-onnx-c-api.dll") || !copied.Contains("Later line 29")) throw new Exception("Copy error details lost the last close behind newer lines.");
+                checks.Add("PASS a leftover running marker logs one close with its time, duration, version, native module and exception code, shows one notice, and stays in copied error details after newer lines");
+
+                prepare();
+                RunMark.Events = delegate { return new RunMark.Record[0]; };
+                recover();
+                lines = File.ReadAllLines(log);
+                if (lines.Length != 1 || notices != 1 || !lines[0].Contains("ran up to ") || !lines[0].Contains("found ")
+                    || !lines[0].Contains("Windows has no crash record, so something ended her from outside, like an antivirus, Task Manager or the PC losing power.")) throw new Exception("An empty Windows log lost the outside-close wording or gave an exact close time.");
+
+                prepare();
+                RunMark.Events = delegate
+                {
+                    return new[] {
+                        new RunMark.Record { At = began.AddMinutes(1), Id = 1000, Source = "Application Error", Name = "Capri.exe", Pid = "1235", Module = "wrong-pid.dll" },
+                        new RunMark.Record { At = began.AddMinutes(1), Id = 1000, Source = "Application Error", Text = "Faulting application name: Capri.exe\nFaulting process id: 0x4d3\nFaulting module name: wrong-text-pid.dll" },
+                        new RunMark.Record { At = began.AddMinutes(1), Id = 1000, Source = "Application Error", Text = "Faulting application name: OtherCapri.exe\nFaulting process id: 0x4d2" },
+                        new RunMark.Record { At = began.AddSeconds(-1), Id = 1000, Source = "Application Error", Name = "Capri.exe", Module = "too-old.dll" },
+                        new RunMark.Record { At = DateTime.UtcNow.AddMinutes(1), Id = 1000, Source = "Application Error", Name = "Capri.exe", Module = "too-new.dll" },
+                        new RunMark.Record { At = began.AddMinutes(1), Id = 1000, Source = "Other", Name = "Capri.exe", Module = "wrong-source.dll" }
+                    };
+                };
+                recover();
+                lines = File.ReadAllLines(log);
+                if (lines.Length != 1 || !lines[0].Contains("from outside") || lines[0].Contains(".dll")) throw new Exception("The Windows lookup matched another process or the wrong time window.");
+
+                prepare();
+                RunMark.Events = delegate
+                {
+                    return new[] {
+                        new RunMark.Record { At = began.AddMinutes(1), Id = 1026, Source = ".NET Runtime", Text = "Application: Capri.exe\nFramework Version: v4.0\nException Info: FailFast test\n   at Capri.One()\n   at Capri.Two()\n   at Capri.Three()\n   at Capri.Four()" },
+                        new RunMark.Record { At = began.AddMinutes(1), Id = 1000, Source = "Application Error", Name = "Capri.exe", Pid = "0x4d2", Module = "native.dll", Code = "c0000409" }
+                    };
+                };
+                recover();
+                lines = File.ReadAllLines(log);
+                if (lines.Length != 1 || !lines[0].Contains("native.dll") || !lines[0].Contains("c0000409") || !lines[0].Contains("FailFast test")
+                    || !lines[0].Contains("Capri.One()") || !lines[0].Contains("Capri.Three()") || lines[0].Contains("Capri.Four()")) throw new Exception("The Windows lookup lost structured native fields or the first three runtime stack lines.");
+                prepare();
+                RunMark.Events = delegate { return new[] { new RunMark.Record { At = began.AddMinutes(1), Id = 1001, Source = "Windows Error Reporting", Name = "Capri.exe" } }; };
+                recover();
+                if (!File.ReadAllText(log).Contains("Windows Error Reporting recorded the close")) throw new Exception("Windows Error Reporting was ignored.");
+                checks.Add("PASS Windows crash records match the exe, PID when present, source and time; native fields and three runtime stack lines stay on one line, WER is recognised, and an empty log explains an outside close with an upper bound on runtime");
+
+                prepare();
+                RunMark.Events = delegate { throw new UnauthorizedAccessException("test access denied"); };
+                recover();
+                if (File.ReadAllLines(log).Length != 1 || notices != 1 || !File.ReadAllText(log).Contains("Couldn't read Windows' Application log: UnauthorizedAccessException: test access denied")) throw new Exception("An unreadable Windows log lost the close or its read failure.");
+                prepare();
+                using (ManualResetEvent release = new ManualResetEvent(false))
+                using (ManualResetEvent stopped = new ManualResetEvent(false))
+                {
+                    RunMark.Events = delegate { try { release.WaitOne(5000); return new RunMark.Record[0]; } finally { stopped.Set(); } };
+                    Stopwatch waiting = Stopwatch.StartNew();
+                    try
+                    {
+                        recover();
+                        if (waiting.ElapsedMilliseconds < 1800 || waiting.ElapsedMilliseconds > 4000 || !File.ReadAllText(log).Contains("did not answer within 2 s") || notices != 1) throw new Exception("A slow Windows log was not time-boxed or lost the notice.");
+                    }
+                    finally { release.Set(); stopped.WaitOne(2000); }
+                }
+                checks.Add("PASS a Windows log failure or a two-second timeout still logs the close and gives one notice; the lookup runs off the UI thread");
+
+                prepare();
+                int reads = 0;
+                RunMark.Events = delegate { reads++; return new RunMark.Record[0]; };
+                Brain.Log("crash", -1, "A crash she caught and carried on from.");
+                recover();
+                if (File.Exists(mark) || File.ReadAllLines(log).Length != 2 || notices != 1 || reads != 1) throw new Exception("A crash she carried on from hid the close that ended her.");
+                File.WriteAllText(log, "");
+                notices = 0;
+                running = new RunMark(folder);
+                recover();
+                if (File.Exists(mark) || File.ReadAllText(log).Length != 0 || notices != 0 || reads != 1) throw new Exception("A fresh install got a close report or wrote a running marker.");
+                prepare();
+                File.WriteAllText(log, began.AddMinutes(-1).ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") + " | crash | - | An older crash." + Environment.NewLine);
+                recover();
+                if (File.ReadAllLines(log).Length != 2 || notices != 1 || reads != 2) throw new Exception("An older crash hid a later unexpected close.");
+
+                prepare();
+                File.Delete(mark);
+                startMarker = start;
+                File.WriteAllText(start, "starting");
+                Settled();
+                string[] marked = File.ReadAllLines(mark);
+                DateTime markedAt;
+                if (File.Exists(start) || marked.Length != 4 || int.Parse(marked[0]) != Process.GetCurrentProcess().Id
+                    || !DateTime.TryParseExact(marked[1], "o", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out markedAt)
+                    || marked[2] != Assembly.GetExecutingAssembly().GetName().Version.ToString(3)) throw new Exception("Settling lost the running PID, start time or version.");
+                // What Quit does to her markers, without quitting the test itself.
+                quitting = true;
+                ClearMarks();
+                running.Mark();
+                Settled();
+                if (File.Exists(mark) || File.Exists(start)) throw new Exception("Quit left a marker or settling wrote one after Quit.");
+                quitting = false;
+                running = new RunMark(folder);
+                recover();
+                if (File.ReadAllText(log).Length != 0 || notices != 0) throw new Exception("A clean Quit was reported as an unexpected close.");
+
+                prepare();
+                startMarker = start;
+                File.WriteAllText(start, "starting");
+                SessionEnded(false);
+                if (!File.Exists(mark) || !File.Exists(start) || quitting) throw new Exception("A cancelled shutdown removed her marker or started Quit.");
+                SessionEnded(true);
+                running.Mark();
+                if (File.Exists(mark) || File.Exists(start)) throw new Exception("An ending Windows session left a marker.");
+                running = new RunMark(folder);
+                quitting = false;
+                recover();
+                if (File.ReadAllText(log).Length != 0 || notices != 0) throw new Exception("An ending Windows session was reported as an unexpected close.");
+
+                prepare();
+                int replaced = 0;
+                Heartbeat replacement = new Heartbeat(this, null);
+                replacement.Note = delegate(string line) { Brain.LogAt(log, "frozen", -1, line); };
+                replacement.Replaced = ClearMarks;
+                replacement.End = delegate { replaced++; };
+                replacement.Replace(3000);
+                recover();
+                if (File.Exists(mark) || replaced != 1 || File.ReadAllLines(log).Length != 1 || !File.ReadAllText(log).Contains("a stuck Capri was ended when you opened her again") || notices != 0) throw new Exception("Replacing a stuck Capri left a marker or lost its reason.");
+                checks.Add("PASS settling writes the running marker; Quit and a confirmed session end remove both markers, a cancelled session end keeps them, a stuck Capri records why she was replaced, an existing crash gets no second line, and a fresh install gets no notice");
+            }
+            finally
+            {
+                RunMark.Events = eventsWas;
+                running = runningWas;
+                closeNotice = noticeWas;
+                startMarker = startWas;
+                Brain.LogPath = logWas;
+                quitting = quitWas;
+                outro = outroWas;
+                quitClose = quitCloseWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { }
+            }
         }
 
         // An errors.txt line stamped at or after `from`, so a rerun in the same folder doesn't count the last run's lines.
@@ -24754,6 +25286,9 @@ namespace CapriDesktop
             bool quietWas = preferences.Quiet, silentWas = preferences.Silent, servedWas = preferences.ServerVoice, hdWas = preferences.HdVoice;
             bool localWas = local, chattingWas = chatting, readyWas = earsReady, mutedWas = ears.Muted, transcribingWas = transcribing, nameWas = preferences.ListenCapri;
             bool brokenWas = voiceBroken, brokeWas = voiceBroke, asideWas = asideVoiceTest;
+            bool callWas = CallModeOn, savedCallWas = preferences.CallMode;
+            int callAnswerWas = callAnswer, offTurnWas = voiceOffTurn;
+            int volumeWas = preferences.Volume, volumeLevelWas = Voice.Loudness;
             int waitWas = VoiceWait, freeWaitWas = FreeWait, typingWas = preferences.Typing;
             Job jobWas = job;
             string workingWas = working, logWas = Brain.LogPath, keyWas = voice.Key;
@@ -24799,7 +25334,42 @@ namespace CapriDesktop
                     WaitVoice(delegate { return entered.WaitOne(0); }, "The fake voice did not start.");
                     if (afterText) WaitVoice(delegate { return reply == line; }, "The pending voice hid its text fallback.");
                     double textStart = replyStart;
-                    BargeIn();
+                    MicMix cutWas = MicMix.Current;
+                    double[] cutNow = { 0 };
+                    StandInDevices cutPc = MixPc(cutNow, 48000, 48000);
+                    cutPc.Level = 0;
+                    using (MicMix cutMix = new MicMix(cutPc, delegate { return cutNow[0]; }))
+                    {
+                        try
+                        {
+                            cutMix.Step();
+                            MicMix.Current = cutMix;
+                            WaitSound(delegate { return !MicAnswer.Writing; }, "Earlier cable delivery notes did not finish.");
+                            int reportsBefore = Regex.Matches(File.ReadAllText(log), @"\| mic delivery \|").Count;
+                            voice.Play(wav);
+                            RunMix(cutMix, cutPc, cutNow, 0.12, null);
+                            if (afterText)
+                            {
+                                int beforeBarge = bargeIns;
+                                QueueBargeIn(ticket, audio, "call talk-over");
+                                WaitVoice(delegate { return bargeIns > beforeBarge; }, "A friend's talk-over did not stop her.");
+                            }
+                            else BargeIn();
+                            if (cutMix.Waiting != 0) throw new Exception("Talking over her left voice queued for the cable.");
+                            int cutAt = cutPc.Cables[0].Kept.Length;
+                            RunMix(cutMix, cutPc, cutNow, 0.25, null);
+                            float[] cutSound = cutPc.Cables[0].Kept;
+                            for (int at = cutAt; at < cutSound.Length; at++)
+                                if (Math.Abs(cutSound[at]) > 0.00001) throw new Exception("Talking over her left the cable playing waiting speech.");
+                            WaitSound(delegate { return !MicAnswer.Writing; }, "The cut-off answer did not log its cable delivery.");
+                            MatchCollection reports = Regex.Matches(File.ReadAllText(log), @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
+                            if (reports.Count != reportsBefore + 1) throw new Exception("A cut-off answer did not log exactly once.");
+                            Match report = reports[reports.Count - 1];
+                            double cableSeconds = double.Parse(report.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+                            if (report.Groups[1].Value != "1.000" || cableSeconds <= 0 || cableSeconds >= 0.5) throw new Exception("A cut-off answer's cable count included unplayed speech.");
+                        }
+                        finally { cutMix.Stop(); MicMix.Current = cutWas; }
+                    }
                     if (answerTurn != turn || audioTurn == audio || answerVoice != -1 || hdSpeaking != -1) throw new Exception("Talking over her cancelled the answer's text or kept its pending audio.");
                     release.Set();
                     WaitVoice(delegate { return completed(turn) && reply == line; }, "An interrupted answer lost its text or never completed.");
@@ -24808,6 +25378,8 @@ namespace CapriDesktop
                     checks.Add(afterText ? "PASS talking over her after text appears keeps that text and rejects the late WAV" : "PASS talking over her before text appears keeps its fallback and rejects the late WAV");
                     CloseTalk();
                 }
+
+                checks.Add("PASS talking over her drops both waiting packets and speech already held by the cable resampler");
 
                 foreach (bool failOld in new[] { false, true })
                 {
@@ -24933,6 +25505,50 @@ namespace CapriDesktop
                     if (!logged.Contains(" | voice interruption | - | " + source + " answer=") || !logged.Contains("played_ms=") || !logged.Contains("remaining_ms=")) throw new Exception("An interruption source or playback timing was missing from her log.");
                 if (logged.Contains("Private ") || logged.Contains("ticket35-private-key-marker")) throw new Exception("Voice interruption diagnostics included speech or a key.");
                 checks.Add("PASS voice interruption logs name the source with generations and playback timing without reply text or keys");
+                foreach (string stop in new[] { "Stop", "mute", "call ending" })
+                {
+                    local = chatting = false;
+                    preferences.Silent = false;
+                    preferences.Volume = 100;
+                    Voice.Loudness = 100;
+                    MicMix currentWas = MicMix.Current;
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0;
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    {
+                        try
+                        {
+                            mix.Step();
+                            MicMix.Current = mix;
+                            voice.Play(wav);
+                            speaker.Open(24000);
+                            speaker.Play(samples);
+                            RunMix(mix, pc, now, 0.1, null);
+                            bool sounded = false;
+                            foreach (float sample in pc.Cables[0].Kept) if (Math.Abs(sample) > 0.01) sounded = true;
+                            if (!sounded) throw new Exception("The " + stop + " check sent no voice to the cable.");
+                            if (stop == "Stop") { voice.Stop(); Hush(); }
+                            else if (stop == "mute") Silence(false);
+                            else
+                            {
+                                voice.Finish();
+                                callSession.Change(true);
+                                preferences.CallMode = true;
+                                callAnswer = -1;
+                                ToggleCallMode();
+                            }
+                            int stoppedAt = pc.Cables[0].Kept.Length;
+                            RunMix(mix, pc, now, 0.25, null);
+                            float[] got = pc.Cables[0].Kept;
+                            if (mix.Waiting != 0) throw new Exception(stop + " left her cable voice queued.");
+                            for (int at = stoppedAt; at < got.Length; at++)
+                                if (Math.Abs(got[at]) > 0.00001) throw new Exception(stop + " left waiting speech in the cable.");
+                        }
+                        finally { voice.Stop(); Hush(); mix.Stop(); MicMix.Current = currentWas; }
+                    }
+                }
+                checks.Add("PASS Stop, voice off and ending call mode drop queued WAV and streamed voice, including a finished answer's tail whose ticket is no longer current");
                 checks.Add("LIMIT ticket 35 guards a confirmed delivery race; the recorded two-word cutoff and live mic echo still need device reproduction, and in-flight paid requests are not cancelled");
             }
             finally
@@ -24945,6 +25561,8 @@ namespace CapriDesktop
                 preferences.Typing = typingWas; VoiceWait = waitWas; FreeWait = freeWaitWas;
                 local = localWas; chatting = chattingWas; earsReady = readyWas; ears.Muted = mutedWas; transcribing = transcribingWas; nameOver = false;
                 voiceBroken = brokenWas; voiceBroke = brokeWas; asideVoiceTest = asideWas;
+                callSession.Change(callWas); preferences.CallMode = savedCallWas; callAnswer = callAnswerWas; typer.CallMode = callWas; voiceOffTurn = offTurnWas;
+                preferences.Volume = volumeWas; Voice.Loudness = volumeLevelWas;
                 job = jobWas; working = workingWas; Brain.LogPath = logWas; voice.Key = keyWas;
                 spokenLevels = null;
                 talkOver.Reset(); wakeOver.Reset();
@@ -25483,7 +26101,7 @@ namespace CapriDesktop
         {
             private readonly Func<double> clock;
             private readonly double opened;
-            private readonly int rate, period;
+            private readonly int rate, period, room;
             private readonly object gate = new object();
             private readonly System.Collections.Generic.List<float> kept = new System.Collections.Generic.List<float>();
             // Where each period Windows took started in what it was given, and when it took it.
@@ -25494,15 +26112,17 @@ namespace CapriDesktop
             internal int Starved;
             internal volatile bool Lost, Disposed;
 
-            internal StandInCable(Func<double> clock, int rate)
+            internal StandInCable(Func<double> clock, int rate, int frames = 0)
             {
                 this.clock = clock;
                 this.rate = rate;
-                period = rate / 100;
+                room = frames > 0 ? frames : rate / 20;
+                period = Math.Min(rate / 100, Math.Max(1, room / 2));
                 opened = clock();
             }
 
             public int Rate { get { return rate; } }
+            public int Room { get { return room; } }
             public int Period { get { return period; } }
             public WaitHandle Ready { get { return null; } }
 
@@ -25535,6 +26155,7 @@ namespace CapriDesktop
                 lock (gate)
                 {
                     Take();
+                    if (count > room - (kept.Count - played)) throw new MixLost("Stand-in cable is full.");
                     for (int i = 0; i < count; i++) kept.Add(mono[i]);
                 }
             }
@@ -25561,9 +26182,11 @@ namespace CapriDesktop
             internal Func<double> Clock;
             // Null for a PC without a cable, VB-CABLE's or Steam's.
             internal MixDevice CableThere;
+            internal System.Collections.Generic.List<MixDevice> CableChoices;
             internal readonly System.Collections.Generic.List<MixDevice> Mics = new System.Collections.Generic.List<MixDevice>();
             internal string DefaultMic;
             internal int MicRate = 48000, CableRate = 48000;
+            internal int CableRoom;
             internal double Level = 0.25, Fast = 1, Phase, Late;
             internal long Click = -1;
             // Each mic's hum, by id. Any other hums at 440 Hz.
@@ -25588,6 +26211,7 @@ namespace CapriDesktop
             // Explicit, since Cables is also the list of cables the mix opened.
             System.Collections.Generic.List<MixDevice> IMixDevices.Cables()
             {
+                if (CableChoices != null) return new System.Collections.Generic.List<MixDevice>(CableChoices);
                 System.Collections.Generic.List<MixDevice> cables = new System.Collections.Generic.List<MixDevice>();
                 if (CableThere != null) cables.Add(CableThere);
                 return cables;
@@ -25614,7 +26238,7 @@ namespace CapriDesktop
             public IMixCable OpenCable(MixDevice cable)
             {
                 if (CableBusy) throw new MixLost("Stand-in cable busy (0x88890008).");
-                StandInCable made = new StandInCable(Clock, CableRate);
+                StandInCable made = new StandInCable(Clock, CableRate, CableRoom);
                 lock (Cables) Cables.Add(made);
                 return made;
             }
@@ -25725,7 +26349,7 @@ namespace CapriDesktop
                             outputSpeaker.Play(sound);
                             WaitSound(delegate { return outputs.Count == 2 && outputSpeaker.ModernPlayed >= sound.Length; }, "The next voice chunk didn't reopen a failed stream.");
                             outputVoice.Play(Voice.Wave(sound, soundRate));
-                            WaitSound(delegate { return outputs.Count == 3 && outputSpeaker.ModernPlayed >= sound.Length; }, "A second finished voice line reused a closed stream.");
+                            WaitSound(delegate { return outputs.Count == 2 && outputSpeaker.ModernPlayed >= sound.Length * 2; }, "A second finished voice line did not join the open stream.");
                             outputVoice.Stop();
                             if (outputSpeaker.Modern) throw new Exception("Stopping a voice left its stream open.");
                         }
@@ -25906,6 +26530,201 @@ namespace CapriDesktop
         private static string Db(double level) { return (20 * Math.Log10(Math.Max(1e-9, level))).ToString("0", System.Globalization.CultureInfo.InvariantCulture); }
 
         // Her voice in your mic (F66) on stand-in devices and a pretend clock: no real device opens.
+        private void SmokeMicLoudness(System.Collections.Generic.List<string> checks)
+        {
+            int loudnessWas = preferences.MicLoudness, sizeWas = preferences.MainframeSize, speakerWas = Voice.Loudness;
+            bool simpleWas = simpleTest, advancedWas = preferences.AdvancedSettings, hdWas = preferences.HdVoice, settingsWas = mainframe.SettingsShown;
+            MicMix mixWas = micMix;
+            double[] now = { 0 };
+            StandInDevices pc = MixPc(now, 48000, 48000);
+            using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+            {
+                try
+                {
+                    micMix = mix;
+                    mix.Loudness = MicLoudness;
+                    mix.Step();
+                    mainframe.ShowVoiceInMic();
+                    for (int step = 0; step < 16; step++)
+                    {
+                        mainframe.SlideMicLoudness(step);
+                        int expected = 50 + step * 10;
+                        if (MicLoudness != expected || mix.Loudness != expected || LoadPreferences().MicLoudness != expected || mainframe.MicLoudnessShown != expected + "%" || Voice.Loudness != speakerWas)
+                            throw new Exception("Her mic loudness slider did not save or reach the mix at " + expected + "%.");
+                    }
+                    mainframe.SlideMicLoudness(5);
+                    if (SelfKnow.Setting("Mainframe.cs", "Her voice in your mic: loudness") == null) throw new Exception("Her mic loudness has no help line.");
+                    foreach (int size in new[] { 100, 150, 200 })
+                        foreach (bool simple in new[] { false, true })
+                            foreach (bool hd in new[] { false, true })
+                            {
+                                preferences.AdvancedSettings = false;
+                                simpleTest = simple;
+                                preferences.HdVoice = hd;
+                                mainframe.SizeMainframe(size);
+                                mainframe.ShowSettings(true);
+                                string problem = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                                if (problem != null || mainframe.MicLoudnessShown != "100%") throw new Exception("Her mic loudness row does not fit at " + size + "%: " + problem);
+                            }
+                    DataContractJsonSerializer json = new DataContractJsonSerializer(typeof(Preferences));
+                    foreach (string saved in new[] { "{}", "{\"MicLoudness\":-10}", "{\"MicLoudness\":999}", "{\"MicLoudness\":126}" })
+                        using (MemoryStream input = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(saved)))
+                        {
+                            Preferences loaded = (Preferences)json.ReadObject(input);
+                            int expected = saved == "{}" ? 100 : saved.Contains("-10") ? 50 : saved.Contains("999") ? 200 : 130;
+                            if (loaded.MicLoudness != expected || new Preferences().MicLoudness != 100) throw new Exception("Her mic loudness default or saved range is wrong.");
+                        }
+                    checks.Add("PASS the mic loudness slider saves all 16 steps from 50% to 200%, updates the running mix, defaults to 100% in new and old settings, clamps saved values, and fits Simple and Advanced Settings with HD on or off at 100, 150 and 200%");
+                }
+                finally
+                {
+                    micMix = mixWas;
+                    preferences.MicLoudness = loudnessWas;
+                    preferences.AdvancedSettings = advancedWas;
+                    preferences.HdVoice = hdWas;
+                    simpleTest = simpleWas;
+                    mainframe.SizeMainframe(sizeWas);
+                    SavePreferences();
+                    mainframe.ShowSettings(settingsWas);
+                }
+            }
+        }
+
+        private static void MixLog(string path, int count, double seconds)
+        {
+            WaitSound(delegate { return !MicAnswer.Writing; }, "Her cable delivery log did not finish.");
+            MatchCollection reports = Regex.Matches(File.ReadAllText(path), @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
+            if (reports.Count != count) throw new Exception("Her cable log wrote " + reports.Count + " lines for " + count + " answers.");
+            foreach (Match report in reports)
+            {
+                double given = double.Parse(report.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                double reached = double.Parse(report.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture);
+                if (Math.Abs(given - seconds) > 0.001 || Math.Abs(reached - seconds) > 0.001) throw new Exception("Her cable log lost speech: " + report.Value);
+            }
+        }
+
+        private static void SmokeMicDelivery(System.Collections.Generic.List<string> checks, string output)
+        {
+            MicMix currentWas = MicMix.Current;
+            string logWas = Brain.LogPath;
+            int loudnessWas = Voice.Loudness;
+            bool waveWas = Speaker.SkipWave;
+            try
+            {
+                WaitSound(delegate { return !MicAnswer.Writing && !MicMix.Noting; }, "Earlier cable notes did not finish.");
+                Voice.Loudness = 100;
+                foreach (int room in new[] { 0, 128, 256, 512 })
+                  foreach (bool separate in new[] { false, true })
+                {
+                    string path = Path.Combine(output, (separate ? "mic-queued-lines-" : "mic-whole-answer-") + room + ".txt");
+                    Brain.LogPath = path;
+                    File.WriteAllText(path, "");
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0;
+                    pc.CableRoom = room;
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    using (Speaker outputSpeaker = new Speaker(true))
+                    {
+                        mix.Step();
+                        MicMix.Current = mix;
+                        int start = pc.Cables[0].Kept.Length;
+                        short[] whole = new short[14400];
+                        Voice lines = new Voice(outputSpeaker);
+                        for (int line = 0; line < 3; line++)
+                        {
+                            short[] samples = new short[4800];
+                            for (int at = 0; at < samples.Length; at++) samples[at] = (short)(((at / (line + 2)) & 1) == 0 ? 2048 : -2048);
+                            Array.Copy(samples, 0, whole, line * samples.Length, samples.Length);
+                            if (separate) lines.Play(Voice.Wave(samples, 48000));
+                        }
+                        if (!separate) lines.Play(Voice.Wave(whole, 48000));
+                        RunMix(mix, pc, now, 0.1, null);
+                        lines.Finish();
+                        RunMix(mix, pc, now, 0.3, null);
+                        float[] got = pc.Cables[0].Kept;
+                        if (got.Length < start + whole.Length || pc.Cables[0].Starved != 0 || mix.CableLosses != 0) throw new Exception("The cable did not keep the full three-line answer without gaps.");
+                        for (int at = 0; at < whole.Length; at++)
+                            if (Math.Abs(got[start + at] - whole[at] / 2048.0 * MicMix.Speaking) > 0.00001) throw new Exception("The cable lost or reordered sample " + at + " of a three-line answer.");
+                        for (int at = start + whole.Length; at < got.Length; at++)
+                            if (Math.Abs(got[at]) > 0.00001) throw new Exception("The cable repeated part of an answer.");
+                        MixLog(path, separate ? 3 : 1, separate ? 0.1 : 0.3);
+                    }
+                }
+                checks.Add("PASS every sample of a three-line answer reaches the stand-in cable in order without gaps, repeats or starvation, as one WAV and as three queued WAVs, with 50 ms buffers and buffers of 128, 256 and 512 frames; normal completion keeps the tail, and each answer logs once after the cable accepts it");
+
+                Brain.LogPath = Path.Combine(output, "mic-rate-changes.txt");
+                File.WriteAllText(Brain.LogPath, "");
+                foreach (int rate in new[] { 16000, 24000, 44100 })
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0;
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    using (Speaker outputSpeaker = new Speaker(true))
+                    {
+                        mix.Step();
+                        MicMix.Current = mix;
+                        outputSpeaker.BeginAnswer();
+                        foreach (int from in new[] { 24000, rate, 16000 })
+                        {
+                            outputSpeaker.Open(from);
+                            outputSpeaker.Play(Hum(from, from == rate ? 1000 : 700, 0.1, 0.3));
+                        }
+                        outputSpeaker.EndAnswer();
+                        RunMix(mix, pc, now, 1.05, null);
+                        float[] got = pc.Cables[0].Kept;
+                        int[] sources = { 24000, rate, 16000 };
+                        for (int line = 0; line < sources.Length; line++)
+                        {
+                            double hertz = sources[line] == rate ? 1000 : 700;
+                            double level = ToneIn(got, 48000, hertz, 0.07 + line * 0.3, 0.2) / Math.Sqrt(2);
+                            if (Math.Abs(level / MicMix.Speaking - 1) > 0.03) throw new Exception("A speaker rate change lost line " + (line + 1) + ".");
+                        }
+                    }
+                }
+                checks.Add("PASS queued voice keeps its order across speaker rate changes at 16, 24 and 44.1 kHz");
+
+                Speaker.SkipWave = true;
+                Voice.Loudness = 50;
+                Brain.LogPath = Path.Combine(output, "mic-loudness.txt");
+                File.WriteAllText(Brain.LogPath, "");
+                foreach (int percent in new[] { 50, 200 })
+                {
+                    double[] now = { 0 };
+                    StandInDevices pc = MixPc(now, 48000, 48000);
+                    pc.Level = 0.1;
+                    using (SoundCheck heard = new SoundCheck())
+                    using (MicMix mix = new MicMix(pc, delegate { return now[0]; }))
+                    using (Speaker outputSpeaker = new Speaker(false, delegate(int rate) { return new SoundOut(rate, heard, heard); }))
+                    {
+                        mix.Loudness = percent;
+                        mix.Step();
+                        MicMix.Current = mix;
+                        short[] samples = Hum(24000, 1000, 0.1, 0.6), before = (short[])samples.Clone();
+                        Voice lines = new Voice(outputSpeaker);
+                        lines.Play(Voice.Wave(samples, 24000));
+                        WaitSound(delegate { return outputSpeaker.ModernPlayed >= samples.Length; }, "The stand-in speakers did not get the whole answer.");
+                        int peak = 0;
+                        foreach (short sample in Voice.Louder(samples)) peak = Math.Max(peak, Math.Abs((int)sample));
+                        if (heard.Peak != peak || heard.VolumeChanges != 0 || Voice.Loudness != 50) throw new Exception("Cable loudness changed her speakers.");
+                        for (int at = 0; at < samples.Length; at++) if (samples[at] != before[at]) throw new Exception("Cable loudness changed her source samples.");
+                        RunMix(mix, pc, now, 0.7, null);
+                        float[] got = pc.Cables[0].Kept;
+                        double voiceLevel = ToneIn(got, 48000, 1000, 0.15, 0.3) / Math.Sqrt(2), micLevel = ToneIn(got, 48000, 440, 0.15, 0.3);
+                        if (Math.Abs(voiceLevel / (MicMix.Speaking * percent / 100) - 1) > 0.03 || Math.Abs(micLevel / pc.Level - 1) > 0.02)
+                            throw new Exception("Cable loudness changed the wrong level at " + percent + "%.");
+                        mix.Take(new object(), Hum(24000, 1000, 0.9, 0.4), 24000);
+                        RunMix(mix, pc, now, 0.5, null);
+                        foreach (float sample in pc.Cables[0].Kept)
+                            if (float.IsNaN(sample) || float.IsInfinity(sample) || Math.Abs(sample) >= SoftLimiter.Ceiling) throw new Exception("Cable loudness clipped the mix.");
+                    }
+                }
+                checks.Add("PASS cable loudness at 50% and 200% scales her voice by that amount below the limiter, keeps her speaker PCM and the user's mic level unchanged, and keeps loud peaks below the limiter ceiling");
+            }
+            finally { MicMix.Current = currentWas; Brain.LogPath = logWas; Voice.Loudness = loudnessWas; Speaker.SkipWave = waveWas; }
+        }
+
         private static void SmokeVoiceInMic(System.Collections.Generic.List<string> checks, string output)
         {
             string logWas = Brain.LogPath;
@@ -26418,6 +27237,7 @@ namespace CapriDesktop
             Section(checks, "SmokeSound", delegate { SmokeSound(checks, output); });
             Section(checks, "SmokeDucking", delegate { SmokeDucking(checks, output); });
             Section(checks, "SmokeVoiceInMic", delegate { SmokeVoiceInMic(checks, output); });
+            Section(checks, "SmokeMicDelivery", delegate { SmokeMicDelivery(checks, output); });
             Section(checks, "SmokeMicSources", delegate { SmokeMicSources(checks, output); });
             Section(checks, "SmokeMicTest", delegate { SmokeMicTest(checks); });
             Section(checks, "SmokeHearingStatus", delegate { SmokeHearingStatus(checks, Path.Combine(output, "hearing")); });
@@ -29332,6 +30152,7 @@ namespace CapriDesktop
                                 try { Directory.Delete(startCheck, true); } catch (IOException) { }
                             }
                             checks.Add("PASS crash recovery: a crash goes in errors.txt with where in her code it happened (once, not every tick); one start that never settled (or a marker from before 0.7.6) only warns, and two in a row move settings.json aside to settings.crashed.json, say so and start fresh with her brain and voice keys, what they're for, which brain tier is picked and her hotkeys kept; settings that can't be read keep nothing, and a clean start keeps them all");
+                            SmokeRunning(output, checks);
                             {
                                 // A pretend Discord on its own pipe: she says hello with the app's id, shows what she's doing with her
                                 // picture and buttons, and hangs up when Show on Discord goes off.
@@ -33807,18 +34628,21 @@ namespace CapriDesktop
                             // says what's wrong, and the rows fit in Advanced and Simple Settings.
                             Section(checks, "SmokeVoiceInMicRows", delegate
                             {
+                                Section(checks, "SmokeMicLoudness", delegate { SmokeMicLoudness(checks); });
                                 IMixDevices mixDevicesWas = MicMix.Devices;
                                 Action<string> mixBrowseWas = Browse;
                                 Func<string, Process> setupWas = CableSetup.Start;
-                                string mixMicWas = preferences.Mic, mixBrowsed = null, setupRan = null, setupDeclined = null;
+                                string mixMicWas = preferences.Mic, mixCableWas = preferences.MixCable, mixBrowsed = null, setupRan = null, setupDeclined = null;
                                 StandInDevices mixPc = new StandInDevices();
                                 MicMix mixRunning = null;
                                 const string mixHeadset = "{0.0.1.00000000}.{stand-in-headset}";
                                 string mixNote = " | " + MicMix.PickLine(MicMix.CableEnd), creditNote = " | " + CableSetup.Credit;
                                 string mixMissing, mixMissingFits, mixRefused, mixSetupOpen, mixSetupDone, mixDeclined, mixSteam, mixSteamFits, mixSteamOff, mixReady, mixOn, mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixSimpleFits, creditOpened;
+                                string mixSteamMenu, mixSteamSimple, mixSteamSimpleFits, mixSteamOffFits, mixSteamDeclined, mixSteamFinish, mixUpgrade, mixVbMenu, mixVbSimple, mixVbSimpleFits, mixBoth, mixBothMenu;
                                 bool mixStayedOff, setupUnpacked, setupHeld, setupTidied, mixSaved, mixWired, mixStopped, mixUnsaved;
                                 try
                                 {
+                                    preferences.MixCable = null;
                                     Browse = delegate(string mixPage) { mixBrowsed = mixPage; };
                                     MicMix.Devices = new StandInDevices();
                                     cableLooked = -10;
@@ -33857,27 +34681,76 @@ namespace CapriDesktop
                                     mainframe.PressCable();
                                     mixDeclined = mainframe.VoiceInMicStatus;
                                     setupTidied &= setupDeclined != null && !Directory.Exists(Path.GetDirectoryName(setupDeclined));
-                                    // Steam's virtual mic: the switch opens up and the note says to pick it.
-                                    mixPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
+                                    MixDevice mixSteamCable = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
+                                    mixPc.CableThere = mixSteamCable;
                                     MicMix.Devices = mixPc;
+                                    cableSetupLine = null;
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     mixSteam = mainframe.VoiceInMicStatus;
                                     mixSteamFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside();
+                                    mixSteamMenu = mainframe.MixOutputChoices();
+                                    simpleTest = true;
+                                    mainframe.ShowSettings(true);
+                                    mixSteamSimple = mainframe.VoiceInMicStatus;
+                                    mixSteamSimpleFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                                    simpleTest = false;
+                                    mainframe.ShowSettings(true);
                                     // Its far end turned off in Windows: the line says to turn it on.
                                     mixPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)");
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     mixSteamOff = mainframe.VoiceInMicStatus;
+                                    mixSteamOffFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside();
+                                    mainframe.PressCable();
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixSteamDeclined = mainframe.VoiceInMicStatus;
+                                    setupTidied &= setupDeclined != null && !Directory.Exists(Path.GetDirectoryName(setupDeclined));
                                     // VB-CABLE installed: the switch opens up, and turning it on starts the mix with the mic picked under VOICE.
-                                    mixPc.CableThere = new MixDevice("{0.0.0.00000000}.{stand-in-cable}", "CABLE Input (VB-Audio Virtual Cable)", "{0.0.1.00000000}.{stand-in-cable-out}");
                                     mixPc.Mics.Add(new MixDevice(MixMicId, "Microphone (stand-in)"));
                                     mixPc.Mics.Add(new MixDevice(mixHeadset, "Headset Microphone (stand-in)"));
                                     mixPc.DefaultMic = MixMicId;
-                                    MicMix.Devices = mixPc;
+                                    mixPc.CableThere = mixSteamCable;
+                                    cableSetupLine = null;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mainframe.FlipVoiceInMic();
+                                    MicMix upgrading = micMix;
+                                    WaitSound(delegate { return upgrading != null && upgrading.Mixing && upgrading.CableName == mixSteamCable.Name && upgrading.Problem == null; }, "Her voice in your mic didn't start on Steam's virtual mic.");
+                                    cableSetupLine = CableSetup.Finish;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixSteamFinish = mainframe.VoiceInMicStatus;
+                                    MixDevice mixVbCable = new MixDevice("{0.0.0.00000000}.{stand-in-cable}", "CABLE Input (VB-Audio Virtual Cable)", "{0.0.1.00000000}.{stand-in-cable-out}");
+                                    mixPc.CableThere = mixVbCable;
+                                    mixPc.CableChoices = new System.Collections.Generic.List<MixDevice> { mixVbCable, mixSteamCable };
+                                    WaitSound(delegate { return upgrading.Mixing && upgrading.CableName == mixVbCable.Name && upgrading.Problem == null; }, "Her voice in your mic didn't move from Steam to VB-CABLE by itself.");
+                                    if (preferences.MixCable != null || upgrading.CableChosen != null) throw new Exception("Her voice in your mic changed the automatic Output pick.");
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixUpgrade = mainframe.VoiceInMicStatus;
+                                    mainframe.FlipVoiceInMic();
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     mixReady = mainframe.VoiceInMicStatus;
+                                    mixVbMenu = mainframe.MixOutputChoices();
+                                    simpleTest = true;
+                                    mainframe.ShowSettings(true);
+                                    mixVbSimple = mainframe.VoiceInMicStatus;
+                                    mixVbSimpleFits = mainframe.VoiceInMicFits() ?? mainframe.Overlap() ?? mainframe.Outside() ?? mainframe.TextFits();
+                                    simpleTest = false;
+                                    mainframe.ShowSettings(true);
+                                    preferences.MixCable = mixSteamCable.Id;
+                                    mixPc.CableThere = mixSteamCable;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
+                                    mixBoth = mainframe.VoiceInMicStatus;
+                                    mixBothMenu = mainframe.MixOutputChoices();
+                                    preferences.MixCable = null;
+                                    mixPc.CableThere = mixVbCable;
+                                    cableLooked = -10;
+                                    mainframe.ShowVoiceInMic();
                                     mainframe.FlipVoiceInMic();
                                     mixRunning = micMix;
                                     MicMix mixWatched = mixRunning;
@@ -33900,6 +34773,7 @@ namespace CapriDesktop
                                     mixAlone = mainframe.VoiceInMicStatus;
                                     // VB-CABLE uninstalled while it's on: the line says it needs it again, and the switch still goes off.
                                     mixPc.CableThere = null;
+                                    mixPc.CableChoices = null;
                                     mixWatched.Chosen = mixWatched.Chosen;
                                     WaitSound(delegate { return mixWatched.Problem == MicMix.Missing && !mixWatched.Mixing; }, "Her voice in your mic didn't notice VB-CABLE go: " + mixWatched.Problem);
                                     cableLooked = -10;
@@ -33920,6 +34794,7 @@ namespace CapriDesktop
                                     if (micMix != null) { micMix.Stop(); micMix = null; }
                                     if (mixRunning != null) mixRunning.Stop();
                                     preferences.VoiceInMic = false;
+                                    preferences.MixCable = mixCableWas;
                                     if (preferences.Mic != mixMicWas) ChooseMic(mixMicWas);
                                     SavePreferences();
                                     MicMix.Devices = mixDevicesWas;
@@ -33930,14 +34805,19 @@ namespace CapriDesktop
                                     simpleTest = false;
                                     mainframe.ShowSettings(true);
                                 }
-                                if (mixMissing != "off | locked | " + MicMix.Missing + " | Set up" + creditNote || mixMissingFits != null || mixRefused != mixMissing || !mixStayedOff || mixBrowsed != null
-                                    || mixSetupOpen != "off | locked | " + CableSetup.Running + " | -" + creditNote || !setupUnpacked || !setupHeld || mixSetupDone != "off | locked | " + CableSetup.Finish + " | Set up" + creditNote || !setupTidied
-                                    || mixDeclined != "off | locked | " + CableSetup.Declined + " | Set up" + creditNote || mixSteam != "off | open | - | - | " + MicMix.PickLine(MicMix.SteamEnd) || mixSteamFits != null
-                                    || mixSteamOff != "off | open | " + MicMix.OffLine(MicMix.SteamEnd) + " | - | " + MicMix.PickLine(MicMix.SteamEnd) || creditOpened != CableSetup.Page
+                                if (mixMissing != "off | locked | " + MicMix.Missing + " | Get VB-CABLE" + creditNote || mixMissingFits != null || mixRefused != mixMissing || !mixStayedOff || mixBrowsed != null
+                                    || mixSetupOpen != "off | locked | " + CableSetup.Running + " | -" + creditNote || !setupUnpacked || !setupHeld || mixSetupDone != "off | locked | " + CableSetup.Finish + " | Get VB-CABLE" + creditNote || !setupTidied
+                                    || mixDeclined != "off | locked | " + CableSetup.Declined + " | Get VB-CABLE" + creditNote || mixSteam != "off | open | - | Get VB-CABLE | " + CableSetup.Better || mixSteamFits != null
+                                    || mixSteamOff != "off | open | " + MicMix.OffLine(MicMix.SteamEnd) + " | Get VB-CABLE | " + CableSetup.Better || mixSteamOffFits != null || creditOpened != CableSetup.Page
+                                    || mixSteamMenu != "Automatic: VB-CABLE, else Steam's | Microphone (Steam Streaming Microphone) | Get VB-CABLE (free)..." || mixSteamSimple != mixSteam || mixSteamSimpleFits != null
+                                    || mixSteamDeclined != "off | open | " + CableSetup.Declined + " | Get VB-CABLE | " + CableSetup.Better || mixUpgrade != "on | open | - | -" + mixNote
+                                    || mixSteamFinish != "on | open | " + CableSetup.Finish + " | Get VB-CABLE | " + CableSetup.Better
+                                    || mixVbMenu != "Automatic: VB-CABLE, else Steam's | CABLE Output (VB-Audio Virtual Cable) | Microphone (Steam Streaming Microphone)" || mixVbSimple != mixReady || mixVbSimpleFits != null
+                                    || mixBoth != "off | open | - | - | " + MicMix.PickLine(MicMix.SteamEnd) || mixBothMenu != mixVbMenu
                                     || mixReady != "off | open | - | -" + mixNote || mixOn != "on | open | - | -" + mixNote || !mixSaved || !mixWired || mixOnFits != null || mixMoved != "Headset Microphone (stand-in)"
-                                    || mixAlone != "on | open | " + MicMix.NoMic + " | -" + mixNote || mixGone != "on | open | " + MicMix.Missing + " | Set up" + creditNote || mixOff != mixMissing || !mixStopped || !mixUnsaved || mixSimpleFits != null)
-                                    throw new Exception("Her voice in your mic's Settings went wrong: " + string.Join(" / ", new[] { mixMissing, mixMissingFits, mixRefused, mixStayedOff.ToString(), mixBrowsed, creditOpened, mixSetupOpen, setupUnpacked.ToString(), setupHeld.ToString(), mixSetupDone, setupTidied.ToString(), mixDeclined, mixSteam, mixSteamFits, mixSteamOff, mixReady, mixOn, mixSaved.ToString(), mixWired.ToString(), mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixStopped.ToString(), mixUnsaved.ToString(), mixSimpleFits }));
-                                checks.Add("PASS her voice in your mic in Settings: without a cable the switch is locked, the note credits VB-CABLE as donationware from vb-cable.com and opens its page, and the line says it needs VB-CABLE (free); Set up unpacks VB-Audio's pack as she carries it and opens its setup (a stand-in here) with the unpacked setup held so nothing can change it, says to click Install Driver while it's open and to restart once it closes, tidies the unpacked files and says so when Windows' prompt is turned down; with Steam's virtual mic the switch opens and the note says to pick Steam Streaming Microphone, and the line says to turn it on when Windows has it off; with VB-CABLE the switch starts the mix with the mic picked under VOICE and is saved, a new pick moves it, no mic says only her voice goes in, VB-CABLE going away says it's needed again and the switch still turns off and stops it, and the rows fit in Advanced and Simple Settings");
+                                    || mixAlone != "on | open | " + MicMix.NoMic + " | -" + mixNote || mixGone != "on | open | " + MicMix.Missing + " | Get VB-CABLE" + creditNote || mixOff != mixMissing || !mixStopped || !mixUnsaved || mixSimpleFits != null)
+                                    throw new Exception("Her voice in your mic's Settings went wrong: " + string.Join(" / ", new[] { mixMissing, mixMissingFits, mixRefused, mixStayedOff.ToString(), mixBrowsed, creditOpened, mixSetupOpen, setupUnpacked.ToString(), setupHeld.ToString(), mixSetupDone, setupTidied.ToString(), mixDeclined, mixSteam, mixSteamFits, mixSteamMenu, mixSteamSimple, mixSteamSimpleFits, mixSteamOff, mixSteamOffFits, mixSteamDeclined, mixSteamFinish, mixUpgrade, mixVbMenu, mixVbSimple, mixVbSimpleFits, mixBoth, mixBothMenu, mixReady, mixOn, mixSaved.ToString(), mixWired.ToString(), mixOnFits, mixMoved, mixAlone, mixGone, mixOff, mixStopped.ToString(), mixUnsaved.ToString(), mixSimpleFits }));
+                                checks.Add("PASS her voice in your mic in Settings: without a cable the switch is locked, the note credits VB-CABLE as donationware from vb-cable.com and opens its page, and the line says it needs VB-CABLE (free); Get VB-CABLE unpacks VB-Audio's pack as she carries it and opens its setup (a stand-in here) with the unpacked setup held so nothing can change it, says to click Install Driver while it's open and to restart once it closes, tidies the unpacked files and says so when Windows' prompt is turned down, with Steam's mic there too; with only Steam's virtual mic the button and Output menu offer VB-CABLE and the note says it usually sounds better, and the line says to turn Steam's mic on when Windows has it off; VB-CABLE arriving moves the running mix by itself and the note says to pick CABLE Output, and hides the offer even with Steam picked; with VB-CABLE the switch starts the mix with the mic picked under VOICE and is saved, a new pick moves it, no mic says only her voice goes in, VB-CABLE going away says it's needed again and the switch still turns off and stops it, and the rows fit in Advanced and Simple Settings");
                             });
                             // Her voice in your mic's Input, Output and setup window (Lachy, 3 Nov: "we need to be able to change the input
                             // and output for the mixer as well / And make it clear how to set it up too"), on stand-in devices: the window
@@ -33953,7 +34833,7 @@ namespace CapriDesktop
                                 const string vbName = "CABLE Output (VB-Audio Virtual Cable)", steamName = "Microphone (Steam Streaming Microphone)";
                                 MixDevice steamCable = new MixDevice("{0.0.0.00000000}.{stand-in-steam}", "Speakers (Steam Streaming Microphone)", "{0.0.1.00000000}.{stand-in-steam-mic}");
                                 string noCable, steamOff, steamFarOff, vbOn, vbObs, vbAll, rowsOwn, rowsBack, steamDiscord, at100, at150, at200, toolSaid, toolShown;
-                                bool inputSaved, earsLeft, outputSaved, outputBack, toolValid;
+                                bool inputSaved, earsLeft, outputSaved, outputBack, toolValid, steamAdvice, vbAdvice;
                                 try
                                 {
                                     preferences.MixMic = null;
@@ -33982,6 +34862,11 @@ namespace CapriDesktop
                                     cableLooked = -10;
                                     mainframe.ShowVoiceInMic();
                                     steamOff = mainframe.MixShown;
+                                    steamAdvice = false;
+                                    foreach (Form sheet in mainframe.OwnedForms)
+                                        if (sheet.Text == "Her voice in your mic")
+                                            foreach (Control mixStep in sheet.Controls)
+                                                steamAdvice |= mixStep.Visible && mixStep.Text == CableSetup.Better + " Pick Output to get it.";
                                     // Its far end turned off in Windows: turn that on first.
                                     setupPc.CableThere = new MixDevice(steamCable.Id, steamCable.Name);
                                     cableLooked = -10;
@@ -33996,6 +34881,11 @@ namespace CapriDesktop
                                     WaitSound(delegate { return setupMix != null && setupMix.Mixing && setupMix.MicName == "Microphone (stand-in)" && setupMix.Problem == null; }, "The setup window's switch didn't start her voice in your mic.");
                                     mainframe.ShowVoiceInMic();
                                     vbOn = mainframe.MixShown;
+                                    vbAdvice = false;
+                                    foreach (Form sheet in mainframe.OwnedForms)
+                                        if (sheet.Text == "Her voice in your mic")
+                                            foreach (Control mixStep in sheet.Controls)
+                                                vbAdvice |= mixStep.Visible && mixStep.Text == "Your mic and her voice go into one virtual mic, and Discord hears that.";
                                     lock (setupPc.Listeners) setupPc.Listeners.Add("obs64");
                                     mainframe.ShowVoiceInMic();
                                     vbObs = mainframe.MixShown;
@@ -34068,14 +34958,14 @@ namespace CapriDesktop
                                 }
                                 string vbLine = "on | Microphone (stand-in) | " + vbName + " | On: your mic and her voice are going in. | " + vbName + " | ";
                                 if (noCable != "off | No mic found | None yet: pick to get VB-CABLE (free) | No virtual mic yet. Pick Output, then Get VB-CABLE (free). | " + vbName + " | "
-                                    || steamOff != "off | Microphone (stand-in) | " + steamName + " | Off. Turn on Her voice in your mic above. | " + steamName + " | "
+                                    || steamOff != "off | Microphone (stand-in) | " + steamName + " | Off. Turn on Her voice in your mic above. | " + steamName + " | " || !steamAdvice
                                     || steamFarOff != "off | Microphone (stand-in) | " + steamName + " | " + MicMix.OffLine(MicMix.SteamEnd) + " | " + steamName + " | "
-                                    || vbOn != vbLine + "Discord isn't hearing it yet: do 1 and 2, then join a call." || vbObs != vbLine + "OBS hears it now. Discord doesn't yet." || vbAll != vbLine + "OBS, Discord and Roblox hear it now."
+                                    || vbOn != vbLine + "Discord isn't hearing it yet: do 1 and 2, then join a call." || !vbAdvice || vbObs != vbLine + "OBS hears it now. Discord doesn't yet." || vbAll != vbLine + "OBS, Discord and Roblox hear it now."
                                     || rowsOwn != "Input: Headset Microphone (stand-in) | Output: " + MicMix.CableEnd || !inputSaved || !earsLeft || rowsBack != "Input: Microphone (stand-in) | Output: " + MicMix.CableEnd || !outputSaved || !outputBack
                                     || steamDiscord != "on | Microphone (stand-in) | " + steamName + " | On: your mic and her voice are going in. | " + steamName + " | Discord hears it now."
                                     || at100 != null || at150 != null || at200 != null || !toolValid || toolSaid != "Opened Capri Mainframe." || toolShown != steamDiscord)
-                                    throw new Exception("Her voice in your mic's setup went wrong: " + string.Join(" / ", new[] { noCable, steamOff, steamFarOff, vbOn, vbObs, vbAll, rowsOwn, inputSaved.ToString(), earsLeft.ToString(), rowsBack, outputSaved.ToString(), outputBack.ToString(), steamDiscord, at100, at150, at200, toolValid.ToString(), toolSaid, toolShown }));
-                                checks.Add("PASS her voice in your mic's setup window: it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Discord's steps turn Echo Cancellation off and Noise Suppression to None and say why; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
+                                    throw new Exception("Her voice in your mic's setup went wrong: " + string.Join(" / ", new[] { noCable, steamOff, steamAdvice.ToString(), steamFarOff, vbOn, vbAdvice.ToString(), vbObs, vbAll, rowsOwn, inputSaved.ToString(), earsLeft.ToString(), rowsBack, outputSaved.ToString(), outputBack.ToString(), steamDiscord, at100, at150, at200, toolValid.ToString(), toolSaid, toolShown }));
+                                checks.Add("PASS her voice in your mic's setup window: with only Steam's mic it says VB-CABLE usually sounds better and to pick Output to get it, and leaves that advice behind with VB-CABLE installed; it says to get VB-CABLE first, to turn the switch on, or to turn the far end on in Windows, names the exact mic to pick in Discord (Steam's or VB-CABLE's far end) and who hears it now, Discord's test builds as Discord, and its own switch starts the mix; Discord's steps turn Echo Cancellation off and Noise Suppression to None and say why; Settings' Input moves the running mix to a mic of its own and back to her ears' one, her ears' pick leaves its own one alone, Output's pick is saved and reaches the mix, her mainframe tool opens the window as mixer, and it fits at 100, 150 and 200%");
                             });
                             // A new install has them all off, and steps before this one leave Watch my screen on.
                             int launchWander = WanderLevel;

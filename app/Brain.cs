@@ -3693,8 +3693,12 @@ namespace CapriDesktop
 
         internal static void Log(string url, long took, string what)
         {
-            string path = LogPath;
-            if (path == null) return;
+            LogAt(LogPath, url, took, what);
+        }
+
+        internal static bool LogAt(string path, string url, long took, string what)
+        {
+            if (path == null) return false;
             try
             {
                 Uri where;
@@ -3704,15 +3708,17 @@ namespace CapriDesktop
                 {
                     List<string> lines = File.Exists(path) ? new List<string>(File.ReadAllLines(path)) : new List<string>();
                     // A freeze's line says what she was doing, what she holds and where she was held up, so it gets more room.
-                    int limit = place == "frozen" ? 1000 : 300;
+                    int limit = place == "closed" ? 2400 : place == "frozen" ? 1000 : 300;
                     lines.Add(line.Length > limit ? line.Substring(0, limit) : line);
                     if (lines.Count > 200) lines.RemoveRange(0, lines.Count - 200);
                     File.WriteAllLines(path, lines.ToArray());
                 }
+                return true;
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
             catch (UriFormatException) { }
+            return false;
         }
 
         private static HttpWebRequest Open(string path, int timeout) { return Create(Ollama + path, timeout); }

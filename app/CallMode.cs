@@ -79,6 +79,7 @@ namespace CapriDesktop
             callSession.Change(on);
             preferences.CallMode = on;
             if (on) { EndWatchAlong(); PcEars.Stop(); callSince = DateTime.UtcNow; }
+            else { voice.Stop(); Hush(); }
             if (asking == callAnswer) { asking++; CloseTalk(); }
             callAnswer = -1;
             if (pushing) { lock (waking) pushed = null; PushDone(); }
