@@ -75,4 +75,4 @@ You can also build her yourself from the public code. [CONTRIBUTING.md](CONTRIBU
 
 ## Reporting a problem
 
-Tell us in the [Discord](https://discord.gg/F4fDHfGtFk) or open a [GitHub issue](https://github.com/lachydotmcg/capri-desktop/issues). If it's a security hole, open a ticket in the Discord instead, so the details stay private until it's fixed.
+Tell us in the [Discord](https://discord.gg/capridesktop) or open a [GitHub issue](https://github.com/lachydotmcg/capri-desktop/issues). If it's a security hole, open a ticket in the Discord instead, so the details stay private until it's fixed.

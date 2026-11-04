@@ -1692,7 +1692,7 @@ On Mac and Linux, her error log is errors.txt in ~/.config/Capri.
 - Mainframe > Help, or right-click her > Help > Help page: opens this Help page.
 - Capri in the bottom-right corner of the website: click her and ask, or drop a screenshot. She answers from this help.
 - The setup guide: https://capriai.app/setup/
-- Discord: https://discord.gg/F4fDHfGtFk (or right-click her > Help > Join the Discord)
+- Discord: https://discord.gg/capridesktop (or right-click her > Help > Join the Discord)
 - GitHub: https://github.com/lachydotmcg/capri-desktop
 
 ### What to send when you ask
@@ -2019,7 +2019,7 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - Old version won't update: install the latest Capri-Setup.exe over it.
 
 ### Still stuck?
-Right-click her > Help > Copy error details, then ask in the Discord: https://discord.gg/F4fDHfGtFk
+Right-click her > Help > Copy error details, then ask in the Discord: https://discord.gg/capridesktop
 
 ### She stops when I say "end task"
 "End task" stops her job. It doesn't close anything else.

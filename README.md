@@ -13,7 +13,7 @@ She sits on your windows, talks back, joins your calls, plays your games and get
 
 <a href="https://github.com/lachydotmcg/capri-desktop/releases/latest"><img src="https://img.shields.io/github/v/release/lachydotmcg/capri-desktop?label=latest&color=05d9e8&style=flat-square" alt="Latest release"></a>
 <a href="https://github.com/lachydotmcg/capri-desktop/releases"><img src="https://img.shields.io/github/downloads/lachydotmcg/capri-desktop/total?color=05d9e8&style=flat-square" alt="Downloads"></a>
-<a href="https://discord.gg/F4fDHfGtFk"><img src="https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Discord"></a>
+<a href="https://discord.gg/capridesktop"><img src="https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white&style=flat-square" alt="Discord"></a>
 
 [Setup guide](https://capriai.app/setup/) · [Website](https://capriai.app/) · [Help](https://capriai.app/help/) · [Support](#support)
 
@@ -185,7 +185,7 @@ Get Capri only from [capriai.app](https://capriai.app/) or [GitHub](https://gith
 
 **Zero telemetry.** The app sends us nothing. [SECURITY.md](SECURITY.md) lists what she connects to, what the website counts, and what to do if Windows or your antivirus warns you.
 
-Stuck? The [setup guide](https://capriai.app/setup/) walks through it, or ask in the [Discord](https://discord.gg/F4fDHfGtFk). [Windows or your antivirus may warn you](SECURITY.md#windows-or-your-antivirus-warned-me) because she's a new app. All the code is here.
+Stuck? The [setup guide](https://capriai.app/setup/) walks through it, or ask in the [Discord](https://discord.gg/capridesktop). [Windows or your antivirus may warn you](SECURITY.md#windows-or-your-antivirus-warned-me) because she's a new app. All the code is here.
 
 <details>
 <summary><b>What your PC needs</b></summary>

@@ -2087,7 +2087,7 @@ namespace CapriDesktop
         private const string GeminiKeyPage = "https://aistudio.google.com/apikey";
         private const string RouterKeyPage = "https://openrouter.ai/keys";
         private const string GuidePage = "https://capriai.app/setup/#voice";
-        private const string DiscordPage = "https://discord.gg/F4fDHfGtFk";
+        private const string DiscordPage = "https://discord.gg/capridesktop";
         private const string HelpPage = "https://capriai.app/help/";
         internal const string SupportPage = "https://ko-fi.com/lachysdev";
         private const string GuideLine = "Follow the guide I just opened. Make your ElevenLabs key with Restrict key turned off, paste it in the box under VOICE, press Connect and pick my voice in the Voice ID box." + Brain.Stuck;

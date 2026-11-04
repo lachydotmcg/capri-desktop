@@ -203,7 +203,7 @@ namespace CapriDesktop
         internal const string KeyChoice = "Use an API key...";
         internal const string NotAKey = "That doesn't look like a brain key. Try NVIDIA, Google AI Studio, OpenRouter, OpenAI, Claude or DeepSeek.";
         internal const string FreeKeySteps = "Make a key on NVIDIA's page and copy it. Paste it under BRAIN in Capri Mainframe.";
-        internal const string DiscordPage = "https://discord.gg/F4fDHfGtFk";
+        internal const string DiscordPage = "https://discord.gg/capridesktop";
         internal const string HelpPage = "https://capriai.app/help/";
         // Mac and Linux don't update themselves yet, so she checks GitHub's latest release now and then and offers its page.
         private const string LatestRelease = "https://api.github.com/repos/lachydotmcg/capri-desktop/releases/latest";
