@@ -35,6 +35,7 @@ namespace CapriDesktop
         internal Func<bool> Current;
         internal Action Finished;
         internal bool SongOnly;
+        internal bool FromFriend;
         // Voice chat called it, so a change that would end the call waits until her reply is out.
         internal bool FromAgent;
         // The reply and the ask a tool call came with, so what it does once its reply is over waits for that reply, and where a
@@ -111,9 +112,9 @@ namespace CapriDesktop
     // listening for "Hey Capri". The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
     internal static class Security
     {
-        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Count = 11;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Count = 12;
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"" };
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm" };
         internal static readonly string[] Lines =
         {
             "On: she opens them when you ask. Off: she asks first.",
@@ -130,7 +131,8 @@ namespace CapriDesktop
             "On: she pays and books without checking. Off: she asks first.",
             "On: she does the extra steps a job needs. Off: she asks first.",
             "On: she types the ones your job gives her. Off: you type them.",
-            "On: she listens on this PC for her name. Off: she doesn't."
+            "On: she listens on this PC for her name. Off: she doesn't.",
+            "Call mode only. Your mic or typing must confirm each ask."
         };
         internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
         private static readonly string[] Told =
@@ -138,7 +140,7 @@ namespace CapriDesktop
             "Everything is off: she asks first before she does anything on your PC.",
             "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.",
             "She does what you ask, and asks first before paying or anything you didn't mention.",
-            "Everything is on: she never asks, types passwords and card numbers, and listens for \"Hey Capri\".",
+            "She never asks, types passwords and card numbers, and listens for \"Hey Capri\".",
             "Your own mix. Pick a preset to start again from it."
         };
         // The Settings line under her SECURITY button, short enough for its row.
@@ -181,7 +183,7 @@ namespace CapriDesktop
             {
                 int bits;
                 lock (gate) bits = mask;
-                if (HeyOn != null) bits = (bits & 0x3FF) | (HeyOn() ? 1 << Wake : 0);
+                if (HeyOn != null) bits = (bits & ~(1 << Wake)) | (HeyOn() ? 1 << Wake : 0);
                 return bits;
             }
         }
@@ -197,14 +199,14 @@ namespace CapriDesktop
         }
 
         // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" alone. Nothing is saved.
-        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & (1 << Wake)) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
+        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
         // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
         internal static int Preset
         {
             get
             {
-                int bits = Mask, counted = Has(Wake) ? 0x7FF : 0x3FF;
+                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0);
                 for (int i = 0; i < Masks.Length; i++) if ((bits & counted) == (Masks[i] & counted)) return i;
                 return Custom;
             }
@@ -217,7 +219,7 @@ namespace CapriDesktop
         internal static string PresetLine(int preset)
         {
             if (preset == Trusted && !Has(Mouse)) return "She does what you ask without asking first.";
-            if (preset == Blackwall && !Has(Wake)) return "Everything is on: she never asks before doing what you ask.";
+            if (preset == Blackwall && !Has(Wake)) return "She never asks before doing what you ask.";
             return Told[Math.Max(0, Math.Min(Custom, preset))];
         }
 
@@ -233,8 +235,9 @@ namespace CapriDesktop
 
         private static string Marks(int bits)
         {
-            char[] marks = new char[Wake];
+            char[] marks = new char[Wake + 1];
             for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
+            marks[Wake] = (bits & (1 << Friends)) != 0 ? '1' : '0';
             return new string(marks);
         }
 
@@ -242,8 +245,12 @@ namespace CapriDesktop
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
-            if (saved == null || saved.Length != Wake || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted] & 0x3FF;
-            else for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
+            if (saved == null || saved.Length != Wake && saved.Length != Wake + 1 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted] & 0x3FF;
+            else
+            {
+                for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
+                if (saved.Length > Wake && saved[Wake] == '1') bits |= 1 << Friends;
+            }
             lock (gate) mask = bits | (wake ? 1 << Wake : 0);
         }
 
@@ -476,6 +483,17 @@ namespace CapriDesktop
                 case "use_computer":
                     string job = Plain(Hands.Asked(a.Task ?? ""), "");
                     return job.Length == 0 ? "use your mouse and keyboard for that" : "use your mouse and keyboard to " + char.ToLowerInvariant(job[0]) + job.Substring(1);
+                case "look_at_screen": return "look at your screen" + (string.IsNullOrWhiteSpace(a.Focus) ? "" : " for " + Plain(a.Focus, "that"));
+                case "animate": return "do the " + Plain(a.Name, "requested") + " animation";
+                case "draw": return "draw " + Plain(a.Description ?? a.Text, "on your screen");
+                case "desktop_icons": return a.Action == "back" ? "put your desktop icons back" : a.Action == "hide" ? "hide your desktop icons briefly" : "scatter your desktop icons";
+                case "mini_game": return "play " + Plain(a.Name, "a mini game").Replace('_', ' ');
+                case "fake_crash": return a.Action == "stop" ? "stop the fake blue screen" : "show the fake blue screen";
+                case "listen": return a.Action == "stop" ? "stop listening to PC dialogue" : "listen to PC dialogue";
+                case "list_windows": return "check your open windows";
+                case "check_app": return "check whether " + Plain(a.Name, "that app") + " is installed or running";
+                case "pc_status": return "check how your PC is doing";
+                case "internet_status": return "check your internet";
                 default: return "do that";
             }
         }
@@ -1642,6 +1660,30 @@ namespace CapriDesktop
 
         // A kit for what's missing on another computer, so her checks on Windows see what a Mac or a Linux PC gets.
         internal static Kit KitWithout(List<string[]> missing) { return Made(missing, new List<string[]>()); }
+
+        internal static bool CallTool(string tool)
+        {
+            return Regex.IsMatch(tool ?? "", @"\A(open_app|open_website|media|look_at_screen|play_music|app_window|use_computer|shortcut|power|animate|draw|desktop_icons|clip|mini_game|fake_crash|listen|list_windows|check_app|app_volume|pc_status|internet_status)\z");
+        }
+
+        internal static bool CallAllowed(string tool, ToolArguments args)
+        {
+            if (!CallTool(tool) || args == null || !Valid(tool, args)) return false;
+            if (tool == "mini_game" && args.Action == "level") return false;
+            if (tool != "use_computer") return true;
+            return !Regex.IsMatch(args.Task ?? "", @"\b(capri|mainframe|security|settings|preferences|call_errand|call_say|read_file|quit|remember|routine)\b|\b(?:read|inspect|cat|type|print|show)\b.{0,60}\b(?:file|me\.md|personality\.md)\b", RegexOptions.IgnoreCase);
+        }
+
+        internal static Kit CallKit(Kit source)
+        {
+            List<string[]> missing = new List<string[]>(), off = new List<string[]>();
+            foreach (KeyValuePair<string, string> gap in source.Missing) missing.Add(new[] { gap.Key, gap.Value });
+            foreach (KeyValuePair<string, string> gap in source.Off) off.Add(new[] { gap.Key, gap.Value });
+            for (int i = 0; i < Specs.GetLength(0); i++)
+                if (!CallTool(Specs[i, 0])) missing.Add(new[] { Specs[i, 0], "only the user's own requests" });
+            missing.Add(new[] { "mini_game:level", "only the user's own requests" });
+            return Made(missing, off);
+        }
 
         // What her prompts call this computer.
         private static string ComputerName

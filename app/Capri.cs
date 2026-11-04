@@ -4470,6 +4470,7 @@ namespace CapriDesktop
         // Settings and her SECURITY window show it.
         private void SecurityChanged()
         {
+            if (!Security.On(Security.Friends)) callSession.DropFriend(true);
             preferences.Permissions = Security.Saved;
             preferences.Bypass = Computer.Bypass;
             SavePreferences();
@@ -4482,29 +4483,29 @@ namespace CapriDesktop
         private void SecurityChecks(System.Collections.Generic.List<string> checks, string output)
         {
             Func<string> bits = delegate { System.Text.StringBuilder all = new System.Text.StringBuilder(); for (int i = 0; i < Security.Count; i++) all.Append(Security.On(i) ? '1' : '0'); return all.ToString(); };
-            string[] presetBits = { "00000000000", "11100000000", "11111110000", "11111111111" };
+            string[] presetBits = { "000000000000", "111000000000", "111111100000", "111111111110" };
             System.Collections.Generic.List<string> wrong = new System.Collections.Generic.List<string>();
             for (int preset = Security.Lockdown; preset <= Security.Blackwall; preset++)
             {
                 Security.Pick(preset);
                 string shown = bits();
-                if (shown != presetBits[preset] || Security.Preset != preset || HeyCapriOn != (preset == Security.Blackwall) || preferences.Permissions != presetBits[preset].Substring(0, 10) || preferences.Bypass != (preset == Security.Blackwall) || Computer.Bypass != (preset == Security.Blackwall))
+                if (shown != presetBits[preset] || Security.Preset != preset || HeyCapriOn != (preset == Security.Blackwall) || preferences.Permissions != Security.Of(preset) || preferences.Bypass != (preset == Security.Blackwall) || Computer.Bypass != (preset == Security.Blackwall))
                     wrong.Add(Security.Presets[preset] + " " + shown + " saved " + preferences.Permissions + " hey " + HeyCapriOn);
             }
             Security.Pick(Security.Trusted);
             Security.Set(Security.Open, false);
             string customShown = mainframe.JobsStatus + " / " + Security.Saved;
-            bool custom = Security.Preset == Security.Custom && preferences.Permissions == "0111111000" && customShown == "cursor | Security: Custom / 0111111000";
+            bool custom = Security.Preset == Security.Custom && preferences.Permissions == "01111110000" && customShown == "cursor | Security: Custom / 01111110000";
             Security.Set(Security.Open, true);
-            bool backToTrusted = Security.Preset == Security.Trusted && preferences.Permissions == "1111111000" && !HeyCapriOn;
+            bool backToTrusted = Security.Preset == Security.Trusted && preferences.Permissions == "11111110000" && !HeyCapriOn;
             if (wrong.Count > 0 || !custom || !backToTrusted) throw new Exception("SECURITY's presets went wrong: " + string.Join(" / ", wrong.ToArray()) + " / custom " + customShown + " / back " + backToTrusted);
-            checks.Add("PASS SECURITY presets: Lockdown turns every toggle off, Guarded the first three on, Trusted the first seven (the default) and Blackwall all eleven, \"Hey Capri\" included; flipping one makes it Custom, flipping it back is Trusted again, and each is saved");
+            checks.Add("PASS SECURITY presets: Lockdown turns every toggle off, Guarded the first three on, Trusted the first seven and Blackwall the original eleven; friend requests stay off, and flipping a toggle makes it Custom and saves");
 
             DataContractJsonSerializer json = new DataContractJsonSerializer(typeof(Preferences));
             Func<string, Preferences> older = delegate(string text) { return (Preferences)json.ReadObject(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text))); };
             Preferences wasBlackwall = older("{\"Bypass\":true,\"Size\":240}"), wasDefault = older("{\"Size\":240}"), wasMixed = older("{\"Bypass\":true,\"Permissions\":\"1010000000\",\"Size\":240}");
-            bool movedBlackwall = Migrate(wasBlackwall) && wasBlackwall.Permissions == "1111111111" && wasBlackwall.HeyCapri;
-            bool movedDefault = Migrate(wasDefault) && wasDefault.Permissions == "1111111000" && !wasDefault.HeyCapri;
+            bool movedBlackwall = Migrate(wasBlackwall) && wasBlackwall.Permissions == "11111111110" && wasBlackwall.HeyCapri;
+            bool movedDefault = Migrate(wasDefault) && wasDefault.Permissions == "11111110000" && !wasDefault.HeyCapri;
             bool keptMixed = !Migrate(wasMixed) && wasMixed.Permissions == "1010000000" && !Migrate(wasBlackwall);
             Security.Load(wasBlackwall.Permissions);
             bool loadedBlackwall = Computer.Bypass && Security.On(Security.Mouse);
@@ -4753,6 +4754,9 @@ namespace CapriDesktop
             string walled = mainframe.SecurityShown;
             bool walledHey = HeyCapriOn, walledSettings = mainframe.BlackwallStatus == "Security: Blackwall | She never asks, and listens for Hey Capri.";
             mainframe.SlideSecurity(Security.Trusted);
+            mainframe.FlipSecurity(Security.Friends);
+            bool friendRow = Security.On(Security.Friends) && Security.Preset == Security.Custom && preferences.Permissions == "11111110001";
+            mainframe.FlipSecurity(Security.Friends);
             string crowded = mainframe.SecurityCrowded;
             mainframe.CloseSecurity();
             float machine = mainframe.Px(1000) / 1000f;
@@ -4760,9 +4764,10 @@ namespace CapriDesktop
             string at150 = mainframe.SecurityAt(1.5f / machine, Path.Combine(output, "security-150.png"));
             string at200 = mainframe.SecurityAt(2f / machine, Path.Combine(output, "security-200.png"));
             Security.Pick(Security.Trusted);
-            if (opened == null || !opened.StartsWith("Trusted | Trusted | 11111110000 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 01111110000 | Your own mix", StringComparison.Ordinal) || flippedSaved != "0111111000"
-                || !tapped.StartsWith("Trusted | Trusted | 11111110000", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 00000000000 | Everything is off", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 11111111111 | Everything is on", StringComparison.Ordinal) || !walledHey || !walledSettings || HeyCapriOn)
+            if (opened == null || !opened.StartsWith("Trusted | Trusted | 111111100000 | She does what you ask", StringComparison.Ordinal) || !flipped.StartsWith("Custom | Trusted | 011111100000 | Your own mix", StringComparison.Ordinal) || flippedSaved != "01111110000"
+                || !tapped.StartsWith("Trusted | Trusted | 111111100000", StringComparison.Ordinal) || !locked.StartsWith("Lockdown | Lockdown | 000000000000 | Everything is off", StringComparison.Ordinal) || !walled.StartsWith("Blackwall | Blackwall | 111111111110 | She never asks", StringComparison.Ordinal) || !walledHey || !walledSettings || HeyCapriOn)
                 throw new Exception("The SECURITY window went wrong: " + opened + " // " + flipped + " // " + tapped + " // " + locked + " // " + walled + " // " + walledSettings);
+            if (!friendRow) throw new Exception("The SECURITY friend request row did not toggle and save.");
             if (crowded != null || at100 != null || at150 != null || at200 != null) throw new Exception("The SECURITY window's layout doesn't fit: " + crowded + " / 100% " + at100 + " / 150% " + at150 + " / 200% " + at200);
             checks.Add("PASS SECURITY window: Settings > HABITS opens it on Trusted; a toggle click makes it Custom and saves, a click on the slider puts Trusted back, sliding to Lockdown or Blackwall sets every toggle (and \"Hey Capri\") and Settings follows; at 100%, 150% and 200% nothing overlaps, pokes out or gets cut off (security-100.png, security-150.png, security-200.png)");
         }
@@ -4985,6 +4990,7 @@ namespace CapriDesktop
 
         private string DoTool(string tool, ToolArguments args, int ticket, bool beside = false)
         {
+            if (args != null && args.FromFriend && (!Hands.CallAllowed(tool, args) || args.Current == null || !args.Current())) return "That call request has ended.";
             if (CallModeOn && !CallHands(ticket)) return CallSession.Conversation;
             if (ticket == callUser && (ticket != asking || !callSession.Current(callUserVersion))) return "That call request has ended.";
             int callVersion = CallHands(ticket) ? callUserVersion : -1;
@@ -5005,7 +5011,12 @@ namespace CapriDesktop
             if (tool == "use_computer" && args != null) args.Task = Hands.Unpleased(args.Task);
             if (tool == "use_computer" && args != null && CallSession.Blank(args.Task) && !CallSession.Joining(args.Task)) return "Use call_errand for the call's choice.";
             ToolArguments musicArgs;
-            if (tool == "use_computer" && args != null && !CallSession.Joining(args.Task) && Hands.MusicJob(args.Task, out musicArgs)) { tool = "play_music"; args = musicArgs; }
+            if (tool == "use_computer" && args != null && !CallSession.Joining(args.Task) && Hands.MusicJob(args.Task, out musicArgs))
+            {
+                tool = "play_music";
+                if (args.FromFriend) { musicArgs.Asked = args.Asked; musicArgs.FromFriend = true; musicArgs.Current = args.Current; }
+                args = musicArgs;
+            }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
             string asked = Security.Gate(tool, args);
             if (asked != null) return asked;
@@ -5021,7 +5032,7 @@ namespace CapriDesktop
                 if (mouse) Monitor.Enter(mouseGate, ref held);
                 // Esc stopped this ask's job while this one waited its turn.
                 if (ticket == escAsk) done = "";
-                else if (CallModeOn && !CallHands(ticket) || callVersion >= 0 && (ticket != asking || !callSession.Current(callVersion))) done = "That call request has ended.";
+                else if (CallModeOn && !CallHands(ticket) || callVersion >= 0 && (ticket != asking || !callSession.Current(callVersion)) || args != null && args.FromFriend && !args.Current()) done = "That call request has ended.";
                 else if (tool == "find_file") done = Hands.Finder.Do(args ?? new ToolArguments(), delegate { return ticket != asking || ticket == escAsk || quitting; });
                 else if (task == null) done = Hands.Do(tool, args);
                 else
@@ -12063,7 +12074,8 @@ namespace CapriDesktop
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
-            int callVersion = callInput && CallModeOn ? callSession.Generation : -1;
+            Func<int, string> callReply = prompt == "> you: " ? FriendAnswer(text) : null;
+            int callVersion = (callInput || prompt == "> you: ") && CallModeOn ? callSession.Generation : -1;
             string callContext = callVersion < 0 ? null : callSession.Context(callVersion);
             if (callVersion >= 0) { callUser = asking; callUserVersion = callVersion; }
             if (prompt == "> you: " && ModList.Heard(text)) return;
@@ -12087,12 +12099,12 @@ namespace CapriDesktop
             if (Hands.StreamAsked(text)) Computer.Streaming = true;
             bool fileMessage = brain.Attachments.Waiting || Files.PathIn(text) != null;
             System.Collections.Generic.KeyValuePair<string, ToolArguments> planned = Hands.Plan(text);
-            if (prompt == "> you: " && HearMini(text)) return;
+            if (callReply == null && prompt == "> you: " && HearMini(text)) return;
             // Mid-job, what they say goes to the job instead of cancelling it: she says she's got it, does it, then carries on
             // (Lachy, 29 Oct: "she needs to actually listen to me mid way through").
             // Now it's two heads: the job runs on while her fast brain sorts what they said and answers (Asides.cs).
             Job running = job;
-            if (MidJob(running) && prompt == "> you: ")
+            if (callReply == null && MidJob(running) && prompt == "> you: ")
             {
                 if (planned.Key != null) AsideTool(text, planned.Key, planned.Value, running);
                 else HeardMidJob(text, running);
@@ -12113,7 +12125,7 @@ namespace CapriDesktop
             box.Prompt = prompt;
             if (sorry && OnlyApology(text)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
             // Their answer while she's getting to know them goes to me.md, with or without a brain. Anything else ends it and goes on.
-            if (meeting.Asking && prompt == "> you: ")
+            if (callReply == null && meeting.Asking && prompt == "> you: ")
             {
                 string called;
                 string next = meeting.Take(text, out called);
@@ -12127,8 +12139,8 @@ namespace CapriDesktop
             bool followAllowed = preferences.FollowUps && !CallModeOn && prompt == "> you: " && agent == null && (!chatting || local);
             int followInput = FollowInput(), followMic = micTalked;
             string followLine = "";
-            Func<string, string> think = Think;
-            if (planned.Key != null) think = delegate { return Security.Said(DoTool(planned.Key, planned.Value, ticket)); };
+            Func<string, string> think = callReply == null ? Think : delegate { return callReply(ticket); };
+            if (callReply == null && planned.Key != null) think = delegate { return Security.Said(DoTool(planned.Key, planned.Value, ticket)); };
             string quick;
             ToolArguments quickArgs;
             // Their yes or no to her asking first (SECURITY) works before she has a brain too; anything else drops what she held.
@@ -12138,7 +12150,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
+            if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
             if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }); };
             if (think == null)
             {
@@ -27583,6 +27595,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClipPopup", delegate { SmokeClipPopup(checks, output); });
             Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
+            Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
@@ -28874,6 +28887,246 @@ namespace CapriDesktop
                 Hands.Forget(); MicMix.Current = mixWas;
                 Security.Drop(); Security.Load(securityWas, wakeWas);
                 CloseTalk(); SavePreferences();
+            }
+        }
+
+        private void SmokeCallFriends(List<string> checks)
+        {
+            Cloud remoteWas = brain.Remote;
+            string modelWas = brain.Model, transcriptWas = Brain.TranscriptPath, memoryWas = Brain.MemoryPath, saved = Security.Saved;
+            bool ownWas = brain.OwnSteps, keepingWas = Brain.Keeping, wakeWas = Security.On(Security.Wake);
+            Func<string, string> thinkWas = Think;
+            bool callWas = CallModeOn, savedCallWas = preferences.CallMode, quietWas = preferences.Quiet, silentWas = preferences.Silent;
+            bool listenWas = preferences.ListenCapri, quickWas = preferences.QuickHands, chatWas = chatting, localWas = local, mutedWas = ears.Muted;
+            int typingWas = preferences.Typing, userWas = callUser, userVersionWas = callUserVersion, answerWas = callAnswer, askWas = asking, escWas = escAsk;
+            Job jobWas = job;
+            string workWas = working;
+            Func<DateTime> clockWas = callSession.Now;
+            Action<string> runWas = Hands.Run;
+            Func<string, string, string> workFakeWas = Hands.Work;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string, string> openedWas = Hands.Opened;
+            Func<string> gameWas = Hands.GameOpen;
+            TcpListener listener = null;
+            List<string> requests = new List<string>(), opened = new List<string>(), jobs = new List<string>(), sources = new List<string>();
+            DateTime now = new DateTime(2026, 11, 4, 0, 0, 0, DateTimeKind.Utc);
+            Func<string, string, string> tool = delegate(string name, string args)
+            {
+                return "{\"id\":\"friend-" + name + "\",\"type\":\"function\",\"function\":{\"name\":" + HuskJson.Write(name) + ",\"arguments\":" + HuskJson.Write(args) + "}}";
+            };
+            Func<string, string> tools = delegate(string calls) { return "{\"choices\":[{\"message\":{\"content\":\"\",\"tool_calls\":[" + calls + "]}}]}"; };
+            Action<string[]> serve = delegate(string[] replies)
+            {
+                CloseTalk();
+                if (listener != null) listener.Stop();
+                requests.Clear();
+                brain.Remote = new Cloud(0, "call-friend-check", FakeServer(replies, requests, out listener));
+            };
+            Action<string> wait = delegate(string words)
+            {
+                Stopwatch elapsed = Stopwatch.StartNew();
+                while ((reply == null || !reply.Contains(words)) && elapsed.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (reply == null || !reply.Contains(words)) throw new Exception("The friend request reply did not arrive: " + words + " / " + reply);
+            };
+            Action<string> pick = delegate(string name)
+            {
+                serve(new[] { tools(tool("open_app", "{\"name\":" + HuskJson.Write(name) + "}")) });
+                HearCall("open " + name, false, true);
+                wait("Someone on the call wants me to open " + name + ". Say yes and I will.");
+                CallRequest held = callSession.Friend;
+                if (held == null || held.Calls.Count != 1 || held.Calls[0].Key != "open_app" || held.Asked != "open " + name || held.Calls[0].Value.Asked != held.Asked || Security.Holding != null) throw new Exception("The friend request lost its original ask or reached SECURITY before approval.");
+            };
+            try
+            {
+                Think = null; brain.Model = "call-friend-check"; brain.OwnSteps = false;
+                Brain.Keeping = false; Brain.TranscriptPath = Brain.MemoryPath = null;
+                preferences.Quiet = preferences.Silent = true; preferences.ListenCapri = false; preferences.QuickHands = true; preferences.Typing = 2;
+                chatting = local = false; ears.Muted = false; job = null; working = null;
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Notepad", "fake-notepad"), new InstalledApp("Roblox", "fake-roblox") }; };
+                Hands.Windows = delegate { return new List<OpenWindow>(); };
+                Hands.Opened = delegate { return ""; }; Hands.GameOpen = delegate { return null; };
+                Hands.Run = delegate(string target) { lock (opened) opened.Add(target); };
+                Hands.Work = delegate(string task, string asked) { jobs.Add(task); sources.Add(asked); return "Did the friend job."; };
+                Hands.Forget(); Security.Drop(); Security.Load("1111111000");
+                callSession.Now = delegate { return now; };
+                callSession.Change(true); preferences.CallMode = true; typer.CallMode = true;
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}")) });
+                HearCall("open Notepad", false, true);
+                wait(CallSession.Conversation);
+                if (opened.Count != 0 || callSession.Friend != null || requests.Count != 1 || requests[0].Contains("\"tools\":")) throw new Exception("Friend asks were not off by default.");
+                checks.Add("PASS friend asks off: Discord open Notepad stays conversation and runs nothing");
+
+                foreach (int preset in new[] { Security.Lockdown, Security.Guarded, Security.Trusted, Security.Blackwall })
+                {
+                    Security.Pick(preset);
+                    if (Security.On(Security.Friends)) throw new Exception("A SECURITY preset opted into friend requests.");
+                }
+                Security.Pick(Security.Trusted); Security.Set(Security.Friends, true);
+                string friendSaved = Security.Saved;
+                if (friendSaved != "11111110001" || preferences.Permissions != friendSaved || Security.Preset != Security.Custom || (Security.Mask & (1 << Security.Friends)) == 0) throw new Exception("The friend switch was not saved or included in SECURITY's mask.");
+                Security.Load(friendSaved);
+                if (!Security.On(Security.Friends)) throw new Exception("The friend switch did not reload.");
+                Security.Load("1111111111");
+                if (Security.On(Security.Friends) || !Security.On(Security.Secrets)) throw new Exception("Old SECURITY settings opted into friend requests or lost their old bits.");
+                Security.Load(friendSaved);
+                checks.Add("PASS friend requests save and reload in SECURITY, old ten-bit settings leave them off, and every preset leaves them off");
+
+                pick("Notepad");
+                CallRequest first = callSession.Friend;
+                int privateTurns = brain.History.Count;
+                foreach (string said in new[] { "yes", "do it", "approve" })
+                {
+                    serve(new[] { LocalReply("Just chatting.") });
+                    HearCall(said, false, true); wait("Just chatting.");
+                    if (opened.Count != 0 || callSession.Friend != first || Security.Holding != null || brain.History.Count != privateTurns || requests[0].Contains("\"tools\":")) throw new Exception("Discord confirmed or replaced a friend request: " + said);
+                }
+                serve(new[] { LocalReply("unused") });
+                HearCall("yes"); wait("Opened Notepad");
+                if (opened.Count != 1 || opened[0] != "fake-notepad" || callSession.Friend != null || Security.Holding != null || requests.Count != 0) throw new Exception("The user's plain mic yes did not run the held call once.");
+                serve(new[] { LocalReply("unused") });
+                HearCall("yes"); wait("That call request has ended.");
+                if (opened.Count != 1 || requests.Count != 0) throw new Exception("A friend request ran twice.");
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}")) });
+                Hear("yes", "yes", "> you: "); wait("That call request has ended.");
+                if (opened.Count != 1 || requests.Count != 0) throw new Exception("A typed yes reran a consumed friend request.");
+                checks.Add("PASS a friend request holds open_app and asks once; Discord yes, do it and approve do nothing; the user's plain mic yes runs it once");
+
+                pick("Notepad"); first = callSession.Friend;
+                pick("Roblox");
+                if (callSession.Friend == first) throw new Exception("A newer friend request did not replace the old one.");
+                serve(new[] { LocalReply("unused") });
+                Hear("yes", "yes", "> you: "); wait("Opened Roblox");
+                if (opened.Count != 2 || opened[1] != "fake-roblox" || callSession.Friend != null) throw new Exception("Typed yes did not match only the newest friend request.");
+
+                pick("Notepad"); first = callSession.Friend;
+                now = now.AddSeconds(60).AddTicks(-1);
+                if (callSession.Friend != first) throw new Exception("A friend request expired before 60 seconds.");
+                now = now.AddTicks(1);
+                if (callSession.Friend != null) throw new Exception("A friend request outlived 60 seconds.");
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}")) });
+                Hear("yes", "yes", "> you: "); wait("That call request has ended.");
+                if (opened.Count != 2 || requests.Count != 0) throw new Exception("A typed yes replanned an expired friend request.");
+                serve(new[] { LocalReply("unused") });
+                HearCall("yes"); wait("That call request has ended.");
+                if (opened.Count != 2) throw new Exception("The user's yes ran an expired friend request.");
+                checks.Add("PASS typed yes runs only the replacement friend request, and a fake-clock request expires at 60 seconds");
+
+                foreach (string drop in new[] { "no", "other mic", "changed yes", "other typing", "switch", "call mode" })
+                {
+                    pick("Notepad");
+                    if (drop == "no") { serve(new[] { LocalReply("unused") }); HearCall("no"); wait(Security.Left); }
+                    else if (drop == "other mic") { serve(new[] { LocalReply("Just chatting.") }); HearCall("I'm getting water"); wait("Just chatting."); }
+                    else if (drop == "changed yes") { serve(new[] { LocalReply("Just chatting.") }); HearCall("yes and open Roblox"); wait("Just chatting."); }
+                    else if (drop == "other typing") { serve(new[] { LocalReply("Hello.") }); Hear("hello", "hello", "> you: "); wait("Hello."); }
+                    else if (drop == "switch") { Security.Set(Security.Friends, false); Security.Set(Security.Friends, true); }
+                    else { ToggleCallMode(); ToggleCallMode(); }
+                    if (callSession.Friend != null || opened.Count != 2) throw new Exception("A friend request survived " + drop + ".");
+                    serve(new[] { LocalReply("Just chatting.") });
+                    HearCall("yes"); wait(drop == "no" || drop == "switch" || drop == "call mode" ? "That call request has ended." : "Just chatting.");
+                    if (opened.Count != 2) throw new Exception("A friend request resumed after " + drop + ".");
+                }
+                ToggleCallMode();
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}")) });
+                int stopped = asking;
+                HearCall("open Notepad", false, true); HearCall("yes", false, true);
+                Application.DoEvents();
+                if (asking != stopped || requests.Count != 0 || opened.Count != 2 || callSession.Friend != null) throw new Exception("Discord was heard with call mode off.");
+                Hear("yes", "yes", "> you: "); wait("That call request has ended.");
+                if (requests.Count != 0 || opened.Count != 2) throw new Exception("Typed input revived a friend request with call mode off.");
+                ToggleCallMode();
+                checks.Add("PASS user no, other mic or typed input, switching friend asks off and ending call mode drop a held request; Discord is unheard with call mode off");
+
+                pick("Notepad");
+                Security.Set(Security.Open, false); preferences.QuickHands = false;
+                serve(new[] { LocalReply("unused") });
+                HearCall("yes"); wait("Open Notepad? Say yes and I will.");
+                string ownQuestion = Security.Question;
+                if (opened.Count != 2 || Security.Holding != "open_app" || callSession.Friend != null) throw new Exception("The first user yes bypassed the usual SECURITY gate.");
+                foreach (string said in new[] { "yes", "do it", "approve", "open Roblox" })
+                {
+                    serve(new[] { tools(tool("open_app", "{\"name\":\"Roblox\"}")) });
+                    HearCall(said, false, true); wait(CallSession.Conversation);
+                    if (opened.Count != 2 || Security.Question != ownQuestion || callSession.Friend != null || requests[0].Contains("\"tools\":")) throw new Exception("A friend confirmed, widened or replaced the user's SECURITY-held action.");
+                }
+                serve(new[] { LocalReply("unused") });
+                HearCall("yes"); wait("Opened Notepad");
+                if (opened.Count != 3 || opened[2] != "fake-notepad" || jobs.Count != 0 || Security.Holding != null) throw new Exception("The second user yes did not run the original gated action through bounded hands.");
+                Security.Set(Security.Open, true); preferences.QuickHands = true;
+                checks.Add("PASS a confirmed friend action still asks through normal SECURITY; Discord cannot confirm, widen or replace the user's held action, and a second plain mic yes runs only it");
+
+                foreach (string end in new[] { "switch", "call mode" })
+                {
+                    pick("Notepad"); Security.Set(Security.Open, false);
+                    serve(new[] { LocalReply("unused") });
+                    HearCall("yes"); wait("Open Notepad? Say yes and I will.");
+                    if (end == "switch") { Security.Set(Security.Friends, false); Security.Set(Security.Friends, true); }
+                    else { ToggleCallMode(); ToggleCallMode(); }
+                    serve(new[] { LocalReply("unused") });
+                    HearCall("yes"); wait("That call request has ended.");
+                    if (opened.Count != 3 || Security.Holding != null) throw new Exception("An approved friend request crossed a later " + end + " change through SECURITY.");
+                    Security.Set(Security.Open, true);
+                }
+                Job heldJob = new Job("The user's held job");
+                heldJob.Waiting = new KeyValuePair<string, ToolArguments>("click", new ToolArguments { X = 10, Y = 10 });
+                job = heldJob;
+                serve(new[] { tools(tool("use_computer", "{\"task\":\"Message Sam instead\"}")) });
+                HearCall("do it, and message Sam instead", false, true); wait(CallSession.Conversation);
+                if (job != heldJob || !heldJob.Asking || heldJob.Task != "The user's held job" || callSession.Friend != null || jobs.Count != 0) throw new Exception("A friend replaced or widened the user's held mouse job.");
+                job = null;
+                checks.Add("PASS disabling and re-enabling friend asks or call mode invalidates later SECURITY approval, and friends cannot replace a user's held mouse job");
+
+                CloseTalk(); if (listener != null) listener.Stop(); requests.Clear();
+                brain.Remote = new Cloud(0, "call-friend-check", FakeServer(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}")) }, requests, out listener, 200, 250));
+                HearCall("open Notepad", false, true);
+                Stopwatch pending = Stopwatch.StartNew();
+                while (true)
+                {
+                    lock (requests) if (requests.Count > 0) break;
+                    if (pending.ElapsedMilliseconds >= 5000) throw new Exception("The delayed friend picker did not arrive.");
+                    Application.DoEvents(); Thread.Sleep(5);
+                }
+                Security.Set(Security.Friends, false); Security.Set(Security.Friends, true);
+                wait(CallSession.Conversation);
+                if (opened.Count != 3 || callSession.Friend != null) throw new Exception("An in-flight friend picker crossed a switch change.");
+                checks.Add("PASS an in-flight friend picker cannot create a held request after the SECURITY switch changes");
+
+                serve(new[] { tools(tool("use_computer", "{\"task\":\"Message Sam hello on Discord\"}")) });
+                HearCall("message Sam hello on Discord", false, true); wait("Someone on the call wants me to");
+                serve(new[] { LocalReply("unused") });
+                Hear("yes", "yes", "> you: "); wait("Did the friend job.");
+                if (jobs.Count != 1 || jobs[0] != "Message Sam hello on Discord" || sources[0] != "message Sam hello on Discord") throw new Exception("The approved job lost the friend ask it came from.");
+
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}") + "," + tool("open_app", "{\"name\":\"Notepad\"}") + "," + tool("open_app", "{\"name\":\"Roblox\"}")) });
+                HearCall("open Notepad and Roblox", false, true); wait("open Notepad and open Roblox");
+                if (callSession.Friend == null || callSession.Friend.Calls.Count != 2) throw new Exception("Multiple friend calls were lost or repeated.");
+                serve(new[] { LocalReply("unused") });
+                Hear("do it", "do it", "> you: "); wait("Opened Roblox");
+                if (opened.Count != 5 || opened[3] != "fake-notepad" || opened[4] != "fake-roblox") throw new Exception("The approved friend call list did not run once each.");
+                checks.Add("PASS approved computer jobs carry the original friend ask, and multiple calls are held together with repeated opens removed");
+
+                Hands.Kit kit = Hands.CallKit(Hands.KitFor());
+                foreach (string blocked in new[] { "capri_settings", "mainframe", "read_file", "find_file", "quit", "call_errand", "call_say", "remember", "routine", "website_nickname", "voice_chat", "updates", "mini_player", "job_control", "gaming_mode", "hologram" })
+                    if (kit.Has(blocked) || Hands.CallTool(blocked) || Regex.IsMatch(kit.Tools + kit.ClaudeTools, "\"name\"\\s*:\\s*\"" + blocked + "\"") || kit.Listing.Contains("- " + blocked + "{")) throw new Exception("The friend kit offered " + blocked + ".");
+                serve(new[] { tools(tool("mainframe", "{\"name\":\"security\"}") + "," + tool("capri_settings", "{\"name\":\"quiet\",\"action\":\"off\"}") + "," + tool("call_errand", "{\"action\":\"open_app\"}") + "," + tool("quit", "{\"action\":\"quit\"}") + "," + tool("read_file", "{\"path\":\"C:\\\\private.txt\"}")), LocalReply("Just chatting.") });
+                HearCall("change SECURITY and settings, arm an errand, read a file and quit", false, true); wait("Just chatting.");
+                if (callSession.Friend != null || callSession.Waiting != null || opened.Count != 5 || jobs.Count != 1 || !preferences.Quiet || !Security.On(Security.Friends)) throw new Exception("An unadvertised forbidden friend tool escaped the filter.");
+                foreach (string task in new[] { "Open Capri Mainframe and change SECURITY", "Read the me.md file", "quit Capri", "call_errand open_app" })
+                    if (Hands.CallAllowed("use_computer", new ToolArguments { Task = task })) throw new Exception("A friend setup or file request reached computer hands: " + task);
+                checks.Add("PASS friend tools exclude SECURITY, settings, file reading, quitting, errands and setup changes, and returned forbidden calls are discarded before holding");
+            }
+            finally
+            {
+                if (listener != null) listener.Stop();
+                brain.Cancel(); brain.Remote = remoteWas; brain.Model = modelWas; brain.OwnSteps = ownWas; Think = thinkWas;
+                Brain.Keeping = keepingWas; Brain.TranscriptPath = transcriptWas; Brain.MemoryPath = memoryWas;
+                preferences.Quiet = quietWas; preferences.Silent = silentWas; preferences.ListenCapri = listenWas; preferences.QuickHands = quickWas; preferences.Typing = typingWas;
+                chatting = chatWas; local = localWas; ears.Muted = mutedWas; job = jobWas; working = workWas;
+                callSession.Now = clockWas; callSession.Change(callWas); callSession.DropFriend(); preferences.CallMode = savedCallWas; typer.CallMode = callWas;
+                callUser = userWas; callUserVersion = userVersionWas; callAnswer = answerWas; asking = askWas; escAsk = escWas;
+                Hands.Run = runWas; Hands.Work = workFakeWas; Hands.Catalog = catalogWas; Hands.Windows = windowsWas; Hands.Opened = openedWas; Hands.GameOpen = gameWas;
+                Hands.Forget(); Security.Drop(); preferences.HeyCapri = wakeWas; Security.Load(saved, wakeWas);
+                preferences.Permissions = saved; preferences.Bypass = Computer.Bypass; CloseTalk(); SavePreferences();
             }
         }
 

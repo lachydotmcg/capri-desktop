@@ -5002,7 +5002,7 @@ namespace CapriDesktop
         // the smoke test, which draws it at 150% and 200% too.
         private sealed class SecuritySheet : Form
         {
-            internal const int Wide = 900, Tall = 470, Column = 410;
+            internal const int Wide = 900, Tall = 516, Column = 410;
             internal readonly float Zoom;
             private readonly Mainframe owner;
             private readonly Slider presets;
@@ -5054,7 +5054,7 @@ namespace CapriDesktop
                 for (int i = 0; i < Security.Count; i++)
                 {
                     int x = i <= Security.Mouse ? 28 : 52 + Column;
-                    int y = i <= Security.Mouse ? 168 + 46 * i : i < Security.Wake ? 168 + 46 * (i - Security.Sends) : 386;
+                    int y = i <= Security.Mouse ? 168 + 46 * i : i < Security.Wake ? 168 + 46 * (i - Security.Sends) : 386 + 46 * (i - Security.Wake);
                     int toggle = i;
                     Toggle box = new Toggle();
                     box.Text = Security.Names[i];
