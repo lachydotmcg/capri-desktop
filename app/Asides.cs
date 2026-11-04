@@ -164,6 +164,11 @@ namespace CapriDesktop
         private double share;
         private int chunks;
         private int over;
+        // On a call she waits for about a second of them talking, nine of the last twelve chunks, so a laugh or a "yeah" at a
+        // friend doesn't cut her off mid-answer (Lachy, 4 Nov: "after first line are still cutting out").
+        internal const int CallWindow = 12, CallNeeds = 9;
+        private readonly bool[] loudRecent = new bool[CallWindow];
+        private int loudSlot;
 
         internal void Reset()
         {
@@ -172,10 +177,13 @@ namespace CapriDesktop
             slot = 0;
             chunks = 0;
             over = 0;
+            Array.Clear(loudRecent, 0, CallWindow);
+            loudSlot = 0;
         }
 
-        // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for two chunks in a row.
-        internal bool Heard(double mic, double mine, double wake)
+        // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for two chunks in a
+        // row, or on a call for nine of the last twelve.
+        internal bool Heard(double mic, double mine, double wake, bool call = false)
         {
             recent[slot] = mine;
             slot = (slot + 1) % Recent;
@@ -189,7 +197,12 @@ namespace CapriDesktop
             bool loud = learned && mic >= wake && mic >= share * against * Margin;
             if (!loud) share = Math.Max(share * Fading, mic / against);
             over = loud ? over + 1 : 0;
-            return over >= Held;
+            loudRecent[loudSlot] = loud;
+            loudSlot = (loudSlot + 1) % CallWindow;
+            if (!call) return over >= Held;
+            int count = 0;
+            foreach (bool each in loudRecent) if (each) count++;
+            return count >= CallNeeds;
         }
 
         internal bool Above(double mic, double mine, double wake) { return mic >= wake && (mine <= Pause || mic >= share * mine * Margin); }
@@ -617,8 +630,9 @@ namespace CapriDesktop
             lock (waking)
             {
                 preroll.Add(chunk);
-                if (preroll.Count > 4) preroll.RemoveAt(0);
-                if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake())) return true;
+                // On a call it takes about a second to know they're really talking, so more of their line's start is kept.
+                if (preroll.Count > (CallModeOn ? TalkOver.CallWindow + 2 : 4)) preroll.RemoveAt(0);
+                if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake(), CallModeOn)) return true;
             }
             overHeld = false;
             // Listen for Capri waits to hear whether the line was for her. On a call every line is, so talking over her stops

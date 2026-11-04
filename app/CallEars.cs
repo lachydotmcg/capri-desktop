@@ -387,6 +387,20 @@ namespace CapriDesktop
             if (!over.Heard(loud, 0.09, 0.02)) throw new Exception("Being talked over again didn't stop her newer answer.");
             over.Reset();
             checks.Add("PASS call talk-over: about a second of someone on the call talking over her stops her once and hands her ears their line from its start, a laugh doesn't, and a newer answer can be stopped too");
+            // Your own mic on a call: a laugh lets her finish, and about a second of you talking stops her. Off a call, two chunks still do.
+            TalkOver yours = new TalkOver();
+            for (int i = 0; i < 6; i++) yours.Heard(0.03, 0.1, 0.02, true);
+            bool laughed = false;
+            for (int i = 0; i < 6; i++) laughed |= yours.Heard(0.4, 0.1, 0.02, true);
+            for (int i = 0; i < TalkOver.CallWindow; i++) laughed |= yours.Heard(0.03, 0.1, 0.02, true);
+            int stoppedAt = -1;
+            for (int i = 0; i < TalkOver.CallWindow && stoppedAt < 0; i++) if (yours.Heard(0.4, 0.1, 0.02, true)) stoppedAt = i;
+            TalkOver off = new TalkOver();
+            for (int i = 0; i < 6; i++) off.Heard(0.03, 0.1, 0.02);
+            bool offStopped = false;
+            for (int i = 0; i < 2; i++) offStopped |= off.Heard(0.4, 0.1, 0.02);
+            if (laughed || stoppedAt != TalkOver.CallNeeds - 1 || !offStopped) throw new Exception("Your mic talking over her on a call came out wrong: laugh " + laughed + ", stopped at chunk " + stoppedAt + ", off a call " + offStopped + ".");
+            checks.Add("PASS your mic on a call: a laugh lets her finish and about a second of you talking over her stops her; off a call a fifth of a second still does");
         }
     }
 
