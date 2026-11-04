@@ -66,7 +66,7 @@ namespace CapriDesktop
             string oldServer = pet.Brain.Server, oldKey = pet.Brain.ServerKey, oldModel = pet.Brain.Model;
             string oldSavedServer = pet.Saved.BrainServer, oldSavedModel = pet.Saved.ServerModel, oldLog = Brain.LogPath;
             Cloud oldCloud = pet.Brain.Remote;
-            string secret = Path.Combine(folder, "brain-server-key"), log = Path.Combine(folder, "provider-probe-errors.txt");
+            string secret = Path.Combine(folder, "brain-server"), log = Path.Combine(folder, "provider-probe-errors.txt");
             byte[] oldSecret = File.Exists(secret) ? File.ReadAllBytes(secret) : null;
             UnixFileMode? oldMode = oldSecret != null && !OperatingSystem.IsWindows() ? File.GetUnixFileMode(secret) : null;
             try
@@ -111,12 +111,23 @@ namespace CapriDesktop
                 {
                     pet.UseServer(a.Address + "/provider", key);
                     if (!Wait(() => pet.Brain.Server == a.Address + "/provider")) failures.Add("S1 keyed loopback prefix rejected");
+                    pet.UseServer(a.Address);
+                    if (!Wait(() => pet.Brain.Server == a.Address && pet.Brain.ServerKey == null)) failures.Add("S2 unkeyed server not selected");
+                    if (pet.Talk.Reply != "I'm thinking with alpha on your server now.") failures.Add("S2 unkeyed success message changed");
                     pet.UseServer(a.Address, key);
                     if (!Wait(() => pet.Brain.Server == a.Address && pet.Brain.ServerKey == key)) failures.Add("S1 keyed server not selected");
                     if (!a.Saw("/v1/models | Bearer " + key)) failures.Add("S1 model discovery omitted bearer");
-                    if (!File.Exists(secret) || File.ReadAllText(secret) != key || (!OperatingSystem.IsWindows() && File.GetUnixFileMode(secret) != (UnixFileMode.UserRead | UnixFileMode.UserWrite))) failures.Add("S3 key file");
+                    string[] pairLines = File.Exists(secret) ? File.ReadAllText(secret).Split(new[] { '\n' }, StringSplitOptions.None) : new string[0];
+                    if (pairLines.Length < 2 || pairLines[0] != a.Address || pairLines[1] != key || (!OperatingSystem.IsWindows() && File.GetUnixFileMode(secret) != (UnixFileMode.UserRead | UnixFileMode.UserWrite))) failures.Add("S3 pair file");
                     pet.ShowServer(new[] { "alpha" });
                     if (!pet.BrainMenu.Contains("with a key") || pet.BrainMenu.Contains(key) || (pet.Talk.Reply ?? "").Contains(key)) failures.Add("S3 key status");
+                    a.Received.Reset(); a.Hold = true;
+                    pet.UseServer(a.Address, "key-C");
+                    if (!Wait(() => a.Received.IsSet)) failures.Add("S3 forget setup: discovery not held");
+                    typeof(Pet).GetMethod("ForgetServerKey", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(pet, null);
+                    a.Release.Set(); a.Hold = false;
+                    if (!Wait(() => pet.Brain.ServerKey == null)) failures.Add("S3 forgotten key restored");
+                    if (File.Exists(secret) && File.ReadAllText(secret).Contains("key-C")) failures.Add("S3 forgotten key persisted");
                     Brain.LogPath = log; a.Error = true;
                     try { new Brain { Server = a.Address, ServerKey = key, Model = "alpha" }.Ask("hello test"); }
                     catch (Exception e) { if (e.Message.Contains(key)) failures.Add("S3 error exposed key"); }
@@ -127,6 +138,7 @@ namespace CapriDesktop
                     if (File.Exists(log) && File.ReadAllText(log).Contains(key)) failures.Add("S3 streaming error logged key");
                     string uiLog = Path.Combine(folder, "errors.txt");
                     Brain.LogPath = uiLog;
+                    pet.Brain.SetServer(a.Address, key);
                     pet.Hear("hello test");
                     if (!Wait(() => (pet.Talk.Reply ?? "").Contains("Invalid credential"))) failures.Add("S3 streaming error not shown");
                     if ((pet.Talk.Reply ?? "").Contains(key) || (File.Exists(uiLog) && File.ReadAllText(uiLog).Contains(key))) failures.Add("S3 streaming key reached UI or errors.txt");

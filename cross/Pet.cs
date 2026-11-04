@@ -527,7 +527,17 @@ namespace CapriDesktop
             }
             string savedServer = Brain.ServerAddress(Saved.BrainServer);
             string savedServerKey = savedServer == null ? null : ReadSecret(ServerKeyFile);
+            string pairServer, pairKey;
+            bool paired = ReadServerPair(ServerPairFile, out pairServer, out pairKey);
+            if (paired)
+            {
+                string validPair = Brain.ServerAddress(pairServer);
+                savedServer = validPair;
+                savedServerKey = validPair == null ? null : pairKey;
+            }
+            bool legacyPair = !paired && savedServer != null && savedServerKey != null && Brain.ServerKeySafe(savedServer);
             Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
+            if (legacyPair && WriteServerPair(ServerPairFile, savedServer, Brain.ServerKey)) WriteSecret(ServerKeyFile, null, "provider key");
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
@@ -2682,7 +2692,7 @@ namespace CapriDesktop
                 }
             brainMenu.Items.Add(new Separator());
             MenuItem change = new MenuItem { Header = "Change server or provider address..." };
-            change.Click += delegate { AskServer(); };
+            change.Click += delegate { if (serverKey == null) AskServer(); else AskProvider(); };
             MenuItem key = new MenuItem { Header = serverKey == null ? "Set provider key..." : "Change provider key..." };
             key.Click += delegate { AskProviderKey(); };
             MenuItem forget = new MenuItem { Header = "Forget provider key" };
@@ -2737,9 +2747,15 @@ namespace CapriDesktop
 
         private void ForgetServerKey()
         {
+            ++asking;
             string server;
             string ignored;
             Brain.GetServer(out server, out ignored);
+            if (!WriteServerPair(ServerPairFile, server, null))
+            {
+                Talk.Answer("(brain provider)", "Couldn't remove the saved provider key.");
+                return;
+            }
             Brain.SetServer(server, null);
             WriteSecret(ServerKeyFile, null, "provider key");
             RefreshBrains();
@@ -2767,20 +2783,26 @@ namespace CapriDesktop
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
+                    if (ticket != asking) return;
                     if (found == null || found.Length == 0)
                     {
                         if (ticket == asking) Talk.Answer("(brain server)", found == null ? (key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key.") : "Your server at " + server + " lists no models. Load one in it first.");
                         return;
                     }
+                    if (!WriteServerPair(ServerPairFile, server, key))
+                    {
+                        Talk.Answer("(brain provider)", "Couldn't save the provider address and key.");
+                        return;
+                    }
                     Brain.Cancel();
                     Brain.SetServer(server, key);
                     Saved.BrainServer = server;
-                    WriteSecret(ServerKeyFile, key, "provider key");
+                    WriteSecret(ServerKeyFile, null, "provider key");
                     string model = Array.IndexOf(found, Saved.ServerModel) >= 0 ? Saved.ServerModel : found[0];
                     if (Brain.Remote == null) Brain.Model = model;
                     Saved.ServerModel = model;
                     Save();
-                    if (ticket == asking) Talk.Answer("(brain server)", "I'm thinking with " + model + " on " + server + (key == null ? " now." : " with your key now.") + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
+                    if (ticket == asking) Talk.Answer("(brain server)", key == null ? "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : "") : "I'm thinking with " + model + " on " + server + " with your key now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
                 });
             });
         }
@@ -2796,6 +2818,12 @@ namespace CapriDesktop
 
         internal void LeaveServer()
         {
+            ++asking;
+            if (!WriteServerPair(ServerPairFile, null, null))
+            {
+                Talk.Answer("(brain server)", "Couldn't remove the saved provider.");
+                return;
+            }
             Brain.Cancel();
             Brain.SetServer(null, null);
             Saved.BrainServer = null;
@@ -3771,6 +3799,52 @@ namespace CapriDesktop
         private string BrainKeyFile { get { return Path.Combine(Program.Smoke ?? folder, "brain-key"); } }
 
         private string ServerKeyFile { get { return Path.Combine(Program.Smoke ?? folder, "brain-server-key"); } }
+
+        private string ServerPairFile { get { return Path.Combine(Program.Smoke ?? folder, "brain-server"); } }
+
+        // The address and key live in one file, replaced atomically, so a crash can never pair one provider's
+        // address with another provider's key.
+        private static bool ReadServerPair(string path, out string address, out string key)
+        {
+            address = null;
+            key = null;
+            try
+            {
+                if (!File.Exists(path)) return false;
+                string[] lines = File.ReadAllLines(path);
+                if (lines.Length == 0) return false;
+                address = (lines[0] ?? "").Trim();
+                key = lines.Length > 1 ? (lines[1] ?? "").Trim() : null;
+                if (key != null && key.Length == 0) key = null;
+                return address.Length > 0;
+            }
+            catch (Exception) { return false; }
+        }
+
+        private static bool WriteServerPair(string path, string address, string key)
+        {
+            string temp = path + ".new";
+            try
+            {
+                if (address == null) { File.Delete(path); return true; }
+                FileStreamOptions options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+                if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                using (FileStream stream = new FileStream(temp, options))
+                {
+                    if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(stream.SafeFileHandle, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                    using (StreamWriter writer = new StreamWriter(stream)) writer.Write(address + "\n" + (key ?? "") + "\n");
+                }
+                File.Move(temp, path, true);
+                if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                return true;
+            }
+            catch (Exception error)
+            {
+                try { File.Delete(temp); } catch (Exception) { }
+                Brain.Log(path, -1, "Couldn't save the provider address and key: " + error.Message);
+                return false;
+            }
+        }
 
         private string ReadVoiceKey() { return ReadSecret(KeyFile); }
 
