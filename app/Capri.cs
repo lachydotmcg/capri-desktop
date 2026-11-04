@@ -1024,6 +1024,7 @@ namespace CapriDesktop
             using (FileStream file = new FileStream(update.Path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 Verify(update.Path, update);
+                if (Package() != null) throw new BrainException("Capri is managed by a package manager.");
                 Run(new ProcessStartInfo(update.Path, "--update " + parent.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + started.ToString(System.Globalization.CultureInfo.InvariantCulture)) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = folder });
             }
         }
@@ -2625,11 +2626,13 @@ namespace CapriDesktop
             SavePreferences();
             if (package != null)
             {
+                updateInstallAsked = false;
                 ForgetUpdate();
                 checkItem.Enabled = true;
                 mainframe.UpdateNote("Update through " + package + ".", false);
                 return;
             }
+            if (mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) mainframe.UpdateNote("", false);
             updating = true;
             checkItem.Enabled = false;
             updateItem.Enabled = false;
@@ -2696,6 +2699,7 @@ namespace CapriDesktop
             string package = updater.Package();
             if (package != null)
             {
+                updateInstallAsked = false;
                 ForgetUpdate();
                 mainframe.UpdateNote("Update through " + package + ".", false);
                 return;
@@ -2749,6 +2753,7 @@ namespace CapriDesktop
             string package = updater.Package();
             if (package != null)
             {
+                updateInstallAsked = false;
                 ForgetUpdate();
                 mainframe.UpdateNote("Update through " + package + ".", false);
                 return;
@@ -2771,7 +2776,7 @@ namespace CapriDesktop
                 {
                     installing = false;
                     checkItem.Enabled = true;
-                    Post(delegate { ForgetUpdate(); mainframe.UpdateNote("Update through " + blockedBy + ".", false); });
+                    Post(delegate { updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote("Update through " + blockedBy + ".", false); });
                     return;
                 }
                 try { updater.Install(ready, parent, started); }
@@ -4872,6 +4877,7 @@ namespace CapriDesktop
             string package = updater.Package();
             if (package != null)
             {
+                updateInstallAsked = false;
                 ForgetUpdate();
                 mainframe.UpdateNote("Update through " + package + ".", false);
                 return "Update through " + package + ".";

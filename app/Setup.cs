@@ -68,7 +68,7 @@ namespace CapriSetup
                     Console.Error.WriteLine("Capri couldn't save her shortcut: " + unsaved);
                     return 1;
                 }
-                File.WriteAllText(Path.Combine(InstallPath, "Capri.package"), package ?? "package");
+                WriteMarker(package ?? "package");
                 return 0;
             }
             catch (Exception error)
@@ -76,6 +76,19 @@ namespace CapriSetup
                 Console.Error.WriteLine("Capri couldn't install: " + error.Message);
                 return 1;
             }
+        }
+
+        internal static void WriteMarker(string package)
+        {
+            string marker = Path.Combine(InstallPath, "Capri.package");
+            string temporary = marker + ".new";
+            File.WriteAllText(temporary, package);
+            try
+            {
+                if (File.Exists(marker)) File.Replace(temporary, marker, null);
+                else File.Move(temporary, marker);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }
 
         [DllImport("user32.dll")] private static extern bool SetProcessDpiAwarenessContext(IntPtr context);
@@ -669,7 +682,7 @@ namespace CapriSetup
                 if (removing) { Program.BeginUninstall(); Close(); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
-                try { File.WriteAllText(Path.Combine(Program.InstallPath, "Capri.package"), "manual"); }
+                try { Program.WriteMarker("manual"); }
                 catch (Exception error) { Notice.Tell(this, "Capri is installed, but the package marker couldn't be cleared. Delete Capri.package in " + Program.InstallPath + " to let her update herself. " + error.Message, "Capri", true); }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
