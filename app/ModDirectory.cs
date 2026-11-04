@@ -19,6 +19,7 @@ namespace CapriDesktop
     internal sealed class ModListing
     {
         internal string Folder, FileName, Sha, PreviewSha;
+        internal string Name = "", Author = "", About = "";
         internal long Size;
         internal int Downloads, Votes;
         internal double Rating;
@@ -26,6 +27,7 @@ namespace CapriDesktop
         {
             get
             {
+                if (Name.Length > 0) return Name;
                 string[] words = Folder.Split(new[] { '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < words.Length; i++) words[i] = char.ToUpperInvariant(words[i][0]) + words[i].Substring(1);
                 return string.Join(" ", words);
@@ -64,8 +66,10 @@ namespace CapriDesktop
         private const long Largest = 96L * 1024 * 1024;
         private const long LargestList = 16L * 1024 * 1024;
         private const long LargestPreview = 2L * 1024 * 1024;
+        private const long LargestIndex = 2L * 1024 * 1024;
         private const int WidestPreview = 4096, PreviewWide = 444;
-        private const string Raw = "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/mods/";
+        private const string Raw = "https://raw.githubusercontent.com/lachydotmcg/capri-mods/HEAD/";
+        internal const string IndexPage = Raw + "index.json";
         internal const string StatsPage = "https://capri-reactions.lachydotmcg.workers.dev/mods";
         private static readonly byte[] PngStart = { 137, 80, 78, 71, 13, 10, 26, 10 };
         private static readonly Regex PreviewFile = new Regex(@"^mods/([A-Za-z0-9][A-Za-z0-9._-]{0,63})/preview\.png$");
@@ -91,6 +95,23 @@ namespace CapriDesktop
         }
 
         [DataContract]
+        private sealed class IndexBody
+        {
+            [DataMember(Name = "format")] public int Format;
+            [DataMember(Name = "mods")] public IndexEntry[] Mods;
+        }
+
+        [DataContract]
+        private sealed class IndexEntry
+        {
+            [DataMember(Name = "folder")] public string Folder;
+            [DataMember(Name = "file")] public string File;
+            [DataMember(Name = "name")] public string Name;
+            [DataMember(Name = "author")] public string Author;
+            [DataMember(Name = "about")] public string About;
+        }
+
+        [DataContract]
         private sealed class StatsBody
         {
             [DataMember(Name = "mods")] public StatsEntry[] Mods;
@@ -105,7 +126,39 @@ namespace CapriDesktop
             [DataMember(Name = "votes")] public int Votes;
         }
 
-        internal static List<ModListing> Browse() { return Parse(Get(Api + "trees/HEAD?recursive=1", LargestList)); }
+        internal static List<ModListing> Browse()
+        {
+            List<ModListing> found = Parse(Get(Api + "trees/HEAD?recursive=1", LargestList));
+            try { ReadIndex(found, Get(IndexPage, LargestIndex)); }
+            catch (Exception) { }
+            return found;
+        }
+
+        private static void ReadIndex(List<ModListing> listings, byte[] json)
+        {
+            if (json == null || json.Length > LargestIndex) return;
+            IndexBody index;
+            using (MemoryStream body = new MemoryStream(json)) index = (IndexBody)new DataContractJsonSerializer(typeof(IndexBody)).ReadObject(body);
+            if (index == null || index.Format != 1) return;
+            Dictionary<string, ModListing> listed = new Dictionary<string, ModListing>(StringComparer.Ordinal);
+            foreach (ModListing listing in listings) listed[listing.Folder + "/" + listing.FileName] = listing;
+            foreach (IndexEntry entry in index.Mods ?? new IndexEntry[0])
+            {
+                if (entry == null || entry.Folder == null || entry.File == null) continue;
+                ModListing listing;
+                if (!listed.TryGetValue(entry.Folder + "/" + entry.File, out listing)) continue;
+                listing.Name = Plain(entry.Name, 120);
+                listing.Author = Plain(entry.Author, 80);
+                listing.About = Plain(entry.About, 600);
+            }
+        }
+
+        private static string Plain(string value, int most)
+        {
+            string line = Regex.Replace(value ?? "", @"[\p{Cc}\p{Cf}\s]+", " ").Trim();
+            if (line.Length > most) line = line.Substring(0, char.IsHighSurrogate(line[most - 1]) ? most - 1 : most).TrimEnd();
+            return line;
+        }
 
         internal static List<ModListing> Parse(byte[] json)
         {
@@ -142,7 +195,7 @@ namespace CapriDesktop
             return listings.FindAll(delegate(ModListing listing)
             {
                 if (kind != 0 && listing.KindIndex != kind) return false;
-                string named = listing.Folder + " " + listing.FileName;
+                string named = listing.Folder + " " + listing.FileName + " " + listing.Title + " " + listing.Author + " " + listing.About;
                 foreach (string word in words) if (named.IndexOf(word, StringComparison.OrdinalIgnoreCase) < 0) return false;
                 return true;
             });
@@ -173,7 +226,7 @@ namespace CapriDesktop
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
-            byte[] bytes = Get(Raw + listing.Folder + "/preview.png", LargestPreview);
+            byte[] bytes = Get(Raw + "mods/" + listing.Folder + "/preview.png", LargestPreview);
             if (BlobSha(bytes) != listing.PreviewSha || !IsPng(bytes)) throw new ModException(listing.Folder + "'s preview didn't match what the directory listed.");
             try
             {

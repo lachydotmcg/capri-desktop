@@ -44748,4 +44748,248 @@ namespace CapriDesktop
             }
         }
     }
+
+    internal sealed partial class Mainframe
+    {
+        private void CheckDirectory(List<string> checks, string output)
+        {
+            FormWindowState wasState = WindowState;
+            Restore();
+            Mods mods = capri.ModList;
+            Func<string, long, byte[]> wasGet = ModDirectory.Get;
+            Func<string, string, byte[]> wasPost = ModDirectory.Post;
+            string wasFolder = ModDirectory.PreviewFolder;
+            Func<ModFile, string, bool> wasAsk = ModAsk;
+            string under = Path.Combine(output, "directory-downloads");
+            ModDirectory.PreviewFolder = Path.Combine(output, "directory-previews");
+            if (Directory.Exists(ModDirectory.PreviewFolder)) Directory.Delete(ModDirectory.PreviewFolder, true);
+            ModsSheet sheet = null;
+            try
+            {
+                SelfKnow.Topic browse = Array.Find(SelfKnow.Topics, delegate(SelfKnow.Topic topic) { return topic.Name == "Browse mods"; });
+                if (browse == null || !browse.Facts.Contains("names") || !browse.Facts.Contains("authors") || !browse.Facts.Contains("Search")) throw new Exception("Browse mods did not tell her about names, authors and search.");
+                checks.Add("PASS mods knowledge: Browse mods explains names, authors, descriptions and search");
+                if (ModDirectory.BlobSha(Encoding.ASCII.GetBytes("test content\n")) != "d670460b4b4aece5915caf5c68d12f560a9fe3e4") throw new Exception("A file's git fingerprint came out wrong.");
+                byte[] settings = Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"wake_names\":[\"Nova\"]}");
+                byte[] code = Encoding.UTF8.GetBytes("// capri-mod: 1\n// id: directory-code\n// name: Directory Code\n\npublic class M : ICapriMod { public void Start(ICapriHost h) { } public bool Heard(string w) { return false; } public void Stop() { } }");
+                byte[] picture;
+                using (Bitmap made = new Bitmap(320, 180))
+                using (Graphics paint = Graphics.FromImage(made))
+                using (MemoryStream held = new MemoryStream())
+                {
+                    paint.Clear(Color.FromArgb(40, 150, 170));
+                    using (Brush mark = new SolidBrush(Color.FromArgb(240, 60, 90))) paint.FillEllipse(mark, 100, 30, 120, 120);
+                    made.Save(held, ImageFormat.Png);
+                    picture = held.ToArray();
+                }
+                string settingsSha = ModDirectory.BlobSha(settings), codeSha = ModDirectory.BlobSha(code), pictureSha = ModDirectory.BlobSha(picture);
+                string same = "\"type\":\"blob\",\"size\":10,\"sha\":\"" + settingsSha + "\"";
+                string tree = "{\"tree\":[{\"path\":\"README.md\"," + same + "},{\"path\":\"mods\",\"type\":\"tree\",\"sha\":\"" + settingsSha + "\"}"
+                    + ",{\"path\":\"mods/far-names/far-names.capri-mod\",\"type\":\"blob\",\"size\":" + settings.Length + ",\"sha\":\"" + settingsSha + "\"}"
+                    + ",{\"path\":\"mods/far-names/preview.png\",\"type\":\"blob\",\"size\":" + picture.Length + ",\"sha\":\"" + pictureSha + "\"}"
+                    + ",{\"path\":\"mods/directory-code/directory-code.capri-code\",\"type\":\"blob\",\"size\":" + code.Length + ",\"sha\":\"" + codeSha + "\"}"
+                    + ",{\"path\":\"mods/directory-code/preview.png\",\"type\":\"blob\",\"size\":999999999,\"sha\":\"" + pictureSha + "\"}"
+                    + ",{\"path\":\"mods/no-mod/preview.png\"," + same + "},{\"path\":\"mods/../../evil/evil.capri-mod\"," + same + "},{\"path\":\"mods/deep/er/evil.capri-mod\"," + same + "},{\"path\":\"mods/a/evil.exe\"," + same + "},{\"path\":\"mods/a/..evil.capri-mod\"," + same + "}"
+                    + ",{\"path\":\"mods/huge/huge.capri-skin\",\"type\":\"blob\",\"size\":999999999999,\"sha\":\"" + settingsSha + "\"},{\"path\":\"mods/badsha/badsha.capri-mod\",\"type\":\"blob\",\"size\":10,\"sha\":\"../../x\"}]}";
+                string statsJson = "{\"mods\":[{\"folder\":\"far-names\",\"downloads\":1234,\"rating\":4.5,\"votes\":8},{\"folder\":\"gone\",\"downloads\":9,\"rating\":1,\"votes\":1}]}";
+                string about = "She answers to Nova and keeps her other wake names.";
+                string indexText = "{\"format\":1,\"mods\":[{\"folder\":\"far-names\",\"file\":\"far-names.capri-mod\",\"name\":\"Names: Far & Wide\",\"author\":\"Vocyn\",\"about\":\"" + about + "\",\"kind\":\"code\",\"sha\":\"wrong\",\"size\":1}"
+                    + ",{\"folder\":\"directory-code\",\"file\":\"wrong.capri-code\",\"name\":\"Wrong file\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
+                    + ",{\"folder\":\"wrong-folder\",\"file\":\"directory-code.capri-code\",\"name\":\"Wrong folder\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
+                    + ",{\"folder\":\"index-only\",\"file\":\"index-only.capri-mod\",\"name\":\"Missing from tree\"}]}";
+                byte[] goodIndex = Encoding.UTF8.GetBytes(indexText), indexJson = goodIndex;
+                bool wrongBytes = false, wrongPicture = false, statsDown = false, indexDown = false;
+                int pictureGets = 0, indexGets = 0;
+                long indexLimit = 0;
+                List<string> posts = new List<string>();
+                ModDirectory.Get = delegate(string url, long most)
+                {
+                    if (url.Contains("/trees/")) return Encoding.UTF8.GetBytes(tree);
+                    if (url == ModDirectory.IndexPage) { indexGets++; indexLimit = most; if (indexDown) throw new WebException("stand-in"); return indexJson; }
+                    if (url.EndsWith("/preview.png", StringComparison.Ordinal)) { pictureGets++; return wrongPicture ? settings : picture; }
+                    if (url == ModDirectory.StatsPage) { if (statsDown) throw new System.Net.WebException("stand-in"); return Encoding.UTF8.GetBytes(statsJson); }
+                    if (wrongBytes) return Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"wake_names\":[\"Evil\"]}");
+                    return url.EndsWith(settingsSha, StringComparison.Ordinal) ? settings : code;
+                };
+                ModDirectory.Post = delegate(string url, string body)
+                {
+                    posts.Add(url + " " + body);
+                    return Encoding.UTF8.GetBytes("{\"folder\":\"far-names\",\"downloads\":1235,\"rating\":4.25,\"votes\":9}");
+                };
+                List<ModListing> found = ModDirectory.Browse();
+                if (found.Count != 2 || found[0].Folder != "directory-code" || found[1].Folder != "far-names") throw new Exception("The directory listing let in the wrong files: " + found.Count);
+                if (found[1].PreviewSha != pictureSha || found[0].PreviewSha != null || found[1].Title != "Names: Far & Wide" || found[1].Author != "Vocyn" || found[1].About != about) throw new Exception("The directory listing read previews or names wrong.");
+                if (indexGets != 1 || indexLimit != 2L * 1024 * 1024) throw new Exception("The index was not fetched once with a size limit.");
+                if (found[0].Title != "Directory Code" || found[0].Author != "" || found[0].About != "") throw new Exception("A mismatched folder or file supplied a mod's name.");
+                if (found[1].Sha != settingsSha || found[1].Size != settings.Length || found[1].FileName != "far-names.capri-mod" || found[1].KindIndex != 1) throw new Exception("The index changed what gets installed.");
+                if (ModDirectory.Filter(found, "VOCYN", 0).Count != 1 || ModDirectory.Filter(found, "nova keeps", 1).Count != 1 || ModDirectory.Filter(found, "wide", 1).Count != 1 || ModDirectory.Filter(found, "far-names.capri-mod", 1).Count != 1 || ModDirectory.Filter(found, "Vocyn nova", 2).Count != 0) throw new Exception("Search missed an author, description, name, file or kind.");
+                checks.Add("PASS mods directory: only mods/<folder>/<mod file> is listed with its preview.png; other files, paths out of the folder, huge files and bad fingerprints are not");
+                checks.Add("PASS mods index: exact folder and file matches add names, authors and descriptions; mismatches fall back, index-only entries stay out, and search covers the new text");
+                foreach (byte[] badIndex in new[] { Encoding.UTF8.GetBytes("{broken"), Encoding.UTF8.GetBytes("null"), Encoding.UTF8.GetBytes(indexText.Replace("\"format\":1", "\"format\":2")), Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[null,{}]}"), Encoding.UTF8.GetBytes(indexText + new string(' ', 2 * 1024 * 1024)) })
+                {
+                    indexJson = badIndex;
+                    int before = indexGets;
+                    List<ModListing> fallback = ModDirectory.Browse();
+                    if (indexGets != before + 1 || fallback.Count != 2 || fallback[1].Title != "Far Names" || fallback[1].Author != "" || fallback[1].About != "" || fallback[1].Sha != settingsSha) throw new Exception("A broken or oversized index changed the directory.");
+                }
+                indexDown = true;
+                List<ModListing> missing = ModDirectory.Browse();
+                indexDown = false;
+                if (missing.Count != 2 || missing[1].Title != "Far Names" || missing[1].Author != "" || missing[1].About != "") throw new Exception("A missing index stopped the directory or left old text.");
+                indexJson = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"far-names\",\"file\":\"far-names.capri-mod\",\"name\":\" \\t" + new string('N', 140) + "\\n\",\"author\":\" \\n" + new string('A', 90) + "\",\"about\":\" Nova\\n\\u0000\\u202e <b>text</b> & " + new string('x', 700) + "\"}]}");
+                List<ModListing> capped = ModDirectory.Browse();
+                if (capped[1].Title.Length != 120 || capped[1].Author.Length != 80 || capped[1].About.Length != 600 || !capped[1].About.StartsWith("Nova <b>text</b> & ", StringComparison.Ordinal) || Regex.IsMatch(capped[1].Title + capped[1].Author + capped[1].About, @"[\p{Cc}\p{Cf}]")) throw new Exception("Index text was not capped or made plain.");
+                indexJson = goodIndex;
+                checks.Add("PASS mods index: missing, broken, unsupported and oversized indexes are ignored; text is length-capped and control characters are removed");
+                wrongPicture = true;
+                bool refused = false;
+                try { ModDirectory.Preview(found[1], ModDirectory.PreviewFolder); }
+                catch (ModException) { refused = true; }
+                wrongPicture = false;
+                if (!refused) throw new Exception("A preview that didn't match its listing was kept.");
+                pictureGets = 0;
+                byte[] loaded = ModDirectory.Preview(found[1], ModDirectory.PreviewFolder);
+                ModDirectory.Preview(found[1], ModDirectory.PreviewFolder);
+                if (pictureGets != 1 || loaded.Length != picture.Length) throw new Exception("A preview wasn't saved for next time: " + pictureGets);
+                byte[] giant = (byte[])picture.Clone();
+                giant[16] = 1;
+                if (ModDirectory.Picture(giant) != null || ModDirectory.Picture(settings) != null) throw new Exception("A giant or broken picture was drawn.");
+                checks.Add("PASS mods window previews: a preview has to match its listing, is kept so it isn't downloaded twice, and giant or broken pictures aren't drawn");
+                ShowMods(true);
+                sheet = new ModsSheet(this, 1f);
+                sheet.Inline = true;
+                sheet.Show(this);
+                sheet.LoadMods();
+                if (sheet.ShownCount != 2 || sheet.TitleOf(1) != "Names: Far & Wide" || sheet.AuthorOf(1) != "by Vocyn" || sheet.AboutOf(1) != about || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.TitleOf(2) != null || !sheet.PictureOn(1) || sheet.PictureOn(0) || !sheet.Across3) throw new Exception("The mods window didn't show its names, authors and descriptions 3 across.");
+                if (sheet.StatsOf(1) != "4.5 (8) \u00B7 1.2K downloads" || sheet.StatsOf(0) != "No ratings \u00B7 0 downloads" || sheet.CanRateCard(1)) throw new Exception("The mods window's numbers were wrong: " + sheet.StatsOf(1) + " / " + sheet.StatsOf(0));
+                string crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("The mods window doesn't fit: " + crowded);
+                sheet.Picture(Path.Combine(output, "mods-window.png"));
+                checks.Add("PASS mods window: cards go 3 across with a preview, real name, author, description, downloads and rating, and missing metadata stays blank");
+                sheet.Type2("VOCYN keeps");
+                if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Names: Far & Wide" || sheet.AuthorOf(0) != "by Vocyn" || sheet.AboutOf(0) != about) throw new Exception("The mods window did not search authors and descriptions together.");
+                sheet.Type2("");
+                checks.Add("PASS mods window search: author and description words find the named card together");
+                wrongBytes = true;
+                refused = false;
+                try { ModDirectory.Download(found[1], under); }
+                catch (ModException) { refused = true; }
+                wrongBytes = false;
+                if (!refused || mods.All.Count != 0) throw new Exception("A download that didn't match its listing was kept.");
+                posts.Clear();
+                sheet.PressInstall(1);
+                if (mods.All.Count != 1 || mods.All[0].File.Id != "far-names" || !Hands.HeardName("hey nova")) throw new Exception("A mod from the directory did not install: " + sheet.StatusShown);
+                if (posts.Count != 1 || !posts[0].EndsWith("/mods/download {\"folder\":\"far-names\"}", StringComparison.Ordinal)) throw new Exception("An install wasn't counted once: " + string.Join(" | ", posts));
+                if (Directory.Exists(under) && Directory.GetDirectories(under).Length != 0) throw new Exception("The download was left behind.");
+                if (!sheet.MetaOf(1).EndsWith("Installed.", StringComparison.Ordinal) || sheet.InstallTextOf(1) != "Reinstall" || !sheet.CanRateCard(1) || sheet.CanRateCard(0)) throw new Exception("An installed directory mod wasn't marked, or couldn't be rated.");
+                checks.Add("PASS mods directory: a matching download installs through the normal import and is counted once; one that doesn't match is refused");
+                posts.Clear();
+                sheet.PressStars(1, 4);
+                if (posts.Count != 1 || !posts[0].EndsWith("/mods/rate {\"folder\":\"far-names\",\"stars\":4}", StringComparison.Ordinal) || sheet.StatsOf(1) != "4.3 (9) \u00B7 1.2K downloads" || sheet.StatusShown != "You gave Names: Far & Wide 4 stars.") throw new Exception("A rating wasn't sent or shown: " + sheet.StatsOf(1) + " / " + sheet.StatusShown);
+                posts.Clear();
+                sheet.PressStars(0, 5);
+                if (posts.Count != 0) throw new Exception("A mod that isn't installed was rated.");
+                checks.Add("PASS mods window ratings: only an installed mod can be rated, and the new average shows");
+                ShowMods(true);
+                FillMods();
+                if (!modPublishes[0].Visible || modPublishes[1].Visible) throw new Exception("Publish mod wasn't only on imported mods.");
+                using (PublishSheet publish = new PublishSheet(this, 1f, mods.All[0]))
+                {
+                    publish.Show(this);
+                    string publishCrowded = publish.Crowded();
+                    if (publishCrowded != null) throw new Exception("Publish mod doesn't fit: " + publishCrowded);
+                    if (!publish.Steps.Contains("mods/far-names/") || !publish.Steps.Contains("far-names" + Mods.Extension) || !publish.Steps.Contains("preview.png") || !publish.Steps.Contains("README.md") || !publish.Steps.Contains("pull request")) throw new Exception("Publish mod's steps were wrong: " + publish.Steps);
+                    publish.Picture(Path.Combine(output, "publish-mod.png"));
+                    publish.Close();
+                }
+                using (Bitmap shot = new Bitmap(Width, Height))
+                {
+                    DrawToBitmap(shot, new Rectangle(Point.Empty, Size));
+                    shot.Save(Path.Combine(output, "mods-page-publish.png"), ImageFormat.Png);
+                }
+                checks.Add("PASS Publish mod: it's on imported mods and explains the fork, folder, README, preview and pull request");
+                capri.ModList.Remove(mods.All[0]);
+                int asked = 0;
+                ModAsk = delegate { asked++; return false; };
+                posts.Clear();
+                sheet.PressInstall(0);
+                if (asked != 1 || mods.All.Count != 0 || posts.Count != 0) throw new Exception("A code mod from the directory did not ask, stayed after a no, or was counted: " + sheet.StatusShown);
+                ModAsk = wasAsk;
+                checks.Add("PASS mods directory: a code mod still asks, and a no leaves nothing and isn't counted");
+                statsDown = true;
+                sheet.LoadMods();
+                if (sheet.ShownCount != 2 || sheet.StatsOf(1) != null || sheet.StatusShown != "") throw new Exception("Losing the worker wasn't quiet: " + sheet.StatusShown);
+                statsDown = false;
+                checks.Add("PASS mods window: with the worker down the mods still show, without numbers or an error");
+                indexDown = true;
+                sheet.LoadMods();
+                indexDown = false;
+                if (sheet.ShownCount != 2 || sheet.TitleOf(1) != "Far Names" || sheet.AuthorOf(1) != null || sheet.AboutOf(1) != null || sheet.StatusShown != "") throw new Exception("Losing the index left old text or an error in the mods window.");
+                checks.Add("PASS mods window: losing the index quietly restores folder titles and clears authors and descriptions");
+                StringBuilder many = new StringBuilder("{\"tree\":[");
+                string[] manyNames = { "big-hat.capri-skin", "blue-hair.capri-mod", "dance-party.capri-code", "red-hair.capri-mod", "red-hat.capri-skin", "tall-hat.capri-skin", "wide-hat.capri-skin", "zoom.capri-mod" };
+                foreach (string name in manyNames)
+                    many.Append("{\"path\":\"mods/" + Path.GetFileNameWithoutExtension(name) + "/" + name + "\",\"type\":\"blob\",\"size\":2048,\"sha\":\"" + settingsSha + "\"},");
+                string smaller = tree;
+                tree = many.ToString().TrimEnd(',') + "]}";
+                sheet.LoadMods();
+                if (sheet.PageShown != "Page 1 of 2" || sheet.TitleOf(5) != "Tall Hat") throw new Exception("The mods window's first page was wrong.");
+                sheet.PressNext();
+                if (sheet.PageShown != "Page 2 of 2" || sheet.TitleOf(0) != "Wide Hat" || sheet.TitleOf(2) != null) throw new Exception("The mods window's second page was wrong.");
+                sheet.Type2("HAIR red");
+                if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Red Hair" || sheet.PageShown != null) throw new Exception("Search didn't find the mod with every word.");
+                sheet.Type2("");
+                sheet.PressFilter(3);
+                if (sheet.ShownCount != 4 || !sheet.Filtered(3) || sheet.Filtered(0)) throw new Exception("The Skins filter was wrong.");
+                sheet.Type2("red");
+                if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Red Hat") throw new Exception("Search and a filter didn't work together.");
+                sheet.PressFilter(2);
+                if (sheet.ShownCount != 0 || sheet.EmptyShown != "No mods match that.") throw new Exception("No matches wasn't said.");
+                sheet.Type2("");
+                sheet.PressFilter(0);
+                crowded = sheet.Crowded();
+                if (crowded != null) throw new Exception("A full mods window doesn't fit: " + crowded);
+                sheet.Picture(Path.Combine(output, "mods-window-full.png"));
+                checks.Add("PASS mods window: search needs every word in any case, filters go by kind, both work together and with pages, and no matches is said");
+                StringBuilder fullIndex = new StringBuilder("{\"format\":1,\"mods\":[");
+                foreach (string name in manyNames)
+                    fullIndex.Append("{\"folder\":\"" + Path.GetFileNameWithoutExtension(name) + "\",\"file\":\"" + name + "\",\"name\":\"Colors: Bubblegum & " + new string('N', 140) + "\",\"author\":\"" + new string('A', 90) + "\",\"about\":\"Pink hair and cyan accents. " + new string('x', 700) + "\"},");
+                indexJson = Encoding.UTF8.GetBytes(fullIndex.ToString().TrimEnd(',') + "]}");
+                foreach (float size in new[] { 1f, 1.5f, 2f })
+                    using (ModsSheet sized = new ModsSheet(this, size))
+                    {
+                        sized.Inline = true;
+                        sized.Show(this);
+                        sized.LoadMods();
+                        string problem = sized.Crowded();
+                        if (sized.TitleOf(5) == null || sized.TitleOf(5).Length != 120 || sized.AuthorOf(5) == null || sized.AuthorOf(5).Length != 83 || sized.AboutOf(5) == null || sized.AboutOf(5).Length != 600) throw new Exception("A full page lost its capped metadata.");
+                        sized.Picture(Path.Combine(output, "mods-index-" + (int)(size * 100) + ".png"));
+                        sized.Close();
+                        if (problem != null) throw new Exception("The mods window doesn't fit at " + size + ": " + problem);
+                    }
+                indexJson = goodIndex;
+                checks.Add("PASS mods index cards: a full page with long names, authors and descriptions fits at 100%, 150% and 200%");
+                tree = "{\"tree\":[]}";
+                sheet.LoadMods();
+                if (sheet.EmptyShown != "Nothing to show from the mods directory." || sheet.StatusShown != "No mods in the directory yet.") throw new Exception("An empty directory wasn't said.");
+                tree = "{nope";
+                sheet.LoadMods();
+                if (sheet.EmptyShown == null || sheet.StatusShown != "The mods directory sent something I can't read.") throw new Exception("Broken directory data wasn't said: " + sheet.StatusShown);
+                tree = smaller;
+                sheet.Close();
+                ShowMods(false);
+                checks.Add("PASS mods window: empty and broken directories are said, and it fits at 100%, 150% and 200%");
+                checks.Add("LIMIT mods window: these use stand-in downloads and a stand-in worker, so real GitHub previews and real downloads and ratings need a live check once the worker is deployed");
+            }
+            finally
+            {
+                if (sheet != null && !sheet.IsDisposed) sheet.Close();
+                ModDirectory.Get = wasGet;
+                ModDirectory.Post = wasPost;
+                ModDirectory.PreviewFolder = wasFolder;
+                ModAsk = wasAsk;
+                WindowState = wasState;
+            }
+        }
+    }
 }

@@ -32,7 +32,7 @@ namespace CapriDesktop
 
     internal sealed class ModsWindow : MainframeWindow
     {
-        internal const int Wide = 760, Tall = 796;
+        internal const int Wide = 760, Tall = 884;
         private const int Cards = 2, Rows = 4;
         private readonly Pet pet;
         private readonly NeonEntry search;
@@ -40,7 +40,7 @@ namespace CapriDesktop
         private readonly NeonCaption directoryNote, status, page, installedPage;
         private readonly NeonButton[] kinds = new NeonButton[4];
         private readonly ModPreview[] previews = new ModPreview[Cards];
-        private readonly NeonCaption[] titles = new NeonCaption[Cards], metas = new NeonCaption[Cards], numbers = new NeonCaption[Cards];
+        private readonly NeonCaption[] titles = new NeonCaption[Cards], authors = new NeonCaption[Cards], details = new NeonCaption[Cards], metas = new NeonCaption[Cards], numbers = new NeonCaption[Cards];
         private readonly NeonButton[] downloads = new NeonButton[Cards];
         private readonly NeonPicker[] ratings = new NeonPicker[Cards];
         private readonly NeonCaption[] names = new NeonCaption[Rows], abouts = new NeonCaption[Rows];
@@ -53,6 +53,7 @@ namespace CapriDesktop
         private int first, installedFirst, kind, ticket;
         private bool closed, syncing, working, loading, statsLive;
         internal string StatusText { get { return status.Text; } }
+        internal string DirectoryText { get { return directoryNote.Text; } }
         internal bool Working { get { return working || loading; } }
         internal bool PreviewsPending { get { return fetching.Count != 0; } }
         internal string PageText { get { return page.Text; } }
@@ -66,7 +67,7 @@ namespace CapriDesktop
             Button("", 710, 20, 26, 22, Close).Glyph = 2;
             Put(Page, new NeonHead { Text = "DIRECTORY" }, 14, 52, 352, 24);
             Put(Page, new NeonHead { Text = "INSTALLED" }, 394, 52, 352, 24);
-            search = Put(Page, new NeonEntry("Search mods"), 28, 84, 236, 28, "Search mods");
+            search = Put(Page, new NeonEntry("Search name, author or description"), 28, 84, 236, 28, "Search mods");
             search.Box.TextChanged += delegate { first = 0; FillDirectory(); };
             refresh = Button("Refresh", 272, 84, 84, 28, LoadMods);
             for (int i = 0; i < kinds.Length; i++)
@@ -77,22 +78,24 @@ namespace CapriDesktop
             directoryNote = Label("Browse mods, or import a file.", 28, 152, 328, 32);
             for (int i = 0; i < Cards; i++)
             {
-                int card = i, y = 194 + i * 252;
+                int card = i, y = 194 + i * 306;
                 previews[i] = Put(Page, new ModPreview(), 28, y, 328, 128, "Mod preview");
                 titles[i] = Label("", 28, y + 136, 328, 20, MainframeTheme.White, 44.0 / 3, true);
-                metas[i] = Label("", 28, y + 158, 328, 18);
-                numbers[i] = Label("", 28, y + 180, 328, 18);
-                downloads[i] = Button("Download", 28, y + 204, 100, 28, delegate { Install(card); });
+                authors[i] = Label("", 28, y + 158, 328, 18, MainframeTheme.Cyan);
+                details[i] = Label("", 28, y + 180, 328, 32);
+                metas[i] = Label("", 28, y + 216, 328, 18);
+                numbers[i] = Label("", 28, y + 238, 328, 18);
+                downloads[i] = Button("Download", 28, y + 262, 100, 28, delegate { Install(card); });
                 downloads[i].Accent = MainframeTheme.Cyan;
-                ratings[i] = Put(Page, new NeonPicker(), 136, y + 204, 220, 28, "Rate mod");
+                ratings[i] = Put(Page, new NeonPicker(), 136, y + 262, 220, 28, "Rate mod");
                 ratings[i].Check = false;
                 ratings[i].Options(new[] { "1 star", "2 stars", "3 stars", "4 stars", "5 stars" });
                 ratings[i].Changed += delegate(int stars) { Rate(card, stars + 1); };
             }
-            back = Button("Back", 28, 700, 60, 24, delegate { first -= Cards; FillDirectory(); });
-            page = Label("", 96, 700, 192, 24); page.Align = TextAlignment.Center;
-            next = Button("Next", 296, 700, 60, 24, delegate { first += Cards; FillDirectory(); });
-            Button("View on GitHub", 28, 738, 156, 28, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
+            back = Button("Back", 28, 808, 60, 24, delegate { first -= Cards; FillDirectory(); });
+            page = Label("", 96, 808, 192, 24); page.Align = TextAlignment.Center;
+            next = Button("Next", 296, 808, 60, 24, delegate { first += Cards; FillDirectory(); });
+            Button("View on GitHub", 28, 846, 156, 28, delegate { if (Program.Smoke == null) Pet.Browse(ModDirectory.Page); });
             NeonButton import = Button("Import mod", 408, 84, 160, 28, delegate { });
             import.Accent = MainframeTheme.Cyan;
             import.Click += async delegate
@@ -221,6 +224,8 @@ namespace CapriDesktop
         internal void NextPage() { first += Cards; FillDirectory(); }
         internal void NextInstalledPage() { installedFirst += Rows; Sync(); }
         internal string TitleOf(int card) { return titles[card].IsVisible ? titles[card].Text : null; }
+        internal string AuthorOf(int card) { return authors[card].IsVisible ? authors[card].Text : null; }
+        internal string AboutOf(int card) { return details[card].IsVisible ? details[card].Text : null; }
         internal bool HasPreview(int card) { return previews[card].Picture != null; }
         internal bool CanDownload(int card) { return downloads[card].IsVisible && downloads[card].IsEnabled; }
         internal string DownloadText(int card) { return downloads[card].Text; }
@@ -235,9 +240,14 @@ namespace CapriDesktop
             {
                 ModListing mod = first + i < shown.Count ? shown[first + i] : null;
                 previews[i].IsVisible = titles[i].IsVisible = metas[i].IsVisible = numbers[i].IsVisible = downloads[i].IsVisible = ratings[i].IsVisible = mod != null;
+                authors[i].IsVisible = mod != null && mod.Author.Length > 0;
+                details[i].IsVisible = mod != null && mod.About.Length > 0;
                 if (mod == null) { previews[i].Picture = null; continue; }
                 bool installed = pet.ModList.All.Exists(m => m.File.Id == mod.Id);
                 titles[i].Text = mod.Title;
+                authors[i].Text = mod.Author.Length > 0 ? "by " + mod.Author : "";
+                details[i].Text = mod.About;
+                ToolTip.SetTip(previews[i], new TextBlock { Text = mod.Title + (mod.Author.Length > 0 ? "\nby " + mod.Author : "") + (mod.About.Length > 0 ? "\n" + mod.About : ""), MaxWidth = 328, TextWrapping = TextWrapping.Wrap, FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size, Foreground = MainframeTheme.White });
                 metas[i].Text = mod.KindIndex == 2 ? Mods.WindowsOnly : mod.Kind + (installed ? " Installed." : "");
                 numbers[i].Text = statsLive ? ModDirectory.DownloadLine(mod) + "  |  " + ModDirectory.RatingLine(mod) : loading ? "Loading counts and ratings..." : "Counts and ratings unavailable.";
                 downloads[i].Text = installed ? "Reinstall" : "Download";
@@ -247,7 +257,7 @@ namespace CapriDesktop
                 Bitmap picture = null;
                 if (mod.PreviewSha != null) pictures.TryGetValue(mod.PreviewSha, out picture);
                 previews[i].Picture = picture;
-                foreach (Control control in new Control[] { titles[i], metas[i], numbers[i], downloads[i], ratings[i], previews[i] }) control.InvalidateVisual();
+                foreach (Control control in new Control[] { titles[i], authors[i], details[i], metas[i], numbers[i], downloads[i], ratings[i], previews[i] }) control.InvalidateVisual();
                 if (picture == null && mod.PreviewSha != null) LoadPreview(mod);
             }
             page.Text = shown.Count == 0 ? "No matching mods" : "Page " + (first / Cards + 1) + " of " + ((shown.Count + Cards - 1) / Cards);

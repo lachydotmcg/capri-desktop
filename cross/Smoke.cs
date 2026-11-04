@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
@@ -2282,10 +2283,21 @@ namespace CapriDesktop
             byte[] json = Encoding.UTF8.GetBytes(tree.ToString());
             List<ModListing> parsed = ModDirectory.Parse(json);
             if (parsed.Count != 4 || parsed[0].PreviewSha != previewSha || parsed[1].KindIndex != 3 || parsed[2].KindIndex != 2 || ModDirectory.Filter(parsed, "blue hair", 1).Count != 1) throw new Exception("The directory did not parse its tree, previews and kinds.");
-            int counted = 0, rated = 0, fetched = 0;
+            string about = "A blue colour set for her hair.";
+            string indexText = "{\"format\":1,\"mods\":[{\"folder\":\"a-blue-hair\",\"file\":\"" + Path.GetFileName(blue) + "\",\"name\":\"Colors: Blue & Bright\",\"author\":\"Vocyn\",\"about\":\"" + about + "\",\"kind\":\"code\",\"sha\":\"wrong\",\"size\":1}"
+                + ",{\"folder\":\"b-sample-skin\",\"file\":\"wrong.capri-skin\",\"name\":\"Wrong file\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
+                + ",{\"folder\":\"wrong-folder\",\"file\":\"" + Path.GetFileName(skin) + "\",\"name\":\"Wrong folder\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
+                + ",{\"folder\":\"c-code-sample\",\"file\":\"" + Path.GetFileName(files[2]) + "\",\"name\":\"Code: Sample\",\"author\":\"Sample Author\",\"about\":\"Runs code on Windows.\",\"kind\":\"settings\"}"
+                + ",{\"folder\":\"index-only\",\"file\":\"index-only.capri-mod\",\"name\":\"Missing from tree\"}]}";
+            byte[] goodIndex = Encoding.UTF8.GetBytes(indexText), indexJson = goodIndex;
+            byte[] largeIndex = Encoding.UTF8.GetBytes(indexText + new string(' ', 2 * 1024 * 1024));
+            bool indexDown = false;
+            int counted = 0, rated = 0, fetched = 0, indexGets = 0;
+            long indexLimit = 0;
             ModDirectory.Get = delegate(string url, long most)
             {
                 if (url.Contains("/trees/")) return json;
+                if (url == ModDirectory.IndexPage) { Interlocked.Increment(ref indexGets); indexLimit = most; if (indexDown) throw new System.Net.WebException("stand-in"); return indexJson; }
                 if (url == ModDirectory.StatsPage) return Encoding.UTF8.GetBytes("{\"mods\":[{\"folder\":\"a-blue-hair\",\"downloads\":12,\"rating\":4.5,\"votes\":2}]}");
                 if (url.EndsWith("/preview.png", StringComparison.Ordinal)) return preview;
                 if (url.Contains("/blobs/")) { Interlocked.Increment(ref fetched); return blobs[url.Substring(url.LastIndexOf('/') + 1)]; }
@@ -2299,16 +2311,46 @@ namespace CapriDesktop
             };
             try
             {
+                List<ModListing> indexed = ModDirectory.Browse();
+                if (indexGets != 1 || indexLimit != 2L * 1024 * 1024 || indexed.Count != 4 || indexed[0].Title != "Colors: Blue & Bright" || indexed[0].Author != "Vocyn" || indexed[0].About != about) throw new Exception("The directory did not fetch and match its index once with a size limit.");
+                if (indexed[1].Title != "B Sample Skin" || indexed[1].Author != "" || indexed[1].About != "" || indexed[3].Title != "D Names" || indexed[3].Author != "" || indexed[3].About != "") throw new Exception("Mismatched or missing index entries changed a folder title.");
+                if (indexed[0].Sha != parsed[0].Sha || indexed[0].Size != parsed[0].Size || indexed[0].FileName != parsed[0].FileName || indexed[0].KindIndex != 1 || indexed[2].KindIndex != 2) throw new Exception("The index changed what gets installed.");
+                if (ModDirectory.Filter(indexed, "VOCYN colour", 1).Count != 1 || ModDirectory.Filter(indexed, "bright", 1).Count != 1 || ModDirectory.Filter(indexed, Path.GetFileName(blue), 1).Count != 1 || ModDirectory.Filter(indexed, "Vocyn", 2).Count != 0) throw new Exception("Search missed an indexed name, author, description, file or kind.");
+                foreach (byte[] badIndex in new[] { Encoding.UTF8.GetBytes("{broken"), Encoding.UTF8.GetBytes("null"), Encoding.UTF8.GetBytes(indexText.Replace("\"format\":1", "\"format\":2")), Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[null,{}]}"), largeIndex })
+                {
+                    indexJson = badIndex;
+                    int before = indexGets;
+                    List<ModListing> fallback = ModDirectory.Browse();
+                    if (indexGets != before + 1 || fallback.Count != 4 || fallback[0].Title != "A Blue Hair" || fallback[0].Author != "" || fallback[0].About != "" || fallback[0].Sha != parsed[0].Sha) throw new Exception("A broken or oversized index changed the directory.");
+                }
+                indexDown = true;
+                List<ModListing> missing = ModDirectory.Browse();
+                indexDown = false;
+                if (missing.Count != 4 || missing[0].Title != "A Blue Hair" || missing[0].Author != "" || missing[0].About != "") throw new Exception("A missing index stopped the directory or left old text.");
+                indexJson = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"a-blue-hair\",\"file\":\"" + Path.GetFileName(blue) + "\",\"name\":\" \\t" + new string('N', 140) + "\\n\",\"author\":\" \\n" + new string('A', 90) + "\",\"about\":\" Nova\\n\\u0000\\u202e <b>text</b> & " + new string('x', 700) + "\"}]}");
+                List<ModListing> capped = ModDirectory.Browse();
+                if (capped[0].Title.Length != 120 || capped[0].Author.Length != 80 || capped[0].About.Length != 600 || !capped[0].About.StartsWith("Nova <b>text</b> & ", StringComparison.Ordinal) || Regex.IsMatch(capped[0].Title + capped[0].Author + capped[0].About, @"[\p{Cc}\p{Cf}]")) throw new Exception("Index text was not capped or made plain.");
+                indexJson = goodIndex;
+                checks.Add("PASS mods index: exact folder and file matches add capped plain names, authors and descriptions; mismatches, missing entries, broken and oversized indexes fall back without changing tree fingerprints");
                 sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working && sheet.HasPreview(0) && sheet.HasPreview(1); }, "the mods directory and previews");
-                if (sheet.TitleOf(0) != "A Blue Hair" || sheet.PageText != "Page 1 of 2" || !sheet.CanDownload(0)) throw new Exception("The Mods window did not show its first directory page.");
+                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.AuthorOf(0) != "by Vocyn" || sheet.AboutOf(0) != about || sheet.TitleOf(1) != "B Sample Skin" || sheet.AuthorOf(1) != null || sheet.AboutOf(1) != null || sheet.PageText != "Page 1 of 2" || !sheet.CanDownload(0)) throw new Exception("The Mods window did not show its real names, authors, descriptions and fallbacks.");
+                sheet.Search("VOCYN colour");
+                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.TitleOf(1) != null) throw new Exception("The directory did not search author and description words together.");
+                sheet.Search("");
+                indexDown = true;
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the directory without an index");
+                indexDown = false;
+                if (sheet.TitleOf(0) != "A Blue Hair" || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.DirectoryText != "Pick a mod to download.") throw new Exception("Losing the index left old text or an error in the Mods window.");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory again");
+                checks.Add("PASS mods index cards: names, by author and descriptions show; search matches author and description words together, and losing the index quietly clears its text");
                 sheet.NextPage();
-                if (sheet.TitleOf(0) != "C Code Sample") throw new Exception("The directory did not change page.");
+                if (sheet.TitleOf(0) != "Code: Sample" || sheet.AuthorOf(0) != "by Sample Author") throw new Exception("The directory did not change page.");
                 sheet.PickKind(2);
                 if (sheet.CanDownload(0) || sheet.MetaOf(0) != Mods.WindowsOnly) throw new Exception("A code mod looked installable.");
                 sheet.Install(0);
                 if (sheet.StatusText != Mods.WindowsOnly || fetched != 0) throw new Exception("A code mod was downloaded.");
                 sheet.PickKind(1); sheet.Search("names");
-                if (sheet.TitleOf(0) != "D Names" || sheet.TitleOf(1) != null) throw new Exception("The directory search or settings filter did not work.");
+                if (sheet.TitleOf(0) != "D Names" || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.TitleOf(1) != null) throw new Exception("The directory search or settings filter did not work.");
                 sheet.Search(""); sheet.PickKind(0); sheet.Install(0);
                 MainframeWait(delegate { return !sheet.Working && counted == 1; }, "a directory download");
                 if (pet.ModList.All.Count != 1 || fetched != 1 || !sheet.CanDownload(0) || sheet.DownloadText(0) != "Reinstall") throw new Exception("Downloading a settings mod did not install it and count the download.");
@@ -2329,17 +2371,25 @@ namespace CapriDesktop
                 if (pet.ModList.All.Count != 4 || sheet.InstalledPageText != "Page 1 of 1") throw new Exception("Removing the last installed page did not bring the list back.");
                 foreach (Mod extra in pet.ModList.All.ToArray()) if (extra.File.Id.StartsWith("smoke-extra-", StringComparison.Ordinal)) pet.ModList.Remove(extra);
                 sheet.ImportMod(skin);
+                StringBuilder fullIndex = new StringBuilder("{\"format\":1,\"mods\":[");
+                for (int i = 0; i < folders.Length; i++)
+                    fullIndex.Append("{\"folder\":\"" + folders[i] + "\",\"file\":\"" + Path.GetFileName(files[i]) + "\",\"name\":\"Colors: Bubblegum & " + new string('N', 140) + "\",\"author\":\"" + new string('A', 90) + "\",\"about\":\"Pink hair and cyan accents. " + new string('x', 700) + "\"},");
+                indexJson = Encoding.UTF8.GetBytes(fullIndex.ToString().TrimEnd(',') + "]}");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "long mod metadata");
                 foreach (int scale in new[] { 100, 150, 200 })
                 {
                     pet.SetMainframeSize(scale); sheet.Sync(); sheet.UpdateLayout();
                     string wrong = sheet.Crowded();
+                    if (sheet.TitleOf(1) == null || sheet.TitleOf(1).Length != 120 || sheet.AuthorOf(1) == null || sheet.AuthorOf(1).Length != 83 || sheet.AboutOf(1) == null || sheet.AboutOf(1).Length != 600) throw new Exception("A full page lost its capped metadata.");
                     if (wrong != null || Math.Abs(sheet.Zoom - scale / 100.0) > 0.001) throw new Exception("Mods layout at " + scale + "%: " + wrong);
                     sheet.SavePicture(Path.Combine(folder, "mainframe-mods-" + scale + ".png"));
                 }
+                indexJson = goodIndex;
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory after layout checks");
                 pet.SetMainframeSize(100); sheet.Sync(); sheet.SavePicture(Path.Combine(folder, "mainframe-mods.png"));
                 using (Bitmap picture = new Bitmap(Path.Combine(folder, "mainframe-mods.png"))) if (picture.PixelSize.Width < 380 || picture.PixelSize.Height < 100) throw new Exception("The Mods window picture is empty.");
                 checks.Add("PASS mods directory: fake GitHub tree, previews, filters, pages, verified downloads, worker counts and ratings; code mods stay Windows only");
-                checks.Add("PASS mods window: Barlow and cut corners fit at 100%, 150% and 200% without overlaps; Mainframe pictures include mainframe-mods.png");
+                checks.Add("PASS mods window: long names, authors and descriptions fit with Barlow and cut corners at 100%, 150% and 200% without overlaps; Mainframe pictures include mainframe-mods.png");
             }
             finally
             {
