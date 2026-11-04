@@ -107,6 +107,7 @@ namespace CapriDesktop
                 {
                     text.Append("\n" + target.Label);
                     if (target.Secret) text.Append(" (password box)");
+                    else if (Computer.PersonalBox(target) || Computer.CardBox(target)) { if (!string.IsNullOrEmpty(target.Value)) text.Append(" (value hidden)"); }
                     else if (!string.IsNullOrEmpty(target.Value)) text.Append(" = " + Voice.Quote(target.Value));
                     if (target.Focused) text.Append(" (focused)");
                 }
