@@ -130,6 +130,9 @@ namespace CapriDesktop
         private readonly Toggle watch;
         private readonly Toggle caughtUp;
         private readonly Toggle followUps;
+        private readonly Key huskMode;
+        private readonly ContextMenuStrip huskMenu;
+        private static readonly string[] HuskNames = { "Off", "Claude Code", "Codex", "Both" };
         private readonly Slider watchMemory;
         private readonly Readout watchMemoryName;
         private static readonly int[] WatchLines = { 8, 16, 24, 48, 96 };
@@ -263,7 +266,7 @@ namespace CapriDesktop
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 700, 1177 }, new[] { 1288, 1340 }, new[] { 1340, 1368 } };
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 624, 1006 }, new[] { 1202, 2028 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 624, 1034 }, new[] { 1230, 2056 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -769,6 +772,18 @@ namespace CapriDesktop
             watchMemory.Changed += delegate { if (!syncing) capri.SetWatchMemory(WatchLines[watchMemory.Value]); };
             int afterWatchMemory = Controls.Count;
             Section("BRAIN >", c, 330);
+            Named("Code/Husk Mode", c, 354);
+            huskMenu = Dropdown();
+            huskMenu.AccessibleName = "Code/Husk Mode choices";
+            huskMode = Make("Off", ValueAt + c, 357, ValueWide, 22, delegate { huskMenu.Show(huskMode, new Point(0, huskMode.Height)); }, "Code/Husk Mode");
+            huskMode.Chevron = true;
+            huskMode.AccessibleName = "Code/Husk Mode";
+            for (int i = 0; i < HuskNames.Length; i++)
+            {
+                int choice = i;
+                huskMenu.Items.Add(Choice(HuskNames[i], false, delegate { capri.SetHusk(choice); }));
+            }
+            int afterHusk = Controls.Count;
             stayOnModel = Switch("Stay on my model", c, 354, delegate { if (!syncing) capri.ToggleStayOnModel(); });
             stayOnModel.AccessibleName = "Stay on my model. When an NVIDIA model gets stuck she says so instead of switching to another one";
             replies = Setting("Replies", Lengths, c, 382, "Reply length");
@@ -884,6 +899,8 @@ namespace CapriDesktop
             int gamesTo = Controls.Count;
             for (int talkSettingAt = afterWatchMemory; talkSettingAt < Controls.Count; talkSettingAt++)
                 Controls[talkSettingAt].Top += talkSettingAt >= afterFollowUps ? 56 : 28;
+            for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
+                if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row;
             // Head pats, Chaos when upset and Hologram each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
                 if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 3;
@@ -2285,6 +2302,10 @@ namespace CapriDesktop
         internal void Sync()
         {
             syncing = true;
+            huskMode.Text = HuskNames[capri.HuskMode];
+            huskMode.Enabled = !capri.HuskChanging;
+            for (int i = 0; i < huskMenu.Items.Count; i++) ((ToolStripMenuItem)huskMenu.Items[i]).Checked = i == capri.HuskMode;
+            huskMode.Invalidate();
             hearingChoice.Text = HearingStatus.Choices[capri.HearingChoice];
             hearingChoice.AccessibleName = "Hearing: " + hearingChoice.Text;
             for (int i = 0; i < hearingMenu.Items.Count; i++) ((ToolStripMenuItem)hearingMenu.Items[i]).Checked = i == capri.HearingChoice;
@@ -2425,6 +2446,8 @@ namespace CapriDesktop
 
         internal bool CaughtUpShown { get { return caughtUp.Checked; } }
         internal bool FollowUpsShown { get { return followUps.Checked; } }
+        internal string HuskShown { get { return huskMode.Text; } }
+        internal bool HuskPicker { get { return huskMode.Chevron && huskMenu.Items.Count == 4 && huskMenu.Items[0].Text == "Off" && huskMenu.Items[1].Text == "Claude Code" && huskMenu.Items[2].Text == "Codex" && huskMenu.Items[3].Text == "Both"; } }
         internal int WatchMemoryShown { get { return WatchLines[watchMemory.Value]; } }
         internal void FlipFollowUps() { followUps.Checked = !followUps.Checked; }
 
