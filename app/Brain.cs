@@ -3900,11 +3900,12 @@ namespace CapriDesktop
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             clean = Regex.Replace(clean, @"(\b[A-Za-z0-9_]*(?:token(?!s\b)|secret|password|passwd)[A-Za-z0-9_]*\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            // -u user:password, attached too, with an all-number user:group like 1000:1000 left alone.
-            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)?|--user(?:=|\s+))[""']?(?!\d+:\d+\b)[^\s""':]+:)(?!//)[^\s""']+", "$1[redacted]", RegexOptions.IgnoreCase);
-            // A lowercase -p only, so mysql's -P port isn't taken for the password, and quoted or attached passwords count.
-            clean = Regex.Replace(clean, @"(\b(?:sshpass|(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login)\b[^\r\n]*?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n]*?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
+            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)?|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // A lowercase -p only, so mysql's -P port isn't taken for the password, and quoted or attached passwords count. The
+            // search stops at the end of that command, so a later docker run -p 8080:80 keeps its ports.
+            clean = Regex.Replace(clean, @"(\b(?:sshpass|(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login)\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(\b(?:set-)?cookie\s*:\s*)[^\r\n]+", "$1[redacted]", RegexOptions.IgnoreCase);
             // A quoted value goes whole, spaces and all, and keeps its quotes.
             clean = Regex.Replace(clean, @"((?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*([""'])?)(?(2)(?:(?!\2)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);

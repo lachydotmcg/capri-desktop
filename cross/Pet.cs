@@ -4642,19 +4642,26 @@ namespace CapriDesktop
         {
             if (quitting) return;
             quitting = true;
-            if (husk != null) husk.Dispose();
-            StopAwake();
-            CloseMainframe();
-            Brain.Cancel();
-            voice.Stop();
-            if (presence != null) presence.Dispose();
-            Talk.Dismiss();
-            GlitchOut(delegate
+            // Her click guard writes down a bug in any of these, so she still goes after it instead of being left unable to quit.
+            try
             {
-                Save();
-                frames.Stop();
-                desktop.Shutdown(0);
-            });
+                if (husk != null) husk.Dispose();
+                StopAwake();
+                CloseMainframe();
+                Brain.Cancel();
+                voice.Stop();
+                if (presence != null) presence.Dispose();
+                Talk.Dismiss();
+            }
+            finally
+            {
+                GlitchOut(delegate
+                {
+                    Save();
+                    frames.Stop();
+                    desktop.Shutdown(0);
+                });
+            }
         }
 
         internal void Finish(int code)

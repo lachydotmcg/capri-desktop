@@ -52,8 +52,9 @@ namespace CapriDesktop
             glide.Tick += (_, _) => Program.Guard(() =>
             {
                 double t = Math.Min(1, clock.Elapsed.TotalMilliseconds / 180), eased = 1 - Math.Pow(1 - t, 3);
-                Scroll.Offset = from + (to - from) * eased;
-                if (t >= 1) glide.Stop();
+                // A glide that fails still ends, so its timer can't spin forever.
+                try { Scroll.Offset = from + (to - from) * eased; }
+                finally { if (t >= 1) glide.Stop(); }
             });
             KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
             Page.PointerPressed += (_, e) => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); };

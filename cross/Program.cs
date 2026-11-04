@@ -39,10 +39,15 @@ namespace CapriDesktop
             if (error == null) return;
             while (error.InnerException != null) error = error.InnerException;
             string what = error.GetType().Name + ": " + error.Message;
+            // The same bug from the same place is written once a minute, even when its message carries changing numbers, so a
+            // timer that keeps failing can't flood errors.txt.
+            string place = "";
+            foreach (string frame in (error.StackTrace ?? "").Split('\n')) { place = frame.Trim(); if (place.Length > 0) break; }
+            string same = error.GetType().Name + " " + place;
             lock (typeof(Program))
             {
-                if (what == lastCrash && unchecked(Environment.TickCount - lastCrashAt) < 60000) return;
-                lastCrash = what;
+                if (same == lastCrash && unchecked(Environment.TickCount - lastCrashAt) < 60000) return;
+                lastCrash = same;
                 lastCrashAt = Environment.TickCount;
                 try
                 {
