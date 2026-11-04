@@ -13386,6 +13386,10 @@ namespace CapriDesktop
             if (!Native.Covers(desktopMonitor, desktopMonitor) || !Native.Covers(Rectangle.Inflate(desktopMonitor, 8, 8), desktopMonitor)
                 || Native.Covers(new Rectangle(-1920, 0, 1920, 1040), desktopMonitor) || Native.Covers(new Rectangle(0, 0, 1920, 1080), desktopMonitor)) throw new Exception("Full screen did not follow the window's own monitor.");
             checks.Add("PASS full-screen geometry includes borderless windows on another monitor");
+            if (!Native.Overlay(0x80000 | 0x20) || !Native.Overlay(0x80000 | 0x80) || !Native.Overlay(0x80000 | 0x08000000)
+                || Native.Overlay(0) || Native.Overlay(0x80000) || Native.Overlay(0x20) || Native.Overlay(0x80) || Native.Overlay(0x08000000)) throw new Exception("Desktop overlays were mistaken for full screen.");
+            checks.Add("PASS desktop overlay styles: layered with transparent, tool-window or no-activate counts as an overlay; borderless, layered alone and each flag without layered do not");
+            OverlayWindowChecks(checks);
 
             using (Process ownProcess = Process.GetCurrentProcess())
                 if (Hands.ProgramName(ownProcess.Id) != ownProcess.ProcessName || Hands.ProgramName(-1) != "") throw new Exception("Her window list named a program differently from Windows.");
@@ -13451,6 +13455,56 @@ namespace CapriDesktop
             }
             catch (System.ComponentModel.Win32Exception) { checks.Add("LIMIT native body bitmap: Windows could not create a GDI surface in this environment"); }
             checks.Add("LIMIT live desktop checks: real input, a real screen turning off, password UI Automation, exclusive full screen and before/after CPU need an interactive bench");
+        }
+
+        private static void OverlayWindowChecks(System.Collections.Generic.List<string> checks)
+        {
+            bool? fake = Native.FakedGaming;
+            Form active = Form.ActiveForm;
+            try
+            {
+                Native.FakedGaming = null;
+                if (!Environment.UserInteractive || Screen.PrimaryScreen == null || Native.Exclusive())
+                {
+                    checks.Add("LIMIT desktop overlay window: an interactive monitor without exclusive full screen is needed");
+                    return;
+                }
+                using (Form window = new Form())
+                {
+                    window.FormBorderStyle = FormBorderStyle.None;
+                    window.ShowInTaskbar = false;
+                    window.StartPosition = FormStartPosition.Manual;
+                    window.Bounds = Screen.PrimaryScreen.Bounds;
+                    window.Opacity = 0.75;
+                    window.Show();
+                    Native.SetWindowLong(window.Handle, -20, Native.GetWindowLong(window.Handle, -20) | 0x80000 | 0x80);
+                    window.Activate();
+                    if (Native.GetForegroundWindow() != window.Handle || (Native.GetWindowLong(window.Handle, -20) & (0x80000 | 0x80)) != (0x80000 | 0x80)
+                        || !Native.Covers(window.Bounds, Screen.FromHandle(window.Handle).Bounds) || Native.Exclusive())
+                    {
+                        checks.Add("LIMIT desktop overlay window: the runner could not put a monitor-sized layered tool window in front");
+                        return;
+                    }
+                    if (Native.FillsScreen()) throw new Exception("A foreground layered tool window counted as full screen.");
+                    window.Opacity = 1;
+                    Native.SetWindowLong(window.Handle, -20, Native.GetWindowLong(window.Handle, -20) & ~(0x80000 | 0x20 | 0x80 | 0x08000000));
+                    window.Activate();
+                    if (Native.GetForegroundWindow() != window.Handle || (Native.GetWindowLong(window.Handle, -20) & (0x80000 | 0x20 | 0x80 | 0x08000000)) != 0
+                        || !Native.Covers(window.Bounds, Screen.FromHandle(window.Handle).Bounds) || Native.Exclusive())
+                    {
+                        checks.Add("LIMIT desktop overlay window: the runner could not keep the same plain window in front");
+                        return;
+                    }
+                    if (!Native.FillsScreen()) throw new Exception("A plain borderless monitor-sized window stopped counting as full screen.");
+                    checks.Add("PASS desktop overlay window: FillsScreen is false with a real foreground monitor-sized layered tool window and true after those styles are removed");
+                }
+            }
+            catch (System.ComponentModel.Win32Exception) { checks.Add("LIMIT desktop overlay window: Windows could not create or show the test window"); }
+            finally
+            {
+                Native.FakedGaming = fake;
+                if (active != null && !active.IsDisposed) active.Activate();
+            }
         }
 
         private void DesktopWindowChecks(System.Collections.Generic.List<string> checks)
@@ -41160,12 +41214,17 @@ namespace CapriDesktop
         // A title bar makes it an app sized to its monitor, not full screen, even one like Discord that doesn't count as maximized.
         internal static bool Titled(IntPtr window) { return (GetWindowLong(window, -16) & 0x00C00000) == 0x00C00000; }
 
+        // Desktop pets like Desktop Goose draw on a layered window as big as the screen, one that clicks go through or that never
+        // takes focus. In front, that's an overlay and never a game or video (rubenvr22, #64: she couldn't be clicked beside one).
+        internal static bool Overlay(int style) { return (style & 0x80000) != 0 && (style & (0x20 | 0x80 | 0x08000000)) != 0; }
+
         internal static bool FillsScreen()
         {
             if (FakedGaming.HasValue) return FakedGaming.Value;
             if (Exclusive()) return true;
             IntPtr front = GetForegroundWindow();
             if (front == IntPtr.Zero || IsZoomed(front) || Titled(front)) return false;
+            if (Overlay(GetWindowLong(front, -20))) return false;
             if (Gaming()) return true;
             System.Text.StringBuilder kind = new System.Text.StringBuilder(128);
             GetClassName(front, kind, kind.Capacity);
