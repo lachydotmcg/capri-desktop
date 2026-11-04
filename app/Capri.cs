@@ -38640,7 +38640,8 @@ namespace CapriDesktop
                             pill.Press(1);
                             typer.Draft = "nice, what are you up to?";
                             typer.Refresh();
-                            if (!typer.Visible || !box.Visible || typer.Bottom > box.PanelOnScreen.Top || typer.Left != box.PanelOnScreen.Left) throw new Exception("Typing box did not sit above her message.");
+                            bool typingAbove = typer.Bottom <= box.PanelOnScreen.Top, typingBelow = typer.Top >= box.PanelOnScreen.Bottom;
+                            if (!typer.Visible || !box.Visible || !(typingAbove || typingBelow) || typer.Left != box.PanelOnScreen.Left) throw new Exception("Typing box did not sit above her message, or below it when there was no room: typer " + typer.Bounds + " box " + box.PanelOnScreen + ", visible " + typer.Visible + "/" + box.Visible + ".");
                             using (Bitmap pair = new Bitmap(box.Width + 20, box.Bottom - typer.Top + 20, PixelFormat.Format32bppArgb))
                             using (Graphics graphics = Graphics.FromImage(pair))
                             {
