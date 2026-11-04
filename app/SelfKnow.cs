@@ -354,7 +354,7 @@ namespace CapriDesktop
         private static readonly Regex App = new Regex(@"\b(capri|mainframe|settings?|switch|toggle|preset|option)\b");
         private static readonly Regex Game = new Regex(@"\b(video ?games?|games?|gaming|gameplay|boss|quest|mission|npc|lore|weapon|inventory|chess|minecraft|roblox|valorant|fortnite|cyberpunk|2077|night city|edgerunners|elden ring|silksong|hollow knight|skyrim|terraria|stardew|overwatch|counter strike|cs2|gta|baldurs gate|league of legends)\b");
         private static readonly Regex Walkthrough = new Regex(@"^(?:(?:please|hey|capri|can you|could you) )*(?:(?:(?:give|show) me (?:a |the )?|i (?:want|need) (?:a )?)?(?:tutorial|walkthrough|getting started guide)(?: (?:for|on|about) (?:capri|you|your app|this app))?|how (?:do|can) i use (?:you|capri)|(?:teach me |show me )?how to use (?:you|capri)|teach me to use (?:you|capri))(?: please)?$");
-        private static readonly Regex SettingsIgnored = new Regex(@"\b(?:(?:ignor(?:e|ed|ing)|disobey(?:ed|ing)?|not (?:following|respecting|obeying)|dont (?:follow|respect)|arent (?:following|respecting)|wont (?:follow|respect)) (?:my|the|that) settings?|i (?:already )?(?:turned|switched) (?:that|this|it) (?:setting )?off|i (?:already )?disabled (?:that|this|it))\b");
+        private static readonly Regex SettingsIgnored = new Regex(@"\b(?:(?:ignor(?:e|ed|ing)|disobey(?:ed|ing)?|(?:not|dont|arent|wont|isnt|doesnt|didnt)(?: you)? (?:follow(?:ing)?|respect(?:ing)?|obey(?:ing)?|listen(?:ing)? to)) (?:my|the|that|your) settings?|i (?:already )?(?:turned|switched) (?:that|this|it) (?:setting )?off|i (?:already )?disabled (?:that|this|it))\b");
 
         private static string Plain(string text)
         {
