@@ -1710,7 +1710,7 @@ The Mac and Linux preview now has Capri Mainframe, laid out with BRAIN, VOICE an
 
 Mods opens the Mods window and directory. Settings mods, colour sets and skins work here too. Code mods are Windows only for now.
 
-Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her hooks run the Capri app itself, or the AppImage on Linux, so keep her in Applications or keep the AppImage where it is after you set it up.
+Code/Husk Mode works here too: Advanced Settings > BRAIN > Code/Husk Mode. Her hooks run the Capri app from where it is, so keep it in the same place after you set it up: Applications on Mac, or the folder you unpacked on Linux. If you move it, set Code/Husk Mode to Off and back on.
 
 ### Works
 - Sitting on windows (X11 and Mac) or the bottom of the screen (Wayland)
