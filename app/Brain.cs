@@ -376,8 +376,30 @@ namespace CapriDesktop
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
         // A server they run themselves that speaks OpenAI's chat API, like llama.cpp's llama-server, LM Studio, vLLM or
-        // Hugging Face's TGI, at its address without /v1. It thinks instead of Ollama, with Model as its model.
-        internal volatile string Server;
+        // Hugging Face's TGI, at its address without /v1. It thinks instead of Ollama, with Model as its model. ServerKey
+        // is optional: local servers need none, and an OpenAI-compatible provider gets it as a Bearer token. The address
+        // and key are read as one pair, so switching providers can never pair one provider's address with another's key.
+        private readonly object serverGate = new object();
+        private string server;
+        private string serverKey;
+        internal string Server
+        {
+            get { lock (serverGate) return server; }
+            set { lock (serverGate) { if (!string.Equals(server, value, StringComparison.Ordinal)) serverKey = null; server = value; } }
+        }
+        internal string ServerKey
+        {
+            get { lock (serverGate) return serverKey; }
+            set { lock (serverGate) serverKey = value; }
+        }
+        internal void SetServer(string address, string key)
+        {
+            lock (serverGate) { server = address; serverKey = address == null ? null : key; }
+        }
+        internal void GetServer(out string address, out string key)
+        {
+            lock (serverGate) { address = server; key = serverKey; }
+        }
         internal Func<string, ToolArguments, string> Act;
         // Her tools here for a brain that can or can't see. Checks hand her another computer's, like a Mac's.
         internal Func<bool, Hands.Kit> Kit = Hands.KitFor;
@@ -1312,17 +1334,42 @@ namespace CapriDesktop
             return address;
         }
 
-        // The models a server lists at /v1/models.
-        internal static string[] ServerModels(string address)
+        // A provider key may travel over HTTPS anywhere, or over plain HTTP only on this PC.
+        internal static bool ServerKeySafe(string address)
         {
+            Uri parsed;
+            if (!Uri.TryCreate(address, UriKind.Absolute, out parsed)) return false;
+            if (parsed.Scheme == Uri.UriSchemeHttps) return true;
+            if (parsed.Scheme != Uri.UriSchemeHttp) return false;
+            IPAddress host;
+            return string.Equals(parsed.Host, "localhost", StringComparison.OrdinalIgnoreCase)
+                || (IPAddress.TryParse(parsed.Host.Trim('[', ']'), out host) && IPAddress.IsLoopback(host));
+        }
+
+        // The models a server lists at /v1/models. A provider that wants a key gets it as a Bearer token, and a redirect
+        // never carries that key to another address.
+        internal static string[] ServerModels(string address, string key = null)
+        {
+            if (!string.IsNullOrEmpty(key) && !ServerKeySafe(address)) throw new BrainException("Use https for a provider elsewhere. A key over plain http isn't safe.", true);
             HttpWebRequest request = Create(address + "/v1/models", 5000);
-            using (WebResponse response = request.GetResponse())
-            using (Stream body = response.GetResponseStream())
+            bool signed = !string.IsNullOrEmpty(key);
+            if (signed) Sign(request, key, false);
+            try
             {
-                CloudModelPage page = (CloudModelPage)new DataContractJsonSerializer(typeof(CloudModelPage)).ReadObject(body);
-                List<string> names = new List<string>();
-                if (page.Models != null) foreach (CloudModel model in page.Models) if (model != null && !string.IsNullOrEmpty(model.Id) && model.Id.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Id);
-                return names.ToArray();
+                using (WebResponse response = request.GetResponse())
+                using (Stream body = response.GetResponseStream())
+                {
+                    if (signed) CheckRedirect(response);
+                    CloudModelPage page = (CloudModelPage)new DataContractJsonSerializer(typeof(CloudModelPage)).ReadObject(body);
+                    List<string> names = new List<string>();
+                    if (page.Models != null) foreach (CloudModel model in page.Models) if (model != null && !string.IsNullOrEmpty(model.Id) && model.Id.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Id);
+                    return names.ToArray();
+                }
+            }
+            catch (WebException error)
+            {
+                if (error.Response != null) throw Problem(error, true, null, key);
+                throw new BrainException(error.Status == WebExceptionStatus.Timeout ? "The provider took too long to list its models." : "Couldn't reach the provider. Check the address.", true);
             }
         }
 
@@ -2623,8 +2670,10 @@ namespace CapriDesktop
                 if (routing && Stopped(reply)) return CutShort(Said(reply), Whole(reply), calls);
                 return Read(reply, calls);
             }
-            string server = Server;
-            if (server != null) return Complete(server, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job, model);
+            string server;
+            string serverKey;
+            GetServer(out server, out serverKey);
+            if (server != null) return Complete(server, model, messages, tools, calls, parts, limit, ticket, routing, openAiTools, job, model, serverKey);
             Engine local = Local;
             if (local != null)
             {
@@ -2723,20 +2772,22 @@ namespace CapriDesktop
             return sent != null && Regex.IsMatch(error, @"unrecognized|unknown (parameter|argument|field)|not (supported|allowed|permitted)|unsupported (parameter|argument)|extra (inputs?|fields?)", RegexOptions.IgnoreCase) ? "" : null;
         }
 
-        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null, bool job = false, string named = null)
+        internal string Complete(string address, string model, List<ChatMessage> messages, bool tools, List<KeyValuePair<string, ToolArguments>> calls, string parts, int limit, int ticket, bool routing, string openAiTools = null, bool job = false, string named = null, string key = null)
         {
+            if (!string.IsNullOrEmpty(key) && !ServerKeySafe(address)) throw new BrainException("Use https for a provider elsewhere. A key over plain http isn't safe.", true);
             string thinking = address + "|" + model;
             string listed = tools ? openAiTools ?? Hands.Tools : null;
             CompletionRequest asking = new CompletionRequest { Messages = messages.ToArray(), Limit = ReplyLimit(thinker == thinking ? limit + 2048 : limit, job || routing) };
             if (named != null) asking.Model = named;
-            CompletionReply reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, null, parts, ticket);
+            Action<HttpWebRequest> sign = string.IsNullOrEmpty(key) ? null : new Action<HttpWebRequest>(delegate(HttpWebRequest request) { Sign(request, key, false); });
+            CompletionReply reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key);
             CompletionChoice choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             CompletionMessage message = choice != null ? choice.Message : null;
             if (thinker != thinking && ReplyLimit(limit + 2048, job || routing) > asking.Limit && choice != null && choice.Stopped == "length" && message != null && (!string.IsNullOrEmpty(message.Thinking) || !string.IsNullOrEmpty(message.Reasoning) || (message.Content ?? "").IndexOf("<think>", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 thinker = thinking;
                 asking.Limit = ReplyLimit(limit + 2048, job || routing);
-                reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, null, parts, ticket);
+                reply = Send<CompletionReply>(address + "/v1/chat/completions", asking, 180000, listed, sign, parts, ticket, key);
                 choice = reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             }
             CompletionMessage cut = choice != null ? choice.Message : null;
@@ -2744,7 +2795,7 @@ namespace CapriDesktop
                 reply = Longer(reply, asking.Limit, Stopped, Whole, delegate(int room)
                 {
                     asking.Limit = room;
-                    return Send<CompletionReply>(address + "/v1/chat/completions", asking, Math.Max(180000, room * 150), listed, null, parts, ticket);
+                    return Send<CompletionReply>(address + "/v1/chat/completions", asking, Math.Max(180000, room * 150), listed, sign, parts, ticket, key);
                 });
             if (routing && Stopped(reply)) return CutShort(Said(reply), Whole(reply), calls);
             return Read(reply, calls);
@@ -3460,7 +3511,7 @@ namespace CapriDesktop
             }
         }
 
-        private T Send<T>(string url, object body, int timeout, string tools = null, Action<HttpWebRequest> sign = null, string parts = null, int ticket = -1) where T : class
+        private T Send<T>(string url, object body, int timeout, string tools = null, Action<HttpWebRequest> sign = null, string parts = null, int ticket = -1, string secret = null) where T : class
         {
             Cloud sending = Remote;
             lock (gate)
@@ -3501,7 +3552,7 @@ namespace CapriDesktop
                         if (sign != null) CheckRedirect(response);
                         T reply;
                         if (typeof(T) == typeof(string)) using (StreamReader text = new StreamReader(incoming, Encoding.UTF8)) reply = (T)(object)text.ReadToEnd();
-                        else if (typeof(T) == typeof(CompletionReply) && (response.ContentType ?? "").StartsWith("text/event-stream", StringComparison.OrdinalIgnoreCase)) reply = (T)(object)ReadCompletion(incoming);
+                        else if (typeof(T) == typeof(CompletionReply) && (response.ContentType ?? "").StartsWith("text/event-stream", StringComparison.OrdinalIgnoreCase)) reply = (T)(object)ReadCompletion(incoming, secret);
                         else reply = (T)new DataContractJsonSerializer(typeof(T)).ReadObject(incoming);
                         if (System.Threading.Interlocked.CompareExchange(ref expired, 0, 0) != 0) throw new WebException("The reply took too long.", WebExceptionStatus.Timeout);
                         return reply;
@@ -3511,7 +3562,7 @@ namespace CapriDesktop
                 {
                     if (error.Response == null) throw;
                     Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode + (sending == null ? "" : " model " + sending.Model) + " body " + payload.Length + " bytes");
-                    BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null);
+                    BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null, secret);
                     if (sending != null && problem.RetryAt != default(DateTime))
                         lock (gate) { waitingRemote = sending; waitingSource = sending.Source; waiting = problem; }
                     throw problem;
@@ -3531,7 +3582,7 @@ namespace CapriDesktop
             finally { lock (gate) active.Remove(request); }
         }
 
-        internal static CompletionReply ReadCompletion(Stream incoming)
+        internal static CompletionReply ReadCompletion(Stream incoming, string secret = null)
         {
             CompletionChoice choice = new CompletionChoice { Message = new CompletionMessage() };
             SortedDictionary<int, CompletionCall> calls = new SortedDictionary<int, CompletionCall>();
@@ -3547,12 +3598,12 @@ namespace CapriDesktop
                     string chunk = data.ToString();
                     data.Length = 0;
                     if (chunk.Trim() == "[DONE]") { ended = true; break; }
-                    AddCompletion(chunk, choice, calls);
+                    AddCompletion(chunk, choice, calls, secret);
                 }
                 if (data.Length > 0)
                 {
                     if (data.ToString().Trim() == "[DONE]") ended = true;
-                    else AddCompletion(data.ToString(), choice, calls);
+                    else AddCompletion(data.ToString(), choice, calls, secret);
                 }
             }
             if (!ended && choice.Stopped == null) throw new BrainException("My brain's reply stopped before it finished. Try again.", true);
@@ -3560,13 +3611,18 @@ namespace CapriDesktop
             return new CompletionReply { Choices = new[] { choice } };
         }
 
-        private static void AddCompletion(string json, CompletionChoice choice, SortedDictionary<int, CompletionCall> calls)
+        private static void AddCompletion(string json, CompletionChoice choice, SortedDictionary<int, CompletionCall> calls, string secret = null)
         {
             string error = Field(json, "error");
             if (error != null && error != "null")
             {
                 string message = error.StartsWith("{", StringComparison.Ordinal) ? Field(error, "message") : error;
-                if (message != null && message.StartsWith("\"", StringComparison.Ordinal) && message.EndsWith("\"", StringComparison.Ordinal)) throw new BrainException(Unescape(message.Substring(1, message.Length - 2)));
+                if (message != null && message.StartsWith("\"", StringComparison.Ordinal) && message.EndsWith("\"", StringComparison.Ordinal))
+                {
+                    string said = Unescape(message.Substring(1, message.Length - 2));
+                    if (!string.IsNullOrEmpty(secret)) said = said.Replace(secret, "[redacted]");
+                    throw new BrainException(said);
+                }
                 throw new BrainException("My brain couldn't finish its reply. Try again.", true);
             }
             CompletionReply chunk;
@@ -3600,7 +3656,7 @@ namespace CapriDesktop
             if (status >= 300 && status < 400) throw new BrainException("Their API moved. Your key wasn't sent to the new address.", true);
         }
 
-        private static BrainException Problem(WebException error, bool remote, string kind = null)
+        private static BrainException Problem(WebException error, bool remote, string kind = null, string secret = null)
         {
             string text;
             string url = error.Response.ResponseUri.AbsoluteUri;
@@ -3610,6 +3666,7 @@ namespace CapriDesktop
             using (StreamReader incoming = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) text = incoming.ReadToEnd();
             string said = ProblemText(text);
             if (string.IsNullOrWhiteSpace(said)) said = error.Message;
+            if (!string.IsNullOrEmpty(secret)) said = said.Replace(secret, "[redacted]");
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
             string meaning = remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai") : null;

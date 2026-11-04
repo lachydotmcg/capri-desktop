@@ -525,8 +525,10 @@ namespace CapriDesktop
                 Brain.Remote = new Cloud(brainKey, Saved.CloudModel);
                 Brain.Model = Saved.CloudModel;
             }
-            Brain.Server = Brain.ServerAddress(Saved.BrainServer);
-            if (Brain.Remote == null && Brain.Server != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
+            string savedServer = Brain.ServerAddress(Saved.BrainServer);
+            string savedServerKey = savedServer == null ? null : ReadSecret(ServerKeyFile);
+            Brain.SetServer(savedServer, savedServerKey != null && Brain.ServerKeySafe(savedServer) ? savedServerKey : null);
+            if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             voice.Key = ReadVoiceKey();
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
             elevenLabs = new ElevenLabsSpeaker(voice);
@@ -2591,15 +2593,22 @@ namespace CapriDesktop
         private void RefreshBrains()
         {
             if (Brain.Remote != null) { ShowCloud(); ListCloud(); return; }
-            string server = Brain.Server;
+            string server;
+            string serverKey;
+            Brain.GetServer(out server, out serverKey);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
                 if (server != null)
                 {
-                    try { found = Brain.ServerModels(server); }
+                    try { found = Brain.ServerModels(server, serverKey); }
                     catch (Exception) { }
-                    Dispatcher.UIThread.Post(delegate { ShowServer(found); });
+                    Dispatcher.UIThread.Post(delegate
+                    {
+                        string currentServer, currentKey;
+                        Brain.GetServer(out currentServer, out currentKey);
+                        if (currentServer == server && currentKey == serverKey) ShowServer(found);
+                    });
                     return;
                 }
                 try { found = Brain.InstalledModels(); }
@@ -2637,6 +2646,9 @@ namespace CapriDesktop
             MenuItem own = new MenuItem { Header = "Use my own server (OpenAI API)..." };
             own.Click += delegate { AskServer(); };
             brainMenu.Items.Add(own);
+            MenuItem provider = new MenuItem { Header = "Use my own provider with a key (OpenAI API)..." };
+            provider.Click += delegate { AskProvider(); };
+            brainMenu.Items.Add(provider);
             // A cloud key thinks for her instead, for PCs that can't run Ollama's models well. NVIDIA's is free.
             brainMenu.Items.Add(new Separator());
             MenuItem free = new MenuItem { Header = "Get a free NVIDIA key" };
@@ -2652,10 +2664,12 @@ namespace CapriDesktop
         // On their own server the Brain menu lists its models, and can change its address or go back to Ollama.
         internal void ShowServer(string[] found)
         {
-            string server = Brain.Server;
+            string server;
+            string serverKey;
+            Brain.GetServer(out server, out serverKey);
             if (Brain.Remote != null || server == null) return;
             brainMenu.Items.Clear();
-            brainMenu.Items.Add(new MenuItem { Header = "My server at " + server, IsEnabled = false });
+            brainMenu.Items.Add(new MenuItem { Header = "My server at " + server + (serverKey == null ? "" : " (with a key)"), IsEnabled = false });
             if (found == null) brainMenu.Items.Add(new MenuItem { Header = "Can't reach it. Is it running?", IsEnabled = false });
             else if (found.Length == 0) brainMenu.Items.Add(new MenuItem { Header = "It lists no models", IsEnabled = false });
             else
@@ -2667,11 +2681,17 @@ namespace CapriDesktop
                     brainMenu.Items.Add(pick);
                 }
             brainMenu.Items.Add(new Separator());
-            MenuItem change = new MenuItem { Header = "Change server address..." };
+            MenuItem change = new MenuItem { Header = "Change server or provider address..." };
             change.Click += delegate { AskServer(); };
+            MenuItem key = new MenuItem { Header = serverKey == null ? "Set provider key..." : "Change provider key..." };
+            key.Click += delegate { AskProviderKey(); };
+            MenuItem forget = new MenuItem { Header = "Forget provider key" };
+            forget.Click += delegate { ForgetServerKey(); };
             MenuItem back = new MenuItem { Header = "Stop using my server and use Ollama" };
             back.Click += delegate { LeaveServer(); };
             brainMenu.Items.Add(change);
+            brainMenu.Items.Add(key);
+            if (serverKey != null) brainMenu.Items.Add(forget);
             brainMenu.Items.Add(back);
         }
 
@@ -2689,35 +2709,78 @@ namespace CapriDesktop
         internal void AskServer()
         {
             ComeBack();
-            Talk.AskFor("(brain server)", "Type your server's address, like http://localhost:8080 for llama-server or http://localhost:1234 for LM Studio, and press Enter.", UseServer);
+            Talk.AskFor("(brain server)", "Type your server's address, like http://localhost:8080 for llama-server or http://localhost:1234 for LM Studio, and press Enter.", delegate(string typed) { UseServer(typed, null); });
         }
 
-        internal void UseServer(string typed)
+        internal void AskProvider()
+        {
+            ComeBack();
+            Talk.AskFor("(brain provider)", "Type your provider's address, like https://api.commandcode.ai/provider, and press Enter.", AskProviderKeyFor);
+        }
+
+        private void AskProviderKeyFor(string typed)
+        {
+            string server = Brain.ServerAddress(typed);
+            if (server == null) { Talk.Answer("(brain provider)", "That address doesn't work. Try https://... or http://localhost:8080."); return; }
+            Talk.AskKey("(brain provider)", "Paste the API key for " + server + " and press Enter. It stays on this computer.", delegate(string key) { UseServer(server, key); });
+        }
+
+        internal void AskProviderKey()
+        {
+            string server;
+            string ignored;
+            Brain.GetServer(out server, out ignored);
+            if (server == null) return;
+            ComeBack();
+            Talk.AskKey("(brain provider)", "Paste the API key for " + server + " and press Enter. It stays on this computer.", delegate(string key) { UseServer(server, key); });
+        }
+
+        private void ForgetServerKey()
+        {
+            string server;
+            string ignored;
+            Brain.GetServer(out server, out ignored);
+            Brain.SetServer(server, null);
+            WriteSecret(ServerKeyFile, null, "provider key");
+            RefreshBrains();
+        }
+
+        internal void UseServer(string typed) { UseServer(typed, null); }
+
+        internal void UseServer(string typed, string key)
         {
             string server = Brain.ServerAddress(typed);
             if (server == null) { Talk.Answer("(brain server)", "That address doesn't work. Try http://localhost:8080."); return; }
+            key = (key ?? "").Trim();
+            if (key.Length == 0) key = null;
+            if (key != null && !Brain.ServerKeySafe(server))
+            {
+                Talk.Answer("(brain provider)", "Use https:// for a provider elsewhere. A key over plain http isn't safe.");
+                return;
+            }
             int ticket = ++asking;
             Talk.Thinking("(brain server)");
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string[] found = null;
-                try { found = Brain.ServerModels(server); }
+                try { found = Brain.ServerModels(server, key); }
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (found == null || found.Length == 0)
                     {
-                        if (ticket == asking) Talk.Answer("(brain server)", found == null ? "Can't reach a server at " + server + ". Is it running?" : "Your server at " + server + " lists no models. Load one in it first.");
+                        if (ticket == asking) Talk.Answer("(brain server)", found == null ? (key == null ? "Can't reach a server at " + server + ". Is it running?" : "Can't reach " + server + " with that key. Check the address and the key.") : "Your server at " + server + " lists no models. Load one in it first.");
                         return;
                     }
                     Brain.Cancel();
-                    Brain.Server = server;
+                    Brain.SetServer(server, key);
                     Saved.BrainServer = server;
+                    WriteSecret(ServerKeyFile, key, "provider key");
                     string model = Array.IndexOf(found, Saved.ServerModel) >= 0 ? Saved.ServerModel : found[0];
                     if (Brain.Remote == null) Brain.Model = model;
                     Saved.ServerModel = model;
                     Save();
-                    if (ticket == asking) Talk.Answer("(brain server)", "I'm thinking with " + model + " on your server now." + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
+                    if (ticket == asking) Talk.Answer("(brain server)", "I'm thinking with " + model + " on " + server + (key == null ? " now." : " with your key now.") + (Brain.Remote != null ? " Your cloud key still comes first until you forget it." : ""));
                 });
             });
         }
@@ -2734,8 +2797,9 @@ namespace CapriDesktop
         internal void LeaveServer()
         {
             Brain.Cancel();
-            Brain.Server = null;
+            Brain.SetServer(null, null);
             Saved.BrainServer = null;
+            WriteSecret(ServerKeyFile, null, "provider key");
             if (Brain.Remote == null) Brain.Model = null;
             Save();
             FindBrain();
@@ -2869,7 +2933,9 @@ namespace CapriDesktop
                     pulled = -1;
                     if (problem != null) { Talk.Answer(BrainHeard, problem); return; }
                     Saved.Model = tag;
-                    if (Brain.Remote == null && Brain.Server == null) Brain.Model = tag;
+                    string currentServer, currentKey;
+                    Brain.GetServer(out currentServer, out currentKey);
+                    if (Brain.Remote == null && currentServer == null) Brain.Model = tag;
                     Save();
                     Talk.Answer(BrainHeard, "My brain's in. Talk to me, choom.");
                 });
@@ -3526,7 +3592,9 @@ namespace CapriDesktop
         internal void FindBrain()
         {
             string saved = Saved.Model;
-            string server = Brain.Server;
+            string server;
+            string serverKey;
+            Brain.GetServer(out server, out serverKey);
             string serverSaved = Saved.ServerModel;
             ThreadPool.QueueUserWorkItem(delegate
             {
@@ -3536,14 +3604,16 @@ namespace CapriDesktop
                     if (server == null) model = Brain.PickModel(Brain.InstalledModels(), saved, null);
                     else
                     {
-                        string[] listed = Brain.ServerModels(server);
+                        string[] listed = Brain.ServerModels(server, serverKey);
                         model = Array.IndexOf(listed, serverSaved) >= 0 ? serverSaved : listed.Length > 0 ? listed[0] : null;
                     }
                 }
                 catch (Exception) { }
                 Dispatcher.UIThread.Post(delegate
                 {
-                    if (Brain.Model != null || model == null || Brain.Server != server) return;
+                    string currentServer, currentKey;
+                    Brain.GetServer(out currentServer, out currentKey);
+                    if (Brain.Model != null || model == null || currentServer != server || currentKey != serverKey) return;
                     Brain.Model = model;
                     if (server == null) Saved.Model = model;
                     else Saved.ServerModel = model;
@@ -3699,6 +3769,8 @@ namespace CapriDesktop
         private string KeyFile { get { return Path.Combine(Program.Smoke ?? folder, "voice-key"); } }
 
         private string BrainKeyFile { get { return Path.Combine(Program.Smoke ?? folder, "brain-key"); } }
+
+        private string ServerKeyFile { get { return Path.Combine(Program.Smoke ?? folder, "brain-server-key"); } }
 
         private string ReadVoiceKey() { return ReadSecret(KeyFile); }
 

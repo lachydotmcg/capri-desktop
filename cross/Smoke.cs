@@ -290,6 +290,8 @@ namespace CapriDesktop
                 checks.Add("PASS voice layers: Settings > Voice style > Layers turns on two copies of her under her, like Windows, with Layer 1 and Layer 2's pitch and delay in their own menus; " + layersFound + "; her ElevenLabs replies get them and come back 25 ms longer for their tails; off out of the box and in settings from before them, and off her voice is byte for byte as it was; the layers save and load as set");
                 LocalVoiceChecks();
                 BrainServerChecks();
+                ProviderRegression.Run(pet, folder);
+                checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
                 ChoresChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
@@ -619,7 +621,7 @@ namespace CapriDesktop
                 bool cloudGone = pet.Brain.Remote == null && pet.Saved.CloudModel == null && !File.Exists(Path.Combine(folder, "brain-key"));
                 pet.Brain.Model = "qwen3:8b";
                 pet.Talk.Dismiss();
-                if (ollamaMenu != "*qwen3:8b | - | Download a model (Ollama or Hugging Face)... | Use my own server (OpenAI API)... | - | Get a free NVIDIA key | " + Pet.KeyChoice) throw new Exception("The Brain menu didn't offer a cloud key: " + ollamaMenu);
+                if (ollamaMenu != "*qwen3:8b | - | Download a model (Ollama or Hugging Face)... | Use my own server (OpenAI API)... | Use my own provider with a key (OpenAI API)... | - | Get a free NVIDIA key | " + Pet.KeyChoice) throw new Exception("The Brain menu didn't offer a cloud key: " + ollamaMenu);
                 if (freeKey != Pet.FreeKeySteps || !keyAsked || notKey != Pet.NotAKey || !keyHidden) throw new Exception("The key choices didn't say where to paste, ask in a hidden box or explain a bad key: " + freeKey + " | " + keyAsked + " | " + notKey + " | " + keyHidden);
                 if (cloudMenu != "NVIDIA key ending 1234 (off) | *meta/llama-3.3-70b-instruct | qwen/qwen3-235b-a22b | - | Stay on my model | Forget the key and use Ollama" || !cloudPicked || !cloudGone || !cloudDetails || !hopped || !hopsEnd
                     || nvidiaMenu != "NVIDIA key ending 1234 (off) | *nvidia/nemotron-3.5-super-vl-120b-a12b · recommended | nvidia/nemotron-3.5-bolt-e4b | openai/gpt-oss-20b | - | *Stay on my model | Forget the key and use Ollama")
@@ -2039,6 +2041,7 @@ namespace CapriDesktop
             fail("server addresses", Brain.ServerAddress("localhost:8080") == "http://localhost:8080" && Brain.ServerAddress("http://127.0.0.1:1234/v1/") == "http://127.0.0.1:1234"
                 && Brain.ServerAddress("http://box.lan:8000/v1/chat/completions") == "http://box.lan:8000" && Brain.ServerAddress("ftp://x") == null && Brain.ServerAddress(" ") == null);
             List<string> brainAsked = new List<string>();
+            List<string> brainHeads = new List<string>();
             TcpListener server = new TcpListener(IPAddress.Loopback, 0);
             server.Start();
             Thread serve = new Thread(delegate()
@@ -2075,7 +2078,7 @@ namespace CapriDesktop
                             }
                             string path = head.Split(' ')[1];
                             string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
-                            lock (brainAsked) brainAsked.Add(path + " " + body);
+                            lock (brainAsked) { brainAsked.Add(path + " " + body); brainHeads.Add(head); }
                             string reply = path == "/v1/models" ? "{\"object\":\"list\",\"data\":[{\"id\":\"qwen-test\"},{\"id\":\"nomic-embed\"},{\"id\":\"llama-test\"}]}"
                                 : path == "/v1/chat/completions" ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Server says hi, choom.\"},\"finish_reason\":\"stop\"}]}" : "{}";
                             byte[] bytes = Encoding.UTF8.GetBytes(reply);
@@ -2092,6 +2095,8 @@ namespace CapriDesktop
             string address = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port;
             string[] models = Brain.ServerModels(address);
             fail("its models", models.Length == 2 && models[0] == "qwen-test" && models[1] == "llama-test");
+            string[] keyedModels = Brain.ServerModels(address, "secret-key");
+            fail("a provider key reaches its models", keyedModels.Length == 2 && brainHeads.Exists(delegate(string head) { return head.StartsWith("GET /v1/models", StringComparison.Ordinal) && head.IndexOf("Authorization: Bearer secret-key", StringComparison.OrdinalIgnoreCase) >= 0; }));
             Brain thinker = new Brain { Server = address, Model = "llama-test" };
             string said = null;
             try { said = thinker.Ask("hi there"); }
@@ -2099,13 +2104,20 @@ namespace CapriDesktop
             string chat;
             lock (brainAsked) chat = brainAsked.Find(delegate(string line) { return line.StartsWith("/v1/chat/completions ", StringComparison.Ordinal); }) ?? "";
             fail("a chat through it", said != null && said.IndexOf("Server says hi", StringComparison.Ordinal) >= 0 && chat.IndexOf("\"model\":\"llama-test\"", StringComparison.Ordinal) > 0 && chat.IndexOf("hi there", StringComparison.Ordinal) > 0);
+            fail("a local chat sends no key", !brainHeads.Exists(delegate(string head) { return head.StartsWith("POST /v1/chat/completions", StringComparison.Ordinal) && head.IndexOf("Authorization:", StringComparison.OrdinalIgnoreCase) >= 0; }));
+            Brain keyed = new Brain { Server = address, ServerKey = "secret-key", Model = "llama-test" };
+            string keyedSaid = null;
+            try { keyedSaid = keyed.Ask("hi with key"); }
+            catch (Exception error) { keyedSaid = "threw " + error.Message; }
+            fail("a keyed chat works", keyedSaid != null && keyedSaid.IndexOf("Server says hi", StringComparison.Ordinal) >= 0);
+            fail("a provider key reaches its chat", brainHeads.Exists(delegate(string head) { return head.StartsWith("POST /v1/chat/completions", StringComparison.Ordinal) && head.IndexOf("Authorization: Bearer secret-key", StringComparison.OrdinalIgnoreCase) >= 0; }));
             server.Stop();
             bool down = false;
             try { thinker.Ask("still there?"); }
             catch (Exception) { down = true; }
             fail("a server that's down throws for her to explain", down);
             if (wrong.Count > 0) throw new Exception("Her own brain server went wrong: " + string.Join(", ", wrong) + " / " + said + " / " + chat);
-            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links");
+            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
         }
 
         // Her mouse and keyboard jobs on Linux: a screenshot to her brain, one JSON step back, done with her own uinput mouse and
