@@ -46,7 +46,7 @@ namespace CapriDesktop
         private static readonly string[] GapNames = { "10 s", "15 s", "30 s", "1 min", "1.5 min", "2 min", "3 min", "5 min", "10 min" };
         private const int SetupHeight = 118;
         // The left column is the taller one, and CLIPS' note at its foot sets this, with Free voice in games showing.
-        private const int PageTall = 1784;
+        private const int PageTall = 1868;
         // Settings scrolls at this height rather than filling a tall screen (Lachy, 31 Oct).
         private const int MostView = 820;
         // Settings opens a second column to the right, so every setting shows at once.
@@ -269,14 +269,14 @@ namespace CapriDesktop
         // Settings opens simple: the rows most people never need are hidden and the gaps closed, and Advanced Settings brings
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
-        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 700, 1177 }, new[] { 1288, 1340 }, new[] { 1340, 1368 } };
+        private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 784, 1261 }, new[] { 1372, 1424 }, new[] { 1424, 1452 } };
         private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 652, 1062 }, new[] { 1258, 2084 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
         private int PageNow { get { return simple ? SimpleTall : PageTall; } }
         // The same for Simple Settings, with its hidden rows taken out.
-        private const int SimpleTall = 1002;
+        private const int SimpleTall = 1086;
         private int wheel;
         // A wheel turn glides the page to where it's headed over a few frames, instead of jumping a row at a time (Lachy, 3 Nov).
         private const double GlideMs = 140;
@@ -330,8 +330,12 @@ namespace CapriDesktop
         private readonly Label micLoudnessName;
         private readonly ContextMenuStrip mixInputMenu, mixOutputMenu;
         private MixSheet mixSheet;
-        private const int MixAt = 506;
-        private const int MixRows = 184;
+        private readonly Toggle callMode;
+        private readonly Key callApp;
+        private readonly Label callAppName, callAppNote;
+        private readonly ContextMenuStrip callAppMenu;
+        private const int MixAt = 590;
+        private const int MixRows = 268;
         private readonly Toggle miniPlayer;
         private readonly Readout sleepName;
         private readonly Readout soundsName;
@@ -668,9 +672,23 @@ namespace CapriDesktop
             hdGames = Switch("Free voice in games", 0, 478, delegate { if (!syncing) capri.ToggleHdGameRest(); });
             hdGames.AccessibleName = "Free voice in games: while a game or video is full screen, her free voice talks instead of her HD voice, so the game gets the graphics card";
             hdGames.Visible = false;
+            callMode = Switch("Call mode (beta)", 0, 506, delegate { if (!syncing) capri.ToggleCallMode(); });
+            callMode.AccessibleName = "Call mode. Only your mic or typing can confirm requests";
+            callAppName = Named("Call app", 0, 534);
+            callAppMenu = Dropdown();
+            callAppMenu.AccessibleName = "Call app choices";
+            callApp = Make("Auto", ValueAt, 534, ValueWide, 22, delegate { callAppMenu.Show(callApp, new Point(0, callApp.Height)); }, "Call app");
+            callApp.Chevron = true;
+            callApp.AccessibleName = "Call app. Auto prefers Discord, then a call app making sound. Pick Browser or Steam yourself";
+            foreach (string name in CallApps.Choices)
+            {
+                string chosen = name;
+                callAppMenu.Items.Add(Choice(name, false, delegate { capri.ChooseCallApp(chosen); }));
+            }
+            callAppNote = Caption(CallApps.Note, 28, 562, small, Faint);
             voiceInMic = Switch("Her voice in your mic", 0, MixAt, delegate { if (!syncing) capri.ToggleVoiceInMic(); });
             voiceInMic.Switch = 68;
-            voiceInMic.AccessibleName = "Her voice plays into your mic only in call mode. Pick CABLE Output or Steam Streaming Microphone in Discord or Roblox.";
+            voiceInMic.AccessibleName = "Her voice plays into your mic only in call mode. Pick CABLE Output or Steam Streaming Microphone in your call app.";
             voiceInMicNote = Caption(MicMix.PickLine(MicMix.CableEnd), 28, MixAt + 26, small, Faint);
             // Without a cable the note credits VB-CABLE, and opens its page, where they can donate.
             voiceInMicNote.Click += delegate { if (voiceInMicNote.Text == CableSetup.Credit) capri.OpenCablePage(); };
@@ -685,9 +703,9 @@ namespace CapriDesktop
             mixOutputMenu = Dropdown();
             mixOutput = Make("Output: none", 28, MixAt + 104, 244, 22, delegate { ShowMixOutputs(mixOutput); }, "Her voice in your mic");
             mixOutput.Chevron = true;
-            mixOutput.AccessibleName = "Her mix's output: the virtual mic it plays into, which you pick as your mic in Discord or Roblox";
+            mixOutput.AccessibleName = "Her mix's output: the virtual mic it plays into, which you pick as your mic in your call app";
             mixHow = Make("How to", 280, MixAt + 104, 76, 22, delegate { OpenMix(); }, "Her voice in your mic");
-            mixHow.AccessibleName = "How to set up her voice in your mic: the steps in Discord, and whether Discord hears it";
+            mixHow.AccessibleName = "How to set up her voice in your mic for your call app";
             micLoudnessName = Caption("Her voice in your mic: loudness", 28, MixAt + 134, Type(9.5f), Rose);
             micLoudness = new Slider(MicLevels);
             micLoudness.Font = Type(9.5f);
@@ -749,6 +767,7 @@ namespace CapriDesktop
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             }
             foreach (Control mixRow in MixControls) underVoice.Add(new KeyValuePair<Control, int>(mixRow, mixRow.Top));
+            foreach (Control callRow in CallControls) underVoice.Add(new KeyValuePair<Control, int>(callRow, callRow.Top));
             Section("CAPRI >", c, 58);
             sizeSlider = Setting("Size", SizeNames, c, 82, "Her size");
             sizeName = new Readout(sizeSlider);
@@ -1397,6 +1416,50 @@ namespace CapriDesktop
 
         internal bool ListenCapriShown { get { return listenCapri.Checked; } }
 
+        internal void ShowCallApp()
+        {
+            bool was = syncing;
+            syncing = true;
+            callMode.Checked = capri.CallModeOn;
+            syncing = was;
+            CallApp app = CallApps.Get(capri.CallAppChoice);
+            Retext(callApp, app == null ? "Auto" : app.Choice.StartsWith("Browser", StringComparison.Ordinal) ? "Browser" : app.Choice);
+            foreach (ToolStripMenuItem item in callAppMenu.Items) item.Checked = item.Text == capri.CallAppChoice;
+            if (mixSheet != null && !mixSheet.IsDisposed) mixSheet.Sync();
+        }
+
+        private Control[] CallControls { get { return new Control[] { callMode, callAppName, callApp, callAppNote }; } }
+
+        internal string CallAppShown { get { return callApp.Text; } }
+
+        internal void PickCallApp(int index) { ((ToolStripMenuItem)callAppMenu.Items[index]).PerformClick(); }
+
+        internal string CallAppFits()
+        {
+            foreach (Control row in CallControls)
+            {
+                if (row.Left < 0 || row.Right > Scaled(356) || row.Top < hearingChoice.Bottom || row.Bottom > voiceInMic.Top) return "Call app rows are outside their space.";
+                foreach (Control other in Controls)
+                    if (row != other && other.Visible && other.Left < Scaled(Column) && !(other is Label && other.Text.Length == 0) && row.Bounds.IntersectsWith(other.Bounds)) return "Call app overlaps " + other.AccessibleName + ".";
+            }
+            if (TextRenderer.MeasureText(callMode.Text, callMode.Font, Size.Empty, TextFormatFlags.NoPadding).Width > callMode.NameRoom) return "Call mode does not fit.";
+            if (callAppName.Right > callApp.Left || callAppName.Bottom > callAppNote.Top || callApp.Bottom > callAppNote.Top) return "Call app labels overlap.";
+            if (TextRenderer.MeasureText(callAppNote.Text, callAppNote.Font).Width > Scaled(328)) return "Call app note does not fit.";
+            foreach (string name in CallApps.Choices)
+            {
+                string shown = name.StartsWith("Browser", StringComparison.Ordinal) ? "Browser" : name;
+                if (TextRenderer.MeasureText(shown, callApp.Font).Width + Scaled(28) > callApp.Width) return name + " does not fit.";
+            }
+            return null;
+        }
+
+        internal string CallAppAt(float scale)
+        {
+            float was = Zoom;
+            try { Rezoom(scale / DeviceScale() / TextScale()); ShowSettings(true); return CallAppFits(); }
+            finally { Rezoom(was); }
+        }
+
         internal void FlipListenCapri() { listenCapri.Checked = !listenCapri.Checked; }
 
         internal string HdGamesStatus { get { return hdGames.Visible ? (hdGames.Checked ? "on" : "off") : "-"; } }
@@ -1529,6 +1592,8 @@ namespace CapriDesktop
         internal void ShowMixWindow() { OpenMix(); }
 
         internal string MixShown { get { return mixSheet == null || mixSheet.IsDisposed || !mixSheet.Visible ? null : mixSheet.Showing; } }
+        internal string MixCallSteps { get { return mixSheet == null || mixSheet.IsDisposed ? null : mixSheet.CallSteps; } }
+        internal static string MixAppName(string process) { return MixSheet.AppName(process); }
 
         internal void CloseMix() { if (mixSheet != null && !mixSheet.IsDisposed) mixSheet.Close(); }
 
@@ -1948,7 +2013,7 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu, callAppMenu }) menu.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 if (languageFont != null) { languageFont.Dispose(); languageFont = null; }
                 foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
@@ -2380,7 +2445,7 @@ namespace CapriDesktop
             if (disposing) { glide.Stop(); glide.Dispose(); if (languageFont != null) languageFont.Dispose(); }
             if (disposing) DisposeHints();
             if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); }
-            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); }
+            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); callAppMenu.Dispose(); }
             if (disposing && languageFont != null) languageFont.Dispose();
             base.Dispose(disposing);
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();
@@ -2533,6 +2598,7 @@ namespace CapriDesktop
             typing.Checked = capri.TypingSound;
             listenCapri.Checked = capri.ListenCapriOn;
             ShowHdGames();
+            ShowCallApp();
             ShowVoiceInMic();
             miniPlayer.Checked = capri.PlayerOn;
             replies.Value = capri.Wordiness;
@@ -5952,12 +6018,15 @@ namespace CapriDesktop
         {
             internal const int Wide = 620, Tall = 478;
             internal const string NoCable = "No virtual mic yet. Pick Output, then Get VB-CABLE (free).", NoOutput = "None yet: pick to get VB-CABLE (free)";
-            internal const string Off = "Off. Turn on Her voice in your mic above.", NotYet = "Discord isn't hearing it yet: do 1 and 2, then join a call.";
+            internal const string Off = "Off. Turn on Her voice in your mic above.";
+            internal static string NotYet { get { return CallApps.Current.Name + " isn't hearing it yet: do 1 and 2, then join a call."; } }
             internal readonly float Zoom;
             private readonly Mainframe owner;
             private readonly Toggle onOff;
             private readonly Key input, output;
             private readonly Label note, state, pickStep, pick, live, elsewhere;
+            private readonly Head callHead;
+            private readonly Label[] steps;
             private readonly System.Windows.Forms.Timer ticks = new System.Windows.Forms.Timer();
             private bool syncing;
 
@@ -6002,16 +6071,17 @@ namespace CapriDesktop
                 Caption("Output", 28, 143, Font, Rose);
                 output = Make("", 120, 140, Wide - 148, 22, delegate { owner.ShowMixOutputs(output); });
                 output.Chevron = true;
-                output.AccessibleName = "Output: the virtual mic she plays into, which Discord hears";
+                output.AccessibleName = "Output: the virtual mic she plays into, which your call app hears";
                 state = Caption("", 28, 174, Font, Faint);
-                Heading(this, "IN DISCORD >", new Point(Z(28), Z(208)), head, White, Wide - 28);
-                Caption("1   User Settings (the cog by your name) > Voice & Video", 28, 240, Font, White);
+                callHead = Heading(this, "IN DISCORD >", new Point(Z(28), Z(208)), head, White, Wide - 28);
+                steps = new Label[5];
+                steps[0] = Caption("", 28, 240, Font, White);
                 pickStep = Caption("2   Input Device:", 28, 266, Font, White);
                 pick = Caption("", 28, 266, Font, Cyan);
-                Caption("3   Output Device: your headphones, like before", 28, 292, Font, White);
-                Caption("4   Echo Cancellation: Off", 28, 318, Font, White);
-                Caption("5   Noise Suppression: None. Both can cut her voice after the first line.", 28, 344, Font, White);
-                Caption("6   Mic Test > Let's Check: you'll hear you, and her as she talks", 28, 370, Font, White);
+                steps[1] = Caption("", 28, 292, Font, White);
+                steps[2] = Caption("", 28, 318, Font, White);
+                steps[3] = Caption("", 28, 344, Font, White);
+                steps[4] = Caption("", 28, 370, Font, White);
                 live = Caption("", 28, 404, Font, Faint);
                 elsewhere = Caption("", 28, 438, Font, Faint);
                 ticks.Interval = 1000;
@@ -6057,11 +6127,27 @@ namespace CapriDesktop
                 bool cable = there != null, on = capri.VoiceInMic;
                 bool vb = capri.VbCableReady;
                 string problem = capri.VoiceInMicProblem, setup = capri.CableSetupLine, far = MicMix.FarName(there);
+                CallApp app = CallApps.Current;
+                bool isDiscord = app.Name == "Discord";
+                Retext(callHead, "IN " + app.Caption + " >");
+                string[] lines = isDiscord ? new[] {
+                    "1   User Settings (the cog by your name) > Voice & Video",
+                    "3   Output Device: your headphones, like before", "4   Echo Cancellation: Off",
+                    "5   Noise Suppression: None. Both can cut her voice after the first line.",
+                    "6   Mic Test > Let's Check: you'll hear you, and her as she talks"
+                } : new[] {
+                    "1   Open the call or meeting's audio settings",
+                    "3   Speaker: your headphones, like before", "4   If her voice cuts off, turn off noise filtering",
+                    "5   Try a mic test in your call app",
+                    "6   Join the call and check they hear both of you"
+                };
+                for (int i = 0; i < steps.Length; i++) Retext(steps[i], lines[i]);
+                Retext(pickStep, isDiscord ? "2   Input Device:" : "2   Microphone:");
                 syncing = true;
                 onOff.Checked = on;
                 onOff.Enabled = cable || on;
                 syncing = false;
-                Retext(note, cable && !vb ? CableSetup.Better + " Pick Output to get it." : "Your mic and her voice go into one virtual mic, and Discord hears that.");
+                Retext(note, cable && !vb ? CableSetup.Better + " Pick Output to get it." : "Your mic and her voice go into one virtual mic, and " + app.Name + " hears that.");
                 Retext(input, capri.MixInputName ?? "No mic found");
                 Retext(output, cable ? far : NoOutput);
                 Retext(pick, far);
@@ -6078,9 +6164,9 @@ namespace CapriDesktop
                 Retext(state, said);
                 state.ForeColor = colour;
                 List<string> hearing = cable && on && there.Far != null ? capri.MixListeners : new List<string>();
-                bool discord = hearing.Exists(delegate(string process) { return AppName(process) == "Discord"; });
+                bool discord = hearing.Exists(delegate(string process) { return app.Has(process); });
                 string apps = Apps(hearing), verb = AppNames(hearing).Count > 1 ? " hear" : " hears";
-                Retext(live, !cable || !on || there.Far == null ? "" : discord ? apps + verb + " it now." : hearing.Count > 0 ? apps + verb + " it now. Discord doesn't yet." : NotYet);
+                Retext(live, !cable || !on || there.Far == null ? "" : discord ? apps + verb + " it now." : hearing.Count > 0 ? apps + verb + " it now. " + app.Name + " doesn't yet." : NotYet);
                 live.ForeColor = discord ? Cyan : Faint;
             }
 
@@ -6089,6 +6175,7 @@ namespace CapriDesktop
             {
                 string name = (process ?? "").ToLowerInvariant();
                 if (name.StartsWith("discord", StringComparison.Ordinal)) return "Discord";
+                foreach (CallApp app in CallApps.Apps) if (app.Has(process)) return app.Name;
                 if (name.StartsWith("roblox", StringComparison.Ordinal)) return "Roblox";
                 if (name == "obs64" || name == "obs32" || name == "obs") return "OBS";
                 return process;
@@ -6113,6 +6200,7 @@ namespace CapriDesktop
 
             // "on | Input | Output | the state line | the name to pick | who hears it", as the window shows it, for the smoke test.
             internal string Showing { get { return (onOff.Checked ? "on" : "off") + " | " + input.Text + " | " + output.Text + " | " + state.Text + " | " + pick.Text + " | " + live.Text; } }
+            internal string CallSteps { get { return callHead.Text + " | " + note.Text + " | " + steps[0].Text + " | " + pickStep.Text + " | " + steps[4].Text; } }
 
             // Anything that overlaps, pokes out of the window or doesn't fit its own text, or null.
             internal string Crowded()

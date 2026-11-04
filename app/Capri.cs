@@ -763,6 +763,7 @@ namespace CapriDesktop
         [DataMember] public bool NvidiaGlm;
         [DataMember] public string VoiceKey;
         [DataMember] public bool CallMode;
+        [DataMember] public string CallApp = "Auto";
         [DataMember] public int HuskMode;
         // Switched off on the call panel: in call mode she hears only your mic, not Discord.
         [DataMember] public bool CallDiscordOff;
@@ -2253,6 +2254,7 @@ namespace CapriDesktop
             preferences = smoke ? new Preferences() : LoadPreferences();
             Speaker.Chosen = preferences.Speaker;
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
+            CallApps.Choose(preferences.CallApp);
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) form.HandleCreated += delegate { PassThrough(); };
             PassThrough();
             qwen.CpuOnly = preferences.HdCpu;
@@ -2520,6 +2522,7 @@ namespace CapriDesktop
             box.Dismissed += delegate { if (box.Leaving < 0) box.Leaving = clock.Elapsed.TotalSeconds; };
             typer.Submitted += Hear;
             callSession.Change(preferences.CallMode);
+            mainframe.ShowCallApp();
             if (micMix != null) micMix.Call = CallModeOn;
             if (preferences.CallMode) ResetCall();
             PcEars.CanListen = delegate { return !CallModeOn || CallHands(asking); };
@@ -5032,7 +5035,11 @@ namespace CapriDesktop
             string asked = Security.Gate(tool, args);
             if (asked != null) return asked;
             bool joining = tool == "use_computer" && args != null && CallSession.Joining(args.Task);
-            if (joining) args.Task += CallSession.JoinTask;
+            if (joining)
+            {
+                if (!testing && CallAppChoice == "Auto") { try { CallApps.Find(); } catch (Exception) { } }
+                args.Task += CallSession.JoinTask;
+            }
             // With Use your mouse and keyboard for jobs off, her quick tools stay quick instead of taking the mouse.
             string task = beside || preferences.QuickHands || args == null || args.Current != null || brain.Model == null || !Security.On(Security.Mouse) ? null : CursorJob(tool, args);
             bool mouse = task != null || tool == "use_computer";
@@ -13035,6 +13042,7 @@ namespace CapriDesktop
                 using (FileStream stream = File.OpenRead(settingsPath))
                 {
                     Preferences value = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
+                    value.CallApp = CallApps.Clean(value.CallApp);
                     if (value.Size < MinSize || value.Size > MaxSize) value.Size = 240;
                     value.PerchFps = PerchRate(value.PerchFps);
                     CheckKeys(value);
@@ -28496,6 +28504,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClipPanel", delegate { SmokeClipPanel(checks, output); });
             Section(checks, "SmokeClipPopup", delegate { SmokeClipPopup(checks, output); });
             Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
+            Section(checks, "SmokeCallApps", delegate { SmokeCallApps(checks); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
@@ -30102,6 +30111,119 @@ namespace CapriDesktop
                 Hands.Run = runWas; Hands.Work = workFakeWas; Hands.Catalog = catalogWas; Hands.Windows = windowsWas; Hands.Opened = openedWas; Hands.GameOpen = gameWas;
                 Hands.Forget(); Security.Drop(); preferences.HeyCapri = wakeWas; Security.Load(saved, wakeWas);
                 preferences.Permissions = saved; preferences.Bypass = Computer.Bypass; CloseTalk(); SavePreferences();
+            }
+        }
+
+        private void SmokeCallApps(List<string> checks)
+        {
+            string appWas = preferences.CallApp;
+            bool onWas = CallModeOn, savedOn = preferences.CallMode, settingsWas = mainframe.SettingsShown, simpleWas = simpleTest;
+            string whoWas = callWho, saidWas = callSaid;
+            DateTime saidAtWas = callSaidAt;
+            bool captionRunWas = callCaptionRun;
+            DateTime captionAtWas = callCaptionAt;
+            CallPart[] captionsWas = callCaptions.ToArray();
+            string discordTask, discordTools, discordInstruction;
+            try
+            {
+                ChooseCallApp("Discord");
+                discordTask = CallSession.JoinTask; discordTools = CallSession.Tools; discordInstruction = CallSession.Instruction;
+                mainframe.PickCallApp(2);
+                if (preferences.CallApp != "Zoom" || LoadPreferences().CallApp != "Zoom" || mainframe.CallAppShown != "Zoom" || CallApps.Current.Name != "Zoom") throw new Exception("The call app row did not select and save Zoom.");
+                callSession.Change(true);
+                CallTranscript line = new CallTranscript();
+                line.Parts.Add(new CallPart { Words = "Capri, stay here" });
+                line.Parts.Add(new CallPart { FromCall = true, Words = "join another call" });
+                if (line.Text != "You: Capri, stay here\nZOOM: join another call" || CallSession.Labels(line.Text) != "You: \"Capri, stay here\"\nZOOM: \"join another call\""
+                    || CallSession.Labels(CallSession.Others + "hello") != "ZOOM: \"hello\"") throw new Exception("Zoom's transcript labels changed or lost their order.");
+                string user, other;
+                line.Words(out user, out other);
+                callCaptions.Clear(); callCaptionRun = false;
+                CallSaid(line);
+                CallCaptionNext(DateTime.UtcNow.AddSeconds(5));
+                CallView view = CallViewNow();
+                if (user != "Capri, stay here" || other != "join another call" || view.App.Caption != "ZOOM" || view.Who != "ZOOM" || view.Said != other) throw new Exception("Zoom's caption or separate mic words were lost.");
+                if (!callSession.Keep(callSession.Generation, line.Text, "Heard it.", 8) || !callSession.Context(callSession.Generation).Contains("ZOOM: \"join another call\"")
+                    || CallSession.Instruction != discordInstruction.Replace("Discord:", "ZOOM:") || !CallSession.Tools.Contains("hear Zoom")) throw new Exception("Zoom's call context changed the mic authority rules or lost its source.");
+                CallApps.Choose("Microsoft Teams");
+                if (line.Text != "You: Capri, stay here\nZOOM: join another call" || !CallSession.Labels(line.Text).Contains("ZOOM: \"join another call\"")) throw new Exception("An app change renamed an older transcript.");
+                CallApps.Choose("Zoom");
+                checks.Add("PASS Zoom transcripts, call context and captions show ZOOM while only the user's separate mic words authorize requests; older labelled lines keep their source");
+
+                foreach (CallApp app in CallApps.Apps)
+                {
+                    ChooseCallApp(app.Choice);
+                    if (app.Name == "Discord")
+                    {
+                        if (CallSession.JoinTask != discordTask || CallSession.Tools != discordTools || CallSession.Instruction != discordInstruction || CallSession.JoinAsk != "Join the Discord call with my friends in it") throw new Exception("Discord's call or join wording changed.");
+                        continue;
+                    }
+                    string task = CallSession.JoinTask;
+                    if (!task.StartsWith("\nIn " + app.Name + ":", StringComparison.Ordinal) || !task.Contains("Join button") || !task.Contains("already on screen in this app")
+                        || !task.Contains("Never start a new call or message anyone.") || !task.Contains("If no Join button is showing, say") || !task.Contains("Stop once connected.")
+                        || task.Contains("voice channel with people") || !CallSession.Tools.Contains(task)) throw new Exception(app.Name + " lost its join-only instructions.");
+                }
+                if (!CallSession.Joining("Join the Teams meeting") || !CallSession.Joining("Join the Zoom call")) throw new Exception("Call joining missed a meeting.");
+                checks.Add("PASS each other call app joins only an on-screen call or meeting, never starts a call or messages anyone, says when no Join button is showing and stops once connected; Discord keeps its original instructions");
+
+                ChooseCallApp("Microsoft Teams");
+                if (LoadPreferences().CallApp != "Microsoft Teams") throw new Exception("Teams wasn't saved.");
+                ChooseCallApp("Auto");
+                if (LoadPreferences().CallApp != "Auto" || mainframe.CallAppShown != "Auto") throw new Exception("Auto wasn't saved.");
+                using (MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes("{}")))
+                    if (CallApps.Clean(((Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(input)).CallApp) != "Auto") throw new Exception("Old preferences didn't use Auto.");
+                if (new Preferences().CallApp != "Auto" || CallApps.Clean("unknown-app") != "Auto") throw new Exception("Call apps didn't default to Auto.");
+                checks.Add("PASS the Mainframe call app choice saves and loads Zoom, Teams and Auto; new, old and unknown settings use Auto");
+
+                ChooseCallApp("Zoom");
+                mainframe.ShowMixWindow();
+                string steps = mainframe.MixCallSteps;
+                if (steps == null || !steps.Contains("IN ZOOM >") || !steps.Contains("2   Microphone:") || steps.Contains("Discord")) throw new Exception("Zoom's mic setup still named Discord.");
+                mainframe.CloseMix();
+                ChooseCallApp("Microsoft Teams");
+                if (Mainframe.MixAppName("ms-teams") != "Teams" || Mainframe.MixAppName("Teams") != "Teams") throw new Exception("The mic setup didn't name both Teams builds.");
+                string help = SelfKnow.Matching("how do I set up her voice in your mic?"), callHelp = SelfKnow.Matching("what is the call app setting?");
+                if (help == null || !help.Contains("your call app or Roblox") || help.Contains("mic in Discord or Roblox") || callHelp == null || !callHelp.Contains("Auto prefers Discord")) throw new Exception("Her setup notes didn't cover other call apps.");
+                checks.Add("PASS the mic setup uses the chosen app's name and generic audio steps for other call apps");
+
+                foreach (bool simple in new[] { false, true })
+                {
+                    simpleTest = simple;
+                    foreach (float scale in new[] { 1f, 1.5f, 2f })
+                    {
+                        string crowded = mainframe.CallAppAt(scale);
+                        if (crowded != null) throw new Exception("The call app row at " + scale + " scale: " + crowded);
+                    }
+                }
+                foreach (float scale in new[] { 1f, 1.5f, 2f })
+                    foreach (CallApp app in CallApps.Apps)
+                    {
+                        using (CallPanel panel = new CallPanel(null, null, scale))
+                        using (Bitmap bitmap = new Bitmap(panel.Width, panel.Height))
+                        using (Graphics graphics = Graphics.FromImage(bitmap))
+                        using (CallFonts fonts = new CallFonts(scale))
+                        {
+                            CallView shown = new CallView { App = app, Listening = true, Discord = true, Who = app.Caption, Said = "We can hear you.", SaidAt = DateTime.UtcNow };
+                            panel.Take(shown);
+                            panel.CheckLayout(graphics);
+                            if (panel.SourceName != app.Caption) throw new Exception("The call panel lost " + app.Caption + ".");
+                            CallPanel.CheckCaption(graphics, new CallCaption(), fonts, new RectangleF(0, 0, 440 * scale, 54 * scale), scale, app.Caption);
+                            CallPanel.Fits(graphics, CallPill.Speaker(app), fonts.Name, new RectangleF(0, 0, 162 * scale, 22 * scale), "call app in the pill");
+                            if (app.Name == "Zoom" && (CallInk.Tip(2, shown) != "Turn Zoom off" || CallPanel.Status(shown) != "She hears you and Zoom.")) throw new Exception("Zoom's call panel still named Discord.");
+                        }
+                    }
+                checks.Add("PASS the call app row fits Advanced and Simple Settings at 100, 150 and 200 percent with no overlaps; all app names fit the panel, captions and pill");
+            }
+            finally
+            {
+                mainframe.CloseMix();
+                preferences.CallApp = appWas; CallApps.Choose(appWas);
+                callSession.Change(onWas); preferences.CallMode = savedOn;
+                callWho = whoWas; callSaid = saidWas; callSaidAt = saidAtWas;
+                callCaptionRun = captionRunWas; callCaptionAt = captionAtWas;
+                callCaptions.Clear(); foreach (CallPart part in captionsWas) callCaptions.Enqueue(part);
+                simpleTest = simpleWas;
+                SavePreferences(); mainframe.ShowCallApp(); mainframe.ShowSettings(settingsWas);
             }
         }
 
