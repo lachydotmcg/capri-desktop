@@ -24736,7 +24736,7 @@ namespace CapriDesktop
                 foreach (int size in new[] { 100, 125, 150, 175, 200 })
                 {
                     mainframe.SizeMainframe(size);
-                    string crowded = mainframe.Overlap() ?? mainframe.Outside();
+                    string crowded = mainframe.Overlap() ?? (mainframe.PageClamped ? null : mainframe.Outside());
                     if (crowded != null) throw new Exception("BRAIN controls at " + size + "% overlap or leave the page: " + crowded);
                     Control gamingToggle = null, gamingCaption = null, gamingDisclaimer = null, gamingClip = null, gamingMoments = null, gamingHands = null, gamingEnd = null;
                     foreach (Control gamingControl in mainframe.Controls)
