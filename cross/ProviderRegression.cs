@@ -12,9 +12,10 @@ namespace CapriDesktop
 {
     internal static class ProviderRegression
     {
+        // A plain socket server: HttpListener takes about 35 s to answer its first request on GitHub's macOS runners.
         private sealed class Server : IDisposable
         {
-            internal readonly HttpListener Listener = new HttpListener();
+            internal readonly TcpListener Listener = new TcpListener(IPAddress.Loopback, 0);
             internal readonly ManualResetEventSlim Received = new ManualResetEventSlim(), Release = new ManualResetEventSlim();
             internal readonly List<string> Requests = new List<string>();
             internal readonly string Address;
@@ -22,37 +23,75 @@ namespace CapriDesktop
             internal string Destination;
             internal Server()
             {
-                TcpListener socket = new TcpListener(IPAddress.Loopback, 0); socket.Start();
-                int port = ((IPEndPoint)socket.LocalEndpoint).Port; socket.Stop();
-                Address = "http://127.0.0.1:" + port;
-                Listener.Prefixes.Add(Address + "/"); Listener.Start();
+                Listener.Start();
+                Address = "http://127.0.0.1:" + ((IPEndPoint)Listener.LocalEndpoint).Port;
                 new Thread(Serve) { IsBackground = true }.Start();
             }
             private void Serve()
             {
-                while (Listener.IsListening)
+                while (true)
                 {
-                    HttpListenerContext c; try { c = Listener.GetContext(); } catch { return; }
-                    lock (Requests) Requests.Add(c.Request.RawUrl + " | " + (c.Request.Headers["Authorization"] ?? "<none>"));
-                    Received.Set(); if (Hold) Release.Wait(TimeSpan.FromSeconds(8));
-                    bool chat = c.Request.RawUrl.EndsWith("/chat/completions");
-                    string body = Error && chat ? "{\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}"
-                        : chat ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}"
-                        : "{\"data\":[{\"id\":\"alpha\"}]}";
-                    if (chat && Retry) body = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"thinking\"},\"finish_reason\":\"length\"}]}";
-                    if (chat && StreamError)
-                    {
-                        body = "data: {\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}\n\n";
-                        c.Response.ContentType = "text/event-stream";
-                    }
-                    c.Response.StatusCode = Redirect ? 302 : Error && chat ? 400 : 200;
-                    if (Redirect) c.Response.RedirectLocation = Destination;
-                    byte[] bytes = Encoding.UTF8.GetBytes(body); c.Response.ContentLength64 = bytes.Length;
-                    try { c.Response.OutputStream.Write(bytes, 0, bytes.Length); c.Response.Close(); } catch { }
+                    TcpClient client; try { client = Listener.AcceptTcpClient(); } catch { return; }
+                    try { using (client) Answer(client.GetStream()); } catch { }
                 }
             }
+            private void Answer(NetworkStream stream)
+            {
+                List<byte> read = new List<byte>();
+                byte[] chunk = new byte[8192];
+                int end = -1;
+                while (end < 0)
+                {
+                    int got = stream.Read(chunk, 0, chunk.Length);
+                    if (got <= 0) return;
+                    for (int i = 0; i < got; i++) read.Add(chunk[i]);
+                    for (int i = 3; i < read.Count && end < 0; i++) if (read[i - 3] == 13 && read[i - 2] == 10 && read[i - 1] == 13 && read[i] == 10) end = i + 1;
+                }
+                string head = Encoding.ASCII.GetString(read.ToArray(), 0, end);
+                string[] lines = head.Split(new[] { "\r\n" }, StringSplitOptions.None);
+                string[] first = lines[0].Split(' ');
+                string url = first.Length > 1 ? first[1] : "/", authorization = null;
+                int length = 0;
+                bool chunked = false;
+                foreach (string line in lines)
+                {
+                    int colon = line.IndexOf(':');
+                    if (colon <= 0) continue;
+                    string name = line.Substring(0, colon).Trim(), value = line.Substring(colon + 1).Trim();
+                    if (name.Equals("Authorization", StringComparison.OrdinalIgnoreCase)) authorization = value;
+                    else if (name.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) int.TryParse(value, out length);
+                    else if (name.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase)) chunked = value.IndexOf("chunked", StringComparison.OrdinalIgnoreCase) >= 0;
+                }
+                while (chunked ? !Encoding.ASCII.GetString(read.ToArray(), end, read.Count - end).Contains("0\r\n\r\n") : read.Count - end < length)
+                {
+                    int got = stream.Read(chunk, 0, chunk.Length);
+                    if (got <= 0) break;
+                    for (int i = 0; i < got; i++) read.Add(chunk[i]);
+                }
+                lock (Requests) Requests.Add(url + " | " + (authorization ?? "<none>"));
+                Received.Set(); if (Hold) Release.Wait(TimeSpan.FromSeconds(8));
+                bool chat = url.EndsWith("/chat/completions");
+                string body = Error && chat ? "{\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}"
+                    : chat ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"OK\"},\"finish_reason\":\"stop\"}]}"
+                    : "{\"data\":[{\"id\":\"alpha\"}]}";
+                if (chat && Retry) body = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"\",\"reasoning_content\":\"thinking\"},\"finish_reason\":\"length\"}]}";
+                string type = "application/json";
+                if (chat && StreamError)
+                {
+                    body = "data: {\"error\":{\"message\":\"Invalid credential opaque-provider-key-42\"}}\n\n";
+                    type = "text/event-stream";
+                }
+                string status = Redirect ? "302 Found" : Error && chat ? "400 Bad Request" : "200 OK";
+                byte[] bytes = Encoding.UTF8.GetBytes(body);
+                string reply = "HTTP/1.1 " + status + "\r\nContent-Type: " + type + "\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n"
+                    + (Redirect ? "Location: " + Destination + "\r\n" : "") + "\r\n";
+                byte[] top = Encoding.ASCII.GetBytes(reply);
+                stream.Write(top, 0, top.Length);
+                stream.Write(bytes, 0, bytes.Length);
+                stream.Flush();
+            }
             internal bool Saw(string value) { lock (Requests) return Requests.Exists(x => x.Contains(value)); }
-            public void Dispose() { Release.Set(); Listener.Close(); }
+            public void Dispose() { Release.Set(); Listener.Stop(); }
         }
         private static bool Wait(Func<bool> ready, int ms = 3000)
         {
