@@ -94,6 +94,7 @@ namespace CapriDesktop
             Explain(advancedKey, "Advanced Settings", "Mainframe.cs", null, "Simple / Advanced Settings");
             Explain(models, "Brain model", "Mainframe.cs", null, "Brain model");
             Explain(refresh, "Refresh");
+            Explain(provider, "Provider", "Mainframe.cs", null, "Provider");
             Explain(freeKey, "Free key", "Mainframe.cs", null, "Free key providers");
             Explain(setup, "Set up her brain", "Mainframe.cs", hint, "Set up her brain");
             for (int i = 0; i < rungs.Length; i++) Explain(rungs[i], i == 2 ? "MAX INTELLIGENCE" : i == 1 ? "MEDIUM INTELLIGENCE" : "NORMAL");

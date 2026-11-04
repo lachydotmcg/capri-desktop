@@ -18173,7 +18173,8 @@ namespace CapriDesktop
                 { "job_control", "{\"action\":\"status\"}" }, { "quit", "{\"action\":\"quit\"}" }, { "mainframe", "{}" }, { "updates", "{\"action\":\"status\"}" },
                 { "mini_player", "{\"action\":\"hide\"}" }, { "list_windows", "{}" }, { "check_app", "{\"name\":\"Spotify\"}" },
                 { "capri_settings", "{\"action\":\"list\"}" }, { "app_volume", "{\"action\":\"now\"}" }, { "pc_status", "{}" }, { "internet_status", "{}" },
-                { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" }
+                { "call_errand", "{\"action\":\"open_app\"}" }, { "call_say", "{\"text\":\"Lachy's on in 15.\"}" },
+                { "game_notes", "{\"action\":\"read\",\"name\":\"The Binding of Isaac\"}" }
             };
             for (int i = 0; i < Hands.Count; i++)
             {
