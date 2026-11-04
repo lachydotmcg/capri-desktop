@@ -92,7 +92,7 @@ Stuck? The [setup guide](https://capriai.app/setup/) walks through it, or ask in
 She sits on your windows and chats, talks with an ElevenLabs key, remembers your chats, watches your screen, opens, switches and closes apps and controls your music. The Mainframe, voice chat and jobs with her own cursor are Windows-only for now.
 
 1. Download [Mac (Apple Silicon)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-apple-silicon.zip), [Mac (Intel)](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-mac-intel.zip) or [Linux](https://github.com/lachydotmcg/capri-desktop/releases/latest/download/Capri-linux-x64.tar.gz)
-2. For her brain, use a free NVIDIA key or your own Gemini, OpenRouter, OpenAI, Claude or DeepSeek key from **Brain** in her right-click menu. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`
+2. For her brain, use a free NVIDIA key or your own Gemini, OpenRouter, OpenAI, Claude or DeepSeek key from **Brain** in her right-click menu. Or install [Ollama](https://ollama.com) and run `ollama pull gemma4:e4b`. For any other OpenAI-compatible provider, use **Brain > Use my own provider with a key (OpenAI API)...**: it keeps the key on your PC in a file only your account can read.
 3. **Mac:** unzip it, drag Capri into Applications, then open Terminal and run this once. Needs macOS 15 or newer
    ```bash
    xattr -dr com.apple.quarantine /Applications/Capri.app

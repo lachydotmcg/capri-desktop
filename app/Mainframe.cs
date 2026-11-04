@@ -279,6 +279,12 @@ namespace CapriDesktop
         private readonly Timer glide = new Timer { Interval = 10 };
         private readonly System.Diagnostics.Stopwatch glideClock = new System.Diagnostics.Stopwatch();
         private int glideFrom, glideTo;
+        // Support's heart beats twice every 7 seconds while her main page shows, and its rim lights with it (Lachy, 4 Nov).
+        // It holds still with her moves off.
+        private const double BeatMs = 7000;
+        private readonly Timer heartbeat = new Timer { Interval = 33 };
+        private readonly System.Diagnostics.Stopwatch beatClock = System.Diagnostics.Stopwatch.StartNew();
+        private Key support;
         private readonly Rim topRim = new Rim();
         private readonly Rim bottomRim = new Rim();
         // Smoke tests pretend the screen's working area is this many px tall, before scaling; 0 uses the real one.
@@ -357,6 +363,8 @@ namespace CapriDesktop
         internal Mainframe(Companion owner, Icon icon, string version)
         {
             glide.Tick += delegate { Glide(); };
+            heartbeat.Tick += delegate { Heartbeat(); };
+            VisibleChanged += delegate { heartbeat.Enabled = Visible; };
             capri = owner;
             Text = "Capri Mainframe";
             Icon = icon;
@@ -546,7 +554,9 @@ namespace CapriDesktop
             installNote.Visible = false;
             int v = VoiceHeight;
             Lower(Section("CAPRI >", 0, 184 + v));
-            Key support = Lower(Make("Support", 280, 181 + v, 76, 20, delegate { capri.OpenSupport(); }));
+            // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
+            support = Lower(Make("Support", 268, 183 + v, 88, 18, delegate { capri.OpenSupport(); }));
+            support.Heart = true;
             support.AccessibleName = "Support Capri: opens Lachy's Ko-fi in your browser";
             modsKey = Lower(Make("Mods", 216, 181 + v, 56, 20, delegate { ShowMods(true); }));
             showHide = Lower(Make("Hide Capri", 28, 206 + v, 104, 28, delegate { capri.ToggleHidden(); }));
@@ -1636,6 +1646,31 @@ namespace CapriDesktop
             double eased = 1 - Math.Pow(1 - t, 3);
             MovePage((int)Math.Round(glideFrom + (glideTo - glideFrom) * eased));
             if (t >= 1) glide.Stop();
+        }
+
+        private void Heartbeat()
+        {
+            if (IsDisposed || support == null) { heartbeat.Stop(); return; }
+            float swell = 1, beat = 0;
+            if (capri.Moves && WindowState != FormWindowState.Minimized && !Hidden(support)) Pulse(beatClock.Elapsed.TotalMilliseconds, out swell, out beat);
+            if (swell == support.Swell && beat == support.Beat) return;
+            support.Swell = swell;
+            support.Beat = beat;
+            support.Invalidate();
+        }
+
+        // Where Support is in its beat: two quick swells of the heart, the rim lit across both, then rest.
+        private static void Pulse(double ms, out float swell, out float beat)
+        {
+            double t = ms % BeatMs / BeatMs;
+            swell = (float)Between(t, new[] { 0, .04, .08, .12, .16 }, new[] { 1, 1.22, 1, 1.12, 1 });
+            beat = (float)Between(t, new[] { 0, .05, .13, .22 }, new[] { 0, 1, 1, 0.0 });
+        }
+
+        private static double Between(double t, double[] at, double[] value)
+        {
+            for (int i = 1; i < at.Length; i++) if (t < at[i]) return value[i - 1] + (value[i] - value[i - 1]) * (t - at[i - 1]) / (at[i] - at[i - 1]);
+            return value[value.Length - 1];
         }
 
         // Ends a glide where it was headed, for checks that read where the page is.
@@ -4101,6 +4136,9 @@ namespace CapriDesktop
             internal bool Chevron;
             internal int Glyph;
             internal double Meter = -1;
+            // Heart puts a beating heart before its text, like Support's; Swell is the heart's size and Beat how lit its rim is.
+            internal bool Heart;
+            internal float Swell = 1, Beat;
             private bool hot;
             private bool down;
 
@@ -4164,6 +4202,7 @@ namespace CapriDesktop
                 else if (Picked) { face = hot ? Color.FromArgb(160, 248, 251) : Cyan; rim = face; ink = OnInk; }
                 else if (Accent == Cyan) { face = down ? Color.FromArgb(18, 62, 67) : hot ? Color.FromArgb(13, 45, 49) : Deep; rim = lit ? Cyan : Loud ? DeepEdge : Color.FromArgb(28, 84, 92); ink = Cyan; }
                 else if (Accent == Hot) { face = down ? Color.FromArgb(72, 18, 30) : hot ? Color.FromArgb(54, 16, 28) : Color.FromArgb(34, 12, 22); rim = lit ? Color.FromArgb(255, 124, 122) : Hot; ink = Color.FromArgb(255, 166, 162); }
+                else if (Heart) { face = down ? Pressed : hot ? Color.FromArgb(46, 18, 34) : Toward(Color.FromArgb(32, 14, 24), Color.FromArgb(54, 18, 32), Beat); rim = lit ? Rose : Toward(Color.FromArgb(156, 40, 56), Rose, Beat); ink = hot ? Color.FromArgb(255, 194, 197) : Color.FromArgb(255, 138, 144); }
                 else { face = down ? Pressed : hot ? Hover : Field; rim = lit ? Hot : Edge; ink = Chevron ? Cyan : Accent; }
                 using (GraphicsPath plate = Cut(box, 0, 0, 5 * s, 0))
                 {
@@ -4173,8 +4212,44 @@ namespace CapriDesktop
                 if (Chevron) Drop(graphics, Width - 19 * s, y, s, Enabled && !Dimmed ? Cyan : ink, hot);
                 Rectangle area = Chevron ? new Rectangle((int)(10 * s), 0, Width - (int)(32 * s), Height) : ClientRectangle;
                 TextFormatFlags flags = TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis | (Chevron ? TextFormatFlags.Left : TextFormatFlags.HorizontalCenter);
+                if (Heart && Enabled)
+                {
+                    // The heart and the text are centred together, 5 px apart.
+                    int wide = TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding).Width;
+                    float left = (Width - (17 * s + wide)) / 2;
+                    DrawHeart(graphics, left + 6 * s, y, s * Swell);
+                    area = new Rectangle((int)(left + 17 * s), 0, Width - (int)(left + 17 * s), Height);
+                    flags = (flags & ~TextFormatFlags.HorizontalCenter) | TextFormatFlags.Left;
+                }
                 TextRenderer.DrawText(graphics, Text, Font, area, ink, flags);
                 if (Meter >= 0) using (Brush meter = new SolidBrush(Cyan)) graphics.FillRectangle(meter, 3 * s, Height - 4 * s, (float)((Width - 6 * s) * Math.Max(0, Math.Min(1, Meter))), 2 * s);
+            }
+
+            private static Color Toward(Color from, Color to, float amount)
+            {
+                return Color.FromArgb(from.R + (int)((to.R - from.R) * amount), from.G + (int)((to.G - from.G) * amount), from.B + (int)((to.B - from.B) * amount));
+            }
+
+            // A 12 by 11 px heart in rose, centred on middle and drawn at size.
+            private static void DrawHeart(Graphics graphics, float middleX, float middleY, float size)
+            {
+                PointF[] points =
+                {
+                    new PointF(6, 10.4f), new PointF(6, 10.4f), new PointF(0.8f, 7), new PointF(0.8f, 3.8f),
+                    new PointF(0.8f, 2), new PointF(2.2f, 0.8f), new PointF(3.7f, 0.8f),
+                    new PointF(4.8f, 0.8f), new PointF(5.6f, 1.5f), new PointF(6, 2.3f),
+                    new PointF(6.4f, 1.5f), new PointF(7.2f, 0.8f), new PointF(8.3f, 0.8f),
+                    new PointF(9.8f, 0.8f), new PointF(11.2f, 2), new PointF(11.2f, 3.8f),
+                    new PointF(11.2f, 7), new PointF(6, 10.4f), new PointF(6, 10.4f)
+                };
+                for (int i = 0; i < points.Length; i++) points[i] = new PointF(middleX + (points[i].X - 6) * size, middleY + (points[i].Y - 5.6f) * size);
+                using (GraphicsPath heart = new GraphicsPath())
+                using (Brush fill = new SolidBrush(Rose))
+                {
+                    heart.AddBeziers(points);
+                    heart.CloseFigure();
+                    graphics.FillPath(fill, heart);
+                }
             }
         }
 

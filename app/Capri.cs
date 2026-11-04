@@ -4200,7 +4200,7 @@ namespace CapriDesktop
                 careGameAt = now + 15;
                 careGame = Computer.GameOpen() ?? GameAhead();
             }
-            string line = care.Check(preferences, quiet, !hidden && nudgeOut < 0 && PopFree(now, quiet), careGame, noticed, nudgeGap / NudgeGap);
+            string line = care.Check(preferences.CheckIns, preferences.CareOn, preferences.CareTime, ref preferences.CareNight, quiet, !hidden && nudgeOut < 0 && PopFree(now, quiet), careGame, noticed, nudgeGap / NudgeGap);
             if (line == null) return;
             if (care.Said == CareKind.Bored) AskedForAttention(now, true);
             if (care.Said == CareKind.Late) SavePreferences();
@@ -18047,20 +18047,20 @@ namespace CapriDesktop
                 timedSettings.SetCare(timedKind, true, timedSettings.CareTime(timedKind));
                 Care timedCare = new Care(careClock, careCalendar, careWords);
                 double timedDue = timedSettings.CareTime(timedKind) * 60.0;
-                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == null, timedKind + " fired on startup.");
+                careMust(timedCare.Check(timedSettings.CheckIns, timedSettings.CareOn, timedSettings.CareTime, ref timedSettings.CareNight, 0, true, "Game A", 0, 1) == null, timedKind + " fired on startup.");
                 careNow = timedDue - 1;
-                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == null, timedKind + " fired early.");
+                careMust(timedCare.Check(timedSettings.CheckIns, timedSettings.CareOn, timedSettings.CareTime, ref timedSettings.CareNight, 0, true, "Game A", 0, 1) == null, timedKind + " fired early.");
                 careNow = timedDue;
-                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == timedKind.ToString(), timedKind + " missed its time.");
+                careMust(timedCare.Check(timedSettings.CheckIns, timedSettings.CareOn, timedSettings.CareTime, ref timedSettings.CareNight, 0, true, "Game A", 0, 1) == timedKind.ToString(), timedKind + " missed its time.");
                 careNow = timedDue * 2;
-                careMust(timedCare.Check(timedSettings, 0, true, "Game A", timedDue, 1) == timedKind.ToString(), timedKind + " did not repeat on its own timer.");
+                careMust(timedCare.Check(timedSettings.CheckIns, timedSettings.CareOn, timedSettings.CareTime, ref timedSettings.CareNight, 0, true, "Game A", timedDue, 1) == timedKind.ToString(), timedKind + " did not repeat on its own timer.");
                 timedSettings.SetCare(timedKind, false, timedSettings.CareTime(timedKind));
                 careNow = timedDue * 3;
-                careMust(timedCare.Check(timedSettings, 0, true, "Game A", 0, 1) == null, timedKind + " ignored Off.");
+                careMust(timedCare.Check(timedSettings.CheckIns, timedSettings.CareOn, timedSettings.CareTime, ref timedSettings.CareNight, 0, true, "Game A", 0, 1) == null, timedKind + " ignored Off.");
                 timedSettings.SetCare(timedKind, true, 30);
-                careMust(timedCare.Check(timedSettings, 0, true, "Game A", careNow, 1) == null, timedKind + " was overdue when enabled.");
+                careMust(timedCare.Check(timedSettings.CheckIns, timedSettings.CareOn, timedSettings.CareTime, ref timedSettings.CareNight, 0, true, "Game A", careNow, 1) == null, timedKind + " was overdue when enabled.");
                 careNow += 1800;
-                careMust(timedCare.Check(timedSettings, 0, true, "Game A", careNow - 1800, 1) == timedKind.ToString(), timedKind + " ignored its new interval.");
+                careMust(timedCare.Check(timedSettings.CheckIns, timedSettings.CareOn, timedSettings.CareTime, ref timedSettings.CareNight, 0, true, "Game A", careNow - 1800, 1) == timedKind.ToString(), timedKind + " ignored its new interval.");
             }
             checks.Add("PASS care timers: water at 60 minutes, stretch at 90, eyes at 25, the same game at 120 and boredom at 60, with independent repeats, Off and changed intervals on a fake clock");
 
@@ -18074,30 +18074,30 @@ namespace CapriDesktop
                 int picked = 0;
                 Care gatedCare = new Care(careClock, careCalendar, delegate(CareKind saidKind) { picked++; return saidKind.ToString(); });
                 double due = kind == CareKind.Late ? 7200 : kind == CareKind.Meal ? 3600 : gatedSettings.CareTime(kind) * 60.0;
-                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null, kind + " fired before its gated timer started.");
+                careMust(gatedCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, true, "Game A", 0, 1) == null, kind + " fired before its gated timer started.");
                 careNow = due;
-                careMust(gatedCare.Check(gatedSettings, 0, false, "Game A", 0, 1) == null, kind + " escaped its busy hold.");
+                careMust(gatedCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, false, "Game A", 0, 1) == null, kind + " escaped its busy hold.");
                 gatedSettings.CheckIns = false;
                 foreach (double offAt in new[] { due, due + 1, due + 900 })
                 {
                     careNow = offAt;
-                    careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null && picked == 0, kind + " ignored Check in on me off.");
+                    careMust(gatedCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, true, "Game A", 0, 1) == null && picked == 0, kind + " ignored Check in on me off.");
                     Care offCare = new Care(careClock, careCalendar, delegate { picked++; return "Off"; });
-                    careMust(offCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null && picked == 0, kind + " bypassed the gate on startup.");
+                    careMust(offCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, true, "Game A", 0, 1) == null && picked == 0, kind + " bypassed the gate on startup.");
                 }
                 careMust(gatedSettings.CareNight == 0, "the disabled sleep nudge was saved as spoken.");
                 gatedSettings.CheckIns = true;
-                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null, kind + " delivered a held line when re-enabled.");
+                careMust(gatedCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, true, "Game A", 0, 1) == null, kind + " delivered a held line when re-enabled.");
                 double freshDue = kind == CareKind.Late ? 93600 : kind == CareKind.Meal ? 90000 : careNow + due;
                 if (kind == CareKind.Meal)
                 {
                     careNow = 25200;
-                    careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", 0, 1) == null, "Meals kept the old morning session after re-enabling.");
+                    careMust(gatedCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, true, "Game A", 0, 1) == null, "Meals kept the old morning session after re-enabling.");
                 }
                 careNow = freshDue - 1;
-                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", kind == CareKind.Bored ? 1 : 0, 1) == null, kind + " resumed on an old timer.");
+                careMust(gatedCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, true, "Game A", kind == CareKind.Bored ? 1 : 0, 1) == null, kind + " resumed on an old timer.");
                 careNow = freshDue;
-                careMust(gatedCare.Check(gatedSettings, 0, true, "Game A", kind == CareKind.Bored ? 1 : 0, 1) == kind.ToString() && picked == 1, kind + " did not return on its fresh timer.");
+                careMust(gatedCare.Check(gatedSettings.CheckIns, gatedSettings.CareOn, gatedSettings.CareTime, ref gatedSettings.CareNight, 0, true, "Game A", kind == CareKind.Bored ? 1 : 0, 1) == kind.ToString() && picked == 1, kind + " did not return on its fresh timer.");
                 for (int savedKind = 0; savedKind < Care.Names.Length; savedKind++)
                     careMust(gatedSettings.CareOn((CareKind)savedKind) == (savedKind == gateKind) && gatedSettings.CareTime((CareKind)savedKind) == new Preferences().CareTime((CareKind)savedKind), "the master switch changed a care choice.");
             }
@@ -18122,32 +18122,32 @@ namespace CapriDesktop
             heldSettings.CareWater = heldSettings.CareStretch = heldSettings.CareEyes = true;
             careNow = 0;
             Care heldCare = new Care(careClock, careCalendar, careWords);
-            heldCare.Check(heldSettings, 0, true, null, 0, 1);
+            heldCare.Check(heldSettings.CheckIns, heldSettings.CareOn, heldSettings.CareTime, ref heldSettings.CareNight, 0, true, null, 0, 1);
             foreach (double heldAt in new[] { 1500.0, 3600, 5400, 7199 })
             {
                 careNow = heldAt;
-                careMust(heldCare.Check(heldSettings, 0, false, null, 0, 1) == null, "a held check-in escaped.");
+                careMust(heldCare.Check(heldSettings.CheckIns, heldSettings.CareOn, heldSettings.CareTime, ref heldSettings.CareNight, 0, false, null, 0, 1) == null, "a held check-in escaped.");
             }
-            careMust(heldCare.Check(heldSettings, 0, true, null, 0, 1) != null, "held check-ins were all lost.");
+            careMust(heldCare.Check(heldSettings.CheckIns, heldSettings.CareOn, heldSettings.CareTime, ref heldSettings.CareNight, 0, true, null, 0, 1) != null, "held check-ins were all lost.");
             careNow = 7200;
-            careMust(heldCare.Check(heldSettings, 0, true, null, 0, 1) == null, "held check-ins piled up on the next tick.");
+            careMust(heldCare.Check(heldSettings.CheckIns, heldSettings.CareOn, heldSettings.CareTime, ref heldSettings.CareNight, 0, true, null, 0, 1) == null, "held check-ins piled up on the next tick.");
             careNow = 7201;
-            careMust(heldCare.Check(heldSettings, 0, true, null, 0, 1) == null, "a second overdue check-in escaped.");
+            careMust(heldCare.Check(heldSettings.CheckIns, heldSettings.CareOn, heldSettings.CareTime, ref heldSettings.CareNight, 0, true, null, 0, 1) == null, "a second overdue check-in escaped.");
             checks.Add("PASS care holds: overdue check-ins coalesce to one when clear and the other timers start fresh, without a pile on following ticks");
 
             Preferences idleSettings = careOff();
             idleSettings.CareWater = true;
             careNow = 0;
             Care idleCare = new Care(careClock, careCalendar, careWords);
-            idleCare.Check(idleSettings, 0, true, null, 0, 1);
+            idleCare.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, 0, true, null, 0, 1);
             careNow = 3600;
-            careMust(idleCare.Check(idleSettings, Care.Away + 1, true, null, 0, 1) == null, "an idle PC got a check-in.");
+            careMust(idleCare.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, Care.Away + 1, true, null, 0, 1) == null, "an idle PC got a check-in.");
             careNow = 7200;
-            careMust(idleCare.Check(idleSettings, 0, true, null, 0, 1) == null, "idle time counted on return.");
+            careMust(idleCare.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, 0, true, null, 0, 1) == null, "idle time counted on return.");
             careNow = 10799;
-            careMust(idleCare.Check(idleSettings, 0, true, null, 0, 1) == null, "the idle reset started before the user returned.");
+            careMust(idleCare.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, 0, true, null, 0, 1) == null, "the idle reset started before the user returned.");
             careNow = 10800;
-            careMust(idleCare.Check(idleSettings, 0, true, null, 0, 1) == "Water", "the timer did not restart after idle.");
+            careMust(idleCare.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, 0, true, null, 0, 1) == "Water", "the timer did not restart after idle.");
             checks.Add("PASS care idle: over ten minutes idle clears held check-ins and a fresh hour starts when they return");
 
             Preferences nightSettings = careOff();
@@ -18155,29 +18155,29 @@ namespace CapriDesktop
             careNow = 0;
             careDay = new DateTime(2026, 10, 30, 23, 0, 0);
             Care nightCare = new Care(careClock, careCalendar, careWords);
-            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == null, "the sleep nudge came before 1 am.");
+            careMust(nightCare.Check(nightSettings.CheckIns, nightSettings.CareOn, nightSettings.CareTime, ref nightSettings.CareNight, 0, true, null, 0, 1) == null, "the sleep nudge came before 1 am.");
             careNow = 7200;
-            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == "Late", "the 1 am sleep nudge was missed.");
+            careMust(nightCare.Check(nightSettings.CheckIns, nightSettings.CareOn, nightSettings.CareTime, ref nightSettings.CareNight, 0, true, null, 0, 1) == "Late", "the 1 am sleep nudge was missed.");
             careNow = 10800;
-            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == null, "sleep nudged twice in a night.");
+            careMust(nightCare.Check(nightSettings.CheckIns, nightSettings.CareOn, nightSettings.CareTime, ref nightSettings.CareNight, 0, true, null, 0, 1) == null, "sleep nudged twice in a night.");
             Care restartedNight = new Care(careClock, careCalendar, careWords);
-            careMust(restartedNight.Check(nightSettings, 0, true, null, 0, 1) == null, "a restart repeated the same night's nudge.");
+            careMust(restartedNight.Check(nightSettings.CheckIns, nightSettings.CareOn, nightSettings.CareTime, ref nightSettings.CareNight, 0, true, null, 0, 1) == null, "a restart repeated the same night's nudge.");
             careNow = 93600;
-            careMust(nightCare.Check(nightSettings, 0, true, null, 0, 1) == "Late", "the next night was not a new night.");
+            careMust(nightCare.Check(nightSettings.CheckIns, nightSettings.CareOn, nightSettings.CareTime, ref nightSettings.CareNight, 0, true, null, 0, 1) == "Late", "the next night was not a new night.");
             Preferences eveningSettings = careOff();
             eveningSettings.CareLate = true;
             eveningSettings.CareLateHour = 23;
             careNow = 0;
             Care eveningCare = new Care(careClock, careCalendar, careWords);
-            careMust(eveningCare.Check(eveningSettings, 0, true, null, 0, 1) == "Late", "an edited bedtime was ignored.");
+            careMust(eveningCare.Check(eveningSettings.CheckIns, eveningSettings.CareOn, eveningSettings.CareTime, ref eveningSettings.CareNight, 0, true, null, 0, 1) == "Late", "an edited bedtime was ignored.");
             careNow = 7200;
-            careMust(eveningCare.Check(eveningSettings, 0, true, null, 0, 1) == null, "midnight counted as a second night.");
+            careMust(eveningCare.Check(eveningSettings.CheckIns, eveningSettings.CareOn, eveningSettings.CareTime, ref eveningSettings.CareNight, 0, true, null, 0, 1) == null, "midnight counted as a second night.");
             Preferences staleNightSettings = careOff();
             staleNightSettings.CareLate = true;
             Care staleNight = new Care(careClock, careCalendar, careWords);
-            staleNight.Check(staleNightSettings, 0, false, null, 0, 1);
+            staleNight.Check(staleNightSettings.CheckIns, staleNightSettings.CareOn, staleNightSettings.CareTime, ref staleNightSettings.CareNight, 0, false, null, 0, 1);
             careNow = 32400;
-            careMust(staleNight.Check(staleNightSettings, 0, true, null, 0, 1) == null, "last night's held nudge arrived in daylight.");
+            careMust(staleNight.Check(staleNightSettings.CheckIns, staleNightSettings.CareOn, staleNightSettings.CareTime, ref staleNightSettings.CareNight, 0, true, null, 0, 1) == null, "last night's held nudge arrived in daylight.");
             checks.Add("PASS care nights: the chosen hour fires once per night across midnight and restarts, returns next night and expires in the morning");
 
             Preferences mealSettings = careOff();
@@ -18185,39 +18185,39 @@ namespace CapriDesktop
             careNow = 0;
             careDay = new DateTime(2026, 10, 30, 11, 0, 0);
             Care mealCare = new Care(careClock, careCalendar, careWords);
-            mealCare.Check(mealSettings, 0, true, null, 0, 1);
+            mealCare.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1);
             careNow = 3599;
-            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == null, "lunch was early.");
+            careMust(mealCare.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1) == null, "lunch was early.");
             careNow = 3600;
-            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == "Meal", "lunch was missed.");
+            careMust(mealCare.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1) == "Meal", "lunch was missed.");
             careNow = 3700;
-            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == null, "lunch repeated.");
+            careMust(mealCare.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1) == null, "lunch repeated.");
             careNow = 25200;
-            careMust(mealCare.Check(mealSettings, 0, true, null, 0, 1) == "Meal", "dinner was missed.");
+            careMust(mealCare.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1) == "Meal", "dinner was missed.");
             Care afternoonCare = new Care(careClock, careCalendar, careWords);
-            careMust(afternoonCare.Check(mealSettings, 0, true, null, 0, 1) == null, "starting after lunch counted as being on since morning.");
+            careMust(afternoonCare.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1) == null, "starting after lunch counted as being on since morning.");
             careNow = 0;
             Care staleMeal = new Care(careClock, careCalendar, careWords);
-            staleMeal.Check(mealSettings, 0, true, null, 0, 1);
+            staleMeal.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1);
             careNow = 3600;
-            staleMeal.Check(mealSettings, 0, false, null, 0, 1);
+            staleMeal.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, false, null, 0, 1);
             careNow = 10800;
-            careMust(staleMeal.Check(mealSettings, 0, true, null, 0, 1) == null, "a held lunch arrived hours late.");
+            careMust(staleMeal.Check(mealSettings.CheckIns, mealSettings.CareOn, mealSettings.CareTime, ref mealSettings.CareNight, 0, true, null, 0, 1) == null, "a held lunch arrived hours late.");
             checks.Add("PASS care meals: lunch and dinner only after starting before lunch, once per mealtime, with stale held meals discarded");
 
             Preferences gameSettings = careOff();
             gameSettings.CareGame = true;
             careNow = 0;
             Care gameCare = new Care(careClock, careCalendar, careWords);
-            gameCare.Check(gameSettings, 0, true, "Game A", 0, 1);
+            gameCare.Check(gameSettings.CheckIns, gameSettings.CareOn, gameSettings.CareTime, ref gameSettings.CareNight, 0, true, "Game A", 0, 1);
             careNow = 7199;
-            careMust(gameCare.Check(gameSettings, 0, true, "Game A", 0, 1) == null, "a game break came early.");
+            careMust(gameCare.Check(gameSettings.CheckIns, gameSettings.CareOn, gameSettings.CareTime, ref gameSettings.CareNight, 0, true, "Game A", 0, 1) == null, "a game break came early.");
             careNow = 7200;
-            careMust(gameCare.Check(gameSettings, 0, true, "Game B", 0, 1) == null, "two different games counted as one session.");
+            careMust(gameCare.Check(gameSettings.CheckIns, gameSettings.CareOn, gameSettings.CareTime, ref gameSettings.CareNight, 0, true, "Game B", 0, 1) == null, "two different games counted as one session.");
             careNow = 14400;
-            careMust(gameCare.Check(gameSettings, 0, false, "Game B", 0, 1) == null, "a game break escaped full screen.");
+            careMust(gameCare.Check(gameSettings.CheckIns, gameSettings.CareOn, gameSettings.CareTime, ref gameSettings.CareNight, 0, false, "Game B", 0, 1) == null, "a game break escaped full screen.");
             careNow = 14401;
-            careMust(gameCare.Check(gameSettings, 0, true, null, 0, 1) == "Game", "a held break was lost when the game closed.");
+            careMust(gameCare.Check(gameSettings.CheckIns, gameSettings.CareOn, gameSettings.CareTime, ref gameSettings.CareNight, 0, true, null, 0, 1) == "Game", "a held break was lost when the game closed.");
             checks.Add("PASS care games: changing games starts a new two-hour session and a held break can appear when the game closes");
 
             string careFolder = Path.Combine(Path.GetDirectoryName(settingsPath), "care-smoke", Guid.NewGuid().ToString("N"));
@@ -18239,12 +18239,12 @@ namespace CapriDesktop
                 careMust(fileLines.Create() && File.ReadAllText(careFile) == editedCare, "defaults overwrote an edited file.");
                 careNow = 0;
                 Care editedTimer = new Care(careClock, careCalendar, fileLines.Pick);
-                editedTimer.Check(idleSettings, 0, true, null, 0, 1);
+                editedTimer.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, 0, true, null, 0, 1);
                 careNow = 3600;
-                careMust(editedTimer.Check(idleSettings, 0, true, null, 0, 1) == "A sip, please.", "an edited line was not read at delivery.");
+                careMust(editedTimer.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, 0, true, null, 0, 1) == "A sip, please.", "an edited line was not read at delivery.");
                 File.WriteAllText(careFile, editedCare.Replace("- A sip, please.", ""));
                 careNow = 7200;
-                careMust(editedTimer.Check(idleSettings, 0, true, null, 0, 1) == null, "a removed line fell back to a default.");
+                careMust(editedTimer.Check(idleSettings.CheckIns, idleSettings.CareOn, idleSettings.CareTime, ref idleSettings.CareNight, 0, true, null, 0, 1) == null, "a removed line fell back to a default.");
                 File.WriteAllText(careFile, "");
                 careMust(fileLines.Pick(CareKind.Bored) == null && fileLines.Pick("Bored ignored") == null, "an empty check-ins file still spoke.");
                 File.Delete(careFile);
@@ -18322,19 +18322,19 @@ namespace CapriDesktop
                 preferences.CareWater = true;
                 careNow = 0;
                 care = new Care(careClock, careCalendar, careWords);
-                care.Check(preferences, 0, true, null, 0, 1);
+                care.Check(preferences.CheckIns, preferences.CareOn, preferences.CareTime, ref preferences.CareNight, 0, true, null, 0, 1);
                 careNow = 3600;
-                care.Check(preferences, 0, false, null, 0, 1);
+                care.Check(preferences.CheckIns, preferences.CareOn, preferences.CareTime, ref preferences.CareNight, 0, false, null, 0, 1);
                 nudgeOut = careNow + 20;
                 boredAsk = true;
                 ToggleCheckIns();
                 ToggleCheckIns();
                 careMust(nudgeOut < 0 && !boredAsk, "a quick off/on kept an attention reply.");
-                careMust(care.Check(preferences, 0, true, null, 0, 1) == null, "a quick off/on kept a queued check-in.");
+                careMust(care.Check(preferences.CheckIns, preferences.CareOn, preferences.CareTime, ref preferences.CareNight, 0, true, null, 0, 1) == null, "a quick off/on kept a queued check-in.");
                 careNow = 7199;
-                careMust(care.Check(preferences, 0, true, null, 0, 1) == null, "a quick off/on kept an old timer.");
+                careMust(care.Check(preferences.CheckIns, preferences.CareOn, preferences.CareTime, ref preferences.CareNight, 0, true, null, 0, 1) == null, "a quick off/on kept an old timer.");
                 careNow = 7200;
-                careMust(care.Check(preferences, 0, true, null, 0, 1) == "Water", "a quick off/on did not start a new timer.");
+                careMust(care.Check(preferences.CheckIns, preferences.CareOn, preferences.CareTime, ref preferences.CareNight, 0, true, null, 0, 1) == "Water", "a quick off/on did not start a new timer.");
                 checks.Add("PASS care CAPRI controls and tool: every switch and time saves; dimmed rows remain editable; typed and voice-chat readbacks explain the master gate, including unchanged values; saved choices survive off/on, and a toggle between scheduler ticks clears queued care and restarts its timer");
                 preferences = careOff();
                 preferences.CareBored = true;
@@ -24709,6 +24709,7 @@ namespace CapriDesktop
 
         private void SmokeBrainLayout(System.Collections.Generic.List<string> checks)
         {
+            SmokeMainframePictures(checks);
             bool wasSettings = mainframe.SettingsShown;
             bool wasSimple = simpleTest, wasAdvanced = preferences.AdvancedSettings, wasCheckIns = preferences.CheckIns;
             int wasSize = preferences.MainframeSize;
@@ -24785,6 +24786,42 @@ namespace CapriDesktop
             }
             catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT Mainframe text measurement: Windows text rendering is unavailable on this desktop"); }
             finally { simpleTest = wasSimple; preferences.AdvancedSettings = wasAdvanced; preferences.CheckIns = wasCheckIns; mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); SavePreferences(); }
+        }
+
+        private void SmokeMainframePictures(System.Collections.Generic.List<string> checks)
+        {
+            bool wasPage = mainframe.SettingsShown, wasAdvanced = preferences.AdvancedSettings, wasSimple = simpleTest;
+            int wasSize = preferences.MainframeSize;
+            string output = Path.GetDirectoryName(Brain.LogPath);
+            try
+            {
+                mainframe.LayoutScale(96, 100);
+                mainframe.SizeMainframe(100);
+                simpleTest = true;
+                string[] names = { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" };
+                for (int page = 0; page < names.Length; page++)
+                {
+                    preferences.AdvancedSettings = page == 2;
+                    mainframe.ShowSettings(page != 0);
+                    mainframe.Settle();
+                    mainframe.Update();
+                    using (Bitmap picture = new Bitmap(mainframe.ClientSize.Width, mainframe.ClientSize.Height))
+                    {
+                        mainframe.DrawToBitmap(picture, new Rectangle(Point.Empty, picture.Size));
+                        picture.Save(Path.Combine(output, names[page]), System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                    if (!File.Exists(Path.Combine(output, names[page]))) throw new Exception("The Mainframe picture was not saved: " + names[page]);
+                }
+                checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
+            }
+            finally
+            {
+                simpleTest = wasSimple;
+                preferences.AdvancedSettings = wasAdvanced;
+                mainframe.LayoutScale(0, 0);
+                mainframe.SizeMainframe(wasSize);
+                mainframe.ShowSettings(wasPage);
+            }
         }
 
         private void SmokeLanguageBounds(ToolStripDropDown menu, Rectangle area, bool[] seen)
@@ -35260,7 +35297,7 @@ namespace CapriDesktop
                                 string carePage = mainframe.CareFits() ?? mainframe.TextFits() ?? mainframe.Overlap();
                                 if (carePage != null) throw new Exception("The care rows do not fit Advanced Settings: " + carePage);
                                 long careLit = mainframe.CareLight();
-                                snap("mainframe-settings.png");
+                                snap("mainframe-settings-all.png");
                                 mainframe.FlipCheckIns();
                                 carePage = mainframe.CareFits();
                                 if (carePage != null || mainframe.CareLight() >= careLit) throw new Exception("The care rows did not draw dimmed: " + carePage);

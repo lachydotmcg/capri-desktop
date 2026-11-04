@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/jpt/barlow",
+  "commit": "dc2940e2e04ef4ec96c07e23e0f02aefbddd343b",
+  "files": [
+    {
+      "file": "BarlowSemiCondensed-Regular.ttf",
+      "sha256": "d8f081920de05d27990f42299e84d358d2e2fcadd41b94461b2dd42a519d6ff8",
+      "source": "fonts/ttf/BarlowSemiCondensed-Regular.ttf"
+    },
+    {
+      "file": "BarlowSemiCondensed-SemiBold.ttf",
+      "sha256": "76b0db666060f767d7f9707d1fe8f668eeb114c0a2eab90fd657e454ab6b171c",
+      "source": "fonts/ttf/BarlowSemiCondensed-SemiBold.ttf"
+    },
+    {
+      "file": "BarlowCondensed-SemiBold.ttf",
+      "sha256": "31f11ff391c790a36b977fc01e0880656762ac26f6634a0e6ff4f80c7d4c534f",
+      "source": "fonts/ttf/BarlowCondensed-SemiBold.ttf"
+    },
+    {
+      "file": "Barlow-OFL.txt",
+      "sha256": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f",
+      "source": "OFL.txt"
+    }
+  ]
+}

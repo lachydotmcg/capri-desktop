@@ -2,37 +2,6 @@ using System;
 
 namespace CapriDesktop
 {
-    internal sealed class FollowUp
-    {
-        internal const double Beat = 2;
-        internal string Line;
-        private int ticket, input, mic;
-        private double ready = -1;
-
-        internal void Hold(string line, int answer, int lastInput, int lastMic)
-        {
-            Line = string.IsNullOrWhiteSpace(line) ? null : line;
-            ticket = answer;
-            input = lastInput;
-            mic = lastMic;
-            ready = -1;
-        }
-
-        internal void Drop() { Line = null; ready = -1; }
-
-        internal string Take(double now, int answer, int lastInput, int lastMic, bool allowed, bool finished)
-        {
-            if (Line == null) return null;
-            if (!allowed || ticket != answer || input != lastInput || mic != lastMic) { Drop(); return null; }
-            if (!finished) { ready = -1; return null; }
-            if (ready < 0) ready = now + Beat;
-            if (now < ready) return null;
-            string said = Line;
-            Drop();
-            return said;
-        }
-    }
-
     internal sealed partial class Companion
     {
         private readonly FollowUp followUp = new FollowUp();
