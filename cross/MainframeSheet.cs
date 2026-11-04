@@ -220,7 +220,8 @@ namespace CapriDesktop
         }
 
         internal void PickKind(int choice) { kind = choice; first = 0; FillDirectory(); }
-        internal void Search(string words) { search.Box.Text = words; }
+        // Avalonia raises TextChanged after the new text renders, so a search from here fills the cards at once.
+        internal void Search(string words) { search.Box.Text = words; first = 0; FillDirectory(); }
         internal void NextPage() { first += Cards; FillDirectory(); }
         internal void NextInstalledPage() { installedFirst += Rows; Sync(); }
         internal string TitleOf(int card) { return titles[card].IsVisible ? titles[card].Text : null; }

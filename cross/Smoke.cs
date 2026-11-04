@@ -1004,7 +1004,16 @@ namespace CapriDesktop
                     bool stayed = pet.Asleep;
                     pet.Doze(0.5);
                     bool woke = pet.Waking;
-                    if (!never || early || !dozed || !stayed || !woke || pet.SleepPicked != "2 min") throw new Exception("Sleep went wrong: never " + never + ", early " + early + ", dozed " + dozed + ", stayed " + stayed + ", woke " + woke + ", picked " + pet.SleepPicked);
+                    if (!never || early || !dozed || !stayed || !woke || pet.SleepPicked != "2 min")
+                    {
+                        // What kept her from dozing: each part of Drowsy.
+                        System.Reflection.BindingFlags own = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                        Func<string, string> part = name => { System.Reflection.FieldInfo info = typeof(Pet).GetField(name, own); object value = info == null ? null : info.GetValue(pet); return name + " " + (info == null ? "?" : value is bool ? value.ToString() : value == null ? "none" : "set"); };
+                        bool idleClip = ReferenceEquals(typeof(Pet).GetField("clip", own)?.GetValue(pet), typeof(Pet).GetField("idle", own)?.GetValue(pet));
+                        throw new Exception("Sleep went wrong: never " + never + ", early " + early + ", dozed " + dozed + ", stayed " + stayed + ", woke " + woke + ", picked " + pet.SleepPicked
+                            + " (doing " + pet.Doing + ", idle clip " + idleClip + ", " + string.Join(", ", Array.ConvertAll(new[] { "seat", "walking", "dragging", "pressed", "falling", "outro", "away", "quitting" }, name => part(name)))
+                            + ", quiet " + pet.Talk.Quiet + ", menu " + (pet.ContextMenu != null && pet.ContextMenu.IsOpen) + ")");
+                    }
                     checks.Add("PASS sleep: standing, she dozes off after Fall asleep after without the mouse or keyboard (2 min here), shows Asleep on Discord, wakes with her boot glitch when they're back, and Never keeps her up");
                     slept = true;
                 }
