@@ -1024,7 +1024,8 @@ namespace CapriDesktop
             using (FileStream file = new FileStream(update.Path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 Verify(update.Path, update);
-                if (Package() != null) throw new BrainException("Capri is managed by a package manager.");
+                string package = Package();
+                if (package != null) throw new BrainException("Update through " + package + ".");
                 Run(new ProcessStartInfo(update.Path, "--update " + parent.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + started.ToString(System.Globalization.CultureInfo.InvariantCulture)) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = folder });
             }
         }
@@ -4882,7 +4883,11 @@ namespace CapriDesktop
                 mainframe.UpdateNote("Update through " + package + ".", false);
                 return "Update through " + package + ".";
             }
-            if (args.Action == "status") return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
+            if (args.Action == "status")
+            {
+                if (updater.Package() == null && mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) mainframe.UpdateNote("", false);
+                return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
+            }
             if (installing) return "The update is already installing.";
             if (args.Action == "check")
             {

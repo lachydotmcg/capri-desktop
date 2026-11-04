@@ -82,9 +82,9 @@ namespace CapriSetup
         {
             string marker = Path.Combine(InstallPath, "Capri.package");
             string temporary = marker + ".new";
-            File.WriteAllText(temporary, package);
             try
             {
+                File.WriteAllText(temporary, package);
                 if (File.Exists(marker)) File.Replace(temporary, marker, null);
                 else File.Move(temporary, marker);
             }
