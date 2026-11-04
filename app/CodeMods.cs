@@ -204,17 +204,29 @@ namespace CapriDesktop
         private static ICapriMod Compile(string text)
         {
             CompilerResults built;
-            using (CSharpCodeProvider compiler = new CSharpCodeProvider())
-            {
-                CompilerParameters options = new CompilerParameters { GenerateInMemory = true, GenerateExecutable = false, CompilerOptions = "/optimize+" };
-                options.ReferencedAssemblies.AddRange(new[] { "System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows.Forms.dll", typeof(ICapriMod).Assembly.Location });
-                built = compiler.CompileAssemblyFromSource(options, text);
-            }
-            foreach (CompilerError error in built.Errors)
-                if (!error.IsWarning) throw new ModException("That code didn't compile, line " + error.Line + ": " + error.ErrorText);
             List<Type> mods = new List<Type>();
-            foreach (Type type in built.CompiledAssembly.GetTypes())
-                if (typeof(ICapriMod).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface) mods.Add(type);
+            // A missing or blocked compiler, or a mod that won't load, fails that mod: at startup this runs on a worker thread,
+            // where any other error would end her.
+            try
+            {
+                using (CSharpCodeProvider compiler = new CSharpCodeProvider())
+                {
+                    CompilerParameters options = new CompilerParameters { GenerateInMemory = true, GenerateExecutable = false, CompilerOptions = "/optimize+" };
+                    options.ReferencedAssemblies.AddRange(new[] { "System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows.Forms.dll", typeof(ICapriMod).Assembly.Location });
+                    built = compiler.CompileAssemblyFromSource(options, text);
+                }
+                foreach (CompilerError error in built.Errors)
+                    if (!error.IsWarning) throw new ModException("That code didn't compile, line " + error.Line + ": " + error.ErrorText);
+                foreach (Type type in built.CompiledAssembly.GetTypes())
+                    if (typeof(ICapriMod).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface) mods.Add(type);
+            }
+            catch (System.Runtime.InteropServices.ExternalException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (InvalidOperationException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (ArgumentException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (ReflectionTypeLoadException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            catch (TypeLoadException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            catch (BadImageFormatException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            catch (System.Security.SecurityException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
             if (mods.Count != 1) throw new ModException("A code mod needs exactly one class that implements ICapriMod. That one has " + mods.Count + ".");
             try { return (ICapriMod)Activator.CreateInstance(mods[0]); }
             catch (Exception error) { throw new ModException("That mod failed while loading: " + Inner(error).Message); }

@@ -143,6 +143,11 @@ namespace CapriDesktop
             try { using (Bitmap decoded = new Bitmap(file)) if (decoded.Size != wanted) throw new ModException("\"" + name + "\" is the wrong size."); }
 #endif
             catch (ArgumentException) { throw new ModException("\"" + name + "\" is a damaged picture."); }
+            // GDI also reports damaged skin pictures as out of memory or a drawing error.
+            catch (OutOfMemoryException error) { Brain.Log("mods", -1, error.Message); throw new ModException("\"" + name + "\" is a damaged picture."); }
+#if !CROSS
+            catch (System.Runtime.InteropServices.ExternalException error) { Brain.Log("mods", -1, error.Message); throw new ModException("\"" + name + "\" is a damaged picture."); }
+#endif
 #if CROSS
             catch (InvalidOperationException) { throw new ModException("\"" + name + "\" is a damaged picture."); }
             catch (NotSupportedException) { throw new ModException("\"" + name + "\" is a damaged picture."); }
@@ -230,7 +235,8 @@ namespace CapriDesktop
             }
             catch (Exception error)
             {
-                if (!(error is IOException || error is UnauthorizedAccessException || error is ArgumentException)) throw;
+                // An installed picture can be damaged or replaced before her art is reloaded.
+                if (!(error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is OutOfMemoryException || error is System.Runtime.InteropServices.ExternalException)) throw;
                 Brain.Log("mods", -1, "Skin picture " + name + ": " + error.Message);
                 return null;
             }

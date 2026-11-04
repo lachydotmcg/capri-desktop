@@ -5763,9 +5763,11 @@ namespace CapriDesktop
                 }
                 finally { CloseHandle(handle); }
             }
+            // An elevated or closing window can refuse its process name during enumeration.
             try { using (Process process = Process.GetProcessById(id)) return process.ProcessName; }
             catch (ArgumentException) { return ""; }
             catch (InvalidOperationException) { return ""; }
+            catch (System.ComponentModel.Win32Exception error) { Brain.Log("process", -1, error.Message); return ""; }
         }
 
         private static bool Apply(OpenWindow window, string action)

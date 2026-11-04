@@ -3714,9 +3714,8 @@ namespace CapriDesktop
 
         private void DisplaysChanged(object sender, EventArgs e)
         {
-            if (IsDisposed) return;
-            Ledges.Invalidate();
-            BeginInvoke((Action)Rescreen);
+            // A monitor can wake while her window is still being made or is closing, when BeginInvoke throws on this event's thread.
+            Post(delegate { Ledges.Invalidate(); Rescreen(); });
         }
 
         // Her clones' room was the old screen, so they go, and the windows they had go back if their spots are still on a screen. On
@@ -11993,7 +11992,9 @@ namespace CapriDesktop
                     if (agent != opened || dropping || repeating || clock.Elapsed.TotalSeconds < bargedUntil) return;
                     if (Unprompted()) { dropping = true; checkedIn = true; Hush(); return; }
                     stirred = Environment.TickCount;
-                    speaker.Play(ChatVoice(samples));
+                    // A speaker lost mid-reply ends voice chat with a note, instead of failing again on every chunk after it.
+                    try { speaker.Play(ChatVoice(samples)); }
+                    catch (VoiceException error) { ChatFailed(error.Message); return; }
                     foreach (ToolEnd end in toolEnds) if (end.Replied) end.At = clock.Elapsed.TotalSeconds;
                     if (!frames.Enabled && (!hidden || docked)) frames.Start();
                 });
@@ -12025,7 +12026,11 @@ namespace CapriDesktop
         private void ChatTail()
         {
             chatTail.Stop();
-            if (chatFx != null && agent != null && !dropping) speaker.Play(chatFx.Flush());
+            if (chatFx != null && agent != null && !dropping)
+            {
+                try { speaker.Play(chatFx.Flush()); }
+                catch (VoiceException error) { ChatFailed(error.Message); }
+            }
         }
 
         private void Hush()

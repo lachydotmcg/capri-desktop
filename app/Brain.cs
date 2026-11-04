@@ -1314,6 +1314,8 @@ namespace CapriDesktop
                     string stamp;
                     try { FileInfo file = new FileInfo(day); stamp = file.LastWriteTimeUtc.Ticks + "|" + file.Length; }
                     catch (IOException) { continue; }
+                    // A transcript she's lost access to is skipped: this runs on a worker thread, where an error would end her.
+                    catch (UnauthorizedAccessException) { continue; }
                     KeyValuePair<string, List<Moment>> kept;
                     if (!dug.TryGetValue(day, out kept) || kept.Key != stamp)
                     {
@@ -1437,7 +1439,7 @@ namespace CapriDesktop
                     if (signed) CheckRedirect(response);
                     CloudModelPage page = (CloudModelPage)new DataContractJsonSerializer(typeof(CloudModelPage)).ReadObject(body);
                     List<string> names = new List<string>();
-                    if (page.Models != null) foreach (CloudModel model in page.Models) if (model != null && !string.IsNullOrEmpty(model.Id) && model.Id.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Id);
+                    if (page != null && page.Models != null) foreach (CloudModel model in page.Models) if (model != null && !string.IsNullOrEmpty(model.Id) && model.Id.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Id);
                     return names.ToArray();
                 }
             }
@@ -1466,7 +1468,8 @@ namespace CapriDesktop
             {
                 ModelList list = (ModelList)new DataContractJsonSerializer(typeof(ModelList)).ReadObject(body);
                 List<string> names = new List<string>();
-                if (list.Models != null) foreach (ModelInfo model in list.Models) if (!string.IsNullOrEmpty(model.Name) && model.Name.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Name);
+                // A local server answering null, or with a null entry, must not end her startup worker.
+                if (list != null && list.Models != null) foreach (ModelInfo model in list.Models) if (model != null && !string.IsNullOrEmpty(model.Name) && model.Name.IndexOf("embed", StringComparison.OrdinalIgnoreCase) < 0) names.Add(model.Name);
                 return names.ToArray();
             }
         }
@@ -3841,12 +3844,18 @@ namespace CapriDesktop
 
         private static BrainException Problem(WebException error, bool remote, string kind = null, string secret = null)
         {
-            string text;
+            string text = "";
             string url = error.Response.ResponseUri.AbsoluteUri;
             int status = (int)((HttpWebResponse)error.Response).StatusCode;
             string retry = error.Response.Headers["Retry-After"];
             using (WebResponse response = error.Response)
-            using (StreamReader incoming = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) text = incoming.ReadToEnd();
+            {
+                // An error page that breaks off still has its status, which says what went wrong, like a rejected key.
+                try { using (StreamReader incoming = new StreamReader(response.GetResponseStream(), Encoding.UTF8)) text = incoming.ReadToEnd(); }
+                catch (IOException failure) { Log(url, -1, failure.Message); }
+                catch (WebException failure) { Log(url, -1, failure.Message); }
+                catch (ObjectDisposedException failure) { Log(url, -1, failure.Message); }
+            }
             string said = ProblemText(text);
             if (string.IsNullOrWhiteSpace(said)) said = error.Message;
             if (!string.IsNullOrEmpty(secret)) said = said.Replace(secret, "[redacted]");
