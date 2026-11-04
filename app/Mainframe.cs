@@ -1305,7 +1305,8 @@ namespace CapriDesktop
             voiceInMicState.Text = !vb && setup != null ? setup : !cable ? MicMix.Missing : on && problem != null ? problem : capri.CableFarOff ? MicMix.OffLine(capri.CableEnd) : "";
             voiceInMicState.ForeColor = cable ? Hot : Faint;
             cableKey.Visible = !vb && !capri.CableSetupOpen;
-            mixInput.Width = Scaled(cableKey.Visible ? 208 : 328);
+            // Input ends where Get VB-CABLE starts, or where it would end, measured from where both are now so any zoom fits.
+            mixInput.Width = (cableKey.Visible ? cableKey.Left - cableKey.Height / 3 : cableKey.Right) - mixInput.Left;
             Retext(mixInput, "Input: " + (capri.MixInputName ?? "no mic found"));
             Retext(mixOutput, "Output: " + (cable ? MicMix.EndOf(capri.MixOutput) : "none yet"));
             voiceInMic.Invalidate();
