@@ -68,7 +68,7 @@ namespace CapriSetup
                     Console.Error.WriteLine("Capri couldn't save her shortcut: " + unsaved);
                     return 1;
                 }
-                WriteMarker(package ?? "package");
+                WriteMarker(package ?? "manual");
                 return 0;
             }
             catch (Exception error)
