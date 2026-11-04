@@ -145,7 +145,6 @@ namespace CapriDesktop
         private int callAnswer = -1;
         private int callUser = -1, callUserVersion = -1;
         private bool callJoining, callMicWarned;
-        private int callJoinedAsk = -1;
         private const string CallMicNotice = "The call won't hear me until Her voice in your mic is set up.";
         private readonly List<string> callLines = new List<string>();
         private int callLineAsk = -1;
@@ -318,7 +317,7 @@ namespace CapriDesktop
                 try { ToggleCallMode(); }
                 finally { callJoining = false; }
             }
-            callUser = callAnswer = callJoinedAsk = ticket;
+            callUser = callAnswer = ticket;
             callUserVersion = callSession.Generation;
             if (!chatting && !testing)
             {
@@ -351,13 +350,12 @@ namespace CapriDesktop
             }
         }
 
-        // Her first words once she's joined for you are written on purpose by her brain, from what you asked her to pass on: you're
-        // away for some cheeky reason, you asked her to hop in, and she'll launch whatever they're playing (Lachy, 4 Nov: she said
-        // just "Lachy's on in 15, so which game are we playing"). Her reply to you isn't said on the call then; she's talking to them.
+        // What she says to the call for you is written on purpose by her brain, from what you asked her to pass on, whether she
+        // just joined or was already there: you're away for some cheeky reason, you sent her, and she'll launch whatever they're
+        // playing (Lachy, 4 Nov: she said just "Lachy's on in 15, so which game are we playing", and already in the call she
+        // never got here). Her reply to you isn't said on the call then; she's talking to them.
         private string JoinSpeech(int ticket, string asked, string said)
         {
-            if (ticket != callJoinedAsk) return said;
-            callJoinedAsk = -1;
             List<string> lines = new List<string>();
             bool notice = false;
             lock (callLines)
@@ -365,6 +363,7 @@ namespace CapriDesktop
                 if (callLineAsk != ticket) return said;
                 foreach (string line in callLines) if (line == CallMicNotice) notice = true; else lines.Add(line);
             }
+            if (lines.Count == 0) return said;
             CallErrand waiting = callSession.Waiting;
             string spoken;
             try { spoken = brain.CallJoined(asked, lines, waiting == null ? null : waiting.Action); }
