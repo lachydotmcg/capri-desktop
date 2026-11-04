@@ -25048,7 +25048,7 @@ namespace CapriDesktop
                 if (head(brain.Server, brain.ServerKey, brain.Model).Ask("hello test") != "Provider B answered.") throw new Exception("A prefixed key bypassed its own address.");
                 foreach (string request in a) if (!request.Contains("Authorization: Bearer " + keyA) || request.Contains(keyB)) throw new Exception("Provider A received the wrong key.");
                 foreach (string request in b) if (!request.Contains("Authorization: Bearer " + keyB) || request.Contains(keyA) || request.IndexOf("x-api-key:", StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Provider B did not get only its own Bearer key.");
-                if (!a[0].StartsWith("GET /provider/v1/models ", StringComparison.Ordinal) || !a[1].StartsWith("POST /provider/v1/chat/completions ", StringComparison.Ordinal) || !a[1].Contains("\"model\":\"vendor/beta\"")) throw new Exception("Provider requests lost the base path or selected model.");
+                if (!a[0].StartsWith("GET /provider/v1/models ", StringComparison.Ordinal) || !a[1].StartsWith("POST /provider/v1/chat/completions ", StringComparison.Ordinal) || !a[1].Contains("\"model\":\"vendor\\/beta\"")) throw new Exception("Provider requests lost the base path or selected model.");
                 checks.Add("PASS add a provider, list and pick its models, chat, and reload its encrypted address/key pair; opaque and recognised key prefixes go only to their supplied address");
                 checks.Add("PASS tier changes restore the same provider pair and an older refresh keeps its own key without replacing a newer provider");
 
@@ -25167,7 +25167,8 @@ namespace CapriDesktop
                     File.WriteAllText(Brain.MemoriesPath, "");
                     File.WriteAllText(Path.Combine(Brain.TranscriptPath, "unfolded.txt"), "2026-11-04 20:00 You: We played chess today.\n");
                     if (side.Fold() != null || !File.ReadAllText(Brain.MemoriesPath).Contains("They like chess.")) throw new Exception("A provider memory fold lost its credentials.");
-                    foreach (string request in sideRequests) if (!request.Contains("Authorization: Bearer " + keyA) || !request.Contains("\"model\":\"vendor/alpha\"")) throw new Exception("A provider side request lost its own key or model.");
+                    // Requests written by .NET's JSON writer escape the slash (vendor\/alpha) and hand-written ones don't; both are the same name.
+                    foreach (string request in sideRequests) if (!request.Contains("Authorization: Bearer " + keyA) || !request.Contains("\"model\":\"vendor/alpha\"") && !request.Contains("\"model\":\"vendor\\/alpha\"")) throw new Exception("A provider side request lost its own key or model.");
                     if (count(sideRequests) != 5) throw new Exception("A provider side request used another address.");
                     for (int i = 1; i <= 3; i++) if (!sideRequests[i].Contains("image_url") || !sideRequests[i].Contains("data:image/jpeg;base64,AQID") || sideRequests[i].Contains("\"images\"")) throw new Exception("A provider picture used Ollama's image format.");
                 }
@@ -28812,7 +28813,8 @@ namespace CapriDesktop
                     mix.Call = true;
                     MicMix.Hear(speaker, Hum(24000, 1000, 0.2, 3), 24000);
                     RunMix(mix, pc, now, 0.5, null);
-                    if (ToneIn(pc.Cables[0].Kept, 48000, 1000, 0.7, 0.3) < 0.1 || mix.Waiting == 0) throw new Exception("Call mode did not send her queued voice to the cable.");
+                    // Waiting only counts what hasn't started, and this line has, so her own level shows it's still going out.
+                    if (ToneIn(pc.Cables[0].Kept, 48000, 1000, 0.7, 0.3) < 0.1 || mix.Output == 0) throw new Exception("Call mode did not send her queued voice to the cable.");
                     int micOpens = mix.MicOpens, cableOpens = mix.CableOpens;
                     mix.Call = false;
                     if (mix.Waiting != 0 || mix.Output != 0) throw new Exception("Ending a call kept her queued voice or its level.");
