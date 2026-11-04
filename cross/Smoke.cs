@@ -992,6 +992,9 @@ namespace CapriDesktop
                 {
                     if (!pet.Upright) return false;
                     pet.Talk.Dismiss();
+                    // An open menu keeps her awake, and on Linux one is still open from an earlier check; this check is about her
+                    // sleep timer, so it says so and closes it first.
+                    if (pet.ContextMenu != null && pet.ContextMenu.IsOpen) { checks.Add("LIMIT her menu was still open from an earlier check, so the sleep check closed it first"); pet.ContextMenu.Close(); }
                     pet.SetSleepAfter(0);
                     pet.Doze(100000);
                     bool never = !pet.Asleep && pet.SleepPicked == "Never";
