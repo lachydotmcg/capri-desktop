@@ -867,6 +867,7 @@ namespace CapriDesktop
             try
             {
                 string name = File.ReadAllText(path).Trim();
+                if (name == "manual") return null;
                 if (name == "winget" || name == "scoop" || name == "chocolatey" || name == "pacman") return name;
                 return "your package manager";
             }
@@ -2640,6 +2641,7 @@ namespace CapriDesktop
                 string problem = null;
                 try
                 {
+                    if (updater.Package() != null) { Post(delegate { ShowUpdate(null, null, null, asked); }); return; }
                     found = updater.Latest();
                     if (updater.Package() != null) { Post(delegate { ShowUpdate(found, null, null, asked); }); return; }
                     if (UsableRelease(found) && IsNewer(found.Tag, Assembly.GetExecutingAssembly().GetName().Version))
@@ -2764,8 +2766,14 @@ namespace CapriDesktop
             {
                 string problem = null;
                 bool invalid = false;
-                string package = updater.Package();
-                if (package != null) { Post(delegate { ForgetUpdate(); mainframe.UpdateNote("Update through " + package + ".", false); }); return; }
+                string blockedBy = updater.Package();
+                if (blockedBy != null)
+                {
+                    installing = false;
+                    checkItem.Enabled = true;
+                    Post(delegate { ForgetUpdate(); mainframe.UpdateNote("Update through " + blockedBy + ".", false); });
+                    return;
+                }
                 try { updater.Install(ready, parent, started); }
                 catch (Exception error)
                 {
@@ -28727,6 +28735,8 @@ namespace CapriDesktop
                             if (packageUpdater.Package() != "your package manager") throw new Exception("A bad package marker did not block her own updater.");
                             File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "package");
                             if (packageUpdater.Package() != "your package manager") throw new Exception("The generic package marker was not read.");
+                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "manual");
+                            if (packageUpdater.Package() != null) throw new Exception("A manual package marker did not free her updater.");
                             foreach (string bad in new[] { "apt", "0", "-" })
                             {
                                 File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), bad);

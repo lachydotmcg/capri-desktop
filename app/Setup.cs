@@ -667,22 +667,10 @@ namespace CapriSetup
             try
             {
                 if (removing) { Program.BeginUninstall(); Close(); return; }
-                string package = Path.Combine(Program.InstallPath, "Capri.package");
-                string parked = package + ".old";
-                try
-                {
-                    if (File.Exists(parked)) File.Delete(parked);
-                    if (File.Exists(package) || Directory.Exists(package)) File.Move(package, parked);
-                }
-                catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
                 status.Text = "Making a little room for Capri…";
-                try { noShortcut = Program.Install(desktop.Checked); }
-                catch (Exception)
-                {
-                    try { if (File.Exists(parked)) File.Move(parked, package); } catch (Exception) { }
-                    throw;
-                }
-                try { if (File.Exists(parked)) File.Delete(parked); } catch (Exception) { }
+                noShortcut = Program.Install(desktop.Checked);
+                try { File.WriteAllText(Path.Combine(Program.InstallPath, "Capri.package"), "manual"); }
+                catch (Exception error) { Notice.Tell(this, "Capri is installed, but the package marker couldn't be cleared. Delete Capri.package in " + Program.InstallPath + " to let her update herself. " + error.Message, "Capri", true); }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
             if (Environment.Is64BitOperatingSystem && !VoicePack.Complete(VoicePack.Folder(Program.InstallPath))) FetchVoice();
