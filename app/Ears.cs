@@ -2409,7 +2409,7 @@ namespace CapriDesktop
     {
         internal static Func<bool> CanListen = delegate { return true; };
         internal static Func<int> Generation = delegate { return 0; };
-        internal const string CallOnly = "PC audio was left out because call mode is conversation only or changed while listening.";
+        internal const string CallOnly = "PC audio was left out because the call changed or this turn cannot use it.";
         internal static readonly object VoiceGate = new object();
         private static readonly object gate = new object();
         internal static Func<bool> Speaking = delegate { return false; };

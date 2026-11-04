@@ -256,7 +256,7 @@ namespace CapriDesktop
         private string WatchWith(string action)
         {
             if (action == "stop") { EndWatchAlong(); return "Done watching with you."; }
-            if (CallModeOn) return "Call mode is conversation only. Turn it off before watching PC audio with me.";
+            if (CallModeOn) return "Turn call mode off before watching PC audio with me.";
             if (watchAlong != null) return "I'm watching with you.";
             StopExplore();
             followUp.Drop();

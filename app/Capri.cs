@@ -2512,7 +2512,7 @@ namespace CapriDesktop
             typer.Submitted += Hear;
             callSession.Change(preferences.CallMode);
             if (preferences.CallMode) ResetCall();
-            PcEars.CanListen = delegate { return !CallModeOn; };
+            PcEars.CanListen = delegate { return !CallModeOn || CallHands(asking); };
             PcEars.Generation = delegate { return callSession.Generation; };
             typer.CallMode = CallModeOn;
             typer.CallModeChanged += ToggleCallMode;
@@ -4985,19 +4985,25 @@ namespace CapriDesktop
 
         private string DoTool(string tool, ToolArguments args, int ticket, bool beside = false)
         {
-            if (CallModeOn) return "I can only talk in call mode.";
+            if (CallModeOn && !CallHands(ticket)) return CallSession.Conversation;
+            if (ticket == callUser && (ticket != asking || !callSession.Current(callUserVersion))) return "That call request has ended.";
+            int callVersion = CallHands(ticket) ? callUserVersion : -1;
             if (args != null) args.Ticket = ticket;
             // Esc ends the whole ask: once it stops a job, the rest of that ask's tools and jobs don't run.
             if (ticket == escAsk) return "";
+            if (tool == "call_errand" || tool == "call_say") return Hands.Valid(tool, args) ? CallTool(tool, args, ticket) : "Couldn't read that call request.";
             // A please on the end of a message job stays out of the message, however her brain wrote the job.
             if (tool == "use_computer" && args != null) args.Task = Hands.Unpleased(args.Task);
+            if (tool == "use_computer" && args != null && CallSession.Blank(args.Task) && !CallSession.Joining(args.Task)) return "Use call_errand for the call's choice.";
             ToolArguments musicArgs;
-            if (tool == "use_computer" && args != null && Hands.MusicJob(args.Task, out musicArgs)) { tool = "play_music"; args = musicArgs; }
+            if (tool == "use_computer" && args != null && !CallSession.Joining(args.Task) && Hands.MusicJob(args.Task, out musicArgs)) { tool = "play_music"; args = musicArgs; }
             // SECURITY: a toggle they switched off holds the call and she asks first; their yes runs it (ResumeJob).
             string asked = Security.Gate(tool, args);
             if (asked != null) return asked;
+            bool joining = tool == "use_computer" && args != null && CallSession.Joining(args.Task);
+            if (joining) args.Task += CallSession.JoinTask;
             // With Use your mouse and keyboard for jobs off, her quick tools stay quick instead of taking the mouse.
-            string task = beside || preferences.QuickHands || args == null || brain.Model == null || !Security.On(Security.Mouse) ? null : CursorJob(tool, args);
+            string task = beside || preferences.QuickHands || args == null || args.Current != null || brain.Model == null || !Security.On(Security.Mouse) ? null : CursorJob(tool, args);
             bool mouse = task != null || tool == "use_computer";
             string done;
             bool lost = false, held = false;
@@ -5006,6 +5012,7 @@ namespace CapriDesktop
                 if (mouse) Monitor.Enter(mouseGate, ref held);
                 // Esc stopped this ask's job while this one waited its turn.
                 if (ticket == escAsk) done = "";
+                else if (CallModeOn && !CallHands(ticket) || callVersion >= 0 && (ticket != asking || !callSession.Current(callVersion))) done = "That call request has ended.";
                 else if (tool == "find_file") done = Hands.Finder.Do(args ?? new ToolArguments(), delegate { return ticket != asking || ticket == escAsk || quitting; });
                 else if (task == null) done = Hands.Do(tool, args);
                 else
@@ -5015,7 +5022,7 @@ namespace CapriDesktop
                     catch (Exception error) { done = "That didn't work: " + error.Message; lost = true; }
                 }
             }
-            finally { if (held) Monitor.Exit(mouseGate); }
+            finally { if (held) Monitor.Exit(mouseGate); if (args != null && args.Finished != null) args.Finished(); }
             if (Computer.Stopped(done)) escAsk = ticket;
             // A slider she couldn't reach still gets the volume keys, unless they stopped her.
             bool missed = task != null && (lost || (done != null && (done.Contains(Computer.Bigger) || (tool == "media" && Hands.Failed(done) && !done.StartsWith("You ", StringComparison.Ordinal)))));
@@ -5101,7 +5108,7 @@ namespace CapriDesktop
             for (int i = 0; i < toolEnds.Count;)
             {
                 ToolEnd end = toolEnds[i];
-                if (end.Ask != asking || quitting || CallModeOn) { toolEnds.RemoveAt(i); continue; }
+                if (end.Ask != asking || quitting || CallModeOn && !CallHands(end.Ask)) { toolEnds.RemoveAt(i); continue; }
                 if (!end.Replied || end.Voicing || now < end.At + 1 || speaker.Busy || chatTail.Enabled || now < voiceUntil || answerVoice == asking || hdSpeaking == asking
                     || !end.Aside && (replyDone < 0 || talkState == TalkState.Thinking)) { i++; continue; }
                 ready.Add(end.Run);
@@ -5116,7 +5123,7 @@ namespace CapriDesktop
         private string VoiceChatTool(ToolArguments args)
         {
             if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(VoiceChatTool), args);
-            if (CallModeOn) return "I can only talk in call mode.";
+            if (CallModeOn && !CallHands(args.Ticket ?? asking)) return CallSession.Conversation;
             string action = args.Action;
             if (action == "status") return chatting ? "Voice chat is on." : "Voice chat is off.";
             bool on = action == "on";
@@ -8546,6 +8553,13 @@ namespace CapriDesktop
 
         private string RunJob(string task, string asked)
         {
+            int ticket = asking;
+            if (CallSession.Joining(task))
+            {
+                Job joining = new Job(task, asked);
+                string result = Work(joining);
+                return FinishCallJoin(task, joining.Outcome, ticket, result);
+            }
             if (Hands.StreamAsked(task) || Hands.StreamAsked(asked)) Computer.Streaming = true;
             if (!Computer.Streaming)
             {
@@ -8586,7 +8600,12 @@ namespace CapriDesktop
             Job waiting = job;
             if (waiting == null || !waiting.Asking) return null;
             string said = text.Trim();
-            if (Regex.IsMatch(said, @"^(yes|yeah|yep|yup|ya|yea|sure|ok|okay|do it|go ahead|go for it|send it|press it|oui)\b[\s.!,]*(please|pls|plz|choom)?[\s.!]*$", RegexOptions.IgnoreCase)) return Work(waiting);
+            if (Regex.IsMatch(Hands.Asked(said), @"^(yes|yeah|yep|yup|ya|yea|sure|ok|okay|do it|go ahead|go for it|send it|press it|oui)\b[\s.!,]*(please|pls|plz|choom)?[\s.!]*$", RegexOptions.IgnoreCase))
+            {
+                int ticket = asking;
+                string result = Work(waiting);
+                return FinishCallJoin(waiting.Task, waiting.Outcome, ticket, result);
+            }
             job = null;
             if (Regex.IsMatch(said, @"^(no|nah|nope|don't|do not|stop|cancel|never mind|nevermind|leave it|non)\b", RegexOptions.IgnoreCase)) return "Okay, I left it alone.";
             return null;
@@ -10881,7 +10900,7 @@ namespace CapriDesktop
             pill.ListenForName = preferences.ListenCapri;
             pillUntil = clock.Elapsed.TotalSeconds + PillPop;
             // Turned on mid-job, it leaves the job running, so what they say next goes to it.
-            if (working == null)
+            if (working == null && !callJoining)
             {
                 brain.Cancel();
                 CloseTalk();
@@ -11204,7 +11223,7 @@ namespace CapriDesktop
             if (earsReady) EarsReady(false);
         }
 
-        private string LocalListening { get { return CallModeOn ? "Call mode (beta). Voice is conversation only." : preferences.ListenCapri ? "Listening for Capri." : "Free voice chat on. Talk and I'll type back."; } }
+        private string LocalListening { get { return CallModeOn ? "Call mode (beta). Say Capri for your requests." : preferences.ListenCapri ? "Listening for Capri." : "Free voice chat on. Talk and I'll type back."; } }
 
         internal const string CableDefault = "Windows speech only hears your default mic, CABLE Output, which has her voice in it. She hears your real mic offline instead.";
 
@@ -11715,7 +11734,7 @@ namespace CapriDesktop
         // A tool call from voice chat. A call SECURITY holds is asked about at once instead of waiting its turn on the mouse.
         private string AgentAct(Agent opened, string tool, ToolArguments args)
         {
-            if (CallModeOn) return "I can only talk in call mode.";
+            if (CallModeOn) return CallSession.Conversation;
             if (args == null) args = new ToolArguments();
             args.FromAgent = opened != null;
             stirred = Environment.TickCount;
@@ -12031,10 +12050,13 @@ namespace CapriDesktop
 
         private static bool StopWords(string text) { return Regex.IsMatch(Hands.Asked(text), @"^(stop|quit|cancel|enough)\W+listening\b", RegexOptions.IgnoreCase); }
 
-        private void Hear(string text, string shown, string prompt, int switches = 0)
+        private void Hear(string text, string shown, string prompt, int switches = 0, bool callInput = false)
         {
             text = (text ?? "").Trim();
             if (text.Length == 0) return;
+            int callVersion = callInput && CallModeOn ? callSession.Generation : -1;
+            string callContext = callVersion < 0 ? null : callSession.Context(callVersion);
+            if (callVersion >= 0) { callUser = asking; callUserVersion = callVersion; }
             if (prompt == "> you: " && ModList.Heard(text)) return;
             WakeRest(!SleepBusy);
             followUp.Drop();
@@ -12075,6 +12097,7 @@ namespace CapriDesktop
             CancelAnswerAudio();
             voice.Stop();
             int ticket = ++asking;
+            if (callVersion >= 0) { callUser = callAnswer = ticket; callUserVersion = callVersion; }
             heard = shown;
             box.Prompt = prompt;
             if (sorry && OnlyApology(text)) { Answer(ticket, Lines.Pick(SorryLines), TalkState.Talking); return; }
@@ -12090,7 +12113,7 @@ namespace CapriDesktop
                     return;
                 }
             }
-            bool followAllowed = preferences.FollowUps && prompt == "> you: " && agent == null && (!chatting || local);
+            bool followAllowed = preferences.FollowUps && !CallModeOn && prompt == "> you: " && agent == null && (!chatting || local);
             int followInput = FollowInput(), followMic = micTalked;
             string followLine = "";
             Func<string, string> think = Think;
@@ -12105,11 +12128,11 @@ namespace CapriDesktop
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
             if (Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
-            if (think == null && fileMessage) think = brain.Ask;
+            if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext); };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
-                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine); };
+                think = delegate(string question) { return brain.Ask(question, followAllowed, out followLine, callContext); };
             }
             reply = null;
             replyDone = -1;
@@ -12140,9 +12163,11 @@ namespace CapriDesktop
                 {
                     if (!IsDisposed) BeginInvoke((Action)delegate
                     {
-                        if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1); return; }
+                        if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput); return; }
                         if (problem != null && ticket == asking) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem));
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
+                        said = CallLine(ticket, said);
+                        if (CallHands(ticket)) callSession.Keep(callUserVersion, text, said, Brain.Recall, delegate { return ticket == asking; });
                         Answer(ticket, said, state, quiet);
                         if (said == Brain.Offline) FindBrain();
                     });
@@ -12175,6 +12200,7 @@ namespace CapriDesktop
         private void Answer(int ticket, string said, TalkState state, bool quiet = false)
         {
             if (ticket != asking || IsDisposed) return;
+            said = CallLine(ticket, said);
             // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
             int turn = ++answerTurn;
             CancelAnswerAudio();
@@ -17635,7 +17661,7 @@ namespace CapriDesktop
                 if (calls.Count != 1 || calls[0].Key != "clone" || calls[0].Value.Count != 2 || asked.Count != 2 || !asked[1].Contains("clone{")) throw new Exception("A head without native tools lost its full text tool kit.");
                 callSession.Change(true);
                 int before = did.Count;
-                if (DoTool("animate", new ToolArguments { Name = "dance" }) != "I can only talk in call mode." || did.Count != before) throw new Exception("Call mode let a tool through.");
+                if (DoTool("animate", new ToolArguments { Name = "dance" }) != CallSession.Conversation || did.Count != before) throw new Exception("Call mode let a tool through.");
                 checks.Add("PASS the fast head picks dance, clone and settings tools from suggestions beside a job, keeps SECURITY and call isolation, and falls back to the full text tool kit");
             }
             finally
@@ -27544,6 +27570,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClipPanel", delegate { SmokeClipPanel(checks, output); });
             Section(checks, "SmokeClipPopup", delegate { SmokeClipPopup(checks, output); });
             Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
+            Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
@@ -28427,6 +28454,340 @@ namespace CapriDesktop
                 if (!flat.Contains("Watcher.exe") || !flat.Contains("--hook codex") || !flat.Contains("echo existing") || !flat.Contains("\"other\":true") || !flat.Contains("\"Untouched\":[]")) throw new Exception("Husk off did not preserve every other hook and setting.");
             }
             checks.Add("PASS husk brain and off: fake brain receives recent actions and separate daily counts, summary has no tools and follows her language, counts persist and roll over, off closes loopback, deletes its token, recalls agents and removes only Capri commands");
+        }
+
+        private void SmokeCallErrands(List<string> checks)
+        {
+            Cloud remoteWas = brain.Remote;
+            string modelWas = brain.Model, transcriptWas = Brain.TranscriptPath, memoryWas = Brain.MemoryPath;
+            bool ownWas = brain.OwnSteps, keepingWas = Brain.Keeping;
+            Func<string, string> thinkWas = Think;
+            bool callWas = CallModeOn, savedCallWas = preferences.CallMode, quietWas = preferences.Quiet, silentWas = preferences.Silent;
+            bool listenWas = preferences.ListenCapri, quickWas = preferences.QuickHands, chatWas = chatting, localWas = local, mutedWas = ears.Muted;
+            int typingWas = preferences.Typing, userWas = callUser, userVersionWas = callUserVersion, answerWas = callAnswer;
+            int askWas = asking, escWas = escAsk;
+            Job jobWas = job;
+            string workWas = working, securityWas = Security.Saved;
+            bool wakeWas = Security.On(Security.Wake);
+            Func<DateTime> clockWas = callSession.Now;
+            Action<string> runWas = Hands.Run;
+            Func<string, string, string> workFakeWas = Hands.Work;
+            Func<List<InstalledApp>> catalogWas = Hands.Catalog;
+            Func<List<OpenWindow>> windowsWas = Hands.Windows;
+            Func<string, string> openedWas = Hands.Opened, fetchWas = Hands.Fetch;
+            Func<string> gameWas = Hands.GameOpen;
+            Func<string, string, byte[][], string> headWas = headTest;
+            Action<string> asideWas = asideTest;
+            MicMix mixWas = MicMix.Current;
+            TcpListener listener = null;
+            List<string> requests = new List<string>(), opened = new List<string>(), jobs = new List<string>();
+            DateTime now = new DateTime(2026, 11, 4, 0, 0, 0, DateTimeKind.Utc);
+            Func<string, string, string> tool = delegate(string name, string args)
+            {
+                return "{\"id\":\"call-" + name + "\",\"type\":\"function\",\"function\":{\"name\":" + HuskJson.Write(name) + ",\"arguments\":" + HuskJson.Write(args) + "}}";
+            };
+            Func<string, string> tools = delegate(string calls) { return "{\"choices\":[{\"message\":{\"content\":\"\",\"tool_calls\":[" + calls + "]}}]}"; };
+            Action<string[]> serve = delegate(string[] replies)
+            {
+                CloseTalk();
+                if (listener != null) listener.Stop();
+                requests.Clear();
+                string address = FakeServer(replies, requests, out listener);
+                brain.Remote = new Cloud(0, "call-errand-check", address);
+            };
+            Action<string> wait = delegate(string words)
+            {
+                Stopwatch elapsed = Stopwatch.StartNew();
+                while ((reply == null || !reply.Contains(words)) && elapsed.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (reply == null || !reply.Contains(words)) throw new Exception("The call errand reply did not arrive: " + words + " / " + reply);
+            };
+            try
+            {
+                Think = null;
+                brain.Model = "call-errand-check";
+                brain.OwnSteps = false;
+                Brain.Keeping = false;
+                Brain.TranscriptPath = Brain.MemoryPath = null;
+                preferences.Quiet = preferences.Silent = true;
+                preferences.ListenCapri = false;
+                preferences.QuickHands = true;
+                preferences.Typing = 2;
+                chatting = local = false;
+                ears.Muted = false;
+                job = null; working = null;
+                MicMix.Current = null;
+                Security.Drop(); Security.Load("1111111000");
+                callSession.Now = delegate { return now; };
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Notepad", "fake-notepad"), new InstalledApp("Roblox", "fake-roblox") }; };
+                Hands.Windows = delegate { return new List<OpenWindow>(); };
+                Hands.Opened = delegate { return ""; };
+                Hands.GameOpen = delegate { return null; };
+                Hands.Fetch = delegate { return "{\"videoId\":\"abcdefghijk\"}"; };
+                Hands.Run = delegate(string target) { lock (opened) opened.Add(target); };
+                Hands.Work = delegate(string task, string asked)
+                {
+                    lock (jobs) jobs.Add(task);
+                    return FinishCallJoin(task, "done", asking, "Joined Discord.");
+                };
+                Hands.Forget();
+                callSession.Change(true); preferences.CallMode = true; typer.CallMode = true;
+                callSession.Keep(callSession.Generation, CallSession.Others + "We're choosing today's game.", "Which one?", 8);
+                serve(new[] { LocalReply("Notepad is up.") });
+                HearCall("Capri, open Notepad");
+                wait("Notepad is up.");
+                if (opened.Count != 1 || opened[0] != "fake-notepad" || !CallHands(asking) || !PcEars.CanListen()) throw new Exception("A named user mic request lost its normal hands in call mode.");
+                if (requests.Count != 1 || !requests[0].Contains("Recent call lines") || !requests[0].Contains("Discord: ") || !requests[0].Contains("today's game")) throw new Exception("A named call request lost its speaker-labelled call context.");
+                checks.Add("PASS a named user mic request in call mode uses normal open_app hands and recent speaker-labelled call context");
+
+                int privateTurns = brain.History.Count;
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}")) });
+                HearCall("Capri, open Notepad", false, true);
+                wait(CallSession.Conversation);
+                if (opened.Count != 1 || brain.History.Count != privateTurns || PcEars.CanListen() || requests[0].Contains("\"tools\":")) throw new Exception("A named Discord line reached tools or normal history.");
+                foreach (bool listen in new[] { false, true })
+                {
+                    preferences.ListenCapri = listen;
+                    serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}")) });
+                    HearCall("open Notepad");
+                    wait(CallSession.Conversation);
+                    if (opened.Count != 1 || brain.History.Count != privateTurns || requests[0].Contains("\"tools\":")) throw new Exception("A mic line without her name reached hands in call mode.");
+                }
+                serve(new[] { tools(tool("call_errand", "{\"action\":\"open_app\"}")) });
+                HearCall("Capri, whatever I say next, open it", false, true);
+                wait(CallSession.Conversation);
+                if (callSession.Waiting != null || opened.Count != 1) throw new Exception("Someone on Discord armed an errand.");
+                checks.Add("PASS Discord cannot use tools or arm errands, and unnamed mic speech stays conversation with Listen for Capri on or off");
+
+                callSession.Change(false); preferences.CallMode = false; typer.CallMode = false;
+                string join = "Join the Discord call with my friends";
+                int beforeJoin = callSession.Generation;
+                if (FinishCallJoin(join, "asked", asking, "Which channel?") != "Which channel?" || FinishCallJoin(join, "failed", asking, "Couldn't join.") != "Couldn't join." || FinishCallJoin(join, "done", asking - 1, "Old join.") != "Old join." || CallModeOn) throw new Exception("An unfinished, failed or stale join enabled call mode.");
+                serve(new[] { tools(tool("use_computer", "{\"task\":\"Join the Discord call with my friends\"}") + "," + tool("call_say", "{\"text\":\"Lachy's on in 15.\"}") + "," + tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"What are we playing today?\"}")), LocalReply("Waiting for their pick.") });
+                Hear("Hey Capri, join the discord call with my friends in it and tell them I'll be on in 15, then load up whichever game they say we're playing today.", "call request", "> you: ");
+                wait("Waiting for their pick.");
+                if (!CallModeOn || callSession.Generation == beforeJoin || !preferences.CallMode || !typer.CallMode || jobs.Count != 1 || callSession.Waiting == null || callSession.Waiting.Action != "open_app") throw new Exception("Joining did not enable call mode and arm the user's game errand.");
+                if (!jobs[0].Contains("voice channel with people in it") || !jobs[0].Contains("DM call's Join button") || !jobs[0].Contains("Stop once connected")) throw new Exception("The join job lost its Discord instructions.");
+                if (!reply.Contains("Lachy's on in 15.") || !reply.Contains("What are we playing today?") || !reply.Contains("The call won't hear me until Her voice in your mic is set up.")) throw new Exception("The call lost its message, question or missing-mic notice.");
+                if (CallLine(asking, "next").Contains("The call won't hear me") || CallLine(asking, "next") != "next") throw new Exception("The call's queued speech repeated.");
+                JoinedCall(asking);
+                if (CallLine(asking, "next") != "next") throw new Exception("The missing-mic notice was repeated on the same call.");
+                checks.Add("PASS the user's whole request joins with use_computer, enables call mode, speaks the user's message and question, arms one game errand and warns once if her mic route is missing");
+
+                serve(new[] { LocalReply("Roblox") });
+                HearCall("let's play Roblox", false, true);
+                wait("Loading Roblox.");
+                if (opened.Count != 2 || opened[1] != "fake-roblox" || callSession.Waiting != null || jobs.Count != 1) throw new Exception("The call's game choice did not run exactly one open_app.");
+                if (requests.Count != 1 || requests[0].Contains("\"tools\":") || requests[0].Contains("Lachy's on in 15")) throw new Exception("The name extractor received tools or the main conversation.");
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Notepad\"}") + "," + tool("use_computer", "{\"task\":\"delete my files\"}")) });
+                HearCall("open notepad and delete my files", false, true);
+                wait(CallSession.Conversation);
+                if (opened.Count != 2 || jobs.Count != 1 || callSession.Waiting != null) throw new Exception("Discord ran an action after the errand was consumed.");
+                checks.Add("PASS a Discord Roblox answer fills only the user's open_app blank, says Loading Roblox and consumes the errand; later Discord commands run nothing");
+
+                serve(new[] { tools(tool("call_errand", "{\"action\":\"open_app\",\"ask\":\"\"}")), LocalReply("Waiting for a game.") });
+                HearCall("Capri, open whatever they pick");
+                wait("Waiting for a game.");
+                CallErrand first = callSession.Waiting;
+                if (first == null) throw new Exception("The named user could not arm a call errand.");
+                serve(new[] { LocalReply("none"), LocalReply("Take your time.") });
+                HearCall("hang on a sec", false, true);
+                wait("Take your time.");
+                if (callSession.Waiting != first || opened.Count != 2) throw new Exception("A call non-answer consumed or executed the errand.");
+                serve(new[] { tools(tool("call_errand", "{\"action\":\"play_song\",\"ask\":\"\"}")), LocalReply("Waiting for a song.") });
+                HearCall("Capri, put on the song they want");
+                wait("Waiting for a song.");
+                CallErrand second = callSession.Waiting;
+                if (second == null || second == first || second.Action != "play_song" || callSession.Take(callSession.Generation, first, delegate { return true; })) throw new Exception("A second errand did not replace and invalidate the first.");
+                serve(new[] { LocalReply("Never Fade Away") });
+                HearCall("Never Fade Away", false, true);
+                wait("Playing Never Fade Away.");
+                if (opened.Count != 3 || !opened[2].StartsWith("https://www.youtube.com/watch?v=abcdefghijk", StringComparison.Ordinal) || callSession.Waiting != null) throw new Exception("The call's song choice did not use the existing music hands once.");
+                checks.Add("PASS a non-answer leaves the errand waiting, a song errand replaces the game errand, stale choices fail and the song runs through her music hands");
+
+                callSession.Arm(callSession.Generation, "open_app");
+                CallErrand expires = callSession.Waiting;
+                now = now.AddMinutes(10).AddTicks(-1);
+                if (callSession.Waiting != expires) throw new Exception("A call errand expired before ten minutes.");
+                now = now.AddTicks(1);
+                if (callSession.Waiting != null || callSession.Take(callSession.Generation, expires, delegate { return true; })) throw new Exception("A call errand outlived ten minutes.");
+                serve(new[] { tools(tool("open_app", "{\"name\":\"Roblox\"}")) });
+                HearCall("let's play Roblox", false, true);
+                wait(CallSession.Conversation);
+                if (opened.Count != 3 || requests.Count != 1) throw new Exception("An expired errand still extracted or opened a call choice.");
+                callSession.Arm(callSession.Generation, "open_app");
+                serve(new[] { tools(tool("call_errand", "{\"action\":\"cancel\"}")), LocalReply("Dropped the errand.") });
+                HearCall("Capri, cancel the call errand");
+                wait("Dropped the errand.");
+                if (callSession.Waiting != null) throw new Exception("The user could not cancel the errand.");
+                callSession.Arm(callSession.Generation, "open_app");
+                CallErrand ended = callSession.Waiting;
+                int endedVersion = callSession.Generation;
+                ToggleCallMode();
+                if (CallModeOn || callSession.Waiting != null || callSession.Take(endedVersion, ended, delegate { return true; })) throw new Exception("Ending call mode kept an errand or its old choice.");
+                checks.Add("PASS fake-clock errands expire at ten minutes, expired Discord replies do nothing, the user can cancel and ending the call invalidates waiting choices");
+
+                callSession.Change(true); preferences.CallMode = true;
+                Security.Set(Security.Open, false);
+                serve(new[] { LocalReply("unused") });
+                HearCall("Capri, open Notepad");
+                wait("Say yes and I will.");
+                if (Security.Holding != "open_app" || opened.Count != 3) throw new Exception("A named call request bypassed the user's SECURITY settings.");
+                serve(new[] { LocalReply("Just chatting.") });
+                HearCall("yes", false, true);
+                wait("Just chatting.");
+                if (Security.Holding != "open_app" || opened.Count != 3) throw new Exception("A friend approved the user's held action.");
+                serve(new[] { LocalReply("Notepad is up.") });
+                HearCall("Capri, yes");
+                wait("Opened Notepad");
+                if (opened.Count != 4 || opened[3] != "fake-notepad" || Security.Holding != null) throw new Exception("The user's named yes did not approve the held action.");
+                callSession.Arm(callSession.Generation, "open_app");
+                serve(new[] { LocalReply("Roblox") });
+                HearCall("let's play Roblox", false, true);
+                wait("Say yes and I will.");
+                if (Security.Holding != "open_app" || opened.Count != 4 || callSession.Waiting != null) throw new Exception("A call errand bypassed SECURITY or stayed armed after asking the user.");
+                preferences.QuickHands = false;
+                serve(new[] { LocalReply("unused") });
+                HearCall("Capri, yes");
+                wait("Opened Roblox");
+                if (opened.Count != 5 || opened[4] != "fake-roblox" || Security.Holding != null || jobs.Count != 1) throw new Exception("Approving a call choice did not keep its bounded app hands.");
+                Security.Set(Security.Media, false);
+                callSession.Arm(callSession.Generation, "play_song");
+                serve(new[] { LocalReply("Never Fade Away") });
+                HearCall("Never Fade Away", false, true);
+                wait("Say yes and I will.");
+                serve(new[] { LocalReply("unused") });
+                HearCall("Capri, yes");
+                wait("Playing Never Fade Away");
+                if (opened.Count != 6 || jobs.Count != 1 || Security.Holding != null) throw new Exception("Approving a song choice widened it into a mouse job.");
+                checks.Add("PASS call user requests and filled errands keep SECURITY asking-first behavior, Discord cannot approve, and the user's named yes runs the held action");
+
+                foreach (string end in new[] { "cancel", "replace", "expire", "end" })
+                {
+                    Security.Drop(); Security.Load("0111111000");
+                    callSession.Change(true);
+                    callSession.Arm(callSession.Generation, "open_app");
+                    serve(new[] { LocalReply("Roblox") });
+                    HearCall("let's play Roblox", false, true);
+                    wait("Say yes and I will.");
+                    if (end == "cancel") callSession.Arm(callSession.Generation, "cancel");
+                    else if (end == "replace") callSession.Arm(callSession.Generation, "play_song");
+                    else if (end == "expire") now = now.AddMinutes(10);
+                    else callSession.Change(false);
+                    serve(new[] { LocalReply("unused") });
+                    if (CallModeOn) HearCall("Capri, yes"); else Hear("yes", "yes", "> you: ");
+                    wait("That call errand has ended.");
+                    if (opened.Count != 6 || jobs.Count != 1 || Security.Holding != null) throw new Exception("A held errand ran after " + end + ".");
+                }
+                checks.Add("PASS SECURITY-held errands stay bounded on approval and cannot run after cancellation, replacement, expiry or call end");
+
+                Security.Drop(); Security.Load("1111111000");
+                preferences.QuickHands = true;
+                callSession.Change(true);
+                callSession.Arm(callSession.Generation, "open_app");
+                serve(new[] { LocalReply("Minecraft"), LocalReply("Still waiting.") });
+                HearCall("let's play Roblox", false, true);
+                wait("Still waiting.");
+                if (opened.Count != 6 || callSession.Waiting == null) throw new Exception("A name absent from the call line filled the errand.");
+                int oldTicket = callUser;
+                callSession.Change(false); callSession.Change(true);
+                if (DoTool("open_app", new ToolArguments { Name = "Notepad" }, oldTicket) != CallSession.Conversation || opened.Count != 6) throw new Exception("An old user's call authorization crossed a mode change.");
+                checks.Add("PASS extraction rejects a name not present in the call line, and old user tool authorization cannot cross call generations");
+
+                callUser = callAnswer = ++asking;
+                callUserVersion = callSession.Generation;
+                int blockedTicket = asking;
+                ToolArguments blockedArgs = new ToolArguments { Task = "fake computer job" };
+                string blockedResult = null;
+                Exception blockedError = null;
+                using (ManualResetEvent finished = new ManualResetEvent(false))
+                {
+                    Monitor.Enter(mouseGate);
+                    try
+                    {
+                        ThreadPool.QueueUserWorkItem(delegate
+                        {
+                            try { blockedResult = DoTool("use_computer", blockedArgs, blockedTicket); }
+                            catch (Exception error) { blockedError = error; }
+                            finally { finished.Set(); }
+                        });
+                        Stopwatch locked = Stopwatch.StartNew();
+                        while (!blockedArgs.Ticket.HasValue && locked.ElapsedMilliseconds < 5000) Thread.Sleep(1);
+                        if (!blockedArgs.Ticket.HasValue) throw new Exception("The named call tool never reached its mouse wait.");
+                        callUser = ++asking;
+                        callSession.Change(false);
+                    }
+                    finally { Monitor.Exit(mouseGate); }
+                    if (!finished.WaitOne(5000) || blockedError != null || blockedResult != "That call request has ended." || jobs.Count != 1) throw new Exception("A named tool waiting for the mouse crossed its call generation.");
+                }
+                checks.Add("PASS a named tool rechecks its captured call generation after waiting for the mouse, even if a newer user turn replaced its ticket");
+
+                foreach (string end in new[] { "cancel", "replace", "expire", "end" })
+                {
+                    callSession.Change(true);
+                    int version = callSession.Generation;
+                    callSession.Arm(version, "play_song");
+                    CallErrand choice = callSession.Waiting;
+                    string finish = end;
+                    Hands.Fetch = delegate
+                    {
+                        if (finish == "cancel") callSession.Arm(version, "cancel");
+                        else if (finish == "replace") callSession.Arm(version, "open_app");
+                        else if (finish == "expire") now = now.AddMinutes(10);
+                        else callSession.Change(false);
+                        return "{\"videoId\":\"abcdefghijk\"}";
+                    };
+                    serve(new[] { LocalReply("Never Fade Away") });
+                    if (FillCallErrand("Never Fade Away", version, asking, choice) != null || opened.Count != 6 || callSession.Running(version, choice)) throw new Exception("A song lookup launched after " + finish + ".");
+                    if (finish == "replace" && (callSession.Waiting == null || callSession.Waiting.Action != "open_app")) throw new Exception("Finishing the old lookup cleared its replacement.");
+                }
+                checks.Add("PASS a song lookup rechecks its errand after fetching, so cancellation, replacement, expiry and call end prevent a late launch");
+
+                callSession.Change(true);
+                Hands.Catalog = delegate { return new List<InstalledApp> { new InstalledApp("Spotify", "fake-spotify") }; };
+                Hands.Forget();
+                List<string> searches = new List<string>();
+                foreach (string name in new[] { "Liked Songs", "Friday playlist", "Friday album", "some music" })
+                {
+                    bool current = true;
+                    Hands.Fetch = delegate(string url) { searches.Add(Uri.UnescapeDataString(url)); current = false; return ""; };
+                    string result = Hands.Do("play_music", new ToolArguments { Song = name, Kind = "song", SongOnly = true, Current = delegate { return current; } });
+                    if (result != "That call errand has ended." || searches.Count == 0 || !searches[searches.Count - 1].Contains("site:open.spotify.com/track " + name) || opened.Count != 6) throw new Exception("A song errand changed a title into a playlist, album or random song: " + name);
+                }
+                checks.Add("PASS song errands keep their literal title and song kind instead of becoming liked songs, a playlist, an album or a random pick");
+
+                Job running = new Job("call errand side check");
+                job = running; working = "Still working.";
+                callSession.Keep(callSession.Generation, CallSession.Others + "Pick a game.", "Go on.", 8);
+                string side = null;
+                headTest = delegate(string system, string instruction, byte[][] frames)
+                {
+                    if (!system.Contains("Recent call lines") || !system.Contains("Discord: ")) throw new Exception("The job's side head lost call context.");
+                    return "call_errand{\"action\":\"open_app\",\"ask\":\"Which game?\"}";
+                };
+                asideTest = delegate(string line) { side = line; };
+                HearCall("Capri, open whatever they pick");
+                Stopwatch sideWait = Stopwatch.StartNew();
+                while (side == null && sideWait.ElapsedMilliseconds < 5000) { Application.DoEvents(); Thread.Sleep(5); }
+                if (side == null || !side.Contains("Which game?") || callSession.Waiting == null) throw new Exception("A named request beside a job lost its call errand or spoken question.");
+                checks.Add("PASS named user requests beside a job keep call context and speak their errand question through the usual side reply");
+            }
+            finally
+            {
+                if (listener != null) listener.Stop();
+                brain.Cancel();
+                brain.Remote = remoteWas; brain.Model = modelWas; brain.OwnSteps = ownWas; Think = thinkWas;
+                Brain.Keeping = keepingWas; Brain.TranscriptPath = transcriptWas; Brain.MemoryPath = memoryWas;
+                preferences.Quiet = quietWas; preferences.Silent = silentWas; preferences.ListenCapri = listenWas; preferences.QuickHands = quickWas; preferences.Typing = typingWas;
+                chatting = chatWas; local = localWas; ears.Muted = mutedWas; job = jobWas; working = workWas;
+                callSession.Now = clockWas; callSession.Change(callWas); preferences.CallMode = savedCallWas; typer.CallMode = callWas;
+                callUser = userWas; callUserVersion = userVersionWas; callAnswer = answerWas; asking = askWas; escAsk = escWas;
+                lock (callLines) { callLines.Clear(); callLineAsk = -1; }
+                Hands.Run = runWas; Hands.Work = workFakeWas; Hands.Catalog = catalogWas; Hands.Windows = windowsWas; Hands.Opened = openedWas; Hands.Fetch = fetchWas; Hands.GameOpen = gameWas;
+                headTest = headWas; asideTest = asideWas;
+                Hands.Forget(); MicMix.Current = mixWas;
+                Security.Drop(); Security.Load(securityWas, wakeWas);
+                CloseTalk(); SavePreferences();
+            }
         }
 
         internal void StartSmokeTest(string output, SmokeOptions options)

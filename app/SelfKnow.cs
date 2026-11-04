@@ -114,7 +114,7 @@ namespace CapriDesktop
             new Topic("Voice off", "voice off setting|silent voice setting",
                 "Mainframe > VOICE > OFF makes her replies text only. It does not remove saved voice keys or models. Pick another voice row when you want her to speak again.", "Mainframe.cs", "OFF"),
             new Topic("Call mode", "call mode|call panel|call pill|call captions",
-                "The chat bar's Call mode (beta) switch keeps calls to conversation only. The panel shows who's talking and captions of what was said, minimizes to a small call pill, and has CC and hang-up buttons.", "CallPanel.cs", "CALL MODE"),
+                "Your requests addressed to Capri use her tools in Call mode (beta); when you ask she can join a call, pass on a message and open the game the call picks. Friends can only talk or fill your choice, and the panel has speaker captions, a small pill, CC and hang-up buttons.", "CallPanel.cs", "CALL MODE"),
             new Topic("Custom local voice", "custom local voice setup|your voice model panel",
                 "Mainframe > VOICE > CUSTOM LOCAL uses a voice model on your PC. Set up opens its model panel, where you choose a local server or supported model files. Test it there, then use the panel's save button to select it.", "Mainframe.cs", "CUSTOM LOCAL"),
             new Topic("Cloud voice service", "cloud voice service picker|choose a cloud voice service",

@@ -30,7 +30,11 @@ namespace CapriDesktop
         [DataMember(Name = "app")] public string App;
         [DataMember(Name = "kind")] public string Kind;
         [DataMember(Name = "task")] public string Task;
+        [DataMember(Name = "ask")] public string Ask;
         internal string Asked;
+        internal Func<bool> Current;
+        internal Action Finished;
+        internal bool SongOnly;
         // Voice chat called it, so a change that would end the call waits until her reply is out.
         internal bool FromAgent;
         // The reply and the ask a tool call came with, so what it does once its reply is over waits for that reply, and where a
@@ -984,7 +988,7 @@ namespace CapriDesktop
             { "app_window", "Switch to, minimize or close an app or game that's open on their PC, found by its name or a word in its window's title. Naming a site closes that browser tab." + Arranging,
               "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"The app's name or a word from its window's title, or the site in a browser tab\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"switch_to\",\"minimize\",\"maximize\",\"restore\",\"close\",\"snap_left\",\"snap_right\",\"snap_top\",\"snap_bottom\",\"move_to_screen\",\"move\",\"resize\",\"pin_on_top\",\"unpin\"]}" + Placing + "},\"required\":[\"name\",\"action\"]}",
               "switch to, minimize, maximize, snap, move, resize or close your apps' windows and browser tabs, on any of your monitors", "switch to, minimize, maximize, snap, move, resize or close their windows" },
-            { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it, or in a game: picking a mode, queueing for a match, or waiting for one and accepting it while they're away. You always have their mouse and keyboard through this tool.",
+            { "use_computer", "Use their mouse and keyboard for any job inside an app or website: sending a message or DM, joining, leaving or ending a call, or anything that needs clicking, typing or several steps, like opening an app and searching in it, or in a game: picking a mode, queueing for a match, or waiting for one and accepting it while they're away. You always have their mouse and keyboard through this tool. For join the Discord call, hop in the call or join the vc, find a voice channel with people in it or a DM call's Join button and join it. Keep that job to joining; pass messages with call_say and leave their choice to call_errand afterwards.",
               "{\"type\":\"object\",\"properties\":{\"task\":{\"type\":\"string\",\"description\":\"The whole job in their exact words, including any message to send\"}},\"required\":[\"task\"]}", "do mouse and keyboard jobs in your apps, sites and games, like sending messages, changing settings or playing a game herself", "mouse and keyboard jobs in their apps, sites and games" },
             { "stream", "Start or stop your stream. On stream you play a game yourself, live for their stream, and talk to their chat between plays, until they stop you. Start it whenever they ask, suggest or hint that you stream, go live, play for their chat or viewers, or entertain their chat, in any words, like stream for me, you should stream, wanna go live, or chat wants to see you play. name is the game to play if they named one; leave it out to play the game that's open. stop ends your stream.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"start or stop\",\"enum\":[\"start\",\"stop\"]},\"name\":{\"type\":\"string\",\"description\":\"The game to play, if they named one\"}},\"required\":[\"action\"]}", "stream for you, playing a game herself live and talking to your chat", "stream live for them: play a game yourself and talk to their chat" },
@@ -993,6 +997,10 @@ namespace CapriDesktop
             { "remember", "Save a short note about them to your notes (me.md) so you remember it next time, like a favourite game or what they're making, or forget a note. Use it whenever they ask you to remember, note down, save or forget something, or to leave or make a memory.",
               "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\",\"description\":\"The note, about them in the third person, or what to forget\"},\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"remember\",\"forget\"]}},\"required\":[\"text\"]}", "keep notes about you in me.md", "save notes about them in me.md" },
 #if !CROSS
+            { "call_errand", "Only when the user asks, let people on the call choose one app or game to open, or one song to play. Call mode must be on; join first with use_computer if asked. The next answering call line supplies only its name. One errand replaces the last and lasts ten minutes. Use cancel when the user cancels it. ask is an optional short line to say on the call with this reply; keep it empty if no question is needed.",
+              "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"enum\":[\"open_app\",\"play_song\",\"cancel\"]},\"ask\":{\"type\":\"string\"}},\"required\":[\"action\"]}", "let your call choose one game, app or song when you ask", "let the call fill one choice set by the user" },
+            { "call_say", "Say a short message on the call that the user asked you to pass on. Speak about the user in your words, such as Lachy's on in 15. Join first if needed. This line will be spoken with your reply, so do not repeat it in your answer.",
+              "{\"type\":\"object\",\"properties\":{\"text\":{\"type\":\"string\"}},\"required\":[\"text\"]}", "pass your message to the call", "say the user's message on the call" },
             { "find_file", FileFinder.Description, FileFinder.Schema, "find files and folders by name", "find files and folders" },
             { "website_nickname", "Remember a website by a nickname, forget it, or list saved websites. For the website in their front browser, leave site empty; its address is read without moving their mouse or keyboard. Open a saved nickname with open_website.",
               "{\"type\":\"object\",\"properties\":{\"action\":{\"type\":\"string\",\"description\":\"What to do\",\"enum\":[\"save\",\"forget\",\"list\"]},\"name\":{\"type\":\"string\",\"description\":\"The whole nickname\"},\"site\":{\"type\":\"string\",\"description\":\"The address they gave, or omit for the front browser\"}},\"required\":[\"action\"]}", "remember websites by nicknames", "save nicknames for websites" },
@@ -1441,11 +1449,11 @@ namespace CapriDesktop
                 // Something that can't work here gets her line saying so and why, before anything runs.
                 string unable = Unable(tool, args);
                 if (unable != null) return unable;
-                if (tool == "open_app") return OpenApp(args.Name);
+                if (tool == "open_app") return OpenApp(args.Name, args.Current);
                 if (tool == "open_website") return OpenSite(args.Site, args.Search, args.Browser);
                 if (tool == "media") return Media(args);
                 if (tool == "look_at_screen") return string.IsNullOrWhiteSpace(args.Screen) ? Look(args.Focus) : LookOn(args.Focus, args.Screen);
-                if (tool == "play_music") return PlayMusic(args.Song, args.App, args.Kind);
+                if (tool == "play_music") return PlayMusic(args.Song, args.App, args.Kind, args.Current, args.SongOnly);
                 if (tool == "app_window") return Window(args);
                 if (tool == "use_computer")
                 {
@@ -2922,6 +2930,9 @@ namespace CapriDesktop
 
         internal static bool Heard(string said, out string tool, out ToolArguments args)
         {
+#if !CROSS
+            if (CallSession.Blank(said)) { tool = null; args = new ToolArguments(); return false; }
+#endif
             if (Planned(said, out tool, out args)) return true;
             List<string> tries = new List<string>();
             Match named = Regex.Match(said ?? "", SpokenName + @"[\s,.!?]*([^\s,.!?].*)$", RegexOptions.IgnoreCase | RegexOptions.RightToLeft);
@@ -3486,6 +3497,8 @@ namespace CapriDesktop
         {
             if (tool == "mainframe") return args != null && (string.IsNullOrEmpty(args.Name) || Regex.IsMatch(args.Name, @"\A(main|settings|brain|voice|you|moves|keys|capri|watch|habits|games|clips|security|extras|layers|mixer|personality|memories)\z"));
 #if !CROSS
+            if (tool == "call_errand") return args != null && Regex.IsMatch(args.Action ?? "", @"\A(open_app|play_song|cancel)\z");
+            if (tool == "call_say") return args != null && Named(args.Text);
             if (tool == "draw") return Ink.Valid(args);
             if (tool == "clone") return args != null && (args.Action == "spawn" || args.Action == "stop");
             if (tool == "hologram") return args != null && (args.Action == "on" || args.Action == "off");
@@ -3580,6 +3593,9 @@ namespace CapriDesktop
         // spotify" (a Bazzite user). Anything she doesn't know goes to her brain.
         internal static bool Several(string said, List<KeyValuePair<string, ToolArguments>> calls)
         {
+#if !CROSS
+            if (CallSession.Blank(said)) return false;
+#endif
             Match found = Regex.Match(Asked(said), @"^(?:open|launch|start|run|load up|boot up|fire up)\s+(?:up\s+)?(.+)$", RegexOptions.IgnoreCase);
             if (!found.Success) return false;
             string[] parts = Regex.Split(found.Groups[1].Value.Trim(), @"\s*,\s*(?:and\s+|&\s*)?|\s+and\s+|\s*&\s*|\s+then\s+", RegexOptions.IgnoreCase);
@@ -3693,7 +3709,7 @@ namespace CapriDesktop
             return null;
         }
 
-        private static string OpenApp(string wanted)
+        private static string OpenApp(string wanted, Func<bool> current = null)
         {
             if (string.IsNullOrWhiteSpace(wanted)) return "Which app, choom?";
             List<InstalledApp> found = Match(Apps(), wanted);
@@ -3703,9 +3719,10 @@ namespace CapriDesktop
             // When several match equally well, the one with the fewest extra words is closest to what they said.
             InstalledApp chosen = found[0];
             foreach (InstalledApp app in found) if (AppName(app).Length < AppName(chosen).Length) chosen = app;
+            if (current != null && !current()) return "That call errand has ended.";
             Run(chosen.Id);
             string openedName = AppName(chosen) == "spotify" ? "Spotify" : chosen.Name;
-            return "Opened " + openedName + Opened(openedName) + ".";
+            return "Opened " + openedName + (current == null ? Opened(openedName) : "") + ".";
         }
 
         internal static List<InstalledApp> Match(List<InstalledApp> apps, string wanted)
@@ -4785,19 +4802,20 @@ namespace CapriDesktop
 
         internal const string Home = "capriai.app";
 
-        private static string PlayMusic(string song, string app, string kind)
+        private static string PlayMusic(string song, string app, string kind, Func<bool> current = null, bool songOnly = false)
         {
             if (string.IsNullOrWhiteSpace(song)) return "What should I play?";
             song = song.Trim();
-            bool ownPlaylist = Regex.IsMatch(song, @"^my\s+", RegexOptions.IgnoreCase) && (kind == "playlist" || Regex.IsMatch(song, @"\s+playlist$", RegexOptions.IgnoreCase));
-            if (Regex.IsMatch(song, @"^((what('|\u2019)?s|what is)\s+)?((currently|now)\s+)?playing( now)?$|^(this|that|the current) (song|track)$", RegexOptions.IgnoreCase)) return Playing();
-            if (Regex.IsMatch(song, @"^(play\s+)?(me\s+)?((some|any|a|random|good)\s+)?(music|songs?|tunes|tracks?|something)(\s+for me)?$", RegexOptions.IgnoreCase)) { song = Pick(); kind = "song"; }
+            bool ownPlaylist = !songOnly && Regex.IsMatch(song, @"^my\s+", RegexOptions.IgnoreCase) && (kind == "playlist" || Regex.IsMatch(song, @"\s+playlist$", RegexOptions.IgnoreCase));
+            if (!songOnly && Regex.IsMatch(song, @"^((what('|\u2019)?s|what is)\s+)?((currently|now)\s+)?playing( now)?$|^(this|that|the current) (song|track)$", RegexOptions.IgnoreCase)) return Playing();
+            if (!songOnly && Regex.IsMatch(song, @"^(play\s+)?(me\s+)?((some|any|a|random|good)\s+)?(music|songs?|tunes|tracks?|something)(\s+for me)?$", RegexOptions.IgnoreCase)) { song = Pick(); kind = "song"; }
             Match tail = Regex.Match(song, @"^(?:(?:the|my|your)\s+)?(.+?)\s+(playlist|album)$", RegexOptions.IgnoreCase);
-            if (tail.Success && kind != "artist") { kind = tail.Groups[2].Value.ToLowerInvariant(); song = tail.Groups[1].Value; }
+            if (!songOnly && tail.Success && kind != "artist") { kind = tail.Groups[2].Value.ToLowerInvariant(); song = tail.Groups[1].Value; }
             if (ownPlaylist) song = Regex.Replace(song, @"^my\s+", "", RegexOptions.IgnoreCase);
-            bool liked = Regex.IsMatch(song, @"^((my|your|the)\s+)?((liked|saved)\s+songs|likes)$", RegexOptions.IgnoreCase);
+            bool liked = !songOnly && Regex.IsMatch(song, @"^((my|your|the)\s+)?((liked|saved)\s+songs|likes)$", RegexOptions.IgnoreCase);
             if (liked) kind = "playlist";
             if (kind != "playlist" && kind != "album" && kind != "artist") kind = "song";
+            if (songOnly) kind = "song";
             string known = null;
             string look = song;
             if (kind == "song")
@@ -4808,22 +4826,24 @@ namespace CapriDesktop
             {
                 if (liked) named = "their Liked Songs";
                 string spotted = liked || ownPlaylist ? null : known ?? SpotifyLink(Fetch("https://html.duckduckgo.com/html/?q=" + Uri.EscapeDataString("site:open.spotify.com/" + (kind == "song" ? "track" : kind) + " " + song)), kind, song);
+                if (current != null && !current()) return "That call errand has ended.";
                 if (kind == "song" && spotted != null)
                 {
                     Run("spotify:track:" + spotted);
-                    return Started(song) || PressPlay(song) ? "Playing " + song + " on Spotify." : "Opened " + song + " in Spotify, but couldn't press play. Hit the green Play button.";
+                    return Started(song) || (current == null ? PressPlay(song) : ClickPlay(song, current)) ? "Playing " + song + " on Spotify." : "Opened " + song + " in Spotify, but couldn't press play. Hit the green Play button.";
                 }
                 if (liked || spotted != null)
                 {
                     Run(liked ? "spotify:collection:tracks" : "spotify:" + kind + ":" + spotted);
-                    return PressPlay(liked ? "Liked Songs" : song) ? "Playing " + named + " on Spotify." : "Opened " + named + " in Spotify, but couldn't press play. Hit the green Play button.";
+                    return (current == null ? PressPlay(liked ? "Liked Songs" : song) : ClickPlay(song, current)) ? "Playing " + named + " on Spotify." : "Opened " + named + " in Spotify, but couldn't press play. Hit the green Play button.";
                 }
                 Run("spotify:search:" + Uri.EscapeDataString(song));
-                return PressPlay(song) ? "Playing " + named + " on Spotify." : "Couldn't find " + named + " to play, so Spotify is open on a search for it.";
+                return (current == null ? PressPlay(song) : ClickPlay(song, current)) ? "Playing " + named + " on Spotify." : "Couldn't find " + named + " to play, so Spotify is open on a search for it.";
             }
             string where = Searches[0, 1] + Uri.EscapeDataString(look);
             System.Text.RegularExpressions.Match list = Regex.Match(kind == "song" ? "" : Fetch(where + "&sp=EgIQAw%253D%253D") ?? "", @"""watchEndpoint"":\{""videoId"":""([A-Za-z0-9_-]{11})"",""playlistId"":""([A-Za-z0-9_-]+)""");
             string video = list.Success ? null : Find(Fetch(where), "\"videoId\":\"([A-Za-z0-9_-]{11})\"");
+            if (current != null && !current()) return "That call errand has ended.";
             if (!list.Success && video == null) { Run(where); return "Couldn't find " + named + " to play, so YouTube is open on a search for it."; }
             Run(list.Success ? "https://www.youtube.com/watch?v=" + list.Groups[1].Value + "&list=" + list.Groups[2].Value : "https://www.youtube.com/watch?v=" + video);
             return (app == "spotify" ? "Spotify isn't installed, so playing " : "Playing ") + named + " on YouTube.";
@@ -4831,12 +4851,18 @@ namespace CapriDesktop
 
         private static bool ClickPlay(string name)
         {
+            return ClickPlay(name, null);
+        }
+
+        private static bool ClickPlay(string name, Func<bool> current)
+        {
 #if CROSS
             return false;
 #else
             for (int i = 0; i < 30; i++)
             {
                 Thread.Sleep(500);
+                if (current != null && !current()) return false;
                 if (SongPlaying(name)) return true;
                 foreach (OpenWindow window in Windows())
                 {
@@ -4853,6 +4879,7 @@ namespace CapriDesktop
                     }
                     object pattern;
                     if (close == null || (i < 6 && best == 1) || PlayScore(close.Current.Name, name) == 0 || !close.TryGetCurrentPattern(InvokePattern.Pattern, out pattern)) continue;
+                    if (current != null && !current()) return false;
                     ((InvokePattern)pattern).Invoke();
                     return true;
                 }

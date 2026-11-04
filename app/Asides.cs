@@ -233,6 +233,7 @@ namespace CapriDesktop
 
         private string AskHead(string system, string instruction, int limit, params byte[][] frames)
         {
+            if (CallHands(asking)) system += CallSession.Tools + callSession.Context(callUserVersion);
             Func<string, string, byte[][], string> test = headTest;
             return test != null ? test(system, instruction, frames) : brain.Quick(system, instruction, limit, frames);
         }
@@ -355,7 +356,7 @@ namespace CapriDesktop
                 List<string> results = new List<string>();
                 foreach (KeyValuePair<string, ToolArguments> call in calls)
                 {
-                    if (ticket != asking || quitting || CallModeOn) return;
+                    if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return;
                     ToolArguments args = call.Value ?? new ToolArguments();
                     args.Asked = text;
                     args.Reply = replyId;
@@ -381,7 +382,7 @@ namespace CapriDesktop
         // bring a window to the front, in their words, as it did before her fast head had tools.
         private string AsideRun(string tool, ToolArguments args, Job running, int ticket)
         {
-            if (ticket != asking || quitting || CallModeOn) return "That turn has ended.";
+            if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return "That turn has ended.";
             if (!Hands.Valid(tool, args)) return "Couldn't read that tool call.";
             if (MidJob(running) && job == running && (tool == "use_computer" || tool == "stream" && args.Action != "stop"))
             {
@@ -415,6 +416,7 @@ namespace CapriDesktop
             Hands.Kit kit = Hands.KitFor(brain.Blind);
             string system = Brain.Character + Brain.Remembered() + Asides.Head + "\nYou have the same tools beside the job. Use them whenever they ask, suggest or hint at an ability, including your own moves, animations, clones and settings. Use job_control for stopping, checking or changing the job. ADD and CHANGE are only for instructions that belong to its mouse work. Call tools without claiming they ran; their results will be said.";
             string facts = Asides.Facts(running.Report(), text, brain.History);
+            if (CallHands(ticket)) system += CallSession.Tools + callSession.Context(callUserVersion);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 AsideKind kind = guess;
@@ -453,6 +455,8 @@ namespace CapriDesktop
         // her ask's turn alone, so the line the job ends with still lands.
         private void AsideSay(string line, Job running, string asked, int toolReply = -1)
         {
+            line = CallLine(asking, line);
+            if (CallHands(asking)) callSession.Keep(callUserVersion, asked, line, Brain.Recall);
             brain.Remember(asked, line);
             Action<string> test = asideTest;
             if (test != null) { ToolReplied(toolReply, true); test(line); return; }
