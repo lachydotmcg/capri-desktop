@@ -45034,6 +45034,7 @@ namespace CapriDesktop
         [StructLayout(LayoutKind.Sequential)] private struct InputInfo { internal int Size; internal uint Time; }
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref InputInfo info);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll")] internal static extern bool InSendMessage();
         [DllImport("user32.dll")] internal static extern int GetWindowThreadProcessId(IntPtr window, out int process);
         [DllImport("user32.dll")] internal static extern IntPtr GetWindow(IntPtr window, int command);
         [DllImport("user32.dll")] internal static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, int flags);

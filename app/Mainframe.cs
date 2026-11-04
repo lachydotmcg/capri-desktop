@@ -1943,7 +1943,19 @@ namespace CapriDesktop
             }
         }
 
+        private int wndDepth;
+        private string outerMessage;
+
         protected override void WndProc(ref Message message)
+        {
+            // The message a nested restore started from, for RestoredBy in smoke runs.
+            if (wndDepth == 0 && SmokeRun.Worker) outerMessage = "0x" + message.Msg.ToString("X4") + " " + message.WParam.ToInt64().ToString("X") + (Native.InSendMessage() ? " sent" : " posted");
+            wndDepth++;
+            try { HandleMessage(ref message); }
+            finally { wndDepth--; }
+        }
+
+        private void HandleMessage(ref Message message)
         {
             if (message.Msg == 0x007E || message.Msg == 0x02E0) Panels.Forget();
             if (message.Msg == 0x02E0 && loaded)
@@ -2259,7 +2271,7 @@ namespace CapriDesktop
         protected override void OnSizeChanged(EventArgs e)
         {
             base.OnSizeChanged(e);
-            if (sizedState == FormWindowState.Minimized && WindowState != FormWindowState.Minimized && SmokeRun.Worker) RestoredBy = Callers();
+            if (sizedState == FormWindowState.Minimized && WindowState != FormWindowState.Minimized && SmokeRun.Worker) RestoredBy = Callers() + " by message " + outerMessage;
             sizedState = WindowState;
             Shape();
             Invalidate(true);
