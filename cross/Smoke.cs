@@ -1654,6 +1654,7 @@ namespace CapriDesktop
                 if (!frame.SettingsShown || !pet.Saved.AdvancedSettings || !frame.Row("Wander").IsVisible) throw new Exception("A tool page did not unfold its advanced rows.");
                 pet.Talk.Dismiss();
                 checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps her running and retains the taskbar window");
+                MainframePictures(frame, voice);
                 MainframeRows(frame, fields);
                 MainframeSheets(frame);
                 MainframeConnections(frame);
@@ -1803,6 +1804,19 @@ namespace CapriDesktop
             checks.Add("PASS Mainframe panels: local voice address, model, voice and format, layer controls and every available Security choice save through their existing setters");
         }
 
+        private void MainframePictures(Mainframe frame, Voice voice)
+        {
+            pet.SetLanguage("English");
+            frame.PickBrainTier(0);
+            pet.Brain.Model = "gemma4:e4b"; voice.Key = null; frame.PickVoiceTier(0); pet.SetMainframeSize(100);
+            string[] names = { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" };
+            for (int page = 0; page < 3; page++)
+            {
+                pet.SetAdvancedSettings(page == 2); frame.ShowSettings(page != 0); frame.SavePicture(Path.Combine(folder, names[page]));
+            }
+            frame.ShowSettings(false);
+        }
+
         private void MainframeLayout(Mainframe frame, Voice voice)
         {
             pet.SetLanguage("English"); pet.SetMainframeSize(100);
@@ -1827,11 +1841,6 @@ namespace CapriDesktop
             string setupWrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
             if (setupWrong != null) throw new Exception("The expanded brain setup does not fit: " + setupWrong);
             pet.Brain.Model = "gemma4:e4b"; voice.Key = null; frame.PickVoiceTier(0); pet.SetMainframeSize(100);
-            string[] names = { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" };
-            for (int page = 0; page < 3; page++)
-            {
-                pet.SetAdvancedSettings(page == 2); frame.ShowSettings(page != 0); frame.SavePicture(Path.Combine(folder, names[page]));
-            }
             frame.Height = 260; frame.UpdateLayout(); frame.GlideTo(new Vector(0, double.MaxValue));
             if (!frame.Gliding) throw new Exception("A short Mainframe did not start its glide.");
             frame.Settle();
