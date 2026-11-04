@@ -613,7 +613,7 @@ namespace CapriDesktop
             Unfocus(Talk.Pill);
             if (!OnTop) Stack(false);
             frames.Interval = TimeSpan.FromMilliseconds(33);
-            frames.Tick += delegate { Tick(); };
+            frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
             Closed += delegate { pressed = dragging = dragPending = false; frames.Stop(); };
             Opened += delegate
@@ -960,7 +960,7 @@ namespace CapriDesktop
             if (updateItem == null)
             {
                 updateItem = new MenuItem();
-                updateItem.Click += delegate { Browse(updatePage); };
+                updateItem.Click += Guarded(delegate { Browse(updatePage); });
             }
             updateItem.Header = "Get Capri " + version;
             if (!ContextMenu.Items.Contains(updateItem))
@@ -1318,30 +1318,36 @@ namespace CapriDesktop
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             base.OnPointerPressed(e);
-            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
-            Point at = e.GetPosition(this);
-            if (!Opaque(at)) return;
-            pressed = true;
-            clicks++;
-            dragging = false;
-            dragPending = false;
-            downAt = DragPoint(at);
-            grab = new PixelPoint(downAt.X - anchor.X, downAt.Y - anchor.Y);
-            e.Pointer.Capture(this);
+            Program.Guard(() =>
+            {
+                if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
+                Point at = e.GetPosition(this);
+                if (!Opaque(at)) return;
+                pressed = true;
+                clicks++;
+                dragging = false;
+                dragPending = false;
+                downAt = DragPoint(at);
+                grab = new PixelPoint(downAt.X - anchor.X, downAt.Y - anchor.Y);
+                e.Pointer.Capture(this);
+            });
         }
 
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             base.OnPointerMoved(e);
-            pointer = e.GetPosition(this);
-            if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
-            PixelPoint at = DragPoint(pointer);
-            int dx = at.X - downAt.X;
-            int dy = at.Y - downAt.Y;
-            if (!dragging && dx * dx + dy * dy < 25) return;
-            if (!dragging) Grab();
-            dragAt = at;
-            dragPending = true;
+            Program.Guard(() =>
+            {
+                pointer = e.GetPosition(this);
+                if (!pressed) { Stroke(this.PointToScreen(pointer)); return; }
+                PixelPoint at = DragPoint(pointer);
+                int dx = at.X - downAt.X;
+                int dy = at.Y - downAt.Y;
+                if (!dragging && dx * dx + dy * dy < 25) return;
+                if (!dragging) Grab();
+                dragAt = at;
+                dragPending = true;
+            });
         }
 
         private PixelPoint DragPoint(Point at)
@@ -1374,29 +1380,35 @@ namespace CapriDesktop
         protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
             base.OnPointerReleased(e);
-            if (!pressed || e.InitialPressMouseButton != MouseButton.Left) return;
-            if (dragging)
+            Program.Guard(() =>
             {
-                dragAt = DragPoint(e.GetPosition(this));
-                dragPending = true;
-                DragFrame();
-            }
-            pressed = false;
-            e.Pointer.Capture(null);
-            if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);
-            else React();
+                if (!pressed || e.InitialPressMouseButton != MouseButton.Left) return;
+                if (dragging)
+                {
+                    dragAt = DragPoint(e.GetPosition(this));
+                    dragPending = true;
+                    DragFrame();
+                }
+                pressed = false;
+                e.Pointer.Capture(null);
+                if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);
+                else React();
+            });
         }
 
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
         {
             base.OnPointerCaptureLost(e);
-            // A lost capture has no release event, so she used to stay held after the mouse left her.
-            if (!pressed) return;
-            pressed = false;
-            dragPending = false;
-            if (!dragging) return;
-            if (quitting || !IsVisible) { dragging = false; return; }
-            Let(false);
+            Program.Guard(() =>
+            {
+                // A lost capture has no release event, so she used to stay held after the mouse left her.
+                if (!pressed) return;
+                pressed = false;
+                dragPending = false;
+                if (!dragging) return;
+                if (quitting || !IsVisible) { dragging = false; return; }
+                Let(false);
+            });
         }
 
         // Letting go of her: she falls onto the window below, or with Shift held sits right there, like on Windows.
@@ -1606,37 +1618,40 @@ namespace CapriDesktop
             Save();
         }
 
+        // Her menu's clicks, the tray's included, go through Program.Guard, so a bug in one is written down instead of ending her.
+        private static EventHandler<Avalonia.Interactivity.RoutedEventArgs> Guarded(Action click) { return delegate { Program.Guard(click); }; }
+
         private ContextMenu Menu()
         {
             ContextMenu menu = new ContextMenu { Background = MainframeTheme.Ground, Foreground = MainframeTheme.White, BorderBrush = MainframeTheme.Brim, BorderThickness = new Thickness(1), FontFamily = MainframeTheme.Text, FontSize = MainframeTheme.Size };
             MenuItem talk = new MenuItem { Header = "Talk to her" };
-            talk.Click += delegate { Talk.Open(); };
+            talk.Click += Guarded(delegate { Talk.Open(); });
             quietItem = new MenuItem { Header = "Quiet", ToggleType = MenuItemToggleType.CheckBox };
-            quietItem.Click += delegate { ToggleShush(); };
+            quietItem.Click += Guarded(delegate { ToggleShush(); });
             sitItem = new MenuItem { Header = "Sit here" };
-            sitItem.Click += delegate { if (seat != null && seat.Free) StandUp(); else SitHere(); };
+            sitItem.Click += Guarded(delegate { if (seat != null && seat.Free) StandUp(); else SitHere(); });
             hangItem = new MenuItem { Header = "Hang here" };
-            hangItem.Click += delegate { if (hanging) LetGo(); else HangHere(); };
+            hangItem.Click += Guarded(delegate { if (hanging) LetGo(); else HangHere(); });
             napItem = new MenuItem { Header = "Go to sleep" };
-            napItem.Click += delegate { Nap(!napAsked && clip != sleep); };
+            napItem.Click += Guarded(delegate { Nap(!napAsked && clip != sleep); });
             MenuItem move = new MenuItem { Header = "Move" };
             for (int i = 0; i < WanderNames.Length; i++)
             {
                 int level = i;
                 MenuItem pick = new MenuItem { Header = i == 0 ? "Stay put" : "Wander: " + WanderNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "wander" };
-                pick.Click += delegate { SetWander(level); };
+                pick.Click += Guarded(delegate { SetWander(level); });
                 wanderPicks.Add(pick);
                 move.Items.Add(pick);
             }
             move.Items.Add(new Separator());
             musicItem = new MenuItem { Header = "Dance to music", ToggleType = MenuItemToggleType.CheckBox };
-            musicItem.Click += delegate { SetDanceToMusic(Saved.NoDance); };
+            musicItem.Click += Guarded(delegate { SetDanceToMusic(Saved.NoDance); });
             move.Items.Add(musicItem);
             danceItem = new MenuItem { Header = "Dance", ToggleType = MenuItemToggleType.CheckBox };
-            danceItem.Click += delegate { Animate(dancing ? "stop_dancing" : "dance"); };
+            danceItem.Click += Guarded(delegate { Animate(dancing ? "stop_dancing" : "dance"); });
             move.Items.Add(danceItem);
             screenItem = new MenuItem { Header = "Go to the next screen" };
-            screenItem.Click += delegate { MoveSelf("other_screen", null); };
+            screenItem.Click += Guarded(delegate { MoveSelf("other_screen", null); });
             move.Items.Add(screenItem);
             move.Items.Add(new Separator());
             MenuItem sleeps = new MenuItem { Header = "Fall asleep after" };
@@ -1644,13 +1659,13 @@ namespace CapriDesktop
             {
                 int seconds = Sleeps[i];
                 MenuItem pick = new MenuItem { Header = SleepNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "sleeps" };
-                pick.Click += delegate { SetSleepAfter(seconds); };
+                pick.Click += Guarded(delegate { SetSleepAfter(seconds); });
                 sleepPicks.Add(pick);
                 sleeps.Items.Add(pick);
             }
             move.Items.Add(sleeps);
             introItem = new MenuItem { Header = "Glitch in at startup", ToggleType = MenuItemToggleType.CheckBox };
-            introItem.Click += delegate { SetIntro(Saved.NoIntro); };
+            introItem.Click += Guarded(delegate { SetIntro(Saved.NoIntro); });
             move.Items.Add(introItem);
             brainMenu = new MenuItem { Header = "Brain" };
             brainMenu.Items.Add(new MenuItem { Header = "Looking for models...", IsEnabled = false });
@@ -1660,7 +1675,7 @@ namespace CapriDesktop
             {
                 string name = Brain.Languages[i, 1];
                 MenuItem pick = new MenuItem { Header = Brain.Languages[i, 0], ToggleType = MenuItemToggleType.Radio, GroupName = "language", Tag = name };
-                pick.Click += delegate { SetLanguage(name); };
+                pick.Click += Guarded(delegate { SetLanguage(name); });
                 languagePicks.Add(pick);
                 language.Items.Add(pick);
             }
@@ -1670,11 +1685,11 @@ namespace CapriDesktop
             {
                 int level = i;
                 MenuItem reply = new MenuItem { Header = Lengths[i], ToggleType = MenuItemToggleType.Radio, GroupName = "replies" };
-                reply.Click += delegate { SetReplies(level); };
+                reply.Click += Guarded(delegate { SetReplies(level); });
                 replyPicks.Add(reply);
                 replies.Items.Add(reply);
                 MenuItem keep = new MenuItem { Header = Lengths[i], ToggleType = MenuItemToggleType.Radio, GroupName = "recall" };
-                keep.Click += delegate { SetRecall(Recalls[level]); };
+                keep.Click += Guarded(delegate { SetRecall(Recalls[level]); });
                 recallPicks.Add(keep);
                 recall.Items.Add(keep);
             }
@@ -1683,29 +1698,29 @@ namespace CapriDesktop
             {
                 int level = SoundLevels[i];
                 MenuItem pick = new MenuItem { Header = SoundNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "sounds" };
-                pick.Click += delegate { SetSounds(level); };
+                pick.Click += Guarded(delegate { SetSounds(level); });
                 soundPicks.Add(pick);
                 sounds.Items.Add(pick);
             }
             sounds.Items.Add(new Separator());
             typingItem = new MenuItem { Header = "Typing sound", ToggleType = MenuItemToggleType.CheckBox };
-            typingItem.Click += delegate { SetTyping(!TypingSound); };
+            typingItem.Click += Guarded(delegate { SetTyping(!TypingSound); });
             sounds.Items.Add(typingItem);
             MenuItem notes = new MenuItem { Header = "Open her notes (me.md)" };
-            notes.Click += delegate { OpenNotes(); };
+            notes.Click += Guarded(delegate { OpenNotes(); });
             MenuItem personality = new MenuItem { Header = "Edit her personality (personality.md)" };
-            personality.Click += delegate { OpenPersonality(); };
+            personality.Click += Guarded(delegate { OpenPersonality(); });
             MenuItem resetPersonality = new MenuItem { Header = "Reset her personality to default" };
-            resetPersonality.Click += delegate { ResetPersonality(); };
+            resetPersonality.Click += Guarded(delegate { ResetPersonality(); });
             memoriesItem = new MenuItem { Header = "Remember our chats", ToggleType = MenuItemToggleType.CheckBox };
-            memoriesItem.Click += delegate { SetRemembering(Saved.NoMemories); };
+            memoriesItem.Click += Guarded(delegate { SetRemembering(Saved.NoMemories); });
             MenuItem memories = new MenuItem { Header = "Open her memories (memories.md)" };
-            memories.Click += delegate { OpenMemories(); };
+            memories.Click += Guarded(delegate { OpenMemories(); });
             MenuItem nickname = new MenuItem { Header = "What should she call you?" };
-            nickname.Click += delegate { AskNickname(); };
+            nickname.Click += Guarded(delegate { AskNickname(); });
             settings.Items.Add(nickname);
             MenuItem meet = new MenuItem { Header = "Get to know me" };
-            meet.Click += delegate { GetToKnow(); };
+            meet.Click += Guarded(delegate { GetToKnow(); });
             settings.Items.Add(meet);
             settings.Items.Add(language);
             settings.Items.Add(replies);
@@ -1715,7 +1730,7 @@ namespace CapriDesktop
             {
                 int level = i;
                 MenuItem pick = new MenuItem { Header = BubbleNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "bubble" };
-                pick.Click += delegate { SetBubbleTime(level); };
+                pick.Click += Guarded(delegate { SetBubbleTime(level); });
                 bubblePicks.Add(pick);
                 bubble.Items.Add(pick);
             }
@@ -1728,7 +1743,7 @@ namespace CapriDesktop
             {
                 int percent = Volumes[i];
                 MenuItem pick = new MenuItem { Header = VolumeNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "volume" };
-                pick.Click += delegate { SetVolume(percent); };
+                pick.Click += Guarded(delegate { SetVolume(percent); });
                 volumePicks.Add(pick);
                 volume.Items.Add(pick);
             }
@@ -1739,7 +1754,7 @@ namespace CapriDesktop
             {
                 int semitones = i - VoiceFx.MostPitch;
                 MenuItem pick = new MenuItem { Header = PitchNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "pitch" };
-                pick.Click += delegate { SetPitch(semitones); HearStyle(); };
+                pick.Click += Guarded(delegate { SetPitch(semitones); HearStyle(); });
                 pitchPicks.Add(pick);
                 pitch.Items.Add(pick);
             }
@@ -1748,7 +1763,7 @@ namespace CapriDesktop
             {
                 int percent = Paces[i];
                 MenuItem pick = new MenuItem { Header = PaceNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "pace" };
-                pick.Click += delegate { SetPace(percent); HearStyle(); };
+                pick.Click += Guarded(delegate { SetPace(percent); HearStyle(); });
                 pacePicks.Add(pick);
                 speed.Items.Add(pick);
             }
@@ -1758,11 +1773,11 @@ namespace CapriDesktop
             {
                 int amount = Amounts[i];
                 MenuItem robotPick = new MenuItem { Header = AmountNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "robot" };
-                robotPick.Click += delegate { SetRobot(amount); HearStyle(); };
+                robotPick.Click += Guarded(delegate { SetRobot(amount); HearStyle(); });
                 robotPicks.Add(robotPick);
                 robot.Items.Add(robotPick);
                 MenuItem glitchPick = new MenuItem { Header = AmountNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "glitch" };
-                glitchPick.Click += delegate { SetGlitch(amount); HearStyle(); };
+                glitchPick.Click += Guarded(delegate { SetGlitch(amount); HearStyle(); });
                 glitchPicks.Add(glitchPick);
                 glitchy.Items.Add(glitchPick);
             }
@@ -1773,7 +1788,7 @@ namespace CapriDesktop
             // Her voice layers (Lachy, 29 Oct): two copies of her mixed in under her, each with its own pitch and delay. Pitch above
             // is Main's.
             layersItem = new MenuItem { Header = "Layers", ToggleType = MenuItemToggleType.CheckBox };
-            layersItem.Click += delegate { SetLayers(VoiceFx.Layers.Turned(!VoiceFx.Layers.On)); HearStyle(); };
+            layersItem.Click += Guarded(delegate { SetLayers(VoiceFx.Layers.Turned(!VoiceFx.Layers.On)); HearStyle(); });
             style.Items.Add(layersItem);
             for (int layer = 1; layer <= 2; layer++)
             {
@@ -1783,7 +1798,7 @@ namespace CapriDesktop
                 {
                     double picked = semitones;
                     MenuItem pick = new MenuItem { Header = VoiceFx.Layering.PitchName(semitones), ToggleType = MenuItemToggleType.Radio, GroupName = "layer" + layer + "pitch" };
-                    pick.Click += delegate { SetLayers(VoiceFx.Layers.With(which, picked, VoiceFx.Layers.DelayOf(which))); HearStyle(); };
+                    pick.Click += Guarded(delegate { SetLayers(VoiceFx.Layers.With(which, picked, VoiceFx.Layers.DelayOf(which))); HearStyle(); });
                     layerPitchPicks[layer - 1].Add(pick);
                     layerPitch.Items.Add(pick);
                 }
@@ -1792,7 +1807,7 @@ namespace CapriDesktop
                 {
                     int picked = ms;
                     MenuItem pick = new MenuItem { Header = VoiceFx.Layering.DelayName(ms), ToggleType = MenuItemToggleType.Radio, GroupName = "layer" + layer + "delay" };
-                    pick.Click += delegate { SetLayers(VoiceFx.Layers.With(which, VoiceFx.Layers.PitchOf(which), picked)); HearStyle(); };
+                    pick.Click += Guarded(delegate { SetLayers(VoiceFx.Layers.With(which, VoiceFx.Layers.PitchOf(which), picked)); HearStyle(); });
                     layerDelayPicks[layer - 1].Add(pick);
                     layerDelay.Items.Add(pick);
                 }
@@ -1801,42 +1816,42 @@ namespace CapriDesktop
             }
             settings.Items.Add(style);
             checkInsItem = new MenuItem { Header = "Check in on me", ToggleType = MenuItemToggleType.CheckBox };
-            checkInsItem.Click += delegate { SetCheckIns(Saved.NoCheckIns); };
+            checkInsItem.Click += Guarded(delegate { SetCheckIns(Saved.NoCheckIns); });
             settings.Items.Add(checkInsItem);
             MenuItem pops = new MenuItem { Header = "Pop-ins" };
             for (int i = 0; i < PopNames.Length; i++)
             {
                 int pace = i;
                 MenuItem pick = new MenuItem { Header = PopNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "pops" };
-                pick.Click += delegate { SetPopPace(pace); };
+                pick.Click += Guarded(delegate { SetPopPace(pace); });
                 popPicks.Add(pick);
                 pops.Items.Add(pick);
             }
             settings.Items.Add(pops);
             onTopItem = new MenuItem { Header = "Always on top", ToggleType = MenuItemToggleType.CheckBox };
-            onTopItem.Click += delegate { SetOnTop(Saved.NotOnTop); };
+            onTopItem.Click += Guarded(delegate { SetOnTop(Saved.NotOnTop); });
             settings.Items.Add(onTopItem);
             watchItem = new MenuItem { Header = "Watch my screen", ToggleType = MenuItemToggleType.CheckBox };
-            watchItem.Click += delegate { SetWatch(!Saved.Watch); };
+            watchItem.Click += Guarded(delegate { SetWatch(!Saved.Watch); });
             settings.Items.Add(watchItem);
             MenuItem gaps = new MenuItem { Header = "Glance every" };
             for (int i = 0; i < GlanceGaps.Length; i++)
             {
                 int seconds = GlanceGaps[i];
                 MenuItem pick = new MenuItem { Header = GlanceGapNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "gaps" };
-                pick.Click += delegate { SetGlanceGap(seconds); };
+                pick.Click += Guarded(delegate { SetGlanceGap(seconds); });
                 gapPicks.Add(pick);
                 gaps.Items.Add(pick);
             }
             settings.Items.Add(gaps);
             caughtUpItem = new MenuItem { Header = "Keep her caught up", ToggleType = MenuItemToggleType.CheckBox };
-            caughtUpItem.Click += delegate { SetCaughtUp(Saved.NoCaughtUp); };
+            caughtUpItem.Click += Guarded(delegate { SetCaughtUp(Saved.NoCaughtUp); });
             settings.Items.Add(caughtUpItem);
             loginItem = new MenuItem { Header = "Start at login", ToggleType = MenuItemToggleType.CheckBox };
-            loginItem.Click += delegate { SetLogin(!StartsAtLogin); };
+            loginItem.Click += Guarded(delegate { SetLogin(!StartsAtLogin); });
             settings.Items.Add(loginItem);
             discordItem = new MenuItem { Header = "Show on Discord", ToggleType = MenuItemToggleType.CheckBox };
-            discordItem.Click += delegate { SetDiscord(Saved.NoDiscord); };
+            discordItem.Click += Guarded(delegate { SetDiscord(Saved.NoDiscord); });
             settings.Items.Add(discordItem);
             // Security, like Windows' SECURITY window (Lachy, 29 Oct): Lockdown, Guarded, Trusted and Blackwall set the toggles
             // under them, and flipping one makes it Custom. Each toggle has its plain line. Off means she asks first and does it
@@ -1847,7 +1862,7 @@ namespace CapriDesktop
                 int preset = i;
                 MenuItem pick = new MenuItem { Header = Security.Presets[i], ToggleType = MenuItemToggleType.Radio, GroupName = "security", IsEnabled = i != Security.Custom };
                 ToolTip.SetTip(pick, Security.PresetLine(i));
-                pick.Click += delegate { if (preset != Security.Custom) Security.Pick(preset); };
+                pick.Click += Guarded(delegate { if (preset != Security.Custom) Security.Pick(preset); });
                 securityPicks.Add(pick);
                 securityMenu.Items.Add(pick);
             }
@@ -1860,7 +1875,7 @@ namespace CapriDesktop
                 face.Children.Add(new TextBlock { Text = Security.Names[i] });
                 face.Children.Add(new TextBlock { Text = Security.Lines[i], FontSize = 11, Foreground = new SolidColorBrush(Look.Dim) });
                 MenuItem item = new MenuItem { Header = face, ToggleType = MenuItemToggleType.CheckBox, Tag = i };
-                item.Click += delegate { Security.Set(toggle, !Security.On(toggle)); };
+                item.Click += Guarded(delegate { Security.Set(toggle, !Security.On(toggle)); });
                 securityToggles.Add(item);
                 securityMenu.Items.Add(item);
             }
@@ -1869,7 +1884,7 @@ namespace CapriDesktop
                 securityMenu.Items.Add(new Separator());
                 MenuItem setup = new MenuItem { Header = "Set up mouse and keyboard..." };
                 ToolTip.SetTip(setup, "Copies the one command that lets her make her own mouse and keyboard through /dev/uinput.");
-                setup.Click += delegate { CopyFingersSetup(); };
+                setup.Click += Guarded(delegate { CopyFingersSetup(); });
                 securityMenu.Items.Add(setup);
             }
             settings.Items.Add(securityMenu);
@@ -1883,20 +1898,20 @@ namespace CapriDesktop
             {
                 double size = Sizes[i];
                 MenuItem pick = new MenuItem { Header = SizeNames[i] };
-                pick.Click += delegate { Resize(size); };
+                pick.Click += Guarded(delegate { Resize(size); });
                 sizes.Items.Add(pick);
             }
             MenuItem discord = new MenuItem { Header = "Join the Discord" };
-            discord.Click += delegate { Browse(DiscordPage); };
+            discord.Click += Guarded(delegate { Browse(DiscordPage); });
             MenuItem help = new MenuItem { Header = "Help" };
             MenuItem helpPage = new MenuItem { Header = "Help page" };
-            helpPage.Click += delegate { Browse(HelpPage); };
+            helpPage.Click += Guarded(delegate { Browse(HelpPage); });
             MenuItem copyErrors = new MenuItem { Header = "Copy error details" };
-            copyErrors.Click += delegate { CopyErrors(); };
+            copyErrors.Click += Guarded(delegate { CopyErrors(); });
             help.Items.Add(helpPage);
             help.Items.Add(copyErrors);
             MenuItem quit = new MenuItem { Header = "Quit Capri" };
-            quit.Click += delegate { Quit(); };
+            quit.Click += Guarded(delegate { Quit(); });
             move.Items.Clear();
             move.Items.Add(sitItem);
             move.Items.Add(hangItem);
@@ -1904,15 +1919,15 @@ namespace CapriDesktop
             move.Items.Add(screenItem);
             move.Items.Add(danceItem);
             MenuItem wander = new MenuItem { Header = "Wander" };
-            wander.Click += delegate { SetWander(Saved.Wander == 0 ? 2 : 0); };
+            wander.Click += Guarded(delegate { SetWander(Saved.Wander == 0 ? 2 : 0); });
             move.Items.Add(wander);
             MenuItem title = new MenuItem { Header = "CAPRI / v" + System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString(3), IsEnabled = false, Foreground = MainframeTheme.Rose };
             MenuItem frame = new MenuItem { Header = "Open Capri Mainframe" };
-            frame.Click += delegate { OpenMainframe(); };
+            frame.Click += Guarded(delegate { OpenMainframe(); });
             hideItem = new MenuItem { Header = "Hide Capri" };
-            hideItem.Click += delegate { if (Away) ComeBack(); else HideAway(); };
+            hideItem.Click += Guarded(delegate { if (Away) ComeBack(); else HideAway(); });
             MenuItem update = new MenuItem { Header = "Check for updates" };
-            update.Click += delegate { CheckUpdate(); };
+            update.Click += Guarded(delegate { CheckUpdate(); });
             menu.Items.Add(title);
             menu.Items.Add(new Separator());
             menu.Items.Add(frame);
@@ -2842,7 +2857,7 @@ namespace CapriDesktop
             else if (found.Length == 0)
             {
                 MenuItem fetch = new MenuItem { Header = pulling ? Pulling : PullChoice, IsEnabled = !pulling };
-                fetch.Click += delegate { PullBrain(); };
+                fetch.Click += Guarded(delegate { PullBrain(); });
                 brainMenu.Items.Add(fetch);
             }
             else
@@ -2850,28 +2865,28 @@ namespace CapriDesktop
                 {
                     string model = name;
                     MenuItem pick = new MenuItem { Header = model, ToggleType = MenuItemToggleType.Radio, GroupName = "brain", IsChecked = model == Brain.Model };
-                    pick.Click += delegate { PickBrain(model); };
+                    pick.Click += Guarded(delegate { PickBrain(model); });
                     brainMenu.Items.Add(pick);
                 }
             brainMenu.Items.Add(new Separator());
             if (found != null)
             {
                 MenuItem more = new MenuItem { Header = pulling ? Pulling : "Download a model (Ollama or Hugging Face)...", IsEnabled = !pulling };
-                more.Click += delegate { AskPull(); };
+                more.Click += Guarded(delegate { AskPull(); });
                 brainMenu.Items.Add(more);
             }
             MenuItem own = new MenuItem { Header = "Use my own server (OpenAI API)..." };
-            own.Click += delegate { AskServer(); };
+            own.Click += Guarded(delegate { AskServer(); });
             brainMenu.Items.Add(own);
             MenuItem provider = new MenuItem { Header = "Use my own provider with a key (OpenAI API)..." };
-            provider.Click += delegate { AskProvider(); };
+            provider.Click += Guarded(delegate { AskProvider(); });
             brainMenu.Items.Add(provider);
             // A cloud key thinks for her instead, for PCs that can't run Ollama's models well. NVIDIA's is free.
             brainMenu.Items.Add(new Separator());
             MenuItem free = new MenuItem { Header = "Get a free NVIDIA key" };
-            free.Click += delegate { GetFreeKey(); };
+            free.Click += Guarded(delegate { GetFreeKey(); });
             MenuItem paste = new MenuItem { Header = KeyChoice };
-            paste.Click += delegate { AskBrainKey(); };
+            paste.Click += Guarded(delegate { AskBrainKey(); });
             brainMenu.Items.Add(free);
             brainMenu.Items.Add(paste);
         }
@@ -2897,20 +2912,20 @@ namespace CapriDesktop
                 {
                     string model = name;
                     MenuItem pick = new MenuItem { Header = model, ToggleType = MenuItemToggleType.Radio, GroupName = "server", IsChecked = model == Brain.Model };
-                    pick.Click += delegate { PickServerModel(model); };
+                    pick.Click += Guarded(delegate { PickServerModel(model); });
                     brainMenu.Items.Add(pick);
                 }
             brainMenu.Items.Add(new Separator());
             MenuItem change = new MenuItem { Header = "Change server address (no key)..." };
-            change.Click += delegate { AskServer(); };
+            change.Click += Guarded(delegate { AskServer(); });
             MenuItem changeKey = new MenuItem { Header = "Change provider address with a key..." };
-            changeKey.Click += delegate { AskProvider(); };
+            changeKey.Click += Guarded(delegate { AskProvider(); });
             MenuItem key = new MenuItem { Header = serverKey == null ? "Set provider key..." : "Change provider key..." };
-            key.Click += delegate { AskProviderKey(); };
+            key.Click += Guarded(delegate { AskProviderKey(); });
             MenuItem forget = new MenuItem { Header = "Forget provider key" };
-            forget.Click += delegate { ForgetServerKey(); };
+            forget.Click += Guarded(delegate { ForgetServerKey(); });
             MenuItem back = new MenuItem { Header = "Stop using my server and use Ollama" };
-            back.Click += delegate { LeaveServer(); };
+            back.Click += Guarded(delegate { LeaveServer(); });
             brainMenu.Items.Add(change);
             brainMenu.Items.Add(changeKey);
             brainMenu.Items.Add(key);
@@ -3063,18 +3078,18 @@ namespace CapriDesktop
                 {
                     string model = name;
                     MenuItem pick = new MenuItem { Header = Brain.Shown(remote.Kind, model), ToggleType = MenuItemToggleType.Radio, GroupName = "cloud", IsChecked = model == remote.Model };
-                    pick.Click += delegate { PickCloud(model); };
+                    pick.Click += Guarded(delegate { PickCloud(model); });
                     brainMenu.Items.Add(pick);
                 }
             brainMenu.Items.Add(new Separator());
             if (remote.Kind == "nvidia")
             {
                 MenuItem stay = new MenuItem { Header = "Stay on my model", ToggleType = MenuItemToggleType.CheckBox, IsChecked = Saved.StayOnModel };
-                stay.Click += delegate { SetStay(!Saved.StayOnModel); };
+                stay.Click += Guarded(delegate { SetStay(!Saved.StayOnModel); });
                 brainMenu.Items.Add(stay);
             }
             MenuItem back = new MenuItem { Header = "Forget the key and use Ollama" };
-            back.Click += delegate { ForgetBrainKey(); };
+            back.Click += Guarded(delegate { ForgetBrainKey(); });
             brainMenu.Items.Add(back);
         }
 
@@ -4440,7 +4455,7 @@ namespace CapriDesktop
             {
                 string one = pickable[i];
                 MenuItem pick = new MenuItem { Header = pickNames[i], ToggleType = MenuItemToggleType.Radio, GroupName = "voice provider", IsChecked = one == picked };
-                pick.Click += delegate { SetVoiceProvider(one); };
+                pick.Click += Guarded(delegate { SetVoiceProvider(one); });
                 provider.Items.Add(pick);
             }
             voiceMenu.Items.Add(provider);
@@ -4458,12 +4473,12 @@ namespace CapriDesktop
             if (voice.Key == null)
             {
                 MenuItem add = new MenuItem { Header = "Add ElevenLabs key..." };
-                add.Click += delegate { AskVoiceKey(); };
+                add.Click += Guarded(delegate { AskVoiceKey(); });
                 voiceMenu.Items.Add(add);
                 return;
             }
             MenuItem speak = new MenuItem { Header = "Use ElevenLabs", ToggleType = MenuItemToggleType.CheckBox, IsChecked = Speaks, IsEnabled = voice.VoiceId != null };
-            speak.Click += delegate { SetSpeak(Saved.Silent); };
+            speak.Click += Guarded(delegate { SetSpeak(Saved.Silent); });
             voiceMenu.Items.Add(speak);
             voiceMenu.Items.Add(new Separator());
             if (voices == null)
@@ -4479,16 +4494,16 @@ namespace CapriDesktop
                     if (shown++ >= 30) break;
                     string id = entry.Id;
                     MenuItem pick = new MenuItem { Header = string.IsNullOrEmpty(entry.Name) ? id : entry.Name, ToggleType = MenuItemToggleType.Radio, GroupName = "voice", IsChecked = id == voice.VoiceId };
-                    pick.Click += delegate { ChooseVoice(id); };
+                    pick.Click += Guarded(delegate { ChooseVoice(id); });
                     voiceMenu.Items.Add(pick);
                 }
                 if (voices.Voices.Count == 0) voiceMenu.Items.Add(new MenuItem { Header = "No voices on this key", IsEnabled = false });
             }
             voiceMenu.Items.Add(new Separator());
             MenuItem renew = new MenuItem { Header = "New key..." };
-            renew.Click += delegate { AskVoiceKey(); };
+            renew.Click += Guarded(delegate { AskVoiceKey(); });
             MenuItem remove = new MenuItem { Header = "Remove key ending " + Voice.Tail(voice.Key) };
-            remove.Click += delegate { ForgetVoice(); };
+            remove.Click += Guarded(delegate { ForgetVoice(); });
             voiceMenu.Items.Add(renew);
             voiceMenu.Items.Add(remove);
             if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
@@ -4497,21 +4512,21 @@ namespace CapriDesktop
         private void RefreshLocalVoice()
         {
             MenuItem speak = new MenuItem { Header = "Speak replies", ToggleType = MenuItemToggleType.CheckBox, IsChecked = Speaks, IsEnabled = localVoice.Ready };
-            speak.Click += delegate { SetSpeak(Saved.Silent); };
+            speak.Click += Guarded(delegate { SetSpeak(Saved.Silent); });
             voiceMenu.Items.Add(speak);
             voiceMenu.Items.Add(new Separator());
             MenuItem server = new MenuItem { Header = "Server: " + (string.IsNullOrEmpty(localVoice.Url) ? LocalSpeaker.Default + " (Kokoro's usual)" : localVoice.Url) + "..." };
-            server.Click += delegate { AskLocalVoice("url"); };
+            server.Click += Guarded(delegate { AskLocalVoice("url"); });
             MenuItem model = new MenuItem { Header = "Model: " + (string.IsNullOrEmpty(localVoice.Model) ? "server's default" : localVoice.Model) + "..." };
-            model.Click += delegate { AskLocalVoice("model"); };
+            model.Click += Guarded(delegate { AskLocalVoice("model"); });
             MenuItem name = new MenuItem { Header = "Voice: " + (string.IsNullOrEmpty(localVoice.Speaker) ? "server's default" : localVoice.Speaker) + "..." };
-            name.Click += delegate { AskLocalVoice("voice"); };
+            name.Click += Guarded(delegate { AskLocalVoice("voice"); });
             bool pcm = localVoice.Format == LocalSpeaker.Pcm;
             MenuItem format = new MenuItem { Header = "Format: " + (pcm ? "PCM" : "WAV") };
             MenuItem wav = new MenuItem { Header = "WAV", ToggleType = MenuItemToggleType.Radio, GroupName = "local voice format", IsChecked = !pcm };
-            wav.Click += delegate { SetLocalVoice("format", LocalSpeaker.Wav); };
+            wav.Click += Guarded(delegate { SetLocalVoice("format", LocalSpeaker.Wav); });
             MenuItem raw = new MenuItem { Header = "PCM (16-bit, 24 kHz)", ToggleType = MenuItemToggleType.Radio, GroupName = "local voice format", IsChecked = pcm };
-            raw.Click += delegate { SetLocalVoice("format", LocalSpeaker.Pcm); };
+            raw.Click += Guarded(delegate { SetLocalVoice("format", LocalSpeaker.Pcm); });
             format.Items.Add(wav);
             format.Items.Add(raw);
             voiceMenu.Items.Add(server);
@@ -4520,7 +4535,7 @@ namespace CapriDesktop
             voiceMenu.Items.Add(format);
             voiceMenu.Items.Add(new Separator());
             MenuItem test = new MenuItem { Header = "Test voice", IsEnabled = Speaks };
-            test.Click += delegate { HearStyle(); };
+            test.Click += Guarded(delegate { HearStyle(); });
             voiceMenu.Items.Add(test);
             if (voiceProblem != null) voiceMenu.Items.Add(new MenuItem { Header = voiceProblem, IsEnabled = false });
         }

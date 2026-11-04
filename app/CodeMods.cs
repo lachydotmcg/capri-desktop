@@ -227,6 +227,9 @@ namespace CapriDesktop
             catch (TypeLoadException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
             catch (BadImageFormatException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
             catch (System.Security.SecurityException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            // The compiler writes temp files, so a blocked temp folder or an antivirus lock fails here too.
+            catch (IOException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (UnauthorizedAccessException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
             if (mods.Count != 1) throw new ModException("A code mod needs exactly one class that implements ICapriMod. That one has " + mods.Count + ".");
             try { return (ICapriMod)Activator.CreateInstance(mods[0]); }
             catch (Exception error) { throw new ModException("That mod failed while loading: " + Inner(error).Message); }

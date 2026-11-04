@@ -49,12 +49,12 @@ namespace CapriDesktop
                 double y = x == 0 ? e.Delta.Y : 0;
                 GlideTo((glide.IsEnabled ? to : Scroll.Offset) - new Vector(x * 36 * Zoom, y * 36 * Zoom)); e.Handled = true;
             }, RoutingStrategies.Tunnel);
-            glide.Tick += (_, _) =>
+            glide.Tick += (_, _) => Program.Guard(() =>
             {
                 double t = Math.Min(1, clock.Elapsed.TotalMilliseconds / 180), eased = 1 - Math.Pow(1 - t, 3);
                 Scroll.Offset = from + (to - from) * eased;
                 if (t >= 1) glide.Stop();
-            };
+            });
             KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
             Page.PointerPressed += (_, e) => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); };
             AddHandler(GotFocusEvent, (_, e) => { if (e.Source is Control control) control.BringIntoView(); });
@@ -351,9 +351,9 @@ namespace CapriDesktop
                 time.Height = 22; time.Options(names);
             }
             Key("Edit check-in lines", 408, 1380, 328, 20, pet.OpenCare);
-            status.Tick += (_, _) => Sync();
+            status.Tick += (_, _) => Program.Guard(Sync);
             pet.SettingsChanged += Sync;
-            heartbeat.Tick += (_, _) => Heartbeat();
+            heartbeat.Tick += (_, _) => Program.Guard(Heartbeat);
             Opened += (_, _) => { Sync(); status.Start(); heartbeat.Start(); };
             Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
             Closing += (_, e) => { if (!finishing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };

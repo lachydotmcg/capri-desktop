@@ -53,6 +53,27 @@ namespace CapriDesktop
                 catch (UnauthorizedAccessException) { }
             }
             Brain.Log("crash", -1, what);
+            int shown = 0;
+            foreach (string frame in (error.StackTrace ?? "").Split('\n'))
+            {
+                string at = frame.Trim();
+                if (at.Length == 0) continue;
+                Brain.Log("crash", -1, at);
+                if (++shown == 4) break;
+            }
+        }
+
+        // Avalonia keeps a timer tick's exception to itself and never ticks that timer again, and an exception in a click
+        // ends the app, so her timers and her own clicks come through here: it's written down and she carries on. Smoke
+        // runs still fail on it.
+        internal static void Guard(Action work)
+        {
+            try { work(); }
+            catch (Exception error)
+            {
+                if (Smoke != null) throw;
+                Crashed(error);
+            }
         }
     }
 

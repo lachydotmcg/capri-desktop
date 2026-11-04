@@ -476,7 +476,7 @@ namespace CapriDesktop
             double height = kind == "server" ? Server() : kind == "layers" ? Layers() : kind == "vault" ? Vault() : SecurityRows();
             Opened += (_, _) => { Fit(wide, height, Pet.FrameSize(pet.Saved.MainframeSize) == 0 ? 1 : pet.Saved.MainframeSize / 100.0); Sync(); status.Start(); };
             pet.SettingsChanged += Sync;
-            status.Tick += (_, _) => Sync();
+            status.Tick += (_, _) => Program.Guard(Sync);
             Closed += (_, _) => { closed = true; status.Stop(); pet.SettingsChanged -= Sync; };
         }
         private NeonButton Button(string text, int x, int y, int width, int height, Action action)

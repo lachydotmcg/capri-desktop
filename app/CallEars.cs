@@ -1060,9 +1060,11 @@ namespace CapriDesktop
                 int order = left.At.CompareTo(right.At);
                 return order == 0 ? left.FromCall.CompareTo(right.FromCall) : order;
             });
+            // Only stretches that agree on being echo join, so a stretch of a friend's echo after a pause can't be outvoted by
+            // your words before it and read as yours.
             for (int i = line.Parts.Count - 1; i > 0; i--)
             {
-                if (line.Parts[i - 1].FromCall != line.Parts[i].FromCall) continue;
+                if (line.Parts[i - 1].FromCall != line.Parts[i].FromCall || line.Parts[i - 1].Leaked != line.Parts[i].Leaked) continue;
                 line.Parts[i - 1].Words += " " + line.Parts[i].Words;
                 line.Parts[i - 1].Echo |= line.Parts[i].Echo;
                 line.Parts[i - 1].Chunks += line.Parts[i].Chunks;
