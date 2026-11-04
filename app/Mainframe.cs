@@ -2252,11 +2252,32 @@ namespace CapriDesktop
             }
         }
 
+        // What last brought the Mainframe up from minimized in a smoke run, so a section that finds it up can name what did it.
+        internal string RestoredBy;
+        private FormWindowState sizedState;
+
         protected override void OnSizeChanged(EventArgs e)
         {
             base.OnSizeChanged(e);
+            if (sizedState == FormWindowState.Minimized && WindowState != FormWindowState.Minimized && SmokeRun.Worker) RestoredBy = Callers();
+            sizedState = WindowState;
             Shape();
             Invalidate(true);
+        }
+
+        private static string Callers()
+        {
+            List<string> found = new List<string>();
+            foreach (string line in Environment.StackTrace.Split('\n'))
+            {
+                string frame = line.Trim();
+                if (frame.StartsWith("at ", StringComparison.Ordinal)) frame = frame.Substring(3);
+                int place = frame.IndexOf(" in ", StringComparison.Ordinal);
+                if (place > 0) frame = frame.Substring(0, place);
+                if (frame.StartsWith("CapriDesktop.", StringComparison.Ordinal) && frame.IndexOf(".OnSizeChanged", StringComparison.Ordinal) < 0 && frame.IndexOf(".Callers", StringComparison.Ordinal) < 0) found.Add(frame);
+                if (found.Count == 6) break;
+            }
+            return string.Join(" < ", found.ToArray());
         }
 
         protected override void OnPaint(PaintEventArgs e)

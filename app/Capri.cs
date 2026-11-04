@@ -2149,6 +2149,7 @@ namespace CapriDesktop
             bool mainframeShown = mainframe.Visible, onTop = preferences.OnTop, topWas = NativeTop;
             bool hiddenWas = hidden, manualWas = manualHidden, fullWas = fullScreenHidden;
             FormWindowState mainframeState = mainframe.WindowState;
+            mainframe.RestoredBy = null;
             try { run(); }
             catch (Exception problem) { TestFailed = true; checks.Add("FAIL section " + name + ": " + problem.Message); }
             finally
@@ -2159,7 +2160,7 @@ namespace CapriDesktop
                 if (after != before)
                 {
                     TestFailed = true;
-                    checks.Add("FAIL section " + name + " left her changed: " + before + " became " + after);
+                    checks.Add("FAIL section " + name + " left her changed: " + before + " became " + after + (mainframe.RestoredBy != null ? " (the Mainframe came up from " + mainframe.RestoredBy + ")" : ""));
                     if (menu.Visible) menu.Close();
                     if (mainframe.FreeKeysShown) mainframe.CloseFreeKeys();
                     if (playerMenu != null && playerMenu.Visible) playerMenu.Close();
@@ -32529,6 +32530,8 @@ namespace CapriDesktop
                                     mainframe.Restore();
                                     mainframe.TopMost = true;
                                     mainframe.Location = new Point(shelf.Left - mainframe.Width - 40 >= frameWork.Left ? shelf.Left - mainframe.Width - 40 : shelf.Right + 40, frameWork.Top + Headroom() + 30);
+                                    // Lifted again without asking for focus: after the sections, a maximised Discord in front stayed over it (5 Nov).
+                                    Native.SetWindowPos(mainframe.Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
                                     Rectangle frameBounds;
                                     if (!Ledges.Showing(mainframe.Handle, out frameBounds)) throw new Exception("The Mainframe did not show for the seat check.");
                                     System.Collections.Generic.List<Ledge> frameLedges = Around();
@@ -32538,24 +32541,34 @@ namespace CapriDesktop
                                         // Says what stood in her way: the Mainframe's own seat test, and every window over the middle of its top edge.
                                         string frameSpans = string.Join(" ", frameLedges.FindAll(other => other.Window == mainframe.Handle).ConvertAll(other => other.Left + "-" + other.Right + " at " + other.Y).ToArray());
                                         string frameAbove = "";
+                                        bool frameOwnAbove = false;
+                                        int frameProcess = Process.GetCurrentProcess().Id;
                                         System.Collections.Generic.List<IntPtr> frameSkipped = Skip();
                                         for (IntPtr up = Native.GetWindow(mainframe.Handle, 3); up != IntPtr.Zero; up = Native.GetWindow(up, 3))
                                         {
                                             Rectangle upBounds;
                                             if (!Ledges.Showing(up, out upBounds) || !upBounds.Contains(frameMiddle, frameBounds.Top)) continue;
+                                            int upProcess;
+                                            Native.GetWindowThreadProcessId(up, out upProcess);
                                             Control upForm = Control.FromHandle(up);
                                             string upName;
-                                            if (upForm != null) upName = upForm.GetType().Name + (frameSkipped.Contains(up) ? " (skipped)" : "");
+                                            if (upProcess == frameProcess)
+                                            {
+                                                frameOwnAbove = true;
+                                                upName = (upForm != null ? upForm.GetType().Name : "her window") + (frameSkipped.Contains(up) ? " (skipped)" : "");
+                                            }
                                             else
                                             {
-                                                int upProcess;
-                                                Native.GetWindowThreadProcessId(up, out upProcess);
                                                 try { using (Process upOwner = Process.GetProcessById(upProcess)) upName = upOwner.ProcessName; }
                                                 catch (Exception) { upName = "process " + upProcess; }
                                             }
-                                            frameAbove += (frameAbove.Length == 0 ? "" : "; ") + upName + " " + upBounds;
+                                            frameAbove += (frameAbove.Length == 0 ? "" : "; ") + upName + " " + upBounds + ((Native.GetWindowLong(up, -20) & 8) != 0 ? " on top" : "");
                                         }
-                                        throw new Exception("She could not sit on top of the Mainframe: " + frameBounds + ", middle " + frameMiddle + ", was " + frameWas + " at " + frameAt + ", seat " + Ledges.Seatable(mainframe.Handle, frameBounds) + ", its ledges [" + frameSpans + "], always on top in Windows " + ((Native.GetWindowLong(mainframe.Handle, -20) & 8) != 0) + ", over its top [" + frameAbove + "].");
+                                        bool frameTop = (Native.GetWindowLong(mainframe.Handle, -20) & 8) != 0;
+                                        string frameStory = frameBounds + ", middle " + frameMiddle + ", was " + frameWas + " at " + frameAt + ", seat " + Ledges.Seatable(mainframe.Handle, frameBounds) + ", its ledges [" + frameSpans + "], always on top in Windows " + frameTop + ", over its top [" + frameAbove + "]";
+                                        // Only another app's window over the always-on-top Mainframe is this PC's desk, not her seat logic.
+                                        if (frameTop && !frameOwnAbove && frameAbove.Length > 0) checks.Add("LIMIT Mainframe seat: another app's window stayed over the always-on-top Mainframe here, so her seat on top of it wasn't checked: " + frameStory);
+                                        else throw new Exception("She could not sit on top of the Mainframe: " + frameStory + ".");
                                     }
                                     if (Ledges.Covered(seat, Hip().X, Skip()) || !frameLedges.Exists(other => other.Window == shelf.Handle)) throw new Exception("The Mainframe knocked her off another window.");
                                 }
