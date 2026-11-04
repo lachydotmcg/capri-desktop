@@ -753,6 +753,7 @@ namespace CapriDesktop
         public bool Motion = true;
         [DataMember] public bool OnTop = true;
         [DataMember] public long UpdateCheckedAt;
+        [DataMember] public string LastVersion;
         [DataMember] public string Model;
         [DataMember] public string LocalAddress;
         [DataMember] public int BrainPort;
@@ -2213,6 +2214,7 @@ namespace CapriDesktop
             restore = signal;
             shown = shownSignal;
             settingsPath = Path.Combine(data, "settings.json");
+            bool hadSettings = File.Exists(settingsPath) || Program.StartedFresh;
             HerCursor.Marker = Path.Combine(data, "her-cursor.on");
             // Smoke tests never touch the real Windows cursor.
             if (smoke) HerCursor.Apply = delegate(bool on) { cursorSwaps.Add(on); };
@@ -2589,6 +2591,7 @@ namespace CapriDesktop
                 if (!testing) CheckNudge(signalNow, signalIdle);
                 if (!testing) CheckCare(signalNow, signalIdle);
                 if (!testing) CheckHoliday(DateTime.Now, signalIdle);
+                if (!testing) CheckNews(signalIdle);
                 if (!testing)
                 {
                     presence.Crowd = cloneWindow == null ? 0 : cloneWindow.Swarm.Bodies.Count + 1;
@@ -2615,6 +2618,7 @@ namespace CapriDesktop
             anchor = KeepOnScreen(anchor);
             Location = anchor;
             Microsoft.Win32.SystemEvents.DisplaySettingsChanged += DisplaysChanged;
+            if (!smoke) StartNews(hadSettings);
         }
 
         protected override bool ShowWithoutActivation { get { return true; } }
@@ -3883,6 +3887,45 @@ namespace CapriDesktop
             if (quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || speech != null || talkState != TalkState.Off || outro != null || onPanel || popOut >= 0 || working != null || FullScreen()) return;
             holidaySaid = now.Date;
             Remark("holiday", holiday[random.Next(holiday.Length)]);
+        }
+
+        private bool newsPending;
+        private int newsTicket = -1;
+        private long newsQuiet;
+
+        private void StartNews(bool existed)
+        {
+            newsTicket = -1;
+            newsPending = existed && preferences.LastVersion != News.Version;
+            if (!existed) KeepNews();
+        }
+
+        private void KeepNews()
+        {
+            newsPending = false;
+            newsTicket = -1;
+            preferences.LastVersion = News.Version;
+            SavePreferences();
+        }
+
+        private bool NewsBusy(long quiet)
+        {
+            return quiet < 0 || quiet > 60000 || Hushed || hidden || quitting || dragging || pressed || InChat || typer.Visible || menu.Visible || outro != null || onPanel || popOut >= 0 || job != null || working != null || FullScreen();
+        }
+
+        private void CheckNews(long quiet)
+        {
+            newsQuiet = quiet;
+            if (!newsPending || !greetTried || newsTicket == asking) return;
+            if (NewsBusy(quiet) || speech != null || talkState != TalkState.Off || LineBusy) return;
+            if (Think == null && brain.Model == null)
+            {
+                Remark("updated", News.Line, true);
+                KeepNews();
+                return;
+            }
+            Hear(News.Prompt, "updated", "> sys: ");
+            newsTicket = asking;
         }
 
         internal static byte[] Hello(string name)
@@ -12530,6 +12573,7 @@ namespace CapriDesktop
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
             if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
             if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }); };
+            if (think == null && brain.Model == null && News.Matching(text) != null) think = delegate { return News.Facts; };
             if (think == null)
             {
                 if (brain.Model == null) { Answer(ticket, Brain.Offline, TalkState.Dormant); FindBrain(); mainframe.Restore(); return; }
@@ -12601,6 +12645,7 @@ namespace CapriDesktop
         private void Answer(int ticket, string said, TalkState state, bool quiet = false)
         {
             if (ticket != asking || IsDisposed) return;
+            if (ticket == newsTicket && state == TalkState.Dormant) { Begin(ticket, News.Line, TalkState.Talking, null); return; }
             said = CallLine(ticket, said);
             // Each answer owns its text and completion; talking over her cancels only its audio (ticket 35).
             int turn = ++answerTurn;
@@ -12737,6 +12782,7 @@ namespace CapriDesktop
         private void Begin(int ticket, string said, TalkState state, byte[] wav)
         {
             if (ticket != asking || IsDisposed || !FollowDelivery(ticket)) return;
+            if (ticket == newsTicket && NewsBusy(newsQuiet)) { newsTicket = -1; asking++; CloseTalk(); return; }
             if (ticket == followTicket && !followLogged) { brain.Followed(said); followLogged = true; }
             if (slowWarned && brain.Remote != null && state != TalkState.Dormant) mainframe.ShowCloud(brain.Remote, cloudModels);
             reply = said;
@@ -12754,6 +12800,7 @@ namespace CapriDesktop
             PlayReply(said, wav);
             if (seconds < 0.2 && state != TalkState.Dormant && TypingSound) Sfx.Type(said, pace, ticket);
             else Sfx.Untype();
+            if (ticket == newsTicket) KeepNews();
         }
 
         private void PlayReply(string said, byte[] wav)
@@ -27196,6 +27243,131 @@ namespace CapriDesktop
             }
         }
 
+        private void SmokeNews(System.Collections.Generic.List<string> checks)
+        {
+            Preferences saved = preferences;
+            Func<string, string> think = Think;
+            Func<string, byte[]> speak = Speak, free = FreeSpeak;
+            Func<bool> screen = FullScreen;
+            string model = brain.Model, work = working;
+            bool greeted = greetTried, pending = newsPending, hush = shushed, shown = hidden, drag = dragging, press = pressed, chat = chatting, wasLocal = local, panel = onPanel, quit = quitting;
+            int ticket = newsTicket;
+            long idle = newsQuiet;
+            double pop = popOut;
+            Job running = job;
+            ManualResetEvent entered = new ManualResetEvent(false), release = new ManualResetEvent(false);
+            try
+            {
+                CloseTalk();
+                preferences = Preferences.Fresh();
+                Think = null; brain.Model = null;
+                shushed = hidden = dragging = pressed = chatting = local = onPanel = quitting = false;
+                working = null; job = null; popOut = -1;
+                bool full = false;
+                FullScreen = delegate { return full; };
+                int voices = 0;
+                Speak = FreeSpeak = delegate { voices++; throw new Exception("News used a voice without a brain."); };
+                DataContractJsonSerializer json = new DataContractJsonSerializer(typeof(Preferences));
+                Preferences old;
+                using (MemoryStream stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{}"))) old = (Preferences)json.ReadObject(stream);
+                if (old.LastVersion != null) throw new Exception("Old settings invented a last version.");
+                greetTried = true;
+                foreach (string last in new[] { old.LastVersion, "0.8.2", "0.9.0" })
+                {
+                    CloseTalk(); preferences.LastVersion = last; StartNews(true); CheckNews(0);
+                    if (reply != News.Line || heard != "updated" || voiceUntil != 0 || voices != 0 || newsPending || LoadPreferences().LastVersion != News.Version) throw new Exception("Update news did not show and save once from " + (last ?? "missing") + ".");
+                    CloseTalk(); StartNews(true); CheckNews(0);
+                    if (reply != null || newsPending) throw new Exception("The same version repeated its news.");
+                }
+                checks.Add("PASS update news: older, missing and different versions show fixed text once without a brain, save the version and stay quiet on another start");
+                preferences.LastVersion = null;
+                StartNews(false); CheckNews(0);
+                if (reply != null || newsPending || LoadPreferences().LastVersion != News.Version) throw new Exception("A fresh install spoke update news or missed its saved version.");
+                checks.Add("PASS fresh installs save their version without update news");
+                preferences.LastVersion = null; StartNews(true);
+                CheckNews(60001);
+                if (reply != null || preferences.LastVersion != null) throw new Exception("Update news spoke while the user was away.");
+                Action<bool>[] holds =
+                {
+                    delegate(bool on) { greetTried = !on; },
+                    delegate(bool on) { shushed = on; },
+                    delegate(bool on) { hidden = on; },
+                    delegate(bool on) { quitting = on; },
+                    delegate(bool on) { dragging = on; },
+                    delegate(bool on) { pressed = on; },
+                    delegate(bool on) { chatting = on; },
+                    delegate(bool on) { talkState = on ? TalkState.Thinking : TalkState.Off; },
+                    delegate(bool on) { working = on ? "Test job" : null; },
+                    delegate(bool on) { onPanel = on; },
+                    delegate(bool on) { popOut = on ? 0 : -1; },
+                    delegate(bool on) { full = on; }
+                };
+                foreach (Action<bool> hold in holds)
+                {
+                    hold(true); CheckNews(0);
+                    if (reply != null || !newsPending || preferences.LastVersion != null) throw new Exception("Busy update news was delivered or forgotten.");
+                    hold(false);
+                }
+                CheckNews(0);
+                if (reply != News.Line || newsPending) throw new Exception("Held update news did not return when free.");
+                checks.Add("PASS update news waits for the startup hello, the user and a free moment outside hiding, chat, speech, jobs and full screen");
+                CloseTalk(); preferences.Silent = true; preferences.LastVersion = "0.8.2";
+                string asked = null;
+                Think = delegate(string text) { asked = text; entered.Set(); release.WaitOne(3000); return "Voici les nouveautes."; };
+                StartNews(true); CheckNews(0);
+                WaitVoice(delegate { return entered.WaitOne(0); }, "Update news did not ask her brain.");
+                CheckNews(0);
+                if (preferences.LastVersion != "0.8.2" || !newsPending) throw new Exception("Update news saved before her reply arrived.");
+                release.Set();
+                WaitVoice(delegate { return reply == "Voici les nouveautes." && !newsPending; }, "Update news did not use her brain's reply.");
+                if (asked != News.Prompt || !asked.StartsWith("(", StringComparison.Ordinal) || !asked.Contains(News.Facts) || !asked.Contains("language they use") || LoadPreferences().LastVersion != News.Version) throw new Exception("Update news lost its facts, language or saved version.");
+                CloseTalk(); CheckNews(0);
+                if (reply != null) throw new Exception("Brain update news repeated.");
+                preferences.LastVersion = "0.8.2";
+                Think = delegate { throw new BrainException("Test brain failure."); };
+                StartNews(true); CheckNews(0);
+                WaitVoice(delegate { return reply == News.Line && !newsPending; }, "Failed news did not fall back to text.");
+                if (voiceUntil != 0 || voices != 0) throw new Exception("Failed update news used speech.");
+                checks.Add("PASS update news uses her brain's system line, facts and language, saves after delivery and falls back to text if the brain fails");
+                CloseTalk(); entered.Reset(); release.Reset(); preferences.LastVersion = "0.8.2";
+                Think = delegate { entered.Set(); release.WaitOne(3000); return "Held news."; };
+                StartNews(true); CheckNews(0);
+                WaitVoice(delegate { return entered.WaitOne(0); }, "Held news did not reach the brain.");
+                full = true; release.Set();
+                WaitVoice(delegate { return newsTicket < 0 && talkState == TalkState.Off; }, "Late news did not wait for full screen.");
+                if (!newsPending || preferences.LastVersion != "0.8.2" || reply != null) throw new Exception("Late news was delivered or forgotten while busy.");
+                full = false; CheckNews(0);
+                WaitVoice(delegate { return reply == "Held news." && !newsPending; }, "Late news did not retry when free.");
+                checks.Add("PASS news that finishes while busy stays pending and returns when free");
+                foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
+                {
+                    string facts = SelfKnow.Matching(question);
+                    if (facts == null || !facts.StartsWith("What's new:", StringComparison.Ordinal) || !facts.Contains(News.Facts)) throw new Exception("Update help missed " + question);
+                }
+                foreach (string ordinary in new[] { "what's new with you?", "what changed on my screen?", "what's new in Cyberpunk?" })
+                {
+                    string found = SelfKnow.Matching(ordinary);
+                    if (found != null && found.StartsWith("What's new:", StringComparison.Ordinal)) throw new Exception("Update help took ordinary chat: " + ordinary);
+                }
+                if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
+                foreach (string fact in new[] { "Call mode (beta)", "CAPRI > Mods", "Capri-VR-Quest.apk", "BRAIN > Provider", "VOICE > Her speaker", "WATCH > Screens", "Pop-in times", "GAMES > Controls", "GAMES > Play...", "Code/Husk Mode" })
+                    if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
+                CloseTalk(); Think = null;
+                Hear("what's new?");
+                WaitVoice(delegate { return reply == News.Facts; }, "Offline update help did not answer.");
+                checks.Add("PASS What's new finds this version's Windows facts and menu paths, including without a brain");
+            }
+            finally
+            {
+                release.Set(); asking++; CloseTalk();
+                preferences = saved; Think = think; Speak = speak; FreeSpeak = free; FullScreen = screen; brain.Model = model;
+                newsQuiet = idle;
+                greetTried = greeted; newsPending = pending; newsTicket = ticket; shushed = hush; hidden = shown; dragging = drag; pressed = press; chatting = chat; local = wasLocal; onPanel = panel; quitting = quit;
+                working = work; job = running; popOut = pop;
+                SavePreferences();
+            }
+        }
+
         private void SmokeGreeting(System.Collections.Generic.List<string> checks)
         {
             Func<string, byte[]> greetingSpeakWas = Speak, greetingFreeWas = FreeSpeak;
@@ -29142,6 +29314,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMiniChoices", delegate { SmokeMiniChoices(checks); });
             Section(checks, "SmokeLookout", delegate { SmokeLookout(checks); });
             Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
+            Section(checks, "SmokeNews", delegate { SmokeNews(checks); });
             Section(checks, "SmokeSelfKnow", delegate { SmokeSelfKnow(checks); });
             Section(checks, "SmokeToolKit", delegate { SmokeToolKit(checks); });
             Section(checks, "SmokeActions", delegate { SmokeActions(checks); });

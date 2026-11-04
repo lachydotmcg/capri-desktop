@@ -130,6 +130,7 @@ namespace CapriDesktop
                 }
                 if (Brain.Greeting(8) != "Good morning, choom." || Brain.Greeting(23) != "Isn't it late, choom?" || Brain.Greeting(15) != "Miss me, choom?" || Brain.GreetingClip(15) != "miss") throw new Exception("Startup greetings came at the wrong hours.");
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
+                NewsChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1765,6 +1766,133 @@ namespace CapriDesktop
                 Hands.Fetch = fetchWas;
             }
             checks.Add("PASS mini games on Mac and Linux give the Windows-only line without Spotify, with or without a brain or uinput, while Chess by an artist stays music and online chess opens a site");
+        }
+
+        private sealed class NewsDesk : Desk
+        {
+            internal readonly List<Spot> Shown = new List<Spot>();
+            internal override string Name { get { return "news test"; } }
+            internal override List<Spot> Windows(ICollection<long> skip) { return Shown; }
+            internal override Spot Find(long window) { return null; }
+            internal override bool Alive(long window) { return false; }
+        }
+
+        private void NewsChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+            string[] names = { "greetTried", "newsPending", "newsTicket", "newsQuiet", "shushed", "napAsked", "napping", "away", "quitting", "dragging", "pressed", "falling", "outro", "popOut", "nudgeOut", "workCount" };
+            Dictionary<string, object> state = new Dictionary<string, object>();
+            foreach (string name in names) state[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            Action<string, object> set = delegate(string name, object value) { typeof(Pet).GetField(name, fields).SetValue(pet, value); };
+            Settings saved = pet.Saved;
+            Func<string, string> think = pet.Think;
+            string model = pet.Brain.Model;
+            Desk desk = pet.Desk;
+            object speaker = typeof(Pet).GetField("elevenLabs", fields).GetValue(pet);
+            var timer = (Avalonia.Threading.DispatcherTimer)typeof(Pet).GetField("frames", fields).GetValue(pet);
+            bool ticking = timer.IsEnabled;
+            ManualResetEvent entered = new ManualResetEvent(false), release = new ManualResetEvent(false);
+            timer.Stop();
+            try
+            {
+                pet.Talk.Dismiss();
+                pet.Saved = new Settings(); pet.Think = null; pet.Brain.Model = null;
+                foreach (string name in new[] { "shushed", "napAsked", "napping", "away", "quitting", "dragging", "pressed", "falling" }) set(name, false);
+                set("outro", null); set("popOut", -1.0); set("nudgeOut", -1.0); set("workCount", 0); set("greetTried", true);
+                NewsDesk stand = new NewsDesk { Scale = desk.Scale };
+                pet.Desk = stand;
+                SettingsSpeaker voice = new SettingsSpeaker();
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, voice);
+                var json = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings));
+                Settings old;
+                using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes("{}"))) old = (Settings)json.ReadObject(stream);
+                if (old.LastVersion != null) throw new Exception("Old cross settings invented a last version.");
+                foreach (string last in new[] { old.LastVersion, "0.8.2", "0.9.0" })
+                {
+                    pet.Talk.Dismiss(); pet.Saved.LastVersion = last; pet.StartNews(true); pet.CheckNews(0);
+                    if (pet.Talk.Reply != News.Line || voice.Calls != 0 || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross update news did not show and save once from " + (last ?? "missing") + ".");
+                    pet.Talk.Dismiss(); pet.StartNews(true); pet.CheckNews(0);
+                    if (pet.Talk.Reply != null) throw new Exception("The same cross version repeated its news.");
+                }
+                checks.Add("PASS cross update news: older, missing and different versions show fixed text once without a brain, save the version and stay quiet on another start");
+                pet.Saved.LastVersion = null; pet.StartNews(false); pet.CheckNews(0);
+                if (pet.Talk.Reply != null || SettingsCopy().LastVersion != News.Version) throw new Exception("A fresh cross install spoke update news or missed its saved version.");
+                checks.Add("PASS fresh cross installs save their version without update news");
+                pet.Saved.LastVersion = null; pet.StartNews(true); pet.CheckNews(60001);
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news spoke while the user was away.");
+                set("greetTried", false); pet.CheckNews(0); set("greetTried", true);
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news spoke before the startup hello.");
+                foreach (string name in new[] { "shushed", "napAsked", "napping", "away", "quitting", "dragging", "pressed", "falling" })
+                {
+                    set(name, true); pet.CheckNews(0); set(name, false);
+                    if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news did not wait for " + name + ".");
+                }
+                pet.Talk.Thinking("test"); pet.CheckNews(0); pet.Talk.Dismiss();
+                if (pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted thinking.");
+                pet.Talk.Answer("test", "Still talking."); pet.CheckNews(0);
+                if (pet.Talk.Reply != "Still talking." || pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted speech.");
+                pet.Talk.Dismiss(); pet.Talk.Open(); pet.CheckNews(0); pet.Talk.Dismiss();
+                if (pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted typing.");
+                set("workCount", 1); pet.CheckNews(0); set("workCount", 0);
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted a job.");
+                foreach (Screen screen in pet.Screens.All) stand.Shown.Add(new Spot { Bounds = screen.Bounds, Solid = true });
+                pet.CheckNews(0); stand.Shown.Clear();
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted full screen.");
+                pet.CheckNews(0);
+                if (pet.Talk.Reply != News.Line || SettingsCopy().LastVersion != News.Version) throw new Exception("Held cross update news did not return when free.");
+                checks.Add("PASS cross update news waits for the startup hello, the user and a free moment outside hiding, chat, speech, jobs and full screen");
+                pet.Talk.Dismiss(); pet.Saved.Silent = true; pet.Saved.LastVersion = "0.8.2";
+                string asked = null;
+                pet.Think = delegate(string text) { asked = text; entered.Set(); release.WaitOne(3000); return "Voici les nouveautes."; };
+                pet.StartNews(true); pet.CheckNews(0);
+                MainframeWait(delegate { return entered.WaitOne(0); }, "news brain request");
+                pet.CheckNews(0);
+                if (pet.Saved.LastVersion != "0.8.2") throw new Exception("Cross update news saved before her reply arrived.");
+                release.Set();
+                MainframeWait(delegate { return pet.Talk.Reply == "Voici les nouveautes."; }, "news brain reply");
+                if (asked != News.Prompt || !asked.StartsWith("(", StringComparison.Ordinal) || !asked.Contains(News.Facts) || !asked.Contains("language they use") || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross update news lost its facts, language or saved version.");
+                pet.Talk.Dismiss(); pet.CheckNews(0);
+                if (pet.Talk.Reply != null) throw new Exception("Cross brain update news repeated.");
+                pet.Saved.LastVersion = "0.8.2";
+                pet.Think = delegate { throw new BrainException("Test brain failure."); };
+                pet.StartNews(true); pet.CheckNews(0);
+                MainframeWait(delegate { return pet.Talk.Reply == News.Line; }, "news fallback text");
+                if (voice.Calls != 0 || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross news fallback used a voice or forgot the version.");
+                checks.Add("PASS cross update news uses her brain's system line, facts and language, saves after delivery and falls back to text if the brain fails");
+                pet.Talk.Dismiss(); entered.Reset(); release.Reset(); pet.Saved.LastVersion = "0.8.2";
+                pet.Think = delegate { entered.Set(); release.WaitOne(3000); return "Held news."; };
+                pet.StartNews(true); pet.CheckNews(0);
+                MainframeWait(delegate { return entered.WaitOne(0); }, "held news request");
+                foreach (Screen screen in pet.Screens.All) stand.Shown.Add(new Spot { Bounds = screen.Bounds, Solid = true });
+                release.Set();
+                MainframeWait(delegate { return (int)typeof(Pet).GetField("newsTicket", fields).GetValue(pet) < 0; }, "late news hold");
+                if (pet.Saved.LastVersion != "0.8.2" || pet.Talk.Reply != null) throw new Exception("Late cross news was delivered or forgotten while busy.");
+                stand.Shown.Clear(); pet.CheckNews(0);
+                MainframeWait(delegate { return pet.Talk.Reply == "Held news."; }, "late news retry");
+                if (SettingsCopy().LastVersion != News.Version) throw new Exception("Late cross news did not save when free.");
+                checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
+                foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
+                    if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
+                foreach (string fact in new[] { "BRAIN, VOICE and CAPRI", "Simple Settings", "Advanced Settings", "CAPRI > Mods", "colour sets and skins", "Code/Husk Mode", "OpenAI-compatible", "Check in on me", "Head pats", "Follow-up messages", "Keep PC awake for jobs", "Obsidian vault" })
+                    if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
+                foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "code mods", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
+                    if (News.Facts.IndexOf(windowsOnly, StringComparison.OrdinalIgnoreCase) >= 0) throw new Exception("Cross update help promised " + windowsOnly);
+                foreach (string ordinary in new[] { "what changed in my game?", "what's new in Cyberpunk?", "I bought new shoes" })
+                    if (News.Matching(ordinary) != null) throw new Exception("Cross update help matched ordinary chat.");
+                pet.Talk.Dismiss(); pet.Think = null; pet.Hear("what's new?");
+                if (pet.Talk.Reply != News.Facts) throw new Exception("Offline cross update help did not answer.");
+                checks.Add("PASS cross What's new finds this version's Mac and Linux facts and paths without Windows-only features, including without a brain");
+            }
+            finally
+            {
+                release.Set();
+                set("asking", (int)typeof(Pet).GetField("asking", fields).GetValue(pet) + 1);
+                pet.Talk.Dismiss();
+                pet.Saved = saved; pet.Think = think; pet.Brain.Model = model; pet.Desk = desk;
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, speaker);
+                foreach (KeyValuePair<string, object> pair in state) set(pair.Key, pair.Value);
+                if (ticking) timer.Start();
+            }
         }
 
         // A voice for the settings check's preview that only counts what it's asked to say.

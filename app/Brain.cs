@@ -10,6 +10,48 @@ using System.Xml;
 
 namespace CapriDesktop
 {
+    // What's new in this version, one list per platform. Her line once after an update, her answer to "what's new?" and the
+    // fixed text she shows without a brain all read it, so the next release only edits these lines.
+    internal static class News
+    {
+        internal const string Version = "0.8.3";
+#if CROSS
+        internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
+            + "Full Capri Mainframe: right-click Capri > Open Capri Mainframe. BRAIN, VOICE and CAPRI are on its main page; Settings offers Simple Settings and Advanced Settings.\n"
+            + "Mods: Mainframe > CAPRI > Mods opens the directory with previews, downloads and ratings. Import settings mods, colour sets and skins there.\n"
+            + "Code/Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode lets her show Claude Code and Codex at work, requests for your OK and short completion answers.\n"
+            + "Any OpenAI-compatible provider with a key: right-click Capri > Brain > Use my own provider with a key (OpenAI API)...\n"
+            + "Check-ins and head pats: Mainframe > Settings > CAPRI > Check in on me and Head pats.\n"
+            + "Follow-ups: Mainframe > Settings > BRAIN > Follow-up messages.\n"
+            + "Keep the computer awake during jobs: Mainframe > Settings > HABITS > Keep PC awake for jobs.\n"
+            + "Her notes in Obsidian: Mainframe > Settings > HABITS > Obsidian vault.";
+        internal const string Line = "I just updated to " + Version + ": Mainframe, Mods and Code/Husk Mode. Ask me what's new for the menu paths.";
+#else
+        internal const string Facts = "Capri " + Version + " on Windows.\n"
+            + "Better voice calls: she can join Discord, pass on a message and open the game the call picks. Call mode also hears Zoom, Microsoft Teams, WhatsApp, Telegram, Slack, Signal, Skype, TeamSpeak, Mumble, Steam voice chat and browser calls. Calls have speaker captions and a small call pill; Mainframe > Settings > VOICE > Call mode (beta) and Call app pick the mode and app.\n"
+            + "Friends on a call can ask her for things: Mainframe > Settings > HABITS > Security > Friends on a call can ask, you confirm. It's off by default, and only your own mic or typing says yes.\n"
+            + "Mods: Mainframe > CAPRI > Mods > Browse mods opens the directory with previews, downloads and ratings. Import mod adds settings mods, colour sets, skins or code mods; code mods ask before running.\n"
+            + "Capri VR: Capri Room for Meta Quest 3 is the separate Capri-VR-Quest.apk download on her release page. Install with SideQuest or Meta Quest Developer Hub in Developer Mode, then open Library > Unknown Sources in the headset.\n"
+            + "Any OpenAI-compatible provider: Mainframe > BRAIN > Provider.\n"
+            + "Speaker and screens: Mainframe > VOICE > Her speaker and Mainframe > Settings > WATCH > Screens.\n"
+            + "Edit notes and memories in Mainframe: Settings > YOU > Open her notes and Settings > HABITS > Open her memories.\n"
+            + "Exact pop-in times: Mainframe > Settings > MOVES > Pop-in times.\n"
+            + "Dated reminders: ask for a reminder on a date and time, like 5 December at 9am.\n"
+            + "Teach game controls: Mainframe > Settings > GAMES > Controls. Mini games: GAMES > Play...\n"
+            + "Paused YouTube pages and comments: Mainframe > Settings > HABITS > Explore while I'm away.\n"
+            + "Code/Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode lets her show Claude Code and Codex at work, requests for your OK and completion answers.";
+        internal const string Line = "I just updated to " + Version + ": better calls, Mods and Capri VR. Ask me what's new for the menu paths.";
+#endif
+        internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
+
+        // "What's new?" asked on its own or about the update, so "what's new with you?" stays chat.
+        internal static string Matching(string asked)
+        {
+            string text = Regex.Replace((asked ?? "").ToLowerInvariant().Replace("'", "").Replace("\u2019", ""), @"[^a-z0-9]+", " ").Trim();
+            return Regex.IsMatch(text, @"^(?:(?:hey|hi|please|so|capri|tell me|can you tell me) )*(?:whats new(?: in (?:this|the) update| in capri)?|what is new(?: in (?:this|the) update| in capri)?|what changed(?: in (?:this|the) update)?|what did the update add)(?: please)?$") ? "What's new: " + Facts : null;
+        }
+    }
+
     [DataContract]
     internal sealed class ChatMessage
     {
@@ -1921,9 +1963,11 @@ namespace CapriDesktop
             string self = null;
 #if !CROSS
             self = SelfKnow.Matching(text, kit);
+#else
+            self = News.Matching(text);
 #endif
             string selfGuide = self == null ? "" : "\nFor this app-help question, use the attached facts about yourself in your own voice and their language. Explain the relevant controls in enough short sentences to be useful; for a tutorial give its six brief steps, instead of the usual short reply and no-list format. These facts describe this version, not which settings they currently have on.";
-            int answerBudget = self == null ? Budget : Math.Max(Budget, 360);
+            int answerBudget = self == null ? Budget : Math.Max(Budget, self.StartsWith("What's new:", StringComparison.Ordinal) ? 900 : 360);
             List<ChatMessage> messages = new List<ChatMessage>();
             string secondThought = followUps ? Replies.Instruction : "";
             string steady = Character + (Cues ? Cueing : "") + secondThought + WrittenDown();

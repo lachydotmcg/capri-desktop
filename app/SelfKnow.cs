@@ -35,6 +35,8 @@ namespace CapriDesktop
 
         internal static readonly Topic[] Topics =
         {
+            new Topic("What's new", "whats new in this update|whats new in the update|what is new in this update|what is new in the update|what did the update add|what did this update add|what changed in this update|what changed in the update|whats in this update|whats in the update|whats new in this version|update notes|patch notes|release notes",
+                News.Facts, null, null),
             new Topic("Mainframe", "your settings|her settings|open your settings|mainframe|settings window",
                 "Right-click Capri or her tray icon and choose Open Capri Mainframe. Its main page has BRAIN, VOICE and CAPRI; Settings at the top opens the settings page, and changes are saved as you make them.", "Capri.cs", "Open Capri Mainframe"),
             new Topic("Settings pages", "settings button|back button in mainframe|settings pages",
@@ -432,6 +434,9 @@ namespace CapriDesktop
         // Facts about the topics they asked about. What she can do comes from her tools here, and a brain that can't see leaves out looking.
         internal static string Matching(string asked, Hands.Kit kit = null)
         {
+            // A plain "what's new?" is about her update; the topic's own words only catch questions that name the update.
+            string news = News.Matching(asked);
+            if (news != null) return news;
             string text = Plain(asked);
             if (SettingsIgnored.IsMatch(text)) return "Settings ignored: " + Setting("Capri.cs", "check_ins").Facts;
             if (text.Length == 0 || !Question.IsMatch(text) && !Regex.IsMatch(text, @"\b(my (mic|microphone) (isnt working|is not working|doesnt work)|mic not working|microphone not working|cant hear me|cannot hear me)\b")) return null;

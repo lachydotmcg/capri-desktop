@@ -38,6 +38,7 @@ namespace CapriDesktop
         [DataMember] internal bool NoDiscord;
         [DataMember] internal string CloudModel;
         [DataMember] internal string UpdateSeen;
+        [DataMember] internal string LastVersion;
         [DataMember] internal bool StayOnModel;
         [DataMember] internal int HuskMode;
         [DataMember] internal bool NoMemories;
@@ -629,6 +630,7 @@ namespace CapriDesktop
                 if (Program.Smoke != null) smoke = new Smoke(this, Program.Smoke);
                 else
                 {
+                    StartNews(!fresh);
                     if (Saved.HuskMode != 0) SetHusk(Saved.HuskMode, true);
                     int ticket = asking;
                     DispatcherTimer.RunOnce(() => Greet(ticket, DateTime.Now.Hour), TimeSpan.FromMilliseconds(1800));
@@ -1431,6 +1433,7 @@ namespace CapriDesktop
 
         internal void Greet(int ticket, int hour)
         {
+            greetTried = true;
             string line = Brain.Greeting(hour);
             if (line == null || ticket != asking || outro != null || !Talk.Quiet) return;
             byte[] hello = Hello(Brain.GreetingClip(hour));
@@ -1438,6 +1441,56 @@ namespace CapriDesktop
             ++asking;
             Talk.Answer("startup", line, Voice.Seconds(hello));
             voice.Play(hello);
+        }
+
+        private bool greetTried, newsPending;
+        private int newsTicket = -1;
+        private long newsQuiet;
+
+        internal void StartNews(bool existed)
+        {
+            newsTicket = -1;
+            newsPending = existed && Saved.LastVersion != News.Version;
+            if (!existed) KeepNews();
+        }
+
+        private void KeepNews()
+        {
+            newsPending = false;
+            newsTicket = -1;
+            Saved.LastVersion = News.Version;
+            Save();
+        }
+
+        private bool NewsBusy(long quiet)
+        {
+            return quiet < 0 || quiet > 60000 || Hushed || away || !IsVisible || quitting || dragging || pressed || falling || outro != null || popOut >= 0 || nudgeOut >= 0 || (ContextMenu != null && ContextMenu.IsOpen) || JobActive || Talk.Typing || FullScreen();
+        }
+
+        private bool HoldNews(int ticket)
+        {
+            if (ticket != newsTicket || !NewsBusy(newsQuiet)) return false;
+            newsTicket = -1;
+            asking++;
+            Talk.Dismiss(false);
+            return true;
+        }
+
+        internal void CheckNews(long quiet)
+        {
+            newsQuiet = quiet;
+            if (!newsPending || !greetTried || newsTicket == asking) return;
+            if (NewsBusy(quiet) || !Talk.Quiet || !Talk.Finished) return;
+            if (Think == null && Brain.Model == null)
+            {
+                Talk.Answer("(updated)", News.Line);
+                KeepNews();
+                return;
+            }
+            Brain.Cancel();
+            newsTicket = ++asking;
+            Talk.Thinking("(updated)");
+            Ask(newsTicket, News.Prompt, 0);
         }
 
         internal static byte[] Hello(string name)
@@ -3830,6 +3883,7 @@ namespace CapriDesktop
             }
             // Her nap, her own moves and her animations work before she has a brain, like on Windows.
             if (tool == "mainframe" || (Think == null && Brain.Model == null && (tool == "nap" || tool == "move_yourself" || tool == "animate"))) { Reply(ticket, text, Hands.Do(tool, args)); return; }
+            if (Think == null && Brain.Model == null && News.Matching(text) != null) { Reply(ticket, text, News.Facts); return; }
             if (Think == null && Brain.Model == null) { Reply(ticket, text, Offline); FindBrain(); return; }
             Talk.Thinking(text);
             Ask(ticket, text, 0);
@@ -3846,17 +3900,19 @@ namespace CapriDesktop
             {
                 string said;
                 string after = null;
-                bool stuck = false;
+                bool stuck = false, failed = false;
                 try { said = think == null ? Brain.Ask(text, follows, out after) : think(text); }
-                catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer: " + error.Message; stuck = Brain.Stalled(error); }
-                catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; stuck = Brain.Stalled(error); }
-                if (string.IsNullOrWhiteSpace(said)) said = "My brain sent an empty reply. Try again.";
+                catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer: " + error.Message; stuck = Brain.Stalled(error); failed = true; }
+                catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; stuck = Brain.Stalled(error); failed = true; }
+                if (string.IsNullOrWhiteSpace(said)) { said = "My brain sent an empty reply. Try again."; failed = true; }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (ticket != asking) return;
                     if (stuck && switches < 2 && Hop(remote)) { Ask(ticket, text, switches + 1); return; }
                     if (input != inputTurn) after = null;
-                    Reply(ticket, text, said, after);
+                    if (HoldNews(ticket)) return;
+                    if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); KeepNews(); return; }
+                    Reply(ticket, ticket == newsTicket ? "(updated)" : text, said, ticket == newsTicket ? null : after);
                 });
             });
         }

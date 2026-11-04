@@ -916,13 +916,13 @@ namespace CapriDesktop
             Update(pet.Now);
         }
 
-        internal void Dismiss()
+        internal void Dismiss(bool typing = true)
         {
             reply = null;
             thinking = false;
             leaving = -1;
             Bubble.Hide();
-            Typer.Hide();
+            if (typing) Typer.Hide();
         }
 
         // While she's hidden her bubble and pill stay down too, even one that was still up when her window went.
