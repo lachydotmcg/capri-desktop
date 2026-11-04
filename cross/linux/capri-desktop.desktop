@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Capri
+GenericName=Desktop Companion
+Comment=Unofficial Capri companion for your desktop
+Exec=Capri
+Icon=capri-desktop
+Terminal=false
+Categories=Utility;
+Keywords=capri;companion;desktop;
+StartupWMClass=Capri
