@@ -23953,6 +23953,7 @@ namespace CapriDesktop
 
         private void SmokeBrainLayout(System.Collections.Generic.List<string> checks)
         {
+            SmokeMainframePictures(checks);
             bool wasSettings = mainframe.SettingsShown;
             int wasSize = preferences.MainframeSize;
             foreach (int storedSize in new[] { 0, 100, 125, 150, 175, 200, -1, 50, 110, 250, int.MaxValue })
@@ -24016,6 +24017,42 @@ namespace CapriDesktop
             }
             catch (System.Runtime.InteropServices.ExternalException) { checks.Add("LIMIT Mainframe text measurement: Windows text rendering is unavailable on this desktop"); }
             finally { mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(wasSize); mainframe.ShowSettings(wasSettings); }
+        }
+
+        private void SmokeMainframePictures(System.Collections.Generic.List<string> checks)
+        {
+            bool wasPage = mainframe.SettingsShown, wasAdvanced = preferences.AdvancedSettings, wasSimple = simpleTest;
+            int wasSize = preferences.MainframeSize;
+            string output = Path.GetDirectoryName(Brain.LogPath);
+            try
+            {
+                mainframe.LayoutScale(96, 100);
+                mainframe.SizeMainframe(100);
+                simpleTest = true;
+                string[] names = { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" };
+                for (int page = 0; page < names.Length; page++)
+                {
+                    preferences.AdvancedSettings = page == 2;
+                    mainframe.ShowSettings(page != 0);
+                    mainframe.Settle();
+                    mainframe.Update();
+                    using (Bitmap picture = new Bitmap(mainframe.ClientSize.Width, mainframe.ClientSize.Height))
+                    {
+                        mainframe.DrawToBitmap(picture, new Rectangle(Point.Empty, picture.Size));
+                        picture.Save(Path.Combine(output, names[page]), System.Drawing.Imaging.ImageFormat.Png);
+                    }
+                    if (!File.Exists(Path.Combine(output, names[page]))) throw new Exception("The Mainframe picture was not saved: " + names[page]);
+                }
+                checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
+            }
+            finally
+            {
+                simpleTest = wasSimple;
+                preferences.AdvancedSettings = wasAdvanced;
+                mainframe.LayoutScale(0, 0);
+                mainframe.SizeMainframe(wasSize);
+                mainframe.ShowSettings(wasPage);
+            }
         }
 
         private void SmokeLanguageBounds(ToolStripDropDown menu, Rectangle area, bool[] seen)
@@ -33608,7 +33645,7 @@ namespace CapriDesktop
                             mainframe.ShowSettings(true);
                             // Settings opens a second column beside the first. With four voice sliders and her perch row it can be taller than the main page too.
                             if (!mainframe.SettingsShown || mainframe.ClientSize.Width <= mainWide || mainframe.SettingsStatus != "English | 100% | 60% | Off | 2 min | dance | intro | Short | Short | Normal") throw new Exception("The settings page did not open right: " + mainframe.SettingsStatus + " / " + mainWide + " to " + mainframe.ClientSize.Width + " wide, " + mainTall + " to " + mainframe.ClientSize.Height + " tall");
-                            snap("mainframe-settings.png");
+                            snap("mainframe-settings-all.png");
                             string pageTabs = mainframe.TabWalk();
                             if (pageTabs != null) throw new Exception("Settings page keyboard: " + pageTabs);
                             string pageOverlap = mainframe.Overlap();
