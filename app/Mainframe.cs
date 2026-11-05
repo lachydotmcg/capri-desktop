@@ -336,12 +336,9 @@ namespace CapriDesktop
         private readonly ContextMenuStrip mixInputMenu, mixOutputMenu;
         private MixSheet mixSheet;
         private readonly Toggle callMode;
-        private readonly Key callApp;
-        private readonly Label callAppName, callAppNote;
-        private readonly ContextMenuStrip callAppMenu;
-        private int callAppLook;
-        private const int MixAt = 590;
-        private const int MixRows = 268;
+        // The call app menu moved to her call panel (Lachy, 6 Nov), so her voice in your mic sits right under Call mode.
+        private const int MixAt = 534;
+        private const int MixRows = 212;
         private readonly Toggle miniPlayer;
         private readonly Readout sleepName;
         private readonly Readout soundsName;
@@ -683,23 +680,7 @@ namespace CapriDesktop
             hdGames.AccessibleName = "Free voice in games: while a game or video is full screen, her free voice talks instead of her HD voice, so the game gets the graphics card";
             hdGames.Visible = false;
             callMode = Switch("Call mode (beta)", 0, 506, delegate { if (!syncing) capri.ToggleCallMode(); });
-            callMode.AccessibleName = "Call mode. Only your mic or typing can confirm requests";
-            callAppName = Named("Call app", 0, 534);
-            callAppMenu = Dropdown();
-            callAppMenu.AccessibleName = "Call app choices";
-            callApp = Make("Auto", ValueAt, 534, ValueWide, 22, delegate { callAppMenu.Show(callApp, new Point(0, callApp.Height)); }, "Call app");
-            callApp.Chevron = true;
-            callApp.AccessibleName = "Call app. Auto prefers Discord, then a call app making sound. Pick Browser, Steam or any app in Windows' volume mixer yourself";
-            foreach (string name in CallApps.Choices)
-            {
-                string chosen = name;
-                ToolStripMenuItem item = Choice(name, false, delegate { capri.ChooseCallApp(chosen); });
-                item.Tag = chosen;
-                callAppMenu.Items.Add(item);
-            }
-            callAppMenu.Opening += delegate { ShowCallApps(); RefreshCallApps(); };
-            callAppMenu.Closed += delegate { callAppLook++; };
-            callAppNote = Caption(CallApps.Note, 28, 562, small, Faint);
+            callMode.AccessibleName = "Call mode. Only your mic or typing can confirm requests. Pick what she hears from the call app's name on her call panel";
             voiceInMic = Switch("Her voice in your mic", 0, MixAt, delegate { if (!syncing) capri.ToggleVoiceInMic(); });
             voiceInMic.Switch = 68;
             voiceInMic.AccessibleName = "Her voice plays into your mic only in call mode. Pick CABLE Output or Steam Streaming Microphone in your call app.";
@@ -781,7 +762,7 @@ namespace CapriDesktop
                 underVoice.Add(new KeyValuePair<Control, int>(Controls[i], Controls[i].Top));
             }
             foreach (Control mixRow in MixControls) underVoice.Add(new KeyValuePair<Control, int>(mixRow, mixRow.Top));
-            foreach (Control callRow in CallControls) underVoice.Add(new KeyValuePair<Control, int>(callRow, callRow.Top));
+            underVoice.Add(new KeyValuePair<Control, int>(callMode, callMode.Top));
             Section("CAPRI >", c, 58);
             sizeSlider = Setting("Size", SizeNames, c, 82, "Her size");
             sizeName = new Readout(sizeSlider);
@@ -1439,116 +1420,22 @@ namespace CapriDesktop
             syncing = true;
             callMode.Checked = capri.CallModeOn;
             syncing = was;
-            CallApp app = CallApps.Get(capri.CallAppChoice);
-            Retext(callApp, app == null ? "Auto" : app.Other ? app.Name : app.Choice.StartsWith("Browser", StringComparison.Ordinal) ? "Browser" : app.Choice);
-            ShowCallApps();
             if (mixSheet != null && !mixSheet.IsDisposed) mixSheet.Sync();
         }
 
-        // Under the call apps: the other apps her last look at Windows' volume mixer found, and the one you picked even while
-        // it's closed, so a restart or a quiet spell never loses it.
-        internal void ShowCallApps()
+        internal string CallModeFits()
         {
-            while (callAppMenu.Items.Count > CallApps.Choices.Length)
-            {
-                ToolStripItem item = callAppMenu.Items[callAppMenu.Items.Count - 1];
-                callAppMenu.Items.Remove(item);
-                item.Dispose();
-            }
-            List<CallApp> apps = new List<CallApp>(CallApps.Last);
-            CallApp saved = CallApps.Get(capri.CallAppChoice);
-            if (saved != null && saved.Other && !apps.Contains(saved)) apps.Add(saved);
-            if (apps.Count > 0) callAppMenu.Items.Add(new ToolStripSeparator());
-            foreach (CallApp app in apps)
-            {
-                string chosen = app.Choice, name = app.Name;
-                ToolStripMenuItem item = Choice(name.Replace("&", "&&"), false, delegate { capri.ChooseCallApp(chosen, name); });
-                item.Tag = chosen;
-                callAppMenu.Items.Add(item);
-            }
-            foreach (ToolStripItem entry in callAppMenu.Items)
-            {
-                ToolStripMenuItem item = entry as ToolStripMenuItem;
-                if (item == null) continue;
-                item.Checked = string.Equals(item.Tag as string, capri.CallAppChoice, StringComparison.OrdinalIgnoreCase);
-                item.Name = item.Tag as string;
-            }
-        }
-
-        // A new look while the menu is open, filled in when it's back. If the mixer can't be read, the menu keeps the last look.
-        private void RefreshCallApps()
-        {
-            int look = ++callAppLook;
-            System.Threading.ThreadPool.QueueUserWorkItem(delegate
-            {
-                try { CallApps.Look(); }
-                catch (Exception) { return; }
-                try
-                {
-                    if (!IsHandleCreated || IsDisposed) return;
-                    BeginInvoke((MethodInvoker)delegate
-                    {
-                        if (IsDisposed || callAppMenu.IsDisposed || !callAppMenu.Visible || look != callAppLook) return;
-                        ShowCallApp();
-                    });
-                }
-                catch (InvalidOperationException) { }
-            });
-        }
-
-        internal ToolStripItemCollection CallAppItems { get { return callAppMenu.Items; } }
-
-        private Control[] CallControls { get { return new Control[] { callMode, callAppName, callApp, callAppNote }; } }
-
-        internal string CallAppShown { get { return callApp.Text; } }
-        internal string CallAppAccess { get { return callApp.AccessibleName; } }
-
-        internal void PickCallApp(int index) { ((ToolStripMenuItem)callAppMenu.Items[index]).PerformClick(); }
-
-        internal void PickCallApp(string choice) { ((ToolStripMenuItem)callAppMenu.Items[choice]).PerformClick(); }
-
-        // Whether an other app's name fits the Call app button and the call pill's "ROBLOX talking" (162 wide) at 100, 150 and
-        // 200 percent. The caption's speaker column grows with the name, so the pill is the tighter of the two.
-        internal static bool CallNameFits(string name)
-        {
-            using (Font original = Type(9f, true))
-            using (Bitmap bitmap = new Bitmap(1, 1))
-            using (Graphics graphics = Graphics.FromImage(bitmap))
-                foreach (float scale in new[] { 1f, 1.5f, 2f })
-                    using (Font button = new Font(original.FontFamily, original.SizeInPoints * 96f / 72f * scale, original.Style, GraphicsUnit.Pixel))
-                    using (Font pill = Neon.Display(15 * scale, GraphicsUnit.Pixel))
-                    {
-                        if (TextRenderer.MeasureText(name, button).Width + (int)Math.Round(28 * scale) > (int)Math.Round(ValueWide * scale)) return false;
-                        if (CallCaption.Measure(graphics, name.ToUpperInvariant() + " talking", pill) > 162 * scale + 0.5f) return false;
-                    }
-            return true;
-        }
-
-        internal string CallAppFits()
-        {
-            foreach (Control row in CallControls)
-            {
-                if (row.Left < 0 || row.Right > Scaled(356) || row.Top < hearingChoice.Bottom || row.Bottom > voiceInMic.Top) return "Call app rows are outside their space.";
-                foreach (Control other in Controls)
-                    if (row != other && other.Visible && other.Left < Scaled(Column) && !(other is Label && other.Text.Length == 0) && row.Bounds.IntersectsWith(other.Bounds)) return "Call app overlaps " + other.AccessibleName + ".";
-            }
+            if (callMode.Left < 0 || callMode.Right > Scaled(356) || callMode.Top < hearingChoice.Bottom || callMode.Bottom > voiceInMic.Top) return "Call mode is outside its space.";
+            foreach (Control other in Controls)
+                if (callMode != other && other.Visible && other.Left < Scaled(Column) && !(other is Label && other.Text.Length == 0) && callMode.Bounds.IntersectsWith(other.Bounds)) return "Call mode overlaps " + other.AccessibleName + ".";
             if (TextRenderer.MeasureText(callMode.Text, callMode.Font, Size.Empty, TextFormatFlags.NoPadding).Width > callMode.NameRoom) return "Call mode does not fit.";
-            if (callAppName.Right > callApp.Left || callAppName.Bottom > callAppNote.Top || callApp.Bottom > callAppNote.Top) return "Call app labels overlap.";
-            if (TextRenderer.MeasureText(callAppNote.Text, callAppNote.Font).Width > Scaled(328)) return "Call app note does not fit.";
-            foreach (string name in CallApps.Choices)
-            {
-                string shown = name.StartsWith("Browser", StringComparison.Ordinal) ? "Browser" : name;
-                if (TextRenderer.MeasureText(shown, callApp.Font).Width + Scaled(28) > callApp.Width) return name + " does not fit.";
-            }
-            CallApp app = CallApps.Get(capri.CallAppChoice);
-            if (app != null && app.Other && TextRenderer.MeasureText(app.Name, callApp.Font).Width + Scaled(28) > callApp.Width) return app.Name + " does not fit.";
             return null;
         }
 
-        internal string CallAppAt(float scale)
+        internal string CallModeAt(float scale)
         {
             float was = Zoom;
-            try { Rezoom(scale / DeviceScale() / TextScale()); ShowSettings(true); return CallAppFits(); }
+            try { Rezoom(scale / DeviceScale() / TextScale()); ShowSettings(true); return CallModeFits(); }
             finally { Rezoom(was); }
         }
 
@@ -2117,7 +2004,7 @@ namespace CapriDesktop
                 unit = nextUnit;
                 foreach (LayoutItem item in layout) item.Apply(unit, layoutFallback);
                 shownFallback = layoutFallback;
-                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu, callAppMenu }) menu.Font = Font;
+                foreach (ContextMenuStrip menu in new[] { modelMenu, freeKeyMenu, cloudMenu, voiceMenu, speechModelMenu, freeMenu, micMenu, languageMenu, careMenu, hearingMenu, mixInputMenu, mixOutputMenu }) menu.Font = Font;
                 foreach (ToolStripMenuItem item in LanguageItems(languageMenu.Items)) if (item.HasDropDownItems) item.DropDown.Font = Font;
                 if (languageFont != null) { languageFont.Dispose(); languageFont = null; }
                 foreach (KeyValuePair<Control, int> entry in underVoice) entry.Key.Top = Scaled(entry.Value - lifted);
@@ -2684,7 +2571,7 @@ namespace CapriDesktop
             if (disposing) { glide.Stop(); glide.Dispose(); if (languageFont != null) languageFont.Dispose(); }
             if (disposing) DisposeHints();
             if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); if (miniMenu != null) miniMenu.Dispose(); }
-            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); callAppMenu.Dispose(); }
+            if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); }
             if (disposing && languageFont != null) languageFont.Dispose();
             base.Dispose(disposing);
             if (disposing) foreach (LayoutItem item in layout) item.Dispose();

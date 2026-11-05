@@ -151,12 +151,12 @@ namespace CapriDesktop
             if (name.Length == 0) name = fallback;
             foreach (CallApp app in Apps) if (string.Equals(name, app.Name, StringComparison.OrdinalIgnoreCase)) { name = fallback; break; }
             foreach (string taken in new[] { "Auto", "You", "Capri" }) if (string.Equals(name, taken, StringComparison.OrdinalIgnoreCase)) { name = fallback; break; }
-            if (Mainframe.CallNameFits(name)) return name;
+            if (CallPanel.NameFits(name)) return name;
             int keep = 0, high = name.Length;
             while (keep < high)
             {
                 int middle = (keep + high + 1) / 2;
-                if (Mainframe.CallNameFits(name.Substring(0, middle).TrimEnd() + "...")) keep = middle;
+                if (CallPanel.NameFits(name.Substring(0, middle).TrimEnd() + "...")) keep = middle;
                 else high = middle - 1;
             }
             if (keep > 0 && char.IsHighSurrogate(name[keep - 1])) keep--;

@@ -375,6 +375,12 @@ namespace CapriDesktop
             ShowCallWindow();
         }
 
+        private void ConnectPicker(CallPanel panel)
+        {
+            panel.Chosen = delegate { return CallAppChoice; };
+            panel.AppPicked += ChooseCallApp;
+        }
+
         private void MakeCallWindows(Func<CallView> read)
         {
             callPanel = new CallPanel(Takeover.Face, read);
@@ -389,6 +395,7 @@ namespace CapriDesktop
             callPill.AgainPressed += CallAgain;
             callPanel.MinimizePressed += MinimizeCallPanel;
             callPill.ExpandPressed += ExpandCallPanel;
+            ConnectPicker(callPanel);
             Rectangle work = Screen.FromControl(this).WorkingArea;
             callPanel.Location = new Point(work.Right - callPanel.Width - 40, work.Top + 80);
         }

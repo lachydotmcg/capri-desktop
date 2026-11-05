@@ -689,6 +689,13 @@ namespace CapriDesktop
         private const int Wide = 614, Inset = 22, Gap = 12, TileY = 54, TileHigh = 202;
         internal const double Talks = 0.01;
         internal event Action MicPressed, DiscordPressed, CaptionsPressed, EndPressed, MinimizePressed, AgainPressed;
+        internal event Action<string, string> AppPicked;
+        internal Func<string> Chosen;
+        internal const string PickTip = "Pick what she hears: a call app, or any app in Windows' volume mixer, like Roblox. Browser hears all tabs.";
+        private const float Chevron = 14;
+        private readonly ContextMenuStrip apps;
+        private int appsLook;
+        private bool overApp;
         private readonly float s;
         private readonly Bitmap face;
         private readonly Func<CallView> read;
@@ -729,6 +736,11 @@ namespace CapriDesktop
             cc.Click += delegate { if (CaptionsPressed != null) CaptionsPressed(); };
             end.Click += delegate { if (EndPressed != null) EndPressed(); };
             again.Click += delegate { if (AgainPressed != null) AgainPressed(); };
+            apps = new ContextMenuStrip { Renderer = new Mainframe.MenuLook(), Font = fonts.Words, ShowImageMargin = false, ShowCheckMargin = true };
+            apps.AccessibleName = "Call app choices";
+            foreach (string name in CallApps.Choices) AddApp(name, name, null);
+            apps.Opening += delegate { apps.BackColor = Neon.Ground; apps.ForeColor = Neon.White; ShowApps(); RefreshApps(); };
+            apps.Closed += delegate { appsLook++; overApp = false; Cursor = Cursors.Default; Invalidate(); };
             LayoutCall();
             ticks.Tick += delegate { if (this.read != null) Take(this.read()); };
             animation.Tick += delegate { Invalidate(); };
@@ -791,22 +803,119 @@ namespace CapriDesktop
             }
         }
 
+        // Her call app menu hangs from the call app's name on its tile (Lachy, 6 Nov): the call apps, then the other apps her last
+        // look at Windows' volume mixer found, and the one you picked even while it's closed, so a restart never loses it.
+        internal void ShowApps()
+        {
+            while (apps.Items.Count > CallApps.Choices.Length)
+            {
+                ToolStripItem item = apps.Items[apps.Items.Count - 1];
+                apps.Items.Remove(item);
+                item.Dispose();
+            }
+            string chosen = Chosen == null ? "Auto" : Chosen();
+            List<CallApp> others = new List<CallApp>(CallApps.Last);
+            CallApp saved = CallApps.Get(chosen);
+            if (saved != null && saved.Other && !others.Contains(saved)) others.Add(saved);
+            if (others.Count > 0) apps.Items.Add(new ToolStripSeparator());
+            foreach (CallApp app in others) AddApp(app.Name.Replace("&", "&&"), app.Choice, app.Name);
+            foreach (ToolStripItem entry in apps.Items)
+            {
+                ToolStripMenuItem item = entry as ToolStripMenuItem;
+                if (item != null) item.Checked = string.Equals(item.Tag as string, chosen, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        private void AddApp(string text, string choice, string name)
+        {
+            ToolStripMenuItem item = new ToolStripMenuItem(text, null, delegate { if (AppPicked != null) AppPicked(choice, name); });
+            item.Tag = choice;
+            item.Name = choice;
+            apps.Items.Add(item);
+        }
+
+        // A new look while the menu is open, filled in when it's back. If the mixer can't be read, the menu keeps the last look.
+        private void RefreshApps()
+        {
+            int look = ++appsLook;
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { CallApps.Look(); }
+                catch (Exception) { return; }
+                try
+                {
+                    if (!IsHandleCreated || IsDisposed) return;
+                    BeginInvoke((MethodInvoker)delegate { if (!IsDisposed && !apps.IsDisposed && apps.Visible && look == appsLook) ShowApps(); });
+                }
+                catch (InvalidOperationException) { }
+            });
+        }
+
+        internal ToolStripItemCollection AppItems { get { return apps.Items; } }
+        internal void PickApp(int index) { ((ToolStripMenuItem)apps.Items[index]).PerformClick(); }
+        internal void PickApp(string choice) { ((ToolStripMenuItem)apps.Items[choice]).PerformClick(); }
+
+        internal void OpenApps()
+        {
+            tips.Clear();
+            RectangleF box = AppBox;
+            apps.Show(this, new Point((int)Math.Round(box.Left), (int)Math.Round(box.Bottom)));
+        }
+
+        private RectangleF AppBox { get { return TileWords(2, 130, 23); } }
+        internal bool Picking(Point point) { return !live.View.Ended && AppBox.Contains(point); }
+
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+            bool over = Picking(e.Location);
+            if (over == overApp || apps.Visible) return;
+            overApp = over;
+            Cursor = over ? Cursors.Hand : Cursors.Default;
+            if (over) tips.Hover(delegate { return PickTip; }, delegate { return RectangleToScreen(Rectangle.Round(AppBox)); });
+            else tips.Clear();
+            Invalidate();
+        }
+
+        protected override void OnMouseLeave(EventArgs e)
+        {
+            base.OnMouseLeave(e);
+            if (!overApp || apps.Visible) return;
+            overApp = false;
+            Cursor = Cursors.Default;
+            tips.Clear();
+            Invalidate();
+        }
+
+        protected override void OnMouseUp(MouseEventArgs e)
+        {
+            base.OnMouseUp(e);
+            if (e.Button == MouseButtons.Left && Picking(e.Location)) OpenApps();
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             if (e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Minimize(); }
             base.OnFormClosing(e);
         }
 
+        // The panel drags from anywhere but the call app's name, which takes clicks for her call app menu.
         protected override void WndProc(ref Message message)
         {
             if (message.Msg == 0x0021) { message.Result = new IntPtr(3); return; }
             base.WndProc(ref message);
-            if (message.Msg == 0x0084 && message.Result == new IntPtr(1)) message.Result = new IntPtr(2);
+            if (message.Msg == 0x0084 && message.Result == new IntPtr(1) && !Picking(PointToClient(Spot(message.LParam)))) message.Result = new IntPtr(2);
+        }
+
+        private static Point Spot(IntPtr value)
+        {
+            int at = unchecked((int)value.ToInt64());
+            return new Point((short)(at & 0xFFFF), (short)((at >> 16) & 0xFFFF));
         }
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing) { ticks.Dispose(); animation.Dispose(); tips.Dispose(); }
+            if (disposing) { ticks.Dispose(); animation.Dispose(); tips.Dispose(); apps.Dispose(); }
             base.Dispose(disposing);
             if (disposing) fonts.Dispose();
         }
@@ -913,7 +1022,8 @@ namespace CapriDesktop
                 using (Pen line = new Pen(lit ? Neon.Cyan : Neon.WellEdge, lit ? 2 * s : Math.Max(1, s))) graphics.DrawPath(line, edge);
             }
             CallInk.Avatar(graphics, face, index, Art(index), dim, live.Level(index), lit, view.Motion, live.Ripple(index), s);
-            CallInk.Text(graphics, index == 0 ? "YOU" : index == 1 ? "CAPRI" : view.App.Caption, fonts.Name, TileWords(index, 132, 20), Neon.White, true);
+            if (index == 2) DrawPick(graphics, view.App.Caption);
+            else CallInk.Text(graphics, index == 0 ? "YOU" : "CAPRI", fonts.Name, TileWords(index, 132, 20), Neon.White, true);
             Color note = index == 0 && view.Listening && view.Muted || index == 2 && view.Discord && view.DiscordNote != null ? Neon.Hot : lit ? Neon.Cyan : Neon.Faint;
             CallInk.Text(graphics, Note(index), fonts.Note, TileWords(index, 154, 18), note, true);
             if (index != 1) return;
@@ -922,6 +1032,33 @@ namespace CapriDesktop
             CallInk.Round(graphics, meter, 1.5f * s, Neon.Field, Neon.WellEdge, 0);
             float width = meter.Width * (float)(view.InMic ? CallInk.Loud(view.Mic) : 0);
             if (width > 0) CallInk.Round(graphics, new RectangleF(meter.Left, meter.Top, width, meter.Height), Math.Min(width, meter.Height) / 2, Neon.Cyan, Neon.Cyan, 0);
+        }
+
+        // The call app's name opens her call app menu, so it carries a chevron like her other dropdowns.
+        private void DrawPick(Graphics graphics, string name)
+        {
+            RectangleF box = TileWords(2, 132, 20);
+            float wide = Math.Min(box.Width - Chevron * s, CallCaption.Measure(graphics, name, fonts.Name) + 0.5f * s);
+            float left = box.Left + (box.Width - wide - Chevron * s) / 2;
+            Color ink = overApp ? Neon.Cyan : Neon.White;
+            CallInk.Text(graphics, name, fonts.Name, new RectangleF(left, box.Top, wide, box.Height), ink);
+            float x = left + wide + 5 * s, y = box.Top + box.Height / 2 + s;
+            using (Pen pen = new Pen(ink, 1.6f * s))
+                graphics.DrawLines(pen, new[] { new PointF(x, y - 2.5f * s), new PointF(x + 4 * s, y + 1.5f * s), new PointF(x + 8 * s, y - 2.5f * s) });
+        }
+
+        // Whether an other app's name fits its tile here with the chevron, and the call pill's "ROBLOX talking" (162 wide), at
+        // 100, 150 and 200 percent. The caption's speaker column grows with the name, so those two are the tight ones.
+        internal static bool NameFits(string name)
+        {
+            float room = (Wide - 2 * Inset - 2 * Gap) / 3f - 28 - Chevron;
+            string caption = name.ToUpperInvariant();
+            using (Bitmap bitmap = new Bitmap(1, 1))
+            using (Graphics graphics = Graphics.FromImage(bitmap))
+                foreach (float scale in new[] { 1f, 1.5f, 2f })
+                    using (Font font = Neon.Display(15 * scale, GraphicsUnit.Pixel))
+                        if (CallCaption.Measure(graphics, caption, font) > room * scale + 0.5f || CallCaption.Measure(graphics, caption + " talking", font) > 162 * scale + 0.5f) return false;
+            return true;
         }
 
         private void DrawEnded(Graphics graphics)
@@ -990,7 +1127,8 @@ namespace CapriDesktop
                 foreach (RectangleF item in new[] { ring, name, note }) Inside(tile, item, "tile content");
                 Apart(ring, name, "ring and name");
                 Apart(name, note, "name and note");
-                Fits(graphics, i == 0 ? "YOU" : i == 1 ? "CAPRI" : view.App.Caption, fonts.Name, name, "tile name");
+                Fits(graphics, i == 0 ? "YOU" : i == 1 ? "CAPRI" : view.App.Caption, fonts.Name, i == 2 ? new RectangleF(name.Left, name.Top, name.Width - Chevron * s, name.Height) : name, "tile name");
+                if (i == 2) { Inside(tile, AppBox, "call app picker"); Apart(AppBox, note, "call app picker and note"); }
                 foreach (string text in i == 0 ? new[] { "speaking", "mic on", "muted", "not listening" } : i == 1 ? new[] { "speaking", "listening", "thinking" } : new[] { "speaking", "friends", "off", "not open", "can't hear it" })
                     Fits(graphics, text, fonts.Note, note, "tile note");
                 if (i == 1)

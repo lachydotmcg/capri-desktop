@@ -24,7 +24,7 @@ namespace CapriDesktop
         internal const string Line = "I just updated to " + Version + ": personal details stay out of my memories, and clearer lines when something goes wrong. Ask me what's new for the menu paths.";
 #else
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Call mode (beta) hears any app, like Roblox: Mainframe > Settings > VOICE > Call app lists every app in Windows' volume mixer under the call apps. She hears the one you pick and everything it opens, and keeps it after a restart. Auto never picks one of these.\n"
+            + "Call mode (beta) hears any app, like Roblox: click the call app's name on her call panel, and its menu lists every app in Windows' volume mixer under the call apps. She hears the one you pick and everything it opens, and keeps it after a restart. Auto never picks one of these.\n"
             + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security > HER MEMORY. It's on in every preset but Blackwall. With it on, her notes, Get to know me and what she remembers seeing leave out addresses, card numbers, emails and other personal details.\n"
             + "Damaged saves: if her saved reminders, routines or website nicknames can't be read, she keeps a copy of the old file and carries on with what she could read.\n"
             + "Clearer lines: a turned-down brain key names the company, like NVIDIA, and a game or window that runs as administrator comes with the steps to run her as administrator too.";
