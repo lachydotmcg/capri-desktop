@@ -15838,12 +15838,14 @@ namespace CapriDesktop
                 };
                 RectangleF chaosLying = new RectangleF(ChaosScreen.LieMiddle - 372 * ChaosScreen.LieSize / 2, ChaosScreen.LieTop, 372 * ChaosScreen.LieSize, 250 * ChaosScreen.LieSize);
                 RectangleF chaosFace = new RectangleF(170, 180, 180, 200);
-                chaosShown.Advance(clock.Elapsed.TotalSeconds + 1.5);
+                // Its seconds count from when it opened, before its first frame, which loads her lying art and can take seconds on a
+                // slow PC (the public Windows runner, 5 Nov). So these steps count from there, not from the clock now.
+                chaosShown.Advance(chaosShown.Started + 1.5);
                 if (chaosShown.Percent <= 0 || chaosShown.Percent >= 100 || chaosShown.Revealed) throw new Exception("Her fake crash percent did not count up.");
                 chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash.png"), ImageFormat.Png);
                 double chaosAsleep = chaosPink(chaosShown.Canvas, chaosLying), chaosFrown = chaosPink(chaosShown.Canvas, chaosFace);
                 if (chaosAsleep < 0.05 || chaosFrown > 0) throw new Exception("Capri was not lying on her fake crash's first line under a white :( (" + chaosAsleep.ToString("0.000") + " of her spot and " + chaosFrown.ToString("0.000") + " of the face pink).");
-                chaosShown.Advance(clock.Elapsed.TotalSeconds + ChaosScreen.RevealAt + 0.05);
+                chaosShown.Advance(chaosShown.Started + ChaosScreen.RevealAt + 0.05);
                 if (chaosShown.Percent != 100 || !chaosShown.Revealed || !chaosShown.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Her fake crash did not own up before leaving.");
                 chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-jk.png"), ImageFormat.Png);
                 double chaosOwned = chaosPink(chaosShown.Canvas, chaosLying), chaosSmile = chaosPink(chaosShown.Canvas, chaosFace);
@@ -15926,7 +15928,7 @@ namespace CapriDesktop
                 if (chaosStill == null || chaosStill.Motion || chaosStill.Percent != 100 || !chaosStill.Revealed || !chaosStill.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Reduced motion did not get a still fake crash with its joke already revealed.");
                 string chaosPixels;
                 using (MemoryStream chaosPng = new MemoryStream()) { chaosStill.Canvas.Save(chaosPng, ImageFormat.Png); chaosPixels = Convert.ToBase64String(chaosPng.ToArray()); }
-                foreach (double chaosSecond in new[] { 1.0, 3.0, 4.8 }) chaosStill.Advance(clock.Elapsed.TotalSeconds + chaosSecond);
+                foreach (double chaosSecond in new[] { 1.0, 3.0, 4.8 }) chaosStill.Advance(chaosStill.Started + chaosSecond);
                 using (MemoryStream chaosPng = new MemoryStream())
                 {
                     chaosStill.Canvas.Save(chaosPng, ImageFormat.Png);
