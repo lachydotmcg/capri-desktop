@@ -41351,7 +41351,7 @@ namespace CapriDesktop
                             string vsMenu, vsOpened, vsCloudFields, vsKokoro, vsTyped, vsTested, vsUsedNote, vsUsedMenu, vsSliders, vsPage, vsFellNote, vsFellState, vsOnceNote, vsKept, vsForgot, vsSly, vsTestBody, vsUseBody;
                             string vsCloudChoices, vsCloudSwitch, vsCustomChoices, vsCustomRows, vsCloudRows, vsCloudKept, vsAsideTail = null, vsAsideUrl = null, vsBackRows, vsCloudLast, vsCloudFirst, vsCloudKeyed;
                             string vsCloudPending, vsCloudFresh, vsHintPlace;
-                            bool vsHasBoth, vsSwapped, vsSwappedBack, vsRowBack;
+                            bool vsHasBoth, vsSwapped, vsSwappedBack, vsRowBack, vsScaledToScreen;
                             string vsHostBody, vsFishNote, vsFileShown, vsFileTaken, vsFishList, vsListBody, vsFishPicked, vsCloned, vsClonedBody, vsFileClip, vsHostTest = null;
                             bool vsTestSpoke, vsTestUnsaved, vsUseSpoke, vsFellSpoke, vsOnceSpoke, vsSealed, vsRound, vsOldRound, vsSlyOff, vsHdOff, vsHostDropped;
                             int vsAskedBefore;
@@ -41386,6 +41386,7 @@ namespace CapriDesktop
                                 vsCloudChoices = mainframe.ServerChoices;
                                 vsCloudPending = mainframe.VoiceTierStatus + " / " + mainframe.CloudShown + " / " + mainframe.CloudMenu;
                                 vsHintPlace = mainframe.ServerHintPlace;
+                                vsScaledToScreen = mainframe.ServerScaledToScreen;
                                 Form vsFresh = mainframe.ServerPanel;
                                 using (Bitmap vsPicture = new Bitmap(vsFresh.Width, vsFresh.Height))
                                 {
@@ -41701,6 +41702,8 @@ namespace CapriDesktop
                                 throw new Exception("A voice server that isn't running didn't say so: " + vsGoneNote + " / " + vsAlone + " / " + vsNotes.Count + " notes");
                             if (!vsHintPlace.StartsWith("fits", StringComparison.Ordinal)) throw new Exception("Fish Audio's voice panel has controls on top of each other: " + vsHintPlace);
                             checks.Add("PASS voice panel hint: Fish Audio's hint, consent line and all, moves Voice from and the rows under it down instead of running under them, and nothing in the panel overlaps");
+                            if (!vsScaledToScreen) throw new Exception("The voice panel's boxes didn't scale with the screen, or their typing area sits off-centre or runs past them.");
+                            checks.Add("PASS voice panel scale: its boxes grow with the screen's scaling and the Mainframe size, the same as its text, and each box's typing area stays centred inside it");
                             checks.Add("PASS voice models:Fish Audio or OpenAI under CLOUD VOICE opens a panel with only those two, starting on Fish Audio's cloud with its free tier's model and no Address box, since their addresses never change, and CUSTOM LOCAL's Set up opens one with only a voice model file, Fish Speech on your PC, Kokoro or any OpenAI-style server, which her own voices' menu no longer lists; each row keeps its own setup and key (one waits aside while the other is in use, and its panel shows only its own key), and picking the row brings it back and says her check line through it; CLOUD VOICE's menu lists Fish Audio first and starts on it when there's no ElevenLabs key, stays up with Set up Fish Audio... while nothing's set up, and keeps the service used there last; a voice model file (Piper, Kokoro or Kitten for sherpa-onnx, told apart by its files) asks for its folder, language and speaker with Browse in place of a key, and a .tar.bz2 or .zip of one is unpacked into her models folder (one with no model is refused in plain words); Test speaks through it before anything's saved and Use this server keeps it, the key sealed like her other keys (a blank box keeps it for that server only, Forget drops it); she POSTs only the words to /v1/audio/speech with a Bearer key when there is one, and to Fish Audio's /v1/tts with the voice's ID from its fish.audio link and its model in a header; a picked Fish Audio shows by name; a 16-bit 22 kHz WAV, a float WAV streamed in chunks" + (vsMp3 != null ? " and an MP3" : "") + " become her 24 kHz voice; her pitch moves it and its own robot and glitch (saved apart, shown as · server) change it; a 404, a 500, a refused key, no answer within its 20 s (0.8 s here) or no server at all hand the line to her free voice and say why once; picking one of her own styles or HD turns it off and keeps it saved");
                             TarChecks(checks, output);
                             string earsRoot = Path.Combine(Path.GetDirectoryName(settingsPath), "ears-test");
