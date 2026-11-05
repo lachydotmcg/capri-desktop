@@ -3157,9 +3157,7 @@ namespace CapriDesktop
                 string blockedBy = updater.Package();
                 if (blockedBy != null)
                 {
-                    installing = false;
-                    checkItem.Enabled = true;
-                    Post(delegate { updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote("Update through " + blockedBy + ".", false); });
+                    Post(delegate { installing = false; checkItem.Enabled = true; updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote("Update through " + blockedBy + ".", false); });
                     return;
                 }
                 try { updater.Install(ready, parent, started); }
