@@ -24,10 +24,20 @@
     </header>
     <main class="guide help">
       <h1>Capri <em>help</em></h1>
-      <nav class="guide-jump" aria-label="Topics"><a href="#new">New in 0.8.3</a><a href="#install">Install</a><a href="#capri-vr">Capri VR</a><a href="#first-run">First run</a><a href="#mainframe">Mainframe</a><a href="#mods">Mods</a><a href="#brain">Brain</a><a href="#voice">Voice</a><a href="#voice-chat">Voice chat</a><a href="#call-mode">Call mode</a><a href="#code-mode">Code/Husk Mode</a><a href="#do">Doing things</a><a href="#screen">Screen</a><a href="#notes">Notes</a><a href="#moving">Moving her</a><a href="#updates">Updates</a><a href="#privacy">Privacy</a><a href="#mac-linux">Mac + Linux</a><a href="#older">Older versions</a><a href="#fixes">Fixes</a><a href="#get-help">Get help</a></nav>
+      <nav class="guide-jump" aria-label="Topics"><a href="#new">New in 0.8.4</a><a href="#install">Install</a><a href="#capri-vr">Capri VR</a><a href="#first-run">First run</a><a href="#mainframe">Mainframe</a><a href="#mods">Mods</a><a href="#brain">Brain</a><a href="#voice">Voice</a><a href="#voice-chat">Voice chat</a><a href="#call-mode">Call mode</a><a href="#code-mode">Code/Husk Mode</a><a href="#do">Doing things</a><a href="#screen">Screen</a><a href="#notes">Notes</a><a href="#moving">Moving her</a><a href="#updates">Updates</a><a href="#privacy">Privacy</a><a href="#mac-linux">Mac + Linux</a><a href="#older">Older versions</a><a href="#fixes">Fixes</a><a href="#get-help">Get help</a></nav>
 
       <section id="new" class="step">
-        <h2>New in 0.8.3</h2>
+        <h2>New in 0.8.4</h2>
+        <dl class="keys">
+          <dt>Mainframe colours</dt><dd>Settings → CAPRI → <b>Mainframe colours</b>: Night City, Black, White or Grey, by Vocyn. On Windows it also recolours her menus, the Type box and her notes</dd>
+          <dt>Skills</dt><dd>a new kind of mod: know-how for a game that she follows whenever she plays it, on every system. Her first is a BTD6 plan. <a href="#mods">Get skills</a></dd>
+          <dt>Clearer errors</dt><dd>she says what went wrong and how to fix it in plain words. Right-click her → Help → <b>Copy error details</b> copies the details for support. <a href="#get-help">Getting help</a></dd>
+          <dt>The task panel</dt><dd>she teleports onto it when a job starts, and back off it when the job's done</dd>
+          <dt>Head pats</dt><dd>work in voice chat too, and up-and-down rubs count</dd>
+          <dt>Linux AppImage</dt><dd>one file, nothing to unpack, by danielxxomg. <a href="#linux">Install on Linux</a></dd>
+          <dt>Package managers</dt><dd>if winget, Scoop, Chocolatey or pacman installed her, she says to update through it</dd>
+        </dl>
+        <h3>From earlier updates</h3>
         <dl class="keys">
           <dt>Call mode (beta)</dt><dd>Windows calls, including Discord and Zoom. She hears who said what and can join a call for you. <a href="#call-mode">Call setup and friend requests</a></dd>
           <dt>Mods</dt><dd>browse previews, downloads and ratings, install, import and publish. <a href="#mods">Get mods</a></dd>
@@ -37,9 +47,6 @@
           <dt>Your settings</dt><dd>pick her speaker and screens, edit notes and memories in Mainframe, and set exact pop-in times</dd>
           <dt>Games and reminders</dt><dd>teach her controls, use the Play menu, set reminders on dates and let her explore paused YouTube pages</dd>
           <dt>Mac and Linux</dt><dd>the full Mainframe and Mods. Code mods are Windows only for now</dd>
-        </dl>
-        <h3>From earlier updates</h3>
-        <dl class="keys">
           <dt>Clones (beta)</dt><dd>“clone yourself” or “activate chaos mode”. They keep multiplying, talk to each other and steal your cursor. They grab your app windows and drag them around too, but not while you're gaming, streaming or using the mouse. Holding <b>Esc</b> clears them and puts every window back. “Make 3 clones” makes three. Windows only for now</dd>
           <dt>Upset her</dt><dd>call her annoying and her clones might come out, and by the third insult they always do. Settings → CAPRI → <b>Chaos when upset</b> turns that off</dd>
           <dt>Diagrams</dt><dd>“make a diagram and help me understand linear algebra”. She draws it on your screen and talks you through it. Windows only for now</dd>
@@ -238,13 +245,14 @@
         <h2>Mods <small>0.8.3</small></h2>
         <p class="note">Right-click her &gt; <b>Open Capri Mainframe &gt; CAPRI &gt; Mods</b>. Press <b>Browse mods</b> to open the <b>Mods directory</b> window.</p>
         <dl class="keys">
-          <dt>Browse</dt><dd>previews, names, authors, descriptions, downloads and ratings. Search by name, author or description. Filter with <b>All</b>, <b>Settings</b>, <b>Code</b> or <b>Skins</b></dd>
+          <dt>Browse</dt><dd>previews, names, authors, descriptions, downloads and ratings. Search by name, author or description. Filter with <b>All</b>, <b>Settings</b>, <b>Code</b>, <b>Skins</b> or <b>Skills</b></dd>
           <dt>Install</dt><dd>downloads and imports the mod. <b>View</b> opens its folder on GitHub. Click the stars after installing to rate it from 1 to 5</dd>
-          <dt>Import mod</dt><dd>pick a <code>.capri-mod</code> settings mod, <code>.capri-skin</code> skin or <code>.capri-code</code> code mod</dd>
+          <dt>Import mod</dt><dd>pick a <code>.capri-mod</code> settings mod, <code>.capri-skin</code> skin, <code>.capri-skill</code> skill or <code>.capri-code</code> code mod</dd>
+          <dt>Skills (0.8.4)</dt><dd>know-how for a game. She follows it whenever she plays that game, on Windows, Mac and Linux. <b>Off</b> stops one</dd>
           <dt>Code mods</dt><dd>full access to your PC. She asks before they run and again if their code changes. Windows only for now</dd>
           <dt>On, Off, Remove</dt><dd>switch an installed mod or remove it. <b>Mods folder</b> opens its folder</dd>
           <dt>Publish</dt><dd>beside an imported mod: shows how to fork capri-mods, add a folder with the mod, <code>README.md</code> and <code>preview.png</code>, then open a pull request</dd>
-          <dt>Mac and Linux</dt><dd>the Mods window and directory, settings mods, colour sets and skins</dd>
+          <dt>Mac and Linux</dt><dd>the Mods window and directory, settings mods, colour sets, skins and skills</dd>
         </dl>
       </section>
 
@@ -451,6 +459,7 @@
         <dl class="keys">
           <dt>Windows</dt><dd>she checks every 3 hours. “Capri update ready” → right-click her → <b>Restart to update</b></dd>
           <dt>Check now</dt><dd>Mainframe → <b>Check for updates</b></dd>
+          <dt>Package managers</dt><dd>“Update through winget.” means winget installed her, so update with winget. The same goes for Scoop, Chocolatey and pacman</dd>
           <dt>Mac, Linux</dt><dd>she says when a new version is out. Right-click her → <b>Get Capri X</b>, download it and replace the old one</dd>
           <dt>What's new</dt><dd>the <a href="../">main page</a> changelog, <a href="https://github.com/lachydotmcg/capri-desktop/releases" target="_blank" rel="noopener noreferrer">GitHub releases</a>, the Discord</dd>
         </dl>
