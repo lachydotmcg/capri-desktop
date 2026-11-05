@@ -105,7 +105,7 @@ namespace CapriDesktop
                     if (!StorageProvider.CanOpen) { Say("Couldn't open the mod picker."); return; }
                     System.Collections.Generic.IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
                         Title = "Import mod", AllowMultiple = false,
-                        FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*.capri-mod", "*.capri-skin", "*.capri-code" } } } });
+                        FileTypeFilter = new[] { new FilePickerFileType("Capri mods") { Patterns = new[] { "*.capri-mod", "*.capri-skin", "*.capri-skill", "*.capri-code" } } } });
                     if (!closed && files.Count > 0)
                     {
                         string path = files[0].TryGetLocalPath();
@@ -307,7 +307,7 @@ namespace CapriDesktop
                 names[i].IsVisible = abouts[i].IsVisible = switches[i].IsVisible = removes[i].IsVisible = mod != null;
                 if (mod == null) continue;
                 names[i].Text = mod.File.Name;
-                abouts[i].Text = (mod.File.Author == null ? "" : "by " + mod.File.Author + "  ") + (mod.File.Description ?? (mod.Skin ? "Skin" : "Settings"));
+                abouts[i].Text = (mod.File.Author == null ? "" : "by " + mod.File.Author + "  ") + (mod.File.Description ?? (mod.Skin ? "Skin" : mod.Skill ? "Skill" : "Settings"));
                 switches[i].Text = mod.On ? "On" : "Off"; switches[i].Picked = mod.On;
                 switches[i].IsEnabled = !working; removes[i].IsEnabled = !working;
                 names[i].InvalidateVisual(); abouts[i].InvalidateVisual(); switches[i].InvalidateVisual();

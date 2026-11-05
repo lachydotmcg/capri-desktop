@@ -11,6 +11,8 @@ namespace CapriDesktop
     internal static class GameNotes
     {
         internal static string Folder;
+        // The skill mods that are on for a game, from her mods list. Null tells her none.
+        internal static Func<string, string> Skills;
         // The newest notes go in the prompt once a file outgrows it. The file itself keeps everything.
         private const int MostTold = 4000;
         private static readonly object writing = new object();
@@ -172,6 +174,8 @@ namespace CapriDesktop
                     brief.Append(" " + Kinds[i, 1]);
                     break;
                 }
+            Func<string, string> skills = Skills;
+            if (skills != null) brief.Append(skills(game));
             string keys = GameKeys.Summary(game);
             if (keys != null) brief.Append("\nIts keys on this PC: " + keys + ".");
             string notes = Read(game);

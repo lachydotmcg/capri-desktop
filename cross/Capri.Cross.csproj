@@ -30,6 +30,7 @@
     <Compile Include="../app/ModDirectory.cs" Link="Shared/ModDirectory.cs" />
     <Compile Include="../app/ArtColors.cs" Link="Shared/ArtColors.cs" />
     <Compile Include="../app/SkinMods.cs" Link="Shared/SkinMods.cs" />
+    <Compile Include="../app/SkillMods.cs" Link="Shared/SkillMods.cs" />
     <Compile Include="../app/SoundsLike.cs" Link="Shared/SoundsLike.cs" />
     <Compile Include="../app/Voice.cs" Link="Shared/Voice.cs" />
     <Compile Include="../app/VoicePack.cs" Link="Shared/VoicePack.cs" />

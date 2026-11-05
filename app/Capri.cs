@@ -2433,6 +2433,7 @@ namespace CapriDesktop
             tray.BalloonTipClicked += delegate { BalloonClicked(); };
             tray.Visible = !testing;
             ModList = new Mods(data);
+            GameNotes.Skills = ModList.SkillsFor;
             ModList.HostFor = delegate(string modId) { return new ModHost(this, modId); };
             ModList.SkinChanged = Reskinned;
             if (SkinFolder != null || ArtColors.Active) Clip.ReloadAll();
@@ -29370,7 +29371,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
             Section(checks, "SmokeProviders", delegate { SmokeProviders(checks, output); });
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
-            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckColours(checks, modsOut); });
+            Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
             Section(checks, "SmokeThrows", delegate { SmokeThrows(checks); });
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
