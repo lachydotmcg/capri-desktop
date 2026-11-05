@@ -9536,7 +9536,7 @@ namespace CapriDesktop
             if (action == "edit_check_in_lines") { OpenCare(); return "Opened your check-in lines."; }
             if (action == "preview_voice")
             {
-                if (preferences.Silent) return "My voice is off. Turn it on to hear a preview.";
+                if (preferences.Silent) return PreviewSilent;
                 bool ready = !preferences.Quiet && !voiceBroke && (Speak != null || voice.Ready) || FreeSpeak != null || kokoro.Installed || preferences.HdVoice && qwen.Installed || preferences.ServerVoice;
                 if (!ready) return "My voice isn't ready. Set it up in Mainframe > VOICE first.";
                 styleCheckDue = true;
@@ -10800,7 +10800,9 @@ namespace CapriDesktop
         }
 
         internal const string TestLine = "Voice link online. Miss me, choom?";
-        internal const string SilentNote = "Her voice is OFF. Pick another row under VOICE to hear her.";
+        // Her voice is off says one fix everywhere, like Mac and Linux: pick a voice under VOICE (owner flag A11).
+        internal const string SilentNote = "Her voice is off. Pick a voice under VOICE to hear her.";
+        internal const string PreviewSilent = "My voice is off. Pick a voice under VOICE to hear a preview.";
 
         internal void TestMic()
         {
@@ -11192,7 +11194,7 @@ namespace CapriDesktop
         }
 
         internal const string StyleLine = "How do I sound now, choom?";
-        internal const string StyleSilent = "My voice is OFF, choom. Pick PREBUILT LOCAL to hear that.";
+        internal const string StyleSilent = "My voice is off, choom. Pick a voice under VOICE to hear that.";
         internal const string StyleMissing = "Get my free voice under VOICE to hear that, choom.";
 
         // Letting go of her pitch, speed, robot or glitch slider: she says a line in the voice she's using, so they hear it.

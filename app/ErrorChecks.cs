@@ -522,8 +522,8 @@ namespace CapriDesktop
             }
             if (root == null) { checks.Add("LIMIT help quotes: the source tree isn't beside this executable or working directory"); return; }
             string help = File.ReadAllText(Path.Combine(root, "site", "help", "knowledge.md"));
-            string[] current = { Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, "Windows speech didn't start.", "The download of <name> came out the wrong size." };
-            string[] old = { "or watch slower", "Their servers failed", "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.", "Can't open your mic. Pick another under VOICE.", "Pick FREE VOICE or ELEVENLABS to turn it back on", "came down the wrong size", "failed its checksum", "Add credits on their site," };
+            string[] current = { Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, SilentNote, "Windows speech didn't start.", "The download of <name> came out the wrong size." };
+            string[] old = { "or watch slower", "Their servers failed", "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.", "Can't open your mic. Pick another under VOICE.", "Pick FREE VOICE or ELEVENLABS to turn it back on", "came down the wrong size", "failed its checksum", "Add credits on their site,", "Pick another row under VOICE" };
             List<string> missing = new List<string>(Array.FindAll(current, line => help.IndexOf(line, StringComparison.Ordinal) < 0));
             List<string> stale = new List<string>(Array.FindAll(old, line => help.IndexOf(line, StringComparison.Ordinal) >= 0));
             if (missing.Count > 0 || stale.Count > 0 || help.IndexOf('—') >= 0)
@@ -557,6 +557,17 @@ namespace CapriDesktop
             }
             finally { Think = thinkWas; asking++; CloseTalk(); mainframe.ShowProblem(noteWas); }
             checks.Add("PASS an empty reply says one line with its fix, \"Try again or pick another model in Capri Mainframe\", whether her brain threw it or sent blank words, and the BRAIN note keeps the fix");
+
+            // A11: her voice being off reads one way with one fix, in the VOICE note, a preview she's asked for and the style sliders.
+            bool silentWas = preferences.Silent;
+            string previewLine;
+            try { preferences.Silent = true; previewLine = SettingAction("preview_voice", true); }
+            finally { preferences.Silent = silentWas; }
+            foreach (string off in new[] { SilentNote, previewLine, StyleSilent })
+                if (off.IndexOf("voice is off", StringComparison.Ordinal) < 0 || off.IndexOf("Pick a voice under VOICE to hear ", StringComparison.Ordinal) < 0 || off.Contains("OFF"))
+                    throw new Exception("A voice-off line reads another way: " + off);
+            if (previewLine != PreviewSilent || !StyleSilent.Contains("choom")) throw new Exception("The voice preview or the style sliders lost their voice-off line.");
+            checks.Add("PASS her voice being off reads one way with one fix, \"Pick a voice under VOICE\", in the VOICE note, a preview she's asked for and the style sliders, like on Mac and Linux");
         }
 
         private static bool Same(byte[] one, byte[] other)
