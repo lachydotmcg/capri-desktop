@@ -2210,6 +2210,8 @@ namespace CapriDesktop
             private readonly float text;
             private readonly bool fallback;
             private readonly List<LayoutItem> items = new List<LayoutItem>();
+            // Menus the sheet shows, with the font copy each was last given here.
+            private readonly Dictionary<ContextMenuStrip, Font> menus = new Dictionary<ContextMenuStrip, Font>();
             private Size client;
             internal float Unit;
 
@@ -2229,7 +2231,27 @@ namespace CapriDesktop
                 if (form.IsHandleCreated) AssignHandle(form.Handle);
                 form.HandleCreated += delegate { AssignHandle(form.Handle); Frame(); };
                 form.HandleDestroyed += delegate { ReleaseHandle(); };
-                form.Disposed += delegate { foreach (LayoutItem item in items) item.Dispose(); };
+                form.Disposed += delegate
+                {
+                    foreach (LayoutItem item in items) item.Dispose();
+                    foreach (Font font in menus.Values) font.Dispose();
+                };
+            }
+
+            // A sheet's menus aren't its controls, so it hands them over here to follow its scale: each gets its own copy of
+            // the sheet's font, now and after every move to a screen with different scaling. A copy made here is disposed when
+            // the next one replaces it or the sheet goes, and Dropdown's first copy goes with its menu.
+            internal void Follow(params ContextMenuStrip[] strips)
+            {
+                foreach (ContextMenuStrip strip in strips)
+                {
+                    Font old;
+                    menus.TryGetValue(strip, out old);
+                    Font own = new Font(form.Font, form.Font.Style);
+                    strip.Font = own;
+                    menus[strip] = own;
+                    if (old != null) old.Dispose();
+                }
             }
 
             private void Remember(Control control)
@@ -2255,6 +2277,7 @@ namespace CapriDesktop
                 Unit = next;
                 form.SuspendLayout();
                 foreach (LayoutItem item in items) item.Refont(Unit, fallback);
+                Follow(new List<ContextMenuStrip>(menus.Keys).ToArray());
                 form.Scale(new SizeF(ratio, ratio));
                 client = new Size((int)Math.Round(client.Width * ratio), (int)Math.Round(client.Height * ratio));
                 form.ResumeLayout(false);
@@ -5363,6 +5386,8 @@ namespace CapriDesktop
                     Scale(new SizeF(zoom, zoom));
                 }
                 owner.Fit(this);
+                // Voice from's and Voice's menus grow and shrink with the panel when it moves to another screen.
+                ((Rescaler)Tag).Follow(services, voices);
             }
 
             // CUSTOM LOCAL's choices or CLOUD VOICE's, with what they set up for that row, or else the service asked for ready to go.
