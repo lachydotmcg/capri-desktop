@@ -677,7 +677,7 @@ namespace CapriDesktop
         // runs as admin, like Task Manager, gets nothing.
         private IntPtr keyFront;
         private readonly HashSet<string> keyWarnings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        private const string AdminKeys = "This game runs as administrator, so Windows hides your keys from me while it's in front. To use push-to-talk here, " + Computer.AsAdmin + ".";
+        private const string AdminKeys = "This game runs as administrator, so Windows hides your keys from me while it's in front. To use them here, " + Computer.AsAdmin + ".";
 
         private void CheckKeyAccess()
         {
