@@ -392,7 +392,7 @@ VOICE ("Every voice, ElevenLabs too" on the right of the heading, then the Layer
 - Sounds: her sound effects. Off, or 10% to 100%. Default 60%.
 - Typing sound: "When she types". A soft typing sound while her text replies type out.
 - Free voice in games (0.7.6 and newer): only shows while her HD voice is on, under Typing sound. Off by default, so her HD voice keeps talking while a game or video is full screen. Turn it on and her free voice talks while anything is full screen, so the game gets your graphics card back.
-- Call mode (beta) (0.8.3): hears you and the call app separately. Call app chooses Auto or a named app. See "Call mode (beta)" in section 12.
+- Call mode (beta) (0.8.3): hears you and the call app separately. Call app chooses Auto, a named call app, or any app in Windows' volume mixer, like Roblox (0.8.5). See "Call mode (beta)" in section 12.
 - Her voice in your mic (0.8.3): off by default. Her voice joins your mic only in call mode. Use Input to choose the mic for the mix and Output to choose the virtual mic. Pick its other end in your call app: CABLE Output or Steam Streaming Microphone, whichever the note names. How to opens the setup steps. With no virtual mic, Get VB-CABLE opens VB-Audio's setup: allow it, click Install Driver, then restart your PC. VB-CABLE is donationware from vb-cable.com. Her voice still plays on her speaker; her sound effects stay out of the mix.
 - Her voice in your mic: loudness (0.8.3): 50% to 200%, starting at 100%. It changes her voice in the virtual mic. Her speaker volume and your own mic level stay the same.
 
@@ -937,6 +937,9 @@ Yes, on Windows. Pick Zoom under right-click her > Open Capri Mainframe > Settin
 - Browser (Google Meet, web calls)
 
 Auto prefers Discord, then a call app making sound. It stays on the call it's hearing while that app makes sound; a ping in another app doesn't pull her away. Auto never picks Browser or Steam. Pick Steam voice chat or Browser (Google Meet, web calls) yourself. Browser captures sound from all tabs.
+
+### Can call mode hear Roblox or another app? (0.8.5)
+Yes, on Windows. Under right-click her > Open Capri Mainframe > Settings > VOICE > Call app, the apps in Windows' volume mixer are listed below the call apps, like Roblox. Pick one and she hears it and everything it opens. She keeps your pick after a restart, even while that app is closed. Auto never picks one of these for you.
 
 ### Can she join a call for me? (0.8.3)
 Ask her to join the call and pass on a message. In Discord she clicks a voice channel's Join button already on screen, or the server voice channel with people in it. In another call app she clicks the Join button already on screen. If there is no Join button showing there, she tells you. She doesn't start a new call.
