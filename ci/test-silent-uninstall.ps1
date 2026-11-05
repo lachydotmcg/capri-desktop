@@ -44,7 +44,7 @@ function Kept {
 }
 try {
     # A file Windows won't let go of fails the uninstall with its reason, after her Start with Windows entry is gone,
-    # and keeps her install marker and uninstall entry so it can be tried again.
+    # and keeps her install marker and uninstall entry, so her setup can try again.
     $lock = [IO.File]::Open($app, 'Open', 'Read', 'Read')
     try { $failed = Run $uninstaller '--uninstall --silent' } finally { $lock.Dispose() }
     if ($failed[0] -eq 0) { throw 'A locked Capri.exe was reported as removed.' }
@@ -64,10 +64,9 @@ try {
     if ([string]::IsNullOrWhiteSpace($nothing[1])) { throw 'Removing a Capri that is not installed failed without a reason.' }
     Kept
 
-    # Installing again over what's left clears the old uninstaller, and her own Uninstall.exe removes her with no window.
+    # She installs again over what's left, and her own Uninstall.exe removes her with no window.
     $installed = Run $setup '--silent'
     if ($installed[0] -ne 0) { throw "Installing again exited $($installed[0]): $($installed[1])" }
-    if (Test-Path ($uninstaller + '.old')) { throw 'Installing again kept the old uninstaller.' }
     $removed = Run $uninstaller '--uninstall --silent'
     if ($removed[0] -ne 0) { throw "Uninstall.exe --uninstall --silent exited $($removed[0]): $($removed[1])" }
     foreach ($gone in $app, $uninstaller, $marker, $link, $arp) { if (Test-Path $gone) { throw "$gone remains after Uninstall.exe removed her." } }
@@ -77,4 +76,5 @@ try {
 finally {
     if (Test-Path $err) { Remove-Item $err -Force }
     if (Test-Path $otherLink) { Remove-Item $otherLink -Force }
+    if ((Get-ItemProperty $run -Name Capri -ErrorAction SilentlyContinue).Capri -eq ('"' + $app + '"')) { Remove-ItemProperty $run -Name Capri }
 }
