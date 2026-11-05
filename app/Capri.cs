@@ -364,7 +364,7 @@ namespace CapriDesktop
                 catch (Exception error) { failed = error; }
             }) { IsBackground = true };
             reader.Start();
-            if (!reader.Join(2000)) return "Windows' crash log did not answer within 2 s.";
+            if (!reader.Join(10000)) return "Windows' crash log did not answer within 10 s.";
             if (failed != null) return "Couldn't read Windows' Application log: " + failed.GetType().Name + ": " + Short(failed.Message, 180) + ".";
             Record app = null, runtime = null, report = null;
             if (records != null)
@@ -440,16 +440,39 @@ namespace CapriDesktop
             return WebUtility.HtmlDecode(Regex.Match(xml, @"<Data\s+Name=['""]" + Regex.Escape(name) + @"['""]>([\s\S]*?)</Data>").Groups[1].Value);
         }
 
+        // One read of Windows' event log that waits through its timeouts. On a slow PC EvtNext gives up with ERROR_TIMEOUT and
+        // EventLogReader throws a plain EventLogException in Windows' own language, so only its type tells; the query stays
+        // good and the next read carries on. A tester's 0.8.3 log lost all three of its crash records that way. Any other
+        // failure comes straight through, and a timeout that lasts the whole budget comes through as the last one.
+        internal static T Read<T>(Func<TimeSpan, T> read, TimeSpan budget)
+        {
+            Stopwatch clock = Stopwatch.StartNew();
+            System.Diagnostics.Eventing.Reader.EventLogException last = null;
+            do
+            {
+                TimeSpan left = budget - clock.Elapsed;
+                try { return read(TimeSpan.FromMilliseconds(Math.Max(1, Math.Min(1000, left.TotalMilliseconds)))); }
+                catch (System.Diagnostics.Eventing.Reader.EventLogException error)
+                {
+                    if (error.GetType() != typeof(System.Diagnostics.Eventing.Reader.EventLogException)) throw;
+                    last = error;
+                }
+            } while (clock.Elapsed < budget);
+            throw last;
+        }
+
         private static Record[] ReadEvents(DateTime from, DateTime to)
         {
             string query = "*[System[((Provider[@Name='Application Error'] and EventID=1000) or (Provider[@Name='.NET Runtime'] and EventID=1026) or (Provider[@Name='Windows Error Reporting'] and EventID=1001)) and TimeCreated[@SystemTime>='"
                 + from.ToString("o", System.Globalization.CultureInfo.InvariantCulture) + "' and @SystemTime<='" + to.ToString("o", System.Globalization.CultureInfo.InvariantCulture) + "']]]";
             System.Diagnostics.Eventing.Reader.EventLogQuery search = new System.Diagnostics.Eventing.Reader.EventLogQuery("Application", System.Diagnostics.Eventing.Reader.PathType.LogName, query) { ReverseDirection = true };
             System.Collections.Generic.List<Record> records = new System.Collections.Generic.List<Record>();
+            // The lookup runs off the UI thread after she starts, so it can wait 8 s in all, and Windows() gives it 10.
+            TimeSpan budget = TimeSpan.FromSeconds(8);
             Stopwatch clock = Stopwatch.StartNew();
             using (System.Diagnostics.Eventing.Reader.EventLogReader reader = new System.Diagnostics.Eventing.Reader.EventLogReader(search))
-                for (int i = 0; i < 64 && clock.ElapsedMilliseconds < 1800; i++)
-                    using (System.Diagnostics.Eventing.Reader.EventRecord record = reader.ReadEvent(TimeSpan.FromMilliseconds(100)))
+                for (int i = 0; i < 64 && clock.Elapsed < budget; i++)
+                    using (System.Diagnostics.Eventing.Reader.EventRecord record = Read<System.Diagnostics.Eventing.Reader.EventRecord>(reader.ReadEvent, budget - clock.Elapsed))
                     {
                         if (record == null) break;
                         if (!record.TimeCreated.HasValue) continue;
@@ -14016,6 +14039,46 @@ namespace CapriDesktop
             base.Dispose(disposing);
         }
 
+        // RunMark's event log reads on a slow PC, without a real event log: a timeout is waited through, the budget holds, and
+        // other failures aren't retried. SmokeRunning only runs in a full smoke run, so this has its own section.
+        private static void SmokeLogTimeouts(System.Collections.Generic.List<string> checks)
+        {
+            int attempts = 0;
+            RunMark.Record crash = new RunMark.Record { Id = 1000 };
+            RunMark.Record retried = RunMark.Read<RunMark.Record>(delegate(TimeSpan wait)
+            {
+                if (wait.TotalMilliseconds <= 100 || wait.TotalMilliseconds > 1000) throw new Exception("A Windows log read lost its longer wait.");
+                if (++attempts == 1) throw new System.Diagnostics.Eventing.Reader.EventLogException("test timeout");
+                return crash;
+            }, TimeSpan.FromSeconds(2));
+            if (!ReferenceEquals(retried, crash) || attempts != 2) throw new Exception("A Windows log timeout lost the next record.");
+            attempts = 0;
+            System.Diagnostics.Eventing.Reader.EventLogException timeout = null, caught = null;
+            Stopwatch retry = Stopwatch.StartNew();
+            try
+            {
+                RunMark.Read<RunMark.Record>(delegate(TimeSpan wait)
+                {
+                    if (wait <= TimeSpan.Zero || wait.TotalMilliseconds > 300) throw new Exception("A Windows log read exceeded its remaining budget.");
+                    attempts++;
+                    Thread.Sleep(20);
+                    timeout = new System.Diagnostics.Eventing.Reader.EventLogException("test timeout " + attempts);
+                    throw timeout;
+                }, TimeSpan.FromMilliseconds(300));
+            }
+            catch (System.Diagnostics.Eventing.Reader.EventLogException error) { caught = error; }
+            if (attempts < 2 || !ReferenceEquals(caught, timeout) || retry.ElapsedMilliseconds < 300 || retry.ElapsedMilliseconds > 1000) throw new Exception("Windows log retries lost the last timeout or missed their budget.");
+            foreach (Exception failure in new Exception[] { new UnauthorizedAccessException("test access denied"), new System.Diagnostics.Eventing.Reader.EventLogNotFoundException("test missing log") })
+            {
+                attempts = 0;
+                bool passed = false;
+                try { RunMark.Read<RunMark.Record>(delegate { attempts++; throw failure; }, TimeSpan.FromMilliseconds(300)); }
+                catch (Exception error) { passed = ReferenceEquals(error, failure); }
+                if (!passed || attempts != 1) throw new Exception("A Windows log failure was retried or replaced.");
+            }
+            checks.Add("PASS a timed-out read of Windows' event log is tried again until its budget runs out, then the last timeout comes through, and any other error comes straight through");
+        }
+
         private void SmokeRunning(string output, System.Collections.Generic.List<string> checks)
         {
             string folder = Path.Combine(output, "running-check");
@@ -14045,7 +14108,7 @@ namespace CapriDesktop
                     Stopwatch queued = Stopwatch.StartNew();
                     running.Recover(delegate { done.Set(); });
                     if (queued.ElapsedMilliseconds > 1000) throw new Exception("Checking the last close held up startup.");
-                    if (!done.WaitOne(5000)) throw new Exception("Checking the last close did not finish.");
+                    if (!done.WaitOne(12000)) throw new Exception("Checking the last close did not finish.");
                 }
                 ShowCloseNotice();
                 ShowCloseNotice();
@@ -14129,16 +14192,16 @@ namespace CapriDesktop
                 using (ManualResetEvent release = new ManualResetEvent(false))
                 using (ManualResetEvent stopped = new ManualResetEvent(false))
                 {
-                    RunMark.Events = delegate { try { release.WaitOne(5000); return new RunMark.Record[0]; } finally { stopped.Set(); } };
+                    RunMark.Events = delegate { try { release.WaitOne(15000); return new RunMark.Record[0]; } finally { stopped.Set(); } };
                     Stopwatch waiting = Stopwatch.StartNew();
                     try
                     {
                         recover();
-                        if (waiting.ElapsedMilliseconds < 1800 || waiting.ElapsedMilliseconds > 4000 || !File.ReadAllText(log).Contains("did not answer within 2 s") || notices != 1) throw new Exception("A slow Windows log was not time-boxed or lost the notice.");
+                        if (waiting.ElapsedMilliseconds < 9800 || waiting.ElapsedMilliseconds > 12000 || !File.ReadAllText(log).Contains("did not answer within 10 s") || notices != 1) throw new Exception("A slow Windows log was not time-boxed or lost the notice.");
                     }
                     finally { release.Set(); stopped.WaitOne(2000); }
                 }
-                checks.Add("PASS a Windows log failure or a two-second timeout still logs the close and gives one notice; the lookup runs off the UI thread");
+                checks.Add("PASS a Windows log failure or a ten-second timeout still logs the close and gives one notice; the lookup runs off the UI thread");
 
                 prepare();
                 int reads = 0;
@@ -30229,6 +30292,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
             Section(checks, "SmokeProviders", delegate { SmokeProviders(checks, output); });
             Section(checks, "SmokeSheetScale", delegate { SmokeSheetScale(checks); });
+            Section(checks, "SmokeLogTimeouts", delegate { SmokeLogTimeouts(checks); });
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });
