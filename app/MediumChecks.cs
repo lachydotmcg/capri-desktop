@@ -199,7 +199,8 @@ namespace CapriDesktop
                         Brain.OpenRouter = serve("{\"data\":[{\"id\":\"paid/only\"}]}", new List<string>());
                         ConnectText("sk-or-medium-no-free");
                         WaitVoice(delegate { return !mainframe.Status.Contains("Checking key..."); }, "An OpenRouter key without free models did not finish.");
-                        if (brain.Remote.Key != key || !mainframe.Status.Contains("no free chat models")) throw new Exception("A paid-only OpenRouter list silently replaced a working medium key.");
+                        // Mainframe's status line shows the short form of her error (Brain.Brief), so the check follows its wording.
+                        if (brain.Remote.Key != key || !mainframe.Status.Contains(Brain.Brief(Brain.NoFreeModels))) throw new Exception("A paid-only OpenRouter list silently replaced a working medium key.");
                         mainframe.ShowCloud(brain.Remote, cloudModels);
                     }
                 }
