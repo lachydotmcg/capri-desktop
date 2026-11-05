@@ -138,6 +138,7 @@ namespace CapriDesktop
                 UnreadableChecks();
                 UpdateCheckChecks();
                 OfflineChecks();
+                ProviderErrorChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1729,6 +1730,54 @@ namespace CapriDesktop
         {
             if (Pet.Offline.Contains(Pet.Starter) || Pet.Offline.Contains("gemma") || Pet.Offline.Contains("e4b") || !Pet.Offline.Contains("open Capri Mainframe and press Set up her brain") || !Pet.Offline.Contains("press Free key")) throw new Exception("The offline line missed Mainframe's buttons or named a model.");
             checks.Add("PASS offline help: she names Set up her brain and Free key in Capri Mainframe without a model name");
+        }
+
+        private void ProviderErrorChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            object problem = typeof(Pet).GetField("frameProblem", fields).GetValue(pet);
+            Settings saved = pet.Saved;
+            Func<string, string> think = pet.Think;
+            var timer = (Avalonia.Threading.DispatcherTimer)typeof(Pet).GetField("frames", fields).GetValue(pet);
+            bool ticking = timer.IsEnabled;
+            timer.Stop();
+            try
+            {
+                pet.Saved = new Settings { Silent = true };
+                string raw = "private-provider-response: unexpected response payload";
+                string safe = "My brain couldn't answer. The error is under BRAIN in Capri Mainframe.";
+                BrainException[] errors = { new BrainException(raw), new BrainException("The provider is resting. Try again.", true), new BrainException(Brain.Offline, true) };
+                string[] replies = { safe, errors[1].Message, Pet.Offline };
+                for (int i = 0; i < errors.Length; i++)
+                {
+                    BrainException error = errors[i];
+                    pet.Talk.Dismiss();
+                    pet.Think = delegate { throw error; };
+                    pet.Hear("cross provider smoke request");
+                    MainframeWait(() => pet.Talk.Reply != null, "a brain error reply");
+                    if (pet.Talk.Reply != replies[i] || pet.Talk.Reply.Contains(raw)) throw new Exception("A provider error was said raw or changed a told or offline line.");
+                    if (pet.MainframeProblem != (i == 0 ? raw : replies[i])) throw new Exception("A brain error lost its BRAIN note, or Windows' offline line got in it.");
+                }
+                Exception other = new Exception("private-provider-exception");
+                string explained = Brain.Explain(other, pet.Brain.Remote) ?? "That reply was cancelled. Try again.";
+                pet.Talk.Dismiss(); pet.Think = delegate { throw other; };
+                pet.Hear("cross provider smoke request");
+                MainframeWait(() => pet.Talk.Reply != null, "an explained brain failure");
+                if (pet.Talk.Reply != explained || pet.MainframeProblem != explained || pet.Talk.Reply.Contains(other.Message)) throw new Exception("An explained brain failure lost its safe reply or BRAIN note.");
+                pet.Talk.Dismiss(); pet.Think = delegate { return " "; };
+                pet.Hear("cross provider smoke request");
+                MainframeWait(() => pet.Talk.Reply != null, "a wordless brain failure");
+                if (pet.Talk.Reply != Brain.Wordless || pet.MainframeProblem != Brain.Wordless) throw new Exception("A wordless brain reply lost its line or BRAIN note.");
+                checks.Add("PASS provider errors: raw details stay in the BRAIN note, her reply points there, and told and offline lines keep their wording");
+            }
+            finally
+            {
+                typeof(Pet).GetField("asking", fields).SetValue(pet, (int)typeof(Pet).GetField("asking", fields).GetValue(pet) + 1);
+                pet.Talk.Dismiss(); pet.Saved = saved; pet.Think = think;
+                typeof(Pet).GetField("frameProblem", fields).SetValue(pet, problem);
+                pet.NotifySettings();
+                if (ticking) timer.Start();
+            }
         }
 
         private static PointerPressedEventArgs LeftPress(Control on, IPointer mouse)

@@ -4105,15 +4105,18 @@ namespace CapriDesktop
             {
                 string said;
                 string after = null;
+                // As on Windows, a provider's own error text goes in the BRAIN note, and she says where to find it.
+                string problem = null;
                 bool stuck = false, failed = false;
                 try { said = think == null ? Brain.Ask(text, follows, out after) : think(text); }
-                catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer: " + error.Message; stuck = Brain.Stalled(error); failed = true; }
-                catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; stuck = Brain.Stalled(error); failed = true; }
-                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; failed = true; }
+                catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Told || error.Message == Brain.Offline ? said : error.Message; stuck = Brain.Stalled(error); failed = true; }
+                catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; stuck = Brain.Stalled(error); failed = true; }
+                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; failed = true; }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (ticket != asking) return;
                     if (stuck && switches < 2 && Hop(remote)) { Ask(ticket, text, switches + 1); return; }
+                    if (problem != null) { frameProblem = problem; NotifySettings(); }
                     if (input != inputTurn) after = null;
                     if (HoldNews(ticket)) return;
                     if (ticket == newsTicket && failed) { Talk.Answer("(updated)", News.Line); KeepNews(); return; }
