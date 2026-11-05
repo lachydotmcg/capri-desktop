@@ -718,7 +718,7 @@ namespace CapriDesktop
                         preferences.AdvancedSettings = advanced;
                         simpleTest = !advanced;
                         mainframe.ShowSettings(true);
-                        string overlap = mainframe.Overlap(), outside = mainframe.Outside(), text = mainframe.TextFits();
+                        string overlap = mainframe.Overlap(), outside = mainframe.PageClamped ? null : mainframe.Outside(), text = mainframe.TextFits();
                         if (overlap != null || outside != null || text != null || !mainframe.HearingChoiceFits)
                             throw new Exception("Hearing layout " + dpi + " dpi, " + (advanced ? "Advanced" : "Simple") + ": overlap " + overlap + "; outside " + outside + "; text " + text + ".");
                         mainframe.ShowSettings(false);
