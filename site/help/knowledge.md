@@ -1556,7 +1556,7 @@ Smaller brains on your PC sometimes guess wrong, like saying you have a document
 ### What does she send?
 A picture of the screen your active window is on. With her built-in brain, Ollama or a local server it stays on your PC. With a cloud brain it goes to that service. Jobs, screen watches and live game comments can use pictures too.
 
-She can fill in the game underneath her sprite and her own windows when Windows supplies a usable picture of it. Only those covered spots are replaced; other visible windows stay in her picture. Some games return black or old pictures, so this isn't always possible. Move her or her HUD if she still can't read something underneath.
+She can fill in the game underneath her sprite and her own windows when Windows supplies a usable picture of it. Only those covered spots are replaced; other visible windows stay in her picture. Some games return black or old pictures, so this isn't always possible. Move her if she still can't read something underneath.
 
 ### Can she watch for something and tell me when it happens?
 Ask "tell me when my health is low", "let me know when the download finishes" or "warn me if the boss spawns". She needs a brain that can see. You don't need to turn on Watch my screen; these watches are separate.
@@ -1970,7 +1970,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "I can't hear anything from your mic.": 20 seconds of free voice chat brought no sound at all. Pick your mic under VOICE > Mic. If it's right, open Windows Settings > Privacy & security > Microphone and turn on "Let desktop apps access your microphone".
 - "Free voice chat on, but Windows speech only hears your default mic": while her own ears download, or in a language they don't know, Windows speech uses your Windows default mic. Make the mic you want the default in Windows.
 - "Free voice chat on, but I'm hearing offline, so I'll miss some words. Turn on Online speech recognition...": in a language her own ears don't know, Windows speech needs Online speech recognition, in Windows Settings > Privacy & security > Speech. In newer versions, click the line under VOICE in the Mainframe to open that page. If the switch isn't there or is greyed out, your organisation, a family account or your region has turned it off; she still hears you offline, just less well.
-- "Out of ElevenLabs credits, so voice chat is off.": wait for your credits to refill, or upgrade.
+- "Out of ElevenLabs credits, so voice chat is off.": you're on an older version. Update, and she switches to free voice chat by herself when your credits run out.
 - "Can't open my voice link. Right-click me and open Capri Mainframe. The reason and the fix are under VOICE.": open the Mainframe and read the line under VOICE.
 - "ElevenLabs didn't make the agent." or "ElevenLabs didn't open a voice link.": make a new key with Restrict key off and paste it.
 - "The agent sends X audio. Set it to PCM in ElevenLabs.": someone changed the "Capri" agent's audio setting. In ElevenLabs, set the Capri agent's output audio to PCM, or delete that agent and start voice chat again.
