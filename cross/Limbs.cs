@@ -26,17 +26,21 @@ namespace CapriDesktop
         {
             ThreadPool.QueueUserWorkItem(delegate
             {
-                string path = Path.Combine(Path.GetTempPath(), "capri-sound-" + Guid.NewGuid().ToString("N") + ".wav");
+                string path = null;
+                // A temp folder without write access used to end her on the sound worker.
                 try
                 {
+                    path = Path.Combine(Path.GetTempPath(), "capri-sound-" + Guid.NewGuid().ToString("N") + ".wav");
                     File.WriteAllBytes(path, Voice.Wave(samples, Sfx.Rate));
                     Music.Run(Player(), new[] { path });
                 }
-                catch (IOException) { }
+                catch (IOException error) { Brain.Log("sound", -1, error.Message); }
+                catch (UnauthorizedAccessException error) { Brain.Log("sound", -1, error.Message); }
                 finally
                 {
-                    try { File.Delete(path); }
-                    catch (IOException) { }
+                    try { if (path != null) File.Delete(path); }
+                    catch (IOException error) { Brain.Log("sound", -1, error.Message); }
+                    catch (UnauthorizedAccessException error) { Brain.Log("sound", -1, error.Message); }
                 }
             });
         }
@@ -53,9 +57,10 @@ namespace CapriDesktop
             int turn = Interlocked.Increment(ref speeches);
             ThreadPool.QueueUserWorkItem(delegate
             {
-                string path = Path.Combine(Path.GetTempPath(), "capri-voice-" + Guid.NewGuid().ToString("N") + ".wav");
+                string path = null;
                 try
                 {
+                    path = Path.Combine(Path.GetTempPath(), "capri-voice-" + Guid.NewGuid().ToString("N") + ".wav");
                     File.WriteAllBytes(path, wav);
                     ProcessStartInfo start = new ProcessStartInfo(Player()) { UseShellExecute = false, CreateNoWindow = true };
                     start.ArgumentList.Add(path);
@@ -68,11 +73,13 @@ namespace CapriDesktop
                         if (speaker == process) speaker = null;
                     }
                 }
-                catch (Exception) { }
+                catch (Exception error) { Brain.Log("voice", -1, error.Message); }
                 finally
                 {
-                    try { File.Delete(path); }
-                    catch (IOException) { }
+                    // Losing access to a voice file during playback must not end her in cleanup.
+                    try { if (path != null) File.Delete(path); }
+                    catch (IOException error) { Brain.Log("voice", -1, error.Message); }
+                    catch (UnauthorizedAccessException error) { Brain.Log("voice", -1, error.Message); }
                 }
             });
         }

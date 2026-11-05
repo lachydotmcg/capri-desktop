@@ -13,6 +13,7 @@ namespace CapriDesktop
 {
     internal sealed class CallView
     {
+        internal CallApp App = CallApps.Apps[0];
         internal bool Listening, Muted, Discord, Talking, InMic, Thinking, Ended;
         internal bool Captions = true, Motion = true;
         internal double You, Call, Her, Mic;
@@ -53,7 +54,7 @@ namespace CapriDesktop
         }
 
         internal bool Lit(int index) { return index == 0 ? You : index == 1 ? Her : Discord; }
-        internal double Level(int index) { return !Lit(index) ? 0 : CallInk.Unit(index == 0 ? View.You : index == 1 ? View.Her : View.Call); }
+        internal double Level(int index) { return !Lit(index) ? 0 : index == 1 ? CallInk.Unit(View.Her) : CallInk.Loud(index == 0 ? View.You : View.Call); }
         internal float Ripple(int index) { return (float)((CallInk.Time - ripple[index]) % 1.2 / 1.2); }
 
         internal string State(bool pill)
@@ -61,8 +62,8 @@ namespace CapriDesktop
             CallView v = View;
             if (v.Ended) return "ended|" + CallPanel.Clock(v.Length) + "|" + v.Answers;
             string state = string.Join("|", new object[] { You, Her, Discord, v.Listening, v.Muted, v.Discord, v.DiscordNote != null,
-                v.Motion, CallPanel.Clock(v.Length), Step(Level(0)), Step(Level(1)), Step(Level(2)) });
-            if (!pill) state += "|" + v.InMic + "|" + v.Thinking + "|" + v.Captions + "|" + v.DiscordNote + "|" + (v.InMic ? Step(v.Mic) : 0);
+                v.Motion, v.App.Name, CallPanel.Clock(v.Length), Step(Level(0)), Step(Level(1)), Step(Level(2)) });
+            if (!pill) state += "|" + v.InMic + "|" + v.Thinking + "|" + v.Captions + "|" + v.DiscordNote + "|" + (v.InMic ? Step(CallInk.Loud(v.Mic)) : 0);
             if (v.Captions && (!pill || v.Recent(DateTime.UtcNow)))
                 state += "|" + v.Who + "|" + v.Said + "|" + v.SaidAt.Ticks + "|" + (pill ? 100 : (int)(CallInk.Fade(v, DateTime.UtcNow) * 100));
             return state;
@@ -107,6 +108,9 @@ namespace CapriDesktop
 
         internal static double Time { get { return (double)System.Diagnostics.Stopwatch.GetTimestamp() / System.Diagnostics.Stopwatch.Frequency; } }
         internal static double Unit(double value) { return double.IsNaN(value) ? 0 : Math.Max(0, Math.Min(1, value)); }
+        // A voice's loudness on a meter's scale, by decibels like a real one: -48 dB is empty and -12 dB is full, so ordinary
+        // talking, around -20 dB, fills about three quarters (Lachy, 4 Nov: her volume looked tiny on the call panel).
+        internal static double Loud(double rms) { return double.IsNaN(rms) || rms <= 0 ? 0 : Unit((20 * Math.Log10(rms) + 48) / 36); }
         internal static float RingWidth(double level) { return 2 + 5 * (float)Unit(level); }
         internal static int Dot(bool motion, double time) { return motion ? (int)Math.Round(255 * (0.675 + 0.325 * Math.Cos(time * Math.PI * 2 / 1.4))) : 255; }
         internal static double Fade(CallView view, DateTime now)
@@ -141,7 +145,7 @@ namespace CapriDesktop
         internal static string Tip(int kind, CallView view)
         {
             if (kind == 1) return !view.Listening ? "Start listening" : view.Muted ? "Unmute" : "Mute";
-            if (kind == 2) return view.Discord ? "Turn Discord off" : "Turn Discord on";
+            if (kind == 2) return "Turn " + view.App.Name + (view.Discord ? " off" : " on");
             if (kind == 3) return view.Captions ? "Turn captions off" : "Turn captions on";
             return kind == 4 ? "End call" : kind == 5 ? "Minimize" : kind == 6 ? "Call again" : "Expand call";
         }
@@ -149,7 +153,7 @@ namespace CapriDesktop
         internal static void Button(Graphics graphics, RectangleF box, int kind, CallView view, bool hover, float s, CallFonts fonts)
         {
             bool muted = view.Listening && view.Muted;
-            Color fill = kind == 4 ? Red : muted && kind == 1 ? Color.FromArgb(46, 15, 26) : hover ? Neon.Hover : Neon.Well;
+            Color fill = kind == 4 ? Red : muted && kind == 1 ? Neon.Tone(46, 15, 26) : hover ? Neon.Hover : Neon.Well;
             Color edge = kind == 4 ? Red : kind == 6 ? Neon.Cyan : muted && kind == 1 ? Neon.Hot : hover ? Neon.Cyan : Neon.WellEdge;
             Color ink = kind == 4 ? Color.White : kind == 6 || kind == 7 || kind == 1 && !view.Listening ? Neon.Cyan : kind == 1 && muted ? Neon.Hot
                 : kind == 2 && !view.Discord || kind == 3 && !view.Captions ? Neon.Faint : Neon.Cyan;
@@ -302,12 +306,12 @@ namespace CapriDesktop
 
         internal void Draw(Graphics graphics, RectangleF box, CallView view, CallFonts fonts, float s, double fade)
         {
-            float nameWidth = 64 * s, pad = 12 * s;
+            float nameWidth = NameWidth(graphics, view.Who, fonts.Name, s), pad = 12 * s;
             RectangleF speaker = new RectangleF(box.Left + pad, box.Top + 9 * s, nameWidth, 18 * s);
             RectangleF words = new RectangleF(speaker.Right + 4 * s, speaker.Top, box.Width - nameWidth - pad * 2 - 4 * s, 18 * s);
             string text = string.IsNullOrEmpty(view.Said) ? "Captions show here." : view.Said;
             Fit(graphics, text, fonts.Mono, words.Width);
-            Color name = view.Who == "YOU" ? Neon.Rose : view.Who == "DISCORD" ? Neon.Cyan : Neon.White;
+            Color name = view.Who == "YOU" ? Neon.Rose : view.Who == "CAPRI" ? Neon.White : Neon.Cyan;
             if (!string.IsNullOrEmpty(view.Said)) CallInk.Text(graphics, view.Who, fonts.Name, speaker, Color.FromArgb((int)(255 * fade), name));
             else words = new RectangleF(box.Left + pad, words.Top, box.Width - pad * 2, words.Height);
             for (int i = 0; i < Lines.Length; i++)
@@ -316,6 +320,8 @@ namespace CapriDesktop
                 CallInk.Text(graphics, Lines[i], fonts.Mono, line, Color.FromArgb((int)(255 * fade), Neon.White));
             }
         }
+
+        internal static float NameWidth(Graphics graphics, string who, Font font, float scale) { return Math.Max(64 * scale, Measure(graphics, who ?? "", font) + 2 * scale); }
     }
 
     internal sealed class CallTips : IDisposable
@@ -371,7 +377,7 @@ namespace CapriDesktop
         protected override void OnPaint(PaintEventArgs e) { CallInk.Quality(e.Graphics); CallInk.Button(e.Graphics, ClientRectangle, Kind, View ?? new CallView(), hover, scale, fonts); }
     }
 
-    internal sealed partial class CallPill : Overlay
+    internal sealed partial class CallPill : Overlay, LookWindow
     {
         private const int Wide = 540, Tall = 142;
         internal event Action MicPressed, ExpandPressed, EndPressed, AgainPressed;
@@ -498,7 +504,9 @@ namespace CapriDesktop
             return sheet;
         }
 
-        private string Talking() { return live.Her ? "CAPRI is talking" : live.You ? "YOU are talking" : live.Discord ? "DISCORD is talking" : "On call"; }
+        private string Talking() { return live.Her ? "CAPRI is talking" : live.You ? "YOU are talking" : live.Discord ? Speaker(live.View.App) : "On call"; }
+
+        internal static string Speaker(CallApp app) { return app.Caption + (app.Name == "Discord" ? " is talking" : " talking"); }
 
         private void DrawBars(Graphics graphics)
         {
@@ -676,7 +684,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed partial class CallPanel : Form
+    internal sealed partial class CallPanel : Form, LookWindow
     {
         private const int Wide = 614, Inset = 22, Gap = 12, TileY = 54, TileHigh = 202;
         internal const double Talks = 0.01;
@@ -823,7 +831,7 @@ namespace CapriDesktop
             if (!view.Listening) return "She isn't listening.";
             if (view.Muted) return "Muted: she hears no one.";
             if (!view.Discord) return "She hears you only.";
-            return view.DiscordNote ?? "She hears you and Discord.";
+            return view.DiscordNote ?? "She hears you and " + view.App.Name + ".";
         }
 
         internal static string Clock(TimeSpan length)
@@ -833,7 +841,7 @@ namespace CapriDesktop
             return length.TotalHours >= 1 ? (int)length.TotalHours + ":" + minutes : minutes;
         }
 
-        internal static string Short(string note) { return note == CallEars.NotOpen ? "not open" : "can't hear it"; }
+        internal static string Short(string note) { return note != null && note.EndsWith(" isn't open.", StringComparison.Ordinal) ? "not open" : "can't hear it"; }
         internal static string Answered(int answers) { return "she answered " + answers + (answers == 1 ? " time" : " times"); }
         internal static string EndLine(CallView view) { return Clock(view.Length) + " · " + Answered(view.Answers); }
 
@@ -905,14 +913,14 @@ namespace CapriDesktop
                 using (Pen line = new Pen(lit ? Neon.Cyan : Neon.WellEdge, lit ? 2 * s : Math.Max(1, s))) graphics.DrawPath(line, edge);
             }
             CallInk.Avatar(graphics, face, index, Art(index), dim, live.Level(index), lit, view.Motion, live.Ripple(index), s);
-            CallInk.Text(graphics, index == 0 ? "YOU" : index == 1 ? "CAPRI" : "DISCORD", fonts.Name, TileWords(index, 132, 20), Neon.White, true);
+            CallInk.Text(graphics, index == 0 ? "YOU" : index == 1 ? "CAPRI" : view.App.Caption, fonts.Name, TileWords(index, 132, 20), Neon.White, true);
             Color note = index == 0 && view.Listening && view.Muted || index == 2 && view.Discord && view.DiscordNote != null ? Neon.Hot : lit ? Neon.Cyan : Neon.Faint;
             CallInk.Text(graphics, Note(index), fonts.Note, TileWords(index, 154, 18), note, true);
             if (index != 1) return;
             CallInk.Text(graphics, view.InMic ? "IN YOUR MIC" : "NOT IN YOUR MIC", fonts.Tiny, TileWords(index, 175, 14), view.InMic ? Neon.Cyan : Neon.Faint, true);
             RectangleF meter = TileWords(index, 192, 3);
             CallInk.Round(graphics, meter, 1.5f * s, Neon.Field, Neon.WellEdge, 0);
-            float width = meter.Width * (float)(view.InMic ? CallInk.Unit(view.Mic) : 0);
+            float width = meter.Width * (float)(view.InMic ? CallInk.Loud(view.Mic) : 0);
             if (width > 0) CallInk.Round(graphics, new RectangleF(meter.Left, meter.Top, width, meter.Height), Math.Min(width, meter.Height) / 2, Neon.Cyan, Neon.Cyan, 0);
         }
 
@@ -944,7 +952,9 @@ namespace CapriDesktop
             if (one.IntersectsWith(two)) throw new Exception("The call " + name + " overlaps.");
         }
 
-        private void CheckLayout(Graphics graphics)
+        internal string SourceName { get { return live.View.App.Caption; } }
+
+        internal void CheckLayout(Graphics graphics)
         {
             CallView view = live.View;
             RectangleF window = ClientRectangle;
@@ -980,7 +990,7 @@ namespace CapriDesktop
                 foreach (RectangleF item in new[] { ring, name, note }) Inside(tile, item, "tile content");
                 Apart(ring, name, "ring and name");
                 Apart(name, note, "name and note");
-                Fits(graphics, i == 0 ? "YOU" : i == 1 ? "CAPRI" : "DISCORD", fonts.Name, name, "tile name");
+                Fits(graphics, i == 0 ? "YOU" : i == 1 ? "CAPRI" : view.App.Caption, fonts.Name, name, "tile name");
                 foreach (string text in i == 0 ? new[] { "speaking", "mic on", "muted", "not listening" } : i == 1 ? new[] { "speaking", "listening", "thinking" } : new[] { "speaking", "friends", "off", "not open", "can't hear it" })
                     Fits(graphics, text, fonts.Note, note, "tile note");
                 if (i == 1)
@@ -1011,12 +1021,12 @@ namespace CapriDesktop
             if (ClientSize.Height >= 400 * s) throw new Exception("The call panel grew past 400 pixels.");
         }
 
-        internal static void CheckCaption(Graphics graphics, CallCaption caption, CallFonts fonts, RectangleF box, float scale)
+        internal static void CheckCaption(Graphics graphics, CallCaption caption, CallFonts fonts, RectangleF box, float scale, string who = "DISCORD")
         {
-            RectangleF speaker = new RectangleF(box.Left + 12 * scale, box.Top + 9 * scale, 64 * scale, 18 * scale);
-            RectangleF words = new RectangleF(speaker.Right + 4 * scale, speaker.Top, box.Width - 92 * scale, 35 * scale);
+            RectangleF speaker = new RectangleF(box.Left + 12 * scale, box.Top + 9 * scale, CallCaption.NameWidth(graphics, who, fonts.Name, scale), 18 * scale);
+            RectangleF words = new RectangleF(speaker.Right + 4 * scale, speaker.Top, box.Right - 12 * scale - speaker.Right - 4 * scale, 35 * scale);
             Inside(box, speaker, "caption speaker"); Inside(box, words, "caption words"); Apart(speaker, words, "caption speaker and words");
-            foreach (string who in new[] { "YOU", "DISCORD", "CAPRI" }) Fits(graphics, who, fonts.Name, speaker, "caption speaker");
+            foreach (string name in new[] { "YOU", who, "CAPRI" }) Fits(graphics, name, fonts.Name, speaker, "caption speaker");
             string longest = "I heard the whole call. " + new string('W', 120) + " and there are more words to show on the next line, with an ellipsis at the end.";
             caption.Fit(graphics, longest, fonts.Mono, words.Width);
             if (caption.Lines.Length != 2 || !caption.Lines[1].EndsWith("...")) throw new Exception("Call captions did not stop at two lines with an ellipsis.");
@@ -1088,6 +1098,7 @@ namespace CapriDesktop
                     }
             }
             if (CallInk.RingWidth(0) >= CallInk.RingWidth(1)) throw new Exception("Call rings do not grow with loudness.");
+            if (CallInk.Loud(0) != 0 || CallInk.Loud(1) != 1 || CallInk.Loud(0.1) < 0.7 || CallInk.Loud(0.1) > 0.85 || CallInk.Loud(0.01) < 0.15 || CallInk.Loud(0.01) > 0.3) throw new Exception("Call levels are not on a decibel scale: " + CallInk.Loud(0.1) + ", " + CallInk.Loud(0.01) + ".");
             if (EndLine(new CallView { Length = TimeSpan.FromSeconds(754), Answers = 1 }) != "12:34 · she answered 1 time"
                 || EndLine(new CallView { Length = TimeSpan.FromSeconds(754), Answers = 6 }) != "12:34 · she answered 6 times"
                 || Clock(TimeSpan.FromSeconds(3725)) != "1:02:05" || Clock(TimeSpan.FromSeconds(-1)) != "00:00") throw new Exception("The ended call wording or clock changed.");

@@ -19,17 +19,36 @@ namespace CapriSetup
     {
         internal static string InstallPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri"); } }
         internal const string RegistryPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Capri.Desktop";
+        internal static readonly string[] Packs = { "brain", "voice", "ears", "wake" };
 
         [STAThread]
         private static int Main(string[] args)
         {
+            // A silent command she can't read exits 2, and one that fails exits 1, each with the reason on stderr.
+            int mode;
+            string package;
+            try { mode = SetupFiles.Mode(args, out package); }
+            catch (ArgumentException error) { Console.Error.WriteLine(error.Message); return 2; }
+            try
+            {
+                if (mode == 2) return RemoveFiles(true);
+                if (mode == 1)
+                {
+                    string unsaved = Install(false);
+                    // She's installed by now, so the marker says who carries her even when her shortcut couldn't be saved.
+                    SetupFiles.Mark(InstallPath, package ?? "manual");
+                    if (unsaved != null) throw new IOException("Capri is installed, but her shortcut could not be saved: " + unsaved);
+                    return 0;
+                }
+            }
+            catch (Exception error) { Console.Error.WriteLine(error.Message); return 1; }
             try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch (EntryPointNotFoundException) { }
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             if (args.Length > 0 && args[0] == "--update") return Update(args);
             if (args.Length == 2 && args[0] == "--verify") return Verify(args[1]);
             if (args.Length == 2 && args[0] == "--verify-voice") return VerifyVoice(args[1]);
-            if (args.Length == 1 && args[0] == "--remove-files") return RemoveFiles();
+            if (args.Length == 1 && args[0] == "--remove-files") return RemoveFiles(false);
             using (SetupWindow window = new SetupWindow(args.Length == 1 && args[0] == "--uninstall")) Application.Run(window);
             return 0;
         }
@@ -123,7 +142,8 @@ namespace CapriSetup
                     told.Close();
                     failed.Close();
                 }
-                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nLIMIT installation and uninstallation were not performed\n");
+                if (Array.IndexOf(Packs, "brain") < 0 || Array.IndexOf(Packs, "voice") < 0 || Array.IndexOf(Packs, "ears") < 0 || Array.IndexOf(Packs, "wake") < 0) throw new InvalidDataException("The uninstaller would leave one of her packs behind.");
+                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS the uninstaller removes her brain, voice, ears and wake packs\nLIMIT installation and uninstallation were not performed\n");
                 return 0;
             }
             catch (Exception error) { Directory.CreateDirectory(output); File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString()); return 1; }
@@ -147,6 +167,10 @@ namespace CapriSetup
                 }
             }
             Directory.CreateDirectory(destination);
+            // Best-effort: an uninstaller still exiting, or antivirus holding its old copy, mustn't fail the install.
+            try { SetupFiles.ClearOld(Path.Combine(destination, "Uninstall.exe")); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
             string version = Assembly.GetExecutingAssembly().GetName().Version.ToString(3);
             File.WriteAllText(marker, "Capri desktop companion " + version);
             string target = Path.Combine(destination, "Capri.exe");
@@ -364,7 +388,7 @@ namespace CapriSetup
             Process.Start(new ProcessStartInfo(temporary, "--remove-files") { UseShellExecute = true });
         }
 
-        private static int RemoveFiles()
+        private static int RemoveFiles(bool silent)
         {
             try
             {
@@ -373,27 +397,22 @@ namespace CapriSetup
                 if (!string.Equals(destination, expected, StringComparison.OrdinalIgnoreCase) || !File.Exists(Path.Combine(destination, ".capri-install"))) throw new IOException("The Capri install marker could not be verified.");
                 CloseEverything(destination);
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
-                for (int i = 0; i < 25; i++)
-                {
-                    try { File.Delete(uninstaller); break; }
-                    catch (IOException) { System.Threading.Thread.Sleep(100); }
-                }
-                if (File.Exists(uninstaller)) throw new IOException("The uninstaller is still open. Close it and try removing Capri again.");
-                Patiently(delegate { File.Delete(Path.Combine(destination, "Capri.exe")); });
-                File.Delete(Path.Combine(destination, ".capri-install"));
-                foreach (string pack in new[] { "brain", "voice", "ears" })
+                SetupFiles.Retire(uninstaller, string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase));
+                SetupFiles.RemoveApp(Path.Combine(destination, "Capri.exe"));
+                foreach (string pack in Packs)
                 {
                     string folder = Path.Combine(destination, pack);
                     Patiently(delegate { if (Directory.Exists(folder)) Directory.Delete(folder, true); });
                 }
                 DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Capri.lnk"), destination);
                 DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Capri.lnk"), destination);
-                Startup.Clear(Path.Combine(destination, "Capri.exe"));
+                SetupFiles.Unmark(destination);
                 Registry.CurrentUser.DeleteSubKeyTree(RegistryPath, false);
-                Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);
+                File.Delete(Path.Combine(destination, ".capri-install"));
+                if (!silent) Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);
                 return 0;
             }
-            catch (Exception error) { Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
+            catch (Exception error) { if (silent) Console.Error.WriteLine(error.Message); else Notice.Tell(null, error.Message, "Capri could not be removed", true); return 1; }
         }
 
         // Capri and anything running from her folder, like her brain's engine, hold its files, so they're closed first.
@@ -428,13 +447,7 @@ namespace CapriSetup
         // A file can stay locked for a moment after the program holding it closes.
         private static void Patiently(Action remove)
         {
-            for (int tries = 1; ; tries++)
-            {
-                try { remove(); return; }
-                catch (IOException) { if (tries == 10) throw; }
-                catch (UnauthorizedAccessException) { if (tries == 10) throw; }
-                System.Threading.Thread.Sleep(300);
-            }
+            SetupFiles.Patiently(remove);
         }
 
         // A shortcut that can't be read or removed stays behind instead of stopping the rest of the uninstall.
@@ -624,6 +637,8 @@ namespace CapriSetup
                 if (removing) { Program.BeginUninstall(); Close(); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
+                try { SetupFiles.Mark(Program.InstallPath, "manual"); }
+                catch (Exception error) { Notice.Tell(this, "Capri is installed, but the package marker couldn't be cleared. Delete " + SetupFiles.Marker + " in " + Program.InstallPath + " to let her update herself. " + error.Message, "Capri", true); }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
             if (Environment.Is64BitOperatingSystem && !VoicePack.Complete(VoicePack.Folder(Program.InstallPath))) FetchVoice();

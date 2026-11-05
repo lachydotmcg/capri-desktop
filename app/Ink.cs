@@ -433,9 +433,9 @@ namespace CapriDesktop
                     left -= length;
                 }
                 if (shown.PointCount == 0) return;
-                using (Pen glow = new Pen(Color.FromArgb(24, Neon.Rose), 10))
-                using (Pen soft = new Pen(Color.FromArgb(65, Neon.Rose), 6))
-                using (Pen pink = new Pen(Neon.Rose, 2.5f))
+                using (Pen glow = new Pen(Color.FromArgb(24, CityLook.Rose), 10))
+                using (Pen soft = new Pen(Color.FromArgb(65, CityLook.Rose), 6))
+                using (Pen pink = new Pen(CityLook.Rose, 2.5f))
                 {
                     foreach (Pen pen in new[] { glow, soft, pink }) { pen.StartCap = pen.EndCap = LineCap.Round; pen.LineJoin = LineJoin.Round; graphics.DrawPath(pen, shown); }
                 }

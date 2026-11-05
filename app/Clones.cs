@@ -606,6 +606,7 @@ namespace CapriDesktop
                 if (front == haul.Window) order = 0x0004;
                 else if (Ledges.Showing(front, out frontFrame) && (Native.GetWindowLong(front, -20) & 0x08) == 0) after = front;
             }
+            SmokeRun.NoteAsync(haul.Window, "Clones haul");
             bool moved = Native.SetWindowPos(haul.Window, after, to.X, to.Y, 0, 0, 0x4000 | 0x0010 | 0x0001 | order);
             if (!moved && after != IntPtr.Zero) moved = Native.SetWindowPos(haul.Window, IntPtr.Zero, to.X, to.Y, 0, 0, 0x4000 | 0x0010 | 0x0001 | 0x0004);
             if (!moved)

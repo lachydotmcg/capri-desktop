@@ -1286,12 +1286,12 @@ namespace CapriDesktop
                 float[] sizes = { 20, 14, 9, 5 };
                 int[] alphas = { 8, 12, 20, 30 };
                 for (int i = 0; i < sizes.Length; i++)
-                    using (Pen glow = new Pen(Color.FromArgb(alphas[i], Neon.Cyan), sizes[i] * s) { LineJoin = LineJoin.Round })
+                    using (Pen glow = new Pen(Color.FromArgb(alphas[i], CityLook.Cyan), sizes[i] * s) { LineJoin = LineJoin.Round })
                         graphics.DrawPath(glow, shape);
-                using (Brush ground = new SolidBrush(Color.FromArgb(250, Neon.Ground))) graphics.FillPath(ground, shape);
+                using (Brush ground = new SolidBrush(Color.FromArgb(250, CityLook.Ground))) graphics.FillPath(ground, shape);
             }
             using (GraphicsPath inner = Inner(Screen(wide, tall)))
-            using (Brush fill = new SolidBrush(portrait ? Neon.Deep : Skin))
+            using (Brush fill = new SolidBrush(portrait ? CityLook.Deep : Skin))
                 graphics.FillPath(fill, inner);
         }
 
@@ -1376,7 +1376,7 @@ namespace CapriDesktop
             using (GraphicsPath band = new GraphicsPath())
             using (GraphicsPath outer = Outer(hull))
             using (GraphicsPath inner = Inner(screen))
-            using (Brush ground = new SolidBrush(Neon.Ground))
+            using (Brush ground = new SolidBrush(CityLook.Ground))
             {
                 band.FillMode = FillMode.Alternate;
                 band.AddPath(outer, false);
@@ -1386,23 +1386,23 @@ namespace CapriDesktop
             RectangleF frame = RectangleF.Inflate(screen, -Px(4), -Px(4));
             frame = new RectangleF(frame.X + line / 2, frame.Y + line / 2, frame.Width - line, frame.Height - line);
             using (GraphicsPath thin = Neon.Cut(frame, 14 * s, 3 * s, 14 * s, 3 * s))
-            using (Pen pen = new Pen(Color.FromArgb(150, Neon.Cyan), line))
+            using (Pen pen = new Pen(Color.FromArgb(150, CityLook.Cyan), line))
                 graphics.DrawPath(pen, thin);
             RectangleF edge = new RectangleF(hull.X + line / 2, hull.Y + line / 2, hull.Width - line, hull.Height - line);
             using (GraphicsPath outer = Outer(edge))
-            using (Pen pen = new Pen(Neon.DeepEdge, line))
+            using (Pen pen = new Pen(CityLook.DeepEdge, line))
                 graphics.DrawPath(pen, outer);
             float big = 22 * s, along = 58 * s, down = 28 * s, heavy = Math.Max(2, (float)Math.Round(2 * s));
             RectangleF hot = RectangleF.Inflate(edge, -heavy / 2 + line / 2, -heavy / 2 + line / 2);
-            using (Pen stroke = new Pen(Neon.Hot, heavy))
+            using (Pen stroke = new Pen(CityLook.Hot, heavy))
             {
                 graphics.DrawLines(stroke, new[] { new PointF(hot.Left, hot.Top + big + down), new PointF(hot.Left, hot.Top + big), new PointF(hot.Left + big, hot.Top), new PointF(hot.Left + big + along, hot.Top) });
                 graphics.DrawLines(stroke, new[] { new PointF(hot.Right, hot.Bottom - big - down), new PointF(hot.Right, hot.Bottom - big), new PointF(hot.Right - big, hot.Bottom), new PointF(hot.Right - big - along, hot.Bottom) });
             }
             float w = Px(9), h = Math.Max(1, (float)Math.Round(2 * s)), x = screen.Right - Px(13), y2 = screen.Bottom - Px(52);
             for (int i = 0; i < 6; i++)
-                using (Brush fade = new SolidBrush(Color.FromArgb(230 - i * 28, Neon.Cyan))) graphics.FillRectangle(fade, x, y2 + i * Px(5), w, h);
-            using (Brush tab = new SolidBrush(Neon.Cyan)) graphics.FillRectangle(tab, hull.Left + hull.Width / 2 - Px(34), hull.Top, Px(68), Math.Max(2, Px(3)));
+                using (Brush fade = new SolidBrush(Color.FromArgb(230 - i * 28, CityLook.Cyan))) graphics.FillRectangle(fade, x, y2 + i * Px(5), w, h);
+            using (Brush tab = new SolidBrush(CityLook.Cyan)) graphics.FillRectangle(tab, hull.Left + hull.Width / 2 - Px(34), hull.Top, Px(68), Math.Max(2, Px(3)));
         }
 
         // Her eyes, in the panel's own art space.
@@ -1579,7 +1579,7 @@ namespace CapriDesktop
             RectangleF art = Screen(TalkWide, TalkTall);
             GraphicsState state = graphics.Save();
             using (GraphicsPath inner = Inner(art)) graphics.SetClip(inner);
-            using (Pen hatch = new Pen(Color.FromArgb(70, Neon.DeepEdge), line))
+            using (Pen hatch = new Pen(Color.FromArgb(70, CityLook.DeepEdge), line))
                 for (float x = art.Left - art.Height; x < art.Right; x += 9 * s) graphics.DrawLine(hatch, x, art.Bottom, x + art.Height, art.Top);
             using (Bitmap her = Snapped(Crop, (int)art.Width, (int)art.Height)) graphics.DrawImageUnscaled(her, (int)art.Left, (int)art.Top);
             Func<float, float, PointF> at = Places();
@@ -1818,28 +1818,28 @@ namespace CapriDesktop
                 RectangleF bar = new RectangleF(Px(Bleed), 0, Px(PanelWide), Px(StripTall));
                 using (GraphicsPath shape = Neon.Cut(bar, 0, 0, 9 * s, 9 * s))
                 {
-                    using (Pen glow = new Pen(Color.FromArgb(24, Neon.Cyan), 7 * s) { LineJoin = LineJoin.Round }) graphics.DrawPath(glow, shape);
-                    using (Brush fill = new SolidBrush(Color.FromArgb(246, Neon.Ground))) graphics.FillPath(fill, shape);
-                    using (Pen edge = new Pen(Neon.DeepEdge, line)) graphics.DrawPath(edge, shape);
+                    using (Pen glow = new Pen(Color.FromArgb(24, CityLook.Cyan), 7 * s) { LineJoin = LineJoin.Round }) graphics.DrawPath(glow, shape);
+                    using (Brush fill = new SolidBrush(Color.FromArgb(246, CityLook.Ground))) graphics.FillPath(fill, shape);
+                    using (Pen edge = new Pen(CityLook.DeepEdge, line)) graphics.DrawPath(edge, shape);
                 }
                 float high = bar.Height, y = bar.Top + (high - smallFont.GetHeight(graphics)) / 2, x = bar.Left + Px(5);
                 RectangleF chip = new RectangleF(x, bar.Top + Px(4), Px(50), high - Px(8));
                 using (GraphicsPath plate = Neon.Cut(chip, 0, 0, 4 * s, 0))
-                using (Brush fill = new SolidBrush(Neon.Rose))
+                using (Brush fill = new SolidBrush(CityLook.Rose))
                     graphics.FillPath(fill, plate);
-                Words(graphics, "CAPRI", Neon.OnInk, chip.Left + Px(7), y);
+                Words(graphics, "CAPRI", CityLook.OnInk, chip.Left + Px(7), y);
                 x = chip.Right + Px(9);
-                x = Words(graphics, "GAMING MODE", Neon.White, x, y) + Px(9);
-                Disc(graphics, Neon.Cyan, new PointF(x, bar.Top + high / 2), 2.6f * s);
-                Words(graphics, "ON", Neon.Cyan, x + Px(7), y);
+                x = Words(graphics, "GAMING MODE", CityLook.White, x, y) + Px(9);
+                Disc(graphics, CityLook.Cyan, new PointF(x, bar.Top + high / 2), 2.6f * s);
+                Words(graphics, "ON", CityLook.Cyan, x + Px(7), y);
                 string voice = scene.Voice ? "VOICE ON" : "VOICE OFF";
                 float wide = graphics.MeasureString(voice, smallFont, PointF.Empty, StringFormat.GenericTypographic).Width;
                 float right = bar.Right - Px(14) - wide;
-                Words(graphics, voice, scene.Voice ? Neon.Cyan : Neon.Faint, right, y);
+                Words(graphics, voice, scene.Voice ? CityLook.Cyan : CityLook.Faint, right, y);
                 if (scene.Quiet)
                 {
                     float quiet = graphics.MeasureString("QUIET", smallFont, PointF.Empty, StringFormat.GenericTypographic).Width;
-                    Words(graphics, "QUIET", Neon.Rose, right - Px(12) - quiet, y);
+                    Words(graphics, "QUIET", CityLook.Rose, right - Px(12) - quiet, y);
                 }
             }
         }
@@ -1881,17 +1881,17 @@ namespace CapriDesktop
                 RectangleF panel = new RectangleF(Px(Bleed), Px(6), Px(PanelWide), (float)Math.Round(tall));
                 using (GraphicsPath shape = Neon.Cut(panel, 12 * s, 4 * s, 12 * s, 4 * s))
                 {
-                    using (Pen glow = new Pen(Color.FromArgb(26, Neon.Cyan), 8 * s) { LineJoin = LineJoin.Round }) graphics.DrawPath(glow, shape);
-                    using (Brush fill = new SolidBrush(Color.FromArgb(240, Neon.Ground))) graphics.FillPath(fill, shape);
-                    using (Pen edge = new Pen(Neon.DeepEdge, line)) graphics.DrawPath(edge, shape);
+                    using (Pen glow = new Pen(Color.FromArgb(26, CityLook.Cyan), 8 * s) { LineJoin = LineJoin.Round }) graphics.DrawPath(glow, shape);
+                    using (Brush fill = new SolidBrush(Color.FromArgb(240, CityLook.Ground))) graphics.FillPath(fill, shape);
+                    using (Pen edge = new Pen(CityLook.DeepEdge, line)) graphics.DrawPath(edge, shape);
                 }
                 float big = 12 * s, heavy = Math.Max(2, (float)Math.Round(2 * s));
-                using (Pen stroke = new Pen(Neon.Hot, heavy))
+                using (Pen stroke = new Pen(CityLook.Hot, heavy))
                 {
                     graphics.DrawLines(stroke, new[] { new PointF(panel.Left, panel.Top + big + 14 * s), new PointF(panel.Left, panel.Top + big), new PointF(panel.Left + big, panel.Top), new PointF(panel.Left + big + 34 * s, panel.Top) });
                     graphics.DrawLines(stroke, new[] { new PointF(panel.Right, panel.Bottom - big - 14 * s), new PointF(panel.Right, panel.Bottom - big), new PointF(panel.Right - big, panel.Bottom), new PointF(panel.Right - big - 34 * s, panel.Bottom) });
                 }
-                using (Brush bar = new SolidBrush(scene.Box == HudBox.Listening ? Neon.Cyan : Look.Red)) graphics.FillRectangle(bar, panel.Left + Px(9), panel.Top + Px(12), Math.Max(2, Px(3)), panel.Height - Px(24));
+                using (Brush bar = new SolidBrush(scene.Box == HudBox.Listening ? CityLook.Cyan : Look.Red)) graphics.FillRectangle(bar, panel.Left + Px(9), panel.Top + Px(12), Math.Max(2, Px(3)), panel.Height - Px(24));
                 float x = panel.Left + pad, y = panel.Top + Px(11);
                 Header(graphics, scene, x, y, panel);
                 y += Px(16);
@@ -1901,8 +1901,8 @@ namespace CapriDesktop
                     y += row;
                 }
                 y += Px(5);
-                using (Brush ink = new SolidBrush(!saying && scene.Box == HudBox.Thinking ? Look.Dim : Neon.White))
-                using (Brush caret = new SolidBrush(Neon.Cyan))
+                using (Brush ink = new SolidBrush(!saying && scene.Box == HudBox.Thinking ? Look.Dim : CityLook.White))
+                using (Brush caret = new SolidBrush(CityLook.Cyan))
                 {
                     PointF end = new PointF(x, y);
                     for (int i = first; i < lines.Count && i < first + MostRows; i++)
@@ -1922,7 +1922,7 @@ namespace CapriDesktop
         private void Header(Graphics graphics, HudScene scene, float x, float y, RectangleF panel)
         {
             string title = scene.Box == HudBox.Listening ? "LISTENING" : scene.Box == HudBox.Thinking ? "THINKING" : scene.Box == HudBox.Job ? "ON A JOB" : "CAPRI";
-            Color colour = scene.Box == HudBox.Listening || scene.Box == HudBox.Job ? Neon.Cyan : Neon.Rose;
+            Color colour = scene.Box == HudBox.Listening || scene.Box == HudBox.Job ? CityLook.Cyan : CityLook.Rose;
             if (scene.Box == HudBox.Listening) { Disc(graphics, Look.Red, new PointF(x + 4 * s, y + 8 * s), 4 * s); x += Px(14); }
             using (Brush ink = new SolidBrush(colour)) graphics.DrawString(title, labelFont, ink, x, y, StringFormat.GenericTypographic);
             float right = panel.Right - Px(16);
@@ -1932,7 +1932,7 @@ namespace CapriDesktop
                 for (int i = 0; i < bars.Length; i++)
                 {
                     float tall = Math.Max(2 * s, bars[i] * s * (0.25f + scene.Level));
-                    using (Brush bar = new SolidBrush(scene.Level > 0.02f ? Neon.Cyan : Neon.DeepEdge))
+                    using (Brush bar = new SolidBrush(scene.Level > 0.02f ? CityLook.Cyan : CityLook.DeepEdge))
                         graphics.FillRectangle(bar, right - (bars.Length - i) * Px(5), y + Px(8) - tall / 2, Math.Max(2, Px(3)), tall);
                 }
             }
@@ -2016,7 +2016,7 @@ namespace CapriDesktop
         {
             int reveal = (int)(high * Math.Min(1, scene.Boot * 1.25f));
             Slide(graphics, torn, width, reveal, 1 - scene.Boot, scene.Seed, 0, 0);
-            using (Brush scan = new SolidBrush(Neon.Cyan)) graphics.FillRectangle(scan, Px(Bleed), Math.Max(0, reveal - Math.Max(2, Px(2))), Px(PanelWide), Math.Max(2, Px(2)));
+            using (Brush scan = new SolidBrush(CityLook.Cyan)) graphics.FillRectangle(scan, Px(Bleed), Math.Max(0, reveal - Math.Max(2, Px(2))), Px(PanelWide), Math.Max(2, Px(2)));
         }
 
         public void Dispose()

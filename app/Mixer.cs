@@ -14,6 +14,7 @@ namespace CapriDesktop
         internal float Level;
         internal bool Muted;
         internal bool Playing;
+        internal float Peak;
     }
 
     // Each app's own volume in Windows' volume mixer, on every speaker it plays through, apart from the PC's volume, so "turn the
@@ -145,7 +146,10 @@ namespace CapriDesktop
                                     names[id] = name;
                                 }
                                 if (name == null) continue;
-                                each(new AppSound { App = name, Id = id, Level = level, Muted = muted, Playing = state == 1 }, volume);
+                                float peak = 0;
+                                ISoundMeter meter = control as ISoundMeter;
+                                if (meter != null) meter.GetPeakValue(out peak);
+                                each(new AppSound { App = name, Id = id, Level = level, Muted = muted, Playing = state == 1, Peak = peak }, volume);
                             }
                             catch (Exception) { }
                             finally { Drop(control); }
@@ -163,6 +167,12 @@ namespace CapriDesktop
                 if (listed != IntPtr.Zero) { try { Marshal.Release(listed); } catch (Exception) { } }
                 Drop(devices);
             }
+        }
+
+        [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface ISoundMeter
+        {
+            [PreserveSig] int GetPeakValue(out float peak);
         }
 
         private static void Drop(object value)

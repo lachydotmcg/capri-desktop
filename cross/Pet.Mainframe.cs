@@ -9,6 +9,77 @@ namespace CapriDesktop
 {
     internal sealed partial class Pet
     {
+        internal Mods ModList { get; private set; }
+        internal static volatile string SkinFolder;
+
+        private void StartMods()
+        {
+            ModList = new Mods(Program.Smoke ?? folder);
+            ModList.SkinChanged = Reskinned;
+            Reskinned();
+        }
+
+        private void Reskinned()
+        {
+            foreach (Clip shown in Clips) shown.Reload();
+            if (body != null) body.InvalidateVisual();
+        }
+
+        internal static bool HasArt(string name)
+        {
+            return typeof(Pet).Assembly.GetManifestResourceInfo(name) != null;
+        }
+
+        internal static PixelSize ArtSize(string name)
+        {
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(name))
+            using (Avalonia.Media.Imaging.Bitmap art = new Avalonia.Media.Imaging.Bitmap(stream)) return art.PixelSize;
+        }
+
+        internal static Avalonia.Media.Imaging.Bitmap ReadArt(string name)
+        {
+            string skin = SkinFolder;
+            if (skin != null && name.StartsWith("Capri.Sprite.", StringComparison.Ordinal))
+            {
+                string file = Path.Combine(skin, name.Substring("Capri.Sprite.".Length));
+                try
+                {
+                    if (File.Exists(file)) using (MemoryStream stream = new MemoryStream(File.ReadAllBytes(file))) return Finished(stream);
+                }
+                catch (Exception error)
+                {
+                    if (!(error is IOException || error is UnauthorizedAccessException || error is ArgumentException || error is InvalidOperationException || error is NotSupportedException)) throw;
+                    Brain.Log("mods", -1, "Skin picture " + name + ": " + error.Message);
+                }
+            }
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream(name))
+            {
+                if (stream == null) throw new FileNotFoundException("Capri's animation is missing: " + name);
+                return Finished(stream);
+            }
+        }
+
+        private static Avalonia.Media.Imaging.Bitmap Finished(Stream stream)
+        {
+            if (!ArtColors.Active) return new Avalonia.Media.Imaging.Bitmap(stream);
+            using (SkiaSharp.SKCodec codec = SkiaSharp.SKCodec.Create(stream))
+            {
+                if (codec == null) throw new ArgumentException("That picture couldn't be read.");
+                SkiaSharp.SKImageInfo info = new SkiaSharp.SKImageInfo(codec.Info.Width, codec.Info.Height, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Unpremul);
+                using (SkiaSharp.SKBitmap art = new SkiaSharp.SKBitmap(info))
+                {
+                    if (codec.GetPixels(info, art.GetPixels()) != SkiaSharp.SKCodecResult.Success) throw new ArgumentException("That picture couldn't be read.");
+                    int[] pixels = new int[info.Width * info.Height];
+                    System.Runtime.InteropServices.Marshal.Copy(art.GetPixels(), pixels, 0, pixels.Length);
+                    ArtColors.Apply(pixels);
+                    System.Runtime.InteropServices.Marshal.Copy(pixels, 0, art.GetPixels(), pixels.Length);
+                    using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(art))
+                    using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100))
+                    using (MemoryStream made = new MemoryStream(png.ToArray())) return new Avalonia.Media.Imaging.Bitmap(made);
+                }
+            }
+        }
+
         private Mainframe mainframe;
         private MenuItem hideItem;
         private string[] frameModels = Array.Empty<string>();
@@ -50,6 +121,14 @@ namespace CapriDesktop
 
         internal static int FrameSize(int size) { return Array.IndexOf(new[] { 0, 100, 125, 150, 175, 200 }, size) >= 0 ? size : 0; }
         internal void SetMainframeSize(int size) { Saved.MainframeSize = FrameSize(size); Save(); }
+        internal void SetMainframeColours(int look)
+        {
+            if (Saved.MainframeColours == MainframeTheme.ClampLook(look)) return;
+            Saved.MainframeColours = MainframeTheme.ClampLook(look);
+            Save();
+            MainframeTheme.UseLook(Saved.MainframeColours);
+            MainframeTheme.Repaint(mainframe);
+        }
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
         internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
         internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
@@ -147,6 +226,8 @@ namespace CapriDesktop
         private void RestoreBrainTier()
         {
             Saved.MainframeSize = FrameSize(Saved.MainframeSize);
+            Saved.MainframeColours = MainframeTheme.ClampLook(Saved.MainframeColours);
+            MainframeTheme.UseLook(Saved.MainframeColours);
             Saved.MemorySize = Brain.MemorySize;
             Saved.ReplyLength = Brain.ReplyLength;
             if (!Saved.BrainTier.HasValue) Saved.BrainTier = Brain.Remote == null ? 0 : Cloud.MediumKind(Brain.Remote.Kind) ? 1 : 2;

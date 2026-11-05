@@ -41,16 +41,19 @@ namespace CapriDesktop
             sheet.Dispose();
         }
 
-        private abstract class ModSheet : Form
+        private abstract class ModSheet : Form, LookWindow
         {
             internal readonly float Zoom;
             protected readonly Mainframe Frame;
+            private readonly int designWide, designTall;
 
             protected ModSheet(Mainframe owner, float zoom, string title, string heading, int wide, int tall)
             {
                 SuspendLayout();
                 Frame = owner;
                 Zoom = zoom;
+                designWide = wide;
+                designTall = tall;
                 Text = title;
                 Icon = owner.Icon;
                 ShowInTaskbar = false;
@@ -86,6 +89,7 @@ namespace CapriDesktop
                 label.ForeColor = colour;
                 label.BackColor = Ground;
                 label.AutoEllipsis = true;
+                label.UseMnemonic = false;
                 label.Bounds = Box(x, y, width, height);
                 Controls.Add(label);
                 return label;
@@ -105,11 +109,13 @@ namespace CapriDesktop
             internal string Crowded()
             {
                 float s = ScaleOf(this);
+                // A small desktop clamps the window, so check the size it was drawn for.
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, (int)Math.Round(designWide * s)), Math.Max(ClientSize.Height, (int)Math.Round(designTall * s)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
                     if (!a.Visible || (a is Label && a.Text.Length == 0)) continue;
-                    if (!ClientRectangle.Contains(a.Bounds)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds;
+                    if (!area.Contains(a.Bounds)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds;
                     Key key = a as Key;
                     if (key != null && key.Text.Length > 0 && TextRenderer.MeasureText(key.Text, key.Font).Width + (int)Math.Ceiling(12 * s) > key.Width) return "doesn't fit: " + key.Text;
                     for (int j = i + 1; j < Controls.Count; j++)
@@ -295,9 +301,10 @@ namespace CapriDesktop
 
         private sealed class ModsSheet : ModSheet
         {
-            internal const int Wide = 744, Tall = 654, Across = 3, Down = 2, Cards = Across * Down, CardWide = 222, CardStep = 233, CardTop = 110, CardTall = 238;
+            internal const int Wide = 744, Tall = 752, Across = 3, Down = 2, Cards = Across * Down, CardWide = 222, CardStep = 233, CardTop = 110, CardTall = 284;
             private readonly ModPreview[] previews = new ModPreview[Cards];
-            private readonly Label[] titles = new Label[Cards], metas = new Label[Cards], counts = new Label[Cards], stats = new Label[Cards];
+            private readonly Label[] titles = new Label[Cards], authors = new Label[Cards], abouts = new Label[Cards], metas = new Label[Cards], counts = new Label[Cards], stats = new Label[Cards];
+            private readonly ToolTip details = new ToolTip();
             private readonly ModStars[] stars = new ModStars[Cards];
             private readonly Key[] installs = new Key[Cards], views = new Key[Cards];
             private readonly Key[] filters = new Key[ModDirectory.Kinds.Length];
@@ -316,7 +323,7 @@ namespace CapriDesktop
                 Words("The directory checks mods for malware first. Code mods still ask before they run.", 28, 52, 688, 16, Small(), Faint);
                 search = new Entry();
                 search.Bounds = Box(28, 74, 352, 26);
-                search.Cue = "Search by name";
+                search.Cue = "Search name, author or description";
                 search.Box.AccessibleName = "Search the mods directory";
                 search.Box.AccessibleDescription = "Search mods";
                 search.Box.TextChanged += delegate { first = 0; Fill(); };
@@ -332,30 +339,32 @@ namespace CapriDesktop
                 {
                     int card = i, x = 28 + CardStep * (i % Across), y = CardTop + CardTall * (i / Across);
                     previews[i] = new ModPreview();
-                    previews[i].Bounds = Box(x, y, CardWide, 122);
+                    previews[i].Bounds = Box(x, y, CardWide, 110);
                     previews[i].Font = Small();
                     Controls.Add(previews[i]);
-                    titles[i] = Words("", x, y + 126, CardWide, 20, Type(10.5f * zoom, true), White);
-                    metas[i] = Words("", x, y + 146, CardWide, 16, Small(), Faint);
+                    titles[i] = Words("", x, y + 114, CardWide, 20, Type(10.5f * zoom, true), White);
+                    authors[i] = Words("", x, y + 136, CardWide, 16, Small(), Cyan);
+                    abouts[i] = Words("", x, y + 156, CardWide, 34, Type(9f * zoom), Faint);
+                    metas[i] = Words("", x, y + 194, CardWide, 16, Small(), Faint);
                     stars[i] = new ModStars();
-                    counts[i] = Words("", x, y + 162, CardWide, 16, Small(), Faint);
-                    stars[i].Bounds = Box(x, y + 180, 78, 16);
+                    counts[i] = Words("", x, y + 210, CardWide, 16, Small(), Faint);
+                    stars[i].Bounds = Box(x, y + 228, 78, 16);
                     stars[i].AccessibleDescription = "Rate mod";
                     stars[i].Picked += delegate(int picked) { Rate(card, picked); };
                     Controls.Add(stars[i]);
-                    stats[i] = Words("", x + 84, y + 180, CardWide - 84, 16, Small(), Faint);
-                    installs[i] = Make("Install", x, y + 200, 108, 24, delegate { Install(card); });
+                    stats[i] = Words("", x + 84, y + 228, CardWide - 84, 16, Small(), Faint);
+                    installs[i] = Make("Install", x, y + 248, 108, 24, delegate { Install(card); });
                     installs[i].AccessibleDescription = "Install mod";
-                    views[i] = Make("View", x + 114, y + 200, 108, 24, delegate { View(card); });
+                    views[i] = Make("View", x + 114, y + 248, 108, 24, delegate { View(card); });
                     views[i].AccessibleDescription = "View mod";
                 }
-                back = Make("Back", 28, 580, 60, 22, delegate { first -= Cards; Fill(); });
-                page = Words("", 272, 582, 200, 18, Font, Faint);
+                back = Make("Back", 28, 680, 60, 22, delegate { first -= Cards; Fill(); });
+                page = Words("", 272, 682, 200, 18, Font, Faint);
                 page.TextAlign = ContentAlignment.MiddleCenter;
-                next = Make("Next", 656, 580, 60, 22, delegate { first += Cards; Fill(); });
+                next = Make("Next", 656, 680, 60, 22, delegate { first += Cards; Fill(); });
                 empty = Words("", 28, 250, 688, 24, Font, Faint);
                 empty.TextAlign = ContentAlignment.MiddleCenter;
-                status = Words("", 28, 608, 688, 36, Font, Faint);
+                status = Words("", 28, 708, 688, 36, Font, Faint);
                 Frame.Fit(this);
                 Fill();
             }
@@ -456,6 +465,8 @@ namespace CapriDesktop
                     ModListing listing = At(i);
                     bool on = listing != null;
                     previews[i].Visible = titles[i].Visible = metas[i].Visible = installs[i].Visible = views[i].Visible = on;
+                    authors[i].Visible = on && listing.Author.Length > 0;
+                    abouts[i].Visible = on && listing.About.Length > 0;
                     stars[i].Visible = stats[i].Visible = counts[i].Visible = on && statsLive;
                     if (!on) continue;
                     bool have = Have(listing);
@@ -464,6 +475,10 @@ namespace CapriDesktop
                     previews[i].Image = listing.PreviewSha != null && pictures.TryGetValue(listing.PreviewSha, out picture) ? picture : null;
                     previews[i].AccessibleName = listing.Title + " preview";
                     titles[i].Text = listing.Title;
+                    authors[i].Text = listing.Author.Length > 0 ? "by " + listing.Author : "";
+                    abouts[i].Text = listing.About;
+                    titles[i].AccessibleDescription = listing.About;
+                    details.SetToolTip(previews[i], listing.Title + (listing.Author.Length > 0 ? "\nby " + listing.Author : "") + (listing.About.Length > 0 ? "\n" + listing.About : ""));
                     metas[i].Text = listing.Kind + " " + Math.Max(1, listing.Size / 1024) + " KB." + (have ? " Installed." : "");
                     stars[i].Value = listing.Rating;
                     stars[i].CanRate = statsLive && have;
@@ -565,6 +580,7 @@ namespace CapriDesktop
                     ticket++;
                     foreach (Image picture in pictures.Values) picture.Dispose();
                     pictures.Clear();
+                    details.Dispose();
                 }
                 base.Dispose(disposing);
             }
@@ -574,6 +590,8 @@ namespace CapriDesktop
             internal string PageShown { get { return page.Visible ? page.Text : null; } }
             internal int ShownCount { get { return shown.Count; } }
             internal string TitleOf(int card) { return titles[card].Visible ? titles[card].Text : null; }
+            internal string AuthorOf(int card) { return authors[card].Visible ? authors[card].Text : null; }
+            internal string AboutOf(int card) { return abouts[card].Visible ? abouts[card].Text : null; }
             internal string MetaOf(int card) { return metas[card].Text; }
             internal string StatsOf(int card) { return stats[card].Visible ? stats[card].Text + " \u00B7 " + counts[card].Text : null; }
             internal string InstallTextOf(int card) { return installs[card].Text; }
@@ -622,195 +640,6 @@ namespace CapriDesktop
             internal string ModPath { get { return mod.Path; } }
         }
 
-        private void CheckDirectory(List<string> checks, string output)
-        {
-            FormWindowState wasState = WindowState;
-            Restore();
-            Mods mods = capri.ModList;
-            Func<string, long, byte[]> wasGet = ModDirectory.Get;
-            Func<string, string, byte[]> wasPost = ModDirectory.Post;
-            string wasFolder = ModDirectory.PreviewFolder;
-            Func<ModFile, string, bool> wasAsk = ModAsk;
-            string under = Path.Combine(output, "directory-downloads");
-            ModDirectory.PreviewFolder = Path.Combine(output, "directory-previews");
-            if (Directory.Exists(ModDirectory.PreviewFolder)) Directory.Delete(ModDirectory.PreviewFolder, true);
-            ModsSheet sheet = null;
-            try
-            {
-                if (ModDirectory.BlobSha(Encoding.ASCII.GetBytes("test content\n")) != "d670460b4b4aece5915caf5c68d12f560a9fe3e4") throw new Exception("A file's git fingerprint came out wrong.");
-                byte[] settings = Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"wake_names\":[\"Nova\"]}");
-                byte[] code = Encoding.UTF8.GetBytes("// capri-mod: 1\n// id: directory-code\n// name: Directory Code\n\npublic class M : ICapriMod { public void Start(ICapriHost h) { } public bool Heard(string w) { return false; } public void Stop() { } }");
-                byte[] picture;
-                using (Bitmap made = new Bitmap(320, 180))
-                using (Graphics paint = Graphics.FromImage(made))
-                using (MemoryStream held = new MemoryStream())
-                {
-                    paint.Clear(Color.FromArgb(40, 150, 170));
-                    using (Brush mark = new SolidBrush(Color.FromArgb(240, 60, 90))) paint.FillEllipse(mark, 100, 30, 120, 120);
-                    made.Save(held, ImageFormat.Png);
-                    picture = held.ToArray();
-                }
-                string settingsSha = ModDirectory.BlobSha(settings), codeSha = ModDirectory.BlobSha(code), pictureSha = ModDirectory.BlobSha(picture);
-                string same = "\"type\":\"blob\",\"size\":10,\"sha\":\"" + settingsSha + "\"";
-                string tree = "{\"tree\":[{\"path\":\"README.md\"," + same + "},{\"path\":\"mods\",\"type\":\"tree\",\"sha\":\"" + settingsSha + "\"}"
-                    + ",{\"path\":\"mods/far-names/far-names.capri-mod\",\"type\":\"blob\",\"size\":" + settings.Length + ",\"sha\":\"" + settingsSha + "\"}"
-                    + ",{\"path\":\"mods/far-names/preview.png\",\"type\":\"blob\",\"size\":" + picture.Length + ",\"sha\":\"" + pictureSha + "\"}"
-                    + ",{\"path\":\"mods/directory-code/directory-code.capri-code\",\"type\":\"blob\",\"size\":" + code.Length + ",\"sha\":\"" + codeSha + "\"}"
-                    + ",{\"path\":\"mods/directory-code/preview.png\",\"type\":\"blob\",\"size\":999999999,\"sha\":\"" + pictureSha + "\"}"
-                    + ",{\"path\":\"mods/no-mod/preview.png\"," + same + "},{\"path\":\"mods/../../evil/evil.capri-mod\"," + same + "},{\"path\":\"mods/deep/er/evil.capri-mod\"," + same + "},{\"path\":\"mods/a/evil.exe\"," + same + "},{\"path\":\"mods/a/..evil.capri-mod\"," + same + "}"
-                    + ",{\"path\":\"mods/huge/huge.capri-skin\",\"type\":\"blob\",\"size\":999999999999,\"sha\":\"" + settingsSha + "\"},{\"path\":\"mods/badsha/badsha.capri-mod\",\"type\":\"blob\",\"size\":10,\"sha\":\"../../x\"}]}";
-                string statsJson = "{\"mods\":[{\"folder\":\"far-names\",\"downloads\":1234,\"rating\":4.5,\"votes\":8},{\"folder\":\"gone\",\"downloads\":9,\"rating\":1,\"votes\":1}]}";
-                bool wrongBytes = false, wrongPicture = false, statsDown = false;
-                int pictureGets = 0;
-                List<string> posts = new List<string>();
-                ModDirectory.Get = delegate(string url, long most)
-                {
-                    if (url.Contains("/trees/")) return Encoding.UTF8.GetBytes(tree);
-                    if (url.EndsWith("/preview.png", StringComparison.Ordinal)) { pictureGets++; return wrongPicture ? settings : picture; }
-                    if (url == ModDirectory.StatsPage) { if (statsDown) throw new System.Net.WebException("stand-in"); return Encoding.UTF8.GetBytes(statsJson); }
-                    if (wrongBytes) return Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"far-names\",\"name\":\"Far Names\",\"wake_names\":[\"Evil\"]}");
-                    return url.EndsWith(settingsSha, StringComparison.Ordinal) ? settings : code;
-                };
-                ModDirectory.Post = delegate(string url, string body)
-                {
-                    posts.Add(url + " " + body);
-                    return Encoding.UTF8.GetBytes("{\"folder\":\"far-names\",\"downloads\":1235,\"rating\":4.25,\"votes\":9}");
-                };
-                List<ModListing> found = ModDirectory.Browse();
-                if (found.Count != 2 || found[0].Folder != "directory-code" || found[1].Folder != "far-names") throw new Exception("The directory listing let in the wrong files: " + found.Count);
-                if (found[1].PreviewSha != pictureSha || found[0].PreviewSha != null || found[1].Title != "Far Names") throw new Exception("The directory listing read previews or titles wrong.");
-                checks.Add("PASS mods directory: only mods/<folder>/<mod file> is listed with its preview.png; other files, paths out of the folder, huge files and bad fingerprints are not");
-                wrongPicture = true;
-                bool refused = false;
-                try { ModDirectory.Preview(found[1], ModDirectory.PreviewFolder); }
-                catch (ModException) { refused = true; }
-                wrongPicture = false;
-                if (!refused) throw new Exception("A preview that didn't match its listing was kept.");
-                pictureGets = 0;
-                byte[] loaded = ModDirectory.Preview(found[1], ModDirectory.PreviewFolder);
-                ModDirectory.Preview(found[1], ModDirectory.PreviewFolder);
-                if (pictureGets != 1 || loaded.Length != picture.Length) throw new Exception("A preview wasn't saved for next time: " + pictureGets);
-                byte[] giant = (byte[])picture.Clone();
-                giant[16] = 1;
-                if (ModDirectory.Picture(giant) != null || ModDirectory.Picture(settings) != null) throw new Exception("A giant or broken picture was drawn.");
-                checks.Add("PASS mods window previews: a preview has to match its listing, is kept so it isn't downloaded twice, and giant or broken pictures aren't drawn");
-                ShowMods(true);
-                sheet = new ModsSheet(this, 1f);
-                sheet.Inline = true;
-                sheet.Show(this);
-                sheet.LoadMods();
-                if (sheet.ShownCount != 2 || sheet.TitleOf(1) != "Far Names" || sheet.TitleOf(2) != null || !sheet.PictureOn(1) || sheet.PictureOn(0) || !sheet.Across3) throw new Exception("The mods window didn't show its cards 3 across.");
-                if (sheet.StatsOf(1) != "4.5 (8) \u00B7 1.2K downloads" || sheet.StatsOf(0) != "No ratings \u00B7 0 downloads" || sheet.CanRateCard(1)) throw new Exception("The mods window's numbers were wrong: " + sheet.StatsOf(1) + " / " + sheet.StatsOf(0));
-                string crowded = sheet.Crowded();
-                if (crowded != null) throw new Exception("The mods window doesn't fit: " + crowded);
-                sheet.Picture(Path.Combine(output, "mods-window.png"));
-                checks.Add("PASS mods window: cards go 3 across with a preview, title, downloads and rating, and a mod with no preview says so");
-                wrongBytes = true;
-                refused = false;
-                try { ModDirectory.Download(found[1], under); }
-                catch (ModException) { refused = true; }
-                wrongBytes = false;
-                if (!refused || mods.All.Count != 0) throw new Exception("A download that didn't match its listing was kept.");
-                posts.Clear();
-                sheet.PressInstall(1);
-                if (mods.All.Count != 1 || mods.All[0].File.Id != "far-names" || !Hands.HeardName("hey nova")) throw new Exception("A mod from the directory did not install: " + sheet.StatusShown);
-                if (posts.Count != 1 || !posts[0].EndsWith("/mods/download {\"folder\":\"far-names\"}", StringComparison.Ordinal)) throw new Exception("An install wasn't counted once: " + string.Join(" | ", posts));
-                if (Directory.Exists(under) && Directory.GetDirectories(under).Length != 0) throw new Exception("The download was left behind.");
-                if (!sheet.MetaOf(1).EndsWith("Installed.", StringComparison.Ordinal) || sheet.InstallTextOf(1) != "Reinstall" || !sheet.CanRateCard(1) || sheet.CanRateCard(0)) throw new Exception("An installed directory mod wasn't marked, or couldn't be rated.");
-                checks.Add("PASS mods directory: a matching download installs through the normal import and is counted once; one that doesn't match is refused");
-                posts.Clear();
-                sheet.PressStars(1, 4);
-                if (posts.Count != 1 || !posts[0].EndsWith("/mods/rate {\"folder\":\"far-names\",\"stars\":4}", StringComparison.Ordinal) || sheet.StatsOf(1) != "4.3 (9) \u00B7 1.2K downloads" || sheet.StatusShown != "You gave Far Names 4 stars.") throw new Exception("A rating wasn't sent or shown: " + sheet.StatsOf(1) + " / " + sheet.StatusShown);
-                posts.Clear();
-                sheet.PressStars(0, 5);
-                if (posts.Count != 0) throw new Exception("A mod that isn't installed was rated.");
-                checks.Add("PASS mods window ratings: only an installed mod can be rated, and the new average shows");
-                ShowMods(true);
-                FillMods();
-                if (!modPublishes[0].Visible || modPublishes[1].Visible) throw new Exception("Publish mod wasn't only on imported mods.");
-                using (PublishSheet publish = new PublishSheet(this, 1f, mods.All[0]))
-                {
-                    publish.Show(this);
-                    string publishCrowded = publish.Crowded();
-                    if (publishCrowded != null) throw new Exception("Publish mod doesn't fit: " + publishCrowded);
-                    if (!publish.Steps.Contains("mods/far-names/") || !publish.Steps.Contains("far-names" + Mods.Extension) || !publish.Steps.Contains("preview.png") || !publish.Steps.Contains("README.md") || !publish.Steps.Contains("pull request")) throw new Exception("Publish mod's steps were wrong: " + publish.Steps);
-                    publish.Picture(Path.Combine(output, "publish-mod.png"));
-                    publish.Close();
-                }
-                using (Bitmap shot = new Bitmap(Width, Height))
-                {
-                    DrawToBitmap(shot, new Rectangle(Point.Empty, Size));
-                    shot.Save(Path.Combine(output, "mods-page-publish.png"), ImageFormat.Png);
-                }
-                checks.Add("PASS Publish mod: it's on imported mods and explains the fork, folder, README, preview and pull request");
-                capri.ModList.Remove(mods.All[0]);
-                int asked = 0;
-                ModAsk = delegate { asked++; return false; };
-                posts.Clear();
-                sheet.PressInstall(0);
-                if (asked != 1 || mods.All.Count != 0 || posts.Count != 0) throw new Exception("A code mod from the directory did not ask, stayed after a no, or was counted: " + sheet.StatusShown);
-                ModAsk = wasAsk;
-                checks.Add("PASS mods directory: a code mod still asks, and a no leaves nothing and isn't counted");
-                statsDown = true;
-                sheet.LoadMods();
-                if (sheet.ShownCount != 2 || sheet.StatsOf(1) != null || sheet.StatusShown != "") throw new Exception("Losing the worker wasn't quiet: " + sheet.StatusShown);
-                statsDown = false;
-                checks.Add("PASS mods window: with the worker down the mods still show, without numbers or an error");
-                StringBuilder many = new StringBuilder("{\"tree\":[");
-                foreach (string name in new[] { "big-hat.capri-skin", "blue-hair.capri-mod", "dance-party.capri-code", "red-hair.capri-mod", "red-hat.capri-skin", "tall-hat.capri-skin", "wide-hat.capri-skin", "zoom.capri-mod" })
-                    many.Append("{\"path\":\"mods/" + Path.GetFileNameWithoutExtension(name) + "/" + name + "\",\"type\":\"blob\",\"size\":2048,\"sha\":\"" + settingsSha + "\"},");
-                string smaller = tree;
-                tree = many.ToString().TrimEnd(',') + "]}";
-                sheet.LoadMods();
-                if (sheet.PageShown != "Page 1 of 2" || sheet.TitleOf(5) != "Tall Hat") throw new Exception("The mods window's first page was wrong.");
-                sheet.PressNext();
-                if (sheet.PageShown != "Page 2 of 2" || sheet.TitleOf(0) != "Wide Hat" || sheet.TitleOf(2) != null) throw new Exception("The mods window's second page was wrong.");
-                sheet.Type2("HAIR red");
-                if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Red Hair" || sheet.PageShown != null) throw new Exception("Search didn't find the mod with every word.");
-                sheet.Type2("");
-                sheet.PressFilter(3);
-                if (sheet.ShownCount != 4 || !sheet.Filtered(3) || sheet.Filtered(0)) throw new Exception("The Skins filter was wrong.");
-                sheet.Type2("red");
-                if (sheet.ShownCount != 1 || sheet.TitleOf(0) != "Red Hat") throw new Exception("Search and a filter didn't work together.");
-                sheet.PressFilter(2);
-                if (sheet.ShownCount != 0 || sheet.EmptyShown != "No mods match that.") throw new Exception("No matches wasn't said.");
-                sheet.Type2("");
-                sheet.PressFilter(0);
-                crowded = sheet.Crowded();
-                if (crowded != null) throw new Exception("A full mods window doesn't fit: " + crowded);
-                sheet.Picture(Path.Combine(output, "mods-window-full.png"));
-                checks.Add("PASS mods window: search needs every word in any case, filters go by kind, both work together and with pages, and no matches is said");
-                tree = "{\"tree\":[]}";
-                sheet.LoadMods();
-                if (sheet.EmptyShown != "Nothing to show from the mods directory." || sheet.StatusShown != "No mods in the directory yet.") throw new Exception("An empty directory wasn't said.");
-                tree = "{nope";
-                sheet.LoadMods();
-                if (sheet.EmptyShown == null || sheet.StatusShown != "The mods directory sent something I can't read.") throw new Exception("Broken directory data wasn't said: " + sheet.StatusShown);
-                tree = smaller;
-                sheet.Close();
-                foreach (float size in new[] { 1.5f, 2f })
-                    using (ModsSheet sized = new ModsSheet(this, size))
-                    {
-                        sized.Inline = true;
-                        sized.Show(this);
-                        sized.LoadMods();
-                        string problem = sized.Crowded();
-                        sized.Close();
-                        if (problem != null) throw new Exception("The mods window doesn't fit at " + size + ": " + problem);
-                    }
-                ShowMods(false);
-                checks.Add("PASS mods window: empty and broken directories are said, and it fits at 100%, 150% and 200%");
-                checks.Add("LIMIT mods window: these use stand-in downloads and a stand-in worker, so real GitHub previews and real downloads and ratings need a live check once the worker is deployed");
-            }
-            finally
-            {
-                if (sheet != null && !sheet.IsDisposed) sheet.Close();
-                ModDirectory.Get = wasGet;
-                ModDirectory.Post = wasPost;
-                ModDirectory.PreviewFolder = wasFolder;
-                ModAsk = wasAsk;
-                WindowState = wasState;
-            }
-        }
+
     }
 }

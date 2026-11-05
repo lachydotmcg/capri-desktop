@@ -616,7 +616,7 @@ namespace CapriDesktop
         // Bahnschrift like the Mainframe's; anything else keeps her mono font, which wraps and draws every script she speaks.
         internal static Bitmap Plate(string text, bool brain, float s)
         {
-            Color ink = brain ? Neon.Rose : Neon.White, bar = brain ? Neon.Cyan : Neon.Hot;
+            Color ink = brain ? CityLook.Rose : CityLook.White, bar = brain ? CityLook.Cyan : CityLook.Hot;
             int margin = Rim(s);
             float left = 22 * s, right = 14 * s, padY = 8 * s, big = 9 * s, small = 3 * s, room = Widest(s) - left - right;
             bool latin = Look.Drawable(text);
@@ -656,14 +656,14 @@ namespace CapriDesktop
                     graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
                     RectangleF body = new RectangleF(margin, margin, wide, tall);
                     using (GraphicsPath hull = Neon.Cut(body, big, small, big, small))
-                    using (LinearGradientBrush wine = new LinearGradientBrush(new RectangleF(body.Left, body.Top - 1, 16, body.Height + 2), Neon.Glow, Neon.Ground, LinearGradientMode.Vertical))
+                    using (LinearGradientBrush wine = new LinearGradientBrush(new RectangleF(body.Left, body.Top - 1, 16, body.Height + 2), CityLook.Glow, CityLook.Ground, LinearGradientMode.Vertical))
                     {
                         wine.Blend = Neon.Fade;
                         graphics.FillPath(wine, hull);
                     }
                     GraphicsState state = graphics.Save();
                     graphics.TranslateTransform(margin, margin);
-                    Neon.Frame(graphics, new Size(wide, tall), s, big, small, 26 * s, 6 * s);
+                    CityLook.Frame(graphics, new Size(wide, tall), s, big, small, 26 * s, 6 * s);
                     graphics.Restore(state);
                     using (Brush tick = new SolidBrush(bar)) graphics.FillRectangle(tick, body.Left + 10 * s, body.Top + 9 * s, 2.5f * s, tall - 18 * s);
                     middle.LineAlignment = StringAlignment.Center;
@@ -745,7 +745,7 @@ namespace CapriDesktop
                     graphics.CompositingMode = CompositingMode.SourceOver;
                     graphics.SetClip(body);
                     graphics.IntersectClip(strip);
-                    using (Brush tint = new SolidBrush(Color.FromArgb((int)(96 * amount), i % 2 == 0 ? Neon.Hot : Neon.Cyan))) graphics.FillRectangle(tint, strip);
+                    using (Brush tint = new SolidBrush(Color.FromArgb((int)(96 * amount), i % 2 == 0 ? CityLook.Hot : CityLook.Cyan))) graphics.FillRectangle(tint, strip);
                     graphics.ResetClip();
                 }
             }

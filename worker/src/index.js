@@ -8,7 +8,7 @@ const sha256 = async (text) => {
 const counters = { '/star': 'stars', '/download': 'downloads' };
 
 const site = 'https://capriai.app/';
-const discord = 'https://discord.gg/F4fDHfGtFk';
+const discord = 'https://discord.gg/capridesktop';
 const models = [
   { name: '@cf/google/gemma-4-26b-a4b-it', vision: true, options: { max_completion_tokens: 260, temperature: 0.3, chat_template_kwargs: { enable_thinking: false } } },
   { name: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', options: { max_tokens: 260, temperature: 0.3 } }

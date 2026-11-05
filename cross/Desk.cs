@@ -29,7 +29,12 @@ namespace CapriDesktop
                 if (OperatingSystem.IsWindows()) return new WindowsDesk();
                 if (OperatingSystem.IsMacOS()) return new MacDesk();
                 if (OperatingSystem.IsLinux() && HyprDesk.Socket() != null) return new HyprDesk();
-                if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null && Environment.GetEnvironmentVariable("DISPLAY") != null) return new X11Desk();
+                if (OperatingSystem.IsLinux() && Environment.GetEnvironmentVariable("DISPLAY") != null)
+                {
+                    // On Wayland, XWayland only knows where the mouse is while it's over an X window, such as her while she's held.
+                    Desk desk = new X11Desk();
+                    return Environment.GetEnvironmentVariable("WAYLAND_DISPLAY") == null ? desk : new BareDesk { HeldAt = desk.Pointer };
+                }
             }
             catch (Exception) { }
             return new BareDesk();
@@ -43,6 +48,9 @@ namespace CapriDesktop
         internal virtual string Debug() { return ""; }
         // Where the mouse is on the whole desktop, in pixels, or null where the desktop won't say (Wayland).
         internal virtual PixelPoint? Pointer() { return null; }
+        // Where the mouse is while she's being dragged, read straight from the desktop, so a window move the desktop hasn't
+        // confirmed yet doesn't skew it. Null keeps the drag on her window's own idea of where it is.
+        internal virtual PixelPoint? Grabbed() { return null; }
 
         // Asks the window manager not to give this window the keyboard when it's shown.
         internal virtual void Unfocused(long window) { }
@@ -69,7 +77,10 @@ namespace CapriDesktop
 
     internal sealed class BareDesk : Desk
     {
+        internal Func<PixelPoint?> HeldAt;
+
         internal override string Name { get { return "screen edges only"; } }
+        internal override PixelPoint? Grabbed() { return HeldAt == null ? null : HeldAt(); }
         internal override List<Spot> Windows(ICollection<long> skip) { return new List<Spot>(); }
         internal override Spot Find(long window) { return null; }
         internal override bool Alive(long window) { return false; }
@@ -309,6 +320,8 @@ namespace CapriDesktop
         }
 
         internal override string Name { get { return "X11"; } }
+
+        internal override PixelPoint? Grabbed() { return Pointer(); }
 
         internal override PixelPoint? Pointer()
         {
@@ -657,8 +670,10 @@ namespace CapriDesktop
             catch (Exception) { return null; }
             finally
             {
+                // Losing access to the cursor script must not discard a finished pointer query.
                 try { File.Delete(path); }
-                catch (IOException) { }
+                catch (IOException error) { Brain.Log("mouse", -1, error.Message); }
+                catch (UnauthorizedAccessException error) { Brain.Log("mouse", -1, error.Message); }
             }
         }
     }

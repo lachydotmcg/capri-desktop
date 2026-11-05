@@ -402,30 +402,30 @@ namespace CapriDesktop
                 paint.ScaleTransform(scale, scale);
                 paint.SmoothingMode = SmoothingMode.AntiAlias;
                 using (GraphicsPath clip = Neon.Cut(new RectangleF(0, 0, Wide - 1, Tall - 1), 20, 5, 20, 5)) paint.SetClip(clip);
-                Neon.Backdrop(paint, new Size(Wide, Tall), 250);
-                Neon.Frame(paint, new Size(Wide, Tall), 1, 20, 5, 55, 20);
-                Words(paint, "CHESS", title, Neon.Rose, new RectangleF(24, 22, 300, 32), false);
-                Words(paint, "X", body, Neon.Rose, Button(128), true);
-                Words(paint, "SESSION  /  " + game.Score.Text, small, Neon.Cyan, new RectangleF(24, 65, 430, 24), false);
-                Words(paint, "YOU  /  " + (game.You == 1 ? "WHITE" : "BLACK"), small, Neon.White, new RectangleF(24, 101, 180, 24), false);
+                CityLook.Backdrop(paint, new Size(Wide, Tall), 250);
+                CityLook.Frame(paint, new Size(Wide, Tall), 1, 20, 5, 55, 20);
+                Words(paint, "CHESS", title, CityLook.Rose, new RectangleF(24, 22, 300, 32), false);
+                Words(paint, "X", body, CityLook.Rose, Button(128), true);
+                Words(paint, "SESSION  /  " + game.Score.Text, small, CityLook.Cyan, new RectangleF(24, 65, 430, 24), false);
+                Words(paint, "YOU  /  " + (game.You == 1 ? "WHITE" : "BLACK"), small, CityLook.White, new RectangleF(24, 101, 180, 24), false);
                 for (int level = 0; level < 3; level++)
                 {
                     string name = new[] { "easy", "normal", "hard" }[level];
                     Panel(paint, Button(133 + level), name == game.Level);
-                    Words(paint, name.ToUpperInvariant(), small, name == game.Level ? Neon.Cyan : Neon.Faint, Button(133 + level), true);
+                    Words(paint, name.ToUpperInvariant(), small, name == game.Level ? CityLook.Cyan : CityLook.Faint, Button(133 + level), true);
                 }
                 int checkedKing = game.Board.Check ? game.Board.Turn == 1 ? game.Board.WhiteKing : game.Board.BlackKing : -1;
                 for (int square = 0; square < 128; square++)
                 {
                     if (!ChessPosition.On(square)) { square += 7; continue; }
                     RectangleF tile = Tile(square, game.You);
-                    using (Brush fill = new SolidBrush(((square + square / 16) & 1) == 0 ? Neon.Well : Color.FromArgb(43, 38, 51))) paint.FillRectangle(fill, tile);
+                    using (Brush fill = new SolidBrush(((square + square / 16) & 1) == 0 ? CityLook.Well : Color.FromArgb(43, 38, 51))) paint.FillRectangle(fill, tile);
                     if (game.LastMove.From == square || game.LastMove.To == square)
-                        using (Brush last = new SolidBrush(Color.FromArgb(42, Neon.Cyan))) paint.FillRectangle(last, tile);
+                        using (Brush last = new SolidBrush(Color.FromArgb(42, CityLook.Cyan))) paint.FillRectangle(last, tile);
                     if (checkedKing == square)
-                        using (Brush danger = new SolidBrush(Color.FromArgb(110, Neon.Hot))) paint.FillRectangle(danger, tile);
+                        using (Brush danger = new SolidBrush(Color.FromArgb(110, CityLook.Hot))) paint.FillRectangle(danger, tile);
                     if (selected == square || hint.To == square)
-                        using (Pen edge = new Pen(Neon.Cyan, 2)) paint.DrawRectangle(edge, tile.X + 2, tile.Y + 2, tile.Width - 4, tile.Height - 4);
+                        using (Pen edge = new Pen(CityLook.Cyan, 2)) paint.DrawRectangle(edge, tile.X + 2, tile.Y + 2, tile.Width - 4, tile.Height - 4);
                     int piece = game.Board.Cells[square];
                     if (piece != 0) Piece(paint, piece, tile);
                     bool target = false;
@@ -433,26 +433,26 @@ namespace CapriDesktop
                         foreach (ChessMove move in legal) if (move.From == selected && move.To == square) { target = true; break; }
                     if (target)
                     {
-                        if (piece == 0) using (Brush dot = new SolidBrush(Color.FromArgb(180, Neon.Cyan))) paint.FillEllipse(dot, tile.X + 22, tile.Y + 22, 8, 8);
-                        else using (Pen ring = new Pen(Neon.Cyan, 2)) paint.DrawEllipse(ring, tile.X + 4, tile.Y + 4, 44, 44);
+                        if (piece == 0) using (Brush dot = new SolidBrush(Color.FromArgb(180, CityLook.Cyan))) paint.FillEllipse(dot, tile.X + 22, tile.Y + 22, 8, 8);
+                        else using (Pen ring = new Pen(CityLook.Cyan, 2)) paint.DrawEllipse(ring, tile.X + 4, tile.Y + 4, 44, 44);
                     }
                 }
                 for (int coordinate = 0; coordinate < 8; coordinate++)
                 {
-                    Words(paint, "abcdefgh"[game.You == 1 ? coordinate : 7 - coordinate].ToString(), small, Neon.Faint, new RectangleF(32 + coordinate * 52, 548, 52, 16), true);
-                    Words(paint, (game.You == 1 ? 8 - coordinate : coordinate + 1).ToString(), small, Neon.Faint, new RectangleF(9, 132 + coordinate * 52, 20, 52), true);
+                    Words(paint, "abcdefgh"[game.You == 1 ? coordinate : 7 - coordinate].ToString(), small, CityLook.Faint, new RectangleF(32 + coordinate * 52, 548, 52, 16), true);
+                    Words(paint, (game.You == 1 ? 8 - coordinate : coordinate + 1).ToString(), small, CityLook.Faint, new RectangleF(9, 132 + coordinate * 52, 20, 52), true);
                 }
-                Words(paint, string.IsNullOrEmpty(note) ? game.Status : note, body, game.Result == 2 ? Neon.Rose : Neon.White, new RectangleF(24, 563, 434, 24), false);
+                Words(paint, string.IsNullOrEmpty(note) ? game.Status : note, body, game.Result == 2 ? CityLook.Rose : CityLook.White, new RectangleF(24, 563, 434, 24), false);
                 string[] buttons = { "UNDO", "NEW GAME", "HINT", "RESIGN" };
                 for (int action = 0; action < buttons.Length; action++)
                 {
                     Panel(paint, Button(129 + action), false);
-                    Words(paint, buttons[action], small, action == 3 ? Neon.Rose : Neon.Cyan, Button(129 + action), true);
+                    Words(paint, buttons[action], small, action == 3 ? CityLook.Rose : CityLook.Cyan, Button(129 + action), true);
                 }
                 if (promotion)
                 {
-                    using (Brush veil = new SolidBrush(Color.FromArgb(215, Neon.Ground))) paint.FillRectangle(veil, 32, 132, 416, 416);
-                    Words(paint, "PROMOTE TO", body, Neon.White, new RectangleF(80, 266, 320, 32), true);
+                    using (Brush veil = new SolidBrush(Color.FromArgb(215, CityLook.Ground))) paint.FillRectangle(veil, 32, 132, 416, 416);
+                    Words(paint, "PROMOTE TO", body, CityLook.White, new RectangleF(80, 266, 320, 32), true);
                     int[] kinds = { 5, 4, 3, 2 };
                     string[] names = { "QUEEN", "ROOK", "BISHOP", "KNIGHT" };
                     for (int pick = 0; pick < kinds.Length; pick++)
@@ -460,7 +460,7 @@ namespace CapriDesktop
                         RectangleF box = Button(140 + pick);
                         Panel(paint, box, false);
                         Piece(paint, kinds[pick] * game.You, new RectangleF(box.X + 4, box.Y, 52, 52));
-                        Words(paint, names[pick], small, Neon.Cyan, new RectangleF(box.X, box.Y + 48, box.Width, 18), true);
+                        Words(paint, names[pick], small, CityLook.Cyan, new RectangleF(box.X, box.Y + 48, box.Width, 18), true);
                     }
                 }
             }
@@ -470,8 +470,8 @@ namespace CapriDesktop
         private static void Panel(Graphics paint, RectangleF box, bool selected)
         {
             using (GraphicsPath shape = Neon.Cut(box, 5, 2, 5, 2))
-            using (Brush fill = new SolidBrush(selected ? Neon.Deep : Neon.Well))
-            using (Pen edge = new Pen(selected ? Neon.Cyan : Neon.WellEdge)) { paint.FillPath(fill, shape); paint.DrawPath(edge, shape); }
+            using (Brush fill = new SolidBrush(selected ? CityLook.Deep : CityLook.Well))
+            using (Pen edge = new Pen(selected ? CityLook.Cyan : CityLook.WellEdge)) { paint.FillPath(fill, shape); paint.DrawPath(edge, shape); }
         }
 
         internal static void Piece(Graphics paint, int piece, RectangleF box)
@@ -479,8 +479,8 @@ namespace CapriDesktop
             GraphicsState state = paint.Save();
             paint.TranslateTransform(box.X, box.Y);
             paint.ScaleTransform(box.Width / 52, box.Height / 52);
-            using (Brush fill = new SolidBrush(piece > 0 ? Neon.White : Neon.Rose))
-            using (Pen edge = new Pen(piece > 0 ? Neon.OnInk : Neon.Well, 1.5f))
+            using (Brush fill = new SolidBrush(piece > 0 ? CityLook.White : CityLook.Rose))
+            using (Pen edge = new Pen(piece > 0 ? CityLook.OnInk : CityLook.Well, 1.5f))
             using (GraphicsPath shape = new GraphicsPath(FillMode.Winding))
             {
                 int kind = Math.Abs(piece);
@@ -498,7 +498,7 @@ namespace CapriDesktop
                 paint.FillPath(fill, shape);
                 paint.DrawPath(edge, shape);
                 if (kind == 3) paint.DrawLine(edge, 28, 11, 23, 19);
-                if (kind == 2) using (Brush eye = new SolidBrush(Neon.Well)) paint.FillEllipse(eye, 23, 16, 3, 3);
+                if (kind == 2) using (Brush eye = new SolidBrush(CityLook.Well)) paint.FillEllipse(eye, 23, 16, 3, 3);
                 paint.DrawLine(edge, 17, 38, 35, 38);
             }
             paint.Restore(state);

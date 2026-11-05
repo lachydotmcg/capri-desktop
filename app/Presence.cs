@@ -20,7 +20,7 @@ namespace CapriDesktop
         internal static string PipeName = "discord-ipc-";
         internal const string Picture = "capri";
         private const string Site = "https://capriai.app/";
-        private const string Server = "https://discord.gg/F4fDHfGtFk";
+        private const string Server = "https://discord.gg/capridesktop";
         // Discord only animates pictures at a public link, so her moving art sits on her site. Until it's there, or while the
         // site's down, her still picture shows.
         private const string Art = Site + "assets/presence/";

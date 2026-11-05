@@ -49,12 +49,13 @@ namespace CapriDesktop
                 double y = x == 0 ? e.Delta.Y : 0;
                 GlideTo((glide.IsEnabled ? to : Scroll.Offset) - new Vector(x * 36 * Zoom, y * 36 * Zoom)); e.Handled = true;
             }, RoutingStrategies.Tunnel);
-            glide.Tick += (_, _) =>
+            glide.Tick += (_, _) => Program.Guard(() =>
             {
                 double t = Math.Min(1, clock.Elapsed.TotalMilliseconds / 180), eased = 1 - Math.Pow(1 - t, 3);
-                Scroll.Offset = from + (to - from) * eased;
-                if (t >= 1) glide.Stop();
-            };
+                // A glide that fails still ends, so its timer can't spin forever.
+                try { Scroll.Offset = from + (to - from) * eased; }
+                finally { if (t >= 1) glide.Stop(); }
+            });
             KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
             Page.PointerPressed += (_, e) => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); };
             AddHandler(GotFocusEvent, (_, e) => { if (e.Source is Control control) control.BringIntoView(); });
@@ -141,6 +142,7 @@ namespace CapriDesktop
         private readonly Dictionary<string, Control> rows = new Dictionary<string, Control>();
         private readonly Dictionary<string, Action<int>> changes = new Dictionary<string, Action<int>>();
         private readonly List<Window> sheets = new List<Window>();
+        internal ModsWindow Mods { get; private set; }
         private readonly DispatcherTimer status = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         // Support's heart beats twice every 7 seconds while her main page shows, and its rim lights with it (Lachy, 4 Nov).
         private const double BeatMs = 7000;
@@ -154,6 +156,8 @@ namespace CapriDesktop
         private readonly NeonRung[] brains = new NeonRung[3];
         private readonly NeonRung[] voices = new NeonRung[4];
         private readonly NeonPicker models, freeKeys, voicePicker, speechModels;
+        private readonly NeonPicker huskMode;
+        private readonly NeonCaption huskLabel;
         private readonly NeonEntry textKey, voiceKey, voiceId, nickname, custom, localAddress;
         private bool paged, syncing, closed, finishing;
         private string layout;
@@ -166,7 +170,7 @@ namespace CapriDesktop
         private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 222, 278 }, new[] { 400, 428 }, new[] { 876, 904 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 250, 278 }, new[] { 400, 428 }, new[] { 876, 904 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -240,6 +244,7 @@ namespace CapriDesktop
             var voiceTest = Key("Test voice", 280, 499, 76, 22, () => { if (Program.Smoke == null) pet.HearStyle(); });
             items[items.Count - 1].When = () => pet.MainframeVoiceMode != 0;
             Section("CAPRI", 0, 540);
+            Key("Mods", 190, 539, 70, 18, OpenMods).Accent = MainframeTheme.Cyan;
             // Shorter than a band's other keys and level with CAPRI, so its lit rim stays off the band's teal rule (Lachy, 4 Nov).
             support = Key("Support", 268, 539, 88, 18, () => { if (Program.Smoke == null) Pet.Browse("https://ko-fi.com/lachysdev"); });
             support.Heart = true;
@@ -300,12 +305,19 @@ namespace CapriDesktop
             Toggle("Always on top", 380, 138, () => pet.OnTop, pet.SetOnTop);
             var frameSize = Slider("Mainframe size", FrameNames, 380, 166, () => Array.IndexOf(FrameSizes, Pet.FrameSize(pet.Saved.MainframeSize)), i => { }); frameSize.Deferred = true;
             frameSize.Released += () => { if (!syncing) pet.SetMainframeSize(FrameSizes[frameSize.Value]); };
-            Toggle("Head pats", 380, 194, () => pet.HeadPats, pet.SetHeadPats);
+            Slider("Mainframe colours", MainframeTheme.LookNames, 380, 194, () => MainframeTheme.ClampLook(pet.Saved.MainframeColours), pet.SetMainframeColours);
+            Toggle("Head pats", 380, 222, () => pet.HeadPats, pet.SetHeadPats);
             Section("WATCH", 380, 292);
             Toggle("Watch my screen", 380, 316, () => pet.Saved.Watch, on => pet.SetWatch(on));
             Toggle("Remember what she sees", 380, 344, () => !pet.Saved.NoCaughtUp, pet.SetCaughtUp).Switch = 68;
             Slider("Every", Pet.GlanceGapNames, 380, 372, () => Nearest(Pet.GlanceGaps, pet.GlanceGap), i => pet.SetGlanceGap(Pet.GlanceGaps[i]));
             Section("BRAIN", 380, 442);
+            huskLabel = Caption("Code/Husk Mode", 408, 472, 146, 16);
+            huskMode = Picker("Code/Husk Mode", 564, 469, 172, delegate { return pet.HuskMode; }, pet.SetHusk);
+            huskMode.Height = 22;
+            huskMode.Options(Pet.HuskNames);
+            readers.Add(delegate { huskMode.IsEnabled = !pet.HuskChanging; });
+            ToolTip.SetTip(huskMode, "Watch Claude Code or Codex through her hooks. Restart the coding app after changing this.");
             Toggle("Stay on my model", 380, 466, () => pet.Saved.StayOnModel, pet.SetStay);
             Slider("Replies", Lengths, 380, 494, () => Brain.Wordiness, pet.SetReplies);
             Slider("Memory", Lengths, 380, 522, () => Array.IndexOf(Recalls, Brain.Recall), i => pet.SetRecall(Recalls[i]));
@@ -341,9 +353,9 @@ namespace CapriDesktop
                 time.Height = 22; time.Options(names);
             }
             Key("Edit check-in lines", 408, 1380, 328, 20, pet.OpenCare);
-            status.Tick += (_, _) => Sync();
+            status.Tick += (_, _) => Program.Guard(Sync);
             pet.SettingsChanged += Sync;
-            heartbeat.Tick += (_, _) => Heartbeat();
+            heartbeat.Tick += (_, _) => Program.Guard(Heartbeat);
             Opened += (_, _) => { Sync(); status.Start(); heartbeat.Start(); };
             Closed += (_, _) => { closed = true; status.Stop(); heartbeat.Stop(); pet.SettingsChanged -= Sync; foreach (Window sheet in sheets.ToArray()) sheet.Close(); CloseMenus(); };
             Closing += (_, e) => { if (!finishing) { e.Cancel = true; CloseMenus(); foreach (Window sheet in sheets.ToArray()) sheet.Close(); WindowState = WindowState.Minimized; } };
@@ -459,6 +471,7 @@ namespace CapriDesktop
                 for (int i = 0; i < voices.Length; i++) if (voices[i] != null) { voices[i].Checked = i == pet.MainframeVoiceMode; voices[i].InvalidateVisual(); }
                 brainName.Text = pet.Brain.Remote != null ? pet.Brain.Remote.Name + " · " + pet.Brain.Model : pet.Brain.Model ?? "Her brain isn't set up yet";
                 brainNote.Text = pet.MainframeTier > 0 && pet.MainframeConnecting ? "Checking the key..." : pet.MainframeProblem ?? pet.MainframeProgress ?? (pet.Brain.Remote != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier > 0 ? "Paste a brain key and press Connect." : pet.Brain.Server != null ? pet.Brain.Server : pet.Brain.Model == null ? "Set up her brain, or open Ollama and press Refresh." : "Local model · Ollama");
+                brainNote.Text = Brain.Brief(brainNote.Text) ?? brainNote.Text;
                 tierNote.Text = pet.MainframeTier == 1 ? pet.Brain.Remote?.Kind == "nvidia" ? "Most NVIDIA models can't see your screen." : "NVIDIA, Gemini, OpenRouter" : pet.MainframeTier == 2 ? "Gemini, OpenRouter, ChatGPT, Claude, DeepSeek" : "Pick one. Only one brain runs at a time.";
                 textKey.Cue = pet.MainframeBrainKey != null ? "Key saved, ends " + Voice.Tail(pet.MainframeBrainKey) : pet.MainframeTier == 1 ? "NVIDIA / Google AI Studio / OpenRouter" : "Paste a brain API key";
                 textConnect.Text = pet.MainframeBrainKey == null || !string.IsNullOrWhiteSpace(textKey.Box.Text) ? "Connect" : "Forget";
@@ -482,6 +495,7 @@ namespace CapriDesktop
         internal void OpenPage(string name)
         {
             name = (name ?? "main").Trim().ToLowerInvariant();
+            if (name == "mods") { OpenMods(); return; }
             ShowSettings(!string.IsNullOrEmpty(name) && name != "main" && name != "brain" && name != "voice");
             if (paged && name != "settings" && !pet.Saved.AdvancedSettings) { pet.SetAdvancedSettings(true); ShowSettings(true); }
             if (name == "layers") { OpenLayers(); return; }
@@ -520,6 +534,7 @@ namespace CapriDesktop
                     int[][] missing = right ? MissingRight : MissingLeft;
                     if (!right && pet.MainframeInputSetup) missing = new[] { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 910, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
                     y = Lift(anchor, missing, right ? FoldedRight : FoldedLeft, simple) - (control is NeonHead ? 5 : 0);
+                    if (right && !simple && anchor >= 466 && control != huskMode && control != huskLabel) y += 28;
                 }
                 if (item.Page == 0)
                 {
@@ -619,7 +634,7 @@ namespace CapriDesktop
             }
             return null;
         }
-        private void ShowSheet(MainframeSheet sheet)
+        private void ShowSheet(MainframeWindow sheet)
         {
             sheets.Add(sheet); sheet.Closed += (_, _) => sheets.Remove(sheet); sheet.Show(this);
         }
@@ -627,5 +642,16 @@ namespace CapriDesktop
         internal void OpenLayers() { ShowSheet(new MainframeSheet(pet, "VOICE LAYERS", "layers")); }
         internal void OpenSecurity() { ShowSheet(new MainframeSheet(pet, "SECURITY", "security")); }
         internal void OpenVault() { ShowSheet(new MainframeSheet(pet, "MEMORY VAULT", "vault")); }
+        internal void OpenMods()
+        {
+            if (Mods == null)
+            {
+                ModsWindow sheet = new ModsWindow(pet);
+                Mods = sheet;
+                sheet.Closed += delegate { Mods = null; };
+                ShowSheet(sheet);
+            }
+            else { Mods.WindowState = WindowState.Normal; Mods.Activate(); }
+        }
     }
 }

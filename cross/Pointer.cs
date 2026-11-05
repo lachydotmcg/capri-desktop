@@ -243,7 +243,7 @@ namespace CapriDesktop
             face = new Face(this);
             Content = face;
             IsHitTestVisible = false;
-            ticks.Tick += delegate { Step(); };
+            ticks.Tick += delegate { Program.Guard(Step); };
             Opened += delegate { PassThrough(); };
         }
 

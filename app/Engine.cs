@@ -94,10 +94,13 @@ namespace CapriDesktop
                             }
                             catch (System.Security.SecurityException) { }
                             catch (UnauthorizedAccessException) { }
+                            // A display driver can remove its registry key while her startup worker reads it.
+                            catch (IOException error) { Brain.Log("machine", -1, error.Message); }
                         }
             }
             catch (System.Security.SecurityException) { }
             catch (UnauthorizedAccessException) { }
+            catch (IOException error) { Brain.Log("machine", -1, error.Message); }
             return machine;
         }
 

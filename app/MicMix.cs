@@ -173,6 +173,8 @@ namespace CapriDesktop
         private volatile bool stopping;
         private volatile bool open;
         private volatile bool relook;
+        private volatile bool call;
+        private int callVersion;
         private volatile string chosen, cableChosen;
         // What's wrong for Settings in a few words, or null while it's mixing their mic.
         internal volatile string Problem;
@@ -223,6 +225,24 @@ namespace CapriDesktop
         // Their cable pick on Settings' Output, an endpoint id, or null for VB-CABLE's before Steam's. Moves her on the next pass.
         internal string CableChosen { get { return cableChosen; } set { cableChosen = value; relook = true; wake.Set(); } }
 
+        internal bool Call
+        {
+            get { return call; }
+            set
+            {
+                lock (gate)
+                {
+                    if (call == value) return;
+                    call = value;
+                    Interlocked.Increment(ref callVersion);
+                    foreach (Lane lane in lanes) lane.Clear();
+                    lanes.Clear();
+                    Volatile.Write(ref output, 0);
+                }
+                wake.Set();
+            }
+        }
+
         // Mixing into CABLE Input right now.
         internal bool Mixing { get { return open; } }
 
@@ -252,7 +272,7 @@ namespace CapriDesktop
         internal static string EndOf(MixDevice cable) { return cable != null && IsSteam(cable.Name) ? SteamEnd : CableEnd; }
 
         // Settings' note for an end, short enough for its column.
-        internal static string PickLine(string end) { return end == SteamEnd ? "Pick Steam Streaming Microphone in Discord or Roblox." : "Pick " + end + " as your mic in Discord or Roblox."; }
+        internal static string PickLine(string end) { return "Calls only. Pick " + end + "."; }
 
         // The cable from Windows' active speakers and mics, with its far end: the one they picked on Settings' Output while it's
         // there, else VB-CABLE's before Steam's, since they installed it for this, and either with its far end on before one
@@ -337,11 +357,12 @@ namespace CapriDesktop
         internal void Take(object speaker, short[] samples, int rate, bool leveled = false, MicAnswer answer = null)
         {
             // Nothing waits while there's no cable to play it into. A copy waits, since a speaker's caller may reuse its own.
-            if (!open || samples == null || samples.Length == 0 || rate <= 0) return;
+            int version = Volatile.Read(ref callVersion);
+            if (!call || !open || samples == null || samples.Length == 0 || rate <= 0) return;
             short[] copy = (short[])samples.Clone();
             lock (gate)
             {
-                if (!open) return;
+                if (!call || !open || version != callVersion) return;
                 Lane lane = lanes.Find(delegate(Lane each) { return each.Owner == speaker; });
                 if (lane == null) { lane = new Lane(speaker); lanes.Add(lane); }
                 lane.Add(copy, rate, leveled, answer);
@@ -656,30 +677,43 @@ namespace CapriDesktop
             else Array.Clear(mix, 0, want);
             Array.Copy(mix, alone, want);
             List<Share> shares = new List<Share>();
+            int version;
             lock (gate)
             {
                 if (stopping) return;
+                version = callVersion;
                 float loudness = Math.Max(50, Math.Min(200, Loudness)) / 100f;
-                foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate, loudness, shares);
+                if (call) foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate, loudness, shares);
             }
             // The cable is written outside the gate, so her speakers never wait on a device call that's stuck.
             bool wrote = false;
+            bool spoke = false;
             try
             {
                 // Her level is what her lanes added on top of your mic, so the call panel's meter shows her voice alone.
                 double power = 0;
                 for (int i = 0; i < want; i++) { double hers = mix[i] - alone[i]; power += hers * hers; }
+                spoke = call && version == Volatile.Read(ref callVersion);
+                if (!spoke) { Array.Copy(alone, mix, want); power = 0; }
                 limiter.Run(mix, want);
                 if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
                 // A pass that was stuck in a device call when the switch went off writes nothing once it comes back.
                 if (stopping) return;
+                if (version != Volatile.Read(ref callVersion))
+                {
+                    Array.Copy(alone, mix, want);
+                    limiter.Run(mix, want);
+                    if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
+                    power = 0;
+                    spoke = false;
+                }
                 cable.Write(mix, want);
                 Volatile.Write(ref output, Math.Min(1, Math.Sqrt(power / want) * trim));
                 Volatile.Write(ref outputAt, Environment.TickCount);
                 wrote = true;
                 Interlocked.Add(ref Written, want);
             }
-            finally { foreach (Share share in shares) share.Answer.Reach(wrote ? share.Seconds : 0, share.Last); }
+            finally { foreach (Share share in shares) share.Answer.Reach(wrote && spoke ? share.Seconds : 0, share.Last); }
         }
 
         // Keeps a packet and a half of the mic queued after each top-up, counting what the mic has heard since its last packet,
