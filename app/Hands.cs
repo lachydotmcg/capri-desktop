@@ -777,7 +777,7 @@ namespace CapriDesktop
             { "layer_1_pitch", "Layer 1 pitch", "Voice" }, { "layer_1_delay", "Layer 1 delay", "Voice" }, { "layer_2_pitch", "Layer 2 pitch", "Voice" }, { "layer_2_delay", "Layer 2 delay", "Voice" },
             { "sounds", "Sound effects", "Voice" }, { "mainframe_size", "Mainframe size", "Capri" }, { "perch_fps", "Perch frame rate", "Habits" }, { "language", "Language", "Brain" }, { "reply_limit", "Max reply", "Brain" },
             { "game_comments", "Game comments pace", "Games" }, { "clip_length", "Default clip length", "Clips" }, { "clip_fps", "Clip frame rate", "Clips" }, { "clip_resolution", "Clip resolution", "Clips" }, { "clip_bitrate", "Clip bitrate", "Clips" },
-            { "typing_sound", "Typing sound mode", "Voice" }
+            { "typing_sound", "Typing sound mode", "Voice" }, { "mainframe_colours", "Mainframe colours", "Capri" }
         };
         internal static readonly string[][] OwnSteps =
         {
@@ -803,7 +803,7 @@ namespace CapriDesktop
 #endif
             new[] { "Auto", "100%", "125%", "150%", "175%", "200%" }, new[] { "10 fps", "15 fps", "20 fps", "30 fps", "40 fps", "50 fps", "60 fps" }, LanguageSteps(), new[] { "Auto", "256", "2K", "8K" },
             new[] { "Off", "Events only", "Chatty" }, new[] { "15 s", "30 s", "45 s", "1 min", "1.5 min", "2 min" }, new[] { "Up to 15 fps", "Up to 24 fps", "Up to 30 fps", "Up to 60 fps" },
-            new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }
+            new[] { "Auto", "Up to 480p", "Up to 720p", "Up to 1080p" }, new[] { "Auto", "2 Mbps", "4 Mbps", "8 Mbps", "12 Mbps", "20 Mbps" }, new[] { "Auto", "On", "Off" }, new[] { "Night City", "Black", "White", "Grey" }
         };
         // What each step of a slider stands for, where its steps are times, rates or percents, so set takes 45 s or 720p as well.
         private static readonly Dictionary<string, int[]> OwnValues = new Dictionary<string, int[]>
@@ -947,7 +947,7 @@ namespace CapriDesktop
         // Her settings Mac and Linux have.
         internal static bool CrossSetting(string name)
         {
-            return Array.IndexOf(new[] { "head_pats", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "preview_voice" }, name) >= 0;
+            return Array.IndexOf(new[] { "head_pats", "follow_ups", "keep_awake", "care_water", "care_stretch", "care_eyes", "care_late_night", "care_meals", "care_long_game", "care_boredom", "voice", "quiet", "check_ins", "wander", "dance_to_music", "always_on_top", "typing_sound", "glitch_in", "watch_my_screen", "startup", "discord_presence", "voice_layers", "show_advanced", "size", "pop_ins", "sleep", "volume", "voice_speed", "replies", "reply_limit", "mainframe_size", "mainframe_colours", "bubble", "glance_gap", "voice_pitch", "voice_robot", "voice_glitch", "layer_1_pitch", "layer_1_delay", "layer_2_pitch", "layer_2_delay", "sounds", "language", "preview_voice" }, name) >= 0;
         }
 
         private static bool HasSetting(Kit kit, string name) { return kit == null || kit.Has("capri_settings:" + name); }

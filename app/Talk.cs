@@ -2835,7 +2835,7 @@ namespace CapriDesktop
 
     // Her type box, in her Mainframe's look: a dark well cut at the corners with a red rim and hot red strokes over the two
     // big corners, a red tick, YOU in rose and what they type in white. It opens where her speech box would.
-    internal sealed class TypeBox : Form
+    internal sealed class TypeBox : Form, LookWindow
     {
         internal event Action<string> Submitted;
         internal event Action CallModeChanged;

@@ -75,6 +75,7 @@ namespace CapriDesktop
         [DataMember] internal string BrainServer;
         [DataMember] internal string ServerModel;
         [DataMember] internal int MainframeSize;
+        [DataMember] internal int MainframeColours;
         [DataMember] internal bool AdvancedSettings;
         [DataMember] internal int MemorySize;
         [DataMember] internal int ReplyLength;
@@ -494,7 +495,7 @@ namespace CapriDesktop
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
             LoginFile = Program.Smoke != null ? Path.Combine(Program.Smoke, OperatingSystem.IsMacOS() ? "capri.plist" : "capri.desktop") : Limbs.LoginFile();
             // A copy that moved since they ticked it takes the login entry over, so it doesn't point at the old place.
-            if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Environment.ProcessPath, true, OperatingSystem.IsMacOS());
+            if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Limbs.SelfPath(), true, OperatingSystem.IsMacOS());
             Brain.LogPath = Path.Combine(Program.Smoke ?? folder, "errors.txt");
             StartMods();
             Brain.BrainMenu = "under BRAIN in Capri Mainframe";
@@ -2565,6 +2566,7 @@ namespace CapriDesktop
                 case "replies": return Brain.Wordiness;
                 case "reply_limit": return Brain.ReplyLength;
                 case "mainframe_size": return Array.IndexOf(new[] { 0, 100, 125, 150, 175, 200 }, FrameSize(Saved.MainframeSize));
+                case "mainframe_colours": return MainframeTheme.ClampLook(Saved.MainframeColours);
                 case "bubble": return BubbleTime;
                 case "glance_gap": return Math.Max(0, Array.IndexOf(GlanceGaps, GlanceGap));
                 case "voice_pitch": return VoiceFx.Pitch + VoiceFx.MostPitch;
@@ -2612,6 +2614,7 @@ namespace CapriDesktop
                 case "replies": SetReplies(step); break;
                 case "reply_limit": SetReplyLength(step); break;
                 case "mainframe_size": SetMainframeSize(new[] { 0, 100, 125, 150, 175, 200 }[step]); break;
+                case "mainframe_colours": SetMainframeColours(step); break;
                 case "bubble": SetBubbleTime(step); break;
                 case "glance_gap": SetGlanceGap(GlanceGaps[step]); break;
                 case "voice_pitch": SetPitch(step - VoiceFx.MostPitch); break;
@@ -2670,7 +2673,7 @@ namespace CapriDesktop
 
         internal void SetLogin(bool on, bool say = true)
         {
-            if (!Limbs.SetLogin(LoginFile, Environment.ProcessPath, on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that, choom. I need to be able to write " + LoginFile + ".");
+            if (!Limbs.SetLogin(LoginFile, Limbs.SelfPath(), on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that, choom. I need to be able to write " + LoginFile + ".");
             Sync();
         }
 
@@ -4596,6 +4599,7 @@ namespace CapriDesktop
             [DataMember] internal string BrainServer;
             [DataMember] internal string ServerModel;
             [DataMember] internal int MainframeSize;
+            [DataMember] internal int MainframeColours;
             [DataMember] internal bool AdvancedSettings;
             [DataMember] internal int MemorySize;
             [DataMember] internal int ReplyLength;
@@ -4624,6 +4628,7 @@ namespace CapriDesktop
             saved.BrainServer = newer.BrainServer;
             saved.ServerModel = newer.ServerModel;
             saved.MainframeSize = FrameSize(newer.MainframeSize);
+            saved.MainframeColours = MainframeTheme.ClampLook(newer.MainframeColours);
             saved.AdvancedSettings = newer.AdvancedSettings;
             saved.MemorySize = newer.MemorySize;
             saved.ReplyLength = newer.ReplyLength;
@@ -4645,7 +4650,7 @@ namespace CapriDesktop
         internal static NewSettings Newest(Settings saved)
         {
             return new NewSettings { VoiceProvider = saved.VoiceProvider, LocalVoiceUrl = saved.LocalVoiceUrl, LocalVoiceModel = saved.LocalVoiceModel, LocalVoiceName = saved.LocalVoiceName, LocalVoiceFormat = saved.LocalVoiceFormat, BrainServer = saved.BrainServer, ServerModel = saved.ServerModel,
-                MainframeSize = saved.MainframeSize, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
+                MainframeSize = saved.MainframeSize, MainframeColours = saved.MainframeColours, AdvancedSettings = saved.AdvancedSettings, MemorySize = saved.MemorySize, ReplyLength = saved.ReplyLength, BrainTier = saved.BrainTier, FreeModel = saved.FreeModel, PaidModel = saved.PaidModel, SpeechModel = saved.SpeechModel,
                 CareSwitches = saved.CareSwitches, CareTimes = saved.CareTimes, CareNight = saved.CareNight, NoHeadPats = saved.NoHeadPats, NoFollowUps = saved.NoFollowUps, NoKeepAwake = saved.NoKeepAwake, Vault = saved.Vault, HuskMode = saved.HuskMode };
         }
 

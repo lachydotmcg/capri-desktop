@@ -19,17 +19,24 @@ namespace CapriSetup
     {
         internal static string InstallPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri"); } }
         internal const string RegistryPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Capri.Desktop";
+        internal static readonly string[] Packs = { "brain", "voice", "ears", "wake" };
 
         [STAThread]
         private static int Main(string[] args)
         {
+            // A silent command she can't read exits 2, and one that fails exits 1, each with the reason on stderr.
+            int mode;
+            string package;
+            try { mode = SetupFiles.Mode(args, out package); }
+            catch (ArgumentException error) { Console.Error.WriteLine(error.Message); return 2; }
             try
             {
-                int mode = SetupFiles.Mode(args);
                 if (mode == 2) return RemoveFiles(true);
                 if (mode == 1)
                 {
                     string unsaved = Install(false);
+                    // She's installed by now, so the marker says who carries her even when her shortcut couldn't be saved.
+                    SetupFiles.Mark(InstallPath, package ?? "manual");
                     if (unsaved != null) throw new IOException("Capri is installed, but her shortcut could not be saved: " + unsaved);
                     return 0;
                 }
@@ -135,7 +142,8 @@ namespace CapriSetup
                     told.Close();
                     failed.Close();
                 }
-                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nLIMIT installation and uninstallation were not performed\n");
+                if (Array.IndexOf(Packs, "brain") < 0 || Array.IndexOf(Packs, "voice") < 0 || Array.IndexOf(Packs, "ears") < 0 || Array.IndexOf(Packs, "wake") < 0) throw new InvalidDataException("The uninstaller would leave one of her packs behind.");
+                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS the uninstaller removes her brain, voice, ears and wake packs\nLIMIT installation and uninstallation were not performed\n");
                 return 0;
             }
             catch (Exception error) { Directory.CreateDirectory(output); File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString()); return 1; }
@@ -391,13 +399,14 @@ namespace CapriSetup
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
                 SetupFiles.Retire(uninstaller, string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase));
                 SetupFiles.RemoveApp(Path.Combine(destination, "Capri.exe"));
-                foreach (string pack in new[] { "brain", "voice", "ears" })
+                foreach (string pack in Packs)
                 {
                     string folder = Path.Combine(destination, pack);
                     Patiently(delegate { if (Directory.Exists(folder)) Directory.Delete(folder, true); });
                 }
                 DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Capri.lnk"), destination);
                 DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Capri.lnk"), destination);
+                SetupFiles.Unmark(destination);
                 Registry.CurrentUser.DeleteSubKeyTree(RegistryPath, false);
                 File.Delete(Path.Combine(destination, ".capri-install"));
                 if (!silent) Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);
@@ -628,6 +637,8 @@ namespace CapriSetup
                 if (removing) { Program.BeginUninstall(); Close(); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
+                try { SetupFiles.Mark(Program.InstallPath, "manual"); }
+                catch (Exception error) { Notice.Tell(this, "Capri is installed, but the package marker couldn't be cleared. Delete " + SetupFiles.Marker + " in " + Program.InstallPath + " to let her update herself. " + error.Message, "Capri", true); }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
             if (Environment.Is64BitOperatingSystem && !VoicePack.Complete(VoicePack.Folder(Program.InstallPath))) FetchVoice();

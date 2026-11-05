@@ -41,7 +41,7 @@ namespace CapriDesktop
             sheet.Dispose();
         }
 
-        private abstract class ModSheet : Form
+        private abstract class ModSheet : Form, LookWindow
         {
             internal readonly float Zoom;
             protected readonly Mainframe Frame;

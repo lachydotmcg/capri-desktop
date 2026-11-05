@@ -873,6 +873,7 @@ namespace CapriDesktop
         // Her Mainframe's size: 0 for Auto, which grows it on a screen whose desktop is bigger than its panel (Virtual Super
         // Resolution, DSR), or 100 to 200 for that percent of the screen's own scale.
         [DataMember] public int MainframeSize;
+        [DataMember] public int MainframeColours;
         [DataMember] public string AgentPolyglot;
         [DataMember] public string AgentPersonality;
         // Check in on me is on by default. Before 0.7.3 it was saved as PopIns, off by default, so the new name turns it on once for everyone.
@@ -1051,7 +1052,7 @@ namespace CapriDesktop
         }
 
         [OnDeserialized]
-        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MicLoudness = MicMix.Level(MicLoudness); }
+        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MainframeColours = Neon.ClampLook(MainframeColours); MicLoudness = MicMix.Level(MicLoudness); }
 
         internal bool CareOn(CareKind kind)
         {
@@ -1148,6 +1149,26 @@ namespace CapriDesktop
 
         // Where updates download. A smoke worker keeps its data in a folder of its own, so its check asks here.
         internal string Folder { get { return folder; } }
+
+        // The package manager that installed her, from the marker her installer writes, or null when she updates herself.
+        // "manual" or no marker leaves her updater alone; a marker she can't read or doesn't know still holds it back. It's
+        // read in her own folder, where her installer writes it and where her own update would install her, even when this
+        // Capri.exe runs from somewhere else.
+        internal string Package()
+        {
+            string path = Path.Combine(Path.GetDirectoryName(folder), SetupFiles.Marker);
+            try { File.GetAttributes(path); }
+            catch (FileNotFoundException) { return null; }
+            catch (DirectoryNotFoundException) { return null; }
+            catch (Exception) { return "your package manager"; }
+            try
+            {
+                string name = File.ReadAllText(path).Trim();
+                if (name == "manual") return null;
+                return Array.IndexOf(SetupFiles.Managers, name) >= 0 ? name : "your package manager";
+            }
+            catch (Exception) { return "your package manager"; }
+        }
 
         internal static ReleaseAsset Installer(Release release)
         {
@@ -1299,6 +1320,8 @@ namespace CapriDesktop
             using (FileStream file = new FileStream(update.Path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 Verify(update.Path, update);
+                string package = Package();
+                if (package != null) throw new BrainException("Update through " + package + ".");
                 Run(new ProcessStartInfo(update.Path, "--update " + parent.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + started.ToString(System.Globalization.CultureInfo.InvariantCulture)) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = folder });
             }
         }
@@ -2282,6 +2305,7 @@ namespace CapriDesktop
             Speaker.Chosen = preferences.Speaker;
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
             CallApps.Choose(preferences.CallApp);
+            Neon.Repaint(preferences.MainframeColours, typer);
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) form.HandleCreated += delegate { PassThrough(); };
             PassThrough();
             qwen.CpuOnly = preferences.HdCpu;
@@ -2995,10 +3019,20 @@ namespace CapriDesktop
         private void CheckForUpdates(bool asked)
         {
             if (updating || installing) return;
-            updating = true;
             updateStarted = true;
+            string package = updater.Package();
             preferences.UpdateCheckedAt = DateTime.UtcNow.Ticks;
             SavePreferences();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                checkItem.Enabled = true;
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
+            if (mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) mainframe.UpdateNote("", false);
+            updating = true;
             checkItem.Enabled = false;
             updateItem.Enabled = false;
             if (asked) mainframe.UpdateNote("Checking for updates...", false);
@@ -3009,7 +3043,9 @@ namespace CapriDesktop
                 string problem = null;
                 try
                 {
+                    if (updater.Package() != null) { Post(delegate { ShowUpdate(null, null, null, asked); }); return; }
                     found = updater.Latest();
+                    if (updater.Package() != null) { Post(delegate { ShowUpdate(found, null, null, asked); }); return; }
                     if (UsableRelease(found) && IsNewer(found.Tag, Assembly.GetExecutingAssembly().GetName().Version))
                     {
                         Post(delegate { mainframe.UpdateNote("Downloading Capri " + found.Tag.TrimStart('v', 'V') + "...", false); });
@@ -3059,6 +3095,14 @@ namespace CapriDesktop
         {
             updating = false;
             checkItem.Enabled = true;
+            string package = updater.Package();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
             updateItem.Enabled = updateFile != null;
             Version current = Assembly.GetExecutingAssembly().GetName().Version;
             if (problem != null) { updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote(problem, true); return; }
@@ -3105,6 +3149,14 @@ namespace CapriDesktop
 
         private void InstallUpdate()
         {
+            string package = updater.Package();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
             if (updating || installing || updateFile == null) return;
             installing = true;
             updateItem.Enabled = false;
@@ -3118,6 +3170,12 @@ namespace CapriDesktop
             {
                 string problem = null;
                 bool invalid = false;
+                string blockedBy = updater.Package();
+                if (blockedBy != null)
+                {
+                    Post(delegate { installing = false; checkItem.Enabled = true; updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote("Update through " + blockedBy + ".", false); });
+                    return;
+                }
                 try { updater.Install(ready, parent, started); }
                 catch (Exception error)
                 {
@@ -5320,7 +5378,19 @@ namespace CapriDesktop
         private string UpdateTool(ToolArguments args)
         {
             if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(UpdateTool), args);
-            if (args.Action == "status") return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
+            string package = updater.Package();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return "Update through " + package + ".";
+            }
+            if (args.Action == "status")
+            {
+                if (updater.Package() == null && mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) mainframe.UpdateNote("", false);
+                return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
+            }
             if (installing) return "The update is already installing.";
             if (args.Action == "check")
             {
@@ -5829,6 +5899,143 @@ namespace CapriDesktop
         {
             preferences.MainframeSize = Preferences.FrameSize(size);
             SavePreferences();
+        }
+
+        private void SmokeMainframeColours(List<string> checks, string output)
+        {
+            string[] parts = { "Rose", "White", "Faint", "Cyan" };
+            int herFore = ForeColor.ToArgb(), herBack = BackColor.ToArgb(), pillFore = pill.ForeColor.ToArgb(), pillBack = pill.BackColor.ToArgb();
+            Directory.CreateDirectory(output);
+            bool wasShowing = mainframe.Visible, typerShowing = typer.Visible;
+            FormWindowState stateWas = mainframe.WindowState;
+            typer.Hide();
+            GC.KeepAlive(typer.Handle);
+            mainframe.Restore();
+            mainframe.ShowSettings(true);
+            List<ToolStripItem> standIns = new List<ToolStripItem>();
+            try
+            {
+                // Every dropdown and menu gets a stand-in item with no colours of its own, like most of hers, and each colour they
+                // take from the look is noted by its slot in it, so every change below is checked slot by slot.
+                mainframe.PickColours(0);
+                if (mainframe.Dropdowns.Length < 17) throw new Exception("Only " + mainframe.Dropdowns.Length + " of the Mainframe's dropdowns are kept for a new look.");
+                List<ToolStrip> menus = new List<ToolStrip>(mainframe.Dropdowns);
+                menus.Add(menu);
+                menus.Add(playerMenu);
+                foreach (ToolStrip strip in menus) standIns.Add(strip.Items.Add("Smoke"));
+                List<KeyValuePair<object, int[]>> menuSlots = new List<KeyValuePair<object, int[]>>();
+                foreach (ToolStrip strip in menus) MenuSlots(strip, Neon.LookColours(0), menuSlots);
+                for (int look = 3; look >= 0; look--)
+                {
+                    mainframe.PickColours(look);
+                    if (mainframe.ColoursShown != Neon.LookNames[look]) throw new Exception("The Mainframe colours row did not show " + Neon.LookNames[look] + ": " + mainframe.ColoursShown);
+                    string stale = StaleMenu(menuSlots, Neon.LookColours(look));
+                    if (stale != null) throw new Exception(Neon.LookNames[look] + " did not reach " + stale + ".");
+                    if (LookContrast(Mainframe.BlackwallInk, Neon.Field) < 4.5) throw new Exception(Neon.LookNames[look] + "'s Blackwall name is hard to read on its box.");
+                    HashSet<int> slots = new HashSet<int>();
+                    foreach (Color slot in Neon.LookColours(look)) slots.Add(slot.ToArgb());
+                    if (slots.Count != Neon.LookColours(look).Length) throw new Exception("Two of " + Neon.LookNames[look] + "'s colours are the same, so a live change can't tell them apart.");
+                    Color[] inks = { Neon.Rose, Neon.White, Neon.Faint, Neon.Cyan };
+                    for (int part = 0; part < inks.Length; part++)
+                        if (LookContrast(inks[part], Neon.Ground) < 4.5) throw new Exception(Neon.LookNames[look] + "'s " + parts[part] + " is hard to read on its ground.");
+                    if (LookContrast(Neon.OnInk, Neon.Cyan) < 4.5) throw new Exception(Neon.LookNames[look] + "'s ON button is hard to read.");
+                    if (mainframe.BackColor != Neon.Ground || typer.BackColor != Neon.Well || menu.BackColor != Mainframe.MenuLook.Panel) throw new Exception(Neon.LookNames[look] + " did not reach the Mainframe, the Type box and her menu straight away.");
+                    if (LoadPreferences().MainframeColours != look) throw new Exception(Neon.LookNames[look] + " was not saved.");
+                    if (Neon.ShownToWindows(typer)) throw new Exception(Neon.LookNames[look] + " made the hidden Type box visible to Windows.");
+                    if (playerMenu.BackColor != Mainframe.MenuLook.Panel) throw new Exception(Neon.LookNames[look] + " did not reach the mini player's menu.");
+                    Application.DoEvents();
+                    if (ForeColor.ToArgb() != herFore || BackColor.ToArgb() != herBack || pill.ForeColor.ToArgb() != pillFore || pill.BackColor.ToArgb() != pillBack) throw new Exception(Neon.LookNames[look] + " changed a window outside the Mainframe look.");
+                    mainframe.Settle();
+                    mainframe.Update();
+                    using (Bitmap picture = new Bitmap(mainframe.Width, mainframe.Height))
+                    {
+                        mainframe.DrawToBitmap(picture, new Rectangle(Point.Empty, mainframe.Size));
+                        mainframe.DrawRims(picture);
+                        picture.Save(Path.Combine(output, "mainframe-colours-" + Neon.LookNames[look].Replace(" ", "-") + ".png"), ImageFormat.Png);
+                    }
+                }
+                // Every look to every other, since each pair swaps a different set of greys.
+                Action<int> move = delegate(int look)
+                {
+                    string before = Neon.LookNames[MainframeColours];
+                    mainframe.PickColours(look);
+                    string missed = StaleMenu(menuSlots, Neon.LookColours(look));
+                    if (missed != null) throw new Exception("Going from " + before + " to " + Neon.LookNames[look] + " missed " + missed + ".");
+                };
+                for (int from = 0; from < Neon.LookNames.Length; from++)
+                    for (int to = 0; to < Neon.LookNames.Length; to++)
+                        if (from != to) { move(from); move(to); }
+            }
+            finally
+            {
+                foreach (ToolStripItem standIn in standIns) standIn.Dispose();
+                mainframe.PickColours(0);
+                mainframe.ShowSettings(false);
+                mainframe.WindowState = stateWas;
+                if (!wasShowing) mainframe.Hide();
+                if (typerShowing) typer.Show();
+            }
+            if (Neon.Mono || Neon.Rose.ToArgb() != Color.FromArgb(255, 93, 102).ToArgb()) throw new Exception("Night City did not come back as it was.");
+            if (CityLook.Hot.ToArgb() != Color.FromArgb(232, 66, 70).ToArgb()) throw new Exception("Her game windows lost Night City's colours.");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, Blackwall's name included, change the Mainframe, its dropdowns, the Type box and her menus straight away from any look to any other, leave hidden windows hidden, are saved, and Night City comes back as it was");
+        }
+
+        // Each colour a menu, its items and the menus they drop take from the look, by its slot in the look, so a change can be
+        // checked slot by slot. -1 is a colour of its own.
+        private static void MenuSlots(ToolStrip strip, Color[] look, List<KeyValuePair<object, int[]>> slots)
+        {
+            slots.Add(new KeyValuePair<object, int[]>(strip, new[] { LookSlot(strip.ForeColor, look), LookSlot(strip.BackColor, look) }));
+            foreach (ToolStripItem item in strip.Items)
+            {
+                slots.Add(new KeyValuePair<object, int[]>(item, new[] { LookSlot(item.ForeColor, look), LookSlot(item.BackColor, look) }));
+                ToolStripDropDownItem drop = item as ToolStripDropDownItem;
+                if (drop != null && drop.HasDropDownItems) MenuSlots(drop.DropDown, look, slots);
+            }
+        }
+
+        private static int LookSlot(Color colour, Color[] look)
+        {
+            for (int i = 0; i < look.Length; i++) if (look[i].ToArgb() == colour.ToArgb()) return i;
+            return -1;
+        }
+
+        // The first menu colour that isn't the new look's colour for its slot, or null when every one followed.
+        private static string StaleMenu(List<KeyValuePair<object, int[]>> slots, Color[] look)
+        {
+            foreach (KeyValuePair<object, int[]> slot in slots)
+            {
+                ToolStrip strip = slot.Key as ToolStrip;
+                ToolStripItem item = slot.Key as ToolStripItem;
+                if (strip != null ? strip.IsDisposed : (item.IsDisposed || item.Owner == null)) continue;
+                Color fore = strip != null ? strip.ForeColor : item.ForeColor, back = strip != null ? strip.BackColor : item.BackColor;
+                string name = strip != null ? (strip.Items.Count > 0 ? "the menu holding " + strip.Items[0].Text : "an empty menu") : "\"" + item.Text + "\"";
+                if (slot.Value[0] >= 0 && fore.ToArgb() != look[slot.Value[0]].ToArgb()) return name + "'s text";
+                if (slot.Value[1] >= 0 && back.ToArgb() != look[slot.Value[1]].ToArgb()) return name + "'s background";
+            }
+            return null;
+        }
+
+        private static double LookContrast(Color ink, Color ground)
+        {
+            Func<Color, double> light = delegate(Color colour)
+            {
+                Func<int, double> part = delegate(int value) { double c = value / 255.0; return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4); };
+                return 0.2126 * part(colour.R) + 0.7152 * part(colour.G) + 0.0722 * part(colour.B);
+            };
+            double a = light(ink), b = light(ground);
+            return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+        }
+
+        internal int MainframeColours { get { return Neon.ClampLook(preferences.MainframeColours); } }
+
+        internal void SetMainframeColours(int look)
+        {
+            preferences.MainframeColours = Neon.ClampLook(look);
+            SavePreferences();
+            List<Control> windows = new List<Control> { mainframe, typer, menu, playerMenu, callPanel, callPill };
+            windows.AddRange(mainframe.Dropdowns);
+            Neon.Repaint(preferences.MainframeColours, windows.ToArray());
+            mainframe.ShowColours();
         }
 
         internal double PopGap() { return ((double)PopMin + random.NextDouble() * ((double)PopMax - PopMin)) * 60; }
@@ -9429,6 +9636,7 @@ namespace CapriDesktop
                 case "layer_2_delay": return (int)Math.Round(VoiceLayers.Delay2 / 5.0);
                 case "sounds": return Math.Max(0, Math.Min(10, (SoundLevel + 5) / 10));
                 case "mainframe_size": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), MainframeSize));
+                case "mainframe_colours": return MainframeColours;
                 case "perch_fps": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), PerchFps));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
                 case "reply_limit": return ReplyLength;
@@ -9475,6 +9683,7 @@ namespace CapriDesktop
                 case "voice_glitch": SetVoiceGlitch(Hands.ValuesFor(name)[step]); break;
                 case "sounds": SetSoundLevel(step * 10); break;
                 case "mainframe_size": SetMainframeSize(Hands.ValuesFor(name)[step]); mainframe.ResizeSettings(); break;
+                case "mainframe_colours": SetMainframeColours(step); break;
                 case "perch_fps": SetPerchFps(Hands.ValuesFor(name)[step]); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
                 case "reply_limit": SetReplyLength(step); break;
@@ -21393,6 +21602,19 @@ namespace CapriDesktop
                 if (!refused) throw new Exception("Silent setup accepted " + flag + ".");
             }
             checks.Add("PASS silent install and uninstall flags work in either order, reject other commands and leave windowed setup flags alone");
+            string named;
+            if (SetupFiles.Mode(new[] { "--silent", "--package", "winget" }, out named) != 1 || named != "winget" || SetupFiles.Mode(new[] { "--package", "scoop", "--silent" }, out named) != 1 || named != "scoop"
+                || SetupFiles.Mode(new[] { "--silent", "--package", "chocolatey" }, out named) != 1 || named != "chocolatey" || SetupFiles.Mode(new[] { "--silent", "--package", "pacman" }, out named) != 1 || named != "pacman"
+                || SetupFiles.Mode(new[] { "--silent" }, out named) != 1 || named != null || SetupFiles.Mode(new[] { "--uninstall", "--silent" }, out named) != 2 || named != null)
+                throw new Exception("A package manager's silent install wasn't read with its name.");
+            foreach (string[] command in new[] { new[] { "--silent", "--package", "apt" }, new[] { "--silent", "--package", "Winget" }, new[] { "--silent", "--package", "0" }, new[] { "--silent", "--package", "-" }, new[] { "--silent", "--package" }, new[] { "--silent", "--package", "winget", "--package", "scoop" }, new[] { "--uninstall", "--silent", "--package", "winget" }, new[] { "--package", "winget" } })
+            {
+                bool refused = false;
+                try { SetupFiles.Mode(command, out named); }
+                catch (ArgumentException) { refused = true; }
+                if (!refused) throw new Exception("Silent setup accepted " + string.Join(" ", command) + ".");
+            }
+            checks.Add("PASS --silent --package names winget, scoop, chocolatey or pacman in either order; another or a missing name, a second --package, --package with --uninstall and --package without --silent fail instead of opening a window");
             string folder = Path.Combine(output, "setup-files-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             string file = Path.Combine(folder, "Uninstall.exe"), old = file + ".old", marker = Path.Combine(folder, ".capri-install"), other = Path.Combine(folder, "Uninstall-other.old");
@@ -21457,6 +21679,25 @@ namespace CapriDesktop
                 SetupFiles.RemoveApp(app);
                 SetupFiles.Gone(app);
                 checks.Add("PASS uninstall clears only its startup entry before removing the app, even when file cleanup fails");
+                string package = Path.Combine(folder, SetupFiles.Marker);
+                Updater reader = new Updater(folder, app, true);
+                SetupFiles.Mark(folder, "winget");
+                if (File.ReadAllText(package) != "winget" || reader.Package() != "winget") throw new Exception("A new package marker wasn't written or read back.");
+                SetupFiles.Mark(folder, "manual");
+                if (File.ReadAllText(package) != "manual" || reader.Package() != null) throw new Exception("A manual install didn't replace the package marker.");
+                File.SetAttributes(package, FileAttributes.ReadOnly);
+                blocked = false;
+                try { SetupFiles.Mark(folder, "scoop"); }
+                catch (IOException) { blocked = true; }
+                catch (UnauthorizedAccessException) { blocked = true; }
+                finally { File.SetAttributes(package, FileAttributes.Normal); }
+                if (!blocked || File.ReadAllText(package) != "manual" || Array.Exists(Directory.GetFiles(folder), delegate(string each) { return each.EndsWith(".new", StringComparison.OrdinalIgnoreCase); })) throw new Exception("A failed package marker write changed the old marker or left its new file behind.");
+                checks.Add("PASS the package marker is written whole and read back by her updater, a manual install replaces it, and a failed write keeps the old one and leaves no new file behind");
+                SetupFiles.Mark(folder, "scoop");
+                SetupFiles.Unmark(folder);
+                SetupFiles.Unmark(folder);
+                if (File.Exists(package) || reader.Package() != null || File.ReadAllText(other) != "keep this" || !File.Exists(marker)) throw new Exception("Removing her didn't take her package marker, or took another file with it.");
+                checks.Add("PASS removing her takes her package marker and nothing else, and a missing one is fine");
             }
             finally
             {
@@ -21465,6 +21706,84 @@ namespace CapriDesktop
                 Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
                 foreach (string each in Directory.GetFiles(folder)) File.Delete(each);
                 Directory.Delete(folder);
+            }
+        }
+
+        // Her package marker: the managers she knows say where to update and anything else she finds still holds her updater
+        // back, while "manual" or no marker frees it. With winget's marker in her folder, a check, the update tool and an
+        // install never ask GitHub or start her installer, and once a manual install marks it again the old note clears.
+        private void SmokePackageMarker(System.Collections.Generic.List<string> checks, string output)
+        {
+            if (updating || installing || updateFile != null) throw new Exception("The package marker check found an update already under way.");
+            string folder = Path.Combine(output, "package-marker-" + Guid.NewGuid().ToString("N"));
+            string data = Path.GetDirectoryName(updater.Folder), marker = Path.Combine(data, SetupFiles.Marker);
+            string staged = Path.Combine(updater.Folder, "Capri-Setup-99.0.0-package.exe");
+            Func<Release> latestWas = updater.Latest;
+            Func<string, string> signerWas = updater.Signer;
+            Action<ProcessStartInfo> runWas = updater.Run;
+            long checkedWas = preferences.UpdateCheckedAt;
+            bool startedWas = updateStarted;
+            string noteWas = mainframe.UpdateStatus;
+            Directory.CreateDirectory(folder);
+            try
+            {
+                Updater reader = new Updater(folder, Path.Combine(folder, "Capri.exe"), true);
+                string file = Path.Combine(folder, SetupFiles.Marker);
+                if (reader.Package() != null) throw new Exception("A missing package marker was read as a manager.");
+                File.WriteAllText(file, "winget\n");
+                if (reader.Package() != "winget") throw new Exception("A winget package marker was not read.");
+                foreach (string bad in new[] { "Winget!", "package", "apt", "0", "-", "" })
+                {
+                    File.WriteAllText(file, bad);
+                    if (reader.Package() != "your package manager") throw new Exception("A package marker she doesn't know freed her own updater: " + bad);
+                }
+                File.WriteAllText(file, "manual");
+                if (reader.Package() != null) throw new Exception("A manual package marker did not free her updater.");
+                File.Delete(file);
+                checks.Add("PASS package marker: winget is read, a bad, empty or generic marker still blocks her own updater, and manual or no marker leaves her updater alone");
+
+                if (File.Exists(marker)) throw new Exception("Her smoke folder already had a package marker.");
+                int asked = 0, ran = 0;
+                updater.Latest = delegate { asked++; throw new Exception("A package-managed Capri asked GitHub for an update."); };
+                updater.Run = delegate { ran++; };
+                updater.Signer = delegate { return null; };
+                SetupFiles.Mark(data, "winget");
+                CheckForUpdates(true);
+                string checkedNote = mainframe.UpdateStatus;
+                string told = UpdateTool(new ToolArguments { Action = "check" });
+                string status = UpdateTool(new ToolArguments { Action = "status" });
+                updateFile = new UpdateFile { Version = "99.0.0", Path = staged };
+                InstallUpdate();
+                if (asked != 0 || ran != 0 || updating || installing || updateFile != null || !checkItem.Enabled || checkedNote != "Update through winget." || told != checkedNote || status != checkedNote || mainframe.UpdateStatus != checkedNote)
+                    throw new Exception("A package-managed Capri still reached her own updater: asked GitHub " + asked + ", ran " + ran + ", note " + checkedNote + ", tool " + told + " / " + status + ", updating " + updating + ", installing " + installing);
+                // Her installer's last guard: a checked update still won't start while the marker is there.
+                byte[] bytes = System.Text.Encoding.ASCII.GetBytes("MZ a package-managed update");
+                Directory.CreateDirectory(updater.Folder);
+                File.WriteAllBytes(staged, bytes);
+                string hash;
+                using (SHA256 sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "");
+                string refused = null;
+                try { updater.Install(new UpdateFile { Version = "99.0.0", Path = staged, Hash = hash, Size = bytes.Length }, 1, 1); }
+                catch (BrainException error) { refused = error.Message; }
+                if (refused != checkedNote || ran != 0) throw new Exception("A checked update started with a package marker there: " + (refused ?? "it was allowed"));
+                SetupFiles.Mark(data, "manual");
+                string freed = UpdateTool(new ToolArguments { Action = "status" });
+                if (updater.Package() != null || freed == checkedNote || mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) throw new Exception("A stale package status stayed after a manual install: " + freed);
+                checks.Add("PASS with winget's marker in her folder, an update check, the update tool's check and status, an install and a checked installer all say to update through winget without asking GitHub or starting her installer; a manual install's marker clears the note");
+            }
+            finally
+            {
+                updater.Latest = latestWas;
+                updater.Signer = signerWas;
+                updater.Run = runWas;
+                updateFile = null;
+                updateInstallAsked = false;
+                preferences.UpdateCheckedAt = checkedWas;
+                updateStarted = startedWas;
+                mainframe.UpdateNote(noteWas, false);
+                if (File.Exists(marker)) File.Delete(marker);
+                if (File.Exists(staged)) File.Delete(staged);
+                Directory.Delete(folder, true);
             }
         }
 
@@ -23227,7 +23546,7 @@ namespace CapriDesktop
                 {
                     { "explore_after", "exploreAfter", "ExploreAfter" }, { "glance_gap", "gap", "GlanceGap" }, { "watch_memory", "watchMemory", "WatchMemory" },
                     { "voice_pitch", "pitchSlider", "VoicePitch" }, { "voice_robot", "robotSlider", "VoiceRobot" }, { "voice_glitch", "glitchSlider", "VoiceGlitch" },
-                    { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "perch_fps", "perchFps", "PerchFps" },
+                    { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "mainframe_colours", "frameColours", "MainframeColours" }, { "perch_fps", "perchFps", "PerchFps" },
                     { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
                     { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" }
                 };
@@ -29604,6 +29923,7 @@ namespace CapriDesktop
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
             Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
+            Section(checks, "SmokePackageMarker", delegate { SmokePackageMarker(checks, output); });
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
@@ -29656,6 +29976,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
+            Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
             Section(checks, "SmokeRequests", delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
             Section(checks, "SmokeCare", delegate { SmokeCare(checks); });
