@@ -531,6 +531,16 @@ namespace CapriDesktop
             checks.Add("PASS her help page quotes her lines as she says them now: keys, rate limits, Gemini's daily limit, the service's servers, her mic and Windows speech, cloud voice credit, the special-letters folder, call mode hearing and unreadable settings, with none of the old wording");
         }
 
+        // The owner's smaller wording flags: each line keeps its cause and its fix inside the note that shows it.
+        private void SmokeSmallWording(List<string> checks)
+        {
+            // A14: her brain's and HD voice's server zips pass their checksum first, so a missing .exe means antivirus took it.
+            foreach (string gone in new[] { Engine.ServerGone, QwenVoice.ServerGone })
+                if (gone.Length > 70 || !gone.StartsWith("Your antivirus", StringComparison.Ordinal) || !gone.EndsWith(" Allow it, then try again.", StringComparison.Ordinal))
+                    throw new Exception("A missing server line doesn't name the antivirus and the fix inside its note: " + gone);
+            checks.Add("PASS a missing llama-server.exe or tts-server.exe says your antivirus likely took it and to allow it, whole inside the BRAIN and VOICE notes");
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;

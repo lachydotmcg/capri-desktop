@@ -198,6 +198,9 @@ namespace CapriDesktop
 
         internal bool Crashed { get { lock (gate) return server != null && server.HasExited; } }
 
+        // The zip passed its checksum, so a missing server means antivirus took it (owner flag A14). Fits the BRAIN note.
+        internal const string ServerGone = "Your antivirus likely took llama-server.exe. Allow it, then try again.";
+
         internal void Install(Pick pick, Action<string, long, long> progress)
         {
             Directory.CreateDirectory(root);
@@ -211,7 +214,7 @@ namespace CapriDesktop
                 string staging = Folder + ".new";
                 if (Directory.Exists(staging)) Directory.Delete(staging, true);
                 ZipFile.ExtractToDirectory(zip, staging);
-                if (!File.Exists(Path.Combine(staging, "llama-server.exe"))) throw new IOException("The engine download is missing llama-server.exe.");
+                if (!File.Exists(Path.Combine(staging, "llama-server.exe"))) throw new IOException(ServerGone);
                 if (Directory.Exists(Folder)) Directory.Delete(Folder, true);
                 Directory.Move(staging, Folder);
                 File.Delete(zip);

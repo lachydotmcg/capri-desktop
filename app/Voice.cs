@@ -3224,6 +3224,9 @@ namespace CapriDesktop
 
         internal bool Awake { get { lock (gate) return awake && (server == null || !server.HasExited); } }
 
+        // The zip passed its checksum, so a missing server means antivirus took it (owner flag A14). Fits the VOICE note.
+        internal const string ServerGone = "Your antivirus likely took tts-server.exe. Allow it, then try again.";
+
         internal void Install(Action<string, long, long> progress)
         {
             Directory.CreateDirectory(folder);
@@ -3244,7 +3247,7 @@ namespace CapriDesktop
                 string staging = engine + ".new";
                 if (Directory.Exists(staging)) Directory.Delete(staging, true);
                 ZipFile.ExtractToDirectory(zip, staging);
-                if (!File.Exists(Path.Combine(staging, "tts-server.exe"))) throw new IOException("The HD voice download is missing tts-server.exe.");
+                if (!File.Exists(Path.Combine(staging, "tts-server.exe"))) throw new IOException(ServerGone);
                 lock (gate)
                 {
                     Close();
