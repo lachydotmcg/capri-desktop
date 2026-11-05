@@ -31,6 +31,8 @@ $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($otherLink)
 $shortcut.TargetPath = Join-Path $env:WINDIR 'notepad.exe'
 $shortcut.Save()
+# A fresh runner has no Run key until something starts with Windows.
+if (!(Test-Path $run)) { New-Item $run | Out-Null }
 Set-ItemProperty $run -Name Capri -Value ('"' + $app + '"')
 
 $err = Join-Path $env:TEMP ('capri-uninstall-' + [guid]::NewGuid().ToString('N') + '.txt')
