@@ -568,6 +568,15 @@ namespace CapriDesktop
                     throw new Exception("A voice-off line reads another way: " + off);
             if (previewLine != PreviewSilent || !StyleSilent.Contains("choom")) throw new Exception("The voice preview or the style sliders lost their voice-off line.");
             checks.Add("PASS her voice being off reads one way with one fix, \"Pick a voice under VOICE\", in the VOICE note, a preview she's asked for and the style sliders, like on Mac and Linux");
+
+            // A1: brain setup shows a stalled download in the BRAIN note, which cut it at "Check your connection a...".
+            foreach (string label in new[] { "the engine", "Gemma 4 E4B", "Qwen3.5 9B Instruct" })
+            {
+                string stalled = "The download of " + label + " keeps stopping. Check your connection and try again.", shown = Brain.Brief(stalled);
+                if (shown == null || shown.Length > 60 || shown.EndsWith("...", StringComparison.Ordinal) || shown.IndexOf("Check your connection", StringComparison.Ordinal) < 0)
+                    throw new Exception("A stalled brain download lost its fix in the BRAIN note: " + (shown ?? stalled));
+            }
+            checks.Add("PASS a brain download that keeps stopping keeps \"Check your connection\" whole in the BRAIN note during setup");
         }
 
         private static bool Same(byte[] one, byte[] other)
