@@ -28671,8 +28671,11 @@ namespace CapriDesktop
 
         private static void MixLog(string path, int count, double seconds)
         {
-            WaitSound(delegate { return !MicAnswer.Writing; }, "Her cable delivery log did not finish.");
-            MatchCollection reports = Regex.Matches(File.ReadAllText(path), @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
+            WaitSound(delegate { return !MicAnswer.Writing && !MicMix.Noting; }, "Her cable delivery log did not finish.");
+            // Her log is written on the thread pool under Brain's lock, so a read under the same lock can't meet a write.
+            string text;
+            lock (typeof(Brain)) text = File.ReadAllText(path);
+            MatchCollection reports = Regex.Matches(text, @"\| mic delivery \| - \| answer=\d+ speakers=([0-9.]+) s cable=([0-9.]+) s");
             if (reports.Count != count) throw new Exception("Her cable log wrote " + reports.Count + " lines for " + count + " answers.");
             foreach (Match report in reports)
             {
@@ -28697,7 +28700,8 @@ namespace CapriDesktop
                 {
                     string path = Path.Combine(output, (separate ? "mic-queued-lines-" : "mic-whole-answer-") + room + ".txt");
                     Brain.LogPath = path;
-                    File.WriteAllText(path, "");
+                    // A note from the last mix can still be going into the new log on the thread pool (5 Nov, run 9).
+                    lock (typeof(Brain)) File.WriteAllText(path, "");
                     double[] now = { 0 };
                     StandInDevices pc = MixPc(now, 48000, 48000);
                     pc.Level = 0;
@@ -31172,6 +31176,10 @@ namespace CapriDesktop
         {
             // A video full screen on another monitor is full screen to Windows too, and the test shouldn't depend on what's on the PC.
             Native.FakedGaming = false;
+            // The checks hold her thread for seconds at a time, and Windows swaps a window that long unanswered for a ghost of it.
+            // On 5 Nov dwm ghosted the minimised Mainframe again and again through the sections while it flipped between minimised
+            // and restored from outside, so the test keeps Windows' ghosts out of it.
+            Native.DisableProcessWindowsGhosting();
             Directory.CreateDirectory(output);
             SmokeRun.Start(output, options);
             Action<string> smokeStep = delegate(string name) { TestStep = name; File.WriteAllText(Path.Combine(output, "smoke-step.txt"), name); };
@@ -45041,6 +45049,7 @@ namespace CapriDesktop
         [DllImport("user32.dll")] private static extern bool GetLastInputInfo(ref InputInfo info);
         [DllImport("user32.dll")] internal static extern IntPtr GetForegroundWindow();
         [DllImport("user32.dll")] internal static extern bool InSendMessage();
+        [DllImport("user32.dll")] internal static extern void DisableProcessWindowsGhosting();
         [DllImport("user32.dll")] internal static extern int GetWindowThreadProcessId(IntPtr window, out int process);
         [DllImport("user32.dll")] internal static extern IntPtr GetWindow(IntPtr window, int command);
         [DllImport("user32.dll")] internal static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, int flags);
