@@ -195,7 +195,8 @@ namespace CapriDesktop
         private static readonly int[] Recalls = { 8, 16, 32 };
         internal static readonly string[] SoundNames = { "Off", "Quiet", "Normal", "Loud" };
         internal static readonly int[] SoundLevels = { 0, 30, 60, 100 };
-        internal const string Offline = "My brain's offline. Open Capri Mainframe and set up her brain: " + Starter + ".";
+        // What to press, as on Windows: a model's name like gemma4:e4b means nothing to most people.
+        internal const string Offline = "My brain's offline. Right-click me, open Capri Mainframe and press Set up her brain, or press Free key there for a free NVIDIA key.";
         // The brain she downloads for herself through Ollama when it has none yet, so no terminal is needed.
         internal const string Starter = "gemma4:e4b";
         internal const string PullChoice = "Download " + Starter + ", her brain (a few GB)";

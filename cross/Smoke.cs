@@ -137,6 +137,7 @@ namespace CapriDesktop
                 MainframeGuardChecks();
                 UnreadableChecks();
                 UpdateCheckChecks();
+                OfflineChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1722,6 +1723,12 @@ namespace CapriDesktop
                     if (ticking) timer.Start();
                 }
             }
+        }
+
+        private void OfflineChecks()
+        {
+            if (Pet.Offline.Contains(Pet.Starter) || Pet.Offline.Contains("gemma") || Pet.Offline.Contains("e4b") || !Pet.Offline.Contains("open Capri Mainframe and press Set up her brain") || !Pet.Offline.Contains("press Free key")) throw new Exception("The offline line missed Mainframe's buttons or named a model.");
+            checks.Add("PASS offline help: she names Set up her brain and Free key in Capri Mainframe without a model name");
         }
 
         private static PointerPressedEventArgs LeftPress(Control on, IPointer mouse)
