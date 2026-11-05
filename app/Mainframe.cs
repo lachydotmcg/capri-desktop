@@ -4168,21 +4168,22 @@ namespace CapriDesktop
         internal void PickSpeakerChoice(int at) { SpeakerChoices(); speakerMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
         internal void PickScreenChoice(int at) { ScreenChoices(); screenMenu.Items[at == 0 ? 0 : at + 1].PerformClick(); }
 
+        // On a small desktop Windows clamps the window narrower than its page, so a clamped window skips the inside-the-window checks, like Outside's callers.
         internal string DeviceRowsFit()
         {
             if (!paged)
             {
-                if (Hidden(speakers) || !speakers.Visible || !ClientRectangle.Contains(speakers.Bounds)) return "Her speaker is hidden or outside VOICE";
+                if (Hidden(speakers) || !speakers.Visible || !PageClamped && !ClientRectangle.Contains(speakers.Bounds)) return "Her speaker is hidden or outside VOICE";
                 if (speakers.Top < Math.Max(mics.Bottom, micTest.Bottom) || hearingNote.Top < speakers.Bottom) return "Her speaker overlaps the mic or hearing row";
                 foreach (Control control in Controls)
                     if (control != speakers && control.Visible && !Hidden(control) && control.Bounds.IntersectsWith(speakers.Bounds)) return "Her speaker overlaps " + control.Text;
             }
             else
             {
-                if (Hidden(screens) || !screens.Visible || !PageArea.Contains(screens.Bounds)) return "Screens is hidden or outside WATCH";
+                if (Hidden(screens) || !screens.Visible || !PageClamped && !PageArea.Contains(screens.Bounds)) return "Screens is hidden or outside WATCH";
                 if (screens.Top < watch.Bottom || caughtUp.Top < screens.Bottom) return "Screens overlaps a WATCH row";
             }
-            return TextFits() ?? Overlap() ?? (paged ? Outside() : null);
+            return TextFits() ?? Overlap() ?? (paged && !PageClamped ? Outside() : null);
         }
 
         internal void ShowMicTest(bool listening, double level, bool muted)
