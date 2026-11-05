@@ -15,6 +15,8 @@ namespace CapriDesktop
     internal static class Program
     {
         internal static string Smoke;
+        // Smoke checks turn this on to run Guard's catch path, which otherwise rethrows in smoke runs so a bug fails them.
+        internal static bool Catching;
         internal static int[] Shelf;
         private static string lastCrash;
         private static int lastCrashAt;
@@ -76,7 +78,7 @@ namespace CapriDesktop
             try { work(); }
             catch (Exception error)
             {
-                if (Smoke != null) throw;
+                if (Smoke != null && !Catching) throw;
                 Crashed(error);
             }
         }

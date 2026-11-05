@@ -87,9 +87,11 @@ namespace CapriDesktop
 
         internal static string Clean(string name) { CallApp app = Get(name); return app == null ? "Auto" : app.Choice; }
 
+        // Picking Auto mid-call keeps the app she's hearing, so it still holds her while it makes sound instead of handing her to
+        // Discord. Off a call, Auto starts from Discord as before.
         internal static void Choose(string name)
         {
-            lock (gate) { setting++; choice = Clean(name); current = Get(choice) ?? Apps[0]; drift = 0; }
+            lock (gate) { setting++; choice = Clean(name); current = Get(choice) ?? (hearing != 0 ? current : Apps[0]); drift = 0; }
         }
 
         internal static int Find()
@@ -660,6 +662,23 @@ namespace CapriDesktop
                 CallApps.Left(91, nextOwner);
                 if (CallApps.Find() != 90) throw new Exception("The owning ears did not release their hold.");
                 checks.Add("PASS old call ears cannot clear a new hold on the same pid or reset its drift; the owning ears still release it");
+
+                // Picking Auto mid-call used to reset her to Discord, so a silent Discord took her off Zoom while Zoom made sound.
+                two.Add(new CallProcess { Id = 93, Name = "Discord" });
+                playing.Remove(slack);
+                CallApps.Choose("Zoom");
+                if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Zoom wasn't found before the switch to Auto.");
+                CallApps.Heard(90, owner);
+                CallApps.Choose("Auto");
+                if (CallApps.Current.Name != "Zoom") throw new Exception("Switching the call app to Auto mid-call dropped the app she was hearing for " + CallApps.Current.Name + ".");
+                for (int look = 0; look < 5; look++)
+                    if (CallApps.Find() != 90 || CallApps.Current.Name != "Zoom") throw new Exception("Switching to Auto mid-call moved her to a silent Discord while Zoom made sound.");
+                CallApps.Left(90, owner);
+                CallApps.Choose("Zoom");
+                CallApps.Choose("Auto");
+                if (CallApps.Current.Name != "Discord") throw new Exception("Off a call, Auto no longer started from Discord.");
+                two.RemoveAt(two.Count - 1);
+                checks.Add("PASS switching the call app to Auto mid-call keeps her on the app she's hearing while it makes sound, even with a silent Discord open; off a call Auto still starts from Discord");
             }
             finally { Find = findWas; CallApps.Processes = processesWas; CallApps.Sounds = soundsWas; CallApps.Left(90, owner); CallApps.Left(91, owner); CallApps.Left(90, nextOwner); CallApps.Left(91, nextOwner); CallApps.Choose(was); }
             checks.Add("PASS call capture keeps its swappable finder, names the chosen app when it isn't open and rejects a lookup from an old setting");

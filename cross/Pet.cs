@@ -401,6 +401,8 @@ namespace CapriDesktop
         // Their mouse, which "teleport here" goes to. The smoke test hands in its own.
         internal Func<PixelPoint?> MouseAt;
         internal Action<PixelPoint> MoveTo;
+        // Where a point on her window is on the desktop, which the smoke test can make fail. Null is PointToScreen.
+        internal Func<Point, PixelPoint> ToScreen;
         // Getting to know them, like on Windows: on a new install it starts once she's said hello, and Settings > Get to know me
         // starts it again.
         private readonly Meeting meeting = new Meeting();
@@ -466,6 +468,8 @@ namespace CapriDesktop
         private PixelPoint downAt;
         private PixelPoint dragAt;
         private bool dragPending;
+        // The mouse pressing her, so letting go of her without a release can give its capture back.
+        private IPointer holder;
         // Window positions she asked for that the desktop hasn't confirmed yet, oldest first.
         private readonly List<PixelPoint> asked = new List<PixelPoint>();
         private Point pointer = new Point(-1, -1);
@@ -574,6 +578,8 @@ namespace CapriDesktop
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
             voice.Key = ReadVoiceKey();
+            // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
+            Brain.Secrets = delegate { Cloud remote = Brain.Remote; return new[] { remote == null ? null : remote.Key, Brain.ServerKey, voice.Key }; };
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
             voice.Model = Saved.SpeechModel;
             elevenLabs = new ElevenLabsSpeaker(voice);
@@ -624,6 +630,7 @@ namespace CapriDesktop
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
             Closed += delegate { pressed = dragging = dragPending = false; frames.Stop(); };
+            Deactivated += delegate { Program.Guard(Unhold); };
             Opened += delegate
             {
                 if (opened) return;
@@ -1204,7 +1211,12 @@ namespace CapriDesktop
             double step = Math.Max(0, Math.Min(0.05, now - fallStep));
             fallStep = now;
             PixelPoint hip = Hip;
-            if (fallTo == null) fallTo = Perches.Below(Ledges(), hip, 0, int.MaxValue, 0, Headroom, ScreenAt);
+            if (fallTo == null)
+            {
+                // A bug finding somewhere to land stops her fall where she is, so it can't hold up the rest of her every frame.
+                try { fallTo = Perches.Below(Ledges(), hip, 0, int.MaxValue, 0, Headroom, ScreenAt); }
+                catch (Exception) { falling = false; Save(); throw; }
+            }
             if (fallTo == null) { falling = false; Save(); return; }
             fallSpeed += body.Size * 11 * step;
             int drop = (int)Math.Ceiling(fallSpeed * step * DesktopScaling);
@@ -1332,13 +1344,17 @@ namespace CapriDesktop
                 if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
                 Point at = e.GetPosition(this);
                 if (!Opaque(at)) return;
+                // Where the press is comes first and the capture next, so a bug in either leaves her not pressed, instead of
+                // pressed with no capture to tell her when the mouse lets go.
+                PixelPoint down = DragPoint(at);
+                e.Pointer.Capture(this);
+                holder = e.Pointer;
                 pressed = true;
                 clicks++;
                 dragging = false;
                 dragPending = false;
-                downAt = DragPoint(at);
-                grab = new PixelPoint(downAt.X - anchor.X, downAt.Y - anchor.Y);
-                e.Pointer.Capture(this);
+                downAt = down;
+                grab = new PixelPoint(down.X - anchor.X, down.Y - anchor.Y);
             });
         }
 
@@ -1370,7 +1386,7 @@ namespace CapriDesktop
                 }
                 catch (Exception) { }
             }
-            return this.PointToScreen(at);
+            return ToScreen != null ? ToScreen(at) : this.PointToScreen(at);
         }
 
         internal void DragFrame()
@@ -1399,6 +1415,7 @@ namespace CapriDesktop
                     DragFrame();
                 }
                 pressed = false;
+                holder = null;
                 e.Pointer.Capture(null);
                 if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 else React();
@@ -1408,36 +1425,82 @@ namespace CapriDesktop
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
         {
             base.OnPointerCaptureLost(e);
-            Program.Guard(() =>
-            {
-                // A lost capture has no release event, so she used to stay held after the mouse left her.
-                if (!pressed) return;
-                pressed = false;
-                dragPending = false;
-                if (!dragging) return;
-                if (quitting || !IsVisible) { dragging = false; return; }
-                Let(false);
-            });
+            Program.Guard(Unhold);
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+            if (change.Property == IsVisibleProperty && !IsVisible) Program.Guard(Unhold);
+        }
+
+        // A lost capture has no release event, so she used to stay held after the mouse left her. Avalonia rarely says a grab
+        // was lost (X11 only when her window is disabled, macOS only on losing focus during an implicit capture), so losing
+        // focus or being hidden lets go of her the same way.
+        private void Unhold()
+        {
+            if (!pressed) return;
+            pressed = false;
+            dragPending = false;
+            IPointer held = holder;
+            holder = null;
+            if (held != null && held.Captured == this) held.Capture(null);
+            if (!dragging) return;
+            if (quitting || !IsVisible) { dragging = false; return; }
+            Let(false);
         }
 
         // Letting go of her: she falls onto the window below, or with Shift held sits right there, like on Windows.
         internal void Let(bool here)
         {
-            // Letting go outside every screen used to save her where nobody could reach her.
-            PixelPoint hip = Hip;
-            if (Screens.ScreenFromPoint(new PixelPoint(hip.X, hip.Y - 1)) == null)
+            if (here)
             {
-                Screen screen = ScreenHere() ?? (Screens.All.Count > 0 ? Screens.All[0] : null);
-                if (screen != null)
-                {
-                    PixelRect area = screen.WorkingArea;
-                    int size = Px(body.Size);
-                    Move(new PixelPoint(Math.Max(area.X, Math.Min(anchor.X, area.Right - size)), Math.Max(area.Y, Math.Min(anchor.Y, area.Bottom - size))));
-                }
+                if (Lost()) Reclaim();
+                dragging = false;
+                SitHere();
+                return;
             }
-            if (!here) { Drop(); return; }
-            dragging = false;
-            SitHere();
+            // A ledge below where she's let go catches her before anything moves her, so a drop with most of her showing no
+            // longer jumps her back in first. Only with nothing to land on is she brought back.
+            if (Drop() || !Lost()) return;
+            Reclaim();
+            Drop();
+        }
+
+        // Her drawn box on the desktop, in pixels: the cell of the clip she's showing.
+        internal PixelRect DrawnBox
+        {
+            get
+            {
+                Rect place = body.Place(clip);
+                return new PixelRect(anchor.X + Px(FrameX + place.X), anchor.Y + Px(FrameY + place.Y), Math.Max(1, Px(place.Width)), Math.Max(1, Px(place.Height)));
+            }
+        }
+
+        // Let go off every screen, or with less than half of her drawn box on one, she's out of reach. Her hip alone used to
+        // decide, which missed a drop with most of her off the right or top edge.
+        private bool Lost()
+        {
+            PixelPoint hip = Hip;
+            if (Screens.ScreenFromPoint(new PixelPoint(hip.X, hip.Y - 1)) == null) return true;
+            PixelRect box = DrawnBox;
+            long shown = 0;
+            foreach (Screen screen in Screens.All)
+            {
+                PixelRect on = box.Intersect(screen.Bounds);
+                shown += (long)on.Width * on.Height;
+            }
+            return shown * 2 < (long)box.Width * box.Height;
+        }
+
+        // Letting go outside every screen used to save her where nobody could reach her.
+        private void Reclaim()
+        {
+            Screen screen = ScreenHere() ?? (Screens.All.Count > 0 ? Screens.All[0] : null);
+            if (screen == null) return;
+            PixelRect area = screen.WorkingArea;
+            int size = Px(body.Size);
+            Move(new PixelPoint(Math.Max(area.X, Math.Min(anchor.X, area.Right - size)), Math.Max(area.Y, Math.Min(anchor.Y, area.Bottom - size))));
         }
 
         internal int Pets { get { return petTicket; } }
@@ -1638,8 +1701,12 @@ namespace CapriDesktop
 
         internal bool Drop()
         {
+            // Her ledges are found before the drag ends, and a bug there still ends it, with a fall that looks again, so it
+            // can't leave her floating where she was let go.
+            Ledge target;
+            try { target = Perch(Ledges(), Hip); }
+            catch (Exception) { dragging = false; Fall(); throw; }
             dragging = false;
-            Ledge target = Perch(Ledges(), Hip);
             if (target == null) { Save(); return false; }
             falling = true;
             fallTo = target;
@@ -4746,6 +4813,7 @@ namespace CapriDesktop
             desktop.Exit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
             Saved.HuskMode = Math.Max(0, Math.Min(3, Saved.HuskMode));
             husk = new HuskWatch(Program.Smoke ?? folder);
+            HuskHooks.BackupFolder = Program.Smoke ?? folder;
             husk.Clock = delegate { return Now; };
             husk.Language = delegate { return Brain.Language; };
             husk.Dispatch = delegate(Action action) { Dispatcher.UIThread.Post(action); };
@@ -4759,6 +4827,20 @@ namespace CapriDesktop
         }
 
         internal void SetHusk(int mode) { SetHusk(mode, false); }
+
+        // Settings files Code/Husk Mode made into files of their own, because they linked into a folder she can't change, like
+        // Nix's store: said when it happens, and again when Code/Husk Mode is off, since that doesn't link them back.
+        private static string Unlinked(string[] files, bool off)
+        {
+            if (files == null || files.Length == 0) return null;
+            string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            List<string> names = new List<string>();
+            foreach (string file in files) names.Add(home.Length > 1 && file.StartsWith(home + "/", StringComparison.Ordinal) ? "~" + file.Substring(home.Length) : file);
+            bool one = names.Count == 1;
+            string which = string.Join(" and ", names);
+            if (off) return which + (one ? " is still a file of its own. Link it again if you want the link back." : " are still files of their own. Link them again if you want the links back.");
+            return which + (one ? " linked into a folder I can't change, like Nix's store, so I made it a file of its own." : " linked into folders I can't change, like Nix's store, so I made them files of their own.");
+        }
 
         // At startup only a problem is said, so her hello isn't swapped for a restart note every time she opens.
         private void SetHusk(int mode, bool starting)
@@ -4775,6 +4857,7 @@ namespace CapriDesktop
                 string problem = null;
                 try { husk.Change(mode, mode == 0 ? null : HuskExe()); }
                 catch (Exception error) { problem = error.Message; }
+                string unlinked = Unlinked(husk.Unlinked, mode == 0);
                 Action finish = delegate
                 {
                     huskChanging = false;
@@ -4785,7 +4868,9 @@ namespace CapriDesktop
                         : mode == 1 ? "Restart Claude Code to use my hooks."
                         : mode == 2 ? "Restart Codex and trust my hooks when it asks."
                         : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
-                    if (problem != null || !starting) Talk.Answer("(code/husk mode)", problem ?? note);
+                    if (unlinked != null) note += " " + unlinked;
+                    // A link she had to replace is said even at startup.
+                    if (problem != null || !starting || unlinked != null) Talk.Answer("(code/husk mode)", problem ?? note);
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });

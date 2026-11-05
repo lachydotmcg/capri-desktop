@@ -53,6 +53,8 @@ namespace CapriDesktop
 
         internal Bitmap Canvas { get { return surface == null ? null : surface.Image; } }
         internal bool Running { get { return ticks.Enabled; } }
+        // When its five seconds started on her clock, so her smoke test can step it from there however long its first frame took.
+        internal double Started { get { return born; } }
         internal string Said { get { return "CAPRI // CHAOS\nFAKE CRASH\n" + (Revealed ? ":)" : ":(") + "\n" + string.Join(" ", Message) + "\n" + (Revealed ? Punchline : Percent + "% complete") + "\nFor more information about this issue and possible fixes, visit https://www.windows.com/stopcode\nIf you call a support person, give them this info:\nStop code: " + StopCode + "\nWhat failed: " + Failed + "\nclick anywhere or press esc"; } }
 
         internal bool Open()

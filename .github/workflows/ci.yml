@@ -19,6 +19,9 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v5
+      - name: Full size screen
+        shell: powershell
+        run: ./ci/wide-screen.ps1
       - name: Build and smoke test
         shell: pwsh
         run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 900

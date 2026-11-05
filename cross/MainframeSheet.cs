@@ -68,7 +68,8 @@ namespace CapriDesktop
             Put(Page, new NeonHead { Text = "DIRECTORY" }, 14, 52, 352, 24);
             Put(Page, new NeonHead { Text = "INSTALLED" }, 394, 52, 352, 24);
             search = Put(Page, new NeonEntry("Search name, author or description"), 28, 84, 236, 28, "Search mods");
-            search.Box.TextChanged += delegate { first = 0; FillDirectory(); };
+            // Typing and Enter go through Program.Guard like the buttons, so a bug behind a box is written down instead of ending her.
+            search.Box.TextChanged += delegate { Program.Guard(delegate { first = 0; FillDirectory(); }); };
             refresh = Button("Refresh", 272, 84, 84, 28, LoadMods);
             for (int i = 0; i < kinds.Length; i++)
             {
@@ -139,7 +140,7 @@ namespace CapriDesktop
             {
                 Label(ArtColors.Names[i], 408, 566 + i * 32, 84, 28);
                 colours[i] = Put(Page, new NeonEntry(ArtColors.Usual[i]), 500, 566 + i * 32, 236, 28, ArtColors.Names[i] + " color");
-                colours[i].Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { SaveColours(); e.Handled = true; } };
+                colours[i].Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(SaveColours); } };
             }
             Button("Save colors", 408, 738, 160, 28, SaveColours).Accent = MainframeTheme.Cyan;
             Button("Reset colors", 576, 738, 160, 28, delegate
@@ -524,7 +525,7 @@ namespace CapriDesktop
             Button("Test voice", 28, 224, 84, 28, () => { if (save() && Program.Smoke == null) pet.HearStyle(); });
             Button("Save", 120, 224, 150, 28, () => save()).Accent = MainframeTheme.Cyan;
             Button("Cancel", 278, 224, 78, 28, Close);
-            foreach (var entry in new[] { address, model, voice }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { save(); e.Handled = true; } };
+            foreach (var entry in new[] { address, model, voice }) entry.Box.KeyDown += (_, e) => { if (e.Key == Key.Enter) { e.Handled = true; Program.Guard(() => save()); } };
             return 300;
         }
         private NeonSwitch Toggle(string name, int y, Func<bool> read, Action<bool> change)

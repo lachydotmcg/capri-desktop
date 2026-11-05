@@ -415,6 +415,9 @@ namespace CapriDesktop
         private readonly List<HttpWebRequest> active = new List<HttpWebRequest>();
         private int cancelled;
         internal static string LogPath;
+        // The keys she has saved, so a line in errors.txt never keeps one whole, whatever its shape (Scrubbed).
+        internal static Func<string[]> Secrets = delegate { return new string[0]; };
+        [ThreadStatic] private static bool scrubbing;
         internal volatile string Model;
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
@@ -3925,22 +3928,32 @@ namespace CapriDesktop
         // Hugging Face, npm, Stripe and AWS tokens, the password in an address, NAME_TOKEN= or PASSWORD= settings, password, token,
         // secret and key flags, the password in curl's user:password and in docker, sshpass and mysql logins, "password": values,
         // cookies, and what follows an authorization header and its scheme. Counts like max_tokens=4096 and checks like
-        // token == null stay readable.
+        // token == null stay readable, and so do sentences: "the secret: always test first" keeps its words. Every search is
+        // bounded, so a huge line with no spaces can't hold her up.
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
-            clean = Regex.Replace(clean, @"(\b[A-Za-z0-9_]*(?:token(?!s\b)|secret|password|passwd)[A-Za-z0-9_]*\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
+            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
-            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)?|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // Only curl's lowercase -u takes it attached, and a $ value is a variable, so PowerShell's -UseDefaultCredentials:$true stays.
+            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)|(?-i:-u)|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|(?!\$)[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // sshpass takes its -p only among its own options, before the command it runs, so ssh's own -p port stays.
+            clean = Regex.Replace(clean, @"(\bsshpass(?:\s+(?-i:-[fdP])\s*\S+|\s+(?-i:-[evhV])\S*)*\s+(?-i:-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // A lowercase -p only, so mysql's -P port isn't taken for the password, and quoted or attached passwords count. The
             // search stops at the end of that command, so a later docker run -p 8080:80 keeps its ports.
-            clean = Regex.Replace(clean, @"(\b(?:sshpass|(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login)\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"(\b(?:set-)?cookie\s*:\s*)[^\r\n]+", "$1[redacted]", RegexOptions.IgnoreCase);
-            // A quoted value goes whole, spaces and all, and keeps its quotes.
-            clean = Regex.Replace(clean, @"((?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*([""'])?)(?(2)(?:(?!\2)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // A Cookie or Set-Cookie header is one on its own line (curl -v's > and < too) or quoted like curl -H "Cookie: ...", and
+            // loses its value to the end of the line or its closing quote. "the cookie: SameSite=Lax" in a sentence isn't one.
+            clean = Regex.Replace(clean, @"((?:(?<![^\r\n])[ \t]*(?:[<>][ \t]*)?|(?<q>[""']))(?:set-)?cookie(?:\k<q>)?\s*:[ \t]*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|(?(q)(?:(?!\k<q>)[^\r\n])+|[^\r\n]+))", "$1[redacted]", RegexOptions.IgnoreCase);
+            // password:, secret: and token: count as a key at the end of a longer name like db_password or clientSecret, at the
+            // start of a line, quoted, or after { or a comma. A quoted value goes whole, spaces and all, and keeps its quotes.
+            clean = Regex.Replace(clean, @"((?:(?<=[A-Za-z0-9_.-])|(?<![^\r\n])[ \t]*(?:-[ \t]+)?|[""']|[{,][ \t]*)(?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // In a sentence the next word goes only when it looks like a password itself, six or more letters and digits mixed.
+            clean = Regex.Replace(clean, @"(\b(?:password|passwd|secret|token(?!s\b)|cookie)\s*:\s*)(?=[^\s""',}]{6})(?=[^\s""',}]*?[0-9])(?=[^\s""',}]*?[A-Za-z])[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
             return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
         }
 
@@ -4005,7 +4018,7 @@ namespace CapriDesktop
             {
                 Uri where;
                 string place = Uri.TryCreate(url, UriKind.Absolute, out where) ? where.Host + where.AbsolutePath : url;
-                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + place + " | " + (took < 0 ? "-" : took + " ms") + " | " + Redacted(what).Replace("\r", " ").Replace("\n", " ");
+                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + Scrubbed(place) + " | " + (took < 0 ? "-" : took + " ms") + " | " + Redacted(Scrubbed(what)).Replace("\r", " ").Replace("\n", " ");
                 lock (typeof(Brain))
                 {
                     List<string> lines = File.Exists(path) ? new List<string>(File.ReadAllLines(path)) : new List<string>();
@@ -4021,6 +4034,29 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException) { }
             catch (UriFormatException) { }
             return false;
+        }
+
+        // A saved key that an error repeats, in a shape Redacted doesn't know, is taken out of a log line, as typed or
+        // URL-escaped. Only keys long enough to be unique count, so a short placeholder, like a local server's, can't take
+        // ordinary words with it.
+        internal static string Scrubbed(string text)
+        {
+            if (string.IsNullOrEmpty(text) || scrubbing) return text ?? "";
+            string[] keys;
+            scrubbing = true;
+            try { keys = Secrets(); }
+            catch (Exception) { return text; }
+            finally { scrubbing = false; }
+            if (keys == null) return text;
+            foreach (string saved in keys)
+            {
+                string key = (saved ?? "").Trim();
+                if (key.Length < 20 || key.Length > 4096) continue;
+                text = text.Replace(key, "[redacted]");
+                string escaped = Uri.EscapeDataString(key);
+                if (escaped != key) text = text.Replace(escaped, "[redacted]");
+            }
+            return text;
         }
 
         private static HttpWebRequest Open(string path, int timeout) { return Create(Ollama + path, timeout); }

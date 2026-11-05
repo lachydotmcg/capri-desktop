@@ -2305,6 +2305,7 @@ namespace CapriDesktop
             heyCapri = new WakeWord(data);
             presence = new Presence(Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             preferences = smoke ? new Preferences() : LoadPreferences();
+            Brain.Secrets = SavedKeys;
             Speaker.Chosen = preferences.Speaker;
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
             CallApps.Choose(preferences.CallApp);
@@ -8945,6 +8946,15 @@ namespace CapriDesktop
             if (key.Length == 0) key = null;
             if (address == null || key != null && (Regex.IsMatch(key, @"\s|[\x00-\x1f\x7f]") || !Brain.ServerKeySafe(address))) { address = key = null; return false; }
             return true;
+        }
+
+        // Every key she has saved or is using, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
+        private string[] SavedKeys()
+        {
+            string address, provider;
+            SavedProvider(out address, out provider);
+            Cloud remote = brain.Remote;
+            return new[] { provider, brain.ServerKey, remote == null ? null : remote.Key, voice.Key, server.Key, Voice.Unprotect(preferences.VoiceKey), Voice.Unprotect(preferences.TextKey), Voice.Unprotect(preferences.NvidiaKey), Voice.Unprotect(preferences.PaidKey), Voice.Unprotect(preferences.ServerKey), Voice.Unprotect(preferences.AsideKey) };
         }
 
         internal string ProviderAddress { get { string address, key; return SavedProvider(out address, out key) ? address : ""; } }
@@ -16123,12 +16133,14 @@ namespace CapriDesktop
                 };
                 RectangleF chaosLying = new RectangleF(ChaosScreen.LieMiddle - 372 * ChaosScreen.LieSize / 2, ChaosScreen.LieTop, 372 * ChaosScreen.LieSize, 250 * ChaosScreen.LieSize);
                 RectangleF chaosFace = new RectangleF(170, 180, 180, 200);
-                chaosShown.Advance(clock.Elapsed.TotalSeconds + 1.5);
+                // Its seconds count from when it opened, before its first frame, which loads her lying art and can take seconds on a
+                // slow PC (the public Windows runner, 5 Nov). So these steps count from there, not from the clock now.
+                chaosShown.Advance(chaosShown.Started + 1.5);
                 if (chaosShown.Percent <= 0 || chaosShown.Percent >= 100 || chaosShown.Revealed) throw new Exception("Her fake crash percent did not count up.");
                 chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash.png"), ImageFormat.Png);
                 double chaosAsleep = chaosPink(chaosShown.Canvas, chaosLying), chaosFrown = chaosPink(chaosShown.Canvas, chaosFace);
                 if (chaosAsleep < 0.05 || chaosFrown > 0) throw new Exception("Capri was not lying on her fake crash's first line under a white :( (" + chaosAsleep.ToString("0.000") + " of her spot and " + chaosFrown.ToString("0.000") + " of the face pink).");
-                chaosShown.Advance(clock.Elapsed.TotalSeconds + ChaosScreen.RevealAt + 0.05);
+                chaosShown.Advance(chaosShown.Started + ChaosScreen.RevealAt + 0.05);
                 if (chaosShown.Percent != 100 || !chaosShown.Revealed || !chaosShown.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Her fake crash did not own up before leaving.");
                 chaosShown.Canvas.Save(Path.Combine(Path.GetDirectoryName(Brain.LogPath), "chaos-crash-jk.png"), ImageFormat.Png);
                 double chaosOwned = chaosPink(chaosShown.Canvas, chaosLying), chaosSmile = chaosPink(chaosShown.Canvas, chaosFace);
@@ -16211,7 +16223,7 @@ namespace CapriDesktop
                 if (chaosStill == null || chaosStill.Motion || chaosStill.Percent != 100 || !chaosStill.Revealed || !chaosStill.Said.Contains(ChaosScreen.Punchline)) throw new Exception("Reduced motion did not get a still fake crash with its joke already revealed.");
                 string chaosPixels;
                 using (MemoryStream chaosPng = new MemoryStream()) { chaosStill.Canvas.Save(chaosPng, ImageFormat.Png); chaosPixels = Convert.ToBase64String(chaosPng.ToArray()); }
-                foreach (double chaosSecond in new[] { 1.0, 3.0, 4.8 }) chaosStill.Advance(clock.Elapsed.TotalSeconds + chaosSecond);
+                foreach (double chaosSecond in new[] { 1.0, 3.0, 4.8 }) chaosStill.Advance(chaosStill.Started + chaosSecond);
                 using (MemoryStream chaosPng = new MemoryStream())
                 {
                     chaosStill.Canvas.Save(chaosPng, ImageFormat.Png);
@@ -22102,18 +22114,28 @@ namespace CapriDesktop
                     checks.Add("PASS chess perft " + fixture + " depth " + depth + " = " + nodes);
                 }
             }
+            // Easy thinks for 250 ms, and the first search also compiles the engine: on a slow PC that can run out before its
+            // first ply is done, so it hasn't chosen anything (the public Windows runner, 5 Nov). Such a search is asked again;
+            // one that finished a ply and still got it wrong fails.
+            Func<ChessPosition, string, int, ChessChoice> settled = delegate(ChessPosition position, string strength, int seed)
+            {
+                ChessChoice chosen = null;
+                for (int tries = 0; tries < 3 && (chosen == null || chosen.Depth == 0); tries++) chosen = new ChessSearch(position, strength, new Random(seed), null).Run();
+                must(chosen.Depth > 0, "Chess on " + strength + " ran out of time three times before finishing one ply (" + chosen.Milliseconds + " ms).");
+                return chosen;
+            };
             foreach (string level in new[] { "easy", "normal", "hard" })
                 foreach (string mateFen in new[] { "7k/5Q2/6K1/8/8/8/8/8 w - -", "8/8/8/8/8/6k1/5q2/7K b - -" })
                 {
                     ChessPosition mate = new ChessPosition(mateFen);
-                    ChessChoice choice = new ChessSearch(mate, level, new Random(8), null).Run();
+                    ChessChoice choice = settled(mate, level, 8);
                     must(choice.Move.From >= 0 && mate.Play(choice.Move.Text) && mate.Ending() == "Checkmate", "Chess missed mate in one on " + level);
                 }
             checks.Add("PASS chess finds white and black mate in one at easy, normal and hard");
             foreach (string tacticLevel in new[] { "easy", "normal", "hard" })
             {
                 ChessPosition tactic = new ChessPosition("4k3/8/8/8/4q3/8/4R3/4K3 w - -");
-                ChessChoice tacticMove = new ChessSearch(tactic, tacticLevel, new Random(2), null).Run();
+                ChessChoice tacticMove = settled(tactic, tacticLevel, 2);
                 must(tacticMove.Move.Text == "e2e4", "Chess left a free queen on " + tacticLevel);
             }
             checks.Add("PASS chess at every level takes an undefended queen instead of choosing an arbitrary legal move");
@@ -26207,7 +26229,10 @@ namespace CapriDesktop
                 {
                     System.Collections.Generic.List<string> limitedAsked = new System.Collections.Generic.List<string>();
                     string limitedReply = "!429 {\"error\":{\"status\":\"RESOURCE_EXHAUSTED\",\"message\":\"Rate limit reached. Check your billing plan.\"}}";
-                    string limitedUrl = FakeServer(new[] { limitedReply, limitedReply, "!401 {\"error\":{\"message\":\"Rejected " + limitedKey + "\"}}", "!400 {\"error\":{\"message\":\"Cannot list models for " + limitedKey + "\"}}", "!404 {}" }, limitedAsked, out limitedFake);
+                    // Glued to a word, the echoed key has no shape her redaction knows, so only CloudModels handing its key to the
+                    // error scrubs it: these test keys start like real ones, which redaction alone would hide.
+                    if (Brain.Redacted("for project_" + limitedKey) != "for project_" + limitedKey) throw new Exception("The echoed test key has a shape redaction already knows.");
+                    string limitedUrl = FakeServer(new[] { limitedReply, limitedReply, "!401 {\"error\":{\"message\":\"Rejected " + limitedKey + "\"}}", "!400 {\"error\":{\"message\":\"Cannot list models for project_" + limitedKey + "\"}}", "!404 {}" }, limitedAsked, out limitedFake);
                     Brain.Google = limitedUrl; Brain.OpenRouter = limitedUrl;
                     int explainedLimits = 0;
                     try { Brain.CloudModels(limitedKey); } catch (BrainException listLimit) { if ((listLimit.Message == Brain.Busy || listLimit.Message == Brain.BusyWatching) && listLimit.Told) explainedLimits++; }
@@ -26216,7 +26241,7 @@ namespace CapriDesktop
                     bool rejectedKey = false;
                     try { Brain.CloudModels(limitedKey); } catch (BrainException badKey) { rejectedKey = badKey.Told && badKey.Message == (limitedKey == "AIza-test" ? Brain.NewKey : "Key rejected. Press Forget, then paste it again."); }
                     bool scrubbedKey = false, missingList = false;
-                    try { Brain.CloudModels(limitedKey); } catch (BrainException echoedKey) { scrubbedKey = echoedKey.Message.Contains("[redacted]") && !echoedKey.Message.Contains(limitedKey); }
+                    try { Brain.CloudModels(limitedKey); } catch (BrainException echoedKey) { scrubbedKey = echoedKey.Message.Contains("project_[redacted]") && !echoedKey.Message.Contains(limitedKey); }
                     try { Brain.CloudModels(limitedKey); } catch (BrainException missingModels) { missingList = missingModels.Told && missingModels.Message.Contains("couldn't find its model list"); }
                     if (explainedLimits != 2 || !rejectedKey || !scrubbedKey || !missingList || limitedAsked.Count != 5) throw new Exception("A new provider hid a model-list error, repeated a key or retried a rate limit immediately.");
                     checkedLimits++;
@@ -30081,6 +30106,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
+            Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
@@ -30108,6 +30134,81 @@ namespace CapriDesktop
             Section(checks, "SmokeWordingFixes", delegate { SmokeWordingFixes(checks, output); });
             Section(checks, "SmokeHelpQuotes", delegate { SmokeHelpQuotes(checks); });
             Section(checks, "SmokeSmallWording", delegate { SmokeSmallWording(checks); });
+        }
+
+        // What her redaction keeps and hides, on its own, so a change to it is quick to check.
+        private static void SmokeRedaction(System.Collections.Generic.List<string> checks)
+        {
+            // Each of these took the old searches from seconds to minutes: a word made of key words, image prefixes with no
+            // end, and login words with nothing after them. A login scan stays bounded too.
+            string[] huge = { Repeat("token", 12000), Repeat("secret", 10000), Repeat("data:image/", 6000), Repeat("mysql ", 10000), Repeat("docker login ", 5000) };
+            foreach (string line in huge)
+            {
+                Stopwatch took = Stopwatch.StartNew();
+                Brain.Redacted(line);
+                if (took.ElapsedMilliseconds > 3000) throw new Exception("Redacting a " + line.Length + "-character line of " + line.Substring(0, 12) + "... took " + took.ElapsedMilliseconds + " ms.");
+            }
+            checks.Add("PASS redaction stays quick on huge lines made of key words, image prefixes or logins");
+
+            // A sentence keeps its words; a header, a key or a password-looking word after one still goes.
+            string[] sentences = { "Set the cookie: SameSite=Lax and Secure, then reload.", "The secret: always run the tests first.", "Here is the password: it is on the sticky note.", "Next token: the parser reads a word.", "Reading the token: done", "max_tokens: 4096" };
+            foreach (string sentence in sentences)
+                if (Brain.Redacted(sentence) != sentence) throw new Exception("Redaction cut a sentence: " + Brain.Redacted(sentence));
+            string[][] hidden = {
+                new[] { "Cookie: session=abc123; csrftoken=zzz999", "zzz999" }, new[] { "first\n> Cookie: sid=Qx99; theme=dark\nlast", "theme=dark" },
+                new[] { "curl -H \"Cookie: sid=Qx99; csrftoken=zzz999\" https://api.example.com/x", "zzz999" }, new[] { "{\"cookie\": \"sid=Qx99\"}", "Qx99" },
+                new[] { "{\"password\": \"two words\",\"user\":\"bob\"}", "two words" }, new[] { "db:\n  password: hunter2\n  user: bob", "hunter2" }, new[] { "- token: tk-778899", "tk-778899" },
+                new[] { "MYSQL_ROOT_PASSWORD: hunter2", "hunter2" }, new[] { "clientSecret: \"abc-778\"", "abc-778" }, new[] { "user: admin, password: hunter2", "hunter2" },
+                new[] { "{ token: \"tk-1\", user: \"x\" }", "tk-1" }, new[] { "curl -H \"X-Auth-Token: tok3nValue99\" https://x", "tok3nValue99" },
+                new[] { "I set the password: hunter2 in the .env", "hunter2" }, new[] { "your token: 9f3k2j1h7g6f5d4s", "9f3k2j1h7g6f5d4s" }, new[] { "the cookie: session=abc123def", "abc123def" } };
+            foreach (string[] pair in hidden)
+                if (Brain.Redacted(pair[0]).Contains(pair[1])) throw new Exception("Redaction kept a cookie, password or token: " + Brain.Redacted(pair[0]));
+            if (!Brain.Redacted(hidden[2][0]).EndsWith("\" https://api.example.com/x", StringComparison.Ordinal) || !Brain.Redacted(hidden[1][0]).EndsWith("\nlast", StringComparison.Ordinal) || !Brain.Redacted(hidden[5][0]).EndsWith("\n  user: bob", StringComparison.Ordinal))
+                throw new Exception("A redacted header or key took the rest of its command or the next line: " + Brain.Redacted(hidden[2][0]));
+            checks.Add("PASS redaction keeps \"the cookie: SameSite=Lax\" and \"the secret: always\" in sentences whole, and still hides cookie headers, quoted, YAML and object keys and password-looking words after one");
+
+            // sshpass's own -p comes before the command it runs; ssh's -p after it is a port.
+            foreach (string port in new[] { "sshpass -f ~/.pw ssh -p2222 pi@host", "sshpass -e ssh -p 2222 host", "sshpass -d 3 scp -P 2222 a host:b" })
+                if (Brain.Redacted(port) != port) throw new Exception("Redaction took ssh's port for sshpass's password: " + Brain.Redacted(port));
+            string sshpass = Brain.Redacted("sshpass -v -p 'Pa55word' ssh -p 2222 pi@host && SSHPASS=Env5ecret sshpass -e ssh host && sshpass -P assword -pAttach3d ssh host");
+            if (sshpass.Contains("Pa55word") || sshpass.Contains("Env5ecret") || sshpass.Contains("Attach3d") || !sshpass.Contains("ssh -p 2222 pi@host")) throw new Exception("sshpass lost its port or kept its password: " + sshpass);
+            checks.Add("PASS redaction hides sshpass's -p password and SSHPASS= and leaves ssh's own -p port alone");
+
+            // PowerShell's -Name:$value is a switch or a variable, not curl's -uuser:password.
+            foreach (string switches in new[] { "Invoke-WebRequest -Uri https://x -UseDefaultCredentials:$true", "Invoke-RestMethod -Uri $u -UseBasicParsing:$false", "iwr https://x -usedefaultcredentials:$True" })
+                if (Brain.Redacted(switches) != switches) throw new Exception("Redaction took a PowerShell switch for a password: " + Brain.Redacted(switches));
+            string curls = Brain.Redacted("curl -uadmin:Attach3d https://x && curl -U proxy:Pr0xyPw https://y && curl -u admin:Spac3d https://z");
+            if (curls.Contains("Attach3d") || curls.Contains("Pr0xyPw") || curls.Contains("Spac3d")) throw new Exception("curl's -u lost its redaction: " + curls);
+            checks.Add("PASS redaction leaves PowerShell's -UseDefaultCredentials:$true and other $ switches alone and still hides curl's -u and -U passwords");
+
+            // A saved key with no shape Redacted knows still stays out of errors.txt, as typed or URL-escaped; a short placeholder
+            // key, like a local server's, leaves the words it matches alone.
+            string shapeless = "Qv7Lm2Xp9Rt4Wz8Kc6Hy3Nd5Bf1Gs0J", escapedKey = "Qv7Lm2Xp9Rt4/Wz8Kc6+Hy3Nd5Bf1Gs0", log = Path.Combine(Path.GetTempPath(), "capri-scrub-" + Guid.NewGuid().ToString("N") + ".txt");
+            Func<string[]> secretsWas = Brain.Secrets;
+            try
+            {
+                Brain.Secrets = delegate { return new[] { shapeless, escapedKey, "local-key", null, "" }; };
+                if (Brain.Redacted("said " + shapeless + " back") != "said " + shapeless + " back") throw new Exception("The scrub check's key has a shape Redacted already knows.");
+                Brain.LogAt(log, "https://api.example.com/v1/" + shapeless + "/models", -1, "Bad key " + shapeless + " for /v1?key=" + Uri.EscapeDataString(escapedKey) + ", the local-key placeholder");
+                string written = File.ReadAllText(log);
+                if (written.Contains(shapeless) || written.Contains(Uri.EscapeDataString(escapedKey)) || !written.Contains("Bad key [redacted] for /v1?key=[redacted], the local-key placeholder") || !written.Contains("api.example.com/v1/[redacted]/models"))
+                    throw new Exception("A saved key with no known shape reached errors.txt, or a short one took a word: " + written);
+                Brain.Secrets = delegate { throw new InvalidOperationException("No keys yet."); };
+                if (!Brain.LogAt(log, "scrub", -1, "keys unreadable") || !File.ReadAllText(log).Contains(" | scrub | - | keys unreadable")) throw new Exception("Keys that couldn't be read stopped a line reaching errors.txt.");
+            }
+            finally
+            {
+                Brain.Secrets = secretsWas;
+                if (File.Exists(log)) File.Delete(log);
+            }
+            checks.Add("PASS errors.txt never keeps a saved key whole, whatever its shape, as typed or URL-escaped, and a short placeholder key leaves ordinary words alone");
+        }
+
+        private static string Repeat(string text, int times)
+        {
+            StringBuilder all = new StringBuilder(text.Length * times);
+            for (int i = 0; i < times; i++) all.Append(text);
+            return all.ToString();
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)

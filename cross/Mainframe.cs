@@ -43,11 +43,17 @@ namespace CapriDesktop
             rim = new NeonRim { Plate = plate, IsHitTestVisible = false };
             var surface = new Grid(); surface.Children.Add(plate); surface.Children.Add(rim); Content = surface;
             Scroll.ScrollChanged += (_, _) => { plate.Scroll = Scroll.Offset.Y / Zoom; plate.View = Scroll.Viewport.Height / Zoom; rim.InvalidateVisual(); };
+            // Her buttons, switches, sliders and pickers go through Program.Guard by themselves (MainframeTheme), and the window's
+            // own scrolling, keys, dragging and boxes do here, so a bug in Mainframe is written down instead of ending her.
             AddHandler(PointerWheelChangedEvent, (_, e) =>
             {
-                double x = Math.Abs(e.Delta.X) > 0 ? e.Delta.X : (e.KeyModifiers & KeyModifiers.Shift) != 0 ? e.Delta.Y : 0;
-                double y = x == 0 ? e.Delta.Y : 0;
-                GlideTo((glide.IsEnabled ? to : Scroll.Offset) - new Vector(x * 36 * Zoom, y * 36 * Zoom)); e.Handled = true;
+                e.Handled = true;
+                Program.Guard(() =>
+                {
+                    double x = Math.Abs(e.Delta.X) > 0 ? e.Delta.X : (e.KeyModifiers & KeyModifiers.Shift) != 0 ? e.Delta.Y : 0;
+                    double y = x == 0 ? e.Delta.Y : 0;
+                    GlideTo((glide.IsEnabled ? to : Scroll.Offset) - new Vector(x * 36 * Zoom, y * 36 * Zoom));
+                });
             }, RoutingStrategies.Tunnel);
             glide.Tick += (_, _) => Program.Guard(() =>
             {
@@ -56,14 +62,14 @@ namespace CapriDesktop
                 try { Scroll.Offset = from + (to - from) * eased; }
                 finally { if (t >= 1) glide.Stop(); }
             });
-            KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
-            Page.PointerPressed += (_, e) => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); };
+            KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; Program.Guard(Close); } };
+            Page.PointerPressed += (_, e) => Program.Guard(() => { if (e.GetPosition(Page).Y < 50 && e.GetCurrentPoint(Page).Properties.IsLeftButtonPressed && (e.Source == Page || e.Source is NeonCaption)) BeginMoveDrag(e); });
             AddHandler(GotFocusEvent, (_, e) => { if (e.Source is Control control) control.BringIntoView(); });
             SizeChanged += (_, _) => { surface.Clip = MainframeTheme.Cut(new Rect(Bounds.Size), 16 * Zoom, 6 * Zoom, 16 * Zoom, 6 * Zoom); rim.InvalidateVisual(); };
             Closed += (_, _) => glide.Stop();
-            Opened += (_, _) => ScreenChanged();
-            PositionChanged += (_, _) => ScreenChanged();
-            ScalingChanged += (_, _) => ScreenChanged();
+            Opened += (_, _) => Program.Guard(ScreenChanged);
+            PositionChanged += (_, _) => Program.Guard(ScreenChanged);
+            ScalingChanged += (_, _) => Program.Guard(ScreenChanged);
         }
 
         internal void Fit(double width, double height, double zoom)
@@ -237,7 +243,7 @@ namespace CapriDesktop
             speechModels = Picker("Speech model", 232, 346, 124, () => Array.IndexOf(pet.MainframeSpeechIds, pet.Saved.SpeechModel ?? ""), i => pet.SetSpeechModel(pet.MainframeSpeechIds[i])); speechModels.Ellipsis = true;
             MainframeTips.Explain(speechModels, "Default model");
             voiceId.Chevron = true; voiceId.Drop += () => { pet.MainframeLoadVoices(); voicePicker.OpenAt(voiceId); };
-            voiceId.Box.LostFocus += (_, _) => { if (voiceId.Box.Text != pet.Saved.VoiceId && !string.IsNullOrWhiteSpace(voiceId.Box.Text)) pet.ChooseVoice(voiceId.Box.Text.Trim()); };
+            voiceId.Box.LostFocus += (_, _) => Program.Guard(() => { if (voiceId.Box.Text != pet.Saved.VoiceId && !string.IsNullOrWhiteSpace(voiceId.Box.Text)) pet.ChooseVoice(voiceId.Box.Text.Trim()); });
             customVoice = Key("Voice server", 28, 346, 328, 28, OpenServer); customVoice.Chevron = true; customVoice.Ellipsis = true;
             MainframeTips.Explain(customVoice, "CUSTOM LOCAL");
             voiceNote = Caption("", 28, 499, 244, 22, MainframeTheme.Faint); voiceNote.Ellipsis = true;
@@ -409,7 +415,7 @@ namespace CapriDesktop
         private NeonEntry Entry(string name, string cue, double x, double y, double width, double height, Action enter, bool secret = false)
         {
             var entry = Add(new NeonEntry(cue, secret), x, y, width, height, name);
-            entry.Box.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) { enter(); e.Handled = true; Sync(); } };
+            entry.Box.KeyDown += (_, e) => { if (e.Key == Avalonia.Input.Key.Enter) { e.Handled = true; Program.Guard(() => { enter(); Sync(); }); } };
             return entry;
         }
         private NeonPicker Picker(string name, double x, double y, double width, Func<int> read, Action<int> change)

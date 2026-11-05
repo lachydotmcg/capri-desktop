@@ -52,6 +52,8 @@ namespace CapriDesktop
         private int moveStage;
         private PixelPoint moveTo;
         private Screen moveFrom;
+        // The mouse holding her while she hides.
+        private Avalonia.Input.Pointer holding;
         private readonly List<string> moveLines = new List<string>();
         private double noticedBefore = -1;
         private bool poppedAgain;
@@ -131,6 +133,8 @@ namespace CapriDesktop
                 if (Brain.Greeting(8) != "Good morning, choom." || Brain.Greeting(23) != "Isn't it late, choom?" || Brain.Greeting(15) != "Miss me, choom?" || Brain.GreetingClip(15) != "miss") throw new Exception("Startup greetings came at the wrong hours.");
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 NewsChecks();
+                GuardChecks();
+                MainframeGuardChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1006,8 +1010,8 @@ namespace CapriDesktop
                 {
                     if (!pet.Upright) return false;
                     pet.Talk.Dismiss();
-                    // An open menu keeps her awake, and on Linux one is still open from an earlier check; this check is about her
-                    // sleep timer, so it says so and closes it first.
+                    // An open menu keeps her awake. The drag checks' right release used to leave one open on Linux; if an earlier
+                    // check still does, this one is about her sleep timer, so it says so and closes it first.
                     if (pet.ContextMenu != null && pet.ContextMenu.IsOpen) { checks.Add("LIMIT her menu was still open from an earlier check, so the sleep check closed it first"); pet.ContextMenu.Close(); }
                     pet.SetSleepAfter(0);
                     pet.Doze(100000);
@@ -1115,12 +1119,23 @@ namespace CapriDesktop
                 checks.Add("PASS dancing: she dances in her seat while music plays");
                 outFrom = now;
                 Sfx.Out = sounds.Add;
+                // She's hidden while held, which her window can't report the release of once it's gone.
+                Point? grip = pet.BodySpot();
+                if (grip == null) throw new Exception("Couldn't find her body to hold while she hides.");
+                holding = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true);
+                Press(holding, grip.Value);
+                if (holding.Captured != pet) throw new Exception("Pressing her before she hid didn't hold the mouse.");
                 pet.HideAway();
                 return true;
             }
             if (step == 16)
             {
                 if (pet.IsVisible) return false;
+                bool letGo = !(bool)typeof(Pet).GetField("pressed", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(pet) && holding.Captured == null;
+                holding.Dispose();
+                holding = null;
+                if (!letGo) throw new Exception("Hiding her while she was held left her held.");
+                checks.Add("PASS hiding her while she's held lets go of her, since her window can't report the release once it's gone");
                 if (now - outFrom < 0.6) throw new Exception("Her glitch-out ended after " + (now - outFrom).ToString("0.00") + " s.");
                 if (!pet.Away || sounds.Count != 1 || sounds[0].Length != Sfx.Make(Cue.Leave, 60).Length) throw new Exception("Her glitch-out didn't play its sound once: " + sounds.Count);
                 checks.Add("PASS glitch out: Hide her plays her glitch-out and its sound for " + (now - outFrom).ToString("0.0") + " s, then her window goes");
@@ -1423,6 +1438,94 @@ namespace CapriDesktop
             return new Point(point.X + Math.Sign(at.X) * 0.25 / pet.RenderScaling, point.Y + Math.Sign(at.Y) * 0.25 / pet.RenderScaling);
         }
 
+        // Runs work with Program.Guard catching, as it does outside smoke runs, and errors.txt pointed at guard-errors.txt so
+        // the run's own log stays clean. Returns the lines Guard wrote.
+        private string[] Caught(Action work)
+        {
+            string log = Brain.LogPath, scratch = Path.Combine(folder, "guard-errors.txt");
+            if (File.Exists(scratch)) File.Delete(scratch);
+            Brain.LogPath = scratch;
+            Program.Catching = true;
+            try { work(); }
+            finally { Program.Catching = false; Brain.LogPath = log; }
+            return File.Exists(scratch) ? File.ReadAllLines(scratch) : new string[0];
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void GuardFault(int time)
+        {
+            try { throw new FormatException("Guard fault " + time); }
+            catch (FormatException inner) { throw new InvalidOperationException("A wrapped guard fault.", inner); }
+        }
+
+        // Program.Guard rethrows in smoke runs so a bug fails them, which left its catch path and Crashed's lines unrun.
+        private void GuardChecks()
+        {
+            bool rethrown = false;
+            try { Program.Guard(delegate { throw new TimeoutException("A smoke run's bug."); }); }
+            catch (TimeoutException) { rethrown = true; }
+            if (!rethrown) throw new Exception("Program.Guard swallowed a bug in a smoke run.");
+            string[] first = Caught(delegate { Program.Guard(delegate { GuardFault(1); }); });
+            if (first.Length < 2 || first.Length > 5 || !first[0].EndsWith(" | crash | - | FormatException: Guard fault 1", StringComparison.Ordinal) || first[1].IndexOf("GuardFault", StringComparison.Ordinal) < 0) throw new Exception("Program.Guard didn't write the innermost bug and where it was: " + string.Join(" / ", first));
+            for (int i = 1; i < first.Length; i++) if (first[i].IndexOf(" | crash | - | at ", StringComparison.Ordinal) < 0) throw new Exception("A crash line after the first wasn't a stack line: " + first[i]);
+            string[] again = Caught(delegate { Program.Guard(delegate { GuardFault(2); }); });
+            if (again.Length != 0) throw new Exception("The same bug from the same place was written twice in a minute: " + string.Join(" / ", again));
+            string[] other = Caught(delegate { Program.Guard(delegate { throw new ArgumentException("Another guard fault."); }); });
+            if (other.Length < 2 || !other[0].EndsWith(" | crash | - | ArgumentException: Another guard fault.", StringComparison.Ordinal)) throw new Exception("A different bug wasn't written after the first: " + string.Join(" / ", other));
+            checks.Add("PASS Program.Guard: a bug in a click or timer goes in errors.txt as its innermost type and message with up to four stack lines, the same one from the same place once a minute, and she carries on; smoke runs still fail on it");
+        }
+
+        private static PointerPressedEventArgs LeftPress(Control on, IPointer mouse)
+        {
+            return new PointerPressedEventArgs(on, mouse, on, new Point(0, 0), 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1);
+        }
+
+        // Mainframe's buttons, pickers, switches, sliders and drop-downs go through Program.Guard like her menu, so a bug behind
+        // one can't end her on Linux.
+        private void MainframeGuardChecks()
+        {
+            List<string> ran = new List<string>();
+            NeonButton button = new NeonButton { Text = "Guarded" };
+            button.Click += delegate { ran.Add("button"); throw new InvalidOperationException("A Mainframe button's bug."); };
+            NeonChoice choice = new NeonChoice { Text = "Guarded" };
+            choice.Click += delegate { ran.Add("choice"); throw new InvalidOperationException("A picker choice's bug."); };
+            NeonPicker picker = new NeonPicker();
+            picker.Options(new[] { "One", "Two" });
+            picker.Changed += delegate(int at) { ran.Add("picker"); throw new InvalidOperationException("A picker's bug."); };
+            NeonSwitch flipped = new NeonSwitch { Text = "Guarded" }, halves = new NeonSwitch { Text = "Guarded" };
+            flipped.IsCheckedChanged += delegate { ran.Add("switch"); throw new InvalidOperationException("A switch's bug."); };
+            halves.IsCheckedChanged += delegate { ran.Add("on"); throw new InvalidOperationException("A switch's ON half's bug."); };
+            NeonSlider slider = new NeonSlider("Guarded", new[] { "One", "Two", "Three" });
+            slider.Changed += delegate(int value) { ran.Add("slider"); throw new InvalidOperationException("A slider's bug."); };
+            slider.Released += delegate { ran.Add("settled"); throw new InvalidOperationException("A slider's settling bug."); };
+            NeonEntry entry = new NeonEntry("Guarded") { Chevron = true };
+            entry.Drop += delegate { ran.Add("drop"); throw new InvalidOperationException("A drop-down's bug."); };
+            string unguarded = null;
+            Action<string, Action> run = delegate(string name, Action work)
+            {
+                try { work(); }
+                catch (InvalidOperationException) { if (unguarded == null) unguarded = name; }
+            };
+            string[] lines;
+            using (Avalonia.Input.Pointer mouse = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true))
+                lines = Caught(delegate
+                {
+                    run("button", button.Press);
+                    run("picker choice", choice.Press);
+                    run("picker", delegate { picker.Pick(1); });
+                    run("switch", flipped.Flip);
+                    run("switch's ON half", delegate { halves.RaiseEvent(LeftPress(halves, mouse)); });
+                    run("slider", delegate { slider.Slide(2); });
+                    run("drop-down", delegate { entry.RaiseEvent(LeftPress(entry, mouse)); });
+                });
+            if (unguarded != null) throw new Exception("A bug behind Mainframe's " + unguarded + " isn't caught by Program.Guard, so on Linux it would end her.");
+            if (string.Join(",", ran) != "button,choice,picker,switch,on,slider,settled,drop") throw new Exception("Not every Mainframe control ran its handler: " + string.Join(",", ran));
+            int written = 0;
+            foreach (string line in lines) if (line.IndexOf(" | crash | - | InvalidOperationException: ", StringComparison.Ordinal) >= 0) written++;
+            if (written != 8) throw new Exception("Program.Guard wrote " + written + " of Mainframe's 8 bugs down.");
+            checks.Add("PASS Mainframe's buttons, pickers, switches, sliders and drop-downs go through Program.Guard like her menu, so a bug behind one is written down and she carries on");
+        }
+
         private void DragChecks()
         {
             var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -1482,6 +1585,9 @@ namespace CapriDesktop
                 cursor = new PixelPoint(down.X + 90, down.Y - 120);
                 Release(mouse, linux ? at : Client(cursor.Value), false, MouseButton.Right);
                 if (!pet.Dragging || mouse.Captured != pet || moves.Count != 2) throw new Exception("A right release ended a left drag.");
+                // Avalonia turns a right release on her into ContextRequested, which opens her menu. On Linux it stayed open until
+                // the sleep check, so it's closed here.
+                if (pet.ContextMenu != null && pet.ContextMenu.IsOpen) pet.ContextMenu.Close();
                 Release(mouse, linux ? at : Client(cursor.Value), false);
                 if (moves.Count != 3 || pet.Anchor != new PixelPoint(start.X + 90, start.Y - 120) || pet.Dragging || mouse.Captured != null || !pet.Falling) throw new Exception("Release didn't move her to the pointer before dropping.");
                 pet.DragFrame();
@@ -1540,6 +1646,83 @@ namespace CapriDesktop
                 }
                 broken = false;
                 checks.Add("PASS a missing or failed desk pointer uses PointToScreen for press, move and release; five pixels starts a drag");
+
+                // A bug part-way through a press or a drop is caught by Program.Guard, and leaves her whole.
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = null;
+                bool pressedAfter = true, capturedAfter = true, draggingAfter = true, fellAfter = false, stillFalling = true;
+                Caught(delegate
+                {
+                    pet.ToScreen = delegate(Point point) { throw new InvalidOperationException("No screen point here."); };
+                    try { Press(mouse, at); }
+                    finally { pet.ToScreen = null; }
+                    pressedAfter = (bool)typeof(Pet).GetField("pressed", fields).GetValue(pet);
+                    capturedAfter = mouse.Captured == pet;
+                    pet.Grab();
+                    List<PixelRect> screens = pet.Desk.Screens;
+                    pet.Desk.Screens = null;
+                    try
+                    {
+                        Program.Guard(delegate { pet.Drop(); });
+                        draggingAfter = pet.Dragging;
+                        fellAfter = pet.Falling;
+                        Program.Guard(delegate { typeof(Pet).GetMethod("Tumble", fields).Invoke(pet, new object[] { pet.Now }); });
+                        stillFalling = pet.Falling;
+                    }
+                    finally { pet.Desk.Screens = screens; }
+                });
+                if (pressedAfter || capturedAfter) throw new Exception("A press whose screen point failed left her pressed (" + pressedAfter + ") or holding the mouse (" + capturedAfter + ").");
+                if (draggingAfter || !fellAfter) throw new Exception("A drop whose ledges failed left her held (" + draggingAfter + ") or floating where she was let go.");
+                if (stillFalling) throw new Exception("A fall whose ledges kept failing didn't stop.");
+                checks.Add("PASS a bug part-way through a press or a drop leaves her whole: a failed screen point leaves her unpressed with no capture, and failed ledges still end the drag with a fall, which stops if they keep failing");
+
+                // Avalonia rarely says a grab was lost, so her window losing focus mid-drag lets go of her with a drop.
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = down;
+                Press(mouse, at);
+                cursor = new PixelPoint(down.X + 40, down.Y - 70);
+                Pull(mouse, linux ? at : Client(cursor.Value));
+                bool heldFirst = pet.Dragging && mouse.Captured == pet;
+                EventHandler unfocused = typeof(WindowBase).GetField("Deactivated", fields).GetValue(pet) as EventHandler;
+                if (unfocused == null) throw new Exception("Nothing listens for her window losing focus.");
+                unfocused(pet, EventArgs.Empty);
+                bool stillPressed = (bool)typeof(Pet).GetField("pressed", fields).GetValue(pet);
+                if (!heldFirst || stillPressed || pet.Dragging || mouse.Captured != null) throw new Exception("Losing focus mid-drag left her held: dragged first " + heldFirst + ", pressed " + stillPressed + ", dragging " + pet.Dragging + ", captured " + (mouse.Captured != null) + ".");
+                checks.Add("PASS her window losing focus mid-drag lets go of her with a drop, since Avalonia rarely says a grab was lost");
+
+                // Let go with most of her off the right edge and nothing to land on, she's brought back; let go with her hip
+                // just under the screen and the floor in reach, she lands on it without being moved first.
+                Screen only = pet.Screens.All.Count == 1 ? pet.Screens.All[0] : null;
+                if (only == null) checks.Add("LIMIT the off-the-edge drop checks need one screen, and this desktop has " + pet.Screens.All.Count);
+                else
+                {
+                    PixelRect area = only.WorkingArea, bounds = only.Bounds;
+                    int size = Px(pet.BodySize), over = Px(Math.Max(32, pet.BodySize * 0.45));
+                    pet.StandUp();
+                    pet.Grab();
+                    pet.Move(new PixelPoint(start.X, area.Y + area.Height / 4));
+                    PixelRect drawn = pet.DrawnBox;
+                    pet.Move(new PixelPoint(pet.Anchor.X + bounds.Right - drawn.Width * 3 / 10 - drawn.X, pet.Anchor.Y));
+                    bool hipShown = pet.Screens.ScreenFromPoint(new PixelPoint(pet.Hip.X, pet.Hip.Y - 1)) != null;
+                    pet.Let(false);
+                    if (!hipShown || pet.Anchor.X != area.Right - size || pet.Dragging) throw new Exception("Let go with most of her off the right edge and nothing to land on, she wasn't brought back: hip on the screen " + hipShown + ", anchor " + pet.Anchor + ", work area " + area + ".");
+                    pet.StandUp();
+                    pet.Grab();
+                    pet.Move(new PixelPoint(start.X, bounds.Bottom + 4 - Px(pet.BodySize * Pet.SitY)));
+                    if (pet.Hip.Y - area.Bottom > over) checks.Add("LIMIT the floor here is out of a drop's reach from under the screen, so the no-jump drop check was skipped");
+                    else
+                    {
+                        PixelPoint letAt = pet.Anchor;
+                        int movesBefore = moves.Count;
+                        pet.Let(false);
+                        if (pet.Anchor != letAt || moves.Count != movesBefore || !pet.Falling) throw new Exception("Let go with her hip just under the screen and the floor in reach, she was moved first (" + letAt + " to " + pet.Anchor + ") or didn't land (falling " + pet.Falling + ").");
+                    }
+                    checks.Add("PASS a drop with less than half of her on a screen and nothing to land on brings her back, and a drop the floor can catch lands without moving her first");
+                }
 
                 if (linux)
                 {
@@ -2175,6 +2358,92 @@ namespace CapriDesktop
                         Directory.Delete(dotfiles, true);
                     }
                     checks.Add("PASS on Mac and Linux a linked settings file stays a link through Code/Husk Mode on and off, and her backups stay beside the link, out of the dotfiles folder");
+
+                    // A link into a folder she can't write, like Nix's read-only store, becomes a file only they can read, she
+                    // says so, and turning Code/Husk Mode off says it wasn't linked back. A link she can't write for any other
+                    // reason, like a name too long for her temporary copy, stays a link.
+                    string store = Path.Combine(own, "store"), stored = Path.Combine(store, "settings.json"), lengthy = Path.Combine(own, "lengthy");
+                    string longTarget = Path.Combine(lengthy, new string('s', 240) + ".json"), marker = Path.Combine(folder, "husk-unlinked.txt");
+                    UnixFileMode open = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, owned = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                    Directory.CreateDirectory(store);
+                    Directory.CreateDirectory(lengthy);
+                    File.WriteAllBytes(stored, plain);
+                    File.SetUnixFileMode(stored, owned | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+                    File.WriteAllBytes(longTarget, plain);
+                    Action<Action> queueBefore = pet.HuskQueue;
+                    Func<string> exeBefore = pet.HuskExe;
+                    try
+                    {
+                        foreach (string old in Directory.GetFiles(Path.GetDirectoryName(link), pattern)) File.Delete(old);
+                        File.Delete(link);
+                        File.CreateSymbolicLink(link, longTarget);
+                        bool refused = false;
+                        try { HuskHooks.Configure(1, mac); } catch (Exception) { refused = true; }
+                        if (!refused || new FileInfo(link).LinkTarget == null || File.ReadAllText(longTarget).Contains("CAPRI_HUSK=1")) throw new Exception("A link Husk couldn't write for a reason other than a read-only folder was replaced or written.");
+                        File.Delete(link);
+                        File.CreateSymbolicLink(link, stored);
+                        File.SetUnixFileMode(store, UnixFileMode.UserRead | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+                        bool writable = false;
+                        try { File.WriteAllText(Path.Combine(store, "probe"), ""); writable = true; }
+                        catch (UnauthorizedAccessException) { }
+                        if (writable) checks.Add("LIMIT this runner can write into a read-only folder, so the Nix link check was skipped");
+                        else
+                        {
+                            pet.HuskQueue = delegate(Action action) { action(); };
+                            pet.HuskExe = delegate { return mac; };
+                            pet.SetHusk(1);
+                            string on = pet.Talk.Reply ?? "";
+                            bool standIn = new FileInfo(link).LinkTarget == null && File.ReadAllText(link).Contains("CAPRI_HUSK=1") && !File.ReadAllText(stored).Contains("CAPRI_HUSK=1");
+                            UnixFileMode standMode = File.GetUnixFileMode(link);
+                            bool kept = File.Exists(marker);
+                            pet.SetHusk(0);
+                            string off = pet.Talk.Reply ?? "";
+                            if (!standIn || standMode != owned) throw new Exception("A link into a read-only folder didn't become a file only they can read: replaced " + standIn + ", mode " + standMode + ".");
+                            if (!kept || File.Exists(marker) || on.IndexOf("so I made it a file of its own.", StringComparison.Ordinal) < 0 || off.IndexOf("is still a file of its own. Link it again", StringComparison.Ordinal) < 0 || File.ReadAllText(link).Contains("CAPRI_HUSK=1"))
+                                throw new Exception("Code/Husk Mode didn't say a read-only link became a file, or Off didn't say it wasn't linked back: " + on + " / " + off);
+                            checks.Add("PASS on Mac and Linux a settings link into a read-only folder, like Nix's store, becomes a file only they can read, she says so, and Code/Husk Mode Off says it wasn't linked back; a link she can't write any other way stays a link");
+                        }
+                    }
+                    finally
+                    {
+                        pet.HuskQueue = queueBefore;
+                        pet.HuskExe = exeBefore;
+                        File.SetUnixFileMode(store, open);
+                        foreach (string old in Directory.GetFiles(Path.GetDirectoryName(link), pattern)) File.Delete(old);
+                        File.Delete(link);
+                        File.WriteAllBytes(link, plain);
+                        File.SetUnixFileMode(link, plainMode);
+                        Directory.Delete(store, true);
+                        Directory.Delete(lengthy, true);
+                        if (File.Exists(marker)) File.Delete(marker);
+                    }
+
+                    // A settings folder that is itself a link, like GNU Stow folding ~/.claude into a dotfiles repo, gets her
+                    // backups in her data folder instead of the repo.
+                    string dotRepo = Path.Combine(own, "dotrepo"), folded = Path.Combine(own, "Folded config"), keptBackups = Path.Combine(HuskHooks.BackupFolder ?? folder, "husk-backups");
+                    string configWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                    List<string> keptBefore = new List<string>(Directory.Exists(keptBackups) ? Directory.GetFiles(keptBackups) : new string[0]);
+                    Directory.CreateDirectory(dotRepo);
+                    File.WriteAllBytes(Path.Combine(dotRepo, "settings.json"), plain);
+                    Directory.CreateSymbolicLink(folded, dotRepo);
+                    try
+                    {
+                        Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", folded);
+                        HuskHooks.Configure(1, mac);
+                        bool hooked = File.ReadAllText(Path.Combine(dotRepo, "settings.json")).Contains("CAPRI_HUSK=1");
+                        HuskHooks.Configure(0, null);
+                        int inRepo = Directory.GetFiles(dotRepo, "settings.json.capri-backup-*").Length, inData = 0;
+                        if (Directory.Exists(keptBackups)) foreach (string copy in Directory.GetFiles(keptBackups, "settings.json.capri-backup-*")) if (!keptBefore.Contains(copy)) inData++;
+                        if (!hooked || inRepo != 0 || inData != 2) throw new Exception("Settings in a linked folder got her backups in the folder it links to: hooked " + hooked + ", " + inRepo + " backups there and " + inData + " in her data folder.");
+                        checks.Add("PASS on Mac and Linux a settings folder that is a link, like GNU Stow folding ~/.claude, gets her backups in her data folder, out of the dotfiles repo");
+                    }
+                    finally
+                    {
+                        Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", configWas);
+                        File.Delete(folded);
+                        Directory.Delete(dotRepo, true);
+                        if (Directory.Exists(keptBackups)) foreach (string copy in Directory.GetFiles(keptBackups)) if (!keptBefore.Contains(copy)) File.Delete(copy);
+                    }
                 }
 
                 pet.HuskQueue = delegate(Action action) { action(); };
