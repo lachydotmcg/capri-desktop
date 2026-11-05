@@ -4358,7 +4358,10 @@ namespace CapriDesktop
             strip.Renderer = new MenuLook();
             strip.BackColor = Ground;
             strip.ForeColor = White;
-            strip.Font = Font;
+            // Its own copy: rescaling disposes the Mainframe's font, and a menu holding that one throws the next time it draws (nathanZW, #78).
+            Font own = new Font(Font, Font.Style);
+            strip.Font = own;
+            strip.Disposed += delegate { own.Dispose(); };
             strip.ShowImageMargin = false;
             strip.ShowCheckMargin = true;
             return strip;
