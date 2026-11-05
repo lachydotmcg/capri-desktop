@@ -519,21 +519,21 @@ namespace CapriDesktop
                 paint.ScaleTransform(scale, scale);
                 paint.SmoothingMode = SmoothingMode.AntiAlias;
                 using (GraphicsPath clip = Neon.Cut(new RectangleF(0, 0, Wide - 1, Tall - 1), 20, 5, 20, 5)) paint.SetClip(clip);
-                Neon.Backdrop(paint, new Size(Wide, Tall), 250);
-                Neon.Frame(paint, new Size(Wide, Tall), 1, 20, 5, 55, 20);
-                Words(paint, game.Title, title, Neon.Rose, new RectangleF(24, 22, 298, 32), false);
-                Words(paint, "X", body, Neon.Rose, Part(game.Kind, 9), true);
-                Words(paint, "SESSION  /  " + game.Score.Text, small, Neon.Cyan, new RectangleF(24, 72, 324, 22), false);
+                CityLook.Backdrop(paint, new Size(Wide, Tall), 250);
+                CityLook.Frame(paint, new Size(Wide, Tall), 1, 20, 5, 55, 20);
+                Words(paint, game.Title, title, CityLook.Rose, new RectangleF(24, 22, 298, 32), false);
+                Words(paint, "X", body, CityLook.Rose, Part(game.Kind, 9), true);
+                Words(paint, "SESSION  /  " + game.Score.Text, small, CityLook.Cyan, new RectangleF(24, 72, 324, 22), false);
                 string keys = game.Kind == "tic_tac_toe" ? "1-9 or arrows + Enter  /  say top left, middle..." : game.Kind == "connect_four" ? "1-7 or arrows + Enter  /  say column 3..." : "R / P / S or arrows + Enter  /  first to 3";
-                Words(paint, keys, small, Neon.Faint, new RectangleF(24, 108, 324, 22), false);
+                Words(paint, keys, small, CityLook.Faint, new RectangleF(24, 108, 324, 22), false);
                 int count = game.Kind == "tic_tac_toe" ? 9 : game.Kind == "connect_four" ? 7 : 3;
                 for (int pick = 0; pick < count; pick++)
                 {
                     RectangleF tile = Part(game.Kind, pick);
                     tile.Inflate(-3, -3);
                     using (GraphicsPath shape = Neon.Cut(tile, 5, 2, 5, 2))
-                    using (Brush fill = new SolidBrush(selected == pick ? Neon.Deep : Neon.Well))
-                    using (Pen edge = new Pen(selected == pick ? Color.FromArgb(180 + Math.Abs(10 - pulse) * 7, Neon.Cyan) : Neon.WellEdge, selected == pick ? 2 : 1))
+                    using (Brush fill = new SolidBrush(selected == pick ? CityLook.Deep : CityLook.Well))
+                    using (Pen edge = new Pen(selected == pick ? Color.FromArgb(180 + Math.Abs(10 - pulse) * 7, CityLook.Cyan) : CityLook.WellEdge, selected == pick ? 2 : 1))
                     {
                         paint.FillPath(fill, shape);
                         paint.DrawPath(edge, shape);
@@ -541,7 +541,7 @@ namespace CapriDesktop
                     if (game.Kind == "tic_tac_toe")
                     {
                         int cell = game.Cells[pick];
-                        Words(paint, cell == 1 ? "X" : cell == 2 ? "O" : (pick + 1).ToString(), cell == 0 ? body : mark, cell == 1 ? Neon.Cyan : cell == 2 ? Neon.Rose : Neon.Faint, tile, true);
+                        Words(paint, cell == 1 ? "X" : cell == 2 ? "O" : (pick + 1).ToString(), cell == 0 ? body : mark, cell == 1 ? CityLook.Cyan : cell == 2 ? CityLook.Rose : CityLook.Faint, tile, true);
                     }
                     else if (game.Kind == "connect_four")
                     {
@@ -549,21 +549,21 @@ namespace CapriDesktop
                         {
                             int cell = game.Cells[row * 7 + pick];
                             RectangleF disc = new RectangleF(tile.X + 5, 146 + row * 44, 30, 30);
-                            using (Brush ink = new SolidBrush(cell == 1 ? Neon.Cyan : cell == 2 ? Neon.Rose : Neon.Field)) paint.FillEllipse(ink, disc);
-                            if (cell != 0) Words(paint, cell == 1 ? "X" : "O", small, Neon.OnInk, disc, true);
-                            else if (row == 0) Words(paint, (pick + 1).ToString(), small, Neon.Faint, disc, true);
+                            using (Brush ink = new SolidBrush(cell == 1 ? CityLook.Cyan : cell == 2 ? CityLook.Rose : CityLook.Field)) paint.FillEllipse(ink, disc);
+                            if (cell != 0) Words(paint, cell == 1 ? "X" : "O", small, CityLook.OnInk, disc, true);
+                            else if (row == 0) Words(paint, (pick + 1).ToString(), small, CityLook.Faint, disc, true);
                         }
                     }
                     else
                     {
-                        Words(paint, new[] { "R", "P", "S" }[pick], mark, Neon.Cyan, new RectangleF(tile.X, tile.Y + 15, tile.Width, 54), true);
-                        Words(paint, new[] { "ROCK", "PAPER", "SCISSORS" }[pick], body, Neon.White, new RectangleF(tile.X, tile.Y + 75, tile.Width, 32), true);
+                        Words(paint, new[] { "R", "P", "S" }[pick], mark, CityLook.Cyan, new RectangleF(tile.X, tile.Y + 15, tile.Width, 54), true);
+                        Words(paint, new[] { "ROCK", "PAPER", "SCISSORS" }[pick], body, CityLook.White, new RectangleF(tile.X, tile.Y + 75, tile.Width, 32), true);
                     }
                 }
-                if (game.Kind == "rock_paper_scissors") Words(paint, game.Last, body, Neon.White, new RectangleF(24, 326, 324, 74), false);
-                Words(paint, game.Status, body, game.Result == 1 ? Neon.Cyan : game.Result == 2 ? Neon.Rose : Neon.White, new RectangleF(24, 421, 324, 25), false);
-                Words(paint, "PLAY AGAIN  [N]", small, Neon.Cyan, Part(game.Kind, 10), false);
-                Words(paint, "ESC  CLOSE", small, Neon.Faint, new RectangleF(246, 450, 104, 24), false);
+                if (game.Kind == "rock_paper_scissors") Words(paint, game.Last, body, CityLook.White, new RectangleF(24, 326, 324, 74), false);
+                Words(paint, game.Status, body, game.Result == 1 ? CityLook.Cyan : game.Result == 2 ? CityLook.Rose : CityLook.White, new RectangleF(24, 421, 324, 25), false);
+                Words(paint, "PLAY AGAIN  [N]", small, CityLook.Cyan, Part(game.Kind, 10), false);
+                Words(paint, "ESC  CLOSE", small, CityLook.Faint, new RectangleF(246, 450, 104, 24), false);
             }
             return bitmap;
         }

@@ -269,7 +269,7 @@ namespace CapriDesktop
             if (hintCard != null) hintCard.Dispose();
         }
 
-        internal sealed class HintCard : Form
+        internal sealed class HintCard : Form, LookWindow
         {
             private const TextFormatFlags Wrap = TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.TextBoxControl;
             private Font titleFont, bodyFont;

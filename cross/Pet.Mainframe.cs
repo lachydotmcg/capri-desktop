@@ -121,6 +121,14 @@ namespace CapriDesktop
 
         internal static int FrameSize(int size) { return Array.IndexOf(new[] { 0, 100, 125, 150, 175, 200 }, size) >= 0 ? size : 0; }
         internal void SetMainframeSize(int size) { Saved.MainframeSize = FrameSize(size); Save(); }
+        internal void SetMainframeColours(int look)
+        {
+            if (Saved.MainframeColours == MainframeTheme.ClampLook(look)) return;
+            Saved.MainframeColours = MainframeTheme.ClampLook(look);
+            Save();
+            MainframeTheme.UseLook(Saved.MainframeColours);
+            MainframeTheme.Repaint(mainframe);
+        }
         internal void SetAdvancedSettings(bool on) { Saved.AdvancedSettings = on; Save(); }
         internal void SetMemorySize(int size) { Brain.MemorySize = Array.IndexOf(Brain.MemorySizes, size) >= 0 ? size : 0; Saved.MemorySize = Brain.MemorySize; Save(); }
         internal void SetReplyLength(int index) { Brain.ReplyLength = Math.Clamp(index, 0, Brain.ReplySizes.Length - 1); Saved.ReplyLength = Brain.ReplyLength; Save(); }
@@ -218,6 +226,8 @@ namespace CapriDesktop
         private void RestoreBrainTier()
         {
             Saved.MainframeSize = FrameSize(Saved.MainframeSize);
+            Saved.MainframeColours = MainframeTheme.ClampLook(Saved.MainframeColours);
+            MainframeTheme.UseLook(Saved.MainframeColours);
             Saved.MemorySize = Brain.MemorySize;
             Saved.ReplyLength = Brain.ReplyLength;
             if (!Saved.BrainTier.HasValue) Saved.BrainTier = Brain.Remote == null ? 0 : Cloud.MediumKind(Brain.Remote.Kind) ? 1 : 2;

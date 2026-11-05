@@ -2378,13 +2378,13 @@ namespace CapriDesktop
             var values = new Dictionary<string, Func<int, object>> {
                 { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
                 { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
-                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Every", i => Pet.GlanceGaps[i] }, { "Replies", i => i }, { "Memory", i => new[] { 8, 16, 32 }[i] },
+                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Mainframe colours", i => i }, { "Every", i => Pet.GlanceGaps[i] }, { "Replies", i => i }, { "Memory", i => new[] { 8, 16, 32 }[i] },
                 { "Memory size", i => Brain.MemorySizes[i] }, { "Max reply", i => i }, { "Bubble", i => i }
             };
             string[,] sliders = {
                 { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
                 { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
-                { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Every", "GlanceGap", "glance_gap" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
+                { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Mainframe colours", "MainframeColours", "mainframe_colours" }, { "Every", "GlanceGap", "glance_gap" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
                 { "Memory size", "MemorySize", "" }, { "Max reply", "ReplyLength", "reply_limit" }, { "Bubble", "Bubble", "bubble" }
             };
             for (int i = 0; i < sliders.GetLength(0); i++)
@@ -2416,6 +2416,13 @@ namespace CapriDesktop
             if (frame.Value("Replies") != "Medium") throw new Exception("A tool change did not show in the open Mainframe.");
             string tip = MainframeTips.Brief("Mainframe > Settings > VOICE > Volume changes how loud her voice plays.");
             if (tip != "Volume changes how loud her voice plays." || ToolTip.GetTip(frame.Row("Volume")) == null) throw new Exception("The Mainframe lost a Windows hover tip.");
+            for (int look = 3; look >= 0; look--)
+            {
+                pet.SetMainframeColours(look);
+                if (pet.Saved.MainframeColours != look || ((SolidColorBrush)MainframeTheme.Ground).Color != Color.Parse(MainframeTheme.LookColours(look)[0]) || MainframeTheme.Mono != (look != 0))
+                    throw new Exception(MainframeTheme.LookNames[look] + " did not reach the Mainframe.");
+            }
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey change her Mainframe straight away and are saved");
             if (Pet.FrameSize(-1) != 0 || Pet.FrameSize(110) != 0 || Pet.FrameSize(200) != 200) throw new Exception("Unsupported Mainframe sizes did not become Auto.");
             pet.SetMainframeSize(0); if (frame.Zoom != 1) throw new Exception("Auto scaled the Mainframe twice.");
             var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local }));

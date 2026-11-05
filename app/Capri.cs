@@ -873,6 +873,7 @@ namespace CapriDesktop
         // Her Mainframe's size: 0 for Auto, which grows it on a screen whose desktop is bigger than its panel (Virtual Super
         // Resolution, DSR), or 100 to 200 for that percent of the screen's own scale.
         [DataMember] public int MainframeSize;
+        [DataMember] public int MainframeColours;
         [DataMember] public string AgentPolyglot;
         [DataMember] public string AgentPersonality;
         // Check in on me is on by default. Before 0.7.3 it was saved as PopIns, off by default, so the new name turns it on once for everyone.
@@ -1051,7 +1052,7 @@ namespace CapriDesktop
         }
 
         [OnDeserialized]
-        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MicLoudness = MicMix.Level(MicLoudness); }
+        private void Loaded(StreamingContext context) { MainframeSize = FrameSize(MainframeSize); MainframeColours = Neon.ClampLook(MainframeColours); MicLoudness = MicMix.Level(MicLoudness); }
 
         internal bool CareOn(CareKind kind)
         {
@@ -2271,6 +2272,7 @@ namespace CapriDesktop
             Speaker.Chosen = preferences.Speaker;
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
             CallApps.Choose(preferences.CallApp);
+            Neon.UseLook(preferences.MainframeColours);
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) form.HandleCreated += delegate { PassThrough(); };
             PassThrough();
             qwen.CpuOnly = preferences.HdCpu;
@@ -5785,6 +5787,75 @@ namespace CapriDesktop
         {
             preferences.MainframeSize = Preferences.FrameSize(size);
             SavePreferences();
+        }
+
+        private void SmokeMainframeColours(List<string> checks, string output)
+        {
+            string[] parts = { "Rose", "White", "Faint", "Cyan" };
+            int herFore = ForeColor.ToArgb(), herBack = BackColor.ToArgb(), pillFore = pill.ForeColor.ToArgb(), pillBack = pill.BackColor.ToArgb();
+            Directory.CreateDirectory(output);
+            bool wasShowing = mainframe.Visible;
+            FormWindowState stateWas = mainframe.WindowState;
+            mainframe.Restore();
+            mainframe.ShowSettings(true);
+            try
+            {
+                for (int look = 3; look >= 0; look--)
+                {
+                    mainframe.PickColours(look);
+                    if (mainframe.ColoursShown != Neon.LookNames[look]) throw new Exception("The Mainframe colours row did not show " + Neon.LookNames[look] + ": " + mainframe.ColoursShown);
+                    HashSet<int> slots = new HashSet<int>();
+                    foreach (Color slot in Neon.LookColours(look)) slots.Add(slot.ToArgb());
+                    if (slots.Count != Neon.LookColours(look).Length) throw new Exception("Two of " + Neon.LookNames[look] + "'s colours are the same, so a live change can't tell them apart.");
+                    Color[] inks = { Neon.Rose, Neon.White, Neon.Faint, Neon.Cyan };
+                    for (int part = 0; part < inks.Length; part++)
+                        if (LookContrast(inks[part], Neon.Ground) < 4.5) throw new Exception(Neon.LookNames[look] + "'s " + parts[part] + " is hard to read on its ground.");
+                    if (LookContrast(Neon.OnInk, Neon.Cyan) < 4.5) throw new Exception(Neon.LookNames[look] + "'s ON button is hard to read.");
+                    if (mainframe.BackColor != Neon.Ground || typer.BackColor != Neon.Well || menu.BackColor != Mainframe.MenuLook.Panel) throw new Exception(Neon.LookNames[look] + " did not reach the Mainframe, the Type box and her menu straight away.");
+                    if (LoadPreferences().MainframeColours != look) throw new Exception(Neon.LookNames[look] + " was not saved.");
+                    Application.DoEvents();
+                    if (ForeColor.ToArgb() != herFore || BackColor.ToArgb() != herBack || pill.ForeColor.ToArgb() != pillFore || pill.BackColor.ToArgb() != pillBack) throw new Exception(Neon.LookNames[look] + " changed a window outside the Mainframe look.");
+                    mainframe.Settle();
+                    mainframe.Update();
+                    using (Bitmap picture = new Bitmap(mainframe.Width, mainframe.Height))
+                    {
+                        mainframe.DrawToBitmap(picture, new Rectangle(Point.Empty, mainframe.Size));
+                        mainframe.DrawRims(picture);
+                        picture.Save(Path.Combine(output, "mainframe-colours-" + Neon.LookNames[look].Replace(" ", "-") + ".png"), ImageFormat.Png);
+                    }
+                }
+            }
+            finally
+            {
+                mainframe.PickColours(0);
+                mainframe.ShowSettings(false);
+                mainframe.WindowState = stateWas;
+                if (!wasShowing) mainframe.Hide();
+            }
+            if (Neon.Mono || Neon.Rose.ToArgb() != Color.FromArgb(255, 93, 102).ToArgb()) throw new Exception("Night City did not come back as it was.");
+            if (CityLook.Hot.ToArgb() != Color.FromArgb(232, 66, 70).ToArgb()) throw new Exception("Her game windows lost Night City's colours.");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, change the Mainframe, the Type box and her menu straight away, are saved, and Night City comes back as it was");
+        }
+
+        private static double LookContrast(Color ink, Color ground)
+        {
+            Func<Color, double> light = delegate(Color colour)
+            {
+                Func<int, double> part = delegate(int value) { double c = value / 255.0; return c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4); };
+                return 0.2126 * part(colour.R) + 0.7152 * part(colour.G) + 0.0722 * part(colour.B);
+            };
+            double a = light(ink), b = light(ground);
+            return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+        }
+
+        internal int MainframeColours { get { return Neon.ClampLook(preferences.MainframeColours); } }
+
+        internal void SetMainframeColours(int look)
+        {
+            preferences.MainframeColours = Neon.ClampLook(look);
+            SavePreferences();
+            Neon.Repaint(preferences.MainframeColours, mainframe, typer, menu);
+            mainframe.ShowColours();
         }
 
         internal double PopGap() { return ((double)PopMin + random.NextDouble() * ((double)PopMax - PopMin)) * 60; }
@@ -9334,6 +9405,7 @@ namespace CapriDesktop
                 case "layer_2_delay": return (int)Math.Round(VoiceLayers.Delay2 / 5.0);
                 case "sounds": return Math.Max(0, Math.Min(10, (SoundLevel + 5) / 10));
                 case "mainframe_size": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), MainframeSize));
+                case "mainframe_colours": return MainframeColours;
                 case "perch_fps": return Math.Max(0, Array.IndexOf(Hands.ValuesFor(name), PerchFps));
                 case "language": return Math.Max(0, Array.IndexOf(Hands.StepsOf(name), Language));
                 case "reply_limit": return ReplyLength;
@@ -9380,6 +9452,7 @@ namespace CapriDesktop
                 case "voice_glitch": SetVoiceGlitch(Hands.ValuesFor(name)[step]); break;
                 case "sounds": SetSoundLevel(step * 10); break;
                 case "mainframe_size": SetMainframeSize(Hands.ValuesFor(name)[step]); mainframe.ResizeSettings(); break;
+                case "mainframe_colours": SetMainframeColours(step); break;
                 case "perch_fps": SetPerchFps(Hands.ValuesFor(name)[step]); break;
                 case "language": SetLanguage(Hands.StepsOf(name)[step]); break;
                 case "reply_limit": SetReplyLength(step); break;
@@ -23054,7 +23127,7 @@ namespace CapriDesktop
                 {
                     { "explore_after", "exploreAfter", "ExploreAfter" }, { "glance_gap", "gap", "GlanceGap" }, { "watch_memory", "watchMemory", "WatchMemory" },
                     { "voice_pitch", "pitchSlider", "VoicePitch" }, { "voice_robot", "robotSlider", "VoiceRobot" }, { "voice_glitch", "glitchSlider", "VoiceGlitch" },
-                    { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "perch_fps", "perchFps", "PerchFps" },
+                    { "sounds", "sounds", "Sounds" }, { "mainframe_size", "frameSize", "MainframeSize" }, { "mainframe_colours", "frameColours", "MainframeColours" }, { "perch_fps", "perchFps", "PerchFps" },
                     { "reply_limit", "replyLength", "ReplyLength" }, { "game_comments", "comments", "CommentPace" },
                     { "clip_length", "clipLength", "ClipSeconds" }, { "clip_fps", "clipRate", "ClipFps" }, { "clip_resolution", "clipSize", "ClipResolution" }, { "clip_bitrate", "clipBits", "ClipMbps" }
                 };
@@ -29426,6 +29499,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMixedAsks", delegate { SmokeMixedAsks(checks); });
             Section(checks, "SmokeStores", delegate { SmokeStores(checks, output); });
             Section(checks, "SmokeTips", delegate { mainframe.SmokeTips(checks, Path.Combine(output, "tips")); });
+            Section(checks, "SmokeMainframeColours", delegate { SmokeMainframeColours(checks, Path.Combine(output, "colours")); });
             Section(checks, "SmokeFiles", delegate { SmokeFiles(checks); });
             Section(checks, "SmokeRequests", delegate { SmokeRequests(checks, Path.Combine(output, "request-checks")); });
             Section(checks, "SmokeCare", delegate { SmokeCare(checks); });
