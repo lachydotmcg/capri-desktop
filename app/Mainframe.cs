@@ -3001,7 +3001,7 @@ namespace CapriDesktop
         }
 
         // The whole settings page, scrolled or not, in the window's own px.
-        private Rectangle PageArea { get { return paged ? new Rectangle(0, -Scaled(pageScroll), ClientSize.Width, Math.Max(ClientSize.Height, Scaled(PageNow))) : ClientRectangle; } }
+        private Rectangle PageArea { get { return paged ? new Rectangle(0, -Scaled(pageScroll), Math.Max(ClientSize.Width, Scaled(Wide + Column)), Math.Max(ClientSize.Height, Scaled(PageNow))) : ClientRectangle; } }
 
         // True when Windows made the window narrower than the page it lays out, like a 1024-wide desktop at 150%.
         internal bool PageClamped { get { return ClientSize.Width < Scaled(paged ? Wide + Column : Wide); } }
