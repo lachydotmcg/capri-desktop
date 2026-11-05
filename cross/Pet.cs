@@ -488,7 +488,7 @@ namespace CapriDesktop
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
             LoginFile = Program.Smoke != null ? Path.Combine(Program.Smoke, OperatingSystem.IsMacOS() ? "capri.plist" : "capri.desktop") : Limbs.LoginFile();
             // A copy that moved since they ticked it takes the login entry over, so it doesn't point at the old place.
-            if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Environment.ProcessPath, true, OperatingSystem.IsMacOS());
+            if (Program.Smoke == null && File.Exists(LoginFile)) Limbs.SetLogin(LoginFile, Limbs.SelfPath(), true, OperatingSystem.IsMacOS());
             Brain.LogPath = Path.Combine(Program.Smoke ?? folder, "errors.txt");
             StartMods();
             Brain.BrainMenu = "under BRAIN in Capri Mainframe";
@@ -2640,7 +2640,7 @@ namespace CapriDesktop
 
         internal void SetLogin(bool on, bool say = true)
         {
-            if (!Limbs.SetLogin(LoginFile, Environment.ProcessPath, on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that, choom. I need to be able to write " + LoginFile + ".");
+            if (!Limbs.SetLogin(LoginFile, Limbs.SelfPath(), on, OperatingSystem.IsMacOS()) && say) Talk.Answer("(start at login)", "Couldn't change that, choom. I need to be able to write " + LoginFile + ".");
             Sync();
         }
 
