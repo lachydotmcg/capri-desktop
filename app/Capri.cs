@@ -9011,12 +9011,15 @@ namespace CapriDesktop
             // A job that plays a song or video notes what Windows had on first, so one it leaves paused can be started after.
             bool media = !testing && Computer.PlaysMedia(running.Task, running.Words, running.Playing);
             Tune before = media ? Tunes.Current() : null;
+            // A brain error ends the job with its reason in the task panel too, the way her bubble says it, instead of "stopped."
+            string brainTrouble = null;
             try
             {
                 result = running.Run();
                 if (media && !running.Playing) KeepPlaying(running.Outcome, before, 800);
                 return result;
             }
+            catch (BrainException error) { brainTrouble = error.Message; throw; }
             finally
             {
                 // However it ended, a held button is let go and their mouse handed back.
@@ -9024,7 +9027,8 @@ namespace CapriDesktop
                 jobEndedAt = Environment.TickCount;
                 if (job == running && !running.Asking) job = null;
                 string outcome = running.Outcome ?? "failed";
-                Post(delegate { JobOff(running, outcome, result); });
+                string ending = result ?? brainTrouble;
+                Post(delegate { JobOff(running, outcome, ending); });
             }
         }
 
@@ -29743,6 +29747,7 @@ namespace CapriDesktop
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
             Section(checks, "SmokeHearingReasons", delegate { SmokeHearingReasons(checks, output); });
             Section(checks, "SmokeBrainOnlyText", delegate { SmokeBrainOnlyText(checks, output); });
+            Section(checks, "SmokeJobPanelFixes", delegate { SmokeJobPanelFixes(checks); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)

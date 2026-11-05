@@ -284,6 +284,37 @@ namespace CapriDesktop
             checks.Add("PASS Codex asking for your OK says what it wants to do, like \"It wants to run git status\", instead of \"Codex needs approval: exec_command\", and keeps its own description when it gives one");
         }
 
+        // The task panel keeps the fix in a long ending or snag: the ending gets five rows and the newest failed step three,
+        // and one that still won't fit keeps its first sentence's start and its last sentence before it's ever cut short.
+        private static void SmokeJobPanelFixes(List<string> checks)
+        {
+            const int room = TaskPanel.Columns - 2;
+            string admin = Computer.AdminWindow.TrimEnd('.');
+            List<string> snag = TaskPanel.Fitted("", admin, room, TaskPanel.SnagRows);
+            List<string> lost = TaskPanel.Fitted("CAPRI: ", Computer.Confused, TaskPanel.Columns, TaskPanel.EndingRows);
+            List<string> plain = TaskPanel.Fitted("", "Couldn't find the Send button", room, TaskPanel.SnagRows);
+            List<string> endless = TaskPanel.Fitted("", "Couldn't do that because " + string.Join(" and ", new[] { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen" }), room, TaskPanel.SnagRows);
+            bool fits = true;
+            foreach (List<string> each in new[] { snag, lost, plain, endless }) foreach (string row in each) if (Look.Cells(row) > (each == lost ? TaskPanel.Columns : room)) fits = false;
+            string snagText = string.Join(" ", snag.ToArray()), lostText = string.Join(" ", lost.ToArray());
+            if (!fits || snag.Count > TaskPanel.SnagRows || snagText.IndexOf("Run Capri as administrator too", StringComparison.Ordinal) < 0 || !snagText.StartsWith("Couldn't click or type there", StringComparison.Ordinal)
+                || lost.Count > TaskPanel.EndingRows || !lost[0].StartsWith("CAPRI: Got lost", StringComparison.Ordinal) || !lostText.EndsWith("Pick one under BRAIN in Capri Mainframe.", StringComparison.Ordinal)
+                || plain.Count != 1 || plain[0] != "Couldn't find the Send button" || endless.Count != TaskPanel.SnagRows || !endless[TaskPanel.SnagRows - 1].EndsWith("...", StringComparison.Ordinal))
+                throw new Exception("The task panel cut a fix off: " + snagText + " / " + lostText + " / " + string.Join(" ", plain.ToArray()) + " / " + string.Join(" ", endless.ToArray()));
+            List<JobStep> shortSnag = new List<JobStep> { new JobStep { Tool = "click", Label = "Opened Task Manager", Finished = true }, new JobStep { Tool = "click", Label = "Couldn't click there", Finished = true, Failed = true } };
+            List<JobStep> longSnag = new List<JobStep> { shortSnag[0], new JobStep { Tool = "click", Label = admin, Finished = true, Failed = true } };
+            List<JobStep> olderSnag = new List<JobStep> { longSnag[1], new JobStep { Tool = "click", Label = "Couldn't click there", Finished = true, Failed = true } };
+            int shortHigh, longHigh, olderHigh, endHigh, doneHigh;
+            using (Bitmap frame = TaskPanel.Frame("end the task in task manager", shortSnag, null, "failed", "Couldn't get it done.", false, 1, 1)) shortHigh = frame.Height;
+            using (Bitmap frame = TaskPanel.Frame("end the task in task manager", longSnag, null, "failed", "Couldn't get it done.", false, 1, 1)) longHigh = frame.Height;
+            using (Bitmap frame = TaskPanel.Frame("end the task in task manager", olderSnag, null, "failed", "Couldn't get it done.", false, 1, 1)) olderHigh = frame.Height;
+            using (Bitmap frame = TaskPanel.Frame("end the task in task manager", shortSnag, null, "failed", Computer.Confused, false, 1, 1)) endHigh = frame.Height;
+            using (Bitmap frame = TaskPanel.Frame("end the task in task manager", shortSnag, null, "done", "", false, 1, 1)) doneHigh = frame.Height;
+            if (longHigh - shortHigh != 19 * (snag.Count - 1) || olderHigh != shortHigh || endHigh - doneHigh != 19 * (lost.Count - 1))
+                throw new Exception("The task panel didn't make room for a fix: " + shortHigh + " / " + longHigh + " / " + olderHigh + " / " + endHigh + " / " + doneHigh);
+            checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under BRAIN in Capri Mainframe.\", the newest failed step wraps to show \"Run Capri as administrator too\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;
