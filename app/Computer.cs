@@ -737,7 +737,7 @@ namespace CapriDesktop
             Target target = sight == null ? null : sight.Find(args.Target);
             string name = target != null && target.Name.Length > 0 ? (target.Name.Length > 28 ? target.Name.Substring(0, 25) + "..." : target.Name) : null;
             if (tool == "click") return name != null ? "Clicking " + name + "." : "Clicking.";
-            if (tool == "type") return "Typing " + Voice.Quote((args.Text ?? "").Length > 24 ? args.Text.Substring(0, 21) + "..." : args.Text ?? "") + ".";
+            if (tool == "type") return "Typing " + Voice.InQuotes((args.Text ?? "").Length > 24 ? args.Text.Substring(0, 21) + "..." : args.Text ?? "") + ".";
             if (tool == "press") return "Pressing " + (args.Keys ?? "") + ".";
             if (tool == "hold_and_press") return "Holding " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressing " + args.Press) + ".";
             if (tool == "learn") return "Noting that for next time.";
@@ -763,7 +763,7 @@ namespace CapriDesktop
             string name = target != null && target.Name.Length > 0 ? (target.Name.Length > 28 ? target.Name.Substring(0, 25) + "..." : target.Name) : null;
             string text = (args.Text ?? "").Length > 32 ? args.Text.Substring(0, 29) + "..." : args.Text ?? "";
             if (tool == "click") return (args.Button == "double" ? "Double-clicked" : args.Button == "right" ? "Right-clicked" : "Clicked") + (name != null ? " " + name : "");
-            if (tool == "type") return "Typed " + Voice.Quote(text) + (args.Enter == "yes" ? " and pressed Enter" : "");
+            if (tool == "type") return "Typed " + Voice.InQuotes(text) + (args.Enter == "yes" ? " and pressed Enter" : "");
             if (tool == "press") return "Pressed " + (args.Keys ?? "");
             if (tool == "hold_and_press") return "Held " + (args.Hold ?? "keys") + (string.IsNullOrWhiteSpace(args.Press) ? "" : " and pressed " + args.Press);
             if (tool == "learn") return "Noted that for next time";
@@ -985,8 +985,8 @@ namespace CapriDesktop
             Target target = sight == null ? null : sight.Find(args.Target);
             if (tool == "press" && Barred(Chorded(args.Keys))) return "Should I press " + Chorded(args.Keys) + "?";
             if (tool == "hold_and_press" && HeldBarred(args) != null) return "Should I press " + HeldBarred(args) + "?";
-            if (tool == "click" && target != null) return "Should I press " + Voice.Quote(target.Name) + "?";
-            if (tool == "type" && !string.IsNullOrEmpty(args.Text)) return "Should I send " + Voice.Quote(args.Text.Length > 60 ? args.Text.Substring(0, 57) + "..." : args.Text) + "?";
+            if (tool == "click" && target != null) return "Should I press " + Voice.InQuotes(target.Name) + "?";
+            if (tool == "type" && !string.IsNullOrEmpty(args.Text)) return "Should I send " + Voice.InQuotes(args.Text.Length > 60 ? args.Text.Substring(0, 57) + "..." : args.Text) + "?";
             return "Should I send that?";
         }
 
@@ -1362,7 +1362,7 @@ namespace CapriDesktop
                 case "right_click": return (past ? "Right-clicked" : "Right-clicking") + what;
                 case "middle_click": return (past ? "Middle-clicked" : "Middle-clicking") + what;
                 case "left_click_drag": return past ? "Dragged" : "Dragging";
-                case "type": return (past ? "Typed " : "Typing ") + Voice.Quote(text) + ((args.Text ?? "").TrimEnd(' ').EndsWith("\n", StringComparison.Ordinal) ? (past ? " and pressed Enter" : " and pressing Enter") : "");
+                case "type": return (past ? "Typed " : "Typing ") + Voice.InQuotes(text) + ((args.Text ?? "").TrimEnd(' ').EndsWith("\n", StringComparison.Ordinal) ? (past ? " and pressed Enter" : " and pressing Enter") : "");
                 case "key": case "hold_key": return (past ? "Pressed " : "Pressing ") + (Combo(args.Text) ?? text);
                 case "scroll": return (past ? "Scrolled " : "Scrolling ") + (args.Way ?? "down");
                 case "wait": return past ? "Waited" : "Waiting";

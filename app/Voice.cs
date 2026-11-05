@@ -409,6 +409,10 @@ namespace CapriDesktop
             return quoted.Append('"').ToString();
         }
 
+        // Quote is JSON for her brain. Text people read or hear in quotes, like "Should I send "hi"?", shows as typed: line
+        // breaks and tabs are spaces, with no \u000a or doubled backslashes.
+        internal static string InQuotes(string value) { return "\"" + Regex.Replace(value ?? "", @"\s+", " ").Trim() + "\""; }
+
         internal static short[] Samples(byte[] wav, out int rate)
         {
             rate = 24000;

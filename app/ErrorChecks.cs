@@ -555,6 +555,13 @@ namespace CapriDesktop
                 if (!line.EndsWith(Computer.AsAdmin + ".", StringComparison.Ordinal) || line.Contains(" as admin ") || line.Contains(" as admin,")) throw new Exception("An admin line doesn't say how to run her as administrator: " + line);
             checks.Add("PASS the three admin lines end the same way: Quit Capri from her menu, then Run as administrator from her shortcut");
 
+            // Jobs flag 8: typed text in a job's question, status and steps reads as typed, not as JSON.
+            ToolArguments typedArgs = new ToolArguments { Text = "hi\nC:\\Users\tcat" };
+            string typedQuoted = "\"hi C:\\Users cat\"";
+            foreach (string line in new[] { Computer.Question("type", typedArgs, null), Computer.Status("type", typedArgs, null), Computer.Did("type", typedArgs, null), Computer.Moving("type", typedArgs, null, true) })
+                if (!line.Contains(typedQuoted) || line.Contains("\\u00") || line.Contains("\\\\")) throw new Exception("Typed text in a job line reads as code: " + line);
+            checks.Add("PASS typed text in a job's question, status and step rows reads as typed, with no \\u000a or doubled backslashes");
+
             // A12: an empty reply says the same line, with its fix, whether her brain threw it or sent blank words.
             string emptyShort = Brain.Brief(Brain.Wordless);
             if (emptyShort == null || emptyShort.Length > 60 || emptyShort.IndexOf("another model", StringComparison.Ordinal) < 0) throw new Exception("The empty reply's BRAIN line lost its fix: " + emptyShort);
