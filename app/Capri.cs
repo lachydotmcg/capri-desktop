@@ -10766,7 +10766,7 @@ namespace CapriDesktop
                 };
                 try { parakeet.Install(progress); }
                 catch (OperationCanceledException) { problem = "Cancelled."; }
-                catch (Exception error) { problem = Voice.Short(error.Message); }
+                catch (Exception error) { problem = Voice.Short(error.Message, 120); }
                 if (problem != null) Brain.Log("ears setup", -1, problem);
                 Post(delegate
                 {
@@ -11029,7 +11029,7 @@ namespace CapriDesktop
                 };
                 try { heyCapri.Install(progress); heyCapri.Warm(); }
                 catch (OperationCanceledException) { problem = "Cancelled."; }
-                catch (Exception error) { problem = Voice.Short(error.Message); }
+                catch (Exception error) { problem = Voice.Short(error.Message, 120); }
                 if (problem != null && problem != "Cancelled.") Brain.Log("hey capri setup", -1, problem);
                 Post(delegate
                 {
@@ -11038,9 +11038,15 @@ namespace CapriDesktop
                     if (problem == null) { wakeTries = 0; wakeRetryAt = -1; return; }
                     int wait = EarsRetryWait(++wakeTries);
                     wakeRetryAt = clock.Elapsed.TotalSeconds + wait;
-                    WakeNote("\"Hey Capri\" didn't download: " + Retrying(problem) + " I'll try again in " + (wait < 60 ? wait + " seconds" : wait == 60 ? "a minute" : wait / 60 + " minutes") + ".", true);
+                    WakeNote(WakeLine(problem, wait), true);
                 });
             });
+        }
+
+        // The download's own "try again" is left to her retry, which says when.
+        internal static string WakeLine(string problem, int wait)
+        {
+            return "\"Hey Capri\" didn't download: " + Retrying(problem) + " I'll try again in " + (wait < 60 ? wait + " seconds" : wait == 60 ? "a minute" : wait / 60 + " minutes") + ".";
         }
 
         // Her bubble when she's free to show it, and the Mainframe always.
@@ -11142,7 +11148,7 @@ namespace CapriDesktop
                 };
                 try { qwen.Install(progress); }
                 catch (OperationCanceledException) { cancelled = true; }
-                catch (Exception error) { problem = Voice.Short(error.Message); }
+                catch (Exception error) { problem = Voice.Short(error.Message, 120); }
                 if (problem != null) Brain.Log("HD voice setup", -1, problem);
                 Post(delegate
                 {

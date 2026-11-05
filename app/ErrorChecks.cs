@@ -146,18 +146,28 @@ namespace CapriDesktop
                     { "Windows speech failed: ", Dictation.MicUnused, "Windows speech couldn't use your mic" },
                     { "Windows speech failed: ", Dictation.Stopped, "Windows speech stopped" },
                     { "Windows speech failed: ", Dictation.Missing, "Windows speech isn't on this PC" },
-                    { "Her ears didn't download: ", "The download of her ears keeps stopping. Check your connection and try again.", "Her ears didn't download: The download of her ears..." },
+                    { HearingStatus.EarsUndownloaded, Engine.Stalled("her ears"), "Her ears' download keeps stopping. Check your connection" },
+                    { HearingStatus.EarsUndownloaded, Engine.WrongSize("her ears"), "Her ears' download is the wrong size. Try again" },
+                    { HearingStatus.EarsUndownloaded, Engine.Unmatched("her ears"), "Her ears' download failed its checksum. Try again" },
+                    { HearingStatus.EarsUndownloaded, "Test download failure", "Her ears didn't download: Test download failure" },
                     { "Windows speech failed: ", "The connection was lost.", "Windows speech failed: The connection was lost" }
                 };
                 for (int i = 0; i < reasons.GetLength(0); i++)
                 {
                     bool alone = reasons[i, 0] == "Mic failed: ";
                     HearingStatus status = HearingStatus.Explained(reasons[i, 0], reasons[i, 1], alone, true, HearingAction.Sound, HearingAction.Type);
-                    string whole = reasons[i, 1].StartsWith("Windows speech ", StringComparison.Ordinal) || alone ? reasons[i, 1] : reasons[i, 0] + reasons[i, 1];
+                    bool ownDownload = reasons[i, 0] == HearingStatus.EarsUndownloaded && reasons[i, 1].StartsWith("The download of her ears ", StringComparison.Ordinal);
+                    string whole = reasons[i, 1].StartsWith("Windows speech ", StringComparison.Ordinal) || ownDownload || alone ? reasons[i, 1] : reasons[i, 0] + reasons[i, 1];
                     bool shortened = status.Text != whole.TrimEnd('.');
                     if (status.Text != reasons[i, 2] || status.Text.Length > HearingStatus.LineRoom || status.Text.Contains("WASAPI") || status.Text.Contains("0x") || status.Said != (shortened ? whole : status.Text))
                         throw new Exception("A hearing line read wrong: " + reasons[i, 1] + " became " + status.Text + " and said " + status.Said);
                 }
+                // An install's error is kept whole up to 120 characters, so the download lines reach these notes with their fix.
+                string wake = Engine.Stalled("her wake word"), wakeLine = WakeLine(Voice.Short(wake, 120), 30);
+                if (Voice.Short(Engine.Stalled("her ears"), 120) != Engine.Stalled("her ears") || Voice.Short(new string('x', 200), 120).Length != 120
+                    || wakeLine != "\"Hey Capri\" didn't download: The download of her wake word keeps stopping. Check your connection. I'll try again in 30 seconds.")
+                    throw new Exception("A download line lost its fix: " + wakeLine);
+                checks.Add("PASS her ears' and Hey Capri's download lines keep the reason and its fix whole, said once");
                 if (HearingStatus.Reason("Your mic stopped sending sound partway through a sentence, so the rest went missing completely") != "Your mic stopped sending sound partway through a..." || HearingStatus.Reason("") != "No words came back")
                     throw new Exception("A long hearing reason was cut mid-word or without \"...\": " + HearingStatus.Reason("Your mic stopped sending sound partway through a sentence, so the rest went missing completely"));
                 if (Dictation.Explain(new IOException("The text associated with this error code could not be found.")) != Dictation.NotStarted || !Dictation.Logged(new IOException("The text associated with this error code could not be found.")).Contains("could not be found"))
@@ -572,7 +582,7 @@ namespace CapriDesktop
             // A1: brain setup shows a stalled download in the BRAIN note, which cut it at "Check your connection a...".
             foreach (string label in new[] { "the engine", "Gemma 4 E4B", "Qwen3.5 9B Instruct" })
             {
-                string stalled = "The download of " + label + " keeps stopping. Check your connection and try again.", shown = Brain.Brief(stalled);
+                string stalled = Engine.Stalled(label), shown = Brain.Brief(stalled);
                 if (shown == null || shown.Length > 60 || shown.EndsWith("...", StringComparison.Ordinal) || shown.IndexOf("Check your connection", StringComparison.Ordinal) < 0)
                     throw new Exception("A stalled brain download lost its fix in the BRAIN note: " + (shown ?? stalled));
             }

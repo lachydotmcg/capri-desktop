@@ -42,12 +42,21 @@ namespace CapriDesktop
         internal static HearingStatus Explained(string lead, string reason, bool alone, bool problem, params HearingAction[] actions)
         {
             string whole = Regex.Replace(reason ?? "", @"\s+", " ").Trim();
+            // Her ears' own download lines fit whole, fix and all, instead of "Her ears didn't download: The download of her ears...".
+            if (lead == EarsUndownloaded)
+            {
+                string line = whole == Engine.Stalled("her ears") ? "Her ears' download keeps stopping. Check your connection"
+                    : whole == Engine.WrongSize("her ears") ? "Her ears' download is the wrong size. Try again"
+                    : whole == Engine.Unmatched("her ears") ? "Her ears' download failed its checksum. Try again" : null;
+                if (line != null) return new HearingStatus(line, whole, problem, actions);
+            }
             if (whole.StartsWith("Windows speech ", StringComparison.Ordinal) && lead.StartsWith("Windows speech", StringComparison.Ordinal)) { lead = ""; alone = true; }
             string shown = Reason(whole, LineRoom - lead.Length);
             string full = shown == whole.TrimEnd('.') ? null : alone ? whole : lead + whole;
             return new HearingStatus(lead + shown, full, problem, actions);
         }
 
+        internal const string EarsUndownloaded = "Her ears didn't download: ";
         internal static readonly string[] Choices = { "Auto", "Her own ears", "Windows speech" };
         // VB-CABLE's input as Windows' default speakers sends every app's sound into the cable, where nobody hears it, and its
         // setup can leave it that way (Neco Arc, 3 Nov: "I stop hear everything else"). Voicemeeter's input is meant to be the
@@ -227,7 +236,7 @@ namespace CapriDesktop
             if (!HearingLink && HearingChoice == 1 && !ownFits)
                 return new HearingStatus(IntPtr.Size == 8 ? "Her ears don't know this language yet" : "Her ears need 64-bit Windows", true, HearingAction.Windows);
             if (!HearingLink && HearingChoice != 2 && hearingInstallProblem != null && !OwnEars && !settingUpEars)
-                return HearingStatus.Explained("Her ears didn't download: ", hearingInstallProblem, false, true, HearingAction.Own, HearingAction.Windows);
+                return HearingStatus.Explained(HearingStatus.EarsUndownloaded, hearingInstallProblem, false, true, HearingAction.Own, HearingAction.Windows);
             // VB-CABLE's output as Windows' default mic isn't Windows speech failing: she hears their real mic offline, and VOICE
             // gives the whole reason. The line names the cable, so they know which default to change.
             if (!HearingLink && hearingSpeechProblem == CableDefault) return new HearingStatus("Hearing offline: your default mic is CABLE Output", false, HearingAction.Sound);
