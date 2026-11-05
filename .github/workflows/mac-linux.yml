@@ -133,10 +133,37 @@ jobs:
           if grep -q '^FAIL' smoke/linux/smoke-test.txt; then exit 1; fi
       - name: Pack
         run: tar -czf Capri-linux-x64.tar.gz -C out Capri
+      # The AppImage wraps the same Capri the tarball has, and goes in the linux artifact beside it, so a release puts both
+      # in SHA256SUMS.txt and uploads them together.
+      - name: Pack the AppImage
+        run: |
+          set -e
+          mkdir -p AppDir/usr/bin
+          cp -a out/Capri/. AppDir/usr/bin/
+          cp cross/linux/capri-desktop.desktop AppDir/capri-desktop.desktop
+          cp cross/icon.png AppDir/capri-desktop.png
+          printf '%s\n' '#!/bin/sh' 'HERE="$(dirname "$(readlink -f "$0")")"' 'exec "${APPDIR:-$HERE}/usr/bin/Capri" "$@"' > AppDir/AppRun
+          chmod +x AppDir/AppRun
+          curl -fsSLo appimagetool https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
+          echo "ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0  appimagetool" | sha256sum -c -
+          chmod +x appimagetool
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run AppDir Capri-linux-x64.AppImage
+          sha256sum Capri-linux-x64.tar.gz Capri-linux-x64.AppImage | tee -a "$GITHUB_STEP_SUMMARY"
+      # The runner has no FUSE, so the image runs through its extract-and-run mode, which still sets APPIMAGE and APPDIR.
+      - name: Smoke test the AppImage
+        timeout-minutes: 10
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c 'openbox & sleep 2; xcompmgr & sleep 1; ./Capri-linux-x64.AppImage --appimage-extract-and-run --smoke "$PWD/smoke/appimage"' || true
+          cat smoke/appimage/smoke-test.txt
+          if grep -q '^FAIL' smoke/appimage/smoke-test.txt; then exit 1; fi
+          test "$(grep -c '^PASS' smoke/appimage/smoke-test.txt)" -ge 20
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: Capri-linux-x64.tar.gz
+          path: |
+            Capri-linux-x64.tar.gz
+            Capri-linux-x64.AppImage
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         if: always()
         with:
