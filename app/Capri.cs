@@ -29729,6 +29729,13 @@ namespace CapriDesktop
             if (!Brain.Redacted(hidden[2][0]).EndsWith("\" https://api.example.com/x", StringComparison.Ordinal) || !Brain.Redacted(hidden[1][0]).EndsWith("\nlast", StringComparison.Ordinal) || !Brain.Redacted(hidden[5][0]).EndsWith("\n  user: bob", StringComparison.Ordinal))
                 throw new Exception("A redacted header or key took the rest of its command or the next line: " + Brain.Redacted(hidden[2][0]));
             checks.Add("PASS redaction keeps \"the cookie: SameSite=Lax\" and \"the secret: always\" in sentences whole, and still hides cookie headers, quoted, YAML and object keys and password-looking words after one");
+
+            // sshpass's own -p comes before the command it runs; ssh's -p after it is a port.
+            foreach (string port in new[] { "sshpass -f ~/.pw ssh -p2222 pi@host", "sshpass -e ssh -p 2222 host", "sshpass -d 3 scp -P 2222 a host:b" })
+                if (Brain.Redacted(port) != port) throw new Exception("Redaction took ssh's port for sshpass's password: " + Brain.Redacted(port));
+            string sshpass = Brain.Redacted("sshpass -v -p 'Pa55word' ssh -p 2222 pi@host && SSHPASS=Env5ecret sshpass -e ssh host && sshpass -P assword -pAttach3d ssh host");
+            if (sshpass.Contains("Pa55word") || sshpass.Contains("Env5ecret") || sshpass.Contains("Attach3d") || !sshpass.Contains("ssh -p 2222 pi@host")) throw new Exception("sshpass lost its port or kept its password: " + sshpass);
+            checks.Add("PASS redaction hides sshpass's -p password and SSHPASS= and leaves ssh's own -p port alone");
         }
 
         private static string Repeat(string text, int times)

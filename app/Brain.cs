@@ -3900,13 +3900,15 @@ namespace CapriDesktop
             string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
-            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
             clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)?|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // sshpass takes its -p only among its own options, before the command it runs, so ssh's own -p port stays.
+            clean = Regex.Replace(clean, @"(\bsshpass(?:\s+(?-i:-[fdP])\s*\S+|\s+(?-i:-[evhV])\S*)*\s+(?-i:-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // A lowercase -p only, so mysql's -P port isn't taken for the password, and quoted or attached passwords count. The
             // search stops at the end of that command, so a later docker run -p 8080:80 keeps its ports.
-            clean = Regex.Replace(clean, @"(\b(?:sshpass|(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login)\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            clean = Regex.Replace(clean, @"(\b(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // A Cookie or Set-Cookie header is one on its own line (curl -v's > and < too) or quoted like curl -H "Cookie: ...", and
             // loses its value to the end of the line or its closing quote. "the cookie: SameSite=Lax" in a sentence isn't one.
