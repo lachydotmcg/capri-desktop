@@ -134,6 +134,7 @@ namespace CapriDesktop
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 NewsChecks();
                 GuardChecks();
+                MainframeGuardChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1459,6 +1460,57 @@ namespace CapriDesktop
             string[] other = Caught(delegate { Program.Guard(delegate { throw new ArgumentException("Another guard fault."); }); });
             if (other.Length < 2 || !other[0].EndsWith(" | crash | - | ArgumentException: Another guard fault.", StringComparison.Ordinal)) throw new Exception("A different bug wasn't written after the first: " + string.Join(" / ", other));
             checks.Add("PASS Program.Guard: a bug in a click or timer goes in errors.txt as its innermost type and message with up to four stack lines, the same one from the same place once a minute, and she carries on; smoke runs still fail on it");
+        }
+
+        private static PointerPressedEventArgs LeftPress(Control on, IPointer mouse)
+        {
+            return new PointerPressedEventArgs(on, mouse, on, new Point(0, 0), 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1);
+        }
+
+        // Mainframe's buttons, pickers, switches, sliders and drop-downs go through Program.Guard like her menu, so a bug behind
+        // one can't end her on Linux.
+        private void MainframeGuardChecks()
+        {
+            List<string> ran = new List<string>();
+            NeonButton button = new NeonButton { Text = "Guarded" };
+            button.Click += delegate { ran.Add("button"); throw new InvalidOperationException("A Mainframe button's bug."); };
+            NeonChoice choice = new NeonChoice { Text = "Guarded" };
+            choice.Click += delegate { ran.Add("choice"); throw new InvalidOperationException("A picker choice's bug."); };
+            NeonPicker picker = new NeonPicker();
+            picker.Options(new[] { "One", "Two" });
+            picker.Changed += delegate(int at) { ran.Add("picker"); throw new InvalidOperationException("A picker's bug."); };
+            NeonSwitch flipped = new NeonSwitch { Text = "Guarded" }, halves = new NeonSwitch { Text = "Guarded" };
+            flipped.IsCheckedChanged += delegate { ran.Add("switch"); throw new InvalidOperationException("A switch's bug."); };
+            halves.IsCheckedChanged += delegate { ran.Add("on"); throw new InvalidOperationException("A switch's ON half's bug."); };
+            NeonSlider slider = new NeonSlider("Guarded", new[] { "One", "Two", "Three" });
+            slider.Changed += delegate(int value) { ran.Add("slider"); throw new InvalidOperationException("A slider's bug."); };
+            slider.Released += delegate { ran.Add("settled"); throw new InvalidOperationException("A slider's settling bug."); };
+            NeonEntry entry = new NeonEntry("Guarded") { Chevron = true };
+            entry.Drop += delegate { ran.Add("drop"); throw new InvalidOperationException("A drop-down's bug."); };
+            string unguarded = null;
+            Action<string, Action> run = delegate(string name, Action work)
+            {
+                try { work(); }
+                catch (InvalidOperationException) { if (unguarded == null) unguarded = name; }
+            };
+            string[] lines;
+            using (Avalonia.Input.Pointer mouse = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true))
+                lines = Caught(delegate
+                {
+                    run("button", button.Press);
+                    run("picker choice", choice.Press);
+                    run("picker", delegate { picker.Pick(1); });
+                    run("switch", flipped.Flip);
+                    run("switch's ON half", delegate { halves.RaiseEvent(LeftPress(halves, mouse)); });
+                    run("slider", delegate { slider.Slide(2); });
+                    run("drop-down", delegate { entry.RaiseEvent(LeftPress(entry, mouse)); });
+                });
+            if (unguarded != null) throw new Exception("A bug behind Mainframe's " + unguarded + " isn't caught by Program.Guard, so on Linux it would end her.");
+            if (string.Join(",", ran) != "button,choice,picker,switch,on,slider,settled,drop") throw new Exception("Not every Mainframe control ran its handler: " + string.Join(",", ran));
+            int written = 0;
+            foreach (string line in lines) if (line.IndexOf(" | crash | - | InvalidOperationException: ", StringComparison.Ordinal) >= 0) written++;
+            if (written != 8) throw new Exception("Program.Guard wrote " + written + " of Mainframe's 8 bugs down.");
+            checks.Add("PASS Mainframe's buttons, pickers, switches, sliders and drop-downs go through Program.Guard like her menu, so a bug behind one is written down and she carries on");
         }
 
         private void DragChecks()

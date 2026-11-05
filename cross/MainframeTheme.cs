@@ -193,6 +193,9 @@ namespace CapriDesktop
             PropertyChanged += (_, _) => InvalidateVisual();
         }
         internal void Press() { OnClick(); }
+        // A click on Mac and Linux goes through Program.Guard, like her menu's, so a bug behind a button is written down
+        // instead of ending her. Pickers' choices are buttons too.
+        protected override void OnClick() { Program.Guard(() => base.OnClick()); }
         public override void Render(DrawingContext context)
         {
             bool hot = IsPointerOver, lit = hot || IsKeyboardFocusWithin;
@@ -251,6 +254,8 @@ namespace CapriDesktop
             PropertyChanged += (_, _) => InvalidateVisual();
         }
         internal void Flip() { OnClick(); }
+        // Its clicks and its OFF and ON halves go through Program.Guard, like a button's.
+        protected override void OnClick() { Program.Guard(() => base.OnClick()); }
         protected override void OnPointerMoved(PointerEventArgs e)
         {
             double x = e.GetPosition(this).X, start = Bounds.Width - Switch;
@@ -262,7 +267,7 @@ namespace CapriDesktop
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
             double x = e.GetPosition(this).X, start = Bounds.Width - Switch;
             Focus();
-            if (x >= start) { Checked = x >= start + Switch / 2.0; e.Handled = true; }
+            if (x >= start) { Program.Guard(() => Checked = x >= start + Switch / 2.0); e.Handled = true; }
             else base.OnPointerPressed(e);
         }
         public override void Render(DrawingContext context)
@@ -367,9 +372,18 @@ namespace CapriDesktop
         {
             next = Math.Clamp(next, 0, Choices.Length - 1);
             if (next == value) return;
-            value = next; InvalidateVisual(); Changed?.Invoke(value);
+            // What it changes runs through Program.Guard, like a button's click, whether it was a drag, a key or a click.
+            value = next; InvalidateVisual();
+            Action<int> changed = Changed;
+            if (changed != null) Program.Guard(() => changed(next));
         }
-        private void Settle() { if (settled != value) { settled = value; Released?.Invoke(); } }
+        private void Settle()
+        {
+            if (settled == value) return;
+            settled = value;
+            Action released = Released;
+            if (released != null) Program.Guard(released);
+        }
         internal void Slide(int next) { Pick(next); Settle(); }
         private int At(double x) { return (int)Math.Round((x - 6) / Math.Max(1, Bounds.Width - 12) * (Choices.Length - 1)); }
         private int Zone(double x) { double reach = Math.Min(Bounds.Width / 3, 36); return x < reach ? -1 : x > Bounds.Width - reach ? 1 : 0; }
@@ -454,7 +468,12 @@ namespace CapriDesktop
         }
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
-            if (Chevron && e.GetPosition(this).X >= Bounds.Width - 28 && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) { Drop?.Invoke(); e.Handled = true; }
+            if (Chevron && e.GetPosition(this).X >= Bounds.Width - 28 && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                Action drop = Drop;
+                if (drop != null) Program.Guard(drop);
+                e.Handled = true;
+            }
             else base.OnPointerPressed(e);
         }
         public override void Render(DrawingContext context)
@@ -480,7 +499,15 @@ namespace CapriDesktop
             if (string.Join("\n", choices) == string.Join("\n", options)) return;
             CloseMenu(); choices = options; Selected = selected;
         }
-        internal void Pick(int at) { if (at < 0 || at >= choices.Length) return; Selected = at; Changed?.Invoke(at); CloseMenu(); }
+        // A bug behind a choice is written down by Program.Guard, and its menu still closes.
+        internal void Pick(int at)
+        {
+            if (at < 0 || at >= choices.Length) return;
+            Selected = at;
+            Action<int> changed = Changed;
+            try { if (changed != null) Program.Guard(() => changed(at)); }
+            finally { CloseMenu(); }
+        }
         internal void CloseMenu() { if (popup != null) { popup.IsOpen = false; popup = null; } }
         private void Open() { OpenAt(this); }
         internal void OpenAt(Control target)
