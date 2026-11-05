@@ -892,7 +892,7 @@ namespace CapriDesktop
                         if (said == null) said = CallSession.Conversation;
                         callSession.Keep(version, text, said, Brain.Recall);
                     }
-                    Answer(ticket, string.IsNullOrWhiteSpace(said) ? "My brain sent an empty reply. Try again." : said, state, quiet);
+                    Answer(ticket, string.IsNullOrWhiteSpace(said) ? Brain.Wordless : said, state, quiet);
                 });
             });
         }

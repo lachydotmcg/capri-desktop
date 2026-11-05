@@ -2291,7 +2291,7 @@ namespace CapriDesktop
             if (spoken == null && (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs))) { said = ""; after = ""; }
             if (said.Length == 0 && after.Length > 0) { said = after; after = ""; }
             if (said.Length == 0 && done != null) said = done;
-            if (said.Length == 0) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+            if (said.Length == 0) throw new BrainException(Wordless, true);
             if (upset && calls.Count == 0)
             {
                 Check(ticket);
@@ -3085,7 +3085,7 @@ namespace CapriDesktop
         {
             CompletionChoice choice = reply != null && reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             CompletionMessage message = choice != null ? choice.Message : null;
-            if (message == null) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+            if (message == null) throw new BrainException(Wordless, true);
             int before = calls.Count;
             if (message.Calls != null) foreach (CompletionCall call in message.Calls) if (call != null && call.Function != null) calls.Add(new KeyValuePair<string, ToolArguments>(call.Function.Name, Hands.Read(call.Function.Arguments)));
             if (calls.Count == before && Garbled(message.Content)) throw new BrainException(Gibberish, true);
@@ -3293,7 +3293,7 @@ namespace CapriDesktop
         {
             ClaudeReply reply = Read(ReadableInputs(text));
             reply.Raw = Field(text, "content");
-            if (reply.Raw == null) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+            if (reply.Raw == null) throw new BrainException(Wordless, true);
             return reply;
         }
 
@@ -3570,6 +3570,7 @@ namespace CapriDesktop
             if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
             if (error == BusyWatching) return "Too many requests. Wait, or glance less often.";
             if (error.StartsWith(DailyStart, StringComparison.Ordinal)) return "Gemini's daily limit is used. Try tomorrow or another key.";
+            if (error == Wordless) return "Empty reply. Try again or pick another model.";
             return null;
         }
 

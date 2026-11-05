@@ -12769,7 +12769,7 @@ namespace CapriDesktop
                 try { said = JoinSpeech(ticket, text, Computer.Mask(think(text))); }
                 catch (BrainException error) { said = error.Message == Brain.Offline ? Brain.Offline : error.Told ? error.Message : "My brain couldn't answer. The error is under BRAIN in Capri Mainframe."; problem = error.Message; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
                 catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; problem = said; state = TalkState.Dormant; stuck = Brain.Stalled(error); }
-                if (string.IsNullOrWhiteSpace(said)) { said = "My brain sent an empty reply. Try again."; problem = said; state = TalkState.Dormant; }
+                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; problem = said; state = TalkState.Dormant; }
                 try
                 {
                     if (!IsDisposed) BeginInvoke((Action)delegate
@@ -43559,7 +43559,7 @@ namespace CapriDesktop
                         }
                         else if (step == 21)
                         {
-                            if (talkState != TalkState.Dormant || reply != "My brain sent an empty reply. Try again." || mouths != null || voiceUntil != 0) throw new Exception("An empty reply stayed blank or old audio returned.");
+                            if (talkState != TalkState.Dormant || reply != Brain.Wordless || mouths != null || voiceUntil != 0) throw new Exception("An empty reply stayed blank or old audio returned.");
                             checks.Add("PASS empty reply: text explains the missing answer and late audio cannot replace it");
                             Speak = null;
                             replyReady = new ManualResetEvent(false);

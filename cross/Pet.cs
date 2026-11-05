@@ -3988,7 +3988,7 @@ namespace CapriDesktop
                 try { said = think == null ? Brain.Ask(text, follows, out after) : think(text); }
                 catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer: " + error.Message; stuck = Brain.Stalled(error); failed = true; }
                 catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; stuck = Brain.Stalled(error); failed = true; }
-                if (string.IsNullOrWhiteSpace(said)) { said = "My brain sent an empty reply. Try again."; failed = true; }
+                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; failed = true; }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (ticket != asking) return;

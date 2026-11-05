@@ -539,6 +539,24 @@ namespace CapriDesktop
                 if (gone.Length > 70 || !gone.StartsWith("Your antivirus", StringComparison.Ordinal) || !gone.EndsWith(" Allow it, then try again.", StringComparison.Ordinal))
                     throw new Exception("A missing server line doesn't name the antivirus and the fix inside its note: " + gone);
             checks.Add("PASS a missing llama-server.exe or tts-server.exe says your antivirus likely took it and to allow it, whole inside the BRAIN and VOICE notes");
+
+            // A12: an empty reply says the same line, with its fix, whether her brain threw it or sent blank words.
+            string emptyShort = Brain.Brief(Brain.Wordless);
+            if (emptyShort == null || emptyShort.Length > 60 || emptyShort.IndexOf("another model", StringComparison.Ordinal) < 0) throw new Exception("The empty reply's BRAIN line lost its fix: " + emptyShort);
+            string noteWas = mainframe.Status.Substring(mainframe.Status.IndexOf(" | ", StringComparison.Ordinal) + 3);
+            Func<string, string> thinkWas = Think;
+            try
+            {
+                Think = delegate { return "   "; };
+                reply = null;
+                Hear("empty reply");
+                System.Diagnostics.Stopwatch emptyWait = System.Diagnostics.Stopwatch.StartNew();
+                while (reply == null && emptyWait.ElapsedMilliseconds < 3000) { System.Windows.Forms.Application.DoEvents(); System.Threading.Thread.Sleep(10); }
+                if (reply != Brain.Wordless || talkState != TalkState.Dormant || !mainframe.Status.EndsWith(" | " + emptyShort, StringComparison.Ordinal))
+                    throw new Exception("Blank words from her brain said \"" + reply + "\" and showed \"" + mainframe.Status + "\".");
+            }
+            finally { Think = thinkWas; asking++; CloseTalk(); mainframe.ShowProblem(noteWas); }
+            checks.Add("PASS an empty reply says one line with its fix, \"Try again or pick another model in Capri Mainframe\", whether her brain threw it or sent blank words, and the BRAIN note keeps the fix");
         }
 
         private static bool Same(byte[] one, byte[] other)
