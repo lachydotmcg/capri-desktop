@@ -1,0 +1,42 @@
+---
+capri-skill: 1
+id: btd6-strategy
+name: BTD6 strategy
+version: 1.0.0
+author: Lachy
+description: Tower picks and a round-by-round plan for Bloons TD 6, from rounds 1 to 80.
+games: Bloons TD 6, BloonsTD6, BTD6
+---
+How to read the upgrades below
+
+• Upgrades are written top-middle-bottom: 0-2-5 means no top upgrades, 2 middle and 5 bottom.
+• With the monkey selected, comma buys its next top upgrade, period the middle and slash the bottom, one tier per press. So 0-2-5 is period twice and slash five times, bought as you can afford them.
+• A monkey can upgrade two of its paths, and only one of them past tier 2.
+
+Best Early-to-Late Towers & Upgrades
+
+• Dart Monkey: Go for 0-2-5 (Crossbow Master) for cheap, high-damage global cleanup and critical hits.
+• Boomerang Monkey: Build a 0-2-2 or 0-3-2 (Bionic Boomer) early to handle dense waves and lead bloons via Red Hot Rangs.
+• Bomb Shooter: 0-2-4 (Recursive Cluster) paired with a hero like Striker Jones shreds clusters of bloons.
+• Alchemist: A 4-2-0 (Stronger Stimulant) buff on your main DPS towers is essential for mid-game scaling.
+• Monkey Sub / Buccaneer: Advanced Intel subs or Pirate Lord / Carrier Flagship dominate water maps.
+• Mer-Monkey (Newer Meta): Using a Lord of the Abyss path provides tentacle strikes, MOAB/BFB slows, and a global pierce buff to nearby monkeys.
+
+Wave-by-Wave / Milestone Strategy Guide
+
+• Rounds 1–10 (Early Foundation):
+	• Place a cheap start tower like a Dart Monkey or Mer-Monkey near a bend or straightaway.
+	• Drop your Hero early (around Round 5–7) to let them gain experience.
+• Rounds 11–23 (Scaling Up):
+	• Add a Boomerang Monkey upgraded to 0-2-2 (Red Hot Rangs) or a Dartling Gunner to prepare for upcoming threats.
+• Round 24 (First Camo Bloon):
+	• Ensure you have camo detection ready—such as a Sub set to Submergent Support, an Enhanced Eyesight Dart Monkey, or a hero/tower with innate camo vision (e.g., Mer-Monkey Abyss Dweller or Wizard Monkey with Monkey Sense).
+• Round 28 (First Lead Bloons):
+	• Make sure your towers can pop lead (Red Hot Rangs boomerang, Alchemist concoction, or a 0-2-0 Dartling Gunner).
+• Rounds 30–39 (Mid-Game Prep):
+	• Lay down a 3-2-0 Alchemist to buff your main attack towers and build a 0-2-4 Recursive Cluster or Bionic Boomer for zebra and rainbow rushes.
+• Round 40 (The MOAB):
+	• The first MOAB blimp appears. Use a MOAB-damaging ability, a MOAB Mauler, a MOAB Press, or a Spike Storm to crack the outer layer, then let your high-pierce cleanup handle the inner ceramics.
+• Rounds 60–80 (Intense Rushes & Super Ceramics):
+	• Round 63 (massive ceramic wave) and Round 76 require heavy AOE like Ring of Fire, Prince of Darkness, or Perma-Charge activated abilities.
+	• Accumulate Tier 5 upgrades (like Crossbow Master, Aircraft Carrier, or a Lord of the Abyss setup) by Round 80.
