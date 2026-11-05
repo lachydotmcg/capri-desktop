@@ -52,6 +52,8 @@ namespace CapriDesktop
         private int moveStage;
         private PixelPoint moveTo;
         private Screen moveFrom;
+        // The mouse holding her while she hides.
+        private Avalonia.Input.Pointer holding;
         private readonly List<string> moveLines = new List<string>();
         private double noticedBefore = -1;
         private bool poppedAgain;
@@ -1103,12 +1105,23 @@ namespace CapriDesktop
                 checks.Add("PASS dancing: she dances in her seat while music plays");
                 outFrom = now;
                 Sfx.Out = sounds.Add;
+                // She's hidden while held, which her window can't report the release of once it's gone.
+                Point? grip = pet.BodySpot();
+                if (grip == null) throw new Exception("Couldn't find her body to hold while she hides.");
+                holding = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true);
+                Press(holding, grip.Value);
+                if (holding.Captured != pet) throw new Exception("Pressing her before she hid didn't hold the mouse.");
                 pet.HideAway();
                 return true;
             }
             if (step == 16)
             {
                 if (pet.IsVisible) return false;
+                bool letGo = !(bool)typeof(Pet).GetField("pressed", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(pet) && holding.Captured == null;
+                holding.Dispose();
+                holding = null;
+                if (!letGo) throw new Exception("Hiding her while she was held left her held.");
+                checks.Add("PASS hiding her while she's held lets go of her, since her window can't report the release once it's gone");
                 if (now - outFrom < 0.6) throw new Exception("Her glitch-out ended after " + (now - outFrom).ToString("0.00") + " s.");
                 if (!pet.Away || sounds.Count != 1 || sounds[0].Length != Sfx.Make(Cue.Leave, 60).Length) throw new Exception("Her glitch-out didn't play its sound once: " + sounds.Count);
                 checks.Add("PASS glitch out: Hide her plays her glitch-out and its sound for " + (now - outFrom).ToString("0.0") + " s, then her window goes");
@@ -1596,6 +1609,22 @@ namespace CapriDesktop
                 if (draggingAfter || !fellAfter) throw new Exception("A drop whose ledges failed left her held (" + draggingAfter + ") or floating where she was let go.");
                 if (stillFalling) throw new Exception("A fall whose ledges kept failing didn't stop.");
                 checks.Add("PASS a bug part-way through a press or a drop leaves her whole: a failed screen point leaves her unpressed with no capture, and failed ledges still end the drag with a fall, which stops if they keep failing");
+
+                // Avalonia rarely says a grab was lost, so her window losing focus mid-drag lets go of her with a drop.
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = down;
+                Press(mouse, at);
+                cursor = new PixelPoint(down.X + 40, down.Y - 70);
+                Pull(mouse, linux ? at : Client(cursor.Value));
+                bool heldFirst = pet.Dragging && mouse.Captured == pet;
+                EventHandler unfocused = typeof(WindowBase).GetField("Deactivated", fields).GetValue(pet) as EventHandler;
+                if (unfocused == null) throw new Exception("Nothing listens for her window losing focus.");
+                unfocused(pet, EventArgs.Empty);
+                bool stillPressed = (bool)typeof(Pet).GetField("pressed", fields).GetValue(pet);
+                if (!heldFirst || stillPressed || pet.Dragging || mouse.Captured != null) throw new Exception("Losing focus mid-drag left her held: dragged first " + heldFirst + ", pressed " + stillPressed + ", dragging " + pet.Dragging + ", captured " + (mouse.Captured != null) + ".");
+                checks.Add("PASS her window losing focus mid-drag lets go of her with a drop, since Avalonia rarely says a grab was lost");
 
                 if (linux)
                 {

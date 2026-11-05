@@ -467,6 +467,8 @@ namespace CapriDesktop
         private PixelPoint downAt;
         private PixelPoint dragAt;
         private bool dragPending;
+        // The mouse pressing her, so letting go of her without a release can give its capture back.
+        private IPointer holder;
         // Window positions she asked for that the desktop hasn't confirmed yet, oldest first.
         private readonly List<PixelPoint> asked = new List<PixelPoint>();
         private Point pointer = new Point(-1, -1);
@@ -625,6 +627,7 @@ namespace CapriDesktop
             frames.Tick += delegate { Program.Guard(Tick); };
             // Closing her while held must not leave the frame timer moving a closed window.
             Closed += delegate { pressed = dragging = dragPending = false; frames.Stop(); };
+            Deactivated += delegate { Program.Guard(Unhold); };
             Opened += delegate
             {
                 if (opened) return;
@@ -1341,6 +1344,7 @@ namespace CapriDesktop
                 // pressed with no capture to tell her when the mouse lets go.
                 PixelPoint down = DragPoint(at);
                 e.Pointer.Capture(this);
+                holder = e.Pointer;
                 pressed = true;
                 clicks++;
                 dragging = false;
@@ -1407,6 +1411,7 @@ namespace CapriDesktop
                     DragFrame();
                 }
                 pressed = false;
+                holder = null;
                 e.Pointer.Capture(null);
                 if (dragging) Let((e.KeyModifiers & KeyModifiers.Shift) != 0);
                 else React();
@@ -1416,16 +1421,29 @@ namespace CapriDesktop
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
         {
             base.OnPointerCaptureLost(e);
-            Program.Guard(() =>
-            {
-                // A lost capture has no release event, so she used to stay held after the mouse left her.
-                if (!pressed) return;
-                pressed = false;
-                dragPending = false;
-                if (!dragging) return;
-                if (quitting || !IsVisible) { dragging = false; return; }
-                Let(false);
-            });
+            Program.Guard(Unhold);
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+            if (change.Property == IsVisibleProperty && !IsVisible) Program.Guard(Unhold);
+        }
+
+        // A lost capture has no release event, so she used to stay held after the mouse left her. Avalonia rarely says a grab
+        // was lost (X11 only when her window is disabled, macOS only on losing focus during an implicit capture), so losing
+        // focus or being hidden lets go of her the same way.
+        private void Unhold()
+        {
+            if (!pressed) return;
+            pressed = false;
+            dragPending = false;
+            IPointer held = holder;
+            holder = null;
+            if (held != null && held.Captured == this) held.Capture(null);
+            if (!dragging) return;
+            if (quitting || !IsVisible) { dragging = false; return; }
+            Let(false);
         }
 
         // Letting go of her: she falls onto the window below, or with Shift held sits right there, like on Windows.
