@@ -226,7 +226,7 @@ Voice chat, calls and code mods are Windows only for now.
    xattr -dr com.apple.quarantine /Applications/Capri.app
    ```
    Apple hasn't approved (notarized) her yet, so macOS blocks her or calls her "damaged" until you do. That line only clears the downloaded-from-the-internet flag on Capri
-4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`; on Ubuntu 24.04, install `libfuse2t64` first), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
+4. **Linux:** make the AppImage executable and run it (`chmod +x Capri-linux-x64.AppImage`), or unpack the tarball and run `Capri/Capri`. She sits on windows on X11; on Wayland she sits on the bottom of your screen
 
 ## How to use her
 
