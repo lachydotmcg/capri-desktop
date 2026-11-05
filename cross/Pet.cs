@@ -312,6 +312,10 @@ namespace CapriDesktop
         private string updatePage;
         private double nextUpdate = 60;
         private bool updateChecking;
+        // A check someone asked for says how it went; the one every 6 hours only speaks up for a new version.
+        private bool updateAsked;
+        private string updateNote;
+        internal Func<string> ReadUpdate = FetchUpdate;
         // What she says about a new version once she's free.
         internal string UpdateNews;
         private bool pulling;
@@ -946,36 +950,67 @@ namespace CapriDesktop
             return head + Environment.NewLine + (lines.Length == 0 ? "No errors logged." : string.Join(Environment.NewLine, lines, from, lines.Length - from));
         }
 
-        private void CheckUpdate()
+        internal void CheckUpdate(bool asked = false)
         {
+            updateAsked |= asked;
             if (updateChecking) return;
             updateChecking = true;
+            NotifySettings();
+            Func<string> read = ReadUpdate;
             ThreadPool.QueueUserWorkItem(delegate
             {
                 string latest = null;
-                try
-                {
-                    using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) })
-                    {
-                        client.DefaultRequestHeaders.UserAgent.ParseAdd("Capri-Desktop");
-                        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-                        latest = client.GetStringAsync(LatestRelease).GetAwaiter().GetResult();
-                    }
-                }
+                try { latest = read(); }
                 catch (Exception) { }
-                Dispatcher.UIThread.Post(delegate { updateChecking = false; if (latest != null) ShowUpdate(latest); });
+                Dispatcher.UIThread.Post(delegate
+                {
+                    updateChecking = false;
+                    bool tell = updateAsked;
+                    updateAsked = false;
+                    if (latest != null || tell) ShowUpdate(latest, tell);
+                    NotifySettings();
+                });
             });
         }
 
+        private static string FetchUpdate()
+        {
+            using (System.Net.Http.HttpClient client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) })
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Capri-Desktop");
+                client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+                return client.GetStringAsync(LatestRelease).GetAwaiter().GetResult();
+            }
+        }
+
         // A newer finished release puts "Get Capri X" in her menu, and she mentions it once per version.
-        internal void ShowUpdate(string latest)
+        internal void ShowUpdate(string latest, bool asked = false)
         {
             Release found = null;
             try { using (MemoryStream body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(latest ?? ""))) found = (Release)new DataContractJsonSerializer(typeof(Release)).ReadObject(body); }
             catch (Exception) { }
-            string version = found == null || found.Draft || found.Prerelease ? null : Newer(found.Tag, System.Reflection.Assembly.GetExecutingAssembly().GetName().Version);
+            Version current = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            Version released = found == null || found.Draft || found.Prerelease ? null : ReleaseVersion(found.Tag);
+            string version = released == null ? null : Newer(found.Tag, current);
             if (ContextMenu == null) return;
-            if (version == null) { if (updateItem != null) ContextMenu.Items.Remove(updateItem); return; }
+            if (asked && released == null)
+            {
+                updateNote = "Couldn't check for updates. Check your connection and try again.";
+                UpdateNews = updateNote;
+                return;
+            }
+            if (released != null) updateNote = null;
+            if (version == null)
+            {
+                if (updateItem != null) ContextMenu.Items.Remove(updateItem);
+                updatePage = null;
+                if (asked)
+                {
+                    updateNote = "You're on the latest version (" + current.ToString(3) + ").";
+                    UpdateNews = updateNote;
+                }
+                return;
+            }
             updatePage = found.Page != null && found.Page.StartsWith("https://github.com/lachydotmcg/capri-desktop/releases/", StringComparison.Ordinal) ? found.Page : ReleasesPage;
             if (updateItem == null)
             {
@@ -989,19 +1024,26 @@ namespace CapriDesktop
                 for (int i = ContextMenu.Items.Count - 1; i >= 0; i--) if (ContextMenu.Items[i] is Separator) { at = i; break; }
                 ContextMenu.Items.Insert(at, updateItem);
             }
+            string line = "Capri " + version + " is out. Right-click me > Get Capri " + version + ".";
+            if (asked) { updateNote = line; UpdateNews = line; }
             if (Saved.UpdateSeen == version) return;
             Saved.UpdateSeen = version;
             Save();
-            UpdateNews = "Capri " + version + " is out. Right-click me > Get Capri " + version + ".";
+            UpdateNews = line;
         }
 
         // The release's version when it's newer than hers, like "0.7.6". Null for older, odd or missing tags.
         internal static string Newer(string tag, Version mine)
         {
+            Version found = ReleaseVersion(tag);
+            return found != null && found > new Version(mine.Major, mine.Minor, Math.Max(0, mine.Build)) ? found.ToString(3) : null;
+        }
+
+        private static Version ReleaseVersion(string tag)
+        {
             Version found;
             if (tag == null || !System.Text.RegularExpressions.Regex.IsMatch(tag, @"^[vV]?\d+\.\d+(\.\d+)?$") || !Version.TryParse(tag.TrimStart('v', 'V'), out found)) return null;
-            found = new Version(found.Major, found.Minor, Math.Max(0, found.Build));
-            return found > new Version(mine.Major, mine.Minor, Math.Max(0, mine.Build)) ? found.ToString(3) : null;
+            return new Version(found.Major, found.Minor, Math.Max(0, found.Build));
         }
 
         internal string UpdateChoice { get { return updateItem != null && ContextMenu != null && ContextMenu.Items.Contains(updateItem) ? updateItem.Header as string : null; } }
@@ -2046,7 +2088,7 @@ namespace CapriDesktop
             hideItem = new MenuItem { Header = "Hide Capri" };
             hideItem.Click += Guarded(delegate { if (Away) ComeBack(); else HideAway(); });
             MenuItem update = new MenuItem { Header = "Check for updates" };
-            update.Click += Guarded(delegate { CheckUpdate(); });
+            update.Click += Guarded(delegate { CheckUpdate(true); });
             menu.Items.Add(title);
             menu.Items.Add(new Separator());
             menu.Items.Add(frame);

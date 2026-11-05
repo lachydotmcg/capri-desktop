@@ -102,7 +102,7 @@ namespace CapriDesktop
         internal string MainframeProgress { get { return pulling ? Pulling : null; } }
         internal bool MainframeInputSetup { get { return OperatingSystem.IsLinux() && !fingers; } }
         internal int MainframeVoiceMode { get { return Saved.Silent || Speakers.Known(Saved.VoiceProvider) == Speakers.Off ? 0 : Speakers.Known(Saved.VoiceProvider) == Speakers.Local ? 2 : 3; } }
-        internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
+        internal string MainframeUpdate { get { return updateChecking ? "Checking for updates..." : updateNote ?? UpdateNews ?? (updatePage == null ? "" : "An update is available."); } }
         internal string MainframeLocalAddress { get { return localVoice.Url ?? ""; } }
         internal string MainframeLocalModel { get { return localVoice.Model ?? ""; } }
         internal string MainframeLocalVoice { get { return localVoice.Speaker ?? ""; } }
@@ -175,7 +175,7 @@ namespace CapriDesktop
             if (Brain.Remote != null) { cloudRequests++; cloudListing = false; cloudModels = null; }
             RefreshBrains();
         }
-        internal void MainframeUpdateCheck() { CheckUpdate(); }
+        internal void MainframeUpdateCheck() { CheckUpdate(true); }
         internal void MainframeSetupInput() { CopyFingersSetup(); }
         internal void MainframePickModel(string model)
         {

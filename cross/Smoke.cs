@@ -136,6 +136,7 @@ namespace CapriDesktop
                 GuardChecks();
                 MainframeGuardChecks();
                 UnreadableChecks();
+                UpdateCheckChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1629,6 +1630,98 @@ namespace CapriDesktop
             }
             finally { Directory.Delete(kept); }
             checks.Add("PASS unreadable settings: missing cross.json stays quiet, damaged settings are copied as they are, only the error type is logged, and one notice names the real folder after startup");
+        }
+
+        private void UpdateCheckChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            string[] names = { "updateChecking", "updateAsked", "updateNote", "updatePage", "updateItem" };
+            Dictionary<string, object> state = new Dictionary<string, object>();
+            foreach (string name in names) state[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            Func<string> read = pet.ReadUpdate;
+            string news = pet.UpdateNews;
+            Settings saved = pet.Saved;
+            MenuItem oldItem = (MenuItem)state["updateItem"];
+            int oldAt = oldItem == null ? -1 : pet.ContextMenu.Items.IndexOf(oldItem);
+            var timer = (Avalonia.Threading.DispatcherTimer)typeof(Pet).GetField("frames", fields).GetValue(pet);
+            bool ticking = timer.IsEnabled;
+            ManualResetEvent entered = new ManualResetEvent(false), release = new ManualResetEvent(false);
+            timer.Stop();
+            try
+            {
+                string failure = "Couldn't check for updates. Check your connection and try again.";
+                pet.Saved = SettingsCopy();
+                pet.Talk.Dismiss(); pet.UpdateNews = null;
+                pet.ReadUpdate = delegate { throw new IOException("private-update-error"); };
+                pet.MainframeUpdateCheck();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "an asked update failure");
+                if (pet.MainframeUpdate != failure || pet.UpdateNews != failure) throw new Exception("An asked update failure missed Mainframe or her bubble.");
+                pet.UpdateNews = null;
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a background update failure");
+                if (pet.UpdateNews != null || pet.Talk.Reply != null || pet.MainframeUpdate != failure) throw new Exception("A background update failure made a new notice.");
+                MenuItem tray = null;
+                foreach (object value in pet.ContextMenu.Items) if (value is MenuItem item && item.Header as string == "Check for updates") tray = item;
+                if (tray == null) throw new Exception("The tray update check is missing.");
+                tray.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a tray update failure");
+                if (pet.MainframeUpdate != failure || pet.UpdateNews != failure) throw new Exception("The tray update check failed silently.");
+                pet.UpdateNews = null;
+                string version = typeof(Pet).Assembly.GetName().Version.ToString(3);
+                pet.ReadUpdate = delegate { return "{\"tag_name\":\"v" + version + "\"}"; };
+                pet.MainframeUpdateCheck();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a current release");
+                string current = "You're on the latest version (" + version + ").";
+                if (pet.MainframeUpdate != current || pet.UpdateNews != current) throw new Exception("An asked update check missed the current version.");
+                pet.UpdateNews = null;
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a background current release");
+                if (pet.UpdateNews != null || pet.Talk.Reply != null) throw new Exception("A current release made a background notice.");
+                foreach (string body in new[] { "not json", "{}", "{\"tag_name\":\"nightly\"}", "{\"tag_name\":\"v99.0.0\",\"draft\":true}" })
+                {
+                    pet.UpdateNews = null;
+                    pet.ReadUpdate = () => body;
+                    pet.MainframeUpdateCheck();
+                    MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "an unreadable release");
+                    if (pet.MainframeUpdate != failure || pet.UpdateNews != failure) throw new Exception("An unreadable release was called the latest version.");
+                }
+                pet.UpdateNews = null;
+                pet.ReadUpdate = delegate { entered.Set(); release.WaitOne(3000); throw new IOException("private-update-error"); };
+                pet.CheckUpdate();
+                if (!entered.WaitOne(1000)) throw new Exception("The held background update check did not start.");
+                pet.MainframeUpdateCheck();
+                release.Set();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "an asked check during a background check");
+                if (pet.MainframeUpdate != failure || pet.UpdateNews != failure) throw new Exception("A click during a background update check lost its answer.");
+                pet.ShowUpdate("{\"tag_name\":\"v99.1.0\"}");
+                string choice = pet.UpdateChoice, page = pet.UpdatePage;
+                if (choice != "Get Capri 99.1.0") throw new Exception("The update check did not keep a newer release.");
+                pet.UpdateNews = null;
+                pet.MainframeUpdateCheck();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a failure with a known update");
+                if (pet.UpdateChoice != choice || pet.UpdatePage != page || pet.UpdateNews != failure) throw new Exception("A failed asked check lost the known update.");
+                pet.UpdateNews = null;
+                pet.CheckUpdate();
+                MainframeWait(() => pet.MainframeUpdate != "Checking for updates...", "a background failure with a known update");
+                if (pet.UpdateChoice != choice || pet.UpdatePage != page || pet.UpdateNews != null) throw new Exception("A background failure changed the known update or spoke.");
+                pet.ShowUpdate("{\"tag_name\":\"v99.1.0\"}", true);
+                if (pet.UpdateNews != "Capri 99.1.0 is out. Right-click me > Get Capri 99.1.0." || pet.MainframeUpdate != pet.UpdateNews) throw new Exception("An asked check hid a newer release that was already seen.");
+                checks.Add("PASS asked update checks: Mainframe and the tray report failures and the current version, background failures stay quiet, and a click during a running check gets its answer");
+            }
+            finally
+            {
+                release.Set();
+                try { MainframeWait(() => !(bool)typeof(Pet).GetField("updateChecking", fields).GetValue(pet), "the last update check"); }
+                finally
+                {
+                    var item = (MenuItem)typeof(Pet).GetField("updateItem", fields).GetValue(pet);
+                    if (item != oldItem && item != null) pet.ContextMenu.Items.Remove(item);
+                    if (oldAt >= 0 && !pet.ContextMenu.Items.Contains(oldItem)) pet.ContextMenu.Items.Insert(Math.Min(oldAt, pet.ContextMenu.Items.Count), oldItem);
+                    pet.ReadUpdate = read; pet.UpdateNews = news; pet.Saved = saved;
+                    foreach (KeyValuePair<string, object> pair in state) typeof(Pet).GetField(pair.Key, fields).SetValue(pet, pair.Value);
+                    if (ticking) timer.Start();
+                }
+            }
         }
 
         private static PointerPressedEventArgs LeftPress(Control on, IPointer mouse)
