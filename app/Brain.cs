@@ -394,7 +394,13 @@ namespace CapriDesktop
         internal static string NvidiaDefault { get { return NvidiaPicks[0]; } }
         internal const string Gone = "That model isn't on your key. Pick another one.";
         internal const string Down = "Their servers failed. Pick another model or retry.";
-        internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
+        internal const string Busy = "Too many requests. Wait a minute, then try again.";
+        // With Watch my screen on, her glances make requests of their own, so glancing less often helps too.
+        internal const string BusyWatching = "Too many requests. Wait a minute, or set Watch my screen to glance less often.";
+        internal static Func<bool> Watching = delegate { return false; };
+        // Gemini counts requests per day as well as per minute, and a day's are gone until the next day.
+        internal const string DailyStart = "Your Gemini key has used up today's requests.";
+        internal static string DailyGone { get { return DailyStart + " They reset tomorrow, or add another key " + BrainMenu + "."; } }
         internal const string NewKey = "Key rejected. Make a new Google AI Studio key and paste it.";
         internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
         internal const string NoCredits = "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
@@ -1773,7 +1779,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null) return web.Status == WebExceptionStatus.Timeout;
-            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy);
+            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
         }
 
         internal static string Next(string current, List<string> models, ICollection<string> skip)
@@ -3542,6 +3548,8 @@ namespace CapriDesktop
             if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
             if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
+            if (error == BusyWatching) return "Too many requests. Wait, or glance less often.";
+            if (error.StartsWith(DailyStart, StringComparison.Ordinal)) return "Gemini's daily limit is used. Try tomorrow or another key.";
             return null;
         }
 
@@ -3874,6 +3882,7 @@ namespace CapriDesktop
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
             string meaning = remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai") : null;
+            if (meaning == Busy && Watching()) meaning = BusyWatching;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
@@ -3945,6 +3954,8 @@ namespace CapriDesktop
 
         internal static string Meaning(int status, string body, bool google = false, bool openai = false)
         {
+            // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
+            if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
             if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
             // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
             if (status == 451 || status == 403 && (BlockPage.IsMatch(body ?? "") || (body ?? "").TrimStart().StartsWith("<", StringComparison.Ordinal))) return Blocked;

@@ -362,6 +362,48 @@ namespace CapriDesktop
             }
         }
 
+        // Too many requests mentions glancing less often only while Watch my screen is on, and Gemini's used-up day says it
+        // resets tomorrow or to use another key, with short BRAIN lines that keep the fix.
+        private void SmokeRateLimits(List<string> checks)
+        {
+            const string minute = "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaId\":\"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\"}]}]}}";
+            const string day = "{\"error\":{\"code\":429,\"message\":\"You exceeded your current quota, please check your plan and billing details.\",\"status\":\"RESOURCE_EXHAUSTED\",\"details\":[{\"@type\":\"type.googleapis.com/google.rpc.QuotaFailure\",\"violations\":[{\"quotaId\":\"GenerateRequestsPerDayPerProjectPerModel-FreeTier\"}]}]}}";
+            if (Brain.Meaning(429, day, true) != Brain.DailyGone || Brain.Meaning(429, minute, true) != Brain.Busy || Brain.Meaning(429, day) != Brain.Busy || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != Brain.Busy
+                || !Brain.DailyGone.Contains("tomorrow") || !Brain.DailyGone.Contains("another key") || Brain.Busy.Contains("watch") || !Brain.BusyWatching.Contains("Watch my screen"))
+                throw new Exception("A rate limit or Gemini's used-up day read wrong: " + Brain.Meaning(429, day, true) + " / " + Brain.Meaning(429, minute, true));
+            foreach (string line in new[] { Brain.Busy, Brain.BusyWatching, Brain.DailyGone })
+            {
+                string brief = Brain.Brief(line) ?? line;
+                if (brief.Length > 60 || !Brain.Stalled(new BrainException(line, true))) throw new Exception("A rate limit's BRAIN line didn't fit or stopped counting as a stall: " + brief);
+            }
+            if (!Brain.Brief(Brain.DailyGone).Contains("tomorrow") || !Brain.Brief(Brain.BusyWatching).Contains("glance")) throw new Exception("A rate limit's BRAIN line lost its fix.");
+            bool watchWas = preferences.Watch;
+            string googleWas = Brain.Google;
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                List<string> asked = new List<string>();
+                Brain.Google = FakeServer(new[] { "!429 " + minute, "!429 " + minute, "!429 " + day }, asked, out fake);
+                string[] said = new string[3];
+                for (int i = 0; i < 3; i++)
+                {
+                    preferences.Watch = i == 1;
+                    try { Brain.CloudModels("AIza-test"); }
+                    catch (BrainException error) { if (error.Told) said[i] = error.Message; }
+                }
+                if (said[0] != Brain.Busy || said[1] != Brain.BusyWatching || said[2] != Brain.DailyGone || asked.Count != 3)
+                    throw new Exception("Gemini's limits were told wrong: " + string.Join(" | ", said) + " / " + asked.Count + " asks");
+                checks.Add("PASS too many requests says to wait a minute, and to glance less often only while Watch my screen is on; Gemini's used-up day says it resets tomorrow or to add another key; each has a BRAIN line that fits with its fix, and all still count as a stall");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT rate limit lines: loopback sockets unavailable"); }
+            finally
+            {
+                preferences.Watch = watchWas;
+                Brain.Google = googleWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;

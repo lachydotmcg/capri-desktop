@@ -2473,6 +2473,8 @@ namespace CapriDesktop
                 return tool == "clip" && result != null && result.StartsWith("Saved ", StringComparison.Ordinal) ? ClipBuffer.Spoken(result) + " The CLIP SAVED popup shows where it went." : result;
             };
             brain.OwnSteps = !testing;
+            // A rate limit mentions glancing less often only while Watch my screen is on.
+            Brain.Watching = delegate { return preferences.Watch; };
             Hands.Resume = ResumeJob;
             Hands.Rename = CallThem;
             Hands.Nap = NapTool;
@@ -25862,9 +25864,9 @@ namespace CapriDesktop
                     string limitedUrl = FakeServer(new[] { limitedReply, limitedReply, "!401 {\"error\":{\"message\":\"Rejected " + limitedKey + "\"}}", "!400 {\"error\":{\"message\":\"Cannot list models for " + limitedKey + "\"}}", "!404 {}" }, limitedAsked, out limitedFake);
                     Brain.Google = limitedUrl; Brain.OpenRouter = limitedUrl;
                     int explainedLimits = 0;
-                    try { Brain.CloudModels(limitedKey); } catch (BrainException listLimit) { if (listLimit.Message == Brain.Busy && listLimit.Told) explainedLimits++; }
+                    try { Brain.CloudModels(limitedKey); } catch (BrainException listLimit) { if ((listLimit.Message == Brain.Busy || listLimit.Message == Brain.BusyWatching) && listLimit.Told) explainedLimits++; }
                     Brain limitedBrain = new Brain { Remote = new Cloud(limitedKey, "test"), Model = "test" };
-                    try { limitedBrain.Aside("Chat", "Hello", 90); } catch (BrainException chatLimit) { if (chatLimit.Message == Brain.Busy && Brain.Stalled(chatLimit)) explainedLimits++; }
+                    try { limitedBrain.Aside("Chat", "Hello", 90); } catch (BrainException chatLimit) { if ((chatLimit.Message == Brain.Busy || chatLimit.Message == Brain.BusyWatching) && Brain.Stalled(chatLimit)) explainedLimits++; }
                     bool rejectedKey = false;
                     try { Brain.CloudModels(limitedKey); } catch (BrainException badKey) { rejectedKey = badKey.Told && badKey.Message == (limitedKey == "AIza-test" ? Brain.NewKey : "Key rejected. Press Forget, then paste it again."); }
                     bool scrubbedKey = false, missingList = false;
@@ -29752,6 +29754,7 @@ namespace CapriDesktop
             Section(checks, "SmokeBrainOnlyText", delegate { SmokeBrainOnlyText(checks, output); });
             Section(checks, "SmokeJobPanelFixes", delegate { SmokeJobPanelFixes(checks); });
             Section(checks, "SmokeCallHearing", delegate { SmokeCallHearing(checks); });
+            Section(checks, "SmokeRateLimits", delegate { SmokeRateLimits(checks); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)
@@ -37414,7 +37417,7 @@ namespace CapriDesktop
                                     if (!Engine.Lost("got exception: vk::Queue::submit: ErrorDeviceLost") || Engine.Lost("model not found")) throw new Exception("A lost graphics card was not spotted.");
                                     const string broke = "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
                                     if (Brain.Meaning(429, "{\"error\":{\"message\":\"You have no credits remaining. Add credits to continue using the API.\",\"type\":\"insufficient_quota\"}}") != broke || Brain.Meaning(402, "{\"error\":{\"message\":\"Insufficient Balance\"}}") != broke
-                                        || Brain.Meaning(400, "{\"type\":\"error\",\"error\":{\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}") != broke || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != "Too many requests. Wait a minute, or watch slower."
+                                        || Brain.Meaning(400, "{\"type\":\"error\",\"error\":{\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}") != broke || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != "Too many requests. Wait a minute, then try again."
                                         || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null
                                         || Brain.Meaning(403, "{\"error\":{\"message\":\"Method doesn't allow unregistered callers\",\"status\":\"PERMISSION_DENIED\"}}", true) != Brain.NewKey || Brain.Meaning(400, "{\"error\":{\"message\":\"API key not valid.\"}}") != null
                                         || Brain.Meaning(400, "{\"error\":{\"message\":\"Gemini API free tier is not available in your country. Please enable billing on your project in Google AI Studio.\",\"status\":\"FAILED_PRECONDITION\"}}", true) != Brain.Unserved
