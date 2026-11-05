@@ -50,7 +50,7 @@ A mic is only needed for voice chat.
 - Windows: Capri-Setup.exe
 - Mac (Apple Silicon): Capri-mac-apple-silicon.zip
 - Mac (Intel): Capri-mac-intel.zip
-- Linux: Capri-linux-x64.tar.gz
+- Linux: Capri-linux-x64.AppImage (one file, from 0.8.4) or Capri-linux-x64.tar.gz
 - All files: https://github.com/lachydotmcg/capri-desktop/releases/latest
 
 ### How do I install Capri VR? (0.8.3)
@@ -182,9 +182,9 @@ The Mac preview uses Ollama for her brain. See "Ollama" in section 9.
 ## 4. Install on Linux (preview)
 
 ### Steps
-1. Download Capri-linux-x64.tar.gz.
-2. Unpack it.
-3. Run Capri/Capri.
+1. Download Capri-linux-x64.AppImage (from 0.8.4), or Capri-linux-x64.tar.gz.
+2. AppImage: tick "Allow executing file as program" in its Properties, or run chmod +x Capri-linux-x64.AppImage. Tarball: unpack it.
+3. Open the AppImage, or run Capri/Capri from the tarball.
 4. Install Ollama from https://ollama.com and open it.
 5. Right-click her > Brain > Download gemma4:e4b, her brain (a few GB). Or run: ollama pull gemma4:e4b
 
@@ -1596,7 +1596,7 @@ Wait a few seconds, then press Restart to update again.
 ### Mac and Linux
 No automatic updates yet, but she tells you when a new version is out: "Capri X is out. Right-click me > Get Capri X."
 1. Right-click her > Get Capri X. Its download page opens. (The item only shows when there's a new version.)
-2. Download Capri-mac-apple-silicon.zip, Capri-mac-intel.zip or Capri-linux-x64.tar.gz.
+2. Download Capri-mac-apple-silicon.zip, Capri-mac-intel.zip, Capri-linux-x64.AppImage or Capri-linux-x64.tar.gz.
 3. Quit Capri and put the new one where the old one was. Her settings, notes, chat and keys stay, because they're kept outside the app.
 
 ### Where can I see what changed?
