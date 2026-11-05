@@ -89,10 +89,19 @@ namespace CapriDesktop
             return All.Find(mod => mod.File.Id == read.Id);
         }
 
+        // "Minecraft 26.3 - Singleplayer" is Minecraft, and "Cyberpunk 2077 (C) 2020 by CD Projekt RED" is Cyberpunk 2077.
+        internal static string GameName(string title)
+        {
+            string name = Regex.Replace(title ?? "", @"[®™©*]", " ");
+            name = Regex.Replace(name, @"\s+[-–—|:(\[].*$", "");
+            name = Regex.Replace(name, @"\s+v?\d+(\.\d+)+.*$", "", RegexOptions.IgnoreCase);
+            return Regex.Replace(name, @"\s+", " ").Trim(' ', '.');
+        }
+
         // What a game job is told from the skills that are on for this game. "BloonsTD6" is Bloons TD 6, since only letters and numbers count.
         internal string SkillsFor(string game)
         {
-            string playing = Plain(game);
+            string playing = Plain(GameName(game));
             if (playing.Length == 0) return "";
             StringBuilder told = new StringBuilder();
             foreach (Mod skill in skills)

@@ -53,6 +53,17 @@ namespace CapriDesktop
         // Out loud and in her bubble, for her stream.
         internal static Action<string> Says;
 
+        // The skill mods that are on for a game, from her mods list, like Windows' game brief. Null tells her none.
+        internal static Func<string, string> Skills;
+
+        // What her skills say about the game open now. Empty with no game or no skill for it.
+        internal static string Skilled()
+        {
+            Func<string, string> skills = Skills;
+            string open = skills == null || Hands.GameOpen == null ? null : Hands.GameOpen();
+            return string.IsNullOrEmpty(open) ? "" : skills(open);
+        }
+
         // A job that isn't her stream stops after this many steps, so a brain that never says done can't keep her going for ever.
         internal const int MostSteps = 25;
 
@@ -100,8 +111,11 @@ namespace CapriDesktop
             List<string> steps = new List<string>();
             Hands.StreamMinute minute = new Hands.StreamMinute();
             System.Diagnostics.Stopwatch live = System.Diagnostics.Stopwatch.StartNew();
+            string skilled = "";
             for (int step = 0; Hands.Streaming || step < MostSteps; step++)
             {
+                // A job can open the game itself, so until a skill turns up she looks again every few steps.
+                if (skilled.Length == 0 && step % 5 == 0) skilled = Skilled();
                 byte[] picture = Shot();
                 byte[] shot = Eyes.Jpeg(picture, 1280);
                 if (shot == null) return Eyes.Missing;
@@ -115,7 +129,7 @@ namespace CapriDesktop
                     "\nScreenshot: " + width + " x " + height + " pixels." +
                     (steps.Count == 0 ? "\nNo steps yet." : "\nSteps so far:\n" + string.Join("\n", steps.GetRange(recent, steps.Count - recent).ToArray())) + (chatTime ? "\nIt's your chat time." : "") + "\nThe next step, as one JSON object:";
                 string reply;
-                try { reply = brain.See(shot, Hands.Streaming ? Allowed + StreamRules : Allowed, instruction, 160); }
+                try { reply = brain.See(shot, (Hands.Streaming ? Allowed + StreamRules : Allowed) + skilled, instruction, 160); }
                 catch (BrainException error) { return "Couldn't do that: " + error.Message; }
                 catch (System.Net.WebException error)
                 {

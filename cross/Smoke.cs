@@ -2907,6 +2907,22 @@ namespace CapriDesktop
                 File.Delete(dropped); mods.Load();
                 checks.Add("PASS mods code: import and files dropped in the folder are refused with Windows only for now, without asking or compiling");
 
+                string skill = Path.Combine(input, "smoke-skill" + Mods.SkillExtension);
+                File.WriteAllText(skill, "---\ncapri-skill: 1\nid: smoke-skill\nname: Smoke skill\ngames: Minecraft\n---\nOnly dig straight down with a ladder.\n");
+                Func<string> openWas = Hands.GameOpen;
+                try
+                {
+                    if (!sheet.ImportMod(skill) || mods.All.Count != 1 || !mods.All[0].Skill) throw new Exception("A skill didn't import on " + Hands.ThisComputer + ".");
+                    Hands.GameOpen = delegate { return "Minecraft 26.3 - Singleplayer"; };
+                    if (!Chores.Skilled().Contains("Only dig straight down with a ladder.")) throw new Exception("A skill didn't reach her jobs while its game was open.");
+                    Hands.GameOpen = delegate { return "Terraria"; };
+                    if (Chores.Skilled() != "") throw new Exception("A skill reached a job for another game.");
+                }
+                finally { Hands.GameOpen = openWas; }
+                sheet.RemoveMod(0);
+                if (mods.All.Count != 0 || Chores.Skilled() != "") throw new Exception("Removing a skill left it behind.");
+                checks.Add("PASS mods skills: a .capri-skill imports, reaches her jobs only while its game is open, and removing it takes it out");
+
                 ModDirectoryChecks(sheet, input, blue, skin);
             }
             finally

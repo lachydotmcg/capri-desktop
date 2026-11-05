@@ -15,6 +15,7 @@ namespace CapriDesktop
         private void StartMods()
         {
             ModList = new Mods(Program.Smoke ?? folder);
+            Chores.Skills = ModList.SkillsFor;
             ModList.SkinChanged = Reskinned;
             Reskinned();
         }
