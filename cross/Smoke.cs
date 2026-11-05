@@ -2342,6 +2342,65 @@ namespace CapriDesktop
                         Directory.Delete(dotfiles, true);
                     }
                     checks.Add("PASS on Mac and Linux a linked settings file stays a link through Code/Husk Mode on and off, and her backups stay beside the link, out of the dotfiles folder");
+
+                    // A link into a folder she can't write, like Nix's read-only store, becomes a file only they can read, she
+                    // says so, and turning Code/Husk Mode off says it wasn't linked back. A link she can't write for any other
+                    // reason, like a name too long for her temporary copy, stays a link.
+                    string store = Path.Combine(own, "store"), stored = Path.Combine(store, "settings.json"), lengthy = Path.Combine(own, "lengthy");
+                    string longTarget = Path.Combine(lengthy, new string('s', 240) + ".json"), marker = Path.Combine(folder, "husk-unlinked.txt");
+                    UnixFileMode open = UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute, owned = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                    Directory.CreateDirectory(store);
+                    Directory.CreateDirectory(lengthy);
+                    File.WriteAllBytes(stored, plain);
+                    File.SetUnixFileMode(stored, owned | UnixFileMode.GroupRead | UnixFileMode.OtherRead);
+                    File.WriteAllBytes(longTarget, plain);
+                    Action<Action> queueBefore = pet.HuskQueue;
+                    Func<string> exeBefore = pet.HuskExe;
+                    try
+                    {
+                        foreach (string old in Directory.GetFiles(Path.GetDirectoryName(link), pattern)) File.Delete(old);
+                        File.Delete(link);
+                        File.CreateSymbolicLink(link, longTarget);
+                        bool refused = false;
+                        try { HuskHooks.Configure(1, mac); } catch (Exception) { refused = true; }
+                        if (!refused || new FileInfo(link).LinkTarget == null || File.ReadAllText(longTarget).Contains("CAPRI_HUSK=1")) throw new Exception("A link Husk couldn't write for a reason other than a read-only folder was replaced or written.");
+                        File.Delete(link);
+                        File.CreateSymbolicLink(link, stored);
+                        File.SetUnixFileMode(store, UnixFileMode.UserRead | UnixFileMode.UserExecute | UnixFileMode.GroupRead | UnixFileMode.GroupExecute | UnixFileMode.OtherRead | UnixFileMode.OtherExecute);
+                        bool writable = false;
+                        try { File.WriteAllText(Path.Combine(store, "probe"), ""); writable = true; }
+                        catch (UnauthorizedAccessException) { }
+                        if (writable) checks.Add("LIMIT this runner can write into a read-only folder, so the Nix link check was skipped");
+                        else
+                        {
+                            pet.HuskQueue = delegate(Action action) { action(); };
+                            pet.HuskExe = delegate { return mac; };
+                            pet.SetHusk(1);
+                            string on = pet.Talk.Reply ?? "";
+                            bool standIn = new FileInfo(link).LinkTarget == null && File.ReadAllText(link).Contains("CAPRI_HUSK=1") && !File.ReadAllText(stored).Contains("CAPRI_HUSK=1");
+                            UnixFileMode standMode = File.GetUnixFileMode(link);
+                            bool kept = File.Exists(marker);
+                            pet.SetHusk(0);
+                            string off = pet.Talk.Reply ?? "";
+                            if (!standIn || standMode != owned) throw new Exception("A link into a read-only folder didn't become a file only they can read: replaced " + standIn + ", mode " + standMode + ".");
+                            if (!kept || File.Exists(marker) || on.IndexOf("so I made it a file of its own.", StringComparison.Ordinal) < 0 || off.IndexOf("is still a file of its own. Link it again", StringComparison.Ordinal) < 0 || File.ReadAllText(link).Contains("CAPRI_HUSK=1"))
+                                throw new Exception("Code/Husk Mode didn't say a read-only link became a file, or Off didn't say it wasn't linked back: " + on + " / " + off);
+                            checks.Add("PASS on Mac and Linux a settings link into a read-only folder, like Nix's store, becomes a file only they can read, she says so, and Code/Husk Mode Off says it wasn't linked back; a link she can't write any other way stays a link");
+                        }
+                    }
+                    finally
+                    {
+                        pet.HuskQueue = queueBefore;
+                        pet.HuskExe = exeBefore;
+                        File.SetUnixFileMode(store, open);
+                        foreach (string old in Directory.GetFiles(Path.GetDirectoryName(link), pattern)) File.Delete(old);
+                        File.Delete(link);
+                        File.WriteAllBytes(link, plain);
+                        File.SetUnixFileMode(link, plainMode);
+                        Directory.Delete(store, true);
+                        Directory.Delete(lengthy, true);
+                        if (File.Exists(marker)) File.Delete(marker);
+                    }
                 }
 
                 pet.HuskQueue = delegate(Action action) { action(); };

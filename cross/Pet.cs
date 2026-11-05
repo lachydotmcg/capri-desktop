@@ -4819,6 +4819,20 @@ namespace CapriDesktop
 
         internal void SetHusk(int mode) { SetHusk(mode, false); }
 
+        // Settings files Code/Husk Mode made into files of their own, because they linked into a folder she can't change, like
+        // Nix's store: said when it happens, and again when Code/Husk Mode is off, since that doesn't link them back.
+        private static string Unlinked(string[] files, bool off)
+        {
+            if (files == null || files.Length == 0) return null;
+            string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            List<string> names = new List<string>();
+            foreach (string file in files) names.Add(home.Length > 1 && file.StartsWith(home + "/", StringComparison.Ordinal) ? "~" + file.Substring(home.Length) : file);
+            bool one = names.Count == 1;
+            string which = string.Join(" and ", names);
+            if (off) return which + (one ? " is still a file of its own. Link it again if you want the link back." : " are still files of their own. Link them again if you want the links back.");
+            return which + (one ? " linked into a folder I can't change, like Nix's store, so I made it a file of its own." : " linked into folders I can't change, like Nix's store, so I made them files of their own.");
+        }
+
         // At startup only a problem is said, so her hello isn't swapped for a restart note every time she opens.
         private void SetHusk(int mode, bool starting)
         {
@@ -4834,6 +4848,7 @@ namespace CapriDesktop
                 string problem = null;
                 try { husk.Change(mode, mode == 0 ? null : HuskExe()); }
                 catch (Exception error) { problem = error.Message; }
+                string unlinked = Unlinked(husk.Unlinked, mode == 0);
                 Action finish = delegate
                 {
                     huskChanging = false;
@@ -4844,7 +4859,9 @@ namespace CapriDesktop
                         : mode == 1 ? "Restart Claude Code to use my hooks."
                         : mode == 2 ? "Restart Codex and trust my hooks when it asks."
                         : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
-                    if (problem != null || !starting) Talk.Answer("(code/husk mode)", problem ?? note);
+                    if (unlinked != null) note += " " + unlinked;
+                    // A link she had to replace is said even at startup.
+                    if (problem != null || !starting || unlinked != null) Talk.Answer("(code/husk mode)", problem ?? note);
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });
