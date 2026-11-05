@@ -28,6 +28,22 @@ jobs:
           name: smoke-windows
           path: out/windows/smoke
 
+  # Her silent install and uninstall change the runner's own Capri, so they get a fresh runner of their own.
+  windows-setup:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build
+        shell: pwsh
+        run: ./ci/build-windows.ps1 -OutputDirectory out/windows
+      - name: Silent install and uninstall
+        shell: pwsh
+        run: |
+          $env:CAPRI_DISPOSABLE_USER = '1'
+          ./ci/test-silent-install.ps1 -Setup out/windows/Capri-Setup.exe
+          ./ci/test-silent-uninstall.ps1 -Setup out/windows/Capri-Setup.exe
+
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
