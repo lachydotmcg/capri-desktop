@@ -1901,6 +1901,9 @@ namespace CapriDesktop
         private string startMarker;
         private RunMark running;
         private Action<string> closeNotice;
+        // Settings that couldn't be read at start: the tray says so once, and where the old file is kept.
+        private string unreadableNotice;
+        private Action<string> unreadableShown;
         private bool updating;
         private bool updateStarted;
         private bool installing;
@@ -2723,6 +2726,21 @@ namespace CapriDesktop
                 tray.ShowBalloonTip(12000, "Capri started fresh", "She closed while starting twice in a row, so her settings were reset. Your keys stayed. The old settings are in settings.crashed.json.", ToolTipIcon.Warning);
             }
             ShowCloseNotice();
+            // After the close notice, which would cover it: their keys need adding again, so this one matters more.
+            ShowUnreadableNotice();
+        }
+
+        private void ShowUnreadableNotice()
+        {
+            string notice = unreadableNotice;
+            unreadableNotice = null;
+            if (notice == null) return;
+            if (unreadableShown != null) { unreadableShown(notice); return; }
+            if (testing) return;
+            balloonPage = null;
+            balloonUpdate = false;
+            balloonMainframe = true;
+            tray.ShowBalloonTip(15000, "Capri's settings were reset", notice, ToolTipIcon.Warning);
         }
 
         private void Settled()
@@ -13410,9 +13428,23 @@ namespace CapriDesktop
 
         private Preferences LoadPreferences()
         {
+            string notice;
+            Preferences value = ReadPreferences(settingsPath, out notice);
+            if (notice != null) unreadableNotice = notice;
+            return value;
+        }
+
+        internal const string UnreadableName = "settings.unreadable.json";
+
+        // A new install has no settings.json and starts fresh. Settings that can't be read start fresh too, but first the file
+        // is copied as it is to settings.unreadable.json, so the next save can't write over the only copy of their choices and
+        // keys, and the notice says where it went. The keys in it stay encrypted: nothing here reads them.
+        internal static Preferences ReadPreferences(string path, out string notice)
+        {
+            notice = null;
             try
             {
-                using (FileStream stream = File.OpenRead(settingsPath))
+                using (FileStream stream = File.OpenRead(path))
                 {
                     Preferences value = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
                     value.CallApp = CallApps.Clean(value.CallApp);
@@ -13423,8 +13455,31 @@ namespace CapriDesktop
                     return value;
                 }
             }
-            // A new install, or settings that can't be read.
-            catch { return Preferences.Fresh(); }
+            catch (Exception error)
+            {
+                if (File.Exists(path)) notice = KeepUnreadable(path, error);
+                return Preferences.Fresh();
+            }
+        }
+
+        private static string KeepUnreadable(string path, Exception error)
+        {
+            string kept = Path.Combine(Path.GetDirectoryName(path), UnreadableName);
+            // Only the kind of error goes in errors.txt: its message can quote the file, keys and all.
+            string why = error.GetType().Name;
+            for (int tries = 1; ; tries++)
+            {
+                try { File.Copy(path, kept, true); break; }
+                catch (Exception copying)
+                {
+                    // Something like an antivirus scan can hold it for a moment.
+                    if (tries < 3) { Thread.Sleep(200); continue; }
+                    Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + ") or copied (" + copying.GetType().Name + "), so she started with fresh settings.");
+                    return "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe.";
+                }
+            }
+            Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
+            return "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
         }
 
         private bool SavePreferences()
@@ -29684,6 +29739,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGameEars", delegate { SmokeGameEars(checks); });
             Section(checks, "SmokeMinis", delegate { SmokeMinis(checks); });
             Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
+            Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)
