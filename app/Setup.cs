@@ -19,6 +19,7 @@ namespace CapriSetup
     {
         internal static string InstallPath { get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri"); } }
         internal const string RegistryPath = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Capri.Desktop";
+        internal static readonly string[] Packs = { "brain", "voice", "ears", "wake" };
 
         [STAThread]
         private static int Main(string[] args)
@@ -135,7 +136,8 @@ namespace CapriSetup
                     told.Close();
                     failed.Close();
                 }
-                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nLIMIT installation and uninstallation were not performed\n");
+                if (Array.IndexOf(Packs, "brain") < 0 || Array.IndexOf(Packs, "voice") < 0 || Array.IndexOf(Packs, "ears") < 0 || Array.IndexOf(Packs, "wake") < 0) throw new InvalidDataException("The uninstaller would leave one of her packs behind.");
+                File.WriteAllText(Path.Combine(output, "packaging-test.txt"), "PASS embedded executable extracted\nPASS PE signature\nPASS SHA-256 computed\nPASS an unmarked Capri.exe is recognised as Capri, other programs aren't\nPASS installer and uninstaller windows rendered\nPASS her notices show their title, message and OK in her look, sized to fit the message\nPASS the installer says it's installing the local speech model, that it may take some time, and that an API key gives a better, faster voice\nPASS the uninstaller closes Capri and anything running from her folder, like her brain, and nothing else\nPASS her shortcut is saved through Windows' own shell link, even over an old read-only one, and points at Capri.exe\nPASS a shortcut Windows won't save comes back as its reason instead of stopping the install\nPASS the uninstaller removes her brain, voice, ears and wake packs\nLIMIT installation and uninstallation were not performed\n");
                 return 0;
             }
             catch (Exception error) { Directory.CreateDirectory(output); File.WriteAllText(Path.Combine(output, "failure.txt"), error.ToString()); return 1; }
@@ -391,7 +393,7 @@ namespace CapriSetup
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
                 SetupFiles.Retire(uninstaller, string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase));
                 SetupFiles.RemoveApp(Path.Combine(destination, "Capri.exe"));
-                foreach (string pack in new[] { "brain", "voice", "ears" })
+                foreach (string pack in Packs)
                 {
                     string folder = Path.Combine(destination, pack);
                     Patiently(delegate { if (Directory.Exists(folder)) Directory.Delete(folder, true); });
