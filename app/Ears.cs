@@ -311,12 +311,15 @@ namespace CapriDesktop
             if (result == unchecked((int)0x80070005)) return Dictation.MicBlocked;
             if (result == 4 || result == unchecked((int)0x8889000A)) return "Can't open your mic: another app has it to itself. Close it, or untick exclusive mode in your mic's Sound settings.";
             if (result == 2 || result == 6 || result == unchecked((int)0x80070490) || result == unchecked((int)0x88890004)) return Dictation.NoMic;
-            return "Can't open your mic (Windows error 0x" + result.ToString("X8") + "). Check Settings > System > Sound > Input, or pick another under VOICE.";
+            // Windows' code goes in errors.txt with the step that failed, not in the line people see.
+            return Unopened;
         }
+
+        internal const string Unopened = "Windows wouldn't open your mic. Check Settings > System > Sound > Input, or pick another under VOICE.";
 
         private static void CheckWave(int result, string operation)
         {
-            if (result != 0) throw new VoiceException("WaveIn " + operation + " failed (" + result + "). " + Problem(result));
+            if (result != 0) throw new VoiceException(Problem(result), "WaveIn " + operation + " failed (" + result + ").");
         }
 
         internal void Start()
@@ -388,7 +391,7 @@ namespace CapriDesktop
                     running = false;
                     CloseWave();
                     preferModern = true;
-                    Brain.Log("ears", -1, "WaveIn couldn't open " + name + " as 16000 Hz mono 16-bit PCM: " + error.Message + " Trying WASAPI.");
+                    Brain.Log("ears", -1, "WaveIn couldn't open " + name + " as 16000 Hz mono 16-bit PCM: " + VoiceException.Logged(error) + " Trying WASAPI.");
                 }
             }
             try
@@ -402,9 +405,11 @@ namespace CapriDesktop
             catch (Exception error)
             {
                 running = false;
-                Brain.Log("ears", -1, "WASAPI couldn't open " + name + " [" + openedId + "]: " + error.Message);
-                if (Changed != null) Changed(error.Message);
-                throw new VoiceException(error.Message);
+                Brain.Log("ears", -1, "WASAPI couldn't open " + name + " [" + openedId + "]: " + VoiceException.Logged(error));
+                // Only her own plain lines reach the hearing line and her bubble; anything else Windows threw is errors.txt's.
+                string plain = error is VoiceException ? error.Message : Unopened;
+                if (Changed != null) Changed(plain);
+                throw new VoiceException(plain);
             }
         }
 
@@ -472,7 +477,7 @@ namespace CapriDesktop
                     }
                 }
             }
-            catch (Exception error) { if (running) { lastChunk = Environment.TickCount - 6000; Brain.Log("ears", -1, "Her mic stopped: " + error.Message); } }
+            catch (Exception error) { if (running) { lastChunk = Environment.TickCount - 6000; Brain.Log("ears", -1, "Her mic stopped: " + VoiceException.Logged(error)); } }
         }
 
         private void Receive(short[] chunk)
@@ -581,7 +586,7 @@ namespace CapriDesktop
         private readonly Thread worker;
         private readonly ManualResetEvent ready = new ManualResetEvent(false);
         private volatile bool stopped, alive;
-        private volatile string failure;
+        private volatile string failure, failureDetail;
         private string format;
 
         internal SoundIn(string id, Action<short[]> hear) : this(id, hear, null, null) { }
@@ -592,8 +597,8 @@ namespace CapriDesktop
             worker = new Thread(Run) { IsBackground = true, Name = "Capri WASAPI mic" };
             worker.SetApartmentState(ApartmentState.STA);
             worker.Start();
-            if (!ready.WaitOne(3000)) { stopped = true; throw new VoiceException("Windows took too long to open your mic."); }
-            if (failure != null) throw new VoiceException(failure);
+            if (!ready.WaitOne(3000)) { stopped = true; throw new VoiceException("Windows took too long to open your mic. Plug it in again or pick another under VOICE, then try again."); }
+            if (failure != null) throw new VoiceException(failure, failureDetail);
         }
 
         internal bool Alive { get { return alive; } }
@@ -601,7 +606,14 @@ namespace CapriDesktop
 
         private static void Check(int result, string operation)
         {
-            if (result < 0) throw new VoiceException("WASAPI mic " + operation + " failed (0x" + result.ToString("X8") + "). " + Ears.Problem(result));
+            if (result < 0) throw new VoiceException(Ears.Problem(result), "WASAPI mic " + operation + " failed (0x" + result.ToString("X8") + ").");
+        }
+
+        // A plain line for people, with Windows' own words and code kept for errors.txt.
+        private void Failed(Exception error)
+        {
+            failure = error is VoiceException ? error.Message : Ears.Unopened;
+            failureDetail = error is VoiceException ? ((VoiceException)error).Detail : error.GetType().Name + ": " + error.Message;
         }
 
         private static void Release(object value) { try { if (value != null && Marshal.IsComObject(value)) Marshal.ReleaseComObject(value); } catch (Exception) { } }
@@ -629,7 +641,7 @@ namespace CapriDesktop
                         client = (ISoundClient)found;
                     }
                     Check(client.GetMixFormat(out native), "format");
-                    if (native == IntPtr.Zero) throw new VoiceException("Windows returned no mic format.");
+                    if (native == IntPtr.Zero) throw new VoiceException("Windows didn't say how your mic records. Plug it in again or pick another under VOICE.", "WASAPI mic format was empty.");
                     pcm = new MicPcm(native);
                     format = pcm.Format;
                     Check(client.Initialize(0, 0, 1000000, 0, native, IntPtr.Zero), "initialize");
@@ -645,7 +657,7 @@ namespace CapriDesktop
                     started = true;
                     alive = true;
                 }
-                catch (Exception error) { failure = error.Message; return; }
+                catch (Exception error) { Failed(error); return; }
                 finally { ready.Set(); }
                 while (!stopped)
                 {
@@ -662,7 +674,7 @@ namespace CapriDesktop
                     finally { Check(capture.ReleaseBuffer(frames), "release buffer"); }
                 }
             }
-            catch (Exception error) { failure = error.Message; if (!stopped) Brain.Log("ears", -1, "Her WASAPI mic stopped: " + failure); }
+            catch (Exception error) { Failed(error); if (!stopped) Brain.Log("ears", -1, "Her WASAPI mic stopped: " + VoiceException.Logged(error)); }
             finally
             {
                 alive = false;

@@ -38,6 +38,8 @@ namespace CapriDesktop
             Explain(modBrowse, "Browse mods", "MainframeMods.cs");
             Explain(folder, "Open mods folder", "MainframeMods.cs");
             modStatus = ModLabel("", 28, 138, 328, 36, Font, Faint);
+            // A long import error, like a compiler's, is cut to two lines here, and hovering it shows the whole thing.
+            ((Note)modStatus).Hovers = true;
             modListHead = Section("INSTALLED >", 0, 180);
             modEmpty = ModLabel("No mods yet. Import a " + Mods.Extension + " file.", 28, ModRowTop, 328, 20, Font, Faint);
             for (int i = 0; i < ModRows; i++)
@@ -197,10 +199,15 @@ namespace CapriDesktop
             }
             catch (ModException error)
             {
+                // Its whole reason goes to errors.txt too, and the list shows a code mod that saved but didn't start as off.
+                Brain.Log("mods", -1, Path.GetFileName(file) + ": " + error.Message);
+                FillMods();
                 ModSays(error.Message, true);
                 return false;
             }
         }
+
+        internal bool ModStatusHovers { get { Note note = modStatus as Note; return note != null && note.Hovers; } }
 
         private static string DirectoryProblem(Exception error, string lead)
         {

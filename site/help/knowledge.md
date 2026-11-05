@@ -350,7 +350,7 @@ With NORMAL selected, Refresh also looks for local servers. Start your server wi
   - Voice ID: paste your Voice ID, or pick from the list of your ElevenLabs voices (the arrow shows when your account has voices). Press Enter or click out of the box to save it.
   - Model: "Default model" or an ElevenLabs model like v4.
 - From 0.7.6 there are four rows. FREE VOICE is now PREBUILT LOCAL, and ELEVENLABS moved into CLOUD VOICE:
-  - OFF: "Silent · text only", as above. Test under it says "Her voice is OFF. Pick another row under VOICE to hear her."
+  - OFF: "Silent · text only", as above. Test under it says "Her voice is off. Pick a voice under VOICE to hear her."
   - PREBUILT LOCAL: "Her voices · free". Her free voice and its styles, HD and Your voice (HD), in the "Free voice" menu. No key, no credits.
   - CUSTOM LOCAL: "Your own model". A voice model on your PC: a voice model file, Fish Speech, Kokoro or any OpenAI-style server. Its Set up button opens the voice model panel with only those choices. Once one is set up, clicking the row brings it straight back, and the "Voice model: <name>" button under it opens its panel again.
   - CLOUD VOICE: "Needs a key". The menu under it picks Fish Audio, ElevenLabs or OpenAI. Fish Audio comes first, since its free tier needs no credits: a new install starts on it, and anyone with an ElevenLabs key saved starts on ElevenLabs. Clicking CLOUD VOICE with nothing set up opens Fish Audio's panel, and the row stays picked with its menu, so ElevenLabs is one click away. ElevenLabs keeps its key box, Voice ID and Model there, as above. Fish Audio and OpenAI open the voice model panel with only those two: "Set up Fish Audio..." at first, then "Voice, key and model..." once it's in use. Setup guide on this row opens ElevenLabs' voice steps, or the panel for Fish Audio and OpenAI.
@@ -845,6 +845,8 @@ If your server can't say a line, her free voice says that line instead, and the 
 - "Your voice server said HTTP 500: ..." with the server's own words.
 - Fish Audio and OpenAI go by name: "Fish Audio turned down its key (HTTP 401).", "Can't reach Fish Audio. Check your internet connection.", "Fish Audio can't find that voice (HTTP 404). Check its ID or link on fish.audio." or "Fish Audio is busy (HTTP 429). Try again in a moment."
 - "Fish Audio wants credit for s2.1-pro (HTTP 402). For its free tier, set Model to s2.1-pro-free." Fish Audio's paid models need credit on your Fish Audio account.
+- "OpenAI is out of credit. Add credit at platform.openai.com, or pick another voice under CLOUD VOICE.": OpenAI's voice needs credit on your OpenAI account, the same as its brain. Add credit at platform.openai.com, or pick Fish Audio or another voice. Her free voice fills in meanwhile. Before this, an empty OpenAI account showed as "OpenAI is busy (HTTP 429)."
+- "Her voice files are in a folder with special letters in its name, and her voices on this PC can't read those. A voice under CLOUD VOICE still works.": your Windows user name has a letter like ś, and Windows wouldn't let her make a plain-named shortcut to that folder. Pick a voice under CLOUD VOICE, like Fish Audio's free tier, and send Copy error details in the Discord.
 - Model files: "That's no voice model Capri can run. Pick a Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx: its .tar.bz2, or the .onnx in its folder.", "Voice model files run on her free voice. Get free voice under VOICE first." or "That voice model wouldn't start. Check it's a Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx."
 
 Without her free voice installed, she types that line instead.
@@ -878,7 +880,7 @@ If you'd rather keep Restrict key on, the key needs: Text to Speech and Models (
 5. Press Test. She says "Voice link online. Miss me, choom?" Make sure you actually hear her, not just the text.
 
 ### Turning her voice off
-- 0.7.1 and newer: Capri Mainframe > VOICE > OFF. She types her replies and never talks out loud. Pick FREE VOICE or ELEVENLABS to turn it back on (0.7.6: any other row).
+- 0.7.1 and newer: Capri Mainframe > VOICE > OFF. She types her replies and never talks out loud. Pick PREBUILT LOCAL, CUSTOM LOCAL or CLOUD VOICE to turn it back on.
 - 0.7.0 has no OFF row. Update to 0.7.1 (right-click her > Check for updates). Until then, Settings > Volume > Mute silences her voice.
 
 ### Switching between FREE VOICE and ELEVENLABS
@@ -915,6 +917,8 @@ ElevenLabs now uses v4 by default, the same as her voice chat. Fish Audio and he
 Call mode hears your mic and the selected call app separately, so she knows which words are yours. Your requests addressed to Capri can use her usual tools and SECURITY settings. Friends can chat with her or answer a choice you've left to the call, such as which game to open.
 
 Right-click her > Open Capri Mainframe > Settings > VOICE > Call mode (beta) turns it on. Use Call app below it to choose what she hears. Turning call mode on doesn't join a call for you.
+
+Without her own ears, call mode hears offline to keep each speaker separate, so the hearing line under VOICE says "Hearing offline for call mode" in grey. Nothing is wrong. Her own ears hear better: set Hearing under VOICE to Her own ears to get them.
 
 ### Does call mode work with Zoom? (0.8.3)
 Yes, on Windows. Pick Zoom under right-click her > Open Capri Mainframe > Settings > VOICE > Call app. The full menu is:
@@ -1873,6 +1877,8 @@ Then check the exact message, your Capri version (top of the Mainframe), and the
 ### "Capri started fresh": my settings were reset
 If she closes twice in a row while she's starting (a crash, but also Task Manager, an antivirus closing her, a stuck shutdown or the power going off in her first 15 seconds), the next start resets her settings and her tray icon says "Capri started fresh". From 0.7.6 she keeps your keys: brain and voice keys with the model, voice and server each one is for, and her own keys to talk, mute, type, hide and go quiet. Everything else starts like a new install, and the old settings are in settings.crashed.json in %LOCALAPPDATA%\Capri. One start that didn't finish only goes in errors.txt. Before 0.7.6 one was enough to reset everything, keys too. If it keeps happening, right-click her > Help > Copy error details and post it in the Discord.
 
+If her settings file itself can't be read, like a damaged settings.json, she starts with fresh settings and her tray says "Capri's settings were reset": "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as settings.unreadable.json in %LocalAppData%\Capri." Add your keys again, and send Copy error details in the Discord if it happens again.
+
 ### Mac and Linux
 - Mac says "damaged" or "can't be opened": drag Capri to Applications, run xattr -dr com.apple.quarantine /Applications/Capri.app in Terminal, open again.
 - Mac won't run it at all on macOS 12, 13 or 14: Capri needs macOS 15 or newer.
@@ -1888,20 +1894,22 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - Ollama is installed but she says her brain is offline: the model needs downloading too. Run ollama pull gemma4:e4b, check it answers in Ollama, then press Refresh under BRAIN.
 - "Brain not downloaded. Press Set up her brain.": press Set up her brain.
 - Download keeps failing ("The download of <name> keeps stopping."): check your internet and press Try again. It picks up where it stopped. Or use the free NVIDIA key.
-- "<name> came down the wrong size." or "<name> failed its checksum.": press Try again.
+- "The download of <name> came out the wrong size." or "The download of <name> didn't match its checksum.": press Try again.
 - "Brain crashed loading. Close games, press Refresh." or "Brain loaded too slowly. Close games, press Refresh.": close games and heavy apps, press Refresh. Or use the free NVIDIA key.
 - Replies are very slow, "Still thinking. My brain runs on your PC, so this is slow.", or "Took too long to think": games share your PC's power. Close one, or use the free NVIDIA key (Free key under BRAIN).
 - "Waiting for NVIDIA. You can pick another model.": try again or pick another model in the Model menu. Free keys can be rate limited and slow. Most NVIDIA models can't see your screen.
 - "NVIDIA didn't answer in time.": try again or pick another model.
 - She changed NVIDIA models by herself: the model she was using didn't answer, so she used another one for that reply. Your pick stays.
 - "Key rejected. Press Forget, then paste it again.": the key is wrong or was deleted. Copy it again from the company's site.
-- "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.": you pasted something else. NVIDIA keys start with nvapi-.
-- "No credits on this key.": OpenAI, Claude and DeepSeek need paid credits. Add credits, or press Free key for a free NVIDIA key.
+- "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.": you pasted something else, or only part of the key. NVIDIA keys start with nvapi-. The BRAIN note says "Not a key she knows. Copy the whole key again and paste it."
+- "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.": OpenAI, Claude and DeepSeek need paid credits. Add credits, or press Free key for a free NVIDIA key.
 - "That model isn't on your key. Pick another one.": pick another model in the Model menu.
 - "That key can't use any chat models.": make a new key, or use a different company.
-- "Too many requests. Wait a minute, or watch slower.": wait a minute, or set Watch my screen to a slower Every time.
-- "Their servers failed. Pick another model or retry."
-- "Can't reach NVIDIA, choom. Check your internet." (or another company): check your internet.
+- "Too many requests. Wait a minute, then try again.": wait a minute.
+- "Too many requests. Wait a minute, or set Watch my screen to glance less often." (Watch my screen on): wait, or set Glance every under Watch my screen to longer.
+- "Your Gemini key has used up today's requests. They reset tomorrow, or add another key under BRAIN in Capri Mainframe.": Gemini's daily limit is used up. Wait until tomorrow, paste another Gemini key, or press Free key for a free NVIDIA key.
+- "The service failed on its end. Pick another model or retry.": the brain's service had a problem. Pick another model, or try again in a minute.
+- "Can't reach NVIDIA, choom. Check your internet, then try me again." (or another company): check your internet.
 - "My brain sent gibberish." or replies full of <unused49>: she moves her brain to your processor (CPU) by herself and asks again. If it keeps happening, use the free NVIDIA key. To let the built-in brain try your graphics card again later, delete the file cpu-only.txt in %LOCALAPPDATA%\Capri\brain\engine-b11669.
 - "My brain sent an empty reply." or "That model ran out of room before answering": try again, or pick another model.
 - "[SIGNAL CORRUPTED] ...": a one-off hiccup. Try again, or ask something else.
@@ -1923,9 +1931,9 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - "Key is missing permissions." or "Key can't do that.": make a new key with Restrict key turned off. Delete the old key in the Capri box (Forget), paste the new one, press Connect. Older versions said "Key can't do that." whenever ElevenLabs refused, so with Restrict key off it can be something else: check you can make speech on elevenlabs.io with the same account, try without a VPN, then send Copy error details in the Discord. Newer versions only say it when ElevenLabs' answer is about the key, and show ElevenLabs' own reason otherwise.
 - "Voice not found. Add it to your ElevenLabs voices.": paste the Voice ID of a voice in your My Voices, not its name. A voice from the ElevenLabs library has to be added to My Voices first.
 - "Paste your Voice ID first." or "Needs your Voice ID.": paste a Voice ID under VOICE, or pick one from the list.
-- "Out of ElevenLabs credits. Pick FREE VOICE in the Mainframe." (0.7.6: "Pick PREBUILT LOCAL in the Mainframe."): your monthly credits are used up. They refill each month, or you can upgrade on ElevenLabs. Pick FREE VOICE (PREBUILT LOCAL in 0.7.6) to keep talking with no credits. With her free voice installed she switches to it by herself. If ElevenLabs shows "10,000 / 10,000", that means all of them are used, not all left. A "Total 10,000" line alone doesn't show what's left: check the used and remaining amounts on elevenlabs.io.
+- "Out of ElevenLabs credits. Pick PREBUILT LOCAL in Capri Mainframe and get her free voice." (before 0.7.6: "Pick FREE VOICE in the Mainframe."): your monthly credits are used up. They refill each month, or you can upgrade on ElevenLabs. Pick PREBUILT LOCAL to keep talking with no credits. With her free voice installed she switches to it by herself. If ElevenLabs shows "10,000 / 10,000", that means all of them are used, not all left. A "Total 10,000" line alone doesn't show what's left: check the used and remaining amounts on elevenlabs.io.
 - "Out of credits" but ElevenLabs shows credits left: check the usage line on elevenlabs.io. If it shows thousands left, right-click her > Help > Copy error details and post it in the Discord.
-- "ElevenLabs has restricted your account, so her voice can't connect.": ElevenLabs has blocked your account. Sign in at elevenlabs.io to see why. Pick FREE VOICE (PREBUILT LOCAL in 0.7.6) in the meantime. A new key won't fix this one.
+- "ElevenLabs has restricted your account, so her voice can't connect.": ElevenLabs has blocked your account. Sign in at elevenlabs.io to see why. Pick PREBUILT LOCAL in the meantime. A new key won't fix this one.
 - "Free Tier usage disabled": ElevenLabs turns off the free plan when it sees a VPN or proxy. Turn your VPN off and try again.
 - "ElevenLabs sent a reply Capri couldn't read.": ElevenLabs may not be available where you live, or a VPN or network is blocking it. Try without a VPN. Then right-click her > Help > Copy error details and send it in the Discord.
 - "Can't reach ElevenLabs. Check your internet."
@@ -1942,16 +1950,16 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - Where's the voice prompt?: on the setup guide, under Her voice > Design her voice. Press Copy.
 
 ### Her free voice
-- She types but doesn't talk, with FREE VOICE picked: her free voice isn't installed. Press Get free voice under VOICE.
-- "ElevenLabs off. I'll type, no credits used.": FREE VOICE is picked but her free voice isn't installed yet. Press Get free voice.
+- She types but doesn't talk, with PREBUILT LOCAL picked: her free voice isn't installed. Press Get free voice under VOICE.
+- "ElevenLabs off. I'll type, no credits used.": PREBUILT LOCAL is picked but her free voice isn't installed yet. Press Get free voice.
 - The download stops: check your internet and press Get free voice again.
-- She sounds different from her ElevenLabs voice: that's normal. FREE VOICE runs on your PC and is simpler. Pick a style from "Free voice: Her own", or pick ELEVENLABS for her best voice.
+- She sounds different from her ElevenLabs voice: that's normal. PREBUILT LOCAL runs on your PC and is simpler. Pick a style from "Free voice: Her own", or pick ElevenLabs under CLOUD VOICE for her best voice.
 - Mac and Linux: there's no free voice yet.
 
 ### Voice chat
 - "Voice chat needs an ElevenLabs key": you're on an older version. Update, and voice chat works without a key as free voice chat.
 - "Voice chat needs my Voice ID": pick a voice in the Voice ID box under VOICE.
-- I want ElevenLabs voice chat but get free voice chat: pick ELEVENLABS under VOICE. Voice chat follows that pick.
+- I want ElevenLabs voice chat but get free voice chat: pick ElevenLabs under VOICE > CLOUD VOICE. Voice chat follows that pick.
 - "ElevenLabs is off, so voice chat is too." (0.6.9 test builds): tick Use ElevenLabs, or update. 0.6.9 also had a "Free voice chat" box; in 0.7.0 the FREE VOICE row does that.
 - "My ears are still downloading, so type to me for now.": her offline ears download the first time you use free voice chat. She says when she can hear you.
 - "My ears didn't download, so type to me for now. ... I'll try again in 30 seconds.": the reason is in the middle. She retries by herself; check your internet and free space on the drive she named.
@@ -1963,7 +1971,8 @@ If she closes twice in a row while she's starting (a crash, but also Task Manage
 - "ElevenLabs didn't make the agent." or "ElevenLabs didn't open a voice link.": make a new key with Restrict key off and paste it.
 - "The agent sends X audio. Set it to PCM in ElevenLabs.": someone changed the "Capri" agent's audio setting. In ElevenLabs, set the Capri agent's output audio to PCM, or delete that agent and start voice chat again.
 - She can't hear you: pick your mic under VOICE > Mic. Check it isn't muted (Ctrl + Alt + N or the mic button). Then Windows Settings > Privacy & security > Microphone > let desktop apps use your microphone.
-- "Can't open your mic. Pick another under VOICE.": pick another mic.
+- "Windows wouldn't open your mic. Check Settings > System > Sound > Input, or pick another under VOICE.": check that mic in Windows Sound settings, or pick another mic. "Can't open your mic: another app has it to itself." means another app is holding it: close that app, or untick exclusive mode in the mic's Sound settings.
+- "Windows speech didn't start.", "Windows speech stopped." or "Windows speech isn't on this PC.", each with "Set Hearing under VOICE to Her own ears, or type to me.": Windows' own speech recognition failed. Her own ears work offline, so set Hearing to Her own ears. Windows' own error code goes in errors.txt for Copy error details.
 - "Voice chat resting.": she's waiting. Just talk.
 - Ctrl + Alt + V does nothing: another app may use those keys. Click "Ctrl + Alt + V to talk" in the Mainframe and pick new keys.
 - She said she did something but nothing happened: ask again in text, and send Copy error details in the Discord.

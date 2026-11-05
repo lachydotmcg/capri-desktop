@@ -901,7 +901,8 @@ namespace CapriDesktop
         private string LookAt(string focus)
         {
             Cloud remote = Brain.Remote;
-            if (Brain.Model == null) return "You can't see their screen: your brain is offline.";
+            // Failures are said as they are, so they're written for them, like Windows' lines.
+            if (Brain.Model == null) return "I can't see your screen while my brain is offline. Pick a brain " + Brain.BrainMenu + ".";
             byte[] shot = Eyes.Jpeg(Eyes.Shoot(), 1280);
             if (shot == null) return Eyes.Missing;
             string seen;
@@ -912,9 +913,9 @@ namespace CapriDesktop
             catch (BrainException error)
             {
                 if (remote == null || error.Message != Brain.Sightless(remote)) throw;
-                return "You can't see their screen: " + remote.Model + " can't look at pictures. Tell them to pick one that can " + Brain.BrainMenu + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : ".");
+                return "I can't see your screen: " + remote.Model + " can't look at pictures. Pick one that can " + Brain.BrainMenu + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : ".");
             }
-            if (seen.Length == 0) return "You looked but couldn't make out their screen.";
+            if (seen.Length == 0) return "I looked, but couldn't make out your screen clearly enough to describe it.";
             Brain.Saw(seen, null, true);
             return "You looked at their screen. You see: " + seen;
         }
@@ -3990,7 +3991,7 @@ namespace CapriDesktop
                 try { said = think == null ? Brain.Ask(text, follows, out after) : think(text); }
                 catch (BrainException error) { said = error.Message == Brain.Offline ? Offline : error.Told ? error.Message : "My brain couldn't answer: " + error.Message; stuck = Brain.Stalled(error); failed = true; }
                 catch (Exception error) { said = Brain.Explain(error, remote) ?? "That reply was cancelled. Try again."; stuck = Brain.Stalled(error); failed = true; }
-                if (string.IsNullOrWhiteSpace(said)) { said = "My brain sent an empty reply. Try again."; failed = true; }
+                if (string.IsNullOrWhiteSpace(said)) { said = Brain.Wordless; failed = true; }
                 Dispatcher.UIThread.Post(delegate
                 {
                     if (ticket != asking) return;

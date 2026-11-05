@@ -393,13 +393,23 @@ namespace CapriDesktop
         private static readonly string[] NvidiaDead = { "google/gemma-4-31b-it", "deepseek-ai/deepseek-v4.1-flash", "z-ai/glm-5.3", "z-ai/glm-5.3-flash", "moonshotai/kimi-k2.6", "google/gemma-3-12b-it", "meta/llama-3.2-90b-vision-instruct" };
         internal static string NvidiaDefault { get { return NvidiaPicks[0]; } }
         internal const string Gone = "That model isn't on your key. Pick another one.";
-        internal const string Down = "Their servers failed. Pick another model or retry.";
-        internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
+        internal const string Down = "The service failed on its end. Pick another model or retry.";
+        internal const string Busy = "Too many requests. Wait a minute, then try again.";
+        // With Watch my screen on, her glances make requests of their own, so glancing less often helps too.
+        internal const string BusyWatching = "Too many requests. Wait a minute, or set Watch my screen to glance less often.";
+        internal static Func<bool> Watching = delegate { return false; };
+        // Gemini counts requests per day as well as per minute, and a day's are gone until the next day.
+        internal const string DailyStart = "Your Gemini key has used up today's requests.";
+        internal static string DailyGone { get { return DailyStart + " They reset tomorrow, or add another key " + BrainMenu + "."; } }
         internal const string NewKey = "Key rejected. Make a new Google AI Studio key and paste it.";
         internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
+        internal const string NoCredits = "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.";
+        internal const string PlusRejected = "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com.";
+        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.";
+        internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
-        internal const string Blocked = "Their API is blocked where you are, so a new key won't help. Pick another service under Free key, or Built-in under BRAIN, which runs on your PC.";
+        internal const string Blocked = "The service is blocked where you are, so a new key won't help. Pick another service under Free key, or Built-in under BRAIN, which runs on your PC.";
         private static readonly Regex BlockPage = new Regex(@"security policy|access restricted|unsupported[_ ]country|country, region,? or territory|(not available|not supported|unavailable) in your (country|region|location)", RegexOptions.IgnoreCase);
         internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
@@ -1639,7 +1649,7 @@ namespace CapriDesktop
                         if (freeOnly && kind == "openrouter")
                         {
                             found.RemoveAll(model => !model.EndsWith(":free", StringComparison.Ordinal));
-                            if (found.Count == 0) throw new BrainException("OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.", true);
+                            if (found.Count == 0) throw new BrainException(NoFreeModels, true);
                         }
                         return found;
                     }
@@ -1769,7 +1779,7 @@ namespace CapriDesktop
         {
             WebException web = error as WebException;
             if (web != null) return web.Status == WebExceptionStatus.Timeout;
-            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy);
+            return error is BrainException && (error.Message == Gone || error.Message == Down || error.Message == Busy || error.Message == BusyWatching || error.Message.StartsWith(DailyStart, StringComparison.Ordinal));
         }
 
         internal static string Next(string current, List<string> models, ICollection<string> skip)
@@ -1951,7 +1961,7 @@ namespace CapriDesktop
             {
                 string offlinePath = Files.PathIn(text);
                 if (offlinePath != null) ReadFile(offlinePath);
-                if (droppedFiles || offlinePath != null) return Attachments.Summary;
+                if (droppedFiles || offlinePath != null) return Hands.Shown(Attachments.Summary);
             }
 #endif
             if (model == null) throw new BrainException(Offline);
@@ -2211,7 +2221,7 @@ namespace CapriDesktop
                 // What she did leaves out the checks her brain made to find out where things stand.
                 List<string> deeds = Deeds(calls, results);
                 string held = Security.Reply(results);
-                done = held ?? string.Join(" ", deeds.ToArray());
+                done = held ?? Hands.Shown(string.Join(" ", deeds.ToArray()));
                 Cloud remote = Remote;
                 string pulled = held ?? (results.Count == 1 ? Hands.Pulled(results[0]) : null);
                 bool teaching = results.Exists(Hands.Diagrammed);
@@ -2281,7 +2291,7 @@ namespace CapriDesktop
             if (spoken == null && (Regex.IsMatch(said, @"\A[`'""\s]*chat[.!`'""\s]*\z", RegexOptions.IgnoreCase) || Hands.Typed(raw, out written, out writtenArgs))) { said = ""; after = ""; }
             if (said.Length == 0 && after.Length > 0) { said = after; after = ""; }
             if (said.Length == 0 && done != null) said = done;
-            if (said.Length == 0) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+            if (said.Length == 0) throw new BrainException(Wordless, true);
             if (upset && calls.Count == 0)
             {
                 Check(ticket);
@@ -3075,7 +3085,7 @@ namespace CapriDesktop
         {
             CompletionChoice choice = reply != null && reply.Choices != null && reply.Choices.Length > 0 ? reply.Choices[0] : null;
             CompletionMessage message = choice != null ? choice.Message : null;
-            if (message == null) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+            if (message == null) throw new BrainException(Wordless, true);
             int before = calls.Count;
             if (message.Calls != null) foreach (CompletionCall call in message.Calls) if (call != null && call.Function != null) calls.Add(new KeyValuePair<string, ToolArguments>(call.Function.Name, Hands.Read(call.Function.Arguments)));
             if (calls.Count == before && Garbled(message.Content)) throw new BrainException(Gibberish, true);
@@ -3283,7 +3293,7 @@ namespace CapriDesktop
         {
             ClaudeReply reply = Read(ReadableInputs(text));
             reply.Raw = Field(text, "content");
-            if (reply.Raw == null) throw new BrainException("My brain sent an empty reply. Try again or pick another model in Capri Mainframe.", true);
+            if (reply.Raw == null) throw new BrainException(Wordless, true);
             return reply;
         }
 
@@ -3513,6 +3523,26 @@ namespace CapriDesktop
         private static readonly Regex NoMemory = new Regex(@"out of memory|insufficient memory|not enough memory|failed to allocate|cudaMalloc failed|unable to allocate|requires more system memory", RegexOptions.IgnoreCase);
         private static readonly Regex NoRoom = new Regex(@"no space left on device|not enough space on the disk|there is not enough space|disk (is )?full|ENOSPC|insufficient (disk|storage) space", RegexOptions.IgnoreCase);
 
+        // A Windows or .NET error in plain words, to follow a colon in a line people see, like "Couldn't save that clip: ".
+        // Its own words, which can be in any language and name system calls, go to errors.txt under place.
+        internal static string Plainly(string place, Exception error)
+        {
+            if (error == null) return "something went wrong.";
+            Log(place, -1, error.GetType().Name + ": " + error.Message);
+            System.ComponentModel.Win32Exception windows = error as System.ComponentModel.Win32Exception;
+            int code = windows != null ? windows.NativeErrorCode : (error.HResult & unchecked((int)0xFFFF0000)) == unchecked((int)0x80070000) ? error.HResult & 0xFFFF : 0;
+            if (code == 225 || code == 226) return "your antivirus blocked it.";
+            if (error is UnauthorizedAccessException || code == 5) return "Windows didn't allow it. If your antivirus blocked it, allow Capri there.";
+            if (code == 112 || code == 39 || NoRoom.IsMatch(error.Message ?? "")) return "your storage is full. Free up space, then try again.";
+            if (code == 32 || code == 33) return "another app is using the file. Close it, then try again.";
+            if (error is FileNotFoundException || error is DirectoryNotFoundException || code == 2 || code == 3) return "a file or folder it needs isn't there anymore.";
+            if (error is PathTooLongException || code == 206) return "its path is too long for Windows.";
+            if (error is WebException) return "the connection failed. Check your internet.";
+            if (error is SerializationException || error is FormatException) return "the reply couldn't be read.";
+            if (error is IOException) return "Windows couldn't read or write a file it needs.";
+            return "something in Windows failed.";
+        }
+
         internal static string Plain(string error)
         {
             if (string.IsNullOrEmpty(error)) return null;
@@ -3532,6 +3562,16 @@ namespace CapriDesktop
             if (needs.Success) return "Not enough free RAM: it needs " + needs.Groups["need"].Value + " GB, only " + needs.Groups["free"].Value + " GB is free.";
             if (NoMemory.IsMatch(error) || error.StartsWith("Your PC ran out of free RAM", StringComparison.Ordinal)) return "Not enough free RAM. Close some apps, then try again.";
             if (error == Blocked) return "Blocked where you are. Try another service or Built-in.";
+            // Key and credit lines keep their fix inside the note's 60 characters.
+            if (error.StartsWith("No credits on this key.", StringComparison.Ordinal)) return "No credits on this key. Add credits, or press Free key.";
+            if (error == PlusRejected) return "Key rejected. Make one with credits at platform.openai.com.";
+            if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
+            if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
+            if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
+            if (error == BusyWatching) return "Too many requests. Wait, or glance less often.";
+            if (error.StartsWith(DailyStart, StringComparison.Ordinal)) return "Gemini's daily limit is used. Try tomorrow or another key.";
+            if (error == Wordless) return "Empty reply. Try again or pick another model.";
+            if (error.StartsWith("The download of ", StringComparison.Ordinal) && error.EndsWith(" keeps stopping. Check your connection and try again.", StringComparison.Ordinal)) return "Download keeps stopping. Check your connection and retry.";
             return null;
         }
 
@@ -3839,7 +3879,7 @@ namespace CapriDesktop
         private static void CheckRedirect(WebResponse response)
         {
             int status = (int)((HttpWebResponse)response).StatusCode;
-            if (status >= 300 && status < 400) throw new BrainException("Their API moved. Your key wasn't sent to the new address.", true);
+            if (status >= 300 && status < 400) throw new BrainException("The service's address moved. Your key wasn't sent to the new one.", true);
         }
 
         private static BrainException Problem(WebException error, bool remote, string kind = null, string secret = null)
@@ -3864,6 +3904,7 @@ namespace CapriDesktop
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
             string meaning = remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai") : null;
+            if (meaning == Busy && Watching()) meaning = BusyWatching;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
             problem.Detail = said;
@@ -3935,15 +3976,17 @@ namespace CapriDesktop
 
         internal static string Meaning(int status, string body, bool google = false, bool openai = false)
         {
+            // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
+            if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
             if (status == 429 && Regex.IsMatch(body ?? "", @"RESOURCE_EXHAUSTED|rate[_ -]?limit|too many requests", RegexOptions.IgnoreCase)) return Busy;
             // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
             if (status == 451 || status == 403 && (BlockPage.IsMatch(body ?? "") || (body ?? "").TrimStart().StartsWith("<", StringComparison.Ordinal))) return Blocked;
             if (google && status == 400 && Regex.IsMatch(body ?? "", @"location is not supported|in your (country|region)", RegexOptions.IgnoreCase)) return Unserved;
-            if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
+            if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return NoCredits;
             if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
             // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
             if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;
-            if (status == 401 || status == 403) return openai ? "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com." : "Key rejected. Press Forget, then paste it again.";
+            if (status == 401 || status == 403) return openai ? PlusRejected : "Key rejected. Press Forget, then paste it again.";
             if (status == 429) return Busy;
             if (status == 404) return Gone;
             if (status >= 500) return Down;
