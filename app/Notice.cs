@@ -9,7 +9,7 @@ namespace CapriDesktop
 {
     // A note from Capri or her installer in her look, instead of Windows' grey box: its title in rose, or hot red when
     // something went wrong, the message under it and OK. Enter or Esc closes it, and Ctrl + C copies it like Windows' own.
-    internal sealed class Notice : Form
+    internal sealed class Notice : Form, LookWindow
     {
         private const int Wide = 440;
         private readonly string caption;

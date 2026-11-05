@@ -8,33 +8,33 @@ using System.Windows.Forms;
 
 namespace CapriDesktop
 {
-    internal sealed partial class Mainframe : Form, IMessageFilter
+    internal sealed partial class Mainframe : Form, IMessageFilter, LookWindow
     {
         // Her Mainframe's own look, after Cyberpunk 2077's settings screen (Lachy, 30 Oct): near black with a wine glow at the
         // top, sections on dark bands under a teal rule, setting names in red, values in cyan, and boxes with a dark red rim and
         // clipped corners. The colours come from Neon, which her menus, type box, installer and notices share too; her bubbles
         // keep Look's.
-        private static readonly Color Ground = Neon.Ground;
-        private static readonly Color Glow = Neon.Glow;
-        private static readonly Color Band = Neon.Band;
-        private static readonly Color Rule = Neon.Rule;
-        private static readonly Color Rose = Neon.Rose;
-        private static readonly Color White = Neon.White;
-        private static readonly Color Faint = Neon.Faint;
-        private static readonly Color Field = Neon.Field;
-        private static readonly Color Hover = Neon.Hover;
-        private static readonly Color Pressed = Neon.Pressed;
-        private static readonly Color Edge = Neon.Edge;
-        private static readonly Color Hot = Neon.Hot;
-        private static readonly Color Cyan = Neon.Cyan;
-        private static readonly Color Deep = Neon.Deep;
-        private static readonly Color DeepEdge = Neon.DeepEdge;
-        private static readonly Color OnInk = Neon.OnInk;
-        private static readonly Color Dash = Neon.Dash;
-        private static readonly Color Lit = Neon.Lit;
-        private static readonly Color Brim = Neon.Brim;
-        private static readonly Color Well = Neon.Well;
-        private static readonly Color WellEdge = Neon.WellEdge;
+        private static Color Ground { get { return Neon.Ground; } }
+        private static Color Glow { get { return Neon.Glow; } }
+        private static Color Band { get { return Neon.Band; } }
+        private static Color Rule { get { return Neon.Rule; } }
+        private static Color Rose { get { return Neon.Rose; } }
+        private static Color White { get { return Neon.White; } }
+        private static Color Faint { get { return Neon.Faint; } }
+        private static Color Field { get { return Neon.Field; } }
+        private static Color Hover { get { return Neon.Hover; } }
+        private static Color Pressed { get { return Neon.Pressed; } }
+        private static Color Edge { get { return Neon.Edge; } }
+        private static Color Hot { get { return Neon.Hot; } }
+        private static Color Cyan { get { return Neon.Cyan; } }
+        private static Color Deep { get { return Neon.Deep; } }
+        private static Color DeepEdge { get { return Neon.DeepEdge; } }
+        private static Color OnInk { get { return Neon.OnInk; } }
+        private static Color Dash { get { return Neon.Dash; } }
+        private static Color Lit { get { return Neon.Lit; } }
+        private static Color Brim { get { return Neon.Brim; } }
+        private static Color Well { get { return Neon.Well; } }
+        private static Color WellEdge { get { return Neon.WellEdge; } }
         // Bahnschrift, Windows' own DIN-style face, in its semi-condensed cuts and the condensed bold of her title. Windows
         // before 10's 2017 update doesn't have it, so there she keeps her Share Tech Mono.
         private static readonly FontFamily Plain = Family("Bahnschrift SemiCondensed");
@@ -272,7 +272,7 @@ namespace CapriDesktop
         // them back. These are stretches of each column as built, by Top.
         // Simple Settings keeps Her voice in your mic's rows, between Free voice in games and MOVES.
         private static readonly int[][] FoldedLeft = { new[] { 232, 400 }, new[] { 478, 506 }, new[] { 784, 1261 }, new[] { 1372, 1424 }, new[] { 1424, 1452 } };
-        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 652, 1062 }, new[] { 1258, 2084 } };
+        private static readonly int[][] FoldedRight = { new[] { 138, 362 }, new[] { 390, 418 }, new[] { 680, 1090 }, new[] { 1286, 2112 } };
         private readonly Dictionary<Control, int> built = new Dictionary<Control, int>();
         private bool simple;
         private Key advancedKey;
@@ -365,6 +365,7 @@ namespace CapriDesktop
         private static readonly int[] FrameSizes = { 0, 100, 125, 150, 175, 200 };
         private static readonly string[] FrameSizeNames = { "Auto", "100%", "125%", "150%", "175%", "200%" };
         private readonly Slider frameSize;
+        private readonly Slider frameColours;
         private readonly Readout frameSizeName;
         // Settings' rows: a setting's name from x 28 and its value's box from x 184 to 356, 22 px tall on a 28 px row.
         private const int Row = 28;
@@ -459,8 +460,8 @@ namespace CapriDesktop
             textEntry.Box.AccessibleName = "NVIDIA, Google AI Studio (Gemini) or OpenRouter API key";
             textEntry.Cue = "NVIDIA / Google AI Studio / OpenRouter";
             textConnect = Make("Connect", 280, 262, 76, 28, delegate { ConnectText(); });
-            freeWarning = Caption("Free keys can be rate limited and slow.", 28, 294, Type(8.5f), Look.Yellow);
-            paidNote = Caption("That's a paid key: it goes under MAX INTELLIGENCE.", 28, 315, Font, Look.Yellow);
+            freeWarning = Caption("Free keys can be rate limited and slow.", 28, 294, Type(8.5f), Neon.Amber);
+            paidNote = Caption("That's a paid key: it goes under MAX INTELLIGENCE.", 28, 315, Font, Neon.Amber);
             paidNote.MaximumSize = new Size(328, 0);
             movePaid = Make("Move to MAX", 28, 350, 128, 24, delegate { MovePaidText(); });
             movePaid.AccessibleName = "Move key to MAX INTELLIGENCE";
@@ -800,12 +801,14 @@ namespace CapriDesktop
             frameSizeName = new Readout(frameSize);
             frameSize.Changed += delegate { if (!syncing) ShowFrameSize(); };
             frameSize.Released += delegate { if (!syncing) { capri.SetMainframeSize(FrameSizes[frameSize.Value]); Rezoom(Wanted()); ShowFrameSize(); } };
-            headPats = Switch("Head pats", c, 194, delegate { if (!syncing) capri.ToggleHeadPats(); });
+            frameColours = Setting("Mainframe colours", Neon.LookNames, c, 194, "Mainframe colours. Night City is red and cyan; Black, White and Grey change the Mainframe, her menus, the Type box and her notes");
+            frameColours.Changed += delegate { if (!syncing) capri.SetMainframeColours(frameColours.Value); };
+            headPats = Switch("Head pats", c, 222, delegate { if (!syncing) capri.ToggleHeadPats(); });
             headPats.AccessibleName = "Head pats. Rubbing the cursor over her gets a grin and a line";
-            upsetChaos = Switch("Chaos when upset", c, 222, delegate { if (!syncing) capri.ToggleUpsetChaos(); });
+            upsetChaos = Switch("Chaos when upset", c, 250, delegate { if (!syncing) capri.ToggleUpsetChaos(); });
             upsetChaos.AccessibleName = "Chaos when upset. Insulting her can set her clones off until you hold Esc";
             // Hologram stays reversible here even while clicks pass through her body (Lachy, 2 Nov).
-            hologram = Switch("Hologram", c, 250, delegate { if (!syncing) capri.ToggleHologram(); });
+            hologram = Switch("Hologram", c, 278, delegate { if (!syncing) capri.ToggleHologram(); });
             hologram.AccessibleName = "Hologram. Clicks pass through her body, talk pill and bubble. Turn this off to give her clicks back";
             int afterPats = Controls.Count;
             Section("WATCH >", c, 208);
@@ -961,9 +964,9 @@ namespace CapriDesktop
                 Controls[talkSettingAt].Top += (talkSettingAt >= afterFollowUps ? 56 : 28) + (Controls[talkSettingAt].Left >= c ? Row : 0);
             for (int huskRow = afterHusk; huskRow < Controls.Count; huskRow++)
                 if (Controls[huskRow].Left >= c) Controls[huskRow].Top += Row;
-            // Head pats, Chaos when upset and Hologram each take a row under Mainframe size.
+            // Mainframe colours, Head pats, Chaos when upset and Hologram each take a row under Mainframe size.
             for (int belowPats = afterPats; belowPats < Controls.Count; belowPats++)
-                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 3;
+                if (Controls[belowPats].Left >= c) Controls[belowPats].Top += Row * 4;
             for (int belowCare = afterCare; belowCare < Controls.Count; belowCare++)
                 if (Controls[belowCare].Left >= c) Controls[belowCare].Top += Row * 8;
             // The hearing row and Her voice in your mic's rows push GAMES down under KEYS too.
@@ -997,7 +1000,7 @@ namespace CapriDesktop
 
         private static Button DialogButton(string text, int x, int y, int width, Color accent)
         {
-            Button button = new Button { Text = text, Bounds = new Rectangle(x, y, width, 30), FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Look.Ink, UseVisualStyleBackColor = false };
+            Button button = new Button { Text = text, Bounds = new Rectangle(x, y, width, 30), FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Neon.SheetInk, UseVisualStyleBackColor = false };
             button.FlatAppearance.BorderColor = accent;
             return button;
         }
@@ -1088,9 +1091,9 @@ namespace CapriDesktop
             }
         }
 
-        private static Label Heading(string text, int y) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, 18), ForeColor = Look.Yellow, Font = Look.Mono(9f, FontStyle.Bold, GraphicsUnit.Point) }; }
+        private static Label Heading(string text, int y) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, 18), ForeColor = Neon.Amber, Font = Look.Mono(9f, FontStyle.Bold, GraphicsUnit.Point) }; }
 
-        private static Label Hint(string text, int y, int height) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, height), ForeColor = Look.Dim }; }
+        private static Label Hint(string text, int y, int height) { return new Label { Text = text, Bounds = new Rectangle(16, y, 488, height), ForeColor = Neon.SheetDim }; }
 
         // Memory vault, under HABITS: her notes can live in their Obsidian vault.
         private void ShowMemoryVault()
@@ -1105,14 +1108,14 @@ namespace CapriDesktop
                 dialog.MinimizeBox = false;
                 dialog.ShowInTaskbar = false;
                 dialog.StartPosition = FormStartPosition.CenterParent;
-                dialog.BackColor = Look.Panel;
-                dialog.ForeColor = Look.Ink;
+                dialog.BackColor = Neon.Sheet;
+                dialog.ForeColor = Neon.SheetInk;
                 dialog.Font = Look.Mono(9f, FontStyle.Regular, GraphicsUnit.Point);
                 dialog.ClientSize = new Size(520, 170);
                 // Their own Obsidian vaults, read from Obsidian's list on this PC: picking one keeps her memories in its Capri Memories note.
                 List<KeyValuePair<string, string>> vaults = Companion.ObsidianVaults();
                 List<string> vaultNotes = new List<string> { "" };
-                ComboBox vault = new ComboBox { Bounds = new Rectangle(16, 44, 368, 24), DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Look.Ink };
+                ComboBox vault = new ComboBox { Bounds = new Rectangle(16, 44, 368, 24), DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat, BackColor = Field, ForeColor = Neon.SheetInk };
                 vault.AccessibleName = "Which Obsidian vault her memories go in";
                 vault.Items.Add("Her own notes (no vault)");
                 foreach (KeyValuePair<string, string> found in vaults) { vault.Items.Add("Vault: " + found.Key); vaultNotes.Add(System.IO.Path.Combine(found.Value, Companion.VaultNote)); }
@@ -1133,7 +1136,7 @@ namespace CapriDesktop
                 bool showing = true;
                 showVault();
                 showing = false;
-                Button pickVault = DialogButton("Browse", 392, 42, 112, Look.Dim);
+                Button pickVault = DialogButton("Browse", 392, 42, 112, Neon.SheetDim);
                 Label vaultNote = Hint(capri.Vault.Length > 0 ? capri.VaultHere ? "She saves her memories to " + System.IO.Path.GetFileName(Companion.NotesIn(capri.Vault)) + "." : "That vault wasn't there when she started, so she's using her own notes." : vaults.Count > 0 ? "Pick one of your Obsidian vaults and her memories go in a Capri Memories note there." : "No Obsidian vaults found on this PC. Open one in Obsidian first, or Browse to a note.", 78, 34);
                 Action<string> useVault = delegate(string chosen)
                 {
@@ -1154,7 +1157,7 @@ namespace CapriDesktop
                         if (picker.ShowDialog(dialog) == DialogResult.OK) useVault(picker.FileName);
                     }
                 };
-                Button close = DialogButton("Close", 404, 124, 100, Look.Dim);
+                Button close = DialogButton("Close", 404, 124, 100, Neon.SheetDim);
                 close.Click += delegate { dialog.Close(); };
                 dialog.CancelButton = close;
                 dialog.Controls.AddRange(new Control[] { Heading("MEMORY VAULT >", 12), vault, pickVault, vaultNote, close });
@@ -2158,6 +2161,18 @@ namespace CapriDesktop
 
         internal string FrameSizeShown { get { return frameSizeName.Text; } }
 
+        internal void PickColours(int look) { frameColours.Slide(look); }
+
+        internal void ShowColours()
+        {
+            bool was = syncing;
+            syncing = true;
+            frameColours.Value = capri.MainframeColours;
+            syncing = was;
+        }
+
+        internal string ColoursShown { get { return frameColours.Shown; } }
+
         internal void SizeMainframe(int size) { frameSize.Slide(Math.Max(0, Array.IndexOf(FrameSizes, size))); }
 
         // Every control's own type grown or shrunk by this much, children first, so each reads its parent's before that changes.
@@ -2600,6 +2615,7 @@ namespace CapriDesktop
             gameMute.Checked = capri.Shushed;
             frameSize.Value = Math.Max(0, Array.IndexOf(FrameSizes, capri.MainframeSize));
             ShowFrameSize();
+            frameColours.Value = capri.MainframeColours;
             VoiceTier();
             int chosen = Array.IndexOf(Gaps, capri.GlanceGap);
             gap.Value = chosen < 0 ? 5 : chosen;
@@ -4351,6 +4367,22 @@ namespace CapriDesktop
             return item;
         }
 
+        // Her dropdowns aren't the Mainframe's controls, so a new look reaches them through this list. A sheet's go when the
+        // sheet does, and a language group's when the item it hung from is rebuilt.
+        private readonly List<ContextMenuStrip> dropdowns = new List<ContextMenuStrip>();
+
+        internal ContextMenuStrip[] Dropdowns
+        {
+            get
+            {
+                dropdowns.RemoveAll(delegate(ContextMenuStrip strip) { return strip.IsDisposed || (strip.OwnerItem != null && strip.OwnerItem.IsDisposed); });
+                return dropdowns.ToArray();
+            }
+        }
+
+        // Blackwall's red. Black, White and Grey turn it into a grey too dim to read on its box, so they use their Hot.
+        internal static Color BlackwallInk { get { return Neon.Mono ? Neon.Hot : Neon.Tone(255, 0, 70); } }
+
         private ContextMenuStrip Dropdown()
         {
             ContextMenuStrip strip = new ContextMenuStrip();
@@ -4360,6 +4392,8 @@ namespace CapriDesktop
             strip.Font = Font;
             strip.ShowImageMargin = false;
             strip.ShowCheckMargin = true;
+            dropdowns.RemoveAll(delegate(ContextMenuStrip old) { return old.IsDisposed || (old.OwnerItem != null && old.OwnerItem.IsDisposed); });
+            dropdowns.Add(strip);
             return strip;
         }
 
@@ -4487,8 +4521,10 @@ namespace CapriDesktop
         // A button: a dark box with a red rim and its bottom right corner clipped. Cyan ones are the step to take, like
         // Settings or Use this server; a picked one, like Layers while they're on, is solid cyan; red ones end something.
         // A chevron makes it a dropdown, its choice in cyan beside a ▽.
-        private sealed class Key : Button
+        private sealed class Key : Button, Tinted
         {
+            public void Recolour(Func<Color, Color> swap) { Accent = swap(Accent); }
+
             internal bool Ellipsis;
             internal Color Accent = Rose;
             private bool dimmed;
@@ -4561,11 +4597,11 @@ namespace CapriDesktop
                 }
                 bool lit = hot || (Focused && ShowFocusCues);
                 Color face, rim, ink;
-                if (!Enabled || Dimmed) { face = Field; rim = Color.FromArgb(52, 22, 32); ink = Color.FromArgb(112, 94, 104); }
-                else if (Picked) { face = hot ? Color.FromArgb(160, 248, 251) : Cyan; rim = face; ink = OnInk; }
-                else if (Accent == Cyan) { face = down ? Color.FromArgb(18, 62, 67) : hot ? Color.FromArgb(13, 45, 49) : Deep; rim = lit ? Cyan : Loud ? DeepEdge : Color.FromArgb(28, 84, 92); ink = Cyan; }
-                else if (Accent == Hot) { face = down ? Color.FromArgb(72, 18, 30) : hot ? Color.FromArgb(54, 16, 28) : Color.FromArgb(34, 12, 22); rim = lit ? Color.FromArgb(255, 124, 122) : Hot; ink = Color.FromArgb(255, 166, 162); }
-                else if (Heart) { face = down ? Pressed : hot ? Color.FromArgb(46, 18, 34) : Toward(Color.FromArgb(32, 14, 24), Color.FromArgb(54, 18, 32), Beat); rim = lit ? Rose : Toward(Color.FromArgb(156, 40, 56), Rose, Beat); ink = hot ? Color.FromArgb(255, 194, 197) : Color.FromArgb(255, 138, 144); }
+                if (!Enabled || Dimmed) { face = Field; rim = Neon.Tone(52, 22, 32); ink = Neon.Tone(112, 94, 104); }
+                else if (Picked) { face = hot ? Neon.Tone(160, 248, 251) : Cyan; rim = face; ink = OnInk; }
+                else if (Accent == Cyan) { face = down ? Neon.Tone(18, 62, 67) : hot ? Neon.Tone(13, 45, 49) : Deep; rim = lit ? Cyan : Loud ? DeepEdge : Neon.Tone(28, 84, 92); ink = Cyan; }
+                else if (Accent == Hot) { face = down ? Neon.Tone(72, 18, 30) : hot ? Neon.Tone(54, 16, 28) : Neon.Tone(34, 12, 22); rim = lit ? Neon.Tone(255, 124, 122) : Hot; ink = Neon.Tone(255, 166, 162); }
+                else if (Heart) { face = down ? Pressed : hot ? Neon.Tone(46, 18, 34) : Toward(Neon.Tone(32, 14, 24), Neon.Tone(54, 18, 32), Beat); rim = lit ? Rose : Toward(Neon.Tone(156, 40, 56), Rose, Beat); ink = hot ? Neon.Tone(255, 194, 197) : Neon.Tone(255, 138, 144); }
                 else { face = down ? Pressed : hot ? Hover : Field; rim = lit ? Hot : Edge; ink = Chevron ? Cyan : Accent; }
                 using (GraphicsPath plate = Cut(box, 0, 0, 5 * s, 0))
                 {
@@ -4702,7 +4738,7 @@ namespace CapriDesktop
             }
         }
 
-        internal sealed class NoteWindow : Form
+        internal sealed class NoteWindow : Form, LookWindow
         {
             private readonly WrittenNote note;
             private readonly TextBox draft;
@@ -4765,7 +4801,7 @@ namespace CapriDesktop
             }
         }
 
-        internal sealed class PopWindow : Form
+        internal sealed class PopWindow : Form, LookWindow
         {
             private readonly Companion capri;
             private readonly NumericUpDown low, high;
@@ -4827,17 +4863,17 @@ namespace CapriDesktop
         // Her dropdowns: a dark wine menu with a red rim round the choice under the mouse.
         private sealed class MenuColors : ProfessionalColorTable
         {
-            internal static readonly Color Back = Color.FromArgb(16, 13, 22);
+            internal static Color Back { get { return Neon.MenuBack; } }
             public override Color ToolStripDropDownBackground { get { return Back; } }
             public override Color ImageMarginGradientBegin { get { return Back; } }
             public override Color ImageMarginGradientMiddle { get { return Back; } }
             public override Color ImageMarginGradientEnd { get { return Back; } }
             public override Color MenuBorder { get { return Edge; } }
-            public override Color MenuItemSelected { get { return Color.FromArgb(48, 18, 32); } }
+            public override Color MenuItemSelected { get { return Neon.Tone(48, 18, 32); } }
             public override Color MenuItemBorder { get { return Hot; } }
             public override Color CheckBackground { get { return DeepEdge; } }
-            public override Color CheckSelectedBackground { get { return Color.FromArgb(60, 160, 172); } }
-            public override Color CheckPressedBackground { get { return Color.FromArgb(60, 160, 172); } }
+            public override Color CheckSelectedBackground { get { return Neon.Tone(60, 160, 172); } }
+            public override Color CheckPressedBackground { get { return Neon.Tone(60, 160, 172); } }
             public override Color SeparatorDark { get { return Edge; } }
             public override Color SeparatorLight { get { return Back; } }
         }
@@ -4848,9 +4884,9 @@ namespace CapriDesktop
         internal sealed class MenuLook : ToolStripProfessionalRenderer
         {
             internal static readonly object Title = new object();
-            internal static readonly Color Panel = MenuColors.Back;
-            internal static readonly Color Ink = White;
-            private static readonly Color Chosen = Color.FromArgb(48, 18, 32);
+            internal static Color Panel { get { return MenuColors.Back; } }
+            internal static Color Ink { get { return White; } }
+            private static Color Chosen { get { return Neon.Tone(48, 18, 32); } }
 
             internal MenuLook() : base(new MenuColors()) { RoundedEdges = false; }
 
@@ -4974,7 +5010,7 @@ namespace CapriDesktop
             }
         }
 
-        private sealed class ProviderSheet : Form
+        private sealed class ProviderSheet : Form, LookWindow
         {
             private readonly Mainframe owner;
             private readonly Entry address;
@@ -5142,7 +5178,7 @@ namespace CapriDesktop
 
         // A voice model for CUSTOM LOCAL or CLOUD VOICE: a ready-made choice like Fish Audio, or their own server. Its address, an
         // optional model, voice and key, Test, and Use this server.
-        private sealed class ServerSheet : Form
+        private sealed class ServerSheet : Form, LookWindow
         {
             private readonly Mainframe owner;
             private readonly Label title;
@@ -5632,12 +5668,13 @@ namespace CapriDesktop
         // Flipping one makes it Custom, and a click on the slider puts the preset under its knob back. Her hands' toggles are on
         // the left and her jobs' on the right. It opens from Settings > HABITS, where Blackwall mode was. Zoom is 1 except in
         // the smoke test, which draws it at 150% and 200% too.
-        private sealed class SecuritySheet : Form
+        private sealed class SecuritySheet : Form, LookWindow, Tinted
         {
             internal const int Wide = 900, Tall = 516, Column = 410;
             internal readonly float Zoom;
             private readonly Mainframe owner;
             private readonly Slider presets;
+            public void Recolour(Func<Color, Color> swap) { if (Security.Preset == Security.Blackwall) presets.Ink = BlackwallInk; }
             private readonly Readout presetName;
             private readonly Label presetLine;
             private readonly Toggle[] toggles = new Toggle[Security.Count];
@@ -5726,11 +5763,11 @@ namespace CapriDesktop
                 int preset = Security.Preset;
                 presets.Value = preset == Security.Custom ? Nearest() : preset;
                 presetName.Text = Security.Presets[preset];
-                presetName.ForeColor = preset == Security.Custom ? Look.Yellow : Cyan;
+                presetName.ForeColor = preset == Security.Custom ? Neon.Amber : Cyan;
                 presetLine.Text = Security.PresetLine(preset);
                 presets.Torn = preset == Security.Blackwall;
                 presets.Storm = preset == Security.Blackwall && owner.capri.Moves;
-                presets.Ink = preset == Security.Blackwall ? Color.FromArgb(255, 0, 70) : Color.Empty;
+                presets.Ink = preset == Security.Blackwall ? BlackwallInk : Color.Empty;
                 for (int i = 0; i < Security.Count; i++) toggles[i].Checked = Security.On(i);
                 syncing = false;
             }
@@ -5847,7 +5884,7 @@ namespace CapriDesktop
         // Her EXTRAS window, in SECURITY's look, over the Mainframe on a new install's first launch (Lachy, 31 Oct: so many cool
         // ones were off with nothing pointing at them). Each costs something or uses the mic, so they start off and it's their
         // pick, and all four are in Settings too.
-        private sealed class ExtrasSheet : Form
+        private sealed class ExtrasSheet : Form, LookWindow
         {
             internal const int Wide = 600, Tall = 366;
             internal readonly float Zoom;
@@ -6018,7 +6055,7 @@ namespace CapriDesktop
         // own pitch (half steps from -12 to +12 semitones off hers) and delay (0 to 250 ms). Letting go of a slider has her say
         // a line in it, and so does the switch. It opens from the Layers button in VOICE's heading. Zoom is 1 except in the smoke
         // test, which draws it at 150% and 200% too.
-        private sealed class LayersSheet : Form
+        private sealed class LayersSheet : Form, LookWindow
         {
             internal const int Wide = 760, Tall = 356, Column = 364, DelayStep = 5;
             internal readonly float Zoom;
@@ -6300,7 +6337,7 @@ namespace CapriDesktop
         // Her voice in your mic's setup in a window of its own (Lachy, 3 Nov: "make it clear how to set it up too"): the switch,
         // the mix's Input and Output, then Discord's steps with the exact name to pick there, and whether Discord hears it yet,
         // read from Windows each second.
-        private sealed class MixSheet : Form
+        private sealed class MixSheet : Form, LookWindow
         {
             internal const int Wide = 620, Tall = 478;
             internal const string NoCable = "No virtual mic yet. Pick Output, then Get VB-CABLE (free).", NoOutput = "None yet: pick to get VB-CABLE (free)";
@@ -6585,8 +6622,10 @@ namespace CapriDesktop
         // A row's value, in a box of its own. Up to seven steps it's a selector, ◁ value ▷ with a red dash under the value
         // marking where it is among them; past that, a bar whose red handle slides along under the value. Both step with the
         // arrow keys, and say what they're on to a screen reader.
-        private sealed class Slider : Control
+        private sealed class Slider : Control, Tinted
         {
+            public void Recolour(Func<Color, Color> swap) { ink = swap(ink); }
+
             private readonly string[] labels;
             private int value;
             private bool hot;
@@ -6630,17 +6669,17 @@ namespace CapriDesktop
             private void Tear(Graphics graphics, float s, TextFormatFlags flags, int reach)
             {
                 Random rolls = storm != null ? tears : new Random(7);
-                Color red = Color.FromArgb(255, 0, 70);
+                Color red = Neon.Tone(255, 0, 70);
                 using (Pen rim = new Pen(red, Math.Max(1f, s))) graphics.DrawRectangle(rim, 0, 0, Width - 1, Height - 1);
                 if (rolls.Next(3) == 0) return;
                 int shift = rolls.Next(-3, 4);
                 Rectangle band = new Rectangle(0, rolls.Next(0, Math.Max(1, Height - 4)), Width, 2 + rolls.Next((int)(6 * s) + 1));
                 graphics.SetClip(band);
-                using (Brush dark = new SolidBrush(Color.FromArgb(8, 6, 12))) graphics.FillRectangle(dark, band);
+                using (Brush dark = new SolidBrush(Neon.Tone(8, 6, 12))) graphics.FillRectangle(dark, band);
                 TextRenderer.DrawText(graphics, Shown, Font, new Rectangle(reach + shift, 0, Width - 2 * reach, (int)(Height - 4 * s)), red, flags | TextFormatFlags.PreserveGraphicsClipping);
                 graphics.ResetClip();
                 using (Brush shard = new SolidBrush(red))
-                using (Brush black = new SolidBrush(Color.FromArgb(8, 6, 12)))
+                using (Brush black = new SolidBrush(Neon.Tone(8, 6, 12)))
                     for (int i = 0; i < 3; i++)
                     {
                         int x = rolls.Next(Width), y = rolls.Next(Height), wide = 4 + rolls.Next((int)(22 * s) + 1);
@@ -6781,7 +6820,7 @@ namespace CapriDesktop
                 graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 float line = Math.Max(1f, s);
                 RectangleF box = new RectangleF(line / 2, line / 2, Width - line, Height - line);
-                Color rim = Focused && ShowFocusCues ? Cyan : hot || sliding ? Color.FromArgb(156, 40, 56) : Edge;
+                Color rim = Focused && ShowFocusCues ? Cyan : hot || sliding ? Neon.Tone(156, 40, 56) : Edge;
                 TextFormatFlags flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding | TextFormatFlags.EndEllipsis;
                 if (Stepper)
                 {
@@ -6808,7 +6847,7 @@ namespace CapriDesktop
                 using (GraphicsPath plate = Cut(box, 0, 0, 5 * s, 0))
                 {
                     using (Brush fill = new SolidBrush(Field)) graphics.FillPath(fill, plate);
-                    using (Brush done = new SolidBrush(Color.FromArgb(42, 14, 25))) graphics.FillRectangle(done, line, line, knob - line, Height - 2 * line);
+                    using (Brush done = new SolidBrush(Neon.Tone(42, 14, 25))) graphics.FillRectangle(done, line, line, knob - line, Height - 2 * line);
                     using (Brush tick = new SolidBrush(Dash))
                         for (int i = 0; i < labels.Length; i += Math.Max(1, TickEvery)) graphics.FillRectangle(tick, s + Grip / 2 + travel * i / (labels.Length - 1) - 0.5f * s, Height - 5 * s, Math.Max(1, s), 3 * s);
                     using (GraphicsPath grip = Cut(new RectangleF(knob, line, Grip, Height - 2 * line), 0, 0, 4 * s, 0))
@@ -6826,7 +6865,7 @@ namespace CapriDesktop
                     TextRenderer.DrawText(graphics, Shown, Font, area, Ink, flags);
                 }
                 graphics.SetClip(handle);
-                TextRenderer.DrawText(graphics, Shown, Font, area, Color.FromArgb(40, 6, 12), flags);
+                TextRenderer.DrawText(graphics, Shown, Font, area, Neon.Tone(40, 6, 12), flags);
                 graphics.ResetClip();
             }
 
@@ -6900,7 +6939,7 @@ namespace CapriDesktop
                 TextRenderer.DrawText(graphics, Text, Font, new Rectangle(left, 0, Width - left, Height), Checked ? Cyan : White, flags);
                 int after = left + TextRenderer.MeasureText(graphics, Text, Font, Size.Empty, flags).Width + (int)(8 * s);
                 if (Hint != null) TextRenderer.DrawText(graphics, Hint, HintFont ?? Font, new Rectangle(after, 0, Math.Max(0, Width - after), Height), Faint, flags);
-                if (Flag != null) TextRenderer.DrawText(graphics, Flag, FlagFont ?? Font, new Rectangle(0, 0, Width - (int)(6 * s), Height), Look.Yellow, TextFormatFlags.VerticalCenter | TextFormatFlags.Right | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
+                if (Flag != null) TextRenderer.DrawText(graphics, Flag, FlagFont ?? Font, new Rectangle(0, 0, Width - (int)(6 * s), Height), Neon.Amber, TextFormatFlags.VerticalCenter | TextFormatFlags.Right | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding);
             }
         }
 
@@ -6981,30 +7020,39 @@ namespace CapriDesktop
                 Color offFill, offRim, offInk, onFill, onRim, onInk;
                 if (Checked)
                 {
-                    offFill = over == 0 ? Color.FromArgb(50, 16, 28) : Color.FromArgb(32, 12, 19);
-                    offRim = over == 0 ? Color.FromArgb(120, 36, 50) : Color.FromArgb(50, 18, 28);
-                    offInk = over == 0 ? Color.FromArgb(170, 60, 72) : Color.FromArgb(84, 26, 38);
+                    offFill = over == 0 ? Neon.Tone(50, 16, 28) : Neon.Tone(32, 12, 19);
+                    offRim = over == 0 ? Neon.Tone(120, 36, 50) : Neon.Tone(50, 18, 28);
+                    offInk = over == 0 ? Neon.Tone(170, 60, 72) : Neon.Tone(84, 26, 38);
                     onFill = onRim = Cyan;
                     onInk = OnInk;
                 }
                 else
                 {
-                    offFill = Color.FromArgb(155, 50, 46);
-                    offRim = Color.FromArgb(222, 69, 63);
-                    offInk = Color.FromArgb(255, 150, 144);
-                    onFill = over == 1 ? Color.FromArgb(12, 46, 50) : Color.FromArgb(9, 30, 33);
-                    onRim = over == 1 ? DeepEdge : Color.FromArgb(16, 44, 48);
-                    onInk = over == 1 ? Color.FromArgb(110, 210, 216) : Color.FromArgb(28, 68, 72);
+                    offFill = Neon.Tone(155, 50, 46);
+                    offRim = Neon.Tone(222, 69, 63);
+                    offInk = Neon.Tone(255, 150, 144);
+                    onFill = over == 1 ? Neon.Tone(12, 46, 50) : Neon.Tone(9, 30, 33);
+                    onRim = over == 1 ? DeepEdge : Neon.Tone(16, 44, 48);
+                    onInk = over == 1 ? Neon.Tone(110, 210, 216) : Neon.Tone(28, 68, 72);
+                }
+                if (Neon.Mono)
+                {
+                    offFill = onFill = Field;
+                    offRim = Checked ? (over == 0 ? Faint : Brim) : White;
+                    offInk = Checked ? (over == 0 ? White : Faint) : White;
+                    onRim = Checked ? Cyan : (over == 1 ? Faint : Brim);
+                    onInk = Checked ? OnInk : (over == 1 ? White : Faint);
+                    if (Checked) onFill = Cyan;
                 }
                 if (Dimmed)
                 {
-                    offFill = Checked ? Field : Color.FromArgb(52, 22, 32);
-                    offRim = Checked ? Color.FromArgb(52, 22, 32) : Brim;
+                    offFill = Checked ? Field : Neon.Tone(52, 22, 32);
+                    offRim = Checked ? Neon.Tone(52, 22, 32) : Brim;
                     onFill = Checked ? Deep : Field;
-                    onRim = Checked ? DeepEdge : Color.FromArgb(52, 22, 32);
-                    offInk = onInk = Color.FromArgb(112, 94, 104);
+                    onRim = Checked ? DeepEdge : Neon.Tone(52, 22, 32);
+                    offInk = onInk = Neon.Tone(112, 94, 104);
                 }
-                if (!Enabled) { offFill = onFill = Field; offRim = onRim = Color.FromArgb(52, 22, 32); offInk = onInk = Color.FromArgb(112, 94, 104); }
+                if (!Enabled) { offFill = onFill = Field; offRim = onRim = Neon.Tone(52, 22, 32); offInk = onInk = Neon.Tone(112, 94, 104); }
                 TextFormatFlags centre = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix | TextFormatFlags.NoPadding;
                 using (GraphicsPath plate = Cut(off, 0, 0, 0, 5 * s))
                 {

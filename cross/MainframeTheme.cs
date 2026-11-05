@@ -4,27 +4,85 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 
 namespace CapriDesktop
 {
     internal static class MainframeTheme
     {
-        internal static readonly IBrush Ground = Brush("#0A0A10"), Glow = Brush("#360E1A"), Band = Brush("#100C14"), Rule = Brush("#2C7A86");
-        internal static readonly IBrush Rose = Brush("#FF5D66"), White = Brush("#ECECF1"), Faint = Brush("#92828C"), Field = Brush("#11101C");
-        internal static readonly IBrush Hover = Brush("#1E1424"), Pressed = Brush("#2E1626"), Edge = Brush("#5C1824"), Hot = Brush("#E84246");
-        internal static readonly IBrush Cyan = Brush("#5EF0F6"), Deep = Brush("#091E21"), DeepEdge = Brush("#287884"), OnInk = Brush("#060E12");
-        internal static readonly IBrush Dash = Brush("#4E1C28"), Lit = Brush("#F55A56"), Brim = Brush("#781E2C"), Well = Brush("#0C0B14"), WellEdge = Brush("#481C28");
-        internal static readonly IBrush Yellow = Brush("#F7DF70");
+        internal static readonly string[] LookNames = { "Night City", "Black", "White", "Grey" };
+        private static readonly string[][] Looks =
+        {
+            new[] { "#0A0A10", "#360E1A", "#100C14", "#2C7A86", "#FF5D66", "#ECECF1", "#92828C", "#11101C", "#1E1424", "#2E1626", "#5C1824", "#E84246", "#5EF0F6", "#091E21", "#287884", "#060E12", "#4E1C28", "#F55A56", "#781E2C", "#0C0B14", "#481C28", "#F7DF70" },
+            new[] { "#000000", "#181818", "#080808", "#6E6E6E", "#FFFFFF", "#EEEEEE", "#969696", "#101010", "#222222", "#343434", "#545454", "#F5F5F5", "#CDCDCD", "#161616", "#787878", "#010101", "#464646", "#FAFAFA", "#606060", "#060606", "#4C4C4C", "#E6E6E6" },
+            new[] { "#FFFFFF", "#ECECEC", "#F8F8F8", "#787878", "#000000", "#141414", "#606060", "#F4F4F4", "#E6E6E6", "#D6D6D6", "#AAAAAA", "#1E1E1E", "#404040", "#EEEEEE", "#6E6E6E", "#FEFEFE", "#BEBEBE", "#0A0A0A", "#969696", "#FAFAFA", "#B4B4B4", "#3C3C3C" },
+            new[] { "#5C5C5C", "#6C6C6C", "#545454", "#AAAAAA", "#FFFFFF", "#FAFAFA", "#DEDEDE", "#4E4E4E", "#686868", "#767676", "#8C8C8C", "#F6F6F6", "#ECECEC", "#484848", "#BEBEBE", "#1E1E1E", "#828282", "#FCFCFC", "#A0A0A0", "#282828", "#969696", "#F4F4F4" }
+        };
+        private static readonly List<SolidColorBrush> Slots = new List<SolidColorBrush>();
+        private static int shade;
+        internal static readonly IBrush Ground = Slot();
+        internal static readonly IBrush Glow = Slot();
+        internal static readonly IBrush Band = Slot();
+        internal static readonly IBrush Rule = Slot();
+        internal static readonly IBrush Rose = Slot();
+        internal static readonly IBrush White = Slot();
+        internal static readonly IBrush Faint = Slot();
+        internal static readonly IBrush Field = Slot();
+        internal static readonly IBrush Hover = Slot();
+        internal static readonly IBrush Pressed = Slot();
+        internal static readonly IBrush Edge = Slot();
+        internal static readonly IBrush Hot = Slot();
+        internal static readonly IBrush Cyan = Slot();
+        internal static readonly IBrush Deep = Slot();
+        internal static readonly IBrush DeepEdge = Slot();
+        internal static readonly IBrush OnInk = Slot();
+        internal static readonly IBrush Dash = Slot();
+        internal static readonly IBrush Lit = Slot();
+        internal static readonly IBrush Brim = Slot();
+        internal static readonly IBrush Well = Slot();
+        internal static readonly IBrush WellEdge = Slot();
+        internal static readonly IBrush Yellow = Slot();
+
+        private static IBrush Slot() { var brush = new SolidColorBrush(Color.Parse(Looks[0][Slots.Count])); Slots.Add(brush); return brush; }
+        internal static int ClampLook(int look) { return look < 0 || look >= Looks.Length ? 0 : look; }
+        internal static bool Mono { get { return shade != 0; } }
+        internal static string[] LookColours(int look) { return Looks[ClampLook(look)]; }
+        internal static void UseLook(int look)
+        {
+            shade = ClampLook(look);
+            for (int i = 0; i < Slots.Count; i++) Slots[i].Color = Color.Parse(Looks[shade][i]);
+        }
+        internal static void Repaint(Visual also)
+        {
+            var desktop = Application.Current == null ? null : Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+            if (desktop != null) foreach (var window in desktop.Windows) RepaintAll(window);
+            if (also != null) RepaintAll(also);
+        }
+        private static void RepaintAll(Visual visual)
+        {
+            visual.InvalidateVisual();
+            foreach (var child in visual.GetVisualDescendants()) child.InvalidateVisual();
+        }
+        internal static Color Tint(string value)
+        {
+            var colour = Color.Parse(value);
+            if (shade == 0) return colour;
+            int light = (299 * colour.R + 587 * colour.G + 114 * colour.B) / 1000;
+            byte v = (byte)(shade == 1 ? light : shade == 2 ? 255 - light * 85 / 100 : 70 + light * 72 / 100);
+            return Color.FromArgb(colour.A, v, v, v);
+        }
+
         internal static readonly FontFamily Text = new FontFamily("avares://Capri/Assets#Barlow Semi Condensed");
         internal static readonly FontFamily Display = new FontFamily("avares://Capri/Assets#Barlow Condensed");
         internal const double Size = 38.0 / 3;
 
-        internal static IBrush Brush(string value) { return new SolidColorBrush(Color.Parse(value)); }
+        internal static IBrush Brush(string value) { return new SolidColorBrush(Tint(value)); }
         internal static FormattedText Words(string text, double size = Size, bool bold = false, IBrush ink = null, bool display = false)
         {
             return new FormattedText(text ?? "", CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
@@ -211,7 +269,7 @@ namespace CapriDesktop
             else if (Picked) { face = hot ? MainframeTheme.Brush("#A0F8FB") : MainframeTheme.Cyan; rim = face; ink = MainframeTheme.OnInk; }
             else if (Accent == MainframeTheme.Cyan) { face = IsPressed ? MainframeTheme.Brush("#123E43") : hot ? MainframeTheme.Brush("#0D2D31") : MainframeTheme.Deep; rim = lit ? MainframeTheme.Cyan : Loud ? MainframeTheme.DeepEdge : MainframeTheme.Brush("#1C545C"); ink = MainframeTheme.Cyan; }
             else if (Accent == MainframeTheme.Hot) { face = IsPressed ? MainframeTheme.Brush("#48121E") : hot ? MainframeTheme.Brush("#36101C") : MainframeTheme.Brush("#220C16"); rim = lit ? MainframeTheme.Brush("#FF7C7A") : MainframeTheme.Hot; ink = MainframeTheme.Brush("#FFA6A2"); }
-            else if (Heart) { face = IsPressed ? MainframeTheme.Pressed : hot ? MainframeTheme.Brush("#2E1222") : Toward(Color.Parse("#200E18"), Color.Parse("#361220"), Beat); rim = lit ? MainframeTheme.Rose : Toward(Color.Parse("#9C2838"), Color.Parse("#FF5D66"), Beat); ink = MainframeTheme.Brush(hot ? "#FFC2C5" : "#FF8A90"); }
+            else if (Heart) { face = IsPressed ? MainframeTheme.Pressed : hot ? MainframeTheme.Brush("#2E1222") : Toward(MainframeTheme.Tint("#200E18"), MainframeTheme.Tint("#361220"), Beat); rim = lit ? MainframeTheme.Rose : Toward(MainframeTheme.Tint("#9C2838"), MainframeTheme.Tint("#FF5D66"), Beat); ink = MainframeTheme.Brush(hot ? "#FFC2C5" : "#FF8A90"); }
             else { face = IsPressed ? MainframeTheme.Pressed : hot ? MainframeTheme.Hover : MainframeTheme.Field; rim = lit ? MainframeTheme.Hot : MainframeTheme.Edge; ink = Chevron ? MainframeTheme.Cyan : Accent; }
             context.DrawGeometry(face, new Pen(rim, 1), MainframeTheme.Cut(box));
             if (Chevron) MainframeTheme.Drop(context, w - 19, y, hot);
@@ -280,6 +338,15 @@ namespace CapriDesktop
             {
                 offFill = MainframeTheme.Brush("#9B322E"); offRim = MainframeTheme.Brush("#DE453F"); offInk = MainframeTheme.Brush("#FF9690");
                 onFill = over == 1 ? MainframeTheme.Brush("#0C2E32") : MainframeTheme.Deep; onRim = over == 1 ? MainframeTheme.DeepEdge : MainframeTheme.Brush("#102C30"); onInk = MainframeTheme.Brush(over == 1 ? "#6ED2D8" : "#1C4448");
+            }
+            if (MainframeTheme.Mono)
+            {
+                offFill = onFill = MainframeTheme.Field;
+                offRim = Checked ? (over == 0 ? MainframeTheme.Faint : MainframeTheme.Brim) : MainframeTheme.White;
+                offInk = Checked ? (over == 0 ? MainframeTheme.White : MainframeTheme.Faint) : MainframeTheme.White;
+                onRim = Checked ? MainframeTheme.Cyan : (over == 1 ? MainframeTheme.Faint : MainframeTheme.Brim);
+                onInk = Checked ? MainframeTheme.OnInk : (over == 1 ? MainframeTheme.White : MainframeTheme.Faint);
+                if (Checked) onFill = MainframeTheme.Cyan;
             }
             context.DrawGeometry(offFill, new Pen(offRim, 1), MainframeTheme.Cut(off, br: 0, bl: 5));
             context.DrawGeometry(onFill, new Pen(onRim, 1), MainframeTheme.Cut(on));

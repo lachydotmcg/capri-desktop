@@ -153,7 +153,7 @@ namespace CapriDesktop
         internal static void Button(Graphics graphics, RectangleF box, int kind, CallView view, bool hover, float s, CallFonts fonts)
         {
             bool muted = view.Listening && view.Muted;
-            Color fill = kind == 4 ? Red : muted && kind == 1 ? Color.FromArgb(46, 15, 26) : hover ? Neon.Hover : Neon.Well;
+            Color fill = kind == 4 ? Red : muted && kind == 1 ? Neon.Tone(46, 15, 26) : hover ? Neon.Hover : Neon.Well;
             Color edge = kind == 4 ? Red : kind == 6 ? Neon.Cyan : muted && kind == 1 ? Neon.Hot : hover ? Neon.Cyan : Neon.WellEdge;
             Color ink = kind == 4 ? Color.White : kind == 6 || kind == 7 || kind == 1 && !view.Listening ? Neon.Cyan : kind == 1 && muted ? Neon.Hot
                 : kind == 2 && !view.Discord || kind == 3 && !view.Captions ? Neon.Faint : Neon.Cyan;
@@ -377,7 +377,7 @@ namespace CapriDesktop
         protected override void OnPaint(PaintEventArgs e) { CallInk.Quality(e.Graphics); CallInk.Button(e.Graphics, ClientRectangle, Kind, View ?? new CallView(), hover, scale, fonts); }
     }
 
-    internal sealed partial class CallPill : Overlay
+    internal sealed partial class CallPill : Overlay, LookWindow
     {
         private const int Wide = 540, Tall = 142;
         internal event Action MicPressed, ExpandPressed, EndPressed, AgainPressed;
@@ -684,7 +684,7 @@ namespace CapriDesktop
         }
     }
 
-    internal sealed partial class CallPanel : Form
+    internal sealed partial class CallPanel : Form, LookWindow
     {
         private const int Wide = 614, Inset = 22, Gap = 12, TileY = 54, TileHigh = 202;
         internal const double Talks = 0.01;

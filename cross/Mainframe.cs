@@ -170,7 +170,7 @@ namespace CapriDesktop
         private static readonly int[][] FoldedLeft = { new[] { 232, 428 }, new[] { 478, 506 }, new[] { 644, 1121 }, new[] { 1232, 1284 }, new[] { 1284, 1312 } };
         private static readonly int[][] FoldedRight = { new[] { 166, 194 }, new[] { 400, 782 }, new[] { 978, 2028 } };
         private static readonly int[][] MissingLeft = { new[] { 428, 648 }, new[] { 672, 700 }, new[] { 854, 1121 }, new[] { 1150, 1314 }, new[] { 1342, 1728 } };
-        private static readonly int[][] MissingRight = { new[] { 222, 278 }, new[] { 400, 428 }, new[] { 876, 904 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
+        private static readonly int[][] MissingRight = { new[] { 250, 278 }, new[] { 400, 428 }, new[] { 876, 904 }, new[] { 978, 1028 }, new[] { 1056, 1180 }, new[] { 1408, 2028 } };
 
         internal Mainframe(Pet owner) : base("Mainframe")
         {
@@ -305,7 +305,8 @@ namespace CapriDesktop
             Toggle("Always on top", 380, 138, () => pet.OnTop, pet.SetOnTop);
             var frameSize = Slider("Mainframe size", FrameNames, 380, 166, () => Array.IndexOf(FrameSizes, Pet.FrameSize(pet.Saved.MainframeSize)), i => { }); frameSize.Deferred = true;
             frameSize.Released += () => { if (!syncing) pet.SetMainframeSize(FrameSizes[frameSize.Value]); };
-            Toggle("Head pats", 380, 194, () => pet.HeadPats, pet.SetHeadPats);
+            Slider("Mainframe colours", MainframeTheme.LookNames, 380, 194, () => MainframeTheme.ClampLook(pet.Saved.MainframeColours), pet.SetMainframeColours);
+            Toggle("Head pats", 380, 222, () => pet.HeadPats, pet.SetHeadPats);
             Section("WATCH", 380, 292);
             Toggle("Watch my screen", 380, 316, () => pet.Saved.Watch, on => pet.SetWatch(on));
             Toggle("Remember what she sees", 380, 344, () => !pet.Saved.NoCaughtUp, pet.SetCaughtUp).Switch = 68;
