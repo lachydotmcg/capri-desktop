@@ -131,6 +131,7 @@ namespace CapriDesktop
                 if (Brain.Greeting(8) != "Good morning, choom." || Brain.Greeting(23) != "Isn't it late, choom?" || Brain.Greeting(15) != "Miss me, choom?" || Brain.GreetingClip(15) != "miss") throw new Exception("Startup greetings came at the wrong hours.");
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
                 NewsChecks();
+                GuardChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1408,6 +1409,43 @@ namespace CapriDesktop
         {
             Point point = pet.PointToClient(at);
             return new Point(point.X + Math.Sign(at.X) * 0.25 / pet.RenderScaling, point.Y + Math.Sign(at.Y) * 0.25 / pet.RenderScaling);
+        }
+
+        // Runs work with Program.Guard catching, as it does outside smoke runs, and errors.txt pointed at guard-errors.txt so
+        // the run's own log stays clean. Returns the lines Guard wrote.
+        private string[] Caught(Action work)
+        {
+            string log = Brain.LogPath, scratch = Path.Combine(folder, "guard-errors.txt");
+            if (File.Exists(scratch)) File.Delete(scratch);
+            Brain.LogPath = scratch;
+            Program.Catching = true;
+            try { work(); }
+            finally { Program.Catching = false; Brain.LogPath = log; }
+            return File.Exists(scratch) ? File.ReadAllLines(scratch) : new string[0];
+        }
+
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        private static void GuardFault(int time)
+        {
+            try { throw new FormatException("Guard fault " + time); }
+            catch (FormatException inner) { throw new InvalidOperationException("A wrapped guard fault.", inner); }
+        }
+
+        // Program.Guard rethrows in smoke runs so a bug fails them, which left its catch path and Crashed's lines unrun.
+        private void GuardChecks()
+        {
+            bool rethrown = false;
+            try { Program.Guard(delegate { throw new TimeoutException("A smoke run's bug."); }); }
+            catch (TimeoutException) { rethrown = true; }
+            if (!rethrown) throw new Exception("Program.Guard swallowed a bug in a smoke run.");
+            string[] first = Caught(delegate { Program.Guard(delegate { GuardFault(1); }); });
+            if (first.Length < 2 || first.Length > 5 || !first[0].EndsWith(" | crash | - | FormatException: Guard fault 1", StringComparison.Ordinal) || first[1].IndexOf("GuardFault", StringComparison.Ordinal) < 0) throw new Exception("Program.Guard didn't write the innermost bug and where it was: " + string.Join(" / ", first));
+            for (int i = 1; i < first.Length; i++) if (first[i].IndexOf(" | crash | - | at ", StringComparison.Ordinal) < 0) throw new Exception("A crash line after the first wasn't a stack line: " + first[i]);
+            string[] again = Caught(delegate { Program.Guard(delegate { GuardFault(2); }); });
+            if (again.Length != 0) throw new Exception("The same bug from the same place was written twice in a minute: " + string.Join(" / ", again));
+            string[] other = Caught(delegate { Program.Guard(delegate { throw new ArgumentException("Another guard fault."); }); });
+            if (other.Length < 2 || !other[0].EndsWith(" | crash | - | ArgumentException: Another guard fault.", StringComparison.Ordinal)) throw new Exception("A different bug wasn't written after the first: " + string.Join(" / ", other));
+            checks.Add("PASS Program.Guard: a bug in a click or timer goes in errors.txt as its innermost type and message with up to four stack lines, the same one from the same place once a minute, and she carries on; smoke runs still fail on it");
         }
 
         private void DragChecks()
