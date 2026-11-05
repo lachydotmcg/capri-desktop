@@ -6,17 +6,61 @@ namespace CapriDesktop
 {
     internal static class SetupFiles
     {
+        // The package managers that can carry her. A silent install with --package <name> writes the name in Capri.package
+        // in her folder, and her updater says to update through that manager instead of updating herself.
+        internal static readonly string[] Managers = { "winget", "scoop", "chocolatey", "pacman" };
+        internal const string Marker = "Capri.package";
+
         internal static int Mode(string[] args)
         {
-            if (Array.IndexOf(args, "--silent") < 0) return 0;
-            bool remove = false;
-            foreach (string arg in args)
+            string package;
+            return Mode(args, out package);
+        }
+
+        // 0 opens a window, 1 installs silently and 2 removes her silently. --package only goes with a silent install, and
+        // anything else beside --silent or --package fails instead of opening a window a package manager can't click.
+        internal static int Mode(string[] args, out string package)
+        {
+            package = null;
+            if (Array.IndexOf(args, "--silent") < 0 && Array.IndexOf(args, "--package") < 0) return 0;
+            bool silent = false, remove = false;
+            for (int i = 0; i < args.Length; i++)
             {
-                if (arg == "--uninstall") remove = true;
-                else if (arg != "--silent") throw new ArgumentException("That silent setup command is invalid.");
+                if (args[i] == "--silent") silent = true;
+                else if (args[i] == "--uninstall") remove = true;
+                else if (args[i] == "--package" && package == null && i + 1 < args.Length)
+                {
+                    package = args[++i];
+                    if (Array.IndexOf(Managers, package) < 0) throw new ArgumentException("Capri doesn't know the package manager " + package + ". Use winget, scoop, chocolatey or pacman.");
+                }
+                else throw new ArgumentException("That silent setup command is invalid.");
             }
+            if (!silent) throw new ArgumentException("--package goes with --silent.");
+            if (remove && package != null) throw new ArgumentException("--package only goes with a silent install.");
             return remove ? 2 : 1;
         }
+
+        // The marker goes in whole or not at all: it's written under a new name nobody can guess, then swapped in, so a
+        // failed write leaves the old one as it was.
+        internal static void Mark(string folder, string package)
+        {
+            string marker = Path.Combine(folder, Marker);
+            string temporary = marker + "." + Guid.NewGuid().ToString("N") + ".new";
+            bool created = false;
+            try
+            {
+                FileStream stream = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                created = true;
+                using (stream)
+                using (StreamWriter writer = new StreamWriter(stream)) writer.Write(package);
+                if (File.Exists(marker)) File.Replace(temporary, marker, null);
+                else File.Move(temporary, marker);
+            }
+            finally { if (created && File.Exists(temporary)) File.Delete(temporary); }
+        }
+
+        // Once she's removed no package manager carries her, so an install by hand later updates herself again.
+        internal static void Unmark(string folder) { Patiently(delegate { File.Delete(Path.Combine(folder, Marker)); }); }
 
         internal static void ClearOld(string file) { Patiently(delegate { File.Delete(file + ".old"); }); }
 

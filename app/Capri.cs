@@ -1149,9 +1149,11 @@ namespace CapriDesktop
         // Where updates download. A smoke worker keeps its data in a folder of its own, so its check asks here.
         internal string Folder { get { return folder; } }
 
+        // The package manager that installed her, from the marker her installer writes, or null when she updates herself.
+        // "manual" or no marker leaves her updater alone; a marker she can't read or doesn't know still holds it back.
         internal string Package()
         {
-            string path = Path.Combine(Path.GetDirectoryName(app), "Capri.package");
+            string path = Path.Combine(Path.GetDirectoryName(app), SetupFiles.Marker);
             try { File.GetAttributes(path); }
             catch (FileNotFoundException) { return null; }
             catch (DirectoryNotFoundException) { return null; }
@@ -1160,8 +1162,7 @@ namespace CapriDesktop
             {
                 string name = File.ReadAllText(path).Trim();
                 if (name == "manual") return null;
-                if (name == "winget" || name == "scoop" || name == "chocolatey" || name == "pacman") return name;
-                return "your package manager";
+                return Array.IndexOf(SetupFiles.Managers, name) >= 0 ? name : "your package manager";
             }
             catch (Exception) { return "your package manager"; }
         }
@@ -21287,6 +21288,19 @@ namespace CapriDesktop
                 if (!refused) throw new Exception("Silent setup accepted " + flag + ".");
             }
             checks.Add("PASS silent install and uninstall flags work in either order, reject other commands and leave windowed setup flags alone");
+            string named;
+            if (SetupFiles.Mode(new[] { "--silent", "--package", "winget" }, out named) != 1 || named != "winget" || SetupFiles.Mode(new[] { "--package", "scoop", "--silent" }, out named) != 1 || named != "scoop"
+                || SetupFiles.Mode(new[] { "--silent", "--package", "chocolatey" }, out named) != 1 || named != "chocolatey" || SetupFiles.Mode(new[] { "--silent", "--package", "pacman" }, out named) != 1 || named != "pacman"
+                || SetupFiles.Mode(new[] { "--silent" }, out named) != 1 || named != null || SetupFiles.Mode(new[] { "--uninstall", "--silent" }, out named) != 2 || named != null)
+                throw new Exception("A package manager's silent install wasn't read with its name.");
+            foreach (string[] command in new[] { new[] { "--silent", "--package", "apt" }, new[] { "--silent", "--package", "Winget" }, new[] { "--silent", "--package", "0" }, new[] { "--silent", "--package", "-" }, new[] { "--silent", "--package" }, new[] { "--silent", "--package", "winget", "--package", "scoop" }, new[] { "--uninstall", "--silent", "--package", "winget" }, new[] { "--package", "winget" } })
+            {
+                bool refused = false;
+                try { SetupFiles.Mode(command, out named); }
+                catch (ArgumentException) { refused = true; }
+                if (!refused) throw new Exception("Silent setup accepted " + string.Join(" ", command) + ".");
+            }
+            checks.Add("PASS --silent --package names winget, scoop, chocolatey or pacman in either order; another or a missing name, a second --package, --package with --uninstall and --package without --silent fail instead of opening a window");
             string folder = Path.Combine(output, "setup-files-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             string file = Path.Combine(folder, "Uninstall.exe"), old = file + ".old", marker = Path.Combine(folder, ".capri-install"), other = Path.Combine(folder, "Uninstall-other.old");
@@ -21351,6 +21365,20 @@ namespace CapriDesktop
                 SetupFiles.RemoveApp(app);
                 SetupFiles.Gone(app);
                 checks.Add("PASS uninstall clears only its startup entry before removing the app, even when file cleanup fails");
+                string package = Path.Combine(folder, SetupFiles.Marker);
+                Updater reader = new Updater(folder, app, true);
+                SetupFiles.Mark(folder, "winget");
+                if (File.ReadAllText(package) != "winget" || reader.Package() != "winget") throw new Exception("A new package marker wasn't written or read back.");
+                SetupFiles.Mark(folder, "manual");
+                if (File.ReadAllText(package) != "manual" || reader.Package() != null) throw new Exception("A manual install didn't replace the package marker.");
+                File.SetAttributes(package, FileAttributes.ReadOnly);
+                blocked = false;
+                try { SetupFiles.Mark(folder, "scoop"); }
+                catch (IOException) { blocked = true; }
+                catch (UnauthorizedAccessException) { blocked = true; }
+                finally { File.SetAttributes(package, FileAttributes.Normal); }
+                if (!blocked || File.ReadAllText(package) != "manual" || Array.Exists(Directory.GetFiles(folder), delegate(string each) { return each.EndsWith(".new", StringComparison.OrdinalIgnoreCase); })) throw new Exception("A failed package marker write changed the old marker or left its new file behind.");
+                checks.Add("PASS the package marker is written whole and read back by her updater, a manual install replaces it, and a failed write keeps the old one and leaves no new file behind");
             }
             finally
             {
