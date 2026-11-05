@@ -2591,7 +2591,7 @@ namespace CapriDesktop
                 try { tts = SherpaOnnxCreateOfflineTts(ref config); }
                 finally { File.Delete(opening); }
             }
-            catch (IOException error) { throw new VoiceException(error.Message); }
+            catch (IOException error) { throw new VoiceException(Told(error)); }
             finally { foreach (IntPtr pointer in held) Marshal.FreeHGlobal(pointer); }
             if (tts == IntPtr.Zero) throw new VoiceException("Her free voice wouldn't start.");
             british = gb;
@@ -2602,6 +2602,12 @@ namespace CapriDesktop
         // so sherpa-onnx gets there through a plain-named junction.
         private static readonly object plainGate = new object();
         private static string plainRoot, plainAlias;
+        internal const string SpecialLetters = "Her voice files are in a folder with special letters in its name, and her voice can't read those.";
+        // When no junction could be made, her voices on this PC can't start there, and a cloud voice reads nothing from it.
+        internal const string SpecialVoice = "Her voice files are in a folder with special letters in its name, and her voices on this PC can't read those. A voice under CLOUD VOICE still works.";
+
+        // What a voice that couldn't open its files says: the special-letters folder gets its next step.
+        internal static string Told(IOException error) { return error.Message == SpecialLetters ? SpecialVoice : error.Message; }
 
         internal static string Plain(string value)
         {
@@ -2611,7 +2617,7 @@ namespace CapriDesktop
             {
                 if (plainRoot != root) { plainAlias = Junction(root); plainRoot = root; }
                 string plain = value.Replace(root, plainAlias);
-                if (!IsPlain(plain)) throw new IOException("Her voice files are in a folder with special letters in its name, and her voice can't read those.");
+                if (!IsPlain(plain)) throw new IOException(SpecialLetters);
                 return plain;
             }
         }
@@ -2642,7 +2648,7 @@ namespace CapriDesktop
                 catch (UnauthorizedAccessException) { }
                 catch (System.ComponentModel.Win32Exception) { }
             }
-            throw new IOException("Her voice files are in a folder with special letters in its name, and her voice can't read those.");
+            throw new IOException(SpecialLetters);
         }
 
         // Her ears run on the same sherpa-onnx, so they load it from here too.
@@ -3138,7 +3144,7 @@ namespace CapriDesktop
                 try { tts = LocalVoice.SherpaOnnxCreateOfflineTts(ref config); }
                 catch (SEHException) { tts = IntPtr.Zero; }
             }
-            catch (IOException error) { throw new VoiceException(error.Message); }
+            catch (IOException error) { throw new VoiceException(LocalVoice.Told(error)); }
             finally { foreach (IntPtr pointer in held) Marshal.FreeHGlobal(pointer); }
             if (tts == IntPtr.Zero) throw new VoiceException("That voice model wouldn't start. Check it's a Piper, Kokoro, Kitten or Pocket TTS model for sherpa-onnx.");
             opened = key;

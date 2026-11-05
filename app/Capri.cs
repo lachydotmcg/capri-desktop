@@ -10253,7 +10253,8 @@ namespace CapriDesktop
                 };
                 try { kokoro.Install(progress); kokoro.Warm(); }
                 catch (OperationCanceledException) { problem = "Cancelled. It picks up where it left off."; cancelled = true; }
-                catch (Exception error) { problem = Voice.Short(error.Message); }
+                // Her own voice lines are written for them and keep their fix, like the special-letters folder's; anything else is cut short.
+                catch (Exception error) { problem = error is VoiceException ? error.Message : Voice.Short(error.Message); }
                 if (problem != null && !cancelled && !testing) Brain.Log("free voice setup", -1, problem);
                 Post(delegate
                 {
@@ -29756,6 +29757,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallHearing", delegate { SmokeCallHearing(checks); });
             Section(checks, "SmokeRateLimits", delegate { SmokeRateLimits(checks); });
             Section(checks, "SmokeVoiceCredit", delegate { SmokeVoiceCredit(checks, output); });
+            Section(checks, "SmokeSpecialLetters", delegate { SmokeSpecialLetters(checks); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)

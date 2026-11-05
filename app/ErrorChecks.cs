@@ -450,6 +450,17 @@ namespace CapriDesktop
             }
         }
 
+        // Her voice files in a folder with special letters, with no plain-named junction to stand in, name a voice that still
+        // works, for her free voice and a custom model file alike; any other failure to open them is said as it was.
+        private static void SmokeSpecialLetters(List<string> checks)
+        {
+            string told = LocalVoice.Told(new IOException(LocalVoice.SpecialLetters));
+            if (told != LocalVoice.SpecialVoice || !told.EndsWith("A voice under CLOUD VOICE still works.", StringComparison.Ordinal) || !told.StartsWith(LocalVoice.SpecialLetters.Substring(0, 60), StringComparison.Ordinal)
+                || LocalVoice.Told(new IOException("Her ears aren't in yet.")) != "Her ears aren't in yet.")
+                throw new Exception("The special letters voice line lost its next step: " + told);
+            checks.Add("PASS her voice files in a folder with special letters say a voice under CLOUD VOICE still works, for her free voice and a model file, and other file failures keep their words");
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;
