@@ -30,6 +30,8 @@ namespace CapriDesktop
     internal sealed class CallSession
     {
         internal const string Reminder = "Call mode is on; say Capri to ask. With friend asks on, your mic or typing must confirm.";
+        // Lachy's exact words (5 Nov): Discord's echo and noise filters cut her voice after its first line.
+        internal const string EchoLine = "Turn Echo Cancellation and Noise Suppression Off, or else she'll be cut off.";
         internal const string Conversation = "That line stays conversation only.";
         internal const string OneAtATime = "One request at a time. I'm still waiting for an answer on the last one.";
         // What starts a line she heard from Discord rather than the user's mic.
@@ -333,7 +335,7 @@ namespace CapriDesktop
             if (chatting) StopChat();
             typer.CallMode = on;
             SavePreferences();
-            mainframe.VoiceNote(on ? "Call mode (beta) on. Say Capri for your requests." : "Call mode off.", false);
+            mainframe.VoiceNote(on ? "Call mode (beta) on. " + CallSession.EchoLine : "Call mode off.", false);
             if (wasChatting && !testing) ToggleChat();
             UpdateCallEars();
             mainframe.ShowCallApp();
@@ -1037,6 +1039,9 @@ namespace CapriDesktop
                 FinishCallCard();
                 if (callPanel.Visible || callPill.Visible) throw new Exception("The ended card timeout did not hide both call windows.");
                 ToggleCallMode();
+                if (mainframe.VoiceNoteText != "Call mode (beta) on. " + CallSession.EchoLine || LocalListening.IndexOf(CallSession.EchoLine, StringComparison.Ordinal) < 0)
+                    throw new Exception("Call mode didn't say to turn Echo Cancellation and Noise Suppression off: " + mainframe.VoiceNoteText);
+                checks.Add("PASS call mode's echo line: turning it on, and listening in it, say \"" + CallSession.EchoLine + "\"");
                 callPill.Press(7);
                 callPanel.PressButton(4);
                 if (!callPanel.Ended || !callPanel.Visible || callPill.Visible) throw new Exception("The panel hang-up skipped its ended card.");
