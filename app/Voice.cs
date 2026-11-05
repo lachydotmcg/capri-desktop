@@ -44,8 +44,18 @@ namespace CapriDesktop
     internal sealed class VoiceException : Exception
     {
         internal readonly int Status;
+        // Windows' own words and codes for what went wrong, for errors.txt only. The message is what people see.
+        internal readonly string Detail;
 
         internal VoiceException(string message, int status = 0) : base(message) { Status = status; }
+        internal VoiceException(string message, string detail) : base(message) { Detail = detail; }
+
+        // What errors.txt keeps: Windows' detail first, then the plain line.
+        internal static string Logged(Exception error)
+        {
+            VoiceException voice = error as VoiceException;
+            return voice != null && !string.IsNullOrEmpty(voice.Detail) ? voice.Detail + " " + error.Message : error.Message;
+        }
     }
 
     internal sealed class VoiceListing

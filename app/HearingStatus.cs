@@ -16,14 +16,36 @@ namespace CapriDesktop
     internal sealed class HearingStatus
     {
         internal readonly string Text;
+        // The whole reason with its fix, when the one-line Text had to leave some of it out. It's what she says and VOICE shows.
+        internal readonly string Full;
         internal readonly bool Problem;
         internal readonly HearingAction[] Actions;
 
-        internal HearingStatus(string text, bool problem, params HearingAction[] actions)
+        internal HearingStatus(string text, bool problem, params HearingAction[] actions) : this(text, null, problem, actions) { }
+
+        internal HearingStatus(string text, string full, bool problem, params HearingAction[] actions)
         {
             Text = text;
+            Full = full;
             Problem = problem;
             Actions = actions;
+        }
+
+        internal string Said { get { return Full ?? Text; } }
+
+        // The hearing line fits about this many characters before it's cut off.
+        internal const int LineRoom = 56;
+
+        // A line made from a reason: the lead, like "Mic failed: ", then the reason's first sentence, short enough for the line.
+        // A reason that names Windows speech itself needs no lead. Whatever the line leaves out, like the fix, goes in Full:
+        // the reason as it is when it stands on its own, or with the lead.
+        internal static HearingStatus Explained(string lead, string reason, bool alone, bool problem, params HearingAction[] actions)
+        {
+            string whole = Regex.Replace(reason ?? "", @"\s+", " ").Trim();
+            if (whole.StartsWith("Windows speech ", StringComparison.Ordinal) && lead.StartsWith("Windows speech", StringComparison.Ordinal)) { lead = ""; alone = true; }
+            string shown = Reason(whole, LineRoom - lead.Length);
+            string full = shown == whole.TrimEnd('.') ? null : alone ? whole : lead + whole;
+            return new HearingStatus(lead + shown, full, problem, actions);
         }
 
         internal static readonly string[] Choices = { "Auto", "Her own ears", "Windows speech" };
@@ -53,11 +75,27 @@ namespace CapriDesktop
             }
         }
 
-        internal static string Reason(string text)
+        internal static string Reason(string text) { return Reason(text, LineRoom); }
+
+        // One plain sentence for the line, without a lead-in the line already says. Too long, it keeps what comes before a colon
+        // or a comma, and only then ends at a word with "...", never mid-word.
+        internal static string Reason(string text, int room)
         {
-            string reason = Voice.Short(text ?? "No words came back").Replace("\r", " ").Replace("\n", " ").Trim().TrimEnd('.');
-            const string prefix = "Windows speech recognition didn't start: ";
-            return reason.StartsWith(prefix, StringComparison.Ordinal) ? reason.Substring(prefix.Length) : reason;
+            string reason = Regex.Replace(string.IsNullOrWhiteSpace(text) ? "No words came back" : text, @"\s+", " ").Trim();
+            foreach (string lead in new[] { "Windows speech recognition didn't start: ", "Can't open your mic: " })
+                if (reason.StartsWith(lead, StringComparison.Ordinal) && reason.Length > lead.Length) reason = reason.Substring(lead.Length);
+            int stop = reason.IndexOf(". ", StringComparison.Ordinal);
+            if (stop > 0) reason = reason.Substring(0, stop);
+            reason = reason.TrimEnd('.');
+            room = Math.Max(20, room);
+            foreach (string mark in new[] { ": ", ", " })
+            {
+                int at = reason.IndexOf(mark, StringComparison.Ordinal);
+                if (reason.Length > room && at >= 12) reason = reason.Substring(0, at);
+            }
+            if (reason.Length <= room) return reason;
+            int cut = reason.LastIndexOf(' ', room - 3);
+            return reason.Substring(0, cut > room / 2 ? cut : room - 3).TrimEnd(' ', ',', ';', ':') + "...";
         }
     }
 
@@ -180,7 +218,7 @@ namespace CapriDesktop
             if (hearingMics.Count == 0 && string.IsNullOrEmpty(hearingDefaultId) && !ears.Listening || hearingCaptureProblem == Dictation.NoMic || hearingSpeechProblem == Dictation.NoMic)
                 return new HearingStatus("No mic found", true, HearingAction.Sound, HearingAction.Type);
             if (hearingCaptureProblem != null)
-                return new HearingStatus("Mic failed: " + HearingStatus.Reason(hearingCaptureProblem), true, HearingAction.Sound, HearingAction.Type);
+                return HearingStatus.Explained("Mic failed: ", hearingCaptureProblem, true, true, HearingAction.Sound, HearingAction.Type);
             if (hearingCableOut) return new HearingStatus(HearingStatus.CableSpeakers, true, HearingAction.Output);
             if (ears.Muted) return new HearingStatus("Mic muted", true);
             if (hearingWindowsMuted) return new HearingStatus("Mic muted in Windows", true, HearingAction.Sound, HearingAction.Test);
@@ -189,7 +227,7 @@ namespace CapriDesktop
             if (!HearingLink && HearingChoice == 1 && !ownFits)
                 return new HearingStatus(IntPtr.Size == 8 ? "Her ears don't know this language yet" : "Her ears need 64-bit Windows", true, HearingAction.Windows);
             if (!HearingLink && HearingChoice != 2 && hearingInstallProblem != null && !OwnEars && !settingUpEars)
-                return new HearingStatus("Her ears didn't download: " + HearingStatus.Reason(hearingInstallProblem), true, HearingAction.Own, HearingAction.Windows);
+                return HearingStatus.Explained("Her ears didn't download: ", hearingInstallProblem, false, true, HearingAction.Own, HearingAction.Windows);
             // VB-CABLE's output as Windows' default mic isn't Windows speech failing: she hears their real mic offline, and VOICE
             // gives the whole reason. The line names the cable, so they know which default to change.
             if (!HearingLink && hearingSpeechProblem == CableDefault) return new HearingStatus("Hearing offline: your default mic is CABLE Output", false, HearingAction.Sound);
@@ -197,7 +235,7 @@ namespace CapriDesktop
             {
                 if (hearingSpeechProblem == Dictation.PrivacyOff)
                     return ownFits ? new HearingStatus("Online speech recognition is off", true, HearingAction.Speech, HearingAction.Own) : new HearingStatus("Online speech recognition is off", true, HearingAction.Speech);
-                return ownFits ? new HearingStatus("Windows speech failed: " + HearingStatus.Reason(hearingSpeechProblem), true, HearingAction.Own, HearingAction.Type) : new HearingStatus("Windows speech failed: " + HearingStatus.Reason(hearingSpeechProblem), true, HearingAction.Speech, HearingAction.Type);
+                return ownFits ? HearingStatus.Explained("Windows speech failed: ", hearingSpeechProblem, false, true, HearingAction.Own, HearingAction.Type) : HearingStatus.Explained("Windows speech failed: ", hearingSpeechProblem, false, true, HearingAction.Speech, HearingAction.Type);
             }
             Mic chosen = Ears.Find(preferences.Mic, hearingMics);
             if (windows && !hearingOffline && chosen != null && Dictation.OtherMic(chosen.Id, chosen.Name, dictation != null ? dictationMic : hearingDefaultId) != null)
@@ -208,7 +246,7 @@ namespace CapriDesktop
             if (!HearingLink && hearingResultProblem != null)
             {
                 string engine = windows ? "Windows speech" : "Her ears";
-                return windows && !ownFits ? new HearingStatus(engine + " failed: " + HearingStatus.Reason(hearingResultProblem), true, HearingAction.Test, HearingAction.Type) : new HearingStatus(engine + " failed: " + HearingStatus.Reason(hearingResultProblem), true, windows ? HearingAction.Own : HearingAction.Windows);
+                return windows && !ownFits ? HearingStatus.Explained(engine + " failed: ", hearingResultProblem, false, true, HearingAction.Test, HearingAction.Type) : HearingStatus.Explained(engine + " failed: ", hearingResultProblem, false, true, windows ? HearingAction.Own : HearingAction.Windows);
             }
             if (!HearingLink && (settingUpEars || earsAwaited || HearingChoice == 1 && !OwnEars))
             {
@@ -244,7 +282,8 @@ namespace CapriDesktop
             if (hearingSaid != hearingStatus.Text)
             {
                 hearingSaid = hearingStatus.Text;
-                EarsNote(hearingStatus.Text, hearingStatus.Problem);
+                // The whole reason with its fix, when the line had to shorten it.
+                EarsNote(hearingStatus.Said, hearingStatus.Problem);
             }
             return true;
         }

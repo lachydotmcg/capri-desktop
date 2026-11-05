@@ -10338,12 +10338,12 @@ namespace CapriDesktop
         private void EarsFailed(string problem)
         {
             hearingInstallProblem = problem;
-            if (problem == "Cancelled." || !chatting || !local) { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Text, true); return; }
+            if (problem == "Cancelled." || !chatting || !local) { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Said, true); return; }
             earsFailures++;
             int wait = EarsRetryWait(earsFailures);
             earsRetryAt = clock.Elapsed.TotalSeconds + wait;
             if (earsAwaited && earsFailures == 1) HearingNote();
-            else { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Text, true); }
+            else { UpdateHearing(); mainframe.VoiceNote(hearingStatus.Said, true); }
         }
 
         internal static int EarsRetryWait(int failures) { return Math.Min(300, 30 << Math.Max(0, Math.Min(4, failures - 1))); }
@@ -11563,7 +11563,7 @@ namespace CapriDesktop
             if (MicMix.IsCableOut(Ears.DefaultName())) { HearLater(CableDefault); return; }
             Dictation opened;
             try { opened = Dictation.Make(); }
-            catch (Exception error) { hearingSpeechProblem = "Windows speech recognition isn't on this PC: " + Voice.Short(error.Message); HearLater(hearingSpeechProblem); return; }
+            catch (Exception error) { Brain.Log("ears", -1, "Windows speech isn't on this PC (" + Dictation.Logged(error) + ")."); hearingSpeechProblem = Dictation.Missing; HearLater(hearingSpeechProblem); return; }
             opened.Language = preferences.Language;
             dictation = opened;
             opened.Heard = delegate(string text) { OnUi(delegate { if (dictation == opened) HeardDictation(text); }); };
@@ -29741,6 +29741,7 @@ namespace CapriDesktop
             Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
+            Section(checks, "SmokeHearingReasons", delegate { SmokeHearingReasons(checks, output); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)
@@ -41993,8 +41994,8 @@ namespace CapriDesktop
                             if (!earsReady || !ears.Muted || !pill.Muted || !earsShut || !mutedStart.Held || reply != "Mic muted" || reply != mainframe.HearingText) throw new Exception("Windows speech starting unmuted the mic or claimed it was listening.");
                             ToggleMic();
                             if (earsShut || mutedStart.Held || mainframe.VoiceStatus.IndexOf("Free voice chat on.", StringComparison.Ordinal) != 0) throw new Exception("Unmuting did not restore the ready status.");
-                            mutedStart.Lost("Windows speech recognition lost its internet connection.");
-                            if (!mutedStart.Disposed || dictation != null || !local || !earsReady || earsShut || reply != "Windows speech failed: Windows speech recognition lost its internet connection" || mainframe.HearingText != reply || mainframe.VoiceNoteText != reply) throw new Exception("Losing Windows speech did not fall back to offline hearing: " + reply + " / " + mainframe.VoiceStatus);
+                            mutedStart.Lost(Dictation.Offline);
+                            if (!mutedStart.Disposed || dictation != null || !local || !earsReady || earsShut || reply != Dictation.Offline || mainframe.HearingText != "Windows speech lost its internet connection" || mainframe.VoiceNoteText != reply) throw new Exception("Losing Windows speech did not fall back to offline hearing: " + reply + " / " + mainframe.VoiceStatus);
                             for (int i = 0; i < 3; i++) ears.Feed(setupNoise);
                             if (utterance == null) throw new Exception("Offline hearing did not gather sound after Windows speech was lost.");
                             StopChat();
@@ -42012,7 +42013,7 @@ namespace CapriDesktop
                             StopChat();
                             Dictation.Make = delegate { throw new TypeLoadException("Test missing WinRT."); };
                             StartLocal();
-                            if (!local || !earsReady || !mainframe.HearingText.StartsWith("Windows speech failed: Windows speech recognition isn't on this PC", StringComparison.Ordinal) || mainframe.VoiceNoteText != mainframe.HearingText) throw new Exception("A PC without Windows speech did not fall back to offline hearing: " + mainframe.VoiceStatus);
+                            if (!local || !earsReady || mainframe.HearingText != "Windows speech isn't on this PC" || mainframe.VoiceNoteText != Dictation.Missing || mainframe.VoiceNoteText.Contains("WinRT")) throw new Exception("A PC without Windows speech did not fall back to offline hearing: " + mainframe.VoiceStatus);
                             StopChat();
                             // CABLE Output as Windows' default mic (F66): Windows speech would hear her own voice in their mic, so she doesn't
                             // open it and hears their real mic offline instead, saying why.
@@ -42045,7 +42046,7 @@ namespace CapriDesktop
                                 if (!cableSkipped) throw new Exception("CABLE Output as the default mic still opened Windows speech, or didn't say why: " + cableDictations + " opened, " + cableStatus + " / " + cableHearing);
                                 checks.Add("PASS with CABLE Output as Windows' default mic, Windows speech stays shut, since it would hear her own voice in their mic, and she hears their real mic offline instead and says why under VOICE, and her hearing line names the cable without calling it a failure; any other default opens it as before");
                             });
-                            if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != "Windows speech recognition didn't start: Test other.") throw new Exception("Windows speech errors were not explained.");
+                            if (Dictation.Explain(new AggregateException(new COMException("Test privacy.", unchecked((int)0x80045509)))) != Dictation.PrivacyOff || Dictation.Explain(new UnauthorizedAccessException()) != Dictation.MicBlocked || Dictation.Explain(new COMException("Test no mic.", unchecked((int)0xC00DABE0))) != Dictation.NoMic || Dictation.Explain(new IOException("Test other.")) != Dictation.NotStarted) throw new Exception("Windows speech errors were not explained.");
                             string otherWith = @"\\?\SWD#MMDEVAPI#{0.0.1.00000000}.{B76A5175-3F7C}#{2eef81be}";
                             if (Dictation.OtherMic(null, null, otherWith) != null || Dictation.OtherMic("{0.0.1.00000000}.{b76a5175-3f7c}", "Yeti", otherWith) != null || Dictation.OtherMic("{0.0.1.00000000}.{aaaa}", "Yeti", null) != null || Dictation.OtherMic("{0.0.1.00000000}.{aaaa}", "Yeti", otherWith) != "Windows speech only hears your default mic, not Yeti. Make Yeti the default in Windows Settings > System > Sound > Input, or pick Mic: default here.") throw new Exception("The default mic check went wrong.");
                             Func<string> realDefaultMic = Dictation.DefaultMic;
