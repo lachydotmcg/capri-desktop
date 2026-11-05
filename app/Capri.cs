@@ -28026,7 +28026,7 @@ namespace CapriDesktop
                     if (found != null && found.StartsWith("What's new:", StringComparison.Ordinal)) throw new Exception("Update help took ordinary chat: " + ordinary);
                 }
                 if (SelfKnow.Matching("what's new in the latest update notes?") == null || !SelfKnow.Matching("what did this update add to call mode?").Contains(News.Facts)) throw new Exception("Update help missed a question that names the update.");
-                foreach (string fact in new[] { "Call mode (beta)", "CAPRI > Mods", "Capri-VR-Quest.apk", "BRAIN > Provider", "VOICE > Her speaker", "WATCH > Screens", "Pop-in times", "GAMES > Controls", "GAMES > Play...", "Code/Husk Mode" })
+                foreach (string fact in new[] { "CAPRI > Mainframe colours", "CAPRI > Mods > Browse mods", "BTD6", "task panel", "CAPRI > Head pats", "Call mode (beta)", "Copy error details" })
                     if (!News.Facts.Contains(fact)) throw new Exception("Windows update help missed " + fact);
                 CloseTalk(); Think = null;
                 Hear("what's new?");

@@ -14,33 +14,24 @@ namespace CapriDesktop
     // fixed text she shows without a brain all read it, so the next release only edits these lines.
     internal static class News
     {
-        internal const string Version = "0.8.3";
+        internal const string Version = "0.8.4";
 #if CROSS
         internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
-            + "Full Capri Mainframe: right-click Capri > Open Capri Mainframe. BRAIN, VOICE and CAPRI are on its main page; Settings offers Simple Settings and Advanced Settings.\n"
-            + "Mods: Mainframe > CAPRI > Mods opens the directory with previews, downloads and ratings. Import settings mods, colour sets and skins there.\n"
-            + "Code/Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode lets her show Claude Code and Codex at work, requests for your OK and short completion answers.\n"
-            + "Any OpenAI-compatible provider with a key: right-click Capri > Brain > Use my own provider with a key (OpenAI API)...\n"
-            + "Check-ins and head pats: Mainframe > Settings > CAPRI > Check in on me and Head pats.\n"
-            + "Follow-ups: Mainframe > Settings > BRAIN > Follow-up messages.\n"
-            + "Keep the computer awake during jobs: Mainframe > Settings > HABITS > Keep PC awake for jobs.\n"
-            + "Her notes in Obsidian: Mainframe > Settings > HABITS > Obsidian vault.";
-        internal const string Line = "I just updated to " + Version + ": Mainframe, Mods and Code/Husk Mode. Ask me what's new for the menu paths.";
+            + "Mainframe colours: Mainframe > Settings > CAPRI > Mainframe colours picks Night City, Black, White or Grey for the Mainframe.\n"
+            + "Skills: a skill mod is know-how for a game, and she follows it whenever she plays that game. Mainframe > CAPRI > Mods has them, starting with a BTD6 plan.\n"
+            + "Linux AppImage: Capri-linux-x64.AppImage is one file. Mark it as runnable in its Properties, then open it.\n"
+            + "Head pats: up-and-down rubs count too, and her pat line waits while she's talking. Mainframe > Settings > CAPRI > Head pats.\n"
+            + "Clearer errors: she says what went wrong in plain words. Right-click Capri > Help > Copy error details copies the details for support.";
+        internal const string Line = "I just updated to " + Version + ": Mainframe colours, game skills and the Linux AppImage. Ask me what's new for the menu paths.";
 #else
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Better voice calls: she can join Discord, pass on a message and open the game the call picks. Call mode also hears Zoom, Microsoft Teams, WhatsApp, Telegram, Slack, Signal, Skype, TeamSpeak, Mumble, Steam voice chat and browser calls. Calls have speaker captions and a small call pill; Mainframe > Settings > VOICE > Call mode (beta) and Call app pick the mode and app.\n"
-            + "Friends on a call can ask her for things: Mainframe > Settings > HABITS > Security > Friends on a call can ask, you confirm. It's off by default, and only your own mic or typing says yes.\n"
-            + "Mods: Mainframe > CAPRI > Mods > Browse mods opens the directory with previews, downloads and ratings. Import mod adds settings mods, colour sets, skins or code mods; code mods ask before running.\n"
-            + "Capri VR: Capri Room for Meta Quest 3 is the separate Capri-VR-Quest.apk download on her release page. Install with SideQuest or Meta Quest Developer Hub in Developer Mode, then open Library > Unknown Sources in the headset.\n"
-            + "Any OpenAI-compatible provider: Mainframe > BRAIN > Provider.\n"
-            + "Speaker and screens: Mainframe > VOICE > Her speaker and Mainframe > Settings > WATCH > Screens.\n"
-            + "Edit notes and memories in Mainframe: Settings > YOU > Open her notes and Settings > HABITS > Open her memories.\n"
-            + "Exact pop-in times: Mainframe > Settings > MOVES > Pop-in times.\n"
-            + "Dated reminders: ask for a reminder on a date and time, like 5 December at 9am.\n"
-            + "Teach game controls: Mainframe > Settings > GAMES > Controls. Mini games: GAMES > Play...\n"
-            + "Paused YouTube pages and comments: Mainframe > Settings > HABITS > Explore while I'm away.\n"
-            + "Code/Husk Mode: Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode lets her show Claude Code and Codex at work, requests for your OK and completion answers.";
-        internal const string Line = "I just updated to " + Version + ": better calls, Mods and Capri VR. Ask me what's new for the menu paths.";
+            + "Mainframe colours: Mainframe > Settings > CAPRI > Mainframe colours picks Night City, Black, White or Grey for the Mainframe, her menus, the Type box and her notes.\n"
+            + "Skills: a skill mod is know-how for a game, and she follows it whenever she plays that game. Mainframe > CAPRI > Mods > Browse mods has them, starting with a BTD6 plan.\n"
+            + "The task panel: when a job starts she teleports onto it, and back off it when the job's done.\n"
+            + "Head pats work in voice chat too, and up-and-down rubs count. Mainframe > Settings > CAPRI > Head pats.\n"
+            + "Call mode (beta) tells you to turn off Discord's Echo Cancellation and Noise Suppression, since they cut her off.\n"
+            + "Clearer errors: she says what went wrong and the fix in plain words. Right-click Capri > Help > Copy error details copies the details for support.";
+        internal const string Line = "I just updated to " + Version + ": Mainframe colours, game skills and clearer errors. Ask me what's new for the menu paths.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
