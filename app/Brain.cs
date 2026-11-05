@@ -818,7 +818,9 @@ namespace CapriDesktop
         private static readonly object noting = new object();
         // Only secrets and things that find them in real life stay out of me.md: Lachy wants every other memory to save.
         private static readonly Regex Personal = new Regex(@"\b(passwords?|passcodes?|pin (code|number)|log ?in details|credit card|card number|bank (account|details|number)|account number|sort code|routing number|social security|passport|(home|street|postal|email|e-mail) address|(my|their|his|her) address|postcode|post code|zip code|(phone|mobile|cell) number|surname|last name|full name|real name|date of birth|(i|they) live (in|at|on)|(my|their|his|her) school(?: is|'s| is called| called)|school (is )?called)\b|@\w+\.\w+|\d[\d\s-]{6,}\d|\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b", RegexOptions.IgnoreCase);
-        private static readonly Regex SensitiveLabel = new Regex(@"\b(school|address|phone|mobile|e-?mail|surname|last name|full name|real name|date of birth|passport|card|bank)\b", RegexOptions.IgnoreCase);
+        // A Get to know me label that is a personal detail, like "Email", "Card number" or "Home address". The detail has to end
+        // the label, so "Favourite card game" or "Phone model" is kept, and its value still goes through Revealing.
+        private static readonly Regex SensitiveLabel = new Regex(@"\b(school|address|phone|mobile|e-?mail|surname|last name|full name|real name|date of birth|passport|card|bank|passwords?|passcode|pin)( (number|no|name|details|account|code|address))?\W*$", RegexOptions.IgnoreCase);
         internal const string Private = "Addresses, schools, numbers and passwords stay out of my notes.";
         // SECURITY's Keep personal details out of her memories, on in every preset but Blackwall. On, her notes leave out any
         // address too, Get to know me's answers and what she saw leave out personal details, and a form's personal and card
