@@ -775,7 +775,7 @@ namespace CapriDesktop
         {
             if (CallModeOn) { if (problem != null) mainframe.VoiceNote(problem, true); else if (line != null) HearCall(line, true); return; }
             if (problem != null) { mainframe.VoiceNote(problem, true); return; }
-            if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote("I couldn't make out any words. Try closer to the mic.", false); return; }
+            if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote(NoWords, false); return; }
             mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);
             Commentary.Stage.Hear(text, true);
             Hear(text, text, "> you: ");

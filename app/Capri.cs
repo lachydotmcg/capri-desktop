@@ -12307,6 +12307,9 @@ namespace CapriDesktop
             pill.SetLevel(0);
         }
 
+        // Speech she heard but made no words of, said one way wherever it happens.
+        internal const string NoWords = "I couldn't make out any words. Try again closer to the mic.";
+
         private void Missed(string text, bool problem)
         {
             if (preferences.ListenCapri && !problem) return;
@@ -12454,7 +12457,7 @@ namespace CapriDesktop
                 transcribing = false;
                 nameOver = false;
                 CheckEars(clock.Elapsed.TotalSeconds);
-                if (!earsShut) Missed("I couldn't make out any words. Try closer to the mic.", false);
+                if (!earsShut) Missed(NoWords, false);
                 return;
             }
             int total = 0;
@@ -12495,7 +12498,7 @@ namespace CapriDesktop
                 mainframe.VoiceNote(problem, true);
                 return;
             }
-            if (string.IsNullOrEmpty(text)) { ModList.LogHearing("(heard speech, but made out no words)", false); HearingResult(null, false); Missed("I couldn't make out any words. Try again closer to the mic.", false); return; }
+            if (string.IsNullOrEmpty(text)) { ModList.LogHearing("(heard speech, but made out no words)", false); HearingResult(null, false); Missed(NoWords, false); return; }
             HearingResult(null, true);
             if (CallModeOn) { if (line != null) HearCall(line); return; }
             if (!VoiceForHer(text)) return;
