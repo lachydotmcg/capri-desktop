@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Text;
 
@@ -187,6 +188,100 @@ namespace CapriDesktop
                 RefreshHearingDevices();
                 mainframe.VoiceNote("", false);
             }
+        }
+
+        // What she says and shows of a tool result leaves out her brain's own instructions and tool names, like "Call ask and
+        // say..." or "list_windows names its program", while her brain still gets every word. A guard rail in a job shows them
+        // a plain line of its own in the task panel and in "Hit a snag: ...".
+        private static void SmokeBrainOnlyText(List<string> checks, string output)
+        {
+            string[,] spoken =
+            {
+                { "notes.txt is a text file. More text is available: call read_file with the same path and offset 24000.", "notes.txt is a text file. More text is available." },
+                { "plan.pdf is a PDF. Starting at page 1. More pages are available: call read_file with the same path and page 2 (offset 0).", "plan.pdf is a PDF. Starting at page 1. More pages are available." },
+                { "Couldn't drag: it needs start_coordinate and coordinate on the screenshot.", "Couldn't drag." },
+                { "Couldn't change Spotify's volume: it isn't open, or it has another name in the mixer: list_windows names its program.", "Couldn't change Spotify's volume: it isn't open, or it has another name in the mixer." },
+                { "There's no tool called fly.", "That didn't work." },
+                { "That didn't work: There's no tool called fly.", "That didn't work." },
+                { "There's no app_volume action called louder.", "That didn't work." },
+                { "There's no window action called explode.", "That didn't work." },
+                { "That didn't work: that media call was missing what it needs.", "That didn't work." },
+                { "Use call_errand for the call's choice.", "That didn't work." },
+                { "Call mode is on. Use call_say for their message and call_errand for the call's choice.", "Call mode is on." },
+                { "Opened Spotify. " + Computer.NoCard, "Opened Spotify. That didn't work: they put in card details themselves." },
+                { Computer.NoCart, "That didn't work: nothing went in the cart, because their job didn't ask for that." },
+                { "Opened Spotify.", "Opened Spotify." },
+                { "Called Jake on Discord, and the call's ringing.", "Called Jake on Discord, and the call's ringing." },
+                { "Opened read_file.txt in Notepad.", "Opened read_file.txt in Notepad." },
+                { "Spotify is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume, can still go up.", "Spotify is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume, can still go up." },
+                { "", "" }
+            };
+            for (int i = 0; i < spoken.GetLength(0); i++)
+                if (Hands.Shown(spoken[i, 0]) != spoken[i, 1]) throw new Exception("A tool result said the wrong part: \"" + spoken[i, 0] + "\" became \"" + Hands.Shown(spoken[i, 0]) + "\".");
+            string folder = Path.Combine(output, "brain-only-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            string longFile = Path.Combine(folder, "long notes.txt");
+            File.WriteAllText(longFile, new string('a', Files.Excerpt + 6000));
+            ReadFile part = Files.Open(longFile, null);
+            string partSaid = Hands.Shown(part.Line);
+            if (part.Line.IndexOf("call read_file with the same path and offset", StringComparison.Ordinal) < 0 || partSaid != "long notes.txt is a text file. More text is available.")
+                throw new Exception("A long file's read lost its next offset for her brain, or said read_file aloud: " + part.Line + " / " + partSaid);
+            checks.Add("PASS what she says of a tool result leaves out her brain's own instructions and tool names (call read_file, list_windows, start_coordinate, call_errand, a tool or action that doesn't exist), keeps what stands alone before them, says \"That didn't work.\" when nothing does, and leaves file names, phone calls and plain results alone; her brain still gets the whole line");
+
+            Func<Sight> lookWas = Computer.Look;
+            Func<string, ToolArguments, Sight, string> actWas = Computer.Act;
+            Func<IntPtr> frontWas = Computer.Front;
+            string securityWas = Security.Saved;
+            try
+            {
+                // Type passwords and card numbers off, the way most people have it, so the card box is theirs.
+                Security.Load(securityWas.Substring(0, Security.Secrets) + "0" + securityWas.Substring(Security.Secrets + 1));
+                Sight shop = new Sight { Window = new IntPtr(7), Title = "Blue hoodie - Shop", Program = "chrome" };
+                shop.Words.Add("We use cookies to give you the best experience.");
+                string[] names = { "Add to cart", "Accept all", "Reject all", "Card number", "Search the shop", "Full name" };
+                for (int i = 0; i < names.Length; i++) shop.Targets.Add(new Target { Number = i + 1, Role = i < 3 ? "button" : "box", Name = names[i], Line = i >= 3, Box = new Rectangle(10, 10 + 30 * i, 120, 20) });
+                Computer.Look = delegate { return shop; };
+                Computer.Front = delegate { return new IntPtr(7); };
+                int acts = 0;
+                Computer.Act = delegate(string name, ToolArguments a, Sight s) { acts++; return "Did it."; };
+                string[] script =
+                {
+                    "click{\"target\": \"1\"}", "click{\"target\": \"2\"}", "type{\"target\": \"4\", \"text\": \"4111 1111 1111 1111\"}", "type{\"target\": \"5\", \"text\": \"[Order Number]\"}",
+                    "type{\"target\": \"5\", \"text\": \"their email address\"}", "type{\"target\": \"5\", \"text\": \"$order\"}", "type{\"target\": \"6\", \"text\": \"Sam Smith\"}", "done{\"text\": \"Had a look.\"}"
+                };
+                int line = 0;
+                Job looking = new Job("have a look at the blue hoodie");
+                looking.Think = delegate(string system, string user, List<KeyValuePair<string, ToolArguments>> calls) { return script[Math.Min(line++, script.Length - 1)]; };
+                List<string> failed = new List<string>();
+                looking.Stepped = delegate(JobStep step) { if (step.Finished && step.Failed) failed.Add(step.Label); };
+                looking.Run();
+                string[] shown = { Computer.NoCartShown, "I don't accept cookies for you", Computer.NoCardShown, "\"[Order Number]\" is a blank, not the real words", "\"their email address\" isn't the real thing", "I had no note called order", Computer.NotGivenShown };
+                string[] brainGot = { Computer.NoCart, "Click [3] button \"Reject all\" instead.", Computer.NoCard, "Type the real text", "Call ask: tell them to sign in themselves", "Call note first, then write it.", Computer.NotGiven };
+                bool right = acts == 0 && failed.Count == shown.Length && looking.Steps.Count >= shown.Length;
+                for (int i = 0; right && i < shown.Length; i++)
+                    // What she nearly typed is quoted as it was; her own words around it talk to them as "you".
+                    right = failed[i] == shown[i] && Hands.Shown(failed[i]) == failed[i] && !System.Text.RegularExpressions.Regex.IsMatch(System.Text.RegularExpressions.Regex.Replace(failed[i], "\"[^\"]*\"", ""), @"\b(they|their|them|call)\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+                        && looking.Steps[i].IndexOf(brainGot[i], StringComparison.Ordinal) >= 0;
+                string snag = Asides.Status(looking.Report(), "how's it going?");
+                if (!right || snag.IndexOf(Computer.NotGivenShown, StringComparison.Ordinal) < 0 || snag.IndexOf("Call ask", StringComparison.Ordinal) >= 0)
+                    throw new Exception("A guard rail showed her brain's instructions, or her brain lost them: " + snag + " / " + acts + " acts / " + string.Join(" | ", failed.ToArray()) + " / " + string.Join(" | ", looking.Steps.ToArray()));
+                checks.Add("PASS a job's guard rails (no cart, no card, no cookies, a blank, a stand-in, a note she never made, a detail her job didn't give) show and say a plain line to you in the task panel and \"Hit a snag\", while her brain still gets what to do next");
+            }
+            finally
+            {
+                Computer.Look = lookWas;
+                Computer.Act = actWas;
+                Computer.Front = frontWas;
+                Security.Load(securityWas);
+            }
+
+            Dictionary<string, object> asks = HuskHook.Adapt(HuskJson.Map("hook_event_name", "PermissionRequest", "session_id", "s1", "tool_name", "exec_command", "tool_input", HuskJson.Map("cmd", "git  status")), "codex");
+            Dictionary<string, object> patches = HuskHook.Adapt(HuskJson.Map("hook_event_name", "PermissionRequest", "session_id", "s1", "tool_name", "apply_patch", "tool_input", HuskJson.Map("command", "*** Begin Patch")), "codex");
+            Dictionary<string, object> described = HuskHook.Adapt(HuskJson.Map("hook_event_name", "PermissionRequest", "session_id", "s1", "tool_name", "exec_command", "tool_input", HuskJson.Map("description", "Delete the build folder?")), "codex");
+            if (HuskJson.Text(asks, "message") != "It wants to run git status" || HuskJson.Text(patches, "message") != "It wants to change files." || HuskJson.Text(described, "message") != "Delete the build folder?"
+                || HuskHook.Wants("exec_command", HuskJson.Map()) != "It wants to run a command." || HuskHook.Wants("", HuskJson.Map()) != "")
+                throw new Exception("Codex's approval named its own tool: " + HuskJson.Text(asks, "message") + " / " + HuskJson.Text(patches, "message") + " / " + HuskJson.Text(described, "message"));
+            checks.Add("PASS Codex asking for your OK says what it wants to do, like \"It wants to run git status\", instead of \"Codex needs approval: exec_command\", and keeps its own description when it gives one");
         }
 
         private static bool Same(byte[] one, byte[] other)

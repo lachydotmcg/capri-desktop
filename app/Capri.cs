@@ -12313,7 +12313,7 @@ namespace CapriDesktop
                 DoneLine(told, tool, tool == "find_file" ? FileFinder.Spoken(result) : result);
                 return;
             }
-            Post(delegate { if (talkState != TalkState.Thinking) Answer(++asking, result, TalkState.Talking); });
+            Post(delegate { if (talkState != TalkState.Thinking) Answer(++asking, Hands.Shown(result), TalkState.Talking); });
         }
 
         // A tool call from voice chat. A call SECURITY holds is asked about at once instead of waiting its turn on the mouse.
@@ -12718,7 +12718,7 @@ namespace CapriDesktop
                 else Security.Drop();
             }
             // Volume, mute and music work before she has a brain, and so do her nap, her own moves and her animations.
-            if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Security.Said(DoTool(quick, quickArgs)); }; }
+            if (callReply == null && Hands.Heard(text, out quick, out quickArgs) && (quick == "hologram" || think == null && (quick == "clip" || quick == "nap" || quick == "watch_along" || quick == "draw" && string.IsNullOrEmpty(quickArgs.Description) || brain.Model == null && WithoutBrain(quick)))) { followAllowed = false; think = delegate { return Hands.Shown(Security.Said(DoTool(quick, quickArgs))); }; }
             if (think == null && fileMessage) think = delegate(string question) { string after; return brain.Ask(question, false, out after, callContext, delegate { return CallReply(ticket, question); }); };
             if (think == null && brain.Model == null && News.Matching(text) != null) think = delegate { return News.Facts; };
             if (think == null)
@@ -29742,6 +29742,7 @@ namespace CapriDesktop
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
             Section(checks, "SmokeHearingReasons", delegate { SmokeHearingReasons(checks, output); });
+            Section(checks, "SmokeBrainOnlyText", delegate { SmokeBrainOnlyText(checks, output); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)

@@ -1955,7 +1955,7 @@ namespace CapriDesktop
             {
                 string offlinePath = Files.PathIn(text);
                 if (offlinePath != null) ReadFile(offlinePath);
-                if (droppedFiles || offlinePath != null) return Attachments.Summary;
+                if (droppedFiles || offlinePath != null) return Hands.Shown(Attachments.Summary);
             }
 #endif
             if (model == null) throw new BrainException(Offline);
@@ -2215,7 +2215,7 @@ namespace CapriDesktop
                 // What she did leaves out the checks her brain made to find out where things stand.
                 List<string> deeds = Deeds(calls, results);
                 string held = Security.Reply(results);
-                done = held ?? string.Join(" ", deeds.ToArray());
+                done = held ?? Hands.Shown(string.Join(" ", deeds.ToArray()));
                 Cloud remote = Remote;
                 string pulled = held ?? (results.Count == 1 ? Hands.Pulled(results[0]) : null);
                 bool teaching = results.Exists(Hands.Diagrammed);

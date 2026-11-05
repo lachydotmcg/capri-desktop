@@ -608,7 +608,7 @@ namespace CapriDesktop
                     { "mute", "Spotify", null, "Spotify is already muted in the volume mixer." }, { "down", "spotify", null, "Turned Spotify down to 60% in the volume mixer, but it's muted." },
                     { "unmute", "spotify", null, "Unmuted Spotify: it's at 60% in the volume mixer." }, { "unmute", "spotify", null, "Spotify isn't muted: it's at 60% in the volume mixer." },
                     { "set", "spotify", "0", "Set Spotify to 0% in the volume mixer." }, { "down", "spotify", null, "Spotify is already at 0% in the volume mixer." },
-                    { "set", "discord", "100", "Set Discord to 100% in the volume mixer." }, { "up", "discord", null, "Discord is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume with media, can still go up." },
+                    { "set", "discord", "100", "Set Discord to 100% in the volume mixer." }, { "up", "discord", null, "Discord is already at 100% in the volume mixer. Its own volume slider inside the app, or the PC's volume, can still go up." },
                     { "set", "stuck", "80", "Couldn't set Stuck's volume: it's still at 30%." }, { "set", "spotify", "150", "Couldn't set Spotify's volume: it goes from 0 to 100." },
                     { "now", "steam", null, "steam hasn't made any sound since it opened, so it has no volume of its own in the mixer yet." },
                     { "set", "steam", "50", "Couldn't change steam's volume: it hasn't made any sound since it opened, so it has no volume of its own in the mixer yet." },

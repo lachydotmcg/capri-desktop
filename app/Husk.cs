@@ -266,6 +266,18 @@ namespace CapriDesktop
             return slim;
         }
 
+        // Codex names its tools, like exec_command, and those mean nothing to them, so its approval says what it wants to do.
+        internal static string Wants(string tool, Dictionary<string, object> input)
+        {
+            if (tool == "exec_command" || tool == "shell_command")
+            {
+                string command = Regex.Replace(HuskJson.Text(input, "cmd").Length > 0 ? HuskJson.Text(input, "cmd") : HuskJson.Text(input, "command"), @"\s+", " ").Trim();
+                return command.Length > 0 ? "It wants to run " + Cap(command, 120) : "It wants to run a command.";
+            }
+            if (tool == "apply_patch") return "It wants to change files.";
+            return tool.Length > 0 ? "It wants to use " + tool + "." : "";
+        }
+
         internal static Dictionary<string, object> Adapt(Dictionary<string, object> evt, string source)
         {
             if (evt == null || !(HuskJson.Get(evt, "hook_event_name") is string)) return null;
@@ -278,7 +290,7 @@ namespace CapriDesktop
             {
                 outEvent["hook_event_name"] = "Notification";
                 outEvent["notification_type"] = "permission_prompt";
-                outEvent["message"] = HuskJson.Text(input, "description").Length > 0 ? HuskJson.Text(input, "description") : "Codex needs approval: " + (tool.Length > 0 ? tool : "tool");
+                outEvent["message"] = HuskJson.Text(input, "description").Length > 0 ? HuskJson.Text(input, "description") : Wants(tool, input);
             }
             if (tool == "apply_patch")
             {

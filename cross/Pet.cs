@@ -900,7 +900,8 @@ namespace CapriDesktop
         private string LookAt(string focus)
         {
             Cloud remote = Brain.Remote;
-            if (Brain.Model == null) return "You can't see their screen: your brain is offline.";
+            // Failures are said as they are, so they're written for them, like Windows' lines.
+            if (Brain.Model == null) return "I can't see your screen while my brain is offline. Pick a brain " + Brain.BrainMenu + ".";
             byte[] shot = Eyes.Jpeg(Eyes.Shoot(), 1280);
             if (shot == null) return Eyes.Missing;
             string seen;
@@ -911,9 +912,9 @@ namespace CapriDesktop
             catch (BrainException error)
             {
                 if (remote == null || error.Message != Brain.Sightless(remote)) throw;
-                return "You can't see their screen: " + remote.Model + " can't look at pictures. Tell them to pick one that can " + Brain.BrainMenu + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : ".");
+                return "I can't see your screen: " + remote.Model + " can't look at pictures. Pick one that can " + Brain.BrainMenu + (remote.Kind == "nvidia" ? ", like nvidia/nemotron-3.5-super-vl-120b-a12b." : ".");
             }
-            if (seen.Length == 0) return "You looked but couldn't make out their screen.";
+            if (seen.Length == 0) return "I looked, but couldn't make out your screen clearly enough to describe it.";
             Brain.Saw(seen, null, true);
             return "You looked at their screen. You see: " + seen;
         }
