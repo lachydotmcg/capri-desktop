@@ -2309,7 +2309,7 @@ namespace CapriDesktop
     {
         internal const int Columns = 36;
         private const int MostRows = 7;
-        internal const int EndingRows = 5, SnagRows = 3;
+        internal const int EndingRows = 5, SnagRows = 5;
         private const string Speaker = "CAPRI: ";
         private readonly Timer ticks = new Timer();
         private readonly System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
@@ -2503,8 +2503,8 @@ namespace CapriDesktop
             if (Location != was && Moved != null) Moved();
         }
 
-        // A line too long for its rows keeps its first sentence and its last, which is usually the fix, like "Run Capri as
-        // administrator too" or "Pick one under BRAIN in Capri Mainframe", then only the first sentence's start before its colon
+        // A line too long for its rows keeps its first sentence and its last, which is usually the fix, like how to run her as
+        // administrator or "Pick one under BRAIN in Capri Mainframe", then only the first sentence's start before its colon
         // with the last, and only then is cut short.
         internal static List<string> Fitted(string lead, string text, int columns, int rows)
         {
@@ -2551,7 +2551,7 @@ namespace CapriDesktop
                 for (int i = hidden > 0 ? steps.Count - (MostRows - 1) : 0; i < steps.Count; i++)
                 {
                     Color ink = steps[i].Failed ? Look.Red : steps[i].Finished ? Look.Dim : Look.Neon;
-                    // The newest snag wraps onto up to three rows, so its fix shows, like "Run Capri as administrator too".
+                    // The newest snag wraps onto up to five rows, like her ending, so its fix shows, like how to run her as administrator.
                     if (i == snag)
                     {
                         List<string> wrapped = Fitted("", steps[i].Label, Columns - 2, SnagRows);

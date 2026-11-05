@@ -307,7 +307,7 @@ namespace CapriDesktop
             bool fits = true;
             foreach (List<string> each in new[] { snag, lost, plain, endless }) foreach (string row in each) if (Look.Cells(row) > (each == lost ? TaskPanel.Columns : room)) fits = false;
             string snagText = string.Join(" ", snag.ToArray()), lostText = string.Join(" ", lost.ToArray());
-            if (!fits || snag.Count > TaskPanel.SnagRows || snagText.IndexOf("Run Capri as administrator too", StringComparison.Ordinal) < 0 || !snagText.StartsWith("Couldn't click or type there", StringComparison.Ordinal)
+            if (!fits || snag.Count > TaskPanel.SnagRows || !snagText.EndsWith(Computer.AsAdmin, StringComparison.Ordinal) || !snagText.StartsWith("Couldn't click or type there", StringComparison.Ordinal)
                 || lost.Count > TaskPanel.EndingRows || !lost[0].StartsWith("CAPRI: Got lost", StringComparison.Ordinal) || !lostText.EndsWith("Pick one under BRAIN in Capri Mainframe.", StringComparison.Ordinal)
                 || plain.Count != 1 || plain[0] != "Couldn't find the Send button" || endless.Count != TaskPanel.SnagRows || !endless[TaskPanel.SnagRows - 1].EndsWith("...", StringComparison.Ordinal))
                 throw new Exception("The task panel cut a fix off: " + snagText + " / " + lostText + " / " + string.Join(" ", plain.ToArray()) + " / " + string.Join(" ", endless.ToArray()));
@@ -322,7 +322,7 @@ namespace CapriDesktop
             using (Bitmap frame = TaskPanel.Frame("end the task in task manager", shortSnag, null, "done", "", false, 1, 1)) doneHigh = frame.Height;
             if (longHigh - shortHigh != 19 * (snag.Count - 1) || olderHigh != shortHigh || endHigh - doneHigh != 19 * (lost.Count - 1))
                 throw new Exception("The task panel didn't make room for a fix: " + shortHigh + " / " + longHigh + " / " + olderHigh + " / " + endHigh + " / " + doneHigh);
-            checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under BRAIN in Capri Mainframe.\", the newest failed step wraps to show \"Run Capri as administrator too\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
+            checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under BRAIN in Capri Mainframe.\", the newest failed step wraps to show how to run her as administrator, through \"pick Run as administrator\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
         }
 
         // Call mode hearing offline is its own choice, so the hearing line and VOICE show it as a grey note, while Windows speech
