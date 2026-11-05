@@ -7229,6 +7229,7 @@ namespace CapriDesktop
         {
             name = (name ?? "").Trim();
             if (name.Length == 0) return "Type a model name first.";
+            if (brain.Remote != null && brain.Remote.Code) return brain.Remote.CodeNote;
             string address = Brain.LocalAddress(preferences.LocalAddress);
             if (preferences.Tier == 0 && address != null && (localAddressTyped || brain.Model == null))
             {
@@ -10342,6 +10343,7 @@ namespace CapriDesktop
 
         internal void ChooseModel(string name, bool keep = true)
         {
+            if (brain.Remote != null && brain.Remote.Code && name != Brain.Fastest) return;
             if (name == brain.Model) return;
             if (keep && AfterLine(delegate { ChooseModel(name, keep); })) return;
             brain.Cancel();
@@ -10460,6 +10462,7 @@ namespace CapriDesktop
             ++providerListing;
             ++cloudListing;
             key = (key ?? "").Trim();
+            if (Cloud.IsCode(key)) key = key.ToUpperInvariant();
             string kind = Cloud.KindOf(key);
             if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : Brain.NotAKey, true); return; }
             if (targetTier == 1 && !Cloud.MediumKind(kind)) { mainframe.OfferPaidText(key); return; }
@@ -13477,6 +13480,7 @@ namespace CapriDesktop
                     {
                         if (stuck && ticket == asking && Hops(remote, switches)) { Hear(text, shown, prompt, switches + 1, callInput, callHeard); return; }
                         if (problem != null && ticket == asking) mainframe.ShowProblem(Brain.Brief(problem) ?? (problem.Length > 60 ? problem.Substring(0, 57) + "..." : problem));
+                        else if (ticket == asking && remote != null && remote.Code && brain.Remote == remote) mainframe.ShowCloud(remote, cloudModels);
                         if (ticket == asking && followAllowed && state == TalkState.Talking && FollowUpAllowed()) followUp.Hold(followLine, ticket, followInput, followMic);
                         said = CallLine(ticket, said);
                         if (CallHands(ticket)) callSession.Keep(callUserVersion, callRecord, said, Brain.Recall, delegate { return ticket == asking; });
@@ -31746,6 +31750,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClipPopup", delegate { SmokeClipPopup(checks, output); });
             Section(checks, "SmokeCallMode", delegate { SmokeCallMode(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeCallApps", delegate { SmokeCallApps(checks); });
+            Section(checks, "SmokeCapriCodes", delegate { SmokeCapriCodes(checks); });
             Section(checks, "SmokeCallErrands", delegate { SmokeCallErrands(checks); });
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
@@ -33751,6 +33756,90 @@ namespace CapriDesktop
                 callCaptions.Clear(); foreach (CallPart part in captionsWas) callCaptions.Enqueue(part);
                 simpleTest = simpleWas;
                 SavePreferences(); mainframe.ShowCallApp(); mainframe.ShowSettings(settingsWas);
+            }
+        }
+
+        private void SmokeCapriCodes(System.Collections.Generic.List<string> checks)
+        {
+            string codeKey = "CAPRI-0123-4567-89AB-CDEF", codeTyped = "  capri-0123-4567-89ab-cdef  ";
+            if (!Cloud.IsCode(codeKey) || !Cloud.IsCode(codeTyped) || Cloud.KindOf(codeTyped) != "anthropic" || Cloud.IsCode("CAPRI-0123-4567-89AI-CDEF") || Cloud.IsCode("CAPRI-0123-4567-89AU-CDEF") || Cloud.IsCode(codeKey + "-0000")) throw new Exception("Capri codes were sorted wrong.");
+            Cloud codeCloud = new Cloud(codeTyped, "claude-sonnet-5-5"), realKeyCloud = new Cloud("sk-ant-test", "claude-sonnet-5-5");
+            codeCloud.Model = "claude-sonnet-5-5";
+            if (!codeCloud.Code || !codeCloud.Claude || codeCloud.Key != codeKey || codeCloud.Model != Brain.Fastest || realKeyCloud.Code || realKeyCloud.Model != "claude-sonnet-5-5" || realKeyCloud.Key != "sk-ant-test") throw new Exception("A Capri code didn't keep Haiku or changed a real key.");
+            if (Brain.ClaudeAddress(codeTyped, "/messages") != "https://capri-reactions.lachydotmcg.workers.dev/brain/v1/messages" || Brain.ClaudeAddress(realKeyCloud.Key, "/messages") != Brain.Anthropic + "/v1/messages") throw new Exception("A Capri code or real key picked the wrong address.");
+            if (Brain.Redacted(codeTyped).Trim() != "[redacted]") throw new Exception("A Capri code could reach a log.");
+            checks.Add("PASS Capri codes accept lowercase and outer spaces, reject other shapes, keep Haiku 5.5 and use the worker while real Claude keys keep their model and address");
+            System.Collections.Generic.List<string> codeAsked = new System.Collections.Generic.List<string>(), realKeyAsked = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener codeFake, realKeyFake;
+            string[] codeRefusals = { "That Capri code isn't right.", "That Capri code was switched off.", "That Capri code has expired.", "That Capri code has used up its budget." };
+            string codeReply = "{\"content\":[{\"type\":\"text\",\"text\":\"Code brain online.\"}],\"stop_reason\":\"end_turn\"}";
+            System.Collections.Generic.List<string> codeReplies = new System.Collections.Generic.List<string> { "{\"data\":[{\"type\":\"model\",\"id\":\"claude-haiku-5-5\",\"display_name\":\"Claude Haiku 5.5\"}],\"has_more\":false}", codeReply, codeReply };
+            for (int codeIndex = 0; codeIndex < codeRefusals.Length; codeIndex++) codeReplies.Add("!" + (codeIndex == 0 ? "401" : "403") + " {\"type\":\"error\",\"error\":{\"type\":\"" + (codeIndex == 0 ? "authentication_error" : "permission_error") + "\",\"message\":" + Voice.Quote(codeRefusals[codeIndex]) + "}}");
+            string codeAddress = FakeServer(codeReplies.ToArray(), codeAsked, out codeFake, headers: "capri-code-left: 3.42\r\ncapri-code-expires: 2027-12-06T00:00:00Z\r\n");
+            string realKeyAddress = FakeServer(new[] { codeReply }, realKeyAsked, out realKeyFake);
+            string codesBefore = Brain.Codes, anthropicBeforeCode = Brain.Anthropic, modelBeforeCode = brain.Model;
+            Cloud remoteBeforeCode = brain.Remote;
+            try
+            {
+                Brain.Codes = codeAddress + "/brain";
+                Brain.Anthropic = realKeyAddress;
+                System.Collections.Generic.List<string> codeModels = Brain.CloudModels(codeTyped);
+                if (codeModels.Count != 1 || codeModels[0] != Brain.Fastest) throw new Exception("A code didn't list only Haiku.");
+                Brain codeBrain = new Brain { Remote = codeCloud, Model = codeCloud.Model };
+                if (codeBrain.Advises || !codeBrain.Drives) throw new Exception("A code offered another model or lost her hands.");
+                mainframe.ShowCloud(codeCloud, new System.Collections.Generic.List<string> { Brain.Fastest, "claude-sonnet-5-5" });
+                if (!mainframe.Status.EndsWith(" | Capri code: Claude Haiku 5.5.", StringComparison.Ordinal) || mainframe.BrainChoices.Length != 1 || mainframe.BrainChoices[0] != "Claude Haiku 5.5") throw new Exception("The code note or fixed model picker was wrong.");
+                mainframe.PickBrain(0);
+                brain.Remote = codeCloud;
+                brain.Model = Brain.Fastest;
+                ChooseModel("claude-sonnet-5-5");
+                if (brain.Model != Brain.Fastest || ChooseCustomModel("claude-sonnet-5-5", null) != codeCloud.CodeNote) throw new Exception("A code let a custom model replace Haiku.");
+                brain.Remote = remoteBeforeCode;
+                brain.Model = modelBeforeCode;
+                if (codeBrain.Ask("hello") != "Code brain online.") throw new Exception("The code brain reply was wrong.");
+                mainframe.ShowCloud(codeCloud, codeModels);
+                if (codeCloud.CodeNote != "Capri code: Claude Haiku 5.5, $3.42 left until 6 Dec." || !mainframe.Status.EndsWith(" | " + codeCloud.CodeNote, StringComparison.Ordinal)) throw new Exception("The code note didn't read the reply headers: " + codeCloud.CodeNote);
+                System.Net.WebHeaderCollection codeHeaders = new System.Net.WebHeaderCollection();
+                codeHeaders["capri-code-left"] = "2.00";
+                codeHeaders["capri-code-expires"] = "";
+                codeCloud.ReadCode(codeHeaders);
+                if (codeCloud.CodeNote != "Capri code: Claude Haiku 5.5, $2.00 left.") throw new Exception("A code without an expiry showed a date.");
+                codeHeaders["capri-code-left"] = "NaN";
+                codeCloud.ReadCode(codeHeaders);
+                if (codeCloud.CodeNote != "Capri code: Claude Haiku 5.5, $2.00 left.") throw new Exception("A bad code header replaced the note.");
+                ClaudeReply codeDriven = codeBrain.Drive("Say hello.", "[]", "[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}]", false, true);
+                if (codeDriven.Content == null || codeDriven.Content[0].Text != "Code brain online.") throw new Exception("Her hands didn't use the code brain.");
+                foreach (string codeRefusal in codeRefusals)
+                {
+                    bool codeTold = false;
+                    try { codeBrain.Ask("hello again"); }
+                    catch (BrainException codeError) { codeTold = codeError.Told && codeError.Message == codeRefusal; }
+                    if (!codeTold) throw new Exception("A code refusal lost its plain line: " + codeRefusal);
+                }
+                Brain realKeyBrain = new Brain { Remote = realKeyCloud, Model = realKeyCloud.Model };
+                if (realKeyBrain.Ask("hello") != "Code brain online.") throw new Exception("A real Claude key stopped working.");
+                mainframe.ShowCloud(realKeyCloud, new System.Collections.Generic.List<string> { realKeyCloud.Model });
+                if (!mainframe.Status.EndsWith(" | Using your Anthropic key", StringComparison.Ordinal)) throw new Exception("A real Claude key got a code note.");
+                string[] codeSent, realKeySent;
+                lock (codeAsked) codeSent = codeAsked.ToArray();
+                lock (realKeyAsked) realKeySent = realKeyAsked.ToArray();
+                if (codeSent.Length != 7 || codeSent[0].IndexOf("GET /brain/v1/models?limit=100 ", StringComparison.Ordinal) < 0) throw new Exception("A code checked the wrong model list.");
+                for (int codeIndex = 0; codeIndex < codeSent.Length; codeIndex++)
+                {
+                    if (codeSent[codeIndex].IndexOf("x-api-key: " + codeKey, StringComparison.Ordinal) < 0 || codeSent[codeIndex].IndexOf("anthropic-version: 2026-10-21", StringComparison.Ordinal) < 0) throw new Exception("A code request had the wrong headers.");
+                    if (codeIndex > 0 && (codeSent[codeIndex].IndexOf("POST /brain/v1/messages ", StringComparison.Ordinal) < 0 || codeSent[codeIndex].IndexOf("\"model\":\"claude-haiku-5-5\"", StringComparison.Ordinal) < 0 || codeSent[codeIndex].IndexOf("advisor_20260301", StringComparison.Ordinal) >= 0)) throw new Exception("A code request left Haiku or the worker.");
+                }
+                if (realKeySent.Length != 1 || realKeySent[0].IndexOf("POST /v1/messages ", StringComparison.Ordinal) < 0 || realKeySent[0].IndexOf("x-api-key: sk-ant-test", StringComparison.Ordinal) < 0 || realKeySent[0].IndexOf("\"model\":\"claude-sonnet-5-5\"", StringComparison.Ordinal) < 0) throw new Exception("A real key went through the code worker or changed model.");
+                checks.Add("PASS a code lists only Haiku, keeps its picker fixed, sends chat and hands through the worker, shows dollars and optional expiry from headers, and keeps every refusal's plain line; a real Claude key still goes straight to Anthropic");
+            }
+            finally
+            {
+                Brain.Codes = codesBefore;
+                Brain.Anthropic = anthropicBeforeCode;
+                brain.Remote = remoteBeforeCode;
+                brain.Model = modelBeforeCode;
+                codeFake.Stop();
+                realKeyFake.Stop();
             }
         }
 

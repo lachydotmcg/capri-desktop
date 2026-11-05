@@ -328,8 +328,11 @@ namespace CapriDesktop
         internal readonly string Kind;
         internal readonly int Port;
         internal readonly string Host;
-        internal volatile string Model;
-        internal Cloud(string key, string model) { Key = key; Kind = KindOf(key); Model = model; }
+        internal readonly bool Code;
+        private volatile string model;
+        internal string Model { get { return Code ? Brain.Fastest : model; } set { model = Code ? Brain.Fastest : value; } }
+        internal volatile string CodeNote = "Capri code: Claude Haiku 5.5.";
+        internal Cloud(string key, string model) { Code = IsCode(key); Key = Code ? key.Trim().ToUpperInvariant() : key; Kind = KindOf(Key); Model = model; }
         internal Cloud(int port, string model, string address = null) { Host = Brain.LocalAddress(address) ?? Brain.LocalHost(port); Port = new Uri(Host).Port; Kind = "local"; Model = model; }
         internal bool Claude { get { return Kind == "anthropic"; } }
         internal string Name { get { return Kind == "local" ? Brain.ServerName(Port) : Kind == "anthropic" ? "Claude" : Kind == "google" ? "Gemini" : Kind == "openai" ? "ChatGPT" : Company; } }
@@ -338,6 +341,19 @@ namespace CapriDesktop
         internal string Source { get { return Kind + (Kind == "local" ? "|" + Host : "") + "|" + Model; } }
         internal string Sight { get { return Kind == "local" || Kind == "google" || Kind == "openrouter" ? Source : Model; } }
 
+        internal static bool IsCode(string key) { return Regex.IsMatch((key ?? "").Trim().ToUpperInvariant(), @"\ACAPRI(-[0-9A-HJKMNP-TV-Z]{4}){4}\z"); }
+
+        internal void ReadCode(WebHeaderCollection headers)
+        {
+            if (!Code) return;
+            decimal left;
+            if (!decimal.TryParse(headers["capri-code-left"], System.Globalization.NumberStyles.AllowDecimalPoint, System.Globalization.CultureInfo.InvariantCulture, out left) || left < 0) return;
+            string note = "Capri code: Claude Haiku 5.5, $" + left.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) + " left";
+            DateTime ends;
+            if (DateTime.TryParse(headers["capri-code-expires"], System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal, out ends)) note += " until " + ends.ToString("d MMM", System.Globalization.CultureInfo.InvariantCulture);
+            CodeNote = note + ".";
+        }
+
         internal static string KindOf(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
@@ -345,7 +361,7 @@ namespace CapriDesktop
             if (key.StartsWith("AIza", StringComparison.Ordinal) || key.StartsWith("AQ.", StringComparison.Ordinal)) return "google";
             if (key.StartsWith("sk-or-", StringComparison.Ordinal)) return "openrouter";
             if (key.StartsWith("sk-nous-", StringComparison.Ordinal)) return null;
-            if (key.StartsWith("sk-ant-", StringComparison.Ordinal)) return "anthropic";
+            if (key.StartsWith("sk-ant-", StringComparison.Ordinal) || IsCode(key)) return "anthropic";
             if (key.StartsWith("nvapi-", StringComparison.Ordinal)) return "nvidia";
             if (Regex.IsMatch(key, "^sk-[0-9a-f]{32}$")) return "deepseek";
             return key.StartsWith("sk-", StringComparison.Ordinal) ? "openai" : null;
@@ -377,6 +393,7 @@ namespace CapriDesktop
         internal static string Ollama = "http://127.0.0.1:11434";
         internal static string OpenAi = "https://api.openai.com";
         internal static string Anthropic = "https://api.anthropic.com";
+        internal static string Codes = "https://capri-reactions.lachydotmcg.workers.dev/brain";
         internal static string DeepSeek = "https://api.deepseek.com";
         internal static string Nvidia = "https://integrate.api.nvidia.com";
         internal static string Google = "https://generativelanguage.googleapis.com/v1beta/openai";
@@ -1653,7 +1670,7 @@ namespace CapriDesktop
         {
             string kind = Cloud.KindOf(key);
             bool claude = kind == "anthropic";
-            HttpWebRequest request = Create(Address(kind, "/models") + (claude ? "?limit=100" : ""), 30000);
+            HttpWebRequest request = Create((claude ? ClaudeAddress(key, "/models") : Address(kind, "/models")) + (claude ? "?limit=100" : ""), 30000);
             Sign(request, key, claude);
             try
             {
@@ -1792,6 +1809,8 @@ namespace CapriDesktop
             throw new BrainException("That key's provider isn't supported.", true);
         }
 
+        internal static string ClaudeAddress(string key, string path) { return (Cloud.IsCode(key) ? Codes : Anthropic) + "/v1" + path; }
+
         internal static bool Stalled(Exception error)
         {
             WebException web = error as WebException;
@@ -1852,7 +1871,7 @@ namespace CapriDesktop
             lock (headerKeys) headerKey = headerKeys.Contains(Door(key, request.RequestUri.AbsoluteUri));
             if (headerKey) { request.Headers["x-goog-api-key"] = key; return; }
             if (!claude) { request.Headers["Authorization"] = "Bearer " + key; return; }
-            request.Headers["x-api-key"] = key;
+            request.Headers["x-api-key"] = Cloud.IsCode(key) ? key.Trim().ToUpperInvariant() : key;
             request.Headers["anthropic-version"] = "2026-10-21";
         }
 
@@ -3148,13 +3167,13 @@ namespace CapriDesktop
                 if (fallback) request.Headers["anthropic-beta"] = "server-side-fallback-2026-07-01";
             };
             string listed = tools ? claudeTools ?? Hands.ClaudeTools : null;
-            ClaudeReply reply = Send<ClaudeReply>(Anthropic + "/v1/messages", body, CloudWait, listed, sign, parts, ticket);
+            ClaudeReply reply = Send<ClaudeReply>(ClaudeAddress(remote.Key, "/messages"), body, CloudWait, listed, sign, parts, ticket, remote.Key);
             Func<ClaudeReply, bool> cut = delegate(ClaudeReply said) { return said.StopReason == "max_tokens"; };
             if (routing && cut(reply) && reply.Content != null && Array.Exists(reply.Content, block => block != null && block.Type == "tool_use"))
                 reply = Longer(reply, body.Limit, cut, Whole, delegate(int room)
                 {
                     body.Limit = room;
-                    return Send<ClaudeReply>(Anthropic + "/v1/messages", body, Math.Max(CloudWait, room * 50), listed, sign, parts, ticket);
+                    return Send<ClaudeReply>(ClaudeAddress(remote.Key, "/messages"), body, Math.Max(CloudWait, room * 50), listed, sign, parts, ticket, remote.Key);
                 });
             if (reply.StopReason == "refusal") return Declined;
             if (routing && cut(reply)) return CutShort(Spoken(reply, new List<KeyValuePair<string, ToolArguments>>()), Whole(reply), calls);
@@ -3175,7 +3194,7 @@ namespace CapriDesktop
 
         // Claude 5.5 and the other toolset models drive the mouse and keyboard from screenshots themselves.
         // Her fast hands can ask the brain they picked, or Sonnet when that's Haiku (Lachy, 31 Oct: about 8 cents an ask).
-        internal bool Advises { get { Cloud remote = Remote; return remote != null && Drives && !noFastest && noAdvisor != remote.Key + remote.Model; } }
+        internal bool Advises { get { Cloud remote = Remote; return remote != null && !remote.Code && Drives && !noFastest && noAdvisor != remote.Key + remote.Model; } }
         private static string Adviser(Cloud remote) { return remote.Model.StartsWith("claude-haiku", StringComparison.Ordinal) ? Stronger : remote.Model; }
         // The key and brain that turned the advisor down: another pair may well have it.
         private volatile string noAdvisor;
@@ -3216,7 +3235,7 @@ namespace CapriDesktop
             if (remote == null || !remote.Claude) throw new BrainException(Offline);
             string model = fast && !noFastest ? Fastest : remote.Model;
             // A job that's asked the advisor has to keep offering it, or the request is refused.
-            bool answered = Regex.IsMatch(messages, "\"type\"\\s*:\\s*\"(advisor_tool_result|server_tool_use)\""), advising = answered || (fast && model == Fastest && Advises);
+            bool answered = Regex.IsMatch(messages, "\"type\"\\s*:\\s*\"(advisor_tool_result|server_tool_use)\""), advising = !remote.Code && (answered || (fast && model == Fastest && Advises));
             bool fallback = Regex.IsMatch(model, @"^claude-(opus-5|sonnet-5-5|fable-5-1)");
             // Her hands keep only the newest three pictures, which changes earlier turns. These models bind each thinking block to
             // the turns before it, and accounts made since 31 August 2026 reject a changed one with a 400, so it's dropped instead
@@ -3230,12 +3249,12 @@ namespace CapriDesktop
             string text;
             try
             {
-                text = Send<string>(Anthropic + "/v1/messages", body, deep ? Math.Max(CloudWait, limit * 50) : CloudWait, null, delegate(HttpWebRequest request)
+                text = Send<string>(ClaudeAddress(remote.Key, "/messages"), body, deep ? Math.Max(CloudWait, limit * 50) : CloudWait, null, delegate(HttpWebRequest request)
                 {
                     driving = request;
                     Sign(request, remote.Key, true);
                     if (betas.Length > 0) request.Headers["anthropic-beta"] = betas;
-                }, null, ticket);
+                }, null, ticket, remote.Key);
             }
             catch (BrainException error)
             {
@@ -3794,6 +3813,7 @@ namespace CapriDesktop
                     using (Stream incoming = response.GetResponseStream())
                     {
                         if (sign != null) CheckRedirect(response);
+                        if (sending != null && sending.Code && request.Headers["x-api-key"] == sending.Key) sending.ReadCode(response.Headers);
                         T reply;
                         if (typeof(T) == typeof(string)) using (StreamReader text = new StreamReader(incoming, Encoding.UTF8)) reply = (T)(object)text.ReadToEnd();
                         else if (typeof(T) == typeof(CompletionReply) && (response.ContentType ?? "").StartsWith("text/event-stream", StringComparison.OrdinalIgnoreCase)) reply = (T)(object)ReadCompletion(incoming, secret);
@@ -3805,6 +3825,7 @@ namespace CapriDesktop
                 catch (WebException error)
                 {
                     if (error.Response == null) throw;
+                    if (sending != null && sending.Code && request.Headers["x-api-key"] == sending.Key) sending.ReadCode(error.Response.Headers);
                     Log(url, took.ElapsedMilliseconds, "HTTP " + (int)((HttpWebResponse)error.Response).StatusCode + (sending == null ? "" : " model " + sending.Model) + " body " + payload.Length + " bytes");
                     BrainException problem = Problem(error, sign != null, sending != null ? sending.Kind : null, secret);
                     if (sending != null && problem.RetryAt != default(DateTime))
@@ -3921,7 +3942,8 @@ namespace CapriDesktop
             if (!string.IsNullOrEmpty(secret)) said = said.Replace(secret, "[redacted]");
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
-            string meaning = remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai", Cloud.CompanyOf(kind)) : null;
+            bool code = Cloud.IsCode(secret) && (status == 401 || status == 403) && Regex.IsMatch(said, @"\AThat Capri code (isn't right|was switched off|has expired|has used up its budget)\.\z");
+            string meaning = code ? said : remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai", Cloud.CompanyOf(kind)) : null;
             if (meaning == Busy && Watching()) meaning = BusyWatching;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
@@ -3956,7 +3978,7 @@ namespace CapriDesktop
         // bounded, so a huge line with no spaces can't hold her up.
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"\bCAPRI(?:-[0-9A-HJKMNP-TV-Z]{4}){4}\b|\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
             // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
             clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
