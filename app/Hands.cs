@@ -1589,7 +1589,7 @@ namespace CapriDesktop
                 // A snake_case tool name, but not a file that happens to share one, like read_file.txt.
                 brainOnly = new Regex(@"\b(?:" + snakes + @")\b(?!\.\w)|\bThere's no (?:tool|[a-z_]+ action) called\b|\bthat (?:" + every + @") call\b");
             }
-            if (!calling.IsMatch(result) && !brainOnly.IsMatch(result)) return result;
+            if (!calling.IsMatch(result) && !brainOnly.IsMatch(result)) return ToYou(result);
             List<string> kept = new List<string>();
             foreach (string sentence in Regex.Split(result.Trim(), @"(?<=[.!?])\s+"))
             {
@@ -1603,7 +1603,39 @@ namespace CapriDesktop
                 if (head.Length >= 8 && !Regex.IsMatch(head, @"^(If|When|Once|Before|After|Unless)\b") && !calling.IsMatch(head) && !brainOnly.IsMatch(head)) kept.Add(head + ".");
             }
             string spoken = string.Join(" ", kept.ToArray()).Trim();
-            return spoken.Length == 0 ? "That didn't work." : spoken;
+            return ToYou(spoken.Length == 0 ? "That didn't work." : spoken);
+        }
+
+        // Tool results call the person "they" for her brain. What people see or hear of one says "you", phrase by phrase:
+        // "their" means other people too, like a provider in "Add credits on their site", so there's no general swap.
+        private static readonly string[,] Yours =
+        {
+            { "they type passwords themselves", "type the password yourself" },
+            { "their PC", "your PC" }, { "their internet", "your internet" }, { "their DNS", "your DNS" },
+            { "their windows", "your windows" }, { "no app windows are open on their", "no app windows are open on your" },
+            { "their apps", "your apps" }, { "their YouTube tab", "your YouTube tab" }, { "their monitors", "your monitors" },
+            { "their other screen", "your other screen" }, { "their mic mute", "your mic mute" }, { "their Liked Songs", "your Liked Songs" },
+            { "you can't see their screen right now", "I can't see your screen right now" },
+            { "you looked at their screen. You see", "on your screen" },
+            { "you stopped because they asked you something else", "I stopped because you asked me something else" }
+        };
+        private static Dictionary<string, string> yourWords;
+        private static Regex yourPhrases;
+
+        private static string ToYou(string shown)
+        {
+            if (yourPhrases == null)
+            {
+                Dictionary<string, string> words = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                for (int i = 0; i < Yours.GetLength(0); i++) words[Yours[i, 0]] = Yours[i, 1];
+                yourWords = words;
+                yourPhrases = new Regex(@"\b(?:" + string.Join("|", new List<string>(words.Keys).ConvertAll(phrase => Regex.Escape(phrase)).ToArray()) + @")\b", RegexOptions.IgnoreCase);
+            }
+            return yourPhrases.Replace(shown, match =>
+            {
+                string word = yourWords[match.Value];
+                return char.IsUpper(match.Value[0]) ? char.ToUpperInvariant(word[0]) + word.Substring(1) : word;
+            });
         }
 
         internal static void Forget() { lock (gate) cached = null; }

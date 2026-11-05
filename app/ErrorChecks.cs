@@ -294,6 +294,40 @@ namespace CapriDesktop
             checks.Add("PASS Codex asking for your OK says what it wants to do, like \"It wants to run git status\", instead of \"Codex needs approval: exec_command\", and keeps its own description when it gives one");
         }
 
+        // Jobs flag 3: tool results call the person "they" for her brain, and what people see or hear says "you".
+        private static void SmokeShownToYou(List<string> checks)
+        {
+            string[,] spoken =
+            {
+                { "Won't type in a password box. They type passwords themselves.", "Won't type in a password box. Type the password yourself." },
+                { "Couldn't check their internet just now.", "Couldn't check your internet just now." },
+                { "Their PC isn't connected to any network: no Ethernet or Wi-Fi is up.", "Your PC isn't connected to any network: no Ethernet or Wi-Fi is up." },
+                { "Their internet is working, over Wi-Fi: pings to example.com took 12 ms on average, 9 ms at best, but web addresses don't look up, so sites won't load: their DNS is the problem.", "Your internet is working, over Wi-Fi: pings to example.com took 12 ms on average, 9 ms at best, but web addresses don't look up, so sites won't load: your DNS is the problem." },
+                { "Couldn't read how their PC is doing just now.", "Couldn't read how your PC is doing just now." },
+                { "Couldn't read their windows just now: no desktop", "Couldn't read your windows just now: no desktop" },
+                { "No app windows are open on their PC.", "No app windows are open on your PC." },
+                { "No app windows are open on their Mac.", "No app windows are open on your Mac." },
+                { "Couldn't read their apps just now: no catalog", "Couldn't read your apps just now: no catalog" },
+                { "Their YouTube tab is on Never Fade Away.", "Your YouTube tab is on Never Fade Away." },
+                { "Couldn't find their monitors just now.", "Couldn't find your monitors just now." },
+                { "Toggled their mic mute in Discord (Ctrl + Shift + M).", "Toggled your mic mute in Discord (Ctrl + Shift + M)." },
+                { "Opened their Liked Songs in Spotify, but couldn't press play. Hit the green Play button.", "Opened your Liked Songs in Spotify, but couldn't press play. Hit the green Play button." },
+                { "In front: Notepad, on their other screen.", "In front: Notepad, on your other screen." },
+                { "You can't see their screen right now.", "I can't see your screen right now." },
+                { "You looked at their screen. You see: An open folder.", "On your screen: An open folder." },
+                { "You stopped because they asked you something else.", "I stopped because you asked me something else." },
+                { "Their PC isn't connected. Call list_windows to read their windows.", "Your PC isn't connected." },
+                { "Add credits on their site.", "Add credits on their site." },
+                { "They play chess. Ask them about their day.", "They play chess. Ask them about their day." },
+                { "Their PCs have their windowsills and their appscripts.", "Their PCs have their windowsills and their appscripts." },
+                { "Couldn't read these controls. Check access to their folder.", "Couldn't read these controls. Check access to their folder." },
+                { "", "" }
+            };
+            for (int i = 0; i < spoken.GetLength(0); i++)
+                if (Hands.Shown(spoken[i, 0]) != spoken[i, 1]) throw new Exception("A tool result didn't say \"you\": \"" + spoken[i, 0] + "\" became \"" + Hands.Shown(spoken[i, 0]) + "\".");
+            checks.Add("PASS tool results people see or hear say \"you\" and \"your\" where her brain's copy says \"they\" and \"their\" (the password box, internet and PC checks, windows, apps, monitors), keep capitals, and leave anyone else's \"their\", like a provider's site, alone");
+        }
+
         // The task panel keeps the fix in a long ending or snag: the ending gets five rows and the newest failed step three,
         // and one that still won't fit keeps its first sentence's start and its last sentence before it's ever cut short.
         private static void SmokeJobPanelFixes(List<string> checks)

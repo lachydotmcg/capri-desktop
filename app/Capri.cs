@@ -30494,6 +30494,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVoiceDetails", delegate { SmokeVoiceDetails(checks); });
             Section(checks, "SmokeHearingReasons", delegate { SmokeHearingReasons(checks, output); });
             Section(checks, "SmokeBrainOnlyText", delegate { SmokeBrainOnlyText(checks, output); });
+            Section(checks, "SmokeShownToYou", delegate { SmokeShownToYou(checks); });
             Section(checks, "SmokeJobPanelFixes", delegate { SmokeJobPanelFixes(checks); });
             Section(checks, "SmokeCallHearing", delegate { SmokeCallHearing(checks); });
             Section(checks, "SmokeRateLimits", delegate { SmokeRateLimits(checks); });
