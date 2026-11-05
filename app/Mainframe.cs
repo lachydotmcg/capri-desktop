@@ -339,6 +339,7 @@ namespace CapriDesktop
         private readonly Key callApp;
         private readonly Label callAppName, callAppNote;
         private readonly ContextMenuStrip callAppMenu;
+        private int callAppLook;
         private const int MixAt = 590;
         private const int MixRows = 268;
         private readonly Toggle miniPlayer;
@@ -688,12 +689,16 @@ namespace CapriDesktop
             callAppMenu.AccessibleName = "Call app choices";
             callApp = Make("Auto", ValueAt, 534, ValueWide, 22, delegate { callAppMenu.Show(callApp, new Point(0, callApp.Height)); }, "Call app");
             callApp.Chevron = true;
-            callApp.AccessibleName = "Call app. Auto prefers Discord, then a call app making sound. Pick Browser or Steam yourself";
+            callApp.AccessibleName = "Call app. Auto prefers Discord, then a call app making sound. Pick Browser, Steam or any app in Windows' volume mixer yourself";
             foreach (string name in CallApps.Choices)
             {
                 string chosen = name;
-                callAppMenu.Items.Add(Choice(name, false, delegate { capri.ChooseCallApp(chosen); }));
+                ToolStripMenuItem item = Choice(name, false, delegate { capri.ChooseCallApp(chosen); });
+                item.Tag = chosen;
+                callAppMenu.Items.Add(item);
             }
+            callAppMenu.Opening += delegate { ShowCallApps(); RefreshCallApps(); };
+            callAppMenu.Closed += delegate { callAppLook++; };
             callAppNote = Caption(CallApps.Note, 28, 562, small, Faint);
             voiceInMic = Switch("Her voice in your mic", 0, MixAt, delegate { if (!syncing) capri.ToggleVoiceInMic(); });
             voiceInMic.Switch = 68;
@@ -1435,16 +1440,89 @@ namespace CapriDesktop
             callMode.Checked = capri.CallModeOn;
             syncing = was;
             CallApp app = CallApps.Get(capri.CallAppChoice);
-            Retext(callApp, app == null ? "Auto" : app.Choice.StartsWith("Browser", StringComparison.Ordinal) ? "Browser" : app.Choice);
-            foreach (ToolStripMenuItem item in callAppMenu.Items) item.Checked = item.Text == capri.CallAppChoice;
+            Retext(callApp, app == null ? "Auto" : app.Other ? app.Name : app.Choice.StartsWith("Browser", StringComparison.Ordinal) ? "Browser" : app.Choice);
+            ShowCallApps();
             if (mixSheet != null && !mixSheet.IsDisposed) mixSheet.Sync();
         }
+
+        // Under the call apps: the other apps her last look at Windows' volume mixer found, and the one you picked even while
+        // it's closed, so a restart or a quiet spell never loses it.
+        internal void ShowCallApps()
+        {
+            while (callAppMenu.Items.Count > CallApps.Choices.Length)
+            {
+                ToolStripItem item = callAppMenu.Items[callAppMenu.Items.Count - 1];
+                callAppMenu.Items.Remove(item);
+                item.Dispose();
+            }
+            List<CallApp> apps = new List<CallApp>(CallApps.Last);
+            CallApp saved = CallApps.Get(capri.CallAppChoice);
+            if (saved != null && saved.Other && !apps.Contains(saved)) apps.Add(saved);
+            if (apps.Count > 0) callAppMenu.Items.Add(new ToolStripSeparator());
+            foreach (CallApp app in apps)
+            {
+                string chosen = app.Choice, name = app.Name;
+                ToolStripMenuItem item = Choice(name.Replace("&", "&&"), false, delegate { capri.ChooseCallApp(chosen, name); });
+                item.Tag = chosen;
+                callAppMenu.Items.Add(item);
+            }
+            foreach (ToolStripItem entry in callAppMenu.Items)
+            {
+                ToolStripMenuItem item = entry as ToolStripMenuItem;
+                if (item == null) continue;
+                item.Checked = string.Equals(item.Tag as string, capri.CallAppChoice, StringComparison.OrdinalIgnoreCase);
+                item.Name = item.Tag as string;
+            }
+        }
+
+        // A new look while the menu is open, filled in when it's back. If the mixer can't be read, the menu keeps the last look.
+        private void RefreshCallApps()
+        {
+            int look = ++callAppLook;
+            System.Threading.ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { CallApps.Look(); }
+                catch (Exception) { return; }
+                try
+                {
+                    if (!IsHandleCreated || IsDisposed) return;
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        if (IsDisposed || callAppMenu.IsDisposed || !callAppMenu.Visible || look != callAppLook) return;
+                        ShowCallApp();
+                    });
+                }
+                catch (InvalidOperationException) { }
+            });
+        }
+
+        internal ToolStripItemCollection CallAppItems { get { return callAppMenu.Items; } }
 
         private Control[] CallControls { get { return new Control[] { callMode, callAppName, callApp, callAppNote }; } }
 
         internal string CallAppShown { get { return callApp.Text; } }
+        internal string CallAppAccess { get { return callApp.AccessibleName; } }
 
         internal void PickCallApp(int index) { ((ToolStripMenuItem)callAppMenu.Items[index]).PerformClick(); }
+
+        internal void PickCallApp(string choice) { ((ToolStripMenuItem)callAppMenu.Items[choice]).PerformClick(); }
+
+        // Whether an other app's name fits the Call app button and the call pill's "ROBLOX talking" (162 wide) at 100, 150 and
+        // 200 percent. The caption's speaker column grows with the name, so the pill is the tighter of the two.
+        internal static bool CallNameFits(string name)
+        {
+            using (Font original = Type(9f, true))
+            using (Bitmap bitmap = new Bitmap(1, 1))
+            using (Graphics graphics = Graphics.FromImage(bitmap))
+                foreach (float scale in new[] { 1f, 1.5f, 2f })
+                    using (Font button = new Font(original.FontFamily, original.SizeInPoints * 96f / 72f * scale, original.Style, GraphicsUnit.Pixel))
+                    using (Font pill = Neon.Display(15 * scale, GraphicsUnit.Pixel))
+                    {
+                        if (TextRenderer.MeasureText(name, button).Width + (int)Math.Round(28 * scale) > (int)Math.Round(ValueWide * scale)) return false;
+                        if (CallCaption.Measure(graphics, name.ToUpperInvariant() + " talking", pill) > 162 * scale + 0.5f) return false;
+                    }
+            return true;
+        }
 
         internal string CallAppFits()
         {
@@ -1462,6 +1540,8 @@ namespace CapriDesktop
                 string shown = name.StartsWith("Browser", StringComparison.Ordinal) ? "Browser" : name;
                 if (TextRenderer.MeasureText(shown, callApp.Font).Width + Scaled(28) > callApp.Width) return name + " does not fit.";
             }
+            CallApp app = CallApps.Get(capri.CallAppChoice);
+            if (app != null && app.Other && TextRenderer.MeasureText(app.Name, callApp.Font).Width + Scaled(28) > callApp.Width) return app.Name + " does not fit.";
             return null;
         }
 
@@ -6677,8 +6757,8 @@ namespace CapriDesktop
             internal static string AppName(string process)
             {
                 string name = (process ?? "").ToLowerInvariant();
+                foreach (CallApp app in CallApps.All) if (app.Has(process)) return app.Name;
                 if (name.StartsWith("discord", StringComparison.Ordinal)) return "Discord";
-                foreach (CallApp app in CallApps.Apps) if (app.Has(process)) return app.Name;
                 if (name.StartsWith("roblox", StringComparison.Ordinal)) return "Roblox";
                 if (name == "obs64" || name == "obs32" || name == "obs") return "OBS";
                 return process;

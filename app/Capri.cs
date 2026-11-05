@@ -793,6 +793,7 @@ namespace CapriDesktop
         [DataMember] public string VoiceKey;
         [DataMember] public bool CallMode;
         [DataMember] public string CallApp = "Auto";
+        [DataMember] public string CallAppName;
         [DataMember] public int HuskMode;
         // Switched off on the call panel: in call mode she hears only your mic, not Discord.
         [DataMember] public bool CallDiscordOff;
@@ -2331,7 +2332,7 @@ namespace CapriDesktop
             Brain.Secrets = SavedKeys;
             Speaker.Chosen = preferences.Speaker;
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
-            CallApps.Choose(preferences.CallApp);
+            CallApps.Choose(preferences.CallApp, preferences.CallAppName);
             Neon.Repaint(preferences.MainframeColours, typer);
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) form.HandleCreated += delegate { PassThrough(); };
             PassThrough();
@@ -13896,6 +13897,7 @@ namespace CapriDesktop
                 {
                     Preferences value = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(stream);
                     value.CallApp = CallApps.Clean(value.CallApp);
+                    value.CallAppName = CallApps.CleanName(value.CallApp, value.CallAppName);
                     if (value.Size < MinSize || value.Size > MaxSize) value.Size = 240;
                     value.PerchFps = PerchRate(value.PerchFps);
                     CheckKeys(value);
@@ -32080,7 +32082,31 @@ namespace CapriDesktop
 
         private void SmokeCallApps(List<string> checks)
         {
-            string appWas = preferences.CallApp;
+            string appWas = preferences.CallApp, nameWas = preferences.CallAppName;
+            Func<List<AppSound>> soundsWas = CallApps.Sounds;
+            Func<List<CallProcess>> processesWas = CallApps.Processes;
+            Func<int, string> everydayWas = CallApps.Everyday;
+            CallApp[] appsWas = CallApps.All, lastWas = CallApps.Last;
+            object owner = new object();
+            int ui = Thread.CurrentThread.ManagedThreadId, looks = 0, names = 0, own;
+            using (System.Diagnostics.Process process = System.Diagnostics.Process.GetCurrentProcess()) own = process.Id;
+            List<AppSound> sounds = new List<AppSound>();
+            List<CallProcess> processes = new List<CallProcess>();
+            Action<Action> off = delegate(Action work)
+            {
+                Exception failed = null;
+                using (ManualResetEvent done = new ManualResetEvent(false))
+                {
+                    ThreadPool.QueueUserWorkItem(delegate
+                    {
+                        try { work(); }
+                        catch (Exception error) { failed = error; }
+                        finally { done.Set(); }
+                    });
+                    if (!done.WaitOne(10000)) throw new Exception("The fake call app look did not finish.");
+                }
+                if (failed != null) throw new Exception("The fake call app look failed.", failed);
+            };
             bool onWas = CallModeOn, savedOn = preferences.CallMode, settingsWas = mainframe.SettingsShown, simpleWas = simpleTest;
             string whoWas = callWho, saidWas = callSaid;
             DateTime saidAtWas = callSaidAt;
@@ -32090,6 +32116,26 @@ namespace CapriDesktop
             string discordTask, discordTools, discordInstruction;
             try
             {
+                CallApps.Restore(CallApps.Apps, new CallApp[0]);
+                CallApps.Sounds = delegate
+                {
+                    if (Thread.CurrentThread.ManagedThreadId == ui) throw new Exception("The call app menu read sounds on the UI thread.");
+                    looks++;
+                    return new List<AppSound>(sounds);
+                };
+                CallApps.Processes = delegate { return new List<CallProcess>(processes); };
+                CallApps.Everyday = delegate(int pid)
+                {
+                    if (Thread.CurrentThread.ManagedThreadId == ui) throw new Exception("The call app menu read an exe on the UI thread.");
+                    names++;
+                    if (pid == 300 || pid == 301 || pid == 302) return " \tRoblox \r\n";
+                    if (pid == 400) return new string('W', 80);
+                    if (pid == 500) return " \tdIsCoRd \r\n";
+                    if (pid == 600) return null;
+                    if (pid == 800) return "Some Game";
+                    if (pid == 900) return "capri";
+                    throw new Exception("No exe name is available.");
+                };
                 ChooseCallApp("Discord");
                 discordTask = CallSession.JoinTask; discordTools = CallSession.Tools; discordInstruction = CallSession.Instruction;
                 mainframe.PickCallApp(2);
@@ -32139,6 +32185,16 @@ namespace CapriDesktop
                 if (new Preferences().CallApp != "Auto" || CallApps.Clean("unknown-app") != "Auto") throw new Exception("Call apps didn't default to Auto.");
                 checks.Add("PASS the Mainframe call app choice saves and loads Zoom, Teams and Auto; new, old and unknown settings use Auto");
 
+                if (CallApps.Clean("RobloxPlayerBeta.exe") != "RobloxPlayerBeta.exe" || CallApps.Clean("discord.exe") != "Discord") throw new Exception("Call app exe choices were lost or did not use the fixed app.");
+                foreach (string bad in new[] { @"C:\x\a.exe", @"..\a.exe", "a.txt", ".exe", "", "a?.exe", "a|b.exe", "a/b.exe", "a\u0001.exe" })
+                    if (CallApps.Clean(bad) != "Auto") throw new Exception("An invalid call app exe was kept.");
+                using (MemoryStream input = new MemoryStream(Encoding.UTF8.GetBytes("{\"CallApp\":\"Discord\"}")))
+                {
+                    Preferences older = (Preferences)new DataContractJsonSerializer(typeof(Preferences)).ReadObject(input);
+                    if (CallApps.Clean(older.CallApp) != "Discord" || older.CallAppName != null || CallApps.CleanName(older.CallApp, older.CallAppName) != null) throw new Exception("Older call app settings needed a saved name.");
+                }
+                checks.Add("PASS call app settings keep bare exe names, map Discord's exe and reject paths and invalid names; older files still load");
+
                 ChooseCallApp("Zoom");
                 mainframe.ShowMixWindow();
                 string steps = mainframe.MixCallSteps;
@@ -32147,8 +32203,120 @@ namespace CapriDesktop
                 ChooseCallApp("Microsoft Teams");
                 if (Mainframe.MixAppName("ms-teams") != "Teams" || Mainframe.MixAppName("Teams") != "Teams") throw new Exception("The mic setup didn't name both Teams builds.");
                 string help = SelfKnow.Matching("how do I set up her voice in your mic?"), callHelp = SelfKnow.Matching("what is the call app setting?");
-                if (help == null || !help.Contains("your call app or Roblox") || help.Contains("mic in Discord or Roblox") || callHelp == null || !callHelp.Contains("Auto prefers Discord")) throw new Exception("Her setup notes didn't cover other call apps.");
+                if (help == null || !help.Contains("your call app or Roblox") || help.Contains("mic in Discord or Roblox") || callHelp == null || !callHelp.Contains("Auto prefers Discord")
+                    || !callHelp.Contains("Windows' volume mixer") || !callHelp.Contains("Roblox") || !mainframe.CallAppAccess.Contains("Windows' volume mixer")) throw new Exception("Her setup notes didn't cover other call apps.");
                 checks.Add("PASS the mic setup uses the chosen app's name and generic audio steps for other call apps");
+
+                sounds.AddRange(new[] {
+                    new AppSound { App = "RobloxPlayerBeta.exe", Id = 300 },
+                    new AppSound { App = "ROBLOXPLAYERBETA.EXE", Id = 302 },
+                    new AppSound { App = "Discord.exe", Id = 100 },
+                    new AppSound { App = "chrome.exe", Id = 101 },
+                    new AppSound { App = "steam.exe", Id = 102 },
+                    new AppSound { App = "Capri.exe", Id = own },
+                    new AppSound { App = "System.exe", Id = 0 }
+                });
+                off(delegate { CallApps.Look(); });
+                mainframe.ShowCallApps();
+                int extras = 0, robloxItems = 0, separators = 0;
+                foreach (ToolStripItem entry in mainframe.CallAppItems)
+                {
+                    ToolStripMenuItem item = entry as ToolStripMenuItem;
+                    if (item == null) { separators++; continue; }
+                    string choice = item.Tag as string;
+                    if (choice.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) extras++;
+                    if (choice == "RobloxPlayerBeta.exe" && item.Text == "Roblox") robloxItems++;
+                }
+                if (extras != 1 || robloxItems != 1 || separators != 1 || mainframe.CallAppItems.Count != CallApps.Choices.Length + 2 || looks != 1 || names != 1) throw new Exception("The call app menu duplicated an app or offered a fixed app, Capri or pid zero again.");
+                sounds.Clear();
+                mainframe.ShowCallApps();
+                if (mainframe.CallAppItems["RobloxPlayerBeta.exe"] == null || looks != 1 || names != 1) throw new Exception("The menu did not show its last look without reading sounds or exe files.");
+                checks.Add("PASS the call app menu shows its last look, lists quiet Roblox once and leaves out fixed apps, Capri and pid zero");
+
+                mainframe.PickCallApp("RobloxPlayerBeta.exe");
+                if (preferences.CallApp != "RobloxPlayerBeta.exe" || preferences.CallAppName != "Roblox") throw new Exception("Picking Roblox did not save its exe and everyday name.");
+                preferences.CallAppName = " \tRoblox \r\n";
+                SavePreferences();
+                Preferences saved = LoadPreferences();
+                if (preferences.CallApp != "RobloxPlayerBeta.exe" || saved.CallApp != "RobloxPlayerBeta.exe" || saved.CallAppName != "Roblox") throw new Exception("Roblox's exe and clean everyday name were not saved and loaded.");
+                preferences.CallAppName = saved.CallAppName;
+                SavePreferences();
+                CallApps.Restore(CallApps.Apps, new CallApp[0]);
+                CallApps.Choose(saved.CallApp, saved.CallAppName);
+                mainframe.ShowCallApp();
+                CallApp roblox = CallApps.Get(saved.CallApp);
+                ToolStripMenuItem picked = mainframe.CallAppItems[saved.CallApp] as ToolStripMenuItem;
+                if (mainframe.CallAppShown != "Roblox" || picked == null || !picked.Checked || picked.Text != "Roblox" || CallApps.Current.Name != "Roblox"
+                    || roblox != CallApps.Current || roblox != CallApps.Get("robloxplayerbeta.exe") || roblox.Names.Length != 1 || roblox.Names[0] != "RobloxPlayerBeta") throw new Exception("Roblox lost its saved label, check mark or cached app after a restart.");
+                checks.Add("PASS picking Roblox saves its exe and name, restores its button and checked item after a restart and reuses one call app");
+
+                DateTime started = new DateTime(2026, 11, 5);
+                processes.AddRange(new[] {
+                    new CallProcess { Id = 300, Name = "RobloxPlayerBeta.exe", Started = started },
+                    new CallProcess { Id = 301, Parent = 300, Name = "RobloxPlayerBeta.exe", Started = started.AddSeconds(1) },
+                    new CallProcess { Id = 302, Name = "RobloxPlayerBeta.exe", Started = started.AddMinutes(-1) }
+                });
+                sounds.Add(new AppSound { App = "RobloxPlayerBeta.exe", Id = 301, Playing = true, Level = 1, Peak = 0.1f });
+                int found = 0;
+                off(delegate { found = CallApps.Find(); });
+                if (found != 300 || !CallApps.Known("RobloxPlayerBeta.exe") || CallApps.Current != roblox || CallApps.Last.Length != 1 || CallApps.Last[0] != roblox) throw new Exception("The call finder missed Roblox's sounding child, scanner entry or last look.");
+                CallApps.Choose("Auto");
+                off(delegate { found = CallApps.Find(); });
+                if (found != 0 || CallApps.Current == roblox || CallApps.Known("RobloxPlayerBeta.exe")) throw new Exception("Auto chose another app without a manual pick.");
+                CallApps.Choose(saved.CallApp, saved.CallAppName);
+                CallApps.Heard(300, owner);
+                CallApps.Choose("Auto");
+                off(delegate { found = CallApps.Find(); });
+                if (found != 0 || CallApps.Current != roblox || !CallApps.Known("RobloxPlayerBeta.exe")) throw new Exception("Auto took her off Roblox mid-call with no call app open.");
+                processes.Add(new CallProcess { Id = 100, Name = "Discord.exe", Started = started });
+                for (int look = 1; look <= 3; look++)
+                {
+                    off(delegate { found = CallApps.Find(); });
+                    if (found != (look < 3 ? 300 : 100)) throw new Exception("Auto didn't move her from Roblox to Discord on its third look.");
+                }
+                if (CallApps.Current != CallApps.Apps[0]) throw new Exception("Auto didn't name Discord after moving her off Roblox.");
+                CallApps.Left(300, owner);
+                processes.RemoveAt(processes.Count - 1);
+                CallApps.Choose(saved.CallApp, saved.CallAppName);
+                checks.Add("PASS call ears follow Roblox's sounding child and keep it known to the scanner; Auto never picks Roblox itself, and like Browser and Steam it keeps her on Roblox mid-call until Discord opens, then moves her on the third look");
+
+                CallTranscript otherLine = new CallTranscript();
+                otherLine.Parts.Add(new CallPart { Words = "Capri, stay here" });
+                otherLine.Parts.Add(new CallPart { FromCall = true, Words = "hello" });
+                if (CallSession.Labels(otherLine.Text) != "You: \"Capri, stay here\"\nROBLOX: \"hello\"" || Mainframe.MixAppName("RobloxPlayerBeta") != "Roblox"
+                    || !CallSession.Tools.Contains("hear Roblox") || CallSession.Instruction != discordInstruction.Replace("Discord:", "ROBLOX:")) throw new Exception("Roblox lost its transcript label, mic name or call instructions.");
+                CallApps.Choose("Microsoft Teams");
+                if (!CallSession.Labels(otherLine.Text).Contains("ROBLOX: \"hello\"")) throw new Exception("An app change renamed Roblox's earlier transcript.");
+                CallApps.Choose(saved.CallApp, saved.CallAppName);
+                checks.Add("PASS Roblox has its own transcript labels, mic name and call instructions; earlier lines keep their source");
+
+                sounds.Clear();
+                off(delegate { CallApps.Look(); });
+                mainframe.ShowCallApp();
+                picked = mainframe.CallAppItems[saved.CallApp] as ToolStripMenuItem;
+                if (CallApps.Last.Length != 0 || picked == null || !picked.Checked || picked.Text != "Roblox" || mainframe.CallAppShown != "Roblox") throw new Exception("The saved Roblox choice disappeared after it closed.");
+                checks.Add("PASS the saved Roblox item stays checked after its sound sessions close");
+
+                sounds.AddRange(new[] {
+                    new AppSound { App = "LongGame.exe", Id = 400 },
+                    new AppSound { App = "OddGame.exe", Id = 500 },
+                    new AppSound { App = "NamelessGame.exe", Id = 600 },
+                    new AppSound { App = "NoReadGame.exe", Id = 700 },
+                    new AppSound { App = "DiscordExtra.exe", Id = 800 },
+                    new AppSound { App = "CapriCopy.exe", Id = 900 }
+                });
+                off(delegate { CallApps.Look(); });
+                mainframe.ShowCallApps();
+                if (CallApps.Get("OddGame.exe").Name != "OddGame" || CallApps.Get("NamelessGame.exe").Name != "NamelessGame" || CallApps.Get("NoReadGame.exe").Name != "NoReadGame"
+                    || CallApps.Get("CapriCopy.exe").Name != "CapriCopy" || Mainframe.MixAppName("DiscordExtra") != "Some Game") throw new Exception("An exe description borrowed a fixed app's name, hers or lost its fallback.");
+                CallApps.Choose("OddGame.exe");
+                if (!CallSession.Tools.Contains("hear OddGame") || CallSession.Tools == discordTools) throw new Exception("An app with Discord's description borrowed Discord's instructions.");
+                mainframe.PickCallApp("LongGame.exe");
+                CallApp longApp = CallApps.Current;
+                string shortName = longApp.Name;
+                if (!shortName.EndsWith("...") || shortName.Length >= 80 || !Mainframe.CallNameFits(shortName)
+                    || Mainframe.CallNameFits(shortName.Substring(0, shortName.Length - 3) + "W...") || LoadPreferences().CallAppName != shortName) throw new Exception("A long app name was not cut to the longest prefix that fits.");
+                checks.Add("PASS other app names use clean descriptions or exe names, never a call app's name or hers, and save the longest prefix that fits");
 
                 foreach (bool simple in new[] { false, true })
                 {
@@ -32159,8 +32327,10 @@ namespace CapriDesktop
                         if (crowded != null) throw new Exception("The call app row at " + scale + " scale: " + crowded);
                     }
                 }
+                List<CallApp> shownApps = new List<CallApp>(CallApps.Apps);
+                shownApps.Add(roblox); shownApps.Add(longApp);
                 foreach (float scale in new[] { 1f, 1.5f, 2f })
-                    foreach (CallApp app in CallApps.Apps)
+                    foreach (CallApp app in shownApps)
                     {
                         using (CallPanel panel = new CallPanel(null, null, scale))
                         using (Bitmap bitmap = new Bitmap(panel.Width, panel.Height))
@@ -32176,12 +32346,15 @@ namespace CapriDesktop
                             if (app.Name == "Zoom" && (CallInk.Tip(2, shown) != "Turn Zoom off" || CallPanel.Status(shown) != "She hears you and Zoom.")) throw new Exception("Zoom's call panel still named Discord.");
                         }
                     }
-                checks.Add("PASS the call app row fits Advanced and Simple Settings at 100, 150 and 200 percent with no overlaps; all app names fit the panel, captions and pill");
+                checks.Add("PASS the call app row fits Advanced and Simple Settings at 100, 150 and 200 percent; fixed apps, Roblox and a cut long name fit the panel, captions and pill");
             }
             finally
             {
                 mainframe.CloseMix();
-                preferences.CallApp = appWas; CallApps.Choose(appWas);
+                CallApps.Left(300, owner);
+                CallApps.Sounds = soundsWas; CallApps.Processes = processesWas; CallApps.Everyday = everydayWas;
+                CallApps.Restore(appsWas, lastWas);
+                preferences.CallApp = appWas; preferences.CallAppName = nameWas; CallApps.Choose(appWas, nameWas);
                 callSession.Change(onWas); preferences.CallMode = savedOn;
                 callWho = whoWas; callSaid = saidWas; callSaidAt = saidAtWas;
                 callCaptionRun = captionRunWas; callCaptionAt = captionAtWas;

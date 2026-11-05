@@ -229,7 +229,7 @@ namespace CapriDesktop
             foreach (string part in text.Split('\n'))
             {
                 string source = null;
-                foreach (CallApp app in CallApps.Apps) if (part.StartsWith(app.Label + ": ", StringComparison.Ordinal)) { source = app.Label + ": "; break; }
+                foreach (CallApp app in CallApps.All) if (part.StartsWith(app.Label + ": ", StringComparison.Ordinal)) { source = app.Label + ": "; break; }
                 string words = source != null ? part.Substring(source.Length) : part.StartsWith("You: ", StringComparison.Ordinal) ? part.Substring(5) : part;
                 if (lines.Length > 0) lines.Append('\n');
                 lines.Append(source ?? "You: ").Append(Voice.Quote(words));
@@ -276,14 +276,19 @@ namespace CapriDesktop
         internal bool CallModeOn { get { return callSession.Enabled; } }
         internal string CallAppChoice { get { return CallApps.Clean(preferences.CallApp); } }
 
-        internal void ChooseCallApp(string name)
+        internal void ChooseCallApp(string name) { ChooseCallApp(name, null); }
+
+        internal void ChooseCallApp(string name, string everyday)
         {
             string chosen = CallApps.Clean(name);
-            if (chosen == CallAppChoice) return;
+            CallApp app = CallApps.Get(chosen);
+            string label = CallApps.CleanName(chosen, everyday ?? (app == null ? null : app.Name));
+            if (chosen == CallAppChoice && label == preferences.CallAppName) return;
             callEars.Stop();
             if (pushing) { lock (waking) pushed = null; PushDone(); }
             preferences.CallApp = chosen;
-            CallApps.Choose(chosen);
+            preferences.CallAppName = label;
+            CallApps.Choose(chosen, label);
             callSession.Change(CallModeOn);
             lock (waking) { callAudio.Clear(); utterance = null; preroll.Clear(); pushedCall = null; }
             callCaptions.Clear();
