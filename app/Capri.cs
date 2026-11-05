@@ -30190,6 +30190,17 @@ namespace CapriDesktop
             }
         }
 
+        // #78's sheets at Mainframe sizes a 100% screen can still get wrong: 150% and 200%, then a move to a denser screen.
+        private void SmokeSheetScale(System.Collections.Generic.List<string> checks)
+        {
+            foreach (float zoom in new[] { 1.5f, 2f })
+            {
+                string problem = mainframe.SheetsAt(zoom);
+                if (problem != null) throw new Exception(problem + " (Mainframe size " + zoom.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")");
+            }
+            checks.Add("PASS her provider and voice sheets grow with the Mainframe's size at 150% and 200%, the voice sheet's menus hold their own font, and a move to a denser screen grows the sheet and both menus");
+        }
+
         private void RunSmokeSections(System.Collections.Generic.List<string> checks, string output, Func<string> findGame)
         {
             Section(checks, "HologramChecks", delegate { HologramChecks(checks, output); });
@@ -30217,6 +30228,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCloudBrains", delegate { SmokeCloudBrains(checks); });
             Section(checks, "SmokeCloudPicker", delegate { SmokeCloudPicker(checks); });
             Section(checks, "SmokeProviders", delegate { SmokeProviders(checks, output); });
+            Section(checks, "SmokeSheetScale", delegate { SmokeSheetScale(checks); });
             Section(checks, "SmokeFreeKeys", delegate { SmokeFreeKeys(checks, Path.Combine(output, "freekeys")); });
             Section(checks, "SmokeMods", delegate { string modsOut = Path.Combine(output, "mods-test"); Directory.CreateDirectory(modsOut); mainframe.CheckMods(checks, modsOut); CheckCodeMods(checks, modsOut); CheckSkins(checks, modsOut); CheckSkills(checks, modsOut); CheckColours(checks, modsOut); });
             Section(checks, "SmokeMedium", delegate { SmokeMedium(checks, Path.Combine(output, "medium")); });

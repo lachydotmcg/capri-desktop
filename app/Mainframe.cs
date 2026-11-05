@@ -3327,6 +3327,44 @@ namespace CapriDesktop
             }
         }
 
+        // For the smoke test, checks a 100% screen can still fail: a provider sheet and a voice sheet at this Mainframe size
+        // grow their boxes, Connect and text with it, the voice sheet's menus each hold their own copy of its font, and a move
+        // to a screen 1.5 times as dense grows the sheet's text and both menus with it. Null when all of that holds.
+        internal string SheetsAt(float zoom)
+        {
+            using (ServerSheet server = new ServerSheet(this, zoom))
+            using (ProviderSheet provider = new ProviderSheet(this, zoom))
+            {
+                server.Fill(false, null);
+                provider.Fill();
+                server.Show(this);
+                provider.Show(this);
+                if (!server.ScaledToScreen) return "The voice panel's boxes didn't grow with the Mainframe's size.";
+                if (Math.Abs(((Control)provider.AcceptButton).Width - 104 * ScaleOf(provider)) > 1) return "The provider sheet's Connect didn't grow with the Mainframe's size.";
+                string crowded = provider.Crowded();
+                if (crowded != null) return "The provider sheet is crowded: " + crowded;
+                ContextMenuStrip[] menus = server.Menus;
+                float size = server.Font.SizeInPoints;
+                foreach (ContextMenuStrip menu in menus)
+                    if (Math.Abs(menu.Font.SizeInPoints - size) > 0.1f || ReferenceEquals(menu.Font, server.Font)) return "A voice panel menu doesn't hold its own copy of the panel's font.";
+                if (ReferenceEquals(menus[0].Font, menus[1].Font)) return "The voice panel's menus share one font.";
+                int dpi = Native.GetDpiForWindow(server.Handle);
+                if (dpi <= 0) return "The voice panel has no screen DPI.";
+                int denser = (int)Math.Round(dpi * 1.5f);
+                IntPtr suggested = Marshal.AllocHGlobal(16);
+                try
+                {
+                    Marshal.Copy(new[] { server.Left, server.Top, server.Left + (int)Math.Round(server.Width * 1.5f), server.Top + (int)Math.Round(server.Height * 1.5f) }, 0, suggested, 4);
+                    Native.SendMessage(server.Handle, 0x02E0, new IntPtr(denser | (denser << 16)), suggested);
+                }
+                finally { Marshal.FreeHGlobal(suggested); }
+                if (Math.Abs(server.Font.SizeInPoints - size * 1.5f) > 0.1f) return "The voice panel's text didn't follow a denser screen.";
+                foreach (ContextMenuStrip menu in menus)
+                    if (Math.Abs(menu.Font.SizeInPoints - size * 1.5f) > 0.1f) return "A voice panel menu didn't follow a denser screen.";
+                return null;
+            }
+        }
+
         internal void PickBrain(int index) { ((ToolStripMenuItem)modelMenu.Items[index]).PerformClick(); }
 
         // The cloud brain and list her model menu was last built from.
@@ -5446,6 +5484,8 @@ namespace CapriDesktop
                 foreach (Control control in Controls) if (control.Top >= line) control.Top += step;
                 ClientSize = new Size(ClientSize.Width, ClientSize.Height + step);
             }
+
+            internal ContextMenuStrip[] Menus { get { return new[] { services, voices }; } }
 
             internal bool ScaledToScreen
             {
