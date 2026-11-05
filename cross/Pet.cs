@@ -1507,11 +1507,14 @@ namespace CapriDesktop
 
         internal bool Smiling { get { return seat != null ? clip == perch && blinkWith == perchBlink : clip == grin; } }
 
+        // A spot for the checks to press or stroke, with her under it and 12 px either side. The spot itself has to be on her
+        // too: in half her seated dance's frames, the first row crosses the gap between two spikes of her hair with her on
+        // both sides, and a press in that gap rightly doesn't hold her.
         internal Point? BodySpot()
         {
             for (double y = Bounds.Height / 4; y < Bounds.Height * 3 / 4; y += 3)
                 for (double x = 20; x < Bounds.Width - 20; x += 3)
-                    if (Inside(new Point(x - 12, y)) && Inside(new Point(x + 12, y))) return new Point(x, y);
+                    if (Inside(new Point(x, y)) && Inside(new Point(x - 12, y)) && Inside(new Point(x + 12, y))) return new Point(x, y);
             return null;
         }
 
