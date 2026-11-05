@@ -17488,16 +17488,18 @@ namespace CapriDesktop
                 if (frame == null || hidden || preferences.Hologram || riding || working != null) throw new Exception("She wasn't standing free for the head pat checks.");
                 preferences.NoHeadPats = false;
                 CloseTalk();
-                Point side = Point.Empty, top = Point.Empty;
-                for (int row = 0; row + 10 < frame.Height; row += 8)
-                    for (int column = 0; column + 10 < frame.Width; column += 8)
-                    {
-                        if (side.IsEmpty && Solid(new Point(column, row)) && Solid(new Point(column + 10, row))) side = PointToScreen(new Point(column, row));
-                        if (top.IsEmpty && Solid(new Point(column, row)) && Solid(new Point(column, row + 10))) top = PointToScreen(new Point(column, row));
-                    }
-                if (side.IsEmpty || top.IsEmpty) throw new Exception("Her frame had no solid spot to pat.");
-                Func<Point, Size, int> rub = delegate(Point at, Size step)
+                // Each rub finds its spot on her frame as it is then: a counted pat draws her grin straight away, and a spot
+                // picked before it can fall off her (it did on Lachy's screen, 5 Nov, while CI's happened to stay on her).
+                Func<Size, Point> spot = delegate(Size step)
                 {
+                    for (int row = 0; row + 10 < frame.Height; row += 8)
+                        for (int column = 0; column + 10 < frame.Width; column += 8)
+                            if (Solid(new Point(column, row)) && Solid(new Point(column + step.Width, row + step.Height))) return PointToScreen(new Point(column, row));
+                    throw new Exception("Her frame had no solid spot to pat.");
+                };
+                Func<Size, int> rub = delegate(Size step)
+                {
+                    Point at = spot(step);
                     int from = petTicket;
                     petAt = -60000;
                     ForgetStroke();
@@ -17507,11 +17509,11 @@ namespace CapriDesktop
                     petTicket++;
                     return petTicket - from - 1;
                 };
-                int sideways = rub(side, new Size(10, 0)), upDown = rub(top, new Size(0, 10));
+                int sideways = rub(new Size(10, 0)), upDown = rub(new Size(0, 10));
                 if (sideways != 1 || upDown != 1) throw new Exception("A rub counted wrong: side to side " + sideways + ", up and down " + upDown + " (one each expected).");
                 chatting = true;
                 local = false;
-                if (!InChat || rub(side, new Size(10, 0)) != 1) throw new Exception("A head pat didn't count during a voice chat.");
+                if (!InChat || rub(new Size(10, 0)) != 1) throw new Exception("A head pat didn't count during a voice chat.");
                 CloseTalk();
                 asking++;
                 int asked = asking;
