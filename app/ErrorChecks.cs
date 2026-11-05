@@ -550,6 +550,11 @@ namespace CapriDesktop
                     throw new Exception("A missing server line doesn't name the antivirus and the fix inside its note: " + gone);
             checks.Add("PASS a missing llama-server.exe or tts-server.exe says your antivirus likely took it and to allow it, whole inside the BRAIN and VOICE notes");
 
+            // Jobs flag 5: the three admin lines say how to run her as administrator, the same way.
+            foreach (string line in new[] { Computer.AdminWindow, Arrange.Admin("move", "Task Manager"), AdminKeys })
+                if (!line.EndsWith(Computer.AsAdmin + ".", StringComparison.Ordinal) || line.Contains(" as admin ") || line.Contains(" as admin,")) throw new Exception("An admin line doesn't say how to run her as administrator: " + line);
+            checks.Add("PASS the three admin lines end the same way: Quit Capri from her menu, then Run as administrator from her shortcut");
+
             // A12: an empty reply says the same line, with its fix, whether her brain threw it or sent blank words.
             string emptyShort = Brain.Brief(Brain.Wordless);
             if (emptyShort == null || emptyShort.Length > 60 || emptyShort.IndexOf("another model", StringComparison.Ordinal) < 0) throw new Exception("The empty reply's BRAIN line lost its fix: " + emptyShort);

@@ -1381,7 +1381,10 @@ namespace CapriDesktop
         // A brain sometimes files one of her own tools under Claude's computer tools.
         internal static bool MemberCall(string toolset, string name) { return toolset == "computer" && Toolset.IndexOf("\"name\":\"" + name + "\"", StringComparison.Ordinal) < 0; }
 
-        internal const string AdminWindow = "Couldn't click or type there: that window runs as administrator, and Windows keeps other apps' clicks and keys out of it. Run Capri as administrator too, or do that part yourself.";
+        // How to run her as administrator, said the same way by all three admin lines. Opening her again only brings the copy
+        // that's running forward, so she has to be quit first.
+        internal const string AsAdmin = "right-click me > Quit Capri, then right-click Capri's shortcut and pick Run as administrator";
+        internal const string AdminWindow = "Couldn't click or type there: that window runs as administrator, and Windows keeps other apps' clicks and keys out of it. Do that part yourself, or " + AsAdmin + ".";
 
         // Windows quietly keeps an app's clicks and keys out of a window that runs as administrator unless the app does too, so
         // her cursor moved and nothing clicked (ticket 81; Task Manager runs as administrator on most PCs). Only a token that
