@@ -25809,7 +25809,10 @@ namespace CapriDesktop
                 {
                     System.Collections.Generic.List<string> limitedAsked = new System.Collections.Generic.List<string>();
                     string limitedReply = "!429 {\"error\":{\"status\":\"RESOURCE_EXHAUSTED\",\"message\":\"Rate limit reached. Check your billing plan.\"}}";
-                    string limitedUrl = FakeServer(new[] { limitedReply, limitedReply, "!401 {\"error\":{\"message\":\"Rejected " + limitedKey + "\"}}", "!400 {\"error\":{\"message\":\"Cannot list models for " + limitedKey + "\"}}", "!404 {}" }, limitedAsked, out limitedFake);
+                    // Glued to a word, the echoed key has no shape her redaction knows, so only CloudModels handing its key to the
+                    // error scrubs it: these test keys start like real ones, which redaction alone would hide.
+                    if (Brain.Redacted("for project_" + limitedKey) != "for project_" + limitedKey) throw new Exception("The echoed test key has a shape redaction already knows.");
+                    string limitedUrl = FakeServer(new[] { limitedReply, limitedReply, "!401 {\"error\":{\"message\":\"Rejected " + limitedKey + "\"}}", "!400 {\"error\":{\"message\":\"Cannot list models for project_" + limitedKey + "\"}}", "!404 {}" }, limitedAsked, out limitedFake);
                     Brain.Google = limitedUrl; Brain.OpenRouter = limitedUrl;
                     int explainedLimits = 0;
                     try { Brain.CloudModels(limitedKey); } catch (BrainException listLimit) { if (listLimit.Message == Brain.Busy && listLimit.Told) explainedLimits++; }
@@ -25818,7 +25821,7 @@ namespace CapriDesktop
                     bool rejectedKey = false;
                     try { Brain.CloudModels(limitedKey); } catch (BrainException badKey) { rejectedKey = badKey.Told && badKey.Message == (limitedKey == "AIza-test" ? Brain.NewKey : "Key rejected. Press Forget, then paste it again."); }
                     bool scrubbedKey = false, missingList = false;
-                    try { Brain.CloudModels(limitedKey); } catch (BrainException echoedKey) { scrubbedKey = echoedKey.Message.Contains("[redacted]") && !echoedKey.Message.Contains(limitedKey); }
+                    try { Brain.CloudModels(limitedKey); } catch (BrainException echoedKey) { scrubbedKey = echoedKey.Message.Contains("project_[redacted]") && !echoedKey.Message.Contains(limitedKey); }
                     try { Brain.CloudModels(limitedKey); } catch (BrainException missingModels) { missingList = missingModels.Told && missingModels.Message.Contains("couldn't find its model list"); }
                     if (explainedLimits != 2 || !rejectedKey || !scrubbedKey || !missingList || limitedAsked.Count != 5) throw new Exception("A new provider hid a model-list error, repeated a key or retried a rate limit immediately.");
                     checkedLimits++;
