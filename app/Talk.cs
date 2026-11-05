@@ -2879,7 +2879,7 @@ namespace CapriDesktop
             };
             Controls.Add(prompt);
             Controls.Add(input);
-            callMode = new Button { FlatStyle = FlatStyle.Flat, BackColor = Neon.Well, ForeColor = Neon.Cyan, Text = "Call mode (beta): off", AccessibleName = "Call mode beta. Voice is conversation only when enabled", TabIndex = 1 };
+            callMode = new Button { FlatStyle = FlatStyle.Flat, BackColor = Neon.Well, ForeColor = Neon.Cyan, Text = "Call mode (beta): off", AccessibleName = "Call mode beta; say Capri to ask. Friend asks need your confirmation when enabled", TabIndex = 1 };
             callMode.FlatAppearance.BorderColor = Neon.Edge;
             callMode.Click += delegate { if (CallModeChanged != null) CallModeChanged(); };
             callNote = new Label { Text = CallSession.Reminder, ForeColor = Neon.White, BackColor = Neon.Well, UseMnemonic = false, Visible = false };

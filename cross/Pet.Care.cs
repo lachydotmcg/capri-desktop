@@ -100,6 +100,7 @@ namespace CapriDesktop
                     {
                         ObserveInput(from, until, quiet);
                         CheckCare(Now, (long)((quiet + Now - until) * 1000));
+                        CheckNews((long)((quiet + Now - until) * 1000));
                     }
                     CheckFollowUp(Now);
                 });
@@ -143,8 +144,10 @@ namespace CapriDesktop
         internal bool ShowReply(int ticket, string heard, string said, double seconds, string after, bool following, int input, int answer)
         {
             if (ticket != asking || following && (!FollowAllowed || input != inputTurn || answer != answerTurn)) return false;
+            if (HoldNews(ticket)) return false;
             bool current = answer == answerTurn;
             Talk.Answer(heard, said, seconds);
+            if (ticket == newsTicket) KeepNews();
             if (following) Brain.Followed(said);
             else if (current && input == inputTurn && FollowAllowed) HoldFollowUp(after);
             return true;

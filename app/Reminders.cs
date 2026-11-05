@@ -111,7 +111,7 @@ namespace CapriDesktop
                 }
                 DateTime when;
                 if (string.IsNullOrWhiteSpace(args.Text)) return "What should I remind you about?";
-                if (!Parse(args.When, Now(), out when)) return "What time should I remind you? Try in 20 minutes, at 5pm or tomorrow at 9.";
+                if (!Parse(args.When, Now(), out when)) return "What time should I remind you? Try in 20 minutes or on 5 December at 9am.";
                 changed.Add(new Reminder { Text = args.Text.Trim(), When = DateTime.SpecifyKind(when, DateTimeKind.Unspecified).ToString("o", CultureInfo.InvariantCulture) });
                 Write(remindersPath, changed);
                 reminders = changed;
@@ -301,14 +301,15 @@ namespace CapriDesktop
         {
             when = now;
             string plain = Fold(text).TrimEnd('.', ',', '!', '?');
-            Match relative = Regex.Match(plain, @"^(?:in|en|dans|za|em|dentro de|daqui a)\s+(.*?)\s*(minutes?|mins?|minutos?|minuten|minut(?:e|y|a)?|hours?|hrs?|horas?|heures?|stunden?|godzin(?:e|y|a)?|seconds?|secs?|segundos?|secondes?|sekunden?|sekund(?:e|y|a)?)$");
+            if (plain.StartsWith("on ", StringComparison.Ordinal) || Regex.IsMatch(plain, @"^\d{4}-\d{2}-\d{2}(?:\s|$)")) return Calendar(plain, now, out when);
+            Match relative = Regex.Match(plain, @"^(?:in|en|dans|za|em|dentro de|daqui a)\s+(.*?)\s*(minutes?|mins?|minutos?|minuten|minut(?:e|y|a)?|hours?|hrs?|horas?|heures?|stunden?|godzin(?:e|y|a)?|seconds?|secs?|segundos?|secondes?|sekunden?|sekund(?:e|y|a)?|days?|weeks?)$");
             if (relative.Success)
             {
                 string amount = relative.Groups[1].Value.Trim().TrimEnd('-');
                 double count = amount.Length == 0 ? 1 : Number(amount);
                 if (count <= 0) return false;
                 // Seconds are for timers, like a 30 second one.
-                double minutes = Regex.IsMatch(relative.Groups[2].Value, @"^(?:h|stund|godzin)") ? count * 60 : Regex.IsMatch(relative.Groups[2].Value, @"^(?:sec|seg|sek)") ? count / 60 : count;
+                double minutes = Regex.IsMatch(relative.Groups[2].Value, @"^weeks?$") ? count * 10080 : Regex.IsMatch(relative.Groups[2].Value, @"^days?$") ? count * 1440 : Regex.IsMatch(relative.Groups[2].Value, @"^(?:h|stund|godzin)") ? count * 60 : Regex.IsMatch(relative.Groups[2].Value, @"^(?:sec|seg|sek)") ? count / 60 : count;
                 try { when = now.AddMinutes(minutes); return when > now; }
                 catch (ArgumentOutOfRangeException) { return false; }
             }
@@ -333,6 +334,28 @@ namespace CapriDesktop
                 return true;
             }
             catch (ArgumentOutOfRangeException) { return false; }
+        }
+
+        private static bool Calendar(string text, DateTime now, out DateTime when)
+        {
+            when = now;
+            Match date = Regex.Match(text, @"^(?:on )?(\d{4}-\d{2}-\d{2}|\d{1,2}(?:st|nd|rd|th)? [a-z]+(?: \d{4})?|[a-z]+ \d{1,2}(?:st|nd|rd|th)?(?:,? \d{4})?)(?: (?:at )?(.+))?$");
+            if (!date.Success) return false;
+            string day = Regex.Replace(date.Groups[1].Value.Replace(",", ""), @"(?<=\d)(?:st|nd|rd|th)\b", "");
+            int hour = 9, minute = 0;
+            bool meridiem;
+            if (date.Groups[2].Success && !Clock(date.Groups[2].Value, out hour, out minute, out meridiem)) return false;
+            bool year = Regex.IsMatch(day, @"\b\d{4}\b");
+            string[] formats = { "yyyy-MM-dd", "d MMMM yyyy", "d MMM yyyy", "MMMM d yyyy", "MMM d yyyy" };
+            for (int next = 0; next <= (year ? 0 : 8) && now.Year + next <= 9999; next++)
+            {
+                DateTime picked;
+                if (!DateTime.TryParseExact(year ? day : day + " " + (now.Year + next).ToString(CultureInfo.InvariantCulture), formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out picked)) continue;
+                when = picked.AddHours(hour).AddMinutes(minute);
+                if (when > now) return true;
+            }
+            when = now;
+            return false;
         }
 
         private static bool Clock(string text, out int hour, out int minute, out bool meridiem)

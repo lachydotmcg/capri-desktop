@@ -1062,18 +1062,43 @@ namespace CapriDesktop
             return picked == null ? new Sight() : Framed(picked);
         }
 
-        internal static bool ExploreAllowed(Sight sight, bool fullScreen)
+        internal static Func<List<Tune>> ExploreMedia = delegate { return Tunes.Shared(); };
+
+        private static bool PausedPage(Sight sight)
+        {
+            if (!Browsers.IsMatch(sight.Program ?? "") || !Regex.IsMatch(sight.Title ?? "", @"\byoutube\b", RegexOptions.IgnoreCase)) return false;
+            // The same rule as ExplorePaused: anything playing anywhere and she leaves the page alone.
+            try { return ExplorePaused(sight, ExploreMedia()); }
+            catch (Exception) { return false; }
+        }
+
+        internal static bool ExploreAllowed(Sight sight, bool fullScreen, bool paused = false)
         {
             if (sight == null || sight.Window == IntPtr.Zero || fullScreen) return false;
             string program = sight.Program ?? "", title = sight.Title ?? "";
             bool reader = Regex.IsMatch(program, @"^(acrobat|acrord32|sumatrapdf|calibre|ebook-viewer|kindle)(\.exe)?$", RegexOptions.IgnoreCase);
-            return (Browsers.IsMatch(program) || reader) && !GameTitles.IsMatch(title) && !GameWords.IsMatch(title) && !Watching.IsMatch(title)
+            paused = paused || Watching.IsMatch(title) && PausedPage(sight);
+            return (Browsers.IsMatch(program) || reader) && (paused || !GameTitles.IsMatch(title) && !GameWords.IsMatch(title) && !Watching.IsMatch(title))
                 && !Talky.IsMatch(title) && !Risky.IsMatch(title) && !SignInWords.IsMatch(title) && !PersonalField.IsMatch(title);
         }
 
-        internal static Rectangle ExplorePage(Sight sight, Point at)
+        internal static bool ExplorePaused(Sight sight, IList<Tune> tunes)
         {
-            if (!ExploreAllowed(sight, Native.FillsScreen()) || Native.GetForegroundWindow() != sight.Window || GameExe(sight.Window)) return Rectangle.Empty;
+            if (sight == null || tunes == null) return false;
+            bool paused = false;
+            foreach (Tune tune in tunes)
+            {
+                if (tune == null) continue;
+                if (tune.Playing || tune.Changing) return false;
+                if (!string.IsNullOrEmpty(tune.Title) && (sight.Title ?? "").IndexOf(tune.Title, StringComparison.OrdinalIgnoreCase) >= 0
+                    && string.Equals(Tunes.AppName(tune.App), Tunes.AppName(sight.Program), StringComparison.OrdinalIgnoreCase)) paused = true;
+            }
+            return paused;
+        }
+
+        internal static Rectangle ExplorePage(Sight sight, Point at, bool paused = false)
+        {
+            if (!ExploreAllowed(sight, Native.FillsScreen(), paused) || Native.GetForegroundWindow() != sight.Window || GameExe(sight.Window)) return Rectangle.Empty;
             AutomationElement focus = AutomationElement.FocusedElement;
             if (focus == null || focus.Current.IsPassword || focus.Current.ControlType == ControlType.Edit || focus.Current.ControlType == ControlType.ComboBox) return Rectangle.Empty;
             AutomationElement pointed = AutomationElement.FromPoint(new System.Windows.Point(at.X, at.Y));
@@ -1096,9 +1121,14 @@ namespace CapriDesktop
             return Rectangle.Empty;
         }
 
-        internal static bool ScrollAway(Sight page, Rectangle bounds, Sight current, Point before, Point cursor, IntPtr under, bool full, Func<bool> away)
+        internal static bool ScrollAway(Sight page, Rectangle bounds, Sight current, Point before, Point cursor, IntPtr under, bool full, Func<bool> away, bool paused = false)
         {
-            if (page == null || current == null || !ExploreAllowed(current, full) || current.Window != page.Window || current.Title != page.Title
+            if (paused)
+            {
+                try { if (!ExplorePaused(current, ExploreMedia())) return false; }
+                catch (Exception) { return false; }
+            }
+            if (page == null || current == null || !ExploreAllowed(current, full, paused) || current.Window != page.Window || current.Title != page.Title
                 || under != page.Window || before != cursor || bounds.IsEmpty || !bounds.Contains(cursor) || !away()) return false;
             SendMouse(0x0800, -120);
             return true;
@@ -3248,7 +3278,7 @@ namespace CapriDesktop
             if (doing != null) Mark(new JobStep { Tool = name, Label = doing });
             string result;
             try { result = name == "learn" ? GameNotes.Learn(Game(), args.Text) : member ? Computer.Use(name, args, shown) : Computer.Act(name, args, Computer.Glimpse()); }
-            catch (Exception error) { result = "That didn't work: " + error.Message; }
+            catch (Exception error) { result = Hands.Problem(error); }
             if (result != null && result.StartsWith(Computer.OffScreen, StringComparison.Ordinal))
             {
                 misses++;
@@ -3341,7 +3371,7 @@ namespace CapriDesktop
             else
             {
                 try { result = Computer.Act(tool, args, sight); }
-                catch (Exception error) { result = "That didn't work: " + error.Message; }
+                catch (Exception error) { result = Hands.Problem(error); }
             }
             if (secret) result = Hush(result, args.Text);
             Steps.Add(Computer.Describe(tool, masked, sight) + ": " + result);

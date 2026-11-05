@@ -527,7 +527,8 @@ namespace CapriDesktop
             if (front == null || front.Window == IntPtr.Zero) return null;
             Job running = job;
             bool fills = FullScreen() && !Native.Titled(front.Window) && !Regex.IsMatch((front.Program ?? "") + " " + (front.Title ?? ""), @"\b(chrome|firefox|msedge|edge|brave|opera|vivaldi|arc|vlc|mpv|netflix|youtube|twitch|plex|powerpnt)\b", RegexOptions.IgnoreCase);
-            if (!(running != null && running.Playing) && !Computer.WatchWindow(front, fills)) return null;
+            GameSeen known = gaming.Game;
+            if (!(running != null && running.Playing) && !(GamingOn && known != null && known.Window == front.Window) && !Computer.WatchWindow(front, fills)) return null;
             string title = (front.Title ?? "").Trim();
             if (title.Length == 0) title = front.Program ?? "a game";
             return title.Length > 60 ? title.Substring(0, 60).TrimEnd() : title;

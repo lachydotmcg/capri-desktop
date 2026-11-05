@@ -204,17 +204,32 @@ namespace CapriDesktop
         private static ICapriMod Compile(string text)
         {
             CompilerResults built;
-            using (CSharpCodeProvider compiler = new CSharpCodeProvider())
-            {
-                CompilerParameters options = new CompilerParameters { GenerateInMemory = true, GenerateExecutable = false, CompilerOptions = "/optimize+" };
-                options.ReferencedAssemblies.AddRange(new[] { "System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows.Forms.dll", typeof(ICapriMod).Assembly.Location });
-                built = compiler.CompileAssemblyFromSource(options, text);
-            }
-            foreach (CompilerError error in built.Errors)
-                if (!error.IsWarning) throw new ModException("That code didn't compile, line " + error.Line + ": " + error.ErrorText);
             List<Type> mods = new List<Type>();
-            foreach (Type type in built.CompiledAssembly.GetTypes())
-                if (typeof(ICapriMod).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface) mods.Add(type);
+            // A missing or blocked compiler, or a mod that won't load, fails that mod: at startup this runs on a worker thread,
+            // where any other error would end her.
+            try
+            {
+                using (CSharpCodeProvider compiler = new CSharpCodeProvider())
+                {
+                    CompilerParameters options = new CompilerParameters { GenerateInMemory = true, GenerateExecutable = false, CompilerOptions = "/optimize+" };
+                    options.ReferencedAssemblies.AddRange(new[] { "System.dll", "System.Core.dll", "System.Drawing.dll", "System.Windows.Forms.dll", typeof(ICapriMod).Assembly.Location });
+                    built = compiler.CompileAssemblyFromSource(options, text);
+                }
+                foreach (CompilerError error in built.Errors)
+                    if (!error.IsWarning) throw new ModException("That code didn't compile, line " + error.Line + ": " + error.ErrorText);
+                foreach (Type type in built.CompiledAssembly.GetTypes())
+                    if (typeof(ICapriMod).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface) mods.Add(type);
+            }
+            catch (System.Runtime.InteropServices.ExternalException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (InvalidOperationException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (ArgumentException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (ReflectionTypeLoadException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            catch (TypeLoadException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            catch (BadImageFormatException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            catch (System.Security.SecurityException error) { throw new ModException("Couldn't load that mod: " + error.Message); }
+            // The compiler writes temp files, so a blocked temp folder or an antivirus lock fails here too.
+            catch (IOException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
+            catch (UnauthorizedAccessException error) { throw new ModException("Couldn't compile that mod: " + error.Message); }
             if (mods.Count != 1) throw new ModException("A code mod needs exactly one class that implements ICapriMod. That one has " + mods.Count + ".");
             try { return (ICapriMod)Activator.CreateInstance(mods[0]); }
             catch (Exception error) { throw new ModException("That mod failed while loading: " + Inner(error).Message); }
@@ -558,7 +573,7 @@ namespace CapriDesktop
             {
                 if (!ModList.Heard("intro " + pick)) throw new Exception("Startup Intros didn't take intro " + pick);
                 const int across = 5, down = 3, cellW = 384, cellH = 216;
-                double seconds = intros.Seconds, worst = 0;
+                double seconds = intros.Seconds, worst = 0, worstAt = 0;
                 using (Bitmap fake = new Bitmap(size.Width, size.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb))
                 using (Bitmap sheet = new Bitmap(across * cellW, down * cellH))
                 using (Graphics paper = Graphics.FromImage(sheet))
@@ -573,11 +588,20 @@ namespace CapriDesktop
                         pen.Clear(Color.Transparent);
                         System.Diagnostics.Stopwatch took = System.Diagnostics.Stopwatch.StartNew();
                         intros.Draw(pen, new Rectangle(Point.Empty, size), spot, at);
-                        if (i > 0) worst = Math.Max(worst, took.Elapsed.TotalMilliseconds);
+                        if (i > 0 && took.Elapsed.TotalMilliseconds > worst) { worst = took.Elapsed.TotalMilliseconds; worstAt = at; }
                         Rectangle cell = new Rectangle(i % across * cellW, i / across * cellH, cellW, cellH);
                         using (Brush desktop = new SolidBrush(Color.FromArgb(46, 58, 74))) paper.FillRectangle(desktop, cell);
                         paper.DrawImage(frame, cell);
                         using (Font label = new Font("Consolas", 11f)) paper.DrawString(at.ToString("0.00") + "s", label, Brushes.Yellow, cell.X + 3, cell.Y + 3);
+                    }
+                    // A frame caught by a garbage collection or a busy PC (83 ms once on 5 Nov) is drawn again, so only a frame
+                    // that's slow every time fails. Her frames depend only on the time, and each sound plays once.
+                    if (worst > 60)
+                    {
+                        pen.Clear(Color.Transparent);
+                        System.Diagnostics.Stopwatch again = System.Diagnostics.Stopwatch.StartNew();
+                        intros.Draw(pen, new Rectangle(Point.Empty, size), spot, worstAt);
+                        worst = Math.Min(worst, again.Elapsed.TotalMilliseconds);
                     }
                     sheet.Save(Path.Combine(output, "intro-" + pick + ".png"), System.Drawing.Imaging.ImageFormat.Png);
                 }

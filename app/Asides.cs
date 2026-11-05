@@ -164,6 +164,11 @@ namespace CapriDesktop
         private double share;
         private int chunks;
         private int over;
+        // On a call she waits for about a second of them talking, nine of the last twelve chunks, so a laugh or a "yeah" at a
+        // friend doesn't cut her off mid-answer (Lachy, 4 Nov: "after first line are still cutting out").
+        internal const int CallWindow = 12, CallNeeds = 9;
+        private readonly bool[] loudRecent = new bool[CallWindow];
+        private int loudSlot;
 
         internal void Reset()
         {
@@ -172,10 +177,13 @@ namespace CapriDesktop
             slot = 0;
             chunks = 0;
             over = 0;
+            Array.Clear(loudRecent, 0, CallWindow);
+            loudSlot = 0;
         }
 
-        // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for two chunks in a row.
-        internal bool Heard(double mic, double mine, double wake)
+        // One chunk of the mic with how loud she is playing right now. True once they've been talking over her for two chunks in a
+        // row, or on a call for nine of the last twelve.
+        internal bool Heard(double mic, double mine, double wake, bool call = false)
         {
             recent[slot] = mine;
             slot = (slot + 1) % Recent;
@@ -189,7 +197,12 @@ namespace CapriDesktop
             bool loud = learned && mic >= wake && mic >= share * against * Margin;
             if (!loud) share = Math.Max(share * Fading, mic / against);
             over = loud ? over + 1 : 0;
-            return over >= Held;
+            loudRecent[loudSlot] = loud;
+            loudSlot = (loudSlot + 1) % CallWindow;
+            if (!call) return over >= Held;
+            int count = 0;
+            foreach (bool each in loudRecent) if (each) count++;
+            return count >= CallNeeds;
         }
 
         internal bool Above(double mic, double mine, double wake) { return mic >= wake && (mine <= Pause || mic >= share * mine * Margin); }
@@ -220,6 +233,7 @@ namespace CapriDesktop
 
         private string AskHead(string system, string instruction, int limit, params byte[][] frames)
         {
+            if (CallHands(asking)) system += CallSession.Tools + callSession.Context(callUserVersion);
             Func<string, string, byte[][], string> test = headTest;
             return test != null ? test(system, instruction, frames) : brain.Quick(system, instruction, limit, frames);
         }
@@ -342,7 +356,7 @@ namespace CapriDesktop
                 List<string> results = new List<string>();
                 foreach (KeyValuePair<string, ToolArguments> call in calls)
                 {
-                    if (ticket != asking || quitting || CallModeOn) return;
+                    if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return;
                     ToolArguments args = call.Value ?? new ToolArguments();
                     args.Asked = text;
                     args.Reply = replyId;
@@ -354,7 +368,7 @@ namespace CapriDesktop
                         results.Add(result);
                         if (Security.IsHold(result)) break;
                     }
-                    catch (Exception error) { results.Add("That didn't work: " + error.Message); }
+                    catch (Exception error) { results.Add(Hands.Problem(error)); }
                 }
                 string resultLine = Security.Reply(results) ?? string.Join(" ", results.ToArray());
                 Post(delegate { AsideSay(string.IsNullOrEmpty(resultLine) ? Lines.Pick(Lines.GotIt) : resultLine, running, text, replyId); });
@@ -368,7 +382,7 @@ namespace CapriDesktop
         // bring a window to the front, in their words, as it did before her fast head had tools.
         private string AsideRun(string tool, ToolArguments args, Job running, int ticket)
         {
-            if (ticket != asking || quitting || CallModeOn) return "That turn has ended.";
+            if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return "That turn has ended.";
             if (!Hands.Valid(tool, args)) return "Couldn't read that tool call.";
             if (MidJob(running) && job == running && (tool == "use_computer" || tool == "stream" && args.Action != "stop"))
             {
@@ -402,6 +416,7 @@ namespace CapriDesktop
             Hands.Kit kit = Hands.KitFor(brain.Blind);
             string system = Brain.Character + Brain.Remembered() + Asides.Head + "\nYou have the same tools beside the job. Use them whenever they ask, suggest or hint at an ability, including your own moves, animations, clones and settings. Use job_control for stopping, checking or changing the job. ADD and CHANGE are only for instructions that belong to its mouse work. Call tools without claiming they ran; their results will be said.";
             string facts = Asides.Facts(running.Report(), text, brain.History);
+            if (CallHands(ticket)) system += CallSession.Tools + callSession.Context(callUserVersion);
             ThreadPool.QueueUserWorkItem(delegate
             {
                 AsideKind kind = guess;
@@ -440,6 +455,8 @@ namespace CapriDesktop
         // her ask's turn alone, so the line the job ends with still lands.
         private void AsideSay(string line, Job running, string asked, int toolReply = -1)
         {
+            line = CallLine(asking, line);
+            if (CallHands(asking)) callSession.Keep(callUserVersion, asked, line, Brain.Recall);
             brain.Remember(asked, line);
             Action<string> test = asideTest;
             if (test != null) { ToolReplied(toolReply, true); test(line); return; }
@@ -617,8 +634,9 @@ namespace CapriDesktop
             lock (waking)
             {
                 preroll.Add(chunk);
-                if (preroll.Count > 4) preroll.RemoveAt(0);
-                if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake())) return true;
+                // On a call it takes about a second to know they're really talking, so more of their line's start is kept.
+                if (preroll.Count > (CallModeOn ? TalkOver.CallWindow + 2 : 4)) preroll.RemoveAt(0);
+                if (!talkOver.Heard(level, SpokenLevel(now), room < 0 ? WakeLevel : RoomWake(), CallModeOn)) return true;
             }
             overHeld = false;
             // Listen for Capri waits to hear whether the line was for her. On a call every line is, so talking over her stops
@@ -652,6 +670,7 @@ namespace CapriDesktop
         private bool pushUnmuted;
         private int pushCallVersion;
         private List<short[]> pushed;
+        private List<CallChunk> pushedCall;
 
         // Windows keeps keys from her while a game that runs as admin is in front, so in Genshin Impact her push-to-talk and her
         // other keys did nothing (john_sandevistan, 3 Nov). She says why, once for each game while she runs; anything else that
@@ -702,14 +721,18 @@ namespace CapriDesktop
                 return;
             }
             if (chatting && ears.Muted) { pushUnmuted = true; ears.Muted = false; }
-            lock (waking) pushed = new List<short[]>();
+            lock (waking)
+            {
+                pushed = new List<short[]>();
+                pushedCall = CallModeOn ? new List<CallChunk>() : null;
+            }
             try
             {
                 if (!testing && !ears.Listening) { ears.Start(); pushOpened = true; }
             }
             catch (VoiceException error)
             {
-                lock (waking) pushed = null;
+                lock (waking) { pushed = null; pushedCall = null; }
                 mainframe.VoiceNote(error.Message, true);
             }
         }
@@ -720,7 +743,8 @@ namespace CapriDesktop
             pushing = false;
             if (pushUnmuted) { pushUnmuted = false; ears.Muted = true; if (chatting) pill.SetChat(true, true); }
             List<short[]> taken;
-            lock (waking) { taken = pushed; pushed = null; }
+            CallChunk[] callLine;
+            lock (waking) { taken = pushed; pushed = null; callLine = pushedCall == null ? null : pushedCall.ToArray(); pushedCall = null; }
             if (pushOpened) { pushOpened = false; ears.Stop(); }
             if (taken == null) { Commentary.Stage.Hear("", true); return; }
             int total = 0;
@@ -736,15 +760,20 @@ namespace CapriDesktop
             {
                 string text = null;
                 string problem = null;
-                try { text = Hearing.Text(samples); }
+                CallTranscript line = null;
+                try
+                {
+                    if (callLine == null) text = Hearing.Text(samples);
+                    else { line = CallTranscript.Read(callLine); text = line.Text; }
+                }
                 catch (Exception error) { problem = Voice.Short(error.Message); }
-                Post(delegate { if (callSession.Current(callVersion)) PushHeard(text, problem); });
+                Post(delegate { if (callSession.Current(callVersion)) PushHeard(text, problem, line); });
             });
         }
 
-        private void PushHeard(string text, string problem)
+        private void PushHeard(string text, string problem, CallTranscript line = null)
         {
-            if (CallModeOn) { if (problem == null) HearCall(text, true); else mainframe.VoiceNote(problem, true); return; }
+            if (CallModeOn) { if (problem != null) mainframe.VoiceNote(problem, true); else if (line != null) HearCall(line, true); return; }
             if (problem != null) { mainframe.VoiceNote(problem, true); return; }
             if (string.IsNullOrEmpty(text)) { mainframe.VoiceNote("I couldn't make out any words. Try closer to the mic.", false); return; }
             mainframe.VoiceNote(chatting && local && preferences.ListenCapri ? LocalListening : "Heard you.", false);
