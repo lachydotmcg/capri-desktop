@@ -777,6 +777,33 @@ namespace CapriDesktop
                 if (streetNote != Brain.Private || cardNote != Brain.Private || emailLabel != Brain.Private || emailValue != Brain.Private || !plainKept)
                     throw new Exception("Her privacy boundary went wrong: " + streetNote + " / " + cardNote + " / " + emailLabel + " / " + emailValue + " / " + plainName + " / " + Brain.Notes());
                 checks.Add("PASS privacy boundary: an address, a card number, an email label and an email value stay out of her notes, and a plain name still goes in");
+                // SECURITY's Keep personal details out of her memories (on here, as in Trusted): a card game label is kept and a card
+                // number isn't; off, as in Blackwall, Get to know me's answers and what she saw are kept as they are, and her notes
+                // keep only their rule from before #88, so a card number still stays out.
+                string cardGame = Brain.Jot("Favourite card game", "Uno"), cardLabel = Brain.Jot("Card number", "4111 1111 1111 1111");
+                bool cardGameKept = cardGame == null && cardLabel == Brain.Private && Brain.Notes() == "- Favourite card game: Uno";
+                Brain.Unnote("everything");
+                Brain.Unsee();
+                string offEmail, offCafe, offCard, offNotes, offSeen, onSeen;
+                try
+                {
+                    Security.Set(Security.Personal, false);
+                    offEmail = Brain.Jot("Email", "lachy@example.com");
+                    offCafe = Brain.Note("their favourite cafe is at 12 Baker Street");
+                    offCard = Brain.Note("my card number is 4111 1111 1111 1111");
+                    offNotes = Brain.Notes();
+                    new Brain().Saw("a form with 12 Baker Street typed into it", null);
+                    offSeen = Brain.Seen();
+                }
+                finally { Security.Set(Security.Personal, true); }
+                onSeen = Brain.Seen();
+                string onCafe = Brain.Note("their favourite cafe is at 12 Baker Street");
+                Brain.Unnote("everything");
+                Brain.Unsee();
+                if (!cardGameKept || offEmail != null || offCafe != "Saved to my notes: Their favourite cafe is at 12 Baker Street." || offCard != Brain.Private || offNotes != "- Email: lachy@example.com\n- Their favourite cafe is at 12 Baker Street"
+                    || offSeen.IndexOf("a form with 12 Baker Street typed into it", StringComparison.Ordinal) < 0 || onSeen.IndexOf("Baker Street", StringComparison.Ordinal) >= 0 || onSeen.IndexOf("(redacted personal detail)", StringComparison.Ordinal) < 0 || onCafe != Brain.Private || !Security.On(Security.Personal))
+                    throw new Exception("Keep personal details out of her memories went wrong: card game " + cardGameKept + " / off " + offEmail + " / " + offCafe + " / " + offCard + " / " + offNotes.Replace("\n", " | ") + " / " + offSeen + " / on " + onSeen + " / " + onCafe);
+                checks.Add("PASS Keep personal details out of her memories: on, a \"Favourite card game\" label is kept and a card number isn't, and a cafe's street address stays out of her notes; off, an email in Get to know me and an address she saw are kept, her notes still keep a card number out, and turning it back on leaves the address out of what she saw");
                 string today = Path.Combine(Brain.TranscriptPath, DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) + ".md");
                 Brain.Transcribe("You", "we finally beat the smoke boss");
                 bool transcribed = File.Exists(today) && File.ReadAllText(today).Contains("You:** we finally beat the smoke boss");
@@ -3759,13 +3786,13 @@ namespace CapriDesktop
                 List<string> want = new List<string> { "Security: " + Security.Presets[preset] };
                 for (int i = 0; i <= Security.Custom; i++) want.Add((i == preset ? "*" : "") + Security.Presets[i] + (i == Security.Custom ? " (off)" : ""));
                 want.Add("-");
-                for (int i = 0; i <= Security.Power; i++) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
+                foreach (int i in new[] { Security.Open, Security.Media, Security.Shortcuts, Security.Windows, Security.Power, Security.Personal }) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
                 return string.Join(" | ", want);
             };
-            string[] presetBits = { "000000000000", "111000000000", "111111100000", "111111111110" };
+            string[] presetBits = { "0000000000001", "1110000000001", "1111111000001", "1111111111100" };
             List<string> wrong = new List<string>();
             string first = pet.SecurityShown;
-            bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, 0x7F);
+            bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, Security.MaskOf(Security.Trusted));
             for (int preset = Security.Lockdown; preset <= Security.Blackwall; preset++)
             {
                 pet.ClickSecurity(preset, -1);
@@ -3776,7 +3803,7 @@ namespace CapriDesktop
             pet.ClickSecurity(Security.Trusted, -1);
             pet.ClickSecurity(-1, Security.Open);
             string customShown = pet.SecurityShown;
-            bool custom = Security.Preset == Security.Custom && pet.Saved.Permissions == "0111111000" && customShown == menu(Security.Custom, 0x7E);
+            bool custom = Security.Preset == Security.Custom && pet.Saved.Permissions == "0111111000" && customShown == menu(Security.Custom, Security.MaskOf(Security.Trusted) & ~1);
             // The smoke test never writes cross.json, so this is what Save would write.
             MemoryStream savedJson = new MemoryStream();
             new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).WriteObject(savedJson, pet.Saved);
@@ -3784,7 +3811,7 @@ namespace CapriDesktop
             Security.Load(pet.Saved.Permissions);
             bool reloaded = Security.Preset == Security.Custom && !Security.On(Security.Open) && Security.On(Security.Media);
             pet.ClickSecurity(-1, Security.Open);
-            bool back = Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000" && pet.SecurityShown == menu(Security.Trusted, 0x7F);
+            bool back = Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000" && pet.SecurityShown == menu(Security.Trusted, Security.MaskOf(Security.Trusted));
             bool windowsOnly = customShown.IndexOf("mouse and keyboard", StringComparison.Ordinal) < 0 && customShown.IndexOf("Hey Capri", StringComparison.Ordinal) < 0 && customShown.IndexOf("passwords", StringComparison.Ordinal) < 0 && customShown.IndexOf("Pay, buy", StringComparison.Ordinal) < 0;
             bool lines = Security.PresetLine(Security.Trusted) == "She does what you ask without asking first." && Security.PresetLine(Security.Blackwall) == "She never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
             Settings older = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Model\":\"qwen3:8b\",\"Watch\":true}")));
@@ -3795,11 +3822,24 @@ namespace CapriDesktop
             Security.Load("01111110001");
             olderBits &= Security.On(Security.Friends) && Security.Saved == "01111110001";
             Security.Load("not toggles");
-            bool unreadable = Security.Preset == Security.Trusted;
+            bool unreadable = Security.Preset == Security.Trusted && Security.On(Security.Personal);
+            // Keep personal details out of her memories: a save from before it gets its preset's default, and only a save that
+            // turned it the other way takes a 12th mark, so older builds still read the rest.
+            Security.Load("1111111111");
+            bool personal = !Security.On(Security.Personal) && Security.Saved == "1111111111";
+            Security.Load("0111111000");
+            personal &= Security.On(Security.Personal) && Security.Saved == "0111111000";
+            Security.Load("111111100000");
+            personal &= !Security.On(Security.Personal) && Security.Preset == Security.Custom && Security.Saved == "111111100000";
+            pet.ClickSecurity(Security.Trusted, -1);
+            pet.ClickSecurity(-1, Security.Personal);
+            personal &= !Security.On(Security.Personal) && Security.Preset == Security.Custom && pet.Saved.Permissions == "111111100000";
+            pet.ClickSecurity(-1, Security.Personal);
+            personal &= Security.On(Security.Personal) && Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000";
             Security.Load(pet.Saved.Permissions);
-            if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !olderBits || !unreadable)
-                throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + olderBits + " " + unreadable);
-            checks.Add("PASS Security menu: Settings > Security starts on Trusted; Lockdown, Guarded, Trusted and Blackwall tick the toggles under them (the five Mac and Linux have, each with its plain line), a toggle click makes it Custom and is saved for next time, ticking it again is Trusted, and settings from before it, or unreadable ones, get Trusted");
+            if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !olderBits || !unreadable || !personal)
+                throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + olderBits + " " + unreadable + " " + personal);
+            checks.Add("PASS Security menu: Settings > Security starts on Trusted; Lockdown, Guarded, Trusted and Blackwall tick the toggles under them (the five Mac and Linux have and Keep personal details out of her memories, each with its plain line), a toggle click makes it Custom and is saved for next time, ticking it again is Trusted, and settings from before it, or unreadable ones, get Trusted; a save from before Keep personal details out of her memories gets it off for Blackwall's ten and on otherwise, and only turning it the other way adds a 12th mark");
 
             // A toggle that's off holds the call and she asks first; a yes runs it once, a no leaves it and anything else drops it.
             List<string> did = new List<string>();
