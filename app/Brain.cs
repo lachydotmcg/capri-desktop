@@ -3903,7 +3903,8 @@ namespace CapriDesktop
             clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd|sshpass))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
-            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)?|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // Only curl's lowercase -u takes it attached, and a $ value is a variable, so PowerShell's -UseDefaultCredentials:$true stays.
+            clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)|(?-i:-u)|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|(?!\$)[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // sshpass takes its -p only among its own options, before the command it runs, so ssh's own -p port stays.
             clean = Regex.Replace(clean, @"(\bsshpass(?:\s+(?-i:-[fdP])\s*\S+|\s+(?-i:-[evhV])\S*)*\s+(?-i:-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // A lowercase -p only, so mysql's -P port isn't taken for the password, and quoted or attached passwords count. The

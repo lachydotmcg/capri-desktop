@@ -29736,6 +29736,13 @@ namespace CapriDesktop
             string sshpass = Brain.Redacted("sshpass -v -p 'Pa55word' ssh -p 2222 pi@host && SSHPASS=Env5ecret sshpass -e ssh host && sshpass -P assword -pAttach3d ssh host");
             if (sshpass.Contains("Pa55word") || sshpass.Contains("Env5ecret") || sshpass.Contains("Attach3d") || !sshpass.Contains("ssh -p 2222 pi@host")) throw new Exception("sshpass lost its port or kept its password: " + sshpass);
             checks.Add("PASS redaction hides sshpass's -p password and SSHPASS= and leaves ssh's own -p port alone");
+
+            // PowerShell's -Name:$value is a switch or a variable, not curl's -uuser:password.
+            foreach (string switches in new[] { "Invoke-WebRequest -Uri https://x -UseDefaultCredentials:$true", "Invoke-RestMethod -Uri $u -UseBasicParsing:$false", "iwr https://x -usedefaultcredentials:$True" })
+                if (Brain.Redacted(switches) != switches) throw new Exception("Redaction took a PowerShell switch for a password: " + Brain.Redacted(switches));
+            string curls = Brain.Redacted("curl -uadmin:Attach3d https://x && curl -U proxy:Pr0xyPw https://y && curl -u admin:Spac3d https://z");
+            if (curls.Contains("Attach3d") || curls.Contains("Pr0xyPw") || curls.Contains("Spac3d")) throw new Exception("curl's -u lost its redaction: " + curls);
+            checks.Add("PASS redaction leaves PowerShell's -UseDefaultCredentials:$true and other $ switches alone and still hides curl's -u and -U passwords");
         }
 
         private static string Repeat(string text, int times)
