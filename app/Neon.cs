@@ -84,11 +84,14 @@ namespace CapriDesktop
             System.Collections.Generic.List<Control> windows = new System.Collections.Generic.List<Control>();
             foreach (Form form in Application.OpenForms) if (form is LookWindow && !form.InvokeRequired) windows.Add(form);
             foreach (Control control in also) if (control != null && !control.IsDisposed && !control.InvokeRequired && !windows.Contains(control)) windows.Add(control);
+            // A menu can be reached twice, on its own and under the item it drops from, and a second swap would read the new
+            // look's greys as the old look's, so each control and item is recoloured once.
+            System.Collections.Generic.HashSet<object> done = new System.Collections.Generic.HashSet<object>();
             foreach (Control window in windows)
             {
                 bool batched = window.IsHandleCreated && window.Visible && !(window is ToolStrip);
                 if (batched) SendMessage(window.Handle, 0x000B, IntPtr.Zero, IntPtr.Zero);
-                try { Recolour(window, was); }
+                try { Recolour(window, was, done); }
                 finally
                 {
                     if (batched)
@@ -107,9 +110,13 @@ namespace CapriDesktop
             return stored;
         }
 
-        private static void Recolour(Control control, Color[] was)
+        private static void Recolour(Control control, Color[] was, System.Collections.Generic.HashSet<object> done)
         {
-            foreach (Control child in control.Controls) Recolour(child, was);
+            if (!done.Add(control)) return;
+            foreach (Control child in control.Controls) Recolour(child, was, done);
+            // A strip's items read its colours until they have their own, so like child controls they go before it.
+            ToolStrip strip = control as ToolStrip;
+            if (strip != null) foreach (ToolStripItem item in strip.Items) Recolour(item, was, done);
             Color fore = Swapped(control.ForeColor, was), back = Swapped(control.BackColor, was);
             if (fore.ToArgb() != control.ForeColor.ToArgb()) control.ForeColor = fore;
             if (back.ToArgb() != control.BackColor.ToArgb()) control.BackColor = back;
@@ -117,17 +124,16 @@ namespace CapriDesktop
             if (button != null && button.FlatStyle == FlatStyle.Flat && !button.FlatAppearance.BorderColor.IsEmpty) button.FlatAppearance.BorderColor = Swapped(button.FlatAppearance.BorderColor, was);
             Tinted tinted = control as Tinted;
             if (tinted != null) tinted.Recolour(delegate(Color stored) { return Swapped(stored, was); });
-            ToolStrip strip = control as ToolStrip;
-            if (strip != null) foreach (ToolStripItem item in strip.Items) Recolour(item, was);
             control.Invalidate();
         }
 
-        private static void Recolour(ToolStripItem item, Color[] was)
+        private static void Recolour(ToolStripItem item, Color[] was, System.Collections.Generic.HashSet<object> done)
         {
+            if (!done.Add(item)) return;
+            ToolStripDropDownItem drop = item as ToolStripDropDownItem;
+            if (drop != null && drop.HasDropDownItems) Recolour(drop.DropDown, was, done);
             item.ForeColor = Swapped(item.ForeColor, was);
             item.BackColor = Swapped(item.BackColor, was);
-            ToolStripDropDownItem drop = item as ToolStripDropDownItem;
-            if (drop != null && drop.HasDropDownItems) Recolour(drop.DropDown, was);
         }
 
         // The wine glow's falloff: strong at the top, gone well before the middle.

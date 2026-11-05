@@ -4367,6 +4367,22 @@ namespace CapriDesktop
             return item;
         }
 
+        // Her dropdowns aren't the Mainframe's controls, so a new look reaches them through this list. A sheet's go when the
+        // sheet does, and a language group's when the item it hung from is rebuilt.
+        private readonly List<ContextMenuStrip> dropdowns = new List<ContextMenuStrip>();
+
+        internal ContextMenuStrip[] Dropdowns
+        {
+            get
+            {
+                dropdowns.RemoveAll(delegate(ContextMenuStrip strip) { return strip.IsDisposed || (strip.OwnerItem != null && strip.OwnerItem.IsDisposed); });
+                return dropdowns.ToArray();
+            }
+        }
+
+        // Blackwall's red. Black, White and Grey turn it into a grey too dim to read on its box, so they use their Hot.
+        internal static Color BlackwallInk { get { return Neon.Mono ? Neon.Hot : Neon.Tone(255, 0, 70); } }
+
         private ContextMenuStrip Dropdown()
         {
             ContextMenuStrip strip = new ContextMenuStrip();
@@ -4376,6 +4392,8 @@ namespace CapriDesktop
             strip.Font = Font;
             strip.ShowImageMargin = false;
             strip.ShowCheckMargin = true;
+            dropdowns.RemoveAll(delegate(ContextMenuStrip old) { return old.IsDisposed || (old.OwnerItem != null && old.OwnerItem.IsDisposed); });
+            dropdowns.Add(strip);
             return strip;
         }
 
@@ -5656,7 +5674,7 @@ namespace CapriDesktop
             internal readonly float Zoom;
             private readonly Mainframe owner;
             private readonly Slider presets;
-            public void Recolour(Func<Color, Color> swap) { if (Security.Preset == Security.Blackwall) presets.Ink = Neon.Tone(255, 0, 70); }
+            public void Recolour(Func<Color, Color> swap) { if (Security.Preset == Security.Blackwall) presets.Ink = BlackwallInk; }
             private readonly Readout presetName;
             private readonly Label presetLine;
             private readonly Toggle[] toggles = new Toggle[Security.Count];
@@ -5749,7 +5767,7 @@ namespace CapriDesktop
                 presetLine.Text = Security.PresetLine(preset);
                 presets.Torn = preset == Security.Blackwall;
                 presets.Storm = preset == Security.Blackwall && owner.capri.Moves;
-                presets.Ink = preset == Security.Blackwall ? Neon.Tone(255, 0, 70) : Color.Empty;
+                presets.Ink = preset == Security.Blackwall ? BlackwallInk : Color.Empty;
                 for (int i = 0; i < Security.Count; i++) toggles[i].Checked = Security.On(i);
                 syncing = false;
             }

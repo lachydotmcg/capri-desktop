@@ -5800,12 +5800,26 @@ namespace CapriDesktop
             GC.KeepAlive(typer.Handle);
             mainframe.Restore();
             mainframe.ShowSettings(true);
+            List<ToolStripItem> standIns = new List<ToolStripItem>();
             try
             {
+                // Every dropdown and menu gets a stand-in item with no colours of its own, like most of hers, and each colour they
+                // take from the look is noted by its slot in it, so every change below is checked slot by slot.
+                mainframe.PickColours(0);
+                if (mainframe.Dropdowns.Length < 17) throw new Exception("Only " + mainframe.Dropdowns.Length + " of the Mainframe's dropdowns are kept for a new look.");
+                List<ToolStrip> menus = new List<ToolStrip>(mainframe.Dropdowns);
+                menus.Add(menu);
+                menus.Add(playerMenu);
+                foreach (ToolStrip strip in menus) standIns.Add(strip.Items.Add("Smoke"));
+                List<KeyValuePair<object, int[]>> menuSlots = new List<KeyValuePair<object, int[]>>();
+                foreach (ToolStrip strip in menus) MenuSlots(strip, Neon.LookColours(0), menuSlots);
                 for (int look = 3; look >= 0; look--)
                 {
                     mainframe.PickColours(look);
                     if (mainframe.ColoursShown != Neon.LookNames[look]) throw new Exception("The Mainframe colours row did not show " + Neon.LookNames[look] + ": " + mainframe.ColoursShown);
+                    string stale = StaleMenu(menuSlots, Neon.LookColours(look));
+                    if (stale != null) throw new Exception(Neon.LookNames[look] + " did not reach " + stale + ".");
+                    if (LookContrast(Mainframe.BlackwallInk, Neon.Field) < 4.5) throw new Exception(Neon.LookNames[look] + "'s Blackwall name is hard to read on its box.");
                     HashSet<int> slots = new HashSet<int>();
                     foreach (Color slot in Neon.LookColours(look)) slots.Add(slot.ToArgb());
                     if (slots.Count != Neon.LookColours(look).Length) throw new Exception("Two of " + Neon.LookNames[look] + "'s colours are the same, so a live change can't tell them apart.");
@@ -5828,9 +5842,21 @@ namespace CapriDesktop
                         picture.Save(Path.Combine(output, "mainframe-colours-" + Neon.LookNames[look].Replace(" ", "-") + ".png"), ImageFormat.Png);
                     }
                 }
+                // Every look to every other, since each pair swaps a different set of greys.
+                Action<int> move = delegate(int look)
+                {
+                    string before = Neon.LookNames[MainframeColours];
+                    mainframe.PickColours(look);
+                    string missed = StaleMenu(menuSlots, Neon.LookColours(look));
+                    if (missed != null) throw new Exception("Going from " + before + " to " + Neon.LookNames[look] + " missed " + missed + ".");
+                };
+                for (int from = 0; from < Neon.LookNames.Length; from++)
+                    for (int to = 0; to < Neon.LookNames.Length; to++)
+                        if (from != to) { move(from); move(to); }
             }
             finally
             {
+                foreach (ToolStripItem standIn in standIns) standIn.Dispose();
                 mainframe.PickColours(0);
                 mainframe.ShowSettings(false);
                 mainframe.WindowState = stateWas;
@@ -5839,7 +5865,42 @@ namespace CapriDesktop
             }
             if (Neon.Mono || Neon.Rose.ToArgb() != Color.FromArgb(255, 93, 102).ToArgb()) throw new Exception("Night City did not come back as it was.");
             if (CityLook.Hot.ToArgb() != Color.FromArgb(232, 66, 70).ToArgb()) throw new Exception("Her game windows lost Night City's colours.");
-            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, change the Mainframe, the Type box and her menus straight away, leave hidden windows hidden, are saved, and Night City comes back as it was");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, Blackwall's name included, change the Mainframe, its dropdowns, the Type box and her menus straight away from any look to any other, leave hidden windows hidden, are saved, and Night City comes back as it was");
+        }
+
+        // Each colour a menu, its items and the menus they drop take from the look, by its slot in the look, so a change can be
+        // checked slot by slot. -1 is a colour of its own.
+        private static void MenuSlots(ToolStrip strip, Color[] look, List<KeyValuePair<object, int[]>> slots)
+        {
+            slots.Add(new KeyValuePair<object, int[]>(strip, new[] { LookSlot(strip.ForeColor, look), LookSlot(strip.BackColor, look) }));
+            foreach (ToolStripItem item in strip.Items)
+            {
+                slots.Add(new KeyValuePair<object, int[]>(item, new[] { LookSlot(item.ForeColor, look), LookSlot(item.BackColor, look) }));
+                ToolStripDropDownItem drop = item as ToolStripDropDownItem;
+                if (drop != null && drop.HasDropDownItems) MenuSlots(drop.DropDown, look, slots);
+            }
+        }
+
+        private static int LookSlot(Color colour, Color[] look)
+        {
+            for (int i = 0; i < look.Length; i++) if (look[i].ToArgb() == colour.ToArgb()) return i;
+            return -1;
+        }
+
+        // The first menu colour that isn't the new look's colour for its slot, or null when every one followed.
+        private static string StaleMenu(List<KeyValuePair<object, int[]>> slots, Color[] look)
+        {
+            foreach (KeyValuePair<object, int[]> slot in slots)
+            {
+                ToolStrip strip = slot.Key as ToolStrip;
+                ToolStripItem item = slot.Key as ToolStripItem;
+                if (strip != null ? strip.IsDisposed : (item.IsDisposed || item.Owner == null)) continue;
+                Color fore = strip != null ? strip.ForeColor : item.ForeColor, back = strip != null ? strip.BackColor : item.BackColor;
+                string name = strip != null ? (strip.Items.Count > 0 ? "the menu holding " + strip.Items[0].Text : "an empty menu") : "\"" + item.Text + "\"";
+                if (slot.Value[0] >= 0 && fore.ToArgb() != look[slot.Value[0]].ToArgb()) return name + "'s text";
+                if (slot.Value[1] >= 0 && back.ToArgb() != look[slot.Value[1]].ToArgb()) return name + "'s background";
+            }
+            return null;
         }
 
         private static double LookContrast(Color ink, Color ground)
@@ -5859,7 +5920,9 @@ namespace CapriDesktop
         {
             preferences.MainframeColours = Neon.ClampLook(look);
             SavePreferences();
-            Neon.Repaint(preferences.MainframeColours, mainframe, typer, menu, playerMenu, callPanel, callPill);
+            List<Control> windows = new List<Control> { mainframe, typer, menu, playerMenu, callPanel, callPill };
+            windows.AddRange(mainframe.Dropdowns);
+            Neon.Repaint(preferences.MainframeColours, windows.ToArray());
             mainframe.ShowColours();
         }
 
