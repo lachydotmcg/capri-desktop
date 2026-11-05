@@ -2404,6 +2404,33 @@ namespace CapriDesktop
                         Directory.Delete(lengthy, true);
                         if (File.Exists(marker)) File.Delete(marker);
                     }
+
+                    // A settings folder that is itself a link, like GNU Stow folding ~/.claude into a dotfiles repo, gets her
+                    // backups in her data folder instead of the repo.
+                    string dotRepo = Path.Combine(own, "dotrepo"), folded = Path.Combine(own, "Folded config"), keptBackups = Path.Combine(HuskHooks.BackupFolder ?? folder, "husk-backups");
+                    string configWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR");
+                    List<string> keptBefore = new List<string>(Directory.Exists(keptBackups) ? Directory.GetFiles(keptBackups) : new string[0]);
+                    Directory.CreateDirectory(dotRepo);
+                    File.WriteAllBytes(Path.Combine(dotRepo, "settings.json"), plain);
+                    Directory.CreateSymbolicLink(folded, dotRepo);
+                    try
+                    {
+                        Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", folded);
+                        HuskHooks.Configure(1, mac);
+                        bool hooked = File.ReadAllText(Path.Combine(dotRepo, "settings.json")).Contains("CAPRI_HUSK=1");
+                        HuskHooks.Configure(0, null);
+                        int inRepo = Directory.GetFiles(dotRepo, "settings.json.capri-backup-*").Length, inData = 0;
+                        if (Directory.Exists(keptBackups)) foreach (string copy in Directory.GetFiles(keptBackups, "settings.json.capri-backup-*")) if (!keptBefore.Contains(copy)) inData++;
+                        if (!hooked || inRepo != 0 || inData != 2) throw new Exception("Settings in a linked folder got her backups in the folder it links to: hooked " + hooked + ", " + inRepo + " backups there and " + inData + " in her data folder.");
+                        checks.Add("PASS on Mac and Linux a settings folder that is a link, like GNU Stow folding ~/.claude, gets her backups in her data folder, out of the dotfiles repo");
+                    }
+                    finally
+                    {
+                        Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", configWas);
+                        File.Delete(folded);
+                        Directory.Delete(dotRepo, true);
+                        if (Directory.Exists(keptBackups)) foreach (string copy in Directory.GetFiles(keptBackups)) if (!keptBefore.Contains(copy)) File.Delete(copy);
+                    }
                 }
 
                 pet.HuskQueue = delegate(Action action) { action(); };

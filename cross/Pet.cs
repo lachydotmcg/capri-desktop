@@ -4807,6 +4807,7 @@ namespace CapriDesktop
             desktop.Exit += (_, _) => { HuskWatch closing = husk; if (closing != null) closing.Dispose(); };
             Saved.HuskMode = Math.Max(0, Math.Min(3, Saved.HuskMode));
             husk = new HuskWatch(Program.Smoke ?? folder);
+            HuskHooks.BackupFolder = Program.Smoke ?? folder;
             husk.Clock = delegate { return Now; };
             husk.Language = delegate { return Brain.Language; };
             husk.Dispatch = delegate(Action action) { Dispatcher.UIThread.Post(action); };

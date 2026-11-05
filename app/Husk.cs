@@ -671,8 +671,46 @@ namespace CapriDesktop
 
         private static void Backup(string file)
         {
-            if (File.Exists(file)) File.Copy(file, file + ".capri-backup-" + DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss-fffffff", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
+            if (!File.Exists(file)) return;
+            string copy = file + ".capri-backup-" + DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss-fffffff", CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N");
+#if CROSS
+            // A settings folder that is itself a link, like GNU Stow folding ~/.claude into a dotfiles repo, would put her copy
+            // in the repo, where a git-crypt rule for settings.json doesn't cover it, so it goes in her data folder instead.
+            if (BackupFolder != null && Folded(file))
+            {
+                string kept = Path.Combine(BackupFolder, "husk-backups");
+                Directory.CreateDirectory(kept);
+                copy = Path.Combine(kept, Path.GetFileName(copy));
+            }
+#endif
+            File.Copy(file, copy);
         }
+
+#if CROSS
+        // Her data folder, for backups of settings in a linked folder. Her pet sets it.
+        internal static string BackupFolder;
+
+        // Whether a folder on the way to this file is a link: inside their home folder any of them up to it, and elsewhere just
+        // the file's own folder, so a system link like macOS's /var doesn't count.
+        private static bool Folded(string file)
+        {
+            try
+            {
+                string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile).TrimEnd('/');
+                DirectoryInfo folder = new FileInfo(Path.GetFullPath(file)).Directory;
+                bool inside = home.Length > 0 && folder != null && folder.FullName.StartsWith(home + "/", StringComparison.Ordinal);
+                for (; folder != null; folder = folder.Parent)
+                {
+                    if (folder.FullName.TrimEnd('/') == home) break;
+                    if (folder.LinkTarget != null) return true;
+                    if (!inside) break;
+                }
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+            return false;
+        }
+#endif
 
 #if CROSS
         private sealed class Part
