@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "id": "colors-toxic",
+  "name": "Colors: Toxic",
+  "version": "1.0.0",
+  "author": "Avery",
+  "description": "A Toxic color set for her. Works with skins too.",
+  "colors": {
+    "hair": "#7CFF00",
+    "accent": "#FF2E63",
+    "eyes": "#00E5FF",
+    "edges": "#00A86B",
+    "body": "#0B1F12"
+  }
+}

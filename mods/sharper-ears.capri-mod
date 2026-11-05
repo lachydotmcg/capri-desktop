@@ -1,0 +1,10 @@
+{
+  "format": 1,
+  "id": "sharper-ears",
+  "name": "Sharper Ears",
+  "version": "1.0.0",
+  "author": "Avery",
+  "description": "Answers to words that sound like her names, not only exact spellings.",
+  "sounds_like": true,
+  "heard_as": ["Coppering", "Capris", "Caprice", "Cah Pre", "Cah Pree", "Cah Bree", "Heika Pri"]
+}

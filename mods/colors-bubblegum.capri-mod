@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "id": "colors-bubblegum",
+  "name": "Colors: Bubblegum",
+  "version": "1.0.0",
+  "author": "Avery",
+  "description": "A Bubblegum color set for her. Works with skins too.",
+  "colors": {
+    "hair": "#FF7AC6",
+    "accent": "#7DF9FF",
+    "eyes": "#B14CFF",
+    "edges": "#FFFFFF",
+    "body": "#3A1B3F"
+  }
+}

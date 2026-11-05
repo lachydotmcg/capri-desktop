@@ -582,6 +582,7 @@ namespace CapriDesktop
 
         private static bool ShapeWindow(IntPtr window, string how, Rectangle wanted)
         {
+            if (how == "maximize" || how == "restore") SmokeRun.NoteAsync(window, "Arrange " + how);
             if (how == "maximize") return ShowWindowAsync(window, 3);
             if (how == "restore") return ShowWindowAsync(window, 9);
             // A window that crosses to a monitor of another scale resizes itself to keep its size as it looks, so it's placed again

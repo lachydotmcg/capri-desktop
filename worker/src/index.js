@@ -8,7 +8,7 @@ const sha256 = async (text) => {
 const counters = { '/star': 'stars', '/download': 'downloads' };
 
 const site = 'https://capriai.app/';
-const discord = 'https://discord.gg/F4fDHfGtFk';
+const discord = 'https://discord.gg/capridesktop';
 const models = [
   { name: '@cf/google/gemma-4-26b-a4b-it', vision: true, options: { max_completion_tokens: 260, temperature: 0.3, chat_template_kwargs: { enable_thinking: false } } },
   { name: '@cf/meta/llama-3.3-70b-instruct-fp8-fast', options: { max_tokens: 260, temperature: 0.3 } }
@@ -36,6 +36,59 @@ const rules = [
 ].join('\n');
 
 let notes = { at: 0, url: '', sections: [] };
+let modFolders = { at: 0, names: new Set() };
+
+const folderName = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+
+const modListed = async folder => {
+  if (!folderName.test(folder) || folder.includes('..')) return false;
+  if (Date.now() - modFolders.at > 300000) {
+    const answer = await fetch('https://api.github.com/repos/lachydotmcg/capri-mods/git/trees/HEAD?recursive=1', { headers: { 'User-Agent': 'capri-reactions', Accept: 'application/vnd.github+json' } });
+    if (answer.ok) {
+      const { tree } = await answer.json();
+      const names = new Set();
+      for (const entry of tree || []) {
+        const match = /^mods\/([^/]+)\/[^/]+\.capri-(?:mod|code|skin)$/.exec(entry.path || '');
+        if (match && entry.type === 'blob') names.add(match[1]);
+      }
+      modFolders = { at: Date.now(), names };
+    } else if (!modFolders.at) {
+      throw new Error('GitHub said ' + answer.status);
+    }
+  }
+  return modFolders.names.has(folder);
+};
+
+const modRows = 'SELECT f.folder AS folder, COALESCE(d.count, 0) AS downloads, COALESCE(r.rating, 0) AS rating, COALESCE(r.votes, 0) AS votes FROM (SELECT folder FROM mod_downloads UNION SELECT folder FROM mod_ratings) f LEFT JOIN mod_downloads d ON d.folder = f.folder LEFT JOIN (SELECT folder, AVG(stars) AS rating, COUNT(*) AS votes FROM mod_ratings GROUP BY folder) r ON r.folder = f.folder';
+
+const mods = async (request, env, ctx, path, reply) => {
+  if (path === '/mods') {
+    if (request.method !== 'GET') return reply({ error: 'Not found' }, 404);
+    const { results } = await env.DB.prepare(modRows).all();
+    return reply({ mods: results });
+  }
+  if (request.method !== 'POST' || (path !== '/mods/download' && path !== '/mods/rate')) return reply({ error: 'Not found' }, 404);
+  const sent = await request.json().catch(() => null);
+  const folder = sent && typeof sent.folder === 'string' ? sent.folder : '';
+  let listed;
+  try { listed = await modListed(folder); }
+  catch { return reply({ error: 'Try again soon' }, 503); }
+  if (!listed) return reply({ error: 'No such mod' }, 404);
+  const visitor = request.headers.get('CF-Connecting-IP') || 'local';
+  if (path === '/mods/rate') {
+    const stars = sent.stars;
+    if (!Number.isInteger(stars) || stars < 1 || stars > 5) return reply({ error: 'Stars go from 1 to 5' }, 400);
+    const who = await sha256('mod-rating:' + visitor + ':' + env.SALT);
+    await env.DB.prepare('INSERT INTO mod_ratings (folder, visitor, stars) VALUES (?, ?, ?) ON CONFLICT (folder, visitor) DO UPDATE SET stars = excluded.stars').bind(folder, who, stars).run();
+  } else {
+    const day = Math.floor(Date.now() / 86400000);
+    const key = await sha256('mod-download:' + folder + ':' + visitor + ':' + day + ':' + env.SALT);
+    const tap = await env.DB.prepare('INSERT OR IGNORE INTO taps (key, day) VALUES (?, ?)').bind(key, day).run();
+    if (tap.meta.changes === 1) await env.DB.prepare('INSERT INTO mod_downloads (folder, count) VALUES (?, 1) ON CONFLICT (folder) DO UPDATE SET count = count + 1').bind(folder).run();
+    ctx.waitUntil(env.DB.prepare('DELETE FROM taps WHERE day < ?').bind(day).run());
+  }
+  return reply(await env.DB.prepare(modRows + ' WHERE f.folder = ?').bind(folder).first());
+};
 
 const stem = word => {
   if (word.length > 5 && word.endsWith('ing')) word = word.slice(0, -3);
@@ -239,6 +292,7 @@ export default {
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
     const path = new URL(request.url).pathname;
     if (path === '/help') return request.method === 'POST' ? help(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
+    if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
     const table = counters[path];
     if (!table || !['GET', 'POST'].includes(request.method)) return reply({ error: 'Not found' }, 404);
 

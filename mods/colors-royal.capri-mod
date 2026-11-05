@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "id": "colors-royal",
+  "name": "Colors: Royal",
+  "version": "1.0.0",
+  "author": "Avery",
+  "description": "A Royal color set for her. Works with skins too.",
+  "colors": {
+    "hair": "#8A2BE2",
+    "accent": "#FFD54A",
+    "eyes": "#00C2FF",
+    "edges": "#FF4FA3",
+    "body": "#120A26"
+  }
+}

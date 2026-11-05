@@ -16,17 +16,69 @@ namespace CapriDesktop
     {
         internal static string Smoke;
         internal static int[] Shelf;
+        private static string lastCrash;
+        private static int lastCrashAt;
 
         [STAThread]
         private static int Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--hook") return HuskHook.Run(args.Length > 1 ? args[1] : "");
             if (args.Length >= 5 && args[0] == "--shelf")
             {
                 Shelf = new[] { int.Parse(args[1]), int.Parse(args[2]), int.Parse(args[3]), int.Parse(args[4]) };
                 return AppBuilder.Configure<ShelfApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
             }
             if (args.Length >= 2 && args[0] == "--smoke") Smoke = Path.GetFullPath(args[1]);
+            // Whatever ends her leaves a line in errors.txt. A bad click or timer is caught once her app is up (CapriApp).
+            if (Smoke == null) AppDomain.CurrentDomain.UnhandledException += delegate(object sender, UnhandledExceptionEventArgs crash) { Crashed(crash.ExceptionObject as Exception); };
             return AppBuilder.Configure<CapriApp>().UsePlatformDetect().With(new MacOSPlatformOptions { ShowInDock = false }).StartWithClassicDesktopLifetime(args, ShutdownMode.OnExplicitShutdown);
+        }
+
+        internal static void Crashed(Exception error)
+        {
+            if (error == null) return;
+            while (error.InnerException != null) error = error.InnerException;
+            string what = error.GetType().Name + ": " + error.Message;
+            // The same bug from the same place is written once a minute, even when its message carries changing numbers, so a
+            // timer that keeps failing can't flood errors.txt.
+            string place = "";
+            foreach (string frame in (error.StackTrace ?? "").Split('\n')) { place = frame.Trim(); if (place.Length > 0) break; }
+            string same = error.GetType().Name + " " + place;
+            lock (typeof(Program))
+            {
+                if (same == lastCrash && unchecked(Environment.TickCount - lastCrashAt) < 60000) return;
+                lastCrash = same;
+                lastCrashAt = Environment.TickCount;
+                try
+                {
+                    if (Brain.LogPath == null) Brain.LogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Capri", "errors.txt");
+                    Directory.CreateDirectory(Path.GetDirectoryName(Brain.LogPath));
+                }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
+            Brain.Log("crash", -1, what);
+            int shown = 0;
+            foreach (string frame in (error.StackTrace ?? "").Split('\n'))
+            {
+                string at = frame.Trim();
+                if (at.Length == 0) continue;
+                Brain.Log("crash", -1, at);
+                if (++shown == 4) break;
+            }
+        }
+
+        // Avalonia keeps a timer tick's exception to itself and never ticks that timer again, and an exception in a click
+        // ends the app, so her timers and her own clicks come through here: it's written down and she carries on. Smoke
+        // runs still fail on it.
+        internal static void Guard(Action work)
+        {
+            try { work(); }
+            catch (Exception error)
+            {
+                if (Smoke != null) throw;
+                Crashed(error);
+            }
         }
     }
 
@@ -40,37 +92,19 @@ namespace CapriDesktop
 
         public override void OnFrameworkInitializationCompleted()
         {
+            // A bad click or timer used to end her on Mac and Linux. Now it's written down and she carries on, like on Windows.
+            // This waits until now because Avalonia's UI dispatcher is made from the platform on first use, and in Main there's none yet.
+            if (Program.Smoke == null) Dispatcher.UIThread.UnhandledException += delegate(object sender, DispatcherUnhandledExceptionEventArgs crash) { crash.Handled = true; Program.Crashed(crash.Exception); };
             IClassicDesktopStyleApplicationLifetime desktop = ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
             if (desktop != null)
             {
                 Pet pet = new Pet(desktop);
-                NativeMenu menu = new NativeMenu();
-                NativeMenuItem talk = new NativeMenuItem("Talk to her");
-                talk.Click += delegate { pet.ComeBack(); pet.Talk.Open(); };
-                NativeMenuItem quiet = new NativeMenuItem("Quiet") { ToggleType = NativeMenuItemToggleType.CheckBox };
-                quiet.Click += delegate { pet.ToggleShush(); };
-                pet.ShushChanged = delegate { quiet.IsChecked = pet.Shushed; };
-                NativeMenuItem hide = new NativeMenuItem("Hide her");
-                hide.Click += delegate
-                {
-                    if (pet.Away) pet.ComeBack();
-                    else pet.HideAway();
-                };
-                pet.AwayChanged = delegate { hide.Header = pet.Away ? "Show her" : "Hide her"; };
-                NativeMenuItem bring = new NativeMenuItem("Bring her back");
-                bring.Click += delegate { pet.Bring(); };
-                NativeMenuItem quit = new NativeMenuItem("Quit Capri");
-                quit.Click += delegate { pet.Quit(); };
-                menu.Items.Add(talk);
-                menu.Items.Add(quiet);
-                menu.Items.Add(hide);
-                menu.Items.Add(bring);
-                menu.Items.Add(new NativeMenuItemSeparator());
-                menu.Items.Add(quit);
+                NativeMenu menu = pet.TrayMenu();
                 TrayIcon tray = new TrayIcon();
                 using (Stream chip = typeof(CapriApp).Assembly.GetManifestResourceStream("Capri.Chip.png")) tray.Icon = new WindowIcon(new Bitmap(chip));
                 tray.ToolTipText = "Capri";
                 tray.Menu = menu;
+                tray.Clicked += delegate { pet.OpenMainframe(); };
                 TrayIcons icons = new TrayIcons();
                 icons.Add(tray);
                 TrayIcon.SetIcons(this, icons);

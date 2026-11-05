@@ -47,6 +47,7 @@ namespace CapriDesktop
     internal interface IMixCable : IDisposable
     {
         int Rate { get; }
+        int Room { get; }
         // Frames Windows takes at a time, about 10 ms.
         int Period { get; }
         WaitHandle Ready { get; }
@@ -92,6 +93,49 @@ namespace CapriDesktop
     // slower to hold that level, so the mic's clock and the cable's never drift apart, and a packet that comes late waits on
     // the cable's spare period instead of leaving a gap. A device that goes away is closed and looked for again every second,
     // and every two seconds she checks they still have the mic and cable she should be using.
+    internal sealed class MicAnswer
+    {
+        private static int next, writing;
+        private readonly object gate = new object();
+        private readonly string path = Brain.LogPath;
+        private readonly int number = Interlocked.Increment(ref next);
+        private double speakers, cable;
+        private int waiting;
+        private bool ended, logged;
+
+        internal static bool Writing { get { return Volatile.Read(ref writing) > 0; } }
+
+        internal void Give(int count, int rate) { lock (gate) speakers += (double)count / rate; }
+
+        internal void Hold() { lock (gate) waiting++; }
+
+        internal void Reach(double seconds, bool last)
+        {
+            lock (gate)
+            {
+                cable += seconds;
+                if (last) waiting--;
+                Report();
+            }
+        }
+
+        internal void End() { lock (gate) { ended = true; Report(); } }
+
+        private void Report()
+        {
+            if (!ended || waiting != 0 || logged) return;
+            logged = true;
+            string line = "answer=" + number + " speakers=" + speakers.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)
+                + " s cable=" + cable.ToString("0.000", System.Globalization.CultureInfo.InvariantCulture) + " s";
+            Interlocked.Increment(ref writing);
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try { Brain.LogAt(path, "mic delivery", -1, line); }
+                finally { Interlocked.Decrement(ref writing); }
+            });
+        }
+    }
+
     internal sealed class MicMix : IDisposable
     {
         internal const string Missing = "Needs VB-CABLE (free).";
@@ -129,12 +173,23 @@ namespace CapriDesktop
         private volatile bool stopping;
         private volatile bool open;
         private volatile bool relook;
+        private volatile bool call;
+        private int callVersion;
         private volatile string chosen, cableChosen;
         // What's wrong for Settings in a few words, or null while it's mixing their mic.
         internal volatile string Problem;
         // For the smoke test and errors.txt: opens and losses, frames written and frames the mic queue ran short.
         internal volatile int MicOpens, CableOpens, MicLosses, CableLosses;
         internal long Written, Starved;
+        internal volatile int Loudness = 100;
+        private double output;
+        private int outputAt;
+
+        internal double Output { get { return LastOutput(Environment.TickCount); } }
+
+        internal double LastOutput(int now) { return !open || unchecked(now - Volatile.Read(ref outputAt)) >= 300 ? 0 : Volatile.Read(ref output); }
+
+        internal static int Level(int percent) { return (Math.Max(50, Math.Min(200, percent)) + 5) / 10 * 10; }
 
         // The rest is the mix thread's own, or the test's while it steps one by hand.
         private IMixMic mic;
@@ -143,7 +198,7 @@ namespace CapriDesktop
         private MixResampler micRate;
         private Ring queue;
         private SoftLimiter limiter;
-        private float[] heard = new float[0], made = new float[0], mix = new float[0];
+        private float[] heard = new float[0], made = new float[0], mix = new float[0], alone = new float[0];
         private WaitHandle[] handles;
         private double cableAt, micAt, lookAt, heardAt, trimAt;
         private int target, period, cushion, jump;
@@ -169,6 +224,24 @@ namespace CapriDesktop
 
         // Their cable pick on Settings' Output, an endpoint id, or null for VB-CABLE's before Steam's. Moves her on the next pass.
         internal string CableChosen { get { return cableChosen; } set { cableChosen = value; relook = true; wake.Set(); } }
+
+        internal bool Call
+        {
+            get { return call; }
+            set
+            {
+                lock (gate)
+                {
+                    if (call == value) return;
+                    call = value;
+                    Interlocked.Increment(ref callVersion);
+                    foreach (Lane lane in lanes) lane.Clear();
+                    lanes.Clear();
+                    Volatile.Write(ref output, 0);
+                }
+                wake.Set();
+            }
+        }
 
         // Mixing into CABLE Input right now.
         internal bool Mixing { get { return open; } }
@@ -199,7 +272,7 @@ namespace CapriDesktop
         internal static string EndOf(MixDevice cable) { return cable != null && IsSteam(cable.Name) ? SteamEnd : CableEnd; }
 
         // Settings' note for an end, short enough for its column.
-        internal static string PickLine(string end) { return end == SteamEnd ? "Pick Steam Streaming Microphone in Discord or Roblox." : "Pick " + end + " as your mic in Discord or Roblox."; }
+        internal static string PickLine(string end) { return "Calls only. Pick " + end + "."; }
 
         // The cable from Windows' active speakers and mics, with its far end: the one they picked on Settings' Output while it's
         // there, else VB-CABLE's before Steam's, since they installed it for this, and either with its far end on before one
@@ -267,10 +340,10 @@ namespace CapriDesktop
 
         // Her speakers hand over what they play here. Only her voice's speakers do, so her sound effects stay out of their mic.
         // It comes at her own level, not her speakers' volume, and goes in at Speaking.
-        internal static void Hear(object speaker, short[] samples, int rate)
+        internal static void Hear(object speaker, short[] samples, int rate, MicAnswer answer = null)
         {
             MicMix running = Current;
-            if (running != null && samples != null && samples.Length > 0 && rate > 0) running.Take(speaker, samples, rate, true);
+            if (running != null && samples != null && samples.Length > 0 && rate > 0) running.Take(speaker, samples, rate, true, answer);
         }
 
         // A speaker stopped or was cut off: what it had waiting for the cable goes too.
@@ -281,17 +354,18 @@ namespace CapriDesktop
         }
 
         // Leveled, it's lifted or lowered to Speaking on its way in; otherwise it goes in at its own level.
-        internal void Take(object speaker, short[] samples, int rate, bool leveled = false)
+        internal void Take(object speaker, short[] samples, int rate, bool leveled = false, MicAnswer answer = null)
         {
             // Nothing waits while there's no cable to play it into. A copy waits, since a speaker's caller may reuse its own.
-            if (!open) return;
+            int version = Volatile.Read(ref callVersion);
+            if (!call || !open || samples == null || samples.Length == 0 || rate <= 0) return;
             short[] copy = (short[])samples.Clone();
             lock (gate)
             {
-                if (!open) return;
+                if (!call || !open || version != callVersion) return;
                 Lane lane = lanes.Find(delegate(Lane each) { return each.Owner == speaker; });
                 if (lane == null) { lane = new Lane(speaker); lanes.Add(lane); }
-                lane.Add(copy, rate, leveled);
+                lane.Add(copy, rate, leveled, answer);
             }
         }
 
@@ -328,7 +402,7 @@ namespace CapriDesktop
             stopping = true;
             // Nothing more of hers goes in from here, even while the worker's stuck in a device call (Codex review, 2 Nov).
             open = false;
-            lock (gate) lanes.Clear();
+            lock (gate) { foreach (Lane lane in lanes) lane.Clear(); lanes.Clear(); }
             wake.Set();
             if (Thread.CurrentThread != running && !running.Join(3000)) Note("Her mic mix took too long to stop.");
         }
@@ -473,18 +547,19 @@ namespace CapriDesktop
             int rate = cable.Rate;
             period = Math.Max(1, cable.Period);
             // Two of Windows' periods, at least 10 ms more than one, so a late wake still finds something to play.
-            target = period + Math.Max(period, rate / 100);
+            target = Math.Min(cable.Room, period + Math.Max(period, rate / 100));
             jump = rate * 40 / 1000;
             queue = new Ring(rate);
             limiter = new SoftLimiter(rate);
             mix = new float[Math.Max(target, rate / 5)];
+            alone = new float[mix.Length];
             made = new float[rate / 2];
             if (mic != null) Tune();
             cableProblem = null;
             open = true;
             handles = null;
             CableOpens++;
-            Note("Her mic mix opened " + found.Name + " at " + rate + " Hz, periods of " + period + " frames, topped up to " + target + " frames.");
+            Note("Her mic mix opened " + found.Name + " at " + rate + " Hz, room for " + cable.Room + " frames, periods of " + period + " frames, topped up to " + target + " frames.");
         }
 
         private void OpenMic(double now)
@@ -548,11 +623,12 @@ namespace CapriDesktop
         private void CloseCable()
         {
             open = false;
+            Volatile.Write(ref output, 0);
             IMixCable closing = cable;
             cable = null;
             cableDevice = null;
             handles = null;
-            lock (gate) lanes.Clear();
+            lock (gate) { foreach (Lane lane in lanes) lane.Clear(); lanes.Clear(); }
             if (closing != null) try { closing.Dispose(); } catch (Exception) { }
         }
 
@@ -599,13 +675,45 @@ namespace CapriDesktop
                 }
             }
             else Array.Clear(mix, 0, want);
-            lock (gate) foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate);
-            limiter.Run(mix, want);
-            if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
-            // A pass that was stuck in a device call when the switch went off writes nothing once it comes back.
-            if (stopping) return;
-            cable.Write(mix, want);
-            Interlocked.Add(ref Written, want);
+            Array.Copy(mix, alone, want);
+            List<Share> shares = new List<Share>();
+            int version;
+            lock (gate)
+            {
+                if (stopping) return;
+                version = callVersion;
+                float loudness = Math.Max(50, Math.Min(200, Loudness)) / 100f;
+                if (call) foreach (Lane lane in lanes) lane.Mix(mix, want, cable.Rate, loudness, shares);
+            }
+            // The cable is written outside the gate, so her speakers never wait on a device call that's stuck.
+            bool wrote = false;
+            bool spoke = false;
+            try
+            {
+                // Her level is what her lanes added on top of your mic, so the call panel's meter shows her voice alone.
+                double power = 0;
+                for (int i = 0; i < want; i++) { double hers = mix[i] - alone[i]; power += hers * hers; }
+                spoke = call && version == Volatile.Read(ref callVersion);
+                if (!spoke) { Array.Copy(alone, mix, want); power = 0; }
+                limiter.Run(mix, want);
+                if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
+                // A pass that was stuck in a device call when the switch went off writes nothing once it comes back.
+                if (stopping) return;
+                if (version != Volatile.Read(ref callVersion))
+                {
+                    Array.Copy(alone, mix, want);
+                    limiter.Run(mix, want);
+                    if (trim != 1) for (int i = 0; i < want; i++) mix[i] *= trim;
+                    power = 0;
+                    spoke = false;
+                }
+                cable.Write(mix, want);
+                Volatile.Write(ref output, Math.Min(1, Math.Sqrt(power / want) * trim));
+                Volatile.Write(ref outputAt, Environment.TickCount);
+                wrote = true;
+                Interlocked.Add(ref Written, want);
+            }
+            finally { foreach (Share share in shares) share.Answer.Reach(wrote && spoke ? share.Seconds : 0, share.Last); }
         }
 
         // Keeps a packet and a half of the mic queued after each top-up, counting what the mic has heard since its last packet,
@@ -681,16 +789,34 @@ namespace CapriDesktop
         internal static bool Noting { get { lock (notes) return noting; } }
 
         // Her voice from one of her speakers, waiting for the cable and resampled to its rate as it goes in.
+        private sealed class Share
+        {
+            internal MicAnswer Answer;
+            internal double Seconds;
+            internal bool Last;
+        }
+
+        private sealed class Piece
+        {
+            internal short[] Samples;
+            internal int Rate;
+            internal MicAnswer Answer;
+            internal double Left;
+            internal bool Fed;
+        }
+
         private sealed class Lane
         {
             internal readonly object Owner;
-            private readonly Queue<short[]> waiting = new Queue<short[]>();
+            private readonly Queue<Piece> waiting = new Queue<Piece>();
+            private readonly List<Piece> credits = new List<Piece>();
             private MixResampler resampler;
             private int rate, queued;
             private bool tail;
             private float[] fed = new float[0], heard = new float[0];
             // How loud her voiced moments have been, 0 before any or for a lane that keeps its own level.
             private double spoken;
+            private double waitingTime;
 
             internal Lane(object owner) { Owner = owner; }
 
@@ -699,20 +825,32 @@ namespace CapriDesktop
             // What her voice is multiplied by on its way into the mix.
             internal float Lift { get { return spoken > 0 ? (float)Math.Max(LeastLift, Math.Min(MostLift, Speaking / spoken)) : 1; } }
 
-            internal void Add(short[] samples, int sampleRate, bool leveled)
+            internal void Add(short[] samples, int sampleRate, bool leveled, MicAnswer answer)
             {
-                // A speaker reopens for a new rate, which clears it first, so what's waiting is all at one rate.
-                if (sampleRate != rate) { Clear(); rate = sampleRate; }
                 if (leveled) Measure(samples, sampleRate);
-                waiting.Enqueue(samples);
+                Piece piece = new Piece { Samples = samples, Rate = sampleRate, Answer = answer, Left = (double)samples.Length / sampleRate };
+                if (answer != null) answer.Hold();
+                waiting.Enqueue(piece);
+                credits.Add(piece);
                 queued += samples.Length;
-                while (queued > MostWaiting * rate && waiting.Count > 1) queued -= waiting.Dequeue().Length;
+                waitingTime += piece.Left;
+                while (waitingTime > MostWaiting && waiting.Count > 1)
+                {
+                    Piece lost = waiting.Dequeue();
+                    queued -= lost.Samples.Length;
+                    waitingTime -= lost.Left;
+                    credits.Remove(lost);
+                    if (lost.Answer != null) lost.Answer.Reach(0, true);
+                }
             }
 
             internal void Clear()
             {
                 waiting.Clear();
+                foreach (Piece piece in credits) if (piece.Answer != null) piece.Answer.Reach(0, true);
+                credits.Clear();
                 queued = 0;
+                waitingTime = 0;
                 resampler = null;
                 tail = false;
             }
@@ -739,30 +877,58 @@ namespace CapriDesktop
 
             // Adds the next count samples of her voice at the cable's rate into the mix. Once she runs out, a moment of silence
             // goes in after her last sample so it comes out too.
-            internal void Mix(float[] into, int count, int to)
+            internal void Mix(float[] into, int count, int to, float loudness, List<Share> shares)
             {
-                if (rate == 0) return;
-                if (resampler == null || resampler.To != to) resampler = new MixResampler(rate, to);
                 if (heard.Length < count) heard = new float[count];
                 float lift = Lift / 32768f;
                 int got = 0;
                 while (got < count)
                 {
-                    got += resampler.Pull(heard, got, count - got);
-                    if (got >= count) break;
-                    if (waiting.Count > 0)
+                    if (resampler == null)
                     {
-                        short[] next = waiting.Dequeue();
+                        if (waiting.Count == 0) break;
+                        rate = waiting.Peek().Rate;
+                        resampler = new MixResampler(rate, to);
+                        tail = true;
+                    }
+                    int pulled = resampler.Pull(heard, got, count - got);
+                    Credit((double)pulled / to, shares);
+                    got += pulled;
+                    if (got >= count) break;
+                    if (waiting.Count > 0 && waiting.Peek().Rate == rate && tail)
+                    {
+                        Piece piece = waiting.Dequeue();
+                        short[] next = piece.Samples;
                         queued -= next.Length;
+                        waitingTime -= piece.Left;
+                        piece.Fed = true;
                         if (fed.Length < next.Length) fed = new float[next.Length];
                         for (int i = 0; i < next.Length; i++) fed[i] = next[i] * lift;
                         resampler.Push(fed, 0, next.Length);
-                        tail = true;
                     }
                     else if (tail) { resampler.Silence(); tail = false; }
-                    else break;
+                    else
+                    {
+                        while (credits.Count > 0 && credits[0].Fed) Credit(credits[0].Left, shares);
+                        resampler = null;
+                        tail = true;
+                    }
                 }
-                for (int i = 0; i < got; i++) into[i] += heard[i];
+                for (int i = 0; i < got; i++) into[i] += heard[i] * loudness;
+            }
+
+            private void Credit(double seconds, List<Share> shares)
+            {
+                while (seconds > 0 && credits.Count > 0 && credits[0].Fed)
+                {
+                    Piece piece = credits[0];
+                    double took = Math.Min(seconds, piece.Left);
+                    piece.Left -= took;
+                    seconds -= took;
+                    bool last = piece.Left < 1e-9;
+                    if (last) credits.RemoveAt(0);
+                    if (piece.Answer != null) shares.Add(new Share { Answer = piece.Answer, Seconds = took, Last = last });
+                }
             }
         }
 
@@ -1212,6 +1378,8 @@ namespace CapriDesktop
         public WaitHandle Ready { get { return ready; } }
         internal string Format { get { return shape.Name; } }
 
+        public int Room { get { return frames; } }
+
         public int Queued()
         {
             int padding;
@@ -1221,7 +1389,7 @@ namespace CapriDesktop
 
         public void Write(float[] mono, int count)
         {
-            count = Math.Min(count, frames - Queued());
+            if (count > frames - Queued()) throw new MixLost("The cable has no room for her mix.");
             if (count <= 0) return;
             IntPtr data;
             Wasapi.Check(render.GetBuffer(count, out data), "get buffer");

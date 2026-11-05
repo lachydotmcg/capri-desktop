@@ -1,0 +1,36 @@
+// capri-mod: 1
+// id: hello-code
+// name: Hello Code
+// version: 1.0.0
+// author: Avery
+// description: Answers "mod check" and counts how often you've asked.
+
+using System;
+using System.IO;
+using CapriDesktop;
+
+public class HelloCode : ICapriMod
+{
+    private ICapriHost capri;
+    private string counter;
+
+    public void Start(ICapriHost host)
+    {
+        capri = host;
+        counter = Path.Combine(host.Folder, "count.txt");
+        capri.Log("Hello Code started.");
+    }
+
+    public bool Heard(string words)
+    {
+        if (words.IndexOf("mod check", StringComparison.OrdinalIgnoreCase) < 0) return false;
+        int count = 0;
+        if (File.Exists(counter)) int.TryParse(File.ReadAllText(counter), out count);
+        count++;
+        File.WriteAllText(counter, count.ToString());
+        capri.Say("Code mod online. That's check number " + count + ".");
+        return true;
+    }
+
+    public void Stop() { capri.Log("Hello Code stopped."); }
+}

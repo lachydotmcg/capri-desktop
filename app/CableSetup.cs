@@ -22,6 +22,7 @@ namespace CapriDesktop
         // VB-CABLE's page, where people can donate. Settings' credit opens it.
         internal const string Page = "https://vb-audio.com/Cable/";
         internal const string Credit = "VB-CABLE is donationware from vb-cable.com.";
+        internal const string Better = "VB-CABLE usually sounds better than Steam's.";
         internal const string Running = "In VB-Audio's setup, click Install Driver.";
         internal const string Finish = "If it installed, restart your PC.";
         internal const string Declined = "Windows didn't let the setup run.";

@@ -1,0 +1,869 @@
+// capri-mod: 1
+// id: startup-intros
+// name: Startup Intros
+// version: 2.0.0
+// author: Avery
+// description: Three start-up animations: Hijack, Shatter and Wake.
+// intro: yes
+
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using CapriDesktop;
+
+public class StartupIntros : ICapriMod, ICapriIntro
+{
+    private static readonly string[] Names = { "Hijack", "Shatter", "Wake" };
+    private static readonly double[] Lengths = { 4.7, 3.85, 4.5 };
+
+    private static readonly Color Red = Color.FromArgb(255, 44, 76);
+    private static readonly Color Orange = Color.FromArgb(244, 66, 44);
+    private static readonly Color Green = Color.FromArgb(46, 226, 110);
+    private static readonly Color DeepGreen = Color.FromArgb(24, 168, 84);
+    private static readonly Color Violet = Color.FromArgb(120, 84, 240);
+    private static readonly Color Blue = Color.FromArgb(24, 112, 240);
+    private static readonly Color Bone = Color.FromArgb(232, 232, 236);
+    private static readonly Color Ink = Color.FromArgb(5, 3, 9);
+
+    // Her head traced from face.png, in that art's pixels around the middle of her face.
+    private static readonly float[] HeadShape = { 6, -35, 57, -89, 51, -41, 73, -51, 71, -31, 125, -53, 22, 11, 15, 25, -14, 42, -39, 17, -36, 10, -14, -45, -14, -9 };
+    private static readonly float[] PanelShape = { 36, -35, 4, -29, -14, -9, -25, 1, -36, 11, -31, 20, 36, 7 };
+    private static readonly float[] PanelShade = { 36, -35, 27, -33, 22, 8, 36, 7 };
+    private static readonly float[] SocketShape = { 6, 7, 10, -20, 19, -28, 34, -25, 30, 5 };
+    private static readonly float[] TeethShape = { 22, 11, 6, 13, 1, 22, -5, 13, -13, 26, -16, 19, -20, 26, -29, 21, -20, 33, -16, 27, -13, 35, -5, 20, 1, 30, 6, 18, 11, 23 };
+    private static readonly PointF BigEye = new PointF(16, -7), SmallEye = new PointF(-25.5f, 2);
+
+    private ICapriHost capri;
+    private string choiceFile;
+    private int current;
+    private bool shuffle = true;
+    private int fired;
+
+    private Bitmap head, headHalf, headRed, headCyan, headViolet;
+    private Bitmap eye, iris, irisRed, irisCyan, voidArt, voidHead;
+    private Bitmap desktopCopy;
+    private Size built;
+    private readonly List<Shard> shards = new List<Shard>();
+    private PointF[][] cracks;
+    private Spark[] sparks;
+    private Rectangle screenNow;
+
+    private sealed class Shard
+    {
+        internal Bitmap Art;
+        internal PointF Centre, Way;
+        internal double Spin, Delay;
+    }
+
+    private struct Spark
+    {
+        internal float Angle, Speed, Size, Turn;
+        internal Color Colour;
+    }
+
+    public void Start(ICapriHost host)
+    {
+        capri = host;
+        choiceFile = Path.Combine(host.Folder, "choice.txt");
+        Load();
+        if (shuffle)
+        {
+            current = (current + 1) % Names.Length;
+            Save();
+        }
+    }
+
+    public void Stop() { FreeAll(); }
+
+    public bool Heard(string words)
+    {
+        string said = words.ToLowerInvariant();
+        if (said.Contains("show intro") || said.Contains("play intro"))
+        {
+            capri.Say("Fine. Watch this.");
+            capri.PlayIntro();
+            return true;
+        }
+        if (!said.Contains("intro")) return false;
+        if (said.Contains("shuffle"))
+        {
+            shuffle = true;
+            Save();
+            capri.Say("Shuffling my entrances. Keep up.");
+            return true;
+        }
+        int picked = said.Contains("hijack") ? 0 : said.Contains("shatter") ? 1 : said.Contains("wake") ? 2 : -1;
+        if (picked < 0) return false;
+        current = picked;
+        shuffle = false;
+        Save();
+        capri.Say("Locked in: " + Names[picked] + ".");
+        capri.PlayIntro();
+        return true;
+    }
+
+    public double Seconds { get { return Lengths[current]; } }
+
+    public void Begin(Bitmap desktop, Rectangle screen, Rectangle her)
+    {
+        fired = 0;
+        screenNow = screen;
+        if (desktopCopy != null) desktopCopy.Dispose();
+        desktopCopy = desktop.Clone(new Rectangle(Point.Empty, desktop.Size), PixelFormat.Format32bppPArgb);
+        if (built != screen.Size)
+        {
+            FreeArt();
+            built = screen.Size;
+            MakeHead(screen);
+            MakeEye(screen);
+            MakeVoid(screen);
+            MakeSparks();
+        }
+        FreeShards();
+        if (current == 1) MakeShards(screen, new PointF(her.X + her.Width / 2f, her.Y + her.Height / 2f));
+    }
+
+    public void Draw(Graphics g, Rectangle screen, Rectangle her, double at)
+    {
+        g.CompositingQuality = CompositingQuality.HighSpeed;
+        g.PixelOffsetMode = PixelOffsetMode.HighSpeed;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        g.InterpolationMode = InterpolationMode.Bilinear;
+        PointF spot = new PointF(her.X + her.Width / 2f, her.Y + her.Height / 2f);
+        if (current == 0) Hijack(g, screen, spot, at);
+        else if (current == 1) Shatter(g, screen, spot, at);
+        else Wake(g, screen, spot, at);
+    }
+
+    // Sounds fire once each, the first frame past their moment.
+    private void Cue(double at, double when, int index, string name)
+    {
+        int bit = 1 << index;
+        if (at < when || (fired & bit) != 0) return;
+        fired |= bit;
+        capri.Sound(name);
+    }
+
+    // ---- Hijack: the desktop glitches, a jagged hole bursts open and her head slams through it. ----
+    private void Hijack(Graphics g, Rectangle screen, PointF spot, double at)
+    {
+        PointF middle = new PointF(screen.Width / 2f, screen.Height / 2f);
+        Cue(at, 0.02, 0, "click");
+        Cue(at, 0.34, 1, "arrive");
+        Cue(at, 0.62, 2, "bonk");
+        Cue(at, 3.3, 3, "leave");
+        Cue(at, 4.12, 4, "hop");
+        const double Slam = 0.6, Leave = 3.25, Gone = 3.85;
+        if (at < Slam + 0.1) TearDesktop(g, screen, at, Clamp(at / Slam));
+        if (at >= 0.3 && at < Slam + 0.12) Hole(g, screen, middle, Out((at - 0.3) / 0.3), at);
+        if (at >= Slam && at < Gone)
+        {
+            double slam = Clamp((at - Slam) / 0.14);
+            double leave = In((at - Leave) / (Gone - Leave));
+            float scale = (float)((slam < 1 ? 1.5 - 0.5 * Out(slam) : 1) * (1 - leave * 0.88));
+            double kick = Math.Exp(-(at - Slam) * 7);
+            float shakeX = (float)(Math.Sin(at * 71) * screen.Height * 0.022 * kick);
+            float shakeY = (float)(Math.Cos(at * 83) * screen.Height * 0.016 * kick);
+            int gap = (int)(screen.Height * (0.003 + 0.028 * kick));
+            bool spike = Spike(at, 1.42, 0.13) || Spike(at, 2.45, 0.1);
+            if (spike) gap = (int)(screen.Height * 0.018);
+            float side = head.Width * scale, tall = head.Height * scale;
+            if (leave > 0.02)
+            {
+                g.InterpolationMode = scale > 0.5f ? InterpolationMode.NearestNeighbor : InterpolationMode.Low;
+                g.DrawImage(leave > 0.45 ? headViolet : headHalf, middle.X - side / 2, middle.Y - tall / 2, side, tall);
+                g.InterpolationMode = InterpolationMode.Bilinear;
+                if (leave <= 0.45) Eyes(g, middle, Unit(screen) * scale, at);
+            }
+            else if (scale != 1)
+            {
+                g.InterpolationMode = InterpolationMode.NearestNeighbor;
+                float x = middle.X - side / 2 + shakeX, y = middle.Y - tall / 2 + shakeY;
+                g.DrawImage(headRed, x - gap, y, side, tall);
+                g.DrawImage(headCyan, x + gap, y, side, tall);
+                g.DrawImage(head, x, y, side, tall);
+                g.InterpolationMode = InterpolationMode.Bilinear;
+                Eyes(g, new PointF(middle.X + shakeX, middle.Y + shakeY), Unit(screen) * scale, at);
+            }
+            else
+            {
+                int x = (screen.Width - head.Width) / 2 + (int)shakeX, y = (screen.Height - head.Height) / 2 + (int)shakeY;
+                g.DrawImageUnscaled(headRed, x - gap, y);
+                g.DrawImageUnscaled(headCyan, x + gap, y);
+                if (spike) SliceHead(g, screen, x, y, at);
+                else g.DrawImageUnscaled(head, x, y);
+                Eyes(g, new PointF(middle.X + shakeX, middle.Y + shakeY), Unit(screen), at);
+            }
+            if (at > 1.05 && at < Leave - 0.05) Tag(g, screen, middle, (at - 1.05) / 0.16);
+        }
+        if (at > Slam) Sparks(g, middle, (at - Slam) / 2.6, screen.Height * 0.95f);
+        if (at >= Gone - 0.05 && at < 4.25) Flight(g, screen, middle, spot, (at - (Gone - 0.05)) / 0.4);
+        if (at >= 4.1) Landing(g, screen, spot, (at - 4.1) / 0.55, Violet);
+    }
+
+    // Slips bands of the real desktop sideways, each with a red and a blue ghost, more of them as it builds.
+    private void TearDesktop(Graphics g, Rectangle screen, double at, double power)
+    {
+        Random seed = new Random((int)(at * 24) * 31 + 5);
+        int bands = (int)(2 + power * 16);
+        using (Brush red = new SolidBrush(Color.FromArgb(70, Red)))
+        using (Brush cyan = new SolidBrush(Color.FromArgb(70, 40, 230, 255)))
+        {
+            for (int i = 0; i < bands; i++)
+            {
+                int y = seed.Next(screen.Height), tall = 4 + seed.Next((int)(10 + power * screen.Height * 0.07));
+                int shift = (int)((seed.NextDouble() - 0.5) * screen.Width * (0.03 + power * 0.14));
+                Rectangle from = new Rectangle(0, y, screen.Width, Math.Min(tall, screen.Height - y));
+                if (from.Height <= 0) continue;
+                g.DrawImage(desktopCopy, new Rectangle(shift, y, screen.Width, from.Height), from, GraphicsUnit.Pixel);
+                g.FillRectangle(seed.Next(2) == 0 ? red : cyan, shift < 0 ? screen.Width + shift : 0, y, Math.Abs(shift), from.Height);
+            }
+        }
+    }
+
+    // A black, spiky hole with violet edges and speed lines rushing out of it.
+    private void Hole(Graphics g, Rectangle screen, PointF middle, double open, double at)
+    {
+        float reach = screen.Width * 0.72f * (float)open;
+        PointF[] edge = Jagged(middle, reach, 44, 0.42f, 21);
+        using (Brush rim = new SolidBrush(Violet)) g.FillPolygon(rim, Offset(edge, screen.Height * 0.009f, screen.Height * 0.009f));
+        using (Brush black = new SolidBrush(Ink)) g.FillPolygon(black, edge);
+        Random seed = new Random((int)(at * 30) + 9);
+        Color[] lines = { Bone, Violet, Red, Bone, Violet };
+        for (int i = 0; i < 40; i++)
+        {
+            double angle = seed.NextDouble() * Math.PI * 2;
+            float near = reach * (0.45f + (float)seed.NextDouble() * 0.5f), far = near + screen.Width * (0.06f + (float)seed.NextDouble() * 0.2f);
+            float wide = screen.Height * (0.002f + (float)seed.NextDouble() * 0.008f);
+            Fill(g, lines[i % lines.Length], Polar(middle, angle, near), Polar(middle, angle + wide / near * 1.5, near + (far - near) * 0.2f), Polar(middle, angle, far));
+        }
+    }
+
+    private void SliceHead(Graphics g, Rectangle screen, int x, int y, double at)
+    {
+        Random seed = new Random((int)(at * 20) * 13 + 3);
+        int top = -y;
+        while (top < screen.Height - y)
+        {
+            int tall = 12 + seed.Next(screen.Height / 7);
+            int shift = seed.Next(3) == 0 ? seed.Next(screen.Height / 12) - screen.Height / 24 : 0;
+            g.DrawImage(head, new Rectangle(x + shift, y + top, head.Width, tall), new Rectangle(0, top, head.Width, tall), GraphicsUnit.Pixel);
+            top += tall;
+        }
+    }
+
+    // Her eyes are drawn live so they can look around and blink.
+    private void Eyes(Graphics g, PointF middle, float unit, double at)
+    {
+        double lookX = Math.Sin(at * 1.7) * 0.5 + (at > 2.1 && at < 2.75 ? -0.9 : 0);
+        double lookY = Math.Sin(at * 2.3 + 1) * 0.3;
+        bool shut = Spike(at, 1.85, 0.11) || Spike(at, 2.9, 0.09);
+        OneEye(g, Scale(BigEye, middle, unit), 13, unit, lookX, lookY, shut);
+        OneEye(g, Scale(SmallEye, middle, unit), 8.5f, unit, lookX, lookY, shut);
+    }
+
+    private static void OneEye(Graphics g, PointF c, float r, float unit, double lookX, double lookY, bool shut)
+    {
+        float big = r * unit;
+        Round(g, Ink, c, big * 1.14f);
+        if (shut)
+        {
+            using (Pen lid = new Pen(Green, big * 0.2f)) g.DrawLine(lid, c.X - big, c.Y + big * 0.05f, c.X + big, c.Y - big * 0.05f);
+            return;
+        }
+        using (Pen ring = new Pen(Green, big * 0.08f)) g.DrawEllipse(ring, c.X - big, c.Y - big, big * 2, big * 2);
+        PointF look = new PointF(c.X + (float)lookX * big * 0.14f, c.Y + (float)lookY * big * 0.14f);
+        Round(g, Blue, look, big * 0.8f);
+        Round(g, Color.FromArgb(90, 170, 255), look, big * 0.5f);
+        Round(g, Blue, look, big * 0.4f);
+        Round(g, Bone, look, big * 0.24f);
+    }
+
+    private static void Tag(Graphics g, Rectangle screen, PointF middle, double pop)
+    {
+        float size = screen.Height * 0.085f * (float)Back(pop);
+        if (size <= 1) return;
+        float x = middle.X + screen.Height * 0.62f, y = middle.Y - screen.Height * 0.4f;
+        PointF[] box = { new PointF(x, y), new PointF(x + size * 1.75f, y - size * 0.14f), new PointF(x + size * 1.65f, y + size * 1.1f), new PointF(x + size * 0.3f, y + size * 1.2f) };
+        using (Brush rim = new SolidBrush(Violet)) g.FillPolygon(rim, Offset(box, -size * 0.09f, size * 0.09f));
+        using (Brush fill = new SolidBrush(Red)) g.FillPolygon(fill, box);
+        using (Font font = new Font("Arial Black", size * 0.72f, FontStyle.Bold, GraphicsUnit.Pixel))
+        using (Brush ink = new SolidBrush(Bone))
+            g.DrawString("hi", font, ink, x + size * 0.28f, y + size * 0.03f);
+    }
+
+    private void Sparks(Graphics g, PointF middle, double age, float reach)
+    {
+        if (age >= 1) return;
+        double flown = Out(age);
+        foreach (Spark spark in sparks)
+        {
+            float distance = spark.Speed * reach * (float)flown;
+            PointF at = Polar(middle, spark.Angle, distance);
+            float size = spark.Size * reach * (float)(1 - age * age);
+            double turn = spark.Turn * age * 6;
+            int alpha = (int)(255 * (1 - In(age)));
+            Fill(g, Color.FromArgb(alpha, spark.Colour), Polar(at, turn, size), Polar(at, turn + 2.5, size * 0.45f), Polar(at, turn + 3.8, size * 0.45f));
+        }
+    }
+
+    // A tiny violet copy of her star streaks to where she lands.
+    private static void Flight(Graphics g, Rectangle screen, PointF middle, PointF spot, double done)
+    {
+        if (done <= 0 || done >= 1) return;
+        double along = In(done);
+        float bow = screen.Height * 0.3f;
+        PointF now = Arc(middle, spot, along, bow), back = Arc(middle, spot, Math.Max(0, along - 0.35), bow);
+        float size = screen.Height * 0.075f * (float)(1 - along * 0.6);
+        PointF across = Across(now, back, size * 0.4f);
+        Fill(g, Color.FromArgb(230, 224, 90, 200), new PointF(now.X + across.X, now.Y + across.Y), new PointF(now.X - across.X, now.Y - across.Y), back);
+        PointF[] star = Jagged(now, size, 12, 0.5f, 5);
+        using (Brush fill = new SolidBrush(Violet)) g.FillPolygon(fill, star);
+        Round(g, Bone, now, size * 0.2f);
+    }
+
+    private static void Landing(Graphics g, Rectangle screen, PointF spot, double done, Color colour)
+    {
+        if (done <= 0 || done >= 1) return;
+        float reach = screen.Height * 0.2f * (float)Out(done);
+        int alpha = (int)(255 * (1 - done));
+        using (Pen ring = new Pen(Color.FromArgb(alpha, colour), screen.Height * 0.012f * (float)(1 - done) + 1))
+            g.DrawEllipse(ring, spot.X - reach, spot.Y - reach, reach * 2, reach * 2);
+        for (int i = 0; i < 10; i++)
+        {
+            double angle = i * Math.PI * 2 / 10 + 0.3;
+            float near = reach * 1.05f, far = near + screen.Height * 0.05f * (float)(1 - done);
+            Fill(g, Color.FromArgb(alpha, Bone), Polar(spot, angle - 0.03, near), Polar(spot, angle + 0.03, near), Polar(spot, angle, far));
+        }
+    }
+
+    // ---- Shatter: the screen cracks and blows apart, she stares in from the dark behind it, and it slams back together. ----
+    private void Shatter(Graphics g, Rectangle screen, PointF spot, double at)
+    {
+        const double Crack = 0.42, Back_ = 2.75, Whole = 3.2;
+        PointF middle = new PointF(screen.Width / 2f, screen.Height / 2f);
+        Cue(at, 0.03, 0, "click");
+        Cue(at, 0.2, 1, "click");
+        Cue(at, Crack, 2, "bonk");
+        Cue(at, Back_ + 0.28, 3, "bonk");
+        Cue(at, 3.3, 4, "arrive");
+        if (at < Crack)
+        {
+            Cracks(g, screen, spot, Out(at / Crack) * (at < 0.2 ? 0.45 : 1), 1);
+            return;
+        }
+        if (at >= Whole)
+        {
+            double fade = Clamp((at - Whole) / 0.35);
+            if (fade < 1) Cracks(g, screen, spot, 1, 1 - fade);
+            Landing(g, screen, spot, (at - Whole - 0.02) / 0.6, Red);
+            return;
+        }
+        Void(g, screen, middle, at, Crack);
+        double out_ = Out((at - Crack) / 0.8);
+        double back = In((at - Back_) / (Whole - Back_));
+        g.InterpolationMode = InterpolationMode.NearestNeighbor;
+        foreach (Shard shard in shards)
+        {
+            double away = Math.Max(0, out_ * (1 + shard.Delay) - shard.Delay) * (1 - back);
+            if (away <= 0.0001)
+            {
+                g.DrawImage(shard.Art, shard.Centre.X - shard.Art.Width / 2f, shard.Centre.Y - shard.Art.Height / 2f, shard.Art.Width, shard.Art.Height);
+                continue;
+            }
+            PointF centre = new PointF(shard.Centre.X + shard.Way.X * (float)away, shard.Centre.Y + shard.Way.Y * (float)away + (float)(away * away) * screen.Height * 0.12f);
+            float grow = 1 + (float)away * 0.5f;
+            double angle = shard.Spin * away;
+            float wide = shard.Art.Width * grow / 2, tall = shard.Art.Height * grow / 2;
+            float round = wide + tall;
+            if (centre.X + round < 0 || centre.X - round > screen.Width || centre.Y + round < 0 || centre.Y - round > screen.Height) continue;
+            PointF[] corners = { Turn(centre, -wide, -tall, angle), Turn(centre, wide, -tall, angle), Turn(centre, -wide, tall, angle) };
+            g.DrawImage(shard.Art, corners);
+        }
+        if (at > Back_ + 0.3) using (Brush flash = new SolidBrush(Color.FromArgb((int)(120 * (1 - Clamp((at - Back_ - 0.3) / 0.14))), 255, 255, 255))) g.FillRectangle(flash, screen);
+    }
+
+    // What's behind the screen: black, a dim red bloom and her, in shadow, opening her eyes.
+    private void Void(Graphics g, Rectangle screen, PointF middle, double at, double start)
+    {
+        g.DrawImageUnscaled(voidArt, 0, 0);
+        double open = Back((at - start - 0.5) / 0.32);
+        if (at < start + 0.5) return;
+        float squash = (float)Math.Max(0.02, open), tall = screen.Height * squash;
+        if (Math.Abs(squash - 1) < 0.002f) g.DrawImageUnscaled(voidHead, 0, 0);
+        else
+        {
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            g.DrawImage(voidHead, 0, middle.Y - tall / 2, screen.Width, tall);
+            g.InterpolationMode = InterpolationMode.Bilinear;
+        }
+        float unit = Unit(screen) * VoidZoom;
+        if (open > 0.8) Eyes(g, new PointF(middle.X, middle.Y + unit * 125 * 0.03f), unit, at + 1.2);
+    }
+
+    private const float VoidZoom = 1.3f;
+
+    private void MakeVoid(Rectangle screen)
+    {
+        PointF middle = new PointF(screen.Width / 2f, screen.Height / 2f);
+        voidArt = new Bitmap(screen.Width, screen.Height, PixelFormat.Format32bppPArgb);
+        using (Graphics g = Graphics.FromImage(voidArt))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            using (Brush black = new SolidBrush(Ink)) g.FillRectangle(black, screen);
+            float glow = screen.Height * 0.9f;
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                path.AddEllipse(middle.X - glow, middle.Y - glow, glow * 2, glow * 2);
+                using (PathGradientBrush bloom = new PathGradientBrush(path))
+                {
+                    bloom.CenterColor = Color.FromArgb(170, 120, 10, 46);
+                    bloom.SurroundColors = new[] { Color.FromArgb(0, 120, 10, 46) };
+                    g.FillPath(bloom, path);
+                }
+            }
+            using (Brush scan = new SolidBrush(Color.FromArgb(46, 0, 0, 0)))
+                for (int y = 0; y < screen.Height; y += 4) g.FillRectangle(scan, 0, y, screen.Width, 2);
+        }
+        voidHead = new Bitmap(screen.Width, screen.Height, PixelFormat.Format32bppPArgb);
+        using (Graphics g = Graphics.FromImage(voidHead))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            float unit = Unit(screen) * VoidZoom;
+            PointF[] mane = Jagged(middle, unit * 92, 19, 0.5f, 17);
+            for (int i = 0; i < mane.Length; i++) mane[i].Y = middle.Y + (mane[i].Y - middle.Y) * 0.72f;
+            using (Brush rim = new SolidBrush(Color.FromArgb(70, 42, 150))) g.FillPolygon(rim, Offset(mane, unit * 1.2f, unit * 1.2f));
+            using (Brush dark = new SolidBrush(Color.FromArgb(104, 12, 38))) g.FillPolygon(dark, mane);
+            using (Brush black = new SolidBrush(Ink)) g.FillPolygon(black, Points(HeadShape, middle, unit));
+            using (Brush bright = new SolidBrush(Green)) g.FillPolygon(bright, Points(PanelShape, middle, unit));
+            using (Brush shade = new SolidBrush(DeepGreen)) g.FillPolygon(shade, Points(PanelShade, middle, unit));
+            using (Brush black = new SolidBrush(Ink)) g.FillPolygon(black, Points(SocketShape, middle, unit));
+            using (Brush bone = new SolidBrush(Bone)) g.FillPolygon(bone, Points(TeethShape, middle, unit));
+        }
+    }
+
+    // White cracks spreading from where she'll hit.
+    private void Cracks(Graphics g, Rectangle screen, PointF spot, double grown, double alpha)
+    {
+        using (Pen glow = new Pen(Color.FromArgb((int)(90 * alpha), 150, 220, 255), screen.Height * 0.006f))
+        using (Pen line = new Pen(Color.FromArgb((int)(255 * alpha), 255, 255, 255), Math.Max(1.5f, screen.Height * 0.0018f)))
+        {
+            foreach (PointF[] crack in cracks)
+            {
+                int count = Math.Max(2, (int)(crack.Length * Math.Min(1, grown)));
+                PointF[] part = new PointF[count];
+                Array.Copy(crack, part, count);
+                g.DrawLines(glow, part);
+                g.DrawLines(line, part);
+            }
+        }
+    }
+
+    private void MakeShards(Rectangle screen, PointF hit)
+    {
+        Random seed = new Random(41);
+        const int Rings = 5, Slices = 13;
+        float reach = (float)Math.Sqrt(screen.Width * screen.Width + screen.Height * screen.Height);
+        PointF[,] joints = new PointF[Rings + 1, Slices];
+        for (int ring = 0; ring <= Rings; ring++)
+        {
+            for (int slice = 0; slice < Slices; slice++)
+            {
+                double share = ring == 0 ? 0 : Math.Pow(ring / (double)Rings, 1.5);
+                double angle = (slice + (ring == 0 ? 0 : (seed.NextDouble() - 0.5) * 0.55)) * Math.PI * 2 / Slices;
+                float out_ = reach * (float)(ring == Rings ? 1.2 : share * (ring == 0 ? 0 : 0.86 + seed.NextDouble() * 0.28));
+                joints[ring, slice] = Polar(hit, angle, out_);
+            }
+        }
+        List<PointF[]> lines = new List<PointF[]>();
+        for (int slice = 0; slice < Slices; slice++)
+        {
+            PointF[] spoke = new PointF[Rings + 1];
+            for (int ring = 0; ring <= Rings; ring++) spoke[ring] = joints[ring, slice];
+            lines.Add(spoke);
+        }
+        for (int ring = 1; ring < Rings; ring++)
+        {
+            for (int slice = 0; slice < Slices; slice++)
+            {
+                if (seed.Next(100) < 25 + ring * 3) continue;
+                lines.Add(new[] { joints[ring, slice], joints[ring, (slice + 1) % Slices] });
+            }
+        }
+        cracks = lines.ToArray();
+        for (int ring = 0; ring < Rings; ring++)
+        {
+            for (int slice = 0; slice < Slices; slice++)
+            {
+                PointF[] outline = ring == 0
+                    ? new[] { hit, joints[1, slice], joints[1, (slice + 1) % Slices] }
+                    : new[] { joints[ring, slice], joints[ring + 1, slice], joints[ring + 1, (slice + 1) % Slices], joints[ring, (slice + 1) % Slices] };
+                AddShard(screen, outline, hit, seed);
+            }
+        }
+    }
+
+    private void AddShard(Rectangle screen, PointF[] outline, PointF hit, Random seed)
+    {
+        float left = float.MaxValue, top = float.MaxValue, right = float.MinValue, bottom = float.MinValue;
+        foreach (PointF point in outline)
+        {
+            left = Math.Min(left, point.X);
+            top = Math.Min(top, point.Y);
+            right = Math.Max(right, point.X);
+            bottom = Math.Max(bottom, point.Y);
+        }
+        Rectangle box = Rectangle.Intersect(Rectangle.FromLTRB((int)left - 1, (int)top - 1, (int)right + 2, (int)bottom + 2), screen);
+        if (box.Width < 2 || box.Height < 2) return;
+        Bitmap art = new Bitmap(box.Width, box.Height, PixelFormat.Format32bppPArgb);
+        using (Graphics g = Graphics.FromImage(art))
+        using (TextureBrush paint = new TextureBrush(desktopCopy, WrapMode.Clamp))
+        using (Pen edge = new Pen(Color.FromArgb(120, 255, 255, 255), 1.5f))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            paint.TranslateTransform(-box.X, -box.Y);
+            PointF[] local = Offset(outline, -box.X, -box.Y);
+            g.FillPolygon(paint, local);
+            g.DrawPolygon(edge, local);
+        }
+        PointF centre = new PointF(box.X + box.Width / 2f, box.Y + box.Height / 2f);
+        float dx = centre.X - hit.X, dy = centre.Y - hit.Y, length = Math.Max(1, (float)Math.Sqrt(dx * dx + dy * dy));
+        float push = screen.Height * (0.25f + (float)seed.NextDouble() * 0.5f);
+        shards.Add(new Shard
+        {
+            Art = art,
+            Centre = centre,
+            Way = new PointF(dx / length * push + dx * 0.32f, dy / length * push + dy * 0.32f),
+            Spin = (seed.NextDouble() - 0.5) * 2.4,
+            Delay = seed.NextDouble() * 0.3
+        });
+    }
+
+    // ---- Wake: the whole screen blinks shut, then opens onto one enormous eye of hers. ----
+    private void Wake(Graphics g, Rectangle screen, PointF spot, double at)
+    {
+        PointF middle = new PointF(screen.Width / 2f, screen.Height / 2f);
+        Cue(at, 0.05, 0, "leave");
+        Cue(at, 0.85, 1, "arrive");
+        Cue(at, 3.3, 2, "hop");
+        Cue(at, 3.78, 3, "bonk");
+        double open;
+        bool eyeOut = at >= 0.76 && at < 3.42;
+        if (at < 0.42) open = 1 - Out(at / 0.42);
+        else if (at < 0.78) open = 0;
+        else if (at < 1.26) open = Math.Min(0.93, Back((at - 0.78) / 0.48) * 0.92);
+        else if (at < 3.05) open = 0.92 - (at > 2.3 && at < 2.72 ? 0.42 * Bump((at - 2.3) / 0.42) : 0) - (Spike(at, 1.72, 0.13) ? 0.88 : 0);
+        else if (at < 3.32) open = 0.92 * (1 - In((at - 3.05) / 0.27));
+        else if (at < 3.42) open = 0;
+        else open = Out((at - 3.42) / 0.3);
+        if (eyeOut) DrawEye(g, screen, middle, at);
+        if (at < 3.8) Lids(g, screen, middle, open);
+        if (at >= 3.42 && at < 3.86) Flight(g, screen, middle, spot, (at - 3.42) / 0.44);
+        if (at >= 3.8) Landing(g, screen, spot, (at - 3.8) / 0.65, Green);
+    }
+
+    private void DrawEye(Graphics g, Rectangle screen, PointF middle, double at)
+    {
+        g.DrawImageUnscaled(eye, 0, 0);
+        double lookX = at < 1.7 ? 0 : at < 2.1 ? -0.8 : at < 2.5 ? 0.85 : 0;
+        bool jolt = Spike(at, 1.7, 0.07) || Spike(at, 2.1, 0.07) || Spike(at, 2.5, 0.07);
+        float x = middle.X + (float)lookX * screen.Height * 0.34f;
+        float y = middle.Y + (float)Math.Sin(at * 2.1) * screen.Height * 0.012f;
+        int left = (int)(x - iris.Width / 2f), top = (int)(y - iris.Height / 2f);
+        if (jolt)
+        {
+            int gap = screen.Height / 45;
+            g.DrawImageUnscaled(irisRed, left - gap, top);
+            g.DrawImageUnscaled(irisCyan, left + gap, top);
+        }
+        g.DrawImageUnscaled(iris, left, top);
+        float pupil = screen.Height * (at > 2.3 && at < 2.72 ? 0.05f : 0.085f);
+        Round(g, Bone, new PointF(x, y), pupil);
+    }
+
+    // Two jagged lids that close across the whole screen. open is 0 when they interlock in the middle, and 1 when they've gone.
+    private static void Lids(Graphics g, Rectangle screen, PointF middle, double open)
+    {
+        open = Math.Max(0, open);
+        float reach = screen.Height * 0.6f * (float)open;
+        float gone = screen.Height * 0.9f * (float)Clamp((open - 0.93) / 0.07);
+        Lid(g, screen, middle, -1, reach, gone);
+        Lid(g, screen, middle, 1, reach, gone);
+    }
+
+    private static void Lid(Graphics g, Rectangle screen, PointF middle, int side, float reach, float gone)
+    {
+        const int Steps = 18;
+        Random seed = new Random(side < 0 ? 12 : 31);
+        PointF[] edge = new PointF[Steps + 3];
+        float far = side < 0 ? -screen.Height : screen.Height * 2;
+        edge[0] = new PointF(-40, far);
+        for (int i = 0; i <= Steps; i++)
+        {
+            double share = (i + (seed.NextDouble() - 0.5) * 0.4) / Steps;
+            float x = (float)(share * (screen.Width + 80)) - 40;
+            float curve = (float)(1 - Math.Pow(Math.Abs(share * 2 - 1), 1.7));
+            float tooth = i % 2 == 1 ? screen.Height * (0.05f + (float)seed.NextDouble() * 0.075f) : 0;
+            edge[i + 1] = new PointF(x, middle.Y + side * (reach * curve + gone - tooth));
+        }
+        edge[Steps + 2] = new PointF(screen.Width + 40, far);
+        using (Brush rim = new SolidBrush(Violet)) g.FillPolygon(rim, Offset(edge, 0, -side * screen.Height * 0.026f));
+        using (Brush red = new SolidBrush(Red)) g.FillPolygon(red, Offset(edge, 0, -side * screen.Height * 0.014f));
+        using (Brush black = new SolidBrush(Ink)) g.FillPolygon(black, edge);
+    }
+
+    // ---- Art, built once for each screen size so frames stay fast. ----
+    private static float Unit(Rectangle screen) { return screen.Height / 125f; }
+
+    private void MakeHead(Rectangle screen)
+    {
+        int wide = (int)(screen.Width * 1.25f), high = (int)(screen.Height * 1.9f);
+        head = new Bitmap(wide, high, PixelFormat.Format32bppPArgb);
+        using (Graphics g = Graphics.FromImage(head))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            PointF middle = new PointF(wide / 2f, high / 2f - screen.Height * 0.03f);
+            float unit = Unit(screen);
+            Shards2(g, middle, unit);
+            using (Brush black = new SolidBrush(Ink))
+            {
+                g.FillPolygon(black, Points(HeadShape, middle, unit));
+                g.FillPolygon(black, Points(new float[] { -14, 40, 16, 22, 22, 60, 2, 74, -20, 62 }, middle, unit));
+            }
+            using (Brush bright = new SolidBrush(Green)) g.FillPolygon(bright, Points(PanelShape, middle, unit));
+            using (Brush shade = new SolidBrush(DeepGreen)) g.FillPolygon(shade, Points(PanelShade, middle, unit));
+            using (Brush black = new SolidBrush(Ink)) g.FillPolygon(black, Points(SocketShape, middle, unit));
+            using (Brush bone = new SolidBrush(Bone)) g.FillPolygon(bone, Points(TeethShape, middle, unit));
+            using (Brush red = new SolidBrush(Red))
+            {
+                g.FillPolygon(red, Points(new float[] { -2, 54, 14, 48, 12, 53, 4, 57, 10, 60, 8, 65, -3, 60 }, middle, unit));
+            }
+        }
+        headRed = Tinted(head, Color.FromArgb(255, 30, 60));
+        headCyan = Tinted(head, Color.FromArgb(30, 230, 255));
+        headHalf = new Bitmap(wide / 2, high / 2, PixelFormat.Format32bppPArgb);
+        using (Graphics g = Graphics.FromImage(headHalf))
+        {
+            g.InterpolationMode = InterpolationMode.HighQualityBilinear;
+            g.DrawImage(head, 0, 0, headHalf.Width, headHalf.Height);
+        }
+        headViolet = Tinted(headHalf, Violet);
+    }
+
+    // The sharp mane and shoulders: a black star for depth, then long shards with a violet edge.
+    private static void Shards2(Graphics g, PointF middle, float unit)
+    {
+        PointF[] star = Jagged(middle, unit * 118, 34, 0.56f, 3);
+        for (int i = 0; i < star.Length; i++) star[i].Y = middle.Y + (star[i].Y - middle.Y) * 0.9f;
+        using (Brush rim = new SolidBrush(Violet)) g.FillPolygon(rim, Offset(star, unit * 1.6f, unit * 1.6f));
+        using (Brush black = new SolidBrush(Ink)) g.FillPolygon(black, star);
+        // angle in degrees, length, width at the base, colour: 0 red, 1 orange, 2 bone, 3 green.
+        double[,] spikes =
+        {
+            { 196, 118, 22, 0 }, { 208, 102, 26, 1 }, { 222, 118, 28, 0 }, { 238, 94, 24, 1 }, { 252, 112, 26, 0 },
+            { 268, 88, 20, 1 }, { 286, 108, 26, 0 }, { 302, 92, 22, 1 }, { 318, 116, 26, 0 }, { 334, 104, 24, 1 },
+            { 350, 122, 24, 0 }, { 4, 108, 22, 1 }, { 180, 104, 20, 1 },
+            { 18, 112, 30, 2 }, { 36, 96, 26, 3 }, { 54, 88, 24, 2 }, { 126, 90, 26, 2 }, { 144, 100, 30, 3 }, { 164, 114, 30, 2 }
+        };
+        Color[] colours = { Red, Orange, Bone, Green };
+        for (int i = 0; i < spikes.GetLength(0); i++)
+        {
+            double angle = spikes[i, 0] * Math.PI / 180;
+            float length = (float)spikes[i, 1] * unit, wide = (float)spikes[i, 2] * unit / 2;
+            PointF root = Polar(middle, angle, unit * 16);
+            PointF tip = Polar(middle, angle, length);
+            PointF across = new PointF(-(float)Math.Sin(angle) * wide, (float)Math.Cos(angle) * wide);
+            PointF kink = Polar(middle, angle + 0.05, length * 0.62f);
+            PointF[] spike = { new PointF(root.X + across.X, root.Y + across.Y), kink, tip, new PointF(root.X - across.X, root.Y - across.Y) };
+            using (Brush rim = new SolidBrush(Violet)) g.FillPolygon(rim, Offset(spike, unit * 1.3f, unit * 1.1f));
+            using (Brush fill = new SolidBrush(colours[(int)spikes[i, 3]])) g.FillPolygon(fill, spike);
+        }
+    }
+
+    // Flat planes of green with her eye's hard rings, like the rest of her.
+    private void MakeEye(Rectangle screen)
+    {
+        eye = new Bitmap(screen.Width, screen.Height, PixelFormat.Format32bppPArgb);
+        int w = screen.Width, h = screen.Height;
+        using (Graphics g = Graphics.FromImage(eye))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            using (Brush bright = new SolidBrush(Green)) g.FillRectangle(bright, screen);
+            Fill(g, DeepGreen, new PointF(0, h * 0.62f), new PointF(w * 0.36f, h), new PointF(0, h));
+            Fill(g, DeepGreen, new PointF(w, h * 0.42f), new PointF(w, h), new PointF(w * 0.58f, h));
+            Fill(g, Color.FromArgb(120, 246, 170), new PointF(w * 0.08f, 0), new PointF(w * 0.46f, 0), new PointF(w * 0.2f, h * 0.42f));
+            Fill(g, Color.FromArgb(14, 124, 62), new PointF(w * 0.72f, h), new PointF(w, h * 0.72f), new PointF(w, h));
+        }
+        int side = (int)(screen.Height * 0.86f);
+        iris = new Bitmap(side, side, PixelFormat.Format32bppPArgb);
+        using (Graphics g = Graphics.FromImage(iris))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            PointF c = new PointF(side / 2f, side / 2f);
+            float r = side * 0.49f;
+            Round(g, Ink, c, r);
+            Round(g, Green, c, r * 0.93f);
+            Round(g, Ink, c, r * 0.87f);
+            Round(g, Blue, c, r * 0.72f);
+            Round(g, Color.FromArgb(90, 170, 255), c, r * 0.46f);
+            Round(g, Blue, c, r * 0.36f);
+            for (int i = 0; i < 40; i++)
+            {
+                double angle = i * Math.PI * 2 / 40;
+                float inner = r * (i % 2 == 0 ? 0.5f : 0.6f);
+                Fill(g, Ink, Polar(c, angle - 0.012, r * 0.72f), Polar(c, angle + 0.012, r * 0.72f), Polar(c, angle, inner));
+            }
+        }
+        irisRed = Tinted(iris, Color.FromArgb(255, 30, 60));
+        irisCyan = Tinted(iris, Color.FromArgb(30, 230, 255));
+    }
+
+    private void MakeSparks()
+    {
+        Random seed = new Random(77);
+        Color[] colours = { Red, Violet, Bone, Green, Violet, Red };
+        sparks = new Spark[46];
+        for (int i = 0; i < sparks.Length; i++)
+        {
+            sparks[i] = new Spark
+            {
+                Angle = (float)(seed.NextDouble() * Math.PI * 2),
+                Speed = 0.45f + (float)seed.NextDouble() * 0.75f,
+                Size = 0.006f + (float)seed.NextDouble() * 0.012f,
+                Turn = (float)(seed.NextDouble() - 0.5) * 2,
+                Colour = colours[i % colours.Length]
+            };
+        }
+    }
+
+    private static Bitmap Tinted(Bitmap art, Color colour)
+    {
+        Bitmap made = new Bitmap(art.Width, art.Height, PixelFormat.Format32bppPArgb);
+        ColorMatrix matrix = new ColorMatrix(new[]
+        {
+            new float[] { 0, 0, 0, 0, 0 },
+            new float[] { 0, 0, 0, 0, 0 },
+            new float[] { 0, 0, 0, 0, 0 },
+            new float[] { 0, 0, 0, 1, 0 },
+            new[] { colour.R / 255f, colour.G / 255f, colour.B / 255f, 0, 1 }
+        });
+        using (ImageAttributes paint = new ImageAttributes())
+        using (Graphics g = Graphics.FromImage(made))
+        {
+            paint.SetColorMatrix(matrix);
+            g.DrawImage(art, new Rectangle(0, 0, art.Width, art.Height), 0, 0, art.Width, art.Height, GraphicsUnit.Pixel, paint);
+        }
+        return made;
+    }
+
+    private void FreeShards()
+    {
+        foreach (Shard shard in shards) shard.Art.Dispose();
+        shards.Clear();
+    }
+
+    private void FreeArt()
+    {
+        foreach (Bitmap art in new[] { head, headHalf, headRed, headCyan, headViolet, eye, iris, irisRed, irisCyan, voidArt, voidHead }) if (art != null) art.Dispose();
+        head = headHalf = headRed = headCyan = headViolet = eye = iris = irisRed = irisCyan = voidArt = voidHead = null;
+        built = Size.Empty;
+    }
+
+    private void FreeAll()
+    {
+        FreeShards();
+        FreeArt();
+        if (desktopCopy != null) desktopCopy.Dispose();
+        desktopCopy = null;
+    }
+
+    private void Load()
+    {
+        try
+        {
+            if (!File.Exists(choiceFile)) return;
+            string[] parts = File.ReadAllText(choiceFile).Trim().Split(' ');
+            int saved;
+            if (parts.Length == 2 && int.TryParse(parts[1], out saved) && saved >= 0 && saved < Names.Length)
+            {
+                current = saved;
+                shuffle = parts[0] == "shuffle";
+            }
+        }
+        catch (IOException error) { capri.Log(error.Message); }
+    }
+
+    private void Save()
+    {
+        try { File.WriteAllText(choiceFile, (shuffle ? "shuffle " : "fixed ") + current); }
+        catch (IOException error) { capri.Log(error.Message); }
+    }
+
+    // ---- Small helpers. ----
+    private static PointF[] Points(float[] shape, PointF middle, float unit, float squash = 1)
+    {
+        PointF[] points = new PointF[shape.Length / 2];
+        for (int i = 0; i < points.Length; i++) points[i] = new PointF(middle.X + shape[i * 2] * unit, middle.Y + shape[i * 2 + 1] * unit * squash);
+        return points;
+    }
+
+    private static PointF Scale(PointF art, PointF middle, float unit) { return new PointF(middle.X + art.X * unit, middle.Y - unit * 125 * 0.03f + art.Y * unit); }
+
+    private static PointF[] Jagged(PointF middle, float reach, int spikes, float inner, int seedNumber)
+    {
+        Random seed = new Random(seedNumber);
+        PointF[] points = new PointF[spikes * 2];
+        for (int i = 0; i < spikes; i++)
+        {
+            double angle = i * Math.PI * 2 / spikes + (seed.NextDouble() - 0.5) * 0.08;
+            points[i * 2] = Polar(middle, angle, reach * (0.65f + (float)seed.NextDouble() * 0.35f));
+            points[i * 2 + 1] = Polar(middle, angle + Math.PI / spikes, reach * inner * (0.8f + (float)seed.NextDouble() * 0.3f));
+        }
+        return points;
+    }
+
+    private static PointF[] Offset(PointF[] points, float x, float y)
+    {
+        PointF[] moved = new PointF[points.Length];
+        for (int i = 0; i < points.Length; i++) moved[i] = new PointF(points[i].X + x, points[i].Y + y);
+        return moved;
+    }
+
+    private static void Fill(Graphics g, Color colour, params PointF[] points)
+    {
+        using (Brush brush = new SolidBrush(colour)) g.FillPolygon(brush, points);
+    }
+
+    private static void Round(Graphics g, Color colour, PointF c, float r)
+    {
+        using (Brush brush = new SolidBrush(colour)) g.FillEllipse(brush, c.X - r, c.Y - r, r * 2, r * 2);
+    }
+
+    private static PointF Polar(PointF from, double angle, float radius) { return new PointF(from.X + (float)Math.Cos(angle) * radius, from.Y + (float)Math.Sin(angle) * radius); }
+    private static PointF Mix(PointF from, PointF to, double share) { return new PointF(from.X + (float)((to.X - from.X) * share), from.Y + (float)((to.Y - from.Y) * share)); }
+    private static PointF Turn(PointF c, float x, float y, double angle) { float cos = (float)Math.Cos(angle), sin = (float)Math.Sin(angle); return new PointF(c.X + x * cos - y * sin, c.Y + x * sin + y * cos); }
+
+    private static PointF Across(PointF a, PointF b, float size)
+    {
+        float dx = a.X - b.X, dy = a.Y - b.Y, length = Math.Max(1, (float)Math.Sqrt(dx * dx + dy * dy));
+        return new PointF(-dy / length * size, dx / length * size);
+    }
+
+    private static PointF Arc(PointF from, PointF to, double share, float bow)
+    {
+        PointF along = Mix(from, to, share);
+        float lift = (float)Math.Sin(share * Math.PI) * bow;
+        return new PointF(along.X + lift, along.Y - lift * 0.7f);
+    }
+
+    private static bool Spike(double at, double when, double length) { return at >= when && at < when + length; }
+    private static double Clamp(double value) { return value < 0 ? 0 : value > 1 ? 1 : value; }
+    private static double Rise(double value) { value = Clamp(value); return value * value; }
+    private static double In(double value) { value = Clamp(value); return value * value * value; }
+    private static double Out(double value) { value = Clamp(value); return 1 - (1 - value) * (1 - value) * (1 - value); }
+    private static double Back(double value) { value = Clamp(value) - 1; return 1 + value * value * (2.4 * value + 1.4); }
+    private static double Bump(double value) { return Math.Sin(Clamp(value) * Math.PI); }
+}

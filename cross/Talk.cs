@@ -168,6 +168,7 @@ namespace CapriDesktop
     {
         internal const double Tall = 44;
         internal event Action<string> Submitted;
+        internal event Action Typed;
         private readonly TextBox input = new TextBox();
         private readonly TextBlock prompt;
 
@@ -193,6 +194,7 @@ namespace CapriDesktop
             foreach (string key in new[] { "TextControlForeground", "TextControlForegroundPointerOver", "TextControlForegroundFocused" }) input.Resources[key] = ink;
             input.Resources["TextControlSelectionHighlightColor"] = new SolidColorBrush(Look.Neon);
             input.CaretBrush = new SolidColorBrush(Look.Neon);
+            input.TextChanged += delegate { if (Typed != null) Typed(); };
             input.KeyDown += delegate(object sender, KeyEventArgs e)
             {
                 if (e.Key == Key.Enter) { e.Handled = true; Submit(); }
@@ -814,6 +816,7 @@ namespace CapriDesktop
         internal Talk(Pet pet)
         {
             this.pet = pet;
+            Typer.Typed += pet.Typed;
             Typer.Submitted += delegate(string text)
             {
                 if (asked != null) { Action<string> to = asked; asked = null; Typer.Hide(); to(text); return; }
@@ -843,6 +846,7 @@ namespace CapriDesktop
 
         internal void Open()
         {
+            pet.Typed();
             asked = null;
             secretTo = null;
             if (Typer.Secret) Typer.Secret = false;
@@ -876,6 +880,7 @@ namespace CapriDesktop
 
         internal void Thinking(string heard)
         {
+            pet.Answered();
             if (pet.Away) return;
             reply = null;
             thinking = true;
@@ -888,6 +893,7 @@ namespace CapriDesktop
         // sight: it would float there with nobody under it, and stop her pop-ins until she's shown.
         internal void Answer(string heard, string answer, double seconds = 0)
         {
+            pet.Answered();
             if (pet.Away) return;
             reply = answer;
             audioEnd = pet.Now + Math.Max(0, seconds);
@@ -910,13 +916,13 @@ namespace CapriDesktop
             Update(pet.Now);
         }
 
-        internal void Dismiss()
+        internal void Dismiss(bool typing = true)
         {
             reply = null;
             thinking = false;
             leaving = -1;
             Bubble.Hide();
-            Typer.Hide();
+            if (typing) Typer.Hide();
         }
 
         // While she's hidden her bubble and pill stay down too, even one that was still up when her window went.

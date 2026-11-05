@@ -5,7 +5,7 @@ Thanks for helping her out, choom.
 ## Before you start
 
 - **Small fixes:** open a pull request.
-- **New features or big changes:** ask first in the [Discord](https://discord.gg/F4fDHfGtFk) or open an issue, so nobody builds something that won't be merged.
+- **New features or big changes:** ask first in the [Discord](https://discord.gg/capridesktop) or open an issue, so nobody builds something that won't be merged.
 - **Licence:** Capri is under the [PolyForm Noncommercial License](LICENSE.md). By opening a pull request you agree your changes are shared under it too.
 
 ## Where things live

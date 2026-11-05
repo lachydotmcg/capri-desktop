@@ -5,9 +5,12 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -127,6 +130,7 @@ namespace CapriDesktop
                 }
                 if (Brain.Greeting(8) != "Good morning, choom." || Brain.Greeting(23) != "Isn't it late, choom?" || Brain.Greeting(15) != "Miss me, choom?" || Brain.GreetingClip(15) != "miss") throw new Exception("Startup greetings came at the wrong hours.");
                 checks.Add("PASS startup voice: her giggle greetings for the morning, late at night and the rest of the day are packed in the app");
+                NewsChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -152,6 +156,7 @@ namespace CapriDesktop
                 if (pet.Falling) return false;
                 if (!Sitting()) throw new Exception("A dropped Capri didn't sit down again.");
                 checks.Add("PASS drag and drop: grabbing her lifts her off, dropping her near a ledge makes her fall and sit on it");
+                DragChecks();
                 PixelPoint hip = pet.Hip;
                 pet.Resize(320);
                 if (pet.Hip != hip) throw new Exception("Resizing moved her off her seat: " + hip + " to " + pet.Hip + ".");
@@ -162,6 +167,12 @@ namespace CapriDesktop
                 if (petSpot == null) throw new Exception("Couldn't find her body to pet.");
                 PixelPoint petLeft = pet.PointToScreen(new Point(petSpot.Value.X - 12, petSpot.Value.Y));
                 PixelPoint petRight = pet.PointToScreen(new Point(petSpot.Value.X + 12, petSpot.Value.Y));
+                pet.SetHeadPats(false);
+                int offPets = pet.Pets;
+                for (int i = 0; i < 12; i++) pet.Stroke(i % 2 == 0 ? petRight : petLeft);
+                if (pet.Pets != offPets || pet.Smiling || !SettingsCopy().NoHeadPats) throw new Exception("Head pats off still reacted to a stroke.");
+                pet.SetHeadPats(true);
+                string strokeState = StrokeState(petLeft, petRight);
                 int petsBefore = pet.Pets;
                 for (int i = 0; i < 6; i++) pet.Stroke(petLeft);
                 pet.Stroke(petRight);
@@ -175,8 +186,9 @@ namespace CapriDesktop
                 bool cooled = pet.Pets == petsBefore + 1;
                 pet.Talk.Dismiss();
                 pet.ForgetPets();
-                if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled);
+                if (earlyPet || !smiled || !spoke || !cooled) throw new Exception("Petting her went wrong: early " + earlyPet + ", smiled " + smiled + ", spoke " + spoke + ", cooled " + cooled + " (" + strokeState + ")");
                 checks.Add("PASS petting: rubbing the cursor back and forth over her makes her smile and say a short line, not too easily and not again for 20 s");
+                checks.Add("PASS Head pats saves Off and ignores strokes; On brings back her pat reaction");
                 pet.SetWander(3);
                 pet.SetLanguage("French");
                 pet.SetReplies(1);
@@ -217,12 +229,12 @@ namespace CapriDesktop
                 bool freeBefore = pet.Free;
                 pet.ToggleShush();
                 string hushed = pet.Talk.Reply;
-                bool quieted = pet.Shushed && pet.QuietShown && !pet.Free && hushed == "Going quiet. Right-click me > Quiet when you want me back.";
+                bool quieted = pet.Shushed && pet.QuietShown && !pet.Free && hushed == "Going quiet. Turn off Mute her in Capri Mainframe when you want me back.";
                 pet.ToggleShush();
                 bool unhushed = !pet.Shushed && !pet.QuietShown && pet.Talk.Reply == "I'm back, choom.";
                 pet.Talk.Dismiss();
                 if (!quieted || !unhushed || pet.Free != freeBefore) throw new Exception("Quiet went wrong: quiet " + quieted + " (" + hushed + "), back " + unhushed + ", free before " + freeBefore + " and after " + pet.Free);
-                checks.Add("PASS quiet: right-click > Quiet stops her pop-ins, check-ins, cheers, jokes and glances until it's turned off, and she says so both times");
+                checks.Add("PASS quiet: Mute her stops her pop-ins, check-ins, cheers, jokes and glances until it's turned off, and she says so both times");
                 pet.SetBubbleTime(2);
                 bool bubbleLong = pet.BubblePicked == "Long" && Talk.Hold(100, pet.BubbleTime) == 18 && Talk.Hold(1000, pet.BubbleTime) == 28;
                 pet.SetBubbleTime(0);
@@ -290,6 +302,8 @@ namespace CapriDesktop
                 checks.Add("PASS voice layers: Settings > Voice style > Layers turns on two copies of her under her, like Windows, with Layer 1 and Layer 2's pitch and delay in their own menus; " + layersFound + "; her ElevenLabs replies get them and come back 25 ms longer for their tails; off out of the box and in settings from before them, and off her voice is byte for byte as it was; the layers save and load as set");
                 LocalVoiceChecks();
                 BrainServerChecks();
+                ProviderRegression.Run(pet, folder);
+                checks.Add("PASS provider key regression: server and key are one atomic pair, concurrent chats stay on their own pair, loopback addresses with paths work, provider switches never reuse another provider's key, saved keys are 0600, plain HTTP is refused away from this PC, provider errors, streamed errors, UI errors and logs redact the key, redirects keep it, and the unkeyed server message is unchanged");
                 ChoresChecks();
                 bool loginNew = !pet.StartsAtLogin;
                 pet.SetLogin(true);
@@ -619,7 +633,7 @@ namespace CapriDesktop
                 bool cloudGone = pet.Brain.Remote == null && pet.Saved.CloudModel == null && !File.Exists(Path.Combine(folder, "brain-key"));
                 pet.Brain.Model = "qwen3:8b";
                 pet.Talk.Dismiss();
-                if (ollamaMenu != "*qwen3:8b | - | Download a model (Ollama or Hugging Face)... | Use my own server (OpenAI API)... | - | Get a free NVIDIA key | " + Pet.KeyChoice) throw new Exception("The Brain menu didn't offer a cloud key: " + ollamaMenu);
+                if (ollamaMenu != "*qwen3:8b | - | Download a model (Ollama or Hugging Face)... | Use my own server (OpenAI API)... | Use my own provider with a key (OpenAI API)... | - | Get a free NVIDIA key | " + Pet.KeyChoice) throw new Exception("The Brain menu didn't offer a cloud key: " + ollamaMenu);
                 if (freeKey != Pet.FreeKeySteps || !keyAsked || notKey != Pet.NotAKey || !keyHidden) throw new Exception("The key choices didn't say where to paste, ask in a hidden box or explain a bad key: " + freeKey + " | " + keyAsked + " | " + notKey + " | " + keyHidden);
                 if (cloudMenu != "NVIDIA key ending 1234 (off) | *meta/llama-3.3-70b-instruct | qwen/qwen3-235b-a22b | - | Stay on my model | Forget the key and use Ollama" || !cloudPicked || !cloudGone || !cloudDetails || !hopped || !hopsEnd
                     || nvidiaMenu != "NVIDIA key ending 1234 (off) | *nvidia/nemotron-3.5-super-vl-120b-a12b · recommended | nvidia/nemotron-3.5-bolt-e4b | openai/gpt-oss-20b | - | *Stay on my model | Forget the key and use Ollama")
@@ -979,6 +993,9 @@ namespace CapriDesktop
                 {
                     if (!pet.Upright) return false;
                     pet.Talk.Dismiss();
+                    // An open menu keeps her awake, and on Linux one is still open from an earlier check; this check is about her
+                    // sleep timer, so it says so and closes it first.
+                    if (pet.ContextMenu != null && pet.ContextMenu.IsOpen) { checks.Add("LIMIT her menu was still open from an earlier check, so the sleep check closed it first"); pet.ContextMenu.Close(); }
                     pet.SetSleepAfter(0);
                     pet.Doze(100000);
                     bool never = !pet.Asleep && pet.SleepPicked == "Never";
@@ -991,7 +1008,16 @@ namespace CapriDesktop
                     bool stayed = pet.Asleep;
                     pet.Doze(0.5);
                     bool woke = pet.Waking;
-                    if (!never || early || !dozed || !stayed || !woke || pet.SleepPicked != "2 min") throw new Exception("Sleep went wrong: never " + never + ", early " + early + ", dozed " + dozed + ", stayed " + stayed + ", woke " + woke + ", picked " + pet.SleepPicked);
+                    if (!never || early || !dozed || !stayed || !woke || pet.SleepPicked != "2 min")
+                    {
+                        // What kept her from dozing: each part of Drowsy.
+                        System.Reflection.BindingFlags own = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                        Func<string, string> part = name => { System.Reflection.FieldInfo info = typeof(Pet).GetField(name, own); object value = info == null ? null : info.GetValue(pet); return name + " " + (info == null ? "?" : value is bool ? value.ToString() : value == null ? "none" : "set"); };
+                        bool idleClip = ReferenceEquals(typeof(Pet).GetField("clip", own)?.GetValue(pet), typeof(Pet).GetField("idle", own)?.GetValue(pet));
+                        throw new Exception("Sleep went wrong: never " + never + ", early " + early + ", dozed " + dozed + ", stayed " + stayed + ", woke " + woke + ", picked " + pet.SleepPicked
+                            + " (doing " + pet.Doing + ", idle clip " + idleClip + ", " + string.Join(", ", Array.ConvertAll(new[] { "seat", "walking", "dragging", "pressed", "falling", "outro", "away", "quitting" }, name => part(name)))
+                            + ", quiet " + pet.Talk.Quiet + ", menu " + (pet.ContextMenu != null && pet.ContextMenu.IsOpen) + ")");
+                    }
                     checks.Add("PASS sleep: standing, she dozes off after Fall asleep after without the mouse or keyboard (2 min here), shows Asleep on Discord, wakes with her boot glitch when they're back, and Never keeps her up");
                     slept = true;
                 }
@@ -1129,10 +1155,10 @@ namespace CapriDesktop
                 lock (spoken) voiced = spoken.Count;
                 bool shut = OperatingSystem.IsWindows() || File.GetUnixFileMode(keyPath) == (UnixFileMode.UserRead | UnixFileMode.UserWrite);
                 string last = asked.Length == 0 ? "" : asked[asked.Length - 1];
-                if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under Settings > Voice." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
+                if (pet.Talk.Reply != "Key saved. I'll talk as Capri Test. Change it under VOICE in Capri Mainframe." || !File.Exists(keyPath) || File.ReadAllText(keyPath) != "good-key-1234" || !shut || pet.VoiceStatus != "key 1234 | Capri Test | speaking" || voiced != 1 || !last.StartsWith("POST /v1/text-to-speech/v1?", StringComparison.Ordinal) || last.IndexOf(" good-key-1234 ", StringComparison.Ordinal) < 0) throw new Exception("Saving a good ElevenLabs key went wrong: " + pet.Talk.Reply + " | " + pet.VoiceStatus + " | " + voiced + " | " + string.Join(" / ", asked));
                 string voiceMenu = pet.VoiceMenu;
                 if (voiceMenu != "Provider: ElevenLabs | - | *Use ElevenLabs | - | *Capri Test | Adam | - | New key... | Remove key ending 1234") throw new Exception("The Voice menu listed the wrong things: " + voiceMenu);
-                checks.Add("PASS voice key: Settings > Voice asks for the key in a hidden box, explains and drops a rejected key, keeps a good one in a private file and picks their own voice first");
+                checks.Add("PASS voice key: VOICE asks for the key in a hidden box, explains and drops a rejected key, keeps a good one in a private file and picks their own voice first");
                 if (pet.TypingSound) throw new Exception("Typing sound stayed on while her ElevenLabs voice works.");
                 pet.Think = delegate(string words) { return "Preem question, choom."; };
                 pet.Hear("talk to me");
@@ -1326,7 +1352,6 @@ namespace CapriDesktop
                 pet.SetWatch(false);
                 if (!hushedQuiet || pet.Shushed || pet.WatchShown) throw new Exception("A glance that came back after Quiet went on was said: " + pet.Talk.Reply);
                 checks.Add("PASS quiet glance: a glance still out when Quiet goes on is dropped, like Windows");
-                Finish(null);
                 return true;
             }
             if (step == 29)
@@ -1347,7 +1372,194 @@ namespace CapriDesktop
                 hushGlance = true;
                 return false;
             }
+            if (step == 30)
+            {
+                MainframeChecks();
+                Finish(null);
+                return true;
+            }
             return false;
+        }
+
+        private void Press(IPointer mouse, Point at)
+        {
+            pet.RaiseEvent(new PointerPressedEventArgs(pet, mouse, pet, at, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+        }
+
+        private void Pull(IPointer mouse, Point at)
+        {
+            pet.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, pet, mouse, pet, at, 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other), KeyModifiers.None));
+        }
+
+        private void Release(IPointer mouse, Point at, bool here, MouseButton button = MouseButton.Left)
+        {
+            pet.RaiseEvent(new PointerReleasedEventArgs(pet, mouse, pet, at, 0, new PointerPointProperties(RawInputModifiers.None, button == MouseButton.Left ? PointerUpdateKind.LeftButtonReleased : PointerUpdateKind.RightButtonReleased), here ? KeyModifiers.Shift : KeyModifiers.None, button));
+        }
+
+        // What a stroke's guards say before the petting check, so a failure shows which one stopped her.
+        private string StrokeState(PixelPoint left, PixelPoint right)
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            System.Reflection.MethodInfo opaque = typeof(Pet).GetMethod("Opaque", fields);
+            return "over her " + opaque.Invoke(pet, new object[] { pet.PointToClient(left) }) + " and " + opaque.Invoke(pet, new object[] { pet.PointToClient(right) }) + ", pressed " + typeof(Pet).GetField("pressed", fields).GetValue(pet) + ", dragging " + pet.Dragging + ", falling " + pet.Falling + ", typing " + pet.Talk.Typing;
+        }
+
+        private Point Client(PixelPoint at)
+        {
+            Point point = pet.PointToClient(at);
+            return new Point(point.X + Math.Sign(at.X) * 0.25 / pet.RenderScaling, point.Y + Math.Sign(at.Y) * 0.25 / pet.RenderScaling);
+        }
+
+        private void DragChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            Dictionary<string, object> before = new Dictionary<string, object>();
+            foreach (string name in new[] { "anchor", "pressed", "dragging", "dragAt", "dragPending", "downAt", "grab", "pointer", "clicks", "seat", "walking", "hanging", "dropAfter", "falling", "fallTo", "fallSpeed", "fallStep", "clip", "clipStart", "idleCycle", "blinkWith", "coveredSince", "seatLost", "napAsked" }) before[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            List<PixelPoint> asked = (List<PixelPoint>)typeof(Pet).GetField("asked", fields).GetValue(pet);
+            PixelPoint[] askedWas = asked.ToArray();
+            Desk desk = pet.Desk;
+            Func<PixelPoint?> mouseAt = pet.MouseAt;
+            Action<PixelPoint> moveTo = pet.MoveTo;
+            int savedX = pet.Saved.X, savedY = pet.Saved.Y;
+            bool placed = pet.Saved.Placed, broken = false;
+            PixelPoint reported = pet.Position;
+            PixelPoint? cursor = null;
+            List<PixelPoint> moves = new List<PixelPoint>();
+            using (Avalonia.Input.Pointer mouse = new Avalonia.Input.Pointer(Avalonia.Input.Pointer.GetNextFreeId(), PointerType.Mouse, true))
+            try
+            {
+                pet.Desk = new BareDesk { HeldAt = delegate { if (broken) throw new Exception("No pointer."); return cursor; } };
+                pet.MouseAt = null;
+                pet.MoveTo = delegate(PixelPoint to) { moves.Add(to); };
+                pet.FollowPosition(reported);
+                PixelPoint start = pet.Anchor;
+                PixelPoint frame = new PixelPoint(reported.X - start.X, reported.Y - start.Y);
+                Point? spot = pet.BodySpot();
+                if (spot == null) throw new Exception("Couldn't find her body to drag.");
+                Point at = spot.Value;
+                PixelPoint fallback = pet.PointToScreen(at);
+                bool linux = OperatingSystem.IsLinux();
+                PixelPoint down = linux ? new PixelPoint(fallback.X + 700, fallback.Y - 300) : fallback;
+                cursor = new PixelPoint(fallback.X + 700, fallback.Y - 300);
+                if (pet.Desk.Grabbed() != cursor || pet.Desk.Pointer() != null || pet.Desk.Windows(new long[0]).Count != 0 || pet.Desk.Find(1) != null || pet.Desk.Alive(1)) throw new Exception("The held-pointer desk changed her window list or gave a mouse position outside a drag.");
+                Press(mouse, at);
+                if (mouse.Captured != pet || pet.Dragging || (PixelPoint)typeof(Pet).GetField("downAt", fields).GetValue(pet) != down || (PixelPoint)typeof(Pet).GetField("grab", fields).GetValue(pet) != new PixelPoint(down.X - start.X, down.Y - start.Y)) throw new Exception("Pressing her used the wrong pointer or grab offset.");
+                foreach (PixelPoint offset in new[] { new PixelPoint(30, -50), new PixelPoint(80, -20), new PixelPoint(-10, -90) })
+                {
+                    cursor = new PixelPoint(down.X + offset.X, down.Y + offset.Y);
+                    Pull(mouse, linux ? new Point(at.X + 900, at.Y - 600) : Client(cursor.Value));
+                }
+                if (!pet.Dragging || moves.Count != 0 || pet.Anchor != start) throw new Exception("Pointer events moved her before a frame.");
+                pet.DragFrame();
+                PixelPoint target = new PixelPoint(start.X - 10, start.Y - 90);
+                if (moves.Count != 1 || pet.Anchor != target || moves[0] != new PixelPoint(target.X + frame.X, target.Y + frame.Y) || pet.Position != reported) throw new Exception("A drag didn't follow the latest pointer while her window lagged.");
+                pet.DragFrame();
+                if (moves.Count != 1) throw new Exception("A frame repeated an old drag move.");
+                checks.Add(linux ? "PASS Linux drag follows the desk pointer while the reported window position lags" : "PASS Mac drag keeps PointToScreen even when a desk pointer is available");
+                pet.FollowPosition(new PixelPoint(reported.X + 2, reported.Y - 3));
+                foreach (int y in new[] { 60, -120, 90, -30 })
+                {
+                    cursor = new PixelPoint(down.X + 15, down.Y + y);
+                    Pull(mouse, linux ? new Point(at.X - 800, at.Y + 500) : Client(cursor.Value));
+                }
+                if (moves.Count != 1) throw new Exception("Fast pointer events sent extra window moves.");
+                pet.DragFrame();
+                if (moves.Count != 2 || pet.Anchor != new PixelPoint(start.X + 15, start.Y - 30)) throw new Exception("Fast drag moves added to each other.");
+                checks.Add("PASS drag sends one move per frame to the newest point");
+                cursor = new PixelPoint(down.X + 90, down.Y - 120);
+                Release(mouse, linux ? at : Client(cursor.Value), false, MouseButton.Right);
+                if (!pet.Dragging || mouse.Captured != pet || moves.Count != 2) throw new Exception("A right release ended a left drag.");
+                Release(mouse, linux ? at : Client(cursor.Value), false);
+                if (moves.Count != 3 || pet.Anchor != new PixelPoint(start.X + 90, start.Y - 120) || pet.Dragging || mouse.Captured != null || !pet.Falling) throw new Exception("Release didn't move her to the pointer before dropping.");
+                pet.DragFrame();
+                if (moves.Count != 3) throw new Exception("A drag move ran after release.");
+                checks.Add("PASS left release lands at the current pointer before dropping and clears pending moves");
+
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = down;
+                Press(mouse, at);
+                cursor = new PixelPoint(down.X + 40, down.Y - 70);
+                Pull(mouse, linux ? at : Client(cursor.Value));
+                cursor = new PixelPoint(down.X + 70, down.Y - 100);
+                Release(mouse, linux ? at : Client(cursor.Value), true);
+                target = new PixelPoint(start.X + 70, start.Y - 100);
+                if (moves.Count < 1 || moves[0] != new PixelPoint(target.X + frame.X, target.Y + frame.Y) || pet.Anchor != target || pet.Dragging || pet.Falling || pet.Seat == null || !pet.Seat.Free || pet.Hip.Y != pet.Seat.Y || mouse.Captured != null) throw new Exception("Shift-release didn't finish the pending drag before sitting.");
+                int satMoves = moves.Count;
+                pet.DragFrame();
+                if (moves.Count != satMoves) throw new Exception("A pending drag moved her off her Shift seat.");
+                checks.Add("PASS Shift-release finishes a pending drag and sits at the pointer");
+
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = down;
+                pet.MouseAt = delegate { return cursor; };
+                typeof(Pet).GetField("clip", fields).SetValue(pet, pet.Arrival);
+                Press(mouse, at);
+                cursor = new PixelPoint(down.X + 2, down.Y + 3);
+                Pull(mouse, linux ? new Point(at.X + 400, at.Y - 400) : Client(cursor.Value));
+                pet.DragFrame();
+                if (pet.Dragging || moves.Count != 0) throw new Exception("A press under five pixels started a drag.");
+                Release(mouse, linux ? at : Client(cursor.Value), false);
+                if (moves.Count != 0 || pet.Anchor != start || pet.Dragging || pet.Falling || pet.Showing != (Clip)typeof(Pet).GetField("glitch", fields).GetValue(pet) || mouse.Captured != null) throw new Exception("A short press didn't stay a click.");
+                pet.MouseAt = null;
+                checks.Add("PASS a press under five pixels stays a click");
+
+                for (int failure = 0; failure < 2; failure++)
+                {
+                    pet.StandUp();
+                    pet.Move(start);
+                    moves.Clear();
+                    cursor = null;
+                    broken = failure == 1;
+                    Press(mouse, at);
+                    if ((PixelPoint)typeof(Pet).GetField("downAt", fields).GetValue(pet) != fallback) throw new Exception("A press without a desk pointer didn't use PointToScreen.");
+                    PixelPoint edge = new PixelPoint(fallback.X + 3, fallback.Y - 4);
+                    Pull(mouse, Client(edge));
+                    if (!pet.Dragging || moves.Count != 0) throw new Exception("A five pixel move didn't start a drag.");
+                    pet.DragFrame();
+                    if (moves.Count != 1 || pet.Anchor != new PixelPoint(start.X + 3, start.Y - 4)) throw new Exception("A drag without a desk pointer didn't use PointToScreen.");
+                    PixelPoint end = new PixelPoint(fallback.X + 40, fallback.Y - 60);
+                    Release(mouse, Client(end), false);
+                    if (moves.Count != 2 || pet.Anchor != new PixelPoint(start.X + 40, start.Y - 60) || pet.Dragging || mouse.Captured != null) throw new Exception("Release without a desk pointer used the wrong point.");
+                }
+                broken = false;
+                checks.Add("PASS a missing or failed desk pointer uses PointToScreen for press, move and release; five pixels starts a drag");
+
+                if (linux)
+                {
+                    pet.StandUp();
+                    pet.Move(start);
+                    moves.Clear();
+                    typeof(Pet).GetField("walking", fields).SetValue(pet, true);
+                    typeof(Pet).GetField("seat", fields).SetValue(pet, new Ledge { Floor = true, Left = start.X, Right = start.X + Px(800), Y = start.Y + Px(pet.BodySize * 0.99) });
+                    pet.FollowPosition(new PixelPoint(reported.X + 20, reported.Y - 40));
+                    if (pet.Anchor != new PixelPoint(start.X + 20, start.Y - 40) || pet.Feet != start.Y - 40 + Px(pet.BodySize * 0.99) || pet.Hip.Y != pet.Feet || moves.Count != 0) throw new Exception("Her walking anchor didn't follow a corrected window position.");
+                    // Late news of moves she asked for never steps her back: two steps, then the first one confirmed.
+                    PixelPoint one = new PixelPoint(start.X + 30, start.Y - 40), two = new PixelPoint(start.X + 40, start.Y - 40);
+                    pet.Move(one);
+                    pet.Move(two);
+                    pet.FollowPosition(new PixelPoint(one.X + frame.X, one.Y + frame.Y));
+                    if (pet.Anchor != two || moves.Count != 2) throw new Exception("A late confirmation of an earlier move stepped her back.");
+                    pet.Move(new PixelPoint(start.X + 90, start.Y + 90));
+                    pet.FollowPosition(pet.Position);
+                    if (pet.Anchor != start || moves.Count != 3) throw new Exception("A refused window move left her anchor behind.");
+                    checks.Add("PASS on Linux walking follows the desktop's position corrections, including a refused move, and late confirmations of her own moves never step her back");
+                }
+            }
+            finally
+            {
+                mouse.Capture(null);
+                pet.Desk = desk;
+                pet.MouseAt = mouseAt;
+                pet.MoveTo = moveTo;
+                foreach (KeyValuePair<string, object> item in before) typeof(Pet).GetField(item.Key, fields).SetValue(pet, item.Value);
+                asked.Clear();
+                asked.AddRange(askedWas);
+                pet.Saved.X = savedX; pet.Saved.Y = savedY; pet.Saved.Placed = placed;
+            }
         }
 
         private void KdeChecks()
@@ -1581,6 +1793,134 @@ namespace CapriDesktop
             checks.Add("PASS mini games on Mac and Linux give the Windows-only line without Spotify, with or without a brain or uinput, while Chess by an artist stays music and online chess opens a site");
         }
 
+        private sealed class NewsDesk : Desk
+        {
+            internal readonly List<Spot> Shown = new List<Spot>();
+            internal override string Name { get { return "news test"; } }
+            internal override List<Spot> Windows(ICollection<long> skip) { return Shown; }
+            internal override Spot Find(long window) { return null; }
+            internal override bool Alive(long window) { return false; }
+        }
+
+        private void NewsChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+            string[] names = { "greetTried", "newsPending", "newsTicket", "newsQuiet", "shushed", "napAsked", "napping", "away", "quitting", "dragging", "pressed", "falling", "outro", "popOut", "nudgeOut", "workCount" };
+            Dictionary<string, object> state = new Dictionary<string, object>();
+            foreach (string name in names) state[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            Action<string, object> set = delegate(string name, object value) { typeof(Pet).GetField(name, fields).SetValue(pet, value); };
+            Settings saved = pet.Saved;
+            Func<string, string> think = pet.Think;
+            string model = pet.Brain.Model;
+            Desk desk = pet.Desk;
+            object speaker = typeof(Pet).GetField("elevenLabs", fields).GetValue(pet);
+            var timer = (Avalonia.Threading.DispatcherTimer)typeof(Pet).GetField("frames", fields).GetValue(pet);
+            bool ticking = timer.IsEnabled;
+            ManualResetEvent entered = new ManualResetEvent(false), release = new ManualResetEvent(false);
+            timer.Stop();
+            try
+            {
+                pet.Talk.Dismiss();
+                pet.Saved = new Settings(); pet.Think = null; pet.Brain.Model = null;
+                foreach (string name in new[] { "shushed", "napAsked", "napping", "away", "quitting", "dragging", "pressed", "falling" }) set(name, false);
+                set("outro", null); set("popOut", -1.0); set("nudgeOut", -1.0); set("workCount", 0); set("greetTried", true);
+                NewsDesk stand = new NewsDesk { Scale = desk.Scale };
+                pet.Desk = stand;
+                SettingsSpeaker voice = new SettingsSpeaker();
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, voice);
+                var json = new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings));
+                Settings old;
+                using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes("{}"))) old = (Settings)json.ReadObject(stream);
+                if (old.LastVersion != null) throw new Exception("Old cross settings invented a last version.");
+                foreach (string last in new[] { old.LastVersion, "0.8.2", "0.9.0" })
+                {
+                    pet.Talk.Dismiss(); pet.Saved.LastVersion = last; pet.StartNews(true); pet.CheckNews(0);
+                    if (pet.Talk.Reply != News.Line || voice.Calls != 0 || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross update news did not show and save once from " + (last ?? "missing") + ".");
+                    pet.Talk.Dismiss(); pet.StartNews(true); pet.CheckNews(0);
+                    if (pet.Talk.Reply != null) throw new Exception("The same cross version repeated its news.");
+                }
+                checks.Add("PASS cross update news: older, missing and different versions show fixed text once without a brain, save the version and stay quiet on another start");
+                pet.Saved.LastVersion = null; pet.StartNews(false); pet.CheckNews(0);
+                if (pet.Talk.Reply != null || SettingsCopy().LastVersion != News.Version) throw new Exception("A fresh cross install spoke update news or missed its saved version.");
+                checks.Add("PASS fresh cross installs save their version without update news");
+                pet.Saved.LastVersion = null; pet.StartNews(true); pet.CheckNews(60001);
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news spoke while the user was away.");
+                set("greetTried", false); pet.CheckNews(0); set("greetTried", true);
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news spoke before the startup hello.");
+                foreach (string name in new[] { "shushed", "napAsked", "napping", "away", "quitting", "dragging", "pressed", "falling" })
+                {
+                    set(name, true); pet.CheckNews(0); set(name, false);
+                    if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news did not wait for " + name + ".");
+                }
+                pet.Talk.Thinking("test"); pet.CheckNews(0); pet.Talk.Dismiss();
+                if (pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted thinking.");
+                pet.Talk.Answer("test", "Still talking."); pet.CheckNews(0);
+                if (pet.Talk.Reply != "Still talking." || pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted speech.");
+                pet.Talk.Dismiss(); pet.Talk.Open(); pet.CheckNews(0); pet.Talk.Dismiss();
+                if (pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted typing.");
+                set("workCount", 1); pet.CheckNews(0); set("workCount", 0);
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted a job.");
+                foreach (Screen screen in pet.Screens.All) stand.Shown.Add(new Spot { Bounds = screen.Bounds, Solid = true });
+                pet.CheckNews(0); stand.Shown.Clear();
+                if (pet.Talk.Reply != null || pet.Saved.LastVersion != null) throw new Exception("Cross update news interrupted full screen.");
+                pet.CheckNews(0);
+                if (pet.Talk.Reply != News.Line || SettingsCopy().LastVersion != News.Version) throw new Exception("Held cross update news did not return when free.");
+                checks.Add("PASS cross update news waits for the startup hello, the user and a free moment outside hiding, chat, speech, jobs and full screen");
+                pet.Talk.Dismiss(); pet.Saved.Silent = true; pet.Saved.LastVersion = "0.8.2";
+                string asked = null;
+                pet.Think = delegate(string text) { asked = text; entered.Set(); release.WaitOne(3000); return "Voici les nouveautes."; };
+                pet.StartNews(true); pet.CheckNews(0);
+                MainframeWait(delegate { return entered.WaitOne(0); }, "news brain request");
+                pet.CheckNews(0);
+                if (pet.Saved.LastVersion != "0.8.2") throw new Exception("Cross update news saved before her reply arrived.");
+                release.Set();
+                MainframeWait(delegate { return pet.Talk.Reply == "Voici les nouveautes."; }, "news brain reply");
+                if (asked != News.Prompt || !asked.StartsWith("(", StringComparison.Ordinal) || !asked.Contains(News.Facts) || !asked.Contains("language they use") || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross update news lost its facts, language or saved version.");
+                pet.Talk.Dismiss(); pet.CheckNews(0);
+                if (pet.Talk.Reply != null) throw new Exception("Cross brain update news repeated.");
+                pet.Saved.LastVersion = "0.8.2";
+                pet.Think = delegate { throw new BrainException("Test brain failure."); };
+                pet.StartNews(true); pet.CheckNews(0);
+                MainframeWait(delegate { return pet.Talk.Reply == News.Line; }, "news fallback text");
+                if (voice.Calls != 0 || SettingsCopy().LastVersion != News.Version) throw new Exception("Cross news fallback used a voice or forgot the version.");
+                checks.Add("PASS cross update news uses her brain's system line, facts and language, saves after delivery and falls back to text if the brain fails");
+                pet.Talk.Dismiss(); entered.Reset(); release.Reset(); pet.Saved.LastVersion = "0.8.2";
+                pet.Think = delegate { entered.Set(); release.WaitOne(3000); return "Held news."; };
+                pet.StartNews(true); pet.CheckNews(0);
+                MainframeWait(delegate { return entered.WaitOne(0); }, "held news request");
+                foreach (Screen screen in pet.Screens.All) stand.Shown.Add(new Spot { Bounds = screen.Bounds, Solid = true });
+                release.Set();
+                MainframeWait(delegate { return (int)typeof(Pet).GetField("newsTicket", fields).GetValue(pet) < 0; }, "late news hold");
+                if (pet.Saved.LastVersion != "0.8.2" || pet.Talk.Reply != null) throw new Exception("Late cross news was delivered or forgotten while busy.");
+                stand.Shown.Clear(); pet.CheckNews(0);
+                MainframeWait(delegate { return pet.Talk.Reply == "Held news."; }, "late news retry");
+                if (SettingsCopy().LastVersion != News.Version) throw new Exception("Late cross news did not save when free.");
+                checks.Add("PASS cross news that finishes while busy stays pending and returns when free");
+                foreach (string question in new[] { "what's new?", "what's new in this update?", "what changed?", "what did the update add?" })
+                    if (News.Matching(question) != "What's new: " + News.Facts) throw new Exception("Cross update help missed " + question);
+                foreach (string fact in new[] { "BRAIN, VOICE and CAPRI", "Simple Settings", "Advanced Settings", "CAPRI > Mods", "colour sets and skins", "Code/Husk Mode", "OpenAI-compatible", "Check in on me", "Head pats", "Follow-up messages", "Keep PC awake for jobs", "Obsidian vault" })
+                    if (!News.Facts.Contains(fact)) throw new Exception("Cross update help missed " + fact);
+                // Whole words, so "requests for your OK" isn't read as Quest.
+                foreach (string windowsOnly in new[] { "Windows", "Discord", "Call mode", "Call app", "voice calls", "Capri VR", "Capri-VR-Quest.apk", "Quest", "code mods", "Her speaker", "Pop-in times", "GAMES > Play", "GAMES > Controls" })
+                    if (Regex.IsMatch(News.Facts, @"\b" + Regex.Escape(windowsOnly) + @"\b", RegexOptions.IgnoreCase)) throw new Exception("Cross update help promised " + windowsOnly);
+                foreach (string ordinary in new[] { "what changed in my game?", "what's new in Cyberpunk?", "I bought new shoes" })
+                    if (News.Matching(ordinary) != null) throw new Exception("Cross update help matched ordinary chat.");
+                pet.Talk.Dismiss(); pet.Think = null; pet.Hear("what's new?");
+                if (pet.Talk.Reply != News.Facts) throw new Exception("Offline cross update help did not answer.");
+                checks.Add("PASS cross What's new finds this version's Mac and Linux facts and paths without Windows-only features, including without a brain");
+            }
+            finally
+            {
+                release.Set();
+                set("asking", (int)typeof(Pet).GetField("asking", fields).GetValue(pet) + 1);
+                pet.Talk.Dismiss();
+                pet.Saved = saved; pet.Think = think; pet.Brain.Model = model; pet.Desk = desk;
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, speaker);
+                foreach (KeyValuePair<string, object> pair in state) set(pair.Key, pair.Value);
+                if (ticking) timer.Start();
+            }
+        }
+
         // A voice for the settings check's preview that only counts what it's asked to say.
         private sealed class SettingsSpeaker : ISpeaker
         {
@@ -1603,6 +1943,1316 @@ namespace CapriDesktop
 
         // Her settings tool on Mac and Linux reads and changes what her menus show, in their own steps, saves it, and says the
         // Windows-only ones are Windows-only.
+        private void MainframeChecks()
+        {
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+            Settings before = SettingsCopy();
+            Cloud remote = pet.Brain.Remote;
+            string model = pet.Brain.Model, server = pet.Brain.Server;
+            string language = Brain.Language, nickname = Brain.Nickname;
+            int memory = Brain.MemorySize, reply = Brain.ReplyLength, recall = Brain.Recall, replies = Brain.Wordiness;
+            int volume = Voice.Loudness, sounds = Sfx.Level, pitch = VoiceFx.Pitch, speed = VoiceFx.Speed, robot = VoiceFx.Robot, glitch = VoiceFx.Glitch;
+            VoiceFx.Layering layers = VoiceFx.Layers;
+            bool quiet = pet.Shushed, login = pet.StartsAtLogin, visible = pet.IsVisible, leaving = pet.Leaving;
+            PixelPoint anchor = pet.Anchor;
+            var timer = (Avalonia.Threading.DispatcherTimer)typeof(Pet).GetField("frames", fields).GetValue(pet);
+            object speaker = typeof(Pet).GetField("elevenLabs", fields).GetValue(pet);
+            var voice = (Voice)typeof(Pet).GetField("voice", fields).GetValue(pet);
+            string voiceKey = voice.Key, voiceId = voice.VoiceId, voiceModel = voice.Model;
+            object listing = typeof(Pet).GetField("voices", fields).GetValue(pet);
+            string permissions = Security.Saved;
+            timer.Stop();
+            try
+            {
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, new SettingsSpeaker());
+                pet.SetBrainTier(0); pet.Brain.Remote = null; pet.Brain.Server = null; pet.Brain.Model = "gemma4:e4b";
+                pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" });
+                pet.OpenMainframe();
+                Mainframe frame = pet.Frame;
+                foreach (string font in new[] { "BarlowSemiCondensed-Regular.ttf", "BarlowSemiCondensed-SemiBold.ttf", "BarlowCondensed-SemiBold.ttf" })
+                    if (!Avalonia.Platform.AssetLoader.Exists(new Uri("avares://Capri/Assets/" + font))) throw new Exception("The Mainframe font is missing: " + font);
+                var tray = pet.TrayMenu();
+                if (tray.Items.Count != pet.ContextMenu.Items.Count) throw new Exception("The tray and body menus have different rows.");
+                for (int i = 0; i < tray.Items.Count; i++)
+                {
+                    var bodyRow = pet.ContextMenu.Items[i] as MenuItem; var trayRow = tray.Items[i] as NativeMenuItem;
+                    if (bodyRow != null && (trayRow == null || trayRow.Header != bodyRow.Header as string || (bodyRow.Header as string) == "Brain" || (bodyRow.Header as string) == "Settings")) throw new Exception("The tray menu does not match the Mainframe menu.");
+                }
+                if (frame == null || frame.SystemDecorations != SystemDecorations.None || frame.Zoom != (Pet.FrameSize(before.MainframeSize) == 0 ? 1 : Pet.FrameSize(before.MainframeSize) / 100.0)) throw new Exception("Her Mainframe did not open with the saved scale.");
+                frame.Close();
+                if (pet.Frame != frame || frame.WindowState != WindowState.Minimized || pet.IsVisible != visible || pet.Leaving != leaving) throw new Exception("Closing her Mainframe stopped her or lost its taskbar window.");
+                string opened = Hands.Do("mainframe", new ToolArguments { Name = "settings" });
+                if (opened != "Opened Capri Mainframe." || pet.Frame != frame || !frame.SettingsShown || frame.WindowState != WindowState.Normal || !Hands.KitFor().Tools.Contains("\"name\":\"mainframe\"")) throw new Exception("Her Mainframe tool did not restore the window and open Settings: " + opened);
+                frame.Close(); pet.Hear("Open your Mainframe");
+                if (frame.WindowState != WindowState.Normal || frame.SettingsShown) throw new Exception("Asking for her Mainframe did not open the main page.");
+                pet.SetAdvancedSettings(false); Hands.Do("mainframe", new ToolArguments { Name = "moves" });
+                if (!frame.SettingsShown || !pet.Saved.AdvancedSettings || !frame.Row("Wander").IsVisible) throw new Exception("A tool page did not unfold its advanced rows.");
+                pet.Talk.Dismiss();
+                checks.Add("PASS Mainframe opens from her tool and a direct request; Close keeps her running and retains the taskbar window");
+                MainframePictures(frame, voice);
+                PlainChecks(frame, fields);
+                ModsChecks(frame);
+                MainframeRows(frame, fields);
+                HuskChecks(frame);
+                CareChecks(frame);
+                FollowChecks();
+                AwakeChecks(fields);
+                VaultChecks(frame, fields);
+                MainframeSheets(frame);
+                MainframeConnections(frame);
+                MainframeLayout(frame, voice);
+                foreach (string name in new[] { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" })
+                {
+                    string path = Path.Combine(folder, name);
+                    using (var image = new Bitmap(path)) if (image.PixelSize.Width < 380 || image.PixelSize.Height < 100) throw new Exception("The Mainframe picture is empty: " + name);
+                }
+                checks.Add("PASS Mainframe pictures: main, Simple Settings and Advanced Settings saved at 100%");
+            }
+            finally
+            {
+                pet.CloseMainframe();
+                if (pet.Shushed != quiet) pet.ToggleShush(false);
+                pet.SetLogin(login, false); pet.SetOnTop(!before.NotOnTop); pet.SetWatch(before.Watch, false); pet.SetRemembering(!before.NoMemories);
+                pet.SetDanceToMusic(!before.NoDance); pet.SetIntro(!before.NoIntro); pet.SetWander(before.Wander); pet.SetCheckIns(!before.NoCheckIns); pet.SetPopPace(before.PopPace ?? 1);
+                pet.SetLanguage(language ?? "English"); Brain.Nickname = nickname; Brain.Recall = recall; Brain.Wordiness = replies;
+                Brain.MemorySize = memory; Brain.ReplyLength = reply;
+                Voice.Loudness = volume; Sfx.Level = sounds; VoiceFx.Pitch = pitch; VoiceFx.Speed = speed; VoiceFx.Robot = robot; VoiceFx.Glitch = glitch; VoiceFx.Layers = layers;
+                Security.Load(permissions);
+                pet.SetLocalVoice("url", before.LocalVoiceUrl); pet.SetLocalVoice("model", before.LocalVoiceModel); pet.SetLocalVoice("voice", before.LocalVoiceName); pet.SetLocalVoice("format", before.LocalVoiceFormat);
+                pet.Saved = before; pet.Brain.Remote = remote; pet.Brain.Model = model; pet.Brain.Server = server;
+                voice.Key = voiceKey; voice.VoiceId = voiceId; voice.Model = voiceModel;
+                typeof(Pet).GetField("voices", fields).SetValue(pet, listing);
+                typeof(Pet).GetField("elevenLabs", fields).SetValue(pet, speaker);
+                pet.Resize(before.Size); pet.Move(anchor); pet.Talk.Dismiss(); timer.Start();
+            }
+        }
+
+        private static Dictionary<string, object> HuskEvent(string name, params object[] fields)
+        {
+            Dictionary<string, object> evt = HuskJson.Map("hook_event_name", name, "session_id", "cross-husk");
+            for (int i = 0; i < fields.Length; i += 2) evt[(string)fields[i]] = fields[i + 1];
+            return evt;
+        }
+
+        private void HuskFeed(string source, string name, params object[] fields) { pet.Husk.Receive(HuskHook.Adapt(HuskEvent(name, fields), source)); }
+
+        private sealed class HuskInput : MemoryStream
+        {
+            internal int Reads;
+            internal HuskInput(string text) : base(Encoding.UTF8.GetBytes(text)) { }
+            public override int Read(byte[] buffer, int offset, int count) { Reads++; return base.Read(buffer, offset, count); }
+        }
+
+        private void HuskChecks(Mainframe frame)
+        {
+            string own = Path.Combine(folder, "husk", Guid.NewGuid().ToString("N"));
+            string claudeWas = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), codexWas = Environment.GetEnvironmentVariable("CODEX_HOME"), imageWas = Environment.GetEnvironmentVariable("APPIMAGE");
+            Action<Action> queueWas = pet.HuskQueue;
+            Func<string> exeWas = pet.HuskExe;
+            Action<string, bool> saidWas = pet.HuskSaid;
+            Action<HuskAct> showWas = pet.Husk.Show;
+            Func<double> clockWas = pet.Husk.Clock;
+            Action<short[]> soundWas = Sfx.Out;
+            int volumeWas = Voice.Loudness, soundLevelWas = Sfx.Level;
+            bool silentWas = pet.Saved.Silent, quietWas = pet.Shushed, topWas = pet.OnTop, advancedWas = pet.Saved.AdvancedSettings;
+            string providerWas = pet.Saved.VoiceProvider, languageWas = Brain.Language;
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            Dictionary<string, object> scene = new Dictionary<string, object>();
+            foreach (string name in new[] { "seat", "clip", "clipStart", "falling", "fallTo", "walking", "hanging", "dropAfter", "napAsked", "napping", "sleptAt", "outro", "away", "huskMood", "huskMoodAt" }) scene[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            try
+            {
+                Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", Path.Combine(own, "Claude config"));
+                Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(own, "Codex config"));
+                string mac = "/Applications/Capri Test.app/Contents/MacOS/Capri", linux = "/home/test/Capri folder/Capri", image = "/home/test/My Capri's $build `test`.AppImage";
+                foreach (string exe in new[] { mac, linux, image })
+                    foreach (string source in new[] { "claude", "codex" })
+                    {
+                        string command = HuskHooks.Command(exe, source);
+                        if (command != "CAPRI_HUSK=1 '" + exe.Replace("'", "'\\''") + "' --hook " + source || !HuskHooks.Ours(command, source) || HuskHooks.Ours(command, source == "claude" ? "codex" : "claude")) throw new Exception("A cross hook did not quote or own its exact executable.");
+                    }
+                if (HuskHooks.Executable(mac, null) != mac || HuskHooks.Executable(linux, "") != linux || HuskHooks.Executable("/tmp/.mount_Capri/usr/bin/Capri", image) != image) throw new Exception("Husk did not use the Mac binary, Linux app or original AppImage path.");
+                Environment.SetEnvironmentVariable("APPIMAGE", image);
+                if (HuskHooks.Executable() != image) throw new Exception("Husk did not read APPIMAGE.");
+                foreach (string command in new[] { "echo Capri --hook claude", "'/other/Watcher' --hook claude", HuskHooks.Command(mac, "claude") + " && echo extra", "CAPRI_HUSK=1 '/other/Watcher' --hook codex" })
+                    if (HuskHooks.Ours(command, "claude")) throw new Exception("Husk removal matched another command.");
+                checks.Add("PASS cross husk commands: Mac bundle binary, Linux executable, spaces, shell quotes and APPIMAGE; removal owns only her marked command");
+
+                Dictionary<string, string> originals = new Dictionary<string, string>();
+                string setting = "  \"other\" : { \"a/b\" : \"x\", \"_x0041_\" : \"literal\" },\r\n  \"number\" : 1.00000000000000001 ,\r\n";
+                string hook = "{ \"type\" : \"command\", \"command\" : \"echo existing\", \"timeout\" : 7 }";
+                string other = "{ \"matcher\" : \"untouched\", \"hooks\" : [ { \"type\" : \"command\", \"command\" : \"echo another\" } ] }";
+                foreach (string source in new[] { "claude", "codex" })
+                {
+                    string file = HuskHooks.PathFor(source);
+                    Directory.CreateDirectory(Path.GetDirectoryName(file));
+                    string initial = "{\r\n" + setting + "  \"hooks\" : {\r\n    \"Stop\" : [ { \"matcher\" : \"keep\", \"hooks\" : [ " + hook + ", {\"type\":\"command\",\"command\":" + HuskJson.Write(HuskHooks.Command("/old folder/Capri", source)) + "} ] }, " + other + " ],\r\n    \"Untouched\" : []\r\n  },\r\n  \"tail\" : \"kept\"\r\n}\r\n";
+                    originals[source] = initial;
+                    File.WriteAllText(file, initial, new UTF8Encoding(true));
+                    if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                }
+                HuskHooks.Configure(3, mac);
+                Dictionary<string, string> installed = new Dictionary<string, string>();
+                foreach (string source in new[] { "claude", "codex" })
+                {
+                    string file = HuskHooks.PathFor(source), text = File.ReadAllText(file);
+                    installed[source] = text;
+                    byte[] bytes = File.ReadAllBytes(file);
+                    string[] backups = Directory.GetFiles(Path.GetDirectoryName(file), Path.GetFileName(file) + ".capri-backup-*");
+                    if (backups.Length != 1 || File.ReadAllText(backups[0]) != originals[source] || bytes.Length < 3 || bytes[0] != 239 || bytes[1] != 187 || bytes[2] != 191) throw new Exception("Husk missed the original backup or settings encoding.");
+                    if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(file) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("Husk changed another app's settings file permissions.");
+                    if (!text.Contains(setting) || !text.Contains(hook) || !text.Contains(other) || !text.Contains("    \"Untouched\" : []")) throw new Exception("Husk rewrote another setting or hook's raw text.");
+                    Dictionary<string, object> hooks = HuskJson.Get(HuskJson.Read(text) as Dictionary<string, object>, "hooks") as Dictionary<string, object>;
+                    foreach (string name in source == "claude" ? HuskHooks.ClaudeEvents : HuskHooks.CodexEvents)
+                    {
+                        int ours = 0;
+                        foreach (object group in HuskJson.List(HuskJson.Get(hooks, name)))
+                            foreach (object entry in HuskJson.List(HuskJson.Get(group as Dictionary<string, object>, "hooks")))
+                            {
+                                Dictionary<string, object> command = entry as Dictionary<string, object>;
+                                if (!HuskHooks.Ours(HuskJson.Text(command, "command"), source)) continue;
+                                ours++;
+                                if (HuskJson.Text(command, "command") != HuskHooks.Command(mac, source) || HuskJson.Write(HuskJson.Get(command, "timeout")) != (source == "claude" ? "10" : "3") || (source == "claude" ? HuskJson.Write(HuskJson.Get(command, "async")) != "true" : command.ContainsKey("async"))) throw new Exception("A cross hook used the wrong app, timeout or async flag.");
+                            }
+                        if (ours != 1) throw new Exception("A cross husk event has missing or duplicate hooks: " + name);
+                    }
+                }
+                HuskHooks.Configure(3, mac);
+                foreach (string source in new[] { "claude", "codex" })
+                    if (File.ReadAllText(HuskHooks.PathFor(source)) != installed[source] || Directory.GetFiles(Path.GetDirectoryName(HuskHooks.PathFor(source))).Length != 2) throw new Exception("Cross husk installation was not idempotent.");
+                foreach (string broken in new[] { "{bad", "{\"hooks\":[]}", "{\"hooks\":{\"Stop\":[{}]}}" })
+                {
+                    File.WriteAllText(HuskHooks.PathFor("codex"), broken, new UTF8Encoding(true));
+                    bool refused = false;
+                    try { HuskHooks.Configure(1, linux); } catch (BrainException) { refused = true; }
+                    if (!refused || File.ReadAllText(HuskHooks.PathFor("codex")) != broken || File.ReadAllText(HuskHooks.PathFor("claude")) != installed["claude"]) throw new Exception("Husk overwrote invalid config or partly changed the other app.");
+                }
+                File.WriteAllText(HuskHooks.PathFor("codex"), installed["codex"], new UTF8Encoding(true));
+                HuskHooks.Configure(0, null);
+                foreach (string source in new[] { "claude", "codex" })
+                {
+                    string text = File.ReadAllText(HuskHooks.PathFor(source));
+                    if (!text.Contains(setting) || !text.Contains(hook) || !text.Contains(other) || !text.Contains("\"Untouched\" : []") || text.Contains("CAPRI_HUSK=1")) throw new Exception("Husk Off left her hooks or changed someone else's entries.");
+                    Dictionary<string, object> hooks = HuskJson.Get(HuskJson.Read(text) as Dictionary<string, object>, "hooks") as Dictionary<string, object>;
+                    if (hooks.Count != 2 || HuskJson.List(HuskJson.Get(hooks, "Stop")).Count != 2) throw new Exception("Husk Off left empty event groups or removed another group.");
+                }
+                checks.Add("PASS cross husk install/remove: exact event sets, async and bounded hooks, shared groups, raw settings and other hooks kept, original backup, encoding, idempotence and invalid-config refusal");
+                if (!OperatingSystem.IsWindows())
+                {
+                    // A settings file linked in from a dotfiles folder stays a link, and her backups go beside the link, never into the dotfiles.
+                    string link = HuskHooks.PathFor("claude"), dotfiles = Path.Combine(own, "dotfiles"), target = Path.Combine(dotfiles, "settings.json"), pattern = Path.GetFileName(link) + ".capri-backup-*";
+                    byte[] plain = File.ReadAllBytes(link);
+                    UnixFileMode plainMode = File.GetUnixFileMode(link);
+                    Directory.CreateDirectory(dotfiles);
+                    File.WriteAllBytes(target, plain);
+                    foreach (string old in Directory.GetFiles(Path.GetDirectoryName(link), pattern)) File.Delete(old);
+                    File.Delete(link);
+                    File.CreateSymbolicLink(link, target);
+                    try
+                    {
+                        HuskHooks.Configure(1, mac);
+                        if (new FileInfo(link).LinkTarget == null || !File.ReadAllText(target).Contains("CAPRI_HUSK=1") || Directory.GetFiles(dotfiles).Length != 1 || Directory.GetFiles(Path.GetDirectoryName(link), pattern).Length != 1) throw new Exception("Husk replaced a linked settings file or put its backup in the dotfiles folder.");
+                        HuskHooks.Configure(0, null);
+                        if (new FileInfo(link).LinkTarget == null || File.ReadAllText(target).Contains("CAPRI_HUSK=1") || Directory.GetFiles(dotfiles).Length != 1) throw new Exception("Husk Off replaced a linked settings file or left her hooks in it.");
+                    }
+                    finally
+                    {
+                        File.Delete(link);
+                        File.WriteAllBytes(link, plain);
+                        File.SetUnixFileMode(link, plainMode);
+                        Directory.Delete(dotfiles, true);
+                    }
+                    checks.Add("PASS on Mac and Linux a linked settings file stays a link through Code/Husk Mode on and off, and her backups stay beside the link, out of the dotfiles folder");
+                }
+
+                pet.HuskQueue = delegate(Action action) { action(); };
+                pet.HuskExe = delegate { return mac; };
+                pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+                for (int mode = 0; mode < 4; mode++)
+                {
+                    frame.Change("Code/Husk Mode", mode);
+                    if (pet.HuskMode != mode || frame.Value("Code/Husk Mode") != Pet.HuskNames[mode] || SettingsCopy().HuskMode != mode || Pet.Kept(new Settings(), Pet.Newest(SettingsCopy())).HuskMode != mode) throw new Exception("The cross Husk picker did not save, load or show its mode.");
+                }
+                Action pending = null;
+                pet.HuskQueue = delegate(Action action) { pending = action; };
+                frame.Change("Code/Husk Mode", 1);
+                if (!pet.HuskChanging || frame.Row("Code/Husk Mode").IsEnabled || pending == null) throw new Exception("The Husk picker stayed enabled while hooks were changing.");
+                pending();
+                if (pet.HuskChanging || !frame.Row("Code/Husk Mode").IsEnabled || pet.HuskMode != 1) throw new Exception("The Husk picker did not finish its hook change.");
+                pet.HuskQueue = delegate(Action action) { action(); };
+                string codexGood = File.ReadAllText(HuskHooks.PathFor("codex"));
+                File.WriteAllText(HuskHooks.PathFor("codex"), "{bad");
+                frame.Change("Code/Husk Mode", 3);
+                if (pet.HuskChanging || pet.HuskMode != 1 || SettingsCopy().HuskMode != 1 || frame.Value("Code/Husk Mode") != "Claude Code" || pet.Husk.Bridge == null) throw new Exception("A failed hook setup lost the previous mode or listener.");
+                File.WriteAllText(HuskHooks.PathFor("codex"), codexGood);
+                pet.SetAdvancedSettings(false); frame.Sync();
+                if (frame.Row("Code/Husk Mode").IsVisible) throw new Exception("Husk mode did not fold with Advanced Settings.");
+                pet.SetAdvancedSettings(true); frame.Sync();
+                if (!frame.Row("Code/Husk Mode").IsVisible || frame.Overlap() != null) throw new Exception("The cross Husk row did not fit under BRAIN.");
+                checks.Add("PASS cross Husk Mainframe row: Off, Claude Code, Codex and Both; settings round trip and older-copy recovery; busy picker disabled; Advanced BRAIN layout");
+
+                List<HuskAct> acts = new List<HuskAct>();
+                List<string> lines = new List<string>();
+                List<bool> aloud = new List<bool>();
+                List<short[]> cues = new List<short[]>();
+                pet.Husk.Show = delegate(HuskAct act) { acts.Add(act); showWas(act); };
+                pet.HuskSaid = delegate(string line, bool spoken) { lines.Add(line); aloud.Add(spoken); };
+                Sfx.Out = cues.Add; Sfx.Level = 60; Voice.Loudness = 100;
+                pet.MainframeVoiceModePick(3);
+                if (pet.Shushed) pet.ToggleShush(false);
+                Brain.Language = "English";
+                pet.Talk.Dismiss(); pet.StandUp(); pet.Animate("idle");
+                double now = 1000;
+                pet.Husk.Clock = delegate { return now; };
+                HuskFeed("codex", "UserPromptSubmit");
+                if (acts.Count != 0) throw new Exception("Claude-only Husk mode acted a Codex event.");
+                pet.SetHusk(2); HuskFeed("claude", "UserPromptSubmit");
+                if (acts.Count != 0) throw new Exception("Codex-only Husk mode acted a Claude event.");
+                pet.SetHusk(3); pet.Talk.Dismiss();
+                HuskFeed("claude", "SessionStart");
+                if (pet.HuskMood != "hi" || lines[lines.Count - 1] != HuskWords.Line("English", 12, "Claude Code")) throw new Exception("A Claude session did not get her hello.");
+                pet.Nap(true); pet.Animate("idle"); pet.Nap(true); pet.CheckNap();
+                HuskFeed("claude", "UserPromptSubmit", "prompt", "Fix the file.");
+                if (pet.HuskMood != "prompt" || pet.Napping || lines[lines.Count - 1] != HuskWords.Line("English", 0, "Claude Code") || aloud[aloud.Count - 1]) throw new Exception("A cross Husk prompt did not wake her with the Windows words.");
+                int before = lines.Count, cueCount = cues.Count;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Edit", "tool_input", HuskJson.Map("file_path", "/project/Pet.cs"));
+                if (pet.HuskMood != "caption" || lines.Count != before + 1 || lines[lines.Count - 1] != HuskWords.Line("English", 1, "Pet.cs") || aloud[aloud.Count - 1] || cues.Count != cueCount) throw new Exception("A cross tool caption used the wrong words or made sound.");
+                before = lines.Count;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Read", "tool_input", HuskJson.Map("file_path", "one.cs"));
+                HuskFeed("claude", "PreToolUse", "tool_name", "Read", "tool_input", HuskJson.Map("file_path", "two.cs"));
+                if (lines.Count != before) throw new Exception("Cross Husk tool captions were not throttled.");
+                now += 4; pet.Husk.Tick();
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 4, 2)) throw new Exception("Cross Husk did not combine queued reads.");
+                now += 5;
+                HuskFeed("codex", "PreToolUse", "tool_name", "exec_command", "tool_input", HuskJson.Map("cmd", "dotnet test"));
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 2, "dotnet test") || aloud[aloud.Count - 1]) throw new Exception("A Codex shell tool missed the shared running caption.");
+                now += 5;
+                HuskFeed("codex", "PreToolUse", "tool_name", "apply_patch", "tool_input", HuskJson.Map("command", "*** Update File: /project/Pet.cs\n*** End Patch"));
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 1, "Pet.cs")) throw new Exception("A Codex patch missed the shared editing caption.");
+                now += 5;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Grep", "tool_input", HuskJson.Map("pattern", "Husk"));
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 5, "Husk")) throw new Exception("A search missed her search caption.");
+                now += 5;
+                HuskFeed("claude", "PreToolUse", "tool_name", "CustomTool");
+                if (lines[lines.Count - 1] != HuskWords.Line("English", 6, "CustomTool")) throw new Exception("Another tool missed her using caption.");
+                now += 5;
+                HuskFeed("claude", "PreToolUse", "tool_name", "Bash", "tool_input", HuskJson.Map("command", "api_key=secret-value"));
+                if (lines[lines.Count - 1].Contains("secret-value") || pet.Brain.HuskFacts().Contains("secret-value")) throw new Exception("A key reached her cross Husk bubble or brain facts.");
+                before = acts.Count;
+                HuskFeed("claude", "PostToolUse", "tool_name", "Read");
+                if (acts.Count != before) throw new Exception("A successful tool added an extra Husk reaction.");
+                HuskFeed("claude", "PostToolUseFailure");
+                if (pet.HuskMood != "failure" || pet.Playing != "glitch" || lines[lines.Count - 1] != HuskWords.Line("English", 7, "Claude Code") || cues.Count <= cueCount) throw new Exception("A cross tool failure did not glitch with her snag line and sound.");
+                HuskFeed("claude", "PostToolUse", "error", "failed");
+                if (pet.HuskMood != "failure") throw new Exception("An error in PostToolUse missed the failure reaction.");
+                pet.SetOnTop(false); pet.HideAway();
+                HuskFeed("claude", "Notification", "notification_type", "permission_prompt", "message", "Run tests?");
+                if (pet.Away || !pet.Raised || pet.HuskMood != "approval" || lines[lines.Count - 1] != "Claude Code needs your OK. Run tests?" || !aloud[aloud.Count - 1]) throw new Exception("A Claude approval did not bring her back and ask for their attention.");
+                HuskFeed("codex", "PermissionRequest", "tool_name", "exec_command", "tool_input", HuskJson.Map("description", "Run tests?", "cmd", "dotnet test"));
+                if (pet.HuskMood != "approval" || lines[lines.Count - 1] != "Codex needs your OK. Run tests?") throw new Exception("Codex approval did not use the shared adapter and attention line.");
+                HuskFeed("codex", "PreToolUse", "tool_name", "request_user_input", "tool_input", HuskJson.Map("questions", new List<object> { HuskJson.Map("question", "Which file?") }));
+                if (pet.HuskMood != "input" || lines[lines.Count - 1] != HuskWords.Line("English", 9, "Codex", "Which file?")) throw new Exception("A Codex question did not ask for their input.");
+                pet.Saved.Silent = true;
+                HuskFeed("claude", "PermissionRequest", "message", "Voice off?");
+                if (aloud[aloud.Count - 1]) throw new Exception("A cross approval ignored her voice setting.");
+                pet.Saved.Silent = false;
+                pet.ToggleShush(false);
+                HuskFeed("claude", "PermissionRequest", "tool_input", HuskJson.Map("description", "Quiet approval?"));
+                if (aloud[aloud.Count - 1]) throw new Exception("A cross approval ignored Quiet.");
+                pet.ToggleShush(false);
+                before = acts.Count;
+                HuskFeed("claude", "Notification", "notification_type", "info", "message", "noise");
+                if (acts.Count != before) throw new Exception("An unrelated notification got a Husk reaction.");
+                pet.StandUp();
+                HuskFeed("claude", "SubagentStart", "agent_id", "one");
+                HuskFeed("codex", "SubagentStart", "agent_id", "two");
+                if (pet.HuskAgents != 2 || lines[lines.Count - 1] != "Subagents: 2") throw new Exception("Cross subagents did not get a clear count.");
+                before = acts.Count; HuskFeed("claude", "SubagentStart", "agent_id", "one");
+                if (acts.Count != before || pet.HuskAgents != 2) throw new Exception("A duplicate subagent changed the count.");
+                HuskFeed("claude", "SubagentStop", "agent_id", "one");
+                if (pet.HuskAgents != 1 || lines[lines.Count - 1] != "Subagents: 1") throw new Exception("A stopped subagent did not leave the count.");
+                HuskFeed("claude", "PreCompact");
+                if (pet.HuskMood != "compact" || pet.Playing != "glitch" || lines[lines.Count - 1] != HuskWords.Line("English", 14)) throw new Exception("Compacting did not get her glitch and memory line.");
+                HuskFeed("claude", "Stop", "last_assistant_message", "Changed the file. Tests passed.");
+                if (pet.HuskMood != "done" || pet.Playing != "grin" || lines[lines.Count - 1] != "Claude Code: Changed the file." || acts[acts.Count - 1].Reply != "Changed the file. Tests passed.") throw new Exception("Completion did not grin and show what Claude answered.");
+                before = acts.Count; HuskFeed("claude", "Stop");
+                if (acts.Count != before) throw new Exception("Duplicate completion played twice.");
+                HuskFeed("codex", "Stop", "last_assistant_message", "Done.");
+                if (pet.HuskAgents != 0 || lines[lines.Count - 1] != "Codex: Done.") throw new Exception("Completion did not recall Codex's subagents or show its answer.");
+                HuskFeed("claude", "UserPromptSubmit"); HuskFeed("claude", "Stop");
+                if (pet.HuskMood != "done" || lines[lines.Count - 1] != HuskWords.Line("English", 10, "Claude Code")) throw new Exception("An empty completion missed her finished fallback.");
+                HuskFeed("claude", "UserPromptSubmit"); HuskFeed("claude", "StopFailure");
+                if (pet.HuskMood != "error" || !pet.Blinking || lines[lines.Count - 1] != HuskWords.Line("English", 11, "Claude Code")) throw new Exception("A failed completion missed her error reaction.");
+                HuskFeed("codex", "Interrupt");
+                if (pet.HuskMood != "interrupt" || lines[lines.Count - 1] != HuskWords.Line("English", 15, "Codex")) throw new Exception("A Codex interrupt did not show its paused line.");
+                now += 601; HuskFeed("claude", "SessionEnd");
+                if (pet.HuskMood != "bye" || lines[lines.Count - 1] != HuskWords.Line("English", 13, "Claude Code")) throw new Exception("Ending a session did not get her goodbye.");
+                if (!pet.Brain.HuskFacts().Contains("Code/Husk Mode works on Windows, Mac and Linux") || !pet.Brain.HuskFacts().Contains("never approves or controls")) throw new Exception("Her cross self-knowledge missed Husk mode or its observer role.");
+                checks.Add("PASS cross husk acting: both source filters, prompt wake, silent throttled tools, failures, approvals and questions, Quiet, completion answer, subagent count, compacting, interrupt and session words; self-knowledge stays observational");
+
+                pet.HuskSaid = null; pet.Talk.Answer("(husk test)", "Keep this reply.");
+                HuskFeed("claude", "PermissionRequest", "message", "Old approval?");
+                if (pet.Talk.Reply != "Keep this reply.") throw new Exception("A Husk approval interrupted her current reply.");
+                HuskFeed("claude", "UserPromptSubmit");
+                pet.HuskSaid = delegate(string line, bool spoken) { lines.Add(line); };
+                pet.Talk.Dismiss(); before = lines.Count;
+                typeof(Pet).GetMethod("TickHusk", fields).Invoke(pet, null);
+                foreach (string line in lines.GetRange(before, lines.Count - before)) if (line.Contains("Old approval?")) throw new Exception("A stale approval was spoken after the assistant moved on.");
+                pet.Husk.Show = showWas;
+                pet.HuskSaid = delegate(string line, bool spoken)
+                {
+                    if (!Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) throw new Exception("A Husk line reached her bubble off the UI thread.");
+                    lines.Add(line);
+                };
+                HuskFeed("codex", "SubagentStart", "agent_id", "worker");
+                pet.HuskQueue = queueWas;
+                pet.SetHusk(1);
+                MainframeWait(delegate { return !pet.HuskChanging; }, "a Husk mode change with an active subagent");
+                if (pet.HuskAgents != 0 || pet.HuskMode != 1 || pet.Talk.Reply != "Restart Claude Code to use my hooks.") throw new Exception("A worker's Husk mode change did not safely recall the other source's subagent.");
+                pet.HuskQueue = delegate(Action action) { action(); };
+                pet.Husk.Show = delegate(HuskAct act) { acts.Add(act); showWas(act); };
+                pet.SetHusk(0); before = acts.Count;
+                HuskFeed("claude", "UserPromptSubmit");
+                if (acts.Count != before || pet.Husk.Mode != 0 || File.Exists(Path.Combine(folder, HuskHook.Discovery))) throw new Exception("Husk Off kept listening or acting.");
+
+                string route = Path.Combine(own, "bridge");
+                Dictionary<string, object> received = null;
+                using (HuskBridge bridge = new HuskBridge(route))
+                using (ManualResetEvent delivered = new ManualResetEvent(false))
+                {
+                    bridge.Received = delegate(Dictionary<string, object> evt) { received = evt; delivered.Set(); };
+                    bridge.Start();
+                    if (!OperatingSystem.IsWindows() && File.GetUnixFileMode(Path.Combine(route, HuskHook.Discovery)) != (UnixFileMode.UserRead | UnixFileMode.UserWrite)) throw new Exception("The cross Husk discovery token was not private to its user.");
+                    using (HuskInput input = new HuskInput(HuskJson.Write(HuskEvent("PermissionRequest", "tool_name", "exec_command", "tool_input", HuskJson.Map("description", "Local tests?")))))
+                        if (HuskHook.Run("codex", input, Path.Combine(route, HuskHook.Discovery)) != 0 || !delivered.WaitOne(1000) || HuskJson.Text(received, "hook_event_name") != "Notification" || HuskJson.Text(received, "session_id") != "codex:cross-husk") throw new Exception("The cross hook did not deliver and adapt a loopback event.");
+                }
+                if (File.Exists(Path.Combine(route, HuskHook.Discovery))) throw new Exception("Closing the Husk bridge left a live discovery file.");
+                foreach (string source in new[] { "claude", "codex" })
+                using (HuskInput input = new HuskInput("do not read"))
+                {
+                    Stopwatch watch = Stopwatch.StartNew();
+                    if (HuskHook.Run(source, input, Path.Combine(route, HuskHook.Discovery)) != 0 || input.Reads != 0 || watch.ElapsedMilliseconds > 1500) throw new Exception("A hook without Capri waited on stdin or failed.");
+                }
+                using (HuskInput input = new HuskInput("invalid"))
+                    if (HuskHook.Run("unknown", input, Path.Combine(route, HuskHook.Discovery)) != 0 || input.Reads != 0) throw new Exception("An unknown hook source did not exit quietly.");
+                checks.Add("PASS cross husk bridge: local authenticated event delivery and Codex adaptation; Off stops acting and removes discovery; no running Capri exits fast with success without reading stdin");
+            }
+            finally
+            {
+                pet.HuskQueue = delegate(Action action) { action(); };
+                pet.SetHusk(0);
+                pet.HuskQueue = queueWas; pet.HuskExe = exeWas; pet.HuskSaid = saidWas;
+                pet.Husk.Show = showWas; pet.Husk.Clock = clockWas;
+                Sfx.Out = soundWas; Sfx.Level = soundLevelWas; Voice.Loudness = volumeWas;
+                pet.Saved.Silent = silentWas; pet.Saved.VoiceProvider = providerWas; Brain.Language = languageWas;
+                if (pet.Shushed != quietWas) pet.ToggleShush(false);
+                pet.SetOnTop(topWas); pet.CheckRaised(double.MaxValue); pet.SetAdvancedSettings(advancedWas);
+                foreach (KeyValuePair<string, object> item in scene) typeof(Pet).GetField(item.Key, fields).SetValue(pet, item.Value);
+                pet.Talk.Dismiss();
+                Environment.SetEnvironmentVariable("CLAUDE_CONFIG_DIR", claudeWas);
+                Environment.SetEnvironmentVariable("CODEX_HOME", codexWas);
+                Environment.SetEnvironmentVariable("APPIMAGE", imageWas);
+            }
+        }
+
+        private void MainframeRows(Mainframe frame, System.Reflection.BindingFlags fields)
+        {
+            pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+            string[,] toggles = {
+                { "Typing sound", "typing_sound", "Typing" }, { "Dance to music", "dance_to_music", "NoDance" }, { "Glitch in at startup", "glitch_in", "NoIntro" },
+                { "Check in on me", "check_ins", "NoCheckIns" }, { "Always on top", "always_on_top", "NotOnTop" }, { "Watch my screen", "watch_my_screen", "Watch" },
+                { "Remember what she sees", "", "NoCaughtUp" }, { "Stay on my model", "", "StayOnModel" }, { "Start at login", "startup", "" },
+                { "Show on Discord", "discord_presence", "NoDiscord" }, { "Remember our chats", "", "NoMemories" }, { "Mute her", "quiet", "" },
+                { "Head pats", "head_pats", "NoHeadPats" }, { "Follow-up messages", "follow_ups", "NoFollowUps" }, { "Keep PC awake for jobs", "keep_awake", "NoKeepAwake" }
+            };
+            for (int i = 0; i < toggles.GetLength(0); i++)
+                foreach (bool on in new[] { true, false })
+                {
+                    string name = toggles[i, 0], field = toggles[i, 2];
+                    frame.Change(name, on ? 1 : 0);
+                    bool saved;
+                    if (field == "") saved = name == "Start at login" ? pet.StartsAtLogin : pet.Shushed;
+                    else if (field == "Typing") saved = pet.TypingSound && SettingsCopy().Typing != 2;
+                    else { saved = (bool)typeof(Settings).GetField(field, fields).GetValue(SettingsCopy()); if (field.StartsWith("No", StringComparison.Ordinal) || field == "NotOnTop") saved = !saved; }
+                    if (saved != on || frame.Value(name) != (on ? "On" : "Off") || toggles[i, 1] != "" && pet.SettingOn(toggles[i, 1]) != on) throw new Exception("A Mainframe switch did not use its saved setter: " + name);
+                }
+            var values = new Dictionary<string, Func<int, object>> {
+                { "Volume", i => Pet.Volumes[i] }, { "Pitch", i => i - VoiceFx.MostPitch }, { "Speed", i => Pet.Paces[i] }, { "Robot", i => Pet.Amounts[i] }, { "Glitch", i => Pet.Amounts[i] },
+                { "Sounds", i => new[] { 0, 30, 60, 100 }[i] }, { "Wander", i => i }, { "Sleep", i => Pet.Sleeps[i] }, { "Pop-ins", i => i }, { "Size", i => Pet.Sizes[i] },
+                { "Mainframe size", i => new[] { 0, 100, 125, 150, 175, 200 }[i] }, { "Every", i => Pet.GlanceGaps[i] }, { "Replies", i => i }, { "Memory", i => new[] { 8, 16, 32 }[i] },
+                { "Memory size", i => Brain.MemorySizes[i] }, { "Max reply", i => i }, { "Bubble", i => i }
+            };
+            string[,] sliders = {
+                { "Volume", "Volume", "volume" }, { "Pitch", "Pitch", "voice_pitch" }, { "Speed", "Pace", "voice_speed" }, { "Robot", "Robot", "voice_robot" }, { "Glitch", "Glitch", "voice_glitch" },
+                { "Sounds", "Sounds", "sounds" }, { "Wander", "Wander", "wander" }, { "Sleep", "SleepAfter", "sleep" }, { "Pop-ins", "PopPace", "pop_ins" }, { "Size", "Size", "size" },
+                { "Mainframe size", "MainframeSize", "mainframe_size" }, { "Every", "GlanceGap", "glance_gap" }, { "Replies", "Replies", "replies" }, { "Memory", "Recall", "" },
+                { "Memory size", "MemorySize", "" }, { "Max reply", "ReplyLength", "reply_limit" }, { "Bubble", "Bubble", "bubble" }
+            };
+            for (int i = 0; i < sliders.GetLength(0); i++)
+            {
+                string name = sliders[i, 0]; var slider = (NeonSlider)frame.Row(name);
+                foreach (int at in new[] { 0, slider.Choices.Length / 2, slider.Choices.Length - 1 })
+                {
+                    frame.Change(name, at);
+                    object saved = typeof(Settings).GetField(sliders[i, 1], fields).GetValue(SettingsCopy());
+                    if (!object.Equals(saved, values[name](at)) || frame.Value(name) != slider.Choices[at] || sliders[i, 2] != "" && pet.LevelOf(sliders[i, 2]) != at) throw new Exception("A Mainframe slider did not use its saved setter: " + name + " / " + saved);
+                }
+            }
+            if (Brain.MemorySize != 65536 || Brain.ReplyLength != Brain.ReplySizes.Length - 1) throw new Exception("Memory size or Max reply did not reach the shared brain.");
+            for (int i = 0; i < Brain.Languages.GetLength(0); i++)
+            {
+                frame.Change("Language", i);
+                if ((Brain.Language ?? "English") != Brain.Languages[i, 1] || SettingsCopy().Language != pet.Saved.Language) throw new Exception("The Mainframe language picker did not save its choice.");
+            }
+            for (int i = 0; i < 3; i++) { frame.Change("Typing mode", i); if (pet.Saved.Typing != i || SettingsCopy().Typing != i) throw new Exception("The Mainframe lost Auto typing."); }
+            pet.ShowBrains(new[] { "gemma4:e4b", "qwen3:8b" }); frame.Change("Brain model", 1);
+            if (pet.Brain.Model != "qwen3:8b" || SettingsCopy().Model != "qwen3:8b") throw new Exception("The Mainframe model picker did not use PickBrain.");
+            var nameEntry = (NeonEntry)frame.Row("What should she call you?"); nameEntry.Box.Text = "Nova"; frame.Press("Save");
+            if (Brain.Nickname != "Nova" || SettingsCopy().Nickname != "Nova") throw new Exception("The Mainframe nickname did not save.");
+            nameEntry.Box.Text = "Draft"; pet.SetVolume(70); frame.Sync();
+            if (nameEntry.Box.Text != "Draft") throw new Exception("Refreshing another row erased an unsaved name.");
+            pet.SetNickname("V"); pet.SetVolume(70); pet.SetRecall(16);
+            if (nameEntry.Box.Text != "V" || frame.Value("Volume") != "70%" || frame.Value("Memory") != "Medium") throw new Exception("A Pet change did not show in the open Mainframe.");
+            Hands.Do("capri_settings", new ToolArguments { Action = "set", Name = "replies", Level = "Medium" });
+            if (frame.Value("Replies") != "Medium") throw new Exception("A tool change did not show in the open Mainframe.");
+            string tip = MainframeTips.Brief("Mainframe > Settings > VOICE > Volume changes how loud her voice plays.");
+            if (tip != "Volume changes how loud her voice plays." || ToolTip.GetTip(frame.Row("Volume")) == null) throw new Exception("The Mainframe lost a Windows hover tip.");
+            if (Pet.FrameSize(-1) != 0 || Pet.FrameSize(110) != 0 || Pet.FrameSize(200) != 200) throw new Exception("Unsupported Mainframe sizes did not become Auto.");
+            pet.SetMainframeSize(0); if (frame.Zoom != 1) throw new Exception("Auto scaled the Mainframe twice.");
+            var recovered = Pet.Kept(new Settings(), Pet.Newest(new Settings { MainframeSize = 150, AdvancedSettings = true, MemorySize = 16384, ReplyLength = 3, BrainTier = 2, PaidModel = "paid-test", VoiceProvider = Speakers.Local }));
+            if (recovered.MainframeSize != 150 || !recovered.AdvancedSettings || recovered.MemorySize != 16384 || recovered.ReplyLength != 3 || recovered.BrainTier != 2 || recovered.PaidModel != "paid-test") throw new Exception("The Mainframe settings did not survive the older settings copy.");
+            checks.Add("PASS Mainframe rows: every switch, slider and picker calls the saved setter; Memory size, Max reply, Auto typing and scale persist; Pet and tool changes show without losing drafts");
+        }
+
+        private static string CareSaid(Care care, Settings saved, long quiet = 0, bool free = true, string game = "Game A", double noticed = 0)
+        {
+            return care.Check(true, saved.CareOn, saved.CareTime, ref saved.CareNight, quiet, free, game, noticed, 1);
+        }
+
+        private void CareChecks(Mainframe frame)
+        {
+            double now = 0;
+            DateTime day = new DateTime(2026, 11, 4, 10, 0, 0);
+            Func<Settings> off = () => { var saved = new Settings(); for (int i = 0; i < 7; i++) saved.SetCare((CareKind)i, false, saved.CareTime((CareKind)i)); return saved; };
+            Func<Care> make = () => new Care(() => now, () => day.AddSeconds(now), kind => kind.ToString());
+            int[] defaults = { 60, 90, 25, 1, 360, 120, 60 };
+            Settings old;
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("{}"))) old = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+            for (int i = 0; i < 7; i++)
+                if (old.CareTime((CareKind)i) != defaults[i] || old.CareOn((CareKind)i) != (i != 2)) throw new Exception("Care defaults differ from Windows.");
+            if (old.NoHeadPats || old.NoFollowUps || old.NoKeepAwake) throw new Exception("A new switch defaulted off in older settings.");
+            foreach (CareKind kind in new[] { CareKind.Water, CareKind.Stretch, CareKind.Eyes, CareKind.Game, CareKind.Bored })
+            {
+                now = 0;
+                var saved = off(); saved.SetCare(kind, true, defaults[(int)kind]);
+                Care care = make(); double due = defaults[(int)kind] * 60;
+                if (CareSaid(care, saved) != null) throw new Exception("Care fired on startup: " + kind);
+                now = due - 1; if (CareSaid(care, saved) != null) throw new Exception("Care fired early: " + kind);
+                now = due; if (CareSaid(care, saved) != kind.ToString()) throw new Exception("Care missed its time: " + kind);
+                now = due * 2; if (CareSaid(care, saved, Care.Away + 1) != null) throw new Exception("Care spoke while away: " + kind);
+                now = due * 3; if (CareSaid(care, saved) != null) throw new Exception("Care kept idle time: " + kind);
+                now = due * 4 - 1; if (CareSaid(care, saved) != null) throw new Exception("Care reset ended early: " + kind);
+                now++; if (CareSaid(care, saved) != kind.ToString()) throw new Exception("Care did not restart after idle: " + kind);
+                saved.SetCare(kind, false, defaults[(int)kind]); now += due;
+                if (CareSaid(care, saved) != null) throw new Exception("Care ignored Off: " + kind);
+            }
+            now = 0; day = new DateTime(2026, 11, 4, 23, 0, 0);
+            var night = off(); night.SetCare(CareKind.Late, true, 1); Care late = make();
+            if (CareSaid(late, night) != null) throw new Exception("Sleep nudge came before 1 am.");
+            now = 7200; if (CareSaid(late, night) != "Late" || night.CareNight == 0) throw new Exception("Sleep nudge missed 1 am.");
+            if (CareSaid(make(), night) != null) throw new Exception("Sleep nudge repeated after a restart.");
+            now += 86400; if (CareSaid(late, night) != "Late") throw new Exception("Sleep nudge missed the next night.");
+            now = 0; day = new DateTime(2026, 11, 4, 11, 0, 0);
+            var meals = off(); meals.SetCare(CareKind.Meal, true, 360); Care meal = make(); CareSaid(meal, meals);
+            now = 3599; if (CareSaid(meal, meals) != null) throw new Exception("Meals came before noon.");
+            now = 3600; if (CareSaid(meal, meals) != "Meal") throw new Exception("Meals missed noon.");
+            now = 25200; if (CareSaid(meal, meals) != "Meal") throw new Exception("Meals ignored the saved interval.");
+            if (CareSaid(make(), meals) != null) throw new Exception("Meals counted a start after lunch.");
+            now = 0; day = new DateTime(2026, 11, 4, 10, 0, 0);
+            var game = off(); game.SetCare(CareKind.Game, true, 120); Care gaming = make(); CareSaid(gaming, game);
+            now = 7200; if (CareSaid(gaming, game, 0, true, "Game B") != null) throw new Exception("Game break combined two games.");
+            now = 14400; if (CareSaid(gaming, game, 0, false, "Game B") != null || CareSaid(gaming, game, 0, true, null) != "Game") throw new Exception("Game break did not wait for full screen to end.");
+            var held = off(); held.SetCare(CareKind.Water, true, 60); held.SetCare(CareKind.Stretch, true, 90); now = 0;
+            Care waiting = make(); CareSaid(waiting, held); now = 5400;
+            if (CareSaid(waiting, held, 0, false) != null || CareSaid(waiting, held) == null || CareSaid(waiting, held) != null) throw new Exception("Care queued a pile of overdue lines.");
+            string path = Path.Combine(folder, "care-lines.md"); var lines = new CareLines(path);
+            if (!lines.Create()) throw new Exception("Care could not make its lines.");
+            foreach (CareKind kind in Enum.GetValues(typeof(CareKind))) if (lines.Pick(kind) == null) throw new Exception("A default check-in has no lines: " + kind);
+            File.WriteAllText(path, "## Water\n- A sip.\n## Bored\n");
+            if (lines.Pick(CareKind.Water) != "A sip." || lines.Pick(CareKind.Bored) != null) throw new Exception("Care ignored edited or removed lines.");
+            pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+            for (int i = 0; i < 7; i++)
+            {
+                CareKind kind = (CareKind)i; string name = Care.Names[i], setting = Hands.CareSettings[i];
+                foreach (bool on in new[] { true, false })
+                {
+                    frame.Change(name, on ? 1 : 0);
+                    if (pet.CareOn(kind) != on || SettingsCopy().CareOn(kind) != on || frame.Value(name) != (on ? "On" : "Off")) throw new Exception("A Care switch did not save or show: " + name);
+                    Hands.Do("capri_settings", new ToolArguments { Action = on ? "off" : "on", Name = setting });
+                    if (pet.CareOn(kind) == on || pet.SettingOn(setting) == on) throw new Exception("A Care tool switch did not change: " + setting);
+                }
+                int[] times = Hands.ValuesFor(setting);
+                for (int t = 0; t < times.Length; t++)
+                {
+                    frame.Change(name + " time", t);
+                    if (SettingsCopy().CareTime(kind) != times[t] || frame.Value(name + " time") != Mainframe.CareTimeName(kind, times[t]) || pet.LevelOf(setting) != t) throw new Exception("A Care time did not save or show: " + name);
+                }
+            }
+            Action<string, string[]> launch = Limbs.Launch;
+            try
+            {
+                string opened = null; int count = 0;
+                Limbs.Launch = (file, args) => { count++; if (file != (OperatingSystem.IsMacOS() ? "open" : "xdg-open") || args.Length != 1) throw new Exception("The check-in editor command is wrong."); opened = args[0]; };
+                frame.Press("Edit check-in lines");
+                if (count != 1 || opened != Path.Combine(folder, "check-ins.md") || !File.Exists(opened)) throw new Exception("Edit check-in lines did not open check-ins.md.");
+            }
+            finally { Limbs.Launch = launch; }
+            checks.Add("PASS Care: Windows defaults and lines, each due time, idle resets, nights, meals, game changes, held lines, edited lines and saved Mainframe switches and times");
+        }
+
+        private void FollowChecks()
+        {
+            var follow = new FollowUp(); follow.Hold("Again.", 1, 2, 3);
+            if (follow.Take(0, 1, 2, 3, true, false) != null || follow.Take(10, 1, 2, 3, true, true) != null || follow.Take(11.9, 1, 2, 3, true, true) != null || follow.Take(12, 1, 2, 3, true, true) != "Again." || follow.Take(13, 1, 2, 3, true, true) != null) throw new Exception("A follow-up missed its beat or repeated.");
+            for (int changed = 0; changed < 4; changed++)
+            {
+                follow.Hold("Drop.", 1, 2, 3); follow.Take(0, 1, 2, 3, true, true);
+                if (follow.Take(3, changed == 0 ? 9 : 1, changed == 1 ? 9 : 2, changed == 2 ? 9 : 3, changed != 3, true) != null || follow.Line != null) throw new Exception("A follow-up survived input, speech, a new answer or Off.");
+            }
+            bool silent = pet.Saved.Silent, off = pet.Saved.NoFollowUps;
+            pet.Saved.Silent = true; pet.SetFollowUps(true); Security.Drop();
+            try
+            {
+                pet.Talk.Answer("test", ""); pet.Talk.Dismiss(); pet.HoldFollowUp("Second thought.");
+                pet.CheckFollowUp(100); if (pet.Talk.Reply != null) throw new Exception("A follow-up spoke without its beat.");
+                pet.CheckFollowUp(102); if (pet.Talk.Reply != "Second thought.") throw new Exception("A held follow-up did not reach her bubble.");
+                pet.Talk.Dismiss(); pet.HoldFollowUp("Typed over."); pet.CheckFollowUp(100); pet.Typed(); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("Typing did not drop a held follow-up.");
+                pet.HoldFollowUp("Old answer."); pet.CheckFollowUp(100); pet.Talk.Answer("test", "New answer."); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != "New answer.") throw new Exception("A new answer did not drop the old follow-up.");
+                pet.Talk.Dismiss(); pet.HoldFollowUp("Off."); pet.SetFollowUps(false); pet.CheckFollowUp(100); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("Follow-up messages Off kept a held thought.");
+                pet.SetFollowUps(true); pet.ObserveInput(200, 200, 20); pet.HoldFollowUp("Other typing."); pet.CheckFollowUp(100); pet.ObserveInput(201, 201, 0); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("Desktop input did not drop the follow-up.");
+                pet.ObserveInput(400, 400.02, 20); pet.HoldFollowUp("Quiet desktop."); pet.CheckFollowUp(100); pet.ObserveInput(400.5, 400.54, 20.52); pet.CheckFollowUp(102);
+                if (pet.Talk.Reply != "Quiet desktop.") throw new Exception("Idle query timing dropped a follow-up without input.");
+                pet.Talk.Dismiss(); pet.ObserveInput(500, 500.02, 0.02); pet.HoldFollowUp("Quick typing."); pet.CheckFollowUp(100); pet.ObserveInput(500.5, 500.52, 0.45); pet.CheckFollowUp(102);
+                if (pet.Talk.Reply != null) throw new Exception("A quick input change did not drop the follow-up.");
+                pet.HoldFollowUp("A job started."); pet.BeginWork(); pet.CheckFollowUp(100); pet.EndWork(); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("A job did not drop the follow-up.");
+                var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+                int ticket = (int)typeof(Pet).GetField("asking", fields).GetValue(pet);
+                int input = (int)typeof(Pet).GetField("inputTurn", fields).GetValue(pet);
+                int answer = (int)typeof(Pet).GetField("answerTurn", fields).GetValue(pet);
+                pet.Talk.Answer("test", "New answer while voice loads.");
+                pet.ShowReply(ticket, "test", "Earlier answer.", 0, "An old second thought.", false, input, answer);
+                pet.Talk.Dismiss(); pet.CheckFollowUp(100); pet.CheckFollowUp(103);
+                if (pet.Talk.Reply != null) throw new Exception("An old voice response restored a dropped follow-up.");
+                Action<Action> queue = pet.FollowQueue; Func<double> idle = pet.Idle;
+                try
+                {
+                    Action pending = null; bool shown = false;
+                    pet.FollowQueue = run => pending = run; pet.Idle = () => 0;
+                    typeof(Pet).GetField("inputSampled", fields).SetValue(pet, false);
+                    typeof(Pet).GetField("inputHandled", fields).SetValue(pet, pet.Now - 10);
+                    input = (int)typeof(Pet).GetField("inputTurn", fields).GetValue(pet);
+                    answer = (int)typeof(Pet).GetField("answerTurn", fields).GetValue(pet);
+                    pet.PresentReply(ticket, "test", "A late thought.", 0, null, true, input, answer, () => shown = true);
+                    pending();
+                    if (shown || pet.Talk.Reply != null) throw new Exception("Typing during voice fetch did not cancel delivery.");
+                }
+                finally { pet.FollowQueue = queue; pet.Idle = idle; }
+            }
+            finally { pet.SetFollowUps(!off); pet.Saved.Silent = silent; pet.Talk.Dismiss(); }
+            checks.Add("PASS follow-ups wait for her answer and a beat, say once, and drop on typing, speech, another answer or Off");
+        }
+
+        private sealed class Inhibitor : IDisposable
+        {
+            private Action stop;
+            internal Inhibitor(Action stop) { this.stop = stop; }
+            public void Dispose() { Action old = stop; stop = null; old?.Invoke(); }
+        }
+
+        private void AwakeChecks(System.Reflection.BindingFlags fields)
+        {
+            foreach (bool mac in new[] { false, true })
+            {
+                var commands = new List<string>(); int stopped = 0;
+                using (var awake = new Awake(mac) { Queue = run => run(), Run = (name, args) => { commands.Add(name + " " + string.Join(" ", args)); return new Inhibitor(() => stopped++); }, Inhibit = () => { throw new Exception("Unexpected D-Bus fallback."); } })
+                {
+                    awake.Set(true); awake.Set(true);
+                    string expected = mac ? "caffeinate -dims -w " + Environment.ProcessId : "systemd-inhibit --what=idle:sleep --who=Capri --why=Capri is doing your job --mode=block sleep infinity";
+                    if (commands.Count != 1 || commands[0] != expected) throw new Exception("The inhibitor command is wrong.");
+                    awake.Set(false); awake.Set(false); if (stopped != 1) throw new Exception("The inhibitor did not stop with the job.");
+                    awake.Set(true); awake.Dispose(); awake.Set(true);
+                    if (commands.Count != 2 || stopped != 2) throw new Exception("Quitting kept or restarted an inhibitor.");
+                }
+            }
+            int fallback = 0, released = 0;
+            using (var awake = new Awake(false) { Queue = run => run(), Run = (_, _) => null, Inhibit = () => { fallback++; return new Inhibitor(() => released++); } }) { awake.Set(true); awake.Set(false); }
+            if (fallback != 1 || released != 1) throw new Exception("The ScreenSaver fallback did not release its cookie.");
+            Action queued = null; int late = 0;
+            using (var awake = new Awake(false) { Queue = run => queued = run, Run = (_, _) => { late++; return new Inhibitor(() => { }); }, Inhibit = () => null }) { awake.Set(true); awake.Set(false); queued(); }
+            if (late != 0) throw new Exception("An ended job started a queued inhibitor.");
+            int races = 0; Awake racing = null;
+            racing = new Awake(false) { Queue = run => run(), Run = (_, _) => { racing.Dispose(); return new Inhibitor(() => races++); }, Inhibit = () => null };
+            racing.Set(true); if (races != 1) throw new Exception("Quitting during startup left an inhibitor.");
+            Awake before = pet.Wakeful; bool enabled = pet.KeepAwake, glancing = pet.Glancing; string security = Security.Saved;
+            int starts = 0, stops = 0;
+            pet.Wakeful = new Awake(false) { Queue = run => run(), Run = (_, _) => { starts++; return new Inhibitor(() => stops++); }, Inhibit = () => null };
+            try
+            {
+                pet.SetKeepAwake(true); pet.BeginWork(); pet.BeginWork();
+                if (starts != 1) throw new Exception("Nested job work started extra inhibitors.");
+                pet.EndWork(); if (stops != 0) throw new Exception("An inhibitor stopped before the job ended.");
+                pet.EndWork(); if (stops != 1) throw new Exception("The last job did not release its inhibitor.");
+                Security.Set(Security.Open, false); Security.Gate("open_app", new ToolArguments { Name = "Fake app" }); pet.CheckKeepAwake();
+                if (starts != 2) throw new Exception("Waiting for an answer did not keep the screen awake.");
+                Security.Drop(); pet.CheckKeepAwake(); if (stops != 2) throw new Exception("Dropping a held job kept an inhibitor.");
+                pet.BeginWork(); pet.SetKeepAwake(false); if (stops != 3) throw new Exception("The saved Off switch kept an inhibitor.");
+                pet.SetKeepAwake(true); typeof(Pet).GetField("quitting", fields).SetValue(pet, true); pet.CheckKeepAwake();
+                if (stops != 4) throw new Exception("Quitting did not stop the job inhibitor.");
+                typeof(Pet).GetField("quitting", fields).SetValue(pet, false); pet.EndWork();
+                typeof(Pet).GetField("glancing", fields).SetValue(pet, true); pet.CheckKeepAwake();
+                if (starts != 5) throw new Exception("A screen watch did not keep the screen awake.");
+                typeof(Pet).GetField("glancing", fields).SetValue(pet, false); pet.CheckKeepAwake();
+                if (stops != 5) throw new Exception("A finished screen watch kept an inhibitor.");
+                var catalog = Hands.Catalog; var run = Hands.Run; var opened = Hands.Opened;
+                try
+                {
+                    Security.Set(Security.Open, true);
+                    Hands.Catalog = () => new List<InstalledApp> { new InstalledApp("Awake app", "exec:awake-test") };
+                    Hands.Opened = _ => ""; Hands.Forget();
+                    int did = 0;
+                    Hands.Run = _ => { if (starts != 6 || stops != 5) throw new Exception("A real tool entered without its inhibitor."); did++; };
+                    pet.Brain.Act("open_app", new ToolArguments { Name = "Awake app" });
+                    if (did != 1 || stops != 6) throw new Exception("The tool boundary did not release its inhibitor.");
+                    Hands.Run = _ => { throw new InvalidOperationException("fake tool failure"); };
+                    try { pet.Brain.Act("open_app", new ToolArguments { Name = "Awake app" }); }
+                    catch (InvalidOperationException) { }
+                    if (starts != 7 || stops != 7) throw new Exception("A failed tool kept its inhibitor.");
+                }
+                finally { Hands.Catalog = catalog; Hands.Run = run; Hands.Opened = opened; Hands.Forget(); }
+            }
+            finally { pet.StopAwake(); pet.Wakeful = before; typeof(Pet).GetField("quitting", fields).SetValue(pet, false); typeof(Pet).GetField("workCount", fields).SetValue(pet, 0); typeof(Pet).GetField("glancing", fields).SetValue(pet, glancing); Security.Drop(); Security.Load(security); pet.SetKeepAwake(enabled); }
+            checks.Add("PASS keep awake uses fake Mac and Linux processes, falls back to ScreenSaver, spans nested work and held answers, and releases on completion, Off, cancelled startup and quit");
+        }
+
+        private void VaultChecks(Mainframe frame, System.Reflection.BindingFlags fields)
+        {
+            string root = Path.Combine(folder, "obsidian-test"), first = Path.Combine(root, "A vault"), second = Path.Combine(root, "B vault");
+            Directory.CreateDirectory(first); Directory.CreateDirectory(second);
+            string json = System.Text.Json.JsonSerializer.Serialize(new { vaults = new Dictionary<string, object> { { "a", new { path = first } }, { "gone", new { path = Path.Combine(root, "gone") } } } });
+            foreach (string list in new[] { Path.Combine(root, ".config", "obsidian", "obsidian.json"), Path.Combine(root, "Library", "Application Support", "obsidian", "obsidian.json") }) { Directory.CreateDirectory(Path.GetDirectoryName(list)); File.WriteAllText(list, json); }
+            string flatpak = Path.Combine(root, ".var", "app", "md.obsidian.Obsidian", "config", "obsidian", "obsidian.json");
+            Directory.CreateDirectory(Path.GetDirectoryName(flatpak)); File.WriteAllText(flatpak, System.Text.Json.JsonSerializer.Serialize(new { vaults = new Dictionary<string, object> { { "a", new { path = first } }, { "b", new { path = second } } } }));
+            var linux = Pet.ObsidianVaults(root, false); var mac = Pet.ObsidianVaults(root, true);
+            if (linux.Count != 2 || mac.Count != 1 || linux[0].Key != "A vault" || linux[1].Value != second || Pet.VaultsIn("not json").Count != 0) throw new Exception("Obsidian's Mac, Linux or Flatpak lists read wrong.");
+            var listed = pet.VaultList; string pathWas = Brain.MemoryPath, vaultWas = Brain.VaultFolder, savedWas = pet.Saved.Vault;
+            string own = (string)typeof(Pet).GetField("ownNotes", fields).GetValue(pet);
+            string content = File.Exists(own) ? File.ReadAllText(own) : null;
+            MainframeSheet sheet = null;
+            try
+            {
+                pet.VaultList = () => linux; pet.Saved.Vault = null; Brain.MemoryPath = own; Brain.VaultFolder = null;
+                File.WriteAllText(own, Brain.NotesHead + "- Likes tea\n");
+                frame.ShowSettings(true); frame.Press("Obsidian vault");
+                var sheets = (List<Window>)typeof(Mainframe).GetField("sheets", fields).GetValue(frame); sheet = (MainframeSheet)sheets[sheets.Count - 1];
+                var picker = (NeonPicker)sheet.Rows["Obsidian vault"]; picker.Pick(1);
+                string note = Path.Combine(first, Pet.VaultNote);
+                if (Brain.MemoryPath != note || Brain.VaultFolder != first || SettingsCopy().Vault != note || !File.ReadAllText(note).Contains("- Likes tea")) throw new Exception("Picking a vault did not move her notes.");
+                Brain.Note("Likes walks");
+                if (!File.ReadAllText(note).Contains("- Likes walks")) throw new Exception("New notes did not go to the vault.");
+                string custom = Path.Combine(second, "Chosen.md"); File.WriteAllText(custom, Brain.NotesHead + "- Likes tea\n- Likes games\n"); pet.SetVault(custom);
+                if (picker.Text != "Note: Chosen.md" || !File.ReadAllText(custom).Contains("- Likes walks") || System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(custom), "- Likes tea").Count != 1) throw new Exception("A chosen note lost or duplicated memories.");
+                picker.Pick(0);
+                if (Brain.MemoryPath != own || Brain.VaultFolder != null || SettingsCopy().Vault != null || !File.ReadAllText(own).Contains("- Likes games") || !File.Exists(note) || !File.Exists(custom)) throw new Exception("Her own notes did not bring memories back and keep the vault copies.");
+            }
+            finally { sheet?.Close(); pet.VaultList = listed; Brain.MemoryPath = pathWas; Brain.VaultFolder = vaultWas; pet.Saved.Vault = savedWas; if (content == null) File.Delete(own); else File.WriteAllText(own, content); }
+            checks.Add("PASS vaults read Mac, Linux and Flatpak lists, keep unique existing vaults, move notes through the Mainframe picker, merge a chosen note and bring notes home");
+        }
+
+        private void MainframeSheets(Mainframe frame)
+        {
+            var voice = new MainframeSheet(pet, "VOICE MODEL", "server"); voice.Show(frame);
+            try
+            {
+                ((NeonPicker)voice.Rows["Format"]).Pick(1);
+                ((NeonEntry)voice.Rows["Address"]).Box.Text = "localhost:8844";
+                ((NeonEntry)voice.Rows["Model"]).Box.Text = "kokoro-test";
+                ((NeonEntry)voice.Rows["Voice"]).Box.Text = "voice-test";
+                ((NeonButton)voice.Rows["Save"]).Press();
+                Settings saved = SettingsCopy();
+                if (saved.LocalVoiceUrl != "localhost:8844" || saved.LocalVoiceModel != "kokoro-test" || saved.LocalVoiceName != "voice-test" || saved.LocalVoiceFormat != LocalSpeaker.Pcm) throw new Exception("The voice server panel did not save the existing settings.");
+                pet.SetLocalVoice("model", "changed-test");
+                if (((NeonEntry)voice.Rows["Model"]).Box.Text != "changed-test") throw new Exception("The open voice panel did not show a Pet change.");
+                ((NeonEntry)voice.Rows["Address"]).Box.Text = "ftp://bad"; ((NeonButton)voice.Rows["Test voice"]).Press();
+                if (SettingsCopy().LocalVoiceUrl != "localhost:8844") throw new Exception("An invalid voice address changed the saved server.");
+            }
+            finally { voice.Close(); }
+            var layers = new MainframeSheet(pet, "VOICE LAYERS", "layers"); layers.Show(frame);
+            try
+            {
+                var enabled = (NeonSwitch)layers.Rows["Voice layers"]; if (!enabled.Checked) enabled.Flip();
+                for (int layer = 1; layer <= 2; layer++)
+                {
+                    var pitchBar = (NeonSlider)layers.Rows["Layer " + layer + " pitch"];
+                    var delayBar = (NeonSlider)layers.Rows["Layer " + layer + " delay"];
+                    pitchBar.Slide(pitchBar.Choices.Length - 1); delayBar.Slide(delayBar.Choices.Length - 1);
+                    if (VoiceFx.Layers.PitchOf(layer) != VoiceFx.Layering.MostPitch || Pet.LayersOf(SettingsCopy()).DelayOf(layer) != VoiceFx.Layering.MostDelay) throw new Exception("The layers panel did not save a layer.");
+                }
+                ((NeonButton)layers.Rows["Defaults"]).Press();
+                if (VoiceFx.Layers.Pitch1 != VoiceFx.Layering.HigherPitch || VoiceFx.Layers.Delay2 != VoiceFx.Layering.Behind || !SettingsCopy().Layers) throw new Exception("The layers defaults changed their meaning.");
+            }
+            finally { layers.Close(); }
+            var security = new MainframeSheet(pet, "SECURITY", "security"); security.Show(frame);
+            try
+            {
+                for (int preset = 0; preset < 4; preset++)
+                {
+                    ((NeonPicker)security.Rows["Preset"]).Pick(preset);
+                    if (Security.Preset != preset || SettingsCopy().Permissions != Security.Saved) throw new Exception("The Security panel did not save its preset.");
+                }
+                for (int i = 0; i < Security.Count; i++) if (Security.Has(i))
+                {
+                    var toggle = (NeonSwitch)security.Rows[Security.Names[i]];
+                    foreach (bool on in new[] { true, false }) { if (toggle.Checked != on) toggle.Flip(); if (Security.On(i) != on || SettingsCopy().Permissions != Security.Saved) throw new Exception("The Security panel did not save " + Security.Names[i]); }
+                }
+            }
+            finally { security.Close(); }
+            checks.Add("PASS Mainframe panels: local voice address, model, voice and format, layer controls and every available Security choice save through their existing setters");
+        }
+
+        private void PlainChecks(Mainframe frame, System.Reflection.BindingFlags fields)
+        {
+            string bin = Brain.Bin;
+            System.Reflection.FieldInfo problem = typeof(Pet).GetField("frameProblem", fields);
+            object before = problem.GetValue(pet);
+            NeonCaption note = (NeonCaption)typeof(Mainframe).GetField("brainNote", fields).GetValue(frame);
+            try
+            {
+                foreach (string trash in new[] { "Trash", "trash" })
+                {
+                    Brain.Bin = trash;
+                    foreach (string raw in new[] { "write /models/blob: no space left on device", "ENOSPC", "disk is full" })
+                    {
+                        BrainException error = new BrainException(raw);
+                        if (!error.Told || !error.Message.StartsWith("Your storage is full", StringComparison.Ordinal) || !error.Message.Contains("empty the " + trash)) throw new Exception("The full-storage line was not plain: " + raw);
+                        problem.SetValue(pet, error.Message); frame.Sync();
+                        if (note.Text != "Your storage is full. Free up space, then try again.") throw new Exception("Mainframe did not shorten the storage line.");
+                    }
+                }
+                foreach (string raw in new[] { "model requires more system memory (8.8 GiB) than is available (4.8 GiB)", "out of memory", "failed to allocate buffer" })
+                {
+                    BrainException error = new BrainException(raw);
+                    if (!error.Told || !error.Message.Contains("free RAM")) throw new Exception("The RAM line was not plain: " + raw);
+                    problem.SetValue(pet, error.Message); frame.Sync();
+                    if (!note.Text.StartsWith("Not enough free RAM", StringComparison.Ordinal) || note.Text.Length > 60) throw new Exception("Mainframe did not shorten the RAM line.");
+                }
+                problem.SetValue(pet, "model not found"); frame.Sync();
+                if (note.Text != "model not found" || new BrainException("model not found").Told || Brain.Plain("model runner stopped") != null) throw new Exception("An unrelated error became a RAM or storage error.");
+                checks.Add("PASS plain errors: shared RAM and storage lines reach Mac and Linux, use their trash name, and Mainframe shows the short line");
+            }
+            finally { Brain.Bin = bin; problem.SetValue(pet, before); frame.Sync(); }
+        }
+
+        private static SkiaSharp.SKColor ModPixel(Bitmap art, int x, int y)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                art.Save(stream); stream.Position = 0;
+                using (SkiaSharp.SKBitmap pixels = SkiaSharp.SKBitmap.Decode(stream)) return pixels.GetPixel(x, y);
+            }
+        }
+
+        private static string ModSample(string into, string id, string changes)
+        {
+            string file = Path.Combine(into, id + Mods.Extension);
+            File.WriteAllText(file, "{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\",\"description\":\"Smoke test mod\"," + changes + "}");
+            return file;
+        }
+
+        private static void ModEntry(System.IO.Compression.ZipArchive zip, string name, byte[] bytes)
+        {
+            using (Stream stream = zip.CreateEntry(name).Open()) stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private static NeonEntry ModColour(ModsWindow sheet, string name)
+        {
+            foreach (Control control in sheet.Page.Children)
+                if (Avalonia.Automation.AutomationProperties.GetName(control) == name + " color") return (NeonEntry)control;
+            throw new Exception("No mod color entry: " + name);
+        }
+
+        private static string ModSkin(string into, string id, string picture, int width, int height)
+        {
+            string file = Path.Combine(into, id + Mods.SkinExtension);
+            if (File.Exists(file)) File.Delete(file);
+            using (System.IO.Compression.ZipArchive zip = System.IO.Compression.ZipFile.Open(file, System.IO.Compression.ZipArchiveMode.Create))
+            {
+                ModEntry(zip, "skin.json", Encoding.UTF8.GetBytes("{\"format\":1,\"id\":\"" + id + "\",\"name\":\"" + id + "\"}"));
+                using (SkiaSharp.SKBitmap art = new SkiaSharp.SKBitmap(width, height))
+                {
+                    art.Erase(new SkiaSharp.SKColor(255, 0, 70));
+                    using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(art))
+                    using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) ModEntry(zip, picture, png.ToArray());
+                }
+            }
+            return file;
+        }
+
+        private static byte[] ModPreviewBytes()
+        {
+            using (Stream stream = typeof(Pet).Assembly.GetManifestResourceStream("Capri.Sprite.idle.png"))
+            using (SkiaSharp.SKBitmap art = SkiaSharp.SKBitmap.Decode(stream))
+            using (SkiaSharp.SKBitmap preview = new SkiaSharp.SKBitmap(320, 180))
+            {
+                preview.Erase(new SkiaSharp.SKColor(12, 11, 20));
+                using (SkiaSharp.SKCanvas canvas = new SkiaSharp.SKCanvas(preview)) canvas.DrawBitmap(art, new SkiaSharp.SKRect(0, 0, 240, 384), new SkiaSharp.SKRect(104, 0, 216.5f, 180));
+                using (SkiaSharp.SKImage image = SkiaSharp.SKImage.FromBitmap(preview))
+                using (SkiaSharp.SKData png = image.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100)) return png.ToArray();
+            }
+        }
+
+        private void ModsChecks(Mainframe frame)
+        {
+            Mods mods = pet.ModList;
+            string input = Path.Combine(folder, "mod-inputs"); Directory.CreateDirectory(input);
+            if (mods.Folder != Path.Combine(folder, "mods")) throw new Exception("Mods are not beside her settings.");
+            frame.ShowSettings(false); frame.Press("Mods");
+            ModsWindow sheet = frame.Mods;
+            if (sheet == null || sheet.SystemDecorations != SystemDecorations.None) throw new Exception("The CAPRI band's Mods key did not open her Mods window.");
+            frame.OpenPage("mods");
+            if (frame.Mods != sheet) throw new Exception("The Mods page opened a second window.");
+            try
+            {
+                string settings = ModSample(input, "smoke-names", "\"wake_names\":[\"Vee\",\"Cap\"],\"heard_as\":[\"coffee\"],\"sounds_like\":true,\"hearing_log\":true");
+                if (!sheet.ImportMod(settings) || mods.All.Count != 1 || !mods.All[0].On || mods.WakeNames.Length != 2 || !Hands.HeardName("hey Vee") || !Hands.HeardName("coffee") || !Hands.HeardName("capp") || !Hands.AlsoCalled().Contains("Vee")) throw new Exception("A settings mod did not add her names and spellings.");
+                Func<string, string> think = pet.Think;
+                try
+                {
+                    pet.Think = delegate { return "Heard the mod test."; };
+                    pet.Hear("hey Vee");
+                    MainframeWait(delegate { return pet.Talk.Reply == "Heard the mod test."; }, "a mod hearing log line");
+                    pet.Talk.Dismiss();
+                }
+                finally { pet.Think = think; }
+                if (!File.Exists(mods.LogPath) || !File.ReadAllText(mods.LogPath).Contains("FOR HER | hey Vee")) throw new Exception("A settings mod did not keep its hearing log.");
+                sheet.SwitchMod(0); mods.Load();
+                if (mods.All[0].On || Hands.HeardName("Vee") || Hands.HeardName("coffee") || Hands.HeardName("capp") || Hands.AlsoCalled().Length != 0 || File.Exists(mods.LogPath)) throw new Exception("Turning a settings mod off did not undo it or survive reload.");
+                sheet.SwitchMod(0); mods.Load();
+                if (!mods.All[0].On || !Hands.HeardName("Vee")) throw new Exception("Turning a settings mod on did not survive reload.");
+                sheet.RemoveMod(0);
+                if (mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, "smoke-names" + Mods.Extension)) || Hands.HeardName("Vee")) throw new Exception("Removing a settings mod left it applied.");
+                checks.Add("PASS mods settings: import, on, off, reload and remove share Windows' names, spellings, sounds-like and hearing-log behavior");
+
+                Clip idle = pet.Clips[0], walk = pet.Clips[10];
+                SkiaSharp.SKColor original = ModPixel(idle.Strip, 95, 90), accent = ModPixel(idle.Strip, 120, 200);
+                string blue = ModSample(input, "smoke-blue", "\"colors\":{\"hair\":\"#0000FF\"}");
+                if (!sheet.ImportMod(blue)) throw new Exception("A colour mod was refused.");
+                SkiaSharp.SKColor hair = ModPixel(idle.Strip, 95, 90), sameAccent = ModPixel(idle.Strip, 120, 200);
+                if (hair.Blue < 200 || hair.Red > 30 || hair.Alpha != original.Alpha || Math.Abs(sameAccent.Green - accent.Green) > 4) throw new Exception("A colour mod did not recolour her hair alone.");
+                mods.Load();
+                if (ModPixel(idle.Strip, 95, 90).Blue < 200) throw new Exception("A colour mod did not survive reload.");
+                sheet.SwitchMod(0);
+                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("A colour mod did not restore her original art when off.");
+                sheet.SwitchMod(0);
+                mods.SetColour(ArtColors.Eyes, "#FFAA00");
+                if (mods.All.FindAll(m => m.On && m.File.Colors != null).Count != 1 || mods.ColoursNow[ArtColors.Hair] != "#0000FF") throw new Exception("Picked colors lost the other slots or left two sets on.");
+                sheet.Sync();
+                ModColour(sheet, "Hair").Box.Text = "#00FF00"; ModColour(sheet, "Eyes").Box.Text = "#12";
+                sheet.SaveColours();
+                if (mods.ColoursNow[ArtColors.Hair] != "#0000FF" || !sheet.StatusText.Contains("isn't a colour")) throw new Exception("Invalid color entry saved part of a change.");
+                ModColour(sheet, "Eyes").Box.Text = "#FFAA00"; sheet.SaveColours(); mods.Load();
+                if (mods.ColoursNow[ArtColors.Hair] != "#00FF00" || ModPixel(idle.Strip, 95, 90).Green < 200) throw new Exception("The Mods window did not save and apply picked colors.");
+                mods.ResetColours();
+                if (ModPixel(idle.Strip, 95, 90) != original || ArtColors.Active) throw new Exception("Reset did not restore her colors.");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                foreach (string bad in new[] { "red", "#12", "#GGGGGG" })
+                {
+                    try { mods.Import(ModSample(input, "smoke-bad", "\"colors\":{\"hair\":\"" + bad + "\"}"), null); throw new Exception("A bad color was let in."); }
+                    catch (ModException) { }
+                }
+                checks.Add("PASS mods colors: an art pixel changes with the shared mapping, alpha and accents stay, one set is on, and off, reset and reload work");
+
+                PixelSize size = Pet.ArtSize("Capri.Sprite.idle.png");
+                SkiaSharp.SKColor walkWas = ModPixel(walk.Strip, 0, 0);
+                string skin = ModSkin(input, "smoke-skin", "idle.png", size.Width, size.Height);
+                if (!sheet.ImportMod(skin) || ModPixel(idle.Strip, 0, 0).Red != 255 || ModPixel(walk.Strip, 0, 0) != walkWas) throw new Exception("A skin did not swap its strip or changed a strip it doesn't hold.");
+                sheet.SwitchMod(0);
+                if (ModPixel(idle.Strip, 95, 90) != original) throw new Exception("Turning a skin off did not restore her art.");
+                sheet.SwitchMod(0); mods.Load();
+                if (ModPixel(idle.Strip, 0, 0).Red != 255) throw new Exception("A skin did not survive reload.");
+                sheet.ImportMod(blue);
+                if (ModPixel(idle.Strip, 0, 0).Blue < 200) throw new Exception("Colors did not apply to a skin.");
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+                if (Pet.SkinFolder != null || ModPixel(idle.Strip, 95, 90) != original || Directory.Exists(Path.Combine(mods.Folder, "smoke-skin-skin"))) throw new Exception("Removing skins left her art changed.");
+                string[] badSkins = { ModSkin(input, "smoke-size", "idle.png", 10, 10), ModSkin(input, "smoke-path", "../idle.png", size.Width, size.Height), ModSkin(input, "smoke-unknown", "other.png", size.Width, size.Height) };
+                foreach (string bad in badSkins)
+                {
+                    try { mods.Import(bad, null); throw new Exception("A bad skin was let in."); }
+                    catch (ModException) { }
+                }
+                if (Directory.GetDirectories(mods.Folder, "skin-import-*").Length != 0) throw new Exception("A refused skin left its temporary folder.");
+                checks.Add("PASS mods skins: import swaps art, missing strips keep hers, off and removal restore it, reload and colors work, and invalid sizes and paths are refused");
+
+                string code = Path.Combine(input, "smoke-code" + Mods.CodeExtension); File.WriteAllText(code, "This must never be compiled.");
+                bool asked = false;
+                try { mods.Import(code, delegate { asked = true; return true; }); throw new Exception("A code mod was let in."); }
+                catch (ModException error) { if (error.Message != Mods.WindowsOnly) throw new Exception("A code mod gave the wrong line."); }
+                if (asked || sheet.ImportMod(code) || sheet.StatusText != Mods.WindowsOnly || mods.All.Count != 0 || File.Exists(Path.Combine(mods.Folder, Path.GetFileName(code)))) throw new Exception("A code mod asked, saved or gave a different line.");
+                string dropped = Path.Combine(mods.Folder, Path.GetFileName(code)); File.Copy(code, dropped, true);
+                mods.Load();
+                if (mods.All.Count != 0 || !mods.Problems.Exists(p => p.Contains(Mods.WindowsOnly))) throw new Exception("A code mod dropped into the folder was not refused.");
+                File.Delete(dropped); mods.Load();
+                checks.Add("PASS mods code: import and files dropped in the folder are refused with Windows only for now, without asking or compiling");
+
+                ModDirectoryChecks(sheet, input, blue, skin);
+            }
+            finally
+            {
+                sheet.Close();
+                foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
+            }
+        }
+
+        private void ModDirectoryChecks(ModsWindow sheet, string input, string blue, string skin)
+        {
+            Func<string, long, byte[]> get = ModDirectory.Get;
+            Func<string, string, byte[]> post = ModDirectory.Post;
+            Dictionary<string, byte[]> blobs = new Dictionary<string, byte[]>();
+            byte[] preview = ModPreviewBytes(); string previewSha = ModDirectory.BlobSha(preview);
+            string names = ModSample(input, "smoke-directory-names", "\"wake_names\":[\"Vee\"]");
+            string[] folders = { "a-blue-hair", "b-sample-skin", "c-code-sample", "d-names" };
+            string[] files = { blue, skin, Path.Combine(input, "smoke-code" + Mods.CodeExtension), names };
+            StringBuilder tree = new StringBuilder("{\"tree\":[");
+            for (int i = 0; i < folders.Length; i++)
+            {
+                byte[] bytes = File.ReadAllBytes(files[i]); string sha = ModDirectory.BlobSha(bytes); blobs[sha] = bytes;
+                if (i > 0) tree.Append(',');
+                tree.Append("{\"path\":\"mods/" + folders[i] + "/" + Path.GetFileName(files[i]) + "\",\"type\":\"blob\",\"sha\":\"" + sha + "\",\"size\":" + bytes.Length + "},");
+                tree.Append("{\"path\":\"mods/" + folders[i] + "/preview.png\",\"type\":\"blob\",\"sha\":\"" + previewSha + "\",\"size\":" + preview.Length + "}");
+            }
+            tree.Append(",{\"path\":\"mods/../escape.capri-mod\",\"type\":\"blob\",\"sha\":\"" + previewSha + "\",\"size\":10}]}");
+            byte[] json = Encoding.UTF8.GetBytes(tree.ToString());
+            List<ModListing> parsed = ModDirectory.Parse(json);
+            if (parsed.Count != 4 || parsed[0].PreviewSha != previewSha || parsed[1].KindIndex != 3 || parsed[2].KindIndex != 2 || ModDirectory.Filter(parsed, "blue hair", 1).Count != 1) throw new Exception("The directory did not parse its tree, previews and kinds.");
+            string about = "A blue colour set for her hair.";
+            string indexText = "{\"format\":1,\"mods\":[{\"folder\":\"a-blue-hair\",\"file\":\"" + Path.GetFileName(blue) + "\",\"name\":\"Colors: Blue & Bright\",\"author\":\"Vocyn\",\"about\":\"" + about + "\",\"kind\":\"code\",\"sha\":\"wrong\",\"size\":1}"
+                + ",{\"folder\":\"b-sample-skin\",\"file\":\"wrong.capri-skin\",\"name\":\"Wrong file\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
+                + ",{\"folder\":\"wrong-folder\",\"file\":\"" + Path.GetFileName(skin) + "\",\"name\":\"Wrong folder\",\"author\":\"Wrong\",\"about\":\"Wrong\"}"
+                + ",{\"folder\":\"c-code-sample\",\"file\":\"" + Path.GetFileName(files[2]) + "\",\"name\":\"Code: Sample\",\"author\":\"Sample Author\",\"about\":\"Runs code on Windows.\",\"kind\":\"settings\"}"
+                + ",{\"folder\":\"index-only\",\"file\":\"index-only.capri-mod\",\"name\":\"Missing from tree\"}]}";
+            byte[] goodIndex = Encoding.UTF8.GetBytes(indexText), indexJson = goodIndex;
+            byte[] largeIndex = Encoding.UTF8.GetBytes(indexText + new string(' ', 2 * 1024 * 1024));
+            bool indexDown = false;
+            int counted = 0, rated = 0, fetched = 0, indexGets = 0;
+            long indexLimit = 0;
+            ModDirectory.Get = delegate(string url, long most)
+            {
+                if (url.Contains("/trees/")) return json;
+                if (url == ModDirectory.IndexPage) { Interlocked.Increment(ref indexGets); indexLimit = most; if (indexDown) throw new System.Net.WebException("stand-in"); return indexJson; }
+                if (url == ModDirectory.StatsPage) return Encoding.UTF8.GetBytes("{\"mods\":[{\"folder\":\"a-blue-hair\",\"downloads\":12,\"rating\":4.5,\"votes\":2}]}");
+                if (url.EndsWith("/preview.png", StringComparison.Ordinal)) return preview;
+                if (url.Contains("/blobs/")) { Interlocked.Increment(ref fetched); return blobs[url.Substring(url.LastIndexOf('/') + 1)]; }
+                throw new Exception("Unexpected mods request: " + url);
+            };
+            ModDirectory.Post = delegate(string url, string body)
+            {
+                if (url == ModDirectory.StatsPage + "/download") { Interlocked.Increment(ref counted); return Encoding.UTF8.GetBytes("{}"); }
+                if (url == ModDirectory.StatsPage + "/rate" && body.Contains("\"stars\":5")) { Interlocked.Increment(ref rated); return Encoding.UTF8.GetBytes("{\"downloads\":13,\"rating\":4.7,\"votes\":3}"); }
+                throw new Exception("Unexpected mods post: " + url);
+            };
+            try
+            {
+                List<ModListing> indexed = ModDirectory.Browse();
+                if (indexGets != 1 || indexLimit != 2L * 1024 * 1024 || indexed.Count != 4 || indexed[0].Title != "Colors: Blue & Bright" || indexed[0].Author != "Vocyn" || indexed[0].About != about) throw new Exception("The directory did not fetch and match its index once with a size limit.");
+                if (indexed[1].Title != "B Sample Skin" || indexed[1].Author != "" || indexed[1].About != "" || indexed[3].Title != "D Names" || indexed[3].Author != "" || indexed[3].About != "") throw new Exception("Mismatched or missing index entries changed a folder title.");
+                if (indexed[0].Sha != parsed[0].Sha || indexed[0].Size != parsed[0].Size || indexed[0].FileName != parsed[0].FileName || indexed[0].KindIndex != 1 || indexed[2].KindIndex != 2) throw new Exception("The index changed what gets installed.");
+                if (ModDirectory.Filter(indexed, "VOCYN colour", 1).Count != 1 || ModDirectory.Filter(indexed, "bright", 1).Count != 1 || ModDirectory.Filter(indexed, Path.GetFileName(blue), 1).Count != 1 || ModDirectory.Filter(indexed, "Vocyn", 2).Count != 0) throw new Exception("Search missed an indexed name, author, description, file or kind.");
+                foreach (byte[] badIndex in new[] { Encoding.UTF8.GetBytes("{broken"), Encoding.UTF8.GetBytes("null"), Encoding.UTF8.GetBytes(indexText.Replace("\"format\":1", "\"format\":2")), Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[null,{}]}"), largeIndex })
+                {
+                    indexJson = badIndex;
+                    int before = indexGets;
+                    List<ModListing> fallback = ModDirectory.Browse();
+                    if (indexGets != before + 1 || fallback.Count != 4 || fallback[0].Title != "A Blue Hair" || fallback[0].Author != "" || fallback[0].About != "" || fallback[0].Sha != parsed[0].Sha) throw new Exception("A broken or oversized index changed the directory.");
+                }
+                indexDown = true;
+                List<ModListing> missing = ModDirectory.Browse();
+                indexDown = false;
+                if (missing.Count != 4 || missing[0].Title != "A Blue Hair" || missing[0].Author != "" || missing[0].About != "") throw new Exception("A missing index stopped the directory or left old text.");
+                indexJson = Encoding.UTF8.GetBytes("{\"format\":1,\"mods\":[{\"folder\":\"a-blue-hair\",\"file\":\"" + Path.GetFileName(blue) + "\",\"name\":\" \\t" + new string('N', 140) + "\\n\",\"author\":\" \\n" + new string('A', 90) + "\",\"about\":\" Nova\\n\\u0000\\u202e <b>text</b> & " + new string('x', 700) + "\"}]}");
+                List<ModListing> capped = ModDirectory.Browse();
+                if (capped[0].Title.Length != 120 || capped[0].Author.Length != 80 || capped[0].About.Length != 600 || !capped[0].About.StartsWith("Nova <b>text</b> & ", StringComparison.Ordinal) || Regex.IsMatch(capped[0].Title + capped[0].Author + capped[0].About, @"[\p{Cc}\p{Cf}]")) throw new Exception("Index text was not capped or made plain.");
+                indexJson = goodIndex;
+                checks.Add("PASS mods index: exact folder and file matches add capped plain names, authors and descriptions; mismatches, missing entries, broken and oversized indexes fall back without changing tree fingerprints");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working && sheet.HasPreview(0) && sheet.HasPreview(1); }, "the mods directory and previews");
+                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.AuthorOf(0) != "by Vocyn" || sheet.AboutOf(0) != about || sheet.TitleOf(1) != "B Sample Skin" || sheet.AuthorOf(1) != null || sheet.AboutOf(1) != null || sheet.PageText != "Page 1 of 2" || !sheet.CanDownload(0)) throw new Exception("The Mods window did not show its real names, authors, descriptions and fallbacks.");
+                sheet.Search("VOCYN colour");
+                if (sheet.TitleOf(0) != "Colors: Blue & Bright" || sheet.TitleOf(1) != null) throw new Exception("The directory did not search author and description words together.");
+                sheet.Search("");
+                indexDown = true;
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the directory without an index");
+                indexDown = false;
+                if (sheet.TitleOf(0) != "A Blue Hair" || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.DirectoryText != "Pick a mod to download.") throw new Exception("Losing the index left old text or an error in the Mods window.");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory again");
+                checks.Add("PASS mods index cards: names, by author and descriptions show; search matches author and description words together, and losing the index quietly clears its text");
+                sheet.NextPage();
+                if (sheet.TitleOf(0) != "Code: Sample" || sheet.AuthorOf(0) != "by Sample Author") throw new Exception("The directory did not change page.");
+                sheet.PickKind(2);
+                if (sheet.CanDownload(0) || sheet.MetaOf(0) != Mods.WindowsOnly) throw new Exception("A code mod looked installable.");
+                sheet.Install(0);
+                if (sheet.StatusText != Mods.WindowsOnly || fetched != 0) throw new Exception("A code mod was downloaded.");
+                sheet.PickKind(1); sheet.Search("names");
+                if (sheet.TitleOf(0) != "D Names" || sheet.AuthorOf(0) != null || sheet.AboutOf(0) != null || sheet.TitleOf(1) != null) throw new Exception("The directory search or settings filter did not work.");
+                sheet.Search(""); sheet.PickKind(0); sheet.Install(0);
+                MainframeWait(delegate { return !sheet.Working && counted == 1; }, "a directory download");
+                if (pet.ModList.All.Count != 1 || fetched != 1 || !sheet.CanDownload(0) || sheet.DownloadText(0) != "Reinstall") throw new Exception("Downloading a settings mod did not install it and count the download.");
+                sheet.Install(0); MainframeWait(delegate { return !sheet.Working && counted == 2; }, "a mod reinstall");
+                if (pet.ModList.All.Count != 1 || fetched != 2) throw new Exception("Reinstalling a mod duplicated it.");
+                sheet.Rate(0, 5); MainframeWait(delegate { return !sheet.Working; }, "a mod rating");
+                if (rated != 1 || sheet.StatusText != "Rating saved.") throw new Exception("A mod rating did not reach the worker.");
+                sheet.Install(1); MainframeWait(delegate { return !sheet.Working && counted == 3; }, "a directory skin");
+                if (!pet.ModList.All.Exists(m => m.Skin && m.On)) throw new Exception("A directory skin did not install.");
+                sheet.ImportMod(names);
+                sheet.ImportMod(ModSample(input, "smoke-extra-a", "\"wake_names\":[\"Ari\"]"));
+                sheet.ImportMod(ModSample(input, "smoke-extra-b", "\"wake_names\":[\"Bea\"]"));
+                sheet.NextInstalledPage();
+                if (sheet.InstalledPageText != "Page 2 of 2") throw new Exception("Installed mods did not reach their second page.");
+                sheet.SwitchMod(0);
+                if (pet.ModList.All.Find(m => m.File.Id == "smoke-skin").On) throw new Exception("The second installed page switched the wrong mod.");
+                sheet.RemoveMod(0);
+                if (pet.ModList.All.Count != 4 || sheet.InstalledPageText != "Page 1 of 1") throw new Exception("Removing the last installed page did not bring the list back.");
+                foreach (Mod extra in pet.ModList.All.ToArray()) if (extra.File.Id.StartsWith("smoke-extra-", StringComparison.Ordinal)) pet.ModList.Remove(extra);
+                sheet.ImportMod(skin);
+                StringBuilder fullIndex = new StringBuilder("{\"format\":1,\"mods\":[");
+                for (int i = 0; i < folders.Length; i++)
+                    fullIndex.Append("{\"folder\":\"" + folders[i] + "\",\"file\":\"" + Path.GetFileName(files[i]) + "\",\"name\":\"Colors: Bubblegum & " + new string('N', 140) + "\",\"author\":\"" + new string('A', 90) + "\",\"about\":\"Pink hair and cyan accents. " + new string('x', 700) + "\"},");
+                indexJson = Encoding.UTF8.GetBytes(fullIndex.ToString().TrimEnd(',') + "]}");
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "long mod metadata");
+                foreach (int scale in new[] { 100, 150, 200 })
+                {
+                    pet.SetMainframeSize(scale); sheet.Sync(); sheet.UpdateLayout();
+                    string wrong = sheet.Crowded();
+                    if (sheet.TitleOf(1) == null || sheet.TitleOf(1).Length != 120 || sheet.AuthorOf(1) == null || sheet.AuthorOf(1).Length != 83 || sheet.AboutOf(1) == null || sheet.AboutOf(1).Length != 600) throw new Exception("A full page lost its capped metadata.");
+                    if (wrong != null || Math.Abs(sheet.Zoom - scale / 100.0) > 0.001) throw new Exception("Mods layout at " + scale + "%: " + wrong);
+                    sheet.SavePicture(Path.Combine(folder, "mainframe-mods-" + scale + ".png"));
+                }
+                indexJson = goodIndex;
+                sheet.LoadMods(); MainframeWait(delegate { return !sheet.Working; }, "the named directory after layout checks");
+                pet.SetMainframeSize(100); sheet.Sync(); sheet.SavePicture(Path.Combine(folder, "mainframe-mods.png"));
+                using (Bitmap picture = new Bitmap(Path.Combine(folder, "mainframe-mods.png"))) if (picture.PixelSize.Width < 380 || picture.PixelSize.Height < 100) throw new Exception("The Mods window picture is empty.");
+                checks.Add("PASS mods directory: fake GitHub tree, previews, filters, pages, verified downloads, worker counts and ratings; code mods stay Windows only");
+                checks.Add("PASS mods window: long names, authors and descriptions fit with Barlow and cut corners at 100%, 150% and 200% without overlaps; Mainframe pictures include mainframe-mods.png");
+            }
+            finally
+            {
+                try { MainframeWait(delegate { return !sheet.PreviewsPending && !sheet.Working; }, "pending mod requests"); }
+                finally { ModDirectory.Get = get; ModDirectory.Post = post; }
+            }
+        }
+
+        private void MainframePictures(Mainframe frame, Voice voice)
+        {
+            pet.SetLanguage("English");
+            frame.PickBrainTier(0);
+            pet.Brain.Model = "gemma4:e4b"; voice.Key = null; frame.PickVoiceTier(0); pet.SetMainframeSize(100);
+            string[] names = { "mainframe-main.png", "mainframe-settings.png", "mainframe-advanced.png" };
+            for (int page = 0; page < 3; page++)
+            {
+                pet.SetAdvancedSettings(page == 2); frame.ShowSettings(page != 0); frame.SavePicture(Path.Combine(folder, names[page]));
+            }
+            frame.ShowSettings(false);
+        }
+
+        private void MainframeLayout(Mainframe frame, Voice voice)
+        {
+            pet.SetLanguage("English"); pet.SetMainframeSize(100);
+            foreach (int tier in new[] { 0, 1, 2 })
+                foreach (int mode in new[] { 0, 2, 3 })
+                    foreach (bool savedKey in new[] { false, true })
+                    {
+                        frame.PickBrainTier(tier);
+                        if (tier == 0) pet.Brain.Model = "gemma4:e4b";
+                        voice.Key = savedKey ? "mainframe-layout-key" : null;
+                        frame.PickVoiceTier(mode);
+                        foreach (int scale in new[] { 100, 150, 200 })
+                            for (int page = 0; page < 3; page++)
+                            {
+                                pet.SetAdvancedSettings(page == 2); pet.SetMainframeSize(scale); frame.ShowSettings(page != 0); frame.UpdateLayout();
+                                string wrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+                                if (wrong != null) throw new Exception("Mainframe layout at " + scale + "%, page " + page + ", tier " + tier + ", voice " + mode + ": " + wrong);
+                                if (Math.Abs(frame.Zoom - scale / 100.0) > 0.001 || frame.Page.Width != (page == 0 ? 380 : 760)) throw new Exception("The Mainframe changed its design coordinates while scaling.");
+                            }
+                    }
+            frame.PickBrainTier(0); pet.Brain.Model = null; frame.Sync(); frame.ShowSettings(false);
+            string setupWrong = frame.Outside() ?? frame.Overlap() ?? frame.TextFits();
+            if (setupWrong != null) throw new Exception("The expanded brain setup does not fit: " + setupWrong);
+            pet.Brain.Model = "gemma4:e4b"; voice.Key = null; frame.PickVoiceTier(0); pet.SetMainframeSize(100);
+            frame.Height = 260; frame.UpdateLayout(); frame.GlideTo(new Vector(0, double.MaxValue));
+            if (!frame.Gliding) throw new Exception("A short Mainframe did not start its glide.");
+            frame.Settle();
+            if (frame.Scroll.Offset.Y <= 0 || frame.Scroll.Offset.Y + frame.Scroll.Viewport.Height > frame.Scroll.Extent.Height + 1) throw new Exception("The Mainframe glide left its page or could not reach its bottom.");
+            frame.Row("Volume").BringIntoView();
+            frame.Top();
+            checks.Add("PASS Mainframe layout: main, Simple and Advanced fit at 100%, 150% and 200% with every brain and voice tier; Barlow labels, hints, flags, choices and cues fit; a short page glides to its end");
+        }
+
+        private static void MainframeWait(Func<bool> ready, string what)
+        {
+            Stopwatch wait = Stopwatch.StartNew();
+            while (!ready() && wait.ElapsedMilliseconds < 3000) { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+            if (!ready()) throw new Exception("Mainframe did not finish " + what + ".");
+        }
+
+        private static void MainframeEnter(Mainframe frame, string row, string text)
+        {
+            var entry = (NeonEntry)frame.Row(row); entry.Box.Text = text;
+            entry.Box.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
+        }
+
+        private void MainframeConnections(Mainframe frame)
+        {
+            string nvidia = Brain.Nvidia, google = Brain.Google, router = Brain.OpenRouter, paid = Brain.OpenAi, ollama = Brain.Ollama, eleven = Voice.Host;
+            var files = new Dictionary<string, byte[]>();
+            foreach (string name in new[] { "brain-key", "brain-free-key", "brain-paid-key", "voice-key" }) { string path = Path.Combine(folder, name); files[path] = File.Exists(path) ? File.ReadAllBytes(path) : null; }
+            using (var server = new MainframeServer())
+            {
+                Brain.Nvidia = server.Address + "/nvidia"; Brain.Google = server.Address + "/google"; Brain.OpenRouter = server.Address + "/router";
+                Brain.OpenAi = server.Address + "/paid"; Brain.Ollama = server.Address + "/ollama"; Voice.Host = server.Address + "/voice";
+                try
+                {
+                    frame.PickBrainTier(0); pet.Brain.Model = null; frame.ShowSettings(false); frame.Press("Set up her brain");
+                    MainframeWait(() => !pet.MainframePulling && pet.Saved.Model == Pet.Starter, "her local brain download");
+                    frame.Press("Refresh"); MainframeWait(() => pet.MainframeModels.Length == 2, "her local model scan");
+                    frame.Change("Brain model", 1);
+                    if (pet.Saved.Model != "qwen3:8b") throw new Exception("Refresh did not fill the Mainframe model picker.");
+                    string[] keys = { "nvapi-mainframe-test", "AIzaMainframe-test", "sk-or-mainframe-test" };
+                    string[] kinds = { "nvidia", "google", "openrouter" };
+                    for (int i = 0; i < keys.Length; i++)
+                    {
+                        string key = keys[i]; frame.PickBrainTier(1); MainframeEnter(frame, "Brain API key", key);
+                        MainframeWait(() => pet.Brain.Remote != null && pet.Brain.Remote.Key == key, kinds[i] + " key connection");
+                        if (pet.Brain.Remote.Kind != kinds[i] || SettingsCopy().BrainTier != 1 || pet.MainframeModels.Length == 0) throw new Exception("MEDIUM did not connect its free provider.");
+                        if (kinds[i] == "openrouter") foreach (string choice in pet.MainframeModels) if (!choice.EndsWith(":free", StringComparison.Ordinal)) throw new Exception("MEDIUM offered a paid OpenRouter model.");
+                        frame.Change("Brain model", 0);
+                        if (pet.Saved.CloudModel != pet.MainframeModels[0]) throw new Exception("The cloud model picker did not save its model.");
+                        int reads = server.Requests.Count; pet.MainframeRefresh();
+                        MainframeWait(() => server.Requests.Count > reads && pet.MainframeModels.Length > 0, "a fresh cloud model scan");
+                    }
+                    frame.PickBrainTier(1); MainframeEnter(frame, "Brain API key", "sk-mainframe-paid");
+                    string paidLayout = frame.Overlap() ?? frame.Outside() ?? frame.TextFits();
+                    if (paidLayout != null || pet.MainframeTier != 1) throw new Exception("The paid-key offer did not stay on MEDIUM or fit its page: " + paidLayout);
+                    frame.Press("Move to MAX");
+                    MainframeWait(() => pet.Brain.Remote?.Key == "sk-mainframe-paid", "her paid key connection");
+                    if (SettingsCopy().BrainTier != 2 || pet.Brain.Remote.Kind != "openai") throw new Exception("MAX did not keep the paid key.");
+                    frame.PickBrainTier(1); if (pet.Brain.Remote?.Key != keys[2]) throw new Exception("Switching tiers lost the free key.");
+                    frame.PickBrainTier(2); if (pet.Brain.Remote?.Key != "sk-mainframe-paid") throw new Exception("Switching tiers lost the paid key.");
+                    MainframeEnter(frame, "Brain API key", ""); if (pet.Brain.Remote != null || pet.MainframeTier != 2) throw new Exception("Forget did not clear the chosen tier's key.");
+                    if (pet.MainframeModels.Length != 0) throw new Exception("A cloud tier without a key offered local models.");
+                    pet.MainframePickModel("local-wrong");
+                    if (pet.Brain.Model != null) throw new Exception("A local model started under a cloud tier.");
+                    server.Hold = "/nvidia/"; frame.PickBrainTier(1); MainframeEnter(frame, "Brain API key", "nvapi-mainframe-slow");
+                    MainframeWait(() => server.Held.IsSet, "a pending key request");
+                    frame.PickBrainTier(0); pet.Brain.Model = "qwen3:8b"; server.Release.Set();
+                    MainframeWait(() => !pet.MainframeConnecting, "the old key response");
+                    if (pet.MainframeTier != 0 || pet.Brain.Remote != null || pet.Brain.Model != "qwen3:8b") throw new Exception("A slow key response undid the later tier choice.");
+                    pet.UseCloud(keys[2], "test/paid", new List<string> { "test/model:free", "test/paid" }, 2);
+                    server.Held.Reset(); server.Release.Reset(); server.Hold = "/router/"; pet.MainframeRefresh();
+                    MainframeWait(() => server.Held.IsSet, "the old tier's model scan");
+                    frame.PickBrainTier(1); pet.MainframeRefresh(); server.Release.Set();
+                    MainframeWait(() => pet.MainframeModels.Length == 1 && pet.MainframeModels[0].EndsWith(":free", StringComparison.Ordinal), "the new tier's free models");
+                    if (pet.MainframeTier != 1) throw new Exception("The old model scan undid the later tier choice.");
+                    frame.PickVoiceTier(3); MainframeEnter(frame, "ElevenLabs API key", "voice-mainframe-test");
+                    MainframeWait(() => pet.MainframeVoiceKey == "voice-mainframe-test" && pet.MainframeVoiceIds.Length == 2, "ElevenLabs voice listing");
+                    frame.Change("Voice", 1);
+                    if (SettingsCopy().VoiceId != pet.MainframeVoiceIds[1]) throw new Exception("The Mainframe voice picker did not use ChooseVoice.");
+                    frame.Change("Speech model", 1);
+                    if (SettingsCopy().SpeechModel != "voice-model-test") throw new Exception("The Mainframe speech model did not save.");
+                    frame.Change("Speech model", 0);
+                    if (SettingsCopy().SpeechModel != null) throw new Exception("Default model did not keep the existing voice default.");
+                    MainframeEnter(frame, "ElevenLabs voice ID", "manual-voice");
+                    if (SettingsCopy().VoiceId != "manual-voice") throw new Exception("The Mainframe voice ID did not save.");
+                    MainframeEnter(frame, "ElevenLabs API key", ""); if (pet.MainframeVoiceKey != null) throw new Exception("Forget did not clear the voice key.");
+                    foreach (int mode in new[] { 0, 2, 3 })
+                    {
+                        frame.PickVoiceTier(mode);
+                        if (pet.MainframeVoiceMode != mode || mode == 0 && !SettingsCopy().Silent || mode == 2 && SettingsCopy().VoiceProvider != Speakers.Local || mode == 3 && SettingsCopy().VoiceProvider != Speakers.ElevenLabs) throw new Exception("The voice tiers changed their saved meaning.");
+                    }
+                    frame.PickBrainTier(0); pet.SetAdvancedSettings(true); frame.ShowSettings(true);
+                    MainframeEnter(frame, "Local server address", server.Address);
+                    MainframeWait(() => pet.Saved.BrainServer == server.Address, "her own brain server");
+                    pet.MainframeRefresh(); MainframeWait(() => pet.MainframeModels.Length == 2 && pet.MainframeModels[0] == "server-test", "her server model scan");
+                    frame.Change("Brain model", 1);
+                    if (pet.Saved.ServerModel != "server-other") throw new Exception("The Mainframe did not save its server model.");
+                    MainframeEnter(frame, "Local server address", ""); MainframeWait(() => pet.Brain.Server == null && pet.Brain.Model != null && Array.IndexOf(pet.MainframeModels, Pet.Starter) >= 0, "returning to Ollama");
+                    if (!server.Requests.Exists(line => line.Contains("/api/pull") && line.Contains(Pet.Starter))) throw new Exception("Set up did not use the existing model download.");
+                    checks.Add("PASS Mainframe connections: local download and refresh, NVIDIA, Gemini and free OpenRouter, paid keys, tier switching, ElevenLabs keys and voices, and her own brain server use loopback fakes");
+                }
+                finally
+                {
+                    Brain.Nvidia = nvidia; Brain.Google = google; Brain.OpenRouter = router; Brain.OpenAi = paid; Brain.Ollama = ollama; Voice.Host = eleven;
+                    foreach (var file in files) { if (file.Value == null) { if (File.Exists(file.Key)) File.Delete(file.Key); } else File.WriteAllBytes(file.Key, file.Value); }
+                }
+            }
+        }
+
+        private sealed class MainframeServer : IDisposable
+        {
+            private readonly TcpListener server = new TcpListener(IPAddress.Loopback, 0);
+            internal readonly List<string> Requests = new List<string>();
+            internal string Hold;
+            internal readonly ManualResetEventSlim Held = new ManualResetEventSlim();
+            internal readonly ManualResetEventSlim Release = new ManualResetEventSlim();
+            internal string Address { get { return "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port; } }
+            internal MainframeServer()
+            {
+                server.Start();
+                var thread = new Thread(delegate()
+                {
+                    while (true)
+                    {
+                        TcpClient client;
+                        try { client = server.AcceptTcpClient(); }
+                        catch (Exception) { return; }
+                        try
+                        {
+                            using (client)
+                            {
+                                client.ReceiveTimeout = client.SendTimeout = 3000;
+                                var stream = client.GetStream();
+                                var reader = new StreamReader(stream, Encoding.UTF8, false, 1024, true);
+                                string request = reader.ReadLine() ?? "", line; int length = 0;
+                                while (!string.IsNullOrEmpty(line = reader.ReadLine())) if (line.StartsWith("Content-Length:", StringComparison.OrdinalIgnoreCase)) int.TryParse(line.Substring(15).Trim(), out length);
+                                var body = new char[length]; int read = 0;
+                                while (read < length) { int got = reader.Read(body, read, length - read); if (got <= 0) break; read += got; }
+                                lock (Requests) Requests.Add(request + " " + new string(body));
+                                if (Hold != null && request.Contains(Hold)) { Held.Set(); Release.Wait(3000); Hold = null; }
+                                string json = Reply(request);
+                                byte[] bytes = Encoding.UTF8.GetBytes(json), header = Encoding.ASCII.GetBytes("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " + bytes.Length + "\r\nConnection: close\r\n\r\n");
+                                stream.Write(header, 0, header.Length); stream.Write(bytes, 0, bytes.Length);
+                            }
+                        }
+                        catch (Exception) { }
+                    }
+                });
+                thread.IsBackground = true; thread.Start();
+            }
+            private static string Reply(string request)
+            {
+                if (request.Contains("/api/pull")) return "{\"status\":\"success\",\"total\":100,\"completed\":100}\n";
+                if (request.Contains("/api/tags")) return "{\"models\":[{\"name\":\"gemma4:e4b\"},{\"name\":\"qwen3:8b\"}]}";
+                if (request.Contains("/voice/v2/voices")) return "{\"voices\":[{\"voice_id\":\"v1\",\"name\":\"Nova\"},{\"voice_id\":\"v2\",\"name\":\"V\"}],\"has_more\":false}";
+                if (request.Contains("/voice/")) return "[{\"model_id\":\"voice-model-test\",\"name\":\"Voice test\",\"can_do_text_to_speech\":true}]";
+                if (request.Contains("/google/")) return "{\"data\":[{\"id\":\"gemini-2.5-flash\"}]}";
+                if (request.Contains("/router/")) return "{\"data\":[{\"id\":\"test/model:free\",\"architecture\":{\"input_modalities\":[\"text\",\"image\"],\"output_modalities\":[\"text\"]},\"supported_parameters\":[\"tools\"]},{\"id\":\"test/paid\"}]}";
+                if (request.Contains("/nvidia/")) return "{\"data\":[{\"id\":\"meta/llama-3.2-11b-vision-instruct\"}]}";
+                if (request.Contains("/paid/")) return "{\"data\":[{\"id\":\"gpt-4.1-mini\"}]}";
+                return "{\"data\":[{\"id\":\"server-test\"},{\"id\":\"server-other\"}]}";
+            }
+            public void Dispose() { server.Stop(); }
+        }
+
         private void SettingsChecks()
         {
             System.Reflection.BindingFlags fields = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance;
@@ -1754,7 +3404,7 @@ namespace CapriDesktop
                 for (int i = 0; i <= Security.Power; i++) want.Add(((mask & (1 << i)) != 0 ? "*" : "") + Security.Names[i] + " (" + Security.Lines[i] + ")");
                 return string.Join(" | ", want);
             };
-            string[] presetBits = { "00000000000", "11100000000", "11111110000", "11111111111" };
+            string[] presetBits = { "000000000000", "111000000000", "111111100000", "111111111110" };
             List<string> wrong = new List<string>();
             string first = pet.SecurityShown;
             bool startedTrusted = Security.Preset == Security.Trusted && first == menu(Security.Trusted, 0x7F);
@@ -1778,15 +3428,19 @@ namespace CapriDesktop
             pet.ClickSecurity(-1, Security.Open);
             bool back = Security.Preset == Security.Trusted && pet.Saved.Permissions == "1111111000" && pet.SecurityShown == menu(Security.Trusted, 0x7F);
             bool windowsOnly = customShown.IndexOf("mouse and keyboard", StringComparison.Ordinal) < 0 && customShown.IndexOf("Hey Capri", StringComparison.Ordinal) < 0 && customShown.IndexOf("passwords", StringComparison.Ordinal) < 0 && customShown.IndexOf("Pay, buy", StringComparison.Ordinal) < 0;
-            bool lines = Security.PresetLine(Security.Trusted) == "She does what you ask without asking first." && Security.PresetLine(Security.Blackwall) == "Everything is on: she never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
+            bool lines = Security.PresetLine(Security.Trusted) == "She does what you ask without asking first." && Security.PresetLine(Security.Blackwall) == "She never asks before doing what you ask." && Security.PresetLine(Security.Guarded) == "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.";
             Settings older = (Settings)new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Settings)).ReadObject(new MemoryStream(Encoding.UTF8.GetBytes("{\"Model\":\"qwen3:8b\",\"Watch\":true}")));
             Security.Load(older.Permissions);
             bool olderTrusted = older.Permissions == null && Security.Preset == Security.Trusted;
+            Security.Load("0111111000");
+            bool olderBits = Security.Preset == Security.Custom && Security.Saved == "0111111000" && !Security.On(Security.Friends);
+            Security.Load("01111110001");
+            olderBits &= Security.On(Security.Friends) && Security.Saved == "01111110001";
             Security.Load("not toggles");
             bool unreadable = Security.Preset == Security.Trusted;
             Security.Load(pet.Saved.Permissions);
-            if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !unreadable)
-                throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + unreadable);
+            if (wrong.Count > 0 || !startedTrusted || !custom || !written || !reloaded || !back || !windowsOnly || !lines || !olderTrusted || !olderBits || !unreadable)
+                throw new Exception("Security's menu went wrong: " + string.Join(" / ", wrong) + " / first " + first + " / custom " + customShown + " / " + written + " " + reloaded + " " + back + " " + windowsOnly + " " + lines + " " + olderTrusted + " " + olderBits + " " + unreadable);
             checks.Add("PASS Security menu: Settings > Security starts on Trusted; Lockdown, Guarded, Trusted and Blackwall tick the toggles under them (the five Mac and Linux have, each with its plain line), a toggle click makes it Custom and is saved for next time, ticking it again is Trusted, and settings from before it, or unreadable ones, get Trusted");
 
             // A toggle that's off holds the call and she asks first; a yes runs it once, a no leaves it and anything else drops it.
@@ -2039,6 +3693,7 @@ namespace CapriDesktop
             fail("server addresses", Brain.ServerAddress("localhost:8080") == "http://localhost:8080" && Brain.ServerAddress("http://127.0.0.1:1234/v1/") == "http://127.0.0.1:1234"
                 && Brain.ServerAddress("http://box.lan:8000/v1/chat/completions") == "http://box.lan:8000" && Brain.ServerAddress("ftp://x") == null && Brain.ServerAddress(" ") == null);
             List<string> brainAsked = new List<string>();
+            List<string> brainHeads = new List<string>();
             TcpListener server = new TcpListener(IPAddress.Loopback, 0);
             server.Start();
             Thread serve = new Thread(delegate()
@@ -2075,7 +3730,7 @@ namespace CapriDesktop
                             }
                             string path = head.Split(' ')[1];
                             string body = Encoding.UTF8.GetString(read.ToArray(), end, read.Count - end);
-                            lock (brainAsked) brainAsked.Add(path + " " + body);
+                            lock (brainAsked) { brainAsked.Add(path + " " + body); brainHeads.Add(head); }
                             string reply = path == "/v1/models" ? "{\"object\":\"list\",\"data\":[{\"id\":\"qwen-test\"},{\"id\":\"nomic-embed\"},{\"id\":\"llama-test\"}]}"
                                 : path == "/v1/chat/completions" ? "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Server says hi, choom.\"},\"finish_reason\":\"stop\"}]}" : "{}";
                             byte[] bytes = Encoding.UTF8.GetBytes(reply);
@@ -2092,6 +3747,8 @@ namespace CapriDesktop
             string address = "http://127.0.0.1:" + ((IPEndPoint)server.LocalEndpoint).Port;
             string[] models = Brain.ServerModels(address);
             fail("its models", models.Length == 2 && models[0] == "qwen-test" && models[1] == "llama-test");
+            string[] keyedModels = Brain.ServerModels(address, "secret-key");
+            fail("a provider key reaches its models", keyedModels.Length == 2 && brainHeads.Exists(delegate(string head) { return head.StartsWith("GET /v1/models", StringComparison.Ordinal) && head.IndexOf("Authorization: Bearer secret-key", StringComparison.OrdinalIgnoreCase) >= 0; }));
             Brain thinker = new Brain { Server = address, Model = "llama-test" };
             string said = null;
             try { said = thinker.Ask("hi there"); }
@@ -2099,13 +3756,20 @@ namespace CapriDesktop
             string chat;
             lock (brainAsked) chat = brainAsked.Find(delegate(string line) { return line.StartsWith("/v1/chat/completions ", StringComparison.Ordinal); }) ?? "";
             fail("a chat through it", said != null && said.IndexOf("Server says hi", StringComparison.Ordinal) >= 0 && chat.IndexOf("\"model\":\"llama-test\"", StringComparison.Ordinal) > 0 && chat.IndexOf("hi there", StringComparison.Ordinal) > 0);
+            fail("a local chat sends no key", !brainHeads.Exists(delegate(string head) { return head.StartsWith("POST /v1/chat/completions", StringComparison.Ordinal) && head.IndexOf("Authorization:", StringComparison.OrdinalIgnoreCase) >= 0; }));
+            Brain keyed = new Brain { Server = address, ServerKey = "secret-key", Model = "llama-test" };
+            string keyedSaid = null;
+            try { keyedSaid = keyed.Ask("hi with key"); }
+            catch (Exception error) { keyedSaid = "threw " + error.Message; }
+            fail("a keyed chat works", keyedSaid != null && keyedSaid.IndexOf("Server says hi", StringComparison.Ordinal) >= 0);
+            fail("a provider key reaches its chat", brainHeads.Exists(delegate(string head) { return head.StartsWith("POST /v1/chat/completions", StringComparison.Ordinal) && head.IndexOf("Authorization: Bearer secret-key", StringComparison.OrdinalIgnoreCase) >= 0; }));
             server.Stop();
             bool down = false;
             try { thinker.Ask("still there?"); }
             catch (Exception) { down = true; }
             fail("a server that's down throws for her to explain", down);
             if (wrong.Count > 0) throw new Exception("Her own brain server went wrong: " + string.Join(", ", wrong) + " / " + said + " / " + chat);
-            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links");
+            checks.Add("PASS brain server: Brain > Use my own server takes llama-server, LM Studio, vLLM or TGI's address as typed, lists its /v1/models without embedders, chats through /v1/chat/completions with the model picked, and Download a model takes Ollama names and Hugging Face GGUFs as hf.co/user/repo:quant or their huggingface.co links; a provider key reaches its models and chats, while a local server sends none");
         }
 
         // Her mouse and keyboard jobs on Linux: a screenshot to her brain, one JSON step back, done with her own uinput mouse and
@@ -2500,7 +4164,9 @@ namespace CapriDesktop
                 Self("move_yourself", "stand_up");
                 bool letGo = !pet.Hanging;
                 Self("move_yourself", "ride_cursor");
-                Self("move_yourself", "move_mainframe", "other");
+                string frameMoved = Self("move_yourself", "move_mainframe", "other");
+                if (pet.Frame == null || frameMoved != (pet.Screens.All.Count < 2 ? "There's no other screen to go to." : "Moved Capri Mainframe.")) throw new Exception("She did not open or move her Mainframe: " + frameMoved);
+                pet.CloseMainframe();
                 Self("animate", "glitch");
                 bool glitched = pet.Playing == "glitch";
                 Self("animate", "grin");
@@ -2553,10 +4219,10 @@ namespace CapriDesktop
             if (pet.Leaving || pet.Arriving || pet.Falling) return false;
             pet.MouseAt = null;
             string said = string.Join(" / ", moveLines);
-            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / My Mainframe is only on Windows so far. Here my settings are in my right-click menu."
-                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show her in my tray menu to bring me back. / Back. / I'm right here.";
+            string wanted = "Teleporting to your mouse. / Sitting right here. / Already sitting. / Standing up. / Hanging right here. / Let go. / Riding your cursor is only on Windows so far. / " + moveLines[7]
+                + " / Glitched. / Grinning. / Blinked. / Dancing. Tell me to stop when you've had enough. / Stopped dancing. / I wasn't dancing. / Back to my idle. / " + moveLines[15] + " / Hiding. Pick Show Capri in my tray menu to bring me back. / Back. / I'm right here.";
             if (said != wanted) throw new Exception("Her moves said the wrong things: " + said);
-            checks.Add("PASS she moves herself: \"teleport here\" glitches her hip onto the mouse, she sits, stands, hangs and lets go where she is, goes to another screen " + (pet.Screens.All.Count > 1 ? "and lands there" : "only when there is one (one here)") + ", a hide waits for her line and \"show yourself\" brings her back, riding the cursor and the Mainframe say they're Windows-only so far, and glitch, grin, blink, idle and a dance until \"stop dancing\" play by name");
+            checks.Add("PASS she moves herself: teleport, sit, stand, hang, hide, show and named animations work; her Mainframe opens and moves to another screen when there is one; riding the cursor stays Windows-only");
             moveStage = 5;
             return true;
         }
