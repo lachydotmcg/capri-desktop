@@ -461,6 +461,55 @@ namespace CapriDesktop
             checks.Add("PASS her voice files in a folder with special letters say a voice under CLOUD VOICE still works, for her free voice and a model file, and other file failures keep their words");
         }
 
+        // Wording: brain lines name the service or say "the" instead of "their", download lines start with a capital and drop
+        // their "Try again." when she retries herself, and Windows' and .NET's own words become plain lines with theirs in errors.txt.
+        private void SmokeWordingFixes(List<string> checks, string output)
+        {
+            foreach (string line in new[] { Brain.Down, Brain.NoCredits, Brain.Blocked })
+                if (System.Text.RegularExpressions.Regex.IsMatch(line, @"\b[Tt]heir\b") || (Brain.Brief(line) ?? line).Length > 60) throw new Exception("A brain line still says their, or its BRAIN note doesn't fit: " + line);
+            string folder = Path.Combine(output, "wording-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(folder);
+            string log = Path.Combine(folder, "errors.txt"), logWas = Brain.LogPath;
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                Brain.LogPath = log;
+                List<string> asked = new List<string>();
+                string url = FakeServer(new[] { "too long a reply", "right" }, asked, out fake, 200, 0, false, 0, "application/octet-stream");
+                string[] downloads = new string[2];
+                for (int i = 0; i < 2; i++)
+                {
+                    try { Engine.Fetch(url, Path.Combine(folder, "pack" + i + ".bin"), 5, new string('0', 64), "her test pack", delegate { }, delegate { return false; }); }
+                    catch (IOException error) { downloads[i] = error.Message; }
+                }
+                if (downloads[0] != "The download of her test pack came out the wrong size. Try again." || downloads[1] != "The download of her test pack didn't match its checksum. Try again."
+                    || Retrying(downloads[0]) != "The download of her test pack came out the wrong size." || Retrying("The download of her wake word keeps stopping. Check your connection and try again.") != "The download of her wake word keeps stopping. Check your connection." || Retrying("Cancelled.") != "Cancelled.")
+                    throw new Exception("A download line started in lowercase or told her to try again while she retries: " + string.Join(" | ", downloads));
+                Exception[] raw =
+                {
+                    new UnauthorizedAccessException("Access to the path 'C:\\Clips\\a.mp4' is denied."), new IOException("There is not enough space on the disk.", unchecked((int)0x80070070)),
+                    new IOException("The process cannot access the file because it is being used by another process.", unchecked((int)0x80070020)), new FileNotFoundException("Could not find file 'C:\\gone.wav'."),
+                    new System.ComponentModel.Win32Exception(225), new System.Net.WebException("The remote name could not be resolved: 'api.elevenlabs.io'"), new InvalidOperationException("Collection was modified; enumeration operation may not execute.")
+                };
+                string[] plain = { "Windows didn't allow it. If your antivirus blocked it, allow Capri there.", "your storage is full. Free up space, then try again.", "another app is using the file. Close it, then try again.", "a file or folder it needs isn't there anymore.", "your antivirus blocked it.", "the connection failed. Check your internet.", "something in Windows failed." };
+                for (int i = 0; i < raw.Length; i++)
+                {
+                    string said = Brain.Plainly("wording", raw[i]);
+                    if (said != plain[i] || !File.ReadAllText(log).Contains(raw[i].GetType().Name)) throw new Exception("Windows' own words reached a line or left errors.txt: " + raw[i].Message + " became " + said);
+                }
+                string vault = SetVault("C:\\notes\u0000here"), update = UpdateProblem(new IOException("The handle is invalid."));
+                if (vault != "Couldn't use that: it isn't a folder path Windows can use." || update != "Couldn't start the update: Windows couldn't read or write a file it needs. Capri is still running." || !File.ReadAllText(log).Contains("The handle is invalid."))
+                    throw new Exception("A vault or update failure showed Windows' own words: " + vault + " / " + update);
+                checks.Add("PASS wording: brain lines say \"the service\" instead of \"their\", download lines start with a capital and drop \"Try again.\" when she retries herself, and Windows' own words for clips, the vault, updates and voice set-up become plain lines with the original in errors.txt");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT wording: loopback sockets unavailable"); }
+            finally
+            {
+                Brain.LogPath = logWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;

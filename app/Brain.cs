@@ -393,7 +393,7 @@ namespace CapriDesktop
         private static readonly string[] NvidiaDead = { "google/gemma-4-31b-it", "deepseek-ai/deepseek-v4.1-flash", "z-ai/glm-5.3", "z-ai/glm-5.3-flash", "moonshotai/kimi-k2.6", "google/gemma-3-12b-it", "meta/llama-3.2-90b-vision-instruct" };
         internal static string NvidiaDefault { get { return NvidiaPicks[0]; } }
         internal const string Gone = "That model isn't on your key. Pick another one.";
-        internal const string Down = "Their servers failed. Pick another model or retry.";
+        internal const string Down = "The service failed on its end. Pick another model or retry.";
         internal const string Busy = "Too many requests. Wait a minute, then try again.";
         // With Watch my screen on, her glances make requests of their own, so glancing less often helps too.
         internal const string BusyWatching = "Too many requests. Wait a minute, or set Watch my screen to glance less often.";
@@ -403,13 +403,13 @@ namespace CapriDesktop
         internal static string DailyGone { get { return DailyStart + " They reset tomorrow, or add another key " + BrainMenu + "."; } }
         internal const string NewKey = "Key rejected. Make a new Google AI Studio key and paste it.";
         internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
-        internal const string NoCredits = "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
+        internal const string NoCredits = "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.";
         internal const string PlusRejected = "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com.";
         internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.";
         internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
-        internal const string Blocked = "Their API is blocked where you are, so a new key won't help. Pick another service under Free key, or Built-in under BRAIN, which runs on your PC.";
+        internal const string Blocked = "The service is blocked where you are, so a new key won't help. Pick another service under Free key, or Built-in under BRAIN, which runs on your PC.";
         private static readonly Regex BlockPage = new Regex(@"security policy|access restricted|unsupported[_ ]country|country, region,? or territory|(not available|not supported|unavailable) in your (country|region|location)", RegexOptions.IgnoreCase);
         internal const string NoEyes = "I can't see your screen with this brain, and no seeing Ollama model is installed. Pick a model with vision under BRAIN in Capri Mainframe, or install one with ollama pull gemma4:e4b so I can borrow its eyes.";
 
@@ -3523,6 +3523,26 @@ namespace CapriDesktop
         private static readonly Regex NoMemory = new Regex(@"out of memory|insufficient memory|not enough memory|failed to allocate|cudaMalloc failed|unable to allocate|requires more system memory", RegexOptions.IgnoreCase);
         private static readonly Regex NoRoom = new Regex(@"no space left on device|not enough space on the disk|there is not enough space|disk (is )?full|ENOSPC|insufficient (disk|storage) space", RegexOptions.IgnoreCase);
 
+        // A Windows or .NET error in plain words, to follow a colon in a line people see, like "Couldn't save that clip: ".
+        // Its own words, which can be in any language and name system calls, go to errors.txt under place.
+        internal static string Plainly(string place, Exception error)
+        {
+            if (error == null) return "something went wrong.";
+            Log(place, -1, error.GetType().Name + ": " + error.Message);
+            System.ComponentModel.Win32Exception windows = error as System.ComponentModel.Win32Exception;
+            int code = windows != null ? windows.NativeErrorCode : (error.HResult & unchecked((int)0xFFFF0000)) == unchecked((int)0x80070000) ? error.HResult & 0xFFFF : 0;
+            if (code == 225 || code == 226) return "your antivirus blocked it.";
+            if (error is UnauthorizedAccessException || code == 5) return "Windows didn't allow it. If your antivirus blocked it, allow Capri there.";
+            if (code == 112 || code == 39 || NoRoom.IsMatch(error.Message ?? "")) return "your storage is full. Free up space, then try again.";
+            if (code == 32 || code == 33) return "another app is using the file. Close it, then try again.";
+            if (error is FileNotFoundException || error is DirectoryNotFoundException || code == 2 || code == 3) return "a file or folder it needs isn't there anymore.";
+            if (error is PathTooLongException || code == 206) return "its path is too long for Windows.";
+            if (error is WebException) return "the connection failed. Check your internet.";
+            if (error is SerializationException || error is FormatException) return "the reply couldn't be read.";
+            if (error is IOException) return "Windows couldn't read or write a file it needs.";
+            return "something in Windows failed.";
+        }
+
         internal static string Plain(string error)
         {
             if (string.IsNullOrEmpty(error)) return null;
@@ -3857,7 +3877,7 @@ namespace CapriDesktop
         private static void CheckRedirect(WebResponse response)
         {
             int status = (int)((HttpWebResponse)response).StatusCode;
-            if (status >= 300 && status < 400) throw new BrainException("Their API moved. Your key wasn't sent to the new address.", true);
+            if (status >= 300 && status < 400) throw new BrainException("The service's address moved. Your key wasn't sent to the new one.", true);
         }
 
         private static BrainException Problem(WebException error, bool remote, string kind = null, string secret = null)

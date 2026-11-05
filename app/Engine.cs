@@ -268,9 +268,9 @@ namespace CapriDesktop
                     Thread.Sleep(1500 * stalls);
                 }
             }
-            if (have != size) { File.Delete(part); throw new IOException(label + " came down the wrong size. Try again."); }
+            if (have != size) { File.Delete(part); throw new IOException("The download of " + label + " came out the wrong size. Try again."); }
             progress("Checking " + label, size, size);
-            if (!string.Equals(Hash(part), sha256, StringComparison.OrdinalIgnoreCase)) { File.Delete(part); throw new IOException(label + " failed its checksum. Try again."); }
+            if (!string.Equals(Hash(part), sha256, StringComparison.OrdinalIgnoreCase)) { File.Delete(part); throw new IOException("The download of " + label + " didn't match its checksum. Try again."); }
             if (File.Exists(target)) File.Delete(target);
             File.Move(part, target);
         }

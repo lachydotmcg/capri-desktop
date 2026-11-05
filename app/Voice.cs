@@ -3342,7 +3342,7 @@ namespace CapriDesktop
                     if (!Installed) throw new VoiceException("Get her HD voice in Capri Mainframe first.");
                     number = port = Engine.FreePort();
                     try { running = server = Spawn(StartInfo(number)); }
-                    catch (System.ComponentModel.Win32Exception error) { throw new VoiceException(Voice.Short("Her HD voice wouldn't start: " + error.Message)); }
+                    catch (System.ComponentModel.Win32Exception error) { throw new VoiceException("Her HD voice wouldn't start: " + Brain.Plainly("HD voice", error)); }
                     if (running.StartInfo.RedirectStandardError)
                     {
                         running.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs failure) { if (server == running && MemoryError(failure.Data)) memoryFailed = true; };

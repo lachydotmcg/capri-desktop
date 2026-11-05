@@ -3163,7 +3163,7 @@ namespace CapriDesktop
             int code = windows == null ? 0 : windows.NativeErrorCode;
             if (code == 1223) return "The update needs a Yes in the Windows prompt. Try again.";
             if (code == 225 || code == 226) return "Your antivirus blocked the update. Capri is still running.";
-            return "Couldn't start the update (" + Voice.Short(error.Message).TrimEnd('.') + "). Capri is still running.";
+            return "Couldn't start the update: " + Brain.Plainly("update", error) + " Capri is still running.";
         }
 
         private static void OpenPage(string page)
@@ -5698,10 +5698,10 @@ namespace CapriDesktop
                 Directory.CreateDirectory(Path.GetDirectoryName(notes));
                 CarryNotes(Brain.MemoryPath, notes);
             }
-            catch (IOException error) { return "Couldn't use that: " + error.Message; }
-            catch (UnauthorizedAccessException error) { return "Couldn't use that: " + error.Message; }
-            catch (ArgumentException error) { return "Couldn't use that: " + error.Message; }
-            catch (NotSupportedException error) { return "Couldn't use that: " + error.Message; }
+            catch (IOException error) { return "Couldn't use that: " + Brain.Plainly("vault", error); }
+            catch (UnauthorizedAccessException error) { return "Couldn't use that: " + Brain.Plainly("vault", error); }
+            catch (ArgumentException error) { Brain.Log("vault", -1, error.Message); return "Couldn't use that: it isn't a folder path Windows can use."; }
+            catch (NotSupportedException error) { Brain.Log("vault", -1, error.Message); return "Couldn't use that: it isn't a folder path Windows can use."; }
             bool own = folder.Length == 0;
             preferences.Vault = own ? null : notes;
             SavePreferences();
@@ -10355,6 +10355,15 @@ namespace CapriDesktop
 
         internal static int EarsRetryWait(int failures) { return Math.Min(300, 30 << Math.Max(0, Math.Min(4, failures - 1))); }
 
+        // A reason she retries herself drops its own "Try again.", so it never reads "Try again. I'll try again in 30 seconds."
+        internal static string Retrying(string problem)
+        {
+            string reason = (problem ?? "").TrimEnd();
+            if (reason.EndsWith(" and try again.", StringComparison.Ordinal)) return reason.Substring(0, reason.Length - " and try again.".Length) + ".";
+            if (reason.EndsWith(" Try again.", StringComparison.Ordinal)) return reason.Substring(0, reason.Length - " Try again.".Length);
+            return reason;
+        }
+
         // Free voice chat checks two things: a failed ears download gets another go, and a mic that sends only silence gets a warning.
         private void CheckHearing(double now)
         {
@@ -10588,7 +10597,7 @@ namespace CapriDesktop
                     if (problem == null) { wakeTries = 0; wakeRetryAt = -1; return; }
                     int wait = EarsRetryWait(++wakeTries);
                     wakeRetryAt = clock.Elapsed.TotalSeconds + wait;
-                    WakeNote("\"Hey Capri\" didn't download: " + problem + " I'll try again in " + (wait < 60 ? wait + " seconds" : wait == 60 ? "a minute" : wait / 60 + " minutes") + ".", true);
+                    WakeNote("\"Hey Capri\" didn't download: " + Retrying(problem) + " I'll try again in " + (wait < 60 ? wait + " seconds" : wait == 60 ? "a minute" : wait / 60 + " minutes") + ".", true);
                 });
             });
         }
@@ -11279,7 +11288,7 @@ namespace CapriDesktop
                 int status = 0;
                 try { found = Voice.Fetch(key); }
                 catch (VoiceException error) { problem = error.Message; status = error.Status; }
-                catch (Exception error) { problem = Voice.Short("Couldn't read your ElevenLabs voices: " + error.Message); }
+                catch (Exception error) { problem = "Couldn't read your ElevenLabs voices: " + Brain.Plainly("ElevenLabs voices", error); }
                 Post(delegate
                 {
                     if (connecting && status == 401) { mainframe.VoiceNote(Voice.Unsaved(problem), true); return; }
@@ -29758,6 +29767,7 @@ namespace CapriDesktop
             Section(checks, "SmokeRateLimits", delegate { SmokeRateLimits(checks); });
             Section(checks, "SmokeVoiceCredit", delegate { SmokeVoiceCredit(checks, output); });
             Section(checks, "SmokeSpecialLetters", delegate { SmokeSpecialLetters(checks); });
+            Section(checks, "SmokeWordingFixes", delegate { SmokeWordingFixes(checks, output); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)
@@ -33567,7 +33577,7 @@ namespace CapriDesktop
                                 updater.Run = delegate { throw new IOException("fake start failure"); };
                                 updateItem.PerformClick();
                                 finishUpdate();
-                                if (exits != 2 || !updateItem.Enabled || mainframe.UpdateStatus != "Couldn't start the update (fake start failure). Capri is still running.") throw new Exception("A failed installer launch closed Capri: " + mainframe.UpdateStatus);
+                                if (exits != 2 || !updateItem.Enabled || mainframe.UpdateStatus != "Couldn't start the update: Windows couldn't read or write a file it needs. Capri is still running.") throw new Exception("A failed installer launch closed Capri: " + mainframe.UpdateStatus);
                                 if (UpdateProblem(new System.ComponentModel.Win32Exception(1223)) != "The update needs a Yes in the Windows prompt. Try again." || UpdateProblem(new System.ComponentModel.Win32Exception(225)) != "Your antivirus blocked the update. Capri is still running.")
                                     throw new Exception("An installer launch failure didn't say why.");
                                 updater.Run = delegate(ProcessStartInfo start) { command = start; launches++; };
@@ -37418,7 +37428,7 @@ namespace CapriDesktop
                                     if (ramLine != "Not enough free RAM: it needs 8.8 GB, only 4.8 GB is free." || diskLine != "Your storage is full. Free up space, then try again." || Brain.Brief("There is not enough space on the disk.") != diskLine || Brain.Brief("model 'gemma' not found") != null || ramLine.Length > 60 || diskLine.Length > 60) throw new Exception("The short Mainframe lines for memory and storage went wrong: " + ramLine + " / " + diskLine);
                                     checks.Add("PASS plain errors: not enough RAM says how much the brain needs and how much is free and to close apps or pick a smaller brain, a full drive says your storage is full and to free up space, both have short Mainframe lines, and other errors pass through");
                                     if (!Engine.Lost("got exception: vk::Queue::submit: ErrorDeviceLost") || Engine.Lost("model not found")) throw new Exception("A lost graphics card was not spotted.");
-                                    const string broke = "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
+                                    const string broke = "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.";
                                     if (Brain.Meaning(429, "{\"error\":{\"message\":\"You have no credits remaining. Add credits to continue using the API.\",\"type\":\"insufficient_quota\"}}") != broke || Brain.Meaning(402, "{\"error\":{\"message\":\"Insufficient Balance\"}}") != broke
                                         || Brain.Meaning(400, "{\"type\":\"error\",\"error\":{\"message\":\"Your credit balance is too low to access the Anthropic API.\"}}") != broke || Brain.Meaning(429, "{\"status\":429,\"title\":\"Too Many Requests\"}") != "Too many requests. Wait a minute, then try again."
                                         || Brain.Meaning(401, "{\"error\":\"bad key\"}") != "Key rejected. Press Forget, then paste it again." || Brain.Meaning(400, "{\"error\":\"bad request\"}") != null
@@ -37814,7 +37824,7 @@ namespace CapriDesktop
                                     string problem = null;
                                     try { failed.Ask("hey"); }
                                     catch (BrainException error) { if (!error.Told) throw; problem = error.Message; }
-                                    if (problem != "Their servers failed. Pick another model or retry.") throw new Exception("A cloud HTTP error was not explained.");
+                                    if (problem != "The service failed on its end. Pick another model or retry.") throw new Exception("A cloud HTTP error was not explained.");
                                     failed.Act = delegate { failed.Cancel(); return "Opened Spotify."; };
                                     bool stopped = false;
                                     try { failed.Ask("open spotify"); }
