@@ -49,12 +49,15 @@ try {
     try { $failed = Run $uninstaller '--uninstall --silent' } finally { $lock.Dispose() }
     if ($failed[0] -eq 0) { throw 'A locked Capri.exe was reported as removed.' }
     if ([string]::IsNullOrWhiteSpace($failed[1])) { throw 'The silent uninstall failed without a reason.' }
-    if (!(Test-Path $marker) -or !(Test-Path $arp) -or !(Test-Path $app)) { throw 'A failed uninstall lost her install marker, uninstall entry or app, so it cannot be tried again.' }
+    if (!(Test-Path $marker) -or !(Test-Path $arp) -or !(Test-Path $app) -or !(Test-Path $uninstaller)) { throw 'A failed uninstall lost her install marker, uninstall entry, app or uninstaller, so it cannot be tried again.' }
     if ($null -ne (Get-ItemProperty $run -Name Capri -ErrorAction SilentlyContinue)) { throw 'A failed uninstall kept her Start with Windows entry.' }
     Kept
 
-    $retry = Run $setup '--silent --uninstall'
-    if ($retry[0] -ne 0) { throw "Trying again exited $($retry[0]): $($retry[1])" }
+    # Trying again goes through her uninstall entry's quiet command, the way winget removes her.
+    $quiet = (Get-ItemProperty $arp -Name QuietUninstallString -ErrorAction SilentlyContinue).QuietUninstallString
+    if ($quiet -notmatch '^"([^"]+)" (.+)$' -or $Matches[1] -ne $uninstaller) { throw "Her uninstall entry's quiet command doesn't run her uninstaller: $quiet" }
+    $retry = Run $Matches[1] $Matches[2]
+    if ($retry[0] -ne 0) { throw "Trying again through her uninstall entry exited $($retry[0]): $($retry[1])" }
     foreach ($gone in $app, $uninstaller, $marker, $link, $arp) { if (Test-Path $gone) { throw "$gone remains after the uninstall." } }
     foreach ($pack in $packs) { if (Test-Path (Join-Path $capriDir $pack)) { throw "Her $pack pack remains after the uninstall." } }
     Kept
@@ -71,7 +74,7 @@ try {
     if ($removed[0] -ne 0) { throw "Uninstall.exe --uninstall --silent exited $($removed[0]): $($removed[1])" }
     foreach ($gone in $app, $uninstaller, $marker, $link, $arp) { if (Test-Path $gone) { throw "$gone remains after Uninstall.exe removed her." } }
     Kept
-    Write-Output 'PASS silent uninstall: a locked app fails with a reason, clears her startup entry and stays retryable; trying again removes her app, uninstaller, marker, brain, voice, ears and wake packs, Start menu shortcut and uninstall entry; removing her when she is not installed fails with a reason; her own Uninstall.exe removes a fresh install; the user''s files, mods and a shortcut to another program stay every time'
+    Write-Output 'PASS silent uninstall: a locked app fails with a reason, clears her startup entry and stays retryable from her own uninstall entry; trying again through its quiet command removes her app, uninstaller, marker, brain, voice, ears and wake packs, Start menu shortcut and uninstall entry; removing her when she is not installed fails with a reason; her own Uninstall.exe removes a fresh install; the user''s files, mods and a shortcut to another program stay every time'
 }
 finally {
     if (Test-Path $err) { Remove-Item $err -Force }

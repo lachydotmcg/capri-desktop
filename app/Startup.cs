@@ -81,6 +81,20 @@ namespace CapriDesktop
             Gone(file);
         }
 
+        // A removal that fails after the uninstaller retired itself puts it back under its own name, so her uninstall entry
+        // can run it again: its old file when there is one, or a copy of the setup that's running, which is the same program.
+        internal static void Unretire(string file, string running)
+        {
+            try
+            {
+                if (File.Exists(file)) return;
+                if (File.Exists(file + ".old")) File.Move(file + ".old", file);
+                else File.Copy(running, file);
+            }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+
         internal static void Gone(string file)
         {
             try { File.GetAttributes(file); }
