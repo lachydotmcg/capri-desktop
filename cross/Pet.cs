@@ -492,8 +492,9 @@ namespace CapriDesktop
             StartCare();
             // Security, like Windows: Mac and Linux have the first five toggles' features, and settings from before it get Trusted.
             // Her mouse and keyboard jobs too, once /dev/uinput lets her make her own (Fingers). The smoke test keeps the five.
+            // Keep personal details out of her memories is here as well, since her notes and what she sees are Windows' own code.
             fingers = Program.Smoke == null && Fingers.Problem == null;
-            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers); };
+            Security.Has = delegate(int toggle) { return toggle <= Security.Power || (toggle == Security.Mouse && fingers) || toggle == Security.Personal; };
             Hands.OwnHands = fingers;
             Security.Load(Saved.Permissions);
             Security.Changed = delegate { Saved.Permissions = Security.Saved; Save(); if (ContextMenu != null) Sync(); };
@@ -1969,7 +1970,8 @@ namespace CapriDesktop
             settings.Items.Add(discordItem);
             // Security, like Windows' SECURITY window (Lachy, 29 Oct): Lockdown, Guarded, Trusted and Blackwall set the toggles
             // under them, and flipping one makes it Custom. Each toggle has its plain line. Off means she asks first and does it
-            // on your yes. Mac and Linux have the first five, and Linux her mouse and keyboard jobs once uinput is set up; "Hey Capri" is Windows-only so far.
+            // on your yes. Mac and Linux have the first five and Keep personal details out of her memories, and Linux her mouse and
+            // keyboard jobs once uinput is set up; "Hey Capri" is Windows-only so far.
             securityMenu = new MenuItem { Header = "Security: " + Security.PresetName };
             for (int i = 0; i <= Security.Custom; i++)
             {

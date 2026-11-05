@@ -110,11 +110,13 @@ namespace CapriDesktop
     // silent no. Typing passwords and card numbers is the one exception: with it off they type those themselves. Trusted, the
     // default, is how she worked before the window, and Blackwall is Blackwall mode (Bypass all permissions before 0.7.4) plus
     // listening for "Hey Capri". The gate is in code: her tools stop here, and her jobs' steps stop in Computer's checks.
+    // Toggle 13, Keep personal details out of her memories (#88, Lachy, 5 Nov), is on in every preset but Blackwall: on, her
+    // notes, Get to know me and what she sees leave addresses, numbers and emails out (Brain.Discreet). Off is how she was before.
     internal static class Security
     {
-        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Count = 12;
+        internal const int Open = 0, Media = 1, Shortcuts = 2, Windows = 3, Power = 4, Mouse = 5, Sends = 6, Pays = 7, Unasked = 8, Secrets = 9, Wake = 10, Friends = 11, Personal = 12, Count = 13;
         internal const int Lockdown = 0, Guarded = 1, Trusted = 2, Blackwall = 3, Custom = 4;
-        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm" };
+        internal static readonly string[] Names = { "Open apps, games and sites", "Music, media and volume", "Shortcuts (screenshots, Game Bar, captions, Discord mute)", "Close and switch apps and tabs", "Shut down, restart, sleep, lock and sign out", "Use your mouse and keyboard for jobs", "Send, post and delete what you asked for", "Pay, buy and book", "Things your request didn't mention", "Type passwords and card numbers", "Listen for \"Hey Capri\"", "Friends on a call can ask, you confirm", "Keep personal details out of her memories" };
         internal static readonly string[] Lines =
         {
             "On: she opens them when you ask. Off: she asks first.",
@@ -132,12 +134,13 @@ namespace CapriDesktop
             "On: she does the extra steps a job needs. Off: she asks first.",
             "On: she types the ones your job gives her. Off: you type them.",
             "On: she listens on this PC for her name. Off: she doesn't.",
-            "Call mode only. Your mic or typing must confirm each ask."
+            "Call mode only. Your mic or typing must confirm each ask.",
+            "On: addresses, emails and numbers stay out. Off: they don't."
         };
         internal static readonly string[] Presets = { "Lockdown", "Guarded", "Trusted", "Blackwall", "Custom" };
         private static readonly string[] Told =
         {
-            "Everything is off: she asks first before she does anything on your PC.",
+            "She asks first before she does anything on your PC.",
             "She opens apps and sites, plays music and presses shortcuts, and asks first for the rest.",
             "She does what you ask, and asks first before paying or anything you didn't mention.",
             "She never asks, types passwords and card numbers, and listens for \"Hey Capri\".",
@@ -145,9 +148,10 @@ namespace CapriDesktop
         };
         // The Settings line under her SECURITY button, short enough for its row.
         private static readonly string[] Shorts = { "She asks first before everything.", "Apps, music, shortcuts. Asks for the rest.", "Asks before paying or what you didn't say.", "She never asks, and listens for Hey Capri.", "Your own mix of toggles." };
-        // Lockdown has them all off, Guarded the first three on, Trusted the first seven and Blackwall all eleven.
-        private static readonly int[] Masks = { 0, 0x7, 0x7F, 0x7FF };
-        private static int mask = 0x7F;
+        // Lockdown has the first twelve off, Guarded the first three on, Trusted the first seven and Blackwall the first eleven.
+        // Keeping personal details out of her memories is on in all of them but Blackwall.
+        private static readonly int[] Masks = { 1 << Personal, 0x7 | (1 << Personal), 0x7F | (1 << Personal), 0x7FF };
+        private static int mask = 0x7F | (1 << Personal);
         private static readonly object gate = new object();
         // Toggle 11 is her wake word's own setting on Windows, read and set through these. Elsewhere it's kept here with the rest.
         internal static Func<bool> HeyOn;
@@ -198,15 +202,16 @@ namespace CapriDesktop
             if (changed != null) changed();
         }
 
-        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" alone. Nothing is saved.
-        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
+        // Toggles 1 to 10 the way Blackwall mode's switch used to set them, leaving "Hey Capri" and the toggles after it alone.
+        // Nothing is saved.
+        internal static void Jobs(bool blackwall) { lock (gate) mask = (mask & ((1 << Wake) | (1 << Friends) | (1 << Personal))) | (Masks[blackwall ? Blackwall : Trusted] & 0x3FF); }
 
         // The preset their toggles match, or Custom. "Hey Capri" only counts where there's a wake word.
         internal static int Preset
         {
             get
             {
-                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0);
+                int bits = Mask, counted = (Has(Wake) ? 0x7FF : 0x3FF) | (Has(Friends) ? 1 << Friends : 0) | (Has(Personal) ? 1 << Personal : 0);
                 for (int i = 0; i < Masks.Length; i++) if ((bits & counted) == (Masks[i] & counted)) return i;
                 return Custom;
             }
@@ -234,25 +239,32 @@ namespace CapriDesktop
         internal static string Of(int preset) { return Marks(Masks[preset]); }
 
         // Friend requests take an 11th mark only when they're on, so a build from before them still reads the save instead of
-        // falling back to Trusted.
+        // falling back to Trusted. Keeping personal details out of her memories takes a 12th, after the 11th, only when it isn't
+        // what the first ten give it (Kept), so a save that never changed it reads there too.
         private static string Marks(int bits)
         {
-            bool friends = (bits & (1 << Friends)) != 0;
-            char[] marks = new char[friends ? Wake + 1 : Wake];
+            bool friends = (bits & (1 << Friends)) != 0, personal = (bits & (1 << Personal)) != 0, odd = personal != Kept(bits);
+            char[] marks = new char[odd ? Wake + 2 : friends ? Wake + 1 : Wake];
             for (int i = 0; i < Wake; i++) marks[i] = (bits & (1 << i)) != 0 ? '1' : '0';
-            if (friends) marks[Wake] = '1';
+            if (friends || odd) marks[Wake] = friends ? '1' : '0';
+            if (odd) marks[Wake + 1] = personal ? '1' : '0';
             return new string(marks);
         }
+
+        // Whether toggles 1 to 10 keep personal details out of her memories when their save doesn't say: yes, unless all ten
+        // are on, like Blackwall's. A save from before the toggle gets its preset's default this way, and a Custom mix gets it on.
+        private static bool Kept(int bits) { return (bits & 0x3FF) != 0x3FF; }
 
         // Their saved toggles, or Trusted for anything unreadable. "Hey Capri" stays where it lives.
         internal static void Load(string saved, bool wake = false)
         {
             int bits = 0;
-            if (saved == null || saved.Length != Wake && saved.Length != Wake + 1 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted] & 0x3FF;
+            if (saved == null || saved.Length < Wake || saved.Length > Wake + 2 || saved.Trim('0', '1').Length > 0) bits = Masks[Trusted];
             else
             {
                 for (int i = 0; i < Wake; i++) if (saved[i] == '1') bits |= 1 << i;
                 if (saved.Length > Wake && saved[Wake] == '1') bits |= 1 << Friends;
+                if (saved.Length > Wake + 1 ? saved[Wake + 1] == '1' : Kept(bits)) bits |= 1 << Personal;
             }
             lock (gate) mask = bits | (wake ? 1 << Wake : 0);
         }

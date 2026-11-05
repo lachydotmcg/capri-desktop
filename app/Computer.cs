@@ -107,6 +107,8 @@ namespace CapriDesktop
                 {
                     text.Append("\n" + target.Label);
                     if (target.Secret) text.Append(" (password box)");
+                    // Keep personal details out of her memories on: what's in a personal or card box stays out of her job's text.
+                    else if (Brain.Discreet && (Computer.PersonalBox(target) || Computer.CardBox(target))) { if (!string.IsNullOrEmpty(target.Value)) text.Append(" (value hidden)"); }
                     else if (!string.IsNullOrEmpty(target.Value)) text.Append(" = " + Voice.Quote(target.Value));
                     if (target.Focused) text.Append(" (focused)");
                 }
