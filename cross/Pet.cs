@@ -400,6 +400,8 @@ namespace CapriDesktop
         // Their mouse, which "teleport here" goes to. The smoke test hands in its own.
         internal Func<PixelPoint?> MouseAt;
         internal Action<PixelPoint> MoveTo;
+        // Where a point on her window is on the desktop, which the smoke test can make fail. Null is PointToScreen.
+        internal Func<Point, PixelPoint> ToScreen;
         // Getting to know them, like on Windows: on a new install it starts once she's said hello, and Settings > Get to know me
         // starts it again.
         private readonly Meeting meeting = new Meeting();
@@ -1202,7 +1204,12 @@ namespace CapriDesktop
             double step = Math.Max(0, Math.Min(0.05, now - fallStep));
             fallStep = now;
             PixelPoint hip = Hip;
-            if (fallTo == null) fallTo = Perches.Below(Ledges(), hip, 0, int.MaxValue, 0, Headroom, ScreenAt);
+            if (fallTo == null)
+            {
+                // A bug finding somewhere to land stops her fall where she is, so it can't hold up the rest of her every frame.
+                try { fallTo = Perches.Below(Ledges(), hip, 0, int.MaxValue, 0, Headroom, ScreenAt); }
+                catch (Exception) { falling = false; Save(); throw; }
+            }
             if (fallTo == null) { falling = false; Save(); return; }
             fallSpeed += body.Size * 11 * step;
             int drop = (int)Math.Ceiling(fallSpeed * step * DesktopScaling);
@@ -1330,13 +1337,16 @@ namespace CapriDesktop
                 if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || outro != null) return;
                 Point at = e.GetPosition(this);
                 if (!Opaque(at)) return;
+                // Where the press is comes first and the capture next, so a bug in either leaves her not pressed, instead of
+                // pressed with no capture to tell her when the mouse lets go.
+                PixelPoint down = DragPoint(at);
+                e.Pointer.Capture(this);
                 pressed = true;
                 clicks++;
                 dragging = false;
                 dragPending = false;
-                downAt = DragPoint(at);
-                grab = new PixelPoint(downAt.X - anchor.X, downAt.Y - anchor.Y);
-                e.Pointer.Capture(this);
+                downAt = down;
+                grab = new PixelPoint(down.X - anchor.X, down.Y - anchor.Y);
             });
         }
 
@@ -1368,7 +1378,7 @@ namespace CapriDesktop
                 }
                 catch (Exception) { }
             }
-            return this.PointToScreen(at);
+            return ToScreen != null ? ToScreen(at) : this.PointToScreen(at);
         }
 
         internal void DragFrame()
@@ -1636,8 +1646,12 @@ namespace CapriDesktop
 
         internal bool Drop()
         {
+            // Her ledges are found before the drag ends, and a bug there still ends it, with a fall that looks again, so it
+            // can't leave her floating where she was let go.
+            Ledge target;
+            try { target = Perch(Ledges(), Hip); }
+            catch (Exception) { dragging = false; Fall(); throw; }
             dragging = false;
-            Ledge target = Perch(Ledges(), Hip);
             if (target == null) { Save(); return false; }
             falling = true;
             fallTo = target;

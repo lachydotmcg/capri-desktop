@@ -1566,6 +1566,37 @@ namespace CapriDesktop
                 broken = false;
                 checks.Add("PASS a missing or failed desk pointer uses PointToScreen for press, move and release; five pixels starts a drag");
 
+                // A bug part-way through a press or a drop is caught by Program.Guard, and leaves her whole.
+                pet.StandUp();
+                pet.Move(start);
+                moves.Clear();
+                cursor = null;
+                bool pressedAfter = true, capturedAfter = true, draggingAfter = true, fellAfter = false, stillFalling = true;
+                Caught(delegate
+                {
+                    pet.ToScreen = delegate(Point point) { throw new InvalidOperationException("No screen point here."); };
+                    try { Press(mouse, at); }
+                    finally { pet.ToScreen = null; }
+                    pressedAfter = (bool)typeof(Pet).GetField("pressed", fields).GetValue(pet);
+                    capturedAfter = mouse.Captured == pet;
+                    pet.Grab();
+                    List<PixelRect> screens = pet.Desk.Screens;
+                    pet.Desk.Screens = null;
+                    try
+                    {
+                        Program.Guard(delegate { pet.Drop(); });
+                        draggingAfter = pet.Dragging;
+                        fellAfter = pet.Falling;
+                        Program.Guard(delegate { typeof(Pet).GetMethod("Tumble", fields).Invoke(pet, new object[] { pet.Now }); });
+                        stillFalling = pet.Falling;
+                    }
+                    finally { pet.Desk.Screens = screens; }
+                });
+                if (pressedAfter || capturedAfter) throw new Exception("A press whose screen point failed left her pressed (" + pressedAfter + ") or holding the mouse (" + capturedAfter + ").");
+                if (draggingAfter || !fellAfter) throw new Exception("A drop whose ledges failed left her held (" + draggingAfter + ") or floating where she was let go.");
+                if (stillFalling) throw new Exception("A fall whose ledges kept failing didn't stop.");
+                checks.Add("PASS a bug part-way through a press or a drop leaves her whole: a failed screen point leaves her unpressed with no capture, and failed ledges still end the drag with a fall, which stops if they keep failing");
+
                 if (linux)
                 {
                     pet.StandUp();
