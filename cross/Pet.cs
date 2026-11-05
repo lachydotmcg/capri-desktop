@@ -248,9 +248,16 @@ namespace CapriDesktop
         private readonly List<double> petTurns = new List<double>();
         private int petX;
         private int petWay;
+        // Up-and-down pats count too, on their own axis (Lachy, 5 Nov: head pats did nothing).
+        private readonly List<double> petRises = new List<double>();
+        private int petY;
+        private int petRise;
         private double petAt = -60;
         private int petLine;
         private int petTicket;
+        // A busy moment holds her pat line up to PetWaits times, half a second each, before she lets it go.
+        private const int PetWaits = 12;
+        private int petWaits;
         private readonly Body body = new Body();
         private readonly List<MenuItem> wanderPicks = new List<MenuItem>();
         private readonly List<MenuItem> languagePicks = new List<MenuItem>();
@@ -1454,19 +1461,37 @@ namespace CapriDesktop
 
         internal void Stroke(PixelPoint cursor)
         {
-            if (!HeadPats || pressed || dragging || falling || outro != null || Talk.Typing || !Opaque(this.PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
-            int dx = cursor.X - petX;
-            if (Math.Abs(dx) < 6) return;
+            if (!HeadPats || pressed || dragging || falling || outro != null || Talk.Typing) { ForgetStroke(); return; }
+            // Her window takes the pointer over her see-through edges too, so a pat that overshoots her outline skips that
+            // spot instead of starting over.
+            if (!Opaque(this.PointToClient(cursor))) return;
             double now = Now;
-            int way = Math.Sign(dx);
-            petX = cursor.X;
-            if (petWay != 0 && way != petWay) petTurns.Add(now);
-            petWay = way;
-            petTurns.RemoveAll(at => now - at > 1.5);
-            if (petTurns.Count < 4 || now - petAt < 20) return;
-            petTurns.Clear();
+            bool turned = Turned(cursor.X, ref petX, ref petWay, petTurns, now) | Turned(cursor.Y, ref petY, ref petRise, petRises, now);
+            if (!turned || (petTurns.Count < 3 && petRises.Count < 3) || now - petAt < 20) return;
+            ForgetStroke();
             petAt = now;
             Petted();
+        }
+
+        // Side to side or up and down: a turn after at least 6 px each way counts, and three on one axis inside 2 s make a pat.
+        private static bool Turned(int at, ref int from, ref int way, List<double> turns, double now)
+        {
+            int moved = at - from;
+            if (Math.Abs(moved) < 6) return false;
+            int heading = Math.Sign(moved);
+            from = at;
+            bool turned = way != 0 && heading != way;
+            if (turned) turns.Add(now);
+            way = heading;
+            turns.RemoveAll(time => now - time > 2);
+            return turned;
+        }
+
+        private void ForgetStroke()
+        {
+            petTurns.Clear();
+            petRises.Clear();
+            petWay = petRise = 0;
         }
 
         private void Petted()
@@ -1475,6 +1500,7 @@ namespace CapriDesktop
             if (seat != null) { Play(perch); blinkWith = perchBlink; }
             else Play(grin);
             int ticket = ++petTicket;
+            petWaits = 0;
             DispatcherTimer.RunOnce(() => PetLine(ticket), TimeSpan.FromMilliseconds(1300));
         }
 
@@ -1551,7 +1577,14 @@ namespace CapriDesktop
 
         internal void PetLine(int ticket)
         {
-            if (ticket != petTicket || outro != null || away || !Talk.Quiet) return;
+            if (ticket != petTicket || outro != null || away) return;
+            // Busy talking holds the line a few seconds instead of dropping it.
+            if (!Talk.Quiet)
+            {
+                if (++petWaits <= PetWaits) DispatcherTimer.RunOnce(() => PetLine(ticket), TimeSpan.FromMilliseconds(500));
+                else petAt = -60;   // never said, so the next pat counts straight away
+                return;
+            }
             if (clip == grin) Play(idle);
             string line = PetLines[petLine++ % PetLines.Length];
             Talk.Answer("pets you", line);
@@ -1562,7 +1595,7 @@ namespace CapriDesktop
         {
             petTicket++;
             petAt = -60;
-            petTurns.Clear();
+            ForgetStroke();
             Play(seat != null ? perch : idle);
         }
 

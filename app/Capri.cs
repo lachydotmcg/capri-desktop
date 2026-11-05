@@ -1767,12 +1767,19 @@ namespace CapriDesktop
         private readonly System.Collections.Generic.List<long> petTurns = new System.Collections.Generic.List<long>();
         private int petX;
         private int petWay;
+        // Up-and-down pats count too, on their own axis (Lachy, 5 Nov: head pats did nothing).
+        private readonly System.Collections.Generic.List<long> petRises = new System.Collections.Generic.List<long>();
+        private int petY;
+        private int petRise;
         private long petAt = -60000;
         // Pat lines come out of a shuffled bag: every line once a round, never the same one twice in a row.
         private readonly System.Collections.Generic.List<int> petBag = new System.Collections.Generic.List<int>();
         private int lastPet = -1;
         private int petTicket;
         private const int PetPause = 1300;
+        // A busy moment holds her pat line up to PetWaits times, PetWait ms each, before she lets it go.
+        private const int PetWait = 500, PetWaits = 12;
+        private int petWaits;
         private const int GreetPause = 1800;
         private Job job;
         // A Claude model that turned down the computer tools this session, so its jobs read buttons instead.
@@ -3823,19 +3830,35 @@ namespace CapriDesktop
 
         private void Stroke(Point cursor)
         {
-            if (preferences.Hologram || preferences.NoHeadPats || pressed || dragging || riding || hidden || InChat || working != null || frame == null || !Solid(PointToClient(cursor))) { petTurns.Clear(); petWay = 0; return; }
-            int dx = cursor.X - petX;
-            if (Math.Abs(dx) < 6) return;
+            // Voice chat doesn't stop pats: she still reacts, and PetLine puts her line in her bubble.
+            if (preferences.Hologram || preferences.NoHeadPats || pressed || dragging || riding || hidden || working != null || frame == null || !Solid(PointToClient(cursor))) { ForgetStroke(); return; }
             long now = clock.ElapsedMilliseconds;
-            int way = Math.Sign(dx);
-            petX = cursor.X;
-            if (petWay != 0 && way != petWay) petTurns.Add(now);
-            petWay = way;
-            petTurns.RemoveAll(delegate(long at) { return now - at > 1500; });
-            if (petTurns.Count < 4 || (now - petAt < 20000 && !Sulking)) return;
-            petTurns.Clear();
+            bool turned = Turned(cursor.X, ref petX, ref petWay, petTurns, now) | Turned(cursor.Y, ref petY, ref petRise, petRises, now);
+            if (!turned || (petTurns.Count < 3 && petRises.Count < 3) || (now - petAt < 20000 && !Sulking)) return;
+            ForgetStroke();
             petAt = now;
             Petted();
+        }
+
+        // Side to side or up and down: a turn after at least 6 px each way counts, and three on one axis inside 2 s make a pat.
+        private static bool Turned(int at, ref int from, ref int way, System.Collections.Generic.List<long> turns, long now)
+        {
+            int moved = at - from;
+            if (Math.Abs(moved) < 6) return false;
+            int heading = Math.Sign(moved);
+            from = at;
+            bool turned = way != 0 && heading != way;
+            if (turned) turns.Add(now);
+            way = heading;
+            turns.RemoveAll(delegate(long time) { return now - time > 2000; });
+            return turned;
+        }
+
+        private void ForgetStroke()
+        {
+            petTurns.Clear();
+            petRises.Clear();
+            petWay = petRise = 0;
         }
 
         private void Petted()
@@ -3854,6 +3877,7 @@ namespace CapriDesktop
             frames.Start();
             RenderFrame();
             int ticket = ++petTicket;
+            petWaits = 0;
             ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(PetPause); Post(delegate { PetLine(ticket); }); });
         }
 
@@ -3950,12 +3974,25 @@ namespace CapriDesktop
 
         private void PetLine(int ticket)
         {
-            if (ticket != petTicket || hidden || InChat || speech != null || talkState != TalkState.Off || typer.Visible) return;
+            if (ticket != petTicket || hidden) return;
+            // Busy talking or typing holds the line a few seconds instead of dropping it. In a voice chat it waits only for her
+            // own voice, like her screen comments.
+            bool busy = typer.Visible || (InChat ? voice.Busy || clock.Elapsed.TotalSeconds < voiceUntil || answerVoice == asking || hdSpeaking == asking : speech != null || talkState != TalkState.Off);
+            if (busy)
+            {
+                if (++petWaits <= PetWaits) ThreadPool.QueueUserWorkItem(delegate { Thread.Sleep(PetWait); Post(delegate { PetLine(ticket); }); });
+                else petAt = -60000;   // never said, so the next pat counts straight away
+                return;
+            }
             heard = "pets you";
             box.Prompt = "> sys: ";
-            // Pat lines use the same voice as everything else she says: their ElevenLabs voice and model when they've set one.
-            Answer(++asking, patForgives ? Lines.Pick(PatPeaceLines) : NextPetLine(), TalkState.Talking);
+            int said = ++asking;
+            string line = patForgives ? Lines.Pick(PatPeaceLines) : NextPetLine();
             patForgives = false;
+            // Pat lines use the same voice as everything else she says: their ElevenLabs voice and model when they've set one.
+            // In a voice chat the line goes in her bubble only, so it doesn't talk over the chat.
+            if (InChat) Begin(said, line, TalkState.Talking, null);
+            else Answer(said, line, TalkState.Talking);
         }
 
         internal string NextPetLine()
@@ -9501,8 +9538,7 @@ namespace CapriDesktop
                 pressed = dragging = pendingClick = false;
                 Capture = false;
                 clickDelay.Stop();
-                petTurns.Clear();
-                petWay = 0;
+                ForgetStroke();
                 petTicket++;
                 StopRide();
                 if (clip == dangle) { Play(idle); Drop(); }
@@ -16893,6 +16929,78 @@ namespace CapriDesktop
                 checks.Add("PASS Mainframe's mini-game menu opens all four existing boards through their tool, survives a click elsewhere closing it, and the new controls have hover help and fit the existing rows");
             }
             finally { Hands.Mini = miniWas; }
+        }
+
+        // Lachy, 5 Nov: head pats did nothing with them on. Up-and-down pats count, pats in a voice chat count with the line in
+        // her bubble, and a busy moment holds the line instead of dropping it.
+        private void SmokeHeadPats(List<string> checks)
+        {
+            bool patsWas = preferences.NoHeadPats, chatWas = chatting, localWas = local;
+            long petAtWas = petAt;
+            Clip clipWas = clip;
+            try
+            {
+                if (frame == null || hidden || preferences.Hologram || riding || working != null) throw new Exception("She wasn't standing free for the head pat checks.");
+                preferences.NoHeadPats = false;
+                CloseTalk();
+                Point side = Point.Empty, top = Point.Empty;
+                for (int row = 0; row + 10 < frame.Height; row += 8)
+                    for (int column = 0; column + 10 < frame.Width; column += 8)
+                    {
+                        if (side.IsEmpty && Solid(new Point(column, row)) && Solid(new Point(column + 10, row))) side = PointToScreen(new Point(column, row));
+                        if (top.IsEmpty && Solid(new Point(column, row)) && Solid(new Point(column, row + 10))) top = PointToScreen(new Point(column, row));
+                    }
+                if (side.IsEmpty || top.IsEmpty) throw new Exception("Her frame had no solid spot to pat.");
+                Func<Point, Size, int> rub = delegate(Point at, Size step)
+                {
+                    int from = petTicket;
+                    petAt = -60000;
+                    ForgetStroke();
+                    petX = at.X;
+                    petY = at.Y;
+                    for (int turn = 0; turn < 6; turn++) Stroke(turn % 2 == 0 ? at + step : at);
+                    petTicket++;
+                    return petTicket - from - 1;
+                };
+                int sideways = rub(side, new Size(10, 0)), upDown = rub(top, new Size(0, 10));
+                if (sideways != 1 || upDown != 1) throw new Exception("A rub counted wrong: side to side " + sideways + ", up and down " + upDown + " (one each expected).");
+                chatting = true;
+                local = false;
+                if (!InChat || rub(side, new Size(10, 0)) != 1) throw new Exception("A head pat didn't count during a voice chat.");
+                CloseTalk();
+                asking++;
+                int asked = asking;
+                Petted();
+                PetLine(petTicket);
+                if (asking != asked + 1 || talkState != TalkState.Talking || (Array.IndexOf(PetLines, reply) < 0 && Array.IndexOf(PatPeaceLines, reply) < 0)) throw new Exception("Her pat line in a voice chat didn't go in her bubble.");
+                chatting = chatWas;
+                local = localWas;
+                petTicket++;
+                CloseTalk();
+                talkState = TalkState.Thinking;
+                int held = ++petTicket;
+                asked = asking;
+                petWaits = 0;
+                petAt = clock.ElapsedMilliseconds;
+                PetLine(held);
+                bool waited = petWaits == 1 && asking == asked;
+                petWaits = PetWaits;
+                PetLine(held);
+                bool letGo = petAt == -60000 && asking == asked;
+                if (!waited || !letGo) throw new Exception("A busy moment dropped her pat line, or kept its 20 s wait after letting it go: waited " + waited + ", let go " + letGo + ".");
+                checks.Add("PASS head pats count up and down as well as side to side, in a voice chat too with the line in her bubble, and a busy moment holds the line instead of dropping it");
+            }
+            finally
+            {
+                chatting = chatWas;
+                local = localWas;
+                preferences.NoHeadPats = patsWas;
+                petTicket++;
+                petAt = petAtWas;
+                ForgetStroke();
+                CloseTalk();
+                Play(clipWas);
+            }
         }
 
         private void SmokeReminders(System.Collections.Generic.List<string> checks)
@@ -29534,6 +29642,7 @@ namespace CapriDesktop
             Section(checks, "SmokeGameControls", delegate { SmokeGameControls(checks); });
             Section(checks, "SmokePausedExplore", delegate { SmokePausedExplore(checks); });
             Section(checks, "SmokeMiniChoices", delegate { SmokeMiniChoices(checks); });
+            Section(checks, "SmokeHeadPats", delegate { SmokeHeadPats(checks); });
             Section(checks, "SmokeLookout", delegate { SmokeLookout(checks); });
             Section(checks, "SmokeGameGlances", delegate { SmokeGameGlances(checks); });
             Section(checks, "SmokeGameSense", delegate { SmokeGameSense(checks); });
