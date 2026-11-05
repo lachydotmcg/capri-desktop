@@ -28,6 +28,8 @@ Thanks for helping her out, choom.
 
 This builds `out/windows/Capri.exe` and `Capri-Setup.exe`, then runs her smoke test. Every line should say `PASS`.
 
+Package managers run her setup with no window. `Capri-Setup.exe --silent` installs to `%LOCALAPPDATA%\Capri` and saves her Start menu shortcut, and `Uninstall.exe --uninstall --silent` removes her the same way. Each exits 0 when it worked, 1 when it failed and 2 for a command it doesn't know, with the reason on stderr. `--silent --package <name>` also writes `Capri.package` next to `Capri.exe` with the manager's name (`winget`, `scoop`, `chocolatey`, `pacman`); her updater reads it and says to update through that manager instead of updating herself. A plain `--silent` and a manual install mark it `manual`, so her updater updates herself again, and removing her takes the marker with her. The silent install skips the local speech model; get it later in her Mainframe.
+
 **Mac and Linux** (needs the [.NET 10 SDK](https://dotnet.microsoft.com/download)):
 
 ```bash

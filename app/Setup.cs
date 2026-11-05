@@ -24,13 +24,19 @@ namespace CapriSetup
         [STAThread]
         private static int Main(string[] args)
         {
+            // A silent command she can't read exits 2, and one that fails exits 1, each with the reason on stderr.
+            int mode;
+            string package;
+            try { mode = SetupFiles.Mode(args, out package); }
+            catch (ArgumentException error) { Console.Error.WriteLine(error.Message); return 2; }
             try
             {
-                int mode = SetupFiles.Mode(args);
                 if (mode == 2) return RemoveFiles(true);
                 if (mode == 1)
                 {
                     string unsaved = Install(false);
+                    // She's installed by now, so the marker says who carries her even when her shortcut couldn't be saved.
+                    SetupFiles.Mark(InstallPath, package ?? "manual");
                     if (unsaved != null) throw new IOException("Capri is installed, but her shortcut could not be saved: " + unsaved);
                     return 0;
                 }
@@ -400,6 +406,7 @@ namespace CapriSetup
                 }
                 DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "Capri.lnk"), destination);
                 DeleteShortcut(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "Capri.lnk"), destination);
+                SetupFiles.Unmark(destination);
                 Registry.CurrentUser.DeleteSubKeyTree(RegistryPath, false);
                 File.Delete(Path.Combine(destination, ".capri-install"));
                 if (!silent) Notice.Tell(null, "Capri has been removed.\n\nYour position and size settings were kept in " + destination + ".", "Capri", false);
@@ -630,6 +637,8 @@ namespace CapriSetup
                 if (removing) { Program.BeginUninstall(); Close(); return; }
                 status.Text = "Making a little room for Capri…";
                 noShortcut = Program.Install(desktop.Checked);
+                try { SetupFiles.Mark(Program.InstallPath, "manual"); }
+                catch (Exception error) { Notice.Tell(this, "Capri is installed, but the package marker couldn't be cleared. Delete " + SetupFiles.Marker + " in " + Program.InstallPath + " to let her update herself. " + error.Message, "Capri", true); }
             }
             catch (Exception error) { status.Text = "Capri could not finish. Your files are still here."; primary.Enabled = true; Notice.Tell(this, error.Message, "Capri couldn't install", true); return; }
             if (Environment.Is64BitOperatingSystem && !VoicePack.Complete(VoicePack.Folder(Program.InstallPath))) FetchVoice();

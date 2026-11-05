@@ -1150,6 +1150,26 @@ namespace CapriDesktop
         // Where updates download. A smoke worker keeps its data in a folder of its own, so its check asks here.
         internal string Folder { get { return folder; } }
 
+        // The package manager that installed her, from the marker her installer writes, or null when she updates herself.
+        // "manual" or no marker leaves her updater alone; a marker she can't read or doesn't know still holds it back. It's
+        // read in her own folder, where her installer writes it and where her own update would install her, even when this
+        // Capri.exe runs from somewhere else.
+        internal string Package()
+        {
+            string path = Path.Combine(Path.GetDirectoryName(folder), SetupFiles.Marker);
+            try { File.GetAttributes(path); }
+            catch (FileNotFoundException) { return null; }
+            catch (DirectoryNotFoundException) { return null; }
+            catch (Exception) { return "your package manager"; }
+            try
+            {
+                string name = File.ReadAllText(path).Trim();
+                if (name == "manual") return null;
+                return Array.IndexOf(SetupFiles.Managers, name) >= 0 ? name : "your package manager";
+            }
+            catch (Exception) { return "your package manager"; }
+        }
+
         internal static ReleaseAsset Installer(Release release)
         {
             ReleaseAsset first = null;
@@ -1300,6 +1320,8 @@ namespace CapriDesktop
             using (FileStream file = new FileStream(update.Path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 Verify(update.Path, update);
+                string package = Package();
+                if (package != null) throw new BrainException("Update through " + package + ".");
                 Run(new ProcessStartInfo(update.Path, "--update " + parent.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " + started.ToString(System.Globalization.CultureInfo.InvariantCulture)) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = folder });
             }
         }
@@ -2985,10 +3007,20 @@ namespace CapriDesktop
         private void CheckForUpdates(bool asked)
         {
             if (updating || installing) return;
-            updating = true;
             updateStarted = true;
+            string package = updater.Package();
             preferences.UpdateCheckedAt = DateTime.UtcNow.Ticks;
             SavePreferences();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                checkItem.Enabled = true;
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
+            if (mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) mainframe.UpdateNote("", false);
+            updating = true;
             checkItem.Enabled = false;
             updateItem.Enabled = false;
             if (asked) mainframe.UpdateNote("Checking for updates...", false);
@@ -2999,7 +3031,9 @@ namespace CapriDesktop
                 string problem = null;
                 try
                 {
+                    if (updater.Package() != null) { Post(delegate { ShowUpdate(null, null, null, asked); }); return; }
                     found = updater.Latest();
+                    if (updater.Package() != null) { Post(delegate { ShowUpdate(found, null, null, asked); }); return; }
                     if (UsableRelease(found) && IsNewer(found.Tag, Assembly.GetExecutingAssembly().GetName().Version))
                     {
                         Post(delegate { mainframe.UpdateNote("Downloading Capri " + found.Tag.TrimStart('v', 'V') + "...", false); });
@@ -3049,6 +3083,14 @@ namespace CapriDesktop
         {
             updating = false;
             checkItem.Enabled = true;
+            string package = updater.Package();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
             updateItem.Enabled = updateFile != null;
             Version current = Assembly.GetExecutingAssembly().GetName().Version;
             if (problem != null) { updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote(problem, true); return; }
@@ -3095,6 +3137,14 @@ namespace CapriDesktop
 
         private void InstallUpdate()
         {
+            string package = updater.Package();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return;
+            }
             if (updating || installing || updateFile == null) return;
             installing = true;
             updateItem.Enabled = false;
@@ -3108,6 +3158,12 @@ namespace CapriDesktop
             {
                 string problem = null;
                 bool invalid = false;
+                string blockedBy = updater.Package();
+                if (blockedBy != null)
+                {
+                    Post(delegate { installing = false; checkItem.Enabled = true; updateInstallAsked = false; ForgetUpdate(); mainframe.UpdateNote("Update through " + blockedBy + ".", false); });
+                    return;
+                }
                 try { updater.Install(ready, parent, started); }
                 catch (Exception error)
                 {
@@ -5278,7 +5334,19 @@ namespace CapriDesktop
         private string UpdateTool(ToolArguments args)
         {
             if (InvokeRequired) return (string)Invoke(new Func<ToolArguments, string>(UpdateTool), args);
-            if (args.Action == "status") return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
+            string package = updater.Package();
+            if (package != null)
+            {
+                updateInstallAsked = false;
+                ForgetUpdate();
+                mainframe.UpdateNote("Update through " + package + ".", false);
+                return "Update through " + package + ".";
+            }
+            if (args.Action == "status")
+            {
+                if (updater.Package() == null && mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) mainframe.UpdateNote("", false);
+                return installing ? "The update is installing." : updating ? "I'm checking for an update." : string.IsNullOrEmpty(mainframe.UpdateStatus) ? "I haven't checked for updates yet." : mainframe.UpdateStatus;
+            }
             if (installing) return "The update is already installing.";
             if (args.Action == "check")
             {
@@ -21361,6 +21429,19 @@ namespace CapriDesktop
                 if (!refused) throw new Exception("Silent setup accepted " + flag + ".");
             }
             checks.Add("PASS silent install and uninstall flags work in either order, reject other commands and leave windowed setup flags alone");
+            string named;
+            if (SetupFiles.Mode(new[] { "--silent", "--package", "winget" }, out named) != 1 || named != "winget" || SetupFiles.Mode(new[] { "--package", "scoop", "--silent" }, out named) != 1 || named != "scoop"
+                || SetupFiles.Mode(new[] { "--silent", "--package", "chocolatey" }, out named) != 1 || named != "chocolatey" || SetupFiles.Mode(new[] { "--silent", "--package", "pacman" }, out named) != 1 || named != "pacman"
+                || SetupFiles.Mode(new[] { "--silent" }, out named) != 1 || named != null || SetupFiles.Mode(new[] { "--uninstall", "--silent" }, out named) != 2 || named != null)
+                throw new Exception("A package manager's silent install wasn't read with its name.");
+            foreach (string[] command in new[] { new[] { "--silent", "--package", "apt" }, new[] { "--silent", "--package", "Winget" }, new[] { "--silent", "--package", "0" }, new[] { "--silent", "--package", "-" }, new[] { "--silent", "--package" }, new[] { "--silent", "--package", "winget", "--package", "scoop" }, new[] { "--uninstall", "--silent", "--package", "winget" }, new[] { "--package", "winget" } })
+            {
+                bool refused = false;
+                try { SetupFiles.Mode(command, out named); }
+                catch (ArgumentException) { refused = true; }
+                if (!refused) throw new Exception("Silent setup accepted " + string.Join(" ", command) + ".");
+            }
+            checks.Add("PASS --silent --package names winget, scoop, chocolatey or pacman in either order; another or a missing name, a second --package, --package with --uninstall and --package without --silent fail instead of opening a window");
             string folder = Path.Combine(output, "setup-files-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
             string file = Path.Combine(folder, "Uninstall.exe"), old = file + ".old", marker = Path.Combine(folder, ".capri-install"), other = Path.Combine(folder, "Uninstall-other.old");
@@ -21425,6 +21506,25 @@ namespace CapriDesktop
                 SetupFiles.RemoveApp(app);
                 SetupFiles.Gone(app);
                 checks.Add("PASS uninstall clears only its startup entry before removing the app, even when file cleanup fails");
+                string package = Path.Combine(folder, SetupFiles.Marker);
+                Updater reader = new Updater(folder, app, true);
+                SetupFiles.Mark(folder, "winget");
+                if (File.ReadAllText(package) != "winget" || reader.Package() != "winget") throw new Exception("A new package marker wasn't written or read back.");
+                SetupFiles.Mark(folder, "manual");
+                if (File.ReadAllText(package) != "manual" || reader.Package() != null) throw new Exception("A manual install didn't replace the package marker.");
+                File.SetAttributes(package, FileAttributes.ReadOnly);
+                blocked = false;
+                try { SetupFiles.Mark(folder, "scoop"); }
+                catch (IOException) { blocked = true; }
+                catch (UnauthorizedAccessException) { blocked = true; }
+                finally { File.SetAttributes(package, FileAttributes.Normal); }
+                if (!blocked || File.ReadAllText(package) != "manual" || Array.Exists(Directory.GetFiles(folder), delegate(string each) { return each.EndsWith(".new", StringComparison.OrdinalIgnoreCase); })) throw new Exception("A failed package marker write changed the old marker or left its new file behind.");
+                checks.Add("PASS the package marker is written whole and read back by her updater, a manual install replaces it, and a failed write keeps the old one and leaves no new file behind");
+                SetupFiles.Mark(folder, "scoop");
+                SetupFiles.Unmark(folder);
+                SetupFiles.Unmark(folder);
+                if (File.Exists(package) || reader.Package() != null || File.ReadAllText(other) != "keep this" || !File.Exists(marker)) throw new Exception("Removing her didn't take her package marker, or took another file with it.");
+                checks.Add("PASS removing her takes her package marker and nothing else, and a missing one is fine");
             }
             finally
             {
@@ -21433,6 +21533,84 @@ namespace CapriDesktop
                 Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(startupRoot, false);
                 foreach (string each in Directory.GetFiles(folder)) File.Delete(each);
                 Directory.Delete(folder);
+            }
+        }
+
+        // Her package marker: the managers she knows say where to update and anything else she finds still holds her updater
+        // back, while "manual" or no marker frees it. With winget's marker in her folder, a check, the update tool and an
+        // install never ask GitHub or start her installer, and once a manual install marks it again the old note clears.
+        private void SmokePackageMarker(System.Collections.Generic.List<string> checks, string output)
+        {
+            if (updating || installing || updateFile != null) throw new Exception("The package marker check found an update already under way.");
+            string folder = Path.Combine(output, "package-marker-" + Guid.NewGuid().ToString("N"));
+            string data = Path.GetDirectoryName(updater.Folder), marker = Path.Combine(data, SetupFiles.Marker);
+            string staged = Path.Combine(updater.Folder, "Capri-Setup-99.0.0-package.exe");
+            Func<Release> latestWas = updater.Latest;
+            Func<string, string> signerWas = updater.Signer;
+            Action<ProcessStartInfo> runWas = updater.Run;
+            long checkedWas = preferences.UpdateCheckedAt;
+            bool startedWas = updateStarted;
+            string noteWas = mainframe.UpdateStatus;
+            Directory.CreateDirectory(folder);
+            try
+            {
+                Updater reader = new Updater(folder, Path.Combine(folder, "Capri.exe"), true);
+                string file = Path.Combine(folder, SetupFiles.Marker);
+                if (reader.Package() != null) throw new Exception("A missing package marker was read as a manager.");
+                File.WriteAllText(file, "winget\n");
+                if (reader.Package() != "winget") throw new Exception("A winget package marker was not read.");
+                foreach (string bad in new[] { "Winget!", "package", "apt", "0", "-", "" })
+                {
+                    File.WriteAllText(file, bad);
+                    if (reader.Package() != "your package manager") throw new Exception("A package marker she doesn't know freed her own updater: " + bad);
+                }
+                File.WriteAllText(file, "manual");
+                if (reader.Package() != null) throw new Exception("A manual package marker did not free her updater.");
+                File.Delete(file);
+                checks.Add("PASS package marker: winget is read, a bad, empty or generic marker still blocks her own updater, and manual or no marker leaves her updater alone");
+
+                if (File.Exists(marker)) throw new Exception("Her smoke folder already had a package marker.");
+                int asked = 0, ran = 0;
+                updater.Latest = delegate { asked++; throw new Exception("A package-managed Capri asked GitHub for an update."); };
+                updater.Run = delegate { ran++; };
+                updater.Signer = delegate { return null; };
+                SetupFiles.Mark(data, "winget");
+                CheckForUpdates(true);
+                string checkedNote = mainframe.UpdateStatus;
+                string told = UpdateTool(new ToolArguments { Action = "check" });
+                string status = UpdateTool(new ToolArguments { Action = "status" });
+                updateFile = new UpdateFile { Version = "99.0.0", Path = staged };
+                InstallUpdate();
+                if (asked != 0 || ran != 0 || updating || installing || updateFile != null || !checkItem.Enabled || checkedNote != "Update through winget." || told != checkedNote || status != checkedNote || mainframe.UpdateStatus != checkedNote)
+                    throw new Exception("A package-managed Capri still reached her own updater: asked GitHub " + asked + ", ran " + ran + ", note " + checkedNote + ", tool " + told + " / " + status + ", updating " + updating + ", installing " + installing);
+                // Her installer's last guard: a checked update still won't start while the marker is there.
+                byte[] bytes = System.Text.Encoding.ASCII.GetBytes("MZ a package-managed update");
+                Directory.CreateDirectory(updater.Folder);
+                File.WriteAllBytes(staged, bytes);
+                string hash;
+                using (SHA256 sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "");
+                string refused = null;
+                try { updater.Install(new UpdateFile { Version = "99.0.0", Path = staged, Hash = hash, Size = bytes.Length }, 1, 1); }
+                catch (BrainException error) { refused = error.Message; }
+                if (refused != checkedNote || ran != 0) throw new Exception("A checked update started with a package marker there: " + (refused ?? "it was allowed"));
+                SetupFiles.Mark(data, "manual");
+                string freed = UpdateTool(new ToolArguments { Action = "status" });
+                if (updater.Package() != null || freed == checkedNote || mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) throw new Exception("A stale package status stayed after a manual install: " + freed);
+                checks.Add("PASS with winget's marker in her folder, an update check, the update tool's check and status, an install and a checked installer all say to update through winget without asking GitHub or starting her installer; a manual install's marker clears the note");
+            }
+            finally
+            {
+                updater.Latest = latestWas;
+                updater.Signer = signerWas;
+                updater.Run = runWas;
+                updateFile = null;
+                updateInstallAsked = false;
+                preferences.UpdateCheckedAt = checkedWas;
+                updateStarted = startedWas;
+                mainframe.UpdateNote(noteWas, false);
+                if (File.Exists(marker)) File.Delete(marker);
+                if (File.Exists(staged)) File.Delete(staged);
+                Directory.Delete(folder, true);
             }
         }
 
@@ -29517,6 +29695,7 @@ namespace CapriDesktop
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
             Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
+            Section(checks, "SmokePackageMarker", delegate { SmokePackageMarker(checks, output); });
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
