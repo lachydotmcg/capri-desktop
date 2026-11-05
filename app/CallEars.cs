@@ -453,7 +453,7 @@ namespace CapriDesktop
                 try
                 {
                     string failed;
-                    tap = Tap.Open(pid, app.Name, out failed);
+                    tap = Tap.Open(pid, app.Said, out failed);
                     if (tap == null)
                     {
                         Say(mine, failed);
@@ -628,9 +628,24 @@ namespace CapriDesktop
                 }
             }
 
-            private static string Refused(int result, string app)
+            // Hearing one app needs Windows 10 version 2004 (build 19041) or later, the same as OBS's app audio capture. On
+            // those, updating Windows isn't the fix, so a refusal there points at the app (hearing flag 15).
+            internal static string Refused(int result, string app) { return Refused(result, app, Build()); }
+
+            internal static string Refused(int result, string app, int build)
             {
-                return "Windows wouldn't hand her " + app + "'s sound" + (result == -1 ? "" : " (0x" + result.ToString("X8") + ")") + ". It needs Windows 11 or an up-to-date Windows 10.";
+                return "Windows wouldn't hand her " + app + "'s sound" + (result == -1 ? "" : " (0x" + result.ToString("X8") + ")")
+                    + (result == -1 || build < 19041 ? ". It needs Windows 11 or an up-to-date Windows 10." : ". Restarting " + app + " can help.");
+            }
+
+            private static int Build()
+            {
+                try
+                {
+                    int build;
+                    return int.TryParse(Microsoft.Win32.Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion", "CurrentBuildNumber", null) as string, out build) ? build : 0;
+                }
+                catch (Exception) { return 0; }
             }
 
             // Everything Windows has for her since the last read, into her ring. False when the capture broke.
@@ -745,6 +760,12 @@ namespace CapriDesktop
                     if (ears.Problem != "Zoom isn't open." || ears.Hearing) throw new Exception("Zoom's missing-app line changed.");
                     ears.Stop();
                 }
+                // A refusal only blames the Windows version where the version is the cause.
+                string oldRefused = Tap.Refused(unchecked((int)0x80070057), "Zoom", 19045 - 1000), newRefused = Tap.Refused(unchecked((int)0x80070057), "Zoom", 22631), missing = Tap.Refused(-1, "Zoom", 22631);
+                if (oldRefused != "Windows wouldn't hand her Zoom's sound (0x80070057). It needs Windows 11 or an up-to-date Windows 10." || newRefused != "Windows wouldn't hand her Zoom's sound (0x80070057). Restarting Zoom can help."
+                    || missing != "Windows wouldn't hand her Zoom's sound. It needs Windows 11 or an up-to-date Windows 10.")
+                    throw new Exception("A refused call app blamed the wrong thing: " + oldRefused + " / " + newRefused + " / " + missing);
+                checks.Add("PASS a call app Windows won't hand over only blames the Windows version below Windows 10 version 2004, and otherwise says restarting the app can help");
                 CallApps.Processes = delegate
                 {
                     CallApps.Choose("Microsoft Teams");
