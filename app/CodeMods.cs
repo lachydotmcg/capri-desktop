@@ -137,7 +137,15 @@ namespace CapriDesktop
             catch (IOException error) { throw new ModException("Couldn't save that mod: " + error.Message); }
             catch (UnauthorizedAccessException error) { throw new ModException("Couldn't save that mod: " + error.Message); }
             Load();
-            StartOne(read.Id, made);
+            try { StartOne(read.Id, made); }
+            catch (ModException error)
+            {
+                // Saved and approved, but a Start that failed left it not running, so it's off in the list until they turn it on.
+                HashSet<string> stopped = Off();
+                if (stopped.Add(read.Id)) WriteOff(stopped);
+                Load();
+                throw new ModException(error.Message.TrimEnd('.') + ". It's saved, and off until you turn it on again.");
+            }
             return All.Find(mod => mod.File.Id == read.Id);
         }
 
@@ -697,7 +705,9 @@ namespace CapriDesktop
                     bool let = mainframe.ImportMod(sample(bad[i, 0] + Mods.CodeExtension, code(bad[i, 0], bad[i, 1])));
                     if (bad[i, 0] == "throws")
                     {
-                        if (let || mods.Running != 0 || mainframe.ModStatusText.IndexOf(bad[i, 2], StringComparison.Ordinal) < 0) throw new Exception("A mod that throws at start was let run: " + mainframe.ModStatusText);
+                        if (let || mods.Running != 0 || mainframe.ModStatusText.IndexOf(bad[i, 2], StringComparison.Ordinal) < 0 || mods.All.Count != 1 || mods.All[0].On || !mainframe.ModStatusText.EndsWith("It's saved, and off until you turn it on again.", StringComparison.Ordinal) || !mainframe.ModStatusHovers) throw new Exception("A mod that throws at start was let run, or still showed On: " + mainframe.ModStatusText);
+                        if (Brain.LogPath != null && (!File.Exists(Brain.LogPath) || File.ReadAllText(Brain.LogPath).IndexOf("off until you turn it on again", StringComparison.Ordinal) < 0)) throw new Exception("A mod that failed to start left no line in errors.txt.");
+                        checks.Add("PASS code mods: one whose Start fails is saved but shows off and says so, its reason goes to errors.txt, and the Mods status line takes the mouse so a long error shows in full on hover");
                         foreach (Mod left in mods.All.ToArray()) mods.Remove(left);
                     }
                     else if (let || mods.All.Count != 0 || mainframe.ModStatusText.IndexOf(bad[i, 2], StringComparison.Ordinal) < 0) throw new Exception("A bad code mod was let in: " + bad[i, 0] + ": " + mainframe.ModStatusText);

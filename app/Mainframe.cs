@@ -4414,13 +4414,16 @@ namespace CapriDesktop
 
         private sealed class Note : Label
         {
+            // A note that takes the mouse, like the Mods status line, shows the rest of a line cut short with "..." on hover.
+            internal bool Hovers;
+
             internal Note() { SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true); }
 
             protected override void OnPaintBackground(PaintEventArgs e) { Backdrop(e.Graphics, this, ScaleOf(this)); }
 
             protected override void WndProc(ref Message message)
             {
-                if (message.Msg == 0x0084) { message.Result = new IntPtr(-1); return; }
+                if (message.Msg == 0x0084 && !Hovers) { message.Result = new IntPtr(-1); return; }
                 base.WndProc(ref message);
             }
         }
