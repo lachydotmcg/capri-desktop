@@ -1150,10 +1150,12 @@ namespace CapriDesktop
         internal string Folder { get { return folder; } }
 
         // The package manager that installed her, from the marker her installer writes, or null when she updates herself.
-        // "manual" or no marker leaves her updater alone; a marker she can't read or doesn't know still holds it back.
+        // "manual" or no marker leaves her updater alone; a marker she can't read or doesn't know still holds it back. It's
+        // read in her own folder, where her installer writes it and where her own update would install her, even when this
+        // Capri.exe runs from somewhere else.
         internal string Package()
         {
-            string path = Path.Combine(Path.GetDirectoryName(app), SetupFiles.Marker);
+            string path = Path.Combine(Path.GetDirectoryName(folder), SetupFiles.Marker);
             try { File.GetAttributes(path); }
             catch (FileNotFoundException) { return null; }
             catch (DirectoryNotFoundException) { return null; }
@@ -21388,6 +21390,84 @@ namespace CapriDesktop
             }
         }
 
+        // Her package marker: the managers she knows say where to update and anything else she finds still holds her updater
+        // back, while "manual" or no marker frees it. With winget's marker in her folder, a check, the update tool and an
+        // install never ask GitHub or start her installer, and once a manual install marks it again the old note clears.
+        private void SmokePackageMarker(System.Collections.Generic.List<string> checks, string output)
+        {
+            if (updating || installing || updateFile != null) throw new Exception("The package marker check found an update already under way.");
+            string folder = Path.Combine(output, "package-marker-" + Guid.NewGuid().ToString("N"));
+            string data = Path.GetDirectoryName(updater.Folder), marker = Path.Combine(data, SetupFiles.Marker);
+            string staged = Path.Combine(updater.Folder, "Capri-Setup-99.0.0-package.exe");
+            Func<Release> latestWas = updater.Latest;
+            Func<string, string> signerWas = updater.Signer;
+            Action<ProcessStartInfo> runWas = updater.Run;
+            long checkedWas = preferences.UpdateCheckedAt;
+            bool startedWas = updateStarted;
+            string noteWas = mainframe.UpdateStatus;
+            Directory.CreateDirectory(folder);
+            try
+            {
+                Updater reader = new Updater(folder, Path.Combine(folder, "Capri.exe"), true);
+                string file = Path.Combine(folder, SetupFiles.Marker);
+                if (reader.Package() != null) throw new Exception("A missing package marker was read as a manager.");
+                File.WriteAllText(file, "winget\n");
+                if (reader.Package() != "winget") throw new Exception("A winget package marker was not read.");
+                foreach (string bad in new[] { "Winget!", "package", "apt", "0", "-", "" })
+                {
+                    File.WriteAllText(file, bad);
+                    if (reader.Package() != "your package manager") throw new Exception("A package marker she doesn't know freed her own updater: " + bad);
+                }
+                File.WriteAllText(file, "manual");
+                if (reader.Package() != null) throw new Exception("A manual package marker did not free her updater.");
+                File.Delete(file);
+                checks.Add("PASS package marker: winget is read, a bad, empty or generic marker still blocks her own updater, and manual or no marker leaves her updater alone");
+
+                if (File.Exists(marker)) throw new Exception("Her smoke folder already had a package marker.");
+                int asked = 0, ran = 0;
+                updater.Latest = delegate { asked++; throw new Exception("A package-managed Capri asked GitHub for an update."); };
+                updater.Run = delegate { ran++; };
+                updater.Signer = delegate { return null; };
+                SetupFiles.Mark(data, "winget");
+                CheckForUpdates(true);
+                string checkedNote = mainframe.UpdateStatus;
+                string told = UpdateTool(new ToolArguments { Action = "check" });
+                string status = UpdateTool(new ToolArguments { Action = "status" });
+                updateFile = new UpdateFile { Version = "99.0.0", Path = staged };
+                InstallUpdate();
+                if (asked != 0 || ran != 0 || updating || installing || updateFile != null || !checkItem.Enabled || checkedNote != "Update through winget." || told != checkedNote || status != checkedNote || mainframe.UpdateStatus != checkedNote)
+                    throw new Exception("A package-managed Capri still reached her own updater: asked GitHub " + asked + ", ran " + ran + ", note " + checkedNote + ", tool " + told + " / " + status + ", updating " + updating + ", installing " + installing);
+                // Her installer's last guard: a checked update still won't start while the marker is there.
+                byte[] bytes = System.Text.Encoding.ASCII.GetBytes("MZ a package-managed update");
+                Directory.CreateDirectory(updater.Folder);
+                File.WriteAllBytes(staged, bytes);
+                string hash;
+                using (SHA256 sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "");
+                string refused = null;
+                try { updater.Install(new UpdateFile { Version = "99.0.0", Path = staged, Hash = hash, Size = bytes.Length }, 1, 1); }
+                catch (BrainException error) { refused = error.Message; }
+                if (refused != checkedNote || ran != 0) throw new Exception("A checked update started with a package marker there: " + (refused ?? "it was allowed"));
+                SetupFiles.Mark(data, "manual");
+                string freed = UpdateTool(new ToolArguments { Action = "status" });
+                if (updater.Package() != null || freed == checkedNote || mainframe.UpdateStatus.StartsWith("Update through ", StringComparison.Ordinal)) throw new Exception("A stale package status stayed after a manual install: " + freed);
+                checks.Add("PASS with winget's marker in her folder, an update check, the update tool's check and status, an install and a checked installer all say to update through winget without asking GitHub or starting her installer; a manual install's marker clears the note");
+            }
+            finally
+            {
+                updater.Latest = latestWas;
+                updater.Signer = signerWas;
+                updater.Run = runWas;
+                updateFile = null;
+                updateInstallAsked = false;
+                preferences.UpdateCheckedAt = checkedWas;
+                updateStarted = startedWas;
+                mainframe.UpdateNote(noteWas, false);
+                if (File.Exists(marker)) File.Delete(marker);
+                if (File.Exists(staged)) File.Delete(staged);
+                Directory.Delete(folder, true);
+            }
+        }
+
         // A made-up game: a view into a big patterned world that slides as the mouse moves, to prove her camera finds any game's mouse.
         private static void SmokeCamera(System.Collections.Generic.List<string> checks)
         {
@@ -29469,6 +29549,7 @@ namespace CapriDesktop
             Section(checks, "SmokeBrainBodies", delegate { SmokeBrainBodies(checks); });
             Section(checks, "SmokeCamera", delegate { SmokeCamera(checks); });
             Section(checks, "SmokeSetupFiles", delegate { SmokeSetupFiles(checks, output); });
+            Section(checks, "SmokePackageMarker", delegate { SmokePackageMarker(checks, output); });
             Section(checks, "SmokeJobProblems", delegate { SmokeJobProblems(checks); });
             Section(checks, "SmokeSteering", delegate { SmokeSteering(checks); });
             Section(checks, "SmokeGameWatch", delegate { SmokeGameWatch(checks); });
@@ -33231,35 +33312,6 @@ namespace CapriDesktop
                             long now = DateTime.UtcNow.Ticks;
                             if (!UpdateDue(0, now) || UpdateDue(now - 3 * TimeSpan.TicksPerHour + 1, now) || !UpdateDue(now - 3 * TimeSpan.TicksPerHour, now) || !UpdateDue(now + 1, now) || UpdateDue(now, now, 19.9, false) || !UpdateDue(now, now, 20, false) || UpdateDue(now, now, 20, true)) throw new Exception("Three-hour or startup update timing failed.");
                             checks.Add("PASS update versions, three-hour boundary, startup check and clock rollback");
-                            string packageFolder = Path.Combine(Path.GetDirectoryName(updater.Folder), "package-marker");
-                            Directory.CreateDirectory(packageFolder);
-                            string packageExe = Path.Combine(packageFolder, "Capri.exe");
-                            File.WriteAllText(packageExe, "app");
-                            Updater packageUpdater = new Updater(packageFolder, packageExe, true);
-                            if (packageUpdater.Package() != null) throw new Exception("A missing package marker was read as a manager.");
-                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "winget\n");
-                            if (packageUpdater.Package() != "winget") throw new Exception("A winget package marker was not read.");
-                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "Winget!");
-                            if (packageUpdater.Package() != "your package manager") throw new Exception("A bad package marker did not block her own updater.");
-                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "package");
-                            if (packageUpdater.Package() != "your package manager") throw new Exception("The generic package marker was not read.");
-                            File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), "manual");
-                            if (packageUpdater.Package() != null) throw new Exception("A manual package marker did not free her updater.");
-                            foreach (string bad in new[] { "apt", "0", "-" })
-                            {
-                                File.WriteAllText(Path.Combine(packageFolder, "Capri.package"), bad);
-                                if (packageUpdater.Package() != "your package manager") throw new Exception("Invalid package marker was accepted: " + bad);
-                            }
-                            File.Delete(Path.Combine(packageFolder, "Capri.package"));
-                            checks.Add("PASS package marker: winget is read, a bad or generic marker still blocks her own updater, and no marker leaves her updater alone");
-                            if (updater.Package() == null && !updating && !installing)
-                            {
-                                string previous = mainframe.UpdateStatus;
-                                mainframe.UpdateNote("Update through winget.", false);
-                                string status = UpdateTool(new ToolArguments { Action = "status" });
-                                mainframe.UpdateNote(previous, false);
-                                if (status == "Update through winget.") throw new Exception("A stale package status stayed after the marker was gone.");
-                            }
                             Release release;
                             using (MemoryStream sample = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("{\"tag_name\":\"v9.0.0\",\"draft\":false,\"prerelease\":false,\"assets\":[{\"id\":1,\"name\":\"Capri.exe\"},{\"id\":2,\"name\":\"Capri-Setup.exe\"},{\"id\":3,\"name\":\"Capri-Setup-9.0.0.exe\",\"size\":10,\"browser_download_url\":\"https://github.com/lachydotmcg/capri-desktop/releases/download/v9.0.0/Capri-Setup-9.0.0.exe\"},{\"id\":4,\"name\":\"SHA256SUMS.txt\"}]}"))) release = ParseRelease(sample);
                             ReleaseAsset installer = Updater.Installer(release);
