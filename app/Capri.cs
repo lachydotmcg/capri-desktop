@@ -4365,7 +4365,7 @@ namespace CapriDesktop
         internal string ErrorDetails()
         {
             Cloud remote = brain.Remote;
-            string head = "Capri v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + " | brain: " + (remote != null ? remote.Name + " " + remote.Model : brain.Local != null ? "built-in " + brain.Model : brain.Model != null ? "Ollama " + brain.Model : "none") + " | watch: " + (preferences.Watch ? GlanceGap + " s" : "off") + " | voice: " + (voice.Key != null ? "ElevenLabs" : "none") + " | hey capri: " + (preferences.HeyCapri ? "on" : "off");
+            string head = "Capri v" + Assembly.GetExecutingAssembly().GetName().Version.ToString(3) + " | brain: " + (remote != null ? remote.Name + " " + remote.Model : brain.Local != null ? "built-in " + brain.Model : brain.Model != null ? "Ollama " + brain.Model : "none") + " | watch: " + (preferences.Watch ? GlanceGap + " s" : "off") + " | voice: " + (Silent ? "off" : Speaking && voice.Key != null ? ElevenLabs : HdVoiceOn ? "HD" : ServerPicked ? ServerInCloud ? ServerCloudName : "CUSTOM LOCAL" : "PREBUILT LOCAL") + " | hey capri: " + (preferences.HeyCapri ? "on" : "off");
             string[] lines = new string[0];
             try { if (Brain.LogPath != null && File.Exists(Brain.LogPath)) lines = File.ReadAllLines(Brain.LogPath); } catch (IOException) { }
             int from = Math.Max(0, lines.Length - 25);
@@ -29093,6 +29093,42 @@ namespace CapriDesktop
             checks.Add("PASS an unreadable tool call is said out loud in one wording that asks to try again, and never runs");
         }
 
+        // A7: Copy error details names the voice row that's picked, never "none" for a voice that has no key, and keeps keys,
+        // voice IDs and paths out.
+        private void SmokeVoiceDetails(System.Collections.Generic.List<string> checks)
+        {
+            string keyWas = voice.Key, idWas = voice.VoiceId, urlWas = preferences.ServerUrl, apiWas = preferences.ServerApi, modelWas = preferences.ServerModel, speakerWas = preferences.ServerSpeaker;
+            bool silentWas = preferences.Silent, quietWas = preferences.Quiet, hdWas = preferences.HdVoice, serverWas = preferences.ServerVoice;
+            try
+            {
+                voice.VoiceId = "voice-details-private-id";
+                preferences.ServerModel = @"C:\voice-details-private\model.onnx";
+                preferences.ServerSpeaker = "voice-details-private-speaker";
+                string[] rows = { "off", ElevenLabs, "PREBUILT LOCAL", "HD", "Fish Audio", "OpenAI", "CUSTOM LOCAL", "CUSTOM LOCAL", "CUSTOM LOCAL" };
+                for (int key = 0; key < 2; key++)
+                    for (int i = 0; i < rows.Length; i++)
+                    {
+                        voice.Key = key == 0 ? null : "voice-details-private-key";
+                        preferences.Silent = i == 0;
+                        preferences.Quiet = i != 1;
+                        preferences.HdVoice = i == 3;
+                        preferences.ServerVoice = i >= 4;
+                        preferences.ServerApi = i == 4 || i == 8 ? VoiceServer.Fish : i == 6 ? VoiceServer.Files : VoiceServer.OpenAi;
+                        preferences.ServerUrl = i == 4 ? VoiceServer.FishCloud : i == 5 ? VoiceServer.OpenAiCloud : i == 6 ? preferences.ServerModel : "http://localhost:54321/voice-details-private";
+                        string row = i == 1 && key == 0 ? "PREBUILT LOCAL" : rows[i];
+                        string head = ErrorDetails().Split(new[] { '\r', '\n' })[0];
+                        if (!head.Contains(" | voice: " + row + " | hey capri: ") || head.Contains("voice-details-private")) throw new Exception("Error details named the wrong voice row or included private voice settings: " + head);
+                    }
+            }
+            finally
+            {
+                voice.Key = keyWas; voice.VoiceId = idWas;
+                preferences.Silent = silentWas; preferences.Quiet = quietWas; preferences.HdVoice = hdWas; preferences.ServerVoice = serverWas;
+                preferences.ServerUrl = urlWas; preferences.ServerApi = apiWas; preferences.ServerModel = modelWas; preferences.ServerSpeaker = speakerWas;
+            }
+            checks.Add("PASS error details name each voice row and keep keys, voice IDs and paths out");
+        }
+
         private void SmokeDeviceChoices(System.Collections.Generic.List<string> checks)
         {
             Func<System.Collections.Generic.List<Speaker.Output>> devicesWas = Speaker.Devices;
@@ -30423,6 +30459,7 @@ namespace CapriDesktop
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
             Section(checks, "SmokeToolCallErrors", delegate { SmokeToolCallErrors(checks); });
+            Section(checks, "SmokeVoiceDetails", delegate { SmokeVoiceDetails(checks); });
             Section(checks, "SmokeHearingReasons", delegate { SmokeHearingReasons(checks, output); });
             Section(checks, "SmokeBrainOnlyText", delegate { SmokeBrainOnlyText(checks, output); });
             Section(checks, "SmokeJobPanelFixes", delegate { SmokeJobPanelFixes(checks); });
