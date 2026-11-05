@@ -118,7 +118,7 @@ namespace CapriSetup
                     Snap(preview, Path.Combine(output, "installer.png"));
                     preview.Speaking(127L << 20, VoicePack.Size, Megabytes(127L << 20) + " of " + Megabytes(VoicePack.Size));
                     Application.DoEvents();
-                    if (!preview.Saying("Installing the local speech model", "This may take some time")) throw new InvalidDataException("The installer doesn't say it's installing the local speech model.");
+                    if (!preview.Saying("FREE VOICE", "Installing her free voice", "This may take some time. Other voices are under VOICE in Capri Mainframe.")) throw new InvalidDataException("The installer doesn't name her free voice or say where to pick other voices.");
                     Snap(preview, Path.Combine(output, "installer-speech.png"));
                     preview.Close();
                 }
@@ -703,9 +703,10 @@ namespace CapriSetup
             fetching = true;
             desktop.Visible = false;
             launch.Visible = false;
-            section.Text = "SPEECH MODEL";
-            stage.Text = "Installing the local speech model";
-            note.Text = "This may take some time. For a better sounding, faster voice, get an API key.";
+            // The Mainframe's own words for it, so people can find it again under VOICE.
+            section.Text = "FREE VOICE";
+            stage.Text = "Installing her free voice";
+            note.Text = "This may take some time. Other voices are under VOICE in Capri Mainframe.";
             stage.Visible = true;
             note.Visible = true;
             if (!stopping) cancel.Text = "Skip";
@@ -717,7 +718,7 @@ namespace CapriSetup
             Invalidate();
         }
 
-        internal bool Saying(string heading, string warning) { return stage.Visible && note.Visible && stage.Text == heading && note.Text.StartsWith(warning, StringComparison.Ordinal) && note.Text.IndexOf("API key", StringComparison.Ordinal) >= 0; }
+        internal bool Saying(string title, string heading, string warning) { return stage.Visible && note.Visible && section.Text == title && stage.Text == heading && note.Text == warning; }
 
         private void Fetched(string failed)
         {
