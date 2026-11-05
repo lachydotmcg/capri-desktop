@@ -14,24 +14,21 @@ namespace CapriDesktop
     // fixed text she shows without a brain all read it, so the next release only edits these lines.
     internal static class News
     {
-        internal const string Version = "0.8.4";
+        internal const string Version = "0.8.5";
 #if CROSS
         internal const string Facts = "Capri " + Version + " on Mac and Linux.\n"
-            + "Mainframe colours: Mainframe > Settings > CAPRI > Mainframe colours picks Night City, Black, White or Grey for the Mainframe.\n"
-            + "Skills: a skill mod is know-how for a game, and she follows it whenever she plays that game. Mainframe > CAPRI > Mods has them, starting with a BTD6 plan.\n"
-            + "Linux AppImage: Capri-linux-x64.AppImage is one file. Mark it as runnable in its Properties, then open it.\n"
-            + "Head pats: up-and-down rubs count too, and her pat line waits while she's talking. Mainframe > Settings > CAPRI > Head pats.\n"
-            + "Clearer errors: she says what went wrong in plain words. Right-click Capri > Help > Copy error details copies the details for support.";
-        internal const string Line = "I just updated to " + Version + ": Mainframe colours, game skills and the Linux AppImage. Ask me what's new for the menu paths.";
+            + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security. It's on in every preset but Blackwall. With it on, her notes and what she remembers leave out addresses, card numbers, emails and other personal details.\n"
+            + "Settings she can't read: she keeps a copy as cross.unreadable.json and tells you they were reset, instead of quietly starting fresh.\n"
+            + "Check for updates says how it went when you click it.\n"
+            + "Brain trouble: a provider's error goes in the BRAIN note instead of being read out, and her offline line says to press Set up her brain or Free key.";
+        internal const string Line = "I just updated to " + Version + ": personal details stay out of my memories, and clearer lines when something goes wrong. Ask me what's new for the menu paths.";
 #else
         internal const string Facts = "Capri " + Version + " on Windows.\n"
-            + "Mainframe colours: Mainframe > Settings > CAPRI > Mainframe colours picks Night City, Black, White or Grey for the Mainframe, her menus, the Type box and her notes.\n"
-            + "Skills: a skill mod is know-how for a game, and she follows it whenever she plays that game. Mainframe > CAPRI > Mods > Browse mods has them, starting with a BTD6 plan.\n"
-            + "The task panel: when a job starts she teleports onto it, and back off it when the job's done.\n"
-            + "Head pats work in voice chat too, and up-and-down rubs count. Mainframe > Settings > CAPRI > Head pats.\n"
-            + "Call mode (beta) tells you to turn off Discord's Echo Cancellation and Noise Suppression, since they cut her off.\n"
-            + "Clearer errors: she says what went wrong and the fix in plain words. Right-click Capri > Help > Copy error details copies the details for support.";
-        internal const string Line = "I just updated to " + Version + ": Mainframe colours, game skills and clearer errors. Ask me what's new for the menu paths.";
+            + "Call mode (beta) hears any app, like Roblox: Mainframe > Settings > VOICE > Call app lists every app in Windows' volume mixer under the call apps. She hears the one you pick and everything it opens, and keeps it after a restart. Auto never picks one of these.\n"
+            + "Keep personal details out of her memories: Mainframe > Settings > HABITS > Security > HER MEMORY. It's on in every preset but Blackwall. With it on, her notes, Get to know me and what she remembers seeing leave out addresses, card numbers, emails and other personal details.\n"
+            + "Damaged saves: if her saved reminders, routines or website nicknames can't be read, she keeps a copy of the old file and carries on with what she could read.\n"
+            + "Clearer lines: a turned-down brain key names the company, like NVIDIA, and a game or window that runs as administrator comes with the steps to run her as administrator too.";
+        internal const string Line = "I just updated to " + Version + ": call mode hears any app, like Roblox, and personal details stay out of my memories. Ask me what's new for the menu paths.";
 #endif
         internal static string Prompt { get { return "(You just updated to Capri " + Version + ". Tell the user what is new in one or two short lines, in your own voice and the language they use with you. Use only these facts. Do not invent features or name people. Facts: " + Facts + ")"; } }
 
