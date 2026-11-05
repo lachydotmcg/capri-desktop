@@ -71,6 +71,11 @@ namespace CapriDesktop
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         private static extern bool RedrawWindow(IntPtr window, IntPtr box, IntPtr region, uint how);
 
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr window);
+
+        internal static bool ShownToWindows(Control window) { return window.IsHandleCreated && IsWindowVisible(window.Handle); }
+
         internal static void Repaint(int look, params Control[] also)
         {
             Color[] was = now;
@@ -78,10 +83,10 @@ namespace CapriDesktop
             if (was == now) return;
             System.Collections.Generic.List<Control> windows = new System.Collections.Generic.List<Control>();
             foreach (Form form in Application.OpenForms) if (form is LookWindow && !form.InvokeRequired) windows.Add(form);
-            foreach (Control control in also) if (control != null && !control.InvokeRequired && !windows.Contains(control)) windows.Add(control);
+            foreach (Control control in also) if (control != null && !control.IsDisposed && !control.InvokeRequired && !windows.Contains(control)) windows.Add(control);
             foreach (Control window in windows)
             {
-                bool batched = window.IsHandleCreated && !(window is ToolStrip);
+                bool batched = window.IsHandleCreated && window.Visible && !(window is ToolStrip);
                 if (batched) SendMessage(window.Handle, 0x000B, IntPtr.Zero, IntPtr.Zero);
                 try { Recolour(window, was); }
                 finally

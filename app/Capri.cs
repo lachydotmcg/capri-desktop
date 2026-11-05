@@ -2272,7 +2272,7 @@ namespace CapriDesktop
             Speaker.Chosen = preferences.Speaker;
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
             CallApps.Choose(preferences.CallApp);
-            Neon.UseLook(preferences.MainframeColours);
+            Neon.Repaint(preferences.MainframeColours, typer);
             foreach (Form form in new Form[] { this, pill, box, taskPanel, player }) form.HandleCreated += delegate { PassThrough(); };
             PassThrough();
             qwen.CpuOnly = preferences.HdCpu;
@@ -5794,8 +5794,10 @@ namespace CapriDesktop
             string[] parts = { "Rose", "White", "Faint", "Cyan" };
             int herFore = ForeColor.ToArgb(), herBack = BackColor.ToArgb(), pillFore = pill.ForeColor.ToArgb(), pillBack = pill.BackColor.ToArgb();
             Directory.CreateDirectory(output);
-            bool wasShowing = mainframe.Visible;
+            bool wasShowing = mainframe.Visible, typerShowing = typer.Visible;
             FormWindowState stateWas = mainframe.WindowState;
+            typer.Hide();
+            GC.KeepAlive(typer.Handle);
             mainframe.Restore();
             mainframe.ShowSettings(true);
             try
@@ -5813,6 +5815,8 @@ namespace CapriDesktop
                     if (LookContrast(Neon.OnInk, Neon.Cyan) < 4.5) throw new Exception(Neon.LookNames[look] + "'s ON button is hard to read.");
                     if (mainframe.BackColor != Neon.Ground || typer.BackColor != Neon.Well || menu.BackColor != Mainframe.MenuLook.Panel) throw new Exception(Neon.LookNames[look] + " did not reach the Mainframe, the Type box and her menu straight away.");
                     if (LoadPreferences().MainframeColours != look) throw new Exception(Neon.LookNames[look] + " was not saved.");
+                    if (Neon.ShownToWindows(typer)) throw new Exception(Neon.LookNames[look] + " made the hidden Type box visible to Windows.");
+                    if (playerMenu.BackColor != Mainframe.MenuLook.Panel) throw new Exception(Neon.LookNames[look] + " did not reach the mini player's menu.");
                     Application.DoEvents();
                     if (ForeColor.ToArgb() != herFore || BackColor.ToArgb() != herBack || pill.ForeColor.ToArgb() != pillFore || pill.BackColor.ToArgb() != pillBack) throw new Exception(Neon.LookNames[look] + " changed a window outside the Mainframe look.");
                     mainframe.Settle();
@@ -5831,10 +5835,11 @@ namespace CapriDesktop
                 mainframe.ShowSettings(false);
                 mainframe.WindowState = stateWas;
                 if (!wasShowing) mainframe.Hide();
+                if (typerShowing) typer.Show();
             }
             if (Neon.Mono || Neon.Rose.ToArgb() != Color.FromArgb(255, 93, 102).ToArgb()) throw new Exception("Night City did not come back as it was.");
             if (CityLook.Hot.ToArgb() != Color.FromArgb(232, 66, 70).ToArgb()) throw new Exception("Her game windows lost Night City's colours.");
-            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, change the Mainframe, the Type box and her menu straight away, are saved, and Night City comes back as it was");
+            checks.Add("PASS Mainframe colours: Night City, Black, White and Grey each read clearly, change the Mainframe, the Type box and her menus straight away, leave hidden windows hidden, are saved, and Night City comes back as it was");
         }
 
         private static double LookContrast(Color ink, Color ground)
@@ -5854,7 +5859,7 @@ namespace CapriDesktop
         {
             preferences.MainframeColours = Neon.ClampLook(look);
             SavePreferences();
-            Neon.Repaint(preferences.MainframeColours, mainframe, typer, menu);
+            Neon.Repaint(preferences.MainframeColours, mainframe, typer, menu, playerMenu, callPanel, callPill);
             mainframe.ShowColours();
         }
 

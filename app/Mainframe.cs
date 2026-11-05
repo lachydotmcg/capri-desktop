@@ -5647,12 +5647,13 @@ namespace CapriDesktop
         // Flipping one makes it Custom, and a click on the slider puts the preset under its knob back. Her hands' toggles are on
         // the left and her jobs' on the right. It opens from Settings > HABITS, where Blackwall mode was. Zoom is 1 except in
         // the smoke test, which draws it at 150% and 200% too.
-        private sealed class SecuritySheet : Form, LookWindow
+        private sealed class SecuritySheet : Form, LookWindow, Tinted
         {
             internal const int Wide = 900, Tall = 516, Column = 410;
             internal readonly float Zoom;
             private readonly Mainframe owner;
             private readonly Slider presets;
+            public void Recolour(Func<Color, Color> swap) { if (Security.Preset == Security.Blackwall) presets.Ink = Neon.Tone(255, 0, 70); }
             private readonly Readout presetName;
             private readonly Label presetLine;
             private readonly Toggle[] toggles = new Toggle[Security.Count];
