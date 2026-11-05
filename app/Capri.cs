@@ -21973,6 +21973,22 @@ namespace CapriDesktop
                 if (!refused) throw new Exception("Silent setup accepted " + flag + ".");
             }
             checks.Add("PASS silent install and uninstall flags work in either order, reject other commands and leave windowed setup flags alone");
+            bool heldSelf;
+            using (System.Diagnostics.Process self = System.Diagnostics.Process.GetCurrentProcess())
+                if (!string.Equals(SetupFiles.FileOf(self, out heldSelf), Application.ExecutablePath, StringComparison.OrdinalIgnoreCase) || heldSelf) throw new Exception("Setup couldn't name her running file, or thought it couldn't close her.");
+            string closeRoot = Path.Combine(Path.GetTempPath(), "capri-close-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                string closeHere = Path.Combine(closeRoot, "Capri"), closeOther = Path.Combine(closeRoot, "Other");
+                Directory.CreateDirectory(closeHere);
+                Directory.CreateDirectory(closeOther);
+                if (SetupFiles.Closable(closeHere) || SetupFiles.Closable(null) || SetupFiles.Closable(Environment.SystemDirectory)) throw new Exception("Setup's admin close took a folder with no install marker.");
+                File.WriteAllText(Path.Combine(closeHere, ".capri-install"), "test");
+                File.WriteAllText(Path.Combine(closeOther, ".capri-install"), "test");
+                if (!SetupFiles.Closable(closeHere) || !SetupFiles.Closable(closeHere + "\\") || SetupFiles.Closable(closeOther)) throw new Exception("Setup's admin close missed her marked folder or took another one.");
+            }
+            finally { try { Directory.Delete(closeRoot, true); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
+            checks.Add("PASS setup names a running Capri's file even when it can't read her, and its administrator copy only closes things in a marked Capri folder");
             string named;
             if (SetupFiles.Mode(new[] { "--silent", "--package", "winget" }, out named) != 1 || named != "winget" || SetupFiles.Mode(new[] { "--package", "scoop", "--silent" }, out named) != 1 || named != "scoop"
                 || SetupFiles.Mode(new[] { "--silent", "--package", "chocolatey" }, out named) != 1 || named != "chocolatey" || SetupFiles.Mode(new[] { "--silent", "--package", "pacman" }, out named) != 1 || named != "pacman"

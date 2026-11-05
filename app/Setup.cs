@@ -24,6 +24,7 @@ namespace CapriSetup
         [STAThread]
         private static int Main(string[] args)
         {
+            if (args.Length == 2 && args[0] == "--close") return CloseFolder(args[1]);
             // A silent command she can't read exits 2, and one that fails exits 1, each with the reason on stderr.
             int mode;
             string package;
@@ -34,7 +35,7 @@ namespace CapriSetup
                 if (mode == 2) return RemoveFiles(true);
                 if (mode == 1)
                 {
-                    string unsaved = Install(false);
+                    string unsaved = Install(false, true);
                     // She's installed by now, so the marker says who carries her even when her shortcut couldn't be saved.
                     SetupFiles.Mark(InstallPath, package ?? "manual");
                     if (unsaved != null) throw new IOException("Capri is installed, but her shortcut could not be saved: " + unsaved);
@@ -151,19 +152,25 @@ namespace CapriSetup
 
         // A shortcut Windows won't save, often because of an antivirus, doesn't stop the install. She's installed either way,
         // so its reason comes back for the installer to show. Null means every shortcut was saved.
-        internal static string Install(bool desktop)
+        internal static string Install(bool desktop, bool quiet = false)
         {
             string destination = InstallPath;
             string marker = Path.Combine(destination, ".capri-install");
             string existing = Path.Combine(destination, "Capri.exe");
             if (Directory.Exists(destination) && !File.Exists(marker) && File.Exists(existing) && !Ours(existing)) throw new IOException("There's a Capri.exe in " + destination + " that isn't this Capri. Move it out of that folder, then install again.");
-            // Her input helper lives a moment after she closes, so a copy on its way out gets a few seconds.
+            // Her input helper lives a moment after she closes, so a copy on its way out gets a few seconds. A copy started as
+            // administrator can't be closed from here, so Windows is asked to close it as administrator (Splinter, 6 Nov).
             foreach (Process process in Process.GetProcessesByName("Capri"))
             {
                 using (process)
                 {
-                    try { if (string.Equals(process.MainModule.FileName, Path.Combine(destination, "Capri.exe"), StringComparison.OrdinalIgnoreCase) && !process.WaitForExit(3000)) throw new IOException("Quit Capri from her tray menu, then install again."); }
-                    catch (System.ComponentModel.Win32Exception) { }
+                    bool held;
+                    if (!string.Equals(SetupFiles.FileOf(process, out held), existing, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (Gone(process, 3000)) continue;
+                    if (!held) throw new IOException("Quit Capri from her tray menu, then install again.");
+                    if (quiet) throw new IOException(AdminCopy);
+                    CloseAsAdmin(destination);
+                    if (!Gone(process, 5000)) throw new IOException(AdminCopy);
                 }
             }
             Directory.CreateDirectory(destination);
@@ -397,7 +404,12 @@ namespace CapriSetup
                 string destination = Path.GetFullPath(InstallPath);
                 string expected = Path.GetFullPath(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Capri"));
                 if (!string.Equals(destination, expected, StringComparison.OrdinalIgnoreCase) || !File.Exists(Path.Combine(destination, ".capri-install"))) throw new IOException("The Capri install marker could not be verified.");
-                CloseEverything(destination);
+                if (CloseEverything(destination))
+                {
+                    if (silent) throw new IOException(AdminCopy);
+                    CloseAsAdmin(destination);
+                    if (CloseEverything(destination)) throw new IOException(AdminCopy);
+                }
                 string uninstaller = Path.Combine(destination, "Uninstall.exe");
                 SetupFiles.Retire(uninstaller, string.Equals(Path.GetFullPath(Application.ExecutablePath), uninstaller, StringComparison.OrdinalIgnoreCase));
                 try
@@ -427,10 +439,11 @@ namespace CapriSetup
         }
 
         // Capri and anything running from her folder, like her brain's engine, hold its files, so they're closed first.
-        // Nothing outside the folder is touched.
-        internal static void CloseEverything(string folder)
+        // Nothing outside the folder is touched. It says whether one was started as administrator, which this copy can't close.
+        internal static bool CloseEverything(string folder)
         {
             int self;
+            bool locked = false;
             using (Process me = Process.GetCurrentProcess()) self = me.Id;
             foreach (Process process in Process.GetProcesses())
             {
@@ -438,7 +451,9 @@ namespace CapriSetup
                 {
                     try
                     {
-                        if (process.Id == self || !Inside(process.MainModule.FileName, folder)) continue;
+                        bool held;
+                        if (process.Id == self || !Inside(SetupFiles.FileOf(process, out held), folder)) continue;
+                        if (held) { locked = true; continue; }
                         process.Kill();
                         process.WaitForExit(5000);
                     }
@@ -447,6 +462,39 @@ namespace CapriSetup
                     catch (NotSupportedException) { }
                 }
             }
+            return locked;
+        }
+
+        internal const string AdminCopy = "Capri is running as administrator, so setup can't close her. Quit her from her tray menu, then try again.";
+
+        // Starts this setup again as administrator only to close what runs from her folder, and waits for it. No to Windows'
+        // prompt leaves her running, so it says how to quit her instead. The caller checks she's gone.
+        private static void CloseAsAdmin(string folder)
+        {
+            try
+            {
+                using (Process helper = Process.Start(new ProcessStartInfo(Application.ExecutablePath, "--close \"" + folder.TrimEnd('\\') + "\"") { UseShellExecute = true, Verb = "runas" }))
+                    if (helper == null || !helper.WaitForExit(30000)) throw new IOException(AdminCopy);
+            }
+            catch (System.ComponentModel.Win32Exception) { throw new IOException(AdminCopy); }
+        }
+
+        private static bool Gone(Process process, int wait)
+        {
+            try { return process.WaitForExit(wait); }
+            catch (System.ComponentModel.Win32Exception) { return false; }
+        }
+
+        // The administrator copy CloseAsAdmin starts. It only closes things in a folder named Capri with her install marker.
+        internal static int CloseFolder(string folder)
+        {
+            try
+            {
+                folder = Path.GetFullPath(folder);
+                if (!SetupFiles.Closable(folder)) return 2;
+                return CloseEverything(folder) ? 1 : 0;
+            }
+            catch (Exception) { return 1; }
         }
 
         internal static bool Inside(string file, string folder)
