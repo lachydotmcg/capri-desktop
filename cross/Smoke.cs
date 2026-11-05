@@ -48,6 +48,7 @@ namespace CapriDesktop
 
         private bool blinked;
         private bool slept;
+        private bool landed;
         private int napStage;
         private int moveStage;
         private PixelPoint moveTo;
@@ -1052,10 +1053,20 @@ namespace CapriDesktop
             {
                 if (pet.Falling) return false;
                 Ledge seat = pet.Seat;
-                if (seat == null || seat.Window != shelfSpot.Window || pet.Hip.Y != shelfSpot.Bounds.Y) throw new Exception("She didn't land on the test shelf's top edge.");
-                if (pet.Showing != pet.PerchGlitch) throw new Exception("Sitting on the shelf didn't glitch her on.");
-                checks.Add("PASS sitting: dropped over a window, she lands on its top edge and glitches into her seat");
-                Scene("shelf.png", new Window[] { pet }, new[] { shelfSpot.Bounds });
+                if (!landed)
+                {
+                    if (seat == null || seat.Window != shelfSpot.Window || pet.Hip.Y != shelfSpot.Bounds.Y) throw new Exception("She didn't land on the test shelf's top edge.");
+                    if (pet.Showing != pet.PerchGlitch) throw new Exception("Sitting on the shelf didn't glitch her on.");
+                    checks.Add("PASS sitting: dropped over a window, she lands on its top edge and glitches into her seat");
+                    Scene("shelf.png", new Window[] { pet }, new[] { shelfSpot.Bounds });
+                    landed = true;
+                }
+                // Asleep sitting up: left alone on the shelf she dozes off where she sits, then rides along asleep as it moves.
+                if (pet.Showing != pet.Perched) return false;
+                if (pet.ContextMenu != null && pet.ContextMenu.IsOpen) { checks.Add("LIMIT her menu was still open from an earlier check, so the sitting nap check closed it first"); pet.ContextMenu.Close(); }
+                pet.SetSleepAfter(120);
+                pet.Doze(130);
+                if (pet.Showing != pet.SatAsleep || pet.Doing != "Asleep" || pet.Seat != seat || pet.Hip.Y != seat.Y) throw new Exception("Left alone on a window, she didn't doze off sitting where she was: doing " + pet.Doing + ", seat " + (pet.Seat == seat));
                 hipBefore = pet.Hip;
                 dx = Px(120);
                 dy = Px(60);
@@ -1069,6 +1080,11 @@ namespace CapriDesktop
                 if (seat.Y != shelfSpot.Bounds.Y + dy) return false;
                 if (pet.Hip.Y != seat.Y || pet.Hip.X != hipBefore.X + dx) throw new Exception("She didn't move with the shelf: hip " + pet.Hip + ", expected " + new PixelPoint(hipBefore.X + dx, seat.Y) + ".");
                 checks.Add("PASS following: when the window moves, she moves with it and stays seated");
+                if (pet.Showing != pet.SatAsleep) throw new Exception("Asleep sitting up, the shelf moving woke her.");
+                pet.Doze(0.5);
+                bool satWoke = pet.Showing == pet.Perched && pet.Seat == seat && !pet.Asleep && !pet.Waking;
+                pet.Doze(130);
+                if (!satWoke || pet.Showing != pet.SatAsleep) throw new Exception("Woken from sleeping sitting up, she didn't blink awake still sitting, or didn't doze off again: woke " + satWoke);
                 coverAsked = new PixelRect(pet.Hip.X - Px(130), seat.Y - Px(60), Px(260), Px(200));
                 cover = Shelf(coverAsked);
                 return true;
@@ -1085,6 +1101,10 @@ namespace CapriDesktop
                 if (waited < 0.45 || waited > 2) throw new Exception("She stood up " + waited.ToString("0.00") + " s after a window covered her seat; it should be about 0.7 s.");
                 if (pet.Falling) throw new Exception("Standing up made her fall.");
                 checks.Add("PASS covered: a window over her seat makes her stand up after " + waited.ToString("0.0") + " s");
+                if (!pet.Asleep || pet.Showing == pet.SatAsleep) throw new Exception("Asleep sitting up on a window that got covered, she didn't sleep on standing where she was.");
+                pet.Doze(0.5);
+                if (!pet.Waking) throw new Exception("Asleep standing after her window got covered, she didn't wake when they came back.");
+                checks.Add("PASS asleep sitting up: left alone on a window she dozes off where she sits, rides along asleep when it moves, blinks awake still sitting, and sleeps on standing once it's covered");
                 Send(cover, "quit");
                 return true;
             }
