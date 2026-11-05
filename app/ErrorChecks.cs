@@ -644,6 +644,12 @@ namespace CapriDesktop
                 if (!line.EndsWith(Computer.AsAdmin + ".", StringComparison.Ordinal) || line.Contains(" as admin ") || line.Contains(" as admin,")) throw new Exception("An admin line doesn't say how to run her as administrator: " + line);
             checks.Add("PASS the three admin lines end the same way: Quit Capri from her menu, then Run as administrator from her shortcut");
 
+            // Hearing flag 12: call mode's browser reads as "your browser" in her lines, and other apps keep their names.
+            CallApp browser = Array.Find(CallApps.Apps, app => app.Name == "Browser"), zoom = Array.Find(CallApps.Apps, app => app.Name == "Zoom");
+            if (browser.NotOpen != "Your browser isn't open." || browser.Said != "your browser" || zoom.NotOpen != "Zoom isn't open." || zoom.Said != "Zoom")
+                throw new Exception("Call mode's browser reads oddly: " + browser.NotOpen + " / " + browser.Said);
+            checks.Add("PASS call mode says \"Your browser isn't open.\" and \"She hears you and your browser.\" instead of naming \"Browser\" like an app");
+
             // Jobs flag 8: typed text in a job's question, status and steps reads as typed, not as JSON.
             ToolArguments typedArgs = new ToolArguments { Text = "hi\nC:\\Users\tcat" };
             string typedQuoted = "\"hi C:\\Users cat\"";

@@ -20,7 +20,9 @@ namespace CapriDesktop
         internal CallApp(string choice, string name, params string[] names) { Choice = choice; Name = name; Names = names; }
         internal string Caption { get { return Name.ToUpperInvariant(); } }
         internal string Label { get { return Name == "Discord" ? Name : Caption; } }
-        internal string NotOpen { get { return Name + " isn't open."; } }
+        // How a line names it, like "She hears you and your browser.": "Browser" alone reads oddly there.
+        internal string Said { get { return Name == "Browser" ? "your browser" : Name; } }
+        internal string NotOpen { get { return (Name == "Browser" ? "Your browser" : Name) + " isn't open."; } }
         // Any other app in Windows' volume mixer, picked by its exe, like RobloxPlayerBeta.exe (Lachy, 5 Nov: "being able to
         // select an app for audio to come from, like Roblox or something, would be good for call mode").
         internal bool Other { get { return Choice.EndsWith(".exe", StringComparison.OrdinalIgnoreCase); } }
@@ -482,7 +484,7 @@ namespace CapriDesktop
                 }
                 catch (Exception error)
                 {
-                    Say(mine, "Couldn't hear " + app.Name + ": " + Voice.Short(error.Message));
+                    Say(mine, "Couldn't hear " + app.Said + ": " + Voice.Short(error.Message));
                     Brain.Log("call ears", -1, error.Message);
                     Rest(mine, 5000);
                 }

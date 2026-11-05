@@ -831,7 +831,7 @@ namespace CapriDesktop
             if (!view.Listening) return "She isn't listening.";
             if (view.Muted) return "Muted: she hears no one.";
             if (!view.Discord) return "She hears you only.";
-            return view.DiscordNote ?? "She hears you and " + view.App.Name + ".";
+            return view.DiscordNote ?? "She hears you and " + view.App.Said + ".";
         }
 
         internal static string Clock(TimeSpan length)
