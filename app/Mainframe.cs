@@ -346,6 +346,7 @@ namespace CapriDesktop
         private readonly Slider pops;
         private readonly Readout popsName;
         private readonly Key popTimes, gameNotes, miniGames;
+        private ContextMenuStrip miniMenu;   // kept like the other menus; disposing it in its own Closed crashed WinForms
         private readonly Key notesKey, memoriesKey;
         private readonly Toggle dance;
         private readonly Slider replies;
@@ -1062,11 +1063,11 @@ namespace CapriDesktop
             return games;
         }
 
-        private void ShowMiniGames()
+        internal ContextMenuStrip ShowMiniGames()
         {
-            ContextMenuStrip games = MiniChoices();
-            games.Closed += delegate { games.Dispose(); };
-            games.Show(miniGames, new Point(0, miniGames.Height));
+            if (miniMenu == null) miniMenu = MiniChoices();
+            miniMenu.Show(miniGames, new Point(0, miniGames.Height));
+            return miniMenu;
         }
 
         private void SaveClipOptions()
@@ -2483,7 +2484,7 @@ namespace CapriDesktop
         {
             if (disposing) { glide.Stop(); glide.Dispose(); if (languageFont != null) languageFont.Dispose(); }
             if (disposing) DisposeHints();
-            if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); }
+            if (disposing) { speakerMenu.Dispose(); screenMenu.Dispose(); if (miniMenu != null) miniMenu.Dispose(); }
             if (disposing) { Application.RemoveMessageFilter(this); modelMenu.Dispose(); freeKeyMenu.Dispose(); voiceMenu.Dispose(); speechModelMenu.Dispose(); micMenu.Dispose(); languageMenu.Dispose(); freeMenu.Dispose(); careMenu.Dispose(); hearingMenu.Dispose(); mixInputMenu.Dispose(); mixOutputMenu.Dispose(); callAppMenu.Dispose(); }
             if (disposing && languageFont != null) languageFont.Dispose();
             base.Dispose(disposing);

@@ -16882,8 +16882,15 @@ namespace CapriDesktop
                     foreach (ToolStripMenuItem game in games.Items) game.PerformClick();
                 }
                 if (string.Join(",", opened.ToArray()) != "chess:open,connect_four:open,tic_tac_toe:open,rock_paper_scissors:open") throw new Exception("A mini-game menu choice did not use its existing board tool.");
+                // 0.8.3 crashed here: the Play... menu disposed itself in Closed, then WinForms reparented it
+                ContextMenuStrip play = mainframe.ShowMiniGames();
+                play.Close(ToolStripDropDownCloseReason.AppClicked);
+                Application.DoEvents();
+                if (play.IsDisposed || mainframe.ShowMiniGames() != play) throw new Exception("Mainframe's Play... menu was thrown away when a click elsewhere closed it.");
+                play.Close(ToolStripDropDownCloseReason.AppClicked);
+                Application.DoEvents();
                 if (!mainframe.SuggestionHints || mainframe.Overlap() != null) throw new Exception("The new Mainframe controls lost a hover tip or overlapped another control.");
-                checks.Add("PASS Mainframe's mini-game menu opens all four existing boards through their tool, and the new controls have hover help and fit the existing rows");
+                checks.Add("PASS Mainframe's mini-game menu opens all four existing boards through their tool, survives a click elsewhere closing it, and the new controls have hover help and fit the existing rows");
             }
             finally { Hands.Mini = miniWas; }
         }
