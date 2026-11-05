@@ -1749,6 +1749,8 @@ namespace CapriDesktop
         private Point panelHome;
         private Ledge panelSeat;
         private bool panelHung;
+        // Her teleport onto the panel while she's still glitching out, so a second ask doesn't start another one.
+        private Action panelTrip;
         private Point panelGrabbed;
         // Their real cursor is lent out to her for a press, so her windows let clicks through.
         private bool lentOut;
@@ -4124,10 +4126,12 @@ namespace CapriDesktop
         }
 
         // Her pointer starts a job beside her: where she sits, then on the task panel once she's hopped onto it.
-        private Point PointerHome()
+        private Point PointerHome() { return PointerHome(anchor); }
+
+        private Point PointerHome(Point at)
         {
             if (hidden || !preferences.Motion) return Cursor.Position;
-            return new Point(anchor.X + PaddingSize + (int)(preferences.Size * 0.267f) - 12, anchor.Y + PaddingSize + (int)(preferences.Size * 0.73f) + 12);
+            return new Point(at.X + PaddingSize + (int)(preferences.Size * 0.267f) - 12, at.Y + PaddingSize + (int)(preferences.Size * 0.73f) + 12);
         }
 
         // She rides their cursor, never her own pointer, which she'd hide.
@@ -8998,8 +9002,8 @@ namespace CapriDesktop
                 if (Computer.Streaming) taskPanel.Corner(new Point(work.Left + 8, work.Bottom - 8));
                 taskPanel.Begin(running, running.Words, work);
             }
-            // Her pointer sets off from beside her on the panel.
-            if (SitOnPanel()) Computer.PlacePointer(PointerHome());
+            // Her pointer sets off from beside her on the panel, even while she's still teleporting onto it.
+            if (SitOnPanel()) Computer.PlacePointer(PointerHome(PanelSeat()));
             herPointer.Begin(Computer.HerAt);
             PassThrough();
             // With Hey Capri on, her own offline ears open for the job, so they can tell her more without saying it first (Lachy, 29 Oct).
@@ -9102,15 +9106,42 @@ namespace CapriDesktop
         }
 
         // During a job she sits on the task panel instead of riding her pointer, which she'd hide. A ride they started carries on.
+        // She gets there like "teleport somewhere": she shatters where she is and lands on the panel (Lachy, 5 Nov).
         private bool SitOnPanel()
         {
-            if (onPanel) return true;
+            if (onPanel || panelTrip != null && outro == panelTrip) return true;
             if (riding || hidden || !preferences.Motion || !taskPanel.Showing || !IsHandleCreated) return false;
             Halt();
             EndWalk();
             panelHome = anchor;
             panelSeat = seat;
             panelHung = hanging;
+            pressed = false;
+            dragging = false;
+            Capture = false;
+            taskPanel.Room = Headroom();
+            panelTrip = OntoPanel;
+            GlitchOut(panelTrip, false);
+            return true;
+        }
+
+        // Her teleport lands her on the panel the way a hop lands. If the panel went while she was out, she comes back where she was.
+        private void OntoPanel()
+        {
+            bool going = panelTrip != null && taskPanel.Showing && !hidden;
+            panelTrip = null;
+            if (!going)
+            {
+                if (!onPanel) taskPanel.Room = 0;
+                if (hidden || IsDisposed) return;
+                Location = anchor;
+                Play(hanging ? dangle : seat != null ? perchArrive : arrive);
+                Static(false, null);
+                frames.Start();
+                if (seat == null && !hanging) DropSoon();
+                return;
+            }
+            lying = false;
             seat = null;
             falling = false;
             fallTo = null;
@@ -9118,37 +9149,41 @@ namespace CapriDesktop
             dropAfter = false;
             pendingClick = false;
             clickDelay.Stop();
-            pressed = false;
-            dragging = false;
-            Capture = false;
             leanAngle = 0;
             onPanel = true;
-            taskPanel.Room = Headroom();
             HoldPanel();
             Location = anchor;
-            Play(perchGlitch);
+            Play(instant ? perchGlitch : perchArrive);
+            Static(false, null);
             frames.Start();
             pill.Hide();
             // Above the panel, so she sits on it rather than behind it.
             Native.SetWindowPos(Handle, new IntPtr(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010);
-            return true;
         }
 
         // Keeps her on the panel's top edge, near its right end, as it grows a row or they drag it.
         private void HoldPanel()
         {
             if (!taskPanel.Showing) { LeavePanel(true); return; }
+            anchor = PanelSeat();
+        }
+
+        // Where she sits on the panel, kept on its screen. Where she is now when there's no panel to sit on.
+        private Point PanelSeat()
+        {
             Rectangle plate = taskPanel.Plate;
-            if (plate.IsEmpty) return;
+            if (plate.IsEmpty) return anchor;
             Rectangle area = Screen.FromRectangle(plate).WorkingArea;
             int x = plate.Right - plate.Width * 3 / 10;
             x = Math.Max(area.Left + (int)Math.Ceiling(preferences.Size * (SitX - PerchedBody.Left)), Math.Min(x, area.Right - (int)Math.Ceiling(preferences.Size * (PerchedBody.Right - SitX))));
-            anchor = Seated(x, plate.Top);
+            return Seated(x, plate.Top);
         }
 
         // Off the panel: once it's gone she goes back to where she was before the job; going anywhere else she just leaves it.
+        // Leaving also calls off a teleport onto it that's still on its way.
         private void LeavePanel(bool home)
         {
+            if (panelTrip != null) { panelTrip = null; taskPanel.Room = 0; }
             if (!onPanel) return;
             onPanel = false;
             taskPanel.Room = 0;
@@ -24097,6 +24132,49 @@ namespace CapriDesktop
             checks.Add("PASS a tool call written a little off still runs, and one she can't read costs a turn instead of the job");
         }
 
+        // A job's start teleports her onto the task panel like "teleport somewhere": she leaves where she is, then lands on it.
+        // The test runs her real animation, which every other check skips, and calls the end of her way out rather than waiting.
+        private void SmokePanelTeleport(System.Collections.Generic.List<string> checks)
+        {
+            if (hidden || !preferences.Motion) { checks.Add("LIMIT panel teleport: she's hidden or Motion is off here, so a job doesn't send her to the panel"); return; }
+            bool instantWas = instant;
+            Point home = anchor;
+            Job first = new Job("open notepad and type hi"), second = new Job("open notepad and type bye");
+            try
+            {
+                instant = false;
+                JobOn(first);
+                Point pointerAt = PointerHome(PanelSeat());
+                bool leaving = !onPanel && panelTrip != null && outro == panelTrip && (clip == leave || clip == perchLeave) && anchor == home;
+                Action tripWas = outro;
+                bool once = SitOnPanel() && outro == tripWas && !onPanel;
+                Action trip = outro;
+                outro = null;
+                trip();
+                bool landed = onPanel && panelTrip == null && clip == perchArrive && Hip().Y == taskPanel.Plate.Top && PointerHome() == pointerAt;
+                if (!leaving || !once || !landed) throw new Exception("A job didn't teleport her onto the panel: leaving " + leaving + ", one trip " + once + ", landed " + landed + (clip == perchArrive ? " with her perched arrival." : " without her perched arrival."));
+                JobOff(first, "done", "Opened Notepad and typed hi.");
+                taskPanel.Stop();
+                HoldPanel();
+                if (onPanel || anchor != home) throw new Exception("After the panel teleport she didn't go back where she was.");
+                JobOn(second);
+                LeavePanel(false);
+                trip = outro;
+                outro = null;
+                if (trip != null) trip();
+                if (onPanel || panelTrip != null || anchor != home || taskPanel.Room != 0) throw new Exception("Leaving the panel on her way there didn't call the teleport off.");
+                checks.Add("PASS panel teleport: a job's start glitches her out where she is and lands her on the task panel with her arrival, a second ask on the way starts no second trip, her pointer starts beside where she lands, and leaving on the way calls it off");
+            }
+            finally
+            {
+                instant = instantWas;
+                if (working != null || pointing) JobOff(second, "done", "Smoke teleport.");
+                taskPanel.Stop();
+                LeavePanel(true);
+                outro = null;
+            }
+        }
+
         // A Claude job that runs for hours folds its older turns into a note and carries on.
         private static void SmokeLongJob(System.Collections.Generic.List<string> checks)
         {
@@ -29404,6 +29482,7 @@ namespace CapriDesktop
             Section(checks, "SmokeClickStops", delegate { SmokeClickStops(checks); });
             Section(checks, "SmokeGameNotes", delegate { SmokeGameNotes(checks); });
             Section(checks, "SmokeLongJob", delegate { SmokeLongJob(checks); });
+            Section(checks, "SmokePanelTeleport", delegate { SmokePanelTeleport(checks); });
             Section(checks, "SmokeLooseCalls", delegate { SmokeLooseCalls(checks); });
             Section(checks, "SmokeFrames", delegate { SmokeFrames(checks); });
             Section(checks, "SmokeGameKeys", delegate { SmokeGameKeys(checks); });
