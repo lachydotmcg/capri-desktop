@@ -5799,7 +5799,14 @@ namespace CapriDesktop
         internal static bool Front(IntPtr handle)
         {
             if (!IsWindow(handle)) return false;
-            if (IsIconic(handle)) { SmokeRun.NoteAsync(handle, "Hands.Front restore"); ShowWindowAsync(handle, 9); }
+            if (IsIconic(handle))
+            {
+                // The smoke's note is Windows-only: Mac and Linux share this file and have no SmokeRun.
+#if !CROSS
+                SmokeRun.NoteAsync(handle, "Hands.Front restore");
+#endif
+                ShowWindowAsync(handle, 9);
+            }
             Message pending;
             PeekMessage(out pending, IntPtr.Zero, 0, 0, 0);
             int ignored;
