@@ -3893,7 +3893,8 @@ namespace CapriDesktop
         // Hugging Face, npm, Stripe and AWS tokens, the password in an address, NAME_TOKEN= or PASSWORD= settings, password, token,
         // secret and key flags, the password in curl's user:password and in docker, sshpass and mysql logins, "password": values,
         // cookies, and what follows an authorization header and its scheme. Counts like max_tokens=4096 and checks like
-        // token == null stay readable. Every search is bounded, so a huge line with no spaces can't hold her up.
+        // token == null stay readable, and so do sentences: "the secret: always test first" keeps its words. Every search is
+        // bounded, so a huge line with no spaces can't hold her up.
         internal static string Redacted(string text)
         {
             string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
@@ -3907,9 +3908,14 @@ namespace CapriDesktop
             // search stops at the end of that command, so a later docker run -p 8080:80 keeps its ports.
             clean = Regex.Replace(clean, @"(\b(?:sshpass|(?:docker|podman|nerdctl|buildah|helm(?:\s+registry)?)\s+login)\b[^\r\n;&|]{0,300}?(?-i:\s-p)(?:=|\s+)?)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',};&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(\bmysql(?:dump|admin|sh)?\b[^\r\n;&|]{0,300}?(?-i:\s-p))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""';&|]+)", "$1[redacted]", RegexOptions.IgnoreCase);
-            clean = Regex.Replace(clean, @"(\b(?:set-)?cookie\s*:\s*)[^\r\n]+", "$1[redacted]", RegexOptions.IgnoreCase);
-            // A quoted value goes whole, spaces and all, and keeps its quotes.
-            clean = Regex.Replace(clean, @"((?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*([""'])?)(?(2)(?:(?!\2)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // A Cookie or Set-Cookie header is one on its own line (curl -v's > and < too) or quoted like curl -H "Cookie: ...", and
+            // loses its value to the end of the line or its closing quote. "the cookie: SameSite=Lax" in a sentence isn't one.
+            clean = Regex.Replace(clean, @"((?:(?<![^\r\n])[ \t]*(?:[<>][ \t]*)?|(?<q>[""']))(?:set-)?cookie(?:\k<q>)?\s*:[ \t]*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|(?(q)(?:(?!\k<q>)[^\r\n])+|[^\r\n]+))", "$1[redacted]", RegexOptions.IgnoreCase);
+            // password:, secret: and token: count as a key at the end of a longer name like db_password or clientSecret, at the
+            // start of a line, quoted, or after { or a comma. A quoted value goes whole, spaces and all, and keeps its quotes.
+            clean = Regex.Replace(clean, @"((?:(?<=[A-Za-z0-9_.-])|(?<![^\r\n])[ \t]*(?:-[ \t]+)?|[""']|[{,][ \t]*)(?:password|passwd|secret|token(?!s\b))[""']?\s*:\s*(?<v>[""'])?)(?(v)(?:(?!\k<v>)[^\r\n])+|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // In a sentence the next word goes only when it looks like a password itself, six or more letters and digits mixed.
+            clean = Regex.Replace(clean, @"(\b(?:password|passwd|secret|token(?!s\b)|cookie)\s*:\s*)(?=[^\s""',}]{6})(?=[^\s""',}]*?[0-9])(?=[^\s""',}]*?[A-Za-z])[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
             return Regex.Replace(clean, @"((?:api[_ -]?key|authorization|access[_ -]?token|auth[_ -]?token|private[_ -]?token)[""']?\s*[:=]\s*[""']?(?:(?:token|basic|bearer|digest)\s+)?)[^\s""',}]+", "$1[redacted]", RegexOptions.IgnoreCase);
         }
 

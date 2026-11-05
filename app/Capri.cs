@@ -29712,6 +29712,23 @@ namespace CapriDesktop
                 if (took.ElapsedMilliseconds > 3000) throw new Exception("Redacting a " + line.Length + "-character line of " + line.Substring(0, 12) + "... took " + took.ElapsedMilliseconds + " ms.");
             }
             checks.Add("PASS redaction stays quick on huge lines made of key words, image prefixes or logins");
+
+            // A sentence keeps its words; a header, a key or a password-looking word after one still goes.
+            string[] sentences = { "Set the cookie: SameSite=Lax and Secure, then reload.", "The secret: always run the tests first.", "Here is the password: it is on the sticky note.", "Next token: the parser reads a word.", "Reading the token: done", "max_tokens: 4096" };
+            foreach (string sentence in sentences)
+                if (Brain.Redacted(sentence) != sentence) throw new Exception("Redaction cut a sentence: " + Brain.Redacted(sentence));
+            string[][] hidden = {
+                new[] { "Cookie: session=abc123; csrftoken=zzz999", "zzz999" }, new[] { "first\n> Cookie: sid=Qx99; theme=dark\nlast", "theme=dark" },
+                new[] { "curl -H \"Cookie: sid=Qx99; csrftoken=zzz999\" https://api.example.com/x", "zzz999" }, new[] { "{\"cookie\": \"sid=Qx99\"}", "Qx99" },
+                new[] { "{\"password\": \"two words\",\"user\":\"bob\"}", "two words" }, new[] { "db:\n  password: hunter2\n  user: bob", "hunter2" }, new[] { "- token: tk-778899", "tk-778899" },
+                new[] { "MYSQL_ROOT_PASSWORD: hunter2", "hunter2" }, new[] { "clientSecret: \"abc-778\"", "abc-778" }, new[] { "user: admin, password: hunter2", "hunter2" },
+                new[] { "{ token: \"tk-1\", user: \"x\" }", "tk-1" }, new[] { "curl -H \"X-Auth-Token: tok3nValue99\" https://x", "tok3nValue99" },
+                new[] { "I set the password: hunter2 in the .env", "hunter2" }, new[] { "your token: 9f3k2j1h7g6f5d4s", "9f3k2j1h7g6f5d4s" }, new[] { "the cookie: session=abc123def", "abc123def" } };
+            foreach (string[] pair in hidden)
+                if (Brain.Redacted(pair[0]).Contains(pair[1])) throw new Exception("Redaction kept a cookie, password or token: " + Brain.Redacted(pair[0]));
+            if (!Brain.Redacted(hidden[2][0]).EndsWith("\" https://api.example.com/x", StringComparison.Ordinal) || !Brain.Redacted(hidden[1][0]).EndsWith("\nlast", StringComparison.Ordinal) || !Brain.Redacted(hidden[5][0]).EndsWith("\n  user: bob", StringComparison.Ordinal))
+                throw new Exception("A redacted header or key took the rest of its command or the next line: " + Brain.Redacted(hidden[2][0]));
+            checks.Add("PASS redaction keeps \"the cookie: SameSite=Lax\" and \"the secret: always\" in sentences whole, and still hides cookie headers, quoted, YAML and object keys and password-looking words after one");
         }
 
         private static string Repeat(string text, int times)
