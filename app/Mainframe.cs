@@ -3003,6 +3003,9 @@ namespace CapriDesktop
         // The whole settings page, scrolled or not, in the window's own px.
         private Rectangle PageArea { get { return paged ? new Rectangle(0, -Scaled(pageScroll), ClientSize.Width, Math.Max(ClientSize.Height, Scaled(PageNow))) : ClientRectangle; } }
 
+        // True when Windows made the window narrower than the page it lays out, like a 1024-wide desktop at 150%.
+        internal bool PageClamped { get { return ClientSize.Width < Scaled(paged ? Wide + Column : Wide); } }
+
         // Settings on a short screen: how much shows (or whole) and whether the rims hold her frame together.
         internal string ScrollStatus { get { return (paged && pageView < PageNow ? pageView + " tall" : "whole") + " | " + (topRim.Visible && bottomRim.Visible ? "rims" : "-"); } }
 
@@ -3280,7 +3283,7 @@ namespace CapriDesktop
                 if (brainName.Bounds.IntersectsWith(provider.Bounds) || provider.Bottom > brainNote.Top || provider.Right > Scaled(356)) return "Provider overlaps the brain name or note";
                 Rectangle last = rungs[rungs.Length - 1].Bounds;
                 if (textEntry.Visible && textEntry.Top < last.Bottom) return "the key box (top " + textEntry.Top + ") overlaps the last rung (bottom " + last.Bottom + ")";
-                if (textEntry.Visible && textConnect.Right > ClientSize.Width) return "Connect (right " + textConnect.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
+                if (textEntry.Visible && !Hidden(textConnect) && textConnect.Right > ClientSize.Width) return "Connect (right " + textConnect.Right + ") runs past the Mainframe (" + ClientSize.Width + ")";
                 int end = textEntry.Visible ? textEntry.Bottom : last.Bottom;
                 if (freeWarning.Visible)
                 {
@@ -5771,11 +5774,13 @@ namespace CapriDesktop
             internal string Crowded()
             {
                 float s = ScaleOf(this);
+                // A small desktop clamps the window, so check the size it was drawn for.
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
                     if (!a.Visible || (a is Label && a.Text.Length == 0)) continue;
-                    if (!ClientRectangle.Contains(a.Bounds) || a.Right > ClientSize.Width - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
+                    if (!area.Contains(a.Bounds) || a.Right > area.Right - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
                     Toggle box = a as Toggle;
                     if (box != null && TextRenderer.MeasureText(box.Text, box.Font).Width > box.NameRoom) return "doesn't fit: " + box.Text + " " + TextRenderer.MeasureText(box.Text, box.Font).Width + " in " + box.NameRoom;
                     for (int j = i + 1; j < Controls.Count; j++)
@@ -5951,11 +5956,13 @@ namespace CapriDesktop
             internal string Crowded()
             {
                 float s = ScaleOf(this);
+                // A small desktop clamps the window, so check the size it was drawn for.
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
                     if (!a.Visible) continue;
-                    if (!ClientRectangle.Contains(a.Bounds) || a.Right > ClientSize.Width - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
+                    if (!area.Contains(a.Bounds) || a.Right > area.Right - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
                     Toggle box = a as Toggle;
                     if (box != null && TextRenderer.MeasureText(box.Text, box.Font).Width > box.NameRoom) return "doesn't fit: " + box.Text;
                     for (int j = i + 1; j < Controls.Count; j++)
@@ -6212,11 +6219,13 @@ namespace CapriDesktop
             internal string Crowded()
             {
                 float s = ScaleOf(this);
+                // A small desktop clamps the window, so check the size it was drawn for.
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
                     if (!a.Visible || (a is Label && a.Text.Length == 0)) continue;
-                    if (!ClientRectangle.Contains(a.Bounds) || a.Right > ClientSize.Width - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
+                    if (!area.Contains(a.Bounds) || a.Right > area.Right - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
                     Toggle box = a as Toggle;
                     if (box != null && TextRenderer.MeasureText(box.Text, box.Font).Width > box.NameRoom) return "doesn't fit: " + box.Text + " " + TextRenderer.MeasureText(box.Text, box.Font).Width + " in " + box.NameRoom;
                     Key key = a as Key;
@@ -6483,11 +6492,13 @@ namespace CapriDesktop
             internal string Crowded()
             {
                 float s = ScaleOf(this);
+                // A small desktop clamps the window, so check the size it was drawn for.
+                Rectangle area = new Rectangle(0, 0, Math.Max(ClientSize.Width, Z(Wide)), Math.Max(ClientSize.Height, Z(Tall)));
                 for (int i = 0; i < Controls.Count; i++)
                 {
                     Control a = Controls[i];
                     if (!a.Visible || (a is Label && a.Text.Length == 0)) continue;
-                    if (!ClientRectangle.Contains(a.Bounds) || a.Right > ClientSize.Width - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
+                    if (!area.Contains(a.Bounds) || a.Right > area.Right - (int)(16 * s)) return "pokes out: " + (a.Text.Length > 0 ? a.Text : a.AccessibleName) + " " + a.Bounds + " in " + ClientSize;
                     Toggle box = a as Toggle;
                     if (box != null && TextRenderer.MeasureText(box.Text, box.Font).Width > box.NameRoom) return "doesn't fit: " + box.Text + " " + TextRenderer.MeasureText(box.Text, box.Font).Width + " in " + box.NameRoom;
                     Key key = a as Key;

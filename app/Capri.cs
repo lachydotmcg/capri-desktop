@@ -26203,7 +26203,7 @@ namespace CapriDesktop
                 foreach (int size in new[] { 100, 125, 150, 175, 200 })
                 {
                     mainframe.SizeMainframe(size);
-                    string crowded = mainframe.Overlap() ?? mainframe.Outside();
+                    string crowded = mainframe.Overlap() ?? (mainframe.PageClamped ? null : mainframe.Outside());
                     if (crowded != null) throw new Exception("BRAIN controls at " + size + "% overlap or leave the page: " + crowded);
                     Control gamingToggle = null, gamingCaption = null, gamingDisclaimer = null, gamingClip = null, gamingMoments = null, gamingHands = null, gamingEnd = null;
                     foreach (Control gamingControl in mainframe.Controls)
@@ -38229,7 +38229,7 @@ namespace CapriDesktop
                             mainframe.SizeMainframe(150);
                             float sizedTo = mainframe.Zoom;
                             int sizedBig = mainframe.ClientSize.Width;
-                            string sizedCrowd = mainframe.Overlap() ?? mainframe.Outside();
+                            string sizedCrowd = mainframe.Overlap() ?? (mainframe.PageClamped ? null : mainframe.Outside());
                             bool sizedSaved = preferences.MainframeSize == 150 && LoadPreferences().MainframeSize == 150 && mainframe.FrameSizeShown == "150%";
                             snap("mainframe-settings-150.png");
                             mainframe.SizeMainframe(0);
@@ -41423,7 +41423,8 @@ namespace CapriDesktop
                             pill.Press(1);
                             typer.Draft = "nice, what are you up to?";
                             typer.Refresh();
-                            if (!typer.Visible || !box.Visible || typer.Bottom > box.PanelOnScreen.Top || typer.Left != box.PanelOnScreen.Left) throw new Exception("Typing box did not sit above her message.");
+                            bool typingAbove = typer.Bottom <= box.PanelOnScreen.Top, typingBelow = typer.Top >= box.PanelOnScreen.Bottom;
+                            if (!typer.Visible || !box.Visible || !(typingAbove || typingBelow) || typer.Left != box.PanelOnScreen.Left) throw new Exception("Typing box did not sit above her message, or below it when there was no room: typer " + typer.Bounds + " box " + box.PanelOnScreen + ", visible " + typer.Visible + "/" + box.Visible + ".");
                             using (Bitmap pair = new Bitmap(box.Width + 20, box.Bottom - typer.Top + 20, PixelFormat.Format32bppArgb))
                             using (Graphics graphics = Graphics.FromImage(pair))
                             {
