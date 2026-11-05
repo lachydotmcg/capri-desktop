@@ -71,6 +71,38 @@ namespace CapriDesktop
             }
         }
 
+        // The BRAIN note fits 60 characters, so the key and credit lines have short forms there that keep their fix.
+        private void SmokeBrainNotes(List<string> checks)
+        {
+            string[,] lines =
+            {
+                { Brain.NoCredits, "Free key" }, { Brain.Meaning(402, ""), "Free key" },
+                { Brain.PlusRejected, "platform.openai.com" }, { Brain.Meaning(401, "{\"error\":\"bad key\"}", false, true), "platform.openai.com" },
+                { Brain.NotAKey, "Copy the whole key" }, { Brain.Unserved, "Free key" }, { Brain.NoFreeModels, "Refresh" },
+                { Brain.Blocked, "Built-in" }
+            };
+            for (int i = 0; i < lines.GetLength(0); i++)
+            {
+                string brief = Brain.Brief(lines[i, 0]);
+                if (brief == null || brief.Length > 60 || brief.EndsWith("...", StringComparison.Ordinal) || brief.IndexOf(lines[i, 1], StringComparison.Ordinal) < 0)
+                    throw new Exception("The BRAIN note's short form lost its fix: " + lines[i, 0] + " became " + (brief ?? "nothing"));
+            }
+            // Lines that already fit are shown as they are.
+            foreach (string fits in new[] { "Key rejected. Press Forget, then paste it again.", Brain.NewKey, "Nous Portal keys aren't supported yet.", "That key can't use any chat models." })
+                if (fits.Length > 60 || Brain.Brief(fits) != null) throw new Exception("A key line that fits the BRAIN note got a short form or doesn't fit: " + fits);
+            // Pasting something that isn't a key shows the whole short form, never one cut with "...".
+            string status = mainframe.Status, noteWas = status.Substring(status.IndexOf(" | ", StringComparison.Ordinal) + 3);
+            try
+            {
+                ConnectText("not-a-key-at-all");
+                status = mainframe.Status;
+                string shown = status.Substring(status.IndexOf(" | ", StringComparison.Ordinal) + 3);
+                if (!shown.EndsWith(Brain.Brief(Brain.NotAKey), StringComparison.Ordinal) || shown.Contains("...")) throw new Exception("Pasting a key she doesn't know showed " + shown);
+            }
+            finally { mainframe.ShowProblem(noteWas); }
+            checks.Add("PASS BRAIN note short forms: no credits, an OpenAI key without API credit, a pasted key she doesn't know, Gemini not offered where you are and OpenRouter with no free models each fit the note's 60 characters and keep their fix (Free key, platform.openai.com, copy the whole key, Refresh), lines that already fit are left alone, and pasting a non-key shows the whole short form");
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;

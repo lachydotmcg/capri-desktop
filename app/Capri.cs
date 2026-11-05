@@ -9820,7 +9820,7 @@ namespace CapriDesktop
             ++cloudListing;
             key = (key ?? "").Trim();
             string kind = Cloud.KindOf(key);
-            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.", true); return; }
+            if (kind == null) { TextProblem(key.StartsWith("sk-nous-", StringComparison.Ordinal) ? "Nous Portal keys aren't supported yet." : Brain.NotAKey, true); return; }
             if (targetTier == 1 && !Cloud.MediumKind(kind)) { mainframe.OfferPaidText(key); return; }
             if (targetTier == 0) targetTier = kind == "nvidia" ? 1 : 2;
             ListCloud(key, true, targetTier);
@@ -29740,6 +29740,7 @@ namespace CapriDesktop
             Section(checks, "SmokeMinis", delegate { SmokeMinis(checks); });
             Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
+            Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)

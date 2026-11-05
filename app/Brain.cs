@@ -397,6 +397,10 @@ namespace CapriDesktop
         internal const string Busy = "Too many requests. Wait a minute, or watch slower.";
         internal const string NewKey = "Key rejected. Make a new Google AI Studio key and paste it.";
         internal const string Unserved = "Google doesn't serve Gemini where you are. Press Free key for a free NVIDIA key.";
+        internal const string NoCredits = "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
+        internal const string PlusRejected = "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com.";
+        internal const string NotAKey = "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.";
+        internal const string NoFreeModels = "OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.";
         // HTTP 451, or a block page where the API's answer should be: the service turns away their country or network, so every key
         // fails the same way (ticket 84, coshac1 on NVIDIA; ticket 88, Void on OpenRouter; both in Russia).
         internal const string Blocked = "Their API is blocked where you are, so a new key won't help. Pick another service under Free key, or Built-in under BRAIN, which runs on your PC.";
@@ -1639,7 +1643,7 @@ namespace CapriDesktop
                         if (freeOnly && kind == "openrouter")
                         {
                             found.RemoveAll(model => !model.EndsWith(":free", StringComparison.Ordinal));
-                            if (found.Count == 0) throw new BrainException("OpenRouter has no free chat models on this key. Try Refresh or MAX INTELLIGENCE.", true);
+                            if (found.Count == 0) throw new BrainException(NoFreeModels, true);
                         }
                         return found;
                     }
@@ -3532,6 +3536,12 @@ namespace CapriDesktop
             if (needs.Success) return "Not enough free RAM: it needs " + needs.Groups["need"].Value + " GB, only " + needs.Groups["free"].Value + " GB is free.";
             if (NoMemory.IsMatch(error) || error.StartsWith("Your PC ran out of free RAM", StringComparison.Ordinal)) return "Not enough free RAM. Close some apps, then try again.";
             if (error == Blocked) return "Blocked where you are. Try another service or Built-in.";
+            // Key and credit lines keep their fix inside the note's 60 characters.
+            if (error.StartsWith("No credits on this key.", StringComparison.Ordinal)) return "No credits on this key. Add credits, or press Free key.";
+            if (error == PlusRejected) return "Key rejected. Make one with credits at platform.openai.com.";
+            if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
+            if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
+            if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
             return null;
         }
 
@@ -3939,11 +3949,11 @@ namespace CapriDesktop
             // An API turns a bad key away in its own words; an HTML page in their place is a firewall or a country block.
             if (status == 451 || status == 403 && (BlockPage.IsMatch(body ?? "") || (body ?? "").TrimStart().StartsWith("<", StringComparison.Ordinal))) return Blocked;
             if (google && status == 400 && Regex.IsMatch(body ?? "", @"location is not supported|in your (country|region)", RegexOptions.IgnoreCase)) return Unserved;
-            if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return "No credits on this key. Add credits on their site, or press Free key for a free NVIDIA key.";
+            if (status == 402 || Regex.IsMatch(body ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase)) return NoCredits;
             if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
             // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
             if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;
-            if (status == 401 || status == 403) return openai ? "Key rejected. ChatGPT Plus doesn't include API use, so make a key with credits at platform.openai.com." : "Key rejected. Press Forget, then paste it again.";
+            if (status == 401 || status == 403) return openai ? PlusRejected : "Key rejected. Press Forget, then paste it again.";
             if (status == 429) return Busy;
             if (status == 404) return Gone;
             if (status >= 500) return Down;
