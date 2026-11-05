@@ -29060,6 +29060,39 @@ namespace CapriDesktop
             finally { Mixer.Session = sessionWas; Mixer.Ducking = duckingWas; Brain.LogPath = logWas; }
         }
 
+        // A13: a tool call her brain wrote wrong is said out loud, in the same words from every path, and nothing runs.
+        private void SmokeToolCallErrors(System.Collections.Generic.List<string> checks)
+        {
+            string line = "Couldn't read that tool call. Try again.";
+            ToolArguments args = new ToolArguments { Name = "format_c" };
+            if (Hands.Valid("shortcut", args)) throw new Exception("The stand-in tool call is valid.");
+            string reply = "{\"choices\":[{\"message\":{\"content\":\"\",\"tool_calls\":[{\"function\":{\"name\":\"shortcut\",\"arguments\":\"{\\\"name\\\":\\\"format_c\\\"}\"}}]},\"finish_reason\":\"tool_calls\"}]}";
+            System.Collections.Generic.List<string> requests = new System.Collections.Generic.List<string>();
+            System.Net.Sockets.TcpListener fake;
+            string address = FakeServer(new[] { reply, reply }, requests, out fake);
+            try
+            {
+                Brain check = new Brain();
+                check.Model = "tool-error-check";
+                check.Remote = new Cloud(0, check.Model, address);
+                System.Collections.Generic.List<string> ran = new System.Collections.Generic.List<string>();
+                check.Act = delegate(string tool, ToolArguments given) { ran.Add(tool + " " + given.Name); return "Ran."; };
+                System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>> calls = new System.Collections.Generic.List<System.Collections.Generic.KeyValuePair<string, ToolArguments>>();
+                BrainException problem = null;
+                try { check.QuickTools("Pick a tool.", "open Discord", 120, calls, Hands.KitFor()); }
+                catch (BrainException error) { problem = error; }
+                if (problem == null || !problem.Told || problem.Message != line || calls.Count != 0) throw new Exception("An unreadable tool call lost its spoken reason: " + (problem == null ? "no error" : problem.Told + " " + problem.Message) + ", " + calls.Count + " calls.");
+                // Asked for in chat, her hands can still open Discord on their own, but the unreadable call never runs.
+                problem = null;
+                try { check.Ask("open Discord"); }
+                catch (BrainException error) { problem = error; }
+                if (problem != null && (!problem.Told || problem.Message != line) || ran.Exists(delegate(string done) { return done.Contains("format_c"); })) throw new Exception("An unreadable tool call ran or said another reason: " + string.Join(", ", ran.ToArray()));
+                if (AsideRun("shortcut", args, null, asking) != line) throw new Exception("An unreadable aside used different words.");
+            }
+            finally { fake.Stop(); }
+            checks.Add("PASS an unreadable tool call is said out loud in one wording that asks to try again, and never runs");
+        }
+
         private void SmokeDeviceChoices(System.Collections.Generic.List<string> checks)
         {
             Func<System.Collections.Generic.List<Speaker.Output>> devicesWas = Speaker.Devices;
@@ -30389,6 +30422,7 @@ namespace CapriDesktop
             Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
             Section(checks, "SmokeUnreadableSettings", delegate { SmokeUnreadableSettings(checks, output); });
             Section(checks, "SmokeBrainNotes", delegate { SmokeBrainNotes(checks); });
+            Section(checks, "SmokeToolCallErrors", delegate { SmokeToolCallErrors(checks); });
             Section(checks, "SmokeHearingReasons", delegate { SmokeHearingReasons(checks, output); });
             Section(checks, "SmokeBrainOnlyText", delegate { SmokeBrainOnlyText(checks, output); });
             Section(checks, "SmokeJobPanelFixes", delegate { SmokeJobPanelFixes(checks); });

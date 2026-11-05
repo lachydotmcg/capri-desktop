@@ -2511,7 +2511,7 @@ namespace CapriDesktop
             List<KeyValuePair<string, ToolArguments>> several = calls.Count == 0 ? Hands.Written(raw) : null;
             if (several != null && several.Count > 1) calls.AddRange(several);
             else if (calls.Count == 0 && Hands.Typed(raw, out written, out writtenArgs, true)) calls.Add(new KeyValuePair<string, ToolArguments>(written, writtenArgs));
-            if (calls.Exists(call => !Hands.Valid(call.Key, call.Value))) { calls.Clear(); throw new BrainException("Couldn't read that tool call. Try again."); }
+            if (calls.Exists(call => !Hands.Valid(call.Key, call.Value))) { calls.Clear(); throw new BrainException("Couldn't read that tool call. Try again.", true); }
             return raw;
         }
 
@@ -2557,7 +2557,7 @@ namespace CapriDesktop
                 ToolArguments args;
                 if (Hands.Typed(raw, out tool, out args, true)) calls.Add(new KeyValuePair<string, ToolArguments>(tool, args));
             }
-            if (calls.Exists(call => !Hands.Valid(call.Key, call.Value))) { calls.Clear(); throw new BrainException("Couldn't read that tool call."); }
+            if (calls.Exists(call => !Hands.Valid(call.Key, call.Value))) { calls.Clear(); throw new BrainException("Couldn't read that tool call. Try again.", true); }
             return raw;
         }
 

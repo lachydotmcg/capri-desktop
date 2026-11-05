@@ -383,7 +383,7 @@ namespace CapriDesktop
         private string AsideRun(string tool, ToolArguments args, Job running, int ticket)
         {
             if (ticket != asking || quitting || CallModeOn && !CallHands(ticket)) return "That turn has ended.";
-            if (!Hands.Valid(tool, args)) return "Couldn't read that tool call.";
+            if (!Hands.Valid(tool, args)) return "Couldn't read that tool call. Try again.";
             if (MidJob(running) && job == running && (tool == "use_computer" || tool == "stream" && args.Action != "stop"))
             {
                 string held = Security.Gate(tool, args);
