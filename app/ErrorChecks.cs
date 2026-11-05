@@ -328,6 +328,61 @@ namespace CapriDesktop
             checks.Add("PASS tool results people see or hear say \"you\" and \"your\" where her brain's copy says \"they\" and \"their\" (the password box, internet and PC checks, windows, apps, monitors), keep capitals, and leave anyone else's \"their\", like a provider's site, alone");
         }
 
+        // Jobs flag 12: a damaged reminders.json, routines.json or websites.json is kept aside before anything saves over it,
+        // she says so once, and each list works again.
+        private static void SmokeSavedLists(List<string> checks, string output)
+        {
+            string folder = Path.Combine(output, "saved-lists-" + Guid.NewGuid().ToString("N")), logWas = Brain.LogPath;
+            Directory.CreateDirectory(folder);
+            try
+            {
+                Brain.LogPath = Path.Combine(folder, "errors.txt");
+                const string damaged = "[{\"Text\":\"call Mum about the secret\",";
+                string[] names = { "reminders", "routines", "websites" }, labels = { "reminders", "routines", "website nicknames" };
+                string[] empty = { "You have no reminders waiting.", "You have no saved routines.", "You haven't given me any website nicknames yet." };
+                foreach (string name in names) File.WriteAllText(Path.Combine(folder, name + ".json"), damaged);
+                DateTime now = new DateTime(2026, 11, 6, 14, 10, 0);
+                Reminders lists = new Reminders(folder, now);
+                Websites sites = new Websites(folder);
+                Func<ToolArguments, string>[] tools = { lists.Remind, lists.Routine, sites.Do };
+                ToolArguments[] adds = { new ToolArguments { Text = "stretch", When = "in 20 minutes" }, new ToolArguments { Action = "save", Phrase = "movie", Steps = "open netflix" }, new ToolArguments { Action = "save", Name = "school", Site = "https://example.com/school" } };
+                for (int i = 0; i < names.Length; i++)
+                {
+                    string first = tools[i](new ToolArguments { Action = "list" }), again = tools[i](new ToolArguments { Action = "list" });
+                    string told = "Your saved " + labels[i] + " couldn't be read, so I started a new list. The old file is kept as " + names[i] + ".unreadable.json in %LocalAppData%\\Capri.";
+                    string kept = Path.Combine(folder, names[i] + ".unreadable.json");
+                    if (first != told + "\n" + empty[i] || again != empty[i] || !File.Exists(kept) || File.ReadAllText(kept) != damaged)
+                        throw new Exception("A damaged " + names[i] + ".json wasn't kept and told once: " + first + " / " + again);
+                    tools[i](adds[i]);
+                }
+                Reminders reread = new Reminders(folder, now);
+                Websites resites = new Websites(folder);
+                string[] saved = { reread.Remind(new ToolArguments { Action = "list" }), reread.Routine(new ToolArguments { Action = "list" }), resites.Do(new ToolArguments { Action = "list" }) };
+                string[] added = { "stretch", "movie", "school" };
+                for (int i = 0; i < names.Length; i++)
+                    if (!saved[i].Contains(added[i]) || saved[i].Contains("couldn't be read")) throw new Exception("A list didn't save again after a damaged file: " + saved[i]);
+                string log = File.ReadAllText(Brain.LogPath);
+                if (log.Contains("secret") || !log.Contains("reminders.json couldn't be read (") || !log.Contains("websites.unreadable.json"))
+                    throw new Exception("errors.txt quoted a damaged file, or didn't say what happened: " + log);
+
+                File.WriteAllText(Path.Combine(folder, "reminders.json"), "[{\"Text\":\"call Mum\",\"When\":\"2026-11-07T09:00:00.0000000\",\"Said\":false},{\"Text\":\"\",\"When\":\"soon\",\"Said\":false}]");
+                string some = new Reminders(folder, now).Remind(new ToolArguments { Action = "list" });
+                if (!some.StartsWith("Some of your saved reminders couldn't be read, so I kept the rest.", StringComparison.Ordinal) || !some.Contains("call Mum"))
+                    throw new Exception("A reminders.json with one bad reminder lost the good one or didn't say so: " + some);
+
+                string fresh = Path.Combine(folder, "fresh");
+                Directory.CreateDirectory(fresh);
+                if (new Reminders(fresh, now).Remind(new ToolArguments { Action = "list" }) != empty[0] || new Websites(fresh).Do(new ToolArguments { Action = "list" }) != empty[2] || Directory.GetFiles(fresh).Length != 0)
+                    throw new Exception("A new install's missing lists said something or made files.");
+            }
+            finally
+            {
+                Brain.LogPath = logWas;
+                try { Directory.Delete(folder, true); } catch (IOException) { }
+            }
+            checks.Add("PASS a damaged reminders.json, routines.json or websites.json is kept as .unreadable.json before anything saves over it, she says so once in her next reply about it, errors.txt names only the error's kind, a bad reminder keeps the good ones, and each list saves again");
+        }
+
         // The task panel keeps the fix in a long ending or snag: the ending gets five rows and the newest failed step three,
         // and one that still won't fit keeps its first sentence's start and its last sentence before it's ever cut short.
         private static void SmokeJobPanelFixes(List<string> checks)

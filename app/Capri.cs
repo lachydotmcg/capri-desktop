@@ -13933,22 +13933,31 @@ namespace CapriDesktop
 
         private static string KeepUnreadable(string path, Exception error)
         {
-            string kept = Path.Combine(Path.GetDirectoryName(path), UnreadableName);
             // Only the kind of error goes in errors.txt: its message can quote the file, keys and all.
             string why = error.GetType().Name;
+            Exception copying = CopyUnreadable(path, UnreadableName);
+            if (copying != null)
+            {
+                Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + ") or copied (" + copying.GetType().Name + "), so she started with fresh settings.");
+                return "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe.";
+            }
+            Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
+            return "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
+        }
+
+        // Copies a file she couldn't read to name beside it, before anything saves over it. Null when it worked.
+        internal static Exception CopyUnreadable(string path, string name)
+        {
             for (int tries = 1; ; tries++)
             {
-                try { File.Copy(path, kept, true); break; }
+                try { File.Copy(path, Path.Combine(Path.GetDirectoryName(path), name), true); return null; }
                 catch (Exception copying)
                 {
                     // Something like an antivirus scan can hold it for a moment.
                     if (tries < 3) { Thread.Sleep(200); continue; }
-                    Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + ") or copied (" + copying.GetType().Name + "), so she started with fresh settings.");
-                    return "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe.";
+                    return copying;
                 }
             }
-            Brain.Log("startup", -1, "Her settings.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
-            return "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in %LocalAppData%\\Capri.";
         }
 
         private bool SavePreferences()
@@ -30438,6 +30447,7 @@ namespace CapriDesktop
             Section(checks, "SmokeFrames", delegate { SmokeFrames(checks); });
             Section(checks, "SmokeGameKeys", delegate { SmokeGameKeys(checks); });
             Section(checks, "SmokeReminders", delegate { SmokeReminders(checks); });
+            Section(checks, "SmokeSavedLists", delegate { SmokeSavedLists(checks, output); });
             Section(checks, "SmokeNoteEditor", delegate { SmokeNoteEditor(checks); });
             Section(checks, "SmokePopTimes", delegate { SmokePopTimes(checks); });
             Section(checks, "SmokeCalendarReminders", delegate { SmokeCalendarReminders(checks); });
