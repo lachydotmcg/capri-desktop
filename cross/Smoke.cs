@@ -135,6 +135,7 @@ namespace CapriDesktop
                 NewsChecks();
                 GuardChecks();
                 MainframeGuardChecks();
+                UnreadableChecks();
                 if (pet.Arrivals != 1) throw new Exception("She didn't glitch in when she started.");
                 checks.Add("PASS glitch in: she glitches onto the screen when she starts, then drops");
                 if (pet.ActualTransparencyLevel == WindowTransparencyLevel.Transparent) checks.Add("PASS her window is see-through");
@@ -1553,6 +1554,81 @@ namespace CapriDesktop
             string[] other = Caught(delegate { Program.Guard(delegate { throw new ArgumentException("Another guard fault."); }); });
             if (other.Length < 2 || !other[0].EndsWith(" | crash | - | ArgumentException: Another guard fault.", StringComparison.Ordinal)) throw new Exception("A different bug wasn't written after the first: " + string.Join(" / ", other));
             checks.Add("PASS Program.Guard: a bug in a click or timer goes in errors.txt as its innermost type and message with up to four stack lines, the same one from the same place once a minute, and she carries on; smoke runs still fail on it");
+        }
+
+        private void UnreadableChecks()
+        {
+            string home = Path.Combine(folder, "unreadable-settings");
+            Directory.CreateDirectory(home);
+            string path = Path.Combine(home, "cross.json"), kept = Path.Combine(home, Pet.UnreadableName), log = Path.Combine(home, "errors.txt");
+            foreach (string file in new[] { path, kept, log, Path.Combine(home, "cross-new.json") }) if (File.Exists(file)) File.Delete(file);
+            string notice;
+            Settings missing = Pet.ReadSettings(path, out notice);
+            if (missing == null || notice != null || File.Exists(kept) || File.Exists(log)) throw new Exception("Missing cross settings made a notice, backup or error.");
+            byte[] broken = Encoding.UTF8.GetBytes("{\"Nickname\":\"private-settings-text\",\"Size\":private-settings-value}");
+            File.WriteAllBytes(path, broken);
+            Settings reset = Pet.ReadSettings(path, out notice);
+            if (reset == null || reset.Nickname != null || !File.Exists(kept) || Convert.ToBase64String(File.ReadAllBytes(kept)) != Convert.ToBase64String(broken)) throw new Exception("Unreadable cross settings were not kept as they were before the reset.");
+            if (notice != "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + Pet.UnreadableName + " in " + Pet.Tilde(Path.GetFullPath(home)) + ".") throw new Exception("Unreadable cross settings did not name their real folder.");
+            string[] errors = File.ReadAllLines(log);
+            if (errors.Length != 1 || !errors[0].Contains("SerializationException") || errors[0].Contains("private-settings") || errors[0].Contains("Nickname") || errors[0].Contains("Size")) throw new Exception("Unreadable cross settings logged their text or missed the error type.");
+            var fields = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            string[] names = { "unreadableNotice", "greetTried", "opened", "away", "quitting", "outro", "dragging" };
+            Dictionary<string, object> state = new Dictionary<string, object>();
+            foreach (string name in names) state[name] = typeof(Pet).GetField(name, fields).GetValue(pet);
+            Action<string, object> set = delegate(string name, object value) { typeof(Pet).GetField(name, fields).SetValue(pet, value); };
+            try
+            {
+                pet.Talk.Dismiss();
+                set("unreadableNotice", notice); set("opened", false); set("greetTried", true);
+                foreach (string name in new[] { "away", "quitting", "dragging" }) set(name, false);
+                set("outro", null);
+                pet.ShowUnreadableNotice();
+                if (pet.Talk.Reply != null) throw new Exception("Unreadable settings showed before her window opened.");
+                set("opened", true); set("greetTried", false);
+                pet.ShowUnreadableNotice();
+                if (pet.Talk.Reply != null) throw new Exception("Unreadable settings covered the startup hello.");
+                set("greetTried", true);
+                foreach (string name in new[] { "away", "quitting", "dragging" })
+                {
+                    set(name, true); pet.ShowUnreadableNotice();
+                    if (pet.Talk.Reply != null) throw new Exception("Unreadable settings ignored " + name + ".");
+                    set(name, false);
+                }
+                set("outro", (Action)delegate { }); pet.ShowUnreadableNotice(); set("outro", null);
+                if (pet.Talk.Reply != null) throw new Exception("Unreadable settings showed while she was leaving.");
+                pet.Talk.Answer("smoke", "Still talking.");
+                pet.ShowUnreadableNotice();
+                if (pet.Talk.Reply != "Still talking.") throw new Exception("Unreadable settings interrupted her reply.");
+                pet.Talk.Dismiss();
+                pet.ShowUnreadableNotice();
+                if (pet.Talk.Reply != notice) throw new Exception("Unreadable cross settings did not show their notice after startup.");
+                pet.Talk.Dismiss();
+                pet.ShowUnreadableNotice();
+                if (pet.Talk.Reply != null) throw new Exception("Unreadable cross settings showed their notice twice.");
+            }
+            finally
+            {
+                pet.Talk.Dismiss();
+                foreach (KeyValuePair<string, object> pair in state) set(pair.Key, pair.Value);
+            }
+            File.WriteAllText(path, "{\"Nickname\":\"kept choice\"}");
+            File.WriteAllText(Path.Combine(home, "cross-new.json"), "not json");
+            if (Pet.ReadSettings(path, out notice).Nickname != "kept choice" || notice != null || File.ReadAllLines(log).Length != 1) throw new Exception("Unreadable cross-new settings reset readable cross settings.");
+            File.WriteAllText(path, "null");
+            if (Pet.ReadSettings(path, out notice) == null || notice == null || File.ReadAllText(kept) != "null") throw new Exception("Null cross settings did not start fresh and keep the file.");
+            File.Delete(kept);
+            Directory.CreateDirectory(kept);
+            try
+            {
+                Stopwatch wait = Stopwatch.StartNew();
+                Settings uncopied = Pet.ReadSettings(path, out notice);
+                string[] failed = File.ReadAllLines(log);
+                if (uncopied == null || notice != "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe." || wait.ElapsedMilliseconds < 350) throw new Exception("Unreadable settings did not retry a failed copy or gave the wrong notice.");
+                if (failed.Length != 3 || !failed[2].Contains("SerializationException") || !failed[2].Contains("or copied (") || failed[2].Contains("private-settings")) throw new Exception("A failed settings copy lost its error types or logged file text.");
+            }
+            finally { Directory.Delete(kept); }
+            checks.Add("PASS unreadable settings: missing cross.json stays quiet, damaged settings are copied as they are, only the error type is logged, and one notice names the real folder after startup");
         }
 
         private static PointerPressedEventArgs LeftPress(Control on, IPointer mouse)

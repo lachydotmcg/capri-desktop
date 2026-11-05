@@ -408,6 +408,8 @@ namespace CapriDesktop
         private readonly Meeting meeting = new Meeting();
         private double meetAt = -1;
         private readonly bool fresh;
+        // Settings that couldn't be read, said once she's up and nothing else is talking.
+        private string unreadableNotice;
         // Ticks the tray's Quiet item when her own menu changes it.
         internal Action ShushChanged;
         // Settings > Start at login. Off until they tick it; the file is the setting.
@@ -849,6 +851,7 @@ namespace CapriDesktop
             CheckStyle();
             if (presence != null && now >= nextStatus) { nextStatus = now + 1; presence.Show(Saved.NoDiscord ? null : Doing); }
             if (Program.Smoke == null && now >= nextUpdate) { nextUpdate = now + 6 * 3600; CheckUpdate(); }
+            ShowUnreadableNotice();
             if (UpdateNews != null && !away && !dragging && Talk.Quiet) { Talk.Answer("(update)", UpdateNews); UpdateNews = null; }
             if (outro != null && now >= outroAt) { Action next = outro; outro = null; next(); }
             CheckRaised(now);
@@ -4729,17 +4732,70 @@ namespace CapriDesktop
 
         private Settings Load()
         {
+            return ReadSettings(Path.Combine(folder, "cross.json"), out unreadableNotice);
+        }
+
+        internal const string UnreadableName = "cross.unreadable.json";
+
+        // As on Windows: a new install has no cross.json and starts fresh. Settings that can't be read start fresh too, but
+        // first the file is copied as it is to cross.unreadable.json, so the next save can't write over the only copy of their
+        // choices and keys, and the notice says where it went.
+        internal static Settings ReadSettings(string path, out string notice)
+        {
+            notice = null;
             try
             {
                 Settings saved;
-                using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross.json"))) saved = (Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+                using (FileStream stream = File.OpenRead(path)) saved = (Settings)new DataContractJsonSerializer(typeof(Settings)).ReadObject(stream);
+                if (saved == null) throw new SerializationException();
                 NewSettings newer = null;
-                try { using (FileStream stream = File.OpenRead(Path.Combine(folder, "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
+                try { using (FileStream stream = File.OpenRead(Path.Combine(Path.GetDirectoryName(path), "cross-new.json"))) newer = (NewSettings)new DataContractJsonSerializer(typeof(NewSettings)).ReadObject(stream); }
                 catch (Exception) { }
                 return Kept(saved, newer);
             }
-            // A new install starts in the computer's own language when she speaks it.
-            catch (Exception) { return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) }; }
+            catch (Exception error)
+            {
+                if (File.Exists(path)) notice = KeepUnreadable(path, error);
+                // A new install starts in the computer's own language when she speaks it.
+                return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) };
+            }
+        }
+
+        private static string KeepUnreadable(string path, Exception error)
+        {
+            string home = Path.GetDirectoryName(Path.GetFullPath(path));
+            string kept = Path.Combine(home, UnreadableName);
+            string log = Path.Combine(home, "errors.txt");
+            // Only the kind of error goes in errors.txt: its message can quote the file, keys and all.
+            string why = error.GetType().Name;
+            for (int tries = 1; ; tries++)
+            {
+                try { File.Copy(path, kept, true); break; }
+                catch (Exception copying)
+                {
+                    if (tries < 3) { Thread.Sleep(200); continue; }
+                    Brain.LogAt(log, "startup", -1, "Her cross.json couldn't be read (" + why + ") or copied (" + copying.GetType().Name + "), so she started with fresh settings.");
+                    return "Her settings couldn't be read, so they were reset. Add your keys and choices again in Capri Mainframe.";
+                }
+            }
+            Brain.LogAt(log, "startup", -1, "Her cross.json couldn't be read (" + why + "), so she started with fresh settings. The old file is kept as " + UnreadableName + ".");
+            return "Her settings couldn't be read, so they were reset. Add your keys again in Capri Mainframe. The old file is kept as " + UnreadableName + " in " + Tilde(home) + ".";
+        }
+
+        // A folder in their home as ~/..., so a screenshot of the notice doesn't show their user name.
+        internal static string Tilde(string path)
+        {
+            string user = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return user.Length > 1 && path.StartsWith(user + "/", StringComparison.Ordinal) ? "~" + path.Substring(user.Length) : path;
+        }
+
+        // After her hello, while nothing else is showing, so it's read rather than covered.
+        internal void ShowUnreadableNotice()
+        {
+            if (unreadableNotice == null || !opened || !greetTried || !IsVisible || away || quitting || outro != null || dragging || !Talk.Quiet || !Talk.Finished) return;
+            string notice = unreadableNotice;
+            unreadableNotice = null;
+            Talk.Answer("(settings)", notice);
         }
 
         internal void Save()
