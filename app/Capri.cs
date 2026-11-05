@@ -29768,6 +29768,7 @@ namespace CapriDesktop
             Section(checks, "SmokeVoiceCredit", delegate { SmokeVoiceCredit(checks, output); });
             Section(checks, "SmokeSpecialLetters", delegate { SmokeSpecialLetters(checks); });
             Section(checks, "SmokeWordingFixes", delegate { SmokeWordingFixes(checks, output); });
+            Section(checks, "SmokeHelpQuotes", delegate { SmokeHelpQuotes(checks); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)

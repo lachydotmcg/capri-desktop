@@ -510,6 +510,27 @@ namespace CapriDesktop
             }
         }
 
+        // The Help page's knowledge base, which the website helper reads too, quotes her lines as she says them now.
+        private static void SmokeHelpQuotes(List<string> checks)
+        {
+            string root = null;
+            foreach (string start in new[] { AppDomain.CurrentDomain.BaseDirectory, Environment.CurrentDirectory })
+            {
+                for (DirectoryInfo folder = new DirectoryInfo(start); folder != null && root == null; folder = folder.Parent)
+                    if (File.Exists(Path.Combine(folder.FullName, "site", "help", "knowledge.md"))) root = folder.FullName;
+                if (root != null) break;
+            }
+            if (root == null) { checks.Add("LIMIT help quotes: the source tree isn't beside this executable or working directory"); return; }
+            string help = File.ReadAllText(Path.Combine(root, "site", "help", "knowledge.md"));
+            string[] current = { Brain.NotAKey, Brain.Busy, Brain.BusyWatching, Brain.Down, Brain.DailyStart, Brain.NoCredits, Ears.Unopened, VoiceServer.Credit("OpenAI", false), LocalVoice.SpecialVoice, CallHearingLine, UnreadableName, "Windows speech didn't start.", "The download of <name> came out the wrong size." };
+            string[] old = { "or watch slower", "Their servers failed", "That isn't an NVIDIA, OpenAI, Claude or DeepSeek key.", "Can't open your mic. Pick another under VOICE.", "Pick FREE VOICE or ELEVENLABS to turn it back on", "came down the wrong size", "failed its checksum", "Add credits on their site," };
+            List<string> missing = new List<string>(Array.FindAll(current, line => help.IndexOf(line, StringComparison.Ordinal) < 0));
+            List<string> stale = new List<string>(Array.FindAll(old, line => help.IndexOf(line, StringComparison.Ordinal) >= 0));
+            if (missing.Count > 0 || stale.Count > 0 || help.IndexOf('—') >= 0)
+                throw new Exception("Her help page quotes old wording: missing " + string.Join(" | ", missing.ToArray()) + "; still has " + string.Join(" | ", stale.ToArray()));
+            checks.Add("PASS her help page quotes her lines as she says them now: keys, rate limits, Gemini's daily limit, the service's servers, her mic and Windows speech, cloud voice credit, the special-letters folder, call mode hearing and unreadable settings, with none of the old wording");
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;
