@@ -1,5 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+const codeInput = 0.10;
+const codeOutput = 0.50;
+const codeRead = 0.1;
+const codeWrite5 = 1.25;
+const codeWrite60 = 2;
+const codeModel = 'claude-haiku-5-5';
+const codeLetters = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
 const sha256 = async (text) => {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -10,6 +18,148 @@ const equal = async (given, secret) => {
   const key = await crypto.subtle.importKey('raw', text.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
   const tag = await crypto.subtle.sign('HMAC', key, text.encode(secret));
   return crypto.subtle.verify('HMAC', key, tag, text.encode(given));
+};
+
+const normalCode = code => String(code || '').trim().toUpperCase();
+
+const makeCode = () => {
+  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  let bits = 0, value = 0, text = '';
+  for (const byte of bytes) {
+    value = (value << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      text += codeLetters[(value >> bits) & 31];
+    }
+    value &= (1 << bits) - 1;
+  }
+  return 'CAPRI-' + text.match(/.{4}/g).join('-');
+};
+
+const codes = async (request, env, path) => {
+  const reply = (body, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+  if (!env.CODES_SECRET) return reply({ error: 'Codes secret is not set.' }, 503);
+  const expected = await sha256('Bearer ' + env.CODES_SECRET);
+  const received = await sha256(request.headers.get('Authorization') || '');
+  let different = 0;
+  for (let i = 0; i < expected.length; i++) different |= expected.charCodeAt(i) ^ received.charCodeAt(i);
+  if (different) return reply({ error: 'Not authorised.' }, 401);
+  if (!env.SALT) return reply({ error: "Capri codes aren't ready." }, 503);
+  if (path === '/codes' && request.method === 'GET') {
+    const { results } = await env.DB.prepare('SELECT id, name, budget, spent, expires, off, requests, used FROM codes ORDER BY id DESC').all();
+    return reply({ codes: results.map(row => ({ id: row.id, name: row.name, dollars: row.budget / 1000000, spent: row.spent / 1000000, left: Math.max(0, row.budget - row.spent) / 1000000, expires: row.expires, off: row.off, requests: row.requests, used: row.used })) });
+  }
+  if (request.method !== 'POST' || !['/codes', '/codes/off', '/codes/on'].includes(path)) return reply({ error: 'Not found' }, 404);
+  const sent = await request.json().catch(() => null);
+  if (!sent || typeof sent !== 'object' || Array.isArray(sent)) return reply({ error: 'Bad request' }, 400);
+  if (path !== '/codes') {
+    if (!Number.isSafeInteger(sent.id) || sent.id <= 0) return reply({ error: 'Give a code id.' }, 400);
+    const off = path === '/codes/off' ? 1 : 0;
+    const result = await env.DB.prepare('UPDATE codes SET off = ? WHERE id = ?').bind(off, sent.id).run();
+    return result.meta.changes ? reply({ id: sent.id, off }) : reply({ error: 'No such code.' }, 404);
+  }
+  const name = typeof sent.name === 'string' ? sent.name.trim() : '';
+  const budget = typeof sent.dollars === 'number' ? Math.round(sent.dollars * 1000000) : 0;
+  const days = sent.days === undefined ? 0 : sent.days;
+  const created = Date.now();
+  const expires = days === 0 ? 0 : Math.round(created + days * 86400000);
+  if (!name || name.length > 80 || !Number.isSafeInteger(budget) || budget <= 0 || typeof days !== 'number' || !Number.isFinite(days) || days < 0 || !Number.isSafeInteger(expires) || expires < 0 || expires > 8640000000000000) return reply({ error: 'Give a name, a positive dollar budget and days of zero or more.' }, 400);
+  const code = makeCode();
+  const hash = await sha256(normalCode(code) + ':' + env.SALT);
+  const row = await env.DB.prepare('INSERT INTO codes (hash, name, budget, expires, created) VALUES (?, ?, ?, ?, ?) RETURNING id').bind(hash, name, budget, expires, created).first();
+  return reply({ id: row.id, code, name, dollars: budget / 1000000, expires });
+};
+
+const codeCost = usage => {
+  const tokens = count => typeof count === 'number' && Number.isFinite(count) && count > 0 ? count : 0;
+  const writes = usage.cache_creation;
+  const five = writes ? tokens(writes.ephemeral_5m_input_tokens) : tokens(usage.cache_creation_input_tokens);
+  const hour = writes ? tokens(writes.ephemeral_1h_input_tokens) : 0;
+  return Math.ceil(codeInput * (tokens(usage.input_tokens) + tokens(usage.cache_read_input_tokens) * codeRead + five * codeWrite5 + hour * codeWrite60) + codeOutput * tokens(usage.output_tokens));
+};
+
+const codeBrain = async (request, env, ctx, path) => {
+  const headers = new Headers({ 'Cache-Control': 'no-store', 'capri-code-left': '0.00', 'capri-code-expires': '' });
+  const fail = (status, type, message) => Response.json({ type: 'error', error: { type, message } }, { status, headers });
+  if (!env.SALT) return fail(503, 'api_error', "Capri codes aren't ready.");
+  const hash = await sha256(normalCode(request.headers.get('x-api-key')) + ':' + env.SALT);
+  const row = await env.DB.prepare('SELECT id, budget, spent, expires, off FROM codes WHERE hash = ?').bind(hash).first();
+  if (!row) return fail(401, 'authentication_error', "That Capri code isn't right.");
+  headers.set('capri-code-left', (Math.max(0, row.budget - row.spent) / 1000000).toFixed(2));
+  headers.set('capri-code-expires', row.expires ? new Date(row.expires).toISOString() : '');
+  if (row.off) return fail(403, 'permission_error', 'That Capri code was switched off.');
+  if (row.expires && row.expires <= Date.now()) return fail(403, 'permission_error', 'That Capri code has expired.');
+  if (row.spent >= row.budget) return fail(403, 'permission_error', 'That Capri code has used up its budget.');
+  if (path === '/brain/v1/models' && request.method === 'GET') return Response.json({ data: [{ type: 'model', id: codeModel, display_name: 'Claude Haiku 5.5' }], has_more: false, first_id: codeModel, last_id: codeModel }, { headers });
+  if (path !== '/brain/v1/messages' || request.method !== 'POST') return fail(404, 'not_found_error', 'Not found');
+  if (!env.ANTHROPIC_API_KEY) return fail(503, 'api_error', "Capri codes aren't ready.");
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return fail(400, 'invalid_request_error', 'Bad request');
+  body.model = codeModel;
+  delete body.temperature;
+  delete body.top_p;
+  delete body.top_k;
+  delete body.fallbacks;
+  if (body.thinking && body.thinking.type === 'enabled') body.thinking = { type: 'adaptive' };
+  if (body.thinking && body.thinking.type === 'disabled' && body.output_config && ['xhigh', 'max'].includes(body.output_config.effort)) body.output_config.effort = 'high';
+  const upstream = new Headers({ 'Content-Type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY });
+  for (const name of ['anthropic-version', 'anthropic-beta']) if (request.headers.has(name)) upstream.set(name, request.headers.get(name));
+  let response;
+  try { response = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: upstream, body: JSON.stringify(body), redirect: 'manual' }); }
+  catch { return fail(502, 'api_error', "Couldn't reach Claude. Try again."); }
+  const returned = new Headers(response.headers);
+  for (const name of [...returned.keys()]) if (name.startsWith('access-control-') || ['content-length', 'content-encoding', 'transfer-encoding'].includes(name)) returned.delete(name);
+  for (const [name, value] of headers) returned.set(name, value);
+  const options = { status: response.status, statusText: response.statusText, headers: returned };
+  let usage = {};
+  const count = next => {
+    if (!next || typeof next !== 'object') return;
+    usage = { ...usage, ...next, ...(next.cache_creation ? { cache_creation: { ...usage.cache_creation, ...next.cache_creation } } : {}) };
+  };
+  const charge = () => env.DB.prepare('UPDATE codes SET spent = spent + ?, requests = requests + 1, used = ? WHERE id = ?').bind(codeCost(usage), Date.now(), row.id).run();
+  if (!response.ok) {
+    const bytes = await response.arrayBuffer();
+    ctx.waitUntil(charge());
+    return new Response(bytes, options);
+  }
+  if (body.stream === true && response.body) {
+    const decoder = new TextDecoder();
+    let pending = '', data = [];
+    const event = () => {
+      if (!data.length) return;
+      try {
+        const sent = JSON.parse(data.join('\n'));
+        if (sent.type === 'message_start') count(sent.message && sent.message.usage);
+        if (sent.type === 'message_delta') count(sent.usage);
+      } catch { }
+      data = [];
+    };
+    const read = (text, end = false) => {
+      pending += text;
+      let match;
+      while ((match = /\r\n|\r(?!$)|\n/.exec(pending))) {
+        const line = pending.slice(0, match.index);
+        pending = pending.slice(match.index + match[0].length);
+        if (!line) event();
+        else if (line.startsWith('data:')) data.push(line.slice(5).replace(/^ /, ''));
+      }
+      if (end) {
+        if (pending.startsWith('data:')) data.push(pending.slice(5).replace(/^ /, '').replace(/\r$/, ''));
+        event();
+      }
+    };
+    const stream = new TransformStream({
+      transform(chunk, controller) { controller.enqueue(chunk); read(decoder.decode(chunk, { stream: true })); },
+      flush() { read(decoder.decode(), true); }
+    });
+    ctx.waitUntil(response.body.pipeTo(stream.writable).catch(() => {}).then(charge));
+    return new Response(stream.readable, options);
+  }
+  const text = await response.text();
+  try { count(JSON.parse(text).usage); } catch { }
+  ctx.waitUntil(charge());
+  return new Response(text, options);
 };
 
 const counters = { '/star': 'stars', '/download': 'downloads' };
@@ -305,6 +455,9 @@ const relay = async (request, env, ctx, reply) => {
 
 export default {
   async fetch(request, env, ctx) {
+    const path = new URL(request.url).pathname;
+    if (path === '/codes' || path.startsWith('/codes/')) return codes(request, env, path);
+    if (path === '/brain' || path.startsWith('/brain/')) return codeBrain(request, env, ctx, path);
     const cors = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -314,7 +467,6 @@ export default {
     const reply = (body, status = 200) => Response.json(body, { status, headers: { ...cors, 'Cache-Control': 'no-store' } });
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
-    const path = new URL(request.url).pathname;
     if (path === '/help') return request.method === 'POST' ? help(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
     if (path === '/mods' || path.startsWith('/mods/')) return mods(request, env, ctx, path, reply);
     if (path === '/discord') return request.method === 'POST' ? relay(request, env, ctx, reply) : reply({ error: 'Not found' }, 404);
