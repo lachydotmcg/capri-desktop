@@ -1900,7 +1900,7 @@ If her settings file itself can't be read, like a damaged settings.json, she sta
 - "Waiting for NVIDIA. You can pick another model.": try again or pick another model in the Model menu. Free keys can be rate limited and slow. Most NVIDIA models can't see your screen.
 - "NVIDIA didn't answer in time.": try again or pick another model.
 - She changed NVIDIA models by herself: the model she was using didn't answer, so she used another one for that reply. Your pick stays.
-- "Key rejected. Press Forget, then paste it again.": the key is wrong or was deleted. Copy it again from the company's site.
+- "NVIDIA rejected the key for my brain. Press Forget under BRAIN in Capri Mainframe, then paste it again." (or OpenRouter, Anthropic or DeepSeek; the BRAIN note says "Key rejected. Press Forget, then paste it again."): her brain's key is wrong or was deleted. Copy it again from that company's site. Her voice keys (Fish Audio, ElevenLabs) are separate and name themselves in their own errors, so a new voice key won't fix this one.
 - "That isn't a Gemini, OpenRouter, NVIDIA, OpenAI, Claude or DeepSeek key.": you pasted something else, or only part of the key. NVIDIA keys start with nvapi-. The BRAIN note says "Not a key she knows. Copy the whole key again and paste it."
 - "No credits on this key. Add credits on the service's site, or press Free key for a free NVIDIA key.": OpenAI, Claude and DeepSeek need paid credits. Add credits, or press Free key for a free NVIDIA key.
 - "That model isn't on your key. Pick another one.": pick another model in the Model menu.

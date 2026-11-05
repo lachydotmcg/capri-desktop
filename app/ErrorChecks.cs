@@ -80,7 +80,7 @@ namespace CapriDesktop
                 { Brain.NoCredits, "Free key" }, { Brain.Meaning(402, ""), "Free key" },
                 { Brain.PlusRejected, "platform.openai.com" }, { Brain.Meaning(401, "{\"error\":\"bad key\"}", false, true), "platform.openai.com" },
                 { Brain.NotAKey, "Copy the whole key" }, { Brain.Unserved, "Free key" }, { Brain.NoFreeModels, "Refresh" },
-                { Brain.Blocked, "Built-in" }
+                { Brain.Blocked, "Built-in" }, { Brain.Rejected("NVIDIA"), "Forget" }, { Brain.Rejected(null), "Forget" }
             };
             for (int i = 0; i < lines.GetLength(0); i++)
             {

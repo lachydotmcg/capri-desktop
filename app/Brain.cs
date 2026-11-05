@@ -3559,6 +3559,7 @@ namespace CapriDesktop
             // Key and credit lines keep their fix inside the note's 60 characters.
             if (error.StartsWith("No credits on this key.", StringComparison.Ordinal)) return "No credits on this key. Add credits, or press Free key.";
             if (error == PlusRejected) return "Key rejected. Make one with credits at platform.openai.com.";
+            if (error.EndsWith(". Press Forget " + BrainMenu + ", then paste it again.", StringComparison.Ordinal)) return "Key rejected. Press Forget, then paste it again.";
             if (error == NotAKey) return "Not a key she knows. Copy the whole key again and paste it.";
             if (error == Unserved) return "Gemini isn't offered where you are. Press Free key instead.";
             if (error == NoFreeModels) return "No free OpenRouter models. Try Refresh or MAX INTELLIGENCE.";
@@ -3897,7 +3898,7 @@ namespace CapriDesktop
             if (!string.IsNullOrEmpty(secret)) said = said.Replace(secret, "[redacted]");
             Log(url, -1, said);
             bool toolless = (status == 400 || status == 404 || status == 422) && Toolless(said);
-            string meaning = remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai") : null;
+            string meaning = remote && !toolless ? Meaning(status, text, kind == "google", kind == "openai", Cloud.CompanyOf(kind)) : null;
             if (meaning == Busy && Watching()) meaning = BusyWatching;
             BrainException problem = meaning != null ? new BrainException(meaning, true) : new BrainException(said);
             problem.Status = status;
@@ -3978,7 +3979,15 @@ namespace CapriDesktop
             });
         }
 
-        internal static string Meaning(int status, string body, bool google = false, bool openai = false)
+        // A turned-down key names its service and where it lives, so it can't be taken for her voice's key: a Fish Audio user
+        // kept making new Fish keys while NVIDIA was the one saying no (cilly_boy, 5 Nov).
+        internal static string Rejected(string company)
+        {
+            bool named = company != null && company != "That provider";
+            return (named ? company + " rejected the key for my brain" : "The key for my brain was rejected") + ". Press Forget " + BrainMenu + ", then paste it again.";
+        }
+
+        internal static string Meaning(int status, string body, bool google = false, bool openai = false, string company = null)
         {
             // Gemini's quota for the day names it, like GenerateRequestsPerDayPerProjectPerModel-FreeTier; a minute's doesn't.
             if (google && status == 429 && Regex.IsMatch(body ?? "", @"PerDay|per[ _-]day\b|daily", RegexOptions.IgnoreCase)) return DailyGone;
@@ -3990,7 +3999,7 @@ namespace CapriDesktop
             if (google && status == 400 && (body ?? "").Contains("FAILED_PRECONDITION")) return Unserved;
             // Google turns a key away with a 400 as well as a 401 or 403, and pasting the same key again doesn't help.
             if (google && (status == 401 || status == 403 || (status == 400 && Regex.IsMatch(body ?? "", @"API[_ ]?key|credential|Authorization header", RegexOptions.IgnoreCase)))) return NewKey;
-            if (status == 401 || status == 403) return openai ? PlusRejected : "Key rejected. Press Forget, then paste it again.";
+            if (status == 401 || status == 403) return openai ? PlusRejected : Rejected(company);
             if (status == 429) return Busy;
             if (status == 404) return Gone;
             if (status >= 500) return Down;
