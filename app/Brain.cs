@@ -3893,12 +3893,13 @@ namespace CapriDesktop
         // Hugging Face, npm, Stripe and AWS tokens, the password in an address, NAME_TOKEN= or PASSWORD= settings, password, token,
         // secret and key flags, the password in curl's user:password and in docker, sshpass and mysql logins, "password": values,
         // cookies, and what follows an authorization header and its scheme. Counts like max_tokens=4096 and checks like
-        // token == null stay readable.
+        // token == null stay readable. Every search is bounded, so a huge line with no spaces can't hold her up.
         internal static string Redacted(string text)
         {
-            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[^;\s]+;base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
+            string clean = Regex.Replace(text ?? "", @"\b(?:nvapi-|sk-|AIza|gh[pousr]_|github_pat_|glpat-|xox[abprse]-|xapp-|(?:sk|rk)_(?:live|test)_)[A-Za-z0-9_-]+|\b(?:hf|npm)_[A-Za-z0-9]{20,}\b|(?-i:\bAKIA[0-9A-Z]{16}\b)|\bAQ\.[A-Za-z0-9_.-]+|\bBearer\s+[^\s""',}]+|data:image/[\w.+-]{1,64};base64,[A-Za-z0-9+/=]+", "[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"(://[^/\s:@]*:)[^/\s]+@", "$1[redacted]@");
-            clean = Regex.Replace(clean, @"(\b[A-Za-z0-9_]*(?:token(?!s\b)|secret|password|passwd)[A-Za-z0-9_]*\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
+            // The name is checked for its key word once, from its start, so a long word made of them isn't searched again from each one.
+            clean = Regex.Replace(clean, @"(\b(?=[A-Za-z0-9_]{0,200}?(?:token(?!s\b)|secret|password|passwd))[A-Za-z0-9_]+\s*=(?!=)\s*)(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             clean = Regex.Replace(clean, @"((?:^|\s)--?(?:[a-z0-9]+[-_])*(?:password|passwd|token(?!s\b)|secret|api[-_]?key|apikey)(?:=|\s+))(?:""[^""\r\n]*""?|'[^'\r\n]*'?|[^\s""',}]+)", "$1[redacted]", RegexOptions.IgnoreCase);
             // -u user:password, attached or quoted too, with an all-number user:group like 1000:1000 and $(id -u):$(id -g) left alone.
             clean = Regex.Replace(clean, @"((?:^|\s)(?:-u(?:=|\s+)?|--user(?:=|\s+))(?<q>[""'])?(?!\d+:\d+\b)[^\s""':)=]+:)(?!//)(?(q)[^""'\r\n]+|[^\s""']+)", "$1[redacted]", RegexOptions.IgnoreCase);

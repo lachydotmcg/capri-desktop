@@ -29669,6 +29669,7 @@ namespace CapriDesktop
             Section(checks, "SmokeCallFriends", delegate { SmokeCallFriends(checks); });
             Section(checks, "SmokeCallModeUi", delegate { Directory.CreateDirectory(Path.Combine(output, "call-mode")); SmokeCallModeUi(checks, Path.Combine(output, "call-mode")); });
             Section(checks, "SmokeHusk", delegate { SmokeHusk(checks, Path.Combine(output, "husk")); });
+            Section(checks, "SmokeRedaction", delegate { SmokeRedaction(checks); });
             Section(checks, "SmokeCallDisplay", delegate { SmokeCallDisplay(checks); });
             Section(checks, "SmokeHeartbeat", delegate { SmokeHeartbeat(checks); });
             Section(checks, "SmokeMenuWait", delegate { SmokeMenuWait(checks); });
@@ -29684,6 +29685,28 @@ namespace CapriDesktop
             Section(checks, "SmokeGameEars", delegate { SmokeGameEars(checks); });
             Section(checks, "SmokeMinis", delegate { SmokeMinis(checks); });
             Section(checks, "SmokeInk", delegate { SmokeInk(checks); });
+        }
+
+        // What her redaction keeps and hides, on its own, so a change to it is quick to check.
+        private static void SmokeRedaction(System.Collections.Generic.List<string> checks)
+        {
+            // Each of these took the old searches from seconds to minutes: a word made of key words, image prefixes with no
+            // end, and login words with nothing after them. A login scan stays bounded too.
+            string[] huge = { Repeat("token", 12000), Repeat("secret", 10000), Repeat("data:image/", 6000), Repeat("mysql ", 10000), Repeat("docker login ", 5000) };
+            foreach (string line in huge)
+            {
+                Stopwatch took = Stopwatch.StartNew();
+                Brain.Redacted(line);
+                if (took.ElapsedMilliseconds > 3000) throw new Exception("Redacting a " + line.Length + "-character line of " + line.Substring(0, 12) + "... took " + took.ElapsedMilliseconds + " ms.");
+            }
+            checks.Add("PASS redaction stays quick on huge lines made of key words, image prefixes or logins");
+        }
+
+        private static string Repeat(string text, int times)
+        {
+            StringBuilder all = new StringBuilder(text.Length * times);
+            for (int i = 0; i < times; i++) all.Append(text);
+            return all.ToString();
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)
