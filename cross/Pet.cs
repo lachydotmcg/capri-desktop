@@ -154,6 +154,10 @@ namespace CapriDesktop
         internal double Breathe;
         internal double Tilt;
         internal Point Centre;
+        // How long she's been asleep sitting up, which sets where her z's are, or -1 awake.
+        internal double Dozing = -1;
+        internal const double ZLife = 3.6;
+        private static Geometry zShape;
 
         internal Rect Place(Clip shown)
         {
@@ -171,6 +175,26 @@ namespace CapriDesktop
                 Rect place = Place(shown);
                 context.DrawImage(shown.Strip, new Rect(Cell * shown.Wide, 0, shown.Wide, shown.Strip.PixelSize.Height), place);
                 if (Talking >= 0 && Mouth != null) context.DrawImage(Mouth.Strip, new Rect(Talking * Mouth.Wide, 0, Mouth.Wide, Mouth.Strip.PixelSize.Height), place);
+            }
+            if (Dozing >= 0) Zs(context);
+        }
+
+        // Her z's asleep sitting up, like on Windows: three at a time drift up from beside her face, growing as they go, and fade out.
+        private void Zs(DrawingContext context)
+        {
+            if (zShape == null) zShape = new FormattedText("z", System.Globalization.CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Bold), 100, Brushes.White).BuildGeometry(new Point(0, 0));
+            if (zShape == null) return;
+            Rect bounds = zShape.Bounds;
+            for (int i = 0; i < 3; i++)
+            {
+                double t = Dozing / ZLife + i / 3.0;
+                t -= Math.Floor(t);
+                double alpha = t < 0.15 ? t / 0.15 : t < 0.7 ? 1 : (1 - t) / 0.3;
+                double high = Size * (0.045 + 0.045 * t), fit = high / Math.Max(1, bounds.Height);
+                double x = Centre.X + (0.17 + 0.1 * t + 0.02 * Math.Sin(t * 6 + i)) * Size, y = Centre.Y + (-0.15 - 0.27 * t) * Size;
+                Matrix place = Matrix.CreateTranslation(-bounds.Center.X, -bounds.Center.Y) * Matrix.CreateScale(fit, fit) * Matrix.CreateRotation(-12 * Math.PI / 180) * Matrix.CreateTranslation(x, y);
+                using (context.PushTransform(place))
+                    context.DrawGeometry(new SolidColorBrush(Look.Pink, alpha), new Pen(new SolidColorBrush(Color.FromRgb(8, 6, 10), alpha * 0.75), bounds.Height * 0.14), zShape);
             }
         }
     }
@@ -227,6 +251,9 @@ namespace CapriDesktop
         private readonly Clip perchBlink = new Clip("perch_blink", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchBlinkGlitch = new Clip("perch_blink_glitch", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchGlitch = new Clip("perch_glitch", 10, 15, 1, PerchShiftX, PerchShiftY);
+        // Asleep sitting up, like on Windows: her perch blink's shut-eye frame held still, with a slow breathing bob and a few small z's.
+        private readonly Clip perchSleep = new Clip("perch_blink", 8, 30, 1, PerchShiftX, PerchShiftY);
+        private const int PerchSleepCell = 4;
         private readonly Clip mouth = new Clip("mouth", 5, 12, 1.11);
         private readonly Clip walk = new Clip("walk", 12, 12, 1.11);
         private readonly Clip dance = new Clip("dance", 16, 16, 1.11);
@@ -659,13 +686,15 @@ namespace CapriDesktop
         internal double BodySize { get { return body.Size; } }
         internal Clip Showing { get { return clip; } }
         internal Clip PerchGlitch { get { return perchGlitch; } }
+        internal Clip Perched { get { return perch; } }
+        internal Clip SatAsleep { get { return perchSleep; } }
         internal IList<Clip> Clips { get { return new[] { idle, blink, blinkGlitch, glitch, dangle, perch, perchBlink, perchBlinkGlitch, perchGlitch, mouth, walk, dance, perchDance, arrive, leave, perchArrive, perchLeave, grin, sleep, wake }; } }
         internal Clip Arrival { get { return arrive; } }
         internal Clip PerchArrival { get { return perchArrive; } }
         internal Clip SeatDance { get { return perchDance; } }
         internal bool Arriving { get { return clip == arrive || clip == perchArrive; } }
         internal bool Upright { get { return clip == idle && seat == null; } }
-        internal bool Asleep { get { return clip == sleep; } }
+        internal bool Asleep { get { return clip == sleep || clip == perchSleep; } }
         internal bool Waking { get { return clip == wake; } }
         internal bool Walking { get { return walking; } }
         internal bool Leaving { get { return outro != null; } }
@@ -882,7 +911,7 @@ namespace CapriDesktop
                 if (away) return "Taking a break";
                 if (!Talk.Quiet) return "Chatting";
                 if (clip == dance || clip == perchDance) return musicOn ? "Dancing to music" : "Dancing";
-                if (clip == sleep) return "Asleep";
+                if (Asleep) return "Asleep";
                 return "Plugged in";
             }
         }
@@ -1060,7 +1089,7 @@ namespace CapriDesktop
 
         private void Advance(double now)
         {
-            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave;
+            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave || clip == perchSleep;
             bool perched = seat != null;
             if (perched && !seated && !walking) Play(perch);
             if ((!perched && seated) || (clip == dangle && !dragging && !falling && !hanging)) Play(idle);
@@ -1068,7 +1097,7 @@ namespace CapriDesktop
             if (clip == leave || clip == perchLeave) index = Math.Min(index, clip.Count - 1);
             if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
             // Like on Windows, she's awake as soon as she has something to say or they open her typing box.
-            if (clip == sleep && !Talk.Quiet) { sleptAt = null; Play(idle); index = 0; }
+            if (Asleep && !Talk.Quiet) { sleptAt = null; Play(clip == perchSleep ? perch : idle); index = 0; }
             if (clip == arrive && index >= arrive.Count)
             {
                 Play(idle);
@@ -1101,12 +1130,13 @@ namespace CapriDesktop
                     }
                 }
             }
-            int cell = index % clip.Count;
+            int cell = clip == perchSleep ? PerchSleepCell : index % clip.Count;
             Clip shown = clip;
             int blinkFrom = clip == perch ? PerchBlinkFrom : BlinkFrom;
             if ((clip == idle || clip == perch) && blinkWith != null && cell >= blinkFrom && cell < blinkFrom + blinkWith.Count) { shown = blinkWith; cell -= blinkFrom; }
-            bool settled = !dragging && clip != dangle && clip != sleep;
-            body.Breathe = settled ? Math.Sin(now * 1.75) * 2.2 : 0;
+            bool settled = !dragging && clip != dangle && !Asleep;
+            body.Breathe = settled ? Math.Sin(now * 1.75) * 2.2 : clip == perchSleep ? Math.Sin(now * 1.2) * body.Size / 80 : 0;
+            body.Dozing = clip == perchSleep ? now - clipStart : -1;
             body.Tilt = settled ? Math.Sin(now * 0.95) * 0.65 : 0;
             if (settled)
             {
@@ -1234,7 +1264,7 @@ namespace CapriDesktop
             if (spot == null || !spot.Seat)
             {
                 if (seatLost < 0) seatLost = now;
-                if (!Alive(seat.Window) || now - seatLost >= 0.3) StandUp();
+                if (!Alive(seat.Window) || now - seatLost >= 0.3) LoseSeat();
                 return;
             }
             seatLost = -1;
@@ -1255,7 +1285,15 @@ namespace CapriDesktop
             if (seat == null || falling || dragging || seat.Floor) return;
             if (!Perches.Covered(Windows(), seat, Hip.X)) { coveredSince = -1; return; }
             if (coveredSince < 0) coveredSince = now;
-            if (now - coveredSince >= 0.7) StandUp();
+            if (now - coveredSince >= 0.7) LoseSeat();
+        }
+
+        // Asleep sitting up on a window that closes, minimises or gets covered, she sleeps on standing where she is, like on Windows.
+        private void LoseSeat()
+        {
+            bool sat = clip == perchSleep;
+            StandUp();
+            if (sat) Play(sleep);
         }
 
         internal void StandUp()
@@ -1572,7 +1610,7 @@ namespace CapriDesktop
             napAsked = false;
             if (hanging) { LetGo(); return; }
             // A click wakes her the gentle way, from a nap they asked for or her own doze.
-            if (clip == sleep) { napping = false; Wake(); return; }
+            if (Asleep) { napping = false; Wake(); return; }
             Play(seat != null ? perchGlitch : glitch);
         }
 
@@ -1643,7 +1681,7 @@ namespace CapriDesktop
             hangItem = new MenuItem { Header = "Hang here" };
             hangItem.Click += Guarded(delegate { if (hanging) LetGo(); else HangHere(); });
             napItem = new MenuItem { Header = "Go to sleep" };
-            napItem.Click += Guarded(delegate { Nap(!napAsked && clip != sleep); });
+            napItem.Click += Guarded(delegate { Nap(!napAsked && !Asleep); });
             MenuItem move = new MenuItem { Header = "Move" };
             for (int i = 0; i < WanderNames.Length; i++)
             {
@@ -2149,7 +2187,7 @@ namespace CapriDesktop
 
         // Sit here, or Stand up while she sits where she was put, like Windows' Move menu.
         internal string SitChoice { get { return seat != null && seat.Free ? "Stand up" : "Sit here"; } }
-        internal string NapChoice { get { return napAsked || clip == sleep ? "Wake up" : "Go to sleep"; } }
+        internal string NapChoice { get { return napAsked || Asleep ? "Wake up" : "Go to sleep"; } }
 
         internal int SleepAfter { get { return Saved.SleepAfter ?? 120; } }
 
@@ -2167,23 +2205,23 @@ namespace CapriDesktop
             Saved.SleepAfter = Math.Max(0, Math.Min(3600, seconds));
             Save();
             Sync();
-            if (seconds <= 0 && clip == sleep) Wake();
+            if (seconds <= 0 && Asleep) Wake();
         }
 
-        // She dozes off like on Windows when nobody's touched the mouse or keyboard for Fall asleep after, and only standing,
-        // as there: sitting on a window she stays awake. Reading the idle time starts a process on Mac and Linux, so it's read
+        // She dozes off like on Windows when nobody's touched the mouse or keyboard for Fall asleep after, standing, or sitting
+        // up wherever she sits. Reading the idle time starts a process on Mac and Linux, so it's read
         // off her thread every 5 s awake and every second asleep, and a moved mouse wakes her at once on Mac and X11.
         internal void CheckSleep(double now)
         {
             if (napping) return;
-            if (clip == sleep && sleptAt != null)
+            if (Asleep && sleptAt != null)
             {
                 PixelPoint? mouse = Mouse();
                 if (mouse != null && mouse.Value != sleptAt.Value) { Wake(); return; }
             }
             if (sleepChecking || now < nextSleepCheck) return;
-            if (clip != sleep && (SleepAfter <= 0 || !Drowsy)) return;
-            nextSleepCheck = now + (clip == sleep ? 1 : 5);
+            if (!Asleep && (SleepAfter <= 0 || !Drowsy)) return;
+            nextSleepCheck = now + (Asleep ? 1 : 5);
             sleepChecking = true;
             Func<double> read = Idle;
             ThreadPool.QueueUserWorkItem(delegate
@@ -2200,7 +2238,7 @@ namespace CapriDesktop
         internal void Doze(double idle)
         {
             if (idle < 0) return;
-            if (clip == sleep)
+            if (Asleep)
             {
                 if (napping) return;
                 if (idle < sleepIdle) Wake();
@@ -2208,7 +2246,7 @@ namespace CapriDesktop
                 return;
             }
             if (SleepAfter <= 0 || idle < SleepAfter || !Drowsy) return;
-            Play(sleep);
+            Play(seat != null ? perchSleep : sleep);
             sleepIdle = idle;
             sleptAt = Mouse();
             nextSleepCheck = Now + 1;
@@ -2217,24 +2255,28 @@ namespace CapriDesktop
         private void Wake()
         {
             sleptAt = null;
-            Play(wake);
+            if (clip != perchSleep) { Play(wake); return; }
+            // Asleep sitting up, she wakes where she sits, blinking her eyes open with a little glitch.
+            Play(perch);
+            clipStart -= (PerchBlinkFrom + 0.5) / perch.Fps;
+            blinkWith = perchBlinkGlitch;
         }
 
-        // "Go to sleep" from her menu, her brain or plain words, like on Windows: she gets down off her window, finishes what
-        // she's saying, then sleeps standing. Unlike the doze she falls into by herself, the mouse and keyboard don't wake her.
+        // "Go to sleep" from her menu, her brain or plain words, like on Windows: she finishes what she's saying, then sleeps
+        // sitting up where she sits, or standing. Unlike the doze she falls into by herself, the mouse and keyboard don't wake her.
         internal string Nap(bool sleeping)
         {
             if (!sleeping)
             {
-                bool resting = napAsked || napping || clip == sleep;
+                bool resting = napAsked || napping || Asleep;
                 napAsked = false;
                 napping = false;
-                if (clip == sleep) Wake();
+                if (Asleep) Wake();
                 Sync();
                 return resting ? "Woke up." : "Already awake.";
             }
             ComeBack();
-            if (seat != null || hanging) StandUp();
+            if (hanging) StandUp();
             EndWalk();
             dancing = false;
             napAsked = true;
@@ -2245,15 +2287,15 @@ namespace CapriDesktop
         // Her nap tool, which her brain calls from its own thread.
         private string NapTool(bool sleeping) { return Dispatcher.UIThread.CheckAccess() ? Nap(sleeping) : Dispatcher.UIThread.Invoke(new Func<string>(delegate { return Nap(sleeping); })); }
 
-        // The nap they asked for starts once her line is done and she stands free, and ends when anything wakes her.
+        // The nap they asked for starts once her line is done and she stands free or sits still, and ends when anything wakes her.
         internal void CheckNap()
         {
-            if (napping && clip != sleep) napping = false;
-            if (!napAsked || clip != idle || seat != null || walking || dragging || pressed || falling || outro != null || away || quitting || !Talk.Quiet) return;
+            if (napping && !Asleep) napping = false;
+            if (!napAsked || clip != (seat != null ? perch : idle) || walking || dragging || pressed || falling || outro != null || away || quitting || !Talk.Quiet) return;
             napAsked = false;
             napping = true;
             sleptAt = null;
-            Play(sleep);
+            Play(seat != null ? perchSleep : sleep);
         }
 
         internal bool Napping { get { return napping; } }
@@ -2448,7 +2490,7 @@ namespace CapriDesktop
 
         internal bool Blinking { get { return blinkWith != null; } }
 
-        private bool Drowsy { get { return clip == idle && seat == null && !walking && !dragging && !pressed && !falling && outro == null && !away && !quitting && Talk.Quiet && (ContextMenu == null || !ContextMenu.IsOpen); } }
+        private bool Drowsy { get { return clip == (seat != null ? perch : idle) && !walking && !dragging && !pressed && !falling && outro == null && !away && !quitting && Talk.Quiet && (ContextMenu == null || !ContextMenu.IsOpen); } }
 
         // How one of her switches is set right now for her settings tool, the way her menus show it, or null for one only Windows has.
         internal bool? SettingOn(string name)
@@ -4768,7 +4810,7 @@ namespace CapriDesktop
             if (act.Kind == "prompt" || attention)
             {
                 napAsked = napping = false;
-                if (clip == sleep) Wake();
+                if (Asleep) Wake();
             }
             if (attention) { hideAsked = false; ComeBack(); Raise(Now + 6); }
             huskMood = act.Kind;

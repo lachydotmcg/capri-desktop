@@ -1625,6 +1625,10 @@ namespace CapriDesktop
         private readonly Clip perchBlink = new Clip("perch_blink", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchBlinkGlitch = new Clip("perch_blink_glitch", 8, 30, 1, PerchShiftX, PerchShiftY);
         private readonly Clip perchGlitch = new Clip("perch_glitch", 10, 15, 1, PerchShiftX, PerchShiftY);
+        // Asleep sitting up: her perch blink's shut-eye frame held still, with a slow breathing bob and a few small z's.
+        private readonly Clip perchSleep;
+        private const int PerchSleepCell = 4;
+        private const double ZLife = 3.6;
         private readonly Clip mouth = new Clip("mouth", 5, 12, 1.11f);
         private readonly Clip walk = new Clip("walk", 12, 12, 1.11f);
         private readonly Clip dance;
@@ -1761,6 +1765,7 @@ namespace CapriDesktop
         private int noteBeats;
         private int noteSide = 1;
         private static GraphicsPath[] noteShapes;
+        private static GraphicsPath zShape;
         private Clip blinkWith;
         private IntPtr lastForeground;
         private int topTicks;
@@ -2233,6 +2238,7 @@ namespace CapriDesktop
             this.running = running;
             groove = new Groove(delegate { return clock.Elapsed.TotalSeconds; });
             dance = new Clip(idle);
+            perchSleep = new Clip(perchBlink);
             Takeover.Face = LoadArt("Capri.Sprite.face.png");
             testing = smoke;
             voice = new Voice(new Speaker(smoke));
@@ -2812,6 +2818,8 @@ namespace CapriDesktop
             // Thrown, she covers a lot of screen a frame, so she's drawn every 1/64 s; dizzy, her sway needs 30 a second.
             if (Flying) return frontBusy ? 33 : 15;
             if (Dizzy(now)) return 33;
+            // Asleep sitting up, her bob and z's are slow, so 15 a second is plenty.
+            if (clip == perchSleep) return 66;
             if (frontBusy)
             {
                 if (docked) return 66;
@@ -2929,7 +2937,7 @@ namespace CapriDesktop
         private int Advance(double now)
         {
             bool lain = clip == laydown || clip == laydownGlitch || clip == laydownSleep || clip == laydownLeave;
-            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave || lain;
+            bool seated = clip == perch || clip == perchGlitch || clip == perchDance || clip == perchArrive || clip == perchLeave || clip == perchSleep || lain;
             bool perched = riding || onPanel || seat != null;
             // Lying needs her ledge still under her: anything else sits her back up first, her hip where it was.
             if (lying && (seat == null || riding || onPanel || walking || falling || hanging || dragging)) SitUp(false);
@@ -2939,6 +2947,7 @@ namespace CapriDesktop
             int index = (int)((now - clipStart) * clip.Fps);
             perchMix = 0;
             if ((clip == perch || clip == perchDance || clip == laydown || clip == laydownSleep) && preferences.PerchFps != 30) index = PerchIndex(now - clipStart, preferences.PerchFps, out perchMix);
+            if (clip == perchSleep) return PerchSleepCell;
             if (clip == leave || clip == perchLeave || clip == laydownLeave) return Math.Min(index, clip.Count - 1);
             if ((clip == glitch && index >= glitch.Count) || (clip == wake && index >= wake.Count) || (clip == grin && index >= grin.Count * 2)) { Play(idle); index = 0; }
             if (clip == arrive && index >= arrive.Count)
@@ -3269,9 +3278,12 @@ namespace CapriDesktop
                     LieDown();
                     return;
                 }
+                // Dozing off where there's no room to lie, on a short window, a desktop icon, her mini player or a Sit here spot,
+                // she sleeps sitting up right there instead of getting down.
+                bool sitUp = doze && seat != null && !Aside;
                 // Beside something full screen she dozes there standing, not lying down over the bottom of the game, and gets down
                 // once it's gone (john_sandevistan, 3 Nov).
-                Ledge restPlace = Aside ? null : NapPlace(Around(), restHip, restArea, preferences.Size, facingLeft, out restX, out restLeft);
+                Ledge restPlace = Aside || sitUp ? null : NapPlace(Around(), restHip, restArea, preferences.Size, facingLeft, out restX, out restLeft);
                 if (restPlace != null)
                 {
                     SitUp(false);
@@ -3288,7 +3300,13 @@ namespace CapriDesktop
                     return;
                 }
                 if (!doze) { ownRest = false; nextLie = -1; return; }
-                StandUp();
+                if (sitUp)
+                {
+                    anchor = Seated(restHip.X, seat.Y);
+                    Location = anchor;
+                    perchSleep.Load(facingLeft);
+                }
+                else StandUp();
             }
             if (!doze) return;
             bool asked = napAsked;
@@ -3302,17 +3320,18 @@ namespace CapriDesktop
                 restUntil = -1;
             }
             notes.Clear();
-            Play(lying ? laydownSleep : sleep);
+            Play(lying ? laydownSleep : seat != null ? perchSleep : sleep);
             frames.Start();
         }
 
         private bool WakeRest(bool cancelAsked)
         {
-            bool slept = Asleep, stood = ownLie && lying;
+            bool slept = Asleep, sat = clip == perchSleep, stood = ownLie && lying;
             if (cancelAsked) napAsked = false;
             napping = ownRest = ownNap = ownLie = false;
             restUntil = nextLie = -1;
-            if (slept) Play(lying ? laydown : wake);
+            if (sat) BlinkAwake();
+            else if (slept) Play(lying ? laydown : wake);
             if (stood)
             {
                 if (seat != null && seat.Floor)
@@ -3331,9 +3350,18 @@ namespace CapriDesktop
             return slept || stood;
         }
 
-        // "Go to sleep" from her menu, her brain or plain words: she lies down along her ledge if it has room, or else gets down
-        // from wherever she is, finishes what she's saying, then sleeps there. Unlike the doze she falls into by herself, their
-        // mouse and keyboard don't wake her.
+        // Asleep sitting up, she wakes where she sits, blinking her eyes open with a little glitch.
+        private void BlinkAwake()
+        {
+            Play(perch);
+            if (!preferences.Motion) return;
+            clipStart -= (PerchBlinkFrom + 0.5) / perch.Fps;
+            blinkWith = perchBlinkGlitch;
+        }
+
+        // "Go to sleep" from her menu, her brain or plain words: she lies down along her ledge if it has room, or else sleeps
+        // sitting up on it, and off a ledge she gets down from wherever she is. She finishes what she's saying, then sleeps.
+        // Unlike the doze she falls into by herself, their mouse and keyboard don't wake her.
         internal string Nap(bool sleeping)
         {
             if (!sleeping)
@@ -3793,7 +3821,7 @@ namespace CapriDesktop
             if (!Refloor())
             {
                 bool aside = Aside;
-                if (seat != null) StandUp();
+                if (seat != null) LoseSeat();
                 anchor = KeepOnScreen(anchor);
                 if (aside) asideAt = anchor;
             }
@@ -7248,12 +7276,14 @@ namespace CapriDesktop
             frames.Start();
         }
 
-        private bool Asleep { get { return clip == sleep || clip == laydownSleep; } }
+        private bool Asleep { get { return clip == sleep || clip == laydownSleep || clip == perchSleep; } }
 
         private void LoseSeat()
         {
-            bool sleeping = napping && Asleep;
+            bool sleeping = napping && Asleep, sat = clip == perchSleep;
             StandUp();
+            // Asleep sitting up on a window that closes, minimises or gets covered, she sleeps on standing where she is.
+            if (sat) { Play(sleep); return; }
             if (sleeping) { napping = false; napAsked = true; }
         }
 
@@ -13217,7 +13247,7 @@ namespace CapriDesktop
             return frame == null || frame.Size != Size || shown != drawnClip || Art(shown) != drawnArt || cell != drawnCell || talk != drawnMouth || perchMix != drawnMix
                 || anchor != drawnAt || facingLeft != drawnFacing || leanAngle != drawnLean || Turn() + Sway(now) != drawnTurn || preferences.Motion != drawnMotion || preferences.Hologram != drawnHologram
                 || Calm != drawnSettled || (veiled || now < veilUntil) != drawnVeil
-                || (preferences.Motion && (walking || clip == dance || clip == perchDance || drawnNotes || notes.Exists(note => now - note.Born < NoteLife)))
+                || (preferences.Motion && (walking || clip == dance || clip == perchDance || shown == perchSleep || drawnNotes || notes.Exists(note => now - note.Born < NoteLife)))
                 // Her breathing is slower than her art, so a step too small to see isn't worth a paint.
                 || (Calm && (Math.Abs(Breath(now) - drawnBreath) >= 0.25f || Math.Abs(Tilt(now) - drawnTilt) >= 0.1f));
         }
@@ -13362,8 +13392,8 @@ namespace CapriDesktop
             graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
             graphics.SmoothingMode = SmoothingMode.HighQuality;
             double now = clock.Elapsed.TotalSeconds;
-            bool settled = Calm;
-            float breathe = settled ? Breath(now) : 0;
+            bool settled = Calm, dozing = shown == perchSleep && preferences.Motion;
+            float breathe = settled ? Breath(now) : dozing ? Doze(now, preferences.Size) : 0;
             float tilt = settled ? Tilt(now) : 0;
             // Dizzy, she sways around her hip, so she stays sat where she landed; thrown, she tumbles around her middle.
             float sway = Sway(now);
@@ -13389,6 +13419,52 @@ namespace CapriDesktop
             else graphics.DrawImage(strip, new RectangleF(-wide / 2f + shiftX, -tall / 2f + shiftY, wide, tall), new RectangleF(cell * width, 0, width, strip.Height), GraphicsUnit.Pixel);
             if (talk >= 0) graphics.DrawImage(mouth.Strip, new RectangleF(-wide / 2f, -tall / 2f, wide, tall), new RectangleF(talk * width, 0, width, mouth.Strip.Height), GraphicsUnit.Pixel);
             if (notes.Count > 0 && preferences.Motion) Notes(graphics, now, seat != null || riding || onPanel);
+            if (dozing) Zs(graphics, now);
+        }
+
+        // Asleep sitting up she breathes slower and deeper than awake.
+        private static float Doze(double now, int size) { return (float)(Math.Sin(now * 1.2) * size / 80); }
+
+        private static GraphicsPath ZShape()
+        {
+            if (zShape != null) return zShape;
+            GraphicsPath path = new GraphicsPath();
+            using (FontFamily family = new FontFamily(System.Drawing.Text.GenericFontFamilies.SansSerif))
+                path.AddString("z", family, (int)FontStyle.Bold, 100, PointF.Empty, StringFormat.GenericTypographic);
+            RectangleF bounds = path.GetBounds();
+            using (Matrix centre = new Matrix())
+            {
+                float fit = 1 / Math.Max(1, bounds.Height);
+                centre.Scale(fit, fit);
+                centre.Translate(-(bounds.Left + bounds.Width / 2), -(bounds.Top + bounds.Height / 2));
+                path.Transform(centre);
+            }
+            zShape = path;
+            return path;
+        }
+
+        // Her z's asleep sitting up: three at a time drift up from beside her face, growing as they go, and fade out.
+        private void Zs(Graphics graphics, double now)
+        {
+            GraphicsPath shape = ZShape();
+            float size = preferences.Size;
+            int side = facingLeft ? -1 : 1;
+            GraphicsState saved = graphics.Save();
+            for (int i = 0; i < 3; i++)
+            {
+                double t = now / ZLife + i / 3.0;
+                t -= Math.Floor(t);
+                int alpha = (int)(255 * (t < 0.15 ? t / 0.15 : t < 0.7 ? 1 : (1 - t) / 0.3));
+                float high = size * (0.045f + 0.045f * (float)t);
+                float x = side * (0.17f + 0.1f * (float)t + 0.02f * (float)Math.Sin(t * 6 + i)) * size, y = (-0.15f - 0.27f * (float)t) * size;
+                graphics.ResetTransform();
+                graphics.TranslateTransform(Width / 2f + x, Height / 2f + y);
+                graphics.RotateTransform(side * -12f);
+                graphics.ScaleTransform(high, high);
+                using (Pen edge = new Pen(Color.FromArgb(alpha * 3 / 4, 8, 6, 10), 0.14f)) { edge.LineJoin = LineJoin.Round; graphics.DrawPath(edge, shape); }
+                using (Brush fill = new SolidBrush(Color.FromArgb(alpha, Look.Pink))) graphics.FillPath(fill, shape);
+            }
+            graphics.Restore(saved);
         }
 
         private static GraphicsPath[] NoteShapes()
@@ -14646,12 +14722,38 @@ namespace CapriDesktop
                 checks.Add("PASS beside something full screen she sits on nothing only while it lasts and naps there standing; once it's gone she gets down onto the taskbar with no window or nothing at all under her, after a display change stood her up there, and mid-nap, which carries on there until the mouse stands her up on it; a spot chosen with Sit here stays put; a display change keeps her asleep on the taskbar as it is now");
                 napReset();
                 Ledge napNarrow = new Ledge { Left = napArea.Left + napArea.Width / 2 - 12, Right = napArea.Left + napArea.Width / 2 + 12, Y = napShelf.Y - 10 };
+                Point napSat = new Point(napArea.Left + napArea.Width / 2, napNarrow.Y);
                 seat = napNarrow;
-                anchor = Seated(napArea.Left + napArea.Width / 2, napNarrow.Y);
+                anchor = Seated(napSat.X, napSat.Y);
                 Play(perch);
                 Nap(true);
                 napTicks(0, 200);
-                if (!Asleep || seat != napShelf) throw new Exception("A narrow ledge did not send her to the nearest wide one.");
+                if (clip != perchSleep || !Asleep || !napping || lying || seat != napNarrow || Hip() != napSat || !Hushed) throw new Exception("On a ledge too short to lie along she didn't sleep sitting up where she sat.");
+                React();
+                if (Asleep || napping || clip != perch || blinkWith != perchBlinkGlitch || seat != napNarrow || Hip() != napSat) throw new Exception("Woken from sleeping sitting up, she didn't blink awake where she sat.");
+                Nap(true);
+                napTicks(0, 200);
+                LoseSeat();
+                if (clip != sleep || !napping || napAsked || seat != null) throw new Exception("Losing her ledge while she slept sitting up didn't keep her asleep standing where she was.");
+                napTicks(0, 200);
+                if (clip != sleep || !napping || seat != null) throw new Exception("Asleep standing after losing her ledge, she didn't stay that way.");
+                Nap(false);
+                napReset();
+                preferences.SleepAfter = 120;
+                seat = napNarrow;
+                anchor = Seated(napSat.X, napSat.Y);
+                Play(perch);
+                napTicks(120001, 20);
+                if (clip != perchSleep || napping || !ownNap || seat != napNarrow || Hip() != napSat) throw new Exception("Left alone on a ledge too short to lie along, she didn't doze off sitting up where she sat.");
+                napTicks(0, 1);
+                if (Asleep || clip != perch || seat != napNarrow) throw new Exception("The mouse didn't wake her from dozing sitting up, still sitting.");
+                napReset();
+                seat = napShelf;
+                anchor = Seated(napSat.X, napShelf.Y);
+                Play(perch);
+                Nap(true);
+                napTicks(0, 200);
+                if (!Asleep || !lying || seat != napShelf) throw new Exception("On a ledge with room she didn't lie down to sleep.");
                 LoseSeat();
                 if (!napAsked || napping) throw new Exception("Losing her window cancelled an asked-for nap.");
                 napTicks(0, 200);
@@ -14669,7 +14771,7 @@ namespace CapriDesktop
                 if (clip != glitch || !napAsked) throw new Exception("She cut off an animation that was nearly done.");
                 napTicks(0, 200);
                 if (!Asleep) throw new Exception("The nearly finished animation held up her nap.");
-                checks.Add("PASS sleep waits only for a nearly finished animation and drops from a short ledge to the nearest place with room");
+                checks.Add("PASS sleep waits only for a nearly finished animation; on a ledge too short to lie along she sleeps sitting up there, asked or by herself, blinks awake still sitting, and sleeps on standing once she loses it; losing a ledge she lay on asleep settles her again");
                 napReset();
                 sleepItem.PerformClick();
                 Say("Night night.");
@@ -32268,6 +32370,64 @@ namespace CapriDesktop
                                 seat.Left = ledgeLeft;
                                 seat.Right = ledgeRight;
                                 if (!cramped || lying) throw new Exception("She'd lie down on a ledge too short for her.");
+                                // Asleep sitting up: where the window's too short to lie along she dozes off sitting where she is, in her
+                                // shut-eye frame with z's, rides along asleep when it moves, blinks awake still sitting, and sleeps on
+                                // standing once it's minimised.
+                                Point napShelfWas = shelf.Location;
+                                int napAfterWas = preferences.SleepAfter;
+                                bool satMotionWas = preferences.Motion;
+                                if (preferences.SleepAfter <= 0) preferences.SleepAfter = 120;
+                                preferences.Motion = true;
+                                seat.Left = lieHip - 20;
+                                seat.Right = lieHip + 20;
+                                nextNap = -1;
+                                CheckIdle(preferences.SleepAfter * 1000L + 1);
+                                bool satDozed = clip == perchSleep && Doing == "Asleep" && !lying && seat != null && seat.Window == shelf.Handle && Hip() == new Point(lieHip, shelf.Top);
+                                seat.Left = ledgeLeft;
+                                seat.Right = ledgeRight;
+                                int satCell = Advance(clock.Elapsed.TotalSeconds);
+                                int[] satLit = new int[2];
+                                for (int pass = 0; pass < 2; pass++)
+                                {
+                                    preferences.Motion = pass == 0;
+                                    using (Bitmap satFrame = new Bitmap(Width, Height, PixelFormat.Format32bppPArgb))
+                                    {
+                                        using (Graphics graphics = Graphics.FromImage(satFrame)) Draw(graphics, perchSleep, PerchSleepCell);
+                                        int zFrom = facingLeft ? Width / 2 - (int)(preferences.Size * 0.45f) : Width / 2 + (int)(preferences.Size * 0.15f), zTo = zFrom + (int)(preferences.Size * 0.3f);
+                                        for (int y = Height / 2 - (int)(preferences.Size * 0.5f); y < Height / 2 - (int)(preferences.Size * 0.1f); y += 2)
+                                            for (int x = Math.Max(0, zFrom); x < Math.Min(Width, zTo); x += 2) if (satFrame.GetPixel(x, y).A > 0) satLit[pass]++;
+                                    }
+                                }
+                                preferences.Motion = true;
+                                if (!satDozed || satCell != PerchSleepCell || satLit[0] <= satLit[1] + 10 || Doze(0, preferences.Size) == Doze(1.3, preferences.Size)) throw new Exception("On a window too short to lie along she didn't doze off sitting where she was, in her shut-eye frame with z's and a slow bob: dozed " + satDozed + ", cell " + satCell + ", z's " + satLit[0] + " vs " + satLit[1]);
+                                int satX = Hip().X;
+                                shelf.Location = new Point(shelf.Left + 40, shelf.Top + 25);
+                                HoldSeat(clock.Elapsed.TotalSeconds);
+                                if (clip != perchSleep || Hip().X != satX + 40 || Hip().Y != shelf.Top) throw new Exception("Asleep sitting up, she didn't ride along when the window moved.");
+                                CheckIdle(0);
+                                if (Asleep || clip != perch || blinkWith != perchBlinkGlitch || seat == null || seat.Window != shelf.Handle || Hip().X != satX + 40) throw new Exception("Woken from sleeping sitting up, she didn't blink awake still sitting on the window.");
+                                seat.Left = Hip().X - 20;
+                                seat.Right = Hip().X + 20;
+                                nextNap = -1;
+                                CheckIdle(preferences.SleepAfter * 1000L + 1);
+                                bool satAgain = clip == perchSleep;
+                                shelf.WindowState = FormWindowState.Minimized;
+                                HoldSeat(clock.Elapsed.TotalSeconds);
+                                HoldSeat(clock.Elapsed.TotalSeconds + 0.5);
+                                bool satStood = clip == sleep && seat == null && Doing == "Asleep";
+                                shelf.WindowState = FormWindowState.Normal;
+                                shelf.Location = napShelfWas;
+                                CheckIdle(0);
+                                preferences.SleepAfter = napAfterWas;
+                                preferences.Motion = satMotionWas;
+                                if (!satAgain || !satStood || Asleep) throw new Exception("Asleep sitting up on a window that was minimised, she didn't sleep on standing where she was and wake from it: again " + satAgain + ", stood " + satStood);
+                                anchor = Seated(shelf.Left + 220, shelf.Top - 12);
+                                if (!Drop()) throw new Exception("She could not get back onto the window after napping on it.");
+                                for (int i = 0; i < 60 && falling; i++) Tumble(fallStep + 0.033);
+                                clipStart -= 1;
+                                RenderFrame();
+                                if (seat == null || seat.Window != shelf.Handle || clip != perch) throw new Exception("She did not land back on the window after napping on it.");
+                                checks.Add("PASS asleep sitting up: on a window too short to lie along she dozes off sitting where she is, in her shut-eye perch frame with a slow bob and z's, rides along asleep when it moves, blinks awake still sitting, and sleeps on standing where she is once it's minimised");
                                 checks.Add("PASS lying down: from sitting on a window with room she lies along its edge with her hip where it was, settles into her artist's lay-down loop, talks in its talking frames, dozes off and wakes where she lies, sits back up the same, and won't lie on a ledge too short for her");
                                 if (Spots().Exists(candidate => candidate.Window == shelf.Handle)) throw new Exception("Wander offered the window she already sits on.");
                                 int blinkFrom = Hip().X;
