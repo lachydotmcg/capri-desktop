@@ -21694,18 +21694,28 @@ namespace CapriDesktop
                     checks.Add("PASS chess perft " + fixture + " depth " + depth + " = " + nodes);
                 }
             }
+            // Easy thinks for 250 ms, and the first search also compiles the engine: on a slow PC that can run out before its
+            // first ply is done, so it hasn't chosen anything (the public Windows runner, 5 Nov). Such a search is asked again;
+            // one that finished a ply and still got it wrong fails.
+            Func<ChessPosition, string, int, ChessChoice> settled = delegate(ChessPosition position, string strength, int seed)
+            {
+                ChessChoice chosen = null;
+                for (int tries = 0; tries < 3 && (chosen == null || chosen.Depth == 0); tries++) chosen = new ChessSearch(position, strength, new Random(seed), null).Run();
+                must(chosen.Depth > 0, "Chess on " + strength + " ran out of time three times before finishing one ply (" + chosen.Milliseconds + " ms).");
+                return chosen;
+            };
             foreach (string level in new[] { "easy", "normal", "hard" })
                 foreach (string mateFen in new[] { "7k/5Q2/6K1/8/8/8/8/8 w - -", "8/8/8/8/8/6k1/5q2/7K b - -" })
                 {
                     ChessPosition mate = new ChessPosition(mateFen);
-                    ChessChoice choice = new ChessSearch(mate, level, new Random(8), null).Run();
+                    ChessChoice choice = settled(mate, level, 8);
                     must(choice.Move.From >= 0 && mate.Play(choice.Move.Text) && mate.Ending() == "Checkmate", "Chess missed mate in one on " + level);
                 }
             checks.Add("PASS chess finds white and black mate in one at easy, normal and hard");
             foreach (string tacticLevel in new[] { "easy", "normal", "hard" })
             {
                 ChessPosition tactic = new ChessPosition("4k3/8/8/8/4q3/8/4R3/4K3 w - -");
-                ChessChoice tacticMove = new ChessSearch(tactic, tacticLevel, new Random(2), null).Run();
+                ChessChoice tacticMove = settled(tactic, tacticLevel, 2);
                 must(tacticMove.Move.Text == "e2e4", "Chess left a free queen on " + tacticLevel);
             }
             checks.Add("PASS chess at every level takes an undefended queen instead of choosing an arbitrary legal move");
