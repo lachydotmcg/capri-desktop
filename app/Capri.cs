@@ -2591,7 +2591,7 @@ namespace CapriDesktop
             voice.Model = string.IsNullOrEmpty(preferences.VoiceModel) ? null : preferences.VoiceModel;
             ShowVoice();
             mainframe.ShowMic(MicName(preferences.Mic));
-            deviceNotice = delegate(string line) { mainframe.ShowProblem(line); Remark("", line, Hushed); };
+            deviceNotice = delegate(string line) { DeviceNote(line); Remark("", line, Hushed); };
             RefreshSpeakers();
             RefreshWatchScreens();
             StartHearingStatus();
@@ -10404,6 +10404,13 @@ namespace CapriDesktop
             }
         }
 
+        // A missing speaker belongs with VOICE and a missing monitor with Screens, never under her brain's name.
+        private void DeviceNote(string line)
+        {
+            if (line == SpeakerMissing) mainframe.VoiceNote(line, true);
+            else if (line == ScreenMissing) mainframe.ScreenNote(line);
+        }
+
         internal void RefreshSpeakers()
         {
             if (mainframe == null || mainframe.IsDisposed) return;
@@ -10413,6 +10420,8 @@ namespace CapriDesktop
             Speaker.Output picked = Speaker.Resolve(speakerDevices);
             if (picked != null) speakerPick = picked;
             mainframe.ShowSpeaker(SpeakerName);
+            // Once that speaker is back, or another is picked, the note that said it was gone goes.
+            if (mainframe.VoiceNoteText == SpeakerMissing && (preferences.Speaker == null || Speaker.Find(preferences.Speaker, speakerDevices) != null)) mainframe.VoiceNote("", false);
         }
 
         private void SpeakerGone(string id)
@@ -10497,7 +10506,11 @@ namespace CapriDesktop
                 }
             }
             else screenMissing = null;
-            if (mainframe != null) mainframe.ShowWatchScreen(WatchScreenName);
+            if (mainframe != null)
+            {
+                if (screenMissing == null) mainframe.ScreenNote(null);
+                mainframe.ShowWatchScreen(WatchScreenName);
+            }
         }
 
         internal void ChooseWatchScreen(string id)
@@ -29147,7 +29160,8 @@ namespace CapriDesktop
             Rectangle areaWas = lastArea;
             Speaker.Output pickWas = speakerPick;
             WatchScreen watchWas = watchPick;
-            string screenMissingWas = screenMissing;
+            string screenMissingWas = screenMissing, screenNoteWas = mainframe.ScreenNoteText, voiceNoteWas = mainframe.VoiceNoteText;
+            bool voiceWarningWas = mainframe.VoiceNoteWarning;
             System.Collections.Generic.List<Speaker.Output> outputs = new System.Collections.Generic.List<Speaker.Output>
             {
                 new Speaker.Output("speakers", "Speakers (stand-in)", 3),
@@ -29171,7 +29185,15 @@ namespace CapriDesktop
                 Speaker.Devices = delegate { deviceReads++; return new System.Collections.Generic.List<Speaker.Output>(outputs); };
                 Speaker.Missing = SpeakerGone;
                 speakerDefault = delegate(int role) { return role == 0 ? currentWaveDefault : currentDefault; };
-                deviceNotice = notices.Add;
+                deviceNotice = delegate(string line)
+                {
+                    notices.Add(line);
+                    string brainNote = mainframe.Status, voiceNote = mainframe.VoiceNoteText, screenNote = mainframe.ScreenTip;
+                    DeviceNote(line);
+                    if (mainframe.Status != brainNote) throw new Exception("A device notice changed the BRAIN note.");
+                    if (line == SpeakerMissing && (mainframe.VoiceNoteText != line || !mainframe.VoiceNoteWarning || mainframe.ScreenTip != screenNote)) throw new Exception("A missing speaker missed VOICE or changed the Screens hint.");
+                    if (line == ScreenMissing && (mainframe.ScreenNoteText != line || !mainframe.ScreenTip.Contains(line) || mainframe.VoiceNoteText != voiceNote)) throw new Exception("A missing monitor missed the Screens hint or changed VOICE.");
+                };
                 watchDisplays = delegate { return new System.Collections.Generic.List<WatchScreen>(monitors); };
                 Display = delegate { return frontArea; };
                 Grab = delegate(Rectangle area)
@@ -29268,6 +29290,7 @@ namespace CapriDesktop
                 if (LoadPreferences().Speaker != "missing-at-start" || Speaker.Chosen != "missing-at-start" || notices.Count != 3 || notices[2] != SpeakerMissing || mainframe.SpeakerShown != "Her speaker: missing-at-start (missing)" || !mainframe.SpeakerChoicesShown.Contains("missing-at-start (missing) (picked)")) throw new Exception("A saved missing output lost its choice or repeated its startup warning.");
                 mainframe.PickSpeakerChoice(0);
                 if (LoadPreferences().Speaker != null || Speaker.Chosen != null || !mainframe.SpeakerChoicesShown.StartsWith("Default (follows Windows) (picked)", StringComparison.Ordinal)) throw new Exception("The Default speaker menu item did not clear its saved choice.");
+                if (mainframe.VoiceNoteText == SpeakerMissing) throw new Exception("Picking Default kept the VOICE note that her speaker was gone.");
                 using (Speaker playback = new Speaker(false, open))
                 using (Speaker wave = new Speaker(true) { Plain = true })
                 {
@@ -29326,10 +29349,12 @@ namespace CapriDesktop
                     if (grabbed != frontArea || LoadPreferences().WatchScreen != second.Id || mainframe.WatchScreenShown != second.Id + " (missing)" || notices.Count != 7 || notices[6] != ScreenMissing || !mainframe.ScreenChoicesShown.Contains(second.Id + " (missing) (picked)")) throw new Exception("A saved missing monitor lost its choice or repeated its startup warning.");
                 monitors.Add(second);
                 using (Bitmap shot = CaptureWatchScreen())
-                    if (grabbed != second.Bounds || LoadPreferences().WatchScreen != second.Id || notices.Count != 7) throw new Exception("A monitor missing at startup did not return on its own.");
+                    if (grabbed != second.Bounds || LoadPreferences().WatchScreen != second.Id || notices.Count != 7 || mainframe.ScreenNoteText != null || mainframe.ScreenTip.Contains(ScreenMissing)) throw new Exception("A monitor missing at startup did not return on its own or clear its notice.");
                 mainframe.PickScreenChoice(0);
-                if (LoadPreferences().WatchScreen != null || mainframe.WatchScreenShown != "All screens") throw new Exception("All screens did not replace a returned saved monitor.");
+                if (LoadPreferences().WatchScreen != null || mainframe.WatchScreenShown != "All screens" || mainframe.ScreenNoteText != null || mainframe.ScreenTip.Contains(ScreenMissing)) throw new Exception("All screens did not replace a returned saved monitor or clear its notice.");
                 checks.Add("PASS WATCH keeps its screen list, saved ids, capture bounds, foreground and layout handling; missing monitors stay saved and marked, use all screens with one notice per loss, clear stale glances and return on their own, including after startup");
+
+                checks.Add("PASS a missing speaker is told under VOICE and a missing monitor in the Screens hint, never under BRAIN, and each clears once it's back or another is picked");
 
                 outputs.Add(new Speaker.Output("long-output", "Headphones with a very long full device name (stand-in)", 9));
                 ChooseSpeaker("long-output"); ChooseWatchScreen(second.Id);
@@ -29362,6 +29387,7 @@ namespace CapriDesktop
                 changingVoice = changingWas; answerVoice = answerWas; hdSpeaking = hdWas; voiceUntil = untilWas;
                 if (tailWas) chatTail.Start();
                 RefreshSpeakers(); RefreshWatchScreens();
+                mainframe.ScreenNote(screenNoteWas); mainframe.VoiceNote(voiceNoteWas, voiceWarningWas);
                 watchTicket = ticketWas; lastArea = areaWas; lastPrint = printWas; lastGlance = glanceWas; nextGlance = nextWas;
                 mainframe.LayoutScale(0, 0); mainframe.SizeMainframe(sizeWas); mainframe.ShowSettings(settingsWas);
                 mainframe.WindowState = stateWas;
