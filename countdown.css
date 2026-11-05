@@ -1,7 +1,0 @@
-.countdown { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 14px; width: fit-content; max-width: 100%; margin: 18px auto -6px; padding: 10px 18px; border-radius: 8px; background: #202225; color: #fff; font-size: 13px; line-height: 1.35; text-align: center; }
-.countdown:hover { background: #393d37; }
-.countdown[hidden] { display: none; }
-.countdown-tag { color: #ff3d7f; font-family: "Share Tech Mono", ui-monospace, monospace; letter-spacing: 1.5px; }
-.countdown-what b { font-weight: 600; }
-.countdown-time { font-family: "Share Tech Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; color: #8ef0ff; letter-spacing: .5px; }
-@media (max-width: 600px) { .countdown { margin-top: 14px; padding: 9px 14px; font-size: 12px; gap: 4px 10px; } }
