@@ -2,7 +2,7 @@
 
 Plain answers for setting up and using Capri. The Help page (site/help/index.html) is made from this file, and the support chat on the website answers from it.
 
-Written for Capri 0.8.3 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
+Written for Capri 0.8.4 on Windows, with separate sections for the Mac and Linux preview. If you're on 0.6.2 or older, some labels differ: see "Older versions" near the end.
 
 Menu paths are written like this: right-click her > Open Capri Mainframe. Button and menu names are in the same words the app uses.
 
@@ -526,19 +526,27 @@ Right-click her > Open Capri Mainframe > Settings > MOVES > Pop-in times. Set Sh
 Use preset returns to the Pop-ins slider's pace. Moving that slider also clears your custom times. CAPRI > Check in on me still decides whether she visits.
 
 ### How do I get mods? (0.8.3)
-Right-click her > Open Capri Mainframe > CAPRI > Mods. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code and Skins filter the list.
+Right-click her > Open Capri Mainframe > CAPRI > Mods. Press Browse mods to open the Mods directory window. Each listing shows a preview, name, author, description, downloads and ratings. Search finds names, authors and descriptions. All, Settings, Code, Skins and Skills filter the list.
 
 Press Install on the mod you want. View opens its folder on GitHub so you can read about it first. Once installed, click its stars to rate it from 1 to 5.
 
 Already have a mod file? Press Import mod on the Mods page and pick it. The file types are:
 - .capri-mod: settings mods, including colour sets.
 - .capri-skin: skins that change how she looks.
+- .capri-skill (0.8.4): know-how for a game. She follows it whenever she plays that game.
 - .capri-code: code mods with full access to your PC. She asks before they run and again if the code changes. Code mods are Windows only for now.
 
 On and Off switch an installed mod. Remove deletes it from her mods folder. Mods folder opens that folder.
 
 ### How do I publish a mod? (0.8.3)
 In Mainframe > CAPRI > Mods, press Publish beside an imported mod. It shows the steps for submitting your mod on GitHub: fork capri-mods, add a folder under mods with your mod file, README.md and preview.png, then open a pull request.
+
+### What are skills? (0.8.4)
+A skill is a mod with know-how for a game, like which towers to buy and when. Whenever she plays that game, every skill that's on for it goes into her plan, and she follows it over her general advice. Her first skill is Lachy's BTD6 plan: Mainframe > CAPRI > Mods > Browse mods, then Skills.
+
+She knows the game from its window title, leaving out version numbers and anything after a dash, so "Bloons TD 6" and "BloonsTD6" both count. Skills work on Windows, Mac and Linux. Off on the Mods page stops one.
+
+To make one: a .capri-skill file starts with a header between two --- lines (capri-skill: 1, then id, name, author, description and games, the game names separated by commas), then the know-how in plain words. Publish it like any other mod.
 
 ### Code/Husk Mode (0.8.3)
 Right-click her > Open Capri Mainframe > Settings > Advanced Settings > BRAIN > Code/Husk Mode. Pick Off, Claude Code, Codex or Both. Picking a coding assistant installs her hooks with backups and keeps your other hooks and settings. Restart Claude Code or Codex after setting it up. In Codex, trust her hooks when it asks.
@@ -1588,6 +1596,9 @@ To check now: Mainframe > Check for updates, or right-click her > Help > Check f
 - "Couldn't check for updates. I'll try again in 3 hours." Check your internet.
 
 Updates are checked against their checksum and signature before they run.
+
+### "Update through winget." (0.8.4)
+A package manager installed her, so update with it: winget, Scoop, Chocolatey or pacman, whichever she names. Her own updater stays out of its way. Installing Capri-Setup.exe from the website by hand turns her own updater back on.
 
 ### "Windows couldn't verify the update signature. It won't run." or "The update checksum doesn't match. It won't run."
 The update was blocked to keep you safe. Download the latest Capri-Setup.exe from the website and run it. Your settings and notes stay.
