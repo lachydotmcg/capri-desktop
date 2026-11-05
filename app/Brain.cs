@@ -820,6 +820,10 @@ namespace CapriDesktop
         private static readonly Regex Personal = new Regex(@"\b(passwords?|passcodes?|pin (code|number)|log ?in details|credit card|card number|bank (account|details|number)|account number|sort code|routing number|social security|passport|(home|street|postal|email|e-mail) address|(my|their|his|her) address|postcode|post code|zip code|(phone|mobile|cell) number|surname|last name|full name|real name|date of birth|(i|they) live (in|at|on)|(my|their|his|her) school(?: is|'s| is called| called)|school (is )?called)\b|@\w+\.\w+|\d[\d\s-]{6,}\d|\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b", RegexOptions.IgnoreCase);
         private static readonly Regex SensitiveLabel = new Regex(@"\b(school|address|phone|mobile|e-?mail|surname|last name|full name|real name|date of birth|passport|card|bank)\b", RegexOptions.IgnoreCase);
         internal const string Private = "Addresses, schools, numbers and passwords stay out of my notes.";
+        // SECURITY's Keep personal details out of her memories, on in every preset but Blackwall. On, her notes leave out any
+        // address too, Get to know me's answers and what she saw leave out personal details, and a form's personal and card
+        // boxes reach her hands as (value hidden) (#88). Off, they work as they did before #88.
+        internal static bool Discreet { get { return Security.On(Security.Personal); } }
         private const string RedactedDetail = "(redacted personal detail)";
 
         private static string DataBlock(string tag, string source, string trust, string body)
@@ -871,7 +875,7 @@ namespace CapriDesktop
         {
             string text = Regex.Replace((fact ?? "").Trim(), @"\s+", " ").Trim(' ', '-', '.', ',', '"');
             if (text.Length == 0) return "What should I remember, choom?";
-            if (Revealing(text)) return Private;
+            if (Discreet ? Revealing(text) : Personal.IsMatch(text)) return Private;
             if (text.Length > 200) text = text.Substring(0, 200).TrimEnd();
             text = char.ToUpperInvariant(text[0]) + text.Substring(1);
             string path = MemoryPath;
@@ -928,7 +932,7 @@ namespace CapriDesktop
         {
             string text = Regex.Replace((value ?? "").Trim(), @"\s+", " ").Trim(' ', '-', ',', '"');
             if (text.Length > 200) text = text.Substring(0, 200).TrimEnd();
-            if (SensitiveLabel.IsMatch(label ?? "") || Revealing(text)) return Private;
+            if (Discreet && (SensitiveLabel.IsMatch(label ?? "") || Revealing(text))) return Private;
             string path = MemoryPath;
             if (path == null) return "I can't keep notes on this computer yet.";
             string line = "- " + label + ": " + text;
@@ -962,7 +966,7 @@ namespace CapriDesktop
         {
             string text = Regex.Replace(what ?? "", @"\s+", " ").Trim();
             if (text.Length == 0) return;
-            if (Revealing(text)) text = RedactedDetail;
+            if (Discreet && Revealing(text)) text = RedactedDetail;
             lock (seeing)
             {
                 sightings.Add(new Sighting { At = DateTime.Now.ToString("o", System.Globalization.CultureInfo.InvariantCulture), Saw = text, Said = string.IsNullOrEmpty(said) ? null : said, Asked = asked });
@@ -980,14 +984,16 @@ namespace CapriDesktop
             lock (seeing) all = new List<Sighting>(sightings);
             DateTime now = DateTime.Now;
             List<string> lines = new List<string>();
+            // Sightings saved before #88, or while Keep personal details out of her memories was off, are left out here too.
+            bool discreet = Discreet;
             for (int i = all.Count - 1; i >= 0 && lines.Count < 8; i--)
             {
                 DateTime at;
                 if (!DateTime.TryParse(all[i].At, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out at)) continue;
                 TimeSpan ago = now - at;
                 if (ago > TimeSpan.FromHours(3)) break;
-                string saw = Revealing(all[i].Saw) ? RedactedDetail : (all[i].Saw.Length > 300 ? all[i].Saw.Substring(0, 300).TrimEnd() + "..." : all[i].Saw);
-                string said = all[i].Said != null && Revealing(all[i].Said) ? RedactedDetail : all[i].Said;
+                string saw = discreet && Revealing(all[i].Saw) ? RedactedDetail : (all[i].Saw.Length > 300 ? all[i].Saw.Substring(0, 300).TrimEnd() + "..." : all[i].Saw);
+                string said = discreet && all[i].Said != null && Revealing(all[i].Said) ? RedactedDetail : all[i].Said;
                 string when = ago.TotalMinutes < 1 ? "Just now" : ago.TotalMinutes < 60 ? (int)ago.TotalMinutes + " min ago" : ago.TotalHours < 2 ? "An hour ago" : (int)ago.TotalHours + " hours ago";
                 lines.Insert(0, "- " + when + (all[i].Asked ? ", when they asked you to look: " : ": ") + saw.TrimEnd('.') + ". " + (said != null ? "You said: " + Voice.Quote(said) : all[i].Asked ? "You told them about it." : "You stayed quiet."));
             }
