@@ -997,8 +997,8 @@ namespace CapriDesktop
                 {
                     if (!pet.Upright) return false;
                     pet.Talk.Dismiss();
-                    // An open menu keeps her awake, and on Linux one is still open from an earlier check; this check is about her
-                    // sleep timer, so it says so and closes it first.
+                    // An open menu keeps her awake. The drag checks' right release used to leave one open on Linux; if an earlier
+                    // check still does, this one is about her sleep timer, so it says so and closes it first.
                     if (pet.ContextMenu != null && pet.ContextMenu.IsOpen) { checks.Add("LIMIT her menu was still open from an earlier check, so the sleep check closed it first"); pet.ContextMenu.Close(); }
                     pet.SetSleepAfter(0);
                     pet.Doze(100000);
@@ -1572,6 +1572,9 @@ namespace CapriDesktop
                 cursor = new PixelPoint(down.X + 90, down.Y - 120);
                 Release(mouse, linux ? at : Client(cursor.Value), false, MouseButton.Right);
                 if (!pet.Dragging || mouse.Captured != pet || moves.Count != 2) throw new Exception("A right release ended a left drag.");
+                // Avalonia turns a right release on her into ContextRequested, which opens her menu. On Linux it stayed open until
+                // the sleep check, so it's closed here.
+                if (pet.ContextMenu != null && pet.ContextMenu.IsOpen) pet.ContextMenu.Close();
                 Release(mouse, linux ? at : Client(cursor.Value), false);
                 if (moves.Count != 3 || pet.Anchor != new PixelPoint(start.X + 90, start.Y - 120) || pet.Dragging || mouse.Captured != null || !pet.Falling) throw new Exception("Release didn't move her to the pointer before dropping.");
                 pet.DragFrame();
