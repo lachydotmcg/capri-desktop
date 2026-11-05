@@ -4023,12 +4023,17 @@ namespace CapriDesktop
                     throw new VoiceException(name + " at " + Where(endpoint) + " stopped answering.");
                 }
                 int status = (int)response.StatusCode;
-                string detail;
+                string reply, detail;
                 using (response)
-                using (StreamReader reader = new StreamReader(response.GetResponseStream())) detail = Said(reader.ReadToEnd());
+                using (StreamReader reader = new StreamReader(response.GetResponseStream())) reply = reader.ReadToEnd();
+                detail = Said(reply);
                 // Fish Audio's 404 is a voice it can't find, and its 429 is too many lines too fast.
                 if (status == 404 && name == "Fish Audio") throw new VoiceException("Fish Audio can't find that voice (HTTP 404). Check its ID or link on fish.audio.");
                 if (status == 404) throw new VoiceException(name + " has no " + endpoint.AbsolutePath + " (HTTP 404). Check its address.");
+                // OpenAI answers 429 when the account's credit is gone as well, which waiting won't fix, so its reply is read the way
+                // her brain reads one. The service's own words go to errors.txt.
+                if (OutOfCredit(status, reply) && !(status == 402 && name == "Fish Audio"))
+                    throw new VoiceException(Credit(name, theirs), "HTTP " + status + ": " + Voice.Short(detail));
                 if (status == 429) throw new VoiceException(name + " is busy (HTTP 429). Try again in a moment.");
                 if (status == 401 || status == 403) throw new VoiceException(string.IsNullOrEmpty(key) ? name + " wants a key (HTTP " + status + "). Add it under " + (theirs ? "CUSTOM LOCAL > Set up" : "CLOUD VOICE") + "." : name + " turned down its key (HTTP " + status + ").");
                 // Fish Audio's paid models answer 402 on an account with no credit. Its free tier is a model of its own.
@@ -4093,12 +4098,24 @@ namespace CapriDesktop
             return Regex.Replace(text, @"\s+", " ").Trim();
         }
 
+        // A 429 or 402 whose reply says the credit or quota is gone, the way her brain's Meaning reads one.
+        internal static bool OutOfCredit(int status, string reply)
+        {
+            return (status == 429 || status == 402) && Regex.IsMatch(reply ?? "", @"insufficient[_ ](quota|balance)|no credits|credit balance|billing", RegexOptions.IgnoreCase);
+        }
+
+        internal static string Credit(string name, bool theirs)
+        {
+            return name + " is out of credit. " + (name == "OpenAI" ? "Add credit at platform.openai.com" : "Add credit to its account") + ", or pick another voice under " + (theirs ? "CUSTOM LOCAL" : "CLOUD VOICE") + ".";
+        }
+
         // Her free voice says any line the server can't. What went wrong is noted once, until the server answers again.
         internal Func<string, byte[]> Or(Func<string, byte[]> fallback, Action<string> trouble)
         {
             return delegate(string words)
             {
                 string problem;
+                string detail = null;
                 try
                 {
                     byte[] wav = Speak(words);
@@ -4109,6 +4126,7 @@ namespace CapriDesktop
                 {
                     if (fallback == null) throw;
                     problem = error.Message;
+                    detail = error.Detail;
                 }
                 // Anything else that breaks is said the same way, so her free voice still fills in.
                 catch (Exception error)
@@ -4121,6 +4139,7 @@ namespace CapriDesktop
                 {
                     noted = problem;
                     trouble(problem);
+                    if (!string.IsNullOrEmpty(detail)) Brain.Log(Name(Url, Api), -1, detail);
                 }
                 return fallback(Voice.Uncued(words));
             };

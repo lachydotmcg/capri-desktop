@@ -404,6 +404,52 @@ namespace CapriDesktop
             }
         }
 
+        // A cloud voice out of credit says so with its fix, the way her brain reads OpenAI's 429, instead of "busy (HTTP 429)",
+        // and the service's own words go to errors.txt. A plain 429 is still busy.
+        private static void SmokeVoiceCredit(List<string> checks, string output)
+        {
+            const string broke = "{\"error\":{\"message\":\"You exceeded your current quota, please check your plan and billing details.\",\"type\":\"insufficient_quota\",\"code\":\"insufficient_quota\"}}";
+            const string limited = "{\"error\":{\"message\":\"Rate limit reached for requests per minute.\",\"type\":\"requests\"}}";
+            if (VoiceServer.Credit("OpenAI", false) != "OpenAI is out of credit. Add credit at platform.openai.com, or pick another voice under CLOUD VOICE."
+                || !VoiceServer.OutOfCredit(429, broke) || !VoiceServer.OutOfCredit(402, "{\"error\":{\"message\":\"Insufficient Balance\"}}") || VoiceServer.OutOfCredit(429, limited) || VoiceServer.OutOfCredit(500, broke))
+                throw new Exception("A voice with no credit read wrong: " + VoiceServer.Credit("OpenAI", false));
+            string log = Path.Combine(output, "voice-credit.txt"), logWas = Brain.LogPath;
+            System.Net.Sockets.TcpListener fake = null;
+            try
+            {
+                if (File.Exists(log)) File.Delete(log);
+                Brain.LogPath = log;
+                List<string> asked = new List<string>();
+                VoiceServer cloud = new VoiceServer();
+                cloud.Url = FakeServer(new[] { "!429 " + broke, "!429 " + limited, "!429 " + broke }, asked, out fake);
+                cloud.Model = "tts-1";
+                cloud.Speaker = "alloy";
+                cloud.Key = "sk-voice-test";
+                string[] said = new string[2];
+                string credited = null;
+                for (int i = 0; i < 2; i++)
+                {
+                    try { cloud.Speak("Hi there."); }
+                    catch (VoiceException error) { said[i] = error.Message; if (i == 0) credited = error.Detail; }
+                }
+                List<string> notes = new List<string>();
+                byte[] standIn = Voice.Wave(new short[2400], 24000);
+                byte[] filled = cloud.Or(delegate(string words) { return standIn; }, delegate(string problem) { notes.Add(problem); })("Hi there.");
+                string logged = File.Exists(log) ? File.ReadAllText(log) : "";
+                string wanted = VoiceServer.Credit(VoiceServer.Theirs, true);
+                if (said[0] != wanted || credited == null || !credited.Contains("HTTP 429") || !credited.Contains("exceeded your current quota") || said[1] != VoiceServer.Theirs + " is busy (HTTP 429). Try again in a moment."
+                    || filled != standIn || notes.Count != 1 || notes[0] != wanted + VoiceServer.Filling || !logged.Contains("exceeded your current quota") || asked.Count != 3)
+                    throw new Exception("A cloud voice out of credit was told wrong: " + string.Join(" | ", said) + " / " + credited + " / " + string.Join(" | ", notes.ToArray()) + " / " + asked.Count + " asks");
+                checks.Add("PASS a cloud voice out of credit says so with its fix (OpenAI: add credit at platform.openai.com, or pick another voice under CLOUD VOICE) instead of busy, keeps the service's words for errors.txt, and her free voice fills in; a plain 429 is still busy");
+            }
+            catch (System.Net.Sockets.SocketException) { checks.Add("LIMIT voice credit lines: loopback sockets unavailable"); }
+            finally
+            {
+                Brain.LogPath = logWas;
+                if (fake != null) fake.Stop();
+            }
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;
