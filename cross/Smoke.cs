@@ -1678,6 +1678,36 @@ namespace CapriDesktop
                 if (!heldFirst || stillPressed || pet.Dragging || mouse.Captured != null) throw new Exception("Losing focus mid-drag left her held: dragged first " + heldFirst + ", pressed " + stillPressed + ", dragging " + pet.Dragging + ", captured " + (mouse.Captured != null) + ".");
                 checks.Add("PASS her window losing focus mid-drag lets go of her with a drop, since Avalonia rarely says a grab was lost");
 
+                // Let go with most of her off the right edge and nothing to land on, she's brought back; let go with her hip
+                // just under the screen and the floor in reach, she lands on it without being moved first.
+                Screen only = pet.Screens.All.Count == 1 ? pet.Screens.All[0] : null;
+                if (only == null) checks.Add("LIMIT the off-the-edge drop checks need one screen, and this desktop has " + pet.Screens.All.Count);
+                else
+                {
+                    PixelRect area = only.WorkingArea, bounds = only.Bounds;
+                    int size = Px(pet.BodySize), over = Px(Math.Max(32, pet.BodySize * 0.45));
+                    pet.StandUp();
+                    pet.Grab();
+                    pet.Move(new PixelPoint(start.X, area.Y + area.Height / 4));
+                    PixelRect drawn = pet.DrawnBox;
+                    pet.Move(new PixelPoint(pet.Anchor.X + bounds.Right - drawn.Width * 3 / 10 - drawn.X, pet.Anchor.Y));
+                    bool hipShown = pet.Screens.ScreenFromPoint(new PixelPoint(pet.Hip.X, pet.Hip.Y - 1)) != null;
+                    pet.Let(false);
+                    if (!hipShown || pet.Anchor.X != area.Right - size || pet.Dragging) throw new Exception("Let go with most of her off the right edge and nothing to land on, she wasn't brought back: hip on the screen " + hipShown + ", anchor " + pet.Anchor + ", work area " + area + ".");
+                    pet.StandUp();
+                    pet.Grab();
+                    pet.Move(new PixelPoint(start.X, bounds.Bottom + 4 - Px(pet.BodySize * Pet.SitY)));
+                    if (pet.Hip.Y - area.Bottom > over) checks.Add("LIMIT the floor here is out of a drop's reach from under the screen, so the no-jump drop check was skipped");
+                    else
+                    {
+                        PixelPoint letAt = pet.Anchor;
+                        int movesBefore = moves.Count;
+                        pet.Let(false);
+                        if (pet.Anchor != letAt || moves.Count != movesBefore || !pet.Falling) throw new Exception("Let go with her hip just under the screen and the floor in reach, she was moved first (" + letAt + " to " + pet.Anchor + ") or didn't land (falling " + pet.Falling + ").");
+                    }
+                    checks.Add("PASS a drop with less than half of her on a screen and nothing to land on brings her back, and a drop the floor can catch lands without moving her first");
+                }
+
                 if (linux)
                 {
                     pet.StandUp();

@@ -1449,21 +1449,54 @@ namespace CapriDesktop
         // Letting go of her: she falls onto the window below, or with Shift held sits right there, like on Windows.
         internal void Let(bool here)
         {
-            // Letting go outside every screen used to save her where nobody could reach her.
-            PixelPoint hip = Hip;
-            if (Screens.ScreenFromPoint(new PixelPoint(hip.X, hip.Y - 1)) == null)
+            if (here)
             {
-                Screen screen = ScreenHere() ?? (Screens.All.Count > 0 ? Screens.All[0] : null);
-                if (screen != null)
-                {
-                    PixelRect area = screen.WorkingArea;
-                    int size = Px(body.Size);
-                    Move(new PixelPoint(Math.Max(area.X, Math.Min(anchor.X, area.Right - size)), Math.Max(area.Y, Math.Min(anchor.Y, area.Bottom - size))));
-                }
+                if (Lost()) Reclaim();
+                dragging = false;
+                SitHere();
+                return;
             }
-            if (!here) { Drop(); return; }
-            dragging = false;
-            SitHere();
+            // A ledge below where she's let go catches her before anything moves her, so a drop with most of her showing no
+            // longer jumps her back in first. Only with nothing to land on is she brought back.
+            if (Drop() || !Lost()) return;
+            Reclaim();
+            Drop();
+        }
+
+        // Her drawn box on the desktop, in pixels: the cell of the clip she's showing.
+        internal PixelRect DrawnBox
+        {
+            get
+            {
+                Rect place = body.Place(clip);
+                return new PixelRect(anchor.X + Px(FrameX + place.X), anchor.Y + Px(FrameY + place.Y), Math.Max(1, Px(place.Width)), Math.Max(1, Px(place.Height)));
+            }
+        }
+
+        // Let go off every screen, or with less than half of her drawn box on one, she's out of reach. Her hip alone used to
+        // decide, which missed a drop with most of her off the right or top edge.
+        private bool Lost()
+        {
+            PixelPoint hip = Hip;
+            if (Screens.ScreenFromPoint(new PixelPoint(hip.X, hip.Y - 1)) == null) return true;
+            PixelRect box = DrawnBox;
+            long shown = 0;
+            foreach (Screen screen in Screens.All)
+            {
+                PixelRect on = box.Intersect(screen.Bounds);
+                shown += (long)on.Width * on.Height;
+            }
+            return shown * 2 < (long)box.Width * box.Height;
+        }
+
+        // Letting go outside every screen used to save her where nobody could reach her.
+        private void Reclaim()
+        {
+            Screen screen = ScreenHere() ?? (Screens.All.Count > 0 ? Screens.All[0] : null);
+            if (screen == null) return;
+            PixelRect area = screen.WorkingArea;
+            int size = Px(body.Size);
+            Move(new PixelPoint(Math.Max(area.X, Math.Min(anchor.X, area.Right - size)), Math.Max(area.Y, Math.Min(anchor.Y, area.Bottom - size))));
         }
 
         internal int Pets { get { return petTicket; } }
