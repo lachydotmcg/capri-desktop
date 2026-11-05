@@ -2279,6 +2279,7 @@ namespace CapriDesktop
             heyCapri = new WakeWord(data);
             presence = new Presence(Assembly.GetExecutingAssembly().GetName().Version.ToString(3));
             preferences = smoke ? new Preferences() : LoadPreferences();
+            Brain.Secrets = SavedKeys;
             Speaker.Chosen = preferences.Speaker;
             Speaker.Missing = delegate(string id) { Post(delegate { SpeakerGone(id); }); };
             CallApps.Choose(preferences.CallApp);
@@ -8718,6 +8719,15 @@ namespace CapriDesktop
             if (key.Length == 0) key = null;
             if (address == null || key != null && (Regex.IsMatch(key, @"\s|[\x00-\x1f\x7f]") || !Brain.ServerKeySafe(address))) { address = key = null; return false; }
             return true;
+        }
+
+        // Every key she has saved or is using, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
+        private string[] SavedKeys()
+        {
+            string address, provider;
+            SavedProvider(out address, out provider);
+            Cloud remote = brain.Remote;
+            return new[] { provider, brain.ServerKey, remote == null ? null : remote.Key, voice.Key, server.Key, Voice.Unprotect(preferences.VoiceKey), Voice.Unprotect(preferences.TextKey), Voice.Unprotect(preferences.NvidiaKey), Voice.Unprotect(preferences.PaidKey), Voice.Unprotect(preferences.ServerKey), Voice.Unprotect(preferences.AsideKey) };
         }
 
         internal string ProviderAddress { get { string address, key; return SavedProvider(out address, out key) ? address : ""; } }
@@ -29746,6 +29756,28 @@ namespace CapriDesktop
             string curls = Brain.Redacted("curl -uadmin:Attach3d https://x && curl -U proxy:Pr0xyPw https://y && curl -u admin:Spac3d https://z");
             if (curls.Contains("Attach3d") || curls.Contains("Pr0xyPw") || curls.Contains("Spac3d")) throw new Exception("curl's -u lost its redaction: " + curls);
             checks.Add("PASS redaction leaves PowerShell's -UseDefaultCredentials:$true and other $ switches alone and still hides curl's -u and -U passwords");
+
+            // A saved key with no shape Redacted knows still stays out of errors.txt, as typed or URL-escaped; a short placeholder
+            // key, like a local server's, leaves the words it matches alone.
+            string shapeless = "Qv7Lm2Xp9Rt4Wz8Kc6Hy3Nd5Bf1Gs0J", escapedKey = "Qv7Lm2Xp9Rt4/Wz8Kc6+Hy3Nd5Bf1Gs0", log = Path.Combine(Path.GetTempPath(), "capri-scrub-" + Guid.NewGuid().ToString("N") + ".txt");
+            Func<string[]> secretsWas = Brain.Secrets;
+            try
+            {
+                Brain.Secrets = delegate { return new[] { shapeless, escapedKey, "local-key", null, "" }; };
+                if (Brain.Redacted("said " + shapeless + " back") != "said " + shapeless + " back") throw new Exception("The scrub check's key has a shape Redacted already knows.");
+                Brain.LogAt(log, "https://api.example.com/v1/" + shapeless + "/models", -1, "Bad key " + shapeless + " for /v1?key=" + Uri.EscapeDataString(escapedKey) + ", the local-key placeholder");
+                string written = File.ReadAllText(log);
+                if (written.Contains(shapeless) || written.Contains(Uri.EscapeDataString(escapedKey)) || !written.Contains("Bad key [redacted] for /v1?key=[redacted], the local-key placeholder") || !written.Contains("api.example.com/v1/[redacted]/models"))
+                    throw new Exception("A saved key with no known shape reached errors.txt, or a short one took a word: " + written);
+                Brain.Secrets = delegate { throw new InvalidOperationException("No keys yet."); };
+                if (!Brain.LogAt(log, "scrub", -1, "keys unreadable") || !File.ReadAllText(log).Contains(" | scrub | - | keys unreadable")) throw new Exception("Keys that couldn't be read stopped a line reaching errors.txt.");
+            }
+            finally
+            {
+                Brain.Secrets = secretsWas;
+                if (File.Exists(log)) File.Delete(log);
+            }
+            checks.Add("PASS errors.txt never keeps a saved key whole, whatever its shape, as typed or URL-escaped, and a short placeholder key leaves ordinary words alone");
         }
 
         private static string Repeat(string text, int times)

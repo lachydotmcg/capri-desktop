@@ -414,6 +414,9 @@ namespace CapriDesktop
         private readonly List<HttpWebRequest> active = new List<HttpWebRequest>();
         private int cancelled;
         internal static string LogPath;
+        // The keys she has saved, so a line in errors.txt never keeps one whole, whatever its shape (Scrubbed).
+        internal static Func<string[]> Secrets = delegate { return new string[0]; };
+        [ThreadStatic] private static bool scrubbing;
         internal volatile string Model;
         internal volatile Engine Local;
         internal volatile Pick LocalPick;
@@ -3981,7 +3984,7 @@ namespace CapriDesktop
             {
                 Uri where;
                 string place = Uri.TryCreate(url, UriKind.Absolute, out where) ? where.Host + where.AbsolutePath : url;
-                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + place + " | " + (took < 0 ? "-" : took + " ms") + " | " + Redacted(what).Replace("\r", " ").Replace("\n", " ");
+                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + " | " + Scrubbed(place) + " | " + (took < 0 ? "-" : took + " ms") + " | " + Redacted(Scrubbed(what)).Replace("\r", " ").Replace("\n", " ");
                 lock (typeof(Brain))
                 {
                     List<string> lines = File.Exists(path) ? new List<string>(File.ReadAllLines(path)) : new List<string>();
@@ -3997,6 +4000,29 @@ namespace CapriDesktop
             catch (UnauthorizedAccessException) { }
             catch (UriFormatException) { }
             return false;
+        }
+
+        // A saved key that an error repeats, in a shape Redacted doesn't know, is taken out of a log line, as typed or
+        // URL-escaped. Only keys long enough to be unique count, so a short placeholder, like a local server's, can't take
+        // ordinary words with it.
+        internal static string Scrubbed(string text)
+        {
+            if (string.IsNullOrEmpty(text) || scrubbing) return text ?? "";
+            string[] keys;
+            scrubbing = true;
+            try { keys = Secrets(); }
+            catch (Exception) { return text; }
+            finally { scrubbing = false; }
+            if (keys == null) return text;
+            foreach (string saved in keys)
+            {
+                string key = (saved ?? "").Trim();
+                if (key.Length < 20 || key.Length > 4096) continue;
+                text = text.Replace(key, "[redacted]");
+                string escaped = Uri.EscapeDataString(key);
+                if (escaped != key) text = text.Replace(escaped, "[redacted]");
+            }
+            return text;
         }
 
         private static HttpWebRequest Open(string path, int timeout) { return Create(Ollama + path, timeout); }

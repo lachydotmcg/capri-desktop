@@ -577,6 +577,8 @@ namespace CapriDesktop
             if (Brain.Remote == null && savedServer != null && !string.IsNullOrEmpty(Saved.ServerModel)) Brain.Model = Saved.ServerModel;
             RestoreBrainTier();
             voice.Key = ReadVoiceKey();
+            // Her keys, for Brain.Scrubbed to keep out of errors.txt. It can run on any thread.
+            Brain.Secrets = delegate { Cloud remote = Brain.Remote; return new[] { remote == null ? null : remote.Key, Brain.ServerKey, voice.Key }; };
             voice.VoiceId = string.IsNullOrEmpty(Saved.VoiceId) ? null : Saved.VoiceId;
             voice.Model = Saved.SpeechModel;
             elevenLabs = new ElevenLabsSpeaker(voice);
