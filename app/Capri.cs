@@ -21379,6 +21379,11 @@ namespace CapriDesktop
                 finally { File.SetAttributes(package, FileAttributes.Normal); }
                 if (!blocked || File.ReadAllText(package) != "manual" || Array.Exists(Directory.GetFiles(folder), delegate(string each) { return each.EndsWith(".new", StringComparison.OrdinalIgnoreCase); })) throw new Exception("A failed package marker write changed the old marker or left its new file behind.");
                 checks.Add("PASS the package marker is written whole and read back by her updater, a manual install replaces it, and a failed write keeps the old one and leaves no new file behind");
+                SetupFiles.Mark(folder, "scoop");
+                SetupFiles.Unmark(folder);
+                SetupFiles.Unmark(folder);
+                if (File.Exists(package) || reader.Package() != null || File.ReadAllText(other) != "keep this" || !File.Exists(marker)) throw new Exception("Removing her didn't take her package marker, or took another file with it.");
+                checks.Add("PASS removing her takes her package marker and nothing else, and a missing one is fine");
             }
             finally
             {
