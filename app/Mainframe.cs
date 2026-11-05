@@ -2515,14 +2515,13 @@ namespace CapriDesktop
             Mainframe main = form as Mainframe;
             if (main != null) return main.Unit();
             ProviderSheet provider = form as ProviderSheet;
-            if (provider != null) return form.CurrentAutoScaleDimensions.Width / 96f * provider.Zoom;
             SecuritySheet guarded = form as SecuritySheet;
             LayersSheet layers = form as LayersSheet;
             MixSheet mix = form as MixSheet;
             ServerSheet server = form as ServerSheet;
             ExtrasSheet extras = form as ExtrasSheet;
             ModSheet mods = form as ModSheet;
-            float zoom = guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : server != null ? server.Zoom : extras != null ? extras.Zoom : mods != null ? mods.Zoom : 1f;
+            float zoom = provider != null ? provider.Zoom : guarded != null ? guarded.Zoom : layers != null ? layers.Zoom : mix != null ? mix.Zoom : server != null ? server.Zoom : extras != null ? extras.Zoom : mods != null ? mods.Zoom : 1f;
             Rescaler scaler = form.Tag as Rescaler;
             return (scaler != null ? scaler.Unit : 1f) * zoom;
         }
@@ -5117,6 +5116,7 @@ namespace CapriDesktop
 
             internal ProviderSheet(Mainframe owner, float zoom)
             {
+                SuspendLayout();
                 this.owner = owner;
                 Zoom = zoom;
                 Text = "Brain provider";
@@ -5124,8 +5124,7 @@ namespace CapriDesktop
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
-                AutoScaleDimensions = new SizeF(96, 96);
+                AutoScaleMode = AutoScaleMode.None;
                 Font = Mainframe.Type(9.5f);
                 BackColor = Ground;
                 ForeColor = White;
@@ -5156,7 +5155,10 @@ namespace CapriDesktop
                 AcceptButton = connect;
                 key.Box.KeyDown += delegate(object sender, KeyEventArgs e) { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; Connect(); } };
                 FormClosed += delegate { key.Box.Clear(); };
+                // Like the other sheets since #78: her Mainframe size first, then the screen it's on, and again on a move to
+                // a screen with different scaling. OnLoad still places it under the Mainframe's top edge.
                 if (zoom != 1f) { Grow(this, zoom); Scale(new SizeF(zoom, zoom)); }
+                owner.Fit(this);
             }
 
             internal void Fill()
