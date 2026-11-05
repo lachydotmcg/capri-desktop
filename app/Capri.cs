@@ -11561,7 +11561,7 @@ namespace CapriDesktop
             if (HearingChoice == 1) { if (parakeet.Fits) AwaitEars(null); else HearingNote(); return; }
             Hearing.Own = null;
             GetFreeEars();
-            if (CallModeOn) { HearLater("Call mode uses offline hearing to keep each speaker separate."); return; }
+            if (CallModeOn) { HearLater(CallHearing); return; }
             // Windows speech only hears Windows' default mic. When that's VB-CABLE's output it would hear her own voice in their
             // mic (F66), so she hears their real mic offline instead.
             if (MicMix.IsCableOut(Ears.DefaultName())) { HearLater(CableDefault); return; }
@@ -11694,11 +11694,11 @@ namespace CapriDesktop
             if (preferences.ListenCapri)
             {
                 EarsReady(false);
-                mainframe.VoiceNote(LocalListening + " Offline hearing. " + why, true);
+                mainframe.VoiceNote(LocalListening + " Offline hearing. " + why, why != CallHearing);
                 return;
             }
             EarsNote(earsLead + (ears.Muted ? "Free voice chat is ready with offline hearing; your mic is muted. " : "Free voice chat on, but I'm hearing offline, so I'll miss some words. ") + (why == Dictation.PrivacyOff ? "Turn on Online speech recognition in Windows Settings > Privacy & security > Speech." : "The reason is under VOICE in the Mainframe."), false);
-            mainframe.VoiceNote(why, true);
+            mainframe.VoiceNote(why, why != CallHearing);
         }
 
         private void HeardDictation(string text)
@@ -11801,6 +11801,9 @@ namespace CapriDesktop
         private string LocalListening { get { return CallModeOn ? "Call mode (beta). Say Capri for your requests. " + CallSession.EchoLine : preferences.ListenCapri ? "Listening for Capri." : "Free voice chat on. Talk and I'll type back."; } }
 
         internal const string CableDefault = "Windows speech only hears your default mic, CABLE Output, which has her voice in it. She hears your real mic offline instead.";
+        // Call mode hears offline by choice, to keep each speaker separate, so VOICE and the hearing line show it as a plain grey note.
+        internal const string CallHearing = "Call mode uses offline hearing to keep each speaker separate.";
+        internal const string CallHearingLine = "Hearing offline for call mode";
 
         private bool VoiceForHer(string text)
         {
@@ -29748,6 +29751,7 @@ namespace CapriDesktop
             Section(checks, "SmokeHearingReasons", delegate { SmokeHearingReasons(checks, output); });
             Section(checks, "SmokeBrainOnlyText", delegate { SmokeBrainOnlyText(checks, output); });
             Section(checks, "SmokeJobPanelFixes", delegate { SmokeJobPanelFixes(checks); });
+            Section(checks, "SmokeCallHearing", delegate { SmokeCallHearing(checks); });
         }
 
         private void SmokeClipToggle(System.Collections.Generic.List<string> checks)

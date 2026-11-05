@@ -315,6 +315,53 @@ namespace CapriDesktop
             checks.Add("PASS the task panel shows the fix: an ending like \"Got lost before I could start that job...\" reaches \"Pick one under BRAIN in Capri Mainframe.\", the newest failed step wraps to show \"Run Capri as administrator too\", older steps stay one row, and one that still won't fit keeps its start and its last sentence before it's cut");
         }
 
+        // Call mode hearing offline is its own choice, so the hearing line and VOICE show it as a grey note, while Windows speech
+        // that really failed stays red.
+        private void SmokeCallHearing(List<string> checks)
+        {
+            Func<List<Mic>> devicesWas = hearingDevices;
+            Func<string> defaultWas = hearingDefault, outputWas = hearingOutput;
+            Func<bool> privacyWas = hearingPrivacy;
+            Func<string, string, bool> handsFreeWas = hearingHandsFree;
+            string speechWas = hearingSpeechProblem;
+            bool offlineWas = hearingOffline, readyWas = earsReady;
+            LocalEars ownWas = Hearing.Own;
+            try
+            {
+                hearingDevices = delegate { return new List<Mic> { new Mic("desk", "Desk Mic") }; };
+                hearingDefault = delegate { return "desk"; };
+                hearingOutput = delegate { return "Speakers"; };
+                hearingPrivacy = delegate { return false; };
+                hearingHandsFree = delegate { return false; };
+                RefreshHearingDevices();
+                CloseTalk();
+                hearingSaid = null;
+                ListenOffline(CallHearing);
+                string callLine = mainframe.HearingText, callNote = mainframe.VoiceNoteText;
+                bool callGrey = callLine == CallHearingLine && !mainframe.HearingWarning && callNote.EndsWith(CallHearing, StringComparison.Ordinal) && !mainframe.VoiceNoteWarning;
+                CloseTalk();
+                hearingSaid = null;
+                ListenOffline(Dictation.NotStarted);
+                string failedLine = mainframe.HearingText;
+                bool failedRed = failedLine.StartsWith("Windows speech didn't start", StringComparison.Ordinal) && mainframe.HearingWarning && mainframe.VoiceNoteWarning;
+                if (!callGrey || !failedRed || callLine.IndexOf("failed", StringComparison.OrdinalIgnoreCase) >= 0)
+                    throw new Exception("Call mode's offline hearing read as a failure, or a real one didn't: " + callLine + " / " + callNote + " / " + failedLine + " / link " + HearingLink);
+                checks.Add("PASS call mode hearing offline shows \"" + CallHearingLine + "\" in grey with its reason in grey under VOICE, and a Windows speech failure is still red");
+            }
+            finally
+            {
+                hearingDevices = devicesWas; hearingDefault = defaultWas; hearingOutput = outputWas; hearingPrivacy = privacyWas; hearingHandsFree = handsFreeWas;
+                hearingSpeechProblem = speechWas;
+                hearingOffline = offlineWas;
+                earsReady = readyWas;
+                Hearing.Own = ownWas;
+                hearingSaid = null;
+                CloseTalk();
+                RefreshHearingDevices();
+                mainframe.VoiceNote("", false);
+            }
+        }
+
         private static bool Same(byte[] one, byte[] other)
         {
             if (one.Length != other.Length) return false;

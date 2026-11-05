@@ -231,6 +231,8 @@ namespace CapriDesktop
             // VB-CABLE's output as Windows' default mic isn't Windows speech failing: she hears their real mic offline, and VOICE
             // gives the whole reason. The line names the cable, so they know which default to change.
             if (!HearingLink && hearingSpeechProblem == CableDefault) return new HearingStatus("Hearing offline: your default mic is CABLE Output", false, HearingAction.Sound);
+            // Call mode picks offline hearing to keep each speaker apart, so the line is a grey note and VOICE says why.
+            if (!HearingLink && hearingSpeechProblem == CallHearing) return new HearingStatus(CallHearingLine, false);
             if (!HearingLink && hearingSpeechProblem != null)
             {
                 if (hearingSpeechProblem == Dictation.PrivacyOff)

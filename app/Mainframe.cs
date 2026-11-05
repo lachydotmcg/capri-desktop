@@ -4273,6 +4273,7 @@ namespace CapriDesktop
         internal bool SpeechFixShown { get { return speechFix && voiceNote.Cursor == Cursors.Hand && voiceNote.Text.EndsWith(OpenSpeech, StringComparison.Ordinal); } }
 
         internal string VoiceNoteText { get { return voiceNote.Text; } }
+        internal bool VoiceNoteWarning { get { return voiceNote.ForeColor == Hot; } }
 
         internal void UpdateNote(string text, bool problem)
         {
