@@ -12429,7 +12429,7 @@ namespace CapriDesktop
                         earsModelLoaded = wanted;
                     }
                     try { if (wanted) parakeet.Warm(); else parakeet.Dispose(); }
-                    catch (Exception error) { lock (earsModelGate) earsModelLoaded = false; Brain.Log("ears", -1, Voice.Short(error.Message)); }
+                    catch (Exception error) { lock (earsModelGate) earsModelLoaded = earsModelWanted = false; Brain.Log("ears", -1, Voice.Short(error.Message)); }
                 }
             });
         }
