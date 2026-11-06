@@ -2568,7 +2568,6 @@ namespace CapriDesktop
             ShowVoice();
             mainframe.ShowMic(MicName(preferences.Mic));
             deviceNotice = delegate(string line) { mainframe.ShowProblem(line); Remark("", line, Hushed); };
-            RefreshSpeakers();
             RefreshWatchScreens();
             StartHearingStatus();
             pill.Typing += OpenTyper;
@@ -20363,6 +20362,22 @@ namespace CapriDesktop
                 notifications.OnDefaultDeviceChanged(1, 0, "bt");
                 if (changes != 3) throw new Exception("An output or input default change didn't refresh the warnings.");
                 checks.Add("PASS sound warnings: VB-Audio's cables as default speakers show output settings and say why once, and Voicemeeter, Steam and real speakers don't; a Bluetooth call mic is a note with its picker and own-ears fix that never hides a problem, own ears use the selected USB mic, the same Bluetooth mic still notes it, renamed endpoints are checked, default changes refresh, and both lines and fixes fit at 100%, 150% and 200%");
+                bool asyncWas = hearingAsync;
+                Func<System.Collections.Generic.List<Mic>> slowWas = hearingDevices;
+                ManualResetEvent gate = new ManualResetEvent(false);
+                hearingAsync = true;
+                hearingDevices = delegate { gate.WaitOne(5000); return slowWas(); };
+                try
+                {
+                    RefreshHearingDevices();
+                    if (mainframe.MicStatus.IndexOf(HearingStatus.Checking, StringComparison.Ordinal) < 0) throw new Exception("The sound page did not say it was still checking.");
+                    gate.Set();
+                    DateTime until = DateTime.Now.AddSeconds(5);
+                    while (hearingRefreshing && DateTime.Now < until) Application.DoEvents();
+                    if (hearingRefreshing || mainframe.MicStatus.IndexOf(HearingStatus.Checking, StringComparison.Ordinal) >= 0) throw new Exception("The sound page stayed on checking.");
+                    checks.Add("PASS sound page: it says it is still checking while the mic list loads, then shows the chosen mic without freezing the page");
+                }
+                finally { gate.Set(); hearingDevices = slowWas; hearingAsync = asyncWas; }
             }
             finally
             {

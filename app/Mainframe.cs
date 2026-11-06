@@ -1553,7 +1553,7 @@ namespace CapriDesktop
         // Her mix's Input: the mic her ears use, or one of its own. Never a cable's far end, which carries her voice.
         private void ShowMixInputs(Control under)
         {
-            capri.RefreshHearingDevices();
+            capri.RefreshHearingDevicesNow();
             string chosen = capri.MixInputPick;
             List<Mic> found = capri.HearingMics.FindAll(delegate(Mic mic) { return !MicMix.IsCableOut(mic.Name); });
             mixInputMenu.Items.Clear();

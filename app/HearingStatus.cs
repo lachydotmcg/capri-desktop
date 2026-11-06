@@ -35,6 +35,7 @@ namespace CapriDesktop
 
         // The hearing line fits about this many characters before it's cut off.
         internal const int LineRoom = 56;
+        internal const string Checking = "Still checking your speakers...";
 
         // A line made from a reason: the lead, like "Mic failed: ", then the reason's first sentence, short enough for the line.
         // A reason that names Windows speech itself needs no lead. Whatever the line leaves out, like the fix, goes in Full:
@@ -110,6 +111,7 @@ namespace CapriDesktop
         private Action<string> hearingDownloadNotice;
         private Action hearingDownload;
         private HearingWatch hearingWatch;
+        private bool hearingRefreshing, hearingAsync = true;
         private List<Mic> hearingMics = new List<Mic>();
         private string hearingDefaultId;
         private bool hearingCableOut;
@@ -134,7 +136,7 @@ namespace CapriDesktop
             hearingSoundNotice = EarsNote;
             hearingDownloadNotice = delegate(string text) { Notice.Tell(mainframe, text, "Her own ears", false); };
             hearingDownload = DownloadHearing;
-            if (testing) hearingOnline = delegate { return null; };
+            if (testing) { hearingOnline = delegate { return null; }; hearingAsync = false; }
             // A test machine with no mic at all (GitHub's runners) gets a stand-in, or every hearing check there reads "No mic found".
             if (testing && Ears.List().Count == 0)
             {
@@ -145,18 +147,69 @@ namespace CapriDesktop
             if (!testing) hearingWatch = new HearingWatch(delegate { Post(RefreshHearingDevices); });
         }
 
+        // Device enumeration can take seconds when Windows wakes a sleeping headset. The page stays responsive and says it is checking.
         internal void RefreshHearingDevices()
         {
+            if (!hearingAsync) { RefreshHearingDevicesNow(); return; }
+            if (mainframe == null || mainframe.IsDisposed || hearingRefreshing) return;
+            hearingRefreshing = true;
+            mainframe.ShowMic(HearingStatus.Checking);
+            Thread worker = new Thread(delegate
+            {
+                HearingSnapshot snapshot = null;
+                try { snapshot = EnumerateHearing(); }
+                catch (Exception error) { Brain.Log("ears", -1, "Hearing refresh: " + Voice.Short(error.Message)); }
+                Post(delegate
+                {
+                    hearingRefreshing = false;
+                    if (snapshot == null) { mainframe.ShowMic(null); return; }
+                    ApplyHearing(snapshot);
+                });
+            });
+            worker.IsBackground = true;
+            worker.Name = "Capri hearing refresh";
+            worker.SetApartmentState(ApartmentState.STA);
+            worker.Start();
+        }
+
+        internal void RefreshHearingDevicesNow()
+        {
             if (mainframe == null || mainframe.IsDisposed) return;
-            RefreshSpeakers();
+            hearingRefreshing = false;
+            ApplyHearing(EnumerateHearing());
+        }
+
+        private HearingSnapshot EnumerateHearing()
+        {
+            HearingSnapshot snapshot = new HearingSnapshot();
+            snapshot.Speakers = Speaker.List(true);
+            snapshot.SpeakerDefault = speakerDefault(1);
+            snapshot.SpeakerWave = speakerDefault(0);
+            snapshot.Mics = hearingDevices();
+            snapshot.DefaultId = hearingDefault();
+            snapshot.Blocked = hearingPrivacy();
+            snapshot.CableOut = HearingStatus.CableOutput(hearingOutput());
+            snapshot.Online = hearingOnline();
+            return snapshot;
+        }
+
+        private void ApplyHearing(HearingSnapshot snapshot)
+        {
+            if (mainframe == null || mainframe.IsDisposed) return;
+            speakerDevices = snapshot.Speakers;
+            Speaker.DefaultId = snapshot.SpeakerDefault;
+            Speaker.WaveDefaultId = snapshot.SpeakerWave;
+            Speaker.Output picked = Speaker.Resolve(speakerDevices);
+            if (picked != null) speakerPick = picked;
+            mainframe.ShowSpeaker(SpeakerName);
             List<Mic> before = hearingMics;
             string defaultBefore = hearingDefaultId;
             bool blockedBefore = hearingBlocked;
-            hearingMics = hearingDevices();
-            hearingDefaultId = hearingDefault();
-            hearingBlocked = hearingPrivacy();
-            hearingCableOut = HearingStatus.CableOutput(hearingOutput());
-            bool? online = hearingOnline();
+            hearingMics = snapshot.Mics;
+            hearingDefaultId = snapshot.DefaultId;
+            hearingBlocked = snapshot.Blocked;
+            hearingCableOut = snapshot.CableOut;
+            bool? online = snapshot.Online;
             bool speechChanged = online == true && hearingSpeechProblem == Dictation.PrivacyOff;
             if (speechChanged) hearingSpeechProblem = null;
             else if (online == false && HearingWindows && !(dictation != null && earsReady)) hearingSpeechProblem = Dictation.PrivacyOff;
@@ -172,6 +225,16 @@ namespace CapriDesktop
             mainframe.ShowMic(chosen == null ? null : chosen.Name);
             if (speechChanged && chatting && local && (hearingOffline || earsAwaited)) { StopChat(); StartLocal(); return; }
             UpdateHearing();
+        }
+
+        private sealed class HearingSnapshot
+        {
+            internal List<Speaker.Output> Speakers;
+            internal string SpeakerDefault, SpeakerWave;
+            internal List<Mic> Mics;
+            internal string DefaultId;
+            internal bool Blocked, CableOut;
+            internal bool? Online;
         }
 
         private bool HearingWindows
