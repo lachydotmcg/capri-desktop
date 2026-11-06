@@ -15948,10 +15948,9 @@ namespace CapriDesktop
             string notice;
             Preferences value = ReadPreferences(settingsPath, out notice);
             if (notice != null) unreadableNotice = notice;
-            if (notice != null)
+            if (notice != null || (File.Exists(settingsPath) && !Retention.WholeFile(settingsPath)))
             {
-                // Settings that existed but couldn't be read leave the keep-all choice unknown, so this PC keeps
-                // everything from now on until they choose otherwise.
+                // The serializer can read a half-written file without throwing; keep the choice safe anyway.
                 try { File.WriteAllText(Path.Combine(data, "keep-all"), "1"); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }

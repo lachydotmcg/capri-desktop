@@ -5415,13 +5415,14 @@ namespace CapriDesktop
         private bool settingsReset;
         private Settings Load()
         {
-            Settings loaded = ReadSettings(Path.Combine(folder, "cross.json"), out unreadableNotice, out settingsWriteBlocked);
-            settingsReset = unreadableNotice != null;
+            string settingsFile = Path.Combine(folder, "cross.json");
+            Settings loaded = ReadSettings(settingsFile, out unreadableNotice, out settingsWriteBlocked);
+            settingsReset = unreadableNotice != null || !Retention.WholeFile(settingsFile);
             if (settingsReset)
             {
-                // Settings that existed but couldn't be read leave the keep-all choice unknown, so this PC keeps
-                // everything from now on until they choose otherwise: the marker outlives the next save.
-                try { File.WriteAllText(Path.Combine(folder, "keep-all"), "1"); }
+                // Settings that existed but couldn't be read, or a half-written file the serializer can still read,
+                // leave the keep-all choice unknown: this PC keeps everything until they choose otherwise.
+                try { if (File.Exists(settingsFile)) File.WriteAllText(Path.Combine(folder, "keep-all"), "1"); }
                 catch (IOException) { }
                 catch (UnauthorizedAccessException) { }
             }
