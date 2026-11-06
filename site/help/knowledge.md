@@ -965,6 +965,8 @@ Auto prefers Discord, then a call app making sound. It stays on the call it's he
 ### Can call mode hear Roblox or another app? (0.8.5)
 Yes, on Windows. On her call panel, click the call app's name: the apps in Windows' volume mixer are listed below the call apps, like Roblox. Pick one and she hears it and everything it opens. She keeps your pick after a restart, even while that app is closed. Auto never picks one of these for you.
 
+Ask her to play a game that's about talking to people, like Mic Up in Roblox, and she puts herself on the game's call once she sees the game: call mode turns on with that game as the call app, and the call app you had comes back when call mode goes off. While her hands are on the job, she answers players beside it, and only you can change the job.
+
 ### Can she join a call for me? (0.8.3)
 Ask her to join the call and pass on a message. In Discord she clicks a voice channel's Join button already on screen, or the server voice channel with people in it. In another call app she clicks the Join button already on screen. If there is no Join button showing there, she tells you. She doesn't start a new call.
 
@@ -1063,7 +1065,7 @@ Your push-to-talk key still reaches the game. Pick one that won't also fire a we
 In free voice chat, you can speak while she's answering. When she hears you over her own voice, she stops speaking and listens. Holding push to talk also cuts her speech so you can talk. Cutting off her voice doesn't stop a mouse and keyboard job; say "stop" or press Esc for that.
 
 ### Listen for Capri
-Mainframe > Settings > VOICE > Listen for Capri keeps the mic open whenever she's running, with no key to press, and only answers when what you say includes her name. Ctrl + Alt + V closes her ears and opens them again. While she's hidden or on Quiet they stay closed, and they come back with her. It can be anywhere in the sentence: "what's the weather capri" works. Stop words and push to talk work without her name. With ElevenLabs picked she uses her own ears and speaks in your ElevenLabs voice, so listening costs no credits and replies use text to speech credits.
+Mainframe > Settings > VOICE > Listen for Capri keeps the mic open whenever she's running, with no key to press, and only answers when what you say includes her name. Ctrl + Alt + V closes her ears and opens them again. While she's hidden or on Quiet they stay closed, and they come back with her. It can be anywhere in the sentence: "what's the weather capri" works. Stop words and push to talk work without her name. With ElevenLabs picked she uses her own ears and speaks in your ElevenLabs voice, so listening costs no credits and replies use text to speech credits. If you shut her ears yourself, the hearing line under VOICE says "Her ears are off: click her wave to open them", and turning call mode on opens them too.
 
 ---
 
