@@ -3390,6 +3390,9 @@ namespace CapriDesktop
                 catch (UnauthorizedAccessException) { }
                 Saved.KeepAllHistory = true;
                 Save();
+                Settings diskOn;
+                bool durable = File.Exists(marker) || (Retention.Readable(Path.Combine(folder, "cross.json"), out diskOn) && diskOn.KeepAllHistory);
+                if (!durable) Saved.KeepAllHistory = false;
                 Sync();
                 return;
             }
@@ -4779,7 +4782,16 @@ namespace CapriDesktop
                 return Kept(saved, newer);
             }
             // A new install starts in the computer's own language when she speaks it.
-            catch (Exception) { settingsReset = true; return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) }; }
+            catch (Exception)
+            {
+                settingsReset = true;
+                // Settings that existed but couldn't be read leave the keep-all choice unknown, so this PC keeps
+                // everything from now on until they choose otherwise: the marker outlives the next save.
+                try { if (File.Exists(Path.Combine(folder, "cross.json"))) File.WriteAllText(Path.Combine(folder, "keep-all"), "1"); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                return new Settings { Language = Brain.SystemLanguage(System.Globalization.CultureInfo.CurrentUICulture) };
+            }
         }
 
         internal void Save()
