@@ -4519,12 +4519,13 @@ namespace CapriDesktop
             return false;
         }
 
-        // Back from editing personality.md in Notepad, her personality key catches up.
+        // Back from editing personality.md in Notepad, her personality key catches up, and she looks at your devices again in the
+        // background.
         protected override void OnActivated(EventArgs e)
         {
             base.OnActivated(e);
             ShowPersonality();
-            if (loaded) capri.RefreshHearingDevices();
+            if (loaded) capri.LookHearingDevices();
         }
 
         private static ToolStripMenuItem Choice(string text, bool chosen, EventHandler click)

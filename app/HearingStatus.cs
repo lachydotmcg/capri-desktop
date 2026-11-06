@@ -151,7 +151,7 @@ namespace CapriDesktop
                 hearingDefault = delegate { return "smoke-mic"; };
             }
             RefreshHearingDevices();
-            if (!testing) hearingWatch = new HearingWatch(delegate { Post(RefreshHearingDevices); });
+            if (!testing) hearingWatch = new HearingWatch(delegate { Post(LookHearingDevices); });
         }
 
         internal void RefreshHearingDevices()
@@ -175,6 +175,14 @@ namespace CapriDesktop
 
         private readonly DeviceLook micLook;
         private int micsAsked, micsTaken;
+
+        // Coming back to the Mainframe and Windows saying a device changed look in the background too (#100): her speakers and her
+        // mics each on their own, so a device that's slow to answer, like a Bluetooth headset waking up, only holds up its own line.
+        internal void LookHearingDevices()
+        {
+            LookSpeakers();
+            LookMics();
+        }
 
         // VOICE's mic menus look in the background (#100), so a mic that's slow to answer only holds up its own line.
         internal void LookMics()
@@ -904,7 +912,7 @@ namespace CapriDesktop
     // Windows can tell of a change many times a second: a driver rewriting a headset's properties, any app opening a mic, a
     // Bluetooth headset going on a call. Each one read every mic again on her window's thread, so a burst of them could hold
     // her up (Neco Arc, 3 Nov: she lagged and froze with Mainframe half drawn). A burst now settles and comes as one, at most
-    // once a second.
+    // once a second, and her look at the devices runs in the background (#100).
     internal sealed class HearingWatch : IDisposable
     {
         internal int Settle = 300, Spacing = 1000;

@@ -4181,7 +4181,7 @@ namespace CapriDesktop
         protected override void WndProc(ref Message message)
         {
             if (message.Msg == 0x0016) SessionEnded(message.WParam != IntPtr.Zero);
-            if ((message.Msg == 0x0219 || message.Msg == 0x001A) && mainframe != null) RefreshHearingDevices();
+            if ((message.Msg == 0x0219 || message.Msg == 0x001A) && mainframe != null) LookHearingDevices();
             if (message.Msg == 0x0218 && message.WParam.ToInt64() == 0x8013) screenOff = Native.ScreenOff(message.LParam);
             if (message.Msg == 0x0084 && frame != null)
             {
