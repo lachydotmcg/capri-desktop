@@ -1,6 +1,9 @@
 const plain = value => String(value || '').replace(/\s+/g, ' ').trim()
-const name = message => plain(message.member?.displayName || message.author?.globalName || message.author?.username || 'Someone')
+export const name = message => plain(message.member?.displayName || message.author?.globalName || message.author?.username || 'Someone')
 const prefix = /^!capri(?:\s|$)/i
+
+// She turned down an @everyone and still typed it (Lachy, 6 Nov). A zero-width space keeps @everyone and @here from ever reading as a ping.
+export const quiet = text => String(text || '').replace(/@(everyone|here)\b/gi, '@​$1')
 
 export const fallback = "My help line's glitching right now. The Help page has everything: <https://capriai.app/help/>"
 export const empty = 'Ask me something after !capri.'
@@ -35,10 +38,11 @@ export const history = (chain, me) => {
     const answer = chain[i], asked = chain[i + 1]
     if (answer?.author?.id !== me || !asked?.author || asked.author.bot || asked.author.id === me || answer.reference?.messageId !== asked.id) break
     if (i && chain[i - 1].reference?.messageId !== answer.id) break
-    const text = question(asked.content, me).slice(0, 500)
+    const text = question(asked.content, me)
     const said = spoken(answer.content).slice(0, 500)
     if (!text || !said) break
-    turns.unshift({ role: 'user', text }, { role: 'assistant', text: said })
+    // Each question carries who asked it, so someone replying to her answer for another person isn't taken for them.
+    turns.unshift({ role: 'user', text: (name(asked) + ': ' + text).slice(0, 500) }, { role: 'assistant', text: said })
   }
   return turns
 }
@@ -79,7 +83,7 @@ export const result = (status, body) => {
   const reply = typeof body?.reply === 'string' ? body.reply.trim() : ''
   if (reply && (status === 429 || (status >= 200 && status < 300 && (body.answered === true || why === 'allowance')))) {
     const more = links(body.links)
-    return { text: reply + (more ? '\n\n' + more : ''), why: status === 429 ? why || 'limit' : body.answered === true ? 'answered' : why }
+    return { text: quiet(reply) + (more ? '\n\n' + more : ''), why: status === 429 ? why || 'limit' : body.answered === true ? 'answered' : why }
   }
   return { text: fallback, why: why || (status >= 400 && status <= 599 ? 'http-' + status : 'bad-reply') }
 }

@@ -3,7 +3,7 @@ import { appendFile } from 'node:fs/promises'
 import { createHash } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { trigger, question, context, history, attachment, result, chunks, fallback, empty } from './lib.mjs'
+import { trigger, question, context, history, attachment, result, chunks, fallback, empty, name } from './lib.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 if (existsSync(path.join(here, '.env'))) process.loadEnvFile(path.join(here, '.env'))
@@ -111,7 +111,7 @@ client.on('messageCreate', async message => {
     const response = await fetch(url, {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + secret, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user: message.author.id, question: asked, history: turns, context: context(message, replied, own, client.user.id), image }),
+      body: JSON.stringify({ user: message.author.id, name: name(message), question: asked, history: turns, context: context(message, replied, own, client.user.id), image }),
       redirect: 'error',
       signal: AbortSignal.timeout(60000)
     })

@@ -23,8 +23,8 @@ const DB = { prepare: () => ({ bind() { return this; }, first: async () => ({ co
 const env = { DB, ANTHROPIC_API_KEY: 'stand-in', DISCORD_RELAY_SECRET: 'stand-in-relay', SALT: 'salt', KNOWLEDGE_URL: 'https://notes.test/knowledge.md' };
 const ctx = { waitUntil() {} };
 
-let system = '', says = '';
-globalThis.claudeCall = async body => { system = body.system; return { stop_reason: 'end_turn', content: [{ type: 'text', text: says }] }; };
+let system = '', says = '', sent = [];
+globalThis.claudeCall = async body => { system = body.system; sent = body.messages; return { stop_reason: 'end_turn', content: [{ type: 'text', text: says }] }; };
 const discord = async body => (await worker.fetch(new Request('https://worker.test/discord', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer stand-in-relay' }, body: JSON.stringify({ user: '123', ...body }) }), env, ctx)).json();
 
 // A hello gets her own line back and no links, in her app voice.
@@ -72,9 +72,21 @@ await discord({ question: 'lol', context: 'Earlier from Sam: my antivirus delete
 assert.match(system, /\[Troubleshooting > Install and antivirus\]/);
 console.log('PASS her own lines stay out of the notes search');
 
-// The website keeps its own voice and its links.
+// Each question carries who asked it, and she knows she's the server's bot, not on anyone's desktop (Lachy, 6 Nov).
+says = 'Sorted.';
+await discord({ question: 'voice?', name: ' Sovi‮ ' });
+assert.equal(sent.at(-1).content, 'Sovi: voice?');
+assert.match(system, /Different names are different people/);
+assert.match(system, /you're not on anyone's desktop/);
+assert.match(system, /Never write @everyone or @here/);
+await discord({ question: 'voice?' });
+assert.equal(sent.at(-1).content, 'voice?');
+console.log('PASS each question carries who asked it, and she knows she is the server bot');
+
+// The website keeps its own voice and its links, and never labels a name.
 says = 'Open the Mainframe and pick VOICE.';
-got = await (await worker.fetch(new Request('https://worker.test/help', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: 'how do I change her voice?' }) }), env, ctx)).json();
+got = await (await worker.fetch(new Request('https://worker.test/help', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: 'how do I change her voice?', name: 'Sam' }) }), env, ctx)).json();
+assert.equal(sent.at(-1).content, 'how do I change her voice?');
 assert.equal(got.reply, says);
 assert.ok(got.links.length >= 1);
 assert.match(system, /corner of your own website/);

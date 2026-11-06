@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { trigger, question, context, history, attachment, links, result, chunks, fallback, empty } from './lib.mjs'
+import { trigger, question, context, history, attachment, links, result, chunks, fallback, empty, quiet, name } from './lib.mjs'
 
 const me = '999'
 const now = 1800000000000
@@ -96,9 +96,9 @@ test('history follows three complete pairs in conversation order', () => {
     chain.push(message('!capri question ' + i, { id: String(i * 10), reference: { messageId: String((i - 1) * 10 + 1) } }))
   }
   assert.deepEqual(history(chain, me), [
-    { role: 'user', text: 'question 2' }, { role: 'assistant', text: 'answer 2' },
-    { role: 'user', text: 'question 3' }, { role: 'assistant', text: 'answer 3' },
-    { role: 'user', text: 'question 4' }, { role: 'assistant', text: 'answer 4' }
+    { role: 'user', text: 'Sam: question 2' }, { role: 'assistant', text: 'answer 2' },
+    { role: 'user', text: 'Sam: question 3' }, { role: 'assistant', text: 'answer 3' },
+    { role: 'user', text: 'Sam: question 4' }, { role: 'assistant', text: 'answer 4' }
   ])
 })
 
@@ -109,14 +109,21 @@ test('history stops at missing, unrelated or bot-authored questions', () => {
   assert.deepEqual(history([said, message('voice?', { id: '90', author: { id: '456', bot: true } })], me), [])
   const asked = message('!capri voice?', { id: '90' })
   assert.deepEqual(history([said, asked, answer('81', '80', 'Earlier.'), message('earlier?', { id: '80' })], me), [
-    { role: 'user', text: 'voice?' }, { role: 'assistant', text: 'Try Settings.' }
+    { role: 'user', text: 'Sam: voice?' }, { role: 'assistant', text: 'Try Settings.' }
   ])
 })
 
 test('history clips turns and keeps other human questions in the reply chain', () => {
   const said = answer('91', '90', 'a'.repeat(700))
   const asked = message('<@999> ' + 'q'.repeat(700), { id: '90', author: { id: '456', bot: false } })
-  assert.deepEqual(history([said, asked], me), [{ role: 'user', text: 'q'.repeat(500) }, { role: 'assistant', text: 'a'.repeat(500) }])
+  assert.deepEqual(history([said, asked], me), [{ role: 'user', text: 'Someone: ' + 'q'.repeat(491) }, { role: 'assistant', text: 'a'.repeat(500) }])
+})
+
+test('her replies never carry a working @everyone or @here', () => {
+  const said = result(200, { reply: 'Pinging @everyone is a no-go, and @HERE too.', answered: true, links: [] }).text
+  assert.equal(said, 'Pinging @​everyone is a no-go, and @​HERE too.')
+  assert.equal(quiet('mail me@heresy.com'), 'mail me@heresy.com')
+  assert.equal(name(message('hi', { member: { displayName: 'Talia  Yang' } })), 'Talia Yang')
 })
 
 test('attachments prefer the current message then the referenced message', () => {
