@@ -4991,7 +4991,8 @@ namespace CapriDesktop
             return which + (one ? " linked into a folder I can't change, like Nix's store, so I made it a file of its own." : " linked into folders I can't change, like Nix's store, so I made them files of their own.");
         }
 
-        // At startup only a problem is said, so her hello isn't swapped for a restart note every time she opens.
+        // At startup only a problem, or hooks she had to rewrite (like after an update moved her), is said, so her hello isn't
+        // swapped for a restart note every time she opens.
         private void SetHusk(int mode, bool starting)
         {
             if (quitting || huskChanging || husk == null) return;
@@ -5007,6 +5008,7 @@ namespace CapriDesktop
                 try { husk.Change(mode, mode == 0 ? null : HuskExe()); }
                 catch (Exception error) { problem = error.Message; }
                 string unlinked = Unlinked(husk.Unlinked, mode == 0);
+                bool rewrote = husk.Rewrote;
                 Action finish = delegate
                 {
                     huskChanging = false;
@@ -5019,7 +5021,7 @@ namespace CapriDesktop
                         : "Restart Claude Code and Codex. Trust my hooks in Codex when it asks.";
                     if (unlinked != null) note += " " + unlinked;
                     // A link she had to replace is said even at startup.
-                    if (problem != null || !starting || unlinked != null) Talk.Answer("(code/husk mode)", problem ?? note);
+                    if (problem != null || !starting || unlinked != null || rewrote) Talk.Answer("(code/husk mode)", problem ?? note);
                 };
                 if (Dispatcher.UIThread.CheckAccess()) finish(); else Dispatcher.UIThread.Post(finish);
             });

@@ -2920,6 +2920,18 @@ namespace CapriDesktop
                 pet.SetHusk(0); before = acts.Count;
                 HuskFeed("claude", "UserPromptSubmit");
                 if (acts.Count != before || pet.Husk.Mode != 0 || File.Exists(Path.Combine(folder, HuskHook.Discovery))) throw new Exception("Husk Off kept listening or acting.");
+                // At startup she stays quiet when her hooks were already in place, and says to restart once she had to rewrite them,
+                // like after an update moved her.
+                System.Reflection.MethodInfo startHusk = typeof(Pet).GetMethod("SetHusk", fields, null, new[] { typeof(int), typeof(bool) }, null);
+                pet.SetHusk(1); pet.Talk.Dismiss();
+                startHusk.Invoke(pet, new object[] { 1, true });
+                bool quietStart = pet.Talk.Reply == null;
+                File.WriteAllText(HuskHooks.PathFor("claude"), "{}");
+                startHusk.Invoke(pet, new object[] { 1, true });
+                bool toldRestart = pet.Talk.Reply == "Restart Claude Code to use my hooks.";
+                pet.Talk.Dismiss(); pet.SetHusk(0); pet.Talk.Dismiss();
+                if (!quietStart || !toldRestart) throw new Exception("At startup Code/Husk Mode spoke over hooks already in place, or kept quiet after rewriting them: quiet " + quietStart + ", told " + toldRestart);
+                checks.Add("PASS Code/Husk Mode at startup stays quiet when her hooks were in place, and says to restart Claude Code once she had to rewrite them");
 
                 string route = Path.Combine(own, "bridge");
                 Dictionary<string, object> received = null;
