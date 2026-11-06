@@ -358,6 +358,7 @@ With NORMAL selected, Refresh also looks for local servers. Start your server wi
 - Mic: "Mic: default" or "Mic: <name>". Click it to pick a mic. "Windows default" follows your Windows setting.
 - Test beside Mic: checks the picked mic for up to 10 seconds and shows its level. Stop ends the check early. Picking a voice plays her test line.
 - Her speaker (0.8.3): picks where her voice and sounds play. Default follows Windows.
+- Still checking (0.8.5 and newer): her Mic, Her speaker and Her voice in your mic menus open at once. While she's still looking up your devices they say "Still checking your mics..." or "Still checking your speakers..." and fill in a moment later, so a slow device, like a Bluetooth headset waking up, never freezes the page.
 - "Ctrl + Alt + N mutes mic": click it to change the key (it opens Settings with Mute mic ready to change).
 - A line under VOICE shows the voice status, like "Free voice, runs on your PC.", "ElevenLabs · <voice name>", "Needs your Voice ID.", or the last voice error and its fix.
 - While her free voice or ears download, a row with a dotted bar shows the download, like "Installing the local speech model · 100 MB of 316 MB".
@@ -1298,6 +1299,7 @@ For Discord she brings Discord to the front, presses the keys, then switches you
 - "Send hi to Sam on Discord", "Search for cats in Chrome", "End the call"
 - Her own pink pointer glides over and clicks. Your mouse stays where you left it: she only borrows it for each click and gives it back. Recordings show her pointer.
 - A "CAPRI: working on your task" box in the corner shows each step, and she sits on top of it while she works, so she never covers her pointer. Drag her or the box to move both; the box stays where you put it for later jobs until Capri restarts. When it fades she goes back to where she was. A "Capri is controlling ..." badge shows on the app she's using. Screen recordings and your screenshots show the box but not the badge, and her own screenshots look straight through both.
+- While she uses your mouse or keys (0.8.5 and newer), a thin pink and cyan glow goes round the screen she's working on, with "Capri's using your mouse. Esc stops her." on a badge just above the bottom. It's up for jobs on any brain, her shortcuts and media keys, games, Explore while you're away and her clones grabbing your cursor, and it goes the moment she gives control back. It shows even while she's hidden, so if your mouse moves with no glow, it wasn't her. Clicks go straight through it, and on Windows it stays out of screenshots and recordings. On Linux the badge says "Say stop to stop her."
 - Press Esc or tell her to stop: "You pressed Esc, so I stopped." Esc works even while she's holding a key down or pressing one over and over, and it stops the whole ask: if you asked for eight songs, the rest don't play. Moving your mouse doesn't stop her.
 - If her brain fails partway through a job (a rate limit, a timeout or an outage), she lets go of any mouse button she was holding and gives your mouse back.
 - One job uses your mouse at a time. Ask for another while she's busy and it waits its turn.
